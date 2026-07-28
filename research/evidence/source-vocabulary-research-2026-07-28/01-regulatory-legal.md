@@ -8,7 +8,7 @@
 >
 > **Scope:** `C01-C06`, `C13-C14`, `C16-C17`, `T1-01`, `T1-02`, `T1-04`, `T1-10`, `T2-02`, `T2-03`, `T3-01`, `E01-E03`, `E05`, `G01-G05`, and `G09` in the [source and document type matrix](../../source-document-type-matrix-2026-07-28.md)
 >
-> **Architecture reference:** [Concept Tagging Architecture Proposal](../../concept-tagging-architecture-proposal-2026-07-28.md)
+> **Architecture reference:** [Concept Tagging Architecture Research Proposal](../../concept-tagging-architecture-proposal-2026-07-28.md)
 
 ## Result
 

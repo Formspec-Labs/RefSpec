@@ -6,7 +6,7 @@
 >
 > **Date:** 2026-07-28
 >
-> **Architecture:** [Concept Tagging Architecture Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
+> **Architecture:** [Concept Tagging Architecture Research Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
 >
 > **Vocabulary catalog:** [Source Vocabulary, Ontology, and Authority Catalog](source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md)
 >

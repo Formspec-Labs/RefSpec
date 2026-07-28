@@ -2,7 +2,7 @@
 
 This directory preserves the research used to shape the 28 July 2026 RefSpec
 editor's draft. The archive is public so readers can inspect the source
-portfolio, competing design proposals, and evidence behind the specification.
+portfolio, design rationale, and evidence behind the specification.
 
 The files are research snapshots, not normative RefSpec requirements. The
 [specification](../spec/refspec.md) and
@@ -25,8 +25,7 @@ types, or controlled resources.
 
 ## Architecture research
 
-- [Concept Tagging Architecture Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
-- [Concept Tagging Research Synthesis and Testable Proposal](concept-tagging-research-synthesis-and-proposal-2026-07-28.md)
+- [Concept Tagging Architecture Research Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
 - [Axiom Ecosystem Assessment](axiom-ecosystem-analysis-2026-07-28.md)
 
 These documents record proposals and adjacent-system analysis. RefSpec adopts
@@ -53,11 +52,3 @@ links to nine reports covering:
 - [Legislative and fiscal resources](evidence/source-vocabulary-research-2026-07-28/02-legislative-fiscal.md)
 - [Health and specialist resources](evidence/source-vocabulary-research-2026-07-28/03-health-domain.md)
 - [Roadmap feeds and reference spines](evidence/source-vocabulary-research-2026-07-28/04-roadmap-reference-feeds.md)
-
-## Incomplete working notes
-
-- [Concept embedding text experiment](evidence/concept-embedding-text-fix-2026-07-28.md)
-
-The experiment note has a pending verdict and an incomplete reproduction
-section. It is retained for completeness, but it is not evidence for
-conformance or adoption.

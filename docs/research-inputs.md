@@ -19,8 +19,8 @@ recommendations are informative.
 
 | Input | Public archive | Published SHA-256 | Pre-publication snapshot SHA-256 |
 | --- | --- | --- | --- |
-| *Source and Document Type Matrix*, 28 July 2026 | [Research snapshot](../research/source-document-type-matrix-2026-07-28.md) | `94a021c1da378cdf767d2f2f10264891364ec997df86aba9e44be19c98cbfd3e` | `ce82a5f74111222b14fb8429cfe3293cd7aaad86808583d301974ad6a75f5bd7` |
-| *Source Vocabulary, Ontology, Thesaurus, and Authority Catalog*, 28 July 2026 | [Research snapshot](../research/source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) | `cf0f642188840c9df74819750b6ab9f4feabcd18d56322fdbf269892f24a6191` | `09ed778632f2f22e3b64693de82afc6f1bcff45d3540ea28cd96c39334e0d53b` |
+| *Source and Document Type Matrix*, 28 July 2026 | [Research snapshot](../research/source-document-type-matrix-2026-07-28.md) | `88cf81cd6647b24ea4d003d95ae103c639854874bc2b84c32fc5bd884aa281c8` | `ce82a5f74111222b14fb8429cfe3293cd7aaad86808583d301974ad6a75f5bd7` |
+| *Source Vocabulary, Ontology, Thesaurus, and Authority Catalog*, 28 July 2026 | [Research snapshot](../research/source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) | `d8791d088e06f906c13cc5a7de4de669e1ef91c8fd58042cf70905ea8723ac90` | `09ed778632f2f22e3b64693de82afc6f1bcff45d3540ea28cd96c39334e0d53b` |
 
 The published digests identify the neutral public editions. The
 pre-publication digests identify the source snapshots before private

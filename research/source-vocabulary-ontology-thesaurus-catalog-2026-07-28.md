@@ -8,7 +8,7 @@
 >
 > **Source scope:** [Source and Document Type Matrix](source-document-type-matrix-2026-07-28.md)
 >
-> **Architecture:** [Concept Tagging Architecture Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
+> **Architecture:** [Concept Tagging Architecture Research Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
 >
 > **Adjacent-system assessment:** [Axiom ecosystem assessment](axiom-ecosystem-analysis-2026-07-28.md)
 >
