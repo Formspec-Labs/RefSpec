@@ -4,9 +4,9 @@ RefSpec is the standalone home of the Regulatory Evidence Framework (REF), an
 evidence-first specification for acquiring, preserving, processing, enriching,
 and publishing auditable regulatory information.
 
-RefSpec is an unpublished editor's draft. The repository is private, its
-publication terms have not been selected, and it makes no W3C endorsement
-claim.
+RefSpec is an unpublished editor's draft. The repository makes no W3C
+endorsement claim. No license has been selected, so publication does not grant
+permission beyond rights supplied by applicable law.
 
 ## Documents
 
@@ -14,6 +14,7 @@ claim.
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
 - [Implementation plan](plans/implementation-plan.md)
 - [Research-input register](docs/research-inputs.md)
+- [Research archive](research/README.md)
 
 ## Ownership boundary
 
@@ -25,9 +26,10 @@ records and their portable constraints. RefSpec binds to Rulespec through an
 application profile; it does not duplicate Rulespec classes or validation
 rules.
 
-Implementations and research projects remain consumers of RefSpec. Their
-source inventories, controlled-resource research, and product-specific
-architectures are not copied into this repository.
+Implementations and research projects remain consumers of RefSpec. The dated
+research snapshots used to develop this editor's draft are archived under
+[`research/`](research/README.md). They are nonnormative except where the
+specification explicitly identifies a portfolio baseline.
 
 ## Current dependency state
 

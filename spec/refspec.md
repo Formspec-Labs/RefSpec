@@ -20,7 +20,7 @@
 >
 > **Feedback:** [Formspec-Labs/RefSpec issues](https://github.com/Formspec-Labs/RefSpec/issues)
 >
-> **Publication terms:** Pending; this private editor's draft grants no license
+> **Publication terms:** Pending; this public editor's draft grants no license
 
 ## Abstract
 
@@ -2782,17 +2782,17 @@ replace, that structure.
 - [Dublin Core Metadata Terms](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)
 - [W3C Organization Ontology](https://www.w3.org/TR/vocab-org/)
 
-### 17.3 Project evidence
+### 17.3 Research evidence
 
-- [Industry and LLM-era large-label-space tagging](../docs/research-inputs.md#informative-research)
-- [Extreme multilabel classification](../docs/research-inputs.md#informative-research)
-- [Taxonomy induction](../docs/research-inputs.md#informative-research)
-- [Label text and embedding geometry](../docs/research-inputs.md#informative-research)
-- [Controlled-vocabulary scoping](../docs/research-inputs.md#informative-research)
-- [Source partitioning and metadata priors](../docs/research-inputs.md#informative-research)
-- [US federal controlled vocabularies](../docs/research-inputs.md#informative-research)
-- [Corpus-driven vocabulary development](../docs/research-inputs.md#informative-research)
-- [When to Abandon a Controlled Vocabulary](../docs/research-inputs.md#informative-research)
+- [Industry and LLM-era large-label-space tagging](../research/evidence/blind-external-research-recovery-2026-07-28/01-industry-and-llm-era-large-label-space-tagging.md)
+- [Extreme multilabel classification](../research/evidence/blind-external-research-recovery-2026-07-28/02-extreme-multilabel-classification.md)
+- [Taxonomy induction](../research/evidence/blind-external-research-recovery-2026-07-28/03-taxonomy-induction.md)
+- [Label text and embedding geometry](../research/evidence/blind-external-research-recovery-2026-07-28/04-label-text-and-embedding-geometry.md)
+- [Controlled-vocabulary scoping](../research/evidence/blind-external-research-recovery-2026-07-28/05-controlled-vocabulary-scoping.md)
+- [Source partitioning and metadata priors](../research/evidence/blind-external-research-recovery-2026-07-28/06-source-partitioning-and-metadata-priors.md)
+- [US federal controlled vocabularies](../research/evidence/blind-external-research-recovery-2026-07-28/07-us-federal-controlled-vocabularies.md)
+- [Corpus-driven vocabulary development](../research/evidence/blind-external-research-recovery-2026-07-28/08-corpus-driven-vocabulary-development.md)
+- [When to Abandon a Controlled Vocabulary](../research/evidence/blind-external-research-recovery-2026-07-28/when-to-abandon-controlled-vocabulary-and-federal-vocabulary-inventory.md)
 
 ## Appendix A: Example operational and Rulespec records
 
