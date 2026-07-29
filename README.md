@@ -12,7 +12,10 @@ permission beyond rights supplied by applicable law.
 
 - [RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
+- [Core enrichment profile](profiles/enrichment-profile.md)
+- [REF JSON Binding 1.0](bindings/json/1.0/README.md)
 - [Implementation plan](plans/implementation-plan.md)
+- [Vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
 - [Research-input register](docs/research-inputs.md)
 - [Research archive](research/README.md)
 

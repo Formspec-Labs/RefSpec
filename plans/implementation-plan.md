@@ -11,6 +11,8 @@
 > **Normative semantic binding:** [RefSpec Rulespec Application Profile](../profiles/rulespec-application-profile.md)
 >
 > **Planning basis:** [Source inventories and recovered external research](../docs/research-inputs.md); current designs and proposals excluded
+>
+> **Vocabulary prerequisite:** [RefSpec and Rulespec vocabulary gap closure plan](vocabulary-gap-closure-plan.md)
 
 ## Result
 

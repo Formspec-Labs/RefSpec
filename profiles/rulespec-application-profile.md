@@ -2,19 +2,27 @@
 
 # RefSpec Rulespec Application Profile
 
-## Editor's Draft, 28 July 2026
+## Editor's Draft, 29 July 2026
 
 > **Short name:** REF-RKAF
 >
 > **RefSpec specification:** [RefSpec 1.0](../spec/refspec.md)
 >
+> **Core enrichment profile:** [RefSpec Core Enrichment Profile](enrichment-profile.md)
+>
 > **Implementation plan:** [RefSpec implementation plan](../plans/implementation-plan.md)
 >
-> **Development compatibility target:** Rulespec `0.2.0-pre.8`
+> **Passing development baseline:** Rulespec `0.2.0-pre.9`
 >
-> **Development revision:** `c330aef9a7e13c59929631b7b7ba0c6869a57c22`
+> **Passing baseline revision:** `2c66a85daab30a4869db08d21cea13cfc865b3a0`
 >
-> **Constraint digest:** `sha256:71250f67b81fd54af3f6e6c45f2100f9a2307da589b364593e6708e5674b7172`
+> **Passing baseline constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
+>
+> **Vocabulary-closure Rulespec version:** `0.2.0-pre.9`
+>
+> **Vocabulary-closure revision:** `2c66a85daab30a4869db08d21cea13cfc865b3a0`
+>
+> **Vocabulary-closure constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 >
 > **Status:** Normative profile under joint RefSpec and Rulespec development
 
@@ -35,13 +43,18 @@ authority for those definitions.
 
 ## 2. Dependency and pin status
 
-The development target is Rulespec `0.2.0-pre.8` at local revision
-`c330aef9a7e13c59929631b7b7ba0c6869a57c22`, with constraint digest
-`sha256:71250f67b81fd54af3f6e6c45f2100f9a2307da589b364593e6708e5674b7172`.
-The revision is committed and passes the Rulespec conformance suite, but it has
-not yet been published to the Rulespec remote repository or cut as a release.
-This profile therefore identifies an exact development target but does not
-claim a published compatible release.
+The passing vocabulary-closure baseline is Rulespec `0.2.0-pre.9` at local
+revision `2c66a85daab30a4869db08d21cea13cfc865b3a0`, with constraint digest
+`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
+That clean revision contains the authoritative source, generated artifacts,
+positive and negative fixtures, and conformance evidence. The complete
+Rulespec gate and this profile's working-tree dependency gate pass against the
+same revision and digest.
+
+The revision remains local: it has not been pushed, tagged, published, or cut
+as a Rulespec release. This profile therefore identifies an exact passing
+dependency without claiming remote availability or a published compatible
+release.
 
 **REF-RKAF-PIN-001:** Before an REF implementation publishes a conformance
 claim, its immutable REF `PublicationReleaseManifest` MUST contain:
@@ -61,9 +74,9 @@ claim, its immutable REF `PublicationReleaseManifest` MUST contain:
 | REF validator | Validator and conformance-suite versions |
 | Application profile | This profile's immutable identifier, version, and digest |
 
-**REF-RKAF-PIN-002:** A development build MAY identify `0.2.0-pre.8`, revision
-`c330aef9a7e13c59929631b7b7ba0c6869a57c22`, and constraint digest
-`sha256:71250f67b81fd54af3f6e6c45f2100f9a2307da589b364593e6708e5674b7172`
+**REF-RKAF-PIN-002:** A development build MAY identify `0.2.0-pre.9`, revision
+`2c66a85daab30a4869db08d21cea13cfc865b3a0`, and constraint digest
+`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 as its compatibility target while that revision remains unpublished. It MUST
 mark the Rulespec release availability and RefSpec conformance result
 `pending`, and it MUST NOT publish a production conformance claim.
@@ -71,6 +84,12 @@ mark the Rulespec release availability and RefSpec conformance result
 **REF-RKAF-PIN-003:** Changing any pinned Rulespec constraint, context, shape,
 profile, behavior, or fixture MUST create a new REF compatibility result. A
 version string without the exact revision and digest is insufficient.
+
+**REF-RKAF-PIN-004:** The vocabulary-closure pin MUST NOT be populated from an
+intended tag, working-tree revision, partial test result, or placeholder. It
+MUST identify the exact committed Rulespec revision and recomputed constraint
+digest that pass the complete Rulespec gate, and this profile's fixtures MUST
+pass against that exact pair before REF claims the dependent capabilities.
 
 ## 3. Ownership rules
 
@@ -118,14 +137,22 @@ the projection blocked; it MUST NOT create a substitute semantic type.
 | Accepted open-label role | `rkaf:ValueAssertion` | The profile pins the upstream predicate; REF defines no `OpenLabel` class |
 | Enrichment candidate | None | REF-owned candidate, scores, and channels |
 | `SemanticReferenceCandidate` | Externally typed resource plus Rulespec assertions after acceptance | REF candidate is not a portable semantic class |
+| `EnrichmentProfile` | None | REF owns operational facet definitions, compatible routes, and compatible assignment roles |
 | `AcceptancePolicy` | None | REF-owned candidate disposition policy |
 | `EnrichmentDecision` | Resulting Rulespec assertion or assignment identifiers | REF-owned attempt and pipeline outcome |
-| `OutputProfile` and deployment decision | Rulespec attestation and local adoption references | REF owns allowed pipeline output and deployment; Rulespec owns approval and use |
+| `OutputProfile` | None | REF owns complete candidate-use and accepted-output permission tuples |
+| `EnrichmentConfiguration` | None | REF owns the immutable behavior-changing implementation and dependency pins |
+| `SealedGoldManifest` | Rulespec attestation references | REF owns gold expectations, partition proof, independent judgments, and sealing; Rulespec owns review assertions |
+| `EnrichmentEvaluationResult` | Rulespec attestation references | REF owns measures, gates, uncertainty, and verdict for one exact configuration and gold pair |
+| `EnrichmentDeploymentDecision` | Rulespec attestation and local adoption references | REF owns environment selection of an exact configuration and evaluation pair; Rulespec owns approval and use |
 | Accepted controlled-concept assignment | `rkaf:ConceptAssignment` | Rulespec-owned assignment |
 | Concept proposal | None | REF-owned workflow record until promotion |
 | Promoted concept | `rkaf:LocalConcept` or `rkaf:RegisteredConcept` | Rulespec-owned concept selected by governance scope |
 | Accepted concept mapping | `rkaf:ConceptMapping` | Rulespec-owned mapping |
 | `RegistryImportSnapshot` | None | REF-owned import provenance for every controlled-resource kind, including mapping sets; references captures or external references, transformations, exclusions, validation, Rulespec releases, and distributions without owning their bytes or digests |
+| `RegistryImportCoverageReport` | None | REF-owned count-and-digest proof that source semantic features survived parsing and indexing or were explicitly accounted |
+| `IndexedVocabularyExpression` | None | REF-owned expression-level index provenance; the Rulespec member and native distribution remain semantic authority |
+| `RegistryReconciliationReport` | Rulespec authority, attestation, adoption, mapping, and release references | REF owns operational comparison and reconciliation outcome; a reconciled semantic release remains Rulespec-owned |
 | Reference-resource release | `rkaf:ReferenceResourceRelease` | Rulespec-owned semantic manifest with release identity, version, resource kind, membership mode and claims, distributions, and `rkaf:referenceReleaseDigest` |
 | Registry deployment | `RegistryDeploymentDecision` | REF-owned environment and index selection |
 | `PublicationReleaseManifest` | None | REF-owned published output package; pins Rulespec and inventory coverage but is distinct from `rkaf:ReferenceResourceRelease` |
@@ -235,8 +262,7 @@ extract a source-explicit statement, and a human can record a statistical
 inference.
 
 **REF-RKAF-ASSERT-001:** Durable assertions and concept assignments MUST carry
-the Rulespec epistemic basis required by the pinned `0.2.0-pre.8` constraint
-bundle.
+the Rulespec epistemic basis required by the pinned constraint bundle.
 
 **REF-RKAF-ASSERT-002:** An `rkaf:aiSuggested` result MUST retain the provisional
 usage ceiling required by Rulespec. A later attestation or local adoption MUST
@@ -247,20 +273,24 @@ not rewrite its origin or epistemic basis.
 `rkaf:ValueAssertion`; and a controlled-concept result MUST be an
 `rkaf:ConceptAssignment`. REF schemas MUST not reproduce their fields.
 
-**REF-RKAF-ASSERT-004:** The `0.2.0-pre.8` construction-origin values are
+**REF-RKAF-ASSERT-004:** The construction-origin values are
 `rkaf:humanAsserted`, `rkaf:aiSuggested`, `rkaf:imported`, and
 `rkaf:deterministicExtraction`. Promotion, qualification, review, and
 revalidation MUST use the applicable `rkaf:Attestation`,
 `rkaf:LocalAdoption`, `rkaf:LifecycleEvent`, successor assertion, and
 derivation records; they MUST NOT be encoded as construction origins.
 
-**REF-RKAF-ASSERT-005:** An accepted open-label value's portable wording,
-language, and script MUST be represented in the Rulespec graph or an adopted
-standard in the pinned Rulespec profile. Candidate-stage language or script on
-an REF decision MAY support processing but MUST NOT be the sole portable copy.
-If the pinned profile cannot represent that meaning, the projection is blocked
-under `REF-RKAF-OWN-003` or limited to a declared language-neutral or
-default-language output mode.
+**REF-RKAF-ASSERT-005:** An accepted open-label value's portable wording and
+complete BCP 47 language tag, including any script subtag, MUST be represented
+by an `rkaf:ValueAssertion` whose
+`rkaf:assertsPredicate` is `rkaf:openLabel`, whose
+`rkaf:openLabelFacet` is the exact REF facet IRI, whose
+`rkaf:openLabelRole` is the exact Rulespec assignment-role predicate IRI, and
+whose value is a BCP 47 language-tagged string. Candidate-stage detected
+language or script classification on an REF decision MAY support processing
+but MUST NOT replace or become the sole portable copy of the complete tag. The
+assertion MUST use the Rulespec evidence, provenance, epistemic-basis, and
+provisional-usage-ceiling rules applicable to its origin.
 
 **REF-RKAF-ASSERT-006:** A concept assignment MUST use the normalized
 Rulespec `rkaf:ConceptAssignment` specialization of
@@ -269,6 +299,26 @@ polarity is affirmed, all evidence uses `rkaf:EvidenceBinding`, and derivation
 uses Rulespec's PROV, justification, and warrant paths. REF MUST NOT add a
 parallel assignment shape.
 
+**REF-RKAF-ASSERT-007:** An open-label output profile MAY use
+`explicitLanguage` or `declaredDefaultLanguage`. Under
+`declaredDefaultLanguage`, the complete permission row MUST declare one valid
+BCP 47 default language and the producer MUST materialize that tag into the
+final Rulespec value before validation. Neither mode permits an untagged or
+`@none` value. `und` MUST be used only when the language is genuinely unknown,
+not when a declared default or observed language was omitted.
+
+**REF-RKAF-ASSERT-008:** The Rulespec facet and role, REF
+`EnrichmentDecision`, and complete REF `openLabelPermissions` row MUST agree
+exactly. The open-label assertion MUST NOT assert concept-scheme membership,
+and the Rulespec facet or role fields MUST NOT be treated as additional
+assertion predicates.
+
+**REF-RKAF-ASSERT-009:** An accepted open-label assertion MUST carry exactly
+one `rkaf:hasExtractionProvenance` and one `rkaf:assertedAt`. At least one
+separate `rkaf:EvidenceBinding` targeting the assertion MUST bind a Rulespec
+source fragment and use `rkaf:supports`. A no-evidence reason alone does not
+satisfy this profile.
+
 ### 6.2 Evidence
 
 **REF-RKAF-EVID-001:** Evidence for a durable Rulespec assertion MUST use
@@ -276,7 +326,7 @@ parallel assignment shape.
 
 **REF-RKAF-EVID-002:** When a binding cites source fragments, it MUST carry the
 Rulespec evidence role and evidentiary function required by the pinned
-`0.2.0-pre.8` constraint bundle. Candidate-stage evidence labels are not a
+Rulespec constraint bundle. Candidate-stage evidence labels are not a
 portable substitute.
 
 **REF-RKAF-EVID-003:** A structured source field MUST resolve to an
@@ -328,10 +378,91 @@ distributions and states how membership is represented:
   `prov:hadMember`. It cannot prove that an individual identifier is a release
   member.
 
-Rulespec `rkaf:LocalConcept` and `rkaf:RegisteredConcept` constraints apply
-only when those Rulespec-owned classes are actually used. This profile does
-not imply that their current shapes preserve every multilingual label, note,
-or notation in an external distribution.
+### 7.1 Project-authored concepts, lifecycle, and resolution
+
+Rulespec `rkaf:ConceptScheme`, `rkaf:LocalConcept`, and
+`rkaf:RegisteredConcept` constraints apply when those Rulespec-owned classes
+are used. They do not require an external native SKOS distribution to be
+rewritten; the external distribution remains canonical.
+
+**REF-RKAF-CONCEPT-001:** Project-authored Rulespec concept and scheme text MUST
+use JSON-LD language maps. `skos:prefLabel` MUST contain exactly one non-empty
+string for each present BCP 47 language. `skos:altLabel`,
+`skos:hiddenLabel`, `skos:definition`, `skos:example`, `skos:note`,
+`skos:scopeNote`, `skos:changeNote`, `skos:editorialNote`, and
+`skos:historyNote` MAY contain one or more non-empty strings for each present
+language. Untagged strings and `@none` MUST fail. `und` is permitted only when
+the language is genuinely unknown. Script MUST remain in the language tag,
+such as `zh-Hant`, and MUST NOT be copied into a parallel authored script
+field. Within one concept, the same language-tagged literal MUST NOT appear in
+more than one of the preferred, alternate, or hidden label properties; label
+equality MUST NOT merge distinct concept IRIs.
+
+**REF-RKAF-CONCEPT-002:** Each project-authored `skos:notation` value MUST be a
+closed typed-literal object containing one string `@value` and one absolute
+datatype IRI in `@type`. A notation MUST NOT be an untyped or language-tagged
+string. Multiple notations MUST remain distinct.
+
+**REF-RKAF-CONCEPT-003:** `skos:broader`, `skos:narrower`, and `skos:related`
+MUST permit zero or more IRIs and MUST preserve every supplied relation,
+including multiple broader parents. Each relation MUST connect members of the
+same scheme. A cross-scheme relation MUST use `rkaf:ConceptMapping` and one of
+the five concrete SKOS mapping predicates; it MUST NOT be encoded as SKOS
+hierarchy or `skos:related`.
+
+**REF-RKAF-CONCEPT-004:** An `rkaf:RegisteredConcept` MUST carry exactly one
+`rkaf:registeredAt` timestamp. `rkaf:managedByRegistry` names an externally
+described registry. This profile MUST NOT revive or require the v0.1
+`rkaf:ConceptRegistry` or `rkaf:ConceptMintingAuthority` object models.
+Rulespec `rkaf:Authority`, `rkaf:Attestation`, releases, and lifecycle records
+carry governance.
+
+**REF-RKAF-LIFE-001:** A concept change MUST be an `rkaf:LifecycleEvent` whose
+`rkaf:lifecycleEventKind` is `rkaf:conceptLifecycle`, with exactly one
+`rkaf:conceptLifecycleOperation`, `rkaf:predecessorConcepts`, and
+`rkaf:successorConcepts` according to this table:
+
+| Operation | Predecessors | Successors |
+| --- | ---: | ---: |
+| `rkaf:deprecation` | 1 | 0 |
+| `rkaf:withdrawal` | 1 | 0 |
+| `rkaf:replacement` | 1 | 1 |
+| `rkaf:split` | 1 | 2 or more |
+| `rkaf:merge` | 2 or more | 1 |
+| `rkaf:promotion` | 1 | 1 |
+| `rkaf:demotion` | 1 | 1 |
+
+The event MUST carry one `rkaf:predecessorConceptRelease` with complete
+membership containing every predecessor. An event with successors MUST carry
+one `rkaf:successorConceptRelease` with complete membership containing every
+successor; an event without successors MUST omit that property.
+`rkaf:appliesTo` MUST contain exactly the predecessor concepts. Duplicate
+participant IRIs do not satisfy cardinality. The standalone lifecycle-event
+kinds `rkaf:promotion` and `rkaf:demotion` are retired and MUST fail migration
+validation.
+
+**REF-RKAF-RES-001:** Every `rkaf:ConceptResolutionResult` MUST carry exactly
+one `rkaf:inputConcept`, `rkaf:resolutionStatus`, `rkaf:resolutionMethod`,
+`rkaf:cacheStatus`, `rkaf:usageCeiling`, and `rkaf:resolvedAt`. The resolution
+method MUST be one of `rkaf:directRegistry`, `rkaf:exactMatchTrusted`,
+`rkaf:closeMatchLocallyAdopted`, `rkaf:closeMatchAwaitingAdoption`,
+`rkaf:broadOrNarrowMatchDiscoveryOnly`, `rkaf:cacheServed`, or
+`rkaf:staleCacheServed`. Cache status MUST be `rkaf:fresh`, `rkaf:stale`, or
+`rkaf:notCached`. A resolved result MUST identify exactly one
+`rkaf:resolvedConcept`; a result that selected no concept MUST omit it.
+
+**REF-RKAF-RES-002:** A resolution whose selected path depends on an
+`rkaf:ConceptMapping` MUST identify that exact mapping in
+`rkaf:mappingAssertion`. This includes successful
+`rkaf:exactMatchTrusted`, `rkaf:closeMatchLocallyAdopted`,
+`rkaf:closeMatchAwaitingAdoption`, and
+`rkaf:broadOrNarrowMatchDiscoveryOnly` results. Direct registry resolution
+MUST omit the mapping assertion. A cached mapping resolution retains its
+underlying mapping method and assertion while `rkaf:cacheStatus` records
+freshness. `rkaf:usageCeiling` limits what the evidence can support; it is not
+attestation, adoption, or authorization.
+
+### 7.2 Release, import, and deployment binding
 
 Every REF controlled-resource coverage route—`subjectScheme`, `ontology`,
 `identifierAuthority`, `entityRegistry`, `codeList`, `classification`,
@@ -382,7 +513,65 @@ pin.
 `RegistryImportSnapshot` record shape as every other controlled-resource
 import. REF MUST NOT define a separate `MappingImportSnapshot` type.
 
-## 8. Relationship predicate profile
+**REF-RKAF-REG-008:** A `RegistryImportCoverageReport` MUST reference, not
+copy, the exact `rkaf:ReferenceResourceRelease`, distribution artifacts, and
+REF import snapshot it assesses. Its feature counts and stage digests prove
+operational preservation; they do not replace SKOS, OWL, code-system, schema,
+or Rulespec semantic content. A failed report MUST block deployment and
+output-profile use of the import.
+
+**REF-RKAF-REG-009:** An `IndexedVocabularyExpression` MUST reference the exact
+Rulespec release and member plus the exact native distribution and REF import
+snapshot from which its source expression came. Normalized indexed text is an
+REF search representation only. It MUST NOT become a Rulespec label, concept
+identifier, mapping, or release member unless the canonical source and
+applicable Rulespec records independently establish that fact.
+
+**REF-RKAF-REG-010:** A `RegistryReconciliationReport` MAY reference Rulespec
+concept mappings, authority, attestations, local adoption, and a separately
+published reconciled `rkaf:ReferenceResourceRelease`. It MUST NOT embed or
+mutate those records. An unresolved REF report or Rulespec review record by
+itself MUST NOT authorize a synthesized union; the new release, complete
+membership, distributions, semantic digest, provenance, approval, and
+authorization must all exist independently.
+
+## 8. Enrichment, evaluation, and deployment binding
+
+REF owns facets, candidate and accepted-output permission tuples, indexed
+representations, gold data, run configuration, measures, and deployment
+selection. Rulespec owns the accepted proposition and the trust records that
+review and authorize its use.
+
+**REF-RKAF-ENR-001:** An `OutputProfile` MUST authorize a registered release,
+mapping traversal, or open label only through one complete permission row for
+one facet and assignment role. REF MUST evaluate candidate use and
+accepted-output use separately. The row MUST NOT be copied onto
+`rkaf:ConceptAssignment`, `rkaf:ConceptMapping`, or `rkaf:ValueAssertion`;
+the REF `EnrichmentDecision` links the semantic output to the profile, and the
+REF validator matches the complete result tuple to one row.
+
+**REF-RKAF-ENR-002:** An `EnrichmentConfiguration` MUST reference exact
+Rulespec release, mapping, profile, schema, and validator identifiers without
+copying their canonical fields. Its REF digest binds operational behavior; it
+does not replace `rkaf:referenceReleaseDigest`, a distribution artifact's byte
+digest, or the Rulespec constraint digest.
+
+**REF-RKAF-EVAL-001:** A `SealedGoldManifest` and
+`EnrichmentEvaluationResult` remain REF records. An independent judgment,
+approval, or rejection about either record MUST be an `rkaf:Attestation`
+targeting its exact immutable identifier and digest. REF MAY report the
+effective result but MUST NOT copy the Rulespec reviewer, decision, or
+effectivity state into the assessed record.
+
+**REF-RKAF-EVAL-002:** An `EnrichmentDeploymentDecision` selects one exact
+configuration and evaluation pair for one environment. Selection is not
+permission to use its semantic outputs. Production use additionally requires
+the applicable effective Rulespec attestation, `rkaf:LocalAdoption`, usage
+eligibility, access, retention, and external rights policy. Revoking
+authorization appends the Rulespec records and a new REF deployment decision;
+it MUST NOT mutate the selected configuration, evaluation, or prior decision.
+
+## 9. Relationship predicate profile
 
 Durable predicate meaning belongs upstream in a Rulespec regulatory-evidence
 profile or in an adopted external ontology. REF owns candidate generation,
@@ -415,7 +604,7 @@ publication policy for using that predicate.
 MUST NOT be published as a durable Rulespec assertion unless a separately
 defined predicate and evidence policy apply.
 
-## 9. Rights binding
+## 10. Rights binding
 
 Rulespec owns access scope, retention, privacy classifications incorporated
 from DPV, and usage eligibility. Rulespec's overlay mechanism is the extension
@@ -431,7 +620,7 @@ overlay and its fixtures land, the projection is blocked under
 evidence, and workflow. It MUST reference, not duplicate, the resulting
 Rulespec and ODRL policy records, attestations, and local adoptions.
 
-## 10. Conformance composition
+## 11. Conformance composition
 
 An REF validator validates only REF operational records and cross-record
 integrity. The Rulespec validator validates only Rulespec semantic records and
@@ -459,7 +648,7 @@ conformance.
 Rulespec-owned types. Implementations MUST consume the generated types or
 schemas from the pinned Rulespec release.
 
-## 11. Upstream completion gate
+## 12. Upstream completion gate
 
 The `rkaf:ReferenceResourceRelease` name and shape, semantic digest algorithm
 and scope, and assignment and mapping release-pin property names in this draft
@@ -508,16 +697,28 @@ That local Rulespec target includes:
 - fixtures and generated artifacts for every change above; and
 - prose, vocabulary, context, shape, behavior, and conformance parity.
 
-The following application-profile work remains upstream after those kernel
-changes:
+The vocabulary-closure target adds these upstream requirements and remains
+unpinned until they pass the gate below:
+
+- JSON-LD language-map carriage, label disjointness, all supported SKOS note
+  properties, typed notation lists, and required `rkaf:registeredAt` for
+  project-authored concepts;
+- zero-or-more scheme-internal SKOS hierarchy relations with preservation of
+  multiple broader parents and rejection of cross-scheme hierarchy;
+- the unified concept-lifecycle event, operation value set, participant
+  cardinalities, complete-membership release pins, and migration rejection of
+  retired standalone promotion and demotion forms;
+- the required `rkaf:ConceptResolutionResult` method, cache status, usage
+  ceiling, resolved-concept, and conditional mapping-assertion rules;
+- the `rkaf:openLabel` predicate, `rkaf:openLabelFacet`,
+  `rkaf:openLabelRole`, and language-tagged-value constraints used by this
+  profile; and
+- positive, negative, graph-wide, behavior, migration, projection, and
+  round-trip fixtures proving those semantics in every generated target.
+
+Other application-profile work remains upstream:
 
 - regulatory-evidence predicate IRIs and their constraints;
-- an open-label `rkaf:ValueAssertion` predicate and profile rules for required,
-  optional, or declared default language;
-- multilingual label, note, and notation support for project-authored
-  `rkaf:LocalConcept` and `rkaf:RegisteredConcept` records when the REF profile
-  claims that capability, or an explicit profile limitation that leaves such
-  content canonical only in native distributions;
 - a policy-thread membership predicate;
 - any domain types needed for accepted semantic-reference candidates;
 - the exact ODRL overlay and derived-use behavior; and
@@ -529,3 +730,9 @@ applicable conformance tests agree. Documentation alone does not close it.
 
 **REF-RKAF-GATE-002:** REF MUST NOT ship a local substitute while an item is
 open. The dependent REF capability remains unsupported or internal-only.
+
+**REF-RKAF-GATE-003:** After the vocabulary-closure gate passes, this profile
+MUST replace the passing-baseline version, revision, and constraint digest with
+the exact passing Rulespec values and add the matching conformance evidence.
+Until that edit is made and validated, an REF build MUST NOT claim the
+vocabulary-closure capabilities as a conforming dependency.

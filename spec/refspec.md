@@ -2,7 +2,7 @@
 
 # RefSpec 1.0
 
-## Editor's Draft, 28 July 2026
+## Editor's Draft, 29 July 2026
 
 > **Full name:** Regulatory Evidence Framework
 >
@@ -11,6 +11,8 @@
 > **This version:** [refspec.md](refspec.md)
 >
 > **Rulespec profile:** [RefSpec Rulespec Application Profile](../profiles/rulespec-application-profile.md)
+>
+> **Core enrichment profile:** [RefSpec Core Enrichment Profile](../profiles/enrichment-profile.md)
 >
 > **Implementation plan:** [RefSpec implementation plan](../plans/implementation-plan.md)
 >
@@ -195,8 +197,8 @@ otherwise.
 | --- | --- | --- |
 | `REF-Core-Producer` | Produces baseline-enumeration reports, inventory-coverage manifests, captures, source-record revisions, source-resource versions, rendition-processing records, selector-resolution records, run receipts, REF publication-release manifests, and their required Rulespec records. | None |
 | `REF-Relationship-Producer` | Discovers and adjudicates relationship candidates and publishes accepted durable results as Rulespec records. | `REF-Core-Producer` |
-| `REF-Enrichment-Producer` | Runs typed, open-set enrichment and publishes accepted results as Rulespec records. | `REF-Core-Producer` |
-| `REF-Reference-Resource-Registry` | Imports, snapshots, validates, selects for deployment, and rolls back subject schemes, ontologies, identifier authorities, entity registries, code lists or classifications, schemas, and mapping sets whose portable release records conform to Rulespec. | `REF-Core-Producer` |
+| `REF-Enrichment-Producer` | Runs typed, open-set enrichment under immutable profiles and configurations, evaluates it against sealed gold, selects exact passing configurations, and publishes accepted results as Rulespec records. | `REF-Core-Producer` |
+| `REF-Reference-Resource-Registry` | Imports, snapshots, proves feature coverage, reconciles conflicts, indexes expressions, validates, selects for deployment, and rolls back subject schemes, ontologies, identifier authorities, entity registries, code lists or classifications, schemas, and mapping sets whose portable release records conform to Rulespec. | `REF-Core-Producer` |
 | `REF-Policy-Thread-Publisher` | Publishes versioned application views and Rulespec membership assertions under Section 11. | `REF-Core-Producer`, `REF-Relationship-Producer` |
 | `REF-Query-Service` | Returns current, historical, evidence, and supported query-time association views under Section 13. | None; see `REF-CONF-010` |
 | `REF-Participation-Processor` | Processes public participation under the additional controls in Section 14. | `REF-Core-Producer` |
@@ -223,9 +225,10 @@ requires `supported` representability for every coverage component.
 - each claimed class;
 - the serialization and media type;
 - every implemented extension profile;
-- each immutable registry, mapping, output-profile, or other release assessed
-  by the claim, identified by resource type, identifier, version, and content
-  digest;
+- each immutable registry, mapping, enrichment profile, output profile,
+  configuration, sealed-gold, evaluation-result, deployment-decision, or other
+  release assessed by the claim, identified by resource type, identifier,
+  version when applicable, and content digest;
 - the validator and test-suite version;
 - the validation date and result;
 - the immutable inventory-coverage manifest; minimum baseline inventory
@@ -634,11 +637,35 @@ REF defines the following operational terms.
   record, not an `rkaf:LocalConcept`, `rkaf:RegisteredConcept`, or permissible
   `rkaf:ConceptAssignment` value.
 
+**Enrichment configuration**
+: An immutable REF operational record that pins every behavior-changing input
+  to one enrichment implementation, including its implementation and runtime,
+  profiles and policies, reference-resource and mapping releases, imported and
+  indexed vocabulary expressions, candidate channels, fusion and truncation,
+  model and provider settings, prompt, schemas, budgets, and determinism
+  declarations.
+
 **Enrichment decision**
 : A durable record of an attempted enrichment, including its target, profile,
   policy, candidates considered, outcome, and any abstention or failure reason.
   It records workflow state; any portable semantic result is a separate
   Rulespec record.
+
+**Enrichment deployment decision**
+: An append-only REF operational record that stages, selects, deselects, fails,
+  or replaces an exact enrichment configuration and evaluation result for an
+  environment. It does not duplicate Rulespec review or authorization.
+
+**Enrichment evaluation result**
+: An immutable REF operational record that evaluates one exact enrichment
+  configuration against one exact sealed gold manifest and protocol. It records
+  measures, uncertainty, gates, and a `pass`, `fail`, or `developmentOnly`
+  verdict.
+
+**Enrichment profile**
+: An immutable, versioned REF policy that defines facet IRIs and their
+  definitions, inclusion and exclusion cues, compatible REF resource routes,
+  and compatible Rulespec assignment-role predicates.
 
 **Deterministic payload**
 : The canonical output content that a deterministic stage produces from fixed
@@ -664,6 +691,13 @@ REF defines the following operational terms.
   representability, adapter or import implementation, release inclusion, and
   rights/use authorization separate.
 
+**Indexed vocabulary expression**
+: An immutable REF operational record for one source-authored label, note,
+  definition, notation, or other searchable expression as indexed. It binds the
+  original Unicode literal and language or datatype to its exact reference
+  resource, import, member, normalization policy, index snapshot, and indexed
+  text without making the literal a concept identifier.
+
 **External reference**
 : An operational `externalReference` record-kind value for a pointer to a
   source resource, semantic resource, observation, model result, or identifier
@@ -677,17 +711,12 @@ REF defines the following operational terms.
   REF does not define an `OpenLabel` class.
 
 **Output profile**
-: An immutable, versioned policy that defines the facets, assignment roles,
-  Rulespec reference-resource releases, registry import snapshots, mapping
-  relations, open-label modes,
-  acceptance policies, publication views, and other output choices a producer
-  may use.
-
-**Output-profile decision**
-: An append-only operational record that stages, selects, deselects, replaces,
-  fails, or rolls back deployment selection of an immutable output-profile
-  version. Approval, revocation of approval, and authorization are recorded
-  separately with Rulespec.
+: An immutable, versioned policy whose complete permission rows bind a facet
+  and assignment role to one reference-resource release and import snapshot,
+  one directed mapping path input, or one open-label mode. Candidate use and
+  accepted-output use are separate permissions on each row. The profile also
+  identifies its enrichment profile, acceptance policies, publication views,
+  and other output choices.
 
 **Participation record**
 : The REF `participation` record-kind route for a public comment, testimony,
@@ -715,6 +744,17 @@ REF defines the following operational terms.
   exclusions, validation, rights assessment, and applicable Rulespec release
   and distribution artifacts. It does not own retrieved bytes or repeat any
   capture, release, or artifact identity or digest.
+
+**Registry import coverage report**
+: An immutable REF operational record that accounts, by semantic feature, for
+  what a controlled-resource distribution contained and what the import parser
+  and index preserved, explicitly excluded, or failed to process.
+
+**Registry reconciliation report**
+: An immutable REF operational record that describes conflicting official
+  controlled-resource inputs, their exact differences, applicable mappings and
+  precedence, unresolved items, attestations, and the decision whether one
+  input or a newly published reconciled release may be used.
 
 **Rendition**
 : The REF application role played by one `rkaf:Artifact` that represents a
@@ -744,6 +784,12 @@ REF defines the following operational terms.
 : A digest computed over a canonical deterministic payload under the declared
   serialization profile, excluding only that profile's run-instance
   provenance fields.
+
+**Sealed gold manifest**
+: An immutable, independently adjudicated REF operational record that fixes an
+  evaluation generation's corpus membership, vocabulary and mapping universe,
+  per-facet and role expectations, adequacy grades, forbidden results,
+  partition proof, reviewers, and digest before evaluated output exists.
 
 **Source-record revision**
 : One decoded state of a source-native API or feed record. A changed record does
@@ -802,7 +848,8 @@ publication. Rulespec owns portable meaning and trust.
 | Capture, source-record revision, completeness, source-resource and version resolution | REF |
 | Rendition processing state, selector resolution, run receipt, candidate and adjudication workflow | REF |
 | Baseline enumeration, inventory coverage, source/reference-resource onboarding, and release-inclusion status | REF |
-| Registry import snapshot, deployment selection, rollback, candidate index, and publication packaging | REF |
+| Registry import snapshot and coverage report, reconciliation, deployment selection, rollback, indexed vocabulary expressions, and candidate index | REF |
+| Enrichment and output profiles, sealed gold, exact configuration, evaluation result, deployment selection, and publication packaging | REF |
 | Search, query-time similarity, policy-thread view, product explanation | REF |
 | Immutable evidence artifact | Rulespec `rkaf:Artifact` |
 | Addressable source region | Rulespec `rkaf:SourceFragment` |
@@ -877,11 +924,12 @@ MUST copy the other's canonical fields.
 
 ### 4.4 Upstream-first rule
 
-The development compatibility target for this draft is Rulespec
-`0.2.0-pre.8`. Because that release is under active development, the
-application profile records its exact compatibility status and unresolved
-upstream requirements. It does not claim an immutable final commit until that
-commit exists.
+The last passing development baseline for this draft is Rulespec
+`0.2.0-pre.8`. The vocabulary-closure target is not pinned until its
+authoritative source, generated artifacts, fixtures, digest, and complete
+Rulespec gate pass together. The application profile records the exact
+baseline, blocked capabilities, and pin-update gate; neither this
+specification nor an implementation may guess the future revision or digest.
 
 **REF-BIND-015:** When REF needs reusable semantics that the pinned Rulespec
 release cannot express, the project MUST add or clarify them in Rulespec or an
@@ -1442,22 +1490,25 @@ without deleting the rejected release's history.
 
 ### 9.1 Typed facets
 
-REF separates semantic outputs by facet:
+REF separates semantic outputs by facet. The
+[RefSpec Core Enrichment Profile](../profiles/enrichment-profile.md) supplies
+the normative definition, inclusion and exclusion cues, compatible REF routes,
+and compatible Rulespec assignment roles for each facet:
 
-| Facet | Examples |
-| --- | --- |
-| General subject | Housing policy, air quality, workplace safety |
-| Specialist subject | Clinical procedure, chemical process, aerospace technology |
-| Entity | Organization, person, chemical, facility, program, place |
-| Legal location | USC, Public Law, CFR, court citation |
-| Industry classification | NAICS industry |
-| Affected population | Regulated facilities, benefit recipients |
-| Genre | Rule, guidance, complaint, report |
-| Regulatory action | Proposes, amends, withdraws, decides |
-| Administrative process stage | Unified Agenda stage, OIRA review stage, comment period |
-| Code-list value | Source-native status or classification code |
-| Ontology class | Class membership in a named ontology |
-| Observation and measure | Amount, count, burden, modeled estimate |
+| Facet IRI | Short label | Examples |
+| --- | --- | --- |
+| `urn:ref:facet:general-subject` | General subject | Housing policy, air quality, workplace safety |
+| `urn:ref:facet:specialist-subject` | Specialist subject | Clinical procedure, chemical process, aerospace technology |
+| `urn:ref:facet:entity` | Entity | Organization, person, chemical, facility, program, place |
+| `urn:ref:facet:legal-location` | Legal location | USC, Public Law, CFR, court citation |
+| `urn:ref:facet:industry-classification` | Industry classification | NAICS industry |
+| `urn:ref:facet:affected-population` | Affected population | Regulated facilities, benefit recipients |
+| `urn:ref:facet:genre` | Genre | Rule, guidance, complaint, report |
+| `urn:ref:facet:regulatory-action` | Regulatory action | Proposes, amends, withdraws, decides |
+| `urn:ref:facet:administrative-process-stage` | Administrative process stage | Unified Agenda stage, OIRA review stage, comment period |
+| `urn:ref:facet:code-list-value` | Code-list value | Source-native status or classification code |
+| `urn:ref:facet:ontology-class` | Ontology class | Class membership in a named ontology |
+| `urn:ref:facet:observation-measure` | Observation and measure | Amount, count, burden, modeled estimate |
 
 **REF-ENR-001:** Subjects, entities, legal citations, industry
 classifications, affected populations, genres, actions, process stages,
@@ -1467,8 +1518,18 @@ distinct facets.
 **REF-ENR-002:** A readable label on a code, identifier, schema element, or
 ontology class MUST NOT make that value a subject concept.
 
-**REF-ENR-003:** An enrichment profile MUST declare the facet IRIs, Rulespec
-concept schemes, entity registries, and Rulespec assignment roles it may emit.
+**REF-ENR-003:** An enrichment profile MUST declare the facet IRIs, compatible
+REF resource routes, and compatible Rulespec assignment roles it supports.
+Exact concept schemes, entity registries, releases, imports, mappings, and
+open-label modes belong in complete `OutputProfile` permission rows.
+
+**REF-ENR-015:** An `EnrichmentProfile` MUST have a stable identifier,
+immutable version, and content digest. For every facet it defines, it MUST
+provide a stable absolute IRI, label, definition, inclusion and exclusion cues,
+compatible REF resource routes, and compatible Rulespec assignment-role
+predicate IRIs. A profile MUST NOT express facet separation as global OWL
+disjointness. An implementation using the core profile MUST use the twelve
+`urn:ref:facet:*` IRIs above exactly.
 
 ### 9.2 Open-set behavior
 
@@ -1519,33 +1580,74 @@ Rulespec provenance. REF MUST NOT copy Rulespec concept lifecycle into the
 proposal record.
 
 **REF-ENR-011:** An `OutputProfile` MUST have a stable identifier, immutable
-version, and content digest. It MUST declare its permitted facets, assignment
-roles, Rulespec reference-resource releases, registry import snapshots,
-mapping relations, open-label modes, acceptance policies, and
-publication views.
+version, and content digest. It MUST identify one immutable
+`EnrichmentProfile`, its acceptance policies and publication views, and its
+complete `releasePermissions`, `mappingPermissions`, and
+`openLabelPermissions` rows.
+
+**REF-ENR-016:** Every `OutputProfile` permission row MUST contain the following
+fields. References MUST identify immutable records and exact versions or
+digests where those record types require them.
+
+| Row | Required fields |
+| --- | --- |
+| `releasePermissions` | `facet`, `assignmentRole`, `referenceResourceRelease`, `registryImportSnapshot`, `requiredImportFeatures`, `candidateUse`, and `acceptedOutputUse` |
+| `mappingPermissions` | `facet`, `assignmentRole`, `mappingSnapshot`, `sourceRelease`, `targetRelease`, `relation`, `direction`, `candidateUse`, and `acceptedOutputUse` |
+| `openLabelPermissions` | `facet`, `assignmentRole`, `mode`, `candidateUse`, and `acceptedOutputUse`; `defaultLanguage` is additionally required for `declaredDefaultLanguage` |
+
+`mappingSnapshot` MUST identify a `RegistryImportSnapshot` whose controlled
+resource route is `mappingSet`. `direction` MUST be `sourceToTarget` or
+`targetToSource`; a profile authorizes both directions only by including two
+rows. `mode` MUST be `explicitLanguage` or `declaredDefaultLanguage` as defined
+by the selected enrichment profile. Both use fields are explicit booleans.
+`requiredImportFeatures` MUST name every import-coverage feature needed for
+candidate or accepted-output behavior under that release row; the matching
+coverage report MUST derive its requirement flags from those rows.
+For a mapping row, the matching mapping-set coverage report MUST mark
+`mappings`, `identifiers`, and `membership` as required. The report's exact
+`referenceResourceRelease` is the mapping release for the exact
+`mappingSnapshot`; the configuration and sealed vocabulary universe MUST pin
+that release and snapshot together.
+Accepted-output permission on a mapping row authorizes that exact mapping
+traversal to support an accepted target; it does not publish the mapping or
+make either endpoint release generally output-eligible.
+
+**REF-ENR-017:** Candidate and accepted-output authorization MUST be evaluated
+against one complete permission row. A producer MUST NOT combine the facet or
+role from one row with a release, snapshot, relation, direction, mode, or use
+permission from another row. `acceptedOutputUse: true` requires
+`candidateUse: true` in the same row. Candidate permission alone, including
+permission for a diagnostic, decoy, or mapping-only resource, MUST NOT
+authorize accepted output.
 
 **REF-ENR-012:** An accepted open-label output MUST be an
-`rkaf:ValueAssertion`. The Rulespec record set or an adopted standard in the
-pinned Rulespec profile MUST preserve its exact wording, language and script
-when known, evidence, and generating activity. Its linked REF
+`rkaf:ValueAssertion` whose predicate is `rkaf:openLabel`. The assertion MUST
+carry `rkaf:openLabelFacet` and `rkaf:openLabelRole`, and its value MUST be a
+BCP 47 language-tagged string. The Rulespec record MUST preserve its exact
+wording and complete language tag, including any script subtag, as well as its
+evidence and generating activity. Its linked REF
 `EnrichmentDecision` MUST preserve the facet, stable local value identifier,
 output profile, and workflow provenance. REF MAY retain detected language or
 script as candidate-processing data, but that data MUST NOT be the only copy
-of portable accepted meaning. Until the pinned Rulespec profile can represent
-the required language and script, the producer MUST block that projection or
-limit the output profile to a declared language-neutral or default-language
-mode. The value assertion MUST NOT assert concept-scheme membership.
+of portable accepted meaning. When the permission mode is
+`declaredDefaultLanguage`, the producer MUST materialize that declared
+language tag into the final Rulespec value before validation. An untagged or
+`@none` value is invalid; `und` is permitted only when the language is
+genuinely unknown. The value assertion MUST NOT assert concept-scheme
+membership.
 
-Core REF output-profile selection states are `staged`, `selected`,
-`deselected`, and `failed`. Approval, revocation of approval, and authorization
-for use are Rulespec attestations and local adoptions.
+**REF-ENR-018:** An open-label candidate or accepted output MUST match one
+complete `openLabelPermissions` row for its facet, role, mode, and use. An
+accepted assertion MUST also identify exact Rulespec evidence and provenance.
+The facet and role on the Rulespec assertion, its REF
+`EnrichmentDecision`, and the authorizing permission row MUST agree exactly.
 
-**REF-ENR-013:** Output-profile staging, selection, deselection, replacement,
-and rollback MUST append an `OutputProfileDecision`.
-The decision MUST identify the profile identifier, version, and digest;
-selection state; effective and recorded times; reason; and predecessor or
-superseding decision when applicable. Review and authorization MUST be linked
-Rulespec records, not duplicated fields.
+**REF-ENR-013:** An `OutputProfile` is immutable. Any permission, acceptance
+policy, or publication-view change MUST create a new profile version and
+content digest. Operational selection for an environment MUST use an
+`EnrichmentDeploymentDecision`; REF MUST NOT mutate the profile or use a
+standalone output-profile state as deployment authority. Review and
+authorization MUST remain linked Rulespec records.
 
 **REF-ENR-014:** An `accepted` enrichment decision MUST reference one or more
 resulting Rulespec assertion or assignment identifiers. A
@@ -1576,6 +1678,21 @@ the raw score when the channel produces one and an explicit no-score state
 otherwise. A registered candidate MUST identify its scheme and release; an
 open-label candidate MUST identify its stable local namespace or generating
 activity.
+
+**REF-CAND-009:** Every source-authored vocabulary string used by a candidate
+index MUST have an `IndexedVocabularyExpression` that identifies the exact
+Rulespec reference-resource release, REF registry import snapshot,
+distribution artifact, and member IRI; source property IRI or source-native
+path; original Unicode literal; BCP 47 language tag, including its script
+subtag when supplied, or an absolute datatype IRI when the source expression
+is typed, but never both or neither; normalization-policy
+identifier and digest; normalized indexed text and its digest; indexed
+representation version; index snapshot; generating activity; and run receipt.
+A candidate generated from the expression MUST reference that record.
+Expressions with identical literals but different releases, schemes, members,
+properties, language tags, or datatypes MUST remain distinct records.
+Normalization MUST NOT create concept identity, discard the original
+expression, or reduce text to ASCII as the only indexed representation.
 
 **REF-CAND-002:** Candidate fusion and truncation MUST be deterministic for
 fixed deterministic inputs and MUST be visible in the run receipt.
@@ -1625,11 +1742,13 @@ concept unless a declared historical profile permits them.
 **REF-ACC-007:** Every accepted registered assignment MUST use a facet,
 assignment-role predicate IRI, scheme or registry, Rulespec
 reference-resource release, and any mapping-set `RegistryImportSnapshot`
-selected by the output profile at the decision time. The assignment-role predicate MUST
-be defined by the pinned Rulespec profile; REF MUST NOT mint a parallel role
-value set. Every accepted open-label assignment MUST use a facet,
-assignment-role predicate, and open-label mode authorized by the profile
-selected at that time. Mapping-only resources, unauthorized releases, and
+selected together by one complete permission row in the output profile at the
+decision time. The assignment-role predicate MUST be defined by the pinned
+Rulespec profile; REF MUST NOT mint a parallel role value set. Every accepted
+open-label assignment MUST use a facet, assignment-role predicate, language
+mode, and any declared default language authorized together by one complete
+permission row selected at that time. Mapping-only resources, unauthorized
+releases, candidate-only rows, tuples assembled from separate rows, and
 wrong-facet candidates MUST NOT enter the accepted view.
 
 **REF-ACC-008:** A Rulespec concept assignment MUST use
@@ -1668,6 +1787,58 @@ without independent evidence and a Rulespec-supported derivation.
 **REF-ASSIGN-003:** A `ConceptProposal` MUST be represented by its enrichment
 decision and governance workflow. It MUST NOT be used as the value of an
 `rkaf:ConceptAssignment`.
+
+### 9.6 Configuration, evaluation, and deployment
+
+An enrichment run is reproducible only when its complete behavior is named as
+one immutable configuration. Evaluation and deployment are separate records;
+neither mutates the configuration.
+
+**REF-ENR-019:** An `EnrichmentConfiguration` MUST identify:
+
+- its implementation identifier, immutable revision, build, runtime, and
+  dependency-lock digest;
+- its `EnrichmentProfile`, `OutputProfile`, `AcceptancePolicy`, and applicable
+  schema identifiers, versions, and digests;
+- every Rulespec reference-resource release, REF registry import snapshot,
+  mapping release, mapping-set import snapshot, and selected
+  `RegistryDeploymentDecision` available to the run, plus the digest of the
+  complete candidate target universe;
+- every candidate index snapshot, indexed-expression corpus digest, indexed
+  representation version, and normalization-policy identifier and digest;
+- every candidate channel and its retriever, query construction,
+  ordering, fusion, deduplication, quota, truncation, and fallback policy;
+- every model identifier and revision, provider and endpoint configuration
+  that changes behavior, inference parameter, prompt or template identifier and
+  digest, tool policy, and structured-output schema;
+- every per-stage input, output, token, time, candidate, and cost budget;
+- deterministic or nondeterministic status for each stage, including seeds and
+  replay controls when applicable; and
+- its canonical payload digest.
+
+Changing a listed value or any other value that can change candidates,
+decisions, accepted outputs, abstention, latency, or cost MUST create a new
+configuration identifier and digest. Secrets MAY be represented by stable
+secret-version references; their cleartext values MUST NOT enter a
+configuration record.
+
+Core `EnrichmentDeploymentDecision` states are `staged`, `selected`,
+`deselected`, and `failed`.
+
+**REF-ENR-020:** An `EnrichmentDeploymentDecision` MUST identify its target
+environment; exact `EnrichmentConfiguration` identifier and digest; exact
+`EnrichmentEvaluationResult` identifier and digest; exact `OutputProfile`
+identifier, version, and digest; selection state; effective and recorded times;
+reason; responsible activity; predecessor or superseding decision when
+applicable; and the applicable Rulespec attestation and local-adoption
+references. Each authorization reference MUST have an exact validation receipt
+showing that the Rulespec record is effective for the decision's scope and
+time. A `selected` decision for production MUST reference an evaluation with
+verdict `pass`, and the evaluation's configuration digest and the
+configuration's output-profile digest MUST match the selected records exactly.
+Current selection MUST be reduced from append-only deployment decisions. A
+failed or deselected decision MUST NOT erase its configuration, evaluation, or
+predecessor.
 
 ## 10. Relationship discovery and publication
 
@@ -2027,9 +2198,13 @@ Rulespec concept identifiers when labels are identical.
 
 **REF-VOC-003:** A reference-resource import MUST preserve in its native
 distribution all supplied notations or codes; preferred, alternate, and hidden
-labels; language tags and scripts; definitions; scope, editorial, and history
-notes; status; hierarchy; replacements; source mappings; source identifiers;
-scheme membership; and other source notes that affect meaning. An
+labels; language tags, including script subtags; definitions; scope,
+editorial, and history
+notes; status; every hierarchy edge including multiple broader parents;
+replacements; source mappings; source identifiers; scheme membership; and
+other source notes that affect meaning. A project-authored Rulespec concept
+MUST use the multilingual label, note, typed-notation, multi-parent hierarchy,
+registration, and lifecycle shapes required by the application profile. An
 implementation MUST NOT claim that Rulespec `rkaf:LocalConcept` or
 `rkaf:RegisteredConcept` constraints preserve those fields unless the exact
 pinned Rulespec release supports them.
@@ -2080,16 +2255,86 @@ distributions, or `rkaf:referenceReleaseDigest`, or the distribution
 artifacts' canonical identities or byte digests, as independently
 authoritative REF fields.
 
+**REF-VOC-021:** Every `RegistryImportSnapshot` used for candidate generation
+or accepted output MUST have an immutable `RegistryImportCoverageReport`. The
+report MUST identify the import snapshot, exact Rulespec
+`rkaf:ReferenceResourceRelease`, applicable distribution artifacts, import
+profile, parser version, index snapshot, exact `OutputProfile`, activity,
+receipt, report status, and canonical payload digest. Each feature row MUST
+state whether that feature is required for candidate or accepted-output use
+under the named profile. The report MUST contain one feature row for each
+applicable feature:
+
+- members and scheme membership;
+- preferred, alternate, and hidden labels;
+- language tags, including script subtags;
+- typed notations;
+- definitions, examples, scope notes, editorial notes, history notes, change
+  notes, and other source notes that affect meaning;
+- broader and narrower hierarchy relations;
+- source and cross-scheme mappings;
+- status and deprecation;
+- replacements; and
+- source and canonical identifiers.
+
+Each feature row MUST contain source-observed, parsed, indexed, explicitly
+excluded, and failed counts; digests for the source-observed, parsed, and
+indexed stages; and references to itemized exclusions and failures. Every
+exclusion MUST identify its policy and rationale. Counts and digests account
+for the feature without copying its semantic content into the report.
+
+**REF-VOC-022:** Import coverage MUST fail when a required feature has an
+unexplained count or digest difference between source observation, parsing,
+and indexing; when a source containing hierarchy, aliases, multilingual
+labels, notation, notes, status, replacements, identifiers, membership, or
+mappings reports zero of that feature after parsing without a complete
+exclusion account; or when an excluded or failed item lacks a reason. A failed
+coverage report MUST block registry deployment, candidate use, accepted-output
+use, and an import-conformance claim. A source feature intentionally omitted
+from an index MAY be fully accounted as excluded only when the selected
+candidate and output profiles do not require it and its coverage row records
+`requiredForCandidateOrOutput: false`.
+
+**REF-VOC-023:** A `RegistryReconciliationReport` MUST identify every
+conflicting official `rkaf:ReferenceResourceRelease`, distribution artifact,
+and `RegistryImportSnapshot`. Each complete input tuple MUST have its own
+identifier, and every difference MUST reference at least two of those exact
+input identifiers. The report MUST identify the exact compared fields,
+members, relations, and stage digests; every detected difference; applicable
+`rkaf:ConceptMapping` records; the versioned source-precedence policy and its
+Rulespec authority, attestation, and local-adoption references; every
+unresolved item; responsible activity; recorded time; canonical payload
+digest; and exactly one outcome: `selectedInput`,
+`reconciledReleaseAuthorized`, or `unresolved`. A
+validation receipt MUST bind every authority, attestation, and adoption
+reference to an effective Rulespec validation result; an unresolved or
+unvalidated reference MUST NOT authorize a resolved outcome. A
+`reconciledReleaseAuthorized` outcome MUST identify a new
+`rkaf:ReferenceResourceRelease` with its own identity, complete membership,
+distributions, provenance, and digest; it MUST NOT mutate any input release.
+
+**REF-VOC-024:** Conflicting official publications MUST remain distinct until
+a reconciliation report resolves their differences. An `unresolved` report,
+an unattested report, or lexical equality alone MUST NOT authorize an
+authoritative synthesized union. Candidate generation MAY expose the
+conflicting inputs for review when a permission row allows it, but accepted
+output MUST follow one exact authorized release or the separately published
+reconciled release.
+
 A `RegistryDeploymentDecision` records operational selection for a target
 environment and output profile. Core states are `quarantined`, `staged`,
 `selected`, `deselected`, and `failed`. Review and authority to use the release
 are separate Rulespec attestations and local adoptions.
 
 **REF-VOC-017:** A `RegistryDeploymentDecision` MUST identify the import
-snapshot, target environment and output profile, selection state, effective
-and recorded times, responsible activity, reason, applicable rights assessment
-and adopted policy, and predecessor or superseding deployment decision when
-applicable.
+snapshot, its passing import-coverage report, any applicable reconciliation
+report, target environment and output profile, selection state, effective and
+recorded times, responsible activity, reason, applicable rights assessment and
+adopted policy, exact effective validation receipts for every attestation and
+local-adoption reference, and predecessor or superseding deployment decision
+when applicable. A `selected` decision MUST NOT reference a failed coverage
+report, unvalidated governance reference, or unresolved reconciliation as
+authority for a synthesized release.
 
 **REF-VOC-018:** A producer MUST compute current operational selection from
 append-only `RegistryDeploymentDecision` records and permitted use from
@@ -2492,8 +2737,8 @@ path or embedding.
 **REF-TEST-115:** Replay MUST identify deterministic and nondeterministic
 stages separately.
 
-**REF-TEST-116:** Preferred labels in different languages and scripts MUST
-survive without collision.
+**REF-TEST-116:** Preferred labels with different BCP 47 language tags,
+including distinct script subtags, MUST survive without collision.
 
 **REF-TEST-117:** `closeMatch`, `broadMatch`, `narrowMatch`, or `relatedMatch`
 MUST NOT act as `exactMatch` without an explicit profile rule that preserves
@@ -2641,6 +2886,112 @@ it uses a non-IRI or generic catch-all value; lacks a versioned extension
 profile, core-route non-fit rationale, operational and portable bindings, or
 required fixtures; or weakens an applicable REF or Rulespec requirement.
 
+**REF-TEST-150:** An accepted registered or mapping-derived result MUST fail
+when no single `OutputProfile` permission row matches its facet, role, release,
+import snapshot, relation, direction, and accepted-output permission. A tuple
+assembled from fields in separate valid rows MUST fail.
+
+**REF-TEST-151:** A candidate-only release, candidate-only mapping, diagnostic
+resource, decoy resource, or mapping-only resource MUST be usable for candidate
+generation only when its row permits that use and MUST fail if it enters
+accepted output. A row with `acceptedOutputUse: true` and
+`candidateUse: false` MUST fail validation.
+
+**REF-TEST-152:** A candidate, gold expectation, permission row, decision, or
+accepted result with an unknown facet, a wrong-facet value, an incompatible REF
+resource route, or an assignment role not permitted for that facet and route
+MUST fail the applicable validation or evaluation gate.
+
+**REF-TEST-153:** An accepted open label MUST fail unless one complete
+permission row authorizes its facet, role, language mode, candidate use, and
+accepted-output use and its `rkaf:ValueAssertion` uses `rkaf:openLabel`, carries
+matching `rkaf:openLabelFacet` and `rkaf:openLabelRole`, contains a valid
+language-tagged value, carries the required extraction provenance and assertion
+time, and has a fragment-backed supporting `rkaf:EvidenceBinding`. A declared
+default language MUST appear on the final value; an untagged or `@none` value,
+or a no-evidence reason without supporting evidence, MUST fail.
+
+**REF-TEST-154:** A source distribution that contains hierarchy, alternate or
+hidden labels, multilingual labels, typed notation, notes, status,
+replacements, identifiers, membership, or mappings MUST fail import coverage
+when any such feature becomes an unexplained zero or has an unexplained count
+or digest difference at the parsed or indexed stage.
+
+**REF-TEST-155:** Identical original or normalized literals from different
+schemes, releases, members, properties, languages, or datatypes MUST survive as
+distinct `IndexedVocabularyExpression` records and candidates. A
+label-derived concept identifier or ASCII-only original representation MUST
+fail.
+
+**REF-TEST-156:** Conflicting official controlled-resource publications MUST
+remain distinct. A synthesized authoritative union MUST fail unless a
+`RegistryReconciliationReport` accounts for every input and difference, has no
+unresolved item, carries the required Rulespec attestations and adoption, and
+identifies a separately published reconciled release.
+
+**REF-TEST-157:** A sealed holdout MUST fail when its development partition
+shares any concept identity, exact-match cluster, current or deprecated alias,
+source identity, artifact digest, text digest, or near-duplicate cluster. It
+MUST also fail when linked versions or renditions cross the split.
+
+**REF-TEST-158:** Gold and evaluation fixtures MUST preserve the directional
+distinction among `targetBroaderThanGold`, `targetNarrowerThanGold`, `related`,
+and `wrong`. A `notRepresented` item MUST route to open-label,
+concept-proposal, or abstention evaluation and MUST remain in availability and
+open-set measures while being excluded from reachable registered-candidate
+recall.
+
+**REF-TEST-159:** Changing any behavior-relevant implementation, runtime,
+model, provider setting, prompt, schema, index, indexed expression corpus,
+normalization, candidate channel, fusion or truncation rule, policy, threshold,
+budget, registry, mapping, output profile, or permission tuple while retaining
+the prior configuration identifier, digest, or evaluation result MUST fail.
+
+**REF-TEST-160:** A production `EnrichmentDeploymentDecision` MUST fail when
+its configuration, evaluation result, or output-profile identifier or digest
+does not match exactly; when its result verdict is `fail` or
+`developmentOnly`; or when required Rulespec approval or authorization is
+absent.
+
+**REF-TEST-161:** Project-authored Rulespec concepts with English, Spanish, and
+`zh-Hant` labels MUST survive an end-to-end round trip. A malformed BCP 47 tag,
+untagged label, `@none` entry, or `rkaf:RegisteredConcept` without
+`rkaf:registeredAt` MUST fail the invoked Rulespec validation.
+
+**REF-TEST-162:** A project-authored Rulespec concept with more than one
+preferred label for one language, or with the same literal colliding across its
+preferred, alternate, or hidden labels for one language, MUST fail the invoked
+Rulespec validation.
+
+**REF-TEST-163:** Typed notation and every supported `skos:definition`,
+`skos:example`, `skos:note`, `skos:scopeNote`, `skos:editorialNote`,
+`skos:historyNote`, and `skos:changeNote` property MUST survive every generated
+Rulespec target and REF import/index accounting path without loss of lexical
+form, datatype, language, or source property.
+
+**REF-TEST-164:** Multiple scheme-internal `skos:broader` parents MUST survive
+the Rulespec source, generated targets, REF import, index, and round trip. A
+cross-scheme `skos:broader` edge MUST fail; the relationship MUST use a
+Rulespec `rkaf:ConceptMapping`.
+
+**REF-TEST-165:** Each Rulespec concept lifecycle operation MUST enforce its
+predecessor-to-successor cardinality and exact complete-membership release
+pins: 1-to-0 for deprecation and withdrawal, 1-to-1 for replacement,
+promotion, and demotion, 1-to-2-or-more for split, and 2-or-more-to-1 for
+merge. Retired standalone promotion or demotion event forms MUST fail.
+
+**REF-TEST-166:** A Rulespec `rkaf:ConceptResolutionResult` MUST fail without
+its required resolution method, cache status, or usage ceiling. A result whose
+method depends on a concept mapping MUST fail without the exact
+`rkaf:mappingAssertion`.
+
+**REF-TEST-167:** For the Rulespec features invoked by this profile, source
+generation MUST be idempotent; authoritative CUE and generated JSON Schema,
+SHACL, TypeScript, and Rust verdicts MUST agree for the shared fixtures; and
+the complete pinned Rulespec conformance gate MUST pass. The applicable REF
+suite MUST then accept every valid fixture, reject every invalid fixture with
+its requirement identifier, and pass lossless round trips.
+
 ### 15.3 Evaluation corpus
 
 Evaluation is distinct from schema conformance.
@@ -2666,6 +3017,83 @@ labels.
 **REF-EVAL-003:** The implementer of a probabilistic component SHOULD NOT be
 the sole owner of its sealed holdout or release decision.
 
+**REF-EVAL-011:** A `SealedGoldManifest` MUST identify:
+
+- its evaluation generation, purpose, split, selection protocol, source,
+  corpus, and selection digests, and exact item membership;
+- every source-resource, rendition-artifact, source-fragment, source-family,
+  subtype, and selection-stratum identifier used by an item, plus that item's
+  authoritative seven-dimension partition keys and the source-text,
+  indexed-expression-corpus, exact-match-graph, near-duplicate-analysis, and
+  computation-receipt evidence used to derive them;
+- the exact Rulespec reference-resource releases, REF registry import
+  snapshots, mapping releases and snapshots, `EnrichmentProfile`,
+  `OutputProfile`, normalization policy, and candidate target universe;
+- for each item and applicable facet-and-role pair, the complete expected
+  result set or adjudicated minimum and maximum cardinality, valid zero-result
+  cases, each registered target and release, directional relationship grade,
+  adequacy decision, acceptable open-label, concept-proposal, or abstention
+  behavior, forbidden results and wrong-facet outcomes, and supporting
+  evidence;
+- each reviewer, independent judgment, disagreement, adjudication, exclusion,
+  and partition-report reference;
+- its sealing time, responsible sealing activity, schema version, and canonical
+  payload digest.
+
+The manifest MUST be immutable after sealing. A correction MUST create a new
+generation and digest and MUST make affected results from the prior generation
+ineligible as release evidence.
+
+**REF-EVAL-012:** Before sealing, the development and holdout partitions MUST
+be disjoint by:
+
+- concept identity;
+- reviewed `skos:exactMatch` cluster;
+- every current or deprecated preferred, alternate, or hidden alias of an
+  expected concept;
+- source identity;
+- artifact digest;
+- extracted or normalized text digest; and
+- versioned near-duplicate cluster.
+
+Linked source-resource versions and renditions MUST remain in the same split.
+The sealed item keys MUST derive from the exact corpus and vocabulary evidence
+named by the manifest. The partition report MUST reproduce those keys exactly,
+record how every boundary was computed, and include every evidence digest as
+an input. A represented concept requires concept-identity and
+exact-match-cluster keys; every item requires source, artifact, text, and
+near-duplicate keys. Any crossing or missing key invalidates the holdout and
+requires a new partition and sealed manifest; removing only the detected
+duplicate after results are known does not repair that evaluation generation.
+Each preferred, alternate, or hidden label expression for an expected concept
+MUST contribute its normalized indexed-text identity to the alias keys,
+including expressions retained for deprecated concepts. Acceptable open
+labels MUST contribute the same kind of normalized identity. Alias comparison
+MUST use the exact normalization policy pinned by the manifest, so Unicode,
+case, and whitespace-equivalent forms cannot cross partitions under different
+spellings.
+
+**REF-EVAL-013:** Gold expectations MUST be drafted without access to output
+from the tagger or configuration under evaluation. Each item MUST receive
+judgments from two distinct independent reviewers. A disagreement MUST be
+resolved by a third distinct independent adjudicator or the item MUST be
+excluded with a recorded reason before sealing. A model output, candidate rank,
+prior system decision, or developer preference MUST NOT seed or revise the
+sealed target, adequacy, forbidden result, or cardinality fields.
+
+**REF-EVAL-014:** Registered-target relationship grades MUST be exactly
+`exact`, `close`, `targetBroaderThanGold`, `targetNarrowerThanGold`, `related`,
+`wrong`, or `notRepresented`. The broader and narrower grades describe the
+candidate target relative to the intended gold meaning. By default, only
+`exact` and independently reviewed `close` targets are adequate; a stricter
+profile MAY exclude `close`. Any broader acceptance rule MUST be
+preregistered, facet-and-role specific, independently reviewed, and reported
+separately from the default measure. `wrong` and `notRepresented` are never
+adequate registered targets. A `notRepresented` expectation MUST route the item
+to an authorized open label, concept proposal, or abstention and MUST be
+excluded from reachable registered-candidate recall denominators while
+remaining in target-availability and open-set measures.
+
 ### 15.4 Stage-specific measures
 
 **REF-EVAL-010:** Evaluation MUST separate:
@@ -2676,7 +3104,9 @@ the sole owner of its sealed holdout or release decision.
 - registry coverage;
 - candidate recall at declared shortlist sizes;
 - final assignment precision and recall;
-- strict matches from broader, narrower, related, or merely defensible matches;
+- target availability and adequacy by `exact`, `close`,
+  `targetBroaderThanGold`, `targetNarrowerThanGold`, `related`, `wrong`, and
+  `notRepresented`;
 - unsupported-assignment rate;
 - correct abstention and risk-versus-coverage;
 - cross-facet confusion;
@@ -2697,6 +3127,36 @@ adjudicator quality. A later stage cannot recover a missing candidate.
 
 **REF-EVAL-006:** Correct abstention MUST count as a measured result, not
 missing output.
+
+**REF-EVAL-015:** An `EnrichmentEvaluationResult` MUST identify the exact
+`EnrichmentConfiguration` identifier and digest; exact `SealedGoldManifest`
+identifier and digest; evaluation protocol identifier, version, and digest;
+predeclared measures, thresholds, minimum sample sizes, strata, exclusions,
+and uncertainty method; observed measures and uncertainty; every stage,
+source, subtype, facet, role, predicate, privacy, risk, latency, cost, and
+product gate; evaluator, activity, time, and output-artifact digests; and
+exactly one verdict: `pass`, `fail`, or `developmentOnly`. A `pass` verdict
+requires the predeclared, thresholded, and observed measure identifiers to
+form the same one-to-one set; every threshold to pass; every applicable gate
+to pass; and every configured stratum to meet its minimum. `atLeast` and
+`atMost` compare the threshold with the observed point value. A profile that
+gates on a conservative confidence bound MUST predeclare, observe, and
+threshold that bound as its own measure. An aggregate score MUST NOT replace
+those results.
+
+**REF-EVAL-016:** An evaluation result applies only to the exact configuration
+and gold digests it names. Its configuration and sealed gold MUST name the
+same enrichment and output profiles, reference-resource releases, registry
+import snapshots, mapping releases and snapshots, candidate target universe,
+normalization policy, and gold input corpus. A changed implementation,
+runtime, model, provider
+configuration, prompt, schema, index, indexed label or note corpus,
+normalization, candidate channel, fusion or truncation rule, policy, threshold,
+budget, registry release, mapping, output profile, or permission tuple MUST
+create a new `EnrichmentConfiguration` and a new passing
+`EnrichmentEvaluationResult` before production selection. A `fail` or
+`developmentOnly` result MUST NOT support a production
+`EnrichmentDeploymentDecision`.
 
 ### 15.5 Research hypotheses
 
@@ -2768,8 +3228,11 @@ replace, that structure.
 
 - [RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/rfc/rfc2119)
 - [RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words](https://www.rfc-editor.org/rfc/rfc8174)
+- [RFC 5646 — Tags for Identifying Languages](https://www.rfc-editor.org/rfc/rfc5646)
+- [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/)
 - [Rulespec](https://github.com/Formspec-Labs/rulespec)
 - [RefSpec Rulespec Application Profile](../profiles/rulespec-application-profile.md)
+- [RefSpec Core Enrichment Profile](../profiles/enrichment-profile.md)
 - [Source and Document Type Matrix, 28 July 2026](../docs/research-inputs.md#normative-portfolio-baseline-for-this-editors-draft), for its enumerated row universe only
 - [Source Vocabulary, Ontology, Thesaurus, and Authority Catalog, 28 July 2026](../docs/research-inputs.md#normative-portfolio-baseline-for-this-editors-draft), for its enumerated resource universe only
 
