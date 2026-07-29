@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/enrichment-profile.schema.json",
+  "title": "REF EnrichmentProfile",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "version",
+    "contentDigest",
+    "facets"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:EnrichmentProfile"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "contentDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "facets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "iri",
+          "label",
+          "definition",
+          "inclusionCues",
+          "exclusionCues",
+          "compatibleResourceRoutes",
+          "compatibleAssignmentPredicates"
+        ],
+        "properties": {
+          "iri": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "label": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "definition": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "inclusionCues": {
+            "$ref": "common.schema.json#/$defs/stringList"
+          },
+          "exclusionCues": {
+            "$ref": "common.schema.json#/$defs/stringList"
+          },
+          "compatibleResourceRoutes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "document",
+                "participation",
+                "container",
+                "entity",
+                "observation",
+                "event",
+                "externalReference"
+              ]
+            }
+          },
+          "compatibleAssignmentPredicates": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

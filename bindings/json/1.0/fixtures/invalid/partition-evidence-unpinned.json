@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-012"],
+  "mutations": [
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/items/0/partitionEvidence/exactMatchGraphDigest",
+      "value": "sha256:6969696969696969696969696969696969696969696969696969696969696969"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:gold:g1"
+  ]
+}

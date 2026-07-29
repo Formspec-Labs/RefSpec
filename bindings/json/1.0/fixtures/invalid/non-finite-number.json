@@ -1,0 +1,5 @@
+{
+  "fixtureVersion": "1.0",
+  "rawPayload": "raw/non-finite-number.json",
+  "expectedRequirements": ["REF-BIND-004"]
+}

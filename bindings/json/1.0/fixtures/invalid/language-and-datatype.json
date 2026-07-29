@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-CAND-009"],
+  "mutations": [
+    {
+      "recordId": "urn:example:expression:01",
+      "operation": "add",
+      "path": "/datatype",
+      "value": "http://www.w3.org/2001/XMLSchema#string"
+    }
+  ],
+  "refreshDigests": ["urn:example:expression:01"]
+}

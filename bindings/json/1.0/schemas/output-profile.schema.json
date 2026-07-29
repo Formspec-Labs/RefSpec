@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/output-profile.schema.json",
+  "title": "REF OutputProfile",
+  "$defs": {
+    "permissionBase": {
+      "type": "object",
+      "required": [
+        "facet",
+        "assignmentRole",
+        "candidateUse",
+        "acceptedOutputUse"
+      ],
+      "properties": {
+        "facet": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "assignmentRole": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "candidateUse": {
+          "type": "boolean"
+        },
+        "acceptedOutputUse": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "version",
+    "contentDigest",
+    "enrichmentProfile",
+    "acceptancePolicies",
+    "publicationViews",
+    "releasePermissions",
+    "mappingPermissions",
+    "openLabelPermissions"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:OutputProfile"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "contentDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "enrichmentProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "acceptancePolicies": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedDigestReference"
+      }
+    },
+    "publicationViews": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedDigestReference"
+      }
+    },
+    "releasePermissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/permissionBase"
+          }
+        ],
+        "required": [
+          "referenceResourceRelease",
+          "registryImportSnapshot",
+          "requiredImportFeatures"
+        ],
+        "properties": {
+          "referenceResourceRelease": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          },
+          "registryImportSnapshot": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "requiredImportFeatures": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "labels",
+                "languages",
+                "notation",
+                "notes",
+                "hierarchy",
+                "mappings",
+                "status",
+                "replacements",
+                "identifiers",
+                "membership"
+              ]
+            }
+          }
+        },
+        "unevaluatedProperties": false
+      }
+    },
+    "mappingPermissions": {
+      "description": "Complete directed mapping-use rows. Every candidate-enabled row requires exact passing coverage for its mappingSnapshot.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/permissionBase"
+          }
+        ],
+        "required": [
+          "mappingSnapshot",
+          "sourceRelease",
+          "targetRelease",
+          "relation",
+          "direction"
+        ],
+        "properties": {
+          "mappingSnapshot": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "sourceRelease": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          },
+          "targetRelease": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          },
+          "relation": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "direction": {
+            "enum": [
+              "sourceToTarget",
+              "targetToSource"
+            ]
+          }
+        },
+        "unevaluatedProperties": false
+      }
+    },
+    "openLabelPermissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/permissionBase"
+          }
+        ],
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "enum": [
+              "explicitLanguage",
+              "declaredDefaultLanguage"
+            ]
+          },
+          "defaultLanguage": {
+            "$ref": "common.schema.json#/$defs/bcp47Language"
+          }
+        },
+        "if": {
+          "properties": {
+            "mode": {
+              "const": "declaredDefaultLanguage"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        "then": {
+          "required": [
+            "defaultLanguage"
+          ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "defaultLanguage"
+            ]
+          }
+        },
+        "unevaluatedProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

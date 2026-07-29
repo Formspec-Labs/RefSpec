@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-015"],
+  "mutations": [
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/gates/0/passed",
+      "value": false
+    }
+  ],
+  "refreshDigests": ["urn:example:evaluation:e1"]
+}

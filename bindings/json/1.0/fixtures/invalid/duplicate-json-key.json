@@ -1,0 +1,5 @@
+{
+  "fixtureVersion": "1.0",
+  "rawPayload": "raw/duplicate-json-key.json",
+  "expectedRequirements": ["REF-BIND-001"]
+}

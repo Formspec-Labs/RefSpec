@@ -1,0 +1,25 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-012"],
+  "mutations": [
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/expectations/1/acceptableOpenLabels/0/value",
+      "value": "CLIMATIZACIÓN"
+    },
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/items/1/partitionKeys/alias",
+      "value": ["CLIMATIZACIÓN"]
+    },
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/partitionReport/dimensions/2/itemKeys/1/values",
+      "value": ["CLIMATIZACIÓN"]
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:gold:g1"
+  ]
+}

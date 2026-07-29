@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/enrichment-evaluation-result.schema.json",
+  "title": "REF EnrichmentEvaluationResult",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "configuration",
+    "sealedGoldManifest",
+    "evaluationProtocol",
+    "predeclaredMeasures",
+    "thresholds",
+    "configuredStrata",
+    "exclusions",
+    "uncertaintyMethod",
+    "observedMeasures",
+    "measurePopulations",
+    "gates",
+    "evaluator",
+    "activity",
+    "evaluatedAt",
+    "outputArtifactDigests",
+    "verdict"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:EnrichmentEvaluationResult"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "configuration": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "sealedGoldManifest": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "evaluationProtocol": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "predeclaredMeasures": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/absoluteIri"
+      }
+    },
+    "thresholds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "measure",
+          "operator",
+          "value"
+        ],
+        "properties": {
+          "measure": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "operator": {
+            "enum": [
+              "atLeast",
+              "atMost"
+            ]
+          },
+          "value": {
+            "$ref": "common.schema.json#/$defs/canonicalDecimal"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "configuredStrata": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "stratum",
+          "minimumSampleSize",
+          "observedSampleSize",
+          "passed"
+        ],
+        "properties": {
+          "stratum": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "minimumSampleSize": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "observedSampleSize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exclusions": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "uncertaintyMethod": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "observedMeasures": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "measure",
+          "value",
+          "uncertaintyLower",
+          "uncertaintyUpper"
+        ],
+        "properties": {
+          "measure": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "value": {
+            "$ref": "common.schema.json#/$defs/canonicalDecimal"
+          },
+          "uncertaintyLower": {
+            "$ref": "common.schema.json#/$defs/canonicalDecimal"
+          },
+          "uncertaintyUpper": {
+            "$ref": "common.schema.json#/$defs/canonicalDecimal"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "measurePopulations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "measure",
+          "populationKind",
+          "includedExpectations",
+          "excludedExpectations"
+        ],
+        "properties": {
+          "measure": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "populationKind": {
+            "enum": [
+              "reachableRegisteredCandidateRecall",
+              "targetAvailability",
+              "openSet"
+            ]
+          },
+          "includedExpectations": {
+            "$ref": "common.schema.json#/$defs/iriList"
+          },
+          "excludedExpectations": {
+            "$ref": "common.schema.json#/$defs/iriList"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "dimension",
+          "subject",
+          "passed",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "dimension": {
+            "enum": [
+              "stage",
+              "source",
+              "subtype",
+              "facet",
+              "role",
+              "predicate",
+              "privacy",
+              "risk",
+              "latency",
+              "cost",
+              "product"
+            ]
+          },
+          "subject": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evaluator": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "evaluatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "outputArtifactDigests": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digest"
+      }
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "developmentOnly"
+      ]
+    }
+  },
+  "unevaluatedProperties": false
+}

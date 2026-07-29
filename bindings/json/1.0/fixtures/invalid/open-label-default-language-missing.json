@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-ENR-016"],
+  "mutations": [
+    {
+      "recordId": "urn:example:output-profile:v1",
+      "operation": "remove",
+      "path": "/openLabelPermissions/1/defaultLanguage"
+    }
+  ],
+  "refreshDigests": ["urn:example:output-profile:v1"]
+}

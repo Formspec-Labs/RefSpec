@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/enrichment-deployment-decision.schema.json",
+  "title": "REF EnrichmentDeploymentDecision",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "environment",
+    "configuration",
+    "evaluationResult",
+    "outputProfile",
+    "selectionState",
+    "effectiveAt",
+    "reason",
+    "activity",
+    "rulespecAttestationRefs",
+    "localAdoptionRefs",
+    "authorizationValidations"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:EnrichmentDeploymentDecision"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "id",
+        "classification"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "classification": {
+          "enum": [
+            "production",
+            "nonProduction"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "configuration": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "evaluationResult": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "outputProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "selectionState": {
+      "enum": [
+        "staged",
+        "selected",
+        "deselected",
+        "failed"
+      ]
+    },
+    "effectiveAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "predecessorDecision": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "supersedingDecision": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "rulespecAttestationRefs": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "localAdoptionRefs": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "authorizationValidations": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "authorizationRef",
+          "kind",
+          "validationReceipt",
+          "validator",
+          "validatedAt",
+          "effective"
+        ],
+        "properties": {
+          "authorizationRef": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "kind": {
+            "enum": [
+              "rulespecAttestation",
+              "localAdoption"
+            ]
+          },
+          "validationReceipt": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "validator": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "validatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective": {
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

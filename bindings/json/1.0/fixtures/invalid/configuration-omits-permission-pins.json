@@ -1,0 +1,25 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-ENR-019"],
+  "mutations": [
+    {
+      "recordId": "urn:example:configuration:c1",
+      "path": "/vocabulary/referenceResourceReleases",
+      "value": []
+    },
+    {
+      "recordId": "urn:example:configuration:c1",
+      "path": "/vocabulary/registryImportSnapshots",
+      "value": []
+    },
+    {
+      "recordId": "urn:example:configuration:c1",
+      "path": "/vocabulary/mappingSnapshots",
+      "value": []
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:configuration:c1"
+  ]
+}

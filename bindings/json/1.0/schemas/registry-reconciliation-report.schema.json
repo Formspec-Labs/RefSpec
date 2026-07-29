@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/registry-reconciliation-report.schema.json",
+  "title": "REF RegistryReconciliationReport",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "selectedInput"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "selectedInputRelease"
+        ],
+        "properties": {
+          "unresolvedItems": {
+            "maxItems": 0
+          },
+          "synthesizedUnionAuthorized": {
+            "const": false
+          }
+        },
+        "not": {
+          "required": [
+            "reconciledRelease"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "reconciledReleaseAuthorized"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "reconciledRelease"
+        ],
+        "properties": {
+          "unresolvedItems": {
+            "maxItems": 0
+          },
+          "synthesizedUnionAuthorized": {
+            "const": true
+          }
+        },
+        "not": {
+          "required": [
+            "selectedInputRelease"
+          ]
+        }
+      }
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "inputs",
+    "comparedItems",
+    "differences",
+    "conceptMappings",
+    "precedencePolicy",
+    "rulespecAuthorityRefs",
+    "attestationRefs",
+    "localAdoptionRefs",
+    "authorizationValidations",
+    "unresolvedItems",
+    "synthesizedUnionAuthorized",
+    "activity",
+    "outcome"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:RegistryReconciliationReport"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "referenceResourceRelease",
+          "distributionArtifacts",
+          "registryImportSnapshot",
+          "stageDigests"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "referenceResourceRelease": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          },
+          "distributionArtifacts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/digestReference"
+            }
+          },
+          "registryImportSnapshot": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "stageDigests": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/digestReference"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "comparedItems": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "left",
+          "right"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "field",
+              "member",
+              "relation",
+              "stageDigest"
+            ]
+          },
+          "left": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "right": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "differences": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "inputRefs",
+          "description",
+          "resolution"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "kind": {
+            "enum": [
+              "field",
+              "member",
+              "relation",
+              "stageDigest"
+            ]
+          },
+          "inputRefs": {
+            "allOf": [
+              {
+                "$ref": "common.schema.json#/$defs/iriList"
+              },
+              {
+                "minItems": 2
+              }
+            ]
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "resolution": {
+            "enum": [
+              "selectedInput",
+              "mapped",
+              "reconciled",
+              "unresolved"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "conceptMappings": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "precedencePolicy": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "rulespecAuthorityRefs": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "attestationRefs": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "localAdoptionRefs": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "authorizationValidations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "authorizationRef",
+          "kind",
+          "validationReceipt",
+          "validator",
+          "validatedAt",
+          "effective"
+        ],
+        "properties": {
+          "authorizationRef": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "kind": {
+            "enum": [
+              "rulespecAuthority",
+              "rulespecAttestation",
+              "localAdoption"
+            ]
+          },
+          "validationReceipt": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "validator": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "validatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective": {
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unresolvedItems": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "selectedInputRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "reconciledRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "synthesizedUnionAuthorized": {
+      "type": "boolean"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "outcome": {
+      "enum": [
+        "selectedInput",
+        "reconciledReleaseAuthorized",
+        "unresolved"
+      ]
+    }
+  },
+  "if": {
+    "properties": {
+      "outcome": {
+        "const": "unresolved"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "unresolvedItems"
+    ],
+    "properties": {
+      "unresolvedItems": {
+        "minItems": 1
+      },
+      "synthesizedUnionAuthorized": {
+        "const": false
+      }
+    },
+    "not": {
+      "anyOf": [
+        {
+          "required": [
+            "selectedInputRelease"
+          ]
+        },
+        {
+          "required": [
+            "reconciledRelease"
+          ]
+        }
+      ]
+    }
+  },
+  "unevaluatedProperties": false
+}

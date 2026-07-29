@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/registry-import-coverage-report.schema.json",
+  "title": "REF RegistryImportCoverageReport",
+  "$defs": {
+    "accountItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "stage",
+        "count",
+        "policy",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "stage": {
+          "enum": [
+            "parsing",
+            "indexing"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy": {
+          "$ref": "common.schema.json#/$defs/versionedDigestReference"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "outputProfile",
+    "registryImportSnapshot",
+    "referenceResourceRelease",
+    "distributionArtifacts",
+    "importProfile",
+    "parserVersion",
+    "indexSnapshot",
+    "activity",
+    "receipt",
+    "reportStatus",
+    "features"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:RegistryImportCoverageReport"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "outputProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "registryImportSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "referenceResourceRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "distributionArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "importProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "parserVersion": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "indexSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "receipt": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "reportStatus": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "features": {
+      "description": "Complete feature accounting. Mapping-set imports used for candidates or output require mappings, identifiers, and membership.",
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "feature",
+          "requiredForCandidateOrOutput",
+          "sourceObservedCount",
+          "parsedCount",
+          "indexedCount",
+          "excludedCount",
+          "failedCount",
+          "sourceObservedDigest",
+          "parsedDigest",
+          "indexedDigest",
+          "exclusions",
+          "failures"
+        ],
+        "properties": {
+          "feature": {
+            "enum": [
+              "labels",
+              "languages",
+              "notation",
+              "notes",
+              "hierarchy",
+              "mappings",
+              "status",
+              "replacements",
+              "identifiers",
+              "membership"
+            ]
+          },
+          "requiredForCandidateOrOutput": {
+            "type": "boolean"
+          },
+          "sourceObservedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parsedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "indexedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "excludedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sourceObservedDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "parsedDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "indexedDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "parseDifferenceExplanation": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "indexDifferenceExplanation": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "exclusions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/accountItem"
+            }
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/accountItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

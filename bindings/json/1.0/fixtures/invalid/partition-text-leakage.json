@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-012"],
+  "mutations": [
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/partitionReport/dimensions/5/itemKeys/1/values",
+      "value": ["sha256:3232323232323232323232323232323232323232323232323232323232323232"]
+    }
+  ],
+  "refreshDigests": ["urn:example:gold:g1"]
+}

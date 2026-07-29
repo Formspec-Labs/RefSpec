@@ -1,0 +1,11 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-TEST-161"],
+  "languageTagTests": [
+    {
+      "tag": "en--US",
+      "claimedValid": true
+    }
+  ]
+}

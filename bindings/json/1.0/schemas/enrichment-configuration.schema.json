@@ -1,0 +1,396 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/enrichment-configuration.schema.json",
+  "title": "REF EnrichmentConfiguration",
+  "$defs": {
+    "pinArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/componentPin"
+      }
+    },
+    "budgetLimit": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "const": "unlimited"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "implementation",
+    "enrichmentProfile",
+    "outputProfile",
+    "acceptancePolicy",
+    "schemas",
+    "inputCorpora",
+    "vocabulary",
+    "indexes",
+    "candidateChannels",
+    "models",
+    "prompts",
+    "toolPolicies",
+    "budgets",
+    "determinism",
+    "otherBehaviorPins",
+    "secretVersionRefs"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:EnrichmentConfiguration"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "implementation": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "build",
+        "runtime",
+        "dependencyLockDigest"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "revision": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "build": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "runtime": {
+          "$ref": "common.schema.json#/$defs/componentPin"
+        },
+        "dependencyLockDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "enrichmentProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "outputProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "acceptancePolicy": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "schemas": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedDigestReference"
+      }
+    },
+    "inputCorpora": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedDigestReference"
+      }
+    },
+    "vocabulary": {
+      "type": "object",
+      "required": [
+        "referenceResourceReleases",
+        "registryImportSnapshots",
+        "mappingReleases",
+        "mappingSnapshots",
+        "candidateTargetUniverseDigest",
+        "registryDeploymentDecisions"
+      ],
+      "properties": {
+        "referenceResourceReleases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "registryImportSnapshots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          }
+        },
+        "mappingReleases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "mappingSnapshots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          }
+        },
+        "candidateTargetUniverseDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "registryDeploymentDecisions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "indexes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "indexSnapshot",
+          "indexedExpressionCorpusDigest",
+          "indexedRepresentationVersion",
+          "normalizationPolicy"
+        ],
+        "properties": {
+          "indexSnapshot": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "indexedExpressionCorpusDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "indexedRepresentationVersion": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "normalizationPolicy": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "candidateChannels": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "retriever",
+          "queryConstruction",
+          "ordering",
+          "fusion",
+          "deduplication",
+          "quota",
+          "truncation",
+          "fallbackPolicy"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "retriever": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "queryConstruction": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "ordering": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "fusion": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "deduplication": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "quota": {
+            "type": "object",
+            "required": [
+              "maximumCandidates",
+              "policy"
+            ],
+            "properties": {
+              "maximumCandidates": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "policy": {
+                "$ref": "common.schema.json#/$defs/componentPin"
+              }
+            },
+            "additionalProperties": false
+          },
+          "truncation": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "fallbackPolicy": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "models": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "providerConfiguration",
+          "endpointConfiguration",
+          "inferenceParameters",
+          "structuredOutputSchema"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "revision": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "providerConfiguration": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "endpointConfiguration": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "inferenceParameters": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          },
+          "structuredOutputSchema": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "prompts": {
+      "$ref": "#/$defs/pinArray"
+    },
+    "toolPolicies": {
+      "$ref": "#/$defs/pinArray"
+    },
+    "budgets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "stage",
+          "inputBytes",
+          "outputBytes",
+          "tokens",
+          "milliseconds",
+          "candidates",
+          "costMicrounits"
+        ],
+        "properties": {
+          "stage": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "inputBytes": {
+            "$ref": "#/$defs/budgetLimit"
+          },
+          "outputBytes": {
+            "$ref": "#/$defs/budgetLimit"
+          },
+          "tokens": {
+            "$ref": "#/$defs/budgetLimit"
+          },
+          "milliseconds": {
+            "$ref": "#/$defs/budgetLimit"
+          },
+          "candidates": {
+            "$ref": "#/$defs/budgetLimit"
+          },
+          "costMicrounits": {
+            "$ref": "#/$defs/budgetLimit"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "determinism": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "stage",
+          "status",
+          "replayControls"
+        ],
+        "properties": {
+          "stage": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "status": {
+            "enum": [
+              "deterministic",
+              "nondeterministic"
+            ]
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "$ref": "common.schema.json#/$defs/nonEmptyString"
+              }
+            ]
+          },
+          "replayControls": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "otherBehaviorPins": {
+      "$ref": "#/$defs/pinArray"
+    },
+    "secretVersionRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    }
+  },
+  "unevaluatedProperties": false
+}

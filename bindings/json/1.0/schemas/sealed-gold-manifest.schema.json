@@ -1,0 +1,693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/sealed-gold-manifest.schema.json",
+  "title": "REF SealedGoldManifest",
+  "$defs": {
+    "goldTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "target",
+            "release",
+            "grade",
+            "adequate",
+            "independentlyReviewed"
+          ],
+          "properties": {
+            "target": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
+            },
+            "release": {
+              "$ref": "common.schema.json#/$defs/versionedDigestReference"
+            },
+            "grade": {
+              "enum": [
+                "exact",
+                "close",
+                "targetBroaderThanGold",
+                "targetNarrowerThanGold",
+                "related",
+                "wrong"
+              ]
+            },
+            "adequate": {
+              "type": "boolean"
+            },
+            "independentlyReviewed": {
+              "type": "boolean"
+            },
+            "adequacyPolicy": {
+              "$ref": "common.schema.json#/$defs/versionedDigestReference"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "grade",
+            "adequate",
+            "independentlyReviewed"
+          ],
+          "properties": {
+            "grade": {
+              "const": "notRepresented"
+            },
+            "adequate": {
+              "const": false
+            },
+            "independentlyReviewed": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "partitionKeys": {
+      "type": "object",
+      "required": [
+        "conceptIdentity",
+        "exactMatchCluster",
+        "alias",
+        "sourceIdentity",
+        "artifactDigest",
+        "textDigest",
+        "nearDuplicateCluster"
+      ],
+      "properties": {
+        "conceptIdentity": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "exactMatchCluster": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "alias": {
+          "description": "Normalized indexed-text identities for every preferred, alternate, hidden, or acceptable open-label form associated with the item.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "sourceIdentity": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/stringList"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "artifactDigest": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/stringList"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "textDigest": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/stringList"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "nearDuplicateCluster": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/stringList"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "partitionEvidence": {
+      "type": "object",
+      "required": [
+        "sourceTextDigest",
+        "vocabularyExpressionCorpusDigest",
+        "exactMatchGraphDigest",
+        "nearDuplicateAnalysisDigest",
+        "receipt"
+      ],
+      "properties": {
+        "sourceTextDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "vocabularyExpressionCorpusDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "exactMatchGraphDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "nearDuplicateAnalysisDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "receipt": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "evaluationGeneration",
+    "purpose",
+    "selectionProtocol",
+    "sourceDigest",
+    "corpusDigest",
+    "selectionDigest",
+    "draftingControl",
+    "partitions",
+    "items",
+    "vocabularyUniverse",
+    "expectations",
+    "reviewers",
+    "independentJudgmentRefs",
+    "disagreementRefs",
+    "adjudicationRefs",
+    "exclusions",
+    "partitionReport",
+    "sealingTime",
+    "sealingActivity"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:SealedGoldManifest"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "evaluationGeneration": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "purpose": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "selectionProtocol": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "sourceDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "corpusDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "selectionDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "draftingControl": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "blindToEvaluatedOutput",
+        "prohibitedSeedSources"
+      ],
+      "properties": {
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/versionedDigestReference"
+        },
+        "blindToEvaluatedOutput": {
+          "const": true
+        },
+        "prohibitedSeedSources": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "modelOutput",
+              "candidateRank",
+              "priorSystemDecision",
+              "developerPreference"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "partitions": {
+      "type": "object",
+      "required": [
+        "development",
+        "holdout"
+      ],
+      "properties": {
+        "development": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          }
+        },
+        "holdout": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "split",
+          "sourceResource",
+          "renditionArtifact",
+          "sourceFragment",
+          "sourceFamily",
+          "subtype",
+          "selectionStrata",
+          "linkedGroupIds",
+          "partitionKeys",
+          "partitionEvidence"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "split": {
+            "enum": [
+              "development",
+              "holdout"
+            ]
+          },
+          "sourceResource": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "renditionArtifact": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "sourceFragment": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "sourceFamily": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "subtype": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "selectionStrata": {
+            "allOf": [
+              {
+                "$ref": "common.schema.json#/$defs/iriList"
+              },
+              {
+                "minItems": 1
+              }
+            ]
+          },
+          "linkedGroupIds": {
+            "$ref": "common.schema.json#/$defs/iriList"
+          },
+          "partitionKeys": {
+            "$ref": "#/$defs/partitionKeys"
+          },
+          "partitionEvidence": {
+            "$ref": "#/$defs/partitionEvidence"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "vocabularyUniverse": {
+      "type": "object",
+      "required": [
+        "referenceResourceReleases",
+        "registryImportSnapshots",
+        "mappingReleases",
+        "mappingSnapshots",
+        "indexedExpressionCorpusDigests",
+        "enrichmentProfile",
+        "outputProfile",
+        "normalizationPolicy",
+        "candidateTargetUniverseDigest"
+      ],
+      "properties": {
+        "referenceResourceReleases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "registryImportSnapshots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          }
+        },
+        "mappingReleases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/versionedDigestReference"
+          }
+        },
+        "mappingSnapshots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          }
+        },
+        "indexedExpressionCorpusDigests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digest"
+          }
+        },
+        "enrichmentProfile": {
+          "$ref": "common.schema.json#/$defs/versionedDigestReference"
+        },
+        "outputProfile": {
+          "$ref": "common.schema.json#/$defs/versionedDigestReference"
+        },
+        "normalizationPolicy": {
+          "$ref": "common.schema.json#/$defs/versionedDigestReference"
+        },
+        "candidateTargetUniverseDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "expectations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "item",
+          "facet",
+          "assignmentRole",
+          "expectationMode",
+          "minimumCardinality",
+          "maximumCardinality",
+          "validZeroResult",
+          "registeredTargets",
+          "acceptableOpenLabels",
+          "conceptProposalAllowed",
+          "abstentionAllowed",
+          "forbiddenResults",
+          "wrongFacetOutcomes",
+          "evidenceRefs",
+          "reviewerJudgments",
+          "disagreement",
+          "excludeFromReachableCandidateRecall",
+          "includeInTargetAvailability",
+          "includeInOpenSetMeasures"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "item": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "facet": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "assignmentRole": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "expectationMode": {
+            "enum": [
+              "completeSet",
+              "cardinalityRange"
+            ]
+          },
+          "minimumCardinality": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maximumCardinality": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "validZeroResult": {
+            "type": "boolean"
+          },
+          "registeredTargets": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/goldTarget"
+            }
+          },
+          "acceptableOpenLabels": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "required": [
+                "value",
+                "language"
+              ],
+              "properties": {
+                "value": {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                },
+                "language": {
+                  "$ref": "common.schema.json#/$defs/bcp47Language"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "conceptProposalAllowed": {
+            "type": "boolean"
+          },
+          "abstentionAllowed": {
+            "type": "boolean"
+          },
+          "forbiddenResults": {
+            "$ref": "common.schema.json#/$defs/iriList"
+          },
+          "wrongFacetOutcomes": {
+            "$ref": "common.schema.json#/$defs/iriList"
+          },
+          "evidenceRefs": {
+            "allOf": [
+              {
+                "$ref": "common.schema.json#/$defs/iriList"
+              },
+              {
+                "minItems": 1
+              }
+            ]
+          },
+          "reviewerJudgments": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "required": [
+                "reviewer",
+                "judgment"
+              ],
+              "properties": {
+                "reviewer": {
+                  "$ref": "common.schema.json#/$defs/absoluteIri"
+                },
+                "judgment": {
+                  "$ref": "common.schema.json#/$defs/absoluteIri"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "disagreement": {
+            "type": "boolean"
+          },
+          "adjudication": {
+            "type": "object",
+            "required": [
+              "adjudicator",
+              "judgment"
+            ],
+            "properties": {
+              "adjudicator": {
+                "$ref": "common.schema.json#/$defs/absoluteIri"
+              },
+              "judgment": {
+                "$ref": "common.schema.json#/$defs/absoluteIri"
+              }
+            },
+            "additionalProperties": false
+          },
+          "exclusion": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "excludeFromReachableCandidateRecall": {
+            "type": "boolean"
+          },
+          "includeInTargetAvailability": {
+            "type": "boolean"
+          },
+          "includeInOpenSetMeasures": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reviewers": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 2
+        }
+      ]
+    },
+    "independentJudgmentRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "disagreementRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "adjudicationRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "exclusions": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "partitionReport": {
+      "type": "object",
+      "required": [
+        "id",
+        "digest",
+        "inputDigests",
+        "dimensions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "inputDigests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/digest"
+          }
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "required": [
+              "dimension",
+              "computationPolicy",
+              "itemKeys"
+            ],
+            "properties": {
+              "dimension": {
+                "enum": [
+                  "conceptIdentity",
+                  "exactMatchCluster",
+                  "alias",
+                  "sourceIdentity",
+                  "artifactDigest",
+                  "textDigest",
+                  "nearDuplicateCluster"
+                ]
+              },
+              "computationPolicy": {
+                "$ref": "common.schema.json#/$defs/versionedDigestReference"
+              },
+              "itemKeys": {
+                "type": "array",
+                "minItems": 2,
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "item",
+                    "values"
+                  ],
+                  "properties": {
+                    "item": {
+                      "$ref": "common.schema.json#/$defs/absoluteIri"
+                    },
+                    "values": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/nonEmptyString"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sealingTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sealingActivity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    }
+  },
+  "unevaluatedProperties": false
+}

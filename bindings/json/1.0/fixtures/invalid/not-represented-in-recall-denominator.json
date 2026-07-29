@@ -1,0 +1,21 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-014"],
+  "mutations": [
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/measurePopulations/0/includedExpectations",
+      "value": [
+        "urn:example:expectation:dev-1",
+        "urn:example:expectation:holdout-1"
+      ]
+    },
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/measurePopulations/0/excludedExpectations",
+      "value": []
+    }
+  ],
+  "refreshDigests": ["urn:example:evaluation:e1"]
+}

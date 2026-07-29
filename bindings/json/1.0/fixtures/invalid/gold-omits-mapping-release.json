@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-011"],
+  "mutations": [
+    {
+      "recordId": "urn:example:gold:g1",
+      "path": "/vocabularyUniverse/mappingReleases",
+      "value": []
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:gold:g1"
+  ]
+}

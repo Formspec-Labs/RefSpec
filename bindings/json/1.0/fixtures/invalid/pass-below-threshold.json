@@ -1,0 +1,25 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-EVAL-015"],
+  "mutations": [
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/observedMeasures/0/value",
+      "value": "0.10"
+    },
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/observedMeasures/0/uncertaintyLower",
+      "value": "0.05"
+    },
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/observedMeasures/0/uncertaintyUpper",
+      "value": "0.15"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:evaluation:e1"
+  ]
+}

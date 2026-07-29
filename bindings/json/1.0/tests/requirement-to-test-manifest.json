@@ -1,0 +1,554 @@
+{
+  "bindingVersion": "1.0",
+  "canonicalizationAlgorithm": "urn:ref:canonical-json:v1",
+  "coverage": [
+    {
+      "requirement": "REF-BIND-001",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/closed-record-extra-field.json",
+        "fixtures/invalid/duplicate-json-key.json",
+        "fixtures/invalid/missing-record-id.json"
+      ],
+      "validatorChecks": ["closed records", "executable formats", "duplicate-key rejection"]
+    },
+    {
+      "requirement": "REF-BIND-004",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/wrong-canonical-digest.json",
+        "fixtures/invalid/non-finite-number.json",
+        "fixtures/invalid/digest-reference-cycle.json",
+        "fixtures/invalid/floating-point-json-number.json",
+        "fixtures/invalid/null-field.json"
+      ],
+      "validatorChecks": ["canonical JSON", "SHA-256 digest", "acyclic exact references"]
+    },
+    {
+      "requirement": "REF-CORE-005",
+      "localFixtures": ["fixtures/invalid/duplicate-expression-id.json"],
+      "validatorChecks": ["durable record identifier uniqueness"]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-001",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "validatorChecks": ["exact twelve core facet IRIs"]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-002",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/wrong-facet-permission.json"
+      ],
+      "validatorChecks": ["one facet per permission and expectation"]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-003",
+      "localFixtures": ["fixtures/invalid/wrong-facet-permission.json"],
+      "validatorChecks": ["facet, route, and role compatibility"]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-004",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/malformed-language-tag.json"
+      ],
+      "externalGate": "Rulespec REF profile open-label ValueAssertion fixtures",
+      "externalRulespecPaths": [
+        "fixtures/refspec-open-label-default-language-positive.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-evidence-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-facet-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-language-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-provenance-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-role-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-005",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "validatorChecks": ["closed facet record has no OWL-disjointness field"]
+    },
+    {
+      "requirement": "REF-ENR-PROFILE-006",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "validatorChecks": ["extension facet shape is closed and complete"]
+    },
+    {
+      "requirement": "REF-ENR-011",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "validatorChecks": ["complete OutputProfile record and content digest"]
+    },
+    {
+      "requirement": "REF-ENR-013",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/deployment-output-profile-pin-mismatch.json"
+      ],
+      "validatorChecks": ["immutable profile digest and deployment selection"]
+    },
+    {
+      "requirement": "REF-ENR-015",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "validatorChecks": ["EnrichmentProfile schema and core facet closure"]
+    },
+    {
+      "requirement": "REF-ENR-016",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/accepted-without-candidate-use.json",
+        "fixtures/invalid/open-label-default-language-missing.json"
+      ],
+      "validatorChecks": ["complete permission-row fields and mode conditional"]
+    },
+    {
+      "requirement": "REF-ENR-017",
+      "localFixtures": [
+        "fixtures/invalid/permission-cross-row.json",
+        "fixtures/invalid/candidate-only-accepted-output.json",
+        "fixtures/invalid/mapping-only-accepted-output.json",
+        "fixtures/invalid/accepted-without-candidate-use.json",
+        "fixtures/invalid/duplicate-permission-selector.json"
+      ],
+      "validatorChecks": ["single-row match", "selector uniqueness", "candidate-use prerequisite"]
+    },
+    {
+      "requirement": "REF-ENR-018",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/malformed-language-tag.json"
+      ],
+      "externalGate": "Rulespec open-label evidence and provenance fixtures",
+      "externalRulespecPaths": [
+        "fixtures/refspec-open-label-default-language-positive.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-evidence-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-provenance-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-ENR-019",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/configuration-missing-provider-pin.json",
+        "fixtures/invalid/configuration-corpus-drift.json",
+        "fixtures/invalid/configuration-omits-permission-pins.json",
+        "fixtures/invalid/configuration-omits-mapping-release.json"
+      ],
+      "validatorChecks": [
+        "complete behavior pins",
+        "source corpus pin",
+        "all OutputProfile vocabulary pins",
+        "configuration digest"
+      ]
+    },
+    {
+      "requirement": "REF-ENR-020",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/deployment-output-profile-pin-mismatch.json",
+        "fixtures/invalid/production-selected-development-only.json",
+        "fixtures/invalid/production-unvalidated-authorization.json"
+      ],
+      "validatorChecks": [
+        "exact deployment reference chain",
+        "production pass requirement",
+        "effective attestation and adoption validation receipts"
+      ]
+    },
+    {
+      "requirement": "REF-CAND-009",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/language-and-datatype.json",
+        "fixtures/invalid/expression-missing-language-and-datatype.json",
+        "fixtures/invalid/duplicate-expression-id.json"
+      ],
+      "validatorChecks": [
+        "source literal branches require exactly one language or datatype",
+        "scheme identity",
+        "indexed-text digest"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-017",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/registry-selected-with-failed-coverage.json",
+        "fixtures/invalid/registry-unvalidated-authorization.json"
+      ],
+      "validatorChecks": [
+        "registry selection resolves exact release, import, coverage, reconciliation, and output-profile pins",
+        "failed coverage or unresolved reconciliation blocks selected registry deployment",
+        "registry governance references require exact effective validation receipts"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-021",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/missing-coverage-feature.json",
+        "fixtures/invalid/required-coverage-feature-excluded.json",
+        "fixtures/invalid/coverage-required-flag-disagrees-with-profile.json",
+        "fixtures/invalid/mapping-coverage-wrong-snapshot.json"
+      ],
+      "validatorChecks": [
+        "ten exact coverage rows and stage digests",
+        "coverage is tied to the exact OutputProfile and feature-use requirement",
+        "feature-use flags are derived from permission-row required features",
+        "mapping coverage is tied to the exact mapping snapshot and mapping release"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-022",
+      "localFixtures": [
+        "fixtures/invalid/unexplained-coverage-zero.json",
+        "fixtures/invalid/failed-coverage-still-authorized.json",
+        "fixtures/invalid/required-coverage-feature-excluded.json",
+        "fixtures/invalid/coverage-required-flag-disagrees-with-profile.json",
+        "fixtures/invalid/mapping-coverage-wrong-snapshot.json",
+        "fixtures/invalid/mapping-coverage-required-flag-disagrees.json",
+        "fixtures/invalid/mapping-failed-coverage-still-authorized.json"
+      ],
+      "validatorChecks": [
+        "stage count accounting and difference explanations",
+        "failed coverage blocks candidate and accepted permission",
+        "required features cannot be excluded",
+        "coverage cannot self-declare a profile-required feature unused",
+        "mapping use requires passing mappings, identifiers, and membership coverage"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-023",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/unresolved-authorizes-union.json",
+        "fixtures/invalid/reconciliation-unknown-input-refs.json",
+        "fixtures/invalid/reconciliation-unvalidated-attestation.json"
+      ],
+      "validatorChecks": [
+        "exact reconciliation inputs, differences, governance, and outcome",
+        "difference inputRefs resolve only to exact input records",
+        "authority, attestation, and adoption references have exact validation receipts"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-024",
+      "localFixtures": ["fixtures/invalid/unresolved-authorizes-union.json"],
+      "validatorChecks": ["unresolved reports cannot authorize synthesized unions"]
+    },
+    {
+      "requirement": "REF-EVAL-011",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/gold-universe-omits-permission-pins.json",
+        "fixtures/invalid/gold-target-release-outside-universe.json",
+        "fixtures/invalid/gold-omits-mapping-release.json"
+      ],
+      "validatorChecks": [
+        "exact membership, universe, expectations, review, seal, and digest",
+        "gold universe covers every OutputProfile vocabulary pin",
+        "every registered target release belongs to the sealed universe"
+      ]
+    },
+    {
+      "requirement": "REF-EVAL-012",
+      "localFixtures": [
+        "fixtures/invalid/partition-alias-leakage.json",
+        "fixtures/invalid/partition-concept-leakage.json",
+        "fixtures/invalid/partition-exact-match-leakage.json",
+        "fixtures/invalid/partition-source-leakage.json",
+        "fixtures/invalid/partition-artifact-leakage.json",
+        "fixtures/invalid/partition-text-leakage.json",
+        "fixtures/invalid/partition-near-duplicate-leakage.json",
+        "fixtures/invalid/linked-group-crosses-split.json",
+        "fixtures/invalid/partition-concept-keys-incomplete.json",
+        "fixtures/invalid/partition-source-keys-disagree.json",
+        "fixtures/invalid/partition-alias-keys-incomplete.json",
+        "fixtures/invalid/partition-preferred-label-keys-incomplete.json",
+        "fixtures/invalid/partition-alternate-label-keys-incomplete.json",
+        "fixtures/invalid/partition-hidden-label-keys-incomplete.json",
+        "fixtures/invalid/partition-alias-unicode-equivalent-leakage.json",
+        "fixtures/invalid/partition-exact-cluster-keys-incomplete.json",
+        "fixtures/invalid/partition-evidence-unpinned.json"
+      ],
+      "validatorChecks": [
+        "seven item-keyed leakage dimensions and linked-group separation",
+        "authoritative per-item keys agree with the partition report",
+        "concept, alias, source, artifact, text, exact-match, and near-duplicate evidence is complete and pinned",
+        "preferred, alternate, and hidden aliases use normalized Unicode-equivalent identities"
+      ]
+    },
+    {
+      "requirement": "REF-EVAL-013",
+      "localFixtures": ["fixtures/invalid/gold-drafting-not-blind.json"],
+      "validatorChecks": ["blind drafting and independent-review controls"]
+    },
+    {
+      "requirement": "REF-EVAL-014",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/not-represented-without-open-route.json",
+        "fixtures/invalid/not-represented-in-recall-denominator.json",
+        "fixtures/invalid/nondefault-grade-without-policy.json"
+      ],
+      "validatorChecks": ["directional grades", "default adequacy", "notRepresented routing"]
+    },
+    {
+      "requirement": "REF-EVAL-015",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/pass-with-failed-gate.json",
+        "fixtures/invalid/pass-with-undersized-stratum.json",
+        "fixtures/invalid/pass-below-threshold.json",
+        "fixtures/invalid/measure-sets-disagree.json"
+      ],
+      "validatorChecks": [
+        "finite measures",
+        "one-to-one declared, thresholded, and observed measures",
+        "point-value threshold operators",
+        "all gate dimensions",
+        "minimum stratum sizes"
+      ]
+    },
+    {
+      "requirement": "REF-EVAL-016",
+      "localFixtures": [
+        "fixtures/invalid/configuration-corpus-drift.json",
+        "fixtures/invalid/evaluation-configuration-pin-mismatch.json",
+        "fixtures/invalid/evaluation-gold-pin-mismatch.json",
+        "fixtures/invalid/evaluation-vocabulary-universe-mismatch.json",
+        "fixtures/invalid/deployment-output-profile-pin-mismatch.json"
+      ],
+      "validatorChecks": [
+        "exact configuration and gold applicability",
+        "configuration and gold use the same complete vocabulary universe"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-150",
+      "localFixtures": ["fixtures/invalid/permission-cross-row.json"],
+      "validatorChecks": ["no cross-row tuple assembly"]
+    },
+    {
+      "requirement": "REF-TEST-151",
+      "localFixtures": [
+        "fixtures/invalid/candidate-only-accepted-output.json",
+        "fixtures/invalid/mapping-only-accepted-output.json",
+        "fixtures/invalid/accepted-without-candidate-use.json"
+      ],
+      "validatorChecks": ["candidate-only cannot enter accepted output"]
+    },
+    {
+      "requirement": "REF-TEST-152",
+      "localFixtures": [
+        "fixtures/invalid/wrong-facet-permission.json",
+        "fixtures/invalid/output-permission-unknown-facet.json"
+      ],
+      "validatorChecks": [
+        "permission-row facet and role compatibility",
+        "wrong facet and incompatible route rejection"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-153",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/malformed-language-tag.json"
+      ],
+      "externalGate": "Rulespec open-label ValueAssertion evidence and provenance fixtures",
+      "externalRulespecPaths": [
+        "fixtures/refspec-open-label-default-language-positive.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-evidence-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-facet-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-language-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-provenance-negative.jsonld",
+        "fixtures/negatives/refspec-open-label-missing-role-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-154",
+      "localFixtures": [
+        "fixtures/invalid/unexplained-coverage-zero.json",
+        "fixtures/invalid/failed-coverage-still-authorized.json",
+        "fixtures/invalid/required-coverage-feature-excluded.json",
+        "fixtures/invalid/mapping-coverage-wrong-snapshot.json",
+        "fixtures/invalid/mapping-coverage-required-flag-disagrees.json",
+        "fixtures/invalid/mapping-failed-coverage-still-authorized.json"
+      ],
+      "validatorChecks": [
+        "nonzero source feature cannot silently become zero",
+        "failed import coverage cannot authorize candidate or accepted use",
+        "mapping imports require exact passing coverage and required feature flags"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-155",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/language-and-datatype.json",
+        "fixtures/invalid/expression-missing-language-and-datatype.json",
+        "fixtures/invalid/duplicate-expression-id.json"
+      ],
+      "validatorChecks": ["same non-ASCII literal remains distinct across schemes"]
+    },
+    {
+      "requirement": "REF-TEST-156",
+      "localFixtures": [
+        "fixtures/invalid/unresolved-authorizes-union.json",
+        "fixtures/invalid/reconciliation-unknown-input-refs.json",
+        "fixtures/invalid/reconciliation-unvalidated-attestation.json"
+      ],
+      "validatorChecks": [
+        "authoritative union requires resolved attested reconciliation",
+        "difference provenance resolves to exact conflicting inputs",
+        "unvalidated governance references cannot authorize reconciliation"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-157",
+      "localFixtures": [
+        "fixtures/invalid/partition-alias-leakage.json",
+        "fixtures/invalid/partition-concept-leakage.json",
+        "fixtures/invalid/partition-exact-match-leakage.json",
+        "fixtures/invalid/partition-source-leakage.json",
+        "fixtures/invalid/partition-artifact-leakage.json",
+        "fixtures/invalid/partition-text-leakage.json",
+        "fixtures/invalid/partition-near-duplicate-leakage.json",
+        "fixtures/invalid/linked-group-crosses-split.json",
+        "fixtures/invalid/partition-concept-keys-incomplete.json",
+        "fixtures/invalid/partition-source-keys-disagree.json",
+        "fixtures/invalid/partition-alias-keys-incomplete.json",
+        "fixtures/invalid/partition-preferred-label-keys-incomplete.json",
+        "fixtures/invalid/partition-alternate-label-keys-incomplete.json",
+        "fixtures/invalid/partition-hidden-label-keys-incomplete.json",
+        "fixtures/invalid/partition-alias-unicode-equivalent-leakage.json",
+        "fixtures/invalid/partition-exact-cluster-keys-incomplete.json",
+        "fixtures/invalid/partition-evidence-unpinned.json"
+      ],
+      "validatorChecks": [
+        "all leakage dimensions and linked versions stay disjoint",
+        "authoritative partition keys cannot be hidden or omitted",
+        "partition evidence digests are sealed into the vocabulary universe and report",
+        "Unicode and case-equivalent preferred, alternate, and hidden labels cannot cross the split"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-158",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/not-represented-without-open-route.json",
+        "fixtures/invalid/not-represented-in-recall-denominator.json",
+        "fixtures/invalid/nondefault-grade-without-policy.json"
+      ],
+      "validatorChecks": ["directional grades and notRepresented denominator flags"]
+    },
+    {
+      "requirement": "REF-TEST-159",
+      "localFixtures": [
+        "fixtures/invalid/wrong-canonical-digest.json",
+        "fixtures/invalid/configuration-corpus-drift.json",
+        "fixtures/invalid/configuration-omits-permission-pins.json",
+        "fixtures/invalid/configuration-omits-mapping-release.json",
+        "fixtures/invalid/evaluation-configuration-pin-mismatch.json",
+        "fixtures/invalid/evaluation-gold-pin-mismatch.json",
+        "fixtures/invalid/evaluation-vocabulary-universe-mismatch.json"
+      ],
+      "validatorChecks": ["behavior mutation creates a new configuration and evaluation chain"]
+    },
+    {
+      "requirement": "REF-TEST-160",
+      "localFixtures": [
+        "fixtures/invalid/production-selected-development-only.json",
+        "fixtures/invalid/deployment-output-profile-pin-mismatch.json",
+        "fixtures/invalid/production-unvalidated-authorization.json"
+      ],
+      "validatorChecks": [
+        "production selection requires exact passing records",
+        "governance references require exact effective validation receipts"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-161",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/malformed-language-tag.json"
+      ],
+      "externalRulespecPaths": [
+        "fixtures/concept-vocabulary-text-multilingual-positive.jsonld",
+        "fixtures/negatives/concept-language-map-untagged-negative.jsonld",
+        "fixtures/negatives/concept-language-map-at-none-negative.jsonld",
+        "fixtures/negatives/concept-language-map-malformed-negative.jsonld",
+        "fixtures/negatives/registered-concept-missing-registered-at-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-162",
+      "localFixtures": [],
+      "externalRulespecPaths": [
+        "fixtures/negatives/concept-label-duplicate-pref-language-negative.jsonld",
+        "fixtures/negatives/concept-label-pref-alt-collision-negative.jsonld",
+        "fixtures/negatives/concept-label-pref-hidden-collision-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-163",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "externalRulespecPaths": [
+        "fixtures/concept-vocabulary-text-multilingual-positive.jsonld",
+        "fixtures/negatives/concept-notation-scalar-negative.jsonld",
+        "fixtures/negatives/concept-notation-untyped-negative.jsonld",
+        "fixtures/negatives/concept-notation-relative-datatype-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-164",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/unexplained-coverage-zero.json"
+      ],
+      "externalRulespecPaths": [
+        "fixtures/edges/registered-concept-multiple-relations-edge.jsonld",
+        "fixtures/negatives/concept-cross-scheme-broader-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-165",
+      "localFixtures": [],
+      "externalRulespecPaths": [
+        "fixtures/concept-lifecycle-operations-positive.jsonld",
+        "fixtures/negatives/concept-lifecycle-deprecation-successor-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-withdrawal-successor-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-replacement-cardinality-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-split-cardinality-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-merge-cardinality-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-promotion-cardinality-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-demotion-cardinality-negative.jsonld",
+        "fixtures/negatives/concept-lifecycle-retired-standalone-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-166",
+      "localFixtures": [],
+      "externalRulespecPaths": [
+        "fixtures/conceptresolutionresult-positive.jsonld",
+        "fixtures/negatives/concept-resolution-result-missing-resolution-method-negative.jsonld",
+        "fixtures/negatives/concept-resolution-result-missing-cache-status-negative.jsonld",
+        "fixtures/negatives/concept-resolution-result-missing-usage-ceiling-negative.jsonld",
+        "fixtures/negatives/concept-resolution-result-mapping-without-assertion-negative.jsonld",
+        "fixtures/negatives/concept-resolution-result-direct-with-mapping-negative.jsonld"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-167",
+      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "externalRulespecPaths": [
+        "tools/constraints_parity.py",
+        "tools/ci_validate.py",
+        "tools/validate_negatives.py",
+        "tools/test_constraints_compile.py",
+        "tools/l4_coverage_audit.py",
+        "crates/rkaf-runtime/src/concept.rs"
+      ],
+      "externalCommand": "make test"
+    }
+  ]
+}

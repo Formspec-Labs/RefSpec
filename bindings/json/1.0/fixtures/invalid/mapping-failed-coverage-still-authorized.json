@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-VOC-022"],
+  "mutations": [
+    {
+      "recordId": "urn:example:coverage:mapping-a-b",
+      "path": "/reportStatus",
+      "value": "fail"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:coverage:mapping-a-b"
+  ]
+}

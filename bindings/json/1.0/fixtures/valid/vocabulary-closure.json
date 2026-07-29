@@ -1,0 +1,2122 @@
+{
+  "fixtureVersion": "1.0",
+  "records": [
+    {
+      "id": "urn:ref:enrichment-profile:core:v1",
+      "type": "urn:ref:type:EnrichmentProfile",
+      "recordedAt": "2026-07-29T12:00:00Z",
+      "recordedBy": "urn:example:agent:profile-editor",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "version": "1.0.0",
+      "contentDigest": "sha256:a6df779a78ea87c4b8738ce106487780fb1197fd77d222fc50f9349e7f96e850",
+      "facets": [
+        {
+          "iri": "urn:ref:facet:general-subject",
+          "label": "General subject",
+          "definition": "A cross-domain matter that describes what the target is substantively about.",
+          "inclusionCues": [
+            "Central policy issue"
+          ],
+          "exclusionCues": [
+            "Named referent"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "externalReference"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentPrimary",
+            "https://rulespec.org/ns/v1#assignmentMention"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:specialist-subject",
+          "label": "Specialist subject",
+          "definition": "A domain-specific matter that depends on a specialist vocabulary.",
+          "inclusionCues": [
+            "Specialist technical topic"
+          ],
+          "exclusionCues": [
+            "Named entity"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "externalReference"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentPrimary",
+            "https://rulespec.org/ns/v1#assignmentMention"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:entity",
+          "label": "Entity",
+          "definition": "A particular or resolvable referent.",
+          "inclusionCues": [
+            "Stable identifier"
+          ],
+          "exclusionCues": [
+            "Subject class"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "entity"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentMention"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:legal-location",
+          "label": "Legal location",
+          "definition": "A governed location or citation in a legal authority.",
+          "inclusionCues": [
+            "Resolvable legal citation"
+          ],
+          "exclusionCues": [
+            "General legal topic"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "event"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentMention"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:industry-classification",
+          "label": "Industry classification",
+          "definition": "Membership in a governed economic-activity classification.",
+          "inclusionCues": [
+            "Exact classification release"
+          ],
+          "exclusionCues": [
+            "Named company"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "entity"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentSubstantive"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:affected-population",
+          "label": "Affected population",
+          "definition": "A class materially regulated, protected, eligible, or burdened.",
+          "inclusionCues": [
+            "Scope language"
+          ],
+          "exclusionCues": [
+            "Named entity"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "observation"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentSubstantive"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:genre",
+          "label": "Genre",
+          "definition": "The communicative form or source kind of the target.",
+          "inclusionCues": [
+            "Governed document form"
+          ],
+          "exclusionCues": [
+            "Substantive topic"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "participation"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentContextual"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:regulatory-action",
+          "label": "Regulatory action",
+          "definition": "An action proposed, performed, or decided by a regulatory actor.",
+          "inclusionCues": [
+            "Supported action relation"
+          ],
+          "exclusionCues": [
+            "Document genre"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "event"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentSubstantive"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:administrative-process-stage",
+          "label": "Administrative process stage",
+          "definition": "A governed phase or status in an administrative workflow.",
+          "inclusionCues": [
+            "Named workflow stage"
+          ],
+          "exclusionCues": [
+            "Action"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "event"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentContextual"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:code-list-value",
+          "label": "Code-list value",
+          "definition": "A member of a governed operational value set.",
+          "inclusionCues": [
+            "Exact code-list release"
+          ],
+          "exclusionCues": [
+            "Free text"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "container"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentContextual"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:ontology-class",
+          "label": "Ontology class",
+          "definition": "Class membership in an identified ontology.",
+          "inclusionCues": [
+            "Exact ontology class IRI"
+          ],
+          "exclusionCues": [
+            "More specific core facet"
+          ],
+          "compatibleResourceRoutes": [
+            "document",
+            "entity"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentContextual"
+          ]
+        },
+        {
+          "iri": "urn:ref:facet:observation-measure",
+          "label": "Observation and measure",
+          "definition": "A measured, counted, estimated, modeled, or observed value.",
+          "inclusionCues": [
+            "Unit-bearing quantity"
+          ],
+          "exclusionCues": [
+            "Topic about measurement"
+          ],
+          "compatibleResourceRoutes": [
+            "observation",
+            "event"
+          ],
+          "compatibleAssignmentPredicates": [
+            "https://rulespec.org/ns/v1#assignmentSubstantive"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "urn:example:output-profile:v1",
+      "type": "urn:ref:type:OutputProfile",
+      "recordedAt": "2026-07-29T12:01:00Z",
+      "recordedBy": "urn:example:agent:profile-editor",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "version": "1.0.0",
+      "contentDigest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165",
+      "enrichmentProfile": {
+        "id": "urn:ref:enrichment-profile:core:v1",
+        "version": "1.0.0",
+        "digest": "sha256:a6df779a78ea87c4b8738ce106487780fb1197fd77d222fc50f9349e7f96e850"
+      },
+      "acceptancePolicies": [
+        {
+          "id": "urn:example:acceptance-policy:v1",
+          "version": "1.0.0",
+          "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "publicationViews": [
+        {
+          "id": "urn:example:publication-view:v1",
+          "version": "1.0.0",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "releasePermissions": [
+        {
+          "facet": "urn:ref:facet:general-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "referenceResourceRelease": {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "registryImportSnapshot": {
+            "id": "urn:example:import:subjects-a",
+            "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          },
+          "requiredImportFeatures": [
+            "labels",
+            "languages",
+            "notation",
+            "notes",
+            "hierarchy",
+            "mappings",
+            "status",
+            "replacements",
+            "identifiers",
+            "membership"
+          ],
+          "candidateUse": true,
+          "acceptedOutputUse": true
+        },
+        {
+          "facet": "urn:ref:facet:specialist-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+          "referenceResourceRelease": {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "registryImportSnapshot": {
+            "id": "urn:example:import:subjects-a",
+            "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          },
+          "requiredImportFeatures": [
+            "labels",
+            "languages",
+            "notation",
+            "notes",
+            "hierarchy",
+            "mappings",
+            "status",
+            "replacements",
+            "identifiers",
+            "membership"
+          ],
+          "candidateUse": true,
+          "acceptedOutputUse": false
+        }
+      ],
+      "mappingPermissions": [
+        {
+          "facet": "urn:ref:facet:general-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "mappingSnapshot": {
+            "id": "urn:example:import:mapping-a-b",
+            "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+          },
+          "sourceRelease": {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "targetRelease": {
+            "id": "urn:example:release:subjects-b",
+            "version": "2026-07",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "relation": "http://www.w3.org/2004/02/skos/core#closeMatch",
+          "direction": "sourceToTarget",
+          "candidateUse": true,
+          "acceptedOutputUse": true
+        }
+      ],
+      "openLabelPermissions": [
+        {
+          "facet": "urn:ref:facet:general-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "mode": "explicitLanguage",
+          "candidateUse": true,
+          "acceptedOutputUse": true
+        },
+        {
+          "facet": "urn:ref:facet:specialist-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "mode": "declaredDefaultLanguage",
+          "defaultLanguage": "zh-Hant",
+          "candidateUse": true,
+          "acceptedOutputUse": true
+        }
+      ]
+    },
+    {
+      "id": "urn:example:coverage:subjects-a",
+      "type": "urn:ref:type:RegistryImportCoverageReport",
+      "recordedAt": "2026-07-29T12:02:00Z",
+      "recordedBy": "urn:example:activity:import-a",
+      "schemaVersion": "1.0",
+      "operationalState": "complete",
+      "canonicalPayloadDigest": "sha256:5a24b5f9cfe3c1d113e86e15e8b54629fef72f7764fa66b57115964650d5c78e",
+      "outputProfile": {
+        "id": "urn:example:output-profile:v1",
+        "version": "1.0.0",
+        "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-a",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "distributionArtifacts": [
+        {
+          "id": "urn:example:artifact:subjects-a",
+          "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "importProfile": {
+        "id": "urn:example:import-profile:skos:v1",
+        "version": "1.0.0",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "parserVersion": "skos-parser@4.0.0",
+      "indexSnapshot": {
+        "id": "urn:example:index:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "activity": "urn:example:activity:import-a",
+      "receipt": "urn:example:receipt:import-a",
+      "reportStatus": "pass",
+      "features": [
+        {
+          "feature": "labels",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 4,
+          "parsedCount": 4,
+          "indexedCount": 4,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "parsedDigest": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "indexedDigest": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "languages",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 3,
+          "parsedCount": 3,
+          "indexedCount": 3,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "parsedDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "indexedDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "notation",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+          "parsedDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+          "indexedDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "notes",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 2,
+          "parsedCount": 2,
+          "indexedCount": 2,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404",
+          "parsedDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404",
+          "indexedDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "hierarchy",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 2,
+          "parsedCount": 2,
+          "indexedCount": 2,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
+          "parsedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
+          "indexedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "mappings",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0606060606060606060606060606060606060606060606060606060606060606",
+          "parsedDigest": "sha256:0606060606060606060606060606060606060606060606060606060606060606",
+          "indexedDigest": "sha256:0606060606060606060606060606060606060606060606060606060606060606",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "status",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0707070707070707070707070707070707070707070707070707070707070707",
+          "parsedDigest": "sha256:0707070707070707070707070707070707070707070707070707070707070707",
+          "indexedDigest": "sha256:0707070707070707070707070707070707070707070707070707070707070707",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "replacements",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0808080808080808080808080808080808080808080808080808080808080808",
+          "parsedDigest": "sha256:0808080808080808080808080808080808080808080808080808080808080808",
+          "indexedDigest": "sha256:0808080808080808080808080808080808080808080808080808080808080808",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "identifiers",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 2,
+          "parsedCount": 2,
+          "indexedCount": 2,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0909090909090909090909090909090909090909090909090909090909090909",
+          "parsedDigest": "sha256:0909090909090909090909090909090909090909090909090909090909090909",
+          "indexedDigest": "sha256:0909090909090909090909090909090909090909090909090909090909090909",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "membership",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 2,
+          "parsedCount": 2,
+          "indexedCount": 2,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:1010101010101010101010101010101010101010101010101010101010101010",
+          "parsedDigest": "sha256:1010101010101010101010101010101010101010101010101010101010101010",
+          "indexedDigest": "sha256:1010101010101010101010101010101010101010101010101010101010101010",
+          "exclusions": [],
+          "failures": []
+        }
+      ]
+    },
+    {
+      "id": "urn:example:coverage:mapping-a-b",
+      "type": "urn:ref:type:RegistryImportCoverageReport",
+      "recordedAt": "2026-07-29T12:02:30Z",
+      "recordedBy": "urn:example:activity:import-mapping-a-b",
+      "schemaVersion": "1.0",
+      "operationalState": "complete",
+      "canonicalPayloadDigest": "sha256:49fa8dc7b666f26b47d5a16da59f35d083b65494b5d22d6c83e03b74f4e9a4b7",
+      "outputProfile": {
+        "id": "urn:example:output-profile:v1",
+        "version": "1.0.0",
+        "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:mapping-a-b",
+        "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      },
+      "referenceResourceRelease": {
+        "id": "urn:example:release:mapping-a-b",
+        "version": "2026-07",
+        "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "distributionArtifacts": [
+        {
+          "id": "urn:example:artifact:mapping-a-b",
+          "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+        }
+      ],
+      "importProfile": {
+        "id": "urn:example:import-profile:mapping-set:v1",
+        "version": "1.0.0",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "parserVersion": "mapping-parser@1.0.0",
+      "indexSnapshot": {
+        "id": "urn:example:index:mappings",
+        "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "activity": "urn:example:activity:import-mapping-a-b",
+      "receipt": "urn:example:receipt:import-mapping-a-b",
+      "reportStatus": "pass",
+      "features": [
+        {
+          "feature": "labels",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "languages",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "notation",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "notes",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "hierarchy",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "mappings",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "parsedDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "indexedDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "status",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "replacements",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "identifiers",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 3,
+          "parsedCount": 3,
+          "indexedCount": 3,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "parsedDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "indexedDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "membership",
+          "requiredForCandidateOrOutput": true,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "parsedDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "indexedDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "exclusions": [],
+          "failures": []
+        }
+      ]
+    },
+    {
+      "id": "urn:example:expression:01",
+      "type": "urn:ref:type:IndexedVocabularyExpression",
+      "recordedAt": "2026-07-29T12:03:00Z",
+      "recordedBy": "urn:example:activity:index",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "canonicalPayloadDigest": "sha256:c0e680943738ae68dce61c00ad2f1a3f23c3271b37fd3f3fa17e6b9b89f86c11",
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-a",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "distributionArtifact": {
+        "id": "urn:example:artifact:subjects-a",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "scheme": "urn:example:scheme-a",
+      "member": "urn:example:scheme-a:concept-1",
+      "sourceProperty": "http://www.w3.org/2004/02/skos/core#prefLabel",
+      "originalLiteral": "Climatización",
+      "language": "es",
+      "normalizationPolicy": {
+        "id": "urn:example:normalization:v2",
+        "version": "2.0.0",
+        "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      "indexedText": "climatización",
+      "indexedTextDigest": "sha256:1a9dc6a886d9fd4e6812b9e62b28baa2aa2d8fecc716281456a4d7ce1cacb101",
+      "indexedRepresentationVersion": "labels-v2",
+      "indexSnapshot": {
+        "id": "urn:example:index:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "activity": "urn:example:activity:index",
+      "receipt": "urn:example:receipt:index"
+    },
+    {
+      "id": "urn:example:expression:02",
+      "type": "urn:ref:type:IndexedVocabularyExpression",
+      "recordedAt": "2026-07-29T12:03:01Z",
+      "recordedBy": "urn:example:activity:index",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "canonicalPayloadDigest": "sha256:ad7560a163b5e233b510569558df66a9753d6ad9afe6fea68e913dd9c178c473",
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-b",
+        "version": "2026-07",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-b",
+        "digest": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc"
+      },
+      "distributionArtifact": {
+        "id": "urn:example:artifact:subjects-b",
+        "digest": "sha256:dededededededededededededededededededededededededededededededede"
+      },
+      "scheme": "urn:example:scheme-b",
+      "member": "urn:example:scheme-b:concept-9",
+      "sourcePath": "$.concepts[9].label",
+      "originalLiteral": "Climatización",
+      "language": "und",
+      "normalizationPolicy": {
+        "id": "urn:example:normalization:v2",
+        "version": "2.0.0",
+        "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      "indexedText": "climatización",
+      "indexedTextDigest": "sha256:1a9dc6a886d9fd4e6812b9e62b28baa2aa2d8fecc716281456a4d7ce1cacb101",
+      "indexedRepresentationVersion": "labels-v2",
+      "indexSnapshot": {
+        "id": "urn:example:index:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "activity": "urn:example:activity:index",
+      "receipt": "urn:example:receipt:index"
+    },
+    {
+      "id": "urn:example:expression:03",
+      "type": "urn:ref:type:IndexedVocabularyExpression",
+      "recordedAt": "2026-07-29T12:03:02Z",
+      "recordedBy": "urn:example:activity:index",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "canonicalPayloadDigest": "sha256:d1e573f29f961f471e23e860f460bd57a703ccb0e3462716059fb4f288c88df6",
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-a",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "distributionArtifact": {
+        "id": "urn:example:artifact:subjects-a",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "scheme": "urn:example:scheme-a",
+      "member": "urn:example:scheme-a:concept-1",
+      "sourceProperty": "http://www.w3.org/2004/02/skos/core#altLabel",
+      "originalLiteral": "climate",
+      "language": "en",
+      "normalizationPolicy": {
+        "id": "urn:example:normalization:v2",
+        "version": "2.0.0",
+        "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      "indexedText": "climate",
+      "indexedTextDigest": "sha256:10db699812d02cc570ad3bdef91138092088ff2718c1ef1d4ee308a89defe62a",
+      "indexedRepresentationVersion": "labels-v2",
+      "indexSnapshot": {
+        "id": "urn:example:index:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "activity": "urn:example:activity:index",
+      "receipt": "urn:example:receipt:index"
+    },
+    {
+      "id": "urn:example:expression:04",
+      "type": "urn:ref:type:IndexedVocabularyExpression",
+      "recordedAt": "2026-07-29T12:03:03Z",
+      "recordedBy": "urn:example:activity:index",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "canonicalPayloadDigest": "sha256:f941ff527465477c984c2d903da29bfaa0acda67705e1617894073431feaa740",
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-a",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "distributionArtifact": {
+        "id": "urn:example:artifact:subjects-a",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "scheme": "urn:example:scheme-a",
+      "member": "urn:example:scheme-a:concept-1",
+      "sourceProperty": "http://www.w3.org/2004/02/skos/core#hiddenLabel",
+      "originalLiteral": "Weather governance",
+      "language": "en",
+      "normalizationPolicy": {
+        "id": "urn:example:normalization:v2",
+        "version": "2.0.0",
+        "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+      },
+      "indexedText": "weather governance",
+      "indexedTextDigest": "sha256:72133ffe7e9f216b88a4c18c58ee06ed4ea5fb6ecf6c4984b6fa72485e00d5bb",
+      "indexedRepresentationVersion": "labels-v2",
+      "indexSnapshot": {
+        "id": "urn:example:index:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "activity": "urn:example:activity:index",
+      "receipt": "urn:example:receipt:index"
+    },
+    {
+      "id": "urn:example:reconciliation:a-b",
+      "type": "urn:ref:type:RegistryReconciliationReport",
+      "recordedAt": "2026-07-29T12:04:00Z",
+      "recordedBy": "urn:example:activity:reconcile",
+      "schemaVersion": "1.0",
+      "operationalState": "complete",
+      "canonicalPayloadDigest": "sha256:b4e97cc19c8bf7846e35b2c21a126b41cf91f6245b9853bf3742211ba49dba78",
+      "inputs": [
+        {
+          "id": "urn:example:reconciliation-input:a",
+          "referenceResourceRelease": {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "distributionArtifacts": [
+            {
+              "id": "urn:example:artifact:subjects-a",
+              "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          ],
+          "registryImportSnapshot": {
+            "id": "urn:example:import:subjects-a",
+            "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          },
+          "stageDigests": [
+            {
+              "id": "urn:example:stage-digest:a",
+              "digest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+            }
+          ]
+        },
+        {
+          "id": "urn:example:reconciliation-input:b",
+          "referenceResourceRelease": {
+            "id": "urn:example:release:subjects-b",
+            "version": "2026-07",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "distributionArtifacts": [
+            {
+              "id": "urn:example:artifact:subjects-b",
+              "digest": "sha256:dededededededededededededededededededededededededededededededede"
+            }
+          ],
+          "registryImportSnapshot": {
+            "id": "urn:example:import:subjects-b",
+            "digest": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc"
+          },
+          "stageDigests": [
+            {
+              "id": "urn:example:stage-digest:b",
+              "digest": "sha256:1414141414141414141414141414141414141414141414141414141414141414"
+            }
+          ]
+        }
+      ],
+      "comparedItems": [
+        {
+          "kind": "member",
+          "left": "urn:example:scheme-a:concept-1",
+          "right": "urn:example:scheme-b:concept-9"
+        }
+      ],
+      "differences": [
+        {
+          "id": "urn:example:difference:1",
+          "kind": "member",
+          "inputRefs": [
+            "urn:example:reconciliation-input:a",
+            "urn:example:reconciliation-input:b"
+          ],
+          "description": "The official publications use distinct members.",
+          "resolution": "selectedInput"
+        }
+      ],
+      "conceptMappings": [
+        "urn:example:mapping:concept-1-concept-9"
+      ],
+      "precedencePolicy": {
+        "id": "urn:example:precedence-policy:v1",
+        "version": "1.0.0",
+        "digest": "sha256:1515151515151515151515151515151515151515151515151515151515151515"
+      },
+      "rulespecAuthorityRefs": [
+        "urn:example:authority:vocabulary-board"
+      ],
+      "attestationRefs": [
+        "urn:example:attestation:reconciliation"
+      ],
+      "localAdoptionRefs": [
+        "urn:example:adoption:reconciliation"
+      ],
+      "authorizationValidations": [
+        {
+          "authorizationRef": "urn:example:authority:vocabulary-board",
+          "kind": "rulespecAuthority",
+          "validationReceipt": {
+            "id": "urn:example:validation:authority",
+            "digest": "sha256:6161616161616161616161616161616161616161616161616161616161616161"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:03:30Z",
+          "effective": true
+        },
+        {
+          "authorizationRef": "urn:example:attestation:reconciliation",
+          "kind": "rulespecAttestation",
+          "validationReceipt": {
+            "id": "urn:example:validation:attestation",
+            "digest": "sha256:6262626262626262626262626262626262626262626262626262626262626262"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:03:31Z",
+          "effective": true
+        },
+        {
+          "authorizationRef": "urn:example:adoption:reconciliation",
+          "kind": "localAdoption",
+          "validationReceipt": {
+            "id": "urn:example:validation:adoption",
+            "digest": "sha256:6363636363636363636363636363636363636363636363636363636363636363"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:03:32Z",
+          "effective": true
+        }
+      ],
+      "unresolvedItems": [],
+      "selectedInputRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "synthesizedUnionAuthorized": false,
+      "activity": "urn:example:activity:reconcile",
+      "outcome": "selectedInput"
+    },
+    {
+      "id": "urn:example:registry-deployment:prod-a",
+      "type": "urn:ref:type:RegistryDeploymentDecision",
+      "recordedAt": "2026-07-29T12:04:30Z",
+      "recordedBy": "urn:example:activity:deploy-registry",
+      "schemaVersion": "1.0",
+      "operationalState": "effective",
+      "canonicalPayloadDigest": "sha256:2a80c61919c2f7d3bcc09cd07e382398752c90f5a5c869c50872f0ac13e9fbbc",
+      "environment": {
+        "id": "urn:example:environment:production",
+        "classification": "production"
+      },
+      "registryImportSnapshot": {
+        "id": "urn:example:import:subjects-a",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "referenceResourceRelease": {
+        "id": "urn:example:release:subjects-a",
+        "version": "2026-07",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "coverageReport": {
+        "id": "urn:example:coverage:subjects-a",
+        "digest": "sha256:5a24b5f9cfe3c1d113e86e15e8b54629fef72f7764fa66b57115964650d5c78e"
+      },
+      "reconciliationReport": {
+        "id": "urn:example:reconciliation:a-b",
+        "digest": "sha256:b4e97cc19c8bf7846e35b2c21a126b41cf91f6245b9853bf3742211ba49dba78"
+      },
+      "outputProfile": {
+        "id": "urn:example:output-profile:v1",
+        "version": "1.0.0",
+        "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+      },
+      "selectionState": "selected",
+      "effectiveAt": "2026-07-29T12:04:30Z",
+      "reason": "Passing coverage and resolved reconciliation authorize this registry release.",
+      "activity": "urn:example:activity:deploy-registry",
+      "rulespecAttestationRefs": [
+        "urn:example:attestation:registry-deployment"
+      ],
+      "localAdoptionRefs": [
+        "urn:example:adoption:registry-deployment"
+      ],
+      "authorizationValidations": [
+        {
+          "authorizationRef": "urn:example:attestation:registry-deployment",
+          "kind": "rulespecAttestation",
+          "validationReceipt": {
+            "id": "urn:example:validation:registry-attestation",
+            "digest": "sha256:7272727272727272727272727272727272727272727272727272727272727272"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:04:20Z",
+          "effective": true
+        },
+        {
+          "authorizationRef": "urn:example:adoption:registry-deployment",
+          "kind": "localAdoption",
+          "validationReceipt": {
+            "id": "urn:example:validation:registry-adoption",
+            "digest": "sha256:7373737373737373737373737373737373737373737373737373737373737373"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:04:21Z",
+          "effective": true
+        }
+      ]
+    },
+    {
+      "id": "urn:example:gold:g1",
+      "type": "urn:ref:type:SealedGoldManifest",
+      "recordedAt": "2026-07-29T12:05:00Z",
+      "recordedBy": "urn:example:activity:seal-gold",
+      "schemaVersion": "1.0",
+      "operationalState": "sealed",
+      "canonicalPayloadDigest": "sha256:5e75cfddfffe913ebe40042b3ce2b96d056d1258d19ddd0b8751c25ca0ae8eb2",
+      "evaluationGeneration": "g1",
+      "purpose": "Vocabulary closure release evaluation",
+      "selectionProtocol": {
+        "id": "urn:example:selection-protocol:v1",
+        "version": "1.0.0",
+        "digest": "sha256:1616161616161616161616161616161616161616161616161616161616161616"
+      },
+      "sourceDigest": "sha256:1717171717171717171717171717171717171717171717171717171717171717",
+      "corpusDigest": "sha256:1818181818181818181818181818181818181818181818181818181818181818",
+      "selectionDigest": "sha256:1919191919191919191919191919191919191919191919191919191919191919",
+      "draftingControl": {
+        "protocol": {
+          "id": "urn:example:blind-gold-protocol:v1",
+          "version": "1.0.0",
+          "digest": "sha256:2020202020202020202020202020202020202020202020202020202020202020"
+        },
+        "blindToEvaluatedOutput": true,
+        "prohibitedSeedSources": [
+          "modelOutput",
+          "candidateRank",
+          "priorSystemDecision",
+          "developerPreference"
+        ]
+      },
+      "partitions": {
+        "development": [
+          "urn:example:gold-item:dev-1"
+        ],
+        "holdout": [
+          "urn:example:gold-item:holdout-1"
+        ]
+      },
+      "items": [
+        {
+          "id": "urn:example:gold-item:dev-1",
+          "split": "development",
+          "sourceResource": "urn:example:source:dev-1",
+          "renditionArtifact": {
+            "id": "urn:example:artifact:dev-1",
+            "digest": "sha256:2121212121212121212121212121212121212121212121212121212121212121"
+          },
+          "sourceFragment": "urn:example:fragment:dev-1",
+          "sourceFamily": "urn:example:source-family:rules",
+          "subtype": "urn:example:subtype:proposed-rule",
+          "selectionStrata": [
+            "urn:example:stratum:general-subject"
+          ],
+          "linkedGroupIds": [
+            "urn:example:linked-group:dev-1"
+          ],
+          "partitionKeys": {
+            "conceptIdentity": [
+              "urn:example:scheme-a:concept-1"
+            ],
+            "exactMatchCluster": [
+              "urn:example:cluster:exact-1"
+            ],
+            "alias": [
+              "Climatización",
+              "climate",
+              "weather governance"
+            ],
+            "sourceIdentity": [
+              "urn:example:source:dev-1"
+            ],
+            "artifactDigest": [
+              "sha256:2121212121212121212121212121212121212121212121212121212121212121"
+            ],
+            "textDigest": [
+              "sha256:3232323232323232323232323232323232323232323232323232323232323232"
+            ],
+            "nearDuplicateCluster": [
+              "urn:example:near-duplicate:dev-1"
+            ]
+          },
+          "partitionEvidence": {
+            "sourceTextDigest": "sha256:3232323232323232323232323232323232323232323232323232323232323232",
+            "vocabularyExpressionCorpusDigest": "sha256:3838383838383838383838383838383838383838383838383838383838383838",
+            "exactMatchGraphDigest": "sha256:6565656565656565656565656565656565656565656565656565656565656565",
+            "nearDuplicateAnalysisDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "receipt": "urn:example:partition-evidence:dev-1"
+          }
+        },
+        {
+          "id": "urn:example:gold-item:holdout-1",
+          "split": "holdout",
+          "sourceResource": "urn:example:source:holdout-1",
+          "renditionArtifact": {
+            "id": "urn:example:artifact:holdout-1",
+            "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "sourceFragment": "urn:example:fragment:holdout-1",
+          "sourceFamily": "urn:example:source-family:notices",
+          "subtype": "urn:example:subtype:notice",
+          "selectionStrata": [
+            "urn:example:stratum:no-fit"
+          ],
+          "linkedGroupIds": [
+            "urn:example:linked-group:holdout-1"
+          ],
+          "partitionKeys": {
+            "conceptIdentity": [],
+            "exactMatchCluster": [],
+            "alias": [
+              "新興主題"
+            ],
+            "sourceIdentity": [
+              "urn:example:source:holdout-1"
+            ],
+            "artifactDigest": [
+              "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+            ],
+            "textDigest": [
+              "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+            ],
+            "nearDuplicateCluster": [
+              "urn:example:near-duplicate:holdout-1"
+            ]
+          },
+          "partitionEvidence": {
+            "sourceTextDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "vocabularyExpressionCorpusDigest": "sha256:3838383838383838383838383838383838383838383838383838383838383838",
+            "exactMatchGraphDigest": "sha256:6565656565656565656565656565656565656565656565656565656565656565",
+            "nearDuplicateAnalysisDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "receipt": "urn:example:partition-evidence:holdout-1"
+          }
+        }
+      ],
+      "vocabularyUniverse": {
+        "referenceResourceReleases": [
+          {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "id": "urn:example:release:subjects-b",
+            "version": "2026-07",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "registryImportSnapshots": [
+          {
+            "id": "urn:example:import:subjects-a",
+            "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ],
+        "mappingReleases": [
+          {
+            "id": "urn:example:release:mapping-a-b",
+            "version": "2026-07",
+            "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+          }
+        ],
+        "mappingSnapshots": [
+          {
+            "id": "urn:example:import:mapping-a-b",
+            "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+          }
+        ],
+        "indexedExpressionCorpusDigests": [
+          "sha256:3838383838383838383838383838383838383838383838383838383838383838"
+        ],
+        "enrichmentProfile": {
+          "id": "urn:ref:enrichment-profile:core:v1",
+          "version": "1.0.0",
+          "digest": "sha256:a6df779a78ea87c4b8738ce106487780fb1197fd77d222fc50f9349e7f96e850"
+        },
+        "outputProfile": {
+          "id": "urn:example:output-profile:v1",
+          "version": "1.0.0",
+          "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+        },
+        "normalizationPolicy": {
+          "id": "urn:example:normalization:v2",
+          "version": "2.0.0",
+          "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+        },
+        "candidateTargetUniverseDigest": "sha256:2323232323232323232323232323232323232323232323232323232323232323"
+      },
+      "expectations": [
+        {
+          "id": "urn:example:expectation:dev-1",
+          "item": "urn:example:gold-item:dev-1",
+          "facet": "urn:ref:facet:general-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "expectationMode": "completeSet",
+          "minimumCardinality": 1,
+          "maximumCardinality": 1,
+          "validZeroResult": false,
+          "registeredTargets": [
+            {
+              "target": "urn:example:scheme-a:concept-1",
+              "release": {
+                "id": "urn:example:release:subjects-a",
+                "version": "2026-07",
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "grade": "exact",
+              "adequate": true,
+              "independentlyReviewed": true
+            }
+          ],
+          "acceptableOpenLabels": [],
+          "conceptProposalAllowed": false,
+          "abstentionAllowed": false,
+          "forbiddenResults": [
+            "urn:example:scheme-a:wrong-concept"
+          ],
+          "wrongFacetOutcomes": [
+            "urn:ref:facet:entity"
+          ],
+          "evidenceRefs": [
+            "urn:example:evidence:dev-1"
+          ],
+          "reviewerJudgments": [
+            {
+              "reviewer": "urn:example:reviewer:alice",
+              "judgment": "urn:example:judgment:dev-1-alice"
+            },
+            {
+              "reviewer": "urn:example:reviewer:bob",
+              "judgment": "urn:example:judgment:dev-1-bob"
+            }
+          ],
+          "disagreement": false,
+          "excludeFromReachableCandidateRecall": false,
+          "includeInTargetAvailability": true,
+          "includeInOpenSetMeasures": true
+        },
+        {
+          "id": "urn:example:expectation:holdout-1",
+          "item": "urn:example:gold-item:holdout-1",
+          "facet": "urn:ref:facet:specialist-subject",
+          "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "expectationMode": "completeSet",
+          "minimumCardinality": 0,
+          "maximumCardinality": 1,
+          "validZeroResult": true,
+          "registeredTargets": [
+            {
+              "grade": "notRepresented",
+              "adequate": false,
+              "independentlyReviewed": true
+            }
+          ],
+          "acceptableOpenLabels": [
+            {
+              "value": "新興主題",
+              "language": "zh-Hant"
+            }
+          ],
+          "conceptProposalAllowed": true,
+          "abstentionAllowed": true,
+          "forbiddenResults": [],
+          "wrongFacetOutcomes": [
+            "urn:ref:facet:general-subject"
+          ],
+          "evidenceRefs": [
+            "urn:example:evidence:holdout-1"
+          ],
+          "reviewerJudgments": [
+            {
+              "reviewer": "urn:example:reviewer:alice",
+              "judgment": "urn:example:judgment:holdout-1-alice"
+            },
+            {
+              "reviewer": "urn:example:reviewer:bob",
+              "judgment": "urn:example:judgment:holdout-1-bob"
+            }
+          ],
+          "disagreement": false,
+          "excludeFromReachableCandidateRecall": true,
+          "includeInTargetAvailability": true,
+          "includeInOpenSetMeasures": true
+        }
+      ],
+      "reviewers": [
+        "urn:example:reviewer:alice",
+        "urn:example:reviewer:bob"
+      ],
+      "independentJudgmentRefs": [
+        "urn:example:judgment:dev-1-alice",
+        "urn:example:judgment:dev-1-bob",
+        "urn:example:judgment:holdout-1-alice",
+        "urn:example:judgment:holdout-1-bob"
+      ],
+      "disagreementRefs": [],
+      "adjudicationRefs": [],
+      "exclusions": [],
+      "partitionReport": {
+        "id": "urn:example:partition-report:g1",
+        "digest": "sha256:2424242424242424242424242424242424242424242424242424242424242424",
+        "inputDigests": [
+          "sha256:2525252525252525252525252525252525252525252525252525252525252525",
+          "sha256:3838383838383838383838383838383838383838383838383838383838383838",
+          "sha256:6565656565656565656565656565656565656565656565656565656565656565",
+          "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        ],
+        "dimensions": [
+          {
+            "dimension": "conceptIdentity",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:concept",
+              "version": "1.0.0",
+              "digest": "sha256:2626262626262626262626262626262626262626262626262626262626262626"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "urn:example:scheme-a:concept-1"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": []
+              }
+            ]
+          },
+          {
+            "dimension": "exactMatchCluster",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:exact-match",
+              "version": "1.0.0",
+              "digest": "sha256:2727272727272727272727272727272727272727272727272727272727272727"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "urn:example:cluster:exact-1"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": []
+              }
+            ]
+          },
+          {
+            "dimension": "alias",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:aliases",
+              "version": "1.0.0",
+              "digest": "sha256:2828282828282828282828282828282828282828282828282828282828282828"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "Climatización",
+                  "climate",
+                  "weather governance"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": [
+                  "新興主題"
+                ]
+              }
+            ]
+          },
+          {
+            "dimension": "sourceIdentity",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:sources",
+              "version": "1.0.0",
+              "digest": "sha256:2929292929292929292929292929292929292929292929292929292929292929"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "urn:example:source:dev-1"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": [
+                  "urn:example:source:holdout-1"
+                ]
+              }
+            ]
+          },
+          {
+            "dimension": "artifactDigest",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:artifacts",
+              "version": "1.0.0",
+              "digest": "sha256:3030303030303030303030303030303030303030303030303030303030303030"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "sha256:2121212121212121212121212121212121212121212121212121212121212121"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": [
+                  "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+                ]
+              }
+            ]
+          },
+          {
+            "dimension": "textDigest",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:text",
+              "version": "1.0.0",
+              "digest": "sha256:3131313131313131313131313131313131313131313131313131313131313131"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "sha256:3232323232323232323232323232323232323232323232323232323232323232"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": [
+                  "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+                ]
+              }
+            ]
+          },
+          {
+            "dimension": "nearDuplicateCluster",
+            "computationPolicy": {
+              "id": "urn:example:partition-policy:near-duplicates",
+              "version": "1.0.0",
+              "digest": "sha256:3434343434343434343434343434343434343434343434343434343434343434"
+            },
+            "itemKeys": [
+              {
+                "item": "urn:example:gold-item:dev-1",
+                "values": [
+                  "urn:example:near-duplicate:dev-1"
+                ]
+              },
+              {
+                "item": "urn:example:gold-item:holdout-1",
+                "values": [
+                  "urn:example:near-duplicate:holdout-1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "sealingTime": "2026-07-29T12:05:00Z",
+      "sealingActivity": "urn:example:activity:seal-gold"
+    },
+    {
+      "id": "urn:example:configuration:c1",
+      "type": "urn:ref:type:EnrichmentConfiguration",
+      "recordedAt": "2026-07-29T12:06:00Z",
+      "recordedBy": "urn:example:activity:configure",
+      "schemaVersion": "1.0",
+      "operationalState": "frozen",
+      "canonicalPayloadDigest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e",
+      "implementation": {
+        "id": "urn:example:implementation:enricher",
+        "revision": "git:0123456789abcdef",
+        "build": "build-2026-07-29.1",
+        "runtime": {
+          "id": "urn:example:runtime:python",
+          "revision": "3.12.4",
+          "digest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+        },
+        "dependencyLockDigest": "sha256:3636363636363636363636363636363636363636363636363636363636363636"
+      },
+      "enrichmentProfile": {
+        "id": "urn:ref:enrichment-profile:core:v1",
+        "version": "1.0.0",
+        "digest": "sha256:a6df779a78ea87c4b8738ce106487780fb1197fd77d222fc50f9349e7f96e850"
+      },
+      "outputProfile": {
+        "id": "urn:example:output-profile:v1",
+        "version": "1.0.0",
+        "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+      },
+      "acceptancePolicy": {
+        "id": "urn:example:acceptance-policy:v1",
+        "version": "1.0.0",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "schemas": [
+        {
+          "id": "https://refspec.org/bindings/json/1.0/schemas/enrichment-configuration.schema.json",
+          "version": "1.0",
+          "digest": "sha256:3737373737373737373737373737373737373737373737373737373737373737"
+        }
+      ],
+      "inputCorpora": [
+        {
+          "id": "urn:example:corpus:release-evaluation",
+          "version": "g1",
+          "digest": "sha256:1818181818181818181818181818181818181818181818181818181818181818"
+        }
+      ],
+      "vocabulary": {
+        "referenceResourceReleases": [
+          {
+            "id": "urn:example:release:subjects-a",
+            "version": "2026-07",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "id": "urn:example:release:subjects-b",
+            "version": "2026-07",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "registryImportSnapshots": [
+          {
+            "id": "urn:example:import:subjects-a",
+            "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ],
+        "mappingReleases": [
+          {
+            "id": "urn:example:release:mapping-a-b",
+            "version": "2026-07",
+            "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+          }
+        ],
+        "mappingSnapshots": [
+          {
+            "id": "urn:example:import:mapping-a-b",
+            "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+          }
+        ],
+        "candidateTargetUniverseDigest": "sha256:2323232323232323232323232323232323232323232323232323232323232323",
+        "registryDeploymentDecisions": [
+          {
+            "id": "urn:example:registry-deployment:prod-a",
+            "digest": "sha256:2a80c61919c2f7d3bcc09cd07e382398752c90f5a5c869c50872f0ac13e9fbbc"
+          }
+        ]
+      },
+      "indexes": [
+        {
+          "indexSnapshot": {
+            "id": "urn:example:index:subjects",
+            "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          "indexedExpressionCorpusDigest": "sha256:3838383838383838383838383838383838383838383838383838383838383838",
+          "indexedRepresentationVersion": "labels-v2",
+          "normalizationPolicy": {
+            "id": "urn:example:normalization:v2",
+            "version": "2.0.0",
+            "digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+          }
+        }
+      ],
+      "candidateChannels": [
+        {
+          "id": "urn:example:channel:lexical",
+          "retriever": {
+            "id": "urn:example:component:retriever",
+            "revision": "1",
+            "digest": "sha256:3939393939393939393939393939393939393939393939393939393939393939"
+          },
+          "queryConstruction": {
+            "id": "urn:example:component:query",
+            "revision": "1",
+            "digest": "sha256:4040404040404040404040404040404040404040404040404040404040404040"
+          },
+          "ordering": {
+            "id": "urn:example:component:ordering",
+            "revision": "1",
+            "digest": "sha256:4141414141414141414141414141414141414141414141414141414141414141"
+          },
+          "fusion": {
+            "id": "urn:example:component:fusion",
+            "revision": "1",
+            "digest": "sha256:4242424242424242424242424242424242424242424242424242424242424242"
+          },
+          "deduplication": {
+            "id": "urn:example:component:dedupe",
+            "revision": "1",
+            "digest": "sha256:4343434343434343434343434343434343434343434343434343434343434343"
+          },
+          "quota": {
+            "maximumCandidates": 20,
+            "policy": {
+              "id": "urn:example:component:quota",
+              "revision": "1",
+              "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+            }
+          },
+          "truncation": {
+            "id": "urn:example:component:truncation",
+            "revision": "1",
+            "digest": "sha256:4545454545454545454545454545454545454545454545454545454545454545"
+          },
+          "fallbackPolicy": {
+            "id": "urn:example:component:fallback",
+            "revision": "1",
+            "digest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+          }
+        }
+      ],
+      "models": [
+        {
+          "id": "urn:example:model:adjudicator",
+          "revision": "2026-07-01",
+          "providerConfiguration": {
+            "id": "urn:example:provider:config",
+            "revision": "1",
+            "digest": "sha256:4747474747474747474747474747474747474747474747474747474747474747"
+          },
+          "endpointConfiguration": {
+            "id": "urn:example:endpoint:config",
+            "revision": "1",
+            "digest": "sha256:4848484848484848484848484848484848484848484848484848484848484848"
+          },
+          "inferenceParameters": {
+            "temperature": "0.0",
+            "maximumOutputTokens": 512,
+            "structured": true
+          },
+          "structuredOutputSchema": {
+            "id": "urn:example:schema:adjudication",
+            "version": "1.0.0",
+            "digest": "sha256:4949494949494949494949494949494949494949494949494949494949494949"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "id": "urn:example:prompt:adjudication",
+          "revision": "1",
+          "digest": "sha256:5050505050505050505050505050505050505050505050505050505050505050"
+        }
+      ],
+      "toolPolicies": [
+        {
+          "id": "urn:example:tool-policy:none",
+          "revision": "1",
+          "digest": "sha256:5151515151515151515151515151515151515151515151515151515151515151"
+        }
+      ],
+      "budgets": [
+        {
+          "stage": "urn:example:stage:enrichment",
+          "inputBytes": 1000000,
+          "outputBytes": 100000,
+          "tokens": 10000,
+          "milliseconds": 30000,
+          "candidates": 20,
+          "costMicrounits": 500000
+        }
+      ],
+      "determinism": [
+        {
+          "stage": "urn:example:stage:retrieval",
+          "status": "deterministic",
+          "seed": 7,
+          "replayControls": {
+            "id": "urn:example:replay:retrieval",
+            "revision": "1",
+            "digest": "sha256:5252525252525252525252525252525252525252525252525252525252525252"
+          }
+        },
+        {
+          "stage": "urn:example:stage:adjudication",
+          "status": "nondeterministic",
+          "replayControls": {
+            "id": "urn:example:replay:adjudication",
+            "revision": "1",
+            "digest": "sha256:5353535353535353535353535353535353535353535353535353535353535353"
+          }
+        }
+      ],
+      "otherBehaviorPins": [
+        {
+          "id": "urn:example:policy:abstention",
+          "revision": "1",
+          "digest": "sha256:5454545454545454545454545454545454545454545454545454545454545454"
+        }
+      ],
+      "secretVersionRefs": [
+        "urn:example:secret-version:model-provider:7"
+      ]
+    },
+    {
+      "id": "urn:example:evaluation:e1",
+      "type": "urn:ref:type:EnrichmentEvaluationResult",
+      "recordedAt": "2026-07-29T12:07:00Z",
+      "recordedBy": "urn:example:activity:evaluate",
+      "schemaVersion": "1.0",
+      "operationalState": "complete",
+      "canonicalPayloadDigest": "sha256:25b95ffa6bfc6b7167968bdbb69261c7f60c06a118676855e26743df2a1296fd",
+      "configuration": {
+        "id": "urn:example:configuration:c1",
+        "digest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e"
+      },
+      "sealedGoldManifest": {
+        "id": "urn:example:gold:g1",
+        "digest": "sha256:5e75cfddfffe913ebe40042b3ce2b96d056d1258d19ddd0b8751c25ca0ae8eb2"
+      },
+      "evaluationProtocol": {
+        "id": "urn:example:evaluation-protocol:v1",
+        "version": "1.0.0",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "predeclaredMeasures": [
+        "urn:example:measure:precision"
+      ],
+      "thresholds": [
+        {
+          "measure": "urn:example:measure:precision",
+          "operator": "atLeast",
+          "value": "0.90"
+        }
+      ],
+      "configuredStrata": [
+        {
+          "stratum": "urn:example:stratum:general-subject",
+          "minimumSampleSize": 1,
+          "observedSampleSize": 1,
+          "passed": true
+        }
+      ],
+      "exclusions": [],
+      "uncertaintyMethod": {
+        "id": "urn:example:uncertainty:bootstrap",
+        "version": "1.0.0",
+        "digest": "sha256:5656565656565656565656565656565656565656565656565656565656565656"
+      },
+      "observedMeasures": [
+        {
+          "measure": "urn:example:measure:precision",
+          "value": "0.95",
+          "uncertaintyLower": "0.91",
+          "uncertaintyUpper": "0.99"
+        }
+      ],
+      "measurePopulations": [
+        {
+          "measure": "urn:example:measure:reachable-registered-candidate-recall",
+          "populationKind": "reachableRegisteredCandidateRecall",
+          "includedExpectations": [
+            "urn:example:expectation:dev-1"
+          ],
+          "excludedExpectations": [
+            "urn:example:expectation:holdout-1"
+          ]
+        },
+        {
+          "measure": "urn:example:measure:target-availability",
+          "populationKind": "targetAvailability",
+          "includedExpectations": [
+            "urn:example:expectation:dev-1",
+            "urn:example:expectation:holdout-1"
+          ],
+          "excludedExpectations": []
+        },
+        {
+          "measure": "urn:example:measure:open-set",
+          "populationKind": "openSet",
+          "includedExpectations": [
+            "urn:example:expectation:dev-1",
+            "urn:example:expectation:holdout-1"
+          ],
+          "excludedExpectations": []
+        }
+      ],
+      "gates": [
+        {
+          "id": "urn:example:gate:stage",
+          "dimension": "stage",
+          "subject": "urn:example:stage:enrichment",
+          "passed": true,
+          "reason": "Stage threshold passed."
+        },
+        {
+          "id": "urn:example:gate:source",
+          "dimension": "source",
+          "subject": "urn:example:source-family:rules",
+          "passed": true,
+          "reason": "Source threshold passed."
+        },
+        {
+          "id": "urn:example:gate:subtype",
+          "dimension": "subtype",
+          "subject": "urn:example:subtype:proposed-rule",
+          "passed": true,
+          "reason": "Subtype threshold passed."
+        },
+        {
+          "id": "urn:example:gate:facet",
+          "dimension": "facet",
+          "subject": "urn:ref:facet:general-subject",
+          "passed": true,
+          "reason": "Facet threshold passed."
+        },
+        {
+          "id": "urn:example:gate:role",
+          "dimension": "role",
+          "subject": "https://rulespec.org/ns/v1#assignmentPrimary",
+          "passed": true,
+          "reason": "Role threshold passed."
+        },
+        {
+          "id": "urn:example:gate:predicate",
+          "dimension": "predicate",
+          "subject": "https://rulespec.org/ns/v1#assignedConcept",
+          "passed": true,
+          "reason": "Predicate threshold passed."
+        },
+        {
+          "id": "urn:example:gate:privacy",
+          "dimension": "privacy",
+          "subject": "urn:example:privacy:public",
+          "passed": true,
+          "reason": "Privacy threshold passed."
+        },
+        {
+          "id": "urn:example:gate:risk",
+          "dimension": "risk",
+          "subject": "urn:example:risk:standard",
+          "passed": true,
+          "reason": "Risk threshold passed."
+        },
+        {
+          "id": "urn:example:gate:latency",
+          "dimension": "latency",
+          "subject": "urn:example:slo:latency",
+          "passed": true,
+          "reason": "Latency threshold passed."
+        },
+        {
+          "id": "urn:example:gate:cost",
+          "dimension": "cost",
+          "subject": "urn:example:slo:cost",
+          "passed": true,
+          "reason": "Cost threshold passed."
+        },
+        {
+          "id": "urn:example:gate:product",
+          "dimension": "product",
+          "subject": "urn:example:product:search",
+          "passed": true,
+          "reason": "Product threshold passed."
+        }
+      ],
+      "evaluator": "urn:example:agent:independent-evaluator",
+      "activity": "urn:example:activity:evaluate",
+      "evaluatedAt": "2026-07-29T12:07:00Z",
+      "outputArtifactDigests": [
+        "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+      ],
+      "verdict": "pass"
+    },
+    {
+      "id": "urn:example:deployment:prod-1",
+      "type": "urn:ref:type:EnrichmentDeploymentDecision",
+      "recordedAt": "2026-07-29T12:08:00Z",
+      "recordedBy": "urn:example:activity:deploy",
+      "schemaVersion": "1.0",
+      "operationalState": "effective",
+      "canonicalPayloadDigest": "sha256:e2994d43e37a52cc96d6ebc199b2b9a0204bb1f8340e9483e0a9490090bb5082",
+      "environment": {
+        "id": "urn:example:environment:production",
+        "classification": "production"
+      },
+      "configuration": {
+        "id": "urn:example:configuration:c1",
+        "digest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e"
+      },
+      "evaluationResult": {
+        "id": "urn:example:evaluation:e1",
+        "digest": "sha256:25b95ffa6bfc6b7167968bdbb69261c7f60c06a118676855e26743df2a1296fd"
+      },
+      "outputProfile": {
+        "id": "urn:example:output-profile:v1",
+        "version": "1.0.0",
+        "digest": "sha256:61db9990b06f7c45edc80703927d873da3c2ccbeca274dad3dd71cef216e3165"
+      },
+      "selectionState": "selected",
+      "effectiveAt": "2026-07-29T12:08:00Z",
+      "reason": "All vocabulary-closure gates passed.",
+      "activity": "urn:example:activity:deploy",
+      "rulespecAttestationRefs": [
+        "urn:example:attestation:production-approval"
+      ],
+      "localAdoptionRefs": [
+        "urn:example:adoption:production"
+      ],
+      "authorizationValidations": [
+        {
+          "authorizationRef": "urn:example:attestation:production-approval",
+          "kind": "rulespecAttestation",
+          "validationReceipt": {
+            "id": "urn:example:validation:production-attestation",
+            "digest": "sha256:7070707070707070707070707070707070707070707070707070707070707070"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:07:30Z",
+          "effective": true
+        },
+        {
+          "authorizationRef": "urn:example:adoption:production",
+          "kind": "localAdoption",
+          "validationReceipt": {
+            "id": "urn:example:validation:production-adoption",
+            "digest": "sha256:7171717171717171717171717171717171717171717171717171717171717171"
+          },
+          "validator": "urn:example:validator:rulespec",
+          "validatedAt": "2026-07-29T12:07:31Z",
+          "effective": true
+        }
+      ]
+    }
+  ],
+  "permissionChecks": [
+    {
+      "id": "urn:example:permission-check:release",
+      "profile": "urn:example:output-profile:v1",
+      "kind": "release",
+      "use": "acceptedOutput",
+      "tuple": {
+        "facet": "urn:ref:facet:general-subject",
+        "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+        "referenceResourceRelease": {
+          "id": "urn:example:release:subjects-a",
+          "version": "2026-07",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "registryImportSnapshot": {
+          "id": "urn:example:import:subjects-a",
+          "digest": "sha256:abababababababababababababababababababababababababababababababab"
+        }
+      },
+      "claimedAuthorized": true
+    },
+    {
+      "id": "urn:example:permission-check:mapping",
+      "profile": "urn:example:output-profile:v1",
+      "kind": "mapping",
+      "use": "acceptedOutput",
+      "tuple": {
+        "facet": "urn:ref:facet:general-subject",
+        "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+        "mappingSnapshot": {
+          "id": "urn:example:import:mapping-a-b",
+          "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+        },
+        "sourceRelease": {
+          "id": "urn:example:release:subjects-a",
+          "version": "2026-07",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetRelease": {
+          "id": "urn:example:release:subjects-b",
+          "version": "2026-07",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "relation": "http://www.w3.org/2004/02/skos/core#closeMatch",
+        "direction": "sourceToTarget"
+      },
+      "claimedAuthorized": true
+    },
+    {
+      "id": "urn:example:permission-check:open-label",
+      "profile": "urn:example:output-profile:v1",
+      "kind": "openLabel",
+      "use": "acceptedOutput",
+      "tuple": {
+        "facet": "urn:ref:facet:specialist-subject",
+        "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+        "mode": "declaredDefaultLanguage",
+        "defaultLanguage": "zh-Hant"
+      },
+      "claimedAuthorized": true
+    }
+  ],
+  "languageTagTests": [
+    {
+      "tag": "zh-Hant",
+      "claimedValid": true
+    },
+    {
+      "tag": "en-US",
+      "claimedValid": true
+    },
+    {
+      "tag": "und",
+      "claimedValid": true
+    },
+    {
+      "tag": "x-reg-private",
+      "claimedValid": true
+    },
+    {
+      "tag": "i-klingon",
+      "claimedValid": true
+    },
+    {
+      "tag": "@none",
+      "claimedValid": false
+    },
+    {
+      "tag": "en--US",
+      "claimedValid": false
+    }
+  ]
+}

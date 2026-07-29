@@ -1,0 +1,27 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-TEST-151"],
+  "permissionChecks": [
+    {
+      "id": "urn:example:permission-check:candidate-only",
+      "profile": "urn:example:output-profile:v1",
+      "kind": "release",
+      "use": "acceptedOutput",
+      "tuple": {
+        "facet": "urn:ref:facet:specialist-subject",
+        "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+        "referenceResourceRelease": {
+          "id": "urn:example:release:subjects-a",
+          "version": "2026-07",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "registryImportSnapshot": {
+          "id": "urn:example:import:subjects-a",
+          "digest": "sha256:abababababababababababababababababababababababababababababababab"
+        }
+      },
+      "claimedAuthorized": true
+    }
+  ]
+}

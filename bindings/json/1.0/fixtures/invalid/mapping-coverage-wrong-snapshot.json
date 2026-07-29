@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-VOC-021", "REF-VOC-022"],
+  "mutations": [
+    {
+      "recordId": "urn:example:coverage:mapping-a-b",
+      "path": "/registryImportSnapshot/id",
+      "value": "urn:example:import:other-mapping"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:coverage:mapping-a-b"
+  ]
+}

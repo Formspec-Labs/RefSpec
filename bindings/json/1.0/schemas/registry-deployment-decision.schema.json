@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/registry-deployment-decision.schema.json",
+  "title": "REF RegistryDeploymentDecision",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "environment",
+    "registryImportSnapshot",
+    "referenceResourceRelease",
+    "coverageReport",
+    "outputProfile",
+    "selectionState",
+    "effectiveAt",
+    "reason",
+    "activity",
+    "rulespecAttestationRefs",
+    "localAdoptionRefs",
+    "authorizationValidations"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:RegistryDeploymentDecision"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "id",
+        "classification"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "classification": {
+          "enum": [
+            "development",
+            "staging",
+            "production"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "registryImportSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "referenceResourceRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "coverageReport": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "reconciliationReport": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "outputProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "selectionState": {
+      "enum": [
+        "quarantined",
+        "staged",
+        "selected",
+        "deselected",
+        "failed"
+      ]
+    },
+    "effectiveAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "rulespecAttestationRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "localAdoptionRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "authorizationValidations": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "authorizationRef",
+          "kind",
+          "validationReceipt",
+          "validator",
+          "validatedAt",
+          "effective"
+        ],
+        "properties": {
+          "authorizationRef": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "kind": {
+            "enum": [
+              "rulespecAttestation",
+              "localAdoption"
+            ]
+          },
+          "validationReceipt": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "validator": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "validatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective": {
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "predecessor": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    }
+  },
+  "unevaluatedProperties": false
+}

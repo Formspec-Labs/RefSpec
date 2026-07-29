@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/indexed-vocabulary-expression.schema.json",
+  "title": "REF IndexedVocabularyExpression",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "oneOf": [
+        {
+          "required": [
+            "sourceProperty"
+          ],
+          "not": {
+            "required": [
+              "sourcePath"
+            ]
+          }
+        },
+        {
+          "required": [
+            "sourcePath"
+          ],
+          "not": {
+            "required": [
+              "sourceProperty"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "oneOf": [
+        {
+          "required": [
+            "language"
+          ],
+          "not": {
+            "required": [
+              "datatype"
+            ]
+          }
+        },
+        {
+          "required": [
+            "datatype"
+          ],
+          "not": {
+            "required": [
+              "language"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "referenceResourceRelease",
+    "registryImportSnapshot",
+    "distributionArtifact",
+    "scheme",
+    "member",
+    "originalLiteral",
+    "normalizationPolicy",
+    "indexedText",
+    "indexedTextDigest",
+    "indexedRepresentationVersion",
+    "indexSnapshot",
+    "activity",
+    "receipt"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:IndexedVocabularyExpression"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "referenceResourceRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "registryImportSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "distributionArtifact": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "member": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "scheme": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "sourceProperty": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "sourcePath": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "originalLiteral": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "language": {
+      "$ref": "common.schema.json#/$defs/bcp47Language"
+    },
+    "datatype": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "normalizationPolicy": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "indexedText": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "indexedTextDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "indexedRepresentationVersion": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "indexSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "receipt": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    }
+  },
+  "unevaluatedProperties": false
+}

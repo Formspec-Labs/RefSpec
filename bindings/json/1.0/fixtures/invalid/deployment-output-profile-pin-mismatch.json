@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-ENR-020"],
+  "mutations": [
+    {
+      "recordId": "urn:example:deployment:prod-1",
+      "path": "/outputProfile/digest",
+      "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "refreshDigests": ["urn:example:deployment:prod-1"]
+}

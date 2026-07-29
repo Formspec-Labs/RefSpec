@@ -1,0 +1,42 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-TEST-151"],
+  "mutations": [
+    {
+      "recordId": "urn:example:output-profile:v1",
+      "path": "/mappingPermissions/0/acceptedOutputUse",
+      "value": false
+    }
+  ],
+  "refreshDigests": ["urn:example:output-profile:v1"],
+  "permissionChecks": [
+    {
+      "id": "urn:example:permission-check:mapping-only",
+      "profile": "urn:example:output-profile:v1",
+      "kind": "mapping",
+      "use": "acceptedOutput",
+      "tuple": {
+        "facet": "urn:ref:facet:general-subject",
+        "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+        "mappingSnapshot": {
+          "id": "urn:example:import:mapping-a-b",
+          "digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+        },
+        "sourceRelease": {
+          "id": "urn:example:release:subjects-a",
+          "version": "2026-07",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetRelease": {
+          "id": "urn:example:release:subjects-b",
+          "version": "2026-07",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "relation": "http://www.w3.org/2004/02/skos/core#closeMatch",
+        "direction": "sourceToTarget"
+      },
+      "claimedAuthorized": true
+    }
+  ]
+}

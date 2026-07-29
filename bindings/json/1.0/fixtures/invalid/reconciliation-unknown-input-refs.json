@@ -1,0 +1,18 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-VOC-023"],
+  "mutations": [
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "path": "/differences/0/inputRefs",
+      "value": [
+        "urn:example:reconciliation-input:unknown-a",
+        "urn:example:reconciliation-input:unknown-b"
+      ]
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:reconciliation:a-b"
+  ]
+}

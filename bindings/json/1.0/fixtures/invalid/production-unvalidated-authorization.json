@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-TEST-160"],
+  "mutations": [
+    {
+      "recordId": "urn:example:deployment:prod-1",
+      "path": "/rulespecAttestationRefs/0",
+      "value": "urn:example:attestation:not-validated"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:deployment:prod-1"
+  ]
+}

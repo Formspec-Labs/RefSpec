@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-TEST-151"],
+  "mutations": [
+    {
+      "recordId": "urn:example:output-profile:v1",
+      "path": "/releasePermissions/0/candidateUse",
+      "value": false
+    }
+  ],
+  "refreshDigests": ["urn:example:output-profile:v1"]
+}

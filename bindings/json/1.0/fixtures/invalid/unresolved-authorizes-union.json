@@ -1,0 +1,33 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-VOC-023"],
+  "mutations": [
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "path": "/outcome",
+      "value": "unresolved"
+    },
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "path": "/differences/0/resolution",
+      "value": "unresolved"
+    },
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "path": "/unresolvedItems",
+      "value": ["urn:example:difference:1"]
+    },
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "path": "/synthesizedUnionAuthorized",
+      "value": true
+    },
+    {
+      "recordId": "urn:example:reconciliation:a-b",
+      "operation": "remove",
+      "path": "/selectedInputRelease"
+    }
+  ],
+  "refreshDigests": ["urn:example:reconciliation:a-b"]
+}

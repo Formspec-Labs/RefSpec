@@ -1,0 +1,5 @@
+{
+  "id": "urn:example:duplicate-key",
+  "id": "urn:example:duplicate-key-again",
+  "type": "urn:ref:type:EnrichmentProfile"
+}
