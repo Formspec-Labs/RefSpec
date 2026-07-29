@@ -166,13 +166,19 @@
       "items": {
         "type": "object",
         "required": [
-          "indexSnapshot",
+          "expressionCorpusSnapshot",
+          "lookupIndexManifest",
           "indexedExpressionCorpusDigest",
           "indexedRepresentationVersion",
           "normalizationPolicy"
         ],
         "properties": {
-          "indexSnapshot": {
+          "expressionCorpusSnapshot": {
+            "description": "Exact RefSpec-owned logical expression-corpus snapshot used to build the lookup index.",
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "lookupIndexManifest": {
+            "description": "Exact consumer-owned manifest for the physical lookup index.",
             "$ref": "common.schema.json#/$defs/digestReference"
           },
           "indexedExpressionCorpusDigest": {

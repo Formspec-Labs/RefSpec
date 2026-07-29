@@ -18,8 +18,7 @@
     "reason",
     "activity",
     "rulespecAttestationRefs",
-    "localAdoptionRefs",
-    "authorizationValidations"
+    "localAdoptionRefs"
   ],
   "properties": {
     "type": {
@@ -101,6 +100,7 @@
       ]
     },
     "authorizationValidations": {
+      "description": "Deprecated, non-authoritative caller report retained only for migration. A selected deployment is authorized only by a gate-issued ReleaseGraphValidationReceipt that binds a pinned Rulespec L4 evaluation.",
       "type": "array",
       "minItems": 2,
       "uniqueItems": true,

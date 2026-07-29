@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/run-receipt.schema.json",
+  "title": "REF RunReceipt",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "inputCaptures",
+    "inputSnapshots",
+    "rulespecReleases",
+    "coverageWindow",
+    "rulespecActivityRefs",
+    "rulespecAgentRefs",
+    "rulespecOutputRefs",
+    "environmentLock",
+    "outputs",
+    "counts",
+    "exclusions",
+    "failures",
+    "quarantinedItems",
+    "startedAt",
+    "endedAt",
+    "nondeterministicStages",
+    "reproducibility"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:RunReceipt"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "inputCaptures": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "inputSnapshots": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "rulespecReleases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedDigestReference"
+      }
+    },
+    "coverageWindow": {
+      "type": "object",
+      "required": [
+        "startedAt",
+        "endedAt"
+      ],
+      "properties": {
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rulespecActivityRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "rulespecAgentRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "rulespecOutputRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "providerDetailsReference": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "environmentLock": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "outputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "counts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "quarantinedItems": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nondeterministicStages": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyString"
+      }
+    },
+    "reproducibility": {
+      "enum": [
+        "byteIdentical",
+        "deterministicFromPinnedInputs",
+        "replayableWithNondeterminism",
+        "notReplayable"
+      ]
+    },
+    "replayLimit": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    }
+  },
+  "unevaluatedProperties": false
+}

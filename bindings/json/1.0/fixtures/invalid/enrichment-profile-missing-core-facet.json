@@ -1,0 +1,17 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": [
+    "REF-ENR-015"
+  ],
+  "mutations": [
+    {
+      "recordId": "urn:ref:enrichment-profile:core:v1",
+      "path": "/facets/11",
+      "operation": "remove"
+    }
+  ],
+  "refreshDigests": [
+    "urn:ref:enrichment-profile:core:v1"
+  ]
+}

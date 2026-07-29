@@ -5,8 +5,8 @@
   "mutations": [
     {
       "recordId": "urn:example:reconciliation:a-b",
-      "path": "/attestationRefs/0",
-      "value": "urn:example:attestation:not-validated"
+      "path": "/attestationRefs",
+      "value": []
     }
   ],
   "refreshDigests": [

@@ -1,0 +1,13 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+      "path": "/byteDigest",
+      "operation": "remove"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-CAP-001"
+  ]
+}

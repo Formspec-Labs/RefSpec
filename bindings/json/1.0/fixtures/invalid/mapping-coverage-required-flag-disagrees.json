@@ -5,7 +5,7 @@
   "mutations": [
     {
       "recordId": "urn:example:coverage:mapping-a-b",
-      "path": "/features/5/requiredForCandidateOrOutput",
+      "path": "/features/6/requiredForCandidateOrOutput",
       "value": false
     }
   ],

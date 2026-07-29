@@ -364,7 +364,7 @@
       "recordedBy": "urn:example:activity:import-a",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:5a24b5f9cfe3c1d113e86e15e8b54629fef72f7764fa66b57115964650d5c78e",
+      "canonicalPayloadDigest": "sha256:6fbe1afa6d5cd1c47f843916aa99b2757843d313caa56449db3c1b271d4840e2",
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
@@ -391,8 +391,8 @@
         "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
       "parserVersion": "skos-parser@4.0.0",
-      "indexSnapshot": {
-        "id": "urn:example:index:subjects",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:subjects",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "activity": "urn:example:activity:import-a",
@@ -466,6 +466,20 @@
           "sourceObservedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
           "parsedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
           "indexedDigest": "sha256:0505050505050505050505050505050505050505050505050505050505050505",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "associativeRelations",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 1,
+          "parsedCount": 1,
+          "indexedCount": 1,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "parsedDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "indexedDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "exclusions": [],
           "failures": []
         },
@@ -548,7 +562,7 @@
       "recordedBy": "urn:example:activity:import-mapping-a-b",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:49fa8dc7b666f26b47d5a16da59f35d083b65494b5d22d6c83e03b74f4e9a4b7",
+      "canonicalPayloadDigest": "sha256:ff637090fa1b0734fbab1d2d24ef63603fe3fa51870915e3d2a7ef51c554cc86",
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
@@ -575,8 +589,8 @@
         "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
       },
       "parserVersion": "mapping-parser@1.0.0",
-      "indexSnapshot": {
-        "id": "urn:example:index:mappings",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:mappings",
         "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
       },
       "activity": "urn:example:activity:import-mapping-a-b",
@@ -641,6 +655,20 @@
         },
         {
           "feature": "hierarchy",
+          "requiredForCandidateOrOutput": false,
+          "sourceObservedCount": 0,
+          "parsedCount": 0,
+          "indexedCount": 0,
+          "excludedCount": 0,
+          "failedCount": 0,
+          "sourceObservedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "parsedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "indexedDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "exclusions": [],
+          "failures": []
+        },
+        {
+          "feature": "associativeRelations",
           "requiredForCandidateOrOutput": false,
           "sourceObservedCount": 0,
           "parsedCount": 0,
@@ -732,7 +760,7 @@
       "recordedBy": "urn:example:activity:index",
       "schemaVersion": "1.0",
       "operationalState": "active",
-      "canonicalPayloadDigest": "sha256:c0e680943738ae68dce61c00ad2f1a3f23c3271b37fd3f3fa17e6b9b89f86c11",
+      "canonicalPayloadDigest": "sha256:06d85b9bd88b62bfa0f54b28ac0b130d00cab7c3afa6b905b837a5d4a2ebf109",
       "referenceResourceRelease": {
         "id": "urn:example:release:subjects-a",
         "version": "2026-07",
@@ -759,8 +787,8 @@
       "indexedText": "climatización",
       "indexedTextDigest": "sha256:1a9dc6a886d9fd4e6812b9e62b28baa2aa2d8fecc716281456a4d7ce1cacb101",
       "indexedRepresentationVersion": "labels-v2",
-      "indexSnapshot": {
-        "id": "urn:example:index:subjects",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:subjects",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "activity": "urn:example:activity:index",
@@ -773,7 +801,7 @@
       "recordedBy": "urn:example:activity:index",
       "schemaVersion": "1.0",
       "operationalState": "active",
-      "canonicalPayloadDigest": "sha256:ad7560a163b5e233b510569558df66a9753d6ad9afe6fea68e913dd9c178c473",
+      "canonicalPayloadDigest": "sha256:f604f63369c72455afa85b41764a38c459ca1c7e0967378d3cfdb1db616aebab",
       "referenceResourceRelease": {
         "id": "urn:example:release:subjects-b",
         "version": "2026-07",
@@ -800,8 +828,8 @@
       "indexedText": "climatización",
       "indexedTextDigest": "sha256:1a9dc6a886d9fd4e6812b9e62b28baa2aa2d8fecc716281456a4d7ce1cacb101",
       "indexedRepresentationVersion": "labels-v2",
-      "indexSnapshot": {
-        "id": "urn:example:index:subjects",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:subjects",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "activity": "urn:example:activity:index",
@@ -814,7 +842,7 @@
       "recordedBy": "urn:example:activity:index",
       "schemaVersion": "1.0",
       "operationalState": "active",
-      "canonicalPayloadDigest": "sha256:d1e573f29f961f471e23e860f460bd57a703ccb0e3462716059fb4f288c88df6",
+      "canonicalPayloadDigest": "sha256:29adbecb29313e93875c111e42aec1b99a02691d96af6ab72d8d4e4dfd74aaeb",
       "referenceResourceRelease": {
         "id": "urn:example:release:subjects-a",
         "version": "2026-07",
@@ -841,8 +869,8 @@
       "indexedText": "climate",
       "indexedTextDigest": "sha256:10db699812d02cc570ad3bdef91138092088ff2718c1ef1d4ee308a89defe62a",
       "indexedRepresentationVersion": "labels-v2",
-      "indexSnapshot": {
-        "id": "urn:example:index:subjects",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:subjects",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "activity": "urn:example:activity:index",
@@ -855,7 +883,7 @@
       "recordedBy": "urn:example:activity:index",
       "schemaVersion": "1.0",
       "operationalState": "active",
-      "canonicalPayloadDigest": "sha256:f941ff527465477c984c2d903da29bfaa0acda67705e1617894073431feaa740",
+      "canonicalPayloadDigest": "sha256:5d2354ec39905ddd278bf44e07b97ca2ea2a78713d8cd769682262a64984b083",
       "referenceResourceRelease": {
         "id": "urn:example:release:subjects-a",
         "version": "2026-07",
@@ -882,8 +910,8 @@
       "indexedText": "weather governance",
       "indexedTextDigest": "sha256:72133ffe7e9f216b88a4c18c58ee06ed4ea5fb6ecf6c4984b6fa72485e00d5bb",
       "indexedRepresentationVersion": "labels-v2",
-      "indexSnapshot": {
-        "id": "urn:example:index:subjects",
+      "expressionCorpusSnapshot": {
+        "id": "urn:example:expression-corpus:subjects",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "activity": "urn:example:activity:index",
@@ -1035,7 +1063,7 @@
       "recordedBy": "urn:example:activity:deploy-registry",
       "schemaVersion": "1.0",
       "operationalState": "effective",
-      "canonicalPayloadDigest": "sha256:2a80c61919c2f7d3bcc09cd07e382398752c90f5a5c869c50872f0ac13e9fbbc",
+      "canonicalPayloadDigest": "sha256:0d7ce92aaae82a4b4c38d4fd1fbc8c17269f19e308629739ef07218502c09bb4",
       "environment": {
         "id": "urn:example:environment:production",
         "classification": "production"
@@ -1051,7 +1079,7 @@
       },
       "coverageReport": {
         "id": "urn:example:coverage:subjects-a",
-        "digest": "sha256:5a24b5f9cfe3c1d113e86e15e8b54629fef72f7764fa66b57115964650d5c78e"
+        "digest": "sha256:6fbe1afa6d5cd1c47f843916aa99b2757843d313caa56449db3c1b271d4840e2"
       },
       "reconciliationReport": {
         "id": "urn:example:reconciliation:a-b",
@@ -1569,7 +1597,7 @@
       "recordedBy": "urn:example:activity:configure",
       "schemaVersion": "1.0",
       "operationalState": "frozen",
-      "canonicalPayloadDigest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e",
+      "canonicalPayloadDigest": "sha256:0f989ec7a65b1575b37a3173f16cefca5f95637f79554415251ed82b7f0ba098",
       "implementation": {
         "id": "urn:example:implementation:enricher",
         "revision": "git:0123456789abcdef",
@@ -1646,15 +1674,19 @@
         "registryDeploymentDecisions": [
           {
             "id": "urn:example:registry-deployment:prod-a",
-            "digest": "sha256:2a80c61919c2f7d3bcc09cd07e382398752c90f5a5c869c50872f0ac13e9fbbc"
+          "digest": "sha256:0d7ce92aaae82a4b4c38d4fd1fbc8c17269f19e308629739ef07218502c09bb4"
           }
         ]
       },
       "indexes": [
         {
-          "indexSnapshot": {
-            "id": "urn:example:index:subjects",
+          "expressionCorpusSnapshot": {
+            "id": "urn:example:expression-corpus:subjects",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          "lookupIndexManifest": {
+            "id": "urn:example:lookup-index-manifest:subjects",
+            "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
           },
           "indexedExpressionCorpusDigest": "sha256:3838383838383838383838383838383838383838383838383838383838383838",
           "indexedRepresentationVersion": "labels-v2",
@@ -1803,10 +1835,10 @@
       "recordedBy": "urn:example:activity:evaluate",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:25b95ffa6bfc6b7167968bdbb69261c7f60c06a118676855e26743df2a1296fd",
+      "canonicalPayloadDigest": "sha256:4ea580df897e1ebe0c752b6fd291a5f92d8ed3bdf0990008773b55ae19785785",
       "configuration": {
         "id": "urn:example:configuration:c1",
-        "digest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e"
+        "digest": "sha256:0f989ec7a65b1575b37a3173f16cefca5f95637f79554415251ed82b7f0ba098"
       },
       "sealedGoldManifest": {
         "id": "urn:example:gold:g1",
@@ -1973,18 +2005,18 @@
       "recordedBy": "urn:example:activity:deploy",
       "schemaVersion": "1.0",
       "operationalState": "effective",
-      "canonicalPayloadDigest": "sha256:e2994d43e37a52cc96d6ebc199b2b9a0204bb1f8340e9483e0a9490090bb5082",
+      "canonicalPayloadDigest": "sha256:e8761c9e7be1c32ab7229ba36415dc3e83e48d46c1b95c3d2b82ea85d81c7caa",
       "environment": {
         "id": "urn:example:environment:production",
         "classification": "production"
       },
       "configuration": {
         "id": "urn:example:configuration:c1",
-        "digest": "sha256:3cb5b608739dd9bd45a111ec84d2084c83a2e98e4039e3902d3b1bb02d72836e"
+        "digest": "sha256:0f989ec7a65b1575b37a3173f16cefca5f95637f79554415251ed82b7f0ba098"
       },
       "evaluationResult": {
         "id": "urn:example:evaluation:e1",
-        "digest": "sha256:25b95ffa6bfc6b7167968bdbb69261c7f60c06a118676855e26743df2a1296fd"
+        "digest": "sha256:4ea580df897e1ebe0c752b6fd291a5f92d8ed3bdf0990008773b55ae19785785"
       },
       "outputProfile": {
         "id": "urn:example:output-profile:v1",

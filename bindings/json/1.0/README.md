@@ -2,10 +2,10 @@
 
 # REF JSON Binding 1.0
 
-This binding serializes the ten REF-owned vocabulary-closure records defined
-by RefSpec 1.0. It uses JSON Schema Draft 2020-12 for local record structure
-and one validator for cross-row, cross-record, accounting, partition, and
-digest rules.
+This binding serializes the REF-owned vocabulary-management, enrichment, and
+evaluation records defined by RefSpec 1.0. It uses generated JSON Schema Draft
+2020-12 for local record structure and one validator for cross-row,
+cross-record, accounting, partition, and digest rules.
 
 Rulespec records remain references. This binding does not copy the shape of a
 Rulespec release, artifact, concept, mapping, assertion, attestation,
@@ -17,6 +17,12 @@ The dispatch schema is
 [`schemas/ref-record.schema.json`](schemas/ref-record.schema.json). It selects
 one closed schema for each record:
 
+- `Capture`;
+- `RightsAssessment`;
+- `RunReceipt`;
+- `RegistryImportSnapshot`;
+- `PublicationReleaseManifest`;
+- `ConceptProposal`;
 - `EnrichmentProfile`;
 - `OutputProfile`;
 - `RegistryImportCoverageReport`;
@@ -49,8 +55,8 @@ reusable Spicy Regs canonical JSON function and applies these rules:
    use the canonical decimal-string grammar in `common.schema.json`.
 3. Omit exactly one top-level digest field while hashing:
    `contentDigest` for `EnrichmentProfile` and `OutputProfile`, or
-   `canonicalPayloadDigest` for the other eight records. A field with the same
-   name below the top level remains in the payload.
+   `canonicalPayloadDigest` for every other record. A field with the same name
+   below the top level remains in the payload.
 4. Serialize with `ensure_ascii=false`, object keys sorted by Unicode code
    point, and separators `,` and `:` with no added whitespace. Preserve array
    order. Preserve Unicode code points exactly; do not normalize, case-fold,
@@ -97,12 +103,18 @@ fields, closed objects, and local cardinalities. The validator also:
 - requires every gate and configured stratum to pass before a production
   selection can use a `pass` verdict.
 
-`fixtures/valid/vocabulary-closure.json` contains the complete linked positive
-example. Files under `fixtures/invalid/` apply one named invalid mutation or
-permission claim to that frozen example. The
+`fixtures/valid/vocabulary-closure.json` contains the complete enrichment
+closure example. The other positive fixtures cover the operational managed
+release chain and concept-proposal workflow. Files under `fixtures/invalid/`
+apply one named invalid mutation or permission claim. The
 [`requirement-to-test manifest`](tests/requirement-to-test-manifest.json)
 connects the new RefSpec requirements and `REF-TEST-150` through
-`REF-TEST-167` to local fixtures and the Rulespec checks that remain upstream.
+`REF-TEST-172` to local fixtures and the Rulespec checks that remain upstream.
+
+The authoritative structures live in
+[`model/ref-records.cue`](../../../model/ref-records.cue). Run `make generate`
+after changing that source. `make check-generated` rejects a hand-edited or
+stale schema or Python type.
 
 ## Run the gate
 
@@ -148,6 +160,14 @@ uv run --no-project \
   --with-requirements bindings/json/1.0/requirements.txt \
   python bindings/json/1.0/tools/validate.py --print-digest record.json
 ```
+
+An installed editable package exposes the same validator as
+`refspec-validate`. `refspec-release-graph-gate` validates a supplied REF
+record set and exact Rulespec graph with their independently pinned validators,
+then checks graph digests, receipts, covered identifiers, and cross-links.
+With no arguments, `refspec-validate` runs the exact generated conformance
+fixtures and requirement-to-test manifest embedded in the installed package;
+it does not depend on checkout-relative files.
 
 `--refresh-fixture` is a maintainer command for the self-contained valid
 fixture. It follows the acyclic reference graph, updates indexed-text and

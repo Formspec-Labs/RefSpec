@@ -4,6 +4,27 @@
   "title": "REF JSON Binding 1.0 record",
   "oneOf": [
     {
+      "$ref": "capture.schema.json"
+    },
+    {
+      "$ref": "rights-assessment.schema.json"
+    },
+    {
+      "$ref": "run-receipt.schema.json"
+    },
+    {
+      "$ref": "registry-import-snapshot.schema.json"
+    },
+    {
+      "$ref": "publication-release-manifest.schema.json"
+    },
+    {
+      "$ref": "release-graph-validation-receipt.schema.json"
+    },
+    {
+      "$ref": "concept-proposal.schema.json"
+    },
+    {
       "$ref": "enrichment-profile.schema.json"
     },
     {
@@ -15,13 +36,13 @@
     {
       "$ref": "indexed-vocabulary-expression.schema.json"
     },
-      {
-        "$ref": "registry-reconciliation-report.schema.json"
-      },
-      {
-        "$ref": "registry-deployment-decision.schema.json"
-      },
-      {
+    {
+      "$ref": "registry-reconciliation-report.schema.json"
+    },
+    {
+      "$ref": "registry-deployment-decision.schema.json"
+    },
+    {
       "$ref": "sealed-gold-manifest.schema.json"
     },
     {

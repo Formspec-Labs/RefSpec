@@ -6,17 +6,32 @@
     {
       "recordId": "urn:example:coverage:subjects-a",
       "path": "/features/0/parsedCount",
-      "value": 3
+      "value": 0
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/indexedCount",
+      "value": 0
     },
     {
       "recordId": "urn:example:coverage:subjects-a",
       "path": "/features/0/excludedCount",
-      "value": 1
+      "value": 4
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/parsedDigest",
+      "value": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/indexedDigest",
+      "value": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     },
     {
       "recordId": "urn:example:coverage:subjects-a",
       "path": "/features/0/parseDifferenceExplanation",
-      "value": "One source label was excluded by policy."
+      "value": "Every source label was excluded by policy."
     },
     {
       "recordId": "urn:example:coverage:subjects-a",
@@ -25,13 +40,13 @@
       "value": {
         "id": "urn:example:coverage-exclusion:label-1",
         "stage": "parsing",
-        "count": 1,
+        "count": 4,
         "policy": {
           "id": "urn:example:exclusion-policy:v1",
           "version": "1.0.0",
           "digest": "sha256:adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad"
         },
-        "rationale": "The selected profile was incorrectly treated as not requiring this label."
+        "rationale": "The selected profile was incorrectly treated as not requiring any source label."
       }
     }
   ],

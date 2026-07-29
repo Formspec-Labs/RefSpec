@@ -25,6 +25,107 @@
       "validatorChecks": ["canonical JSON", "SHA-256 digest", "acyclic exact references"]
     },
     {
+      "requirement": "REF-BIND-009",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/unpublished-rulespec-production-manifest.json"
+      ],
+      "validatorChecks": [
+        "publication manifest carries the complete dependency pin",
+        "an unpublished Rulespec candidate cannot authorize a production manifest"
+      ]
+    },
+    {
+      "requirement": "REF-BIND-018",
+      "localFixtures": [
+        "fixtures/valid/release-graph-validation-receipt.json",
+        "fixtures/invalid/release-graph-receipt-failed-verdict.json"
+      ],
+      "externalGate": "refspec-release-graph-gate issues the receipt only after all three gates pass",
+      "validatorChecks": [
+        "receipt binds dependency, graph, REF records, validator, cross references, and covered identifiers",
+        "a failed or caller-authored verdict cannot become a gate-issued receipt"
+      ]
+    },
+    {
+      "requirement": "REF-BIND-019",
+      "localFixtures": [
+        "fixtures/valid/release-graph-validation-receipt.json",
+        "fixtures/invalid/release-graph-receipt-failed-verdict.json"
+      ],
+      "externalGate": "tests/test_release_graph_gate.py",
+      "validatorChecks": [
+        "the gate derives authorization scope, time, and assertion from each sealed governance record",
+        "the pinned Rulespec L4 runtime evaluates a gate-owned BehaviorTestCase over the exact release graph",
+        "legacy caller validations and effective booleans do not authorize use"
+      ]
+    },
+    {
+      "requirement": "REF-CAP-001",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/capture-success-without-bytes.json"
+      ],
+      "validatorChecks": [
+        "successful capture pins nonempty preserved bytes and their digest"
+      ]
+    },
+    {
+      "requirement": "REF-PROV-004",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/run-receipt-omits-nondeterminism.json"
+      ],
+      "validatorChecks": [
+        "run receipt binds exact inputs, outputs, activity, agent, and nondeterminism"
+      ]
+    },
+    {
+      "requirement": "REF-RIGHTS-003",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/rights-assessment-omits-indexing.json"
+      ],
+      "referenceRuntimeTests": [
+        "tests/test_federal_register_vertical_slice.py::test_slice_is_validated_but_stops_before_governed_selection"
+      ],
+      "validatorChecks": [
+        "rights uncertainty remains explicit",
+        "an affirmative project determination may permit every named experimental vocabulary use without claiming legal clearance",
+        "omitted use decisions remain invalid"
+      ]
+    },
+    {
+      "requirement": "REF-RIGHTS-004",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/rights-assessment-omits-indexing.json"
+      ],
+      "validatorChecks": [
+        "rights assessment decides every named use separately"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-016",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/registry-import-without-input.json"
+      ],
+      "validatorChecks": [
+        "registry import has an exact capture or external input and does not duplicate source bytes"
+      ]
+    },
+    {
+      "requirement": "REF-ENR-010",
+      "localFixtures": [
+        "fixtures/valid/concept-proposal.json",
+        "fixtures/invalid/concept-proposal-claims-authoritative-id.json"
+      ],
+      "validatorChecks": [
+        "concept proposal remains a workflow record and cannot mint an authoritative concept identifier"
+      ]
+    },
+    {
       "requirement": "REF-CORE-005",
       "localFixtures": ["fixtures/invalid/duplicate-expression-id.json"],
       "validatorChecks": ["durable record identifier uniqueness"]
@@ -88,7 +189,10 @@
     },
     {
       "requirement": "REF-ENR-015",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/enrichment-profile-missing-core-facet.json"
+      ],
       "validatorChecks": ["EnrichmentProfile schema and core facet closure"]
     },
     {
@@ -129,12 +233,16 @@
       "localFixtures": [
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/configuration-missing-provider-pin.json",
+        "fixtures/invalid/configuration-missing-lookup-index-manifest.json",
+        "fixtures/invalid/configuration-conflates-expression-corpus-and-lookup-index.json",
+        "fixtures/invalid/configuration-swaps-expression-corpus-and-lookup-index.json",
         "fixtures/invalid/configuration-corpus-drift.json",
         "fixtures/invalid/configuration-omits-permission-pins.json",
         "fixtures/invalid/configuration-omits-mapping-release.json"
       ],
       "validatorChecks": [
         "complete behavior pins",
+        "separate expression-corpus and physical lookup-index pins",
         "source corpus pin",
         "all OutputProfile vocabulary pins",
         "configuration digest"
@@ -160,11 +268,13 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/language-and-datatype.json",
         "fixtures/invalid/expression-missing-language-and-datatype.json",
+        "fixtures/invalid/expression-uses-legacy-index-snapshot.json",
         "fixtures/invalid/duplicate-expression-id.json"
       ],
       "validatorChecks": [
         "source literal branches require exactly one language or datatype",
         "scheme identity",
+        "logical expression-corpus identity",
         "indexed-text digest"
       ]
     },
@@ -185,13 +295,14 @@
       "requirement": "REF-VOC-021",
       "localFixtures": [
         "fixtures/valid/vocabulary-closure.json",
+        "fixtures/valid/coverage-partial-source-defects.json",
         "fixtures/invalid/missing-coverage-feature.json",
         "fixtures/invalid/required-coverage-feature-excluded.json",
         "fixtures/invalid/coverage-required-flag-disagrees-with-profile.json",
         "fixtures/invalid/mapping-coverage-wrong-snapshot.json"
       ],
       "validatorChecks": [
-        "ten exact coverage rows and stage digests",
+        "eleven exact coverage rows and stage digests, including associative relations",
         "coverage is tied to the exact OutputProfile and feature-use requirement",
         "feature-use flags are derived from permission-row required features",
         "mapping coverage is tied to the exact mapping snapshot and mapping release"
@@ -211,7 +322,7 @@
       "validatorChecks": [
         "stage count accounting and difference explanations",
         "failed coverage blocks candidate and accepted permission",
-        "required features cannot be excluded",
+        "required features may contain itemized source-defect exclusions but cannot be fully excluded",
         "coverage cannot self-declare a profile-required feature unused",
         "mapping use requires passing mappings, identifiers, and membership coverage"
       ]
@@ -446,13 +557,19 @@
       "localFixtures": [
         "fixtures/invalid/wrong-canonical-digest.json",
         "fixtures/invalid/configuration-corpus-drift.json",
+        "fixtures/invalid/configuration-missing-lookup-index-manifest.json",
+        "fixtures/invalid/configuration-conflates-expression-corpus-and-lookup-index.json",
+        "fixtures/invalid/configuration-swaps-expression-corpus-and-lookup-index.json",
         "fixtures/invalid/configuration-omits-permission-pins.json",
         "fixtures/invalid/configuration-omits-mapping-release.json",
         "fixtures/invalid/evaluation-configuration-pin-mismatch.json",
         "fixtures/invalid/evaluation-gold-pin-mismatch.json",
         "fixtures/invalid/evaluation-vocabulary-universe-mismatch.json"
       ],
-      "validatorChecks": ["behavior mutation creates a new configuration and evaluation chain"]
+      "validatorChecks": [
+        "behavior mutation creates a new configuration and evaluation chain",
+        "logical expression corpus and physical lookup index remain distinct"
+      ]
     },
     {
       "requirement": "REF-TEST-160",
@@ -549,6 +666,99 @@
         "crates/rkaf-runtime/src/concept.rs"
       ],
       "externalCommand": "make test"
+    },
+    {
+      "requirement": "REF-TEST-168",
+      "localFixtures": [
+        "fixtures/valid/concept-proposal.json",
+        "fixtures/invalid/concept-proposal-claims-authoritative-id.json",
+        "fixtures/invalid/duplicate-expression-id.json"
+      ],
+      "validatorChecks": [
+        "managed identifiers are immutable",
+        "corrections and concept proposals use separate operational records"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-169",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/configuration-missing-lookup-index-manifest.json",
+        "fixtures/invalid/configuration-conflates-expression-corpus-and-lookup-index.json",
+        "fixtures/invalid/configuration-swaps-expression-corpus-and-lookup-index.json",
+        "fixtures/invalid/expression-uses-legacy-index-snapshot.json"
+      ],
+      "validatorChecks": [
+        "unchanged vocabulary keeps its release and expression corpus",
+        "a rebuilt physical index receives a distinct manifest and configuration"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-170",
+      "localFixtures": [
+        "fixtures/valid/concept-proposal.json",
+        "fixtures/invalid/concept-proposal-claims-authoritative-id.json",
+        "fixtures/invalid/candidate-only-accepted-output.json",
+        "fixtures/invalid/mapping-only-accepted-output.json",
+        "fixtures/invalid/registry-unvalidated-authorization.json"
+      ],
+      "validatorChecks": [
+        "read-only lookup cannot mint, select, reconcile, or authorize accepted output"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-171",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/capture-mutable-source-reference.json",
+        "fixtures/invalid/configuration-swaps-expression-corpus-and-lookup-index.json",
+        "fixtures/invalid/expression-uses-legacy-index-snapshot.json"
+      ],
+      "validatorChecks": [
+        "external distributions and physical indexes use immutable identifiers and digests",
+        "logical expression-corpus and physical lookup-index references cannot be swapped"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-172",
+      "localFixtures": [],
+      "externalGate": "bindings/json/1.0/tools/validate_rulespec_gate.py --require-closure-pin",
+      "externalRulespecPaths": [
+        "VERSION",
+        "conformance/partners/rulespec-reference.yaml",
+        "tools/l0_mapping_audit.py",
+        "tools/conformance_report.py",
+        "tools/compile_all.sh"
+      ],
+      "validatorChecks": [
+        "dependency manifest distinguishes tested and evidence revisions",
+        "constraint, corpus, validator receipt, generated artifacts, and prose pins are recomputed"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-173",
+      "localFixtures": [
+        "fixtures/valid/release-graph-validation-receipt.json",
+        "fixtures/invalid/release-graph-receipt-failed-verdict.json"
+      ],
+      "externalGate": "tests/test_release_graph_gate.py and tests/test_managed_release_view.py",
+      "validatorChecks": [
+        "the live combined gate is the only receipt issuer",
+        "consumer verifies the selected bundle-manifest digest and exact modeled receipt"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-174",
+      "localFixtures": [
+        "fixtures/valid/release-graph-validation-receipt.json",
+        "fixtures/invalid/release-graph-receipt-failed-verdict.json"
+      ],
+      "externalGate": "tests/test_release_graph_gate.py",
+      "validatorChecks": [
+        "selected deployments and resolved reconciliations require one content-bound L4 authorization evaluation",
+        "changed graph, governance record, scope, time, behavior input, runtime, or output cannot reuse the receipt",
+        "caller-authored behavior tests, receipts, and effective booleans are ignored"
+      ]
     }
   ]
 }

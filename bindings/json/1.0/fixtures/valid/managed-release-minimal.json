@@ -1,0 +1,315 @@
+{
+  "records": [
+    {
+      "id": "urn:ref:rights-assessment:fr-thesaurus-1995:v1",
+      "type": "urn:ref:type:RightsAssessment",
+      "recordedAt": "2026-07-29T17:00:00Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "adopted",
+      "canonicalPayloadDigest": "sha256:0078a23e1e304a2128af8156ad71fa2679478d03cba784f908167cab9e4e16dd",
+      "target": {
+        "kind": "source",
+        "reference": {
+          "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt",
+          "version": "1995-11-16",
+          "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+        }
+      },
+      "observedTerms": [
+        {
+          "sourceFragment": "urn:ref:source-fragment:fr-thesaurus-1995:rights",
+          "summary": "Historical United States Government vocabulary source assessed for development use."
+        }
+      ],
+      "supportingSourceFragments": [
+        "urn:ref:source-fragment:fr-thesaurus-1995:rights"
+      ],
+      "permissions": {
+        "acquisition": "permitted",
+        "storage": "permitted",
+        "indexing": "permitted",
+        "modelUse": "permitted",
+        "display": "permitted",
+        "redistribution": "permitted",
+        "retention": "permitted"
+      },
+      "purpose": "Loss-detection and lookup development against the exact historical distribution.",
+      "attribution": "Office of the Federal Register, Federal Register Thesaurus of Indexing Terms, 16 November 1995.",
+      "audience": "RefSpec and Spicy Regs development users",
+      "effectiveAt": "2026-07-29T17:00:00Z",
+      "rulespecPolicyRefs": [
+        "urn:rulespec:policy:public-government-source-development"
+      ],
+      "attestationRefs": [
+        "urn:rulespec:attestation:fr-thesaurus-rights-review:v1"
+      ],
+      "localAdoptionRefs": [
+        "urn:rulespec:local-adoption:fr-thesaurus-rights:v1"
+      ]
+    },
+    {
+      "id": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+      "type": "urn:ref:type:Capture",
+      "recordedAt": "2026-07-29T17:01:00Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "captured",
+      "canonicalPayloadDigest": "sha256:5d60189225bec990a3decb5cfd9befac8770aa18b921c9861cae429ded772e0d",
+      "source": {
+        "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt",
+        "version": "1995-11-16",
+        "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+      },
+      "sourceLocator": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt",
+      "requestMethod": "localVerifiedCopy",
+      "safeRequestParameters": {},
+      "retrievalStartedAt": "2026-07-29T17:00:30Z",
+      "retrievalEndedAt": "2026-07-29T17:00:31Z",
+      "responseStatus": "verified-local-copy",
+      "requestHeaders": {},
+      "responseHeaders": {
+        "content-type": "text/plain"
+      },
+      "mediaType": "text/plain",
+      "acquisitionStatus": "success",
+      "byteDigest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "byteLength": 99349,
+      "storageReference": "urn:ref:artifact-store:sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "contentPreservation": "exactBytes",
+      "completeness": {
+        "complete": true,
+        "pagination": {},
+        "retries": [],
+        "exclusions": []
+      },
+      "acquisitionActivity": "urn:rulespec:activity:capture-fr-thesaurus-1995:v1",
+      "runReceipt": "urn:ref:run-receipt:fr-thesaurus-import:v1",
+      "accessScopeRefs": [
+        "urn:rulespec:access-scope:development-public"
+      ],
+      "retentionPolicyRefs": [
+        "urn:rulespec:retention-policy:source-fixity"
+      ],
+      "rightsExpressionRefs": [
+        "urn:ref:rights-assessment:fr-thesaurus-1995:v1"
+      ]
+    },
+    {
+      "id": "urn:ref:registry-import:fr-thesaurus-1995:v1",
+      "type": "urn:ref:type:RegistryImportSnapshot",
+      "recordedAt": "2026-07-29T17:02:00Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "validatedWithSourceDefects",
+      "canonicalPayloadDigest": "sha256:ce49055926c5e4e34a0d96a623a60e475ded8fb55b1be90c60b587ab5cac27fa",
+      "inventoryCoverageComponent": "urn:ref:inventory-component:federal-register-thesaurus",
+      "importProfile": {
+        "id": "urn:ref:import-profile:federal-register-thesaurus",
+        "version": "1.0",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "captures": [
+        {
+          "id": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+          "digest": "sha256:5d60189225bec990a3decb5cfd9befac8770aa18b921c9861cae429ded772e0d"
+        }
+      ],
+      "externalReferences": [],
+      "referenceResourceRelease": {
+        "id": "urn:rulespec:reference-release:fr-thesaurus-1995",
+        "version": "1995-11-16",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "distributionArtifacts": [
+        {
+          "id": "urn:rulespec:artifact:fr-thesaurus-1995:text",
+          "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+        }
+      ],
+      "rightsAssessment": {
+        "id": "urn:ref:rights-assessment:fr-thesaurus-1995:v1",
+        "digest": "sha256:0078a23e1e304a2128af8156ad71fa2679478d03cba784f908167cab9e4e16dd"
+      },
+      "adoptedPolicyRefs": [
+        "urn:rulespec:local-adoption:fr-thesaurus-import:v1"
+      ],
+      "transformation": {
+        "id": "urn:ref:implementation:fr-thesaurus-parser",
+        "revision": "1.0.0",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "exclusions": [],
+      "failures": [
+        {
+          "kind": "unresolvedSourceReference",
+          "count": 20,
+          "itemizedReport": "urn:ref:import-failure-report:fr-thesaurus-1995:v1"
+        }
+      ],
+      "rulespecValidationResult": {
+        "id": "urn:rulespec:validation-result:fr-thesaurus-1995:v1",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "refValidationResult": {
+        "id": "urn:ref:validation-result:fr-thesaurus-1995:v1",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "expectedRefreshCadence": "historical-frozen",
+      "activity": "urn:rulespec:activity:import-fr-thesaurus-1995:v1",
+      "receipt": "urn:ref:run-receipt:fr-thesaurus-import:v1"
+    },
+    {
+      "id": "urn:ref:run-receipt:fr-thesaurus-import:v1",
+      "type": "urn:ref:type:RunReceipt",
+      "recordedAt": "2026-07-29T17:03:00Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "complete",
+      "canonicalPayloadDigest": "sha256:0e5a3ecae7aeb856e697176f27af252159d193cab50f49250b9f0db30392cbbe",
+      "inputCaptures": [
+        {
+          "id": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+          "digest": "sha256:5d60189225bec990a3decb5cfd9befac8770aa18b921c9861cae429ded772e0d"
+        }
+      ],
+      "inputSnapshots": [],
+      "rulespecReleases": [
+        {
+          "id": "urn:rulespec:reference-release:fr-thesaurus-1995",
+          "version": "1995-11-16",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "coverageWindow": {
+        "startedAt": "2026-07-29T17:00:30Z",
+        "endedAt": "2026-07-29T17:02:30Z"
+      },
+      "rulespecActivityRefs": [
+        "urn:rulespec:activity:import-fr-thesaurus-1995:v1"
+      ],
+      "rulespecAgentRefs": [
+        "urn:rulespec:agent:refspec-reference-runtime"
+      ],
+      "rulespecOutputRefs": [
+        "urn:rulespec:reference-release:fr-thesaurus-1995"
+      ],
+      "environmentLock": {
+        "id": "urn:ref:environment-lock:fr-thesaurus-import:v1",
+        "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "outputs": [
+        {
+          "id": "urn:ref:registry-import:fr-thesaurus-1995:v1",
+          "digest": "sha256:ce49055926c5e4e34a0d96a623a60e475ded8fb55b1be90c60b587ab5cac27fa"
+        },
+        {
+          "id": "urn:ref:expression-corpus:fr-thesaurus-1995:v1",
+          "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+        }
+      ],
+      "counts": {
+        "sourceEntries": 1004,
+        "concepts": 629,
+        "preferredLabels": 629,
+        "alternateLabels": 924,
+        "scopeNotes": 45,
+        "categoryNotations": 616,
+        "seeReferences": 463,
+        "broaderRelations": 740,
+        "associativeRelations": 756,
+        "unresolvedReferences": 20
+      },
+      "exclusions": [],
+      "failures": [],
+      "quarantinedItems": [],
+      "startedAt": "2026-07-29T17:00:30Z",
+      "endedAt": "2026-07-29T17:02:30Z",
+      "nondeterministicStages": [],
+      "reproducibility": "deterministicFromPinnedInputs"
+    },
+    {
+      "id": "urn:ref:publication-release:fr-thesaurus-1995:development-v1",
+      "type": "urn:ref:type:PublicationReleaseManifest",
+      "recordedAt": "2026-07-29T17:04:00Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "published",
+      "canonicalPayloadDigest": "sha256:553000e81676c98da9d27da03a7ed8cc2a73016f3710b14e9a00dca6b252aed9",
+      "version": "1.0.0-development",
+      "refspecVersion": "0.1.0.dev0",
+      "operationalSerializationProfile": {
+        "id": "https://refspec.org/bindings/json/1.0",
+        "version": "1.0",
+        "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+      },
+      "rulespecDependency": {
+        "version": "0.2.0-pre.9",
+        "contractRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+        "evidenceRevision": "2c66a85daab30a4869db08d21cea13cfc865b3a0",
+        "constraintDigest": "sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c",
+        "conformanceCorpusDigest": "sha256:a16ddbf58996dc1e136a99ebf37abbeed0a3adfef724b203347c301cdd5972b2",
+        "adoptedProfiles": [
+          "urn:rulespec:profile:refspec"
+        ],
+        "validator": {
+          "id": "urn:rulespec:validator:rkaf-validate",
+          "revision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+          "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "conformanceResult": {
+          "id": "urn:rulespec:conformance-result:0.2.0-pre.9",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "releaseAvailability": "localUnpublished"
+      },
+      "claimedConformanceLevels": [
+        "REF JSON Binding 1.0",
+        "Rulespec local development closure"
+      ],
+      "inventoryCoveragePins": [
+        {
+          "id": "urn:ref:inventory-coverage:federal-register-thesaurus:v1",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "rulespecReleaseGraph": {
+        "id": "urn:rulespec:graph:fr-thesaurus-1995:v1",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "refOperationalRecords": [
+        {
+          "id": "urn:ref:rights-assessment:fr-thesaurus-1995:v1",
+          "digest": "sha256:0078a23e1e304a2128af8156ad71fa2679478d03cba784f908167cab9e4e16dd"
+        },
+        {
+          "id": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+          "digest": "sha256:5d60189225bec990a3decb5cfd9befac8770aa18b921c9861cae429ded772e0d"
+        },
+        {
+          "id": "urn:ref:registry-import:fr-thesaurus-1995:v1",
+          "digest": "sha256:ce49055926c5e4e34a0d96a623a60e475ded8fb55b1be90c60b587ab5cac27fa"
+        },
+        {
+          "id": "urn:ref:run-receipt:fr-thesaurus-import:v1",
+          "digest": "sha256:0e5a3ecae7aeb856e697176f27af252159d193cab50f49250b9f0db30392cbbe"
+        }
+      ],
+      "expressionCorpusSnapshot": {
+        "id": "urn:ref:expression-corpus:fr-thesaurus-1995:v1",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "runReceipt": {
+        "id": "urn:ref:run-receipt:fr-thesaurus-import:v1",
+        "digest": "sha256:0e5a3ecae7aeb856e697176f27af252159d193cab50f49250b9f0db30392cbbe"
+      },
+      "releaseState": "incomplete",
+      "deploymentClass": "developmentOnly",
+      "consumerEligible": false,
+      "publishedAt": "2026-07-29T17:04:00Z",
+      "activity": "urn:rulespec:activity:publish-fr-thesaurus-development:v1"
+    }
+  ],
+  "permissionChecks": [],
+  "languageTagTests": []
+}

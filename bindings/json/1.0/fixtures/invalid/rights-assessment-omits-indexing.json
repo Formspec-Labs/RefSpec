@@ -1,0 +1,13 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:rights-assessment:fr-thesaurus-1995:v1",
+      "path": "/permissions/indexing",
+      "operation": "remove"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-RIGHTS-004"
+  ]
+}

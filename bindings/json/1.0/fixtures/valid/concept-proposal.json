@@ -1,0 +1,31 @@
+{
+  "records": [
+    {
+      "id": "urn:ref:concept-proposal:development:001",
+      "type": "urn:ref:type:ConceptProposal",
+      "recordedAt": "2026-07-29T17:10:00Z",
+      "recordedBy": "urn:ref:agent:spicy-regs-development",
+      "schemaVersion": "1.0",
+      "operationalState": "submitted",
+      "canonicalPayloadDigest": "sha256:5e5c9ee821dd4705eadc6c0c81436bc70e00163fe6a230975c43e371a59871ed",
+      "facet": "urn:ref:facet:general-subject",
+      "wording": {
+        "value": "Poultry wastewater pathogen controls",
+        "language": "en"
+      },
+      "evidenceAddresses": [
+        "urn:ref:evidence-address:development:001"
+      ],
+      "activity": "urn:rulespec:activity:propose-concept:development:001",
+      "workflowState": "submitted",
+      "governanceQueue": "urn:ref:governance-queue:general-subject",
+      "proposedAnchors": [
+        "urn:rulespec:concept:environmental-protection"
+      ],
+      "proposedMappingRefs": [],
+      "supersessionHistory": []
+    }
+  ],
+  "permissionChecks": [],
+  "languageTagTests": []
+}

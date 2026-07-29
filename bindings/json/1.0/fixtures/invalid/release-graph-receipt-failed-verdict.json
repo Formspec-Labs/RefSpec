@@ -1,0 +1,17 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/release-graph-validation-receipt.json",
+  "expectedRequirements": [
+    "REF-BIND-018"
+  ],
+  "mutations": [
+    {
+      "recordId": "urn:ref:release-graph-validation-receipt:example:v1",
+      "path": "/verdicts/rulespecConformance",
+      "value": "fail"
+    }
+  ],
+  "refreshDigests": [
+    "urn:ref:release-graph-validation-receipt:example:v1"
+  ]
+}

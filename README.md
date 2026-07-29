@@ -14,15 +14,20 @@ permission beyond rights supplied by applicable law.
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
 - [Core enrichment profile](profiles/enrichment-profile.md)
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)
+- [Authoritative REF structural model](model/README.md)
 - [Implementation plan](plans/implementation-plan.md)
 - [Vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
+- [Vocabulary management and lookup separation plan](plans/vocabulary-management-lookup-separation-plan.md)
 - [Research-input register](docs/research-inputs.md)
 - [Research archive](research/README.md)
 
 ## Ownership boundary
 
 RefSpec owns operational acquisition, processing, portfolio accounting,
-evaluation, publication, and extension behavior.
+vocabulary import and deployment, evaluation, publication, and extension
+behavior. It is the source of truth for the managed releases that REF imports,
+reconciles, selects, and serves. Native publishers remain authoritative for
+their source distributions.
 
 [Rulespec](https://github.com/Formspec-Labs/rulespec) owns reusable semantic
 records and their portable constraints. RefSpec binds to Rulespec through an
@@ -36,8 +41,41 @@ specification explicitly identifies a portfolio baseline.
 
 ## Current dependency state
 
-The editor's draft targets Rulespec `0.2.0-pre.8`, local revision
-`c330aef9a7e13c59929631b7b7ba0c6869a57c22`, and constraint digest
-`sha256:71250f67b81fd54af3f6e6c45f2100f9a2307da589b364593e6708e5674b7172`.
-That Rulespec revision has not yet been published to its remote repository, so
-RefSpec does not yet make a production conformance claim.
+The editor's draft targets the local Rulespec `0.2.0-pre.9` candidate. The
+tested contract revision is
+`0eb94257b70783688b55220e7a84dcc61bbd7507`; the evidence revision is
+`2c66a85daab30a4869db08d21cea13cfc865b3a0`; and the constraint digest is
+`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
+The machine-readable
+[Rulespec dependency manifest](profiles/rulespec-dependency.json) records the
+complete executable pin. That candidate has not been published to the
+Rulespec remote, so RefSpec does not make a production conformance claim.
+
+## Executable package
+
+RefSpec carries one JSON-compatible CUE source for REF-owned structures. It
+generates JSON Schema 2020-12 and Python record types and fails the test gate
+if either output drifts. The `refspec` package supplies canonical digest,
+binding-validation, immutable vocabulary-record, and combined
+RefSpec/Rulespec release-graph interfaces.
+The generated package embeds the exact REF schemas, conformance fixtures, and
+requirement-to-test manifest, so a wheel-installed `refspec-validate` can run
+the same no-argument conformance suite without a source checkout.
+
+Run `make test` from this repository to check generated artifacts, all valid
+and invalid REF fixtures, and the Python package. Run
+`make test-cross-repository` when the exact sibling Rulespec checkout is
+available.
+
+`make test-real-vocabulary` is a separate, explicitly networked regression.
+It downloads the pinned 16 November 1995 Federal Register thesaurus into a
+temporary content-addressed store, rejects any SHA-256 mismatch, runs the
+full-source RefSpec and Rulespec tests, selects the exact managed release for
+candidate lookup under project-local development authority, opens it through
+the digest-verifying reference reader, and proves that a later append-only
+rollback restores the explicit prior empty selection. The active bundle and
+rollback history remain separate. This selection grants no accepted-output,
+publisher, legal-clearance, or production authority.
+
+The command removes the temporary source bytes on exit. The default
+`make test` remains offline, and native vocabulary bytes never enter Git.

@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/publication-release-manifest.schema.json",
+  "title": "REF PublicationReleaseManifest",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "if": {
+        "properties": {
+          "releaseState": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "releaseState"
+        ]
+      },
+      "then": {
+        "properties": {
+          "consumerEligible": {
+            "const": true
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "consumerEligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rulespecDependency": {
+            "properties": {
+              "releaseAvailability": {
+                "const": "localUnpublished"
+              }
+            },
+            "required": [
+              "releaseAvailability"
+            ]
+          }
+        },
+        "required": [
+          "rulespecDependency"
+        ]
+      },
+      "then": {
+        "properties": {
+          "deploymentClass": {
+            "const": "developmentOnly"
+          }
+        }
+      }
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "version",
+    "refspecVersion",
+    "operationalSerializationProfile",
+    "rulespecDependency",
+    "claimedConformanceLevels",
+    "inventoryCoveragePins",
+    "rulespecReleaseGraph",
+    "refOperationalRecords",
+    "expressionCorpusSnapshot",
+    "runReceipt",
+    "releaseState",
+    "deploymentClass",
+    "consumerEligible",
+    "publishedAt",
+    "activity"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:PublicationReleaseManifest"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "refspecVersion": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "operationalSerializationProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "rulespecDependency": {
+      "type": "object",
+      "required": [
+        "version",
+        "contractRevision",
+        "evidenceRevision",
+        "constraintDigest",
+        "conformanceCorpusDigest",
+        "adoptedProfiles",
+        "validator",
+        "conformanceResult",
+        "releaseAvailability"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "contractRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "evidenceRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "constraintDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "conformanceCorpusDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "adoptedProfiles": {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        "validator": {
+          "$ref": "common.schema.json#/$defs/componentPin"
+        },
+        "conformanceResult": {
+          "$ref": "common.schema.json#/$defs/digestReference"
+        },
+        "releaseAvailability": {
+          "enum": [
+            "localUnpublished",
+            "published"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "claimedConformanceLevels": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyString"
+      }
+    },
+    "inventoryCoveragePins": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "rulespecReleaseGraph": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "refOperationalRecords": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "expressionCorpusSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "runReceipt": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "releaseState": {
+      "enum": [
+        "incomplete",
+        "complete",
+        "rolledBack"
+      ]
+    },
+    "deploymentClass": {
+      "enum": [
+        "developmentOnly",
+        "production"
+      ]
+    },
+    "consumerEligible": {
+      "type": "boolean"
+    },
+    "publishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "predecessor": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "rollbackOf": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    }
+  },
+  "unevaluatedProperties": false
+}

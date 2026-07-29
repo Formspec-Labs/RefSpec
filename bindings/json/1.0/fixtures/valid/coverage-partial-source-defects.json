@@ -1,0 +1,84 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "vocabulary-closure.json",
+  "mutations": [
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/parsedCount",
+      "value": 3
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/indexedCount",
+      "value": 3
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/excludedCount",
+      "value": 1
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/parsedDigest",
+      "value": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/indexedDigest",
+      "value": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/parseDifferenceExplanation",
+      "value": "One malformed source label was excluded under the exact source-defect policy."
+    },
+    {
+      "recordId": "urn:example:coverage:subjects-a",
+      "path": "/features/0/exclusions/0",
+      "operation": "add",
+      "value": {
+        "id": "urn:example:coverage-exclusion:label-1",
+        "stage": "parsing",
+        "count": 1,
+        "policy": {
+          "id": "urn:example:exclusion-policy:v1",
+          "version": "1.0.0",
+          "digest": "sha256:adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad"
+        },
+        "rationale": "The source occurrence cannot be assigned to a concept without inventing identity."
+      }
+    },
+    {
+      "recordId": "urn:example:registry-deployment:prod-a",
+      "path": "/coverageReport/digest",
+      "value": "sha256:57109d48f27437a5e4817ee6932a113082331de7b8707894df7fde5db786151b"
+    },
+    {
+      "recordId": "urn:example:configuration:c1",
+      "path": "/vocabulary/registryDeploymentDecisions/0/digest",
+      "value": "sha256:9138ddb26e68a9465162ac685e1ad2a914e5e49ac20fd6682fcac6c9e162d141"
+    },
+    {
+      "recordId": "urn:example:evaluation:e1",
+      "path": "/configuration/digest",
+      "value": "sha256:fe5f54dec32a8b0a55bb0181148ff5eec38f6bed96aff56ca0320ad8513b1c64"
+    },
+    {
+      "recordId": "urn:example:deployment:prod-1",
+      "path": "/configuration/digest",
+      "value": "sha256:fe5f54dec32a8b0a55bb0181148ff5eec38f6bed96aff56ca0320ad8513b1c64"
+    },
+    {
+      "recordId": "urn:example:deployment:prod-1",
+      "path": "/evaluationResult/digest",
+      "value": "sha256:270d7afe9d3117bca7fa87a5b59c177c996189855be0dd548499fc94b79b61f6"
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:coverage:subjects-a",
+    "urn:example:registry-deployment:prod-a",
+    "urn:example:configuration:c1",
+    "urn:example:evaluation:e1",
+    "urn:example:deployment:prod-1"
+  ]
+}

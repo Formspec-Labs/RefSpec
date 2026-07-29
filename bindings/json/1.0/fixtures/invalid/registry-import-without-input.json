@@ -1,0 +1,13 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:registry-import:fr-thesaurus-1995:v1",
+      "path": "/captures/0",
+      "operation": "remove"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-VOC-016"
+  ]
+}

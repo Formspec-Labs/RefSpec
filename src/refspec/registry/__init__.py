@@ -1,0 +1,41 @@
+"""Source adapters for REF-managed vocabulary imports."""
+
+from refspec.registry.federal_register_thesaurus import (
+    ASSOCIATIVE_PREDICATE_IRI,
+    BROADER_PREDICATE_IRI,
+    FEDERAL_REGISTER_THESAURUS_1995_URL,
+    CategoryNotation,
+    ConceptRelation,
+    CrossReference,
+    FederalRegisterThesaurus,
+    ImportCounts,
+    LabelExpression,
+    PreferredConcept,
+    ScopeNote,
+    SourceEntry,
+    SourceLocator,
+    ThesaurusParseError,
+    UnresolvedReference,
+    UnresolvedReferenceError,
+    parse_federal_register_thesaurus,
+)
+
+__all__ = [
+    "ASSOCIATIVE_PREDICATE_IRI",
+    "BROADER_PREDICATE_IRI",
+    "FEDERAL_REGISTER_THESAURUS_1995_URL",
+    "CategoryNotation",
+    "ConceptRelation",
+    "CrossReference",
+    "FederalRegisterThesaurus",
+    "ImportCounts",
+    "LabelExpression",
+    "PreferredConcept",
+    "ScopeNote",
+    "SourceEntry",
+    "SourceLocator",
+    "ThesaurusParseError",
+    "UnresolvedReference",
+    "UnresolvedReferenceError",
+    "parse_federal_register_thesaurus",
+]

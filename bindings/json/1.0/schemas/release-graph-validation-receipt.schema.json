@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/release-graph-validation-receipt.schema.json",
+  "title": "REF ReleaseGraphValidationReceipt",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "receiptVersion",
+    "rulespecDependencyManifest",
+    "rulespecGraph",
+    "refRecordDigests",
+    "rulespecValidator",
+    "rulespecBehaviorRuntime",
+    "gateImplementation",
+    "verdicts",
+    "authorizationEvaluations",
+    "coveredRulespecIdentifiers",
+    "crossReferencesDigest",
+    "validatedAt",
+    "activity"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:ReleaseGraphValidationReceipt"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "receiptVersion": {
+      "const": "1.0"
+    },
+    "rulespecDependencyManifest": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "rulespecGraph": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "refRecordDigests": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "rulespecValidator": {
+      "$ref": "common.schema.json#/$defs/componentPin"
+    },
+    "rulespecBehaviorRuntime": {
+      "$ref": "common.schema.json#/$defs/componentPin"
+    },
+    "gateImplementation": {
+      "$ref": "common.schema.json#/$defs/componentPin"
+    },
+    "verdicts": {
+      "type": "object",
+      "required": [
+        "refBinding",
+        "rulespecConformance",
+        "rulespecBehavior",
+        "crossBoundary"
+      ],
+      "properties": {
+        "refBinding": {
+          "const": "pass"
+        },
+        "rulespecConformance": {
+          "const": "pass"
+        },
+        "rulespecBehavior": {
+          "const": "pass"
+        },
+        "crossBoundary": {
+          "const": "pass"
+        }
+      },
+      "additionalProperties": false
+    },
+    "authorizationEvaluations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "governanceRecord",
+          "behaviorTest",
+          "inputGraph",
+          "behaviorContract",
+          "subjectAssertion",
+          "evaluationScope",
+          "evaluationTime",
+          "minimumUsageEligibility",
+          "effectiveUsageEligibility",
+          "outputDigest",
+          "runtime",
+          "result"
+        ],
+        "properties": {
+          "governanceRecord": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "behaviorTest": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "inputGraph": {
+            "$ref": "common.schema.json#/$defs/digestReference"
+          },
+          "behaviorContract": {
+            "const": "rkaf:UsageEligibilityReducer"
+          },
+          "subjectAssertion": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "evaluationScope": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "evaluationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "minimumUsageEligibility": {
+            "const": "rkaf:localOperationalUse"
+          },
+          "effectiveUsageEligibility": {
+            "enum": [
+              "rkaf:localOperationalUse",
+              "rkaf:publicationAllowed",
+              "rkaf:officialUse"
+            ]
+          },
+          "outputDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "runtime": {
+            "$ref": "common.schema.json#/$defs/componentPin"
+          },
+          "result": {
+            "const": "pass"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "coveredRulespecIdentifiers": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/iriList"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "crossReferencesDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "validatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    }
+  },
+  "unevaluatedProperties": false
+}

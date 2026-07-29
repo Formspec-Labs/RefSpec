@@ -1,0 +1,33 @@
+[project]
+name = "refspec"
+version = "0.1.0.dev0"
+description = "Reference implementation and bindings for the Regulatory Evidence Framework"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "jsonschema>=4.26,<5",
+    "pyarrow==23.0.0",
+    "referencing>=0.37,<1",
+    "typing-extensions>=4.12,<5",
+]
+
+[project.scripts]
+refspec-validate = "refspec.binding:main"
+refspec-release-graph-gate = "refspec.release_graph:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.12,<1"
+]
+
+[build-system]
+requires = ["uv_build<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

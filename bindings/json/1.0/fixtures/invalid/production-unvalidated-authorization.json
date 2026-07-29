@@ -5,8 +5,8 @@
   "mutations": [
     {
       "recordId": "urn:example:deployment:prod-1",
-      "path": "/rulespecAttestationRefs/0",
-      "value": "urn:example:attestation:not-validated"
+      "path": "/rulespecAttestationRefs",
+      "value": []
     }
   ],
   "refreshDigests": [

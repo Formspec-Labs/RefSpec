@@ -49,7 +49,7 @@
     "distributionArtifacts",
     "importProfile",
     "parserVersion",
-    "indexSnapshot",
+    "expressionCorpusSnapshot",
     "activity",
     "receipt",
     "reportStatus",
@@ -85,7 +85,8 @@
     "parserVersion": {
       "$ref": "common.schema.json#/$defs/nonEmptyString"
     },
-    "indexSnapshot": {
+    "expressionCorpusSnapshot": {
+      "description": "Exact RefSpec-owned logical expression-corpus snapshot produced by the indexed import stage.",
       "$ref": "common.schema.json#/$defs/digestReference"
     },
     "activity": {
@@ -103,8 +104,8 @@
     "features": {
       "description": "Complete feature accounting. Mapping-set imports used for candidates or output require mappings, identifiers, and membership.",
       "type": "array",
-      "minItems": 10,
-      "maxItems": 10,
+      "minItems": 11,
+      "maxItems": 11,
       "items": {
         "type": "object",
         "required": [
@@ -129,6 +130,7 @@
               "notation",
               "notes",
               "hierarchy",
+              "associativeRelations",
               "mappings",
               "status",
               "replacements",

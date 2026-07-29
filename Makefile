@@ -1,8 +1,17 @@
-.PHONY: test test-json-binding test-rulespec-working-tree test-cross-repository
+.PHONY: generate check-generated test test-package test-json-binding test-rulespec-working-tree test-cross-repository test-real-vocabulary
 
 RULESPEC_DIR ?= ../../rulespec
 
-test: test-json-binding
+generate:
+	python3 tools/generate_model.py
+
+check-generated:
+	python3 tools/generate_model.py --check
+
+test: check-generated test-json-binding test-package
+
+test-package:
+	uv run pytest -q
 
 test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \
@@ -18,3 +27,8 @@ test-cross-repository: test-json-binding
 		--rulespec-dir "$(RULESPEC_DIR)" \
 		--run-rulespec-gate \
 		--require-closure-pin
+
+# Explicitly networked and intentionally absent from the offline `make test`.
+test-real-vocabulary:
+	uv run python -m refspec.registry.federal_register_real_test \
+		--rulespec-root "$(RULESPEC_DIR)"

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/registry-import-snapshot.schema.json",
+  "title": "REF RegistryImportSnapshot",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "captures"
+          ],
+          "properties": {
+            "captures": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "externalReferences"
+          ],
+          "properties": {
+            "externalReferences": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "inventoryCoverageComponent",
+    "importProfile",
+    "captures",
+    "externalReferences",
+    "referenceResourceRelease",
+    "distributionArtifacts",
+    "rightsAssessment",
+    "adoptedPolicyRefs",
+    "transformation",
+    "exclusions",
+    "failures",
+    "rulespecValidationResult",
+    "refValidationResult",
+    "expectedRefreshCadence",
+    "activity",
+    "receipt"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:RegistryImportSnapshot"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "inventoryCoverageComponent": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "importProfile": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "captures": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "externalReferences": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/absoluteIri"
+      }
+    },
+    "referenceResourceRelease": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "distributionArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    },
+    "rightsAssessment": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "adoptedPolicyRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "transformation": {
+      "$ref": "common.schema.json#/$defs/componentPin"
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "rulespecValidationResult": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "refValidationResult": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "expectedRefreshCadence": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "receipt": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "predecessorImportSnapshot": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    }
+  },
+  "unevaluatedProperties": false
+}

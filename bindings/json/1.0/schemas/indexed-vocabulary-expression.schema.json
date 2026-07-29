@@ -67,7 +67,7 @@
     "indexedText",
     "indexedTextDigest",
     "indexedRepresentationVersion",
-    "indexSnapshot",
+    "expressionCorpusSnapshot",
     "activity",
     "receipt"
   ],
@@ -120,7 +120,8 @@
     "indexedRepresentationVersion": {
       "$ref": "common.schema.json#/$defs/nonEmptyString"
     },
-    "indexSnapshot": {
+    "expressionCorpusSnapshot": {
+      "description": "Exact RefSpec-owned logical expression-corpus snapshot. This is not a physical lookup index.",
       "$ref": "common.schema.json#/$defs/digestReference"
     },
     "activity": {

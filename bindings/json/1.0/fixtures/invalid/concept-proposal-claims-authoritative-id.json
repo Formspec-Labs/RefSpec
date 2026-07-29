@@ -1,0 +1,14 @@
+{
+  "base": "../valid/concept-proposal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:concept-proposal:development:001",
+      "path": "/authoritativeConceptIdentifier",
+      "operation": "add",
+      "value": "urn:rulespec:concept:minted-without-governance"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-ENR-010"
+  ]
+}

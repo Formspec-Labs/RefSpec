@@ -1,0 +1,16 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-ENR-019"],
+  "mutations": [
+    {
+      "recordId": "urn:example:configuration:c1",
+      "path": "/indexes/0/lookupIndexManifest",
+      "value": {
+        "id": "urn:example:expression-corpus:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    }
+  ],
+  "refreshDigests": ["urn:example:configuration:c1"]
+}

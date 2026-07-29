@@ -1,0 +1,18 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+      "path": "/source",
+      "operation": "replace",
+      "value": {
+        "id": "file:///tmp/thesaurus-alpha.txt",
+        "version": "latest",
+        "digest": "not-pinned"
+      }
+    }
+  ],
+  "expectedRequirements": [
+    "REF-CAP-001"
+  ]
+}

@@ -24,6 +24,10 @@
 >
 > **Vocabulary-closure constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 >
+> **Tested contract revision:** `0eb94257b70783688b55220e7a84dcc61bbd7507`
+>
+> **Dependency manifest:** [Rulespec dependency manifest](rulespec-dependency.json)
+>
 > **Status:** Normative profile under joint RefSpec and Rulespec development
 
 ## 1. Purpose
@@ -653,9 +657,15 @@ schemas from the pinned Rulespec release.
 The `rkaf:ReferenceResourceRelease` name and shape, semantic digest algorithm
 and scope, and assignment and mapping release-pin property names in this draft
 are implemented in the authoritative Rulespec CUE and generated artifacts at
-local revision `c330aef9a7e13c59929631b7b7ba0c6869a57c22`. They remain
-development dependencies until that revision is available from the Rulespec
-remote and passes release publication gates.
+tested contract revision
+`0eb94257b70783688b55220e7a84dcc61bbd7507`. Evidence revision
+`2c66a85daab30a4869db08d21cea13cfc865b3a0` records the corresponding local
+certification. The
+[machine-readable dependency manifest](rulespec-dependency.json) binds both
+revisions, the constraint and conformance-corpus digests, the validator, and
+the principal generated artifacts. They remain development dependencies until
+an immutable Rulespec release is available remotely and passes release
+publication gates.
 
 That local Rulespec target includes:
 
@@ -697,8 +707,9 @@ That local Rulespec target includes:
 - fixtures and generated artifacts for every change above; and
 - prose, vocabulary, context, shape, behavior, and conformance parity.
 
-The vocabulary-closure target adds these upstream requirements and remains
-unpinned until they pass the gate below:
+The pinned local vocabulary-closure target adds these upstream requirements.
+They pass the development gate at the revisions and digests in the dependency
+manifest:
 
 - JSON-LD language-map carriage, label disjointness, all supported SKOS note
   properties, typed notation lists, and required `rkaf:registeredAt` for
@@ -732,7 +743,10 @@ applicable conformance tests agree. Documentation alone does not close it.
 open. The dependent REF capability remains unsupported or internal-only.
 
 **REF-RKAF-GATE-003:** After the vocabulary-closure gate passes, this profile
-MUST replace the passing-baseline version, revision, and constraint digest with
-the exact passing Rulespec values and add the matching conformance evidence.
-Until that edit is made and validated, an REF build MUST NOT claim the
-vocabulary-closure capabilities as a conforming dependency.
+and the machine-readable dependency manifest MUST record the exact tested
+contract revision, evidence revision, constraint digest, conformance-corpus
+digest, validator, generated-artifact verification mode, and matching
+conformance evidence. The current local candidate satisfies that development
+gate but remains unpublished. Until an immutable Rulespec release is available
+and the manifest marks it available, an REF build MUST NOT claim production
+conformance for the vocabulary-closure capabilities.

@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/capture.schema.json",
+  "title": "REF Capture",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "if": {
+        "properties": {
+          "acquisitionStatus": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "acquisitionStatus"
+        ]
+      },
+      "then": {
+        "required": [
+          "byteDigest",
+          "byteLength",
+          "storageReference"
+        ],
+        "properties": {
+          "byteLength": {
+            "minimum": 1
+          }
+        }
+      }
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "source",
+    "sourceLocator",
+    "requestMethod",
+    "safeRequestParameters",
+    "retrievalStartedAt",
+    "retrievalEndedAt",
+    "responseStatus",
+    "requestHeaders",
+    "responseHeaders",
+    "acquisitionStatus",
+    "contentPreservation",
+    "completeness",
+    "acquisitionActivity",
+    "runReceipt",
+    "accessScopeRefs",
+    "retentionPolicyRefs",
+    "rightsExpressionRefs"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:Capture"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "source": {
+      "$ref": "common.schema.json#/$defs/versionedDigestReference"
+    },
+    "sourceLocator": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "requestMethod": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "safeRequestParameters": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "retrievalStartedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "retrievalEndedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "responseStatus": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "requestHeaders": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "responseHeaders": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "mediaType": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "acquisitionStatus": {
+      "enum": [
+        "success",
+        "partial",
+        "failure"
+      ]
+    },
+    "byteDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "byteLength": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "storageReference": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "contentPreservation": {
+      "enum": [
+        "exactBytes",
+        "canonicalResponse",
+        "exactApplicationPayload"
+      ]
+    },
+    "preservationLimit": {
+      "$ref": "common.schema.json#/$defs/nonEmptyString"
+    },
+    "completeness": {
+      "type": "object",
+      "required": [
+        "complete",
+        "pagination",
+        "retries",
+        "exclusions"
+      ],
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "pagination": {
+          "type": "object"
+        },
+        "retries": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "acquisitionActivity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "runReceipt": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "accessScopeRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "retentionPolicyRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "rightsExpressionRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    }
+  },
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,59 @@
+{
+  "records": [
+    {
+      "id": "urn:ref:release-graph-validation-receipt:example:v1",
+      "type": "urn:ref:type:ReleaseGraphValidationReceipt",
+      "recordedAt": "2026-07-29T18:00:00Z",
+      "recordedBy": "urn:ref:agent:release-graph-gate",
+      "schemaVersion": "1.0",
+      "operationalState": "passed",
+      "canonicalPayloadDigest": "sha256:a96184560518eb03e78cae4e8b0b7933bacb3de74095e1b35b9fb929cfce48f4",
+      "receiptVersion": "1.0",
+      "rulespecDependencyManifest": {
+        "id": "urn:ref:rulespec-dependency:0.2.0-pre.9",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "rulespecGraph": {
+        "id": "urn:rulespec:release-graph:example:v1",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "refRecordDigests": [
+        {
+          "id": "urn:ref:record:example:v1",
+          "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      ],
+      "rulespecValidator": {
+        "id": "urn:rulespec:validator:rkaf-validate",
+        "revision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "rulespecBehaviorRuntime": {
+        "id": "urn:rulespec:runtime:rkaf-behavior-validate",
+        "revision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "gateImplementation": {
+        "id": "urn:ref:implementation:release-graph-gate",
+        "revision": "0.1.0.dev0",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "verdicts": {
+        "refBinding": "pass",
+        "rulespecConformance": "pass",
+        "rulespecBehavior": "pass",
+        "crossBoundary": "pass"
+      },
+      "authorizationEvaluations": [],
+      "coveredRulespecIdentifiers": [
+        "urn:rulespec:concept:example",
+        "urn:rulespec:release-graph:example:v1"
+      ],
+      "crossReferencesDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "validatedAt": "2026-07-29T18:00:00Z",
+      "activity": "urn:ref:activity:validate-release-graph:example:v1"
+    }
+  ],
+  "permissionChecks": [],
+  "languageTagTests": []
+}

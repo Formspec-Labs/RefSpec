@@ -1,0 +1,22 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-CAND-009"],
+  "mutations": [
+    {
+      "recordId": "urn:example:expression:01",
+      "operation": "remove",
+      "path": "/expressionCorpusSnapshot"
+    },
+    {
+      "recordId": "urn:example:expression:01",
+      "operation": "add",
+      "path": "/indexSnapshot",
+      "value": {
+        "id": "urn:example:expression-corpus:subjects",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    }
+  ],
+  "refreshDigests": ["urn:example:expression:01"]
+}

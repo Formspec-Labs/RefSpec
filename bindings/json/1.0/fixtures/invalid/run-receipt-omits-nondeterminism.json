@@ -1,0 +1,13 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:run-receipt:fr-thesaurus-import:v1",
+      "path": "/nondeterministicStages",
+      "operation": "remove"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-PROV-004"
+  ]
+}

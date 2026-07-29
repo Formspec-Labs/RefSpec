@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/concept-proposal.schema.json",
+  "title": "REF ConceptProposal",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "facet",
+    "wording",
+    "evidenceAddresses",
+    "activity",
+    "workflowState",
+    "governanceQueue",
+    "supersessionHistory"
+  ],
+  "properties": {
+    "type": {
+      "const": "urn:ref:type:ConceptProposal"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "facet": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "wording": {
+      "type": "object",
+      "required": [
+        "value",
+        "language"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "language": {
+          "$ref": "common.schema.json#/$defs/bcp47Language"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidenceAddresses": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/absoluteIri"
+      }
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "workflowState": {
+      "enum": [
+        "submitted",
+        "underReview",
+        "acceptedForPromotion",
+        "rejected",
+        "withdrawn",
+        "superseded"
+      ]
+    },
+    "governanceQueue": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "proposedAnchors": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "proposedMappingRefs": {
+      "$ref": "common.schema.json#/$defs/iriList"
+    },
+    "supersessionHistory": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/digestReference"
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

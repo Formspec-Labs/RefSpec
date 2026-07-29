@@ -695,8 +695,8 @@ REF defines the following operational terms.
 : An immutable REF operational record for one source-authored label, note,
   definition, notation, or other searchable expression as indexed. It binds the
   original Unicode literal and language or datatype to its exact reference
-  resource, import, member, normalization policy, index snapshot, and indexed
-  text without making the literal a concept identifier.
+  resource, import, member, normalization policy, expression-corpus snapshot,
+  and indexed text without making the literal a concept identifier.
 
 **External reference**
 : An operational `externalReference` record-kind value for a pointer to a
@@ -848,9 +848,11 @@ publication. Rulespec owns portable meaning and trust.
 | Capture, source-record revision, completeness, source-resource and version resolution | REF |
 | Rendition processing state, selector resolution, run receipt, candidate and adjudication workflow | REF |
 | Baseline enumeration, inventory coverage, source/reference-resource onboarding, and release-inclusion status | REF |
-| Registry import snapshot and coverage report, reconciliation, deployment selection, rollback, indexed vocabulary expressions, and candidate index | REF |
+| Registry import snapshot and coverage report, reconciliation, deployment selection, rollback, indexed vocabulary expressions, and expression corpus | REF |
+| Physical lexical, sparse, dense, hybrid, or approximate-nearest-neighbor lookup index and its immutable manifest | Lookup consumer |
 | Enrichment and output profiles, sealed gold, exact configuration, evaluation result, deployment selection, and publication packaging | REF |
-| Search, query-time similarity, policy-thread view, product explanation | REF |
+| Search, query-time similarity, candidate retrieval, and ranking | Lookup consumer |
+| Policy-thread view and product explanation | REF |
 | Immutable evidence artifact | Rulespec `rkaf:Artifact` |
 | Addressable source region | Rulespec `rkaf:SourceFragment` |
 | Proposition or relationship | Rulespec `rkaf:ValueAssertion` or `rkaf:RelationshipAssertion` |
@@ -924,12 +926,16 @@ MUST copy the other's canonical fields.
 
 ### 4.4 Upstream-first rule
 
-The last passing development baseline for this draft is Rulespec
-`0.2.0-pre.8`. The vocabulary-closure target is not pinned until its
-authoritative source, generated artifacts, fixtures, digest, and complete
-Rulespec gate pass together. The application profile records the exact
-baseline, blocked capabilities, and pin-update gate; neither this
-specification nor an implementation may guess the future revision or digest.
+The passing local development baseline for this draft is Rulespec
+`0.2.0-pre.9`. The tested contract revision is
+`0eb94257b70783688b55220e7a84dcc61bbd7507`; the later evidence revision is
+`2c66a85daab30a4869db08d21cea13cfc865b3a0`; and the constraint digest is
+`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
+The application profile and its machine-readable dependency manifest record
+the authoritative sources, conformance corpus, validator, generated
+artifacts, availability state, and pin-update gate. The candidate remains
+local and unpublished, so an implementation MUST mark production conformance
+pending.
 
 **REF-BIND-015:** When REF needs reusable semantics that the pinned Rulespec
 release cannot express, the project MUST add or clarify them in Rulespec or an
@@ -940,6 +946,50 @@ profile has a passing fixture, an REF `PublicationReleaseManifest` MUST retain
 the fact as operational data, mark the semantic projection unsupported, and
 exclude it from any conformance or product claim that depends on the missing
 meaning.
+
+**REF-BIND-017:** A Rulespec dependency pin MUST distinguish the revision whose
+contract and runtime passed the recorded gate from any later revision that
+changes only certification or evidence. It MUST identify the constraint
+digest, conformance-corpus digest, validator identity, adopted profiles,
+generated-artifact verification mode, and release availability. A Git
+revision and constraint digest alone MUST NOT support a production conformance
+claim.
+
+**REF-BIND-018:** The combined REF and Rulespec release-graph gate MUST issue a
+`ReleaseGraphValidationReceipt` only after the REF binding, exact pinned
+Rulespec structural validator, pinned Rulespec L4 runtime, and cross-boundary
+checks all pass in that execution. The receipt MUST bind the dependency
+manifest, exact Rulespec graph, every validated REF record digest, structural
+validator, L4 runtime, gate implementation, complete Rulespec identifier
+coverage, explicit cross-reference digest, applicable authorization
+evaluations, validation time, and separate pass verdicts. A caller-authored or
+self-asserted receipt MUST NOT substitute for executing the gate.
+
+**REF-BIND-019:** The combined gate MUST derive an authorization evaluation
+for every selected `RegistryDeploymentDecision` or
+`EnrichmentDeploymentDecision` and every resolved
+`RegistryReconciliationReport`. For a deployment, the gate MUST use the
+environment identifier as the evaluation scope and `effectiveAt` as the
+evaluation time. For a resolved reconciliation, it MUST use the precedence
+policy identifier as the scope and `recordedAt` as the time. The exact
+Rulespec graph MUST contain one assertion jointly targeted by the record's
+named attestations and local adoptions. A resolved reconciliation's assertion
+MUST also name every declared Rulespec authority. Every named attestation MUST
+approve that assertion and be effective at the evaluation time. Every named
+local adoption MUST be active, target that assertion, use the derived scope,
+derive from one of the named attestations, and grant at least
+`rkaf:localOperationalUse`.
+
+The gate MUST construct the `rkaf:UsageEligibilityReducer`
+`rkaf:BehaviorTestCase`; its `rkaf:input` MUST be the exact release graph. The
+gate, not the caller, supplies the permitted expected outputs and accepts only
+an L4 result at or above `rkaf:localOperationalUse`. The receipt MUST bind the
+governance-record digest, behavior-test digest, input-graph digest, subject assertion,
+scope, time, required minimum, verified output and digest, exact L4 runtime,
+and result. A caller-provided behavior test, expected output, validation
+receipt, or `effective` Boolean has no authorization effect. The governance
+record does not reference its receipt because that would create a digest
+cycle; the gate-issued receipt binds the already sealed record.
 
 ## 5. Operational information model
 
@@ -1687,12 +1737,15 @@ path; original Unicode literal; BCP 47 language tag, including its script
 subtag when supplied, or an absolute datatype IRI when the source expression
 is typed, but never both or neither; normalization-policy
 identifier and digest; normalized indexed text and its digest; indexed
-representation version; index snapshot; generating activity; and run receipt.
+representation version; logical `expressionCorpusSnapshot`; generating
+activity; and run receipt.
 A candidate generated from the expression MUST reference that record.
 Expressions with identical literals but different releases, schemes, members,
 properties, language tags, or datatypes MUST remain distinct records.
 Normalization MUST NOT create concept identity, discard the original
 expression, or reduce text to ASCII as the only indexed representation.
+`expressionCorpusSnapshot` identifies the REF-owned logical collection of
+eligible expressions. It MUST NOT identify a physical lookup index.
 
 **REF-CAND-002:** Candidate fusion and truncation MUST be deterministic for
 fixed deterministic inputs and MUST be visible in the run receipt.
@@ -1804,8 +1857,9 @@ neither mutates the configuration.
   mapping release, mapping-set import snapshot, and selected
   `RegistryDeploymentDecision` available to the run, plus the digest of the
   complete candidate target universe;
-- every candidate index snapshot, indexed-expression corpus digest, indexed
-  representation version, and normalization-policy identifier and digest;
+- every logical expression-corpus snapshot and digest, physical
+  `lookupIndexManifest`, indexed representation version, and
+  normalization-policy identifier and digest;
 - every candidate channel and its retriever, query construction,
   ordering, fusion, deduplication, quota, truncation, and fallback policy;
 - every model identifier and revision, provider and endpoint configuration
@@ -1831,14 +1885,15 @@ environment; exact `EnrichmentConfiguration` identifier and digest; exact
 identifier, version, and digest; selection state; effective and recorded times;
 reason; responsible activity; predecessor or superseding decision when
 applicable; and the applicable Rulespec attestation and local-adoption
-references. Each authorization reference MUST have an exact validation receipt
-showing that the Rulespec record is effective for the decision's scope and
-time. A `selected` decision for production MUST reference an evaluation with
-verdict `pass`, and the evaluation's configuration digest and the
-configuration's output-profile digest MUST match the selected records exactly.
-Current selection MUST be reduced from append-only deployment decisions. A
-failed or deselected decision MUST NOT erase its configuration, evaluation, or
-predecessor.
+references. A selected decision becomes deployable only when a gate-issued
+`ReleaseGraphValidationReceipt` binds its exact digest and the passing
+authorization evaluation required by `REF-BIND-019`; caller-authored
+validation objects and `effective` Booleans are non-authoritative. A selected
+decision for production MUST reference an evaluation with verdict `pass`, and
+the evaluation's configuration digest and the configuration's output-profile
+digest MUST match the selected records exactly. Current selection MUST be
+reduced from append-only deployment decisions. A failed or deselected decision
+MUST NOT erase its configuration, evaluation, or predecessor.
 
 ## 10. Relationship discovery and publication
 
@@ -2181,6 +2236,10 @@ distributions, and RDFC-1.0 semantic `rkaf:referenceReleaseDigest`.
 a concept-assignment or concept-mapping endpoint pin. Distribution
 `rkaf:Artifact` records preserve their own byte digests. Rulespec keeps
 `dcterms:type` open; these REF routes do not close or redefine its value set.
+REF normalized label rows MAY carry the source's status token as opaque import
+data. REF MUST NOT restrict that token to a copied Rulespec enumeration,
+interpret it as portable lifecycle authority, or use it by itself to authorize
+candidate or accepted-output use.
 
 **REF-VOC-001:** Every Rulespec-owned `rkaf:LocalConcept`,
 `rkaf:RegisteredConcept`, concept assignment, and concept mapping in a registry
@@ -2259,11 +2318,13 @@ authoritative REF fields.
 or accepted output MUST have an immutable `RegistryImportCoverageReport`. The
 report MUST identify the import snapshot, exact Rulespec
 `rkaf:ReferenceResourceRelease`, applicable distribution artifacts, import
-profile, parser version, index snapshot, exact `OutputProfile`, activity,
-receipt, report status, and canonical payload digest. Each feature row MUST
-state whether that feature is required for candidate or accepted-output use
-under the named profile. The report MUST contain one feature row for each
-applicable feature:
+profile, parser version, logical `expressionCorpusSnapshot`, exact
+`OutputProfile`, activity, receipt, report status, and canonical payload
+digest. The indexed stage in this report measures materialization into the
+logical REF expression corpus; it does not describe a consumer's physical
+lookup index. Each feature row MUST state whether that feature is required for
+candidate or accepted-output use under the named profile. The report MUST
+contain one feature row for each applicable feature:
 
 - members and scheme membership;
 - preferred, alternate, and hidden labels;
@@ -2272,6 +2333,7 @@ applicable feature:
 - definitions, examples, scope notes, editorial notes, history notes, change
   notes, and other source notes that affect meaning;
 - broader and narrower hierarchy relations;
+- scheme-internal associative relations;
 - source and cross-scheme mappings;
 - status and deprecation;
 - replacements; and
@@ -2305,10 +2367,14 @@ members, relations, and stage digests; every detected difference; applicable
 Rulespec authority, attestation, and local-adoption references; every
 unresolved item; responsible activity; recorded time; canonical payload
 digest; and exactly one outcome: `selectedInput`,
-`reconciledReleaseAuthorized`, or `unresolved`. A
-validation receipt MUST bind every authority, attestation, and adoption
-reference to an effective Rulespec validation result; an unresolved or
-unvalidated reference MUST NOT authorize a resolved outcome. A
+`reconciledReleaseAuthorized`, or `unresolved`. A resolved report becomes
+authoritative only when a gate-issued `ReleaseGraphValidationReceipt` binds
+its exact digest, every authority, attestation, and adoption reference, and the
+passing evaluation required by `REF-BIND-019`. Legacy
+`authorizationValidations` values and their `effective` Booleans are
+non-authoritative migration evidence. An unresolved report, a report absent
+from that receipt, or an invalid governance reference MUST NOT authorize a
+resolved outcome. A
 `reconciledReleaseAuthorized` outcome MUST identify a new
 `rkaf:ReferenceResourceRelease` with its own identity, complete membership,
 distributions, provenance, and digest; it MUST NOT mutate any input release.
@@ -2330,11 +2396,16 @@ are separate Rulespec attestations and local adoptions.
 snapshot, its passing import-coverage report, any applicable reconciliation
 report, target environment and output profile, selection state, effective and
 recorded times, responsible activity, reason, applicable rights assessment and
-adopted policy, exact effective validation receipts for every attestation and
-local-adoption reference, and predecessor or superseding deployment decision
-when applicable. A `selected` decision MUST NOT reference a failed coverage
-report, unvalidated governance reference, or unresolved reconciliation as
-authority for a synthesized release.
+adopted policy, every applicable Rulespec attestation and local-adoption
+reference, and predecessor or superseding deployment decision when applicable.
+A selected decision becomes deployable only when a gate-issued
+`ReleaseGraphValidationReceipt` binds its exact digest and the passing
+authorization evaluation required by `REF-BIND-019`. Legacy
+`authorizationValidations` values are migration evidence only; their
+`effective` Booleans and caller-named validators have no authorization effect.
+A selected decision MUST NOT reference a failed coverage report, unvalidated
+governance reference, or unresolved reconciliation as authority for a
+synthesized release.
 
 **REF-VOC-018:** A producer MUST compute current operational selection from
 append-only `RegistryDeploymentDecision` records and permitted use from
@@ -2480,6 +2551,76 @@ lineage, attestations, or adoption.
 promotion, including any exception for a new concept supported by one
 authoritative rendition artifact. The framework MUST NOT infer sufficiency
 from document count alone.
+
+### 12.5 Managed releases and lookup consumers
+
+A managed vocabulary release is an operational view, not a new semantic
+record. It combines one exact Rulespec `rkaf:ReferenceResourceRelease` with
+the REF import snapshot, coverage report, applicable reconciliation report,
+registry deployment decision, and indexed expression corpus that REF selected
+for one environment and output profile.
+
+**REF-VOC-025:** REF is authoritative for its captures, imports, coverage,
+reconciliation, expression corpus, deployment history, and operational
+selection. The native publisher remains authoritative for an external source
+distribution, and Rulespec remains authoritative for portable concept,
+scheme, mapping, release, lifecycle, and resolution meaning. REF MUST NOT
+present an imported or normalized representation as a replacement for the
+publisher's native distribution.
+
+**REF-VOC-026:** A managed release consumer MUST receive an immutable,
+content-digested release manifest and read-only access to its selected
+members, expressions, and relations. The consumer MUST NOT mutate an import
+snapshot, coverage report, reconciliation report, deployment decision, or
+Rulespec release. A correction or changed selection MUST create new
+append-only REF records and any applicable Rulespec records.
+
+**REF-VOC-027:** REF owns the language-preserving expression corpus and its
+source and normalization lineage. A lookup consumer MAY build lexical, sparse,
+dense, hybrid, or approximate-nearest-neighbor indexes from that corpus. A
+changed concrete index, tokenizer, embedding, candidate channel, or ranking
+policy MUST create a new `EnrichmentConfiguration`; it creates a new managed
+vocabulary release only when the selected vocabulary content changes.
+`expressionCorpusSnapshot` and `lookupIndexManifest` are separate exact digest
+references: the former identifies the logical REF-owned corpus and the latter
+identifies one physical consumer-built index. An `EnrichmentConfiguration` and
+each registered candidate's lineage MUST pin both references, and MUST reject
+a row that substitutes or reuses either reference as the other. A lookup-index
+manifest MUST identify the exact expression-corpus snapshot from which the
+index was built.
+
+**REF-VOC-028:** Exact resolution of a release member by its identifier is a
+managed-release access operation. Semantic retrieval, candidate generation,
+ranking, and reranking are consumer operations. A candidate's presence, rank,
+similarity, cache state, or index membership MUST NOT establish concept
+identity, mapping equivalence, review, adoption, accepted-output permission,
+or deployment authority.
+
+**REF-VOC-029:** A lookup consumer MAY produce a correction or concept
+proposal, but it MUST return that record to the REF governance workflow. It
+MUST NOT mint an authoritative external identifier, rewrite a managed release
+in place, reconcile official sources, or activate a release.
+
+**REF-VOC-030:** A conforming managed-release implementation MUST retain large
+native distributions and materialized indexes outside normative source files
+when their size or rights make source control unsuitable. Every such artifact
+MUST resolve through an immutable identifier, byte digest, media type, rights
+record, and release or configuration manifest. A mutable path or object key
+alone MUST NOT identify a release input or lookup index.
+
+**REF-VOC-031:** A read-only managed-release consumer MUST require the exact
+bundle-manifest byte digest supplied by its trusted release selection or
+configuration. It MUST verify that digest before following any relative
+artifact path, and MUST require the modeled gate-issued
+`ReleaseGraphValidationReceipt` whose graph, REF records, validator, and
+identifier coverage match the bundle. Internal self-digests alone do not
+establish that the selected release is the authorized release. Normalized REF
+tables MAY carry exact label-role, relation-predicate, lifecycle-operation,
+participant-role, concept-kind, assertion-origin, epistemic-basis,
+evidence-role, and usage-eligibility values from that validated graph. The REF
+runtime MUST preserve those values and verify their row-to-graph identity; it
+MUST NOT maintain a second enumeration, range, hierarchy, lifecycle, or usage
+rule for them.
 
 ## 13. Publication and query behavior
 
@@ -2648,8 +2789,17 @@ Permission for one use MUST NOT imply permission for another.
 **REF-RIGHTS-002:** Every release MUST identify applicable attribution,
 license, access, retention, and redistribution conditions.
 
-**REF-RIGHTS-003:** When rights are unclear, a publisher MUST fail closed for
-the unclear use while retaining the review decision.
+**REF-RIGHTS-003:** Rights uncertainty MUST be explicit and MUST NOT be
+silently converted into permission. For a managed vocabulary, an adopted
+project policy MAY nevertheless make a recorded determination that the
+uncertainty does not block named uses, including acquisition, storage,
+indexing, model use, display, retention, or experimental redistribution. That
+determination MUST name each permitted use, its purpose and audience, the
+evidence and assumptions relied upon, residual risk, attribution, and
+effective time; it MUST NOT claim legal clearance. Without such an affirmative
+determination, the producer MUST fail closed for the unclear use. Access,
+privacy, security, and production-release controls remain independent and MAY
+still block use.
 
 **REF-RIGHTS-004:** A `RightsAssessment` MUST identify its target release or
 source, the observed terms and supporting source fragments, proposed
@@ -2942,10 +3092,13 @@ open-set measures while being excluded from reachable registered-candidate
 recall.
 
 **REF-TEST-159:** Changing any behavior-relevant implementation, runtime,
-model, provider setting, prompt, schema, index, indexed expression corpus,
-normalization, candidate channel, fusion or truncation rule, policy, threshold,
-budget, registry, mapping, output profile, or permission tuple while retaining
-the prior configuration identifier, digest, or evaluation result MUST fail.
+model, provider setting, prompt, schema, lookup-index manifest, expression
+corpus, normalization, candidate channel, fusion or truncation rule, policy,
+threshold, budget, registry, mapping, output profile, or permission tuple
+while retaining the prior configuration identifier, digest, or evaluation
+result MUST fail. A configuration or candidate lineage that conflates its
+logical `expressionCorpusSnapshot` with its physical `lookupIndexManifest`
+MUST fail.
 
 **REF-TEST-160:** A production `EnrichmentDeploymentDecision` MUST fail when
 its configuration, evaluation result, or output-profile identifier or digest
@@ -2991,6 +3144,52 @@ SHACL, TypeScript, and Rust verdicts MUST agree for the shared fixtures; and
 the complete pinned Rulespec conformance gate MUST pass. The applicable REF
 suite MUST then accept every valid fixture, reject every invalid fixture with
 its requirement identifier, and pass lossless round trips.
+
+**REF-TEST-168:** A consumer that attempts to mutate a managed release,
+reconciliation result, deployment decision, or authoritative identifier MUST
+fail. Submitting a separate correction or concept proposal to the REF
+governance workflow MUST remain possible.
+
+**REF-TEST-169:** Rebuilding a lookup index from unchanged managed vocabulary
+content MUST retain the vocabulary release identifier and
+`expressionCorpusSnapshot`, create a new `lookupIndexManifest`, and create a
+new `EnrichmentConfiguration`. Changing selected members, expressions,
+relations, or mappings MUST create a new release and expression-corpus
+snapshot and invalidate configurations that pin the old content when policy
+requires the new release.
+
+**REF-TEST-170:** A candidate-only or read-only lookup consumer MUST fail if it
+attempts to reconcile sources, select or activate a release, mint an
+authoritative external identifier, or treat rank, similarity, or cache state
+as accepted-output authority.
+
+**REF-TEST-171:** Every external distribution and materialized lookup index
+used by a managed release or evaluated configuration MUST resolve by immutable
+identifier and digest. A mutable filesystem path, URL, or object key without
+the pinned artifact and rights records MUST fail. A physical
+`lookupIndexManifest` used where an `expressionCorpusSnapshot` is required, or
+the reverse, MUST fail.
+
+**REF-TEST-172:** The cross-repository gate MUST read one machine-readable
+Rulespec dependency manifest, distinguish tested contract and evidence
+revisions, recompute the constraint and conformance-corpus digests, verify
+every named generated artifact, and reject stale or contradictory normative
+pin text.
+
+**REF-TEST-173:** The combined release-graph gate MUST refuse to issue a
+`ReleaseGraphValidationReceipt` for any REF, Rulespec, or cross-boundary
+failure. A managed-release consumer MUST reject an absent, caller-fabricated,
+stale, digest-mismatched, incompletely covering, or failed receipt and any
+bundle whose bytes do not match the externally selected manifest digest.
+
+**REF-TEST-174:** A selected registry or enrichment deployment, and a resolved
+reconciliation, MUST fail when its named governance records do not resolve to
+one authorized assertion, do not apply to the record's exact derived scope and
+time, or do not produce at least `rkaf:localOperationalUse` under the exact
+pinned Rulespec L4 runtime. The gate MUST ignore caller-supplied behavior
+tests, expected outputs, receipts, and `effective` Booleans. Changing the
+graph, governance record, scope, time, behavior input, runtime, or verified
+output MUST change the receipt or make it fail.
 
 ### 15.3 Evaluation corpus
 

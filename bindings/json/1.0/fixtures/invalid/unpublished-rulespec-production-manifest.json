@@ -1,0 +1,17 @@
+{
+  "base": "../valid/managed-release-minimal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:publication-release:fr-thesaurus-1995:development-v1",
+      "path": "/deploymentClass",
+      "operation": "replace",
+      "value": "production"
+    }
+  ],
+  "refreshDigests": [
+    "urn:ref:publication-release:fr-thesaurus-1995:development-v1"
+  ],
+  "expectedRequirements": [
+    "REF-BIND-009"
+  ]
+}

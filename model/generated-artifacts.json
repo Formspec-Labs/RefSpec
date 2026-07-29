@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "source": "model/ref-records.cue",
+  "sourceSha256": "sha256:8db9b2882256ed0f03e11b72649000ed0fb9b1f172e790c3003e364fa0165d1e",
+  "artifacts": {
+    "bindings/json/1.0/schemas/capture.schema.json": "sha256:489ffc9b9c21b3f2f0118ed783856a6990616dd1db43de0dc148187338072c62",
+    "bindings/json/1.0/schemas/common.schema.json": "sha256:d702c34f04de08fa276c76a25a722f26f2af3333c9ac06b9eb0c058c15e2708a",
+    "bindings/json/1.0/schemas/concept-proposal.schema.json": "sha256:5a094c63f2ec2168af76405b1b208e35e273f95c88ad474e4d4f8b264c172897",
+    "bindings/json/1.0/schemas/enrichment-configuration.schema.json": "sha256:0130a79a542d8cd3a08e3cc2faecd9ce0d036e23198af4c0889ab217435f354b",
+    "bindings/json/1.0/schemas/enrichment-deployment-decision.schema.json": "sha256:e06ea95616e0728dc5e1a235686cc93bccc45b427558781da85c3cc220539f4f",
+    "bindings/json/1.0/schemas/enrichment-evaluation-result.schema.json": "sha256:57872b37937f2063440c985f925afc8d9838f0f02edfce700c929b11d3912aed",
+    "bindings/json/1.0/schemas/enrichment-profile.schema.json": "sha256:7e2844e4b88a4de86d4270c876986d5ea1b34af824509a386c59b53be8cf78a7",
+    "bindings/json/1.0/schemas/indexed-vocabulary-expression.schema.json": "sha256:e6ae1b0a5ba649861a3f1522b18834c5ebdcf4d823bf928e47f08f6ad363a1dd",
+    "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:b88c4f14c3d4b37c7bf5c2f5cafb8b0075d1905034a2c3dc04bf6c68852989c5",
+    "bindings/json/1.0/schemas/publication-release-manifest.schema.json": "sha256:2951b792b7f844c362a2366d7bf79d9e6074b172df35aaee4086a49b80c592f6",
+    "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:5ffa1eb4d65ed6fb5e39f565b1081e49ad0c38f405147bb0b59c861825ba0eb2",
+    "bindings/json/1.0/schemas/registry-deployment-decision.schema.json": "sha256:dcad09f1925b365a9192f247443f7002e371111a6dae3b0b1c19ae6a7016c690",
+    "bindings/json/1.0/schemas/registry-import-coverage-report.schema.json": "sha256:6ebaac9ea6a723b2ab95b7876ff2f268f0a503babeaa94ec4b62173c0f31f6ae",
+    "bindings/json/1.0/schemas/registry-import-snapshot.schema.json": "sha256:e5c1de427ecd0e47fd8b45048f156701387e083d07b9d46154e13cc3ddf6b341",
+    "bindings/json/1.0/schemas/registry-reconciliation-report.schema.json": "sha256:8e8c5e820c52b8282579f82707db81d1c255dfef7b4c4e7fb32b9c0c26a01688",
+    "bindings/json/1.0/schemas/release-graph-validation-receipt.schema.json": "sha256:76dd112fee52b9a0f472b6b27f8c82598570e1361a0abb469a352c1e9fa9d249",
+    "bindings/json/1.0/schemas/rights-assessment.schema.json": "sha256:2f5b93bdc1d34f8fe1800cc093fc51d5700d84b39cc2c295ae94ae85307ad480",
+    "bindings/json/1.0/schemas/run-receipt.schema.json": "sha256:45d37b467079eb256185ba215fb23dd98c373db85bb070d9e08e2e3de6856da8",
+    "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
+    "src/refspec/generated_conformance_assets.py": "sha256:e4fa2ae951c7052e16f36f0337c9242e84dd50b858448259804fa56710aa80b3",
+    "src/refspec/generated_rulespec_dependency.py": "sha256:9caed4aa1acd1aef685274b4c2dabee4f23dbae1d940a790612cf346f0f7f05a",
+    "src/refspec/generated_schemas.py": "sha256:3aafb52635d9fa567d66616296cdb45173cedb296e3f22671cb8c1f38fe5e865",
+    "src/refspec/generated_types.py": "sha256:f9b5efc77efb04a8abf7af1e2f72cf7d5c9ceba80f2c83903c90ed4b2396c41b"
+  }
+}

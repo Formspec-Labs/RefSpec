@@ -77,7 +77,6 @@
     "rulespecAuthorityRefs",
     "attestationRefs",
     "localAdoptionRefs",
-    "authorizationValidations",
     "unresolvedItems",
     "synthesizedUnionAuthorized",
     "activity",
@@ -250,6 +249,7 @@
       ]
     },
     "authorizationValidations": {
+      "description": "Deprecated, non-authoritative caller report retained only for migration. A resolved reconciliation is authorized only by a gate-issued ReleaseGraphValidationReceipt that binds a pinned Rulespec L4 evaluation.",
       "type": "array",
       "minItems": 3,
       "uniqueItems": true,
