@@ -566,6 +566,42 @@ def test_schema_aware_resolver_rejects_wrong_rulespec_node_type(
     )
 
 
+def test_schema_aware_resolver_accepts_external_native_skos_members(
+    tmp_path: Path,
+) -> None:
+    scheme_identifier = "https://example.test/vocabulary/6/"
+    concept_identifier = (
+        "https://example.test/vocabulary/6/concept-1"
+    )
+    record = {
+        "id": "urn:ref:expression:native-skos",
+        "type": "urn:ref:type:IndexedVocabularyExpression",
+        "scheme": scheme_identifier,
+        "member": concept_identifier,
+    }
+    bundle = schema_aware_bundle(
+        record,
+        [
+            {
+                "@id": scheme_identifier,
+                "@type": "skos:ConceptScheme",
+            },
+            {
+                "@id": concept_identifier,
+                "@type": "skos:Concept",
+            },
+        ],
+        [scheme_identifier, concept_identifier],
+    )
+
+    report = validate_release_graph_bundle(
+        bundle,
+        validator=validator_pin(tmp_path),
+    )
+
+    assert report.passed
+
+
 def test_authorization_kind_must_match_rulespec_node_type(
     tmp_path: Path,
 ) -> None:

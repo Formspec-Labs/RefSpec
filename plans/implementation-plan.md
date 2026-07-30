@@ -2,9 +2,16 @@
 
 # RefSpec implementation plan
 
-> **Status:** Rulespec-dependent delivery plan
+> **Status:** Historical conceptual draft; non-authoritative
 >
 > **Date:** 2026-07-28
+>
+> **Current execution roadmap:** [Managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md)
+>
+> **Implemented vocabulary baseline:** [Vocabulary management and lookup separation](vocabulary-management-lookup-separation-plan.md)
+>
+> **Use of this document:** Capability inventory and source of reusable
+> controls. It does not set current sequencing, scope, or release gates.
 >
 > **Normative specification:** [RefSpec 1.0](../spec/refspec.md)
 >
@@ -45,13 +52,27 @@ or import implementation, release inclusion, and rights/use authorization
 separately. Definition rows stay visible but require no route. This does not
 require every component to be ingested or included in a release.
 
+The release-blocking accounting gate and the optional full-framework
+design-coverage claim are separate. A release must account for the complete
+portfolio, but it needs passing representation mappings and fixtures only for
+the components active in that release. Claiming that the design covers the
+full declared framework requires the stronger all-component proof.
+
+For a named release, a component is `sliceActive` when its release-inclusion
+status for that release is `supported` or when any pinned source profile,
+adapter, import, candidate or output profile, mapping path, evaluation input,
+release record, or published output references or uses it. WP1 computes and
+freezes this union as a content-digested release-component-set report before
+evaluation. A referenced or used component marked otherwise fails validation;
+scope cannot be narrowed after results are known.
+
 This plan uses exit gates instead of calendar promises. The team should estimate
 dates after Work Package 0 fixes the product questions, source scope, staffing,
 and service levels.
 
 ## 1. Delivery principles
 
-The implementation follows eight rules:
+The implementation follows ten rules:
 
 1. Build one complete vertical slice before adding source families.
 2. Keep original captures and canonical history independent from search,
@@ -65,6 +86,11 @@ The implementation follows eight rules:
 8. Treat the dated inventories as the first conformance corpus, not a closed
    type registry; onboard new kinds through governed, fixture-backed extension
    profiles without catch-all buckets.
+9. Treat existing adapters, stores, semantic records, and testbeds as migration
+   inputs until they pass the applicable REF and Rulespec gates.
+10. Use exact dense scoring as the reference retrieval implementation until
+    measured scale, memory, or latency evidence justifies an approximate
+    nearest-neighbor index without material candidate-quality loss.
 
 The clean-slate implementation should use:
 
@@ -83,6 +109,16 @@ Vendor and package choices remain open until the responsible work package
 evaluates maintained packages against the actual requirement. A chosen package
 should cover most of the need behind a thin project-owned adapter. Storage or
 index technology must not become the only source of canonical truth.
+
+This is a clean-slate target architecture, not an assumption that the delivery
+repository has no existing implementation. Before implementation work proceeds,
+WP0 publishes one execution-authority decision: finish and freeze the existing
+testbed, absorb it into this plan through an explicit migration, or pause it.
+The same decision dispositions every existing source family as frozen,
+temporarily operated outside an REF release, in-scope for migration, or
+deferred. Existing capture or transformation behavior is not evidence of REF
+conformance until it satisfies the capture, completeness, replay, and ownership
+gates below.
 
 ## 2. Releases and boundaries
 
@@ -181,9 +217,10 @@ delivery scope remain explicit through routed components, semantic/use modes
 such as `mappingOnly` or `externalReference`, and dimension-specific
 `planned`, `deferred`, `rightsBlocked`, `unsupportedWithReason`,
 `notApplicable`, or `notAssessed` statuses in the versioned coverage manifest.
-Any non-`supported` representability status blocks `G1` and a
-full-framework design-coverage claim, but it does not make the inventory row
-disappear.
+A non-`supported` representability status blocks `G1` only when that component
+is `sliceActive`. Any such status blocks `G1F` and a
+full-framework design-coverage claim. In every case, the component remains
+visible in the portfolio trace.
 
 ## 3. First vertical slice
 
@@ -297,13 +334,14 @@ Release 1 passes only when:
 
 | Gate | Decision | Required evidence |
 | --- | --- | --- |
-| `G0 — Scope` | Is the first slice worth building and bounded? | Approved product questions, source list, non-goals, authority rules, privacy boundary, metric definitions, and complete baseline inventory trace |
-| `G1 — Model` | Can the REF/Rulespec boundary represent the slice and the full declared portfolio, including future kinds, without semantic collapse or duplicate fields? | Complete row, cell, source-span, named-item, subtype-group, and role accounting with an independent Rulespec audit attestation; a concrete lossless REF plus Rulespec/external mapping, passing positive fixture, and passing round-trip fixture for every component; `supported` representability for every component; extension-route non-fit and boundary fixtures; REF operational schemas; Rulespec profiles; ownership audit; and separate REF and Rulespec conformance reports |
+| `G0 — Scope` | Is the first slice worth building, bounded, governed, and staffed for the claims it will make? | Approved product questions, source list, non-goals, execution-authority and legacy-transition decision, source-family disposition, pinned downstream-consumer inventory, authority rules, privacy boundary, metric definitions, reviewer-capacity decision, and complete baseline inventory trace |
+| `G1 — Slice model and portfolio accounting` | Can the REF/Rulespec boundary represent the active slice without semantic collapse or duplicate fields while keeping the full declared portfolio accounted for? | Complete row, cell, source-span, named-item, subtype-group, and role accounting with an independent Rulespec audit attestation; a frozen release-component-set report derived from every actual release use; a concrete lossless REF plus Rulespec/external mapping and passing positive and round-trip fixtures for every `sliceActive` component; explicit representability state and reason for every other component; extension-route non-fit and boundary fixtures; REF operational schemas; Rulespec profiles; ownership audit; and separate REF and Rulespec conformance reports |
+| `G1F — Full-framework design coverage` | Can the REF/Rulespec boundary represent every component in the full declared portfolio, including future kinds admitted through extension profiles? | `G1` plus `supported` representability, a current concrete lossless mapping, and passing component-specific positive and round-trip fixtures for every component |
 | `G2 — Capture` | Can the team obtain and replay complete source windows? | Approved source profiles, rights assessments, adopted Rulespec/ODRL policies, captures, manifests, count reconciliation, failures, drift tests, and two replay results |
 | `G3 — Evidence` | Can every assertion resolve to exact source material? | Parser gold set, selector-resolution tests, Rulespec Artifact/SourceFragment/EvidenceBinding validation, extraction states, and quality report |
 | `G4 — Identity and time` | Are identity, versions, legal effect, and history correct? | Independent timeline and link gold set, zero false merges, as-of tests, and bitemporal checks |
 | `G5 — Evidence release` | Can an analyst answer the priority questions from a receipted release? | Complete slice outputs, analyst verification, security review, restore test, and REF `PublicationReleaseManifest` |
-| `G6 — Enrichment` | Does typed open-set enrichment improve user work? | Registry coverage, candidate recall, final quality, abstention, grounding, cost, and product-task comparison |
+| `G6 — Enrichment` | Does typed open-set enrichment improve user work without crossing source-native facets or output permissions? | Independently sealed per-item gold, source-stratified adequate-target coverage, full-universe gold rank, candidate recall, final strict relevance, abstention, cardinality, grounding, facet-leakage and unsupported-output tests, exact evaluated-to-deployed configuration match, reviewer capacity, cost, and product-task comparison |
 | `G7 — Relationship predicates` | Are enabled inferred relationships precise, scoped, explainable, and useful? | Predicate-specific blind review, evidence explanations, dispute results, and query-task outcomes |
 | `G7T — Optional policy threads` | Do durable threads have coherent scope, defensible membership, governance capacity, and user value? | Blind analyst tasks, membership review, scope stability, correction cost, and thread-history tests |
 | `G8 — Production` | Can the service operate safely and repeatably? | Capacity, failure recovery, freshness, access control, privacy, cost, rollback, and source-drift evidence |
@@ -381,6 +419,16 @@ another.
 - Select 8–12 priority questions, including the first-slice question.
 - Define answer shapes and evidence requirements.
 - Approve the first-slice sources and selection rule.
+- Publish the execution-authority decision for every existing testbed, plan,
+  backlog, and implementation that overlaps this work. For each existing source
+  family, choose `freeze`, `operateOutsideREF`, `migrateNow`, or `defer`, with
+  an owner and transition condition. No older document or running pipeline
+  implicitly overrides this plan or proves a release gate.
+- Generate and content-digest an exhaustive downstream-consumer inventory from
+  the declared repositories, deployed services, data stores, release jobs, and
+  exports. Give each consumer a stable key and an explicit `migrate`, `retire`,
+  or `outOfScopeWithReason` disposition, owner, evidence, and verification
+  method. Pin this inventory as the complete `P1B` consumer set.
 - Freeze the exact dated source-matrix and controlled-resource-catalog bytes,
   digests, and stable row-locator method as the portfolio baseline.
 - Generate a versioned, content-digested `BaselineEnumerationReport`. Classify
@@ -422,11 +470,29 @@ another.
 - Establish REF source-precedence policies and the applicable Rulespec warrants,
   authorities, attestations, and local adoptions.
 - Define record-kind, privacy, access, retention, and permitted-use boundaries.
-- Define development, blind-review, and sealed-holdout rules.
+- Define development, blind-review, and sealed-holdout rules. Require separate
+  evaluation strata for Federal Register Rules, Proposed Rules, Notices, and
+  Presidential Documents; Regulations.gov docket documents and protected
+  comments or other participation records; and Unified Agenda records. Set a
+  minimum sample size, uncertainty method, agency/policy-area coverage rule,
+  and release-blocking failure rule for every applicable profile and stratum.
+- Define the schema, ownership, and protocol for an independently adjudicated,
+  per-item gold manifest that is sealed before any evaluated tagger output is
+  available. Prohibit tagger output from seeding expected results, forbidden
+  results, or adequacy judgments. Assign release-specific manifest creation to
+  WP7C after WP7A freezes the applicable registry and mapping releases.
+- Define an evidence-strength vocabulary for decisions and hypotheses:
+  `verifiedPrimaryCurrent`, `computedSnapshot`, `paperReported`,
+  `interpretation`, and `unverified`. Record source date, scope, known
+  limitations, and the verification needed before adoption.
 - Set provisional numeric thresholds and who may change them.
 - Name owners for the data model, each source, evaluation, security, and
   release, plus separate owners for Rulespec kernel/profile changes and REF
   operational implementation.
+- Confirm independent gold-data ownership and funded reviewer capacity for each
+  claimed release. If that capacity is absent, limit the work to development
+  evidence and prohibit an accepted release claim based only on
+  machine-generated review.
 - Record non-goals and expansion rules.
 - Define the extension-profile review process. Require absolute-IRI route and
   processing values, a core-route non-fit rationale, precise boundaries,
@@ -437,15 +503,19 @@ another.
 **Deliverables:**
 
 - program charter;
+- execution-authority and implementation-transition decision, including the
+  existing-source-family disposition;
+- pinned downstream-consumer inventory and disposition report;
 - product-question acceptance suite;
 - initial immutable inventory-coverage manifest and portfolio trace;
 - pinned baseline-enumeration report and independently recomputed count report;
 - independent Rulespec attestation that the enumeration exhausts the two
   baseline source texts;
 - source-precedence register with Rulespec authority bindings;
-- evaluation protocol;
+- evaluation protocol and sealed-gold-manifest schema;
 - privacy and rights assessment with Rulespec and ODRL bindings;
-- threshold register; and
+- evaluation-strata, evidence-strength, and threshold registers;
+- reviewer-capacity plan; and
 - responsibility matrix.
 
 **Exit gate:** Every priority question has named inputs, expected output,
@@ -456,10 +526,51 @@ family, one independently justified route from that family, a source
 acquisition mode when applicable, semantic/use modes, all four status
 dimensions, an owner, and a non-placeholder reason where required. No
 explanatory classification hides a portfolio item. Gold-set owners and
-implementers are independent.
+implementers are independent. One execution authority is published, every
+existing source family and downstream consumer is dispositioned, and
+independent review is staffed for the release claim or the scope is explicitly
+limited to development-only work. The gold-manifest schema, independent owner,
+and sealing protocol are approved; release-specific manifest creation remains
+a WP7C entry condition after WP7A.
 
 **REF coverage:** `REF-CONF`, `REF-PORT`, `REF-EVAL`, `REF-PRIV`,
 `REF-RIGHTS`.
+
+### WP0A — Rulespec publication prerequisite
+
+**Purpose:** Make the exact Rulespec release required by the application profile
+reproducibly available before REF consumer integration begins.
+
+**Work:**
+
+- Freeze the required Rulespec version, immutable revision, constraint bundle,
+  generated artifacts, profiles, validator, and expected digests from the
+  [RefSpec Rulespec Application Profile](../profiles/rulespec-application-profile.md).
+  The pinned digest set must cover the required core and analysis constraints,
+  profiles, contexts, vocabularies, and generated artifacts; a digest that
+  omits an applicable profile or constraint is insufficient.
+- Complete any remaining authoritative CUE, generated artifact, prose,
+  context, shape, vocabulary, and fixture work needed for that target in the
+  Rulespec repository.
+- Run the upstream conformance and release suites from a clean checkout.
+- Publish the release through an immutable, consumer-accessible channel, or
+  publish an equivalent immutable revision and artifact bundle that a clean
+  consumer checkout can resolve without relying on an unpushed local commit.
+- Record release availability, artifact digests, profile coverage, known
+  compatibility limits, and rollback or supersession instructions.
+
+**Deliverables:**
+
+- immutable Rulespec `0.2.0-pre.9` release or equivalent pinned artifact bundle;
+- upstream conformance and release reports; and
+- consumer-resolution receipt from a clean environment.
+
+**Exit gate — P1A upstream availability:** The exact target passes its upstream
+suite, includes every profile and constraint required by REF, and resolves from
+a clean consumer environment. A local-only commit, stale digest, or unpublished
+artifact does not pass.
+
+**Dependencies:** WP0.
 
 ### WP1 — REF operational schemas and Rulespec integration
 
@@ -471,15 +582,21 @@ second semantic model.
 - Define `REF JSON Binding 1.0` only for REF-owned operational records:
   captures, source-record revisions, source resources and versions,
   rendition-processing records, selector-resolution records, candidates,
-  adjudication decisions, import snapshots, deployment decisions, run
-  receipts, baseline-enumeration reports, inventory-coverage manifests,
-  absence evaluations, policy-thread views, and
-  `PublicationReleaseManifest` records.
+  adjudication decisions, enrichment configurations, enrichment-evaluation
+  results, import snapshots, deployment decisions, run receipts,
+  baseline-enumeration reports, inventory-coverage manifests, absence
+  evaluations, policy-thread views, and `PublicationReleaseManifest` records.
 - Define their datatypes, cardinalities, identifier grammar, canonicalization,
   null and absence behavior, extension handling, and deterministic payload
   digests.
 - Publish REF JSON Schema and generated implementation types only for those
   operational records.
+- Inventory every pre-existing REF-like and Rulespec-like implementation type,
+  stored field, release pin, validator, and source output. Publish a
+  field-by-field `retain`, `replace`, `migrate`, or `retire` decision with data
+  conversion, compatibility, rollback, and test requirements. In particular,
+  identify duplicate artifact, source-fragment, evidence, assertion,
+  assignment, and concept shapes before creating new ones.
 - Implement a portfolio-accounting check that reads the exact two pinned
   minimum inventories plus every additional declared inventory or item,
   independently recomputes their raw table-row and named-item universe where
@@ -492,11 +609,18 @@ second semantic model.
   report required by `REF-PORT-011`, including source-located occurrences
   inside table cells and outside tables, expected constituent counts, and
   negative fixtures for hidden, unresolved, or unclassified entries.
-- Define one versioned, concrete representation mapping for every component.
-  Map every named constituent and role to REF operational fields plus pinned
-  Rulespec or external types and predicates, and add component-identified
-  positive and lossless round-trip fixtures. Do not accept a narrative
-  representability statement or an aggregate fixture as proof.
+- Implement the `sliceActive` union rule and emit the immutable,
+  content-digested release-component-set report. Reject a component used or
+  referenced by a release when its scoped release-inclusion status is not
+  `supported`, and reject a report that omits any such use.
+- Define one versioned, concrete representation mapping for every `sliceActive`
+  component. Map every active named constituent and role to REF operational
+  fields plus pinned Rulespec or external types and predicates, and add
+  component-identified positive and lossless round-trip fixtures. Record an
+  explicit representability status and reason for every other component.
+  `G1F` extends the mapping-and-fixture requirement to every component. Do not
+  accept a narrative representability statement or an aggregate fixture as
+  proof.
 - Validate the source and controlled-resource route value sets, all four
   independent status dimensions and their allowed values, semantic/use modes,
   source acquisition modes, evidence, reasons, and transition history.
@@ -504,14 +628,17 @@ second semantic model.
   closed future type list. Require every extension to stay in one core route
   family, bind to common REF controls, identify its Rulespec or external
   semantics, and prove that no existing core route represents it without loss.
-- Complete the Rulespec `0.2.0-pre.8` upstream gate identified by the
-  [RefSpec Rulespec Application Profile](../profiles/rulespec-application-profile.md),
-  including authoritative CUE, generated artifacts, prose, context, shapes,
-  vocabulary, and fixtures.
+- Resolve and verify the immutable Rulespec output that passed WP0A. Do not
+  substitute an unpublished local revision or a different constraint digest.
 - Consume Rulespec-generated schemas and types directly. Do not copy
   `Artifact`, `SourceFragment`, `EvidenceBinding`, assertion, assignment,
   concept, mapping, registry-release, lineage, confidence, attestation,
   adoption, lifecycle, access, or retention types into REF.
+- Migrate every downstream consumer with a `migrate` disposition in the pinned
+  WP0 inventory from its old Rulespec pin and duplicate semantic fields to the
+  WP0A target. Validate converted data and retain a rollback path. This
+  consumer-migration result is `P1B`; it is separate from both upstream
+  publication and combined conformance.
 - Publish the versioned REF Rulespec Application Profile and machine-readable
   compatibility manifest.
 - Define canonical cross-record mappings and reference-integrity checks,
@@ -535,6 +662,9 @@ second semantic model.
 - inventory-coverage manifest schema, baseline row-key extractor, portfolio
   trace, baseline-enumeration report generator, independently recomputed count
   report, and accounting report;
+- field-by-field legacy retain/replace/migrate/retire table and migration
+  report;
+- immutable release-component-set report and validation fixtures;
 - pinned Rulespec generated artifacts consumed as a dependency;
 - REF Rulespec Application Profile and compatibility manifest;
 - versioned REF conformance profiles;
@@ -543,23 +673,32 @@ second semantic model.
 - separate REF and Rulespec machine-readable reports; and
 - a combined validation command that preserves both result sets.
 
-**Exit gate:** Every representative REF operational fixture validates, every
-Rulespec fixture passes the upstream suite, and every cross-boundary fixture
-proves one canonical owner. The REF validator rejects duplicate portable
-semantic fields in REF records. It accepts every valid REF fixture, rejects
-every invalid REF fixture with the applicable REF requirement identifier, and
-fails the combined profile when the exact pinned Rulespec report is missing,
-stale, scoped to another graph digest, or failed. Raw source values round-trip
-without loss. The portfolio accounting report proves 100 percent of baseline
-rows and named constituents are present with exhaustive component
-decomposition and no duplicate, missing, placeholder, unrouted, or unclassified
-component. `G1` additionally requires `supported` representability for every
-component, backed by its current concrete lossless mapping and passing
-component-specific positive and round-trip fixtures; it does not require every
-adapter or import path to exist. An independent ownership audit finds no
-parallel semantic type or validator.
+**Exit gate:** `P1B` passes only when every `migrate` consumer in the pinned WP0
+inventory resolves the exact WP0A release, every `retire` disposition is
+verified, every exclusion retains an approved reason, no discovered consumer
+is unaccounted for, no stale digest or active duplicate portable field remains,
+migrated data validates, and rollback is tested. Every representative REF operational
+fixture validates, every Rulespec fixture passes the upstream suite, and every
+cross-boundary fixture proves one canonical owner. The REF validator rejects
+duplicate portable semantic fields in REF records. It accepts every valid REF
+fixture, rejects every invalid REF fixture with the applicable REF requirement
+identifier, and fails the combined profile when the exact pinned Rulespec
+report is missing, stale, scoped to another graph digest, or failed. Raw source
+values round-trip without loss. The portfolio accounting report proves 100
+percent of baseline rows and named constituents are present with exhaustive
+component decomposition and no duplicate, missing, placeholder, unrouted, or
+unclassified component. The release-component-set report is frozen before
+evaluation and accounts for every actual use. `G1` requires `supported`
+representability for every `sliceActive` component, backed by its current
+concrete lossless mapping and passing component-specific positive and
+round-trip fixtures. `G1F` requires
+the same proof for every component. Neither gate requires every adapter or
+import path to exist. An independent ownership audit finds no parallel
+semantic type or validator. `P1C` passes only when the separate REF and
+Rulespec reports and the cross-boundary report all pass together for the exact
+pinned inputs.
 
-**Dependencies:** WP0.
+**Dependencies:** WP0A.
 
 **REF coverage:** Sections 2–7, 10, 15, and 16, including `REF-PORT`.
 
@@ -569,6 +708,11 @@ parallel semantic type or validator.
 
 **Work:**
 
+- Audit every existing capture, manifest, checkpoint, and transformed-artifact
+  path selected for migration. Classify it as conforming, replaceable, or
+  nonconforming legacy behavior. A transformed row, probabilistic skip
+  structure, swallowed retrieval failure, or missing credential cannot stand
+  in for captured response bytes or a complete source window.
 - Implement immutable capture storage.
 - Implement append-only REF operational records and
   `PublicationReleaseManifest` records.
@@ -591,6 +735,7 @@ parallel semantic type or validator.
 
 **Deliverables:**
 
+- legacy capture and transformation classification and migration report;
 - capture store;
 - REF operational record store;
 - validated Rulespec graph store;
@@ -602,7 +747,9 @@ parallel semantic type or validator.
 - publication mechanism; and
 - restore runbook.
 
-**Exit gate:** Two clean replays from fixed captures produce identical
+**Exit gate:** Every retained legacy path is classified and either passes the
+same capture, completeness, and replay tests or remains outside the REF
+release. Two clean replays from fixed captures produce identical
 canonical deterministic payload identifiers and semantic digests. Their
 receipts preserve distinct run identifiers, `recordedAt` values, activities,
 and execution times outside those digests. Interrupted work resumes without
@@ -637,6 +784,11 @@ applicable Rulespec warrants or authorities.
 - Reconcile pages, cursors, date windows, counts, and attachment inventories.
 - Detect schema drift, truncation, deletion, rate limits, and partial runs.
 - Create hermetic recorded fixtures for normal and adversarial source behavior.
+- Preserve source-native metadata meanings in fixtures: Federal Register
+  `toc_subject` is an action/genre axis rather than a general subject;
+  Regulations.gov agency `category` values describe commenters or
+  participation rather than document topics; and chemical authority
+  identifiers and names remain entity data rather than subject assignments.
 - Add live, read-only source-smoke checks that do not update acceptance data.
 
 **Deliverables:**
@@ -682,6 +834,11 @@ pass. No partial run can appear complete.
 - Record REF retrieval and recorded times separately from Rulespec or
   source-profile publication, assertion, effective, and applicability times.
 - Preserve unknown values and route unresolved mappings to review.
+- Add negative semantic-routing fixtures that reject `toc_subject` as a
+  general-subject assignment, reject Regulations.gov commenter categories as
+  document topics, and reject TSCA or Substance Registry Services chemical
+  identifiers as subject concepts. Keep these values in their source-native
+  action/genre, participation, or entity facets.
 
 **Deliverables:**
 
@@ -699,6 +856,8 @@ record kind or an explicit unresolved kind before document parsing. Review
 finds no false collapse among the source records, source-resource versions, and
 rendition-role artifacts that source metadata can distinguish. An ownership
 fixture proves no REF object duplicates a Rulespec artifact identity or digest.
+The source-semantics negative fixtures pass without copying values across
+facets.
 
 **Dependencies:** WP1 and WP3.
 
@@ -862,6 +1021,21 @@ WP7 has four separately gated capabilities.
 - Import approved subject schemes, ontologies, entity registries, identifier
   authorities, code lists or classifications, schemas, and mapping sets with
   REF receipts.
+- Reconcile source-specific vocabulary publications before selecting a
+  governed release. For Federal Register topics, preserve the public PDF, live
+  API `thesaurus` set, API `ad_hoc` set, historical text, and observed
+  document-assignment values as distinct captured distributions or releases
+  until a reviewed crosswalk proves equivalence. Publish their counts, digests,
+  differences, assignment scope, and precedence. Exclude `ad_hoc` values from
+  the governed subject core unless independent review establishes a valid
+  concept and provenance. The initial `computedSnapshot` reconciliation must
+  explain the recovered 2026-07-28 counts: 702 preferred terms parsed from the
+  public PDF, 1,044 live API `thesaurus` entries, and 7,767 total live API
+  topics including 6,723 `ad_hoc` entries. Keep current and historical CRS
+  subject resources as separately versioned releases unless their publisher
+  establishes identity. Apply the same separate-release rule to unresolved
+  NAICS hierarchy or count differences and any other resource whose official
+  distributions disagree.
 - Create the canonical `rkaf:ReferenceResourceRelease` identity, version,
   resource kind, membership mode and permitted membership claims,
   distributions, and RDFC-1.0 semantic `rkaf:referenceReleaseDigest` in
@@ -892,6 +1066,11 @@ WP7 has four separately gated capabilities.
 hierarchy and mapping change, rights change, failed deployment, index
 invalidation, rollback, and historical resolution. Same-label concepts and
 multilingual preferred labels round-trip through Rulespec without collision.
+Federal Register fixtures preserve unresolved PDF, API, historical, and
+observed-assignment differences; no one distribution silently becomes the
+canonical union. API `ad_hoc` values cannot enter the governed subject core
+without item-level review. CRS current and historical resources retain distinct
+release identity and mapping history.
 Membership fixtures cover complete, partial, and non-enumerated releases,
 require member claims for complete and partial modes, forbid member claims for
 non-enumerated mode, and reject assignment or mapping pins unless the pinned
@@ -933,18 +1112,47 @@ adoption do not change assertion origin or epistemic basis.
 
 - Implement source-assigned concepts against conforming
   `rkaf:ReferenceResourceRelease` records.
-- Implement lexical, dense, source-label, mapping, and open-phrase candidate
-  channels behind project-owned operational interfaces.
+- After WP7A freezes the applicable registry and mapping releases, create and
+  independently seal the release-specific gold manifest under the WP0 protocol
+  before any evaluated tagger output exists.
+- Implement exact-alias, lexical, dense, source-label, mapping, and open-phrase
+  candidate channels behind project-owned operational interfaces.
 - Implement deterministic candidate union, observable truncation, and a global
   escape path.
+- Give every candidate an origin kind. A registered candidate identifies its
+  concept and exact source release; a mapping-derived candidate identifies its
+  source and target releases, mapping path, and import snapshot; an open
+  candidate identifies its grounded phrase, evidence, and generator
+  configuration. Every kind also preserves its facet, every generating
+  channel, per-channel score and rank, final union rank, and pre- and
+  post-truncation state. Link the candidate to the exact retriever, index,
+  representation, model, prompt, policy, and budget versions in its REF
+  receipt.
+- Implement metadata priors only as additive or unioned candidate channels.
+  Test CFR-part evidence first, parent-agency fallback second, and an
+  unconditional global path in every run. An agency partition or specialist
+  module must not intersect away the global candidate set unless a separate
+  preregistered recall-preservation gate passes.
 - Implement REF `AcceptancePolicy`, typed abstention, grounded open-label
   candidates, and stable `ConceptProposal` records.
 - Freeze each REF `OutputProfile` as an immutable identifier, version, and
-  digest, including authorized Rulespec reference-resource releases, mapping
-  import snapshots and relations, Rulespec assignment-role predicate IRIs, and
-  open-label modes.
-- Implement append-only REF output-profile deployment decisions. Use Rulespec
-  attestation and local adoption for approval and authorization.
+  digest. Authorize candidate use and accepted-output use separately for every
+  Rulespec reference-resource release and mapping import snapshot. Include the
+  allowed mapping relations, Rulespec assignment-role predicate IRIs,
+  open-label modes, and candidate-to-output transition rules. A mapping-only,
+  diagnostic, or decoy resource may contribute candidates only when the
+  profile authorizes candidate use, and it can never enter accepted output
+  unless that separate permission exists.
+- Implement append-only REF output-profile deployment decisions. Before
+  evaluation, freeze one immutable `EnrichmentConfiguration` that pins the
+  implementation revision, retriever and index digest, channel union and
+  truncation logic, budgets, model and provider configuration, prompt,
+  acceptance policy, output profile, and registry and mapping releases. After
+  evaluation, publish a separate immutable `EnrichmentEvaluationResult` that
+  binds the configuration digest, sealed-gold-manifest digest, evaluation
+  generation, thresholds, stage measures, and verdict. A deployment decision
+  references both records. Use Rulespec attestation and local adoption for
+  approval and authorization.
 - Emit an REF `EnrichmentDecision` for every attempted target × facet ×
   assignment role, including failure, cancellation, and abstention.
 - Publish accepted controlled values as `rkaf:ConceptAssignment` and accepted
@@ -957,12 +1165,39 @@ adoption do not change assertion origin or epistemic basis.
   adjudication and link canonical Rulespec extraction activities and AI
   lineage.
 
-**WP7C gate:** Before scoring, freeze the target universe, Rulespec registry
-releases, REF output-profile identifier, version, digest, source strata,
-shortlist values, and risk thresholds. Report registry coverage,
+**WP7C gate:** Before any evaluated run, pin the independently sealed
+gold-manifest digest, target universe, Rulespec registry releases, REF
+output-profile identifier, version, digest, source strata, shortlist values,
+and risk thresholds. Keep holdout labels unavailable to the implementation
+team until its outputs are committed. Report registry coverage,
+adequate-target presence and relationship grade, full-universe gold rank,
 reachable-gold Recall@K curves, unconditional target recovery, final precision
-and recall, correct abstention, unsupported output, reviewer volume, cost, and
-product value. Facets remain separate. Accepted decisions reference their
+and recall, facet- and role-specific assignment-cardinality error, correct
+abstention, unsupported output, reviewer volume, cost, and product value. The
+required retrieval diagnostic compares exact alias, real BM25 or TF-IDF,
+exact dense search, and lexical-plus-dense fusion over the same pinned label
+strings and target universe, then tests model and query/document-orientation
+swaps plus boilerplate and label-text ablations. Report pre-truncation and
+post-truncation recall, latency, memory, candidate source composition, and
+repeated-hub frequency for each control. Every run reports a preregistered
+concentration screen, including top-1 and top-K neighbor frequency and
+neighbor-occurrence skew. WP0 freezes the trigger metrics and thresholds; a
+crossed threshold requires the full hubness diagnostic named in the evaluation
+protocol. Exact dense search remains the reference implementation. An
+approximate nearest-neighbor index may replace it only after a measured
+capacity constraint and a preregistered noninferiority test for gold rank and
+candidate Recall@K against exact search.
+On development data, run the evaluation stages in order. An absent adequate
+target stops retrieval tuning for that item and routes it to open-result,
+concept-proposal, or abstention evaluation. Candidate recall below its gate
+blocks adjudicator or reranker tuning. Once candidate recall passes, freeze the
+candidate sets before comparing adjudicators and cardinality policies. No
+stage-level improvement authorizes deployment without the preregistered
+end-to-end product-task result. The sealed holdout scores one fully frozen
+end-to-end configuration once. Any failure returns work to development and
+requires a new sealed holdout generation; results from one holdout generation
+never select or tune a later stage in that same generation.
+Facets remain separate. Accepted decisions reference their
 Rulespec assignments or value assertions; concept-proposal outcomes reference
 their REF proposals; review-required decisions reference candidates. Empty
 output cannot hide failure. No assignment enters the accepted view without
@@ -971,6 +1206,12 @@ required attestation, and local adoption.
 An accepted multilingual open label cannot ship until the pinned Rulespec
 profile preserves its language and script; a declared language-neutral or
 default-language profile may ship earlier.
+The deployed `EnrichmentConfiguration` digest must exactly match the digest
+referenced by a passing `EnrichmentEvaluationResult`. Any behavior-changing
+retriever, index, representation, model, prompt, policy, budget, registry,
+mapping, or provider update requires a new immutable configuration and a new
+applicable evaluation result before traffic shifts. Drift detection,
+exact-match validation, rollback, and historical resolution fixtures pass.
 
 #### WP7D — Mapping and concept governance
 
@@ -989,11 +1230,12 @@ default-language profile may ship earlier.
 
 **WP7D gate:** Only the five Rulespec-incorporated SKOS mapping predicates are
 accepted for cross-scheme mappings. No operational query expansion becomes
-semantic closure. Mapping-only or unauthorized schemes cannot enter accepted
-output. Every mapping endpoint pins a complete-membership release. Promotion,
-deprecation, merge, split, and rollback fixtures preserve history. A promoted
-concept proposal remains an REF proposal record and never becomes the
-Rulespec concept in place.
+semantic closure. Mapping-only or otherwise output-unauthorized schemes may
+contribute candidates only under an explicit output profile, and cannot enter
+accepted output. Every mapping endpoint pins a complete-membership release.
+Promotion, deprecation, merge, split, and rollback fixtures preserve history.
+A promoted concept proposal remains an REF proposal record and never becomes
+the Rulespec concept in place.
 
 **Deliverables:**
 
@@ -1001,9 +1243,11 @@ Rulespec concept in place.
   mapping sets;
 - Rulespec reference-resource releases and distribution artifacts, concepts,
   assignments, and mappings;
-- REF registry and output-profile deployment ledgers;
+- REF registry and output-profile deployment ledgers with immutable enrichment
+  configurations and separate evaluation results;
 - rights assessments and linked Rulespec/ODRL policy records;
-- typed candidate indexes and receipts;
+- typed candidate indexes and candidate-level channel, rank, truncation, and
+  configuration receipts;
 - acceptance-policy and output-profile releases;
 - enrichment-decision and abstention ledger;
 - concept-proposal queue;
@@ -1029,14 +1273,19 @@ view:
   extraction and AI-lineage records;
 - historical assignments resolve against their exact
   `rkaf:ReferenceResourceRelease`; and
+- the selected deployment's `EnrichmentConfiguration` digest exactly matches
+  the digest in its passing `EnrichmentEvaluationResult`; and
 - final acceptance clears the predeclared per-profile gates on the sealed
   holdout.
 
 The plan does not assume which scheme, model, channel mix, shortlist size, or
 general-subject concept count will pass.
 
-**Dependencies:** WP7A may begin after WP1. WP7B requires WP5. WP7C requires
-WP5, WP7A, the relevant WP7B outputs, and a frozen evaluation corpus. WP7D
+**Dependencies:** WP7A schema, source, rights, and reconciliation preparation
+may begin after WP1. Any import snapshot that references captured bytes
+requires WP2; deployment, index replacement, and rollback require WP2 and the
+applicable WP10A controls. WP7B requires WP5. WP7C requires WP5, a deployed
+WP7A release, the relevant WP7B outputs, and a frozen evaluation corpus. WP7D
 requires WP7A and the governance decisions from WP0. Accepted assignments
 require WP6 source-authority and provenance behavior.
 
@@ -1342,14 +1591,15 @@ source family returns through the applicable earlier work-package gates.
 ## 6. Critical path and parallel work
 
 ```text
-WP0 → Rulespec pre.8/profile gate → WP1 → WP2 → WP10A acquisition gate → WP3 → WP4
+WP0 → WP0A/P1A → WP1/P1B/P1C → WP2 → WP10A acquisition gate → WP3 → WP4
 WP4 + WP10A file-processing gate → WP5 → WP6 → WP9A
 WP9A + WP10A final gate → G5 → G8 → Release 1
 
-WP1 → WP7A registry preparation
-WP5 + WP6 + WP7A → WP7B–WP7D → WP9B → G6/G8 → Release 2A
+WP1 → WP7A source/rights/reconciliation preparation
+WP2 + WP7A preparation → WP7A live import and deployment
+WP5 + WP6 + deployed WP7A → WP7B–WP7D → WP9B → G6/G8 → Release 2A
 WP6 + WP7B → WP8A → WP9B → G7/G8 → Release 2B
-WP8A + product evidence → WP8B → WP9B → G7T → Release 2C
+WP8A + product evidence → WP8B → WP9B → G7T/G8 → Release 2C
 G5 → WP10B source expansion
 ```
 
@@ -1388,8 +1638,36 @@ Maintain four separate sets:
 4. **Sealed product holdout:** time-separated, source-stratified examples
    opened once for one evaluation generation.
 
+Before any evaluated tagger output exists, independently adjudicate and seal a
+content-digested gold manifest. For every item it records the immutable
+artifact and source-fragment identifiers and source family and subtype. For
+each applicable facet × assignment role, it records the complete acceptable
+zero-to-many result set or an adjudicated cardinality range, including valid
+zero-result cases; every adequate registered target and exact release when one
+exists; its relationship grade `exact`, `close`, `broader`, `narrower`, or
+`related`, or `notRepresented` when none exists; acceptable open-result,
+concept-proposal, or abstention behavior; forbidden concepts and wrong-facet
+outcomes; and supporting evidence spans. Resolve disagreements before sealing
+or exclude the item with a recorded reason. Do not use tagger output to draft
+or revise these fields. A later gold correction creates a new manifest and
+disqualifies the affected result from that evaluation generation's release
+evidence.
+
 Keep related versions, renditions, and near-duplicate artifacts in the same
 split. Keep public participation in a separate privacy-approved corpus.
+Every applicable development and holdout generation includes the preregistered
+minimum for Federal Register Rules, Proposed Rules, Notices, and Presidential
+Documents; Regulations.gov docket documents and protected comments or other
+participation records; and Unified Agenda records. It also covers the required
+agency and policy-area strata. A profile cannot pass on an aggregate when an
+applicable stratum is missing, below its minimum, or below its own gate.
+
+Federal Register `topics` may serve as silver labels only for Rules and
+Proposed Rules within the publisher's actual assignment scope. Do not inherit
+them to Notices or Presidential Documents. Evaluate `toc_subject` only as
+action/genre metadata, Regulations.gov agency `category` only as participation
+metadata, and TSCA or Substance Registry Services chemical values only in the
+entity facet.
 
 ### 7.2 Required baselines
 
@@ -1401,6 +1679,22 @@ For semantic enrichment, compare on the same frozen holdout:
 4. direct grounded open-phrase generation;
 5. open phrase generation followed by mapping and abstention; and
 6. the typed hybrid.
+
+Within each applicable closed-vocabulary profile, measure exact alias, lexical,
+exact dense, and lexical-plus-dense fusion as separate retrieval controls
+before adjudication.
+
+Cross the applicable methods with these label-space and publication profiles:
+
+1. the existing fused wide-map/wide-output baseline, when its data and rights
+   remain reproducibly available; it may be scored on the sealed holdout only
+   as a non-release-eligible comparator under the same one-time access rules;
+2. a narrow federal-core map/narrow-output profile;
+3. a wide, typed mapping space with a narrow authorized output profile;
+4. the narrow profile with separately activated specialist modules.
+
+The comparison must report both retrieval benefit and unsupported-output risk.
+Candidate-use authorization never implies output authorization.
 
 For relationship discovery, compare:
 
@@ -1421,9 +1715,18 @@ Report, at minimum:
 - evidence-selector resolution;
 - identity and deterministic-link precision and recall;
 - registry coverage;
-- candidate Recall@K curves;
-- final strict and concept-level precision and recall;
+- adequate-target coverage by relationship grade, including `notRepresented`;
+- full-universe gold rank and pre- and post-truncation candidate Recall@K
+  curves;
+- candidate channel-and-rank lineage completeness;
+- final strict-relevance and concept-level precision and recall;
+- blind-review counts for `correct`, `technicallyValidButIrrelevant`, and
+  `incorrect`, with exact, close, broader, narrower, related, and no-fit
+  subcategories;
+- inter-rater agreement, adjudication rate, and unresolved disagreement;
 - unsupported-assignment rate;
+- facet- and role-specific over-assignment, under-assignment, and cardinality
+  error;
 - correct abstention and risk-versus-coverage;
 - cross-facet confusion;
 - rare, new, and time-shifted performance;
@@ -1437,10 +1740,14 @@ Report, at minimum:
 
 ### 7.4 Evaluation discipline
 
-- Freeze inputs, releases, mappings, prompts, model versions, and policies
-  before final scoring.
+- Seal the gold manifest and freeze inputs, releases, mappings, candidate
+  logic, prompts, model versions, policies, and budgets before any evaluated
+  system run. Commit outputs before the independent evaluator reveals holdout
+  labels.
 - Keep official topics as source evidence or silver labels within their real
   assignment scope.
+- Keep source-native action/genre, participation, and entity metadata out of
+  the general-subject gold set and report any cross-facet leakage as an error.
 - Blind reviewers to system identity when comparing approaches.
 - Keep candidate recall separate from final adjudication quality.
 - Report no-fit and abstention outcomes.
@@ -1459,17 +1766,24 @@ Report, at minimum:
 ## 8. Decision and hypothesis register
 
 WP0 creates the register; later work records evidence and outcomes.
+Every hypothesis record is executable before its experiment begins. It declares
+the target universe and applicable source strata; primary decision metric;
+approved baseline; minimum effect or noninferiority margin; sample size and
+uncertainty method; reviewer-volume, latency, and cost ceilings; default
+decision if evidence is weak or mixed; stop, remove, or narrow consequence;
+evidence-strength label; owner; and sealed-holdout generation. Evidence marked
+`interpretation` or `unverified` cannot alone authorize adoption.
 
 | ID | Open decision | Required experiment or evidence |
 | --- | --- | --- |
 | `H01` | Does a governed general subject layer add product value? | Compare search, browse, alert, and reporting tasks against source-only and open-search baselines |
-| `H02` | Which schemes belong in the output profile? | Registry coverage, strict relevance, rights, governance cost, and source-specific results |
+| `H02` | Which schemes may supply candidates, and which may enter accepted output? | Candidate/output profile matrix with registry coverage, strict relevance, unsupported-output risk, rights, governance cost, and source-specific results |
 | `H03` | What concept count is governable and useful? | Holdout coverage, reviewer load, overlap, stability, and product outcomes |
 | `H04` | Does facet-separated retrieval improve quality? | Same-corpus ablation with entity/subject confusion and candidate recall |
-| `H05` | Which lexical and dense channels should remain? | Recall@K, complementarity, latency, cost, and worst-source results |
-| `H06` | Do metadata priors help without hiding cross-cutting concepts? | Prior-on/off comparison with a global escape path and time-split holdout |
+| `H05` | Which exact-alias, lexical, dense, and fusion channels should remain? | Pre- and post-truncation Recall@K, complementarity, source composition, latency, memory, cost, and worst-source results |
+| `H06` | Do metadata priors help without hiding cross-cutting concepts? | Compare CFR-part, parent-agency fallback, and global additive paths on a time-split holdout; prohibit hard partitioning unless a separate recall-preservation gate passes |
 | `H07` | Does open-phrase-then-map beat direct assignment? | Blind comparison with strict relevance, abstention, and reviewer time |
-| `H08` | Does model reranking justify its cost? | Fixed candidate sets, calibrated acceptance, latency, cost, and product lift |
+| `H08` | After candidate recall passes, does model reranking justify its cost? | Frozen candidate sets, a demonstrated adjudication bottleneck, calibrated acceptance, cardinality, latency, cost, and product lift |
 | `H09` | Which dependency predicates can be automated? | Predicate-specific blind precision, evidence sufficiency, abstention, and correction rate |
 | `H10` | Which policy threads should become durable? | Coherence, scope stability, evidence, review cost, and user-task value |
 | `H11` | Is a dedicated graph store needed? | Query workload and operating evidence after canonical data and rebuildable graph views exist |
@@ -1477,6 +1791,8 @@ WP0 creates the register; later work records evidence and outcomes.
 | `H13` | Does specialist-module activation improve quality without recall loss? | Per-domain activation-on/off test with cross-domain documents and global escape path |
 | `H14` | Do hierarchy, definitions, aliases, scope notes, or generated label text improve retrieval? | Independently versioned ablations by scheme, source, and label representation |
 | `H15` | Do corpus-induced concepts add value beyond open labels and registered concepts? | Blind product-task lift, stability, duplication, reviewer cost, and update behavior |
+| `H16` | Does wide typed mapping with narrow output beat both narrow-map/narrow-output and the non-release fused wide-map/wide-output comparator? | Frozen label-space/output-profile comparison with gold rank, Recall@K, strict relevance, unsupported output, abstention, reviewer load, and product-task value |
+| `H17` | Has measured scale made approximate nearest-neighbor retrieval necessary? | Capacity evidence plus preregistered noninferiority in full-universe gold rank and candidate Recall@K against exact dense search |
 
 A failed hypothesis should remove or narrow a component. It should not trigger
 threshold tuning on an exposed holdout; further work returns to development and
@@ -1526,6 +1842,7 @@ the same gates by reducing source scope and sequence speed.
 | Risk | Control and stop rule |
 | --- | --- |
 | Scope expands before one complete answer works | Freeze the three-matter slice. Admit no new family before `G5`. |
+| Existing plans or pipelines compete with this plan for execution authority | WP0 names one authority and dispositions every overlapping testbed and source family. Stop implementation when ownership or migration order is ambiguous. |
 | Pagination or source limits silently omit records | Require coverage manifests and explicit incomplete status. Stop publication on unaccounted gaps. |
 | Shared identifiers or hashes collapse distinct source resources or artifacts | Keep REF source identity and Rulespec assertions separate. Require zero false merges on gold. |
 | Metadata refresh becomes a legal version | Enforce capture, source-record, source-resource-version, and rendition-role artifact separation. |
@@ -1537,8 +1854,12 @@ the same gates by reducing source scope and sequence speed.
 | Model output becomes apparent fact | Require independent Rulespec assertion origin and epistemic basis, exact source-fragment evidence, safe provisional eligibility, and separate attestation and adoption. |
 | Metadata priors hide cross-cutting concepts | Preserve a global candidate path and test recall. |
 | A vocabulary crowds out correct labels | Separate schemes and facets; measure registry coverage before model quality. |
+| Candidate-space access becomes accidental publication authority | Record candidate-use and output-use permission separately in the output profile. Reject any accepted value whose release lacks output authorization. |
+| Source-native metadata is mislabeled as a general subject | Keep Federal Register action/genre, Regulations.gov participation categories, and chemical registry entities in separate facets. Require negative routing and holdout fixtures. |
+| Inconsistent Federal Register or CRS publications become one silent canonical vocabulary | Preserve each distribution or release, publish reconciliation differences, and require reviewed mappings. Exclude Federal Register `ad_hoc` values from the governed core unless individually justified. |
 | Machine-generated concepts multiply without control | Keep REF concept proposals separate from Rulespec concepts and prohibit automatic promotion. |
 | Review becomes the bottleneck | Set a review-volume budget and keep low-precision outputs review-only or query-time. |
+| Independent review is not staffed | Limit work to development evidence; do not claim an accepted release from machine-generated attestations alone. |
 | Similarity becomes dependency | Use disjoint predicates and negative query tests. |
 | Cached links become permanent graph facts | Preserve query-time state; require a new Rulespec assertion for promotion. |
 | Policy threads imply unsupported pairwise links | Represent membership with separate Rulespec assertions and explain the scope. |
@@ -1558,6 +1879,10 @@ Every release checklist includes these portfolio controls:
   baseline inventory identifiers and digests, and the
   `BaselineEnumerationReport` identifier, version, digest, counts, and
   extraction algorithm, plus its independent Rulespec audit attestation.
+- [ ] The release pins the exact release-component-set report and its
+  derivation inputs. Every referenced or used component is `sliceActive`, has
+  release-inclusion status `supported` for this release, and was frozen before
+  evaluation.
 - [ ] Every table data row and named portfolio item has exactly one valid
   enumeration classification. Every named item, subtype group, and role inside
   table cells or outside tables has a source-located occurrence and valid
@@ -1585,11 +1910,16 @@ Every release checklist includes these portfolio controls:
   mapping, and passing component-specific positive and round-trip fixtures.
   Implementation, release-inclusion, and rights statuses remain independently
   reported and may still be planned, deferred, blocked, not applicable, or not
-  assessed.
+  assessed. This is the separate `G1F` claim.
 
 ### 11.1 Evidence release
 
-- [ ] `G0` through `G5` and applicable `G8` controls pass.
+- [ ] `G0`, `G1`, `G2` through `G5`, and applicable `G8` controls pass.
+  `G1F` is required only when the release claims full-framework design
+  coverage.
+- [ ] `P1A` upstream availability, `P1B` consumer migration, and `P1C`
+  combined validation pass for the exact Rulespec release and pinned
+  downstream-consumer inventory.
 - [ ] `REF-Core-Producer`, the explicit and deterministic
   `REF-Relationship-Producer` profile, the evidence-only `REF-Query-Service`
   profile, and applicable security and rights requirements validate.
@@ -1642,6 +1972,13 @@ Every release checklist includes these portfolio controls:
   than review approval.
 - [ ] Every decision links its immutable REF output profile and resulting
   Rulespec assertion or assignment.
+- [ ] Every decision and candidate links the immutable
+  `EnrichmentConfiguration` and its separate
+  `EnrichmentEvaluationResult`; the deployed configuration digest exactly
+  matches the digest in the passing result for the named sealed evaluation.
+- [ ] The output profile records candidate-use and accepted-output permission
+  separately. Mapping-only, diagnostic, and decoy resources never appear in
+  accepted output without explicit output authorization.
 - [ ] Every accepted controlled assignment is an
   `rkaf:ConceptAssignment` using a Rulespec assignment-role predicate, exact
   complete-membership `rkaf:assignedConceptRelease` pin,
@@ -1659,18 +1996,41 @@ Every release checklist includes these portfolio controls:
   authoritative grammar, resolver definition, or native content as a
   distribution without copying a member list into REF or authorizing
   concept-assignment or mapping pins.
-- [ ] Registry coverage, reachable-gold Recall@K curves, end-to-end recovery,
-  and final quality pass by source and subtype.
+- [ ] Registry and adequate-target coverage, full-universe gold rank,
+  reachable-gold Recall@K curves, end-to-end recovery, and final quality pass
+  by source and subtype.
+  Rules, Proposed Rules, Notices, Presidential Documents, docket documents,
+  participation records, and Unified Agenda records meet their applicable
+  preregistered minima and gates.
+- [ ] The independently adjudicated per-item gold manifest was sealed before
+  system output. Exact-alias, lexical, exact-dense, and fusion controls execute
+  reproducibly and report valid comparison results; only the selected
+  configuration must clear `G6`. Every candidate preserves complete channel,
+  rank, truncation, configuration, and origin-appropriate registered-release,
+  mapping-path, or open-evidence lineage.
+- [ ] Facet- and role-specific over-assignment, under-assignment, and
+  cardinality error remain within preregistered limits.
+- [ ] Federal Register topics remain silver evidence only for their actual
+  Rules/Proposed Rules scope; `toc_subject`, Regulations.gov commenter
+  categories, and chemical registry values remain in their action/genre,
+  participation, and entity facets.
+- [ ] Federal Register PDF, API, historical, and observed-assignment resources,
+  and current versus historical CRS resources, retain reconciled release
+  identity. Unreviewed API `ad_hoc` values do not enter the governed subject
+  core.
 - [ ] Every accepted assignment has exact `rkaf:SourceFragment` and
   `rkaf:EvidenceBinding` records or a Rulespec-supported deterministic
   derivation.
 - [ ] Registry refresh, failed selection, rollback, and historical resolution
   tests pass.
+- [ ] Evaluated-configuration mismatch, behavior drift, provider change,
+  failed deployment, and rollback tests pass.
 - [ ] Registry and output-profile deployment changes append REF operational
   decisions; review, authorization, lifecycle, access, retention, and use
   changes append Rulespec and ODRL records without mutating releases.
 - [ ] Review volume and correction rate fit the operating budget.
-- [ ] Product-task results beat the approved baselines on the sealed holdout.
+- [ ] Product-task results meet their preregistered minimum effect or
+  noninferiority margins against the approved baselines on the sealed holdout.
 - [ ] Privacy, rights, model-safety, and derived-disclosure reviews pass.
 
 ### 11.3 Release 2B: approved inferred relationships
@@ -1687,19 +2047,23 @@ Every release checklist includes these portfolio controls:
 - [ ] Every automated dependency is scoped and predicate-specific.
 - [ ] Similarity remains query-time by default.
 - [ ] Review volume and correction rate fit the operating budget.
-- [ ] Product-task results beat the approved baselines on the sealed holdout.
+- [ ] Product-task results meet their preregistered minimum effect or
+  noninferiority margins against the approved baselines on the sealed holdout.
 - [ ] Privacy, rights, model-safety, and derived-disclosure reviews pass.
 
 ### 11.4 Release 2C: optional policy threads
 
-- [ ] `G7T` passes.
+- [ ] `G7T` and applicable `G8` controls pass.
 - [ ] `REF-Policy-Thread-Publisher` validates.
+- [ ] The requirement trace has no unowned or untested applicable requirement.
 - [ ] Every durable membership is an `rkaf:RelationshipAssertion` with
   applicability, epistemic basis, source-fragment evidence, provenance,
   attestation, local adoption, lifecycle, and history.
 - [ ] Thread membership creates no implied identity, causation, dependency, or
   pairwise relationship.
 - [ ] Competing and overlapping threads remain representable.
+- [ ] Privacy, rights, model-safety, derived-disclosure, rollback, and
+  correction-path reviews pass.
 
 ## 12. Definition of done
 
@@ -1732,12 +2096,15 @@ The framework is implemented for a release only when:
     unclassified, and semantic/use modes and all four status dimensions remain
     separate. The same proof includes every additional inventory and active
     item declared by the implementation, not only the two dated minimum
-    inventories.
-11. A full-framework design-coverage claim is made only when every component
-    has `supported` representability backed by a current concrete lossless
-    mapping and passing component-specific positive and round-trip fixtures; it
-    does not imply that every adapter or import is implemented, every resource
-    is included in a release, or every use is authorized.
+    inventories. The frozen release-component-set report accounts for every
+    actual use. Every `sliceActive` component additionally passes its concrete
+    mapping and round-trip fixtures; together these proofs satisfy `G1`.
+11. A full-framework design-coverage claim is made, and `G1F` passes, only when
+    every component has `supported` representability backed by a current
+    concrete lossless mapping and passing component-specific positive and
+    round-trip fixtures; it does not imply that every adapter or import is
+    implemented, every resource is included in a release, or every use is
+    authorized.
 
 Passing this definition for the first federal slice authorizes controlled
 source expansion. It does not establish comprehensive federal coverage,

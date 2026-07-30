@@ -1,0 +1,89 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# This deterministic subset contains only triples copied from the official,
+# digest-pinned ELSST R6 Turtle publication.
+<https://elsst.cessda.eu/id/6/> a owl:Ontology, skos:ConceptScheme ;
+    owl:priorVersion <https://elsst.cessda.eu/id/5/> ;
+    owl:versionInfo "6"@el, "6"@en, "6"@es ;
+    dct:identifier "urn:ddi:int.cessda.elsst:00000000-0000-0000-0000-000000000001:6"@el,
+        "urn:ddi:int.cessda.elsst:00000000-0000-0000-0000-000000000001:6"@en,
+        "urn:ddi:int.cessda.elsst:00000000-0000-0000-0000-000000000001:6"@es ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/> ;
+    dct:issued "2025-09-23"@en ;
+    dct:license "Creative Commons Attribution-ShareAlike 4.0 International License (CC-BY-SA 4.0) http://creativecommons.org/licenses/by-sa/4.0 "@en ;
+    dct:publisher "CESSDA ERIC"@en ;
+    dct:rightsHolder "Consortium of European Social Science Data Archives (CESSDA) and its national Service Providers"@en ;
+    skos:prefLabel "ELSST Thesaurus"@el, "ELSST Thesaurus"@en, "ELSST Thesaurus"@es .
+
+<https://elsst.cessda.eu/id/6/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> a skos:Concept ;
+    owl:priorVersion <https://elsst.cessda.eu/id/5/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    dct:identifier "urn:ddi:int.cessda.elsst:4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f:6"@el,
+        "urn:ddi:int.cessda.elsst:4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f:6"@en,
+        "urn:ddi:int.cessda.elsst:4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f:6"@es ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    dct:issued "2025-09-23"@en ;
+    dct:modified "2025-08-08T13:58:00"^^xsd:dateTime ;
+    dct:replaces <https://elsst.cessda.eu/id/6/05fd5779-69ad-4872-ae25-a8c400b73e10> ;
+    skos:altLabel "ΥΠΕΥΘΥΝΟΣ ΝΟΙΚΟΚΥΡΙΟΥ"@el,
+        "HOUSEHOLDERS"@en,
+        "PERSONAS CABEZA DE HOGAR"@es ;
+    skos:broader <https://elsst.cessda.eu/id/6/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    skos:definition "ΤΟ ΑΤΟΜΟ ΠΟΥ ΕΙΝΑΙ Ο ΙΔΙΟΚΤΗΤΗΣ Ή ΑΛΙΩΣ Ο ΑΡΧΗΓΟΣ ΤΟΥ ΝΟΙΚΟΚΥΡΙΟΥ"@el,
+        "A PERSON WHO OWNS, OR IS OTHERWISE IN CHARGE OF, A DWELLING"@en,
+        "LA PERSONA PROPIETARIA O ENCARGADA DE UNA VIVIENDA"@es ;
+    skos:inScheme <https://elsst.cessda.eu/id/6/> ;
+    skos:prefLabel "ΑΡΧΗΓΟΣ ΝΟΙΚΟΚΥΡΙΟΥ"@el,
+        "HEADS OF HOUSEHOLD"@en,
+        "CABEZAS DE HOGAR"@es .
+
+<https://elsst.cessda.eu/id/6/05fd5779-69ad-4872-ae25-a8c400b73e10> a skos:Concept ;
+    owl:deprecated true ;
+    owl:priorVersion <https://elsst.cessda.eu/id/5/05fd5779-69ad-4872-ae25-a8c400b73e10> ;
+    dct:identifier "urn:ddi:int.cessda.elsst:05fd5779-69ad-4872-ae25-a8c400b73e10:6"@el,
+        "urn:ddi:int.cessda.elsst:05fd5779-69ad-4872-ae25-a8c400b73e10:6"@en,
+        "urn:ddi:int.cessda.elsst:05fd5779-69ad-4872-ae25-a8c400b73e10:6"@es ;
+    dct:isReplacedBy <https://elsst.cessda.eu/id/6/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/05fd5779-69ad-4872-ae25-a8c400b73e10> ;
+    dct:issued "2025-09-23"@en ;
+    dct:modified "2025-07-15T08:03:16"^^xsd:dateTime ;
+    skos:historyNote "Ο ΟΡΟΣ ΚΑΤΑΡΓΗΘΗΚΕ ΤΟ 2025"@el,
+        "CONCEPT DEPRECATED 2025"@en,
+        "CONCEPTO DESCATALOGADO EN 2025"@es ;
+    skos:inScheme <https://elsst.cessda.eu/id/6/> ;
+    skos:prefLabel "ΟΙΚΟΔΕΣΠΟΤΕΣ"@el, "HOUSEHOLDERS"@en, "PROPIETARIOS (VIVIENDA)"@es .
+
+<https://elsst.cessda.eu/id/6/8a80f878-851c-4f47-a451-a8fe75b81aad> a skos:Concept ;
+    owl:priorVersion <https://elsst.cessda.eu/id/5/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    skos:altLabel "ΜΕΓΕΘΟΣ ΝΟΙΚΟΚΥΡΙΟΥ"@el,
+        "HOUSEHOLD COMPOSITION"@en,
+        "COMPOSICIÓN DEL HOGAR"@es ;
+    skos:definition "ΕΝΑ ΝΟΙΚΟΚΥΡΙΟ ΠΕΡΙΛΑΜΒΑΝΕΙ ΕΙΤΕ ΕΝΑ ΑΤΟΜΟ ΠΟΥ ΖΕΙ ΜΟΝΟ ΤΟΥ ΕΙΤΕ ΜΙΑ ΟΜΑΔΑ ΑΤΟΜΩΝ, ΟΧΙ ΑΠΑΡΑΙΤΗΤΑ ΣΥΓΓΕΝΩΝ, ΠΟΥ ΖΟΥΝ ΣΤΗΝ ΙΔΙΑ ΔΙΕΥΘΥΝΣΗ ΜΕ ΚΟΙΝΕΣ ΟΙΚΙΑΚΕΣ ΔΑΠΑΝΕΣ, ΔΗΛΑΔΗ ΜΟΙΡΑΖΟΝΤΑΙ ΤΟΥΛΑΧΙΣΤΟΝ ΕΝΑ ΓΕΥΜΑ ΤΗΝ ΗΜΕΡΑ Ή ΜΟΙΡΑΖΟΝΤΑΙ ΣΑΛΟΝΙ Ή ΚΑΘΙΣΤΙΚΟ"@el,
+        "A HOUSEHOLD INCLUDES EITHER ONE PERSON LIVING ALONE OR A GROUP OF PEOPLE, NOT NECESSARILY RELATED, LIVING AT THE SAME ADDRESS WITH COMMON HOUSEKEEPING, I.E. SHARING AT LEAST ONE MEAL PER DAY OR SHARING A LIVING OR SITTING ROOM."@en,
+        "UN HOGAR PUEDE COMPRENDER O BIEN A UNA PERSONA QUE VIVE SOLA O BIEN A UN GRUPO DE PERSONAS, NO NECESARIAMENTE EMPARENTADAS, QUE VIVEN EN LA MISMA DIRECCIÓN CON UNA VIVIENDA COMÚN; ES DECIR, QUE COMPARTEN AL MENOS UNA COMIDA AL DÍA O COMPARTEN UNA SALA DE ESTAR O UN SALÓN."@es ;
+    skos:inScheme <https://elsst.cessda.eu/id/6/> ;
+    skos:narrower <https://elsst.cessda.eu/id/6/119d77ee-88cc-4759-9ab7-0cf96a8aba19>,
+        <https://elsst.cessda.eu/id/6/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    skos:prefLabel "ΝΟΙΚΟΚΥΡΙΑ"@el, "HOUSEHOLDS"@en, "HOGARES"@es ;
+    skos:related <https://elsst.cessda.eu/id/6/37962809-512d-4f33-826f-15446df86392> ;
+    skos:scopeNote "ΝΑ ΜΗΝ ΣΥΓΧΕΕΤΑΙ Ο ΟΡΟΣ \"ΣΥΓΚΑΤΟΙΚΗΣΗ\" , Ο ΟΠΟΙΟΣ ΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ ΓΙΑ ΝΑ ΠΕΡΙΓΡΑΨΕΙ ΤΗΝ ΚΑΤΑΣΤΑΣΗ ΣΧΕΣΗΣ ΑΤΟΜΩΝ ΠΟΥ ΣΥΜΒΙΩΝΟΥΝ ΕΡΩΤΙΚΑ (ΣΕ ΕΡΩΤΙΚΗ  ΣΧΕΣΗ), ΧΩΡΙΣ ΝΑ ΥΠΑΡΧΕΙ ΝΟΜΙΜΗ ΕΝΩΣΗ"@el .
+
+<https://elsst.cessda.eu/id/6/119d77ee-88cc-4759-9ab7-0cf96a8aba19> a skos:Concept ;
+    dct:modified "2025-08-28T14:52:43"^^xsd:dateTime ;
+    skos:altLabel "ΔΙΑΓΕΝΕΑΚΑ ΝΟΙΚΟΚΥΡΙΑ"@el,
+        "INTERGENERATIONAL HOUSEHOLDS"@en,
+        "HOGARES INTERGENERACIONALES"@es ;
+    skos:broader <https://elsst.cessda.eu/id/6/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    skos:definition "ΝΟΙΚΟΚΥΡΙΑ ΠΟΥ ΠΕΡΙΛΑΜΒΑΝΟΥΝ ΔΥΟ Ή ΠΕΡΙΣΣΟΤΕΡΕΣ ΓΕΝΙΕΣ ΕΝΗΛΙΚΩΝ  Ή ΜΙΑ Ή ΠΕΡΙΣΣΟΤΕΡΕΣ \"ΓΕΝΙΕΣ που ΠΑΡΑΛΗΦΘΗΚΑΝ\" (ΓΙΑ ΠΑΡΑΔΕΙΓΜΑ, ΠΑΠΠΟΥΔΕΣ ΚΑΙ ΕΓΓΟΝΙΑ ΠΟΥ ΖΟΥΝ ΜΑΖΙ ΧΩΡΙΣ ΤΗΝ ΕΝΔΙΑΜΕΣΗ ΓΕΝΙΑ)"@el,
+        "HOUSEHOLDS THAT INCLUDE TWO OR MORE ADULT GENERATIONS OR ONE OR MORE 'SKIPPED GENERATIONS' (FOR EXAMPLE, GRANDPARENTS AND GRANDCHILDREN LIVING TOGETHER WITHOUT THE MIDDLE GENERATION)"@en,
+        "HOGARES QUE INCLUYEN DOS O MÁS GENERACIONES ADULTAS, O UNA O MÁS \"GENERACIONES OMITIDAS\" (POR EJEMPLO, ABUELOS Y NIETOS QUE VIVEN JUNTOS SIN LA GENERACIÓN INTERMEDIA)."@es ;
+    skos:historyNote "Ο ΟΡΟΣ ΔΗΜΙΟΥΡΓΗΘΗΚΕ ΤΟ 2025"@el,
+        "TERM CREATED 2025"@en,
+        "TÉRMINO CREADO EN 2025"@es ;
+    skos:inScheme <https://elsst.cessda.eu/id/6/> ;
+    skos:prefLabel "ΝΟΙΚΟΚΥΡΙΑ ΠΟΛΛΑΠΛΩΝ ΓΕΝΕΩΝ"@el,
+        "MULTIGENERATIONAL HOUSEHOLDS"@en,
+        "HOGARES MULTIGENERACIONALES"@es .

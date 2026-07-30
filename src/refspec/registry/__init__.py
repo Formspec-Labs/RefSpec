@@ -1,5 +1,51 @@
 """Source adapters for REF-managed vocabulary imports."""
 
+import importlib
+from typing import Any
+
+from refspec.registry.elsst import (
+    ELSST_METADATA_LITERAL_PREDICATE_IRIS,
+    ELSST_NOTE_PREDICATE_IRIS,
+    NOTE_PREDICATE_IRIS,
+    ElsstConcept,
+    ElsstConceptScheme,
+    ElsstDeprecation,
+    ElsstImportCounts,
+    ElsstIriRelation,
+    ElsstLabelExpression,
+    ElsstLiteral,
+    ElsstMetadataLiteral,
+    ElsstNotation,
+    ElsstNote,
+    ElsstParseError,
+    ElsstPredicateCount,
+    ElsstReleaseComparison,
+    ElsstStableIdentityMatch,
+    ElsstVocabulary,
+    compare_elsst_releases,
+    parse_acquired_elsst_source,
+    parse_elsst_file,
+    parse_elsst_turtle,
+)
+from refspec.registry.elsst_import_coverage import (
+    ELSST_COVERAGE_FEATURES,
+    ElsstCoverageDifference,
+    ElsstFeatureCensus,
+    ElsstImportCensus,
+    ElsstImportCoverageError,
+    ElsstImportCoverageValidation,
+    census_indexed_elsst,
+    census_parsed_elsst,
+    census_raw_elsst_turtle,
+    require_complete_elsst_import_coverage,
+    validate_elsst_import_coverage,
+)
+from refspec.registry.elsst_managed_release import (
+    ElsstCandidateGovernance,
+    ElsstManagedRelease,
+    ElsstManagedReleaseError,
+    build_elsst_managed_release,
+)
 from refspec.registry.federal_register_thesaurus import (
     ASSOCIATIVE_PREDICATE_IRI,
     BROADER_PREDICATE_IRI,
@@ -19,23 +65,146 @@ from refspec.registry.federal_register_thesaurus import (
     UnresolvedReferenceError,
     parse_federal_register_thesaurus,
 )
+from refspec.registry.federal_register_topics_api import (
+    FEDERAL_REGISTER_TOPICS_API_URL,
+    FEDERAL_REGISTER_TOPICS_PARSER_VERSION,
+    AcquiredFederalRegisterTopics,
+    FederalRegisterTopicLink,
+    FederalRegisterTopicRecord,
+    FederalRegisterTopicsComparison,
+    FederalRegisterTopicsError,
+    FederalRegisterTopicsSnapshot,
+    TopicCollection,
+    capture_federal_register_topics,
+    compare_historical_thesaurus_to_topics,
+    open_federal_register_topics_capture,
+    parse_federal_register_topics_api,
+)
+from refspec.registry.federal_register_topics_reconciliation import (
+    FederalRegisterTopicsReconciliationError,
+    FederalRegisterTopicsReconciliationProof,
+    build_federal_register_topics_reconciliation,
+    federal_register_topic_source_identity_rows,
+    federal_register_topic_source_record_id,
+    require_unique_capture_local_observation_ids,
+)
+from refspec.registry.managed_vocabulary_bundle import (
+    ManagedVocabularyBundle,
+    ManagedVocabularyBundleError,
+)
 
 __all__ = [
     "ASSOCIATIVE_PREDICATE_IRI",
     "BROADER_PREDICATE_IRI",
+    "ELSST_ATTRIBUTION",
+    "ELSST_COVERAGE_FEATURES",
+    "ELSST_LICENSE_IRI",
+    "ELSST_LICENSE_LABEL",
+    "ELSST_METADATA_LITERAL_PREDICATE_IRIS",
+    "ELSST_NOTE_PREDICATE_IRIS",
+    "ELSST_PUBLISHER",
+    "ELSST_R5",
+    "ELSST_R6",
+    "ELSST_RELEASES",
     "FEDERAL_REGISTER_THESAURUS_1995_URL",
+    "FEDERAL_REGISTER_TOPICS_API_URL",
+    "FEDERAL_REGISTER_TOPICS_PARSER_VERSION",
+    "NOTE_PREDICATE_IRIS",
+    "AcquiredElsstSource",
+    "AcquiredFederalRegisterTopics",
     "CategoryNotation",
     "ConceptRelation",
     "CrossReference",
+    "ElsstAcquisitionError",
+    "ElsstCandidateGovernance",
+    "ElsstConcept",
+    "ElsstConceptScheme",
+    "ElsstCoverageDifference",
+    "ElsstDeprecation",
+    "ElsstFeatureCensus",
+    "ElsstImportCensus",
+    "ElsstImportCounts",
+    "ElsstImportCoverageError",
+    "ElsstImportCoverageValidation",
+    "ElsstIriRelation",
+    "ElsstLabelExpression",
+    "ElsstLiteral",
+    "ElsstManagedRelease",
+    "ElsstManagedReleaseError",
+    "ElsstMetadataLiteral",
+    "ElsstNotation",
+    "ElsstNote",
+    "ElsstParseError",
+    "ElsstPredicateCount",
+    "ElsstReleaseComparison",
+    "ElsstReleaseSource",
+    "ElsstStableIdentityMatch",
+    "ElsstVocabulary",
     "FederalRegisterThesaurus",
+    "FederalRegisterTopicLink",
+    "FederalRegisterTopicRecord",
+    "FederalRegisterTopicsComparison",
+    "FederalRegisterTopicsError",
+    "FederalRegisterTopicsReconciliationError",
+    "FederalRegisterTopicsReconciliationProof",
+    "FederalRegisterTopicsSnapshot",
     "ImportCounts",
     "LabelExpression",
+    "ManagedVocabularyBundle",
+    "ManagedVocabularyBundleError",
     "PreferredConcept",
     "ScopeNote",
     "SourceEntry",
     "SourceLocator",
     "ThesaurusParseError",
+    "TopicCollection",
     "UnresolvedReference",
     "UnresolvedReferenceError",
+    "acquire_elsst_release",
+    "build_elsst_managed_release",
+    "build_federal_register_topics_reconciliation",
+    "capture_federal_register_topics",
+    "census_indexed_elsst",
+    "census_parsed_elsst",
+    "census_raw_elsst_turtle",
+    "compare_elsst_releases",
+    "compare_historical_thesaurus_to_topics",
+    "federal_register_topic_source_identity_rows",
+    "federal_register_topic_source_record_id",
+    "open_federal_register_topics_capture",
+    "parse_acquired_elsst_source",
+    "parse_elsst_file",
+    "parse_elsst_turtle",
     "parse_federal_register_thesaurus",
+    "parse_federal_register_topics_api",
+    "require_complete_elsst_import_coverage",
+    "require_unique_capture_local_observation_ids",
+    "validate_elsst_import_coverage",
 ]
+
+_ACQUISITION_EXPORTS = frozenset(
+    {
+        "ELSST_ATTRIBUTION",
+        "ELSST_LICENSE_IRI",
+        "ELSST_LICENSE_LABEL",
+        "ELSST_PUBLISHER",
+        "ELSST_R5",
+        "ELSST_R6",
+        "ELSST_RELEASES",
+        "AcquiredElsstSource",
+        "ElsstAcquisitionError",
+        "ElsstReleaseSource",
+        "acquire_elsst_release",
+    }
+)
+
+
+def __getattr__(name: str) -> Any:
+    """Load acquisition helpers lazily so ``python -m`` has no runpy warning."""
+
+    if name not in _ACQUISITION_EXPORTS:
+        raise AttributeError(name)
+    module = importlib.import_module("refspec.registry.elsst_acquisition")
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

@@ -19,7 +19,7 @@
         },
         "registryImportSnapshot": {
           "id": "urn:example:import:subjects-a",
-          "digest": "sha256:abababababababababababababababababababababababababababababababab"
+          "digest": "sha256:5fd2e4a5ce9767e2ad6b3ffe3d6d1973c174ee651556a5fe7a2d5dae26855313"
         }
       },
       "claimedAuthorized": true

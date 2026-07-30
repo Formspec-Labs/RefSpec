@@ -1,33 +1,36 @@
 <!-- markdownlint-disable MD013 -->
 
-# Vocabulary management and lookup separation plan
+# Vocabulary management and lookup separation baseline
 
-> **Status:** Implemented and closure-verified locally; unpublished
+> **Status:** Implemented baseline and closure-verified locally; unpublished
 >
 > **Date:** 2026-07-29
 >
-> **Delivery plan:** [RefSpec implementation plan](implementation-plan.md)
+> **Current execution roadmap:** [Managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md)
+>
+> **Historical conceptual plan:** [Early RefSpec implementation plan](implementation-plan.md)
 >
 > **Vocabulary prerequisite:** [RefSpec and Rulespec vocabulary gap closure plan](vocabulary-gap-closure-plan.md)
 >
 > **Semantic dependency:** [RefSpec Rulespec application profile](../profiles/rulespec-application-profile.md)
 
-> **Execution checkpoint:** All five iterations and the fifteen acceptance
-> criteria have executable local evidence. RefSpec owns the managed-release
-> path and accepted-output checks; Spicy Regs consumes immutable releases for
-> lookup. The Rulespec dependency remains local and unpublished. No remote
-> release or production deployment is authorized.
+**Execution checkpoint:** All five iterations and the fifteen acceptance
+criteria have executable local evidence. RefSpec owns the managed-release path
+and accepted-output checks; Spicy Regs consumes immutable releases for lookup.
+The Rulespec dependency remains local and unpublished. No remote release or
+production deployment is authorized.
 
 ## Local closure record
 
 Closure was verified on 29 July 2026:
 
 - the RefSpec model generates 23 artifacts idempotently;
-- REF JSON Binding accepts 5 valid fixtures and rejects 84 invalid fixtures
-  with no failures;
-- the RefSpec package suite passes 97 tests with 2 explicit skips;
+- REF JSON Binding accepts 5 valid fixtures and rejects 90 invalid fixtures
+  with no failures; two raw parser inputs bring the embedded fixture count to
+  97;
+- the RefSpec package suite passes 195 tests with 8 explicit skips;
 - the fresh installed wheel contains 16 byte-matching modules, 19 schemas, the
-  exact Rulespec dependency, and 92 conformance assets; its installed tests
+  exact Rulespec dependency, and 98 conformance assets; its installed tests
   pass 37 tests and its no-argument validator runs the full embedded fixture
   suite;
 - the cross-repository gate finds all 45 pinned Rulespec inputs and verifies
@@ -35,7 +38,7 @@ Closure was verified on 29 July 2026:
 - the full Rulespec gate passes 497 conformance fixtures with no target
   divergence, and the Rulespec working tree remains clean at
   `2c66a85daab30a4869db08d21cea13cfc865b3a0`;
-- the applicable full Spicy Regs suite passes 2,489 tests, with 14 documented
+- the applicable full Spicy Regs suite passes 2,644 tests, with 20 documented
   skips, 4 deselections, and 2 expected failures; and
 - the explicitly networked Federal Register regression acquires the exact
   source, builds and opens the selected development release, and rolls back to
@@ -83,6 +86,25 @@ Rulespec continues to define portable semantic meaning and conformance.
 RefSpec defines the operational records and behavior required to manage those
 semantics. Spicy Regs proves that the combined specifications work in a useful
 lookup product.
+
+## How work proceeds after closure
+
+This baseline fixes the ownership, identity, losslessness, and candidate-output
+boundaries. The
+[managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md)
+now directs the work through two lanes:
+
+- the **experiment lane** runs ambitious, development-only lookup experiments
+  with a small generated run manifest and focused checks; and
+- the **promotion lane** applies the full RefSpec and Rulespec records, reviews,
+  conformance suites, and release evidence when a result will become a
+  dependency or accepted output.
+
+The experiment lane may vary retrieval, ranking, models, prompts, indexes, and
+product interactions without changing RefSpec or Rulespec. A reproduced
+semantic, ownership, identity, or preservation failure returns to the
+appropriate specification. Promotion never converts a research candidate into
+accepted output without the required authorization and evaluation.
 
 ## 1. Ownership boundary
 
@@ -191,8 +213,9 @@ The combined gate must:
 The work since Spicy Regs `origin/main` already contains much of the reusable
 proof:
 
-- the branch is 124 commits ahead of `origin/main`;
-- the committed delta changes 431 files with 208,615 insertions and 2,501
+- the branch is 125 commits ahead of `origin/main`;
+- the committed delta at `e1f9a1b83db76d7814fee41e4a25e8607853d058`
+  changes 435 files with 204,804 insertions and 2,501
   deletions;
 - `src/spicy_regs/enrichment/reference_runtime.py` implements canonical
   payload digests, vocabulary coverage, indexed expressions, reconciliation,
@@ -202,29 +225,29 @@ proof:
   holdout drawing, and leakage controls;
 - `tools/fuse_concept_registries.py` contains useful source-specific parsing
   knowledge, but its flat fused output is a failed authority model;
-- the RefSpec repository already has REF JSON Binding 1.0 with ten record
-  schemas, one valid linked fixture, 71 invalid fixtures, a behavior
+- the RefSpec repository already has REF JSON Binding 1.0 with 19 generated
+  schema modules, 5 valid fixtures, 90 invalid fixtures, a behavior
   validator, and a requirement-to-test manifest; and
 - Spicy Regs already consumes normalized vocabulary releases in its document
   pipeline.
 
-This is not a greenfield rewrite. The migration should retain tested generic
-logic, remove duplicate implementations, and discard the flat storage and
+This was not a greenfield rewrite. The migration retained tested generic
+logic, removed duplicate implementations, and discarded the flat storage and
 authority assumptions that caused the failed registry experiment.
 
 The implementation resolves the former mixed Rulespec prose pins through one
-machine-readable dependency manifest. It distinguishes the tested contract
+machine-readable dependency manifest. It distinguishes the tested source
 revision from the later evidence revision and keeps the candidate explicitly
 local and unpublished. The reusable REF record, validation, release,
 evaluation, deployment, and accepted-output implementation now lives in the
 versioned RefSpec package. Spicy Regs retains only compatibility imports and
 its read-only lookup and product-evaluation interfaces.
 
-## 5. What moves from Spicy Regs to RefSpec
+## 5. What moved from Spicy Regs to RefSpec
 
-Move code only after the normative RefSpec and Rulespec meaning is stable.
+Code moved only after the normative RefSpec and Rulespec meaning stabilized.
 
-### 5.1 Move and generalize
+### 5.1 Moved and generalized
 
 - canonical JSON serialization and content-digest functions;
 - REF-owned record models and record parsing;
@@ -341,7 +364,7 @@ the same meaning.
 | What comes out? | A managed vocabulary release, expression corpus, release manifest, validation reports, deployment decision, and stable access interfaces |
 | How do we check it? | Positive and negative fixtures, source-to-release count and digest reconciliation, round-trip tests, exact Rulespec validation, and a Spicy Regs lookup regression |
 
-## 7. Delivery sequence
+## 7. Completed delivery sequence
 
 ### Iteration 1 — Lock the boundary
 

@@ -14,7 +14,9 @@
 >
 > **Core enrichment profile:** [RefSpec Core Enrichment Profile](../profiles/enrichment-profile.md)
 >
-> **Implementation plan:** [RefSpec implementation plan](../plans/implementation-plan.md)
+> **Experiment roadmap:** [Managed vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md)
+>
+> **Historical implementation concept:** [Early RefSpec implementation plan](../plans/implementation-plan.md)
 >
 > **Status:** Rulespec-dependent Editor's Draft
 >
@@ -1732,16 +1734,22 @@ activity.
 **REF-CAND-009:** Every source-authored vocabulary string used by a candidate
 index MUST have an `IndexedVocabularyExpression` that identifies the exact
 Rulespec reference-resource release, REF registry import snapshot,
-distribution artifact, and member IRI; source property IRI or source-native
-path; original Unicode literal; BCP 47 language tag, including its script
-subtag when supplied, or an absolute datatype IRI when the source expression
-is typed, but never both or neither; normalization-policy
+distribution artifact, and member IRI; the absolute semantic property IRI
+represented by the expression; exactly one exact source locator, either a
+source property IRI or a source-native path; original Unicode literal; BCP 47
+language tag, including its script subtag when supplied, or an absolute
+datatype IRI when the source expression is typed, but never both or neither;
+normalization-policy
 identifier and digest; normalized indexed text and its digest; indexed
 representation version; logical `expressionCorpusSnapshot`; generating
 activity; and run receipt.
 A candidate generated from the expression MUST reference that record.
 Expressions with identical literals but different releases, schemes, members,
-properties, language tags, or datatypes MUST remain distinct records.
+semantic properties, source locators, language tags, or datatypes MUST remain
+distinct records. `semanticProperty` MUST identify the property whose meaning
+the indexed expression preserves even when `sourcePath` records a
+source-native location. `sourceProperty` and `sourcePath` identify where the
+expression came from and MUST remain mutually exclusive.
 Normalization MUST NOT create concept identity, discard the original
 expression, or reduce text to ASCII as the only indexed representation.
 `expressionCorpusSnapshot` identifies the REF-owned logical collection of
@@ -2321,10 +2329,15 @@ report MUST identify the import snapshot, exact Rulespec
 profile, parser version, logical `expressionCorpusSnapshot`, exact
 `OutputProfile`, activity, receipt, report status, and canonical payload
 digest. The indexed stage in this report measures materialization into the
-logical REF expression corpus; it does not describe a consumer's physical
-lookup index. Each feature row MUST state whether that feature is required for
-candidate or accepted-output use under the named profile. The report MUST
-contain one feature row for each applicable feature:
+logical managed release; it does not describe a consumer's physical lookup
+index. Literal assertions on release members MUST resolve to exact
+`IndexedVocabularyExpression` records. Scheme metadata and structural, status,
+replacement, identity, mapping, and membership assertions MUST resolve to the
+applicable exact graph or normalized representation. Counting a source
+assertion as indexed merely because the parser retained it is not sufficient.
+Each feature row MUST state whether that feature is required for candidate or
+accepted-output use under the named profile. The report MUST contain one
+feature row for each applicable feature:
 
 - members and scheme membership;
 - preferred, alternate, and hidden labels;
@@ -2616,11 +2629,134 @@ artifact path, and MUST require the modeled gate-issued
 identifier coverage match the bundle. Internal self-digests alone do not
 establish that the selected release is the authorized release. Normalized REF
 tables MAY carry exact label-role, relation-predicate, lifecycle-operation,
-participant-role, concept-kind, assertion-origin, epistemic-basis,
+participant-role, absolute concept-type IRI, assertion-origin, epistemic-basis,
 evidence-role, and usage-eligibility values from that validated graph. The REF
 runtime MUST preserve those values and verify their row-to-graph identity; it
 MUST NOT maintain a second enumeration, range, hierarchy, lifecycle, or usage
 rule for them.
+
+**REF-VOC-032:** Before making a managed-release member or expression available
+to candidate generation, or yielding a derived candidate row, a consumer MUST
+authorize candidate access against exactly one `releasePermissions` row in the
+exact selected `OutputProfile`.
+That row MUST have `candidateUse: true`; its
+`referenceResourceRelease` and `registryImportSnapshot` MUST match the managed
+release; and its `facet` and `assignmentRole` MUST match the requested use.
+The exact selected `EnrichmentProfile` MUST define that facet and list both the
+assignment role and target resource route as compatible. The consumer MUST
+reject absent selected profile or deployment evidence and any unknown,
+incompatible, nonmatching, or ambiguous facet, role, route, release, snapshot,
+or permission row before it yields any candidate.
+A caller-supplied local label, alias, or default MUST NOT substitute for those
+selected profile values. The consumer MAY record the authorized candidate
+facet, role, and route as separate lookup lineage, but it MUST preserve every
+release member, expression, relation, and release-carried semantic field
+unchanged. It MUST NOT relabel managed-release rows.
+
+**REF-VOC-033:** A managed-release expression backed by a normalized
+`concept_labels` row MUST preserve that row's exact label role and any opaque
+label-level source-status token. A source-native RDF status assertion MUST
+remain a separate assertion with its exact subject, predicate, lexical value,
+language or datatype, and release; an importer MUST NOT replace it with a
+synthesized source token or Rulespec lifecycle event. Raw and evidence
+expression access MUST retain every expression, including expressions for
+concepts that are not eligible for a new current assignment.
+Current-assignment candidate access MUST first pass `REF-VOC-032`, MUST
+consider only expressions whose exact release and import references match that
+permission, and MUST then exclude an exact Rulespec lifecycle predecessor for
+deprecation, withdrawal, replacement, split, or merge under its pinned
+complete-membership release. Promotion and demotion MUST NOT be treated as
+retirement operations without a separate applicable rule.
+
+A pinned import policy MAY interpret an exact source-status assertion or
+opaque label token only to narrow candidate eligibility. The policy MUST name
+the source predicate, permitted literal form, datatype or language, and
+resulting exclusion classification. It MUST NOT present that classification as
+source-authored data, portable Rulespec lifecycle meaning, or positive
+candidate or output authority. The initial REF reference-runtime policy treats
+a case-insensitive, surrounding-whitespace normalized `deprecated`,
+`inactive`, or `withdrawn` label token as an exclusion. Its ELSST policy also
+treats an exact `owl:deprecated` `xsd:boolean` value of `true` or `1` as an
+exclusion; `false` or `0` does not exclude, and a malformed or differently
+typed value MUST fail rather than be silently classified. More than one
+distinct normalized label-level source-status token across a concept's label
+rows is ambiguous and MUST fail closed for that concept's current-assignment
+candidate access. An excluded concept MUST remain exactly resolvable by
+identifier and available through raw historical expression access, but MUST
+NOT be offered for a new current assignment.
+
+**REF-VOC-034:** An external native SKOS member MAY remain a
+`skos:Concept`; a projector MUST NOT recast it as an
+`rkaf:RegisteredConcept` or `rkaf:LocalConcept` merely to satisfy a
+project-authored shape. A normalized lifecycle-participant row MUST carry the
+member's absolute RDF type IRI and MUST round-trip to that exact type in the
+validated release graph. When a source supplies only a date but a Rulespec
+lifecycle field requires `xsd:dateTime`, the import MUST retain the original
+literal and source precision, pin the materialization policy, and identify the
+materialized value as derived. It MUST NOT silently claim publisher-supplied
+time precision or fabricate lifecycle events that predate the compared release
+window.
+
+**REF-VOC-035:** Every registry-import reference used by an indexed
+expression, normalized row, coverage report, deployment decision, or output
+permission MUST resolve to the exact packaged `RegistryImportSnapshot` record
+and digest. A normalized label role MUST agree with its exact SKOS source
+property. Lifecycle participant role-and-ordinal keys MUST be unique within
+each event. A normalized relation's import snapshot and distribution artifact
+MUST agree with the exact release lineage of both endpoints. Missing,
+ambiguous, or inconsistent lineage MUST fail managed-release opening.
+
+**REF-VOC-036:** A managed release that carries source-native
+`dcterms:isVersionOf`, `owl:priorVersion`, `dcterms:isReplacedBy`, or
+`dcterms:replaces` assertions on a member MUST preserve their exact subjects,
+predicates, and objects and expose them through read-only identity and history
+access. These assertions MUST remain distinct from Rulespec concept mappings
+and lifecycle events and MUST NOT create an REF `ConceptVersion`. A consumer
+MUST NOT infer a missing identity assertion from labels, identifier shape, or
+URI structure.
+
+**REF-VOC-037:** A closed managed release that carries a successful `Capture`
+with `contentPreservation: exactBytes` MUST package or resolve one exact source
+artifact whose identifier equals the capture's `storageReference`. Before
+issuing the capture and again before opening the managed release, the
+producer or consumer MUST verify that artifact's byte digest and byte length
+against the capture. A parsed vocabulary object, expected digest, or
+unresolved content-addressed name is not proof that the obtained bytes were
+retained. Missing, changed, symlink-substituted, or multiply resolved source
+bytes MUST fail.
+
+**REF-VOC-038:** A managed release MAY bind a large
+`IndexedVocabularyExpression` corpus as one content-addressed artifact instead
+of listing every expression record in `ReleaseGraphValidationReceipt`.
+The corpus descriptor MUST bind its exact artifact digest, logical
+`expressionCorpusSnapshot`, record count, schema version, and a canonical
+identity-set digest computed from the sorted expression identifiers. Each
+identifier MUST itself be derived from the exact release, import, distribution,
+scheme, member, semantic property, source property or path, original literal,
+language or datatype, as required by `REF-CAND-009`. Physical JSON Lines order
+MUST NOT change the logical identity-set digest. The
+receipt MUST still bind the publication and every operational REF record
+individually. Opening the release MUST verify the corpus artifact, validate
+every expression against REF JSON Binding 1.0, reject duplicate identifiers,
+recompute the count and canonical identity digest, and check every release,
+import, distribution, scheme, member, semantic property, and source
+reference. A corpus-level receipt MUST NOT weaken record validation or allow a
+physical lookup index to become release authority.
+
+**REF-VOC-039:** When a mutable distribution lacks a publisher-issued unique
+row identifier, REF MUST identify each source observation only by its exact
+`Capture`, collection or source-native path, and source ordinal, or by an
+equivalently collision-free source locator bound to that capture. Mutable,
+non-unique, or empty names, labels, and slugs MUST NOT become concept
+identifiers or authoritative row identifiers. Changing the parsed or
+normalized representation of those fields without changing the exact capture
+and source locator MUST NOT change capture-local identity; changing the
+capture, collection or path, or ordinal MUST change that identity. Two
+observations in one capture MUST NOT share a locator, and an import MUST NOT
+use a name or slug to disambiguate them. A capture-local identifier identifies
+only the source observation: it MUST NOT assert cross-capture concept identity,
+create an `rkaf:ConceptMapping`, select a reconciliation input, authorize a
+synthesized union, or supply candidate or accepted-output authority.
 
 ## 13. Publication and query behavior
 
@@ -3068,10 +3204,12 @@ when any such feature becomes an unexplained zero or has an unexplained count
 or digest difference at the parsed or indexed stage.
 
 **REF-TEST-155:** Identical original or normalized literals from different
-schemes, releases, members, properties, languages, or datatypes MUST survive as
-distinct `IndexedVocabularyExpression` records and candidates. A
-label-derived concept identifier or ASCII-only original representation MUST
-fail.
+schemes, releases, members, semantic properties, source locators, languages,
+or datatypes MUST survive as distinct `IndexedVocabularyExpression` records
+and candidates. An expression whose exact source locator is a `sourcePath`
+MUST retain its absolute `semanticProperty`; omitting or changing that
+property MUST fail identity and semantic-use checks. A label-derived concept
+identifier or ASCII-only original representation MUST fail.
 
 **REF-TEST-156:** Conflicting official controlled-resource publications MUST
 remain distinct. A synthesized authoritative union MUST fail unless a
@@ -3190,6 +3328,105 @@ pinned Rulespec L4 runtime. The gate MUST ignore caller-supplied behavior
 tests, expected outputs, receipts, and `effective` Booleans. Changing the
 graph, governance record, scope, time, behavior input, runtime, or verified
 output MUST change the receipt or make it fail.
+
+**REF-TEST-175:** The real-bundle managed-release consumer suite MUST include
+one successful candidate-access scenario whose exact selected
+`OutputProfile.releasePermissions` row and `EnrichmentProfile` authorize the
+release, import snapshot, facet, assignment role, resource route, and candidate
+use. A candidate-use request against a minimally valid bundle without selected
+candidate-use deployment evidence MUST fail; the bundle may remain available
+for exact inspection. The suite MUST also reject, before yielding any
+candidate, caller-injected unknown and known-but-nonmatching facets, roles, and
+routes; no-match and multiple-match permission selections; and any attempt to
+relabel a release-carried row. The successful result MUST preserve the
+bundle's exact member, expression, scheme, release, and semantic-field values.
+An external lookup-consumer regression MUST prove the same fail-closed
+boundary.
+
+**REF-TEST-176:** The managed-release reference-runtime suite MUST prove that
+normalized label role and opaque source status survive unchanged into raw
+expression access. Exact candidate permission MUST remain necessary
+regardless of status. Expressions from a different release or import MUST NOT
+enter the candidate view or alter status eligibility for the matching
+permission. Raw iteration and exact identifier resolution MUST
+retain an expression and member whose pinned Rulespec lifecycle makes the
+member a predecessor in deprecation, withdrawal, replacement, split, or
+merge, while current-assignment candidate iteration excludes that member.
+The suite MUST separately exercise the canonical `deprecated`, `inactive`,
+and `withdrawn` source-token exclusions, a single unrecognized opaque token
+that neither grants nor independently denies otherwise-authorized access, and
+mixed source-status tokens that fail closed for the affected concept. It MUST
+also prove that an excluded member remains historically accessible and cannot
+receive a new current assignment through the candidate iterator.
+
+**REF-TEST-177:** A source-derived ELSST R5/R6 fixture MUST remain native
+`skos:Concept` data, preserve multilingual labels, hierarchy, exact stable and
+prior-version links, source status, and replacement links, and pass two
+independently sealed complete-membership releases plus the pinned Rulespec JSON
+Schema and SHACL gates. Its observed R5-to-R6 replacement MUST carry exact R5
+and R6 participant pins. A normalized participant whose absolute concept type
+does not match the native graph MUST fail. The fixture MUST retain each
+date-only source literal and name the policy used to materialize the required
+Rulespec date-time.
+
+**REF-TEST-178:** Managed-release opening MUST fail when an expression,
+coverage report, deployment, permission, or normalized row names an absent or
+nonmatching import snapshot; when a label role disagrees with its exact SKOS
+property; when one lifecycle event repeats a participant role and ordinal; or
+when a relation's import or distribution lineage disagrees with either exact
+endpoint release.
+
+**REF-TEST-179:** Read-only managed-release identity access MUST return exact
+source-authored stable, prior-version, and replacement assertions without
+turning them into mappings or lifecycle events. Changing labels MUST NOT alter
+those links, and a release member without a source identity assertion MUST
+remain explicitly unlinked rather than receiving a label- or URI-derived
+identity.
+
+**REF-TEST-180:** A successful exact-byte capture in a managed release MUST
+round-trip the byte-identical source artifact through its
+`storageReference`. Managed-release creation or opening MUST fail for absent,
+changed, digest-mismatched, length-mismatched, symlink-substituted, or
+ambiguously resolved source bytes. Two builds whose source, release,
+governance, time, parser, policy, or profile identity differs MUST NOT reuse a
+durable generated record identifier. A bounded source-derived fixture MUST use
+test release identifiers and MUST NOT redefine an official complete-membership
+release.
+
+**REF-TEST-181:** A real ELSST R5/R6 managed-release gate MUST validate and
+open the complete expression corpus through its aggregate descriptor without
+placing every expression digest in the release-graph receipt. Changing,
+removing, duplicating, or adding an expression while resealing only the file
+descriptor MUST fail the recomputed count or canonical identity digest. The
+real-source gate MUST record wall time and peak memory and remain within the
+maintained scheduled-test limits.
+
+**REF-TEST-182:** ELSST `owl:deprecated` assertions MUST round-trip with their
+exact predicate, lexical form, and `xsd:boolean` datatype. Every true
+deprecated member in the selected release MUST remain available by exact
+identifier and raw expression access while being absent from
+current-assignment candidates. A false value MUST remain eligible when no
+other exclusion applies, and a malformed or differently typed value MUST fail
+instead of becoming a synthesized `deprecated` token. Only the transitions
+observed between the two exact releases may become Rulespec lifecycle events.
+
+**REF-TEST-183:** A `RegistryDeploymentDecision` MUST fail when its applicable
+rights-assessment identifier or digest does not match the selected import
+snapshot, when it omits an import-adopted policy, or when either field is
+absent. Recording a rights assessment elsewhere in the bundle MUST NOT satisfy
+the deployment requirement.
+
+**REF-TEST-184:** A mutable-source fixture without publisher-issued row
+identifiers MUST include observations with the same name and slug and
+observations with empty slugs and MUST prove that their capture-local
+identifiers remain distinct. Replacing a parsed or normalized name, label, or
+slug while retaining the same exact capture, collection or path, and ordinal
+MUST preserve the capture-local observation identifier; changing the capture,
+collection or path, or ordinal MUST change it. Duplicate capture-local
+locators MUST fail rather than fall back to a name or slug. The fixture MUST
+emit no `rkaf:ConceptMapping`, input selection, reconciled release,
+synthesized-union authority, or accepted-output authority from those
+identifiers or from lexical equality.
 
 ### 15.3 Evaluation corpus
 

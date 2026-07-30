@@ -10,7 +10,9 @@
 >
 > **Core enrichment profile:** [RefSpec Core Enrichment Profile](enrichment-profile.md)
 >
-> **Implementation plan:** [RefSpec implementation plan](../plans/implementation-plan.md)
+> **Experiment roadmap:** [Managed vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md)
+>
+> **Historical implementation concept:** [Early RefSpec implementation plan](../plans/implementation-plan.md)
 >
 > **Passing development baseline:** Rulespec `0.2.0-pre.9`
 >
@@ -553,6 +555,11 @@ accepted-output use separately. The row MUST NOT be copied onto
 `rkaf:ConceptAssignment`, `rkaf:ConceptMapping`, or `rkaf:ValueAssertion`;
 the REF `EnrichmentDecision` links the semantic output to the profile, and the
 REF validator matches the complete result tuple to one row.
+Candidate access to a managed release additionally requires the exact
+`releasePermissions` row selected for that release and import snapshot plus an
+`EnrichmentProfile` that declares the facet, assignment role, and target
+resource route compatible. A consumer-provided local facet, role, or route
+label MUST NOT rewrite either profile or any release-carried Rulespec field.
 
 **REF-RKAF-ENR-002:** An `EnrichmentConfiguration` MUST reference exact
 Rulespec release, mapping, profile, schema, and validator identifiers without

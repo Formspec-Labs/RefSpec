@@ -268,11 +268,13 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/language-and-datatype.json",
         "fixtures/invalid/expression-missing-language-and-datatype.json",
+        "fixtures/invalid/expression-missing-semantic-property.json",
         "fixtures/invalid/expression-uses-legacy-index-snapshot.json",
         "fixtures/invalid/duplicate-expression-id.json"
       ],
       "validatorChecks": [
         "source literal branches require exactly one language or datatype",
+        "absolute semantic property is required independently of the exact source locator",
         "scheme identity",
         "logical expression-corpus identity",
         "indexed-text digest"
@@ -282,11 +284,16 @@
       "requirement": "REF-VOC-017",
       "localFixtures": [
         "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/registry-deployment-empty-adopted-policies.json",
+        "fixtures/invalid/registry-deployment-missing-rights-assessment.json",
+        "fixtures/invalid/registry-deployment-policy-mismatch.json",
+        "fixtures/invalid/registry-deployment-rights-mismatch.json",
         "fixtures/invalid/registry-selected-with-failed-coverage.json",
         "fixtures/invalid/registry-unvalidated-authorization.json"
       ],
       "validatorChecks": [
-        "registry selection resolves exact release, import, coverage, reconciliation, and output-profile pins",
+        "registry selection resolves exact release, import, coverage, reconciliation, output-profile, and rights pins",
+        "deployment rights and nonempty adopted policies agree exactly with the selected import snapshot",
         "failed coverage or unresolved reconciliation blocks selected registry deployment",
         "registry governance references require exact effective validation receipts"
       ]
@@ -347,6 +354,96 @@
       "validatorChecks": ["unresolved reports cannot authorize synthesized unions"]
     },
     {
+      "requirement": "REF-VOC-032",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/wrong-facet-permission.json",
+        "fixtures/invalid/output-permission-unknown-facet.json",
+        "fixtures/invalid/permission-cross-row.json",
+        "fixtures/invalid/duplicate-permission-selector.json"
+      ],
+      "externalGate": "RefSpec real-bundle gates plus the external Spicy Regs managed-release consumer gate",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_candidate_use_requires_selected_profile",
+        "tests/test_federal_register_vertical_slice.py::test_selected_bundle_candidate_permission_is_exact",
+        "Spicy Regs tests/test_managed_release_consumer.py::test_spicy_consumer_requires_exact_refspec_candidate_permission"
+      ],
+      "validatorChecks": [
+        "candidate access matches one exact candidate-use release-permission row",
+        "the selected enrichment profile authorizes the exact facet, role, and target route",
+        "wrong or unknown caller facet, role, or route fails before candidate iteration",
+        "candidate projection preserves release-carried rows without relabeling"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-033",
+      "externalGate": "RefSpec managed-release gates plus the external Spicy Regs current-candidate/evidence separation gate",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_view_is_exact_and_read_only_after_verified_open",
+        "tests/test_managed_release_view.py::test_lifecycle_retirement_only_narrows_candidate_iteration",
+        "tests/test_managed_release_view.py::test_source_status_excludes_only_from_candidate_iteration",
+        "tests/test_managed_release_view.py::test_single_opaque_source_status_does_not_create_lifecycle_meaning",
+        "tests/test_managed_release_view.py::test_candidate_iteration_uses_exact_permission_release_and_import",
+        "tests/test_managed_release_view.py::test_mixed_source_statuses_fail_closed_for_one_concept",
+        "Spicy Regs tests/test_managed_release_consumer.py::test_spicy_consumer_separates_current_candidates_from_raw_evidence"
+      ],
+      "validatorChecks": [
+        "raw expression access preserves normalized label role and opaque source status",
+        "current-assignment candidate access first requires one exact selected permission",
+        "Rulespec lifecycle retirement and REF source-status policy only narrow candidate eligibility",
+        "mixed source-status tokens fail closed without removing historical access"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-034",
+      "externalGate": "RefSpec ELSST source-native projection tests plus the pinned Rulespec JSON Schema and SHACL gates",
+      "referenceRuntimeTests": [
+        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
+        "tests/test_elsst_rulespec_projection.py::test_fixture_projection_seals_both_releases_and_passes_pinned_rulespec",
+        "tests/test_elsst_rulespec_projection.py::test_projection_rejects_a_semantic_relation_outside_exact_release",
+        "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
+      ],
+      "validatorChecks": [
+        "source-native SKOS concepts retain their absolute RDF types instead of being recast as project-authored concepts",
+        "observed replacement participants remain pinned to independently sealed complete R5 and R6 releases",
+        "date-only source literals and the pinned date-time materialization policy remain explicit",
+        "a normalized lifecycle participant with a mismatched native concept type fails managed-release opening"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-035",
+      "externalGate": "RefSpec managed-release import, normalized-row, and release-lineage integrity tests",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_view_is_exact_and_read_only_after_verified_open",
+        "tests/test_managed_release_view.py::test_bundle_rejects_normalized_row_with_unpackaged_import_snapshot",
+        "tests/test_managed_release_view.py::test_bundle_rejects_label_role_that_disagrees_with_skos_property",
+        "tests/test_managed_release_view.py::test_bundle_rejects_duplicate_lifecycle_participant_role_ordinal",
+        "tests/test_managed_release_view.py::test_bundle_rejects_relation_lineage_that_disagrees_with_import_snapshot",
+        "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
+      ],
+      "validatorChecks": [
+        "every import reference resolves to the exact packaged RegistryImportSnapshot and digest",
+        "normalized label roles agree with their exact SKOS properties",
+        "lifecycle participant role-and-ordinal keys are unique per event",
+        "normalized relation import and distribution lineage agrees with both exact release endpoints",
+        "a repaired exact bundle opens read-only while absent or inconsistent lineage fails closed"
+      ]
+    },
+    {
+      "requirement": "REF-VOC-036",
+      "externalGate": "RefSpec source-native managed-release identity and history access tests",
+      "referenceRuntimeTests": [
+        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
+        "tests/test_managed_release_identity_links.py::test_identity_links_preserve_native_iris_and_resolve_packaged_releases",
+        "tests/test_managed_release_identity_links.py::test_identity_link_filters_use_exact_subject_and_predicate_iris"
+      ],
+      "validatorChecks": [
+        "stable, prior-version, and replacement assertions preserve exact source-authored subject, predicate, and object IRIs",
+        "identity and history links resolve their exact packaged endpoint releases without becoming mappings or lifecycle events",
+        "identity filtering uses full subject and predicate IRIs and never derives links from labels or URI shape"
+      ]
+    },
+    {
       "requirement": "REF-EVAL-011",
       "localFixtures": [
         "fixtures/valid/vocabulary-closure.json",
@@ -377,6 +474,7 @@
         "fixtures/invalid/partition-preferred-label-keys-incomplete.json",
         "fixtures/invalid/partition-alternate-label-keys-incomplete.json",
         "fixtures/invalid/partition-hidden-label-keys-incomplete.json",
+        "fixtures/invalid/expression-semantic-property-excludes-alias.json",
         "fixtures/invalid/partition-alias-unicode-equivalent-leakage.json",
         "fixtures/invalid/partition-exact-cluster-keys-incomplete.json",
         "fixtures/invalid/partition-evidence-unpinned.json"
@@ -437,6 +535,9 @@
     {
       "requirement": "REF-TEST-150",
       "localFixtures": ["fixtures/invalid/permission-cross-row.json"],
+      "referenceRuntimeTests": [
+        "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_permission_rows_reject_wrong_tuple_and_cross_row_assembly"
+      ],
       "validatorChecks": ["no cross-row tuple assembly"]
     },
     {
@@ -446,6 +547,9 @@
         "fixtures/invalid/mapping-only-accepted-output.json",
         "fixtures/invalid/accepted-without-candidate-use.json"
       ],
+      "referenceRuntimeTests": [
+        "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_elsst_candidate_only_permission_cannot_enter_accepted_output"
+      ],
       "validatorChecks": ["candidate-only cannot enter accepted output"]
     },
     {
@@ -453,6 +557,9 @@
       "localFixtures": [
         "fixtures/invalid/wrong-facet-permission.json",
         "fixtures/invalid/output-permission-unknown-facet.json"
+      ],
+      "referenceRuntimeTests": [
+        "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_permission_rows_reject_wrong_tuple_and_cross_row_assembly"
       ],
       "validatorChecks": [
         "permission-row facet and role compatibility",
@@ -473,6 +580,10 @@
         "fixtures/negatives/refspec-open-label-missing-language-negative.jsonld",
         "fixtures/negatives/refspec-open-label-missing-provenance-negative.jsonld",
         "fixtures/negatives/refspec-open-label-missing-role-negative.jsonld"
+      ],
+      "referenceRuntimeTests": [
+        "Spicy Regs tests/test_elsst_r6_forward_development_dataset.py::test_real_not_represented_rows_materialize_grounded_candidate_open_labels",
+        "Spicy Regs tests/test_elsst_r6_forward_development_dataset.py::test_real_open_label_route_rejects_source_drift_and_promotion"
       ]
     },
     {
@@ -497,9 +608,14 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/language-and-datatype.json",
         "fixtures/invalid/expression-missing-language-and-datatype.json",
+        "fixtures/invalid/expression-missing-semantic-property.json",
+        "fixtures/invalid/expression-semantic-property-excludes-alias.json",
         "fixtures/invalid/duplicate-expression-id.json"
       ],
-      "validatorChecks": ["same non-ASCII literal remains distinct across schemes"]
+      "validatorChecks": [
+        "same non-ASCII literal remains distinct across schemes",
+        "semantic property remains distinct from and usable with a source-native path"
+      ]
     },
     {
       "requirement": "REF-TEST-156",
@@ -754,10 +870,206 @@
         "fixtures/invalid/release-graph-receipt-failed-verdict.json"
       ],
       "externalGate": "tests/test_release_graph_gate.py",
+      "referenceRuntimeTests": [
+        "Spicy Regs tests/test_accepted_output_real_boundary.py::test_source_derived_federal_release_reaches_accepted_output_only_through_exact_pins",
+        "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_chain_rejects_release_import_expression_index_profile_and_receipt_drift"
+      ],
       "validatorChecks": [
         "selected deployments and resolved reconciliations require one content-bound L4 authorization evaluation",
         "changed graph, governance record, scope, time, behavior input, runtime, or output cannot reuse the receipt",
         "caller-authored behavior tests, receipts, and effective booleans are ignored"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-175",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/wrong-facet-permission.json",
+        "fixtures/invalid/output-permission-unknown-facet.json",
+        "fixtures/invalid/permission-cross-row.json",
+        "fixtures/invalid/duplicate-permission-selector.json"
+      ],
+      "externalGate": "RefSpec real-bundle gates plus the external Spicy Regs managed-release consumer gate",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_candidate_use_requires_selected_profile",
+        "tests/test_federal_register_vertical_slice.py::test_selected_bundle_candidate_permission_is_exact",
+        "Spicy Regs tests/test_managed_release_consumer.py::test_spicy_consumer_requires_exact_refspec_candidate_permission"
+      ],
+      "validatorChecks": [
+        "one real bundle succeeds under its exact selected release-permission and enrichment-profile context",
+        "parametrized real-bundle cases reject wrong and unknown facets, roles, and routes before yielding candidates",
+        "no-match and multiple-match permission selections fail closed",
+        "successful candidate projection retains exact bundle member, expression, scheme, release, and semantic fields"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-176",
+      "externalGate": "RefSpec managed-release gates plus the external Spicy Regs current-candidate/evidence separation gate",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_candidate_use_requires_selected_profile",
+        "tests/test_managed_release_view.py::test_lifecycle_retirement_only_narrows_candidate_iteration",
+        "tests/test_managed_release_view.py::test_source_status_excludes_only_from_candidate_iteration",
+        "tests/test_managed_release_view.py::test_single_opaque_source_status_does_not_create_lifecycle_meaning",
+        "tests/test_managed_release_view.py::test_candidate_iteration_uses_exact_permission_release_and_import",
+        "tests/test_managed_release_view.py::test_mixed_source_statuses_fail_closed_for_one_concept",
+        "Spicy Regs tests/test_managed_release_consumer.py::test_spicy_consumer_separates_current_candidates_from_raw_evidence"
+      ],
+      "validatorChecks": [
+        "exact identifier and raw expression access retain lifecycle-retired and source-status-excluded members",
+        "wrong-release and wrong-import expressions neither enter nor alter the exact permission view",
+        "deprecation, withdrawal, replacement, split, and merge predecessors are absent from current-assignment candidates",
+        "deprecated, inactive, and withdrawn source tokens exclude but never authorize",
+        "one unknown token remains opaque and mixed tokens fail closed"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-177",
+      "externalGate": "RefSpec ELSST R5/R6 source-native projection tests plus the pinned Rulespec JSON Schema and SHACL gates",
+      "referenceRuntimeTests": [
+        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
+        "tests/test_elsst_rulespec_projection.py::test_fixture_projection_seals_both_releases_and_passes_pinned_rulespec",
+        "tests/test_elsst_rulespec_projection.py::test_projection_rejects_a_semantic_relation_outside_exact_release",
+        "tests/test_elsst_rulespec_projection.py::test_opt_in_projection_fixtures_are_subsets_of_pinned_sources",
+        "tests/test_elsst_rulespec_projection.py::test_opt_in_full_r5_r6_projection_passes_rulespec",
+        "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
+      ],
+      "validatorChecks": [
+        "source-derived R5 and R6 fixtures preserve native SKOS types, multilingual labels, hierarchy, source status, identity, and replacement links",
+        "both complete-membership releases receive distinct digests and pass the pinned Rulespec gates",
+        "the observed replacement pins predecessor and successor participants to the exact compared releases",
+        "date-only literals and their explicit date-time materialization policy survive projection",
+        "opt-in regressions prove the fixtures are source subsets and the full pinned distributions pass"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-178",
+      "externalGate": "RefSpec managed-release import, normalized-row, and release-lineage integrity tests",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_view_is_exact_and_read_only_after_verified_open",
+        "tests/test_managed_release_view.py::test_bundle_rejects_normalized_row_with_unpackaged_import_snapshot",
+        "tests/test_managed_release_view.py::test_bundle_rejects_label_role_that_disagrees_with_skos_property",
+        "tests/test_managed_release_view.py::test_bundle_rejects_duplicate_lifecycle_participant_role_ordinal",
+        "tests/test_managed_release_view.py::test_bundle_rejects_relation_lineage_that_disagrees_with_import_snapshot",
+        "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
+      ],
+      "validatorChecks": [
+        "unpackaged or nonmatching import references fail managed-release opening",
+        "label-role and SKOS-property disagreement fails",
+        "duplicate lifecycle participant role-and-ordinal keys fail",
+        "relation import or distribution lineage disagreement with either exact endpoint fails",
+        "native concept-type disagreement fails while the repaired exact bundle opens"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-179",
+      "externalGate": "RefSpec source-native managed-release identity and history access tests",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_identity_links.py::test_identity_links_preserve_native_iris_and_resolve_packaged_releases",
+        "tests/test_managed_release_identity_links.py::test_identity_link_filters_use_exact_subject_and_predicate_iris"
+      ],
+      "validatorChecks": [
+        "read-only access returns exact stable, prior-version, replacement, and replaces assertions",
+        "identity links resolve exact packaged release members without becoming mappings, lifecycle events, or REF ConceptVersion records",
+        "label changes do not alter identity links and missing assertions remain explicitly unlinked",
+        "subject and predicate filters match full IRIs exactly"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-180",
+      "externalGate": "RefSpec exact-source acquisition, managed-bundle retention, and generated-identity tests",
+      "referenceRuntimeTests": [
+        "tests/test_elsst_acquisition.py::test_local_source_is_verified_then_cached_without_network",
+        "tests/test_elsst_acquisition.py::test_local_source_must_match_both_size_and_digest",
+        "tests/test_elsst_managed_release.py::test_managed_view_retrieves_exact_verified_turtle_bytes",
+        "tests/test_elsst_managed_release.py::test_managed_view_rejects_invalid_source_bytes",
+        "tests/test_elsst_managed_release.py::test_build_rejects_missing_or_tampered_acquired_source",
+        "tests/test_elsst_managed_release.py::test_build_rejects_canonical_release_iri_with_fixture_descriptor",
+        "tests/test_elsst_managed_release.py::test_build_identity_prevents_timestamp_and_governance_id_collisions",
+        "tests/test_federal_register_vertical_slice.py::test_vertical_slice_reverifies_retained_bytes_before_issuing_capture",
+        "tests/test_federal_register_vertical_slice.py::test_managed_release_rejects_missing_changed_symlinked_or_ambiguous_source_bytes"
+      ],
+      "validatorChecks": [
+        "successful exact-byte captures resolve and return byte-identical packaged source artifacts",
+        "missing, changed, digest-mismatched, length-mismatched, symlink-substituted, and ambiguous source artifacts fail",
+        "generated identifiers change with every behavior- or authority-changing build input",
+        "bounded fixtures use explicit test release identifiers rather than redefining official complete releases"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-181",
+      "externalGate": "RefSpec aggregate expression-corpus tests plus the opt-in complete ELSST R5/R6 managed-release gate",
+      "referenceRuntimeTests": [
+        "tests/test_managed_vocabulary_bundle.py::test_write_streams_expression_corpus_without_building_one_bytes_object",
+        "tests/test_managed_release_view.py::test_expression_corpus_record_count_is_an_independent_pin",
+        "tests/test_managed_release_view.py::test_expression_corpus_identity_tamper_fails_after_file_repin",
+        "tests/test_managed_release_view.py::test_expression_corpus_file_order_does_not_change_logical_identity",
+        "tests/test_elsst_managed_release.py::test_scale_evidence_matches_exact_sources_and_gate_budget",
+        "tests/test_elsst_managed_release.py::test_opt_in_full_r5_r6_managed_release_opens_and_selects_current_r6"
+      ],
+      "validatorChecks": [
+        "the aggregate descriptor binds file digest, logical corpus snapshot, record count, schema version, and canonical identity-set digest",
+        "the release-graph receipt covers operational records without listing every expression",
+        "opening streams and validates every expression, rejects duplicate identifiers, and recomputes count and logical identity",
+        "physical JSON Lines order does not change logical corpus identity",
+        "the complete-source gate records wall time and peak memory within its maintained limits"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-182",
+      "externalGate": "RefSpec source-native ELSST status and current-candidate tests",
+      "referenceRuntimeTests": [
+        "tests/test_elsst_managed_release.py::test_native_boolean_status_controls_candidates_without_label_synthesis",
+        "tests/test_elsst_managed_release.py::test_managed_view_preserves_multilingual_history_and_current_boundary",
+        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
+        "tests/test_managed_release_view.py::test_source_status_excludes_only_from_candidate_iteration"
+      ],
+      "validatorChecks": [
+        "true and false owl:deprecated values retain their exact lexical form and xsd:boolean datatype",
+        "true deprecated members remain available as evidence but cannot enter current-assignment candidates",
+        "false values remain eligible when no independent exclusion applies",
+        "malformed or differently typed values fail rather than becoming synthesized status labels",
+        "only release-to-release transitions observed in the exact sources become lifecycle events"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-183",
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json",
+        "fixtures/invalid/registry-deployment-missing-rights-assessment.json",
+        "fixtures/invalid/registry-deployment-empty-adopted-policies.json",
+        "fixtures/invalid/registry-deployment-rights-mismatch.json",
+        "fixtures/invalid/registry-deployment-policy-mismatch.json"
+      ],
+      "externalGate": "RefSpec JSON Binding, managed-release reader, and source-derived deployment tests",
+      "referenceRuntimeTests": [
+        "tests/test_managed_release_view.py::test_candidate_use_rejects_deployment_rights_that_differ_from_import",
+        "tests/test_federal_register_vertical_slice.py::test_local_selection_is_gate_authorized_and_rollback_is_separate",
+        "tests/test_elsst_managed_release.py::test_managed_bundle_packages_both_releases_and_only_selects_r6"
+      ],
+      "validatorChecks": [
+        "deployment requires the exact applicable rights-assessment identifier and digest from the selected import",
+        "deployment carries every policy adopted by the selected import",
+        "missing, empty, stale, or mismatched rights and policy fields fail",
+        "an unrelated rights record elsewhere in the bundle cannot satisfy the selected deployment"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-184",
+      "externalGate": "RefSpec mutable-source capture-local identity and Federal Register reconciliation tests",
+      "referenceRuntimeTests": [
+        "tests/test_federal_register_topics_api.py::test_parser_preserves_source_rows_without_promoting_slugs_to_identity",
+        "tests/test_federal_register_topics_reconciliation.py::test_api_source_record_identity_excludes_name_and_slug",
+        "tests/test_federal_register_topics_reconciliation.py::test_same_name_and_empty_slug_remain_distinct_by_source_ordinal",
+        "tests/test_federal_register_topics_reconciliation.py::test_duplicate_collection_and_ordinal_fail_without_label_fallback",
+        "tests/test_federal_register_topics_reconciliation.py::test_unresolved_report_cannot_authorize_union_or_input_selection",
+        "tests/test_federal_register_topics_reconciliation.py::test_unresolved_report_cannot_authorize_selected_deployment"
+      ],
+      "validatorChecks": [
+        "capture-local source-observation identity excludes mutable or non-unique names, labels, and slugs",
+        "equal names and empty slugs remain distinct through capture, collection or path, and ordinal",
+        "name or slug changes preserve one capture-local identity while capture, collection, path, or ordinal changes alter it",
+        "duplicate locators and duplicate generated identifiers fail without lexical fallback",
+        "observation identifiers create no concept mapping, input selection, reconciled release, union, candidate, or accepted-output authority"
       ]
     }
   ]

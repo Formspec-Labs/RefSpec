@@ -11,9 +11,10 @@ result into:
 * a feature coverage report whose source defects are explicit parsing
   exclusions under a no-invented-identity policy.
 
-The bundle is always ``developmentOnly`` and never production eligible.  It
-references the native source by URL and digest and never writes the source
-bytes into the output directory.
+The bundle is always ``developmentOnly`` and never production eligible. It
+packages the exact source bytes behind the successful ``Capture`` so a later
+consumer can independently verify the source artifact required by
+``REF-VOC-037``.
 """
 
 from __future__ import annotations
@@ -23,8 +24,6 @@ import datetime as dt
 import hashlib
 import json
 import re
-import subprocess
-import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -46,6 +45,7 @@ from refspec.registry.federal_register_thesaurus import (
 from refspec.release_graph import (
     GRAPH_DIGEST_ALGORITHM,
     RulespecValidatorPin,
+    compute_reference_resource_release_digest,
     defined_rulespec_identifiers,
     issue_release_graph_validation_receipt,
     load_pinned_rulespec_validator,
@@ -67,6 +67,8 @@ from refspec.vocabulary import (
     RegistryImportCoverageReport,
     canonical_text_digest,
     indexed_expression_id,
+    indexed_expression_identity,
+    indexed_expression_identity_set_digest,
     normalize_unicode_text,
     seal_payload,
 )
@@ -82,6 +84,7 @@ IMPORT_SCOPE_IRI = "urn:ref:fr-thesaurus-1995:import-scope:lossless-development-
 RELEASE_IRI = "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview"
 RELEASE_VERSION = "1995-11-16-content-derived-preview"
 DISTRIBUTION_IRI = "urn:ref:fr-thesaurus-1995:distribution:native-text"
+SOURCE_ARTIFACT_PATH = "sources/federal-register-thesaurus-1995-source.txt"
 IMPORT_SNAPSHOT_IRI = "urn:ref:fr-thesaurus-1995:import-snapshot:lossless-v1"
 EXPRESSION_CORPUS_IRI = "urn:ref:fr-thesaurus-1995:expression-corpus:v1"
 ACTIVITY_IRI = "urn:ref:fr-thesaurus-1995:activity:vertical-slice-v1"
@@ -99,12 +102,8 @@ SELECTION_ADOPTION_IRI = "urn:ref:fr-thesaurus-1995:local-adoption:local-candida
 SELECTED_DEPLOYMENT_IRI = "urn:ref:fr-thesaurus-1995:registry-deployment:development-selected:v1"
 ROLLBACK_DEPLOYMENT_IRI = "urn:ref:fr-thesaurus-1995:registry-deployment:development-rollback:v1"
 ROLLBACK_RECEIPT_IRI = "urn:ref:fr-thesaurus-1995:receipt:development-rollback:v1"
-ROLLBACK_VALIDATION_RECEIPT_IRI = (
-    "urn:ref:fr-thesaurus-1995:release-graph-validation-receipt:rollback:v1"
-)
-ROLLBACK_FINAL_STATE_IRI = (
-    "urn:ref:fr-thesaurus-1995:selection-state:development-empty"
-)
+ROLLBACK_VALIDATION_RECEIPT_IRI = "urn:ref:fr-thesaurus-1995:release-graph-validation-receipt:rollback:v1"
+ROLLBACK_FINAL_STATE_IRI = "urn:ref:fr-thesaurus-1995:selection-state:development-empty"
 REGISTRY_SELECTION_REDUCER_VERSION = "refspec-registry-selection-reducer-v1"
 ENRICHMENT_PROFILE_IRI = "urn:ref:enrichment-profile:core:v1"
 OUTPUT_PROFILE_IRI = "urn:ref:output-profile:fr-thesaurus-development:v1"
@@ -218,6 +217,7 @@ def _concept_iri(source_concept_id: str) -> str:
 @dataclass(frozen=True, slots=True)
 class _ExpressionSeed:
     member_iri: str
+    semantic_property_iri: str
     source_path: str
     original_literal: str
     language_tag: str | None
@@ -229,6 +229,7 @@ class _ExpressionSeed:
     def corpus_identity(self) -> dict[str, Any]:
         result: dict[str, Any] = {
             "member": self.member_iri,
+            "semanticProperty": self.semantic_property_iri,
             "sourcePath": self.source_path,
             "originalLiteral": self.original_literal,
             "sourceKind": self.source_kind,
@@ -427,10 +428,7 @@ def _record_artifact_path(record: Mapping[str, Any]) -> str:
     }
     if record_type == "urn:ref:type:RegistryDeploymentDecision":
         if record.get("id") != SELECTED_DEPLOYMENT_IRI:
-            raise VerticalSliceError(
-                "the active managed release may package only its selected "
-                "deployment decision"
-            )
+            raise VerticalSliceError("the active managed release may package only its selected deployment decision")
         return "records/registry-deployment-selected.json"
     name = names.get(record_type)
     if name is None:
@@ -456,10 +454,49 @@ class VerticalSliceBundle:
     source_sha256: str
     source_lines: int
     source_bytes: int
+    source_artifact_bytes: bytes
     expression_corpus_digest: str
+
+    def _source_capture(self) -> Mapping[str, Any]:
+        captures = [
+            record
+            for record in self.operational_records
+            if record.get("type") == "urn:ref:type:Capture"
+            and record.get("acquisitionStatus") == "success"
+            and record.get("contentPreservation") == "exactBytes"
+        ]
+        if len(captures) != 1:
+            raise VerticalSliceError(
+                "Federal managed release must carry exactly one successful "
+                "exact-byte Capture"
+            )
+        capture = captures[0]
+        storage_reference = capture.get("storageReference")
+        if (
+            not isinstance(storage_reference, str)
+            or _ABSOLUTE_IRI.fullmatch(storage_reference) is None
+        ):
+            raise VerticalSliceError(
+                "Federal source Capture.storageReference must be an "
+                "absolute artifact IRI"
+            )
+        actual_digest = _sha256_bytes(self.source_artifact_bytes)
+        actual_length = len(self.source_artifact_bytes)
+        if (
+            capture.get("byteDigest") != actual_digest
+            or capture.get("byteLength") != actual_length
+            or self.source_sha256 != actual_digest
+            or self.source_bytes != actual_length
+        ):
+            raise VerticalSliceError(
+                "Federal source Capture does not match the retained exact "
+                "source artifact bytes"
+            )
+        return capture
 
     def _content_artifacts(self) -> dict[str, bytes]:
         artifacts = {
+            SOURCE_ARTIFACT_PATH: self.source_artifact_bytes,
             "rulespec/release.jsonld": _canonical_json_bytes(self.rulespec_graph),
             "records/publication-release-manifest.json": (_canonical_json_bytes(self.publication_release_manifest)),
             "validation/combined-receipt.json": _canonical_json_bytes(self.combined_validation_receipt),
@@ -489,6 +526,8 @@ class VerticalSliceBundle:
         """Return the closed manifest consumed by ``ManagedReleaseView``."""
 
         content = self._content_artifacts()
+        source_capture = self._source_capture()
+        storage_reference = str(source_capture["storageReference"])
         operational_paths = [_record_artifact_path(record) for record in self.operational_records]
         return {
             "bundleVersion": "1.0",
@@ -533,6 +572,18 @@ class VerticalSliceBundle:
                     "id": EXPRESSION_CORPUS_IRI,
                     "digest": self.expression_corpus_digest,
                 },
+                "recordCount": len(self.indexed_expressions),
+                "schemaVersion": "ref-indexed-expression-corpus-1.0",
+                "canonicalIdentityDigest": self.expression_corpus_digest,
+            },
+            "sourceArtifacts": {
+                storage_reference: {
+                    **_artifact_descriptor(
+                        SOURCE_ARTIFACT_PATH,
+                        content[SOURCE_ARTIFACT_PATH],
+                    ),
+                    "byteLength": len(content[SOURCE_ARTIFACT_PATH]),
+                }
             },
         }
 
@@ -542,7 +593,7 @@ class VerticalSliceBundle:
         return dict(sorted(artifacts.items()))
 
     def write_to(self, output_dir: Path) -> Mapping[str, Path]:
-        """Write only small derived artifacts; never write native source bytes."""
+        """Write the closed bundle, including its exact source artifact."""
 
         output_dir.mkdir(parents=True, exist_ok=True)
         written: dict[str, Path] = {}
@@ -573,22 +624,16 @@ class RollbackProofBundle:
             "bundleVersion": "1.0",
             "historyKind": "appendOnlyRegistrySelectionRollback",
             "activePublication": dict(self.active_publication),
-            "initialSelectionStateDigest": (
-                self.reduction.initial_state.digest()
-            ),
+            "initialSelectionStateDigest": (self.reduction.initial_state.digest()),
             "finalSelectionStateDigest": self.reduction.final_state.digest(),
             "history": [
                 _artifact_descriptor(
                     "history/registry-deployment-selected.json",
-                    artifacts[
-                        "history/registry-deployment-selected.json"
-                    ],
+                    artifacts["history/registry-deployment-selected.json"],
                 ),
                 _artifact_descriptor(
                     "history/registry-deployment-rollback.json",
-                    artifacts[
-                        "history/registry-deployment-rollback.json"
-                    ],
+                    artifacts["history/registry-deployment-rollback.json"],
                 ),
             ],
             "reductionReceipt": _artifact_descriptor(
@@ -603,25 +648,15 @@ class RollbackProofBundle:
 
     def _content_artifacts(self) -> dict[str, bytes]:
         return {
-            "history/registry-deployment-rollback.json": (
-                _canonical_json_bytes(self.rollback_decision)
-            ),
-            "history/registry-deployment-selected.json": (
-                _canonical_json_bytes(self.selected_decision)
-            ),
-            "history/selection-reduction-receipt.json": (
-                _canonical_json_bytes(self.reduction_receipt)
-            ),
-            "validation/rollback-combined-receipt.json": (
-                _canonical_json_bytes(self.combined_validation_receipt)
-            ),
+            "history/registry-deployment-rollback.json": (_canonical_json_bytes(self.rollback_decision)),
+            "history/registry-deployment-selected.json": (_canonical_json_bytes(self.selected_decision)),
+            "history/selection-reduction-receipt.json": (_canonical_json_bytes(self.reduction_receipt)),
+            "validation/rollback-combined-receipt.json": (_canonical_json_bytes(self.combined_validation_receipt)),
         }
 
     def artifact_bytes(self) -> dict[str, bytes]:
         artifacts = self._content_artifacts()
-        artifacts["rollback-history-bundle.json"] = (
-            _canonical_json_bytes(self.manifest())
-        )
+        artifacts["rollback-history-bundle.json"] = _canonical_json_bytes(self.manifest())
         return dict(sorted(artifacts.items()))
 
     def write_to(self, output_dir: Path) -> Mapping[str, Path]:
@@ -631,13 +666,8 @@ class RollbackProofBundle:
         written: dict[str, Path] = {}
         for relative, payload in self.artifact_bytes().items():
             destination = output_dir / relative
-            if (
-                destination.exists()
-                and destination.read_bytes() != payload
-            ):
-                raise FileExistsError(
-                    f"refusing to overwrite different artifact {destination}"
-                )
+            if destination.exists() and destination.read_bytes() != payload:
+                raise FileExistsError(f"refusing to overwrite different artifact {destination}")
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(payload)
             written[relative] = destination
@@ -700,55 +730,14 @@ def _compute_rulespec_release_digest(
 ) -> str:
     """Ask the pinned Rulespec RDFC-1.0 tool for the release digest."""
 
-    with tempfile.TemporaryDirectory(prefix="refspec-fr-thesaurus-release-digest-") as temporary:
-        graph_path = Path(temporary) / "release-without-digest.jsonld"
-        graph_path.write_bytes(_canonical_json_bytes(graph))
-        command = [
-            "uv",
-            "run",
-            "--python",
-            "3.12",
-            "--with-requirements",
-            "requirements.txt",
-            "python",
-            "tools/reference_release_digest.py",
-            str(graph_path),
-            "--release",
-            RELEASE_IRI,
-            "--json",
-        ]
-        try:
-            result = subprocess.run(
-                command,
-                cwd=validator.working_directory,
-                check=False,
-                text=True,
-                capture_output=True,
-            )
-        except OSError as error:
-            raise VerticalSliceError(f"cannot execute pinned Rulespec release-digest tool: {error}") from error
     try:
-        rows = json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        detail = (result.stderr or result.stdout).strip()
-        raise VerticalSliceError(f"pinned Rulespec release-digest tool returned unreadable output: {detail}") from error
-    if (
-        not isinstance(rows, list)
-        or len(rows) != 1
-        or not isinstance(rows[0], dict)
-        or rows[0].get("release") != RELEASE_IRI
-        or rows[0].get("declared") is not None
-    ):
-        raise VerticalSliceError("pinned Rulespec release-digest tool did not report the one undeclared release")
-    computed = rows[0].get("computed")
-    if not isinstance(computed, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", computed) is None:
-        raise VerticalSliceError("pinned Rulespec release-digest tool returned an invalid digest")
-    # Exit 1 is expected because this first pass intentionally has no declared
-    # digest. Any setup/error exit remains a hard failure.
-    if result.returncode not in {0, 1}:
-        detail = (result.stderr or result.stdout).strip()
-        raise VerticalSliceError("pinned Rulespec release-digest tool failed: " + detail)
-    return computed
+        return compute_reference_resource_release_digest(
+            graph,
+            release_iri=RELEASE_IRI,
+            validator=validator,
+        )
+    except (TypeError, ValueError) as error:
+        raise VerticalSliceError(str(error)) from error
 
 
 _CORE_FACET_ROWS: tuple[Mapping[str, Any], ...] = (
@@ -1249,6 +1238,7 @@ def _build_expression_seeds(
         seeds.append(
             _ExpressionSeed(
                 member_iri=concept_iris[label.concept_id],
+                semantic_property_iri=property_iri,
                 source_path=_source_path(
                     locator=label.locator,
                     property_iri=property_iri,
@@ -1269,6 +1259,7 @@ def _build_expression_seeds(
         seeds.append(
             _ExpressionSeed(
                 member_iri=concept_iris[note.concept_id],
+                semantic_property_iri=SCOPE_NOTE_PROPERTY_IRI,
                 source_path=_source_path(
                     locator=note.locator,
                     property_iri=SCOPE_NOTE_PROPERTY_IRI,
@@ -1289,6 +1280,7 @@ def _build_expression_seeds(
         seeds.append(
             _ExpressionSeed(
                 member_iri=concept_iris[notation.concept_id],
+                semantic_property_iri=NOTATION_PROPERTY_IRI,
                 source_path=_source_path(
                     locator=notation.locator,
                     property_iri=NOTATION_PROPERTY_IRI,
@@ -1629,6 +1621,7 @@ def _build_expressions(
             distribution_artifact=distribution_reference,
             scheme_iri=SCHEME_IRI,
             member_iri=seed.member_iri,
+            semantic_property_iri=seed.semantic_property_iri,
             source_property_or_path=seed.source_path,
             original_literal=seed.original_literal,
             language_tag=seed.language_tag,
@@ -1645,6 +1638,7 @@ def _build_expressions(
             distribution_artifact=distribution_reference,
             scheme_iri=SCHEME_IRI,
             member_iri=seed.member_iri,
+            semantic_property_iri=seed.semantic_property_iri,
             source_property_or_path=seed.source_path,
             original_literal=seed.original_literal,
             language_tag=seed.language_tag,
@@ -2106,6 +2100,8 @@ def _build_registry_deployment_decision(
             "classification": "development",
         },
         registry_import_snapshot=_digest_reference(import_record),
+        rights_assessment=dict(import_record["rightsAssessment"]),
+        adopted_policy_refs=tuple(import_record["adoptedPolicyRefs"]),
         reference_resource_release=release_reference,
         coverage_report=_digest_reference(coverage_record),
         output_profile=_versioned_reference(output_profile_record),
@@ -2118,6 +2114,7 @@ def _build_registry_deployment_decision(
         predecessor=predecessor,
     )
     return decision.sealed_payload(
+        import_snapshot_record=import_record,
         coverage_report_record=coverage_record,
         output_profile_record=output_profile_record,
     )
@@ -2160,9 +2157,7 @@ def _build_run_receipt(
             "associativeRelationsExcluded": (associative_source - associative_resolved),
             "officialSourceInputs": 1,
             "reconciliationReports": 0,
-            "deploymentSelections": (
-                1 if selected_deployment is not None else 0
-            ),
+            "deploymentSelections": (1 if selected_deployment is not None else 0),
         }
     )
     outputs = [
@@ -2374,6 +2369,25 @@ def build_federal_register_vertical_slice(
 ) -> VerticalSliceBundle:
     """Build and validate one deterministic candidate-only managed release."""
 
+    source_artifact_bytes = parsed.source_artifact_bytes
+    if (
+        not isinstance(source_artifact_bytes, bytes)
+        or not source_artifact_bytes
+    ):
+        raise VerticalSliceError(
+            "Federal managed-release build requires the retained exact "
+            "source artifact bytes; a parsed vocabulary alone is not "
+            "source preservation"
+        )
+    actual_source_digest = _sha256_bytes(source_artifact_bytes)
+    if (
+        actual_source_digest != parsed.source_sha256
+        or len(source_artifact_bytes) != parsed.source_bytes
+    ):
+        raise VerticalSliceError(
+            "retained Federal source artifact bytes do not match the "
+            "parsed source digest and byte length"
+        )
     try:
         validator = load_pinned_rulespec_validator(rulespec_root)
     except (OSError, TypeError, ValueError) as error:
@@ -2402,7 +2416,6 @@ def build_federal_register_vertical_slice(
         "digest": release_digest,
     }
     expression_seeds = _build_expression_seeds(parsed, concept_iris)
-    expression_corpus_digest = _digest_json([item.corpus_identity() for item in expression_seeds])
     projection_digest = _import_snapshot_digest(parsed, expression_seeds)
     source_exclusions = _source_exclusions(parsed)
     rights_record = _build_rights_assessment(
@@ -2429,6 +2442,26 @@ def build_federal_register_vertical_slice(
     )
     import_reference = _digest_reference(import_record)
     import_snapshot_digest = str(import_reference["digest"])
+    expression_corpus_digest = (
+        indexed_expression_identity_set_digest(
+            indexed_expression_identity(
+                reference_resource_release=release_reference,
+                registry_import_snapshot=import_reference,
+                distribution_artifact={
+                    "id": DISTRIBUTION_IRI,
+                    "digest": parsed.source_sha256,
+                },
+                scheme_iri=SCHEME_IRI,
+                member_iri=item.member_iri,
+                semantic_property_iri=item.semantic_property_iri,
+                source_property_or_path=item.source_path,
+                original_literal=item.original_literal,
+                language_tag=item.language_tag,
+                datatype_iri=item.datatype_iri,
+            )
+            for item in expression_seeds
+        )
+    )
     (
         _enrichment_profile,
         enrichment_profile_record,
@@ -2524,7 +2557,7 @@ def build_federal_register_vertical_slice(
     )
     gate_bundle = _release_graph_gate_bundle(
         graph=rulespec_graph,
-        records=(publication_record, *operational_records, *expressions),
+        records=(publication_record, *operational_records),
         validator=validator,
     )
     try:
@@ -2542,9 +2575,7 @@ def build_federal_register_vertical_slice(
             if selected_deployment is not None
             else "pre-selection candidate bundle"
         )
-        raise VerticalSliceError(
-            f"combined RefSpec/Rulespec gate rejected the {stage}: {error}"
-        ) from error
+        raise VerticalSliceError(f"combined RefSpec/Rulespec gate rejected the {stage}: {error}") from error
     dependency_manifest_bytes = rulespec_dependency_bytes()
     return VerticalSliceBundle(
         rulespec_graph=rulespec_graph,
@@ -2561,18 +2592,14 @@ def build_federal_register_vertical_slice(
         source_sha256=parsed.source_sha256,
         source_lines=parsed.source_lines,
         source_bytes=parsed.source_bytes,
+        source_artifact_bytes=source_artifact_bytes,
         expression_corpus_digest=expression_corpus_digest,
     )
 
 
 def _later_timestamp(value: str) -> str:
     parsed = _decision_time(value)
-    return (
-        (parsed + dt.timedelta(seconds=1))
-        .astimezone(dt.timezone.utc)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return (parsed + dt.timedelta(seconds=1)).astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def build_registry_selection_rollback_proof(
@@ -2588,36 +2615,23 @@ def build_registry_selection_rollback_proof(
     managed-release manifest that originally selected the source.
     """
 
-    records_by_type = {
-        str(record.get("type")): record
-        for record in bundle.operational_records
-    }
+    records_by_type = {str(record.get("type")): record for record in bundle.operational_records}
     selected = next(
         (
             record
             for record in bundle.operational_records
-            if record.get("type")
-            == "urn:ref:type:RegistryDeploymentDecision"
+            if record.get("type") == "urn:ref:type:RegistryDeploymentDecision"
             and record.get("id") == SELECTED_DEPLOYMENT_IRI
             and record.get("selectionState") == "selected"
         ),
         None,
     )
     if selected is None:
-        raise VerticalSliceError(
-            "rollback proof requires an active bundle with one selected "
-            "development deployment"
-        )
-    coverage = records_by_type.get(
-        "urn:ref:type:RegistryImportCoverageReport"
-    )
+        raise VerticalSliceError("rollback proof requires an active bundle with one selected development deployment")
+    coverage = records_by_type.get("urn:ref:type:RegistryImportCoverageReport")
     output_profile = records_by_type.get("urn:ref:type:OutputProfile")
-    enrichment_profile = records_by_type.get(
-        "urn:ref:type:EnrichmentProfile"
-    )
-    import_record = records_by_type.get(
-        "urn:ref:type:RegistryImportSnapshot"
-    )
+    enrichment_profile = records_by_type.get("urn:ref:type:EnrichmentProfile")
+    import_record = records_by_type.get("urn:ref:type:RegistryImportSnapshot")
     if any(
         record is None
         for record in (
@@ -2627,23 +2641,15 @@ def build_registry_selection_rollback_proof(
             import_record,
         )
     ):
-        raise VerticalSliceError(
-            "selected bundle lacks records required for rollback proof"
-        )
+        raise VerticalSliceError("selected bundle lacks records required for rollback proof")
     assert coverage is not None
     assert output_profile is not None
     assert enrichment_profile is not None
     assert import_record is not None
 
-    effective_at = rollback_at or _later_timestamp(
-        str(selected["effectiveAt"])
-    )
-    if _decision_time(effective_at) <= _decision_time(
-        selected.get("effectiveAt")
-    ):
-        raise VerticalSliceError(
-            "rollback_at must be later than the selected decision"
-        )
+    effective_at = rollback_at or _later_timestamp(str(selected["effectiveAt"]))
+    if _decision_time(effective_at) <= _decision_time(selected.get("effectiveAt")):
+        raise VerticalSliceError("rollback_at must be later than the selected decision")
     rollback = _build_registry_deployment_decision(
         decision_id=ROLLBACK_DEPLOYMENT_IRI,
         selection_state="deselected",
@@ -2661,13 +2667,8 @@ def build_registry_selection_rollback_proof(
         predecessor=_digest_reference(selected),
     )
     reduction = reduce_registry_selection_history([selected, rollback])
-    if (
-        reduction.final_state != reduction.initial_state
-        or reduction.state_digests[0] != reduction.state_digests[-1]
-    ):
-        raise VerticalSliceError(
-            "registry selection reducer did not restore the prior empty state"
-        )
+    if reduction.final_state != reduction.initial_state or reduction.state_digests[0] != reduction.state_digests[-1]:
+        raise VerticalSliceError("registry selection reducer did not restore the prior empty state")
     reduction_receipt = seal_payload(
         {
             **_record_base(
@@ -2682,9 +2683,7 @@ def build_registry_selection_rollback_proof(
                 _digest_reference(selected),
                 _digest_reference(rollback),
             ],
-            "rulespecReleases": [
-                dict(selected["referenceResourceRelease"])
-            ],
+            "rulespecReleases": [dict(selected["referenceResourceRelease"])],
             "coverageWindow": {
                 "startedAt": str(selected["effectiveAt"]),
                 "endedAt": effective_at,
@@ -2693,19 +2692,12 @@ def build_registry_selection_rollback_proof(
             "rulespecAgentRefs": [bundle.recorded_by],
             "rulespecOutputRefs": [RELEASE_IRI],
             "environmentLock": {
-                "id": (
-                    "urn:ref:environment-lock:"
-                    "fr-thesaurus-selection-reducer:v1"
-                ),
+                "id": ("urn:ref:environment-lock:fr-thesaurus-selection-reducer:v1"),
                 "digest": _digest_json(
                     {
-                        "reducerVersion": (
-                            REGISTRY_SELECTION_REDUCER_VERSION
-                        ),
+                        "reducerVersion": (REGISTRY_SELECTION_REDUCER_VERSION),
                         "environment": DEVELOPMENT_ENVIRONMENT_IRI,
-                        "initialSelectionStateDigest": (
-                            reduction.initial_state.digest()
-                        ),
+                        "initialSelectionStateDigest": (reduction.initial_state.digest()),
                     }
                 ),
             },
@@ -2739,6 +2731,7 @@ def build_registry_selection_rollback_proof(
             records=(
                 enrichment_profile,
                 output_profile,
+                import_record,
                 coverage,
                 selected,
                 rollback,
@@ -2756,8 +2749,7 @@ def build_registry_selection_rollback_proof(
         )
     except (OSError, TypeError, ValueError) as error:
         raise VerticalSliceError(
-            "combined RefSpec/Rulespec gate rejected the append-only "
-            f"rollback proof: {error}"
+            f"combined RefSpec/Rulespec gate rejected the append-only rollback proof: {error}"
         ) from error
 
     return RollbackProofBundle(
@@ -2766,9 +2758,7 @@ def build_registry_selection_rollback_proof(
         reduction_receipt=reduction_receipt,
         combined_validation_receipt=combined_receipt,
         reduction=reduction,
-        active_publication=_digest_reference(
-            bundle.publication_release_manifest
-        ),
+        active_publication=_digest_reference(bundle.publication_release_manifest),
     )
 
 
@@ -2830,10 +2820,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--rollback-proof-output",
         type=Path,
-        help=(
-            "write a separate append-only rollback proof after a governed "
-            "candidate selection"
-        ),
+        help=("write a separate append-only rollback proof after a governed candidate selection"),
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
     governance: LocalCandidateGovernance | None = None
@@ -2847,14 +2834,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     elif args.governance_actor or args.governance_organization:
         parser.error("governance identifiers require --select-for-candidate-use")
-    if (
-        args.rollback_proof_output is not None
-        and governance is None
-    ):
-        parser.error(
-            "--rollback-proof-output requires "
-            "--select-for-candidate-use"
-        )
+    if args.rollback_proof_output is not None and governance is None:
+        parser.error("--rollback-proof-output requires --select-for-candidate-use")
     if args.rollback_proof_output is not None:
         active_output = args.output.resolve()
         rollback_output = args.rollback_proof_output.resolve()
@@ -2863,10 +2844,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             or active_output.is_relative_to(rollback_output)
             or rollback_output.is_relative_to(active_output)
         ):
-            parser.error(
-                "active output and rollback-proof output must be separate "
-                "non-nested directories"
-            )
+            parser.error("active output and rollback-proof output must be separate non-nested directories")
     try:
         bundle = build_from_verified_source(
             args.source,
@@ -2885,10 +2863,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(str(error))
     print(args.output / "managed-release-bundle.json")
     if args.rollback_proof_output is not None:
-        print(
-            args.rollback_proof_output
-            / "rollback-history-bundle.json"
-        )
+        print(args.rollback_proof_output / "rollback-history-bundle.json")
     return 0
 
 

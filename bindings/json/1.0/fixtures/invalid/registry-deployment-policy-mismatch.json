@@ -1,0 +1,17 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/vocabulary-closure.json",
+  "expectedRequirements": ["REF-VOC-017"],
+  "mutations": [
+    {
+      "recordId": "urn:example:registry-deployment:prod-a",
+      "path": "/adoptedPolicyRefs",
+      "value": [
+        "urn:example:policy:different-use"
+      ]
+    }
+  ],
+  "refreshDigests": [
+    "urn:example:registry-deployment:prod-a"
+  ]
+}

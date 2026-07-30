@@ -11,6 +11,8 @@
     "canonicalPayloadDigest",
     "environment",
     "registryImportSnapshot",
+    "rightsAssessment",
+    "adoptedPolicyRefs",
     "referenceResourceRelease",
     "coverageReport",
     "outputProfile",
@@ -50,6 +52,17 @@
     },
     "registryImportSnapshot": {
       "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "rightsAssessment": {
+      "$ref": "common.schema.json#/$defs/digestReference"
+    },
+    "adoptedPolicyRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/absoluteIri"
+      }
     },
     "referenceResourceRelease": {
       "$ref": "common.schema.json#/$defs/versionedDigestReference"

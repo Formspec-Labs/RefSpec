@@ -1,0 +1,456 @@
+{
+  "authorityBoundary": {
+    "acceptedOutputAuthority": false,
+    "adHocCollectionTreatment": "distinct",
+    "conceptMappingsAsserted": 0,
+    "governanceReferenceStatus": "unvalidated development declarations for recording the unresolved result only",
+    "inputReferenceStatus": "development snapshot references derived from exact captures; not authoritative concept releases",
+    "selectedDeploymentAuthority": false,
+    "synthesizedUnionAuthority": false
+  },
+  "comparison": {
+    "counts": {
+      "currentAdHocRecords": 6723,
+      "currentAdHocSlugCollisionGroups": 68,
+      "currentEmptySlugRecords": 3,
+      "currentPreferredOnly": 425,
+      "currentThesaurusRecords": 1044,
+      "currentThesaurusRelationAssertions": 1428,
+      "currentThesaurusSlugCollisionGroups": 8,
+      "historicalAnyLabelOverlap": 629,
+      "historicalPreferredHeadings": 629,
+      "historicalPreferredOnly": 10,
+      "historicalRelationAssertions": 1496,
+      "preferredLabelOverlap": 619
+    },
+    "digest": "sha256:a80d108b13800913a83e6ad96f93dd683230961799376662f065f8d7d137a9a5",
+    "identityInference": "none",
+    "outcome": "unresolved"
+  },
+  "developmentSnapshotReferences": {
+    "currentImportDescriptor": {
+      "acceptedOutputUseAuthorized": false,
+      "candidateUseAuthorized": false,
+      "id": "urn:ref:development-snapshot:registry-import:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "kind": "developmentImportSnapshotReference",
+      "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "stageDigests": [
+        {
+          "digest": "sha256:5ba9f5b1f4dd3a5a7f001afd6dd03eea991a6d5748c4ed8c2e67efeb9055d567",
+          "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:source-record-identity-inventory"
+        },
+        {
+          "digest": "sha256:5155622523a0439f528d872aaf6d13e234b9da01a991404cbfc15b49f44e941c",
+          "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-label-evidence"
+        },
+        {
+          "digest": "sha256:f1470b67a7db4bf178469a43c678371f40b130690c5a192b8e0fc4624950336d",
+          "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-relation-assertion-inventory"
+        },
+        {
+          "digest": "sha256:b9697724c95a28f99da9324c9103cbaa6c2b3057a148c06344ad9b413a6bf961",
+          "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:ad-hoc-source-record-identity-inventory"
+        },
+        {
+          "digest": "sha256:998feabf6be28b55c466dd1ea7e8d8444c6142a1b90d383860047a3915dc7ecd",
+          "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:slug-observation-inventory"
+        }
+      ]
+    },
+    "currentImportReference": {
+      "digest": "sha256:dc1c96fd0284b7195be2fcf6754f18a0d178420d627f56fab6e02551cfffe8e4",
+      "id": "urn:ref:development-snapshot:registry-import:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+    },
+    "currentReleaseDescriptor": {
+      "authorityStatus": "none",
+      "candidateUseAuthorized": false,
+      "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "kind": "developmentSourceSnapshotReference",
+      "sourceArtifact": {
+        "byteLength": 920705,
+        "digest": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+        "id": "https://www.federalregister.gov/api/v1/topics.json"
+      },
+      "version": "source-sha256-aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+    },
+    "currentReleaseReference": {
+      "digest": "sha256:0778a741c2040591bd40e43f636d2ba1a5032997e854be4e694a6e5cc74e6b7a",
+      "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "version": "source-sha256-aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+    },
+    "historicalImportDescriptor": {
+      "acceptedOutputUseAuthorized": false,
+      "candidateUseAuthorized": false,
+      "id": "urn:ref:development-snapshot:registry-import:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "kind": "developmentImportSnapshotReference",
+      "sourceSha256": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "stageDigests": [
+        {
+          "digest": "sha256:2373a4ab177f9a505703287ff3f47dd4c7f8d891ae7f2090b5c26e0d3771b3e6",
+          "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:source-entry-inventory"
+        },
+        {
+          "digest": "sha256:f205fc76aa71d616ac20db5d66cc2286bcd69a90c102169f27877c67b2599522",
+          "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:label-expression-inventory"
+        },
+        {
+          "digest": "sha256:02596c50b4c2416781f2cafd97f6ab1cce6b70ec8cc39d1fcb8c47f833121b59",
+          "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:relation-assertion-inventory"
+        },
+        {
+          "digest": "sha256:16d544a0b9c222cf2fc5c0ea83b5e97e3a738bf981fcc06e2c51c93311d15f57",
+          "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:unresolved-source-reference-inventory"
+        }
+      ]
+    },
+    "historicalImportReference": {
+      "digest": "sha256:1259a661050e6aa052493339795b935d50a20c11a89ffd9d442c00534cda1bd1",
+      "id": "urn:ref:development-snapshot:registry-import:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+    },
+    "historicalReleaseDescriptor": {
+      "authorityStatus": "none",
+      "candidateUseAuthorized": false,
+      "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "kind": "developmentSourceSnapshotReference",
+      "sourceArtifact": {
+        "byteLength": 99349,
+        "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+        "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt"
+      },
+      "version": "source-sha256-d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+    },
+    "historicalReleaseReference": {
+      "digest": "sha256:9d45f85e9440a35d53705cceb508c926cad10d4bb3934997518bf17beb710421",
+      "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "version": "source-sha256-d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+    }
+  },
+  "evidenceType": "FederalRegisterTopicsUnresolvedReconciliationProof",
+  "precedencePolicy": {
+    "declaration": {
+      "acceptedOutputUseAuthorized": false,
+      "adHocCollectionTreatment": "distinct",
+      "candidateUseAuthorized": false,
+      "conceptIdentityInference": "none",
+      "conceptMappingCount": 0,
+      "id": "urn:ref:policy:federal-register-topics:unresolved-comparison-boundary",
+      "inputSelectionAuthorized": false,
+      "synthesizedUnionAuthorized": false,
+      "version": "1.0.0-development"
+    },
+    "reference": {
+      "digest": "sha256:73f8e6aca35babb7b72905766bcaf0ac5b0013f6b417ca41ad301cf5855c6a02",
+      "id": "urn:ref:policy:federal-register-topics:unresolved-comparison-boundary",
+      "version": "1.0.0-development"
+    }
+  },
+  "reconciliationReport": {
+    "activity": "urn:ref:activity:federal-register-topics-reconciliation:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33",
+    "attestationRefs": [
+      "urn:ref:development-governance:attestation-declaration:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33"
+    ],
+    "canonicalPayloadDigest": "sha256:c8546297b73ff237a0e9437da551b6cc068237f3c74ff4989d4b4eb87845bb08",
+    "comparedItems": [
+      {
+        "kind": "stageDigest",
+        "left": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:source-entry-inventory",
+        "right": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:source-record-identity-inventory"
+      },
+      {
+        "kind": "member",
+        "left": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:label-expression-inventory",
+        "right": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-label-evidence"
+      },
+      {
+        "kind": "relation",
+        "left": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:relation-assertion-inventory",
+        "right": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-relation-assertion-inventory"
+      },
+      {
+        "kind": "member",
+        "left": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:source-entry-inventory",
+        "right": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:ad-hoc-source-record-identity-inventory"
+      }
+    ],
+    "conceptMappings": [],
+    "differences": [
+      {
+        "description": "Normalized literal evidence has 619 preferred-label overlaps, 10 historical-only preferred labels, and 425 current-only thesaurus names; labels do not establish cross-source concept identity.",
+        "id": "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:preferred-label-membership",
+        "inputRefs": [
+          "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        ],
+        "kind": "member",
+        "resolution": "unresolved"
+      },
+      {
+        "description": "The current capture contains 8 thesaurus and 68 ad_hoc slug-collision groups plus 3 empty slugs, so neither name nor slug can identify a source record.",
+        "id": "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:source-record-identity",
+        "inputRefs": [
+          "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        ],
+        "kind": "field",
+        "resolution": "unresolved"
+      },
+      {
+        "description": "The historical source has 1496 authored relation assertions; the current thesaurus collection has 1428 authored see_also assertions. No relation or concept mapping has been asserted.",
+        "id": "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:relation-assertions",
+        "inputRefs": [
+          "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        ],
+        "kind": "relation",
+        "resolution": "unresolved"
+      },
+      {
+        "description": "The current API contains 6723 ad_hoc rows in a distinct source collection; they are not historical thesaurus members and cannot enter a synthesized union.",
+        "id": "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:ad-hoc-collection-boundary",
+        "inputRefs": [
+          "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        ],
+        "kind": "member",
+        "resolution": "unresolved"
+      },
+      {
+        "description": "The source-faithful historical parse retains 20 unresolved source references, so its development snapshot is not a selection authority.",
+        "id": "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:historical-unresolved-references",
+        "inputRefs": [
+          "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        ],
+        "kind": "relation",
+        "resolution": "unresolved"
+      }
+    ],
+    "id": "urn:ref:reconciliation:federal-register-topics:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33",
+    "inputs": [
+      {
+        "distributionArtifacts": [
+          {
+            "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+            "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt"
+          }
+        ],
+        "id": "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+        "referenceResourceRelease": {
+          "digest": "sha256:9d45f85e9440a35d53705cceb508c926cad10d4bb3934997518bf17beb710421",
+          "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+          "version": "source-sha256-d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+        },
+        "registryImportSnapshot": {
+          "digest": "sha256:1259a661050e6aa052493339795b935d50a20c11a89ffd9d442c00534cda1bd1",
+          "id": "urn:ref:development-snapshot:registry-import:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+        },
+        "stageDigests": [
+          {
+            "digest": "sha256:2373a4ab177f9a505703287ff3f47dd4c7f8d891ae7f2090b5c26e0d3771b3e6",
+            "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:source-entry-inventory"
+          },
+          {
+            "digest": "sha256:f205fc76aa71d616ac20db5d66cc2286bcd69a90c102169f27877c67b2599522",
+            "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:label-expression-inventory"
+          },
+          {
+            "digest": "sha256:02596c50b4c2416781f2cafd97f6ab1cce6b70ec8cc39d1fcb8c47f833121b59",
+            "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:relation-assertion-inventory"
+          },
+          {
+            "digest": "sha256:16d544a0b9c222cf2fc5c0ea83b5e97e3a738bf981fcc06e2c51c93311d15f57",
+            "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:unresolved-source-reference-inventory"
+          }
+        ]
+      },
+      {
+        "distributionArtifacts": [
+          {
+            "digest": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+            "id": "https://www.federalregister.gov/api/v1/topics.json"
+          }
+        ],
+        "id": "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+        "referenceResourceRelease": {
+          "digest": "sha256:0778a741c2040591bd40e43f636d2ba1a5032997e854be4e694a6e5cc74e6b7a",
+          "id": "urn:ref:development-snapshot:reference-resource-release:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+          "version": "source-sha256-aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        },
+        "registryImportSnapshot": {
+          "digest": "sha256:dc1c96fd0284b7195be2fcf6754f18a0d178420d627f56fab6e02551cfffe8e4",
+          "id": "urn:ref:development-snapshot:registry-import:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+        },
+        "stageDigests": [
+          {
+            "digest": "sha256:5ba9f5b1f4dd3a5a7f001afd6dd03eea991a6d5748c4ed8c2e67efeb9055d567",
+            "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:source-record-identity-inventory"
+          },
+          {
+            "digest": "sha256:5155622523a0439f528d872aaf6d13e234b9da01a991404cbfc15b49f44e941c",
+            "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-label-evidence"
+          },
+          {
+            "digest": "sha256:f1470b67a7db4bf178469a43c678371f40b130690c5a192b8e0fc4624950336d",
+            "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-relation-assertion-inventory"
+          },
+          {
+            "digest": "sha256:b9697724c95a28f99da9324c9103cbaa6c2b3057a148c06344ad9b413a6bf961",
+            "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:ad-hoc-source-record-identity-inventory"
+          },
+          {
+            "digest": "sha256:998feabf6be28b55c466dd1ea7e8d8444c6142a1b90d383860047a3915dc7ecd",
+            "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:slug-observation-inventory"
+          }
+        ]
+      }
+    ],
+    "localAdoptionRefs": [
+      "urn:ref:development-governance:local-adoption-declaration:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33"
+    ],
+    "operationalState": "complete",
+    "outcome": "unresolved",
+    "precedencePolicy": {
+      "digest": "sha256:73f8e6aca35babb7b72905766bcaf0ac5b0013f6b417ca41ad301cf5855c6a02",
+      "id": "urn:ref:policy:federal-register-topics:unresolved-comparison-boundary",
+      "version": "1.0.0-development"
+    },
+    "recordedAt": "2026-07-29T22:30:00Z",
+    "recordedBy": "urn:ref:agent:managed-vocabulary-experiment",
+    "rulespecAuthorityRefs": [
+      "urn:ref:development-governance:rulespec-authority-declaration:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33"
+    ],
+    "schemaVersion": "1.0",
+    "synthesizedUnionAuthorized": false,
+    "type": "urn:ref:type:RegistryReconciliationReport",
+    "unresolvedItems": [
+      "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:preferred-label-membership",
+      "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:source-record-identity",
+      "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:relation-assertions",
+      "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:ad-hoc-collection-boundary",
+      "urn:ref:difference:f7f5664b81662481a68e6f25cab706fe5687430e755ebaba581ecf0c6ca73f33:historical-unresolved-references"
+    ]
+  },
+  "recordedAt": "2026-07-29T22:30:00Z",
+  "sourceCounts": {
+    "current": {
+      "ad_hoc": 6723,
+      "thesaurus": 1044,
+      "total": 7767
+    },
+    "historical": {
+      "alternate_labels": 924,
+      "associative_relations": 756,
+      "broader_relations": 740,
+      "category_notations": 616,
+      "entries": 1004,
+      "nonpreferred_entries": 375,
+      "preferred_concepts": 629,
+      "preferred_labels": 629,
+      "resolved_references": 1939,
+      "scope_notes": 45,
+      "see_references": 463,
+      "source_bytes": 99349,
+      "source_lines": 4853,
+      "unresolved_references": 20
+    }
+  },
+  "sourceRecordIdentity": {
+    "excludedIdentityInputs": [
+      "name",
+      "slug"
+    ],
+    "identityInputs": [
+      "captureSha256",
+      "collection",
+      "sourceOrdinal"
+    ],
+    "ordinalBase": 0,
+    "template": "urn:ref:source-record:federal-register-topics:{capture-sha256-hex}:{collection}:{source-ordinal}"
+  },
+  "sources": {
+    "current": {
+      "byteLength": 920705,
+      "digest": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "id": "https://www.federalregister.gov/api/v1/topics.json",
+      "inputId": "urn:ref:reconciliation-input:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+      "parserProfile": "federal-register-topics-api-source-faithful-v1",
+      "sourceRecordSetDigest": "sha256:053f4b4d503ff1aebcd3ff98f3316d4c9580081815579b5bcfd4285b4af6d3dc"
+    },
+    "historical": {
+      "byteLength": 99349,
+      "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt",
+      "inputId": "urn:ref:reconciliation-input:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+      "parserProfile": "refspec.registry.federal_register_thesaurus.parse_federal_register_thesaurus:source-faithful"
+    }
+  },
+  "stageDigests": {
+    "current": [
+      {
+        "digest": "sha256:5ba9f5b1f4dd3a5a7f001afd6dd03eea991a6d5748c4ed8c2e67efeb9055d567",
+        "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:source-record-identity-inventory",
+        "itemCount": 7767,
+        "parserProfile": "federal-register-topics-api-source-faithful-v1",
+        "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+      },
+      {
+        "digest": "sha256:5155622523a0439f528d872aaf6d13e234b9da01a991404cbfc15b49f44e941c",
+        "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-label-evidence",
+        "itemCount": 1044,
+        "parserProfile": "federal-register-topics-api-source-faithful-v1",
+        "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+      },
+      {
+        "digest": "sha256:f1470b67a7db4bf178469a43c678371f40b130690c5a192b8e0fc4624950336d",
+        "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:thesaurus-relation-assertion-inventory",
+        "itemCount": 1428,
+        "parserProfile": "federal-register-topics-api-source-faithful-v1",
+        "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+      },
+      {
+        "digest": "sha256:b9697724c95a28f99da9324c9103cbaa6c2b3057a148c06344ad9b413a6bf961",
+        "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:ad-hoc-source-record-identity-inventory",
+        "itemCount": 6723,
+        "parserProfile": "federal-register-topics-api-source-faithful-v1",
+        "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+      },
+      {
+        "digest": "sha256:998feabf6be28b55c466dd1ea7e8d8444c6142a1b90d383860047a3915dc7ecd",
+        "id": "urn:ref:development-stage:federal-register-topics-api:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b:slug-observation-inventory",
+        "itemCount": 7767,
+        "parserProfile": "federal-register-topics-api-source-faithful-v1",
+        "sourceSha256": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
+      }
+    ],
+    "historical": [
+      {
+        "digest": "sha256:2373a4ab177f9a505703287ff3f47dd4c7f8d891ae7f2090b5c26e0d3771b3e6",
+        "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:source-entry-inventory",
+        "itemCount": 1004,
+        "parserProfile": "refspec.registry.federal_register_thesaurus.parse_federal_register_thesaurus:source-faithful",
+        "sourceSha256": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+      },
+      {
+        "digest": "sha256:f205fc76aa71d616ac20db5d66cc2286bcd69a90c102169f27877c67b2599522",
+        "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:label-expression-inventory",
+        "itemCount": 1553,
+        "parserProfile": "refspec.registry.federal_register_thesaurus.parse_federal_register_thesaurus:source-faithful",
+        "sourceSha256": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+      },
+      {
+        "digest": "sha256:02596c50b4c2416781f2cafd97f6ab1cce6b70ec8cc39d1fcb8c47f833121b59",
+        "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:relation-assertion-inventory",
+        "itemCount": 1496,
+        "parserProfile": "refspec.registry.federal_register_thesaurus.parse_federal_register_thesaurus:source-faithful",
+        "sourceSha256": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+      },
+      {
+        "digest": "sha256:16d544a0b9c222cf2fc5c0ea83b5e97e3a738bf981fcc06e2c51c93311d15f57",
+        "id": "urn:ref:development-stage:federal-register-thesaurus-1995:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30:unresolved-source-reference-inventory",
+        "itemCount": 20,
+        "parserProfile": "refspec.registry.federal_register_thesaurus.parse_federal_register_thesaurus:source-faithful",
+        "sourceSha256": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
+      }
+    ]
+  }
+}

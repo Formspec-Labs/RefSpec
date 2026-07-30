@@ -3,24 +3,34 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import urllib.request
+from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec import binding
-from refspec.managed_release import ManagedReleaseView
+from refspec.managed_release import (
+    ManagedReleaseAuthorizationError,
+    ManagedReleaseError,
+    ManagedReleaseView,
+)
 from refspec.registry.federal_register_thesaurus import (
     BROADER_PREDICATE_IRI,
     parse_federal_register_thesaurus,
 )
 from refspec.registry.federal_register_vertical_slice import (
+    ASSIGNMENT_PRIMARY_IRI,
     DEVELOPMENT_ENVIRONMENT_IRI,
+    GENERAL_SUBJECT_FACET_IRI,
     GRAPH_IRI,
     HISTORICAL_SOURCE_SHA256,
     SELECTED_DEPLOYMENT_IRI,
     SELECTION_ASSERTION_IRI,
+    SOURCE_ARTIFACT_PATH,
     LocalCandidateGovernance,
     VerticalSliceError,
     build_federal_register_vertical_slice,
@@ -28,6 +38,7 @@ from refspec.registry.federal_register_vertical_slice import (
     build_registry_selection_rollback_proof,
     reduce_registry_selection_history,
 )
+from refspec.storage import canonical_json
 from refspec.vocabulary import RegistryDeploymentDecision, seal_payload
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
@@ -107,6 +118,24 @@ def _build_selected(rulespec_dir: Path):
     )
 
 
+def _manifest_digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _rewrite_manifest(
+    path: Path,
+    mutate: Callable[[dict], None],
+) -> dict:
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    mutate(manifest)
+    path.write_text(
+        canonical_json(manifest) + "\n",
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def test_slice_is_validated_but_stops_before_governed_selection(
     rulespec_dir: Path,
     tmp_path: Path,
@@ -133,6 +162,12 @@ def test_slice_is_validated_but_stops_before_governed_selection(
     assert sum(row["predicate_iri"] == BROADER_PREDICATE_IRI for row in bundle.normalized_relations) == 2
     assert len(bundle.indexed_expressions) == 21
     assert all("record=" in record["sourcePath"] for record in bundle.indexed_expressions)
+    assert all(
+        record["semanticProperty"].startswith(
+            "http://www.w3.org/2004/02/skos/core#"
+        )
+        for record in bundle.indexed_expressions
+    )
 
     record_types = {record["type"] for record in bundle.operational_records}
     assert "urn:ref:type:RegistryReconciliationReport" not in record_types
@@ -162,7 +197,17 @@ def test_slice_is_validated_but_stops_before_governed_selection(
     manifest = bundle.manifest()
     assert manifest["rulespecGraphId"] == GRAPH_IRI
     assert "rulespecDependencyManifest" in manifest
-    assert "thesaurus-alpha.txt" not in written
+    source_artifacts = manifest["sourceArtifacts"]
+    assert len(source_artifacts) == 1
+    source_descriptor = next(iter(source_artifacts.values()))
+    assert source_descriptor == {
+        "path": SOURCE_ARTIFACT_PATH,
+        "sha256": bundle.source_sha256,
+        "byteLength": bundle.source_bytes,
+    }
+    assert written[SOURCE_ARTIFACT_PATH].read_bytes() == (
+        SYNTHETIC_THESAURUS.encode("utf-8")
+    )
     assert written == second_write
 
 
@@ -192,6 +237,17 @@ def test_local_selection_is_gate_authorized_and_rollback_is_separate(
     assert "authorizationValidations" not in selected
     assert selected["rulespecAttestationRefs"]
     assert selected["localAdoptionRefs"]
+    selected_import = next(
+        record
+        for record in active.operational_records
+        if record["id"] == selected["registryImportSnapshot"]["id"]
+    )
+    assert selected["rightsAssessment"] == (
+        selected_import["rightsAssessment"]
+    )
+    assert selected["adoptedPolicyRefs"] == (
+        selected_import["adoptedPolicyRefs"]
+    )
     assert active.publication_release_manifest["releaseState"] == "complete"
     assert (
         active.publication_release_manifest["consumerEligible"] is True
@@ -236,12 +292,17 @@ def test_local_selection_is_gate_authorized_and_rollback_is_separate(
     manifest_path = active_dir / "managed-release-bundle.json"
     view = ManagedReleaseView.open(
         manifest_path,
-        expected_manifest_digest=(
-            "sha256:"
-            + hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-        ),
+        expected_manifest_digest=_manifest_digest(manifest_path),
     )
     assert len(tuple(view.iter_expressions())) == 21
+    capture = next(
+        record
+        for record in active.operational_records
+        if record["type"] == "urn:ref:type:Capture"
+    )
+    assert view.source_artifact_bytes(
+        capture["storageReference"]
+    ) == SYNTHETIC_THESAURUS.encode("utf-8")
 
     rollback = build_registry_selection_rollback_proof(
         active,
@@ -301,6 +362,8 @@ def test_local_selection_is_gate_authorized_and_rollback_is_separate(
             "id": import_snapshot["id"],
             "digest": import_snapshot["canonicalPayloadDigest"],
         },
+        rights_assessment=dict(import_snapshot["rightsAssessment"]),
+        adopted_policy_refs=tuple(import_snapshot["adoptedPolicyRefs"]),
         reference_resource_release=dict(
             selected["referenceResourceRelease"]
         ),
@@ -324,15 +387,17 @@ def test_local_selection_is_gate_authorized_and_rollback_is_separate(
         local_adoption_refs=(),
         predecessor=evaluation["governanceRecord"],
     ).sealed_payload(
+        import_snapshot_record=import_snapshot,
         coverage_report_record=coverage,
         output_profile_record=output_profile,
     )
     assert not binding.validate(
         [
-            records_by_type["urn:ref:type:EnrichmentProfile"],
-            output_profile,
-            coverage,
-            failed,
+                records_by_type["urn:ref:type:EnrichmentProfile"],
+                output_profile,
+                import_snapshot,
+                coverage,
+                failed,
         ]
     )
     failed_reduction = reduce_registry_selection_history(
@@ -366,6 +431,140 @@ def test_local_builder_rejects_wrong_source_digest_before_writing(
         )
 
     assert not output_path.exists()
+
+
+def test_vertical_slice_reverifies_retained_bytes_before_issuing_capture() -> None:
+    parsed = parse_federal_register_thesaurus(SYNTHETIC_THESAURUS)
+
+    for retained in (None, b"changed source bytes"):
+        with pytest.raises(
+            VerticalSliceError,
+            match=(
+                "retained exact source artifact bytes|"
+                "do not match the parsed source"
+            ),
+        ):
+            build_federal_register_vertical_slice(
+                replace(
+                    parsed,
+                    source_artifact_bytes=retained,
+                ),
+                rulespec_root=DEFAULT_RULESPEC_DIR,
+                recorded_at=RECORDED_AT,
+                recorded_by=RECORDED_BY,
+                governance=_governance(),
+            )
+
+
+def test_managed_release_rejects_missing_changed_symlinked_or_ambiguous_source_bytes(
+    rulespec_dir: Path,
+    tmp_path: Path,
+) -> None:
+    bundle = _build_selected(rulespec_dir)
+    original_bytes = SYNTHETIC_THESAURUS.encode("utf-8")
+
+    omitted_root = tmp_path / "omitted"
+    bundle.write_to(omitted_root)
+    omitted_manifest = omitted_root / "managed-release-bundle.json"
+
+    def omit_source_artifacts(manifest: dict) -> None:
+        manifest.pop("sourceArtifacts")
+
+    _rewrite_manifest(omitted_manifest, omit_source_artifacts)
+    with pytest.raises(
+        ManagedReleaseError,
+        match=(
+            "sourceArtifacts keys must exactly equal successful "
+            "exact-byte Capture.storageReference values"
+        ),
+    ):
+        ManagedReleaseView.open(
+            omitted_manifest,
+            expected_manifest_digest=_manifest_digest(
+                omitted_manifest
+            ),
+        )
+
+    missing_root = tmp_path / "missing"
+    bundle.write_to(missing_root)
+    missing_manifest = missing_root / "managed-release-bundle.json"
+    (missing_root / SOURCE_ARTIFACT_PATH).unlink()
+    with pytest.raises(
+        ManagedReleaseError,
+        match="path is missing or escapes the bundle root",
+    ):
+        ManagedReleaseView.open(
+            missing_manifest,
+            expected_manifest_digest=_manifest_digest(
+                missing_manifest
+            ),
+        )
+
+    changed_root = tmp_path / "changed"
+    bundle.write_to(changed_root)
+    changed_manifest = changed_root / "managed-release-bundle.json"
+    changed_source = changed_root / SOURCE_ARTIFACT_PATH
+    changed_source.write_bytes(
+        b"!" + original_bytes[1:]
+    )
+    with pytest.raises(
+        ManagedReleaseError,
+        match="digest mismatch",
+    ):
+        ManagedReleaseView.open(
+            changed_manifest,
+            expected_manifest_digest=_manifest_digest(
+                changed_manifest
+            ),
+        )
+
+    symlink_root = tmp_path / "symlink"
+    bundle.write_to(symlink_root)
+    symlink_manifest = symlink_root / "managed-release-bundle.json"
+    symlink_source = symlink_root / SOURCE_ARTIFACT_PATH
+    symlink_target = tmp_path / "source-symlink-target.txt"
+    symlink_target.write_bytes(original_bytes)
+    symlink_source.unlink()
+    symlink_source.symlink_to(symlink_target)
+    with pytest.raises(
+        ManagedReleaseError,
+        match="path must not traverse a symlink",
+    ):
+        ManagedReleaseView.open(
+            symlink_manifest,
+            expected_manifest_digest=_manifest_digest(
+                symlink_manifest
+            ),
+        )
+
+    ambiguous_root = tmp_path / "ambiguous"
+    bundle.write_to(ambiguous_root)
+    ambiguous_manifest = (
+        ambiguous_root / "managed-release-bundle.json"
+    )
+
+    def add_second_resolution(manifest: dict) -> None:
+        descriptor = next(
+            iter(manifest["sourceArtifacts"].values())
+        )
+        manifest["sourceArtifacts"][
+            "urn:test:source-artifact:second-resolution"
+        ] = dict(descriptor)
+
+    _rewrite_manifest(
+        ambiguous_manifest,
+        add_second_resolution,
+    )
+    with pytest.raises(
+        ManagedReleaseError,
+        match="path duplicates another bundle artifact",
+    ):
+        ManagedReleaseView.open(
+            ambiguous_manifest,
+            expected_manifest_digest=_manifest_digest(
+                ambiguous_manifest
+            ),
+        )
 
 
 def _history_decision(
@@ -430,6 +629,58 @@ def test_selection_history_restores_empty_state_and_failed_event_is_noop() -> No
     assert failed_reduction.state_digests[-1] == selected_only.state_digests[-1]
 
 
+def test_selected_bundle_candidate_permission_is_exact(
+    rulespec_dir: Path,
+    tmp_path: Path,
+) -> None:
+    bundle = _build_selected(rulespec_dir)
+    bundle.write_to(tmp_path)
+    manifest_path = tmp_path / "managed-release-bundle.json"
+    view = ManagedReleaseView.open(
+        manifest_path,
+        expected_manifest_digest=(
+            "sha256:"
+            + hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        ),
+    )
+
+    permission = view.require_candidate_use(
+        facet_iri=GENERAL_SUBJECT_FACET_IRI,
+        assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
+        resource_route="document",
+    )
+    assert permission.permission_row["candidateUse"] is True
+    assert permission.permission_row["acceptedOutputUse"] is False
+    assert (
+        permission.registry_deployment["id"]
+        == SELECTED_DEPLOYMENT_IRI
+    )
+    assert len({item.member_iri for item in view.iter_expressions()}) == 8
+
+    wrong_tuples = (
+        {
+            "facet_iri": "urn:ref:facet:entity",
+            "assignment_role_iri": ASSIGNMENT_PRIMARY_IRI,
+            "resource_route": "document",
+        },
+        {
+            "facet_iri": GENERAL_SUBJECT_FACET_IRI,
+            "assignment_role_iri": (
+                "https://rulespec.org/ns/v1#assignmentMention"
+            ),
+            "resource_route": "document",
+        },
+        {
+            "facet_iri": GENERAL_SUBJECT_FACET_IRI,
+            "assignment_role_iri": ASSIGNMENT_PRIMARY_IRI,
+            "resource_route": "event",
+        },
+    )
+    for requested in wrong_tuples:
+        with pytest.raises(ManagedReleaseAuthorizationError):
+            view.require_candidate_use(**requested)
+
+
 @pytest.mark.skipif(
     not os.environ.get(FULL_SOURCE_ENV),
     reason=f"set {FULL_SOURCE_ENV} to the verified 1995 source",
@@ -472,4 +723,56 @@ def test_verified_full_source_build_closes_exact_historical_counts(
         ),
     )
     assert len(tuple(view.iter_expressions())) == 2_213
-    assert not list(tmp_path.rglob("thesaurus-alpha.txt"))
+    permission = view.require_candidate_use(
+        facet_iri=GENERAL_SUBJECT_FACET_IRI,
+        assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
+        resource_route="document",
+    )
+    assert permission.permission_row["candidateUse"] is True
+    for requested in (
+        {
+            "facet_iri": "urn:ref:facet:entity",
+            "assignment_role_iri": ASSIGNMENT_PRIMARY_IRI,
+            "resource_route": "document",
+        },
+        {
+            "facet_iri": GENERAL_SUBJECT_FACET_IRI,
+            "assignment_role_iri": (
+                "https://rulespec.org/ns/v1#assignmentMention"
+            ),
+            "resource_route": "document",
+        },
+        {
+            "facet_iri": GENERAL_SUBJECT_FACET_IRI,
+            "assignment_role_iri": ASSIGNMENT_PRIMARY_IRI,
+            "resource_route": "event",
+        },
+    ):
+        with pytest.raises(ManagedReleaseAuthorizationError):
+            view.require_candidate_use(**requested)
+    preferred_expressions = tuple(
+        expression
+        for expression in view.iter_expressions()
+        if expression.semantic_property_iri
+        == "http://www.w3.org/2004/02/skos/core#prefLabel"
+    )
+    assert len(preferred_expressions) == 629
+    assert all(
+        "property=http://www.w3.org/2004/02/skos/core#prefLabel"
+        in expression.source_property_or_path
+        for expression in preferred_expressions
+    )
+    capture = next(
+        record
+        for record in bundle.operational_records
+        if record["type"] == "urn:ref:type:Capture"
+    )
+    exact_source = Path(
+        os.environ[FULL_SOURCE_ENV]
+    ).read_bytes()
+    assert view.source_artifact_bytes(
+        capture["storageReference"]
+    ) == exact_source
+    assert (
+        tmp_path / "active" / SOURCE_ARTIFACT_PATH
+    ).read_bytes() == exact_source

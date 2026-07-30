@@ -2,11 +2,13 @@
 
 # RefSpec and Rulespec vocabulary gap closure plan
 
-> **Status:** Approved cross-repository prerequisite
+> **Status:** Implemented and closure-verified locally; unpublished
 >
 > **Date:** 2026-07-29
 >
-> **RefSpec delivery plan:** [RefSpec implementation plan](implementation-plan.md)
+> **Current execution roadmap:** [Managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md)
+>
+> **Historical conceptual plan:** [Early RefSpec implementation plan](implementation-plan.md)
 >
 > **Rulespec companion plan:** [Rulespec concept vocabulary carriage and evolution](https://github.com/Formspec-Labs/rulespec/blob/main/thoughts/plans/2026-07-29-rkaf-concept-vocabulary-carriage-and-evolution.md)
 
@@ -24,10 +26,10 @@ The work preserves the current ownership boundary:
 - A downstream implementation may prove these requirements, but it does not
   become their source of truth.
 
-This plan closes specification and conformance gaps first, then refactors the
-reusable Spicy Regs implementation behind the locked interfaces. The broader
-RefSpec implementation plan still governs product delivery beyond vocabulary
-closure.
+This plan closed specification and conformance gaps first, then refactored the
+reusable Spicy Regs implementation behind the stable interfaces. The managed
+vocabulary experiment roadmap governs work beyond vocabulary closure. The
+earlier implementation plan remains a non-authoritative conceptual reference.
 
 ## 1. Failure lessons carried forward
 

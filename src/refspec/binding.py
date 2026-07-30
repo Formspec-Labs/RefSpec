@@ -999,6 +999,34 @@ def registry_deployment_diagnostics(
     records_by_id: dict[str, dict[str, Any]],
 ) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
+    import_ref = record.get("registryImportSnapshot", {})
+    import_snapshot = records_by_id.get(import_ref.get("id"))
+    if (
+        import_snapshot is None
+        or import_snapshot.get("type")
+        != "urn:ref:type:RegistryImportSnapshot"
+        or not references_record(import_ref, import_snapshot)
+    ):
+        diagnostics.append(
+            Diagnostic(
+                "REF-VOC-017",
+                "registry deployment cannot resolve its exact import snapshot",
+            )
+        )
+    elif (
+        import_snapshot.get("rightsAssessment")
+        != record.get("rightsAssessment")
+        or import_snapshot.get("adoptedPolicyRefs")
+        != record.get("adoptedPolicyRefs")
+    ):
+        diagnostics.append(
+            Diagnostic(
+                "REF-VOC-017",
+                "registry deployment rights and adopted policies differ "
+                "from its exact import snapshot",
+            )
+        )
+
     coverage_ref = record.get("coverageReport", {})
     coverage = records_by_id.get(coverage_ref.get("id"))
     output_ref = record.get("outputProfile", {})
@@ -1547,7 +1575,7 @@ def sealed_gold_diagnostics(
             == "urn:ref:type:IndexedVocabularyExpression"
             and expression.get("member")
             in registered_concepts_by_item.get(item_id, set())
-            and expression.get("sourceProperty")
+            and expression.get("semanticProperty")
             in {
                 "http://www.w3.org/2004/02/skos/core#prefLabel",
                 "http://www.w3.org/2004/02/skos/core#altLabel",
@@ -2149,6 +2177,83 @@ def validate(
         schemas,
         registry,
     )
+
+
+class IndexedExpressionCorpusValidator:
+    """Stateful, one-schema validator for a streamed expression corpus."""
+
+    def __init__(self) -> None:
+        schemas, registry = load_schemas()
+        record_type = "urn:ref:type:IndexedVocabularyExpression"
+        self._validator = Draft202012Validator(
+            schemas[TYPE_SCHEMAS[record_type]],
+            registry=registry,
+            format_checker=FormatChecker(),
+        )
+        self._requirement = TYPE_REQUIREMENTS[record_type]
+        self._seen: set[str] = set()
+        self._index = 0
+
+    def validate_record(
+        self,
+        record: dict[str, Any],
+    ) -> list[Diagnostic]:
+        """Validate one record and retain only duplicate-ID state."""
+
+        diagnostics: list[Diagnostic] = []
+        index = self._index
+        self._index += 1
+        identifier = record.get("id")
+        if not isinstance(identifier, str):
+            identifier = f"<expression-{index}>"
+        elif identifier in self._seen:
+            diagnostics.append(
+                Diagnostic(
+                    "REF-CORE-005",
+                    f"duplicate durable record identifier {identifier}",
+                )
+            )
+        else:
+            self._seen.add(identifier)
+
+        schema_errors = sorted(
+            self._validator.iter_errors(record),
+            key=lambda item: list(item.path),
+        )
+        diagnostics.extend(
+            Diagnostic(
+                self._requirement,
+                f"{identifier} {json_path(error.absolute_path)}: "
+                f"{error.message}",
+            )
+            for error in schema_errors
+        )
+        try:
+            diagnostics.extend(record_digest_diagnostics(record))
+        except (TypeError, ValueError) as error:
+            diagnostics.append(
+                Diagnostic("REF-BIND-004", f"{identifier}: {error}")
+            )
+        if not schema_errors:
+            diagnostics.extend(indexed_expression_diagnostics(record))
+        return diagnostics
+
+
+def validate_indexed_expression_records(
+    records: Iterable[dict[str, Any]],
+) -> list[Diagnostic]:
+    """Validate a corpus without constructing one linked-record graph.
+
+    ``IndexedVocabularyExpression`` records have no cross-record semantic
+    references. The validator compiles JSON Schema once and retains only the
+    identifier set needed to reject duplicates.
+    """
+
+    validator = IndexedExpressionCorpusValidator()
+    diagnostics: list[Diagnostic] = []
+    for record in records:
+        diagnostics.extend(validator.validate_record(record))
+    return diagnostics
 
 
 def pointer_parent(document: Any, pointer: str) -> tuple[Any, str]:

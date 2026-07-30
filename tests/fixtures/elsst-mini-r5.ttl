@@ -1,0 +1,32 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+# This deterministic predecessor subset contains only triples copied from the
+# official, digest-pinned ELSST R5 Turtle publication.
+<https://elsst.cessda.eu/id/5/> a owl:Ontology, skos:ConceptScheme ;
+    owl:priorVersion <https://elsst.cessda.eu/id/4/> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/> ;
+    dct:issued "2024-09-23"@en ;
+    skos:prefLabel "ELSST Thesaurus"@el, "ELSST Thesaurus"@en, "ELSST Thesaurus"@es .
+
+<https://elsst.cessda.eu/id/5/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> a skos:Concept ;
+    owl:priorVersion <https://elsst.cessda.eu/id/4/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/4ae8f7d8-3ff9-4258-9dc8-7cf9c345dd6f> ;
+    skos:broader <https://elsst.cessda.eu/id/5/918ec3cf-c229-4d48-833c-b0a4b9902475> ;
+    skos:inScheme <https://elsst.cessda.eu/id/5/> ;
+    skos:prefLabel "ΑΡΧΗΓΟΣ ΝΟΙΚΟΚΥΡΙΟΥ"@el,
+        "HEADS OF HOUSEHOLD"@en,
+        "CABEZA DE FAMILIA"@es .
+
+<https://elsst.cessda.eu/id/5/05fd5779-69ad-4872-ae25-a8c400b73e10> a skos:Concept ;
+    owl:priorVersion <https://elsst.cessda.eu/id/4/05fd5779-69ad-4872-ae25-a8c400b73e10> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/05fd5779-69ad-4872-ae25-a8c400b73e10> ;
+    skos:inScheme <https://elsst.cessda.eu/id/5/> ;
+    skos:prefLabel "ΟΙΚΟΔΕΣΠΟΤΕΣ"@el, "HOUSEHOLDERS"@en, "PROPIETARIOS (VIVIENDA)"@es .
+
+<https://elsst.cessda.eu/id/5/8a80f878-851c-4f47-a451-a8fe75b81aad> a skos:Concept ;
+    owl:priorVersion <https://elsst.cessda.eu/id/4/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    dct:isVersionOf <https://elsst.cessda.eu/id/8a80f878-851c-4f47-a451-a8fe75b81aad> ;
+    skos:inScheme <https://elsst.cessda.eu/id/5/> ;
+    skos:prefLabel "ΝΟΙΚΟΚΥΡΙΑ"@el, "HOUSEHOLDS"@en, "UNIDADES FAMILIARES"@es .

@@ -46,6 +46,27 @@ def test_public_validate_api_accepts_the_valid_fixture() -> None:
     assert diagnostics == []
 
 
+def test_expression_corpus_validator_reuses_one_schema_without_weakening_checks() -> None:
+    fixture = binding.load_fixture(VALID_FIXTURE)
+    expressions = [
+        record
+        for record in fixture["records"]
+        if record["type"]
+        == "urn:ref:type:IndexedVocabularyExpression"
+    ]
+
+    assert binding.validate_indexed_expression_records(expressions) == []
+
+    diagnostics = binding.validate_indexed_expression_records(
+        [*expressions, expressions[0]]
+    )
+    assert any(
+        item.requirement == "REF-CORE-005"
+        and "duplicate durable record identifier" in item.message
+        for item in diagnostics
+    )
+
+
 def test_installed_package_can_validate_from_embedded_schemas(
     monkeypatch,
     tmp_path: Path,
@@ -82,7 +103,7 @@ def test_installed_package_can_run_embedded_conformance_suite(
 
     assert binding.run_suite() == 0
     assert (
-        "5 valid fixture(s) accepted; 84 invalid fixture(s) rejected; "
+        "5 valid fixture(s) accepted; 90 invalid fixture(s) rejected; "
         "0 failure(s)"
         in capsys.readouterr().out
     )

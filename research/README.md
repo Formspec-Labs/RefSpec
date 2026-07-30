@@ -7,8 +7,11 @@ portfolio, design rationale, and evidence behind the specification.
 The files are research snapshots, not normative RefSpec requirements. The
 [specification](../spec/refspec.md) and
 [Rulespec application profile](../profiles/rulespec-application-profile.md)
-define conformance. The [implementation plan](../plans/implementation-plan.md)
-defines current delivery sequencing.
+define conformance. The
+[managed vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md)
+defines current execution. The
+[early implementation plan](../plans/implementation-plan.md) is a historical,
+non-authoritative conceptual draft.
 
 Private transcript locations, session identifiers, product identifiers,
 private endpoints, and repository-local implementation paths were removed for
@@ -52,3 +55,8 @@ links to nine reports covering:
 - [Legislative and fiscal resources](evidence/source-vocabulary-research-2026-07-28/02-legislative-fiscal.md)
 - [Health and specialist resources](evidence/source-vocabulary-research-2026-07-28/03-health-domain.md)
 - [Roadmap feeds and reference spines](evidence/source-vocabulary-research-2026-07-28/04-roadmap-reference-feeds.md)
+
+## Managed-vocabulary execution evidence
+
+- [ELSST R5/R6 managed-release scale proof](evidence/elsst-r5-r6-managed-release-2026-07-29/README.md)
+- [Federal Register topics unresolved reconciliation proof](evidence/federal-register-topics-reconciliation-2026-07-29/README.md)

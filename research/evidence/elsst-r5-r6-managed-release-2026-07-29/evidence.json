@@ -1,0 +1,248 @@
+{
+  "schemaVersion": "1.0",
+  "evidenceType": "ElsstR5R6ManagedReleaseScaleProof",
+  "recordedOn": "2026-07-29",
+  "observedAt": "2026-07-30T03:06:06Z",
+  "authorityBoundary": {
+    "operationalState": "completeDevelopmentRun",
+    "candidateRelease": "https://elsst.cessda.eu/id/6",
+    "candidateUseAuthorized": true,
+    "acceptedOutputUseAuthorized": false,
+    "productionDeploymentAuthorized": false,
+    "sealedEvaluationPresent": false,
+    "licenseRecordedWithoutRuntimeUseGate": true,
+    "nativeMappingAssertionsPresent": false
+  },
+  "sourceRevisions": {
+    "refspecHead": "3deba85b78255a37cc4372e4f673b301c82badc3",
+    "rulespecEvidenceRevision": "2c66a85daab30a4869db08d21cea13cfc865b3a0",
+    "rulespecContractRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+    "spicyRegsHead": "e1f9a1b83db76d7814fee41e4a25e8607853d058",
+    "workingTreeChangesApplied": true
+  },
+  "rulespecDependency": {
+    "version": "0.2.0-pre.9",
+    "releaseAvailability": "localUnpublished",
+    "productionConformanceEligible": false,
+    "constraintDigest": "sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c",
+    "conformanceCorpusDigest": "sha256:a16ddbf58996dc1e136a99ebf37abbeed0a3adfef724b203347c301cdd5972b2",
+    "claimedLevels": [
+      "L1",
+      "L2",
+      "L3",
+      "L4"
+    ]
+  },
+  "sources": {
+    "r5": {
+      "id": "https://storage.googleapis.com/cessda-elsst-datadump/2024/ELSST_R5.ttl",
+      "release": "https://elsst.cessda.eu/id/5",
+      "version": "5",
+      "byteLength": 19167985,
+      "digest": "sha256:d0d2514d7535309b82cc6966ee6e2b5794cf6f390896a5175f41dff4a02e03b7",
+      "releaseDigest": "sha256:7b3a045d1068f1d5f27ed81739fd715ad9e039662278a0d37e1b6ff530d1bbd5",
+      "importSnapshot": {
+        "id": "urn:ref:elsst:registry-import:r5:native-skos-v1:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+        "digest": "sha256:c6cbaaf05664a8b088bf7b44a5c40b8c06deb7508f0157a7e879efd26c2e24b1"
+      }
+    },
+    "r6": {
+      "id": "https://storage.googleapis.com/cessda-elsst-datadump/2025/ELSST_R6.ttl",
+      "release": "https://elsst.cessda.eu/id/6",
+      "version": "6",
+      "byteLength": 19915491,
+      "digest": "sha256:c362aec545db916ecb67af0eb9b8b4cecac1cb2118a717b69d8e6dad5591aa95",
+      "releaseDigest": "sha256:a75f6dd4679a712fb494ee7ae5cc8ba48f0eb353047e9a3b034cb82e917deea2",
+      "importSnapshot": {
+        "id": "urn:ref:elsst:registry-import:r6:native-skos-v1:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+        "digest": "sha256:a6089946dca4b5314b6cc6164c60691c8e73769b4fd41a65dda473536d153af5"
+      }
+    }
+  },
+  "managedRelease": {
+    "runReceipt": {
+      "id": "urn:ref:elsst:receipt:managed-release:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:4c0bff21dd8476a7c5ccf46e12208816bc5fcadb50ea256dcbc77e2d63a0659c"
+    },
+    "bundleManifestDigest": "sha256:8dd408effe1d57109460a01a9c6620107b4662cbb95eed829ef905f3bfe8b71e",
+    "rulespecGraph": {
+      "id": "urn:ref:elsst:rulespec-graph:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:2bff13ca942d801136ba0723118e68c086e7216de30d3ce449d657e59d9c3572"
+    },
+    "expressionCorpus": {
+      "id": "urn:ref:elsst:expression-corpus:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "logicalDigest": "sha256:f1692767e562c9d60573b039940e269289fa6f705b8749bc6737f3a26a1fbedf",
+      "artifactDigest": "sha256:6c4fa2aacb03e72fddf49369f53275a8e4abb95af5c5615ffa480df2d48540b8",
+      "recordCount": 308639
+    },
+    "combinedValidationReceipt": {
+      "id": "urn:ref:elsst:release-graph-validation-receipt:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:1a43836ffe2bc358b63218a0c111c29ee3e8b93badbe0f122bd21201140d7647",
+      "artifactDigest": "sha256:60308bee1a538bfa34851baa2dfc86cb5ed6f971bd3f2fb896f638af6838f7a7",
+      "authorizationEvaluationCount": 1,
+      "verdict": "pass"
+    },
+    "counts": {
+      "releases": 2,
+      "concepts": 6905,
+      "registryImports": 2,
+      "coverageReports": 2,
+      "deploymentSelections": 1,
+      "indexedExpressions": 308639,
+      "normalizedLabels": 176664,
+      "normalizedRelations": 24844,
+      "lifecycleParticipants": 6
+    },
+    "selection": {
+      "id": "urn:ref:elsst:registry-deployment:r6-development-selected:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:632076e3a1e9a4ccba01b74943ed796095297dda80720128181d7fb7d5c01727",
+      "selectionState": "selected",
+      "release": "https://elsst.cessda.eu/id/6",
+      "environment": "urn:ref:environment:spicy-regs-experimental-playground"
+    }
+  },
+  "coverage": {
+    "r5": {
+      "id": "urn:ref:elsst:registry-import-coverage:r5:v1:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:21566f5f0743cd98feebf63559e5477c3ddb1f2a9bddcd74992724f5e192504f",
+      "reportStatus": "pass",
+      "excludedCount": 0,
+      "failedCount": 0,
+      "features": {
+        "labels": {
+          "count": 87766,
+          "digest": "sha256:25e77cd9e35cb234c8b0668787f116678c2aaa282558f496fce8e8bddeff8a24"
+        },
+        "languages": {
+          "count": 153222,
+          "digest": "sha256:4d6d66a3dd8f0ee2f39e2397595c357902572ae6886ba4ea0f17da35331ef5be"
+        },
+        "notation": {
+          "count": 0,
+          "digest": "sha256:b251212e2ae52c5011d168b5aba044f1e1d818efd68156a8082cc16f02f770a9"
+        },
+        "notes": {
+          "count": 13916,
+          "digest": "sha256:a54380931f420ebdc505594d61d12a355d411335ea937bffe446e335f648c00d"
+        },
+        "hierarchy": {
+          "count": 6722,
+          "digest": "sha256:a8411d218789c93eaa489388e61973731d879265873538bd16740a709a0e1f7e"
+        },
+        "associativeRelations": {
+          "count": 5640,
+          "digest": "sha256:f5b8b798bb9e7404ddaf84dc5aad05f58cfe705dc24dba5b5ac722a05b6e6026"
+        },
+        "mappings": {
+          "count": 0,
+          "digest": "sha256:98db37170c6cdc26737533aa4a1b64b09b1e5ca5544828fa576430b9794c182b"
+        },
+        "status": {
+          "count": 34,
+          "digest": "sha256:19065180527b59adf6da6a54bba280ade886451e0a3c372bc2f4a857899f33af"
+        },
+        "replacements": {
+          "count": 12,
+          "digest": "sha256:0ef4124c478e456e5e070a613437206325a2164463dfcd5bad1f808c9f0928ea"
+        },
+        "identifiers": {
+          "count": 58399,
+          "digest": "sha256:18ca7799cfb6de1805c4e2bcb46616aa3debddb1a762b1f555066ec42e54d878"
+        },
+        "membership": {
+          "count": 7363,
+          "digest": "sha256:af8cba90821476f160e5f32542eb41e27cf5dd1aefed2f99ae3b178593f31cef"
+        }
+      }
+    },
+    "r6": {
+      "id": "urn:ref:elsst:registry-import-coverage:r6:v1:4d76bf751f0133f7740cdf36c9cb02ecef59157bf59104658d91225f4b54d399",
+      "digest": "sha256:6d765d13465f02608f72a6193bb9e6127e025cf95390f0eb8f10fa8b6a82eb0e",
+      "reportStatus": "pass",
+      "excludedCount": 0,
+      "failedCount": 0,
+      "features": {
+        "labels": {
+          "count": 88928,
+          "digest": "sha256:3fa75a4e3fb2dc198e3dce47c499973f4200a50d7e41ade8abbd1891025b3ff2"
+        },
+        "languages": {
+          "count": 155477,
+          "digest": "sha256:2eec3b1b66dad2d72e74796c89802a4f34f6fdd0e3d1905b82f658e0014c4491"
+        },
+        "notation": {
+          "count": 0,
+          "digest": "sha256:b251212e2ae52c5011d168b5aba044f1e1d818efd68156a8082cc16f02f770a9"
+        },
+        "notes": {
+          "count": 15009,
+          "digest": "sha256:b0317829d5f796ff133fc6636f3c0f4fb4f34de19b87fd67d773361044048ef6"
+        },
+        "hierarchy": {
+          "count": 6786,
+          "digest": "sha256:509484abc6d69bdded6fee3431fe6d15be3313552f9e1f65a1a649e0b7a26253"
+        },
+        "associativeRelations": {
+          "count": 5696,
+          "digest": "sha256:5fd1b9f49cae8a41a1683673cf4fa4b2d14f97edcc3ab5b48403549f803e1ebf"
+        },
+        "mappings": {
+          "count": 0,
+          "digest": "sha256:98db37170c6cdc26737533aa4a1b64b09b1e5ca5544828fa576430b9794c182b"
+        },
+        "status": {
+          "count": 37,
+          "digest": "sha256:3ec86cd3a19fd0a2f3226d8b3a6357272f8508101b7cddc14c304c1b0c0848a4"
+        },
+        "replacements": {
+          "count": 18,
+          "digest": "sha256:31fa95d80978ea11849d995b80f22bf6d9af2047dc5d709cbb6fed359eccf3eb"
+        },
+        "identifiers": {
+          "count": 58399,
+          "digest": "sha256:339b5c5980bbbc0965b8e3eb2cc71d401c6eda01073fd5fd412851c3a4f13d49"
+        },
+        "membership": {
+          "count": 7439,
+          "digest": "sha256:a3988f93af2bd61867f17aa6a821efcbd5a738bab676292e1c47d0e0af1ad2ff"
+        }
+      }
+    }
+  },
+  "performance": {
+    "gate": {
+      "maxWallSeconds": 420.0,
+      "maxPeakMemoryBytes": 3758096384
+    },
+    "passingRun": {
+      "wallSeconds": 343.264,
+      "peakMemoryBytes": 2766995456,
+      "result": "pass"
+    },
+    "priorSemanticallyCompleteRun": {
+      "wallSeconds": 343.293,
+      "peakMemoryBytes": 2978086912,
+      "result": "provisionalPerformanceBudgetFail",
+      "semanticAssertionsPassed": true
+    },
+    "improvement": {
+      "peakMemoryBytesReduced": 211091456,
+      "change": "retain seed-to-expression identities only for label expressions and release build-only indexes before coverage"
+    }
+  },
+  "validation": {
+    "test": "tests/test_elsst_managed_release.py::test_opt_in_full_r5_r6_managed_release_opens_and_selects_current_r6",
+    "result": "1 passed",
+    "checks": [
+      "exact source length and SHA-256",
+      "source-observed, parsed, and indexed feature assertion-set equality",
+      "source-native Rulespec projection",
+      "pinned Rulespec L1-L4 validation",
+      "closed REF record digests and combined receipt",
+      "deterministic managed-bundle serialization",
+      "complete 308639-expression reopen and iteration",
+      "R6 candidate selection",
+      "deprecated R6 predecessor exclusion"
+    ]
+  }
+}

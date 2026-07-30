@@ -34,15 +34,9 @@ REVISION_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 GRAPH_PLACEHOLDER = "{graph}"
 BEHAVIOR_PLACEHOLDER = "{behavior}"
 DEPENDENCY_MANIFEST_ID = "https://refspec.org/profiles/rulespec-dependency.json"
-RULESPEC_VALIDATOR_COMPONENT_ID = (
-    "urn:rulespec:validator:rkaf-validate-and-ci-validate"
-)
-RULESPEC_BEHAVIOR_RUNTIME_COMPONENT_ID = (
-    "urn:rulespec:runtime:rkaf-behavior-validate"
-)
-RELEASE_GRAPH_GATE_COMPONENT_ID = (
-    "https://refspec.org/reference-runtime/release-graph-gate"
-)
+RULESPEC_VALIDATOR_COMPONENT_ID = "urn:rulespec:validator:rkaf-validate-and-ci-validate"
+RULESPEC_BEHAVIOR_RUNTIME_COMPONENT_ID = "urn:rulespec:runtime:rkaf-behavior-validate"
+RELEASE_GRAPH_GATE_COMPONENT_ID = "https://refspec.org/reference-runtime/release-graph-gate"
 RELEASE_GRAPH_GATE_VERSION = "0.1.0.dev0"
 PINNED_VALIDATOR_PATHS = (
     "tools/ci_validate.py",
@@ -56,6 +50,7 @@ PINNED_VALIDATOR_PATHS = (
 
 RKAF_NAMESPACE = "https://rulespec.org/ns/v1#"
 PROV_NAMESPACE = "http://www.w3.org/ns/prov#"
+SKOS_NAMESPACE = "http://www.w3.org/2004/02/skos/core#"
 
 RULESPEC_ARTIFACT = f"{RKAF_NAMESPACE}Artifact"
 RULESPEC_SOURCE_FRAGMENT = f"{RKAF_NAMESPACE}SourceFragment"
@@ -64,12 +59,12 @@ RULESPEC_ACCESS_SCOPE = f"{RKAF_NAMESPACE}AccessScope"
 RULESPEC_RETENTION_POLICY = f"{RKAF_NAMESPACE}RetentionPolicy"
 RULESPEC_EXTRACTION_ACTIVITY = f"{RKAF_NAMESPACE}ExtractionActivity"
 PROV_ACTIVITY = f"{PROV_NAMESPACE}Activity"
-RULESPEC_REFERENCE_RESOURCE_RELEASE = (
-    f"{RKAF_NAMESPACE}ReferenceResourceRelease"
-)
+RULESPEC_REFERENCE_RESOURCE_RELEASE = f"{RKAF_NAMESPACE}ReferenceResourceRelease"
 RULESPEC_CONCEPT_SCHEME = f"{RKAF_NAMESPACE}ConceptScheme"
 RULESPEC_REGISTERED_CONCEPT = f"{RKAF_NAMESPACE}RegisteredConcept"
 RULESPEC_LOCAL_CONCEPT = f"{RKAF_NAMESPACE}LocalConcept"
+SKOS_CONCEPT_SCHEME = f"{SKOS_NAMESPACE}ConceptScheme"
+SKOS_CONCEPT = f"{SKOS_NAMESPACE}Concept"
 RULESPEC_CONCEPT_MAPPING = f"{RKAF_NAMESPACE}ConceptMapping"
 RULESPEC_AUTHORITY = f"{RKAF_NAMESPACE}Authority"
 RULESPEC_ATTESTATION = f"{RKAF_NAMESPACE}Attestation"
@@ -78,20 +73,24 @@ RULESPEC_ASSERTION = f"{RKAF_NAMESPACE}Assertion"
 RULESPEC_VALUE_ASSERTION = f"{RKAF_NAMESPACE}ValueAssertion"
 RULESPEC_RELATIONSHIP_ASSERTION = f"{RKAF_NAMESPACE}RelationshipAssertion"
 RULESPEC_CONCEPT_ASSIGNMENT = f"{RKAF_NAMESPACE}ConceptAssignment"
-RULESPEC_BRIDGE_CONSUMER_REGISTRATION = (
-    f"{RKAF_NAMESPACE}BridgeConsumerRegistration"
-)
+RULESPEC_BRIDGE_CONSUMER_REGISTRATION = f"{RKAF_NAMESPACE}BridgeConsumerRegistration"
 RULESPEC_EFFECTIVE_PERIOD = f"{RKAF_NAMESPACE}EffectivePeriod"
 
-ACTIVITY_TYPES = frozenset(
-    {PROV_ACTIVITY, RULESPEC_EXTRACTION_ACTIVITY}
+ACTIVITY_TYPES = frozenset({PROV_ACTIVITY, RULESPEC_EXTRACTION_ACTIVITY})
+CONCEPT_SCHEME_TYPES = frozenset(
+    {
+        RULESPEC_CONCEPT_SCHEME,
+        SKOS_CONCEPT_SCHEME,
+    }
 )
 CONCEPT_TYPES = frozenset(
-    {RULESPEC_REGISTERED_CONCEPT, RULESPEC_LOCAL_CONCEPT}
+    {
+        RULESPEC_REGISTERED_CONCEPT,
+        RULESPEC_LOCAL_CONCEPT,
+        SKOS_CONCEPT,
+    }
 )
-EVIDENCE_TYPES = frozenset(
-    {RULESPEC_SOURCE_FRAGMENT, RULESPEC_EVIDENCE_BINDING}
-)
+EVIDENCE_TYPES = frozenset({RULESPEC_SOURCE_FRAGMENT, RULESPEC_EVIDENCE_BINDING})
 ASSERTION_TYPES = frozenset(
     {
         RULESPEC_ASSERTION,
@@ -106,9 +105,7 @@ AUTHORIZED_LEVELS = (
     "rkaf:publicationAllowed",
     "rkaf:officialUse",
 )
-APPROVING_ATTESTATION_DECISIONS = frozenset(
-    {"rkaf:approved"}
-)
+APPROVING_ATTESTATION_DECISIONS = frozenset({"rkaf:approved"})
 SELECTED_DEPLOYMENT_TYPES = frozenset(
     {
         "urn:ref:type:RegistryDeploymentDecision",
@@ -140,9 +137,7 @@ def _rule(
 ) -> RulespecReferenceRule:
     return RulespecReferenceRule(
         path=tuple(path.split("/")),
-        expected_types=(
-            frozenset(expected_types) if expected_types else None
-        ),
+        expected_types=(frozenset(expected_types) if expected_types else None),
     )
 
 
@@ -150,9 +145,7 @@ def _rule(
 # Component pins, actor identifiers, ontology terms, REF records, and external
 # policy documents remain external unless a field explicitly promises a
 # Rulespec semantic record.
-RULESPEC_REFERENCE_RULES: Mapping[
-    str, tuple[RulespecReferenceRule, ...]
-] = {
+RULESPEC_REFERENCE_RULES: Mapping[str, tuple[RulespecReferenceRule, ...]] = {
     "urn:ref:type:Capture": (
         _rule("acquisitionActivity", *ACTIVITY_TYPES),
         _rule("accessScopeRefs/*", RULESPEC_ACCESS_SCOPE),
@@ -204,7 +197,7 @@ RULESPEC_REFERENCE_RULES: Mapping[
             RULESPEC_REFERENCE_RESOURCE_RELEASE,
         ),
         _rule("distributionArtifact/id", RULESPEC_ARTIFACT),
-        _rule("scheme", RULESPEC_CONCEPT_SCHEME),
+        _rule("scheme", *CONCEPT_SCHEME_TYPES),
         _rule("member", *CONCEPT_TYPES),
         _rule("activity", *ACTIVITY_TYPES),
     ),
@@ -303,9 +296,7 @@ RULESPEC_REFERENCE_RULES: Mapping[
             RULESPEC_REFERENCE_RESOURCE_RELEASE,
         ),
     ),
-    "urn:ref:type:EnrichmentEvaluationResult": (
-        _rule("activity", *ACTIVITY_TYPES),
-    ),
+    "urn:ref:type:EnrichmentEvaluationResult": (_rule("activity", *ACTIVITY_TYPES),),
     "urn:ref:type:EnrichmentDeploymentDecision": (
         _rule("rulespecAttestationRefs/*", RULESPEC_ATTESTATION),
         _rule("localAdoptionRefs/*", RULESPEC_LOCAL_ADOPTION),
@@ -327,6 +318,7 @@ RULESPEC_REFERENCE_RULES: Mapping[
     "urn:ref:type:EnrichmentProfile": (),
 }
 
+
 @dataclass(frozen=True)
 class ValidatorCommand:
     """One command in the trusted, pinned Rulespec validation sequence."""
@@ -340,10 +332,7 @@ class ValidatorCommand:
 
     def for_behavior(self, behavior_path: Path) -> list[str]:
         behavior = str(behavior_path)
-        return [
-            argument.replace(BEHAVIOR_PLACEHOLDER, behavior)
-            for argument in self.argv
-        ]
+        return [argument.replace(BEHAVIOR_PLACEHOLDER, behavior) for argument in self.argv]
 
 
 @dataclass(frozen=True)
@@ -414,13 +403,92 @@ def canonical_value_digest(value: Any) -> str:
     return f"sha256:{hashlib.sha256(payload).hexdigest()}"
 
 
+def compute_reference_resource_release_digest(
+    graph: Any,
+    *,
+    release_iri: str,
+    validator: RulespecValidatorPin,
+) -> str:
+    """Compute one Rulespec release digest with the exact pinned RDFC-1.0 tool.
+
+    This is the shared boundary for import adapters that need to construct a
+    portable ``rkaf:ReferenceResourceRelease``.  The external distribution
+    remains canonical; this helper only seals the Rulespec semantic manifest.
+    """
+
+    if not isinstance(release_iri, str) or not release_iri.strip():
+        raise ValueError("release_iri must be a non-empty absolute IRI")
+    with tempfile.TemporaryDirectory(prefix="refspec-reference-release-digest-") as temporary:
+        graph_path = Path(temporary) / "release.jsonld"
+        graph_path.write_text(
+            json.dumps(
+                graph,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ),
+            encoding="utf-8",
+        )
+        command = [
+            "uv",
+            "run",
+            "--python",
+            "3.12",
+            "--with-requirements",
+            "requirements.txt",
+            "python",
+            "tools/reference_release_digest.py",
+            str(graph_path),
+            "--release",
+            release_iri,
+            "--json",
+        ]
+        try:
+            result = subprocess.run(
+                command,
+                cwd=validator.working_directory,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+        except OSError as error:
+            raise ValueError(f"cannot execute pinned Rulespec release-digest tool: {error}") from error
+    try:
+        rows = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        detail = (result.stderr or result.stdout).strip()
+        raise ValueError(f"pinned Rulespec release-digest tool returned unreadable output: {detail}") from error
+    if (
+        not isinstance(rows, list)
+        or len(rows) != 1
+        or not isinstance(rows[0], dict)
+        or rows[0].get("release") != release_iri
+    ):
+        raise ValueError("pinned Rulespec release-digest tool did not report the selected release")
+    computed = rows[0].get("computed")
+    if not isinstance(computed, str) or DIGEST_PATTERN.fullmatch(computed) is None:
+        raise ValueError("pinned Rulespec release-digest tool returned an invalid digest")
+    declared = rows[0].get("declared")
+    if declared is not None and declared != computed:
+        raise ValueError(f"declared release digest for {release_iri!r} does not match the pinned Rulespec computation")
+    # Exit 1 is expected when the selected release has no declared digest yet.
+    # Higher exit codes indicate tool or graph failures.
+    if result.returncode not in {0, 1}:
+        detail = (result.stderr or result.stdout).strip()
+        raise ValueError(f"pinned Rulespec release-digest tool failed: {detail}")
+    return computed
+
+
 def _expanded_rulespec_type(value: str) -> str:
-    """Expand the two prefixes whose classes this boundary validates."""
+    """Expand the prefixes whose classes this boundary validates."""
 
     if value.startswith("rkaf:"):
         return RKAF_NAMESPACE + value.removeprefix("rkaf:")
     if value.startswith("prov:"):
         return PROV_NAMESPACE + value.removeprefix("prov:")
+    if value.startswith("skos:"):
+        return SKOS_NAMESPACE + value.removeprefix("skos:")
     return value
 
 
@@ -438,31 +506,18 @@ def _rulespec_node_types(graph: Any) -> dict[str, frozenset[str]]:
             return
 
         identifier = value.get("@id")
-        defining_keys = {
-            key
-            for key in value
-            if key not in {"@id", "@context", "@graph"}
-        }
+        defining_keys = {key for key in value if key not in {"@id", "@context", "@graph"}}
         if isinstance(identifier, str) and defining_keys:
             asserted = value.get("@type")
-            asserted_values = (
-                asserted if isinstance(asserted, list) else [asserted]
-            )
+            asserted_values = asserted if isinstance(asserted, list) else [asserted]
             types = indexed.setdefault(identifier, set())
-            types.update(
-                _expanded_rulespec_type(item)
-                for item in asserted_values
-                if isinstance(item, str)
-            )
+            types.update(_expanded_rulespec_type(item) for item in asserted_values if isinstance(item, str))
 
         for key, item in value.items():
             visit(item, context=key == "@context")
 
     visit(graph)
-    return {
-        identifier: frozenset(types)
-        for identifier, types in indexed.items()
-    }
+    return {identifier: frozenset(types) for identifier, types in indexed.items()}
 
 
 def defined_rulespec_identifiers(graph: Any) -> frozenset[str]:
@@ -542,10 +597,7 @@ def referenced_rulespec_identifiers(
 
     record_type = record.get("type")
     if isinstance(record_type, str) and record_type in RULESPEC_REFERENCE_RULES:
-        return frozenset(
-            requirement.identifier
-            for requirement in _rulespec_reference_requirements(record)
-        )
+        return frozenset(requirement.identifier for requirement in _rulespec_reference_requirements(record))
 
     identifiers: set[str] = set()
 
@@ -606,9 +658,7 @@ def load_rulespec_dependency_manifest(
             parse_constant=binding.reject_nonfinite_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
-        raise ValueError(
-            f"cannot read Rulespec dependency manifest: {error}"
-        ) from error
+        raise ValueError(f"cannot read Rulespec dependency manifest: {error}") from error
     if not isinstance(manifest, dict):
         raise TypeError("Rulespec dependency manifest must be an object")
     return manifest
@@ -623,9 +673,7 @@ def load_pinned_rulespec_validator(
     rulespec_dir = rulespec_dir.resolve()
     manifest = load_rulespec_dependency_manifest(dependency_manifest)
     dependency_payload = rulespec_dependency_bytes(dependency_manifest)
-    dependency_digest = (
-        "sha256:" + hashlib.sha256(dependency_payload).hexdigest()
-    )
+    dependency_digest = "sha256:" + hashlib.sha256(dependency_payload).hexdigest()
     validator = manifest.get("validator")
     if not isinstance(validator, dict):
         raise TypeError("Rulespec dependency manifest has no validator pin")
@@ -641,8 +689,7 @@ def load_pinned_rulespec_validator(
         or "rkaf-behavior-validate" not in identity
     ):
         raise ValueError(
-            "Rulespec validator identity must pin rkaf-validate, "
-            "tools/ci_validate.py, and rkaf-behavior-validate"
+            "Rulespec validator identity must pin rkaf-validate, tools/ci_validate.py, and rkaf-behavior-validate"
         )
     if not isinstance(source_revision, str) or not REVISION_PATTERN.fullmatch(source_revision):
         raise ValueError("Rulespec validator source revision is not an exact Git revision")
@@ -851,6 +898,20 @@ def _run_rulespec_validator(
     return failures
 
 
+def validate_rulespec_graph(
+    graph: Any,
+    *,
+    validator: RulespecValidatorPin,
+) -> tuple[str, ...]:
+    """Run the exact pinned Rulespec JSON Schema and SHACL graph gates."""
+
+    try:
+        digest = rulespec_graph_digest(graph)
+    except (TypeError, ValueError) as error:
+        return (f"rulespecGraph cannot be canonicalized: {error}",)
+    return tuple(_run_rulespec_validator(graph, digest, validator))
+
+
 def _rulespec_nodes(graph: Any) -> dict[str, Mapping[str, Any]]:
     """Return the last defining object for each named JSON-LD node."""
 
@@ -864,11 +925,7 @@ def _rulespec_nodes(graph: Any) -> dict[str, Mapping[str, Any]]:
         if not isinstance(value, Mapping) or context:
             return
         identifier = value.get("@id")
-        defining_keys = {
-            key
-            for key in value
-            if key not in {"@id", "@context", "@graph"}
-        }
+        defining_keys = {key for key in value if key not in {"@id", "@context", "@graph"}}
         if isinstance(identifier, str) and defining_keys:
             nodes[identifier] = value
         for key, item in value.items():
@@ -958,17 +1015,13 @@ def _attestation_is_effective(
         )
     except (TypeError, ValueError) as error:
         return str(error)
-    if evaluation_time < start or (
-        end is not None and evaluation_time > end
-    ):
+    if evaluation_time < start or (end is not None and evaluation_time > end):
         return f"{label} is outside its Rulespec effective period"
     return None
 
 
 def _behavior_test_identifier(governance_record_id: str) -> str:
-    suffix = hashlib.sha256(
-        governance_record_id.encode("utf-8")
-    ).hexdigest()
+    suffix = hashlib.sha256(governance_record_id.encode("utf-8")).hexdigest()
     return f"urn:ref:behavior-test:governance-authorization:{suffix}"
 
 
@@ -991,9 +1044,7 @@ def _authorization_behavior_test(
         "rkaf:evaluationScopes": [evaluation_scope],
         "rkaf:evaluationTime": evaluation_time,
         "rkaf:input": graph,
-        "rkaf:expectedOutput": {
-            "byScope": {evaluation_scope: expected_level}
-        },
+        "rkaf:expectedOutput": {"byScope": {evaluation_scope: expected_level}},
     }
     if evaluation_consumer is not None:
         test_case["rkaf:evaluationConsumer"] = evaluation_consumer
@@ -1010,23 +1061,13 @@ def _run_behavior_test(
     command = validator.behavior_command
     if command is None:
         return "error", "pinned Rulespec validator defines no L4 behavior command"
-    if not command.argv or not any(
-        BEHAVIOR_PLACEHOLDER in argument for argument in command.argv
-    ):
-        return "error", (
-            f"{command.name}: pinned command does not receive the exact "
-            "BehaviorTestCase"
-        )
-    with tempfile.TemporaryDirectory(
-        prefix="refspec-rulespec-behavior-"
-    ) as temporary:
+    if not command.argv or not any(BEHAVIOR_PLACEHOLDER in argument for argument in command.argv):
+        return "error", (f"{command.name}: pinned command does not receive the exact BehaviorTestCase")
+    with tempfile.TemporaryDirectory(prefix="refspec-rulespec-behavior-") as temporary:
         test_identifier = test_case.get("@id")
         if not isinstance(test_identifier, str):
             return "error", "gate-owned BehaviorTestCase has no identifier"
-        expected_name = (
-            "deployment-authorization-"
-            + canonical_value_digest(test_case).removeprefix("sha256:")
-        )
+        expected_name = "deployment-authorization-" + canonical_value_digest(test_case).removeprefix("sha256:")
         path = Path(temporary) / f"{expected_name}.jsonld"
         path.write_text(
             json.dumps(test_case, ensure_ascii=False, indent=2) + "\n",
@@ -1046,10 +1087,7 @@ def _run_behavior_test(
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError:
-        return "error", (
-            f"{command.name}: runtime did not emit its required JSON verdict: "
-            f"{_output_excerpt(result)}"
-        )
+        return "error", (f"{command.name}: runtime did not emit its required JSON verdict: {_output_excerpt(result)}")
     fixtures = payload.get("fixtures") if isinstance(payload, Mapping) else None
     if not isinstance(fixtures, list) or len(fixtures) != 1:
         return "error", f"{command.name}: runtime did not report exactly one behavior test"
@@ -1090,33 +1128,22 @@ def _governance_authorization_evaluations(
     governed_records = [
         record
         for record in records
-        if (
-            record.get("type") in SELECTED_DEPLOYMENT_TYPES
-            and record.get("selectionState") == "selected"
-        )
+        if (record.get("type") in SELECTED_DEPLOYMENT_TYPES and record.get("selectionState") == "selected")
         or (
-            record.get("type")
-            == "urn:ref:type:RegistryReconciliationReport"
-            and record.get("outcome")
-            in {"selectedInput", "reconciledReleaseAuthorized"}
+            record.get("type") == "urn:ref:type:RegistryReconciliationReport"
+            and record.get("outcome") in {"selectedInput", "reconciledReleaseAuthorized"}
         )
     ]
     if not governed_records:
         return failures, evaluations
     if not isinstance(graph, Mapping):
-        return [
-            "governance authorization requires an object-form Rulespec graph"
-        ], []
+        return ["governance authorization requires an object-form Rulespec graph"], []
     if not isinstance(graph_id, str) or graph_digest is None:
-        return [
-            "governance authorization requires the exact graph identifier and digest"
-        ], []
+        return ["governance authorization requires the exact graph identifier and digest"], []
 
     nodes = _rulespec_nodes(graph)
     consumers = [
-        identifier
-        for identifier, types in node_types.items()
-        if RULESPEC_BRIDGE_CONSUMER_REGISTRATION in types
+        identifier for identifier, types in node_types.items() if RULESPEC_BRIDGE_CONSUMER_REGISTRATION in types
     ]
     runtime_pin = {
         "id": validator.behavior_component_id,
@@ -1138,22 +1165,12 @@ def _governance_authorization_evaluations(
             failures.append("authorizing REF record has no stable identifier")
             continue
         record_type = governance_record.get("type")
-        is_reconciliation = record_type == (
-            "urn:ref:type:RegistryReconciliationReport"
-        )
+        is_reconciliation = record_type == ("urn:ref:type:RegistryReconciliationReport")
         label = f"{governance_record_id}: governance authorization"
         decision_failures: list[str] = []
-        scope_source = governance_record.get(
-            "precedencePolicy" if is_reconciliation else "environment"
-        )
-        scope = (
-            scope_source.get("id")
-            if isinstance(scope_source, Mapping)
-            else None
-        )
-        effective_at = governance_record.get(
-            "recordedAt" if is_reconciliation else "effectiveAt"
-        )
+        scope_source = governance_record.get("precedencePolicy" if is_reconciliation else "environment")
+        scope = scope_source.get("id") if isinstance(scope_source, Mapping) else None
+        effective_at = governance_record.get("recordedAt" if is_reconciliation else "effectiveAt")
         if not isinstance(scope, str):
             decision_failures.append(f"{label} has no derived scope identifier")
         try:
@@ -1166,20 +1183,10 @@ def _governance_authorization_evaluations(
             evaluation_time = None
 
         attestation_refs = _string_values(
-            governance_record.get(
-                "attestationRefs"
-                if is_reconciliation
-                else "rulespecAttestationRefs"
-            )
+            governance_record.get("attestationRefs" if is_reconciliation else "rulespecAttestationRefs")
         )
-        adoption_refs = _string_values(
-            governance_record.get("localAdoptionRefs")
-        )
-        authority_refs = (
-            _string_values(governance_record.get("rulespecAuthorityRefs"))
-            if is_reconciliation
-            else ()
-        )
+        adoption_refs = _string_values(governance_record.get("localAdoptionRefs"))
+        authority_refs = _string_values(governance_record.get("rulespecAuthorityRefs")) if is_reconciliation else ()
         if not attestation_refs:
             decision_failures.append(f"{label} names no Rulespec attestation")
         if not adoption_refs:
@@ -1196,27 +1203,16 @@ def _governance_authorization_evaluations(
             if isinstance(target, str):
                 adoption_targets.add(target)
             else:
-                decision_failures.append(
-                    f"{adoption_label} has no target assertion"
-                )
+                decision_failures.append(f"{adoption_label} has no target assertion")
             if adoption.get("rkaf:adoptionStatus") != "rkaf:active":
                 decision_failures.append(f"{adoption_label} is not active")
             if scope is not None and adoption.get("rkaf:adoptionScope") != scope:
-                decision_failures.append(
-                    f"{adoption_label} does not use deployment scope {scope!r}"
-                )
-            if (
-                adoption.get("rkaf:usageEligibility")
-                not in AUTHORIZED_LEVELS
-            ):
-                decision_failures.append(
-                    f"{adoption_label} grants less than {AUTHORIZATION_MINIMUM}"
-                )
+                decision_failures.append(f"{adoption_label} does not use deployment scope {scope!r}")
+            if adoption.get("rkaf:usageEligibility") not in AUTHORIZED_LEVELS:
+                decision_failures.append(f"{adoption_label} grants less than {AUTHORIZATION_MINIMUM}")
             based_on = adoption.get("rkaf:basedOnAttestation")
             if based_on not in attestation_refs:
-                decision_failures.append(
-                    f"{adoption_label} is not based on a named attestation"
-                )
+                decision_failures.append(f"{adoption_label} is not based on a named attestation")
             if evaluation_time is not None:
                 try:
                     adopted_at = _timestamp(
@@ -1227,32 +1223,22 @@ def _governance_authorization_evaluations(
                     decision_failures.append(str(error))
                 else:
                     if adopted_at > evaluation_time:
-                        decision_failures.append(
-                            f"{adoption_label} was recorded after the "
-                            "deployment evaluation time"
-                        )
+                        decision_failures.append(f"{adoption_label} was recorded after the deployment evaluation time")
 
         subject = next(iter(adoption_targets)) if len(adoption_targets) == 1 else None
         if subject is None:
-            decision_failures.append(
-                f"{label} local adoptions do not target exactly one assertion"
-            )
+            decision_failures.append(f"{label} local adoptions do not target exactly one assertion")
         elif node_types.get(subject, frozenset()).isdisjoint(ASSERTION_TYPES):
-            decision_failures.append(
-                f"{label} target {subject!r} is not a Rulespec assertion"
-            )
+            decision_failures.append(f"{label} target {subject!r} is not a Rulespec assertion")
         if subject is not None and authority_refs:
             assertion = nodes.get(subject)
             asserted_authorities = (
-                set(_string_values(assertion.get("rkaf:hasAuthority")))
-                if assertion is not None
-                else set()
+                set(_string_values(assertion.get("rkaf:hasAuthority"))) if assertion is not None else set()
             )
             missing_authorities = set(authority_refs) - asserted_authorities
             if missing_authorities:
                 decision_failures.append(
-                    f"{label} assertion does not name declared authorities "
-                    f"{sorted(missing_authorities)!r}"
+                    f"{label} assertion does not name declared authorities {sorted(missing_authorities)!r}"
                 )
 
         for attestation_id in attestation_refs:
@@ -1261,12 +1247,8 @@ def _governance_authorization_evaluations(
             if attestation is None:
                 decision_failures.append(f"{attestation_label} is missing")
                 continue
-            if subject is not None and subject not in _string_values(
-                attestation.get("rkaf:targets")
-            ):
-                decision_failures.append(
-                    f"{attestation_label} does not target {subject!r}"
-                )
+            if subject is not None and subject not in _string_values(attestation.get("rkaf:targets")):
+                decision_failures.append(f"{attestation_label} does not target {subject!r}")
             if evaluation_time is not None:
                 failure = _attestation_is_effective(
                     attestation,
@@ -1282,17 +1264,12 @@ def _governance_authorization_evaluations(
         if len(consumers) == 1:
             evaluation_consumer = consumers[0]
         elif len(consumers) > 1 and scope is not None:
-            matching = [
-                identifier
-                for identifier in consumers
-                if nodes[identifier].get("rkaf:consumer") == scope
-            ]
+            matching = [identifier for identifier in consumers if nodes[identifier].get("rkaf:consumer") == scope]
             if len(matching) == 1:
                 evaluation_consumer = matching[0]
             else:
                 decision_failures.append(
-                    f"{label} cannot select one Rulespec consumer registration "
-                    f"for scope {scope!r}"
+                    f"{label} cannot select one Rulespec consumer registration for scope {scope!r}"
                 )
 
         if decision_failures:
@@ -1336,9 +1313,7 @@ def _governance_authorization_evaluations(
 
         digest_key = binding.digest_field(governance_record)
         governance_record_digest = governance_record.get(digest_key)
-        if governance_record_digest != binding.canonical_payload_digest(
-            governance_record
-        ):
+        if governance_record_digest != binding.canonical_payload_digest(governance_record):
             failures.append(f"{label} does not carry its exact canonical digest")
             continue
         output = {"byScope": {scope: effective_level}}
@@ -1414,10 +1389,7 @@ def validate_release_graph_bundle(
 
     declared_digest = bundle.get("rulespecGraphDigest")
     graph_identifier = bundle.get("rulespecGraphId")
-    if (
-        not isinstance(graph_identifier, str)
-        or not re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*:[^\s]+", graph_identifier)
-    ):
+    if not isinstance(graph_identifier, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*:[^\s]+", graph_identifier):
         cross_failures.append("rulespecGraphId must be an absolute IRI")
     if bundle.get("graphDigestAlgorithm") != GRAPH_DIGEST_ALGORITHM:
         cross_failures.append(f"graphDigestAlgorithm must be {GRAPH_DIGEST_ALGORITHM!r}")
@@ -1442,9 +1414,7 @@ def validate_release_graph_bundle(
             )
         receipt_digest = receipt.get("graphDigest")
         if receipt.get("graphId") != graph_identifier:
-            cross_failures.append(
-                "validatorReceipt.graphId does not match rulespecGraphId"
-            )
+            cross_failures.append("validatorReceipt.graphId does not match rulespecGraphId")
         if receipt_digest != declared_digest:
             cross_failures.append("validatorReceipt.graphDigest does not match rulespecGraphDigest")
         if computed_digest is not None and receipt_digest != computed_digest:
@@ -1462,11 +1432,7 @@ def validate_release_graph_bundle(
                 f"Rulespec graph; missing={missing!r}, unexpected={unexpected!r}"
             )
 
-    ref_identifiers = {
-        record.get("id")
-        for record in records
-        if isinstance(record.get("id"), str)
-    }
+    ref_identifiers = {record.get("id") for record in records if isinstance(record.get("id"), str)}
     for record in records:
         record_identifier = record.get("id")
         if not isinstance(record_identifier, str):
@@ -1487,10 +1453,7 @@ def validate_release_graph_bundle(
                     "node has no @type"
                 )
                 continue
-            if (
-                requirement.expected_types is not None
-                and asserted_types.isdisjoint(requirement.expected_types)
-            ):
+            if requirement.expected_types is not None and asserted_types.isdisjoint(requirement.expected_types):
                 cross_failures.append(
                     f"{record_identifier}{requirement.path} requires "
                     f"{requirement.identifier!r} to have one of "
@@ -1543,15 +1506,12 @@ def validate_release_graph_bundle(
     dependency = validator.dependency_manifest
     if dependency is not None:
         for record in records:
-            if record.get("type") != (
-                "urn:ref:type:PublicationReleaseManifest"
-            ):
+            if record.get("type") != ("urn:ref:type:PublicationReleaseManifest"):
                 continue
             declared = record.get("rulespecDependency")
             if not isinstance(declared, Mapping):
                 cross_failures.append(
-                    f"{record.get('id')}: PublicationReleaseManifest has no "
-                    "Rulespec dependency object"
+                    f"{record.get('id')}: PublicationReleaseManifest has no Rulespec dependency object"
                 )
                 continue
             expected_fields = {
@@ -1559,12 +1519,8 @@ def validate_release_graph_bundle(
                 "contractRevision": dependency.get("contractRevision"),
                 "evidenceRevision": dependency.get("evidenceRevision"),
                 "constraintDigest": dependency.get("constraintDigest"),
-                "conformanceCorpusDigest": dependency.get(
-                    "conformanceCorpusDigest"
-                ),
-                "releaseAvailability": dependency.get(
-                    "releaseAvailability"
-                ),
+                "conformanceCorpusDigest": dependency.get("conformanceCorpusDigest"),
+                "releaseAvailability": dependency.get("releaseAvailability"),
             }
             for field_name, expected in expected_fields.items():
                 if declared.get(field_name) != expected:
@@ -1581,23 +1537,16 @@ def validate_release_graph_bundle(
             }
             if declared_validator != expected_validator:
                 cross_failures.append(
-                    f"{record.get('id')}: rulespecDependency.validator does "
-                    "not match the exact gate validator"
+                    f"{record.get('id')}: rulespecDependency.validator does not match the exact gate validator"
                 )
 
-    behavior_failures, behavior_evaluations = (
-        _governance_authorization_evaluations(
-            records=records,
-            graph=graph,
-            graph_id=(
-                graph_identifier
-                if isinstance(graph_identifier, str)
-                else None
-            ),
-            graph_digest=computed_digest,
-            node_types=graph_node_types,
-            validator=validator,
-        )
+    behavior_failures, behavior_evaluations = _governance_authorization_evaluations(
+        records=records,
+        graph=graph,
+        graph_id=(graph_identifier if isinstance(graph_identifier, str) else None),
+        graph_digest=computed_digest,
+        node_types=graph_node_types,
+        validator=validator,
     )
     cross_failures.extend(behavior_failures)
     if _authorization_evaluations is not None:
@@ -1634,25 +1583,16 @@ def issue_release_graph_validation_receipt(
             *(f"RULESPEC: {value}" for value in report.rulespec_failures),
             *(f"CROSS: {value}" for value in report.cross_boundary_failures),
         ]
-        raise ValueError(
-            "release-graph validation receipt was not issued: "
-            + " | ".join(failures)
-        )
+        raise ValueError("release-graph validation receipt was not issued: " + " | ".join(failures))
 
     records_value = bundle.get("refRecords")
     graph = bundle.get("rulespecGraph")
     cross_references = bundle.get("crossReferences")
-    if (
-        not isinstance(records_value, list)
-        or not isinstance(graph, dict)
-        or not isinstance(cross_references, list)
-    ):
+    if not isinstance(records_value, list) or not isinstance(graph, dict) or not isinstance(cross_references, list):
         raise TypeError("passing release-graph bundle has an invalid shape")
     graph_id = bundle.get("rulespecGraphId")
     if not isinstance(graph_id, str) or not graph_id:
-        raise ValueError(
-            "receipt issuance requires an external Rulespec graph identifier"
-        )
+        raise ValueError("receipt issuance requires an external Rulespec graph identifier")
 
     record_references: list[dict[str, str]] = []
     for index, value in enumerate(records_value):
@@ -1662,31 +1602,17 @@ def issue_release_graph_validation_receipt(
         digest_key = binding.digest_field(value)
         digest = value.get(digest_key)
         expected = binding.canonical_payload_digest(value)
-        if (
-            not isinstance(identifier, str)
-            or not identifier
-            or digest != expected
-        ):
-            raise ValueError(
-                f"refRecords[{index}] cannot be bound to an exact canonical digest"
-            )
+        if not isinstance(identifier, str) or not identifier or digest != expected:
+            raise ValueError(f"refRecords[{index}] cannot be bound to an exact canonical digest")
         record_references.append({"id": identifier, "digest": expected})
     record_references.sort(key=lambda item: (item["id"], item["digest"]))
     if len({item["id"] for item in record_references}) != len(record_references):
         raise ValueError("receipt issuance requires unique REF record identifiers")
 
     dependency_bytes = rulespec_dependency_bytes(dependency_manifest)
-    dependency_digest = (
-        "sha256:" + hashlib.sha256(dependency_bytes).hexdigest()
-    )
-    if (
-        not validator.dependency_manifest_digest
-        or validator.dependency_manifest_digest != dependency_digest
-    ):
-        raise ValueError(
-            "receipt dependency manifest does not match the manifest that "
-            "loaded the Rulespec validator"
-        )
+    dependency_digest = "sha256:" + hashlib.sha256(dependency_bytes).hexdigest()
+    if not validator.dependency_manifest_digest or validator.dependency_manifest_digest != dependency_digest:
+        raise ValueError("receipt dependency manifest does not match the manifest that loaded the Rulespec validator")
     validator_digest = validator.component_digest or canonical_value_digest(
         {
             "identity": validator.identity,
@@ -1694,18 +1620,13 @@ def issue_release_graph_validation_receipt(
             "evidenceRevision": validator.evidence_revision,
         }
     )
-    behavior_runtime_digest = (
-        validator.behavior_component_digest
-        or canonical_value_digest(
-            {
-                "identity": validator.behavior_component_id,
-                "sourceRevision": validator.source_revision,
-            }
-        )
+    behavior_runtime_digest = validator.behavior_component_digest or canonical_value_digest(
+        {
+            "identity": validator.behavior_component_id,
+            "sourceRevision": validator.source_revision,
+        }
     )
-    gate_digest = (
-        "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    )
+    gate_digest = "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     receipt = {
         "id": receipt_id,
         "type": "urn:ref:type:ReleaseGraphValidationReceipt",
@@ -1745,16 +1666,12 @@ def issue_release_graph_validation_receipt(
             "crossBoundary": "pass",
         },
         "authorizationEvaluations": authorization_evaluations,
-        "coveredRulespecIdentifiers": sorted(
-            defined_rulespec_identifiers(graph)
-        ),
+        "coveredRulespecIdentifiers": sorted(defined_rulespec_identifiers(graph)),
         "crossReferencesDigest": canonical_value_digest(cross_references),
         "validatedAt": recorded_at,
         "activity": activity,
     }
-    receipt["canonicalPayloadDigest"] = binding.canonical_payload_digest(
-        receipt
-    )
+    receipt["canonicalPayloadDigest"] = binding.canonical_payload_digest(receipt)
     diagnostics = binding.validate([receipt])
     if diagnostics:
         raise ValueError(
@@ -1818,10 +1735,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = validate_release_graph_bundle(bundle, validator=validator)
         if report.passed and args.issue_receipt is not None:
             recorded_at = args.recorded_at or (
-                dt.datetime.now(dt.timezone.utc)
-                .replace(microsecond=0)
-                .isoformat()
-                .replace("+00:00", "Z")
+                dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
             )
             try:
                 receipt = issue_release_graph_validation_receipt(
@@ -1839,9 +1753,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             except (OSError, TypeError, ValueError) as error:
                 report = ReleaseGraphGateReport(
-                    cross_boundary_failures=(
-                        f"could not issue validation receipt: {error}",
-                    )
+                    cross_boundary_failures=(f"could not issue validation receipt: {error}",)
                 )
 
     if args.json:

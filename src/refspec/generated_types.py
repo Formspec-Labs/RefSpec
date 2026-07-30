@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:8db9b2882256ed0f03e11b72649000ed0fb9b1f172e790c3003e364fa0165d1e"
+MODEL_SHA256 = "sha256:ffc461752ab780a3ba97c0dda2f7bcd41b443e5bea1eae13940a7ef39388bb53"
 
 
 class REFRecordData(TypedDict, total=False):
@@ -127,6 +127,7 @@ class IndexedVocabularyExpressionData(REFRecordData, total=False):
     distributionArtifact: Required[Any]
     member: Required[Any]
     scheme: Required[Any]
+    semanticProperty: Required[Any]
     sourceProperty: NotRequired[Any]
     sourcePath: NotRequired[Any]
     originalLiteral: Required[Any]
@@ -194,6 +195,8 @@ class RegistryDeploymentDecisionData(REFRecordData, total=False):
     canonicalPayloadDigest: Required[Any]
     environment: Required[dict[str, Any]]
     registryImportSnapshot: Required[Any]
+    rightsAssessment: Required[Any]
+    adoptedPolicyRefs: Required[list[Any]]
     referenceResourceRelease: Required[Any]
     coverageReport: Required[Any]
     reconciliationReport: NotRequired[Any]

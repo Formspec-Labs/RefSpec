@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
+from types import MappingProxyType
 
 import pyarrow.parquet as pq
 import pytest
 
 import refspec.release_graph as release_graph_module
 from refspec import (
+    ManagedReleaseAuthorizationError,
     ManagedReleaseError,
     ManagedReleaseView,
     canonical_text_digest,
+    indexed_expression_id,
     seal_payload,
 )
 from refspec.generated_rulespec_dependency import RULESPEC_DEPENDENCY_BYTES
@@ -39,29 +42,36 @@ RELEASE_ID = "urn:rkaf:fixture:release:digest-vector"
 SCHEME_ID = "urn:rkaf:fixture:resource:topics"
 MEMBER_ID = "urn:rkaf:fixture:concept:income"
 ELIGIBILITY_MEMBER_ID = "urn:rkaf:fixture:concept:eligibility"
-DISTRIBUTION_ID = (
-    "urn:rkaf:fixture:distribution:digest-vector-jsonld"
-)
-SECOND_DISTRIBUTION_ID = (
-    "urn:rkaf:fixture:distribution:digest-vector-turtle"
-)
+DISTRIBUTION_ID = "urn:rkaf:fixture:distribution:digest-vector-jsonld"
+SECOND_DISTRIBUTION_ID = "urn:rkaf:fixture:distribution:digest-vector-turtle"
 LIFECYCLE_EVENT_ID = "urn:rkaf:fixture:lifecycle:income-deprecation"
 MAPPING_ID = "urn:rkaf:fixture:mapping:income-eligibility"
 CORPUS_ID = "urn:test:expression-corpus:subjects:v1"
-EXPRESSION_ID = "urn:test:indexed-expression:water:en"
-ELIGIBILITY_EXPRESSION_ID = (
-    "urn:test:indexed-expression:eligibility:en"
+EXPRESSION_ID = (
+    "urn:ref:indexed-expression:"
+    "ba926eb760fec851d37bbec4a2fb60d9423b2554e3d89b5f432f334bc75e4f9b"
 )
+ELIGIBILITY_EXPRESSION_ID = (
+    "urn:ref:indexed-expression:"
+    "3dc5a10f9dd6bbd77e235b1ac702b1375b59c0479c2df08f641f17d64b67c732"
+)
+CORPUS_DIGEST = (
+    "sha256:"
+    "246435c660ddaf3902741c347c6301f425c2aeae002dc764fc7c2e8ddd33f18d"
+)
+IMPORT_ID = "urn:test:import:subjects:v1"
+IMPORT_ACTIVITY_ID = "urn:test:activity:import"
 RECEIPT_ID = "urn:test:run-receipt:subjects:v1"
 PUBLICATION_ID = "urn:test:publication-release:subjects:v1"
 CONFORMANCE_RESULT_ID = "urn:test:rulespec-conformance-result:subjects:v1"
 COMBINED_RECEIPT_ID = "urn:test:combined-validation-receipt:subjects:v1"
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
-RELEASE_DIGEST = (
-    "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431"
-)
+GENERAL_SUBJECT_FACET_IRI = "urn:ref:facet:general-subject"
+ASSIGNMENT_PRIMARY_IRI = "https://rulespec.org/ns/v1#assignmentPrimary"
+RELEASE_DIGEST = "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431"
 _TABLE_COLUMNS_FOR_TEST = {
+    "concept_labels": CONCEPT_LABEL_COLUMNS,
     "concept_relations": CONCEPT_RELATION_COLUMNS,
     "concept_event_participants": CONCEPT_EVENT_PARTICIPANT_COLUMNS,
 }
@@ -93,6 +103,118 @@ def _open_view(path: Path) -> ManagedReleaseView:
     )
 
 
+def _with_selected_candidate_permission(
+    view: ManagedReleaseView,
+) -> ManagedReleaseView:
+    release_reference = {
+        "id": RELEASE_ID,
+        "version": "2026.07.28",
+        "digest": RELEASE_DIGEST,
+    }
+    import_snapshot = dict(view._records_by_id[IMPORT_ID])
+    import_reference = {
+        "id": IMPORT_ID,
+        "digest": import_snapshot["canonicalPayloadDigest"],
+    }
+    enrichment_profile = {
+        "id": "urn:test:enrichment-profile:subjects:v1",
+        "type": "urn:ref:type:EnrichmentProfile",
+        "contentDigest": DIGEST_A,
+        "facets": [
+            {
+                "iri": GENERAL_SUBJECT_FACET_IRI,
+                "compatibleAssignmentPredicates": [ASSIGNMENT_PRIMARY_IRI],
+                "compatibleResourceRoutes": ["document"],
+            }
+        ],
+    }
+    output_profile = {
+        "id": "urn:test:output-profile:subjects:v1",
+        "type": "urn:ref:type:OutputProfile",
+        "contentDigest": DIGEST_B,
+        "enrichmentProfile": {
+            "id": enrichment_profile["id"],
+            "digest": enrichment_profile["contentDigest"],
+        },
+        "releasePermissions": [
+            {
+                "facet": GENERAL_SUBJECT_FACET_IRI,
+                "assignmentRole": ASSIGNMENT_PRIMARY_IRI,
+                "referenceResourceRelease": release_reference,
+                "registryImportSnapshot": import_reference,
+                "candidateUse": True,
+                "acceptedOutputUse": False,
+                "requiredImportFeatures": ["labels", "status"],
+            }
+        ],
+    }
+    coverage_report = {
+        "id": "urn:test:coverage:subjects:v1",
+        "type": "urn:ref:type:RegistryImportCoverageReport",
+        "canonicalPayloadDigest": DIGEST_A,
+        "reportStatus": "pass",
+        "outputProfile": {
+            "id": output_profile["id"],
+            "digest": output_profile["contentDigest"],
+        },
+        "referenceResourceRelease": release_reference,
+        "registryImportSnapshot": import_reference,
+        "features": [
+            {
+                "feature": feature,
+                "requiredForCandidateOrOutput": True,
+                "parsedCount": 2,
+                "indexedCount": 2,
+                "failedCount": 0,
+            }
+            for feature in ("labels", "status")
+        ],
+    }
+    deployment = {
+        "id": "urn:test:registry-deployment:subjects:v1",
+        "type": "urn:ref:type:RegistryDeploymentDecision",
+        "canonicalPayloadDigest": DIGEST_B,
+        "selectionState": "selected",
+        "outputProfile": {
+            "id": output_profile["id"],
+            "digest": output_profile["contentDigest"],
+        },
+        "coverageReport": {
+            "id": coverage_report["id"],
+            "digest": coverage_report["canonicalPayloadDigest"],
+        },
+        "referenceResourceRelease": release_reference,
+        "registryImportSnapshot": import_reference,
+        "rightsAssessment": import_snapshot["rightsAssessment"],
+        "adoptedPolicyRefs": import_snapshot["adoptedPolicyRefs"],
+    }
+    return replace(
+        view,
+        _records_by_id=MappingProxyType(
+            {
+                str(record["id"]): MappingProxyType(record)
+                for record in (
+                    import_snapshot,
+                    enrichment_profile,
+                    output_profile,
+                    coverage_report,
+                    deployment,
+                )
+            }
+        ),
+    )
+
+
+def _candidate_expressions(
+    view: ManagedReleaseView,
+):
+    return view.iter_candidate_expressions(
+        facet_iri=GENERAL_SUBJECT_FACET_IRI,
+        assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
+        resource_route="document",
+    )
+
+
 def build_bundle(root: Path) -> Path:
     graph = {
         "@context": {
@@ -107,9 +229,7 @@ def build_bundle(root: Path) -> Path:
                 "@id": SCHEME_ID,
                 "@type": "rkaf:ConceptScheme",
                 "skos:prefLabel": {"en": "Policy topics"},
-                "skos:definition": {
-                    "en": "A governed scheme for policy subject concepts."
-                },
+                "skos:definition": {"en": "A governed scheme for policy subject concepts."},
                 "skos:hasTopConcept": [ELIGIBILITY_MEMBER_ID],
                 "rkaf:schemeFacet": "urn:rkaf:facet:topic",
                 "rkaf:managedByRegistry": "urn:test:registry:subjects",
@@ -160,14 +280,22 @@ def build_bundle(root: Path) -> Path:
             {
                 "@id": SECOND_DISTRIBUTION_ID,
                 "@type": "rkaf:Artifact",
-                "rkaf:hasArtifactIdentifier": [
-                    SECOND_DISTRIBUTION_ID
-                ],
-                "rkaf:artifactIdentifierScheme": [
-                    "rkaf:partner-defined"
-                ],
+                "rkaf:hasArtifactIdentifier": [SECOND_DISTRIBUTION_ID],
+                "rkaf:artifactIdentifierScheme": ["rkaf:partner-defined"],
                 "dcterms:format": "text/turtle",
                 "rkaf:hasContentDigest": DIGEST_B,
+            },
+            {
+                "@id": CONFORMANCE_RESULT_ID,
+                "@type": "rkaf:Artifact",
+                "rkaf:hasArtifactIdentifier": [CONFORMANCE_RESULT_ID],
+                "rkaf:artifactIdentifierScheme": ["rkaf:partner-defined"],
+                "dcterms:format": "application/json",
+                "rkaf:hasContentDigest": DIGEST_B,
+            },
+            {
+                "@id": IMPORT_ACTIVITY_ID,
+                "@type": "prov:Activity",
             },
             {
                 "@id": LIFECYCLE_EVENT_ID,
@@ -199,9 +327,7 @@ def build_bundle(root: Path) -> Path:
     graph_path = root / "rulespec" / "release.jsonld"
     _write_json(graph_path, graph)
 
-    dependency_manifest = json.loads(
-        RULESPEC_DEPENDENCY_BYTES.decode("utf-8")
-    )
+    dependency_manifest = json.loads(RULESPEC_DEPENDENCY_BYTES.decode("utf-8"))
     dependency_path = root / "rulespec" / "rulespec-dependency.json"
     dependency_path.parent.mkdir(parents=True, exist_ok=True)
     dependency_path.write_bytes(RULESPEC_DEPENDENCY_BYTES)
@@ -212,15 +338,9 @@ def build_bundle(root: Path) -> Path:
         "digest": canonical_value_digest(
             {
                 "identity": dependency_manifest["validator"]["identity"],
-                "sourceRevision": dependency_manifest["validator"][
-                    "sourceRevision"
-                ],
-                "selfCertificationSha256": dependency_manifest["validator"][
-                    "selfCertificationSha256"
-                ],
-                "generatedArtifacts": dependency_manifest[
-                    "generatedArtifacts"
-                ],
+                "sourceRevision": dependency_manifest["validator"]["sourceRevision"],
+                "selfCertificationSha256": dependency_manifest["validator"]["selfCertificationSha256"],
+                "generatedArtifacts": dependency_manifest["generatedArtifacts"],
             }
         ),
     }
@@ -230,12 +350,8 @@ def build_bundle(root: Path) -> Path:
         "digest": canonical_value_digest(
             {
                 "identity": "rkaf-behavior-validate",
-                "sourceRevision": dependency_manifest["validator"][
-                    "sourceRevision"
-                ],
-                "evidenceRevision": dependency_manifest[
-                    "evidenceRevision"
-                ],
+                "sourceRevision": dependency_manifest["validator"]["sourceRevision"],
+                "evidenceRevision": dependency_manifest["evidenceRevision"],
                 "sourcePaths": [
                     "crates/rkaf-runtime",
                     "crates/rkaf-runtime-cli",
@@ -246,10 +362,7 @@ def build_bundle(root: Path) -> Path:
     gate_pin = {
         "id": RELEASE_GRAPH_GATE_COMPONENT_ID,
         "revision": RELEASE_GRAPH_GATE_VERSION,
-        "digest": "sha256:"
-        + hashlib.sha256(
-            Path(release_graph_module.__file__).read_bytes()
-        ).hexdigest(),
+        "digest": "sha256:" + hashlib.sha256(Path(release_graph_module.__file__).read_bytes()).hexdigest(),
     }
 
     receipt = seal_payload(
@@ -273,7 +386,7 @@ def build_bundle(root: Path) -> Path:
                 "startedAt": "2026-07-29T16:59:00Z",
                 "endedAt": "2026-07-29T17:00:00Z",
             },
-            "rulespecActivityRefs": ["urn:test:activity:import"],
+            "rulespecActivityRefs": [IMPORT_ACTIVITY_ID],
             "rulespecAgentRefs": ["urn:test:agent:import"],
             "rulespecOutputRefs": [RELEASE_ID],
             "environmentLock": {
@@ -299,7 +412,70 @@ def build_bundle(root: Path) -> Path:
     receipt_path = root / "records" / "run-receipt.json"
     _write_json(receipt_path, receipt)
 
-    corpus_snapshot = {"id": CORPUS_ID, "digest": DIGEST_A}
+    import_snapshot = seal_payload(
+        {
+            "id": IMPORT_ID,
+            "type": "urn:ref:type:RegistryImportSnapshot",
+            "recordedAt": "2026-07-29T17:00:15Z",
+            "recordedBy": "urn:test:agent:import",
+            "schemaVersion": "1.0",
+            "operationalState": "complete",
+            "inventoryCoverageComponent": ("urn:test:inventory-component:subjects:v1"),
+            "importProfile": {
+                "id": "urn:test:import-profile:subjects",
+                "version": "1",
+                "digest": DIGEST_A,
+            },
+            "captures": [],
+            "externalReferences": ["https://example.test/vocabularies/subjects/2026.07.28"],
+            "referenceResourceRelease": {
+                "id": RELEASE_ID,
+                "version": "2026.07.28",
+                "digest": RELEASE_DIGEST,
+            },
+            "distributionArtifacts": [
+                {
+                    "id": DISTRIBUTION_ID,
+                    "digest": DIGEST_A,
+                },
+                {
+                    "id": SECOND_DISTRIBUTION_ID,
+                    "digest": DIGEST_B,
+                },
+            ],
+            "rightsAssessment": {
+                "id": "urn:test:rights-assessment:subjects:v1",
+                "digest": DIGEST_A,
+            },
+            "adoptedPolicyRefs": ["urn:test:policy:external-vocabulary-use:v1"],
+            "transformation": {
+                "id": "urn:test:implementation:subjects-parser",
+                "revision": "1",
+                "digest": DIGEST_A,
+            },
+            "exclusions": [],
+            "failures": [],
+            "rulespecValidationResult": {
+                "id": CONFORMANCE_RESULT_ID,
+                "digest": DIGEST_B,
+            },
+            "refValidationResult": {
+                "id": "urn:test:validation-result:subjects:v1",
+                "digest": DIGEST_B,
+            },
+            "expectedRefreshCadence": "fixture-frozen",
+            "activity": IMPORT_ACTIVITY_ID,
+            "receipt": RECEIPT_ID,
+        }
+    )
+    import_snapshot_path = root / "records" / "import-snapshot.json"
+    _write_json(import_snapshot_path, import_snapshot)
+    import_reference = {
+        "id": IMPORT_ID,
+        "digest": import_snapshot["canonicalPayloadDigest"],
+    }
+
+    corpus_snapshot = {"id": CORPUS_ID, "digest": CORPUS_DIGEST}
     publication = seal_payload(
         {
             "id": PUBLICATION_ID,
@@ -317,27 +493,17 @@ def build_bundle(root: Path) -> Path:
             },
             "rulespecDependency": {
                 "version": dependency_manifest["rulespecVersion"],
-                "contractRevision": dependency_manifest[
-                    "contractRevision"
-                ],
-                "evidenceRevision": dependency_manifest[
-                    "evidenceRevision"
-                ],
-                "constraintDigest": dependency_manifest[
-                    "constraintDigest"
-                ],
-                "conformanceCorpusDigest": dependency_manifest[
-                    "conformanceCorpusDigest"
-                ],
+                "contractRevision": dependency_manifest["contractRevision"],
+                "evidenceRevision": dependency_manifest["evidenceRevision"],
+                "constraintDigest": dependency_manifest["constraintDigest"],
+                "conformanceCorpusDigest": dependency_manifest["conformanceCorpusDigest"],
                 "adoptedProfiles": ["urn:rulespec:profile:refspec"],
                 "validator": validator_pin,
                 "conformanceResult": {
                     "id": CONFORMANCE_RESULT_ID,
                     "digest": DIGEST_B,
                 },
-                "releaseAvailability": dependency_manifest[
-                    "releaseAvailability"
-                ],
+                "releaseAvailability": dependency_manifest["releaseAvailability"],
             },
             "claimedConformanceLevels": [
                 "REF JSON Binding 1.0",
@@ -348,7 +514,8 @@ def build_bundle(root: Path) -> Path:
                 {
                     "id": RECEIPT_ID,
                     "digest": receipt["canonicalPayloadDigest"],
-                }
+                },
+                import_reference,
             ],
             "rulespecReleaseGraph": {
                 "id": GRAPH_ID,
@@ -383,8 +550,7 @@ def build_bundle(root: Path) -> Path:
                 "digest": RELEASE_DIGEST,
             },
             "registryImportSnapshot": {
-                "id": "urn:test:import:subjects:v1",
-                "digest": DIGEST_A,
+                **import_reference,
             },
             "distributionArtifact": {
                 "id": DISTRIBUTION_ID,
@@ -392,9 +558,8 @@ def build_bundle(root: Path) -> Path:
             },
             "scheme": SCHEME_ID,
             "member": MEMBER_ID,
-            "sourceProperty": (
-                "http://www.w3.org/2004/02/skos/core#prefLabel"
-            ),
+            "semanticProperty": ("http://www.w3.org/2004/02/skos/core#prefLabel"),
+            "sourcePath": "source/records/0/prefLabel",
             "originalLiteral": "Poultry slaughter inspection",
             "language": "en",
             "normalizationPolicy": {
@@ -403,9 +568,7 @@ def build_bundle(root: Path) -> Path:
                 "digest": DIGEST_A,
             },
             "indexedText": "poultry slaughter inspection",
-            "indexedTextDigest": canonical_text_digest(
-                "poultry slaughter inspection"
-            ),
+            "indexedTextDigest": canonical_text_digest("poultry slaughter inspection"),
             "indexedRepresentationVersion": "labels-v1",
             "expressionCorpusSnapshot": corpus_snapshot,
             "activity": "urn:test:activity:index",
@@ -423,9 +586,7 @@ def build_bundle(root: Path) -> Path:
             "member": ELIGIBILITY_MEMBER_ID,
             "originalLiteral": "Eligibility policy",
             "indexedText": "eligibility policy",
-            "indexedTextDigest": canonical_text_digest(
-                "eligibility policy"
-            ),
+            "indexedTextDigest": canonical_text_digest("eligibility policy"),
         }
     )
     corpus_path = root / "corpus" / "indexed-expressions.jsonl"
@@ -464,16 +625,7 @@ def build_bundle(root: Path) -> Path:
                     "id": RECEIPT_ID,
                     "digest": receipt["canonicalPayloadDigest"],
                 },
-                {
-                    "id": EXPRESSION_ID,
-                    "digest": expression["canonicalPayloadDigest"],
-                },
-                {
-                    "id": ELIGIBILITY_EXPRESSION_ID,
-                    "digest": eligibility_expression[
-                        "canonicalPayloadDigest"
-                    ],
-                },
+                import_reference,
             ],
             "rulespecValidator": validator_pin,
             "rulespecBehaviorRuntime": behavior_runtime_pin,
@@ -493,6 +645,8 @@ def build_bundle(root: Path) -> Path:
                     ELIGIBILITY_MEMBER_ID,
                     DISTRIBUTION_ID,
                     SECOND_DISTRIBUTION_ID,
+                    CONFORMANCE_RESULT_ID,
+                    IMPORT_ACTIVITY_ID,
                     LIFECYCLE_EVENT_ID,
                     MAPPING_ID,
                 }
@@ -515,11 +669,9 @@ def build_bundle(root: Path) -> Path:
                 "concept_iri": MEMBER_ID,
                 "scheme_iri": SCHEME_ID,
                 "release_iri": RELEASE_ID,
-                "import_snapshot_id": "urn:test:import:subjects:v1",
+                "import_snapshot_id": IMPORT_ID,
                 "distribution_artifact_id": DISTRIBUTION_ID,
-                "source_property_iri": (
-                    "http://www.w3.org/2004/02/skos/core#prefLabel"
-                ),
+                "source_property_iri": ("http://www.w3.org/2004/02/skos/core#prefLabel"),
                 "label_role": "preferred",
                 "original_literal": "Poultry slaughter inspection",
                 "language_tag": "en",
@@ -532,11 +684,9 @@ def build_bundle(root: Path) -> Path:
                 "concept_iri": ELIGIBILITY_MEMBER_ID,
                 "scheme_iri": SCHEME_ID,
                 "release_iri": RELEASE_ID,
-                "import_snapshot_id": "urn:test:import:subjects:v1",
+                "import_snapshot_id": IMPORT_ID,
                 "distribution_artifact_id": SECOND_DISTRIBUTION_ID,
-                "source_property_iri": (
-                    "http://www.w3.org/2004/02/skos/core#prefLabel"
-                ),
+                "source_property_iri": ("http://www.w3.org/2004/02/skos/core#prefLabel"),
                 "label_role": "preferred",
                 "original_literal": "Eligibility policy",
                 "language_tag": "en",
@@ -553,13 +703,11 @@ def build_bundle(root: Path) -> Path:
             {
                 "relation_id": "income-broader-eligibility",
                 "release_iri": RELEASE_ID,
-                "import_snapshot_id": "urn:test:import:subjects:v1",
+                "import_snapshot_id": IMPORT_ID,
                 "distribution_artifact_id": DISTRIBUTION_ID,
                 "subject_concept_iri": MEMBER_ID,
                 "subject_scheme_iri": SCHEME_ID,
-                "predicate_iri": (
-                    "http://www.w3.org/2004/02/skos/core#broader"
-                ),
+                "predicate_iri": ("http://www.w3.org/2004/02/skos/core#broader"),
                 "object_concept_iri": ELIGIBILITY_MEMBER_ID,
                 "object_scheme_iri": SCHEME_ID,
                 "source_property_or_path": "skos:broader",
@@ -576,7 +724,7 @@ def build_bundle(root: Path) -> Path:
                 "operation": "deprecation",
                 "participant_role": "predecessor",
                 "concept_iri": MEMBER_ID,
-                "concept_kind": "registered",
+                "concept_type_iri": ("https://rulespec.org/ns/v1#RegisteredConcept"),
                 "release_iri": RELEASE_ID,
                 "complete_membership": True,
                 "ordinal": 0,
@@ -591,7 +739,10 @@ def build_bundle(root: Path) -> Path:
             publication_path,
             root,
         ),
-        "refRecords": [_descriptor(receipt_path, root)],
+        "refRecords": [
+            _descriptor(receipt_path, root),
+            _descriptor(import_snapshot_path, root),
+        ],
         "rulespecGraph": _descriptor(graph_path, root),
         "rulespecGraphId": GRAPH_ID,
         "rulespecDependencyManifest": _descriptor(
@@ -619,11 +770,55 @@ def build_bundle(root: Path) -> Path:
         "indexedExpressionCorpus": {
             **_descriptor(corpus_path, root),
             "expressionCorpusSnapshot": corpus_snapshot,
+            "recordCount": 2,
+            "schemaVersion": "ref-indexed-expression-corpus-1.0",
+            "canonicalIdentityDigest": CORPUS_DIGEST,
         },
     }
     manifest_path = root / "managed-release-bundle.json"
     _write_json(manifest_path, manifest)
     return manifest_path
+
+
+def _set_source_status(
+    manifest_path: Path,
+    *,
+    member_iri: str,
+    source_status: str,
+) -> None:
+    table_path = manifest_path.parent / "tables" / "concept_labels.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    matching_rows = [row for row in rows if row["concept_iri"] == member_iri]
+    assert matching_rows
+    for row in matching_rows:
+        row["status"] = source_status
+    write_parquet_rows(
+        table_path,
+        columns=CONCEPT_LABEL_COLUMNS,
+        rows=rows,
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == "concept_labels")
+    descriptor.update(_descriptor(table_path, manifest_path.parent))
+    _write_json(manifest_path, manifest)
+
+
+def _replace_normalized_table(
+    manifest_path: Path,
+    *,
+    table_name: str,
+    rows: list[dict[str, object]],
+) -> None:
+    table_path = manifest_path.parent / "tables" / f"{table_name}.parquet"
+    write_parquet_rows(
+        table_path,
+        columns=tuple(_TABLE_COLUMNS_FOR_TEST[table_name]),
+        rows=rows,
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == table_name)
+    descriptor.update(_descriptor(table_path, manifest_path.parent))
+    _write_json(manifest_path, manifest)
 
 
 def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None:
@@ -637,28 +832,22 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
     expression = next(iter(view.iter_expressions(member_iri=MEMBER_ID)))
     assert expression.expression_id == EXPRESSION_ID
     assert expression.indexed_text == "poultry slaughter inspection"
+    assert expression.semantic_property_iri == "http://www.w3.org/2004/02/skos/core#prefLabel"
+    assert expression.source_property_or_path == "source/records/0/prefLabel"
+    assert expression.record["sourcePath"] == "source/records/0/prefLabel"
+    assert expression.label_role == "preferred"
+    assert expression.source_status == "current"
     relation = next(iter(view.iter_relations(subject_member_iri=MEMBER_ID)))
     assert relation.object_member_iri == ELIGIBILITY_MEMBER_ID
-    participant = next(
-        iter(
-            view.iter_lifecycle_participants(
-                event_iri=LIFECYCLE_EVENT_ID
-            )
-        )
-    )
+    participant = next(iter(view.iter_lifecycle_participants(event_iri=LIFECYCLE_EVENT_ID)))
     assert participant.member_iri == MEMBER_ID
     assert participant.participant_role == "predecessor"
-    mapping = next(
-        iter(view.iter_concept_mappings(source_member_iri=MEMBER_ID))
-    )
+    mapping = next(iter(view.iter_concept_mappings(source_member_iri=MEMBER_ID)))
     assert mapping.mapping_iri == MAPPING_ID
     assert mapping.relation_iri == "skos:closeMatch"
     assert mapping.target_member_iri == ELIGIBILITY_MEMBER_ID
     assert view.usage_ceiling == "candidateUseOnly"
-    assert (
-        view.release_graph_validation_receipt["id"]
-        == COMBINED_RECEIPT_ID
-    )
+    assert view.release_graph_validation_receipt["id"] == COMBINED_RECEIPT_ID
 
     with pytest.raises(TypeError):
         member.record["changed"] = True  # type: ignore[index]
@@ -679,9 +868,231 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
 
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     corpus_path.write_text("tampered after open\n", encoding="utf-8")
-    assert next(iter(view.iter_expressions())).indexed_text == (
-        "poultry slaughter inspection"
+    assert next(iter(view.iter_expressions())).indexed_text == ("poultry slaughter inspection")
+
+
+def test_candidate_use_requires_selected_profile(tmp_path: Path) -> None:
+    manifest_path = build_bundle(tmp_path)
+    view = _open_view(manifest_path)
+
+    with pytest.raises(
+        ManagedReleaseAuthorizationError,
+        match="exactly one selected RegistryDeploymentDecision",
+    ):
+        view.require_candidate_use(
+            facet_iri=GENERAL_SUBJECT_FACET_IRI,
+            assignment_role_iri=ASSIGNMENT_PRIMARY_IRI,
+            resource_route="document",
+        )
+    with pytest.raises(
+        ManagedReleaseAuthorizationError,
+        match="exactly one selected RegistryDeploymentDecision",
+    ):
+        tuple(_candidate_expressions(view))
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        (
+            "rightsAssessment",
+            {
+                "id": "urn:test:rights-assessment:other:v1",
+                "digest": DIGEST_B,
+            },
+        ),
+        (
+            "adoptedPolicyRefs",
+            ["urn:test:policy:other-vocabulary-use:v1"],
+        ),
+    ],
+)
+def test_candidate_use_rejects_deployment_rights_that_differ_from_import(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+    deployment = next(
+        record
+        for record in view._records_by_id.values()
+        if record.get("type")
+        == "urn:ref:type:RegistryDeploymentDecision"
     )
+    changed_deployment = dict(deployment)
+    changed_deployment[field] = value
+    records = dict(view._records_by_id)
+    records[str(deployment["id"])] = MappingProxyType(
+        changed_deployment
+    )
+    changed_view = replace(
+        view,
+        _records_by_id=MappingProxyType(records),
+    )
+
+    with pytest.raises(
+        ManagedReleaseAuthorizationError,
+        match="rights and adopted policies differ",
+    ):
+        tuple(_candidate_expressions(changed_view))
+
+
+def test_lifecycle_retirement_only_narrows_candidate_iteration(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+
+    raw = tuple(view.iter_expressions(member_iri=MEMBER_ID))
+    candidates = tuple(_candidate_expressions(view))
+
+    assert raw[0].source_status == "current"
+    assert view.lookup_member(MEMBER_ID) is not None
+    assert MEMBER_ID not in {expression.member_iri for expression in candidates}
+    assert ELIGIBILITY_MEMBER_ID in {expression.member_iri for expression in candidates}
+
+
+@pytest.mark.parametrize(
+    "source_status",
+    ["deprecated", " InAcTiVe ", "WITHDRAWN"],
+)
+def test_source_status_excludes_only_from_candidate_iteration(
+    tmp_path: Path,
+    source_status: str,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    _set_source_status(
+        manifest_path,
+        member_iri=ELIGIBILITY_MEMBER_ID,
+        source_status=source_status,
+    )
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+
+    raw = tuple(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
+    candidates = tuple(_candidate_expressions(view))
+
+    assert raw[0].label_role == "preferred"
+    assert raw[0].source_status == source_status
+    assert view.lookup_member(ELIGIBILITY_MEMBER_ID) is not None
+    assert ELIGIBILITY_MEMBER_ID not in {expression.member_iri for expression in candidates}
+
+
+def test_single_opaque_source_status_does_not_create_lifecycle_meaning(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    _set_source_status(
+        manifest_path,
+        member_iri=ELIGIBILITY_MEMBER_ID,
+        source_status="publisher-status-7",
+    )
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+
+    candidates = tuple(_candidate_expressions(view))
+
+    eligibility = next(expression for expression in candidates if expression.member_iri == ELIGIBILITY_MEMBER_ID)
+    assert eligibility.source_status == "publisher-status-7"
+
+
+def test_candidate_iteration_uses_exact_permission_release_and_import(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+    eligibility = next(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
+    other_release_record = dict(eligibility.record)
+    other_release_record["referenceResourceRelease"] = {
+        "id": "urn:test:release:subjects:v2",
+        "version": "2026.08.01",
+        "digest": DIGEST_B,
+    }
+    other_import_record = dict(eligibility.record)
+    other_import_record["registryImportSnapshot"] = {
+        "id": "urn:test:import:subjects:v2",
+        "digest": DIGEST_B,
+    }
+    extended_view = replace(
+        view,
+        _expressions=(
+            *tuple(view.iter_expressions()),
+            replace(
+                eligibility,
+                expression_id="urn:test:indexed-expression:other-release",
+                source_status="deprecated",
+                record=MappingProxyType(other_release_record),
+            ),
+            replace(
+                eligibility,
+                expression_id="urn:test:indexed-expression:other-import",
+                source_status="inactive",
+                record=MappingProxyType(other_import_record),
+            ),
+        ),
+    )
+
+    candidate_ids = {expression.expression_id for expression in _candidate_expressions(extended_view)}
+
+    assert ELIGIBILITY_EXPRESSION_ID in candidate_ids
+    assert "urn:test:indexed-expression:other-release" not in candidate_ids
+    assert "urn:test:indexed-expression:other-import" not in candidate_ids
+
+
+def test_mixed_source_statuses_fail_closed_for_one_concept(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    view = _with_selected_candidate_permission(_open_view(manifest_path))
+    eligibility = next(view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))
+    mixed_view = replace(
+        view,
+        _expressions=(
+            *tuple(view.iter_expressions()),
+            replace(
+                eligibility,
+                expression_id="urn:test:indexed-expression:eligibility:alt",
+                source_status="publisher-status-7",
+            ),
+        ),
+    )
+
+    assert len(tuple(mixed_view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))) == 2
+    assert ELIGIBILITY_MEMBER_ID not in {expression.member_iri for expression in _candidate_expressions(mixed_view)}
+
+
+def test_indexed_expression_identity_includes_semantic_property() -> None:
+    common = {
+        "reference_resource_release": {
+            "id": RELEASE_ID,
+            "version": "2026.07.28",
+            "digest": RELEASE_DIGEST,
+        },
+        "registry_import_snapshot": {
+            "id": "urn:test:import:subjects:v1",
+            "digest": DIGEST_A,
+        },
+        "distribution_artifact": {
+            "id": DISTRIBUTION_ID,
+            "digest": DIGEST_A,
+        },
+        "scheme_iri": SCHEME_ID,
+        "member_iri": MEMBER_ID,
+        "source_property_or_path": "source/records/0/value",
+        "original_literal": "Poultry slaughter inspection",
+        "language_tag": "en",
+        "datatype_iri": None,
+    }
+
+    preferred_id = indexed_expression_id(
+        **common,
+        semantic_property_iri=("http://www.w3.org/2004/02/skos/core#prefLabel"),
+    )
+    alternate_id = indexed_expression_id(
+        **common,
+        semantic_property_iri=("http://www.w3.org/2004/02/skos/core#altLabel"),
+    )
+
+    assert preferred_id != alternate_id
 
 
 def test_bundle_rejects_artifact_tampering(tmp_path: Path) -> None:
@@ -691,6 +1102,78 @@ def test_bundle_rejects_artifact_tampering(tmp_path: Path) -> None:
 
     with pytest.raises(ManagedReleaseError, match="digest mismatch"):
         _open_view(manifest_path)
+
+
+def test_expression_corpus_record_count_is_an_independent_pin(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["indexedExpressionCorpus"]["recordCount"] = 3
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="recordCount does not match",
+    ):
+        _open_view(manifest_path)
+
+
+def test_expression_corpus_identity_tamper_fails_after_file_repin(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
+    records = [
+        json.loads(line)
+        for line in corpus_path.read_text(encoding="utf-8").splitlines()
+    ]
+    changed = {
+        **records[0],
+        "originalLiteral": "Changed without changing expression identity",
+    }
+    records[0] = seal_payload(changed)
+    corpus_path.write_text(
+        "".join(
+            json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
+            for record in records
+        ),
+        encoding="utf-8",
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["indexedExpressionCorpus"].update(
+        _descriptor(corpus_path, tmp_path)
+    )
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="id does not bind its exact identity",
+    ):
+        _open_view(manifest_path)
+
+
+def test_expression_corpus_file_order_does_not_change_logical_identity(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
+    lines = corpus_path.read_text(encoding="utf-8").splitlines()
+    corpus_path.write_text(
+        "\n".join(reversed(lines)) + "\n",
+        encoding="utf-8",
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["indexedExpressionCorpus"].update(
+        _descriptor(corpus_path, tmp_path)
+    )
+    _write_json(manifest_path, manifest)
+
+    view = _open_view(manifest_path)
+    assert {item.expression_id for item in view.iter_expressions()} == {
+        EXPRESSION_ID,
+        ELIGIBILITY_EXPRESSION_ID,
+    }
 
 
 @pytest.mark.parametrize(
@@ -724,15 +1207,111 @@ def test_bundle_rejects_normalized_rows_that_do_not_round_trip_to_graph(
         rows=rows,
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    descriptor = next(
-        value
-        for value in manifest["normalizedTables"]
-        if value["name"] == table_name
-    )
+    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == table_name)
     descriptor.update(_descriptor(table_path, tmp_path))
     _write_json(manifest_path, manifest)
 
     with pytest.raises(ManagedReleaseError, match="round-trip"):
+        _open_view(manifest_path)
+
+
+def test_bundle_rejects_normalized_row_with_unpackaged_import_snapshot(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    table_path = tmp_path / "tables" / "concept_relations.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    rows[0]["import_snapshot_id"] = "urn:test:import:missing"
+    _replace_normalized_table(
+        manifest_path,
+        table_name="concept_relations",
+        rows=rows,
+    )
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="import snapshot is absent from the bundle",
+    ):
+        _open_view(manifest_path)
+
+
+def test_bundle_rejects_label_role_that_disagrees_with_skos_property(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    table_path = tmp_path / "tables" / "concept_labels.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    rows[0]["label_role"] = "alternate"
+    _replace_normalized_table(
+        manifest_path,
+        table_name="concept_labels",
+        rows=rows,
+    )
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="label role disagrees with its exact SKOS property",
+    ):
+        _open_view(manifest_path)
+
+
+def test_bundle_rejects_duplicate_lifecycle_participant_role_ordinal(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    table_path = tmp_path / "tables" / "concept_event_participants.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    rows.append(dict(rows[0]))
+    _replace_normalized_table(
+        manifest_path,
+        table_name="concept_event_participants",
+        rows=rows,
+    )
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="repeats an event role ordinal",
+    ):
+        _open_view(manifest_path)
+
+
+def test_bundle_rejects_relation_lineage_that_disagrees_with_import_snapshot(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    table_path = tmp_path / "tables" / "concept_relations.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    rows[0]["distribution_artifact_id"] = CONFORMANCE_RESULT_ID
+    _replace_normalized_table(
+        manifest_path,
+        table_name="concept_relations",
+        rows=rows,
+    )
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="import, release, and distribution lineage disagree",
+    ):
+        _open_view(manifest_path)
+
+
+def test_bundle_rejects_lifecycle_participant_concept_type_mismatch(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    table_path = tmp_path / "tables" / "concept_event_participants.parquet"
+    rows = pq.read_table(table_path).to_pylist()
+    rows[0]["concept_type_iri"] = "http://www.w3.org/2004/02/skos/core#Concept"
+    _replace_normalized_table(
+        manifest_path,
+        table_name="concept_event_participants",
+        rows=rows,
+    )
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="concept type does not match the exact member graph",
+    ):
         _open_view(manifest_path)
 
 
@@ -834,9 +1413,7 @@ def test_bundle_rejects_expression_and_lookup_identity_conflation(
 ) -> None:
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["lookupIndexManifest"] = dict(
-        manifest["indexedExpressionCorpus"]["expressionCorpusSnapshot"]
-    )
+    manifest["lookupIndexManifest"] = dict(manifest["indexedExpressionCorpus"]["expressionCorpusSnapshot"])
     _write_json(manifest_path, manifest)
 
     with pytest.raises(ManagedReleaseError, match="conflates"):
@@ -888,7 +1465,7 @@ def test_bundle_rejects_combined_receipt_with_incomplete_ref_coverage(
     receipt["refRecordDigests"] = [
         reference
         for reference in receipt["refRecordDigests"]
-        if reference["id"] != EXPRESSION_ID
+        if reference["id"] != IMPORT_ID
     ]
     receipt = seal_payload(receipt)
     _write_json(receipt_path, receipt)
@@ -958,9 +1535,7 @@ def test_bundle_rejects_uncovered_authorization_evaluation(
             "behaviorTest": {
                 "id": (
                     "urn:ref:behavior-test:governance-authorization:"
-                    + hashlib.sha256(
-                        governance_id.encode("utf-8")
-                    ).hexdigest()
+                    + hashlib.sha256(governance_id.encode("utf-8")).hexdigest()
                 ),
                 "digest": DIGEST_B,
             },
@@ -972,13 +1547,7 @@ def test_bundle_rejects_uncovered_authorization_evaluation(
             "minimumUsageEligibility": "rkaf:localOperationalUse",
             "effectiveUsageEligibility": "rkaf:localOperationalUse",
             "outputDigest": canonical_value_digest(
-                {
-                    "byScope": {
-                        "urn:test:environment:production": (
-                            "rkaf:localOperationalUse"
-                        )
-                    }
-                }
+                {"byScope": {"urn:test:environment:production": ("rkaf:localOperationalUse")}}
             ),
             "runtime": receipt["rulespecBehaviorRuntime"],
             "result": "pass",

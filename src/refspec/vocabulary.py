@@ -13,7 +13,7 @@ import math
 import re
 import unicodedata
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -111,7 +111,7 @@ CONCEPT_EVENT_PARTICIPANT_COLUMNS = (
     "operation",
     "participant_role",
     "concept_iri",
-    "concept_kind",
+    "concept_type_iri",
     "release_iri",
     "complete_membership",
     "ordinal",
@@ -567,7 +567,7 @@ class ConceptEventParticipant:
     operation: str
     participant_role: str
     concept_iri: str
-    concept_kind: str
+    concept_type_iri: str
     release_iri: str
     complete_membership: bool
     ordinal: int
@@ -578,7 +578,7 @@ class ConceptEventParticipant:
         _require_text(self.operation, "operation")
         _require_text(self.participant_role, "participant_role")
         _require_iri(self.concept_iri, "concept_iri")
-        _require_text(self.concept_kind, "concept_kind")
+        _require_iri(self.concept_type_iri, "concept_type_iri")
         _require_iri(self.release_iri, "release_iri")
         if not isinstance(self.complete_membership, bool):
             raise ReferenceRuntimeError("complete_membership must be a boolean")
@@ -963,6 +963,7 @@ class IndexedVocabularyExpression:
     distribution_artifact: Mapping[str, str]
     scheme_iri: str
     member_iri: str
+    semantic_property_iri: str
     source_property_or_path: str
     original_literal: str
     language_tag: str | None
@@ -1000,6 +1001,7 @@ class IndexedVocabularyExpression:
         )
         _require_iri(self.scheme_iri, "scheme")
         _require_iri(self.member_iri, "member")
+        _require_iri(self.semantic_property_iri, "semanticProperty")
         source = _require_text(
             self.source_property_or_path,
             "sourcePropertyOrPath",
@@ -1040,6 +1042,7 @@ class IndexedVocabularyExpression:
             distribution_artifact=self.distribution_artifact,
             scheme_iri=self.scheme_iri,
             member_iri=self.member_iri,
+            semantic_property_iri=self.semantic_property_iri,
             source_property_or_path=self.source_property_or_path,
             original_literal=self.original_literal,
             language_tag=self.language_tag,
@@ -1054,6 +1057,7 @@ class IndexedVocabularyExpression:
             "distributionArtifact": dict(self.distribution_artifact),
             "scheme": self.scheme_iri,
             "member": self.member_iri,
+            "semanticProperty": self.semantic_property_iri,
             "originalLiteral": self.original_literal,
             "normalizationPolicy": dict(self.normalization_policy),
             "indexedText": self.indexed_text,
@@ -1084,25 +1088,28 @@ def canonical_text_digest(value: str) -> str:
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def indexed_expression_id(
+def indexed_expression_identity(
     *,
     reference_resource_release: Mapping[str, str],
     registry_import_snapshot: Mapping[str, str],
     distribution_artifact: Mapping[str, str],
     scheme_iri: str,
     member_iri: str,
+    semantic_property_iri: str,
     source_property_or_path: str,
     original_literal: str,
     language_tag: str | None,
     datatype_iri: str | None,
-) -> str:
-    """Mint the identity from every source distinction REF-CAND-009 keeps."""
+) -> dict[str, Any]:
+    """Return every source distinction that identifies one expression."""
+
     identity = {
         "referenceResourceRelease": dict(reference_resource_release),
         "registryImportSnapshot": dict(registry_import_snapshot),
         "distributionArtifact": dict(distribution_artifact),
         "scheme": scheme_iri,
         "member": member_iri,
+        "semanticProperty": semantic_property_iri,
         "sourcePropertyOrPath": source_property_or_path,
         "originalLiteral": original_literal,
     }
@@ -1111,8 +1118,164 @@ def indexed_expression_id(
     if datatype_iri is not None:
         identity["datatype"] = datatype_iri
     _assert_finite_json(identity)
+    return identity
+
+
+def indexed_expression_id(
+    *,
+    reference_resource_release: Mapping[str, str],
+    registry_import_snapshot: Mapping[str, str],
+    distribution_artifact: Mapping[str, str],
+    scheme_iri: str,
+    member_iri: str,
+    semantic_property_iri: str,
+    source_property_or_path: str,
+    original_literal: str,
+    language_tag: str | None,
+    datatype_iri: str | None,
+) -> str:
+    """Mint the identity from every source distinction REF-CAND-009 keeps."""
+
+    identity = indexed_expression_identity(
+        reference_resource_release=reference_resource_release,
+        registry_import_snapshot=registry_import_snapshot,
+        distribution_artifact=distribution_artifact,
+        scheme_iri=scheme_iri,
+        member_iri=member_iri,
+        semantic_property_iri=semantic_property_iri,
+        source_property_or_path=source_property_or_path,
+        original_literal=original_literal,
+        language_tag=language_tag,
+        datatype_iri=datatype_iri,
+    )
     digest = hashlib.sha256(canonical_json(identity).encode("utf-8")).hexdigest()
     return f"urn:ref:indexed-expression:{digest}"
+
+
+def indexed_expression_identity_from_record(
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Extract the non-circular identity fields from one expression record."""
+
+    source_property = record.get("sourceProperty")
+    source_path = record.get("sourcePath")
+    if (source_property is None) == (source_path is None):
+        raise ReferenceRuntimeError(
+            "indexed expression requires exactly one sourceProperty or sourcePath"
+        )
+    source = source_property if source_property is not None else source_path
+    required_mappings = (
+        "referenceResourceRelease",
+        "registryImportSnapshot",
+        "distributionArtifact",
+    )
+    for field in required_mappings:
+        if not isinstance(record.get(field), Mapping):
+            raise ReferenceRuntimeError(
+                f"indexed expression {field} must be an exact reference"
+            )
+    required_text = (
+        "scheme",
+        "member",
+        "semanticProperty",
+        "originalLiteral",
+    )
+    for field in required_text:
+        if not isinstance(record.get(field), str):
+            raise ReferenceRuntimeError(
+                f"indexed expression {field} must be text"
+            )
+    if not isinstance(source, str):
+        raise ReferenceRuntimeError(
+            "indexed expression source property or path must be text"
+        )
+    language = record.get("language")
+    datatype = record.get("datatype")
+    if language is not None and not isinstance(language, str):
+        raise ReferenceRuntimeError("indexed expression language must be text")
+    if datatype is not None and not isinstance(datatype, str):
+        raise ReferenceRuntimeError("indexed expression datatype must be text")
+    return indexed_expression_identity(
+        reference_resource_release=cast(
+            Mapping[str, str],
+            record["referenceResourceRelease"],
+        ),
+        registry_import_snapshot=cast(
+            Mapping[str, str],
+            record["registryImportSnapshot"],
+        ),
+        distribution_artifact=cast(
+            Mapping[str, str],
+            record["distributionArtifact"],
+        ),
+        scheme_iri=cast(str, record["scheme"]),
+        member_iri=cast(str, record["member"]),
+        semantic_property_iri=cast(str, record["semanticProperty"]),
+        source_property_or_path=source,
+        original_literal=cast(str, record["originalLiteral"]),
+        language_tag=cast(str | None, language),
+        datatype_iri=cast(str | None, datatype),
+    )
+
+
+def indexed_expression_identity_set_digest(
+    identities: Iterable[Mapping[str, Any]],
+) -> str:
+    """Digest one logical expression set independently of file order."""
+
+    expression_ids: list[str] = []
+    for identity in identities:
+        plain = dict(identity)
+        _assert_finite_json(plain)
+        digest = hashlib.sha256(
+            canonical_json(plain).encode("utf-8")
+        ).hexdigest()
+        expression_ids.append(f"urn:ref:indexed-expression:{digest}")
+    return indexed_expression_id_set_digest(expression_ids)
+
+
+def indexed_expression_id_set_digest(
+    expression_ids: Iterable[str],
+) -> str:
+    """Digest sorted expression IDs, each of which binds its full identity."""
+
+    values = list(expression_ids)
+    if any(
+        not isinstance(value, str)
+        or not value.startswith("urn:ref:indexed-expression:")
+        for value in values
+    ):
+        raise ReferenceRuntimeError(
+            "indexed expression corpus contains an invalid expression id"
+        )
+    if len(values) != len(set(values)):
+        raise ReferenceRuntimeError(
+            "indexed expression corpus repeats a canonical identity"
+        )
+    logical_set = canonical_json(sorted(values)).encode("utf-8")
+    return "sha256:" + hashlib.sha256(logical_set).hexdigest()
+
+
+def indexed_expression_corpus_digest(
+    records: Iterable[Mapping[str, Any]],
+) -> str:
+    """Recompute a logical corpus digest and reject stale expression IDs."""
+
+    expression_ids: list[str] = []
+    for record in records:
+        identity = indexed_expression_identity_from_record(record)
+        digest = hashlib.sha256(
+            canonical_json(identity).encode("utf-8")
+        ).hexdigest()
+        expected_id = f"urn:ref:indexed-expression:{digest}"
+        actual_id = record.get("id")
+        if actual_id != expected_id:
+            raise ReferenceRuntimeError(
+                f"indexed expression id mismatch: expected {expected_id}, "
+                f"got {actual_id}"
+            )
+        expression_ids.append(expected_id)
+    return indexed_expression_id_set_digest(expression_ids)
 
 
 @dataclass(frozen=True)
@@ -1372,6 +1535,8 @@ class RegistryDeploymentDecision:
     operational_state: str
     environment: Mapping[str, str]
     registry_import_snapshot: Mapping[str, str]
+    rights_assessment: Mapping[str, str]
+    adopted_policy_refs: tuple[str, ...]
     reference_resource_release: Mapping[str, str]
     coverage_report: Mapping[str, str]
     output_profile: Mapping[str, str]
@@ -1388,6 +1553,7 @@ class RegistryDeploymentDecision:
     def payload(
         self,
         *,
+        import_snapshot_record: Mapping[str, Any] | None = None,
         coverage_report_record: Mapping[str, Any] | None = None,
         output_profile_record: Mapping[str, Any] | None = None,
         reconciliation_report_record: Mapping[str, Any] | None = None,
@@ -1416,6 +1582,19 @@ class RegistryDeploymentDecision:
             "registryImportSnapshot",
             versioned=False,
         )
+        _require_reference(
+            self.rights_assessment,
+            "rightsAssessment",
+            versioned=False,
+        )
+        adopted_policy_refs = tuple(
+            _require_iri(value, "adoptedPolicyRef")
+            for value in self.adopted_policy_refs
+        )
+        if not adopted_policy_refs:
+            raise ReferenceRuntimeError("adoptedPolicyRefs must not be empty")
+        if len(set(adopted_policy_refs)) != len(adopted_policy_refs):
+            raise ReferenceRuntimeError("adoptedPolicyRefs must be unique")
         _require_reference(
             self.reference_resource_release,
             "referenceResourceRelease",
@@ -1461,9 +1640,14 @@ class RegistryDeploymentDecision:
         ):
             raise ReferenceRuntimeError("registry deployment authorization references must be distinct")
         selected = self.selection_state == "selected"
-        if coverage_report_record is None or output_profile_record is None:
+        if (
+            import_snapshot_record is None
+            or coverage_report_record is None
+            or output_profile_record is None
+        ):
             raise ReferenceRuntimeError(
-                "registry deployment requires supplied exact coverage and OutputProfile records"
+                "registry deployment requires supplied exact import snapshot, "
+                "coverage, and OutputProfile records"
             )
         if (
             selected
@@ -1474,6 +1658,36 @@ class RegistryDeploymentDecision:
                 "selected production registry requires attestation and "
                 "adoption references"
             )
+
+        if import_snapshot_record is not None:
+            require_payload_digest(import_snapshot_record)
+            if (
+                import_snapshot_record.get("type")
+                != "urn:ref:type:RegistryImportSnapshot"
+                or import_snapshot_record.get("id")
+                != self.registry_import_snapshot["id"]
+                or import_snapshot_record.get("canonicalPayloadDigest")
+                != self.registry_import_snapshot["digest"]
+            ):
+                raise ReferenceRuntimeError(
+                    "registry deployment import-snapshot pin mismatch"
+                )
+            if dict(
+                _require_mapping(
+                    import_snapshot_record.get("rightsAssessment"),
+                    "importSnapshot.rightsAssessment",
+                )
+            ) != dict(self.rights_assessment) or list(
+                _require_array(
+                    import_snapshot_record.get("adoptedPolicyRefs"),
+                    "importSnapshot.adoptedPolicyRefs",
+                    nonempty=True,
+                )
+            ) != list(adopted_policy_refs):
+                raise ReferenceRuntimeError(
+                    "registry deployment rights and adopted policies differ "
+                    "from its exact import snapshot"
+                )
 
         if coverage_report_record is not None:
             require_payload_digest(coverage_report_record)
@@ -1555,6 +1769,8 @@ class RegistryDeploymentDecision:
             **base,
             "environment": dict(self.environment),
             "registryImportSnapshot": dict(self.registry_import_snapshot),
+            "rightsAssessment": dict(self.rights_assessment),
+            "adoptedPolicyRefs": list(adopted_policy_refs),
             "referenceResourceRelease": dict(self.reference_resource_release),
             "coverageReport": dict(self.coverage_report),
             "outputProfile": dict(self.output_profile),
@@ -1578,12 +1794,14 @@ class RegistryDeploymentDecision:
     def sealed_payload(
         self,
         *,
+        import_snapshot_record: Mapping[str, Any] | None = None,
         coverage_report_record: Mapping[str, Any] | None = None,
         output_profile_record: Mapping[str, Any] | None = None,
         reconciliation_report_record: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         return seal_payload(
             self.payload(
+                import_snapshot_record=import_snapshot_record,
                 coverage_report_record=coverage_report_record,
                 output_profile_record=output_profile_record,
                 reconciliation_report_record=(reconciliation_report_record),
@@ -2151,12 +2369,15 @@ def materialize_open_label_value_assertion(
     evidence_role: str = "rkaf:textualEvidence",
     ai_lineage_iri: str | None = None,
     usage_eligibility: str | None = None,
+    accepted_output: bool = True,
 ) -> Mapping[str, Mapping[str, Any]]:
     """Materialize one permission-bound, fragment-grounded open label.
 
     The result contains the portable Rulespec ``ValueAssertion`` and its
     separate supporting ``EvidenceBinding``. A declared default is copied into
     the final JSON-LD value before either record leaves this function.
+    ``accepted_output=False`` keeps development candidates on the candidate-use
+    permission path without implying accepted-output authorization.
     """
     permission = output_profile.authorize_open_label(
         facet=facet,
@@ -2164,7 +2385,7 @@ def materialize_open_label_value_assertion(
         resource_route=resource_route,
         mode=mode,
         default_language=declared_default_language,
-        accepted_output=True,
+        accepted_output=accepted_output,
     )
     wording = _require_text(literal, "open-label literal")
     if mode == "explicitLanguage":

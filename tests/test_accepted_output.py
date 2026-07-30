@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from refspec import binding
 from refspec.accepted_output import (
     AcceptedOutputAuthorizationError,
     authorize_accepted_assignment,
@@ -25,6 +26,15 @@ FIXTURE = (
     / "fixtures"
     / "valid"
     / "vocabulary-closure.json"
+)
+UNRESOLVED_RECONCILIATION_FIXTURE = (
+    Path(__file__).parents[1]
+    / "bindings"
+    / "json"
+    / "1.0"
+    / "fixtures"
+    / "invalid"
+    / "unresolved-authorizes-union.json"
 )
 DIGEST = "sha256:" + "8" * 64
 
@@ -185,6 +195,8 @@ def _call(
     *,
     view: ManagedReleaseView | None = None,
     permission: dict[str, Any] | None = None,
+    facet: str = "urn:ref:facet:general-subject",
+    assignment_role: str = ("https://rulespec.org/ns/v1#assignmentPrimary"),
     lookup_index: dict[str, str] | None = None,
     receipt: dict[str, Any] | None = None,
 ):
@@ -213,8 +225,8 @@ def _call(
     return authorize_accepted_assignment(
         managed_release=selected_view,
         member_iri="urn:example:concept:air-quality",
-        facet="urn:ref:facet:general-subject",
-        assignment_role="https://rulespec.org/ns/v1#assignmentPrimary",
+        facet=facet,
+        assignment_role=assignment_role,
         accepted_output_permission=selected_permission,
         expression_corpus_snapshot=selected_view.expression_corpus_snapshot,
         lookup_index_manifest=(
@@ -237,6 +249,15 @@ def _call(
 
 def test_accepted_assignment_resolves_exact_authorization_chain() -> None:
     records = _records()
+    output = _record(records, "urn:ref:type:OutputProfile")
+    registry = _record(
+        records,
+        "urn:ref:type:RegistryDeploymentDecision",
+    )
+    configuration = _record(
+        records,
+        "urn:ref:type:EnrichmentConfiguration",
+    )
 
     result = _call(records)
 
@@ -244,6 +265,24 @@ def test_accepted_assignment_resolves_exact_authorization_chain() -> None:
     assert result.member.release_iri == result.permission[
         "referenceResourceRelease"
     ]["id"]
+    assert dict(result.permission["referenceResourceRelease"]) == registry[
+        "referenceResourceRelease"
+    ]
+    assert dict(result.permission["registryImportSnapshot"]) == registry[
+        "registryImportSnapshot"
+    ]
+    assert dict(result.expression_corpus_snapshot) == configuration[
+        "indexes"
+    ][0]["expressionCorpusSnapshot"]
+    assert dict(result.lookup_index_manifest) == configuration["indexes"][0][
+        "lookupIndexManifest"
+    ]
+    assert registry["outputProfile"] == configuration["outputProfile"]
+    assert registry["outputProfile"] == {
+        "id": output["id"],
+        "version": output["version"],
+        "digest": output["contentDigest"],
+    }
     assert result.registry_deployment["id"] == (
         "urn:example:registry-deployment:prod-a"
     )
@@ -251,6 +290,9 @@ def test_accepted_assignment_resolves_exact_authorization_chain() -> None:
     assert result.evaluation_result["id"] == "urn:example:evaluation:e1"
     assert result.enrichment_deployment["id"] == (
         "urn:example:deployment:prod-1"
+    )
+    assert result.validation_receipt["id"] == (
+        "urn:example:release-graph-receipt:accepted-output"
     )
     assert result.usage_eligibility == "acceptedOutput"
 
@@ -328,6 +370,68 @@ def test_permission_values_cannot_be_assembled_from_another_row() -> None:
         match="match exactly one complete",
     ):
         _call(records, permission=permission)
+
+
+def test_candidate_only_permission_cannot_authorize_accepted_output() -> None:
+    records = _records()
+    output = _record(records, "urn:ref:type:OutputProfile")
+    candidate_only = copy.deepcopy(output["releasePermissions"][1])
+
+    with pytest.raises(
+        AcceptedOutputAuthorizationError,
+        match="does not authorize this facet, role, and accepted output",
+    ):
+        _call(
+            records,
+            permission=candidate_only,
+            facet=candidate_only["facet"],
+            assignment_role=candidate_only["assignmentRole"],
+        )
+
+
+@pytest.mark.parametrize(
+    ("facet", "assignment_role"),
+    [
+        (
+            "urn:ref:facet:specialist-subject",
+            "https://rulespec.org/ns/v1#assignmentPrimary",
+        ),
+        (
+            "urn:ref:facet:general-subject",
+            "https://rulespec.org/ns/v1#assignmentMention",
+        ),
+    ],
+    ids=["wrong-facet", "wrong-role"],
+)
+def test_permission_row_cannot_authorize_a_different_facet_or_role(
+    facet: str,
+    assignment_role: str,
+) -> None:
+    records = _records()
+
+    with pytest.raises(
+        AcceptedOutputAuthorizationError,
+        match="does not authorize this facet, role, and accepted output",
+    ):
+        _call(
+            records,
+            facet=facet,
+            assignment_role=assignment_role,
+        )
+
+
+def test_unresolved_reconciliation_cannot_authorize_union_or_selection() -> None:
+    fixture = binding.load_fixture(UNRESOLVED_RECONCILIATION_FIXTURE)
+    diagnostics = binding.validate(fixture["records"])
+    messages = {diagnostic.message for diagnostic in diagnostics}
+
+    assert any(
+        diagnostic.requirement == "REF-VOC-023"
+        and "synthesizedUnionAuthorized" in diagnostic.message
+        for diagnostic in diagnostics
+    )
+    assert "selected registry deployment cannot use unresolved reconciliation" in messages
+    assert "selected registry release is not authorized by reconciliation" in messages
 
 
 def test_fake_gate_receipt_cannot_authorize_output() -> None:

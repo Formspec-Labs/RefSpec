@@ -217,6 +217,7 @@ class FederalRegisterThesaurus:
     cross_references: tuple[CrossReference, ...]
     relations: tuple[ConceptRelation, ...]
     unresolved_references: tuple[UnresolvedReference, ...]
+    source_artifact_bytes: bytes | None = None
 
     @property
     def counts(self) -> ImportCounts:
@@ -670,6 +671,7 @@ def parse_federal_register_thesaurus(
         cross_references=tuple(cross_references),
         relations=tuple(relations),
         unresolved_references=tuple(unresolved),
+        source_artifact_bytes=encoded,
     )
     if require_resolved and result.unresolved_references:
         raise UnresolvedReferenceError(result)

@@ -15,11 +15,23 @@ permission beyond rights supplied by applicable law.
 - [Core enrichment profile](profiles/enrichment-profile.md)
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)
 - [Authoritative REF structural model](model/README.md)
-- [Implementation plan](plans/implementation-plan.md)
-- [Vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
-- [Vocabulary management and lookup separation plan](plans/vocabulary-management-lookup-separation-plan.md)
+- [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
+- [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
+- [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
+- [Historical conceptual implementation plan](plans/implementation-plan.md)
 - [Research-input register](docs/research-inputs.md)
 - [Research archive](research/README.md)
+
+## Planning status
+
+The managed vocabulary experiment roadmap defines current execution. It keeps
+daily research in a lightweight, candidate-only experiment lane and applies
+the full RefSpec and Rulespec release process only when a result enters the
+promotion lane.
+
+The vocabulary gap closure and management-separation plans record completed
+local baselines. The early implementation plan remains available as a
+capability inventory; it no longer controls delivery sequence or scope.
 
 ## Ownership boundary
 
@@ -42,7 +54,7 @@ specification explicitly identifies a portfolio baseline.
 ## Current dependency state
 
 The editor's draft targets the local Rulespec `0.2.0-pre.9` candidate. The
-tested contract revision is
+tested Rulespec source revision is
 `0eb94257b70783688b55220e7a84dcc61bbd7507`; the evidence revision is
 `2c66a85daab30a4869db08d21cea13cfc865b3a0`; and the constraint digest is
 `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.

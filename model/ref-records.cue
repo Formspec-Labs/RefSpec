@@ -1366,6 +1366,7 @@
         "distributionArtifact",
         "scheme",
         "member",
+        "semanticProperty",
         "originalLiteral",
         "normalizationPolicy",
         "indexedText",
@@ -1395,6 +1396,9 @@
           "$ref": "common.schema.json#/$defs/absoluteIri"
         },
         "scheme": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "semanticProperty": {
           "$ref": "common.schema.json#/$defs/absoluteIri"
         },
         "sourceProperty": {
@@ -2095,6 +2099,8 @@
         "canonicalPayloadDigest",
         "environment",
         "registryImportSnapshot",
+        "rightsAssessment",
+        "adoptedPolicyRefs",
         "referenceResourceRelease",
         "coverageReport",
         "outputProfile",
@@ -2134,6 +2140,17 @@
         },
         "registryImportSnapshot": {
           "$ref": "common.schema.json#/$defs/digestReference"
+        },
+        "rightsAssessment": {
+          "$ref": "common.schema.json#/$defs/digestReference"
+        },
+        "adoptedPolicyRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          }
         },
         "referenceResourceRelease": {
           "$ref": "common.schema.json#/$defs/versionedDigestReference"

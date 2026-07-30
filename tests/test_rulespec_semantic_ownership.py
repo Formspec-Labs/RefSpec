@@ -192,7 +192,7 @@ def test_normalized_rows_preserve_rulespec_fields_without_local_enums() -> None:
         operation="futureRulespecOperation",
         participant_role="futureRulespecParticipantRole",
         concept_iri="urn:test:concept:one",
-        concept_kind="futureRulespecConceptKind",
+        concept_type_iri="urn:test:concept-type:future",
         release_iri=RELEASE,
         complete_membership=False,
         ordinal=0,
