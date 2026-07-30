@@ -70,27 +70,39 @@ registry.
   Register, and Unified Agenda controls are pinned. The current capture
   distinguishes 14 non-subject controls and retains source values that cannot
   be normalized safely.
-- **Batch 2 acquisition complete, managed-release assembly pending:** the
+- **Completed-resource packaging complete:** the closed
+  [package inventory](../portfolio/completed-controlled-resource-packages-v1.json)
+  records eight resources and nine release or snapshot datasets. Three are
+  managed concept resources and five are typed source-controlled resources.
+  Every package is development-only, has an exact digest and verified reader,
+  and denies accepted-output authority.
+- **Batch 2 URI-verified release complete:** the
   official ICPSR XML contains 3,765 records, while the current public term
   index contains 3,805 identities. Exactly 3,760 join; five XML records are
   absent from the current index and 45 current index entries are absent from
-  the XML. The importer fails closed on those differences. The next increment
-  will publish the URI-verified subset and its complete feature-coverage
-  report, not guess the unmatched identities.
-- **Batch 3 legislative and lobbying acquisition complete:** the exact
-  Congress captures contain 1,043 Legislative Subject Terms and 32 Policy
-  Areas. Congress does not publish stable term identifiers or a named release,
-  so each source row keeps a capture-specific observation IRI plus every
-  publisher identifier when present. The LDA import retains all 79 General
-  Issue Codes and all 50 Filing Types as source-native controlled codes.
+  the XML. The managed package contains the 3,760 URI-backed concepts, 4,490
+  searchable expressions, and 18,751 resolved relations. It preserves all
+  membership, label-role, and unresolved-relation gaps rather than guessing.
+- **Batch 3 legislative and lobbying packages complete:** the exact Congress
+  captures contain 1,043 Legislative Subject Terms and 32 Policy Areas.
+  Congress does not publish stable term identifiers or a named release, so
+  these remain separate source-term and navigation packages with
+  capture-specific observation IRIs. The LDA packages retain all 79 General
+  Issue Codes as source-assigned evidence and all 50 Filing Types as
+  deterministic metadata.
+- **Current Federal Register Topics package complete:** all 7,767 rows from
+  the exact mutable API capture are packaged as source evidence. Candidate use
+  stays disabled while reconciliation with the 1995 thesaurus remains
+  unresolved.
 - **Batch 3 GAO work and reviewed mappings remain open.** Later batches for
   entity/classification, judicial/FCC, specialist vocabularies, and the final
   atlas remain planned.
 
-The full native ICPSR and Congress captures remain in the content-addressed
-experiment output rather than Git. Git contains the import logic, exact
-source-derived test fixtures, source pins, and deterministic regulatory
-control capture needed to reproduce and review the work.
+Large native ICPSR, Congress, Federal Register, and ELSST artifacts remain in
+the content-addressed experiment output rather than Git. Git contains the
+import and package logic, exact source-derived test fixtures, source pins,
+package evidence, and the small LDA controlled-list bundles needed for
+ordinary offline verification.
 
 ## Boundaries
 

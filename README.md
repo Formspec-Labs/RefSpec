@@ -17,6 +17,7 @@ permission beyond rights supplied by applicable law.
 - [Authoritative REF structural model](model/README.md)
 - [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
 - [Active Spicy Regs controlled-resource import plan](plans/active-profile-controlled-resource-import-plan.md)
+- [Completed controlled-resource package inventory](portfolio/completed-controlled-resource-packages-v1.json)
 - [Deferred standards composition and graph extensibility plan](plans/standards-composition-and-graph-extensibility-plan.md)
 - [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
 - [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)

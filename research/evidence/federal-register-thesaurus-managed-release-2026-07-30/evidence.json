@@ -1,0 +1,26 @@
+{
+  "evidenceType": "FederalRegisterThesaurus1995DevelopmentManagedRelease",
+  "recordedAt": "2026-07-30T18:00:00Z",
+  "operationalState": "developmentOnly",
+  "source": {
+    "id": "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt",
+    "digest": "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30",
+    "byteLength": 99349
+  },
+  "managedRelease": {
+    "id": "urn:ref:fr-thesaurus-1995:publication:development-v1",
+    "manifestDigest": "sha256:96352a29a6ebadc0221af604eebebb2fffb0069ff4367181fd4640671215df70",
+    "releaseGraphValidationReceiptDigest": "sha256:54e82ef320d9fc398ead328890d54e89fe14da2231baf6404039ec292aec6b2f",
+    "expressionCorpus": {
+      "id": "urn:ref:fr-thesaurus-1995:expression-corpus:v1",
+      "digest": "sha256:d67aba5f9d378450cb94900bf412a1df04aa3d58ee04b2d11672b334de951847"
+    },
+    "candidateLookupAllowed": true,
+    "acceptedOutputAllowed": false
+  },
+  "counts": {
+    "concepts": 629,
+    "indexedExpressions": 2213
+  },
+  "interpretation": "The exact 1995 publication is packaged as a project-managed, development-only release. RefSpec preserves the native source bytes and local concept identities; this does not claim that the publisher issued Rulespec concept IRIs."
+}
