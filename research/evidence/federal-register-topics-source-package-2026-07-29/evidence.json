@@ -1,0 +1,28 @@
+{
+  "evidenceType": "FederalRegisterTopicsSourceControlledResourcePackage",
+  "recordedAt": "2026-07-29T22:30:00Z",
+  "operationalState": "developmentOnly",
+  "source": {
+    "id": "https://www.federalregister.gov/api/v1/topics.json",
+    "digest": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+    "byteLength": 920705,
+    "sourceRecordSetDigest": "sha256:053f4b4d503ff1aebcd3ff98f3316d4c9580081815579b5bcfd4285b4af6d3dc"
+  },
+  "package": {
+    "resourceId": "federal-register-api-topics",
+    "logicalDigest": "sha256:bfdd445ccccb96f173db658a32a0a043b6c77c25021af6089ce6877298ccaf27",
+    "observationSetDigest": "sha256:e30ff8b43d57a98778389969a306f961bdfeaea6c000fe22f2f8012a0527bf2e",
+    "artifactCount": 5,
+    "candidateUseAuthorized": false,
+    "acceptedOutputUseAuthorized": false,
+    "conceptIdentityClaimed": false
+  },
+  "counts": {
+    "thesaurusObservations": 1044,
+    "adHocObservations": 6723,
+    "totalObservations": 7767,
+    "excludedObservations": 0,
+    "failedObservations": 0
+  },
+  "interpretation": "The package preserves every row from one exact mutable API response as source-assigned evidence. It does not treat names or slugs as stable concept identifiers, reconcile the response with the 1995 Federal Register thesaurus, authorize lookup candidates, or authorize accepted output."
+}

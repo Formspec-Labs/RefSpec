@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "count": {
+      "ad_hoc": 1,
+      "thesaurus": 2,
+      "total": 3
+    }
+  },
+  "results": {
+    "ad_hoc": [
+      {
+        "cfr_references": [],
+        "name": "Experimental topic",
+        "see": [],
+        "see_also": [],
+        "slug": "experimental-topic"
+      }
+    ],
+    "thesaurus": [
+      {
+        "cfr_references": [
+          {
+            "part": 52,
+            "title": 40
+          }
+        ],
+        "name": "Air pollution control",
+        "see": [],
+        "see_also": [
+          {
+            "name": "Environmental protection",
+            "slug": "environmental-protection"
+          }
+        ],
+        "slug": "air-pollution-control"
+      },
+      {
+        "cfr_references": [],
+        "name": "Environmental protection",
+        "see": [],
+        "see_also": [],
+        "slug": "environmental-protection"
+      }
+    ]
+  }
+}
