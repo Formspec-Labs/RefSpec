@@ -27,3 +27,14 @@ def test_registry_exposes_managed_vocabulary_source_of_truth_interfaces() -> Non
             if name.isupper():
                 continue
             assert getattr(registry, name) is getattr(module, name)
+
+
+def test_registry_exposes_completed_resource_package_readers() -> None:
+    assert registry.IcpsrManagedReleaseView is not None
+    assert registry.SourceControlledResourceView is not None
+    assert registry.LDAControlledListView is not None
+    assert callable(registry.build_icpsr_managed_release)
+    assert callable(registry.build_federal_register_topics_source_package)
+    assert callable(registry.build_crs_source_packages)
+    assert callable(registry.build_lda_general_issue_code_package)
+    assert callable(registry.build_lda_filing_type_package)

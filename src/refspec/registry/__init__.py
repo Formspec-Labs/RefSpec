@@ -12,6 +12,13 @@ from refspec.registry.concept_domain_bridge import (
     ManagedReleaseViewLike,
     load_concept_domain_bridge,
 )
+from refspec.registry.crs_source_packages import (
+    CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID,
+    CRS_POLICY_AREAS_RESOURCE_ID,
+    CRSSourcePackages,
+    build_crs_source_packages,
+    build_crs_source_packages_from_capture_root,
+)
 from refspec.registry.elsst import (
     ELSST_METADATA_LITERAL_PREDICATE_IRIS,
     ELSST_NOTE_PREDICATE_IRIS,
@@ -89,6 +96,10 @@ from refspec.registry.federal_register_topics_api import (
     open_federal_register_topics_capture,
     parse_federal_register_topics_api,
 )
+from refspec.registry.federal_register_topics_package import (
+    FEDERAL_REGISTER_TOPICS_RESOURCE_ID,
+    build_federal_register_topics_source_package,
+)
 from refspec.registry.federal_register_topics_reconciliation import (
     FederalRegisterTopicsReconciliationError,
     FederalRegisterTopicsReconciliationProof,
@@ -97,14 +108,37 @@ from refspec.registry.federal_register_topics_reconciliation import (
     federal_register_topic_source_record_id,
     require_unique_capture_local_observation_ids,
 )
+from refspec.registry.icpsr_managed_release import (
+    IcpsrLookupHit,
+    IcpsrManagedRelease,
+    IcpsrManagedReleaseError,
+    IcpsrManagedReleaseSources,
+    IcpsrManagedReleaseView,
+    build_icpsr_managed_release,
+    open_icpsr_managed_release_sources,
+)
+from refspec.registry.lda_controlled_list_resources import (
+    LDAControlledListPackageError,
+    LDAControlledListView,
+    build_lda_filing_type_package,
+    build_lda_general_issue_code_package,
+)
 from refspec.registry.managed_vocabulary_bundle import (
     ManagedVocabularyBundle,
     ManagedVocabularyBundleError,
+)
+from refspec.registry.source_controlled_resource import (
+    SourceControlledResourceBundle,
+    SourceControlledResourceError,
+    SourceControlledResourceView,
+    build_source_controlled_resource_bundle,
 )
 
 __all__ = [
     "ASSOCIATIVE_PREDICATE_IRI",
     "BROADER_PREDICATE_IRI",
+    "CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID",
+    "CRS_POLICY_AREAS_RESOURCE_ID",
     "ELSST_ATTRIBUTION",
     "ELSST_COVERAGE_FEATURES",
     "ELSST_LICENSE_IRI",
@@ -118,10 +152,12 @@ __all__ = [
     "FEDERAL_REGISTER_THESAURUS_1995_URL",
     "FEDERAL_REGISTER_TOPICS_API_URL",
     "FEDERAL_REGISTER_TOPICS_PARSER_VERSION",
+    "FEDERAL_REGISTER_TOPICS_RESOURCE_ID",
     "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256",
     "NOTE_PREDICATE_IRIS",
     "AcquiredElsstSource",
     "AcquiredFederalRegisterTopics",
+    "CRSSourcePackages",
     "CategoryNotation",
     "ConceptDomainBridge",
     "ConceptDomainBridgeError",
@@ -162,13 +198,23 @@ __all__ = [
     "FederalRegisterTopicsReconciliationError",
     "FederalRegisterTopicsReconciliationProof",
     "FederalRegisterTopicsSnapshot",
+    "IcpsrLookupHit",
+    "IcpsrManagedRelease",
+    "IcpsrManagedReleaseError",
+    "IcpsrManagedReleaseSources",
+    "IcpsrManagedReleaseView",
     "ImportCounts",
+    "LDAControlledListPackageError",
+    "LDAControlledListView",
     "LabelExpression",
     "ManagedReleaseViewLike",
     "ManagedVocabularyBundle",
     "ManagedVocabularyBundleError",
     "PreferredConcept",
     "ScopeNote",
+    "SourceControlledResourceBundle",
+    "SourceControlledResourceError",
+    "SourceControlledResourceView",
     "SourceEntry",
     "SourceLocator",
     "ThesaurusParseError",
@@ -176,8 +222,15 @@ __all__ = [
     "UnresolvedReference",
     "UnresolvedReferenceError",
     "acquire_elsst_release",
+    "build_crs_source_packages",
+    "build_crs_source_packages_from_capture_root",
     "build_elsst_managed_release",
     "build_federal_register_topics_reconciliation",
+    "build_federal_register_topics_source_package",
+    "build_icpsr_managed_release",
+    "build_lda_filing_type_package",
+    "build_lda_general_issue_code_package",
+    "build_source_controlled_resource_bundle",
     "capture_federal_register_topics",
     "census_indexed_elsst",
     "census_parsed_elsst",
@@ -188,6 +241,7 @@ __all__ = [
     "federal_register_topic_source_record_id",
     "load_concept_domain_bridge",
     "open_federal_register_topics_capture",
+    "open_icpsr_managed_release_sources",
     "parse_acquired_elsst_source",
     "parse_elsst_file",
     "parse_elsst_turtle",
