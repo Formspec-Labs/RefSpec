@@ -1,0 +1,39 @@
+{
+  "evidenceType": "IcpsrUriVerifiedDevelopmentManagedRelease",
+  "recordedAt": "2026-07-30T16:00:00Z",
+  "operationalState": "developmentOnly",
+  "sources": {
+    "publicIndexCaptureDigest": "sha256:b155705626d53cce42a746ca582c4c8ca7e546db9b704a2223cad52fac45c6c6",
+    "publicIndexManifestDigest": "sha256:67b90a239de8ba7cb70a4e9d81c5c7bf30198800cf1aa0ecdc96246b30f94fea",
+    "subjectXmlDigest": "sha256:1875e0331a8403c00fa47a3ededca98c902f55d0b84d70884543ed1d2db629ff",
+    "subjectXmlByteLength": 1244558
+  },
+  "managedRelease": {
+    "id": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+    "manifestDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
+    "coverageDigest": "sha256:21272c371ecdf0017eeaf570d9668ba3fc07674578bcc2ec2771db0964185ae7",
+    "artifactCount": 33,
+    "candidateLookupAllowed": true,
+    "acceptedOutputAllowed": false
+  },
+  "counts": {
+    "xmlTerms": 3765,
+    "publicIndexTerms": 3805,
+    "uriVerifiedConcepts": 3760,
+    "indexedExpressions": 4490,
+    "sourceRelations": 18756,
+    "uriResolvedRelations": 18751,
+    "unresolvedRelations": 5,
+    "xmlOnlyGaps": 5,
+    "indexOnlyGaps": 45,
+    "labelRoleConflicts": 4
+  },
+  "xmlOnlyLabels": [
+    "Alaskan Natives",
+    "Obama Administration (2009-  )",
+    "runaway slaves",
+    "special  elections",
+    "treatment outcomes"
+  ],
+  "interpretation": "The release contains exact complete membership for the 3,760 labels whose current public index term URIs can be joined to the pinned XML snapshot. It preserves all other source-version differences as explicit gaps and remains development-only."
+}
