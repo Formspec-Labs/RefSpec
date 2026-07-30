@@ -10,6 +10,10 @@ alone does not justify `skos:exactMatch`.
 
 The selected artifact is pinned as
 `sha256:41b08a28a4bd13de7cd0dbd7929adf780768c2f394d44db50a9ea6f280011c52`.
+The offline bridge reader verifies this artifact and every target member. It
+retains the ICPSR source URL, revision, and digest as review evidence but does
+not download those source bytes on every lookup. A later import or promotion
+must reacquire and verify the upstream snapshot independently.
 
 Six ICPSR aliases add query paths that the Federal Register release does not
 author: `constitutional rights`, `hazardous materials`,

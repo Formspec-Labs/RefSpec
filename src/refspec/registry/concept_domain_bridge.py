@@ -78,6 +78,12 @@ _MAPPING_FIELDS = frozenset(
         "rkaf:usageEligibility",
     }
 )
+_DEVELOPMENT_MAPPING_VALUES = {
+    "rkaf:assertionOrigin": "rkaf:humanAsserted",
+    "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+    "rkaf:assertionPolarity": "rkaf:affirmed",
+    "rkaf:usageEligibility": "rkaf:localOperationalUse",
+}
 
 
 class ConceptDomainBridgeError(ValueError):
@@ -100,7 +106,7 @@ class ManagedReleaseViewLike(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class ConceptDomainSourceSnapshot:
-    """The exact upstream bytes from which source concepts were selected."""
+    """Declared upstream pin retained from the bridge review."""
 
     url: str
     revision: str
@@ -370,6 +376,12 @@ def _parse_mapping(
         "rkaf:assertsPredicate",
     }:
         _require_iri(value[field], f"{label}.{field}")
+    for field, expected in _DEVELOPMENT_MAPPING_VALUES.items():
+        if value[field] != expected:
+            raise ConceptDomainBridgeError(
+                f"{label}.{field} must be {expected!r} for this "
+                "development bridge"
+            )
     relation_iri = _require_iri(
         value["rkaf:assertsPredicate"],
         f"{label}.rkaf:assertsPredicate",
@@ -424,7 +436,12 @@ def load_concept_domain_bridge(
     expected_sha256: str,
     target_view: ManagedReleaseViewLike,
 ) -> ConceptDomainBridge:
-    """Load a pinned development bridge and verify every mapping endpoint."""
+    """Verify bridge bytes and target endpoints, then load the reviewed data.
+
+    The source snapshot is a retained review-time pin. This offline reader
+    does not reacquire upstream bytes; an import or promotion workflow must
+    verify those bytes independently.
+    """
 
     expected_sha256 = _require_digest(
         expected_sha256,

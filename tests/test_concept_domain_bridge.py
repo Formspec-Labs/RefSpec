@@ -266,6 +266,30 @@ def test_accepts_only_the_five_skos_mapping_predicates(
         _load(tmp_path, invalid)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("rkaf:assertionOrigin", "rkaf:aiSuggested"),
+        ("rkaf:epistemicBasis", "rkaf:statisticalInference"),
+        ("rkaf:assertionPolarity", "rkaf:denied"),
+        ("rkaf:usageEligibility", "rkaf:notEligible"),
+    ],
+)
+def test_rejects_mappings_outside_the_reviewed_development_posture(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
+    record = _bridge_record()
+    record["mappings"][0][field] = value  # type: ignore[index]
+
+    with pytest.raises(
+        ConceptDomainBridgeError,
+        match=field,
+    ):
+        _load(tmp_path, record)
+
+
 def test_rejects_duplicate_source_concept_or_mapping_ids(
     tmp_path: Path,
 ) -> None:
