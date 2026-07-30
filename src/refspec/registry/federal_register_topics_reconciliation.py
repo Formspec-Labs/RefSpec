@@ -50,7 +50,8 @@ EVIDENCE_RECORDED_BY = "urn:ref:agent:managed-vocabulary-experiment"
 
 HISTORICAL_PARSER_PROFILE = (
     "refspec.registry.federal_register_thesaurus."
-    "parse_federal_register_thesaurus:source-faithful"
+    "parse_federal_register_thesaurus:"
+    "source-faithful-historical-grouping-v2"
 )
 
 EXPECTED_COMPARISON_COUNTS = {

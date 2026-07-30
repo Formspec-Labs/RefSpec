@@ -50,11 +50,6 @@
       "controlledResourceUses": [
         {
           "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
-        {
-          "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
           "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
@@ -92,17 +87,12 @@
         "eligible": true,
         "gap": "The cross-domain subject path is explicit; source-native types stay outside subject ranking.",
         "gapStatus": "none",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
       "candidateFacets": ["urn:ref:facet:general-subject", "urn:ref:facet:specialist-subject", "urn:ref:facet:entity"],
       "controlledResourceUses": [
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
         {
           "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
@@ -137,7 +127,7 @@
         "eligible": true,
         "gap": "The profile and resource path are recorded, but comments remain outside the current Step 4 cycle.",
         "gapStatus": "deferred",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -145,7 +135,7 @@
       "controlledResourceUses": [
         {
           "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
+          "resourceId": "federal-register-thesaurus-2025",
           "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
         {
@@ -190,19 +180,14 @@
       "sourceNativeFields": ["topic", "category", "presidential subtype", "toc_subject", "agency", "RIN", "docket", "CFR citation", "version"],
       "subjectPolicy": {
         "eligible": true,
-        "gap": "Historical managed terms and current API topics remain distinct until publication identity is reconciled.",
-        "gapStatus": "documented",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "gap": "The April 1, 2025 thesaurus is the source-native default. Current API Topics remain separate mutable metadata.",
+        "gapStatus": "none",
+        "primaryResourceIds": ["federal-register-thesaurus-2025", "crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
       "candidateFacets": ["urn:ref:facet:general-subject", "urn:ref:facet:specialist-subject", "urn:ref:facet:entity"],
       "controlledResourceUses": [
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
         {
           "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
@@ -247,17 +232,12 @@
         "eligible": true,
         "gap": "Title and abstract use the cross-domain subject path; process and industry values remain deterministic facets.",
         "gapStatus": "none",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
       "candidateFacets": ["urn:ref:facet:general-subject", "urn:ref:facet:specialist-subject"],
       "controlledResourceUses": [
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
         {
           "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
@@ -302,7 +282,7 @@
         "eligible": true,
         "gap": "The CFR List of Subjects is part-to-term evidence, not an independently minted subject scheme.",
         "gapStatus": "documented",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -317,11 +297,6 @@
           "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-policy-areas",
           "uses": ["sourceAssignedEvidence", "navigation"]
-        },
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
         {
           "facets": ["urn:ref:facet:general-subject", "urn:ref:facet:affected-population"],
@@ -362,7 +337,7 @@
         "eligible": true,
         "gap": "CRS terms supply the primary legislative result path and policy areas remain navigation.",
         "gapStatus": "none",
-        "primaryResourceIds": ["crs-legislative-subject-terms", "federal-register-thesaurus-1995", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -409,11 +384,6 @@
           "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
         {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
-        {
           "facets": ["urn:ref:facet:general-subject", "urn:ref:facet:affected-population"],
           "resourceId": "icpsr-subject-thesaurus",
           "uses": ["mappingAndSearchExpansion"]
@@ -437,7 +407,7 @@
         "eligible": true,
         "gap": "Specific-issue text uses the cross-domain path; LDA codes remain source evidence.",
         "gapStatus": "none",
-        "primaryResourceIds": ["crs-legislative-subject-terms", "federal-register-thesaurus-1995", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -480,11 +450,6 @@
         },
         {
           "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
-        {
-          "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
           "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
@@ -517,7 +482,7 @@
         "eligible": true,
         "gap": "No maintained reusable GAO subject thesaurus is known; actual topics remain evidence and the 1998 thesaurus is mapping-only.",
         "gapStatus": "documented",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -537,11 +502,6 @@
           "facets": ["urn:ref:facet:general-subject", "urn:ref:facet:genre", "urn:ref:facet:entity"],
           "resourceId": "crs-native-controls",
           "uses": ["sourceAssignedEvidence", "deterministicCodeOrClassification", "identifierAuthority"]
-        },
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
         },
         {
           "facets": ["urn:ref:facet:general-subject", "urn:ref:facet:affected-population"],
@@ -567,17 +527,12 @@
         "eligible": true,
         "gap": "CRS Product Topics have assignment context but no independently published, versioned concept scheme.",
         "gapStatus": "documented",
-        "primaryResourceIds": ["crs-legislative-subject-terms", "federal-register-thesaurus-1995", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
       "candidateFacets": ["urn:ref:facet:general-subject", "urn:ref:facet:specialist-subject", "urn:ref:facet:entity"],
       "controlledResourceUses": [
-        {
-          "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
         {
           "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "crs-legislative-subject-terms",
@@ -617,7 +572,7 @@
         "eligible": true,
         "gap": "No maintained national court-topic thesaurus is known; LCSH and FAST are mapping references only.",
         "gapStatus": "documented",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     },
     {
@@ -715,11 +670,6 @@
       "controlledResourceUses": [
         {
           "facets": ["urn:ref:facet:general-subject"],
-          "resourceId": "federal-register-thesaurus-1995",
-          "uses": ["selectableSubject", "mappingAndSearchExpansion"]
-        },
-        {
-          "facets": ["urn:ref:facet:general-subject"],
           "resourceId": "federal-register-api-topics",
           "uses": ["sourceAssignedEvidence"]
         },
@@ -767,23 +717,33 @@
         "eligible": true,
         "gap": "No maintained FCC topic thesaurus is known; filing text uses the cross-domain subject path.",
         "gapStatus": "documented",
-        "primaryResourceIds": ["federal-register-thesaurus-1995", "crs-legislative-subject-terms", "specialist-subject-modules"]
+        "primaryResourceIds": ["crs-legislative-subject-terms", "specialist-subject-modules"]
       }
     }
   ],
   "resources": [
     {
-      "accessOrReproducibilityGap": "A dated RefSpec managed release is already captured; current Federal Register API topics remain a separate publication.",
+      "accessOrReproducibilityGap": "The official styled PDF is packaged with a pinned digest, a checked semantic extract, and explicit source anomalies.",
       "distributionStatus": "available",
-      "identifierRepresentation": "RefSpec-managed concept IRIs preserve the historical source identifiers.",
-      "officialLocator": "Federal Register Thesaurus of Indexing Terms, 1995 edition",
-      "resourceId": "federal-register-thesaurus-1995",
+      "identifierRepresentation": "RefSpec-managed concept IRIs use source-local term ordinals from the exact April 1, 2025 publication.",
+      "officialLocator": "https://www.archives.gov/files/federal-register/cfr/thesaurus-4-1-2025.pdf",
+      "resourceId": "federal-register-thesaurus-2025",
       "resourceKind": "subjectVocabulary",
-      "title": "Federal Register Thesaurus of Indexing Terms",
-      "versionRepresentation": "Managed release pins the 1995 publication and its artifact digest."
+      "title": "Federal Register Thesaurus of Indexing Terms, April 1, 2025",
+      "versionRepresentation": "Managed release pins the April 1, 2025 publication, exact PDF digest, parser, source extract, and coverage report."
     },
     {
-      "accessOrReproducibilityGap": "The API exposes assigned topics but not a complete versioned thesaurus distribution; do not merge it with the 1995 release.",
+      "accessOrReproducibilityGap": "Retained only for historical lookup, regression tests, and vocabulary-change analysis.",
+      "distributionStatus": "historicalOnly",
+      "identifierRepresentation": "Historical RefSpec-managed identities preserve source ordinals; broad categories remain document groupings and are not SKOS hierarchy.",
+      "officialLocator": "Federal Register Thesaurus of Indexing Terms, 1995 edition",
+      "resourceId": "federal-register-thesaurus-1995",
+      "resourceKind": "historicalVocabulary",
+      "title": "Federal Register Thesaurus of Indexing Terms, 1995",
+      "versionRepresentation": "Historical package pins the 1995 publication for lookup, regression, and the 1995 to 2025 evidence crosswalk."
+    },
+    {
+      "accessOrReproducibilityGap": "The API exposes mutable source assignments, not a complete versioned thesaurus distribution; do not merge it with the 2025 release.",
       "distributionStatus": "availableButUnreconciled",
       "identifierRepresentation": "Source topic strings and record links are evidence until official concept identifiers are available.",
       "officialLocator": "https://www.federalregister.gov/developers/documentation/api/v1",
@@ -793,9 +753,9 @@
       "versionRepresentation": "Capture time, endpoint, query, record identity, and response digest pin each observation."
     },
     {
-      "accessOrReproducibilityGap": "Assignments are obtainable from CFR source material, but they do not publish an independent current concept scheme.",
+      "accessOrReproducibilityGap": "Resolve each literal as an official term, recognized variant, source-local open term, or unresolved value; never mint a managed concept implicitly.",
       "distributionStatus": "partial",
-      "identifierRepresentation": "Preserve the exact CFR part identity and authored subject literal.",
+      "identifierRepresentation": "Preserve the exact CFR part identity, authored literal, resolution class, matched managed identity when present, and source location.",
       "officialLocator": "https://www.ecfr.gov/current/title-1/chapter-I/subchapter-A/part-3/subpart-B/section-3.12",
       "resourceId": "cfr-list-of-subjects",
       "resourceKind": "sourceAssignedVocabulary",

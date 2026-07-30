@@ -43,6 +43,7 @@ RECORD_ROLES = {
 
 RESOURCE_KINDS = {
     "subjectVocabulary",
+    "historicalVocabulary",
     "sourceAssignedVocabulary",
     "mappingReference",
     "codeList",
@@ -477,6 +478,11 @@ def validate_portfolio_input(
     if len(resource_ids) != len(set(resource_ids)):
         raise PortfolioInventoryError("portfolio resources contain duplicate IDs")
     known_resource_ids = set(resource_ids)
+    historical_resource_ids = {
+        str(resource["resourceId"])
+        for resource in resources
+        if resource["resourceKind"] == "historicalVocabulary"
+    }
 
     snapshot_by_id = {
         profile["profileId"]: profile for profile in snapshot["profiles"]
@@ -653,7 +659,19 @@ def validate_portfolio_input(
         raise PortfolioInventoryError(
             f"portfolio profile coverage differs; missing={missing}, extra={extra}"
         )
-    unreferenced = known_resource_ids - referenced_resources
+    referenced_historical = (
+        historical_resource_ids & referenced_resources
+    )
+    if referenced_historical:
+        raise PortfolioInventoryError(
+            "historical resources cannot participate in active profiles: "
+            f"{sorted(referenced_historical)}"
+        )
+    unreferenced = (
+        known_resource_ids
+        - referenced_resources
+        - historical_resource_ids
+    )
     if unreferenced:
         raise PortfolioInventoryError(
             f"portfolio resources have no active or deferred profile use: "

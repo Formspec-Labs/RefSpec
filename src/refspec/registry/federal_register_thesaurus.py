@@ -7,7 +7,8 @@ The source format is an alphabetic list with four relationship markers:
 ``x``
     A preferred entry names one of its alternate labels.
 ``xx``
-    A preferred entry names a broader preferred entry.
+    A preferred entry names one of the broad categories used to group terms
+    in the 1995 document. It does not assert a semantic parent concept.
 ``sa``
     A preferred entry names an associatively related preferred entry.
 
@@ -29,7 +30,12 @@ from typing import Literal
 
 FEDERAL_REGISTER_THESAURUS_1995_URL = "https://www.archives.gov/files/federal-register/cfr/thesaurus-alpha.txt"
 
-BROADER_PREDICATE_IRI = "http://www.w3.org/2004/02/skos/core#broader"
+HISTORICAL_GROUPING_PREDICATE_IRI = (
+    "urn:ref:predicate:federal-register:historical-document-grouping"
+)
+# Compatibility import for callers of the 1995 regression adapter. The value
+# is intentionally not ``skos:broader``.
+BROADER_PREDICATE_IRI = HISTORICAL_GROUPING_PREDICATE_IRI
 ASSOCIATIVE_PREDICATE_IRI = "http://www.w3.org/2004/02/skos/core#related"
 SCOPE_NOTE_PROPERTY_IRI = "http://www.w3.org/2004/02/skos/core#scopeNote"
 CATEGORY_NOTATION_DATATYPE_IRI = "urn:ref:datatype:federal-register-thesaurus-category-codes:1995"
@@ -42,7 +48,12 @@ _CATEGORY_CODE = re.compile(r"\d{2}")
 EntryKind = Literal["preferred", "nonPreferred"]
 LabelRole = Literal["preferred", "alternate"]
 LabelSource = Literal["heading", "see", "x"]
-ReferenceKind = Literal["see", "broader", "related", "alternate"]
+ReferenceKind = Literal[
+    "see",
+    "historicalGrouping",
+    "related",
+    "alternate",
+]
 ResolutionStatus = Literal["resolved", "unresolved"]
 
 
@@ -156,7 +167,11 @@ class CrossReference:
 
 @dataclass(frozen=True, slots=True)
 class ConceptRelation:
-    """One authored ``xx`` or ``sa`` statement; no reverse edge is inferred."""
+    """One authored grouping or associative statement.
+
+    The 1995 ``xx`` statement retains its authored grouping signal but is not
+    interpreted as a SKOS hierarchy edge.
+    """
 
     relation_id: str
     source_entry_id: str
@@ -196,7 +211,7 @@ class ImportCounts:
     scope_notes: int
     category_notations: int
     see_references: int
-    broader_relations: int
+    historical_grouping_relations: int
     associative_relations: int
     resolved_references: int
     unresolved_references: int
@@ -223,8 +238,11 @@ class FederalRegisterThesaurus:
     def counts(self) -> ImportCounts:
         preferred_labels = sum(item.role == "preferred" for item in self.labels)
         alternate_labels = len(self.labels) - preferred_labels
-        broader_relations = sum(item.predicate_iri == BROADER_PREDICATE_IRI for item in self.relations)
-        associative_relations = len(self.relations) - broader_relations
+        historical_grouping_relations = sum(
+            item.predicate_iri == HISTORICAL_GROUPING_PREDICATE_IRI
+            for item in self.relations
+        )
+        associative_relations = len(self.relations) - historical_grouping_relations
         resolved_references = sum(item.resolution_status == "resolved" for item in self.cross_references) + sum(
             item.resolution_status == "resolved" for item in self.relations
         )
@@ -239,7 +257,7 @@ class FederalRegisterThesaurus:
             scope_notes=len(self.scope_notes),
             category_notations=len(self.category_notations),
             see_references=len(self.cross_references),
-            broader_relations=broader_relations,
+            historical_grouping_relations=historical_grouping_relations,
             associative_relations=associative_relations,
             resolved_references=resolved_references,
             unresolved_references=len(self.unresolved_references),
@@ -625,7 +643,11 @@ def parse_federal_register_thesaurus(
             if statement.marker not in {"xx", "sa"}:  # pragma: no cover - scanner invariant
                 raise AssertionError(f"unknown marker {statement.marker!r}")
             relation_id = f"frt95-relation-{len(relations) + 1:04d}"
-            predicate_iri = BROADER_PREDICATE_IRI if statement.marker == "xx" else ASSOCIATIVE_PREDICATE_IRI
+            predicate_iri = (
+                HISTORICAL_GROUPING_PREDICATE_IRI
+                if statement.marker == "xx"
+                else ASSOCIATIVE_PREDICATE_IRI
+            )
             resolution_status = "resolved" if concept_id is not None and target_concept_id is not None else "unresolved"
             relations.append(
                 ConceptRelation(
@@ -642,7 +664,11 @@ def parse_federal_register_thesaurus(
             )
             if concept_id is None:
                 add_unresolved(
-                    reference_kind=("broader" if statement.marker == "xx" else "related"),
+                    reference_kind=(
+                        "historicalGrouping"
+                        if statement.marker == "xx"
+                        else "related"
+                    ),
                     source_entry_id=entry.entry_id,
                     source_concept_id=None,
                     raw_target_label=statement.raw_target_label,
@@ -651,7 +677,11 @@ def parse_federal_register_thesaurus(
                 )
             elif target_concept_id is None:
                 add_unresolved(
-                    reference_kind=("broader" if statement.marker == "xx" else "related"),
+                    reference_kind=(
+                        "historicalGrouping"
+                        if statement.marker == "xx"
+                        else "related"
+                    ),
                     source_entry_id=entry.entry_id,
                     source_concept_id=concept_id,
                     raw_target_label=statement.raw_target_label,

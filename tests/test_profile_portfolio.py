@@ -78,10 +78,9 @@ def test_portfolio_closes_every_active_and_deferred_profile() -> None:
             "court-opinion-v1",
             "crs-report-v1",
             "fcc-filing-v1",
-            "federal-register-document-v1",
             "gao-report-v1",
         ],
-        "resourceCount": 32,
+        "resourceCount": 33,
     }
     assert all(profile["recordRole"] for profile in atlas["profiles"])
     assert all(profile["sourceNativeFields"] for profile in atlas["profiles"])

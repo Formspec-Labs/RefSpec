@@ -35,8 +35,8 @@ import pyarrow.parquet as pq
 from refspec import binding
 from refspec.registry.federal_register_thesaurus import (
     ASSOCIATIVE_PREDICATE_IRI,
-    BROADER_PREDICATE_IRI,
     FEDERAL_REGISTER_THESAURUS_1995_URL,
+    HISTORICAL_GROUPING_PREDICATE_IRI,
     SCOPE_NOTE_PROPERTY_IRI,
     FederalRegisterThesaurus,
     SourceLocator,
@@ -73,8 +73,10 @@ from refspec.vocabulary import (
     seal_payload,
 )
 
-PARSER_VERSION = "federal-register-thesaurus-1995-lossless-v1"
-SLICE_VERSION = "federal-register-thesaurus-1995-vertical-slice-v1"
+PARSER_VERSION = (
+    "federal-register-thesaurus-1995-historical-grouping-v2"
+)
+SLICE_VERSION = "federal-register-thesaurus-1995-vertical-slice-v2"
 HISTORICAL_SOURCE_SHA256 = "sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30"
 
 GRAPH_IRI = "urn:ref:fr-thesaurus-1995:rulespec-graph:v1"
@@ -1119,19 +1121,19 @@ def _build_rulespec_graph(
                 }
                 for item in concept_notations
             ]
-        broader: list[str] = []
         related: list[str] = []
         for relation in relations_by_concept.get(concept.concept_id, []):
             assert relation.target_concept_id is not None
             target = concept_iris[relation.target_concept_id]
-            if relation.predicate_iri == BROADER_PREDICATE_IRI:
-                broader.append(target)
+            if relation.predicate_iri == HISTORICAL_GROUPING_PREDICATE_IRI:
+                # Preserve this 1995 document-grouping signal in the
+                # normalized relation table, but do not turn it into SKOS
+                # hierarchy.
+                continue
             elif relation.predicate_iri == ASSOCIATIVE_PREDICATE_IRI:
                 related.append(target)
             else:  # pragma: no cover - parser invariant
                 raise VerticalSliceError(f"unknown relation predicate {relation.predicate_iri!r}")
-        if broader:
-            node["skos:broader"] = broader
         if related:
             node["skos:related"] = related
         concept_nodes.append(node)
@@ -1696,6 +1698,13 @@ def _build_normalized_rows(
     relation_rows: list[Mapping[str, Any]] = []
     for relation in parsed.relations:
         if (
+            relation.predicate_iri
+            == HISTORICAL_GROUPING_PREDICATE_IRI
+        ):
+            # The lossless parser and packaged source retain this authored
+            # document grouping. It is not a Rulespec concept relation.
+            continue
+        if (
             relation.resolution_status != "resolved"
             or relation.source_concept_id is None
             or relation.target_concept_id is None
@@ -1814,8 +1823,9 @@ def _build_coverage_report(
         exclusion_by_unresolved_id[unresolved.unresolved_id] = item
         if unresolved.reference_kind == "see":
             label_exclusions.append(item)
-        elif unresolved.reference_kind == "broader":
-            hierarchy_exclusions.append(item)
+        elif unresolved.reference_kind == "historicalGrouping":
+            # This signal is not part of semantic hierarchy coverage.
+            continue
         elif unresolved.reference_kind == "related":
             associative_exclusions.append(item)
         else:
@@ -1905,27 +1915,11 @@ def _build_coverage_report(
         for item in parsed.category_notations
         if item.concept_id is not None
     ]
-    broader_source_items = [
-        {
-            "sourceRecordId": item.relation_id,
-            "predicate": item.predicate_iri,
-            "target": item.raw_target_label,
-            "locator": _locator_payload(item.locator),
-        }
-        for item in parsed.relations
-        if item.predicate_iri == BROADER_PREDICATE_IRI
-    ]
-    broader_parsed_items = [
-        {
-            "sourceRecordId": item["relation_id"],
-            "predicate": item["predicate_iri"],
-            "subject": item["subject_concept_iri"],
-            "object": item["object_concept_iri"],
-            "locator": item["source_locator"],
-        }
-        for item in normalized_relations
-        if item["predicate_iri"] == BROADER_PREDICATE_IRI
-    ]
+    # The publisher describes ``xx`` as a historical document grouping, not a
+    # semantic parent relation. It is preserved in normalized relations under
+    # its source-local predicate and excluded from hierarchy coverage.
+    broader_source_items: list[dict[str, Any]] = []
+    broader_parsed_items: list[dict[str, Any]] = []
     associative_source_items = [
         {
             "sourceRecordId": item.relation_id,
@@ -2135,9 +2129,13 @@ def _build_run_receipt(
     recorded_by: str,
     selected_deployment: Mapping[str, Any] | None = None,
 ) -> Mapping[str, Any]:
-    broader_source = sum(relation.predicate_iri == BROADER_PREDICATE_IRI for relation in parsed.relations)
-    broader_resolved = sum(
-        relation.predicate_iri == BROADER_PREDICATE_IRI and relation.resolution_status == "resolved"
+    grouping_source = sum(
+        relation.predicate_iri == HISTORICAL_GROUPING_PREDICATE_IRI
+        for relation in parsed.relations
+    )
+    grouping_resolved = sum(
+        relation.predicate_iri == HISTORICAL_GROUPING_PREDICATE_IRI
+        and relation.resolution_status == "resolved"
         for relation in parsed.relations
     )
     associative_source = sum(relation.predicate_iri == ASSOCIATIVE_PREDICATE_IRI for relation in parsed.relations)
@@ -2149,9 +2147,11 @@ def _build_run_receipt(
     counts.update(
         {
             "indexedExpressions": expression_count,
-            "broaderRelationsSource": broader_source,
-            "broaderRelationsParsed": broader_resolved,
-            "broaderRelationsExcluded": broader_source - broader_resolved,
+            "historicalDocumentGroupingsSource": grouping_source,
+            "historicalDocumentGroupingsPreserved": grouping_resolved,
+            "historicalDocumentGroupingsUnresolved": (
+                grouping_source - grouping_resolved
+            ),
             "associativeRelationsSource": associative_source,
             "associativeRelationsParsed": associative_resolved,
             "associativeRelationsExcluded": (associative_source - associative_resolved),

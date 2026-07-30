@@ -2,13 +2,13 @@
   "schemaVersion": "1.0",
   "recordedAt": "2026-07-30T18:00:00Z",
   "summary": {
-    "resourceCount": 8,
-    "releaseOrSnapshotCount": 9,
-    "managedConceptResourceCount": 3,
+    "resourceCount": 9,
+    "releaseOrSnapshotCount": 10,
+    "managedConceptResourceCount": 4,
     "sourceControlledResourceCount": 5,
     "candidateLookupResourceCount": 6,
     "acceptedOutputResourceCount": 0,
-    "recordOrObservationCount": 20265
+    "recordOrObservationCount": 20970
   },
   "resources": [
     {
@@ -17,15 +17,35 @@
       "packageClass": "managedConceptRelease",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 629,
-      "candidateUseAuthorized": true,
+      "candidateUseAuthorized": false,
       "acceptedOutputUseAuthorized": false,
       "productUse": [
-        "subjectCandidate"
+        "historicalLookup",
+        "regressionTesting",
+        "vocabularyChangeAnalysis"
       ],
       "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
       "packageDigest": "sha256:96352a29a6ebadc0221af604eebebb2fffb0069ff4367181fd4640671215df70",
       "packageLocation": "output/refspec-vocabulary-portfolio/federal-register-thesaurus-1995/managed-release",
       "evidencePath": "research/evidence/federal-register-thesaurus-managed-release-2026-07-30/evidence.json"
+    },
+    {
+      "resourceId": "federal-register-thesaurus-2025",
+      "title": "Federal Register Thesaurus of Indexing Terms, April 1, 2025",
+      "packageClass": "managedConceptRelease",
+      "releaseOrSnapshotCount": 1,
+      "recordOrObservationCount": 705,
+      "candidateUseAuthorized": true,
+      "acceptedOutputUseAuthorized": false,
+      "productUse": [
+        "federalRegisterDefaultSubjectCandidate",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
+      "packageDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
+      "packageLocation": "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/managed-release",
+      "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json"
     },
     {
       "resourceId": "elsst",

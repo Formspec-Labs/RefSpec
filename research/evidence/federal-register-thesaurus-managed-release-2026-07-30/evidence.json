@@ -15,12 +15,19 @@
       "id": "urn:ref:fr-thesaurus-1995:expression-corpus:v1",
       "digest": "sha256:d67aba5f9d378450cb94900bf412a1df04aa3d58ee04b2d11672b334de951847"
     },
-    "candidateLookupAllowed": true,
+    "legacyPackageCandidateLookupAllowed": true,
+    "portfolioCandidateLookupAllowed": false,
     "acceptedOutputAllowed": false
   },
   "counts": {
     "concepts": 629,
     "indexedExpressions": 2213
   },
-  "interpretation": "The exact 1995 publication is packaged as a project-managed, development-only release. RefSpec preserves the native source bytes and local concept identities; this does not claim that the publisher issued Rulespec concept IRIs."
+  "currentRole": [
+    "historicalLookup",
+    "regressionTesting",
+    "vocabularyChangeAnalysis"
+  ],
+  "historicalBroadCategoriesAsSkosHierarchy": false,
+  "interpretation": "The exact 1995 publication remains packaged for historical lookup, regression testing, and 1995 to 2025 vocabulary-change analysis. It is not candidate-authorized. Its broad document groupings are not SKOS hierarchy."
 }

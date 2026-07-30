@@ -90,10 +90,12 @@ registry.
   capture-specific observation IRIs. The LDA packages retain all 79 General
   Issue Codes as source-assigned evidence and all 50 Filing Types as
   deterministic metadata.
-- **Current Federal Register Topics package complete:** all 7,767 rows from
-  the exact mutable API capture are packaged as source evidence. Candidate use
-  stays disabled while reconciliation with the 1995 thesaurus remains
-  unresolved.
+- **Current Federal Register thesaurus and Topics packages complete:** the
+  April 1, 2025 publication supplies 705 managed concepts and is the
+  source-native default for Federal Register documents. All 7,767 API Topic
+  rows remain separate mutable source evidence and are not candidate
+  concepts. The evidence-only 1995 to 2025 crosswalk covers added, removed,
+  renamed, redirected, and ambiguous terms.
 - **Batch 3 GAO work and reviewed mappings remain open.** Later batches for
   entity/classification, judicial/FCC, specialist vocabularies, and the final
   atlas remain planned.
@@ -140,10 +142,12 @@ standards plan. A full ICPSR thesaurus import does not, by itself, require DDI.
 
 The current local baseline already proves important parts of the approach:
 
-- the 1995 Federal Register thesaurus is a 629-member managed development
-  release;
-- the current Federal Register Topics API capture remains separate because its
-  relationship to the historical publication is unresolved;
+- the April 1, 2025 Federal Register thesaurus is a 705-member managed
+  development release and the Federal Register document default;
+- the 1995 edition is historical-only, and its broad categories remain
+  document groupings rather than `skos:broader`;
+- the current Federal Register Topics API capture remains separate mutable
+  source-assigned metadata;
 - ELSST Versions 5 and 6 are complete managed releases with 6,905 concepts,
   multilingual labels, hierarchy, notes, lifecycle history, and 308,639
   indexed expressions;

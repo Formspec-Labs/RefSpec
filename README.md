@@ -88,15 +88,19 @@ and invalid REF fixtures, and the Python package. Run
 `make test-cross-repository` when the exact sibling Rulespec checkout is
 available.
 
-`make test-real-vocabulary` is a separate, explicitly networked regression.
-It downloads the pinned 16 November 1995 Federal Register thesaurus into a
-temporary content-addressed store, rejects any SHA-256 mismatch, runs the
-full-source RefSpec and Rulespec tests, selects the exact managed release for
-candidate lookup under project-local development authority, opens it through
-the digest-verifying reference reader, and proves that a later append-only
-rollback restores the explicit prior empty selection. The active bundle and
-rollback history remain separate. This selection grants no accepted-output,
-publisher, legal-clearance, or production authority.
+The [Federal Register vocabulary policy](docs/federal-register-vocabulary-policy.md)
+packages the exact April 1, 2025 thesaurus as the default candidate vocabulary
+for Federal Register documents. The checked source extract, crosswalk, and
+ordinary tests are offline. Optional gates rebuild them from the exact pinned
+PDF.
+
+`make test-real-vocabulary` remains a separate, explicitly networked
+historical regression. It downloads the pinned November 16, 1995 source,
+rejects any SHA-256 mismatch, exercises the former development selection path,
+and proves its rollback. That edition is not candidate-authorized in the
+active portfolio; it remains only for historical lookup, regression tests,
+and vocabulary-change analysis.
 
 The command removes the temporary source bytes on exit. The default
-`make test` remains offline, and native vocabulary bytes never enter Git.
+`make test` remains offline. Git contains the deterministic semantic extract
+and crosswalk; the native PDF remains in the managed release output.

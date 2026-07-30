@@ -13,18 +13,18 @@ def test_completed_package_inventory_is_closed_and_honest() -> None:
     summary = inventory["summary"]
 
     assert inventory["schemaVersion"] == "1.0"
-    assert len(resources) == summary["resourceCount"] == 8
-    assert len({resource["resourceId"] for resource in resources}) == 8
-    assert sum(resource["releaseOrSnapshotCount"] for resource in resources) == summary["releaseOrSnapshotCount"] == 9
+    assert len(resources) == summary["resourceCount"] == 9
+    assert len({resource["resourceId"] for resource in resources}) == 9
+    assert sum(resource["releaseOrSnapshotCount"] for resource in resources) == summary["releaseOrSnapshotCount"] == 10
     assert (
         sum(resource["recordOrObservationCount"] for resource in resources)
         == summary["recordOrObservationCount"]
-        == 20_265
+        == 20_970
     )
     assert (
         sum(resource["packageClass"] == "managedConceptRelease" for resource in resources)
         == summary["managedConceptResourceCount"]
-        == 3
+        == 4
     )
     assert (
         sum(resource["packageClass"] == "sourceControlledResource" for resource in resources)

@@ -64,7 +64,7 @@ HISTORICAL_COUNTS = ImportCounts(
     scope_notes=45,
     category_notations=616,
     see_references=463,
-    broader_relations=740,
+    historical_grouping_relations=740,
     associative_relations=756,
     resolved_references=1_939,
     unresolved_references=20,
@@ -91,7 +91,7 @@ def test_parser_preserves_labels_notes_notation_and_every_relation() -> None:
         scope_notes=1,
         category_notations=8,
         see_references=3,
-        broader_relations=2,
+        historical_grouping_relations=2,
         associative_relations=1,
         resolved_references=6,
         unresolved_references=0,
@@ -163,7 +163,7 @@ def test_identifiers_use_source_ordinals_not_labels() -> None:
     [
         ("Alias", "see", "see"),
         ("Preferred (01)", "sa", "related"),
-        ("Preferred (01)", "xx", "broader"),
+        ("Preferred (01)", "xx", "historicalGrouping"),
     ],
 )
 def test_unresolved_required_references_are_explicit_and_fail_closed(
@@ -241,7 +241,7 @@ def test_verified_historical_full_source_counts_and_fail_closed_result() -> None
     assert Counter(item.reference_kind for item in inspected.unresolved_references) == {
         "see": 1,
         "related": 17,
-        "broader": 2,
+        "historicalGrouping": 2,
     }
     assert any(
         item.raw_target_label == "e and local governments" and item.locator.start_line == 2_568

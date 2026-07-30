@@ -19,7 +19,7 @@ from refspec.managed_release import (
     ManagedReleaseView,
 )
 from refspec.registry.federal_register_thesaurus import (
-    BROADER_PREDICATE_IRI,
+    HISTORICAL_GROUPING_PREDICATE_IRI,
     parse_federal_register_thesaurus,
 )
 from refspec.registry.federal_register_vertical_slice import (
@@ -158,8 +158,12 @@ def test_slice_is_validated_but_stops_before_governed_selection(
     assert all(node["rkaf:definedInScope"].startswith("urn:ref:fr-thesaurus-1995:import-scope:") for node in concepts)
 
     assert len(bundle.normalized_labels) == 12
-    assert len(bundle.normalized_relations) == 3
-    assert sum(row["predicate_iri"] == BROADER_PREDICATE_IRI for row in bundle.normalized_relations) == 2
+    assert len(bundle.normalized_relations) == 1
+    assert not any(
+        row["predicate_iri"] == HISTORICAL_GROUPING_PREDICATE_IRI
+        for row in bundle.normalized_relations
+    )
+    assert all("skos:broader" not in node for node in concepts)
     assert len(bundle.indexed_expressions) == 21
     assert all("record=" in record["sourcePath"] for record in bundle.indexed_expressions)
     assert all(
