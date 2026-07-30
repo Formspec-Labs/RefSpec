@@ -16,6 +16,7 @@ permission beyond rights supplied by applicable law.
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)
 - [Authoritative REF structural model](model/README.md)
 - [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
+- [Active Spicy Regs controlled-resource import plan](plans/active-profile-controlled-resource-import-plan.md)
 - [Deferred standards composition and graph extensibility plan](plans/standards-composition-and-graph-extensibility-plan.md)
 - [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
 - [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
@@ -29,6 +30,10 @@ The managed vocabulary experiment roadmap defines current execution. It keeps
 daily research in a lightweight, candidate-only experiment lane and applies
 the full RefSpec and Rulespec release process only when a result enters the
 promotion lane.
+
+The active-profile import plan expands that roadmap across every current Spicy
+Regs source profile. It builds and compares the RefSpec-managed resource
+portfolio before Spicy Regs expands profile-aware lookup.
 
 The vocabulary gap closure and management-separation plans record completed
 local baselines. The early implementation plan remains available as a

@@ -10,6 +10,8 @@
 >
 > **Completed prerequisite:** [RefSpec and Rulespec vocabulary gap closure plan](vocabulary-gap-closure-plan.md)
 >
+> **Active portfolio expansion:** [Active Spicy Regs controlled-resource import plan](active-profile-controlled-resource-import-plan.md)
+>
 > **Historical reference:** [Early RefSpec implementation plan](implementation-plan.md)
 
 ## Decision
