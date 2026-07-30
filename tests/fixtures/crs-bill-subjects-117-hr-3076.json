@@ -1,0 +1,85 @@
+{
+    "pagination": {
+        "count": 17
+    },
+    "request": {
+        "billNumber": "3076",
+        "billType": "hr",
+        "billUrl": "https://api.congress.gov/v3/bill/117/hr/3076?format=json",
+        "congress": "117",
+        "contentType": "application/json",
+        "format": "json"
+    },
+    "subjects": {
+        "legislativeSubjects": [
+            {
+                "name": "Congressional oversight",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Executive agency funding and structure",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Government employee pay, benefits, personnel management",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Government information and archives",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Government studies and investigations",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Health care costs and insurance",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Health care coverage and access",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Intergovernmental relations",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Medicare",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Performance measurement",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Postal Regulatory Commission",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Postal service",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Public participation and lobbying",
+                "updateDate": "2021-09-17T17:30:20Z"
+            },
+            {
+                "name": "Retail and wholesale trades",
+                "updateDate": "2021-09-17T17:30:19Z"
+            },
+            {
+                "name": "State and local government operations",
+                "updateDate": "2021-09-17T17:30:19Z"
+            },
+            {
+                "name": "U.S. Postal Service",
+                "updateDate": "2021-09-17T17:30:19Z"
+            }
+        ],
+        "policyArea": {
+            "name": "Government Operations and Politics",
+            "updateDate": "2021-05-18T14:45:17Z"
+        }
+    }
+}
