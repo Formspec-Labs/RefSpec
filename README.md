@@ -16,6 +16,7 @@ permission beyond rights supplied by applicable law.
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)
 - [Authoritative REF structural model](model/README.md)
 - [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
+- [Deferred standards composition and graph extensibility plan](plans/standards-composition-and-graph-extensibility-plan.md)
 - [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
 - [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
 - [Historical conceptual implementation plan](plans/implementation-plan.md)
@@ -32,6 +33,8 @@ promotion lane.
 The vocabulary gap closure and management-separation plans record completed
 local baselines. The early implementation plan remains available as a
 capability inventory; it no longer controls delivery sequence or scope.
+The standards-composition plan records conditional work and does not change the
+active roadmap's order.
 
 ## Ownership boundary
 

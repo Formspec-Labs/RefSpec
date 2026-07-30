@@ -571,3 +571,8 @@ The current scope excludes the early implementation plan's three-matter
 regulatory-history release, inferred relationships, policy threads, broad
 query product, and production-service program. Those capabilities may return
 through separate plans after managed vocabulary lookup proves useful.
+
+The
+[standards composition and graph extensibility plan](standards-composition-and-graph-extensibility-plan.md)
+records source-triggered interoperability work. It adds no current standard
+dependency and does not change this roadmap's sequence.
