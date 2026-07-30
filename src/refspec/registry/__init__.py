@@ -3,6 +3,15 @@
 import importlib
 from typing import Any
 
+from refspec.registry.concept_domain_bridge import (
+    ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256,
+    ConceptDomainBridge,
+    ConceptDomainBridgeError,
+    ConceptDomainSourceConcept,
+    ConceptDomainSourceSnapshot,
+    ManagedReleaseViewLike,
+    load_concept_domain_bridge,
+)
 from refspec.registry.elsst import (
     ELSST_METADATA_LITERAL_PREDICATE_IRIS,
     ELSST_NOTE_PREDICATE_IRIS,
@@ -109,10 +118,15 @@ __all__ = [
     "FEDERAL_REGISTER_THESAURUS_1995_URL",
     "FEDERAL_REGISTER_TOPICS_API_URL",
     "FEDERAL_REGISTER_TOPICS_PARSER_VERSION",
+    "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256",
     "NOTE_PREDICATE_IRIS",
     "AcquiredElsstSource",
     "AcquiredFederalRegisterTopics",
     "CategoryNotation",
+    "ConceptDomainBridge",
+    "ConceptDomainBridgeError",
+    "ConceptDomainSourceConcept",
+    "ConceptDomainSourceSnapshot",
     "ConceptRelation",
     "CrossReference",
     "ElsstAcquisitionError",
@@ -150,6 +164,7 @@ __all__ = [
     "FederalRegisterTopicsSnapshot",
     "ImportCounts",
     "LabelExpression",
+    "ManagedReleaseViewLike",
     "ManagedVocabularyBundle",
     "ManagedVocabularyBundleError",
     "PreferredConcept",
@@ -171,6 +186,7 @@ __all__ = [
     "compare_historical_thesaurus_to_topics",
     "federal_register_topic_source_identity_rows",
     "federal_register_topic_source_record_id",
+    "load_concept_domain_bridge",
     "open_federal_register_topics_capture",
     "parse_acquired_elsst_source",
     "parse_elsst_file",

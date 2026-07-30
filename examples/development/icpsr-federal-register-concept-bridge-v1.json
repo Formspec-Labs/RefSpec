@@ -1,0 +1,202 @@
+{
+  "developmentOnly": true,
+  "sourceSnapshot": {
+    "url": "https://raw.githubusercontent.com/ICPSR/metadata/6e2651e55fb42b119a167f34000ec728d1206865/projects/thesaurus/processed/subject.xml",
+    "revision": "6e2651e55fb42b119a167f34000ec728d1206865",
+    "sha256": "sha256:1875e0331a8403c00fa47a3ededca98c902f55d0b84d70884543ed1d2db629ff"
+  },
+  "sourceScheme": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001",
+  "sourceRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+  "targetRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+  "sourceConcepts": [
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24602",
+      "prefLabel": {
+        "en": "civil rights"
+      },
+      "altLabel": {
+        "en": [
+          "constitutional rights"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24602"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630",
+      "prefLabel": {
+        "en": "hazardous substances"
+      },
+      "altLabel": {
+        "en": [
+          "hazardous materials"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654",
+      "prefLabel": {
+        "en": "health professions"
+      },
+      "altLabel": {
+        "en": [
+          "medical professions"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040",
+      "prefLabel": {
+        "en": "labor unions"
+      },
+      "altLabel": {
+        "en": [
+          "trade unions"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905",
+      "prefLabel": {
+        "en": "public housing"
+      },
+      "altLabel": {
+        "en": [
+          "housing projects"
+        ]
+      },
+      "definition": {
+        "en": [
+          "Housing that is owned and operated by a local public agency that is funded by state or federal agencies."
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981",
+      "prefLabel": {
+        "en": "refugees"
+      },
+      "altLabel": {
+        "en": [
+          "asylum seekers"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642",
+      "prefLabel": {
+        "en": "vocational education"
+      },
+      "altLabel": {
+        "en": [
+          "vocational training"
+        ]
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642"
+    }
+  ],
+  "mappings": [
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:civil-rights",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24602",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0153",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:hazardous-substances",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0444",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:health-professions",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0453",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:labor-unions",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0542",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:public-housing",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0766",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:refugees",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0798",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v1:vocational-education",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:fr-thesaurus-1995:concept:0964",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr-subject:snapshot:6e2651e55fb42b119a167f34000ec728d1206865",
+      "rkaf:targetConceptRelease": "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    }
+  ]
+}
