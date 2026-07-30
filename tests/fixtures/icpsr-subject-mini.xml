@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<THESAURUS>
+  <CONCEPT>
+    <DESCRIPTOR>ability</DESCRIPTOR>
+    <UF>talent</UF>
+    <INP>2023-03-06 10:09:43.0</INP>
+    <UPD>2023-03-06 10:09:43.0</UPD>
+    <TNR>3</TNR>
+  </CONCEPT>
+  <CONCEPT>
+    <NON-DESCRIPTOR>talent</NON-DESCRIPTOR>
+    <USE>ability</USE>
+    <INP>2023-03-06 10:09:58.0</INP>
+    <UPD>2023-03-06 10:09:58.0</UPD>
+    <TNR>3405</TNR>
+  </CONCEPT>
+  <CONCEPT>
+    <DESCRIPTOR>Abolition movement</DESCRIPTOR>
+    <SN>Refers to the United States Abolition movement during the 1800s to end slavery.</SN>
+    <BT>social movements</BT>
+    <RT>slavery</RT>
+    <INP>2023-03-06 10:09:43.0</INP>
+    <UPD>2023-03-06 10:09:43.0</UPD>
+    <TNR>4</TNR>
+  </CONCEPT>
+  <CONCEPT>
+    <DESCRIPTOR>social movements</DESCRIPTOR>
+    <INP>2023-03-06 10:09:57.0</INP>
+    <UPD>2023-03-06 10:09:57.0</UPD>
+    <TNR>3249</TNR>
+  </CONCEPT>
+  <CONCEPT>
+    <DESCRIPTOR>slavery</DESCRIPTOR>
+    <INP>2023-03-06 10:09:57.0</INP>
+    <UPD>2023-03-06 10:09:57.0</UPD>
+    <TNR>3207</TNR>
+  </CONCEPT>
+</THESAURUS>
