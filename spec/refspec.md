@@ -2758,6 +2758,27 @@ only the source observation: it MUST NOT assert cross-capture concept identity,
 create an `rkaf:ConceptMapping`, select a reconciliation input, authorize a
 synthesized union, or supply candidate or accepted-output authority.
 
+**REF-VOC-040:** A source observation MUST preserve every identifier that the
+source supplies. Identifiers are zero-or-more qualified values, not parallel
+identifier and scheme arrays and not one selected canonical value. Each
+qualified identifier MUST carry:
+
+- the exact source value;
+- whether the value is a code, IRI, registry identifier, citation, or other
+  source-declared identifier;
+- the issuing authority or identifier-scheme IRI when known;
+- the exact source `Capture` and source-native path from which REF observed
+  it; and
+- the observation time plus any source-supplied effective start or end.
+
+REF MUST retain distinct identifiers issued by the same or different
+authorities. It MUST NOT reject them merely because their values differ,
+silently choose one as canonical, or treat an identifier IRI as proof that two
+source observations or concepts are identical. A source without a
+publisher-issued identifier still uses the capture-local observation identity
+defined by `REF-VOC-039`; that identity is a locator for the observed row, not
+a publisher concept identifier.
+
 ## 13. Publication and query behavior
 
 ### 13.1 Required views
@@ -3427,6 +3448,16 @@ locators MUST fail rather than fall back to a name or slug. The fixture MUST
 emit no `rkaf:ConceptMapping`, input selection, reconciled release,
 synthesized-union authority, or accepted-output authority from those
 identifiers or from lexical equality.
+
+**REF-TEST-185:** A source-observation fixture MUST retain zero, one, and
+multiple qualified identifiers. The multiple-identifier case MUST include two
+different values from one authority and values from different authorities,
+each with its own source path and observed or effective time. Reordering the
+identifiers MUST NOT change their meaning. Dropping a value, combining values
+from separate rows, losing issuer or source evidence, or silently selecting
+one identifier as canonical MUST fail. A source IRI and a capture-local record
+IRI MUST remain distinct and MUST NOT create concept identity or a
+cross-source mapping by themselves.
 
 ### 15.3 Evaluation corpus
 

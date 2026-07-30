@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:ffc461752ab780a3ba97c0dda2f7bcd41b443e5bea1eae13940a7ef39388bb53"
+MODEL_SHA256 = "sha256:cdd395b174b13b0df078af8d14caeee3bcbe2debbf5878898766b51202ca0795"
 
 
 class REFRecordData(TypedDict, total=False):
@@ -191,6 +191,18 @@ class ReleaseGraphValidationReceiptData(REFRecordData, total=False):
     activity: Required[Any]
 
 
+class SourceIdentifierSetData(REFRecordData, total=False):
+    canonicalPayloadDigest: Required[Any]
+    sourceObservation: Required[Any]
+    sourceCapture: Required[Any]
+    sourcePath: Required[Any]
+    sourceOrdinal: Required[int]
+    identifiers: Required[list[Any]]
+    canonicalIdentifierSelected: Required[Any]
+    activity: Required[Any]
+    receipt: Required[Any]
+
+
 class RegistryDeploymentDecisionData(REFRecordData, total=False):
     canonicalPayloadDigest: Required[Any]
     environment: Required[dict[str, Any]]
@@ -347,4 +359,5 @@ __all__ = [
     "RightsAssessmentData",
     "RunReceiptData",
     "SealedGoldManifestData",
+    "SourceIdentifierSetData",
 ]

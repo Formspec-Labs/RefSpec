@@ -42,6 +42,7 @@ TYPE_SCHEMAS = {
     "urn:ref:type:EnrichmentConfiguration": "enrichment-configuration.schema.json",
     "urn:ref:type:EnrichmentEvaluationResult": "enrichment-evaluation-result.schema.json",
     "urn:ref:type:EnrichmentDeploymentDecision": "enrichment-deployment-decision.schema.json",
+    "urn:ref:type:SourceIdentifierSet": "source-identifier-set.schema.json",
 }
 
 TYPE_REQUIREMENTS = {
@@ -62,6 +63,7 @@ TYPE_REQUIREMENTS = {
     "urn:ref:type:EnrichmentConfiguration": "REF-ENR-019",
     "urn:ref:type:EnrichmentEvaluationResult": "REF-EVAL-015",
     "urn:ref:type:EnrichmentDeploymentDecision": "REF-ENR-020",
+    "urn:ref:type:SourceIdentifierSet": "REF-VOC-040",
 }
 
 CORE_FACETS = {
@@ -159,6 +161,7 @@ REQUIRED_MANIFEST_REQUIREMENTS = {
     "REF-VOC-022",
     "REF-VOC-023",
     "REF-VOC-024",
+    "REF-VOC-040",
     "REF-VOC-017",
     "REF-EVAL-011",
     "REF-EVAL-012",
@@ -168,6 +171,7 @@ REQUIRED_MANIFEST_REQUIREMENTS = {
     "REF-EVAL-016",
     *{f"REF-ENR-PROFILE-{number:03d}" for number in range(1, 7)},
     *{f"REF-TEST-{number}" for number in range(150, 174)},
+    "REF-TEST-185",
 }
 
 

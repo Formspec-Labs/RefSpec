@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0",
   "source": "model/ref-records.cue",
-  "sourceSha256": "sha256:ffc461752ab780a3ba97c0dda2f7bcd41b443e5bea1eae13940a7ef39388bb53",
+  "sourceSha256": "sha256:cdd395b174b13b0df078af8d14caeee3bcbe2debbf5878898766b51202ca0795",
   "artifacts": {
     "bindings/json/1.0/schemas/capture.schema.json": "sha256:489ffc9b9c21b3f2f0118ed783856a6990616dd1db43de0dc148187338072c62",
-    "bindings/json/1.0/schemas/common.schema.json": "sha256:d702c34f04de08fa276c76a25a722f26f2af3333c9ac06b9eb0c058c15e2708a",
+    "bindings/json/1.0/schemas/common.schema.json": "sha256:d5d769a8ecf812430c1100c83c13cd7f625a4c7acc4c08419f3d3a2cd86cc26e",
     "bindings/json/1.0/schemas/concept-proposal.schema.json": "sha256:5a094c63f2ec2168af76405b1b208e35e273f95c88ad474e4d4f8b264c172897",
     "bindings/json/1.0/schemas/enrichment-configuration.schema.json": "sha256:0130a79a542d8cd3a08e3cc2faecd9ce0d036e23198af4c0889ab217435f354b",
     "bindings/json/1.0/schemas/enrichment-deployment-decision.schema.json": "sha256:e06ea95616e0728dc5e1a235686cc93bccc45b427558781da85c3cc220539f4f",
@@ -13,7 +13,7 @@
     "bindings/json/1.0/schemas/indexed-vocabulary-expression.schema.json": "sha256:c37aaf3a10108c7f92be54c6203f38f73da3006fa2aa90507d67f3ee787d508c",
     "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:b88c4f14c3d4b37c7bf5c2f5cafb8b0075d1905034a2c3dc04bf6c68852989c5",
     "bindings/json/1.0/schemas/publication-release-manifest.schema.json": "sha256:2951b792b7f844c362a2366d7bf79d9e6074b172df35aaee4086a49b80c592f6",
-    "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:5ffa1eb4d65ed6fb5e39f565b1081e49ad0c38f405147bb0b59c861825ba0eb2",
+    "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:c591da7854464544959a330af6a7d1af9f1bf0d3347dc0cbc3ba7c61d4dc07a8",
     "bindings/json/1.0/schemas/registry-deployment-decision.schema.json": "sha256:e4d400ee3da7098ec32119cdc2c12c863c5a1a6e4d7fe4dc2aadcd97e078c10e",
     "bindings/json/1.0/schemas/registry-import-coverage-report.schema.json": "sha256:6ebaac9ea6a723b2ab95b7876ff2f268f0a503babeaa94ec4b62173c0f31f6ae",
     "bindings/json/1.0/schemas/registry-import-snapshot.schema.json": "sha256:e5c1de427ecd0e47fd8b45048f156701387e083d07b9d46154e13cc3ddf6b341",
@@ -22,9 +22,10 @@
     "bindings/json/1.0/schemas/rights-assessment.schema.json": "sha256:2f5b93bdc1d34f8fe1800cc093fc51d5700d84b39cc2c295ae94ae85307ad480",
     "bindings/json/1.0/schemas/run-receipt.schema.json": "sha256:45d37b467079eb256185ba215fb23dd98c373db85bb070d9e08e2e3de6856da8",
     "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
-    "src/refspec/generated_conformance_assets.py": "sha256:bbdac99bd434d616ec6e23c8098b36a2b9253380da58fcd65a2e3fef6b18fe71",
+    "bindings/json/1.0/schemas/source-identifier-set.schema.json": "sha256:097b3b05402c488e5c8005f6717a815cb904eff1294ba574e72147daead05be5",
+    "src/refspec/generated_conformance_assets.py": "sha256:6cc9622481abdae7f292b166dd9f3ebee1b8bab04aee65edab0457b83b109295",
     "src/refspec/generated_rulespec_dependency.py": "sha256:9caed4aa1acd1aef685274b4c2dabee4f23dbae1d940a790612cf346f0f7f05a",
-    "src/refspec/generated_schemas.py": "sha256:b712d46c545cb10fd46a9d64a9bdbe8c7f145d98bb5596aca6d4171aa8743268",
-    "src/refspec/generated_types.py": "sha256:1e50af15df8059c3d3be067987865a5dea7c46a27e3ba8e98ca08695285048b3"
+    "src/refspec/generated_schemas.py": "sha256:012e0f892fc88907da2357d6db3d6d112dfbc8577bfc01e52d0d26f3ca0654b2",
+    "src/refspec/generated_types.py": "sha256:b903902d862024aa8ea7697dd97f96f61d42548ea9b34549e72e108ba65209e5"
   }
 }

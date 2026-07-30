@@ -1,0 +1,106 @@
+{
+  "records": [
+    {
+      "id": "urn:ref:source-identifiers:congress:no-publisher-id",
+      "type": "urn:ref:type:SourceIdentifierSet",
+      "recordedAt": "2026-07-30T13:00:00Z",
+      "recordedBy": "urn:ref:agent:vocabulary-import",
+      "schemaVersion": "1.0",
+      "operationalState": "observed",
+      "canonicalPayloadDigest": "sha256:cefe32fbc27ee9496c057abcf25780c1c717882e62018030f434282faceb88b9",
+      "sourceObservation": "urn:ref:crs-source-record:no-publisher-id",
+      "sourceCapture": {
+        "id": "urn:ref:capture:congress:example",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "sourcePath": "subjects.legislativeSubjects[1]",
+      "sourceOrdinal": 1,
+      "identifiers": [],
+      "canonicalIdentifierSelected": false,
+      "activity": "urn:rulespec:activity:import-identifiers:example",
+      "receipt": "urn:rulespec:receipt:import-identifiers:example"
+    },
+    {
+      "id": "urn:ref:source-identifiers:congress:one-publisher-id",
+      "type": "urn:ref:type:SourceIdentifierSet",
+      "recordedAt": "2026-07-30T13:00:00Z",
+      "recordedBy": "urn:ref:agent:vocabulary-import",
+      "schemaVersion": "1.0",
+      "operationalState": "observed",
+      "canonicalPayloadDigest": "sha256:d9b6ad35d510266ade9646dfb1fdd868d3f8b9a142f24e391365e68dd6f37c57",
+      "sourceObservation": "urn:ref:crs-source-record:one-publisher-id",
+      "sourceCapture": {
+        "id": "urn:ref:capture:congress:example",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "sourcePath": "subjects.legislativeSubjects[2]",
+      "sourceOrdinal": 2,
+      "identifiers": [
+        {
+          "value": "publisher-term-43",
+          "kind": "publisherIdentifier",
+          "authorityUri": "https://www.congress.gov/",
+          "sourceUri": "https://api.congress.gov/v3/bill/117/hr/3076/subjects",
+          "sourcePath": "subjects.legislativeSubjects[2].id",
+          "observedAt": "2026-07-30T13:00:00Z",
+          "sourceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "canonicalIdentifierSelected": false,
+      "activity": "urn:rulespec:activity:import-identifiers:example",
+      "receipt": "urn:rulespec:receipt:import-identifiers:example"
+    },
+    {
+      "id": "urn:ref:source-identifiers:congress:example",
+      "type": "urn:ref:type:SourceIdentifierSet",
+      "recordedAt": "2026-07-30T13:00:00Z",
+      "recordedBy": "urn:ref:agent:vocabulary-import",
+      "schemaVersion": "1.0",
+      "operationalState": "observed",
+      "canonicalPayloadDigest": "sha256:1ff91c28151632007044b6d6e43fdef67a06990e940b4aafb1848fc97703824f",
+      "sourceObservation": "urn:ref:crs-source-record:example",
+      "sourceCapture": {
+        "id": "urn:ref:capture:congress:example",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "sourcePath": "subjects.legislativeSubjects[0]",
+      "sourceOrdinal": 0,
+      "identifiers": [
+        {
+          "value": "publisher-term-42",
+          "kind": "publisherIdentifier",
+          "authorityUri": "https://www.congress.gov/",
+          "sourceUri": "https://api.congress.gov/v3/bill/117/hr/3076/subjects",
+          "sourcePath": "subjects.legislativeSubjects[0].id",
+          "observedAt": "2026-07-30T13:00:00Z",
+          "effectiveFrom": "2026-07-29",
+          "sourceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "value": "publisher-code-99",
+          "kind": "publisherCode",
+          "authorityUri": "https://www.congress.gov/",
+          "sourceUri": "https://api.congress.gov/v3/bill/117/hr/3076/subjects",
+          "sourcePath": "subjects.legislativeSubjects[0].code",
+          "observedAt": "2026-07-30T13:00:00Z",
+          "sourceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "value": "https://id.loc.gov/example/42",
+          "kind": "publisherTermIri",
+          "authorityUri": "https://id.loc.gov/",
+          "sourceUri": "https://api.congress.gov/v3/bill/117/hr/3076/subjects",
+          "sourcePath": "subjects.legislativeSubjects[0].url",
+          "observedAt": "2026-07-30T13:00:00Z",
+          "effectiveFrom": "2026-07-29T16:00:00Z",
+          "sourceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "canonicalIdentifierSelected": false,
+      "activity": "urn:rulespec:activity:import-identifiers:example",
+      "receipt": "urn:rulespec:receipt:import-identifiers:example"
+    }
+  ],
+  "permissionChecks": [],
+  "languageTagTests": []
+}

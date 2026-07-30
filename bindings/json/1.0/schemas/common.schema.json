@@ -39,6 +39,67 @@
         "$ref": "#/$defs/absoluteIri"
       }
     },
+    "controlledIdentifier": {
+      "type": "object",
+      "required": [
+        "value",
+        "kind",
+        "authorityUri",
+        "sourceUri",
+        "sourcePath",
+        "observedAt",
+        "sourceDigest"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "kind": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "authorityUri": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "sourceUri": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "sourcePath": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effectiveFrom": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "effectiveThrough": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "sourceDigest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
     "identifierReference": {
       "type": "object",
       "required": [

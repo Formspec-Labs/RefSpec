@@ -1,0 +1,14 @@
+{
+  "base": "../valid/source-identifiers-multiple.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:source-identifiers:congress:example",
+      "path": "/canonicalIdentifierSelected",
+      "operation": "replace",
+      "value": true
+    }
+  ],
+  "expectedRequirements": [
+    "REF-VOC-040"
+  ]
+}

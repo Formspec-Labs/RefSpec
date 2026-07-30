@@ -103,7 +103,7 @@ def test_installed_package_can_run_embedded_conformance_suite(
 
     assert binding.run_suite() == 0
     assert (
-        "5 valid fixture(s) accepted; 90 invalid fixture(s) rejected; "
+        "6 valid fixture(s) accepted; 92 invalid fixture(s) rejected; "
         "0 failure(s)"
         in capsys.readouterr().out
     )

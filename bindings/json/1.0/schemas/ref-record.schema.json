@@ -53,6 +53,9 @@
     },
     {
       "$ref": "enrichment-deployment-decision.schema.json"
+    },
+    {
+      "$ref": "source-identifier-set.schema.json"
     }
   ]
 }

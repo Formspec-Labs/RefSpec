@@ -229,6 +229,67 @@
             "$ref": "#/$defs/absoluteIri"
           }
         },
+        "controlledIdentifier": {
+          "type": "object",
+          "required": [
+            "value",
+            "kind",
+            "authorityUri",
+            "sourceUri",
+            "sourcePath",
+            "observedAt",
+            "sourceDigest"
+          ],
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "kind": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "authorityUri": {
+              "$ref": "#/$defs/absoluteIri"
+            },
+            "sourceUri": {
+              "$ref": "#/$defs/absoluteIri"
+            },
+            "sourcePath": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "effectiveFrom": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              ]
+            },
+            "effectiveThrough": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              ]
+            },
+            "sourceDigest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "additionalProperties": false
+        },
         "identifierReference": {
           "type": "object",
           "required": [
@@ -2028,6 +2089,66 @@
       },
       "unevaluatedProperties": false
     },
+    "source-identifier-set.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://refspec.org/bindings/json/1.0/schemas/source-identifier-set.schema.json",
+      "title": "REF SourceIdentifierSet",
+      "x-ref-python-name": "SourceIdentifierSetData",
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/commonRecordProperties"
+        }
+      ],
+      "required": [
+        "canonicalPayloadDigest",
+        "sourceObservation",
+        "sourceCapture",
+        "sourcePath",
+        "sourceOrdinal",
+        "identifiers",
+        "canonicalIdentifierSelected",
+        "activity",
+        "receipt"
+      ],
+      "properties": {
+        "type": {
+          "const": "urn:ref:type:SourceIdentifierSet"
+        },
+        "canonicalPayloadDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceObservation": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "sourceCapture": {
+          "$ref": "common.schema.json#/$defs/digestReference"
+        },
+        "sourcePath": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "sourceOrdinal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "identifiers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/controlledIdentifier"
+          }
+        },
+        "canonicalIdentifierSelected": {
+          "const": false
+        },
+        "activity": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "receipt": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        }
+      },
+      "unevaluatedProperties": false
+    },
     "ref-record.schema.json": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://refspec.org/bindings/json/1.0/schemas/ref-record.schema.json",
@@ -2083,6 +2204,9 @@
         },
         {
           "$ref": "enrichment-deployment-decision.schema.json"
+        },
+        {
+          "$ref": "source-identifier-set.schema.json"
         }
       ]
     },

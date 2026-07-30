@@ -1,0 +1,13 @@
+{
+  "base": "../valid/source-identifiers-multiple.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:source-identifiers:congress:example",
+      "path": "/identifiers/1/sourcePath",
+      "operation": "remove"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-VOC-040"
+  ]
+}

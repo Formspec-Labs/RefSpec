@@ -1071,6 +1071,46 @@
         "duplicate locators and duplicate generated identifiers fail without lexical fallback",
         "observation identifiers create no concept mapping, input selection, reconciled release, union, candidate, or accepted-output authority"
       ]
+    },
+    {
+      "requirement": "REF-VOC-040",
+      "localFixtures": [
+        "fixtures/valid/source-identifiers-multiple.json",
+        "fixtures/invalid/source-identifiers-single-canonical.json",
+        "fixtures/invalid/source-identifier-missing-provenance.json"
+      ],
+      "referenceRuntimeTests": [
+        "tests/test_controlled_identifier.py::test_distinct_identifiers_removes_only_exact_repeated_observations",
+        "tests/test_crs_legislative_resources.py::test_api_parser_retains_multiple_structured_identifiers_without_conflict",
+        "tests/test_regulatory_native_controls.py::test_duplicate_and_multiple_legitimate_identifiers_are_preserved"
+      ],
+      "validatorChecks": [
+        "source observations accept zero, one, or multiple qualified identifiers",
+        "each identifier retains its value, kind, authority, source path, source digest, and observation time",
+        "distinct values and authorities remain separate and no canonical identifier is selected",
+        "capture-local record identity remains distinct from publisher identity"
+      ]
+    },
+    {
+      "requirement": "REF-TEST-185",
+      "localFixtures": [
+        "fixtures/valid/source-identifiers-multiple.json",
+        "fixtures/invalid/source-identifiers-single-canonical.json",
+        "fixtures/invalid/source-identifier-missing-provenance.json"
+      ],
+      "externalGate": "RefSpec qualified identifier binding and source-adapter regression tests",
+      "referenceRuntimeTests": [
+        "tests/test_controlled_identifier.py::test_identifier_dates_accept_iso_dates_and_date_times",
+        "tests/test_controlled_identifier.py::test_identifier_dates_reject_non_iso_or_impossible_values",
+        "tests/test_crs_legislative_resources.py::test_repeated_source_labels_remain_distinct_capture_records",
+        "tests/test_regulatory_native_controls.py::test_identifiers_are_zero_or_more_structured_observations"
+      ],
+      "validatorChecks": [
+        "zero, one, and multiple identifier sets remain valid without canonical selection",
+        "issuer, source evidence, observation time, and effective time remain attached to each value",
+        "missing provenance and attempts to select one canonical identifier fail",
+        "source record IRIs and publisher term IRIs do not imply concept identity"
+      ]
     }
   ]
 }
