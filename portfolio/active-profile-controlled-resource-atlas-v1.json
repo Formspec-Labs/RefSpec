@@ -1,0 +1,2212 @@
+{
+  "facetVocabulary": [
+    "urn:ref:facet:administrative-process-stage",
+    "urn:ref:facet:affected-population",
+    "urn:ref:facet:code-list-value",
+    "urn:ref:facet:entity",
+    "urn:ref:facet:general-subject",
+    "urn:ref:facet:genre",
+    "urn:ref:facet:industry-classification",
+    "urn:ref:facet:legal-location",
+    "urn:ref:facet:observation-measure",
+    "urn:ref:facet:ontology-class",
+    "urn:ref:facet:regulatory-action",
+    "urn:ref:facet:specialist-subject"
+  ],
+  "format": "urn:ref:portfolio:active-profile-controlled-resource-atlas:v1",
+  "generatedFrom": {
+    "plan": {
+      "batch": 0,
+      "date": "2026-07-30",
+      "path": "plans/active-profile-controlled-resource-import-plan.md"
+    },
+    "refspecPortfolioInputSha256": "sha256:bad438c54d7b1ec13a8cc1c883dea22f919c1640192fe60ed1fe250cceb1c09c",
+    "spicyRegsProfileSnapshotSha256": "sha256:b7b854c33d744c854669760ce12e7f2f9f0864e18017b914ae96077ed52b7ff7",
+    "spicyRegsSource": {
+      "gitBlob": "df9ebe6ebd4e558f6296e36c7b837ebdb6ebdd5f",
+      "path": "src/spicy_regs/docpipeline/source.py",
+      "repository": "https://github.com/civictechdc/spicy-regs",
+      "revision": "b94b48a44ec96323c12177330052240dae60351c",
+      "sha256": "sha256:ee6af706c26138a12dfa9425b6b93d0e27966bab3f17a2b76b86b5d5e0f0e69d"
+    }
+  },
+  "profiles": [
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "cfr-list-of-subjects",
+          "uses": [
+            "sourceAssignedEvidence",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:legal-location",
+            "urn:ref:facet:ontology-class"
+          ],
+          "resourceId": "ecfr-govinfo-cfr-structure",
+          "uses": [
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:ontology-class"
+          ],
+          "resourceId": "uslm",
+          "uses": [
+            "structureOrInterchange"
+          ]
+        }
+      ],
+      "idColumns": [
+        "granule_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "cfr-section-v1",
+      "recordKind": "Code of Federal Regulations section",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "CFR hierarchy",
+        "citation",
+        "edition",
+        "point-in-time status",
+        "USLM structure"
+      ],
+      "sourceTable": "cfr_sections",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "The CFR List of Subjects is part-to-term evidence, not an independently minted subject scheme.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "cfr_section",
+      "textColumns": [
+        "heading",
+        "cfr_ref",
+        "title",
+        "part",
+        "section",
+        "text",
+        "full_text",
+        "xml_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "sourceAssignedEvidence",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-policy-areas",
+          "uses": [
+            "sourceAssignedEvidence",
+            "navigation"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:genre",
+            "urn:ref:facet:regulatory-action",
+            "urn:ref:facet:entity",
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "congress-billstatus-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "federal-legislative-identifiers",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:ontology-class"
+          ],
+          "resourceId": "uslm",
+          "uses": [
+            "structureOrInterchange"
+          ]
+        }
+      ],
+      "idColumns": [
+        "bill_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "congress-bill-v1",
+      "recordKind": "Congressional bill",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "bill type",
+        "action",
+        "version",
+        "committee",
+        "BioGuide identity",
+        "USLM structure"
+      ],
+      "sourceTable": "congress_bills",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "CRS terms supply the primary legislative result path and policy areas remain navigation.",
+        "gapStatus": "none",
+        "primaryResourceIds": [
+          "crs-legislative-subject-terms",
+          "federal-register-thesaurus-1995",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "congress_bill",
+      "textColumns": [
+        "title",
+        "latest_action_text",
+        "origin_chamber",
+        "summary",
+        "full_text",
+        "xml_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:legal-location",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "court-identifiers-and-controls",
+          "uses": [
+            "identifierAuthority",
+            "deterministicCodeOrClassification"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:genre",
+            "urn:ref:facet:code-list-value"
+          ],
+          "resourceId": "nature-of-suit",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "cl_docket_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "court-docket-v1",
+      "recordKind": "Court docket container",
+      "recordRole": "container",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "court identity",
+        "Nature of Suit",
+        "case identity",
+        "party",
+        "CourtListener status",
+        "date",
+        "access"
+      ],
+      "sourceTable": "court_dockets",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "Subjects belong to opinions and filings, not to the docket container.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "court_docket",
+      "textColumns": [
+        "case_name_full",
+        "case_name",
+        "nature_of_suit",
+        "cause",
+        "court_citation_string",
+        "opinion_text",
+        "html_text",
+        "full_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "lcsh-fast-mapping-references",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:legal-location",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "court-identifiers-and-controls",
+          "uses": [
+            "identifierAuthority",
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "opinion_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "court-opinion-v1",
+      "recordKind": "Court opinion",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "court identity",
+        "opinion type",
+        "version",
+        "citation",
+        "case identity",
+        "package identity"
+      ],
+      "sourceTable": "court_opinions",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "No maintained national court-topic thesaurus is known; LCSH and FAST are mapping references only.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "court_opinion",
+      "textColumns": [
+        "case_name",
+        "docket_number",
+        "citation",
+        "date_decided",
+        "opinion_type",
+        "holding",
+        "html_with_citations",
+        "plain_text",
+        "pdf_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "sourceAssignedEvidence",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-policy-areas",
+          "uses": [
+            "sourceAssignedEvidence",
+            "navigation"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "crs-native-controls",
+          "uses": [
+            "sourceAssignedEvidence",
+            "deterministicCodeOrClassification",
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        }
+      ],
+      "idColumns": [
+        "report_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "crs-report-v1",
+      "recordKind": "Congressional Research Service report",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "legislative subject term",
+        "policy area",
+        "product topic",
+        "product type",
+        "edition",
+        "status",
+        "report number",
+        "bill",
+        "committee"
+      ],
+      "sourceTable": "crs_reports",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "CRS Product Topics have assignment context but no independently published, versioned concept scheme.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "crs-legislative-subject-terms",
+          "federal-register-thesaurus-1995",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "crs_report",
+      "textColumns": [
+        "title",
+        "report_type",
+        "status",
+        "abstract",
+        "full_text",
+        "pdf_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-api-topics",
+          "uses": [
+            "sourceAssignedEvidence"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "fcc-ecfs-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "frn-authority",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:regulatory-action"
+          ],
+          "resourceId": "cfr47-procedure",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "id_submission"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "fcc-filing-v1",
+      "recordKind": "Federal Communications Commission filing",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "ECFS filing description",
+        "filer",
+        "author",
+        "FRN",
+        "bureau",
+        "filing status",
+        "access status",
+        "attachment type",
+        "genre map version"
+      ],
+      "sourceTable": "fcc_filings",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "No maintained FCC topic thesaurus is known; filing text uses the cross-domain subject path.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "fcc_filing",
+      "textColumns": [
+        "submission_type",
+        "text_data",
+        "express_comment",
+        "bureaus_json",
+        "lawfirms_json",
+        "full_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:entity",
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "fcc-ecfs-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "frn-authority",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:regulatory-action"
+          ],
+          "resourceId": "cfr47-procedure",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "id_proceeding"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "fcc-proceeding-v1",
+      "recordKind": "Federal Communications Commission proceeding container",
+      "recordRole": "container",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "ECFS proceeding number",
+        "rulemaking flag",
+        "bureau",
+        "status",
+        "date",
+        "47 CFR procedure class"
+      ],
+      "sourceTable": "fcc_proceedings",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "No maintained FCC topic thesaurus is known; subjects belong to linked filings.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "fcc_proceeding",
+      "textColumns": [
+        "name",
+        "description",
+        "rulemaking_or_docket",
+        "bureau_name"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:entity",
+            "urn:ref:facet:code-list-value"
+          ],
+          "resourceId": "fec-native-controls",
+          "uses": [
+            "identifierAuthority",
+            "deterministicCodeOrClassification"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "federal-legislative-identifiers",
+          "uses": [
+            "identifierAuthority"
+          ]
+        }
+      ],
+      "idColumns": [
+        "committee_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "fec-committee-v1",
+      "recordKind": "Federal Election Commission committee",
+      "recordRole": "entity",
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "committee ID",
+        "committee type",
+        "designation",
+        "organization type",
+        "party",
+        "sponsor",
+        "candidate",
+        "cycle",
+        "effective date"
+      ],
+      "sourceTable": "fec_committees",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "The record is an entity; committee codes and party values are not subjects.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "fec_committee",
+      "textColumns": [
+        "name",
+        "committee_type_full",
+        "organization_type_full",
+        "party_full",
+        "candidate_ids_json"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-api-topics",
+          "uses": [
+            "sourceAssignedEvidence"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:genre",
+            "urn:ref:facet:regulatory-action",
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:entity",
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "federal-register-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "rin-authority",
+          "uses": [
+            "identifierAuthority"
+          ]
+        }
+      ],
+      "idColumns": [
+        "document_number"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "federal-register-document-v1",
+      "recordKind": "Federal Register document",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "topic",
+        "category",
+        "presidential subtype",
+        "toc_subject",
+        "agency",
+        "RIN",
+        "docket",
+        "CFR citation",
+        "version"
+      ],
+      "sourceTable": "federal_register",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "Historical managed terms and current API topics remain distinct until publication identity is reconciled.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "federal_register_document",
+      "textColumns": [
+        "title",
+        "abstract",
+        "document_type",
+        "agency_slugs",
+        "body_text",
+        "body_html",
+        "full_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "gao-topics",
+          "uses": [
+            "sourceAssignedEvidence"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "gao-thesaurus-historical",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity",
+            "urn:ref:facet:observation-measure"
+          ],
+          "resourceId": "gao-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority"
+          ]
+        }
+      ],
+      "idColumns": [
+        "report_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "gao-report-v1",
+      "recordKind": "Government Accountability Office report",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "GAO report ID",
+        "topic",
+        "product type",
+        "date",
+        "agency",
+        "recommendation",
+        "evidence depth"
+      ],
+      "sourceTable": "gao_reports",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "No maintained reusable GAO subject thesaurus is known; actual topics remain evidence and the 1998 thesaurus is mapping-only.",
+        "gapStatus": "documented",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "gao_report",
+      "textColumns": [
+        "title",
+        "abstract",
+        "report_type",
+        "agencies_json",
+        "full_text",
+        "pdf_text"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "lda-native-controls",
+          "uses": [
+            "sourceAssignedEvidence",
+            "deterministicCodeOrClassification",
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        }
+      ],
+      "idColumns": [
+        "filing_uuid"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "lobbying-filing-v1",
+      "recordKind": "Lobbying Disclosure Act filing",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "structured-children",
+      "sourceNativeFields": [
+        "general issue code",
+        "filing type",
+        "period",
+        "status",
+        "client",
+        "registrant",
+        "government target",
+        "amendment"
+      ],
+      "sourceTable": "lobbying_filings",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "Specific-issue text uses the cross-domain path; LDA codes remain source evidence.",
+        "gapStatus": "none",
+        "primaryResourceIds": [
+          "crs-legislative-subject-terms",
+          "federal-register-thesaurus-1995",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "lobbying_filing",
+      "textColumns": [
+        "client_name",
+        "registrant_name",
+        "lobbying_activities_json",
+        "government_entities_json"
+      ]
+    },
+    {
+      "activeInStep4": false,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "regulations-gov-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        }
+      ],
+      "idColumns": [
+        "comment_id"
+      ],
+      "portfolioStatus": "deferred",
+      "profileId": "regulations-comment-v1",
+      "recordKind": "Regulations.gov public participation comment",
+      "recordRole": "participation",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "submitter",
+        "attachment",
+        "participation category",
+        "privacy behavior"
+      ],
+      "sourceTable": "comments",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "The profile and resource path are recorded, but comments remain outside the current Step 4 cycle.",
+        "gapStatus": "deferred",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "comment",
+      "textColumns": [
+        "title",
+        "comment",
+        "text_content",
+        "organization",
+        "category"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "regulations-gov-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "rin-authority",
+          "uses": [
+            "identifierAuthority"
+          ]
+        }
+      ],
+      "idColumns": [
+        "docket_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "regulations-docket-v2",
+      "recordKind": "Regulations.gov docket container",
+      "recordRole": "container",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "docket type",
+        "agency",
+        "docket ID",
+        "RIN"
+      ],
+      "sourceTable": "dockets",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "Subjects belong to linked documents, not to the docket container.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "docket",
+      "textColumns": [
+        "title",
+        "abstract"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-api-topics",
+          "uses": [
+            "sourceAssignedEvidence"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:genre",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "regulations-gov-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority",
+            "structureOrInterchange"
+          ]
+        }
+      ],
+      "idColumns": [
+        "document_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "regulations-document-v2",
+      "recordKind": "Regulations.gov document",
+      "recordRole": "document",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "hierarchical-document",
+      "sourceNativeFields": [
+        "document type",
+        "attachment type",
+        "agency",
+        "docket ID",
+        "Federal Register number",
+        "date"
+      ],
+      "sourceTable": "documents",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "The cross-domain subject path is explicit; source-native types stay outside subject ranking.",
+        "gapStatus": "none",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "document",
+      "textColumns": [
+        "title"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "entity-identifier-authorities",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:industry-classification"
+          ],
+          "resourceId": "naics",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity",
+            "urn:ref:facet:code-list-value"
+          ],
+          "resourceId": "federal-hierarchy",
+          "uses": [
+            "identifierAuthority",
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "uei"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "sam-entity-v1",
+      "recordKind": "System for Award Management entity",
+      "recordRole": "entity",
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "UEI",
+        "CAGE",
+        "NAICS",
+        "legal name",
+        "registration status",
+        "location",
+        "Federal Hierarchy"
+      ],
+      "sourceTable": "sam_entities",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "The record is an entity; its identifiers and classifications do not enter subject ranking.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "sam_entity",
+      "textColumns": [
+        "legal_business_name",
+        "dba_name",
+        "entity_type_desc",
+        "entity_structure_desc",
+        "purpose_of_registration_desc",
+        "primary_naics"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:general-subject",
+        "urn:ref:facet:specialist-subject",
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "federal-register-thesaurus-1995",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject"
+          ],
+          "resourceId": "crs-legislative-subject-terms",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "icpsr-subject-thesaurus",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:general-subject",
+            "urn:ref:facet:affected-population"
+          ],
+          "resourceId": "elsst",
+          "uses": [
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:specialist-subject"
+          ],
+          "resourceId": "specialist-subject-modules",
+          "uses": [
+            "selectableSubject",
+            "mappingAndSearchExpansion"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:administrative-process-stage",
+            "urn:ref:facet:regulatory-action",
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "unified-agenda-native-controls",
+          "uses": [
+            "deterministicCodeOrClassification",
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:legal-location"
+          ],
+          "resourceId": "rin-authority",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:industry-classification"
+          ],
+          "resourceId": "naics",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "rin",
+        "agenda_edition"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "unified-agenda-observation-v1",
+      "recordKind": "Unified Agenda regulatory observation",
+      "recordRole": "observation",
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "RIN",
+        "agency",
+        "stage",
+        "priority",
+        "timetable",
+        "legal authority",
+        "CFR reference",
+        "related RIN",
+        "NAICS"
+      ],
+      "sourceTable": "unified_agenda",
+      "subjectPolicy": {
+        "eligible": true,
+        "gap": "Title and abstract use the cross-domain subject path; process and industry values remain deterministic facets.",
+        "gapStatus": "none",
+        "primaryResourceIds": [
+          "federal-register-thesaurus-1995",
+          "crs-legislative-subject-terms",
+          "specialist-subject-modules"
+        ]
+      },
+      "subjectType": "regulatory_agenda_observation",
+      "textColumns": [
+        "title",
+        "abstract",
+        "rule_stage",
+        "priority_category",
+        "cfr_references_json",
+        "legal_authority_json"
+      ]
+    },
+    {
+      "activeInStep4": true,
+      "candidateFacets": [
+        "urn:ref:facet:entity"
+      ],
+      "controlledResourceUses": [
+        {
+          "facets": [
+            "urn:ref:facet:entity"
+          ],
+          "resourceId": "entity-identifier-authorities",
+          "uses": [
+            "identifierAuthority"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:industry-classification"
+          ],
+          "resourceId": "naics",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:code-list-value",
+            "urn:ref:facet:industry-classification"
+          ],
+          "resourceId": "psc",
+          "uses": [
+            "deterministicCodeOrClassification"
+          ]
+        },
+        {
+          "facets": [
+            "urn:ref:facet:entity",
+            "urn:ref:facet:code-list-value"
+          ],
+          "resourceId": "federal-hierarchy",
+          "uses": [
+            "identifierAuthority",
+            "deterministicCodeOrClassification"
+          ]
+        }
+      ],
+      "idColumns": [
+        "recipient_id"
+      ],
+      "portfolioStatus": "active",
+      "profileId": "usaspending-recipient-v1",
+      "recordKind": "USAspending recipient entity",
+      "recordRole": "entity",
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
+      "sourceMode": "atomic-record",
+      "sourceNativeFields": [
+        "recipient ID",
+        "UEI",
+        "CAGE",
+        "NAICS",
+        "PSC",
+        "Federal Hierarchy",
+        "status",
+        "vintage"
+      ],
+      "sourceTable": "usaspending_recipients",
+      "subjectPolicy": {
+        "eligible": false,
+        "gap": "The record is an entity; subjects belong to award or program narratives.",
+        "gapStatus": "notApplicable",
+        "primaryResourceIds": []
+      },
+      "subjectType": "usaspending_recipient",
+      "textColumns": [
+        "name",
+        "recipient_level"
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "accessOrReproducibilityGap": "Assignments are obtainable from CFR source material, but they do not publish an independent current concept scheme.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the exact CFR part identity and authored subject literal.",
+      "officialLocator": "https://www.ecfr.gov/current/title-1/chapter-I/subchapter-A/part-3/subpart-B/section-3.12",
+      "resourceId": "cfr-list-of-subjects",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "CFR List of Subjects assignments",
+      "versionRepresentation": "Pin CFR title, part, edition or point-in-time date, source artifact, and digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Only procedure classes needed by active ECFS profiles enter the first portfolio release.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official 47 CFR citation and procedure-class meaning.",
+      "officialLocator": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-1",
+      "resourceId": "cfr47-procedure",
+      "resourceKind": "codeList",
+      "title": "47 CFR procedure classes",
+      "versionRepresentation": "Pin title, part, section, point-in-time date, and source digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Congress.gov API and BILLSTATUS files must remain source/version-specific when their fields differ.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official bill, action, version, committee, and package identities.",
+      "officialLocator": "https://api.congress.gov/",
+      "resourceId": "congress-billstatus-native-controls",
+      "resourceKind": "structuralSchema",
+      "title": "Congress API and BILLSTATUS controls",
+      "versionRepresentation": "Pin API version or BILLSTATUS bulk-data date and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Official court identifiers and CourtListener-normalized values must remain distinct and source-attributed.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Preserve court, case, docket, opinion, citation, package, and platform identifiers with authority type.",
+      "officialLocator": "https://www.courtlistener.com/help/api/",
+      "resourceId": "court-identifiers-and-controls",
+      "resourceKind": "identifierAuthority",
+      "title": "Court identifiers and source controls",
+      "versionRepresentation": "Pin court source, platform API version, record version, capture time, and response digest."
+    },
+    {
+      "accessOrReproducibilityGap": "A complete machine-readable acquisition and exact release pin remain Batch 4 work.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve Library of Congress legislative subject identifiers and labels.",
+      "officialLocator": "https://www.congress.gov/help/legislative-glossary",
+      "resourceId": "crs-legislative-subject-terms",
+      "resourceKind": "subjectVocabulary",
+      "title": "CRS Legislative Subject Terms",
+      "versionRepresentation": "Managed release must pin the official distribution date and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Product Topics are report-edition assignments, not an independently published concept scheme.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve CRS report number, edition, status, product type, product-topic literal, bill, and committee links.",
+      "officialLocator": "https://crsreports.congress.gov/",
+      "resourceId": "crs-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "CRS report native controls",
+      "versionRepresentation": "Pin the exact report edition, product metadata capture, and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Policy areas are broad navigation values and must not silently replace detailed subject terms.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the official CRS policy-area values and their source context.",
+      "officialLocator": "https://www.congress.gov/browse",
+      "resourceId": "crs-policy-areas",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "CRS Policy Areas",
+      "versionRepresentation": "Pin the Congress.gov capture time, report or bill edition, and response digest."
+    },
+    {
+      "accessOrReproducibilityGap": "eCFR current state and GovInfo packages have different publication/version behavior that must remain visible.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official title, chapter, part, section, granule, package, and citation identities.",
+      "officialLocator": "https://www.ecfr.gov/developers/documentation/api/v1",
+      "resourceId": "ecfr-govinfo-cfr-structure",
+      "resourceKind": "structuralSchema",
+      "title": "eCFR and GovInfo CFR structure",
+      "versionRepresentation": "Pin point-in-time date or GovInfo package version plus exact artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "RefSpec still needs a complete reproducible release capture and reviewed mappings to United States source schemes.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve ELSST concept URIs and language-tagged labels.",
+      "officialLocator": "https://elsst.cessda.eu/",
+      "resourceId": "elsst",
+      "resourceKind": "mappingReference",
+      "title": "European Language Social Science Thesaurus",
+      "versionRepresentation": "Pin the published ELSST release/version and distribution digest."
+    },
+    {
+      "accessOrReproducibilityGap": "UEI and CAGE resolve through different authorities; a combined portfolio row does not assert identity between them.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve UEI and CAGE identifiers exactly, with authority type.",
+      "officialLocator": "https://sam.gov/content/entity-registration",
+      "resourceId": "entity-identifier-authorities",
+      "resourceKind": "identifierAuthority",
+      "title": "UEI and CAGE entity identifier authorities",
+      "versionRepresentation": "Pin source record status, capture time, and authority-specific evidence."
+    },
+    {
+      "accessOrReproducibilityGap": "ECFS source fields and local genre mappings are separate; no maintained FCC topic thesaurus is known.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve proceeding, submission, bureau, status, attachment, filer, and author values with source field.",
+      "officialLocator": "https://www.fcc.gov/ecfs/public-api-docs.html",
+      "resourceId": "fcc-ecfs-native-controls",
+      "resourceKind": "structuralSchema",
+      "title": "FCC ECFS native controls",
+      "versionRepresentation": "Pin API version, record version, capture time, response digest, and local genre-map version."
+    },
+    {
+      "accessOrReproducibilityGap": "Code definitions and committee records are time-varying; exact effective dates must remain attached.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve FEC committee ID and native committee, designation, organization, party, sponsor, and candidate codes.",
+      "officialLocator": "https://api.open.fec.gov/developers/",
+      "resourceId": "fec-native-controls",
+      "resourceKind": "codeList",
+      "title": "Federal Election Commission native controls",
+      "versionRepresentation": "Pin API version, cycle, effective date, capture time, and response digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The hierarchy changes over time and source systems may expose only partial snapshots.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official agency and organization identifiers and parent relations.",
+      "officialLocator": "https://sam.gov/content/federal-hierarchy",
+      "resourceId": "federal-hierarchy",
+      "resourceKind": "classification",
+      "title": "Federal Hierarchy",
+      "versionRepresentation": "Pin the source snapshot date, hierarchy artifact, and digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The authorities are separately maintained and require exact source-specific version evidence.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve BioGuide, committee, bill, and related legislative identifiers in their native authorities.",
+      "officialLocator": "https://bioguide.congress.gov/",
+      "resourceId": "federal-legislative-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "Federal legislative identifier authorities",
+      "versionRepresentation": "Pin each authority capture date, source locator, and digest independently."
+    },
+    {
+      "accessOrReproducibilityGap": "The API exposes assigned topics but not a complete versioned thesaurus distribution; do not merge it with the 1995 release.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Source topic strings and record links are evidence until official concept identifiers are available.",
+      "officialLocator": "https://www.federalregister.gov/developers/documentation/api/v1",
+      "resourceId": "federal-register-api-topics",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "Federal Register API topics",
+      "versionRepresentation": "Capture time, endpoint, query, record identity, and response digest pin each observation."
+    },
+    {
+      "accessOrReproducibilityGap": "Some values are API-native observations rather than a separately downloadable controlled list.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve category, presidential subtype, TOC subject, agency, docket, CFR citation, and document-number values as authored.",
+      "officialLocator": "https://www.federalregister.gov/developers/documentation/api/v1",
+      "resourceId": "federal-register-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "Federal Register native controls",
+      "versionRepresentation": "Pin endpoint, API capture time, document version, and response digest."
+    },
+    {
+      "accessOrReproducibilityGap": "A dated RefSpec managed release is already captured; current Federal Register API topics remain a separate publication.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "RefSpec-managed concept IRIs preserve the historical source identifiers.",
+      "officialLocator": "Federal Register Thesaurus of Indexing Terms, 1995 edition",
+      "resourceId": "federal-register-thesaurus-1995",
+      "resourceKind": "subjectVocabulary",
+      "title": "Federal Register Thesaurus of Indexing Terms",
+      "versionRepresentation": "Managed release pins the 1995 publication and its artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "FRNs identify registrants, not topical concepts, and resolution evidence must remain source-specific.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Official FCC Registration Number.",
+      "officialLocator": "https://apps.fcc.gov/cores/userLogin.do",
+      "resourceId": "frn-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "FCC Registration Number authority",
+      "versionRepresentation": "Pin source record status, lookup time, and authority evidence."
+    },
+    {
+      "accessOrReproducibilityGap": "GAO report controls are record-derived; exact enumerations may require bounded source captures.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve report ID, product type, agency, recommendation state, and evidence-depth values.",
+      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "resourceId": "gao-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "GAO report native controls",
+      "versionRepresentation": "Pin report edition, source fields, capture time, and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The historical publication is not a maintained authority and is mapping-only unless a successor appears.",
+      "distributionStatus": "historicalOnly",
+      "identifierRepresentation": "Preserve historical source entries and identifiers without promoting them to current selectable concepts.",
+      "officialLocator": "GAO Thesaurus, 1998 publication",
+      "resourceId": "gao-thesaurus-historical",
+      "resourceKind": "mappingReference",
+      "title": "GAO Thesaurus",
+      "versionRepresentation": "Pin the 1998 edition and exact scanned or machine-readable artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "GAO topics are source assignments and no complete maintained reusable thesaurus distribution is known.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the exact topic literal and report assignment context.",
+      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "resourceId": "gao-topics",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "GAO report topics",
+      "versionRepresentation": "Pin report identity, edition or publication date, capture time, and source digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The current public term index and pinned XML differ in membership; full import must stop until every record joins to an official URI or code.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Official ICPSR numeric code and public term URI; XML record numbers remain source-local evidence.",
+      "officialLocator": "https://icpsr.umich.edu/web/pages/ICPSR/thesaurus/",
+      "resourceId": "icpsr-subject-thesaurus",
+      "resourceKind": "mappingReference",
+      "title": "ICPSR Subject Thesaurus",
+      "versionRepresentation": "Pin the XML artifact plus every public index page, capture time, and aggregate digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Only reviewed mappings may influence retrieval; label similarity never establishes identity.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve Library of Congress Subject Headings and FAST concept identifiers independently.",
+      "officialLocator": "https://id.loc.gov/authorities/subjects.html",
+      "resourceId": "lcsh-fast-mapping-references",
+      "resourceKind": "mappingReference",
+      "title": "LCSH and FAST mapping references",
+      "versionRepresentation": "Pin each source release and every reviewed mapping snapshot independently."
+    },
+    {
+      "accessOrReproducibilityGap": "General Issue Codes and filing controls must be captured from matching filing vintages.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve LDA issue code, filing type, period, status, client, registrant, and filing UUID.",
+      "officialLocator": "https://lda.senate.gov/api/",
+      "resourceId": "lda-native-controls",
+      "resourceKind": "codeList",
+      "title": "Lobbying Disclosure Act native controls",
+      "versionRepresentation": "Pin API/schema version, filing period, record version, and response digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The selected edition must match the source record date; later codes cannot be applied silently.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Official NAICS code and edition.",
+      "officialLocator": "https://www.census.gov/naics/",
+      "resourceId": "naics",
+      "resourceKind": "classification",
+      "title": "North American Industry Classification System",
+      "versionRepresentation": "Pin the exact NAICS edition and official artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Courts and data providers may expose different vintages or normalized labels.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the official Nature of Suit code, label, and version.",
+      "officialLocator": "https://www.uscourts.gov/forms-rules/court-forms/nature-suit-code-descriptions",
+      "resourceId": "nature-of-suit",
+      "resourceKind": "codeList",
+      "title": "Nature of Suit codes",
+      "versionRepresentation": "Pin the official publication date, artifact, and digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The selected PSC edition must match the award or source-record vintage.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Official Product and Service Code and edition.",
+      "officialLocator": "https://www.acquisition.gov/psc-manual",
+      "resourceId": "psc",
+      "resourceKind": "classification",
+      "title": "Product and Service Codes",
+      "versionRepresentation": "Pin the PSC manual edition and official artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The source schemas and live value sets must be captured together so unpublished values cannot enter silently.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve Regulations.gov docket, document, comment, attachment, agency, docket-ID, and Federal Register-number values.",
+      "officialLocator": "https://open.gsa.gov/api/regulationsgov/",
+      "resourceId": "regulations-gov-native-controls",
+      "resourceKind": "structuralSchema",
+      "title": "Regulations.gov native controls",
+      "versionRepresentation": "Pin API version, schema or OpenAPI artifact, capture time, and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The grammar is public, while complete issuance and lifecycle history requires source-specific captures.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Regulation Identifier Number in its official printable form.",
+      "officialLocator": "https://www.reginfo.gov/public/jsp/Utilities/faq.myjsp",
+      "resourceId": "rin-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "Regulation Identifier Number authority",
+      "versionRepresentation": "Pin the official grammar definition and the exact source observation date."
+    },
+    {
+      "accessOrReproducibilityGap": "Each specialist scheme is admitted only after measured misses justify it and its own acquisition is reproducible.",
+      "distributionStatus": "plannedFamily",
+      "identifierRepresentation": "Each member keeps its publisher-owned concept identifiers; the family mints no shared identities.",
+      "officialLocator": "RefSpec/plans/active-profile-controlled-resource-import-plan.md",
+      "resourceId": "specialist-subject-modules",
+      "resourceKind": "resourceFamily",
+      "title": "Measured specialist subject modules",
+      "versionRepresentation": "Every selected member requires an independent exact managed-release pin."
+    },
+    {
+      "accessOrReproducibilityGap": "A complete current distribution of all observed stage, priority, agency, and relationship values must be proven from source.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve Unified Agenda codes or authored values and their record context.",
+      "officialLocator": "https://www.reginfo.gov/public/do/eAgendaMain",
+      "resourceId": "unified-agenda-native-controls",
+      "resourceKind": "codeList",
+      "title": "Unified Agenda native controls",
+      "versionRepresentation": "Pin agenda edition, record identity, acquisition time, and source artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "Adoption is limited to structure needed by current bill and CFR profiles; it does not define RefSpec concepts.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official USLM element and schema identifiers.",
+      "officialLocator": "https://github.com/usgpo/uslm",
+      "resourceId": "uslm",
+      "resourceKind": "structuralSchema",
+      "title": "United States Legislative Markup",
+      "versionRepresentation": "Pin the exact schema release or Git revision and artifact digest."
+    }
+  ],
+  "summary": {
+    "activeDocumentOrObservationCount": 10,
+    "activeProfileCount": 16,
+    "activeRoleCounts": {
+      "container": 3,
+      "document": 9,
+      "entity": 3,
+      "observation": 1
+    },
+    "deferredProfileCount": 1,
+    "documentedSubjectGapProfiles": [
+      "cfr-section-v1",
+      "court-opinion-v1",
+      "crs-report-v1",
+      "fcc-filing-v1",
+      "federal-register-document-v1",
+      "gao-report-v1"
+    ],
+    "profileCount": 17,
+    "resourceCount": 32,
+    "subjectEligibleProfileCount": 10
+  },
+  "useVocabulary": [
+    "deterministicCodeOrClassification",
+    "identifierAuthority",
+    "mappingAndSearchExpansion",
+    "navigation",
+    "selectableSubject",
+    "sourceAssignedEvidence",
+    "structureOrInterchange"
+  ]
+}
