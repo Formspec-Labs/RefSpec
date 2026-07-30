@@ -52,6 +52,46 @@ retrieve from the most relevant resources with higher weight, retain a global
 fallback, and use reviewed cross-vocabulary mappings to connect related
 regulatory, legislative, oversight, judicial, lobbying, and filing records.
 
+## Execution status — 2026-07-30
+
+The inventory and the first acquisition slices are complete. The remaining
+work starts from these source-faithful records rather than the former fused
+registry.
+
+- **Batch 0 complete:** the generated atlas covers all 16 active profiles and
+  the one deferred profile, with 32 controlled resources and explicit uses,
+  gaps, and source status.
+- **Identifier rule complete:** RefSpec records zero, one, or many identifiers
+  as individually qualified values. Each retained identifier records its kind,
+  issuing authority, source location, source capture, observation time, and
+  effective dates when available. The importer does not select one canonical
+  identifier or align parallel identifier arrays.
+- **Batch 1 source-native slice complete:** exact Regulations.gov, Federal
+  Register, and Unified Agenda controls are pinned. The current capture
+  distinguishes 14 non-subject controls and retains source values that cannot
+  be normalized safely.
+- **Batch 2 acquisition complete, managed-release assembly pending:** the
+  official ICPSR XML contains 3,765 records, while the current public term
+  index contains 3,805 identities. Exactly 3,760 join; five XML records are
+  absent from the current index and 45 current index entries are absent from
+  the XML. The importer fails closed on those differences. The next increment
+  will publish the URI-verified subset and its complete feature-coverage
+  report, not guess the unmatched identities.
+- **Batch 3 legislative and lobbying acquisition complete:** the exact
+  Congress captures contain 1,043 Legislative Subject Terms and 32 Policy
+  Areas. Congress does not publish stable term identifiers or a named release,
+  so each source row keeps a capture-specific observation IRI plus every
+  publisher identifier when present. The LDA import retains all 79 General
+  Issue Codes and all 50 Filing Types as source-native controlled codes.
+- **Batch 3 GAO work and reviewed mappings remain open.** Later batches for
+  entity/classification, judicial/FCC, specialist vocabularies, and the final
+  atlas remain planned.
+
+The full native ICPSR and Congress captures remain in the content-addressed
+experiment output rather than Git. Git contains the import logic, exact
+source-derived test fixtures, source pins, and deterministic regulatory
+control capture needed to reproduce and review the work.
+
 ## Boundaries
 
 ### RefSpec owns
