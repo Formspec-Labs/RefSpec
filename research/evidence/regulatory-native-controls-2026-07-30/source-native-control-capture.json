@@ -1,0 +1,7861 @@
+{
+  "capturedAt": "2026-07-30T12:46:40Z",
+  "controls": [
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "regulations-gov-docket-type",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:genre",
+      "profileIds": [
+        "regulations-docket-v2"
+      ],
+      "resourceId": "regulations-gov-native-controls",
+      "sourceField": "docket_type",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 276326,
+      "sourceTable": "dockets",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 276326,
+      "values": [
+        {
+          "count": 213858,
+          "value": "Nonrulemaking"
+        },
+        {
+          "count": 62468,
+          "value": "Rulemaking"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "regulations-gov-docket-agency-code",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:entity",
+      "profileIds": [
+        "regulations-docket-v2"
+      ],
+      "resourceId": "regulations-gov-native-controls",
+      "sourceField": "agency_code",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 276326,
+      "sourceTable": "dockets",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "identifierAuthority",
+      "valueOccurrenceCount": 276326,
+      "values": [
+        {
+          "count": 376,
+          "value": "ACF"
+        },
+        {
+          "count": 6,
+          "value": "ACL"
+        },
+        {
+          "count": 101,
+          "value": "AHRQ"
+        },
+        {
+          "count": 154,
+          "value": "AID"
+        },
+        {
+          "count": 1775,
+          "value": "AMS"
+        },
+        {
+          "count": 41,
+          "value": "AOA"
+        },
+        {
+          "count": 2115,
+          "value": "APHIS"
+        },
+        {
+          "count": 23,
+          "value": "ARS"
+        },
+        {
+          "count": 157,
+          "value": "ASC"
+        },
+        {
+          "count": 118,
+          "value": "ATBCB"
+        },
+        {
+          "count": 30,
+          "value": "ATF"
+        },
+        {
+          "count": 5,
+          "value": "ATR"
+        },
+        {
+          "count": 90,
+          "value": "ATSDR"
+        },
+        {
+          "count": 76,
+          "value": "BIA"
+        },
+        {
+          "count": 682,
+          "value": "BIS"
+        },
+        {
+          "count": 82,
+          "value": "BLM"
+        },
+        {
+          "count": 26,
+          "value": "BLS"
+        },
+        {
+          "count": 1250,
+          "value": "BOEM"
+        },
+        {
+          "count": 50,
+          "value": "BOP"
+        },
+        {
+          "count": 10,
+          "value": "BOR"
+        },
+        {
+          "count": 7,
+          "value": "BPA"
+        },
+        {
+          "count": 38,
+          "value": "BPD"
+        },
+        {
+          "count": 32,
+          "value": "BSC"
+        },
+        {
+          "count": 162,
+          "value": "BSEE"
+        },
+        {
+          "count": 135,
+          "value": "CCC"
+        },
+        {
+          "count": 2085,
+          "value": "CDC"
+        },
+        {
+          "count": 37,
+          "value": "CDFI"
+        },
+        {
+          "count": 73,
+          "value": "CEQ"
+        },
+        {
+          "count": 752,
+          "value": "CFPB"
+        },
+        {
+          "count": 16,
+          "value": "CFTC"
+        },
+        {
+          "count": 133,
+          "value": "CISA"
+        },
+        {
+          "count": 4086,
+          "value": "CMS"
+        },
+        {
+          "count": 382,
+          "value": "CNCS"
+        },
+        {
+          "count": 480,
+          "value": "COE"
+        },
+        {
+          "count": 259,
+          "value": "COLC"
+        },
+        {
+          "count": 59,
+          "value": "CPPBSD"
+        },
+        {
+          "count": 1010,
+          "value": "CPSC"
+        },
+        {
+          "count": 4,
+          "value": "CSB"
+        },
+        {
+          "count": 1,
+          "value": "CSEO"
+        },
+        {
+          "count": 16,
+          "value": "CSREES"
+        },
+        {
+          "count": 1089,
+          "value": "DARS"
+        },
+        {
+          "count": 980,
+          "value": "DEA"
+        },
+        {
+          "count": 11,
+          "value": "DEPO"
+        },
+        {
+          "count": 1578,
+          "value": "DHS"
+        },
+        {
+          "count": 306,
+          "value": "DOC"
+        },
+        {
+          "count": 2911,
+          "value": "DOD"
+        },
+        {
+          "count": 744,
+          "value": "DOE"
+        },
+        {
+          "count": 178,
+          "value": "DOI"
+        },
+        {
+          "count": 248,
+          "value": "DOJ"
+        },
+        {
+          "count": 289,
+          "value": "DOL"
+        },
+        {
+          "count": 2090,
+          "value": "DOS"
+        },
+        {
+          "count": 12033,
+          "value": "DOT"
+        },
+        {
+          "count": 46,
+          "value": "EAB"
+        },
+        {
+          "count": 287,
+          "value": "EAC"
+        },
+        {
+          "count": 532,
+          "value": "EBSA"
+        },
+        {
+          "count": 1,
+          "value": "ECAB"
+        },
+        {
+          "count": 9,
+          "value": "ECSA"
+        },
+        {
+          "count": 2795,
+          "value": "ED"
+        },
+        {
+          "count": 49,
+          "value": "EDA"
+        },
+        {
+          "count": 180,
+          "value": "EEOC"
+        },
+        {
+          "count": 801,
+          "value": "EERE"
+        },
+        {
+          "count": 10,
+          "value": "EIA"
+        },
+        {
+          "count": 394,
+          "value": "EIB"
+        },
+        {
+          "count": 1,
+          "value": "EOA"
+        },
+        {
+          "count": 54,
+          "value": "EOIR"
+        },
+        {
+          "count": 21443,
+          "value": "EPA"
+        },
+        {
+          "count": 7,
+          "value": "ERS"
+        },
+        {
+          "count": 3,
+          "value": "ERULE"
+        },
+        {
+          "count": 45,
+          "value": "ESA"
+        },
+        {
+          "count": 809,
+          "value": "ETA"
+        },
+        {
+          "count": 51339,
+          "value": "FAA"
+        },
+        {
+          "count": 443,
+          "value": "FAR"
+        },
+        {
+          "count": 19,
+          "value": "FAS"
+        },
+        {
+          "count": 12,
+          "value": "FBI"
+        },
+        {
+          "count": 128,
+          "value": "FCIC"
+        },
+        {
+          "count": 1,
+          "value": "FCSC"
+        },
+        {
+          "count": 64140,
+          "value": "FDA"
+        },
+        {
+          "count": 723,
+          "value": "FEMA"
+        },
+        {
+          "count": 16,
+          "value": "FFIEC"
+        },
+        {
+          "count": 1922,
+          "value": "FHWA"
+        },
+        {
+          "count": 180,
+          "value": "FINCEN"
+        },
+        {
+          "count": 12,
+          "value": "FIRSTNET"
+        },
+        {
+          "count": 100,
+          "value": "FISCAL"
+        },
+        {
+          "count": 9,
+          "value": "FLETC"
+        },
+        {
+          "count": 73,
+          "value": "FMC"
+        },
+        {
+          "count": 8454,
+          "value": "FMCSA"
+        },
+        {
+          "count": 1,
+          "value": "FNA"
+        },
+        {
+          "count": 930,
+          "value": "FNS"
+        },
+        {
+          "count": 4,
+          "value": "FPAC"
+        },
+        {
+          "count": 3344,
+          "value": "FRA"
+        },
+        {
+          "count": 111,
+          "value": "FRTIB"
+        },
+        {
+          "count": 719,
+          "value": "FS"
+        },
+        {
+          "count": 243,
+          "value": "FSA"
+        },
+        {
+          "count": 753,
+          "value": "FSIS"
+        },
+        {
+          "count": 19,
+          "value": "FSOC"
+        },
+        {
+          "count": 826,
+          "value": "FTA"
+        },
+        {
+          "count": 2046,
+          "value": "FTC"
+        },
+        {
+          "count": 220,
+          "value": "FTZB"
+        },
+        {
+          "count": 2294,
+          "value": "FWS"
+        },
+        {
+          "count": 1,
+          "value": "GAPFAC"
+        },
+        {
+          "count": 38,
+          "value": "GIPSA"
+        },
+        {
+          "count": 352,
+          "value": "GSA"
+        },
+        {
+          "count": 807,
+          "value": "HHS"
+        },
+        {
+          "count": 85,
+          "value": "HHSIG"
+        },
+        {
+          "count": 287,
+          "value": "HRSA"
+        },
+        {
+          "count": 2719,
+          "value": "HUD"
+        },
+        {
+          "count": 143,
+          "value": "ICEB"
+        },
+        {
+          "count": 75,
+          "value": "IHS"
+        },
+        {
+          "count": 2,
+          "value": "IPEC"
+        },
+        {
+          "count": 1829,
+          "value": "IRS"
+        },
+        {
+          "count": 4,
+          "value": "ISOO"
+        },
+        {
+          "count": 972,
+          "value": "ITA"
+        },
+        {
+          "count": 31,
+          "value": "LMSO"
+        },
+        {
+          "count": 4005,
+          "value": "MARAD"
+        },
+        {
+          "count": 22,
+          "value": "MBDA"
+        },
+        {
+          "count": 91,
+          "value": "MMS"
+        },
+        {
+          "count": 887,
+          "value": "MSHA"
+        },
+        {
+          "count": 2,
+          "value": "NAL"
+        },
+        {
+          "count": 206,
+          "value": "NARA"
+        },
+        {
+          "count": 150,
+          "value": "NASA"
+        },
+        {
+          "count": 57,
+          "value": "NASS"
+        },
+        {
+          "count": 28,
+          "value": "NCS"
+        },
+        {
+          "count": 2033,
+          "value": "NCUA"
+        },
+        {
+          "count": 4606,
+          "value": "NHTSA"
+        },
+        {
+          "count": 39,
+          "value": "NIFA"
+        },
+        {
+          "count": 30,
+          "value": "NIGC"
+        },
+        {
+          "count": 2496,
+          "value": "NIH"
+        },
+        {
+          "count": 139,
+          "value": "NIST"
+        },
+        {
+          "count": 49,
+          "value": "NLRB"
+        },
+        {
+          "count": 10,
+          "value": "NNSA"
+        },
+        {
+          "count": 5188,
+          "value": "NOAA"
+        },
+        {
+          "count": 105,
+          "value": "NPS"
+        },
+        {
+          "count": 5572,
+          "value": "NRC"
+        },
+        {
+          "count": 241,
+          "value": "NRCS"
+        },
+        {
+          "count": 179,
+          "value": "NSF"
+        },
+        {
+          "count": 2,
+          "value": "NSPC"
+        },
+        {
+          "count": 55,
+          "value": "NTIA"
+        },
+        {
+          "count": 176,
+          "value": "NTSB"
+        },
+        {
+          "count": 424,
+          "value": "OCC"
+        },
+        {
+          "count": 8,
+          "value": "OEPNU"
+        },
+        {
+          "count": 59,
+          "value": "OFAC"
+        },
+        {
+          "count": 58,
+          "value": "OFCCP"
+        },
+        {
+          "count": 11,
+          "value": "OFPP"
+        },
+        {
+          "count": 3,
+          "value": "OFR"
+        },
+        {
+          "count": 3,
+          "value": "OJJDP"
+        },
+        {
+          "count": 14,
+          "value": "OJP"
+        },
+        {
+          "count": 216,
+          "value": "OMB"
+        },
+        {
+          "count": 5,
+          "value": "ONCD"
+        },
+        {
+          "count": 5,
+          "value": "ONDCP"
+        },
+        {
+          "count": 52,
+          "value": "ONRR"
+        },
+        {
+          "count": 680,
+          "value": "OPM"
+        },
+        {
+          "count": 14,
+          "value": "OPPM"
+        },
+        {
+          "count": 1626,
+          "value": "OSHA"
+        },
+        {
+          "count": 236,
+          "value": "OSM"
+        },
+        {
+          "count": 16,
+          "value": "OSTP"
+        },
+        {
+          "count": 123,
+          "value": "OTS"
+        },
+        {
+          "count": 230,
+          "value": "PBGC"
+        },
+        {
+          "count": 23,
+          "value": "PCLOB"
+        },
+        {
+          "count": 2,
+          "value": "PCSCOTUS"
+        },
+        {
+          "count": 8134,
+          "value": "PHMSA"
+        },
+        {
+          "count": 1117,
+          "value": "PTO"
+        },
+        {
+          "count": 527,
+          "value": "RBS"
+        },
+        {
+          "count": 507,
+          "value": "RHS"
+        },
+        {
+          "count": 60,
+          "value": "RITA"
+        },
+        {
+          "count": 4,
+          "value": "RMA"
+        },
+        {
+          "count": 5,
+          "value": "RTB"
+        },
+        {
+          "count": 414,
+          "value": "RUS"
+        },
+        {
+          "count": 170,
+          "value": "SAMHSA"
+        },
+        {
+          "count": 706,
+          "value": "SBA"
+        },
+        {
+          "count": 46,
+          "value": "SLSDC"
+        },
+        {
+          "count": 1468,
+          "value": "SSA"
+        },
+        {
+          "count": 2,
+          "value": "SWPA"
+        },
+        {
+          "count": 8,
+          "value": "TA"
+        },
+        {
+          "count": 21,
+          "value": "TRAIN"
+        },
+        {
+          "count": 279,
+          "value": "TREAS"
+        },
+        {
+          "count": 175,
+          "value": "TSA"
+        },
+        {
+          "count": 238,
+          "value": "TTB"
+        },
+        {
+          "count": 640,
+          "value": "USA"
+        },
+        {
+          "count": 417,
+          "value": "USAF"
+        },
+        {
+          "count": 333,
+          "value": "USBC"
+        },
+        {
+          "count": 53,
+          "value": "USC"
+        },
+        {
+          "count": 1249,
+          "value": "USCBP"
+        },
+        {
+          "count": 13536,
+          "value": "USCG"
+        },
+        {
+          "count": 452,
+          "value": "USCIS"
+        },
+        {
+          "count": 324,
+          "value": "USDA"
+        },
+        {
+          "count": 1,
+          "value": "USDAIG"
+        },
+        {
+          "count": 34,
+          "value": "USGS"
+        },
+        {
+          "count": 30,
+          "value": "USMINT"
+        },
+        {
+          "count": 579,
+          "value": "USN"
+        },
+        {
+          "count": 20,
+          "value": "USPC"
+        },
+        {
+          "count": 573,
+          "value": "USTR"
+        },
+        {
+          "count": 583,
+          "value": "VA"
+        },
+        {
+          "count": 28,
+          "value": "VETS"
+        },
+        {
+          "count": 13,
+          "value": "WAPA"
+        },
+        {
+          "count": 72,
+          "value": "WCPO"
+        },
+        {
+          "count": 49,
+          "value": "WHD"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "regulations-gov-document-type",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:genre",
+      "profileIds": [
+        "regulations-document-v2"
+      ],
+      "resourceId": "regulations-gov-native-controls",
+      "sourceField": "document_type",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 1989301,
+      "sourceTable": "documents",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 1989301,
+      "values": [
+        {
+          "count": 395521,
+          "value": "Notice"
+        },
+        {
+          "count": 725183,
+          "value": "Other"
+        },
+        {
+          "count": 51691,
+          "value": "Proposed Rule"
+        },
+        {
+          "count": 373,
+          "value": "Public Submission"
+        },
+        {
+          "count": 103243,
+          "value": "Rule"
+        },
+        {
+          "count": 713290,
+          "value": "Supporting & Related Material"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "regulations-gov-document-agency-code",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:entity",
+      "profileIds": [
+        "regulations-document-v2"
+      ],
+      "resourceId": "regulations-gov-native-controls",
+      "sourceField": "agency_code",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 1989301,
+      "sourceTable": "documents",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "identifierAuthority",
+      "valueOccurrenceCount": 1989301,
+      "values": [
+        {
+          "count": 19,
+          "value": "ABMC"
+        },
+        {
+          "count": 540,
+          "value": "ACF"
+        },
+        {
+          "count": 8,
+          "value": "ACFR"
+        },
+        {
+          "count": 1,
+          "value": "ACHP"
+        },
+        {
+          "count": 15,
+          "value": "ACL"
+        },
+        {
+          "count": 118,
+          "value": "ACUS"
+        },
+        {
+          "count": 72,
+          "value": "ADF"
+        },
+        {
+          "count": 2,
+          "value": "AFRH"
+        },
+        {
+          "count": 1982,
+          "value": "AHRQ"
+        },
+        {
+          "count": 587,
+          "value": "AID"
+        },
+        {
+          "count": 22,
+          "value": "AMC"
+        },
+        {
+          "count": 3992,
+          "value": "AMS"
+        },
+        {
+          "count": 42,
+          "value": "AOA"
+        },
+        {
+          "count": 6270,
+          "value": "APHIS"
+        },
+        {
+          "count": 1,
+          "value": "APPAL"
+        },
+        {
+          "count": 41,
+          "value": "ARCTIC"
+        },
+        {
+          "count": 2,
+          "value": "ARCTICGAS"
+        },
+        {
+          "count": 261,
+          "value": "ARS"
+        },
+        {
+          "count": 1510,
+          "value": "ARTS"
+        },
+        {
+          "count": 263,
+          "value": "ASC"
+        },
+        {
+          "count": 488,
+          "value": "ATBCB"
+        },
+        {
+          "count": 111,
+          "value": "ATF"
+        },
+        {
+          "count": 10,
+          "value": "ATR"
+        },
+        {
+          "count": 197,
+          "value": "ATSDR"
+        },
+        {
+          "count": 163,
+          "value": "BBG"
+        },
+        {
+          "count": 1,
+          "value": "BGSEEF"
+        },
+        {
+          "count": 275,
+          "value": "BIA"
+        },
+        {
+          "count": 88142,
+          "value": "BIS"
+        },
+        {
+          "count": 455,
+          "value": "BLM"
+        },
+        {
+          "count": 26,
+          "value": "BLS"
+        },
+        {
+          "count": 2140,
+          "value": "BOEM"
+        },
+        {
+          "count": 178,
+          "value": "BOP"
+        },
+        {
+          "count": 19,
+          "value": "BOR"
+        },
+        {
+          "count": 112,
+          "value": "BPA"
+        },
+        {
+          "count": 38,
+          "value": "BPD"
+        },
+        {
+          "count": 296,
+          "value": "BSC"
+        },
+        {
+          "count": 402,
+          "value": "BSEE"
+        },
+        {
+          "count": 496,
+          "value": "CCC"
+        },
+        {
+          "count": 24,
+          "value": "CCJJDP"
+        },
+        {
+          "count": 3423,
+          "value": "CDC"
+        },
+        {
+          "count": 48,
+          "value": "CDFI"
+        },
+        {
+          "count": 23,
+          "value": "CDFIF"
+        },
+        {
+          "count": 186,
+          "value": "CEQ"
+        },
+        {
+          "count": 2220,
+          "value": "CFPB"
+        },
+        {
+          "count": 2311,
+          "value": "CFTC"
+        },
+        {
+          "count": 24,
+          "value": "CIA"
+        },
+        {
+          "count": 37,
+          "value": "CIGIE"
+        },
+        {
+          "count": 270,
+          "value": "CISA"
+        },
+        {
+          "count": 287,
+          "value": "CITA"
+        },
+        {
+          "count": 7934,
+          "value": "CMS"
+        },
+        {
+          "count": 1195,
+          "value": "CNCS"
+        },
+        {
+          "count": 1777,
+          "value": "COE"
+        },
+        {
+          "count": 146,
+          "value": "COFA"
+        },
+        {
+          "count": 464,
+          "value": "COLC"
+        },
+        {
+          "count": 190,
+          "value": "CORP"
+        },
+        {
+          "count": 2192,
+          "value": "CPPBSD"
+        },
+        {
+          "count": 5200,
+          "value": "CPSC"
+        },
+        {
+          "count": 381,
+          "value": "CRB"
+        },
+        {
+          "count": 3333,
+          "value": "CRC"
+        },
+        {
+          "count": 128,
+          "value": "CSB"
+        },
+        {
+          "count": 5,
+          "value": "CSEO"
+        },
+        {
+          "count": 63,
+          "value": "CSOSA"
+        },
+        {
+          "count": 46,
+          "value": "CSREES"
+        },
+        {
+          "count": 1905,
+          "value": "DARS"
+        },
+        {
+          "count": 35,
+          "value": "DC"
+        },
+        {
+          "count": 1660,
+          "value": "DEA"
+        },
+        {
+          "count": 12,
+          "value": "DEPO"
+        },
+        {
+          "count": 73,
+          "value": "DFC"
+        },
+        {
+          "count": 2592,
+          "value": "DHS"
+        },
+        {
+          "count": 8,
+          "value": "DIA"
+        },
+        {
+          "count": 2,
+          "value": "DISA"
+        },
+        {
+          "count": 25,
+          "value": "DLA"
+        },
+        {
+          "count": 193,
+          "value": "DNFSB"
+        },
+        {
+          "count": 430,
+          "value": "DOC"
+        },
+        {
+          "count": 5347,
+          "value": "DOD"
+        },
+        {
+          "count": 6359,
+          "value": "DOE"
+        },
+        {
+          "count": 373,
+          "value": "DOI"
+        },
+        {
+          "count": 605,
+          "value": "DOJ"
+        },
+        {
+          "count": 2725,
+          "value": "DOL"
+        },
+        {
+          "count": 7609,
+          "value": "DOS"
+        },
+        {
+          "count": 205214,
+          "value": "DOT"
+        },
+        {
+          "count": 152,
+          "value": "DRBC"
+        },
+        {
+          "count": 93,
+          "value": "EAB"
+        },
+        {
+          "count": 543,
+          "value": "EAC"
+        },
+        {
+          "count": 1067,
+          "value": "EBSA"
+        },
+        {
+          "count": 2,
+          "value": "ECAB"
+        },
+        {
+          "count": 9,
+          "value": "ECSA"
+        },
+        {
+          "count": 9869,
+          "value": "ED"
+        },
+        {
+          "count": 76,
+          "value": "EDA"
+        },
+        {
+          "count": 460,
+          "value": "EEOC"
+        },
+        {
+          "count": 10882,
+          "value": "EERE"
+        },
+        {
+          "count": 317,
+          "value": "EIA"
+        },
+        {
+          "count": 986,
+          "value": "EIB"
+        },
+        {
+          "count": 1,
+          "value": "EOA"
+        },
+        {
+          "count": 113,
+          "value": "EOIR"
+        },
+        {
+          "count": 13,
+          "value": "EOP"
+        },
+        {
+          "count": 525475,
+          "value": "EPA"
+        },
+        {
+          "count": 45,
+          "value": "ERS"
+        },
+        {
+          "count": 5,
+          "value": "ERULE"
+        },
+        {
+          "count": 58,
+          "value": "ESA"
+        },
+        {
+          "count": 1255,
+          "value": "ETA"
+        },
+        {
+          "count": 205077,
+          "value": "FAA"
+        },
+        {
+          "count": 2335,
+          "value": "FAR"
+        },
+        {
+          "count": 320,
+          "value": "FAS"
+        },
+        {
+          "count": 224,
+          "value": "FASAB"
+        },
+        {
+          "count": 15,
+          "value": "FBI"
+        },
+        {
+          "count": 624,
+          "value": "FCA"
+        },
+        {
+          "count": 10268,
+          "value": "FCC"
+        },
+        {
+          "count": 284,
+          "value": "FCIC"
+        },
+        {
+          "count": 1,
+          "value": "FCSC"
+        },
+        {
+          "count": 134,
+          "value": "FCSIC"
+        },
+        {
+          "count": 237413,
+          "value": "FDA"
+        },
+        {
+          "count": 2917,
+          "value": "FDIC"
+        },
+        {
+          "count": 1334,
+          "value": "FEC"
+        },
+        {
+          "count": 9884,
+          "value": "FEMA"
+        },
+        {
+          "count": 38034,
+          "value": "FERC"
+        },
+        {
+          "count": 87,
+          "value": "FFIEC"
+        },
+        {
+          "count": 534,
+          "value": "FHFA"
+        },
+        {
+          "count": 131,
+          "value": "FHFB"
+        },
+        {
+          "count": 6652,
+          "value": "FHWA"
+        },
+        {
+          "count": 462,
+          "value": "FINCEN"
+        },
+        {
+          "count": 5,
+          "value": "FINCIC"
+        },
+        {
+          "count": 250,
+          "value": "FIRSTNET"
+        },
+        {
+          "count": 325,
+          "value": "FISCAL"
+        },
+        {
+          "count": 10,
+          "value": "FLETC"
+        },
+        {
+          "count": 86,
+          "value": "FLRA"
+        },
+        {
+          "count": 2750,
+          "value": "FMC"
+        },
+        {
+          "count": 146,
+          "value": "FMCS"
+        },
+        {
+          "count": 49872,
+          "value": "FMCSA"
+        },
+        {
+          "count": 19,
+          "value": "FNA"
+        },
+        {
+          "count": 1417,
+          "value": "FNS"
+        },
+        {
+          "count": 4,
+          "value": "FPAC"
+        },
+        {
+          "count": 51,
+          "value": "FPPO"
+        },
+        {
+          "count": 24,
+          "value": "FR"
+        },
+        {
+          "count": 28524,
+          "value": "FRA"
+        },
+        {
+          "count": 8349,
+          "value": "FRS"
+        },
+        {
+          "count": 451,
+          "value": "FRTIB"
+        },
+        {
+          "count": 3399,
+          "value": "FS"
+        },
+        {
+          "count": 512,
+          "value": "FSA"
+        },
+        {
+          "count": 1142,
+          "value": "FSIS"
+        },
+        {
+          "count": 61,
+          "value": "FSOC"
+        },
+        {
+          "count": 2633,
+          "value": "FTA"
+        },
+        {
+          "count": 2414,
+          "value": "FTC"
+        },
+        {
+          "count": 229,
+          "value": "FTZB"
+        },
+        {
+          "count": 15968,
+          "value": "FWS"
+        },
+        {
+          "count": 138,
+          "value": "GAO"
+        },
+        {
+          "count": 6,
+          "value": "GAPFAC"
+        },
+        {
+          "count": 62,
+          "value": "GCERC"
+        },
+        {
+          "count": 199,
+          "value": "GEO"
+        },
+        {
+          "count": 371,
+          "value": "GIPSA"
+        },
+        {
+          "count": 29,
+          "value": "GPO"
+        },
+        {
+          "count": 2015,
+          "value": "GSA"
+        },
+        {
+          "count": 3187,
+          "value": "HHS"
+        },
+        {
+          "count": 151,
+          "value": "HHSIG"
+        },
+        {
+          "count": 4,
+          "value": "HOPE"
+        },
+        {
+          "count": 109,
+          "value": "HPAC"
+        },
+        {
+          "count": 353,
+          "value": "HRSA"
+        },
+        {
+          "count": 6,
+          "value": "HST"
+        },
+        {
+          "count": 7382,
+          "value": "HUD"
+        },
+        {
+          "count": 95,
+          "value": "IAF"
+        },
+        {
+          "count": 8,
+          "value": "IAIA"
+        },
+        {
+          "count": 487,
+          "value": "ICEB"
+        },
+        {
+          "count": 593,
+          "value": "IHS"
+        },
+        {
+          "count": 3,
+          "value": "IIO"
+        },
+        {
+          "count": 5,
+          "value": "IPEC"
+        },
+        {
+          "count": 3994,
+          "value": "IRS"
+        },
+        {
+          "count": 35,
+          "value": "ISOO"
+        },
+        {
+          "count": 13699,
+          "value": "ITA"
+        },
+        {
+          "count": 8633,
+          "value": "ITC"
+        },
+        {
+          "count": 122,
+          "value": "JBEA"
+        },
+        {
+          "count": 82,
+          "value": "LMSO"
+        },
+        {
+          "count": 12,
+          "value": "LOC"
+        },
+        {
+          "count": 608,
+          "value": "LSC"
+        },
+        {
+          "count": 12139,
+          "value": "MARAD"
+        },
+        {
+          "count": 28,
+          "value": "MBDA"
+        },
+        {
+          "count": 266,
+          "value": "MCC"
+        },
+        {
+          "count": 16,
+          "value": "MCRMC"
+        },
+        {
+          "count": 30,
+          "value": "MISS"
+        },
+        {
+          "count": 75,
+          "value": "MKU"
+        },
+        {
+          "count": 37,
+          "value": "MMC"
+        },
+        {
+          "count": 257,
+          "value": "MMS"
+        },
+        {
+          "count": 4189,
+          "value": "MSHA"
+        },
+        {
+          "count": 410,
+          "value": "MSHFRC"
+        },
+        {
+          "count": 139,
+          "value": "MSPB"
+        },
+        {
+          "count": 2,
+          "value": "NAL"
+        },
+        {
+          "count": 2496,
+          "value": "NARA"
+        },
+        {
+          "count": 741,
+          "value": "NASA"
+        },
+        {
+          "count": 356,
+          "value": "NASS"
+        },
+        {
+          "count": 125,
+          "value": "NCD"
+        },
+        {
+          "count": 4,
+          "value": "NCLIS"
+        },
+        {
+          "count": 6,
+          "value": "NCMNPS"
+        },
+        {
+          "count": 12,
+          "value": "NCPC"
+        },
+        {
+          "count": 7,
+          "value": "NCPPCC"
+        },
+        {
+          "count": 32,
+          "value": "NCS"
+        },
+        {
+          "count": 3663,
+          "value": "NCUA"
+        },
+        {
+          "count": 2,
+          "value": "NEC"
+        },
+        {
+          "count": 192,
+          "value": "NEIGHBOR"
+        },
+        {
+          "count": 29174,
+          "value": "NHTSA"
+        },
+        {
+          "count": 182,
+          "value": "NIFA"
+        },
+        {
+          "count": 286,
+          "value": "NIGC"
+        },
+        {
+          "count": 13163,
+          "value": "NIH"
+        },
+        {
+          "count": 24,
+          "value": "NIL"
+        },
+        {
+          "count": 166,
+          "value": "NIST"
+        },
+        {
+          "count": 897,
+          "value": "NLRB"
+        },
+        {
+          "count": 42,
+          "value": "NMB"
+        },
+        {
+          "count": 142,
+          "value": "NNSA"
+        },
+        {
+          "count": 16750,
+          "value": "NOAA"
+        },
+        {
+          "count": 4,
+          "value": "NPREC"
+        },
+        {
+          "count": 267,
+          "value": "NPS"
+        },
+        {
+          "count": 16530,
+          "value": "NRC"
+        },
+        {
+          "count": 582,
+          "value": "NRCS"
+        },
+        {
+          "count": 3,
+          "value": "NRPC"
+        },
+        {
+          "count": 4,
+          "value": "NSA"
+        },
+        {
+          "count": 9,
+          "value": "NSCAI"
+        },
+        {
+          "count": 3792,
+          "value": "NSF"
+        },
+        {
+          "count": 3,
+          "value": "NSPC"
+        },
+        {
+          "count": 247,
+          "value": "NTIA"
+        },
+        {
+          "count": 407,
+          "value": "NTSB"
+        },
+        {
+          "count": 12,
+          "value": "NWBC"
+        },
+        {
+          "count": 66,
+          "value": "NWTRB"
+        },
+        {
+          "count": 1304,
+          "value": "OCC"
+        },
+        {
+          "count": 53,
+          "value": "ODNI"
+        },
+        {
+          "count": 15,
+          "value": "OEPNU"
+        },
+        {
+          "count": 2307,
+          "value": "OFAC"
+        },
+        {
+          "count": 185,
+          "value": "OFCCP"
+        },
+        {
+          "count": 53,
+          "value": "OFHEO"
+        },
+        {
+          "count": 84,
+          "value": "OFPP"
+        },
+        {
+          "count": 10,
+          "value": "OFR"
+        },
+        {
+          "count": 3,
+          "value": "OJJDP"
+        },
+        {
+          "count": 20,
+          "value": "OJP"
+        },
+        {
+          "count": 585,
+          "value": "OMB"
+        },
+        {
+          "count": 7,
+          "value": "ONCD"
+        },
+        {
+          "count": 99,
+          "value": "ONDCP"
+        },
+        {
+          "count": 2,
+          "value": "ONHIR"
+        },
+        {
+          "count": 287,
+          "value": "ONRR"
+        },
+        {
+          "count": 321,
+          "value": "OPIC"
+        },
+        {
+          "count": 2667,
+          "value": "OPM"
+        },
+        {
+          "count": 36,
+          "value": "OPPM"
+        },
+        {
+          "count": 60,
+          "value": "OSC"
+        },
+        {
+          "count": 76886,
+          "value": "OSHA"
+        },
+        {
+          "count": 81,
+          "value": "OSHRC"
+        },
+        {
+          "count": 1961,
+          "value": "OSM"
+        },
+        {
+          "count": 264,
+          "value": "OSTP"
+        },
+        {
+          "count": 156,
+          "value": "OTS"
+        },
+        {
+          "count": 12,
+          "value": "PACIFIC"
+        },
+        {
+          "count": 910,
+          "value": "PBGC"
+        },
+        {
+          "count": 9,
+          "value": "PBRB"
+        },
+        {
+          "count": 305,
+          "value": "PC"
+        },
+        {
+          "count": 41,
+          "value": "PCLOB"
+        },
+        {
+          "count": 8,
+          "value": "PCSCOTUS"
+        },
+        {
+          "count": 39367,
+          "value": "PHMSA"
+        },
+        {
+          "count": 19,
+          "value": "PHS"
+        },
+        {
+          "count": 1557,
+          "value": "PRC"
+        },
+        {
+          "count": 1,
+          "value": "PRES"
+        },
+        {
+          "count": 81,
+          "value": "PT"
+        },
+        {
+          "count": 1710,
+          "value": "PTO"
+        },
+        {
+          "count": 39,
+          "value": "RATB"
+        },
+        {
+          "count": 754,
+          "value": "RBS"
+        },
+        {
+          "count": 741,
+          "value": "RHS"
+        },
+        {
+          "count": 18,
+          "value": "RISC"
+        },
+        {
+          "count": 405,
+          "value": "RITA"
+        },
+        {
+          "count": 20,
+          "value": "RMA"
+        },
+        {
+          "count": 693,
+          "value": "RRB"
+        },
+        {
+          "count": 5,
+          "value": "RTB"
+        },
+        {
+          "count": 12,
+          "value": "RUF"
+        },
+        {
+          "count": 821,
+          "value": "RUS"
+        },
+        {
+          "count": 182,
+          "value": "SAMHSA"
+        },
+        {
+          "count": 1110,
+          "value": "SBA"
+        },
+        {
+          "count": 42911,
+          "value": "SEC"
+        },
+        {
+          "count": 16,
+          "value": "SIGAR"
+        },
+        {
+          "count": 7,
+          "value": "SIGIR"
+        },
+        {
+          "count": 80,
+          "value": "SJI"
+        },
+        {
+          "count": 151,
+          "value": "SLSDC"
+        },
+        {
+          "count": 593,
+          "value": "SRBC"
+        },
+        {
+          "count": 18,
+          "value": "SS"
+        },
+        {
+          "count": 1766,
+          "value": "SSA"
+        },
+        {
+          "count": 86,
+          "value": "SSS"
+        },
+        {
+          "count": 3977,
+          "value": "STB"
+        },
+        {
+          "count": 71,
+          "value": "SWPA"
+        },
+        {
+          "count": 8,
+          "value": "TA"
+        },
+        {
+          "count": 1,
+          "value": "TRADE"
+        },
+        {
+          "count": 12,
+          "value": "TRAIN"
+        },
+        {
+          "count": 697,
+          "value": "TREAS"
+        },
+        {
+          "count": 1556,
+          "value": "TSA"
+        },
+        {
+          "count": 1039,
+          "value": "TTB"
+        },
+        {
+          "count": 414,
+          "value": "TVA"
+        },
+        {
+          "count": 13,
+          "value": "URMCC"
+        },
+        {
+          "count": 1034,
+          "value": "USA"
+        },
+        {
+          "count": 592,
+          "value": "USAF"
+        },
+        {
+          "count": 19,
+          "value": "USAGM"
+        },
+        {
+          "count": 379,
+          "value": "USBC"
+        },
+        {
+          "count": 365,
+          "value": "USC"
+        },
+        {
+          "count": 3863,
+          "value": "USCBP"
+        },
+        {
+          "count": 204,
+          "value": "USCC"
+        },
+        {
+          "count": 33814,
+          "value": "USCG"
+        },
+        {
+          "count": 8873,
+          "value": "USCIS"
+        },
+        {
+          "count": 3882,
+          "value": "USDA"
+        },
+        {
+          "count": 7,
+          "value": "USDAIG"
+        },
+        {
+          "count": 122,
+          "value": "USEIB"
+        },
+        {
+          "count": 68,
+          "value": "USGS"
+        },
+        {
+          "count": 90,
+          "value": "USIP"
+        },
+        {
+          "count": 177,
+          "value": "USJC"
+        },
+        {
+          "count": 32,
+          "value": "USMINT"
+        },
+        {
+          "count": 1096,
+          "value": "USN"
+        },
+        {
+          "count": 1,
+          "value": "USOPC"
+        },
+        {
+          "count": 34,
+          "value": "USPC"
+        },
+        {
+          "count": 5336,
+          "value": "USPS"
+        },
+        {
+          "count": 149,
+          "value": "USSC"
+        },
+        {
+          "count": 16541,
+          "value": "USTR"
+        },
+        {
+          "count": 1,
+          "value": "USUHS"
+        },
+        {
+          "count": 8074,
+          "value": "VA"
+        },
+        {
+          "count": 2,
+          "value": "VCNP"
+        },
+        {
+          "count": 40,
+          "value": "VETS"
+        },
+        {
+          "count": 420,
+          "value": "WAPA"
+        },
+        {
+          "count": 534,
+          "value": "WCPO"
+        },
+        {
+          "count": 343,
+          "value": "WHD"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "regulations-gov-attachment-format",
+      "extraction": "jsonArrayFormat",
+      "facet": "urn:ref:facet:code-list-value",
+      "profileIds": [
+        "regulations-document-v2"
+      ],
+      "resourceId": "regulations-gov-native-controls",
+      "sourceField": "attachments_json",
+      "sourceFieldMissingRowCount": 1978698,
+      "sourceRowCount": 1989301,
+      "sourceTable": "documents",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 14257,
+      "values": [
+        {
+          "count": 171,
+          "value": "docx"
+        },
+        {
+          "count": 3316,
+          "value": "html"
+        },
+        {
+          "count": 6,
+          "value": "jpg"
+        },
+        {
+          "count": 10579,
+          "value": "pdf"
+        },
+        {
+          "count": 1,
+          "value": "png"
+        },
+        {
+          "count": 4,
+          "value": "tif"
+        },
+        {
+          "count": 16,
+          "value": "txt"
+        },
+        {
+          "count": 6,
+          "value": "wpd"
+        },
+        {
+          "count": 10,
+          "value": "xlsm"
+        },
+        {
+          "count": 148,
+          "value": "xlsx"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "federal-register-document-type",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:genre",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "resourceId": "federal-register-native-controls",
+      "sourceField": "document_type",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 800232,
+      "sourceTable": "federal_register",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 800232,
+      "values": [
+        {
+          "count": 637292,
+          "value": "Notice"
+        },
+        {
+          "count": 7216,
+          "value": "Presidential Document"
+        },
+        {
+          "count": 60760,
+          "value": "Proposed Rule"
+        },
+        {
+          "count": 94964,
+          "value": "Rule"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "federal-register-presidential-subtype",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:genre",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "resourceId": "federal-register-native-controls",
+      "sourceField": "subtype",
+      "sourceFieldMissingRowCount": 793021,
+      "sourceRowCount": 800232,
+      "sourceTable": "federal_register",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 7211,
+      "values": [
+        {
+          "count": 601,
+          "value": "Determination"
+        },
+        {
+          "count": 1294,
+          "value": "Executive Order"
+        },
+        {
+          "count": 731,
+          "value": "Memorandum"
+        },
+        {
+          "count": 726,
+          "value": "Notice"
+        },
+        {
+          "count": 58,
+          "value": "Other"
+        },
+        {
+          "count": 16,
+          "value": "Presidential Order"
+        },
+        {
+          "count": 3785,
+          "value": "Proclamation"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "federal-register-agency-slug",
+      "extraction": "jsonArrayAgencySlug",
+      "facet": "urn:ref:facet:entity",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "resourceId": "federal-register-native-controls",
+      "sourceField": "agencies_json",
+      "sourceFieldMissingRowCount": 52,
+      "sourceRowCount": 800232,
+      "sourceTable": "federal_register",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 22177,
+      "use": "identifierAuthority",
+      "valueOccurrenceCount": 1266187,
+      "values": [
+        {
+          "count": 1,
+          "value": "administration-office-executive-office-of-the-president"
+        },
+        {
+          "count": 117,
+          "value": "administrative-conference-of-the-united-states"
+        },
+        {
+          "count": 3,
+          "value": "administrative-office-of-united-states-courts"
+        },
+        {
+          "count": 158,
+          "value": "advisory-council-on-historic-preservation"
+        },
+        {
+          "count": 32,
+          "value": "advocacy-and-outreach-office"
+        },
+        {
+          "count": 94,
+          "value": "african-development-foundation"
+        },
+        {
+          "count": 1360,
+          "value": "agency-for-healthcare-research-and-quality"
+        },
+        {
+          "count": 721,
+          "value": "agency-for-international-development"
+        },
+        {
+          "count": 385,
+          "value": "agency-for-toxic-substances-and-disease-registry"
+        },
+        {
+          "count": 195,
+          "value": "aging-administration"
+        },
+        {
+          "count": 4068,
+          "value": "agricultural-marketing-service"
+        },
+        {
+          "count": 376,
+          "value": "agricultural-research-service"
+        },
+        {
+          "count": 29036,
+          "value": "agriculture-department"
+        },
+        {
+          "count": 1548,
+          "value": "air-force-department"
+        },
+        {
+          "count": 2,
+          "value": "air-transportation-stabilization-board"
+        },
+        {
+          "count": 664,
+          "value": "alcohol-and-tobacco-tax-and-trade-bureau"
+        },
+        {
+          "count": 1467,
+          "value": "alcohol-tobacco-firearms-and-explosives-bureau"
+        },
+        {
+          "count": 26,
+          "value": "american-battle-monuments-commission"
+        },
+        {
+          "count": 14,
+          "value": "amtrak-reform-council"
+        },
+        {
+          "count": 3946,
+          "value": "animal-and-plant-health-inspection-service"
+        },
+        {
+          "count": 4262,
+          "value": "antitrust-division"
+        },
+        {
+          "count": 34,
+          "value": "antitrust-modernization-commission"
+        },
+        {
+          "count": 19,
+          "value": "appalachian-states-low-level-radioactive-waste-commission"
+        },
+        {
+          "count": 8,
+          "value": "appraisal-subcommittee-of-the-federal-financial-institutions-examination-council"
+        },
+        {
+          "count": 1,
+          "value": "architect-of-the-capitol"
+        },
+        {
+          "count": 305,
+          "value": "architectural-and-transportation-barriers-compliance-board"
+        },
+        {
+          "count": 59,
+          "value": "arctic-research-commission"
+        },
+        {
+          "count": 6,
+          "value": "armed-forces-retirement-home"
+        },
+        {
+          "count": 2580,
+          "value": "army-department"
+        },
+        {
+          "count": 5,
+          "value": "barry-m-goldwater-scholarship-and-excellence-in-education-foundation"
+        },
+        {
+          "count": 5,
+          "value": "benefits-review-board"
+        },
+        {
+          "count": 4,
+          "value": "board-of-directors-of-the-hope-for-homeowners-program"
+        },
+        {
+          "count": 198,
+          "value": "bonneville-power-administration"
+        },
+        {
+          "count": 241,
+          "value": "broadcasting-board-of-governors"
+        },
+        {
+          "count": 304,
+          "value": "bureau-of-the-fiscal-service"
+        },
+        {
+          "count": 1507,
+          "value": "census-bureau"
+        },
+        {
+          "count": 2,
+          "value": "census-monitoring-board"
+        },
+        {
+          "count": 10453,
+          "value": "centers-for-disease-control-and-prevention"
+        },
+        {
+          "count": 6045,
+          "value": "centers-for-medicare-medicaid-services"
+        },
+        {
+          "count": 29,
+          "value": "central-intelligence-agency"
+        },
+        {
+          "count": 179,
+          "value": "chemical-safety-and-hazard-investigation-board"
+        },
+        {
+          "count": 15,
+          "value": "child-support-enforcement-office"
+        },
+        {
+          "count": 4411,
+          "value": "children-and-families-administration"
+        },
+        {
+          "count": 37,
+          "value": "civil-rights-cold-case-records-review-board"
+        },
+        {
+          "count": 3768,
+          "value": "civil-rights-commission"
+        },
+        {
+          "count": 15957,
+          "value": "coast-guard"
+        },
+        {
+          "count": 71518,
+          "value": "commerce-department"
+        },
+        {
+          "count": 1,
+          "value": "commercial-space-transportation-office"
+        },
+        {
+          "count": 197,
+          "value": "commission-of-fine-arts"
+        },
+        {
+          "count": 4,
+          "value": "commission-on-review-of-overseas-military-facility-structure-of-the-united-states"
+        },
+        {
+          "count": 6,
+          "value": "commission-on-the-future-of-the-united-states-aerospace-industry"
+        },
+        {
+          "count": 2487,
+          "value": "committee-for-purchase-from-people-who-are-blind-or-severely-disabled"
+        },
+        {
+          "count": 1272,
+          "value": "committee-for-the-implementation-of-textile-agreements"
+        },
+        {
+          "count": 781,
+          "value": "commodity-credit-corporation"
+        },
+        {
+          "count": 2949,
+          "value": "commodity-futures-trading-commission"
+        },
+        {
+          "count": 308,
+          "value": "community-development-financial-institutions-fund"
+        },
+        {
+          "count": 483,
+          "value": "community-living-administration"
+        },
+        {
+          "count": 1883,
+          "value": "comptroller-of-the-currency"
+        },
+        {
+          "count": 8,
+          "value": "congressional-budget-office"
+        },
+        {
+          "count": 1339,
+          "value": "consumer-financial-protection-bureau"
+        },
+        {
+          "count": 2013,
+          "value": "consumer-product-safety-commission"
+        },
+        {
+          "count": 99,
+          "value": "cooperative-state-research-education-and-extension-service"
+        },
+        {
+          "count": 33,
+          "value": "coordinating-council-on-juvenile-justice-and-delinquency-prevention"
+        },
+        {
+          "count": 625,
+          "value": "copyright-office-library-of-congress"
+        },
+        {
+          "count": 383,
+          "value": "copyright-royalty-board"
+        },
+        {
+          "count": 1,
+          "value": "copyright-royalty-judges"
+        },
+        {
+          "count": 1099,
+          "value": "corporation-for-national-and-community-service"
+        },
+        {
+          "count": 38,
+          "value": "council-of-the-inspectors-general-on-integrity-and-efficiency"
+        },
+        {
+          "count": 125,
+          "value": "council-on-environmental-quality"
+        },
+        {
+          "count": 62,
+          "value": "court-services-and-offender-supervision-agency-for-the-district-of-columbia"
+        },
+        {
+          "count": 1,
+          "value": "crime-and-security-in-u-s-seaports-interagency-commission"
+        },
+        {
+          "count": 450,
+          "value": "customs-service"
+        },
+        {
+          "count": 1663,
+          "value": "defense-acquisition-regulations-system"
+        },
+        {
+          "count": 44,
+          "value": "defense-base-closure-and-realignment-commission"
+        },
+        {
+          "count": 11,
+          "value": "defense-contract-audit-agency"
+        },
+        {
+          "count": 24867,
+          "value": "defense-department"
+        },
+        {
+          "count": 11,
+          "value": "defense-information-systems-agency"
+        },
+        {
+          "count": 24,
+          "value": "defense-intelligence-agency"
+        },
+        {
+          "count": 130,
+          "value": "defense-logistics-agency"
+        },
+        {
+          "count": 234,
+          "value": "defense-nuclear-facilities-safety-board"
+        },
+        {
+          "count": 202,
+          "value": "delaware-river-basin-commission"
+        },
+        {
+          "count": 1,
+          "value": "delta-regional-authority"
+        },
+        {
+          "count": 41,
+          "value": "denali-commission"
+        },
+        {
+          "count": 58,
+          "value": "disability-employment-policy-office"
+        },
+        {
+          "count": 6105,
+          "value": "drug-enforcement-administration"
+        },
+        {
+          "count": 483,
+          "value": "economic-analysis-bureau"
+        },
+        {
+          "count": 720,
+          "value": "economic-development-administration"
+        },
+        {
+          "count": 57,
+          "value": "economic-research-service"
+        },
+        {
+          "count": 71,
+          "value": "economics-and-statistics-administration"
+        },
+        {
+          "count": 11912,
+          "value": "education-department"
+        },
+        {
+          "count": 537,
+          "value": "election-assistance-commission"
+        },
+        {
+          "count": 4,
+          "value": "electronic-commerce-advisory-commission"
+        },
+        {
+          "count": 6,
+          "value": "emergency-oil-and-gas-guaranteed-loan-board"
+        },
+        {
+          "count": 10,
+          "value": "emergency-steel-guarantee-loan-board"
+        },
+        {
+          "count": 1166,
+          "value": "employee-benefits-security-administration"
+        },
+        {
+          "count": 5,
+          "value": "employees-compensation-appeals-board"
+        },
+        {
+          "count": 11031,
+          "value": "employment-and-training-administration"
+        },
+        {
+          "count": 444,
+          "value": "employment-standards-administration"
+        },
+        {
+          "count": 1,
+          "value": "energy-and-environmental-policy-office"
+        },
+        {
+          "count": 64714,
+          "value": "energy-department"
+        },
+        {
+          "count": 824,
+          "value": "energy-efficiency-and-renewable-energy-office"
+        },
+        {
+          "count": 446,
+          "value": "energy-information-administration"
+        },
+        {
+          "count": 1971,
+          "value": "engineers-corps"
+        },
+        {
+          "count": 38,
+          "value": "engraving-and-printing-bureau"
+        },
+        {
+          "count": 1,
+          "value": "environment-office-energy-department"
+        },
+        {
+          "count": 45598,
+          "value": "environmental-protection-agency"
+        },
+        {
+          "count": 478,
+          "value": "equal-employment-opportunity-commission"
+        },
+        {
+          "count": 1,
+          "value": "executive-council-on-integrity-and-efficiency"
+        },
+        {
+          "count": 177,
+          "value": "executive-office-for-immigration-review"
+        },
+        {
+          "count": 7314,
+          "value": "executive-office-of-the-president"
+        },
+        {
+          "count": 194,
+          "value": "export-administration-bureau"
+        },
+        {
+          "count": 1108,
+          "value": "export-import-bank"
+        },
+        {
+          "count": 821,
+          "value": "farm-credit-administration"
+        },
+        {
+          "count": 141,
+          "value": "farm-credit-system-insurance-corporation"
+        },
+        {
+          "count": 2,
+          "value": "farm-production-and-conservation-business-center"
+        },
+        {
+          "count": 718,
+          "value": "farm-service-agency"
+        },
+        {
+          "count": 273,
+          "value": "federal-accounting-standards-advisory-board"
+        },
+        {
+          "count": 2,
+          "value": "federal-acquisition-regulation-system"
+        },
+        {
+          "count": 42468,
+          "value": "federal-aviation-administration"
+        },
+        {
+          "count": 440,
+          "value": "federal-bureau-of-investigation"
+        },
+        {
+          "count": 15601,
+          "value": "federal-communications-commission"
+        },
+        {
+          "count": 110,
+          "value": "federal-contract-compliance-programs-office"
+        },
+        {
+          "count": 44,
+          "value": "federal-council-on-the-arts-and-the-humanities"
+        },
+        {
+          "count": 353,
+          "value": "federal-crop-insurance-corporation"
+        },
+        {
+          "count": 3392,
+          "value": "federal-deposit-insurance-corporation"
+        },
+        {
+          "count": 1704,
+          "value": "federal-election-commission"
+        },
+        {
+          "count": 12019,
+          "value": "federal-emergency-management-agency"
+        },
+        {
+          "count": 53656,
+          "value": "federal-energy-regulatory-commission"
+        },
+        {
+          "count": 273,
+          "value": "federal-financial-institutions-examination-council"
+        },
+        {
+          "count": 3545,
+          "value": "federal-highway-administration"
+        },
+        {
+          "count": 100,
+          "value": "federal-housing-enterprise-oversight-office"
+        },
+        {
+          "count": 535,
+          "value": "federal-housing-finance-agency"
+        },
+        {
+          "count": 335,
+          "value": "federal-housing-finance-board"
+        },
+        {
+          "count": 102,
+          "value": "federal-labor-relations-authority"
+        },
+        {
+          "count": 22,
+          "value": "federal-law-enforcement-training-center"
+        },
+        {
+          "count": 3572,
+          "value": "federal-maritime-commission"
+        },
+        {
+          "count": 158,
+          "value": "federal-mediation-and-conciliation-service"
+        },
+        {
+          "count": 479,
+          "value": "federal-mine-safety-and-health-review-commission"
+        },
+        {
+          "count": 5139,
+          "value": "federal-motor-carrier-safety-administration"
+        },
+        {
+          "count": 14,
+          "value": "federal-permitting-improvement-steering-council"
+        },
+        {
+          "count": 141,
+          "value": "federal-procurement-policy-office"
+        },
+        {
+          "count": 3940,
+          "value": "federal-railroad-administration"
+        },
+        {
+          "count": 13,
+          "value": "federal-register-administrative-committee"
+        },
+        {
+          "count": 33,
+          "value": "federal-register-office"
+        },
+        {
+          "count": 11237,
+          "value": "federal-reserve-system"
+        },
+        {
+          "count": 549,
+          "value": "federal-retirement-thrift-investment-board"
+        },
+        {
+          "count": 2799,
+          "value": "federal-trade-commission"
+        },
+        {
+          "count": 1683,
+          "value": "federal-transit-administration"
+        },
+        {
+          "count": 301,
+          "value": "financial-crimes-enforcement-network"
+        },
+        {
+          "count": 5,
+          "value": "financial-crisis-inquiry-commission"
+        },
+        {
+          "count": 5,
+          "value": "financial-research-office"
+        },
+        {
+          "count": 37,
+          "value": "financial-stability-oversight-council"
+        },
+        {
+          "count": 56,
+          "value": "first-responder-network-authority"
+        },
+        {
+          "count": 693,
+          "value": "fiscal-service"
+        },
+        {
+          "count": 11167,
+          "value": "fish-and-wildlife-service"
+        },
+        {
+          "count": 20036,
+          "value": "food-and-drug-administration"
+        },
+        {
+          "count": 12,
+          "value": "food-and-nutrition-administration"
+        },
+        {
+          "count": 1344,
+          "value": "food-and-nutrition-service"
+        },
+        {
+          "count": 1124,
+          "value": "food-safety-and-inspection-service"
+        },
+        {
+          "count": 445,
+          "value": "foreign-agricultural-service"
+        },
+        {
+          "count": 2477,
+          "value": "foreign-assets-control-office"
+        },
+        {
+          "count": 179,
+          "value": "foreign-claims-settlement-commission"
+        },
+        {
+          "count": 4622,
+          "value": "foreign-trade-zones-board"
+        },
+        {
+          "count": 7274,
+          "value": "forest-service"
+        },
+        {
+          "count": 5396,
+          "value": "general-services-administration"
+        },
+        {
+          "count": 940,
+          "value": "geological-survey"
+        },
+        {
+          "count": 202,
+          "value": "government-accountability-office"
+        },
+        {
+          "count": 236,
+          "value": "government-ethics-office"
+        },
+        {
+          "count": 40,
+          "value": "government-publishing-office"
+        },
+        {
+          "count": 546,
+          "value": "grain-inspection-packers-and-stockyards-administration"
+        },
+        {
+          "count": 146,
+          "value": "great-lakes-st-lawrence-seaway-development-corporation"
+        },
+        {
+          "count": 60,
+          "value": "gulf-coast-ecosystem-restoration-council"
+        },
+        {
+          "count": 28,
+          "value": "harry-s-truman-scholarship-foundation"
+        },
+        {
+          "count": 92373,
+          "value": "health-and-human-services-department"
+        },
+        {
+          "count": 503,
+          "value": "health-care-finance-administration"
+        },
+        {
+          "count": 3640,
+          "value": "health-resources-and-services-administration"
+        },
+        {
+          "count": 20,
+          "value": "hearings-and-appeals-office-interior-department"
+        },
+        {
+          "count": 35627,
+          "value": "homeland-security-department"
+        },
+        {
+          "count": 9402,
+          "value": "housing-and-urban-development-department"
+        },
+        {
+          "count": 480,
+          "value": "immigration-and-naturalization-service"
+        },
+        {
+          "count": 2785,
+          "value": "indian-affairs-bureau"
+        },
+        {
+          "count": 12,
+          "value": "indian-arts-and-crafts-board"
+        },
+        {
+          "count": 681,
+          "value": "indian-health-service"
+        },
+        {
+          "count": 4,
+          "value": "indian-trust-transition-office"
+        },
+        {
+          "count": 2953,
+          "value": "industry-and-security-bureau"
+        },
+        {
+          "count": 85,
+          "value": "information-security-oversight-office"
+        },
+        {
+          "count": 8,
+          "value": "inspector-general-office-health-and-human-services-department"
+        },
+        {
+          "count": 1,
+          "value": "inspector-general-office-treasury-department"
+        },
+        {
+          "count": 9,
+          "value": "institute-of-american-indian-and-alaska-native-culture-and-arts-development"
+        },
+        {
+          "count": 292,
+          "value": "institute-of-museum-and-library-services"
+        },
+        {
+          "count": 3,
+          "value": "intellectual-property-enforcement-coordinator-office"
+        },
+        {
+          "count": 114,
+          "value": "inter-american-foundation"
+        },
+        {
+          "count": 1,
+          "value": "intergovernmental-relations-advisory-commission"
+        },
+        {
+          "count": 45072,
+          "value": "interior-department"
+        },
+        {
+          "count": 13204,
+          "value": "internal-revenue-service"
+        },
+        {
+          "count": 79,
+          "value": "international-boundary-and-water-commission-united-states-and-mexico"
+        },
+        {
+          "count": 8,
+          "value": "international-broadcasting-advisory-board"
+        },
+        {
+          "count": 1,
+          "value": "international-broadcasting-board"
+        },
+        {
+          "count": 4,
+          "value": "international-investment-office"
+        },
+        {
+          "count": 22762,
+          "value": "international-trade-administration"
+        },
+        {
+          "count": 10367,
+          "value": "international-trade-commission"
+        },
+        {
+          "count": 34,
+          "value": "investment-security-office"
+        },
+        {
+          "count": 2,
+          "value": "james-madison-memorial-fellowship-foundation"
+        },
+        {
+          "count": 1,
+          "value": "japan-united-states-friendship-commission"
+        },
+        {
+          "count": 153,
+          "value": "joint-board-for-enrollment-of-actuaries"
+        },
+        {
+          "count": 509,
+          "value": "judicial-conference-of-the-united-states"
+        },
+        {
+          "count": 1,
+          "value": "judicial-review-commission-on-foreign-asset-control"
+        },
+        {
+          "count": 22169,
+          "value": "justice-department"
+        },
+        {
+          "count": 975,
+          "value": "justice-programs-office"
+        },
+        {
+          "count": 71,
+          "value": "juvenile-justice-and-delinquency-prevention-office"
+        },
+        {
+          "count": 23223,
+          "value": "labor-department"
+        },
+        {
+          "count": 91,
+          "value": "labor-management-standards-office"
+        },
+        {
+          "count": 508,
+          "value": "labor-statistics-bureau"
+        },
+        {
+          "count": 11771,
+          "value": "land-management-bureau"
+        },
+        {
+          "count": 812,
+          "value": "legal-services-corporation"
+        },
+        {
+          "count": 1027,
+          "value": "library-of-congress"
+        },
+        {
+          "count": 5,
+          "value": "local-television-loan-guarantee-board"
+        },
+        {
+          "count": 804,
+          "value": "management-and-budget-office"
+        },
+        {
+          "count": 52,
+          "value": "marine-mammal-commission"
+        },
+        {
+          "count": 4472,
+          "value": "maritime-administration"
+        },
+        {
+          "count": 39,
+          "value": "medicare-payment-advisory-commission"
+        },
+        {
+          "count": 204,
+          "value": "merit-systems-protection-board"
+        },
+        {
+          "count": 16,
+          "value": "military-compensation-and-retirement-modernization-commission"
+        },
+        {
+          "count": 294,
+          "value": "millennium-challenge-corporation"
+        },
+        {
+          "count": 1547,
+          "value": "mine-safety-and-health-administration"
+        },
+        {
+          "count": 989,
+          "value": "minerals-management-service"
+        },
+        {
+          "count": 1,
+          "value": "mines-bureau"
+        },
+        {
+          "count": 120,
+          "value": "minority-business-development-agency"
+        },
+        {
+          "count": 46,
+          "value": "mississippi-river-commission"
+        },
+        {
+          "count": 4,
+          "value": "monetary-offices"
+        },
+        {
+          "count": 114,
+          "value": "morris-k-udall-and-stewart-l-udall-foundation"
+        },
+        {
+          "count": 6440,
+          "value": "national-aeronautics-and-space-administration"
+        },
+        {
+          "count": 42,
+          "value": "national-agricultural-library"
+        },
+        {
+          "count": 403,
+          "value": "national-agricultural-statistics-service"
+        },
+        {
+          "count": 1509,
+          "value": "national-archives-and-records-administration"
+        },
+        {
+          "count": 47,
+          "value": "national-assessment-governing-board"
+        },
+        {
+          "count": 81,
+          "value": "national-capital-planning-commission"
+        },
+        {
+          "count": 3,
+          "value": "national-commission-on-fiscal-responsibility-and-reform"
+        },
+        {
+          "count": 25,
+          "value": "national-commission-on-libraries-and-information-science"
+        },
+        {
+          "count": 6,
+          "value": "national-commission-on-military-national-and-public-service"
+        },
+        {
+          "count": 11,
+          "value": "national-commission-on-terrorist-attacks-upon-the-united-states"
+        },
+        {
+          "count": 2,
+          "value": "national-commission-on-the-future-of-the-navy"
+        },
+        {
+          "count": 54,
+          "value": "national-communications-system"
+        },
+        {
+          "count": 218,
+          "value": "national-council-on-disability"
+        },
+        {
+          "count": 1,
+          "value": "national-counterintelligence-center"
+        },
+        {
+          "count": 1759,
+          "value": "national-credit-union-administration"
+        },
+        {
+          "count": 26,
+          "value": "national-crime-prevention-and-privacy-compact-council"
+        },
+        {
+          "count": 3,
+          "value": "national-economic-council"
+        },
+        {
+          "count": 2,
+          "value": "national-education-goals-panel"
+        },
+        {
+          "count": 400,
+          "value": "national-endowment-for-the-arts"
+        },
+        {
+          "count": 187,
+          "value": "national-endowment-for-the-humanities"
+        },
+        {
+          "count": 1923,
+          "value": "national-foundation-on-the-arts-and-the-humanities"
+        },
+        {
+          "count": 2,
+          "value": "national-geospatial-intelligence-agency"
+        },
+        {
+          "count": 4799,
+          "value": "national-highway-traffic-safety-administration"
+        },
+        {
+          "count": 314,
+          "value": "national-indian-gaming-commission"
+        },
+        {
+          "count": 56,
+          "value": "national-institute-for-literacy"
+        },
+        {
+          "count": 216,
+          "value": "national-institute-of-corrections"
+        },
+        {
+          "count": 174,
+          "value": "national-institute-of-food-and-agriculture"
+        },
+        {
+          "count": 41,
+          "value": "national-institute-of-justice"
+        },
+        {
+          "count": 1741,
+          "value": "national-institute-of-standards-and-technology"
+        },
+        {
+          "count": 34902,
+          "value": "national-institutes-of-health"
+        },
+        {
+          "count": 60,
+          "value": "national-intelligence-office-of-the-national-director"
+        },
+        {
+          "count": 240,
+          "value": "national-labor-relations-board"
+        },
+        {
+          "count": 1,
+          "value": "national-library-of-medicine"
+        },
+        {
+          "count": 55,
+          "value": "national-mediation-board"
+        },
+        {
+          "count": 8,
+          "value": "national-nanotechnology-coordination-office"
+        },
+        {
+          "count": 157,
+          "value": "national-nuclear-security-administration"
+        },
+        {
+          "count": 30916,
+          "value": "national-oceanic-and-atmospheric-administration"
+        },
+        {
+          "count": 11547,
+          "value": "national-park-service"
+        },
+        {
+          "count": 1,
+          "value": "national-partnership-for-reinventing-government"
+        },
+        {
+          "count": 6,
+          "value": "national-prison-rape-elimination-commission"
+        },
+        {
+          "count": 3,
+          "value": "national-railroad-passenger-corporation"
+        },
+        {
+          "count": 5056,
+          "value": "national-science-foundation"
+        },
+        {
+          "count": 10,
+          "value": "national-security-agency-central-security-service"
+        },
+        {
+          "count": 9,
+          "value": "national-security-commission-on-artificial-intelligence"
+        },
+        {
+          "count": 1,
+          "value": "national-security-council"
+        },
+        {
+          "count": 9,
+          "value": "national-skill-standards-board"
+        },
+        {
+          "count": 3,
+          "value": "national-space-council"
+        },
+        {
+          "count": 63,
+          "value": "national-technical-information-service"
+        },
+        {
+          "count": 682,
+          "value": "national-telecommunications-and-information-administration"
+        },
+        {
+          "count": 451,
+          "value": "national-transportation-safety-board"
+        },
+        {
+          "count": 25,
+          "value": "national-women-s-business-council"
+        },
+        {
+          "count": 831,
+          "value": "natural-resources-conservation-service"
+        },
+        {
+          "count": 215,
+          "value": "natural-resources-revenue-office"
+        },
+        {
+          "count": 4,
+          "value": "navajo-and-hopi-indian-relocation-office"
+        },
+        {
+          "count": 2531,
+          "value": "navy-department"
+        },
+        {
+          "count": 211,
+          "value": "neighborhood-reinvestment-corporation"
+        },
+        {
+          "count": 26,
+          "value": "northeast-dairy-compact-commission"
+        },
+        {
+          "count": 1,
+          "value": "northeast-interstate-low-level-radioactive-waste-commission"
+        },
+        {
+          "count": 4,
+          "value": "northern-border-regional-commission"
+        },
+        {
+          "count": 16902,
+          "value": "nuclear-regulatory-commission"
+        },
+        {
+          "count": 93,
+          "value": "nuclear-waste-technical-review-board"
+        },
+        {
+          "count": 2539,
+          "value": "occupational-safety-and-health-administration"
+        },
+        {
+          "count": 100,
+          "value": "occupational-safety-and-health-review-commission"
+        },
+        {
+          "count": 676,
+          "value": "ocean-energy-management-bureau"
+        },
+        {
+          "count": 93,
+          "value": "ocean-energy-management-regulation-and-enforcement-bureau"
+        },
+        {
+          "count": 19,
+          "value": "ocean-policy-commission"
+        },
+        {
+          "count": 35,
+          "value": "office-of-government-information-services"
+        },
+        {
+          "count": 1,
+          "value": "office-of-motor-carrier-safety"
+        },
+        {
+          "count": 141,
+          "value": "office-of-national-drug-control-policy"
+        },
+        {
+          "count": 3,
+          "value": "office-of-the-national-cyber-director"
+        },
+        {
+          "count": 2,
+          "value": "oklahoma-city-national-memorial-trust"
+        },
+        {
+          "count": 459,
+          "value": "overseas-private-investment-corporation"
+        },
+        {
+          "count": 18,
+          "value": "pacific-northwest-electric-power-and-conservation-planning-council"
+        },
+        {
+          "count": 2,
+          "value": "panama-canal-commission"
+        },
+        {
+          "count": 288,
+          "value": "parole-commission"
+        },
+        {
+          "count": 33,
+          "value": "partnerships-and-public-engagement-office"
+        },
+        {
+          "count": 1755,
+          "value": "patent-and-trademark-office"
+        },
+        {
+          "count": 334,
+          "value": "peace-corps"
+        },
+        {
+          "count": 318,
+          "value": "pension-and-welfare-benefits-administration"
+        },
+        {
+          "count": 996,
+          "value": "pension-benefit-guaranty-corporation"
+        },
+        {
+          "count": 2983,
+          "value": "personnel-management-office"
+        },
+        {
+          "count": 2248,
+          "value": "pipeline-and-hazardous-materials-safety-administration"
+        },
+        {
+          "count": 1,
+          "value": "postal-rate-commission"
+        },
+        {
+          "count": 3573,
+          "value": "postal-regulatory-commission"
+        },
+        {
+          "count": 5779,
+          "value": "postal-service"
+        },
+        {
+          "count": 6,
+          "value": "president-s-council-on-integrity-and-efficiency"
+        },
+        {
+          "count": 2,
+          "value": "president-s-critical-infrastructure-protection-board"
+        },
+        {
+          "count": 1,
+          "value": "presidential-commission-on-assignment-of-women-in-the-armed-forces"
+        },
+        {
+          "count": 122,
+          "value": "presidio-trust"
+        },
+        {
+          "count": 196,
+          "value": "prisons-bureau"
+        },
+        {
+          "count": 37,
+          "value": "privacy-and-civil-liberties-oversight-board"
+        },
+        {
+          "count": 32,
+          "value": "procurement-and-property-management-office-of"
+        },
+        {
+          "count": 5,
+          "value": "program-support-center"
+        },
+        {
+          "count": 9,
+          "value": "public-buildings-reform-board"
+        },
+        {
+          "count": 280,
+          "value": "public-debt-bureau"
+        },
+        {
+          "count": 129,
+          "value": "public-health-service"
+        },
+        {
+          "count": 1024,
+          "value": "railroad-retirement-board"
+        },
+        {
+          "count": 13,
+          "value": "reagan-udall-foundation-for-the-food-and-drug-administration"
+        },
+        {
+          "count": 1258,
+          "value": "reclamation-bureau"
+        },
+        {
+          "count": 32,
+          "value": "recovery-accountability-and-transparency-board"
+        },
+        {
+          "count": 49,
+          "value": "refugee-resettlement-office"
+        },
+        {
+          "count": 31,
+          "value": "regulatory-information-service-center"
+        },
+        {
+          "count": 110,
+          "value": "research-and-innovative-technology-administration"
+        },
+        {
+          "count": 571,
+          "value": "research-and-special-programs-administration"
+        },
+        {
+          "count": 28,
+          "value": "risk-management-agency"
+        },
+        {
+          "count": 817,
+          "value": "rural-business-cooperative-service"
+        },
+        {
+          "count": 856,
+          "value": "rural-housing-service"
+        },
+        {
+          "count": 34,
+          "value": "rural-telephone-bank"
+        },
+        {
+          "count": 1293,
+          "value": "rural-utilities-service"
+        },
+        {
+          "count": 322,
+          "value": "safety-and-environmental-enforcement-bureau"
+        },
+        {
+          "count": 285,
+          "value": "science-and-technology-policy-office"
+        },
+        {
+          "count": 27,
+          "value": "secret-service"
+        },
+        {
+          "count": 51487,
+          "value": "securities-and-exchange-commission"
+        },
+        {
+          "count": 99,
+          "value": "selective-service-system"
+        },
+        {
+          "count": 9585,
+          "value": "small-business-administration"
+        },
+        {
+          "count": 3,
+          "value": "smithsonian-institution"
+        },
+        {
+          "count": 2134,
+          "value": "social-security-administration"
+        },
+        {
+          "count": 61,
+          "value": "southeastern-power-administration"
+        },
+        {
+          "count": 97,
+          "value": "southwestern-power-administration"
+        },
+        {
+          "count": 85,
+          "value": "special-counsel-office"
+        },
+        {
+          "count": 15,
+          "value": "special-inspector-general-for-afghanistan-reconstruction"
+        },
+        {
+          "count": 7,
+          "value": "special-inspector-general-for-iraq-reconstruction"
+        },
+        {
+          "count": 31,
+          "value": "special-trustee-for-american-indians-office"
+        },
+        {
+          "count": 10015,
+          "value": "state-department"
+        },
+        {
+          "count": 102,
+          "value": "state-justice-institute"
+        },
+        {
+          "count": 8,
+          "value": "strategic-preparedness-and-response-administration"
+        },
+        {
+          "count": 2315,
+          "value": "substance-abuse-and-mental-health-services-administration"
+        },
+        {
+          "count": 1529,
+          "value": "surface-mining-reclamation-and-enforcement-office"
+        },
+        {
+          "count": 5441,
+          "value": "surface-transportation-board"
+        },
+        {
+          "count": 595,
+          "value": "susquehanna-river-basin-commission"
+        },
+        {
+          "count": 58,
+          "value": "technology-administration"
+        },
+        {
+          "count": 594,
+          "value": "tennessee-valley-authority"
+        },
+        {
+          "count": 3,
+          "value": "the-white-house-office"
+        },
+        {
+          "count": 853,
+          "value": "thrift-supervision-office"
+        },
+        {
+          "count": 25,
+          "value": "trade-and-development-agency"
+        },
+        {
+          "count": 1633,
+          "value": "trade-representative-office-of-united-states"
+        },
+        {
+          "count": 77763,
+          "value": "transportation-department"
+        },
+        {
+          "count": 955,
+          "value": "transportation-security-administration"
+        },
+        {
+          "count": 194,
+          "value": "transportation-statistics-bureau"
+        },
+        {
+          "count": 26629,
+          "value": "treasury-department"
+        },
+        {
+          "count": 7,
+          "value": "twenty-first-century-workforce-commission"
+        },
+        {
+          "count": 208,
+          "value": "u-s-china-economic-and-security-review-commission"
+        },
+        {
+          "count": 2045,
+          "value": "u-s-citizenship-and-immigration-services"
+        },
+        {
+          "count": 3,
+          "value": "u-s-committee-on-the-marine-transportation-system"
+        },
+        {
+          "count": 4012,
+          "value": "u-s-customs-and-border-protection"
+        },
+        {
+          "count": 328,
+          "value": "u-s-immigration-and-customs-enforcement"
+        },
+        {
+          "count": 76,
+          "value": "u-s-international-development-finance-corporation"
+        },
+        {
+          "count": 3,
+          "value": "u-s-trade-deficit-review-commission"
+        },
+        {
+          "count": 30,
+          "value": "under-secretary-for-economic-affairs"
+        },
+        {
+          "count": 159,
+          "value": "unified-carrier-registration-plan"
+        },
+        {
+          "count": 20,
+          "value": "uniformed-services-university-of-the-health-sciences"
+        },
+        {
+          "count": 12,
+          "value": "united-states-agency-for-global-media"
+        },
+        {
+          "count": 143,
+          "value": "united-states-institute-of-peace"
+        },
+        {
+          "count": 28,
+          "value": "united-states-marshals-service"
+        },
+        {
+          "count": 445,
+          "value": "united-states-mint"
+        },
+        {
+          "count": 1,
+          "value": "united-states-olympic-and-paralympic-committee"
+        },
+        {
+          "count": 187,
+          "value": "united-states-sentencing-commission"
+        },
+        {
+          "count": 90,
+          "value": "us-codex-office"
+        },
+        {
+          "count": 26,
+          "value": "utah-reclamation-mitigation-and-conservation-commission"
+        },
+        {
+          "count": 4,
+          "value": "valles-caldera-trust"
+        },
+        {
+          "count": 9271,
+          "value": "veterans-affairs-department"
+        },
+        {
+          "count": 152,
+          "value": "veterans-employment-and-training-service"
+        },
+        {
+          "count": 17,
+          "value": "victims-of-crime-office"
+        },
+        {
+          "count": 296,
+          "value": "wage-and-hour-division"
+        },
+        {
+          "count": 537,
+          "value": "western-area-power-administration"
+        },
+        {
+          "count": 1,
+          "value": "women-s-business-enterprise-interagency-committee"
+        },
+        {
+          "count": 2,
+          "value": "women-s-progress-commemoration-commission"
+        },
+        {
+          "count": 453,
+          "value": "workers-compensation-programs-office"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "federal-register-unresolved-agency-name",
+      "extraction": "jsonArrayUnresolvedAgencyRawName",
+      "facet": "urn:ref:facet:entity",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "resourceId": "federal-register-native-controls",
+      "sourceField": "agencies_json",
+      "sourceFieldMissingRowCount": 52,
+      "sourceRowCount": 800232,
+      "sourceTable": "federal_register",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "sourceAssignedEvidence",
+      "valueOccurrenceCount": 22177,
+      "values": [
+        {
+          "count": 1,
+          "value": "(Declaration of Disaster #3239"
+        },
+        {
+          "count": 1,
+          "value": "44 CFR Part 64"
+        },
+        {
+          "count": 1,
+          "value": "ABB C-E Nuclear Power, Inc."
+        },
+        {
+          "count": 1,
+          "value": "Administration for Children and Families, Office of Head Start (OHS)"
+        },
+        {
+          "count": 2,
+          "value": "Administration for Community Living/Administration on Aging"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee for Biological Sciences"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee for International Science and Engineering"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee for Small Business Industrial Innovation; Notice of Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee on Disability Compensation"
+        },
+        {
+          "count": 15,
+          "value": "Advisory Committee on Reactor Safeguards (ACRS)"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee on Reactor Safeguards (ACRS); Meeting of the ACRS Subcommittee on Planning and Procedures"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Committee on Reactor Safeguards, Subcommittee Meeting on Safeguards and Security; Notice of Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Advisory Council on Historic Preservation."
+        },
+        {
+          "count": 2,
+          "value": "Agency Information Collection Activities"
+        },
+        {
+          "count": 1,
+          "value": "Agency Information Collection Activities: Comment Request;"
+        },
+        {
+          "count": 1,
+          "value": "Agency Information Collection Activities: Proposed Collection Renewals; Comment Request"
+        },
+        {
+          "count": 1,
+          "value": "Agency Information Collection Activities; Submission for OMB"
+        },
+        {
+          "count": 3,
+          "value": "Agency Information Collection Activities; Submission for OMB Review;"
+        },
+        {
+          "count": 1,
+          "value": "Agency Information Collection Activities; Submission for OMB Review; Comment"
+        },
+        {
+          "count": 1,
+          "value": "Agency for Healthcare Research and Quality (AHRQ), Office for Civil Rights (OCR)"
+        },
+        {
+          "count": 2,
+          "value": "Agency for Healthcare Research and Quality Agency Information Collection Activities"
+        },
+        {
+          "count": 1,
+          "value": "Agency for Healthcare Research and Quality Agency Information Collection Activities:"
+        },
+        {
+          "count": 1,
+          "value": "Agency for Healthcare Research and Quality Office"
+        },
+        {
+          "count": 1,
+          "value": "Agenda and Notice of Public Meeting of the Montana Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Agenda and Notice of Public Meeting of the New Jersey Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Agenda and Notice of Public Meeting of the New York Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Agenda and Notice of Public Meeting of the Pennsylvania Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Agricultural Research Service Cooperative State Research, Education, and Extension Service"
+        },
+        {
+          "count": 1,
+          "value": "Airspace Docket No. 00-AAL-03"
+        },
+        {
+          "count": 1,
+          "value": "Amergen Energy Company, LLC;"
+        },
+        {
+          "count": 1,
+          "value": "Animal and"
+        },
+        {
+          "count": 1,
+          "value": "Application for A License to Export"
+        },
+        {
+          "count": 1,
+          "value": "Appraisal Subcommittee"
+        },
+        {
+          "count": 1,
+          "value": "Assistant Secretary for Technology Policy"
+        },
+        {
+          "count": 1,
+          "value": "Astronomy and Astrophysics Advisory Committee"
+        },
+        {
+          "count": 8,
+          "value": "Atomic Safety and Licensing Board"
+        },
+        {
+          "count": 1,
+          "value": "Atomic Safety and Licensing Board Hearing"
+        },
+        {
+          "count": 2,
+          "value": "Atomic Safety and Licensing Board Panel"
+        },
+        {
+          "count": 1,
+          "value": "Audit Committee Meeting of the Board of Directors"
+        },
+        {
+          "count": 1,
+          "value": "Audit and Financial Management Advisory (AFMAC)"
+        },
+        {
+          "count": 1,
+          "value": "Aviation Administration"
+        },
+        {
+          "count": 1,
+          "value": "BARRY GOLDWATER SCHOLARSHIP AND EXCELLENCE IN EDUCATION FOUNDATION."
+        },
+        {
+          "count": 1,
+          "value": "BLACKSTONE RIVER VALLEY NATIONAL HERITAGE CORRIDOR COMMISSION"
+        },
+        {
+          "count": 1,
+          "value": "BNSF Railway Company-Lease Exemption-Union Pacific Railroad Company"
+        },
+        {
+          "count": 1,
+          "value": "BOARD OF THE GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+        },
+        {
+          "count": 1,
+          "value": "Biweekly Notice"
+        },
+        {
+          "count": 5,
+          "value": "Biweekly Notice; Applications and Amendments to Facility Operating Licenses"
+        },
+        {
+          "count": 1,
+          "value": "Biweekly Notice; Applications and Amendments to Facility Operating Licenses Involving No Significant Hazards Considerations"
+        },
+        {
+          "count": 1,
+          "value": "Board of Directors Executive Session Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Board of Governors"
+        },
+        {
+          "count": 1,
+          "value": "Board of Governors;"
+        },
+        {
+          "count": 1,
+          "value": "Board of Governors; Sunshine Act Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Bureau for Democracy, Conflict and Humanitarian Assistance, Office of Food for Peace"
+        },
+        {
+          "count": 1,
+          "value": "Bureau for International Narcotics and Law Enforcement Affairs"
+        },
+        {
+          "count": 4,
+          "value": "Bureau of Administration"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Alcohol, Tobacco, Firearms and Explosives [ATF Notice No. 4; ATF O 1100.75C, Docket No. 2003-39]"
+        },
+        {
+          "count": 74,
+          "value": "Bureau of Citizenship and Immigration Services"
+        },
+        {
+          "count": 15,
+          "value": "Bureau of Consular Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Consular Affairs/"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Customs and Border Protection (CBP)"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Diplomatic Security"
+        },
+        {
+          "count": 2,
+          "value": "Bureau of Diplomatic Security, Office Foreign Missions, Diplomatic Motor Vehicles"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Diplomatic Security, Office of Foreign Missions, Diplomatic Motor Vehicles"
+        },
+        {
+          "count": 4,
+          "value": "Bureau of Economic and Business Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Economic, Energy, and Business Affairs"
+        },
+        {
+          "count": 5,
+          "value": "Bureau of Educational and Cultural Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Educational and Cultural Affairs (ECA)"
+        },
+        {
+          "count": 3,
+          "value": "Bureau of European Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of European Affairs, Office of European Security and Political Affairs (EUR/RPM)"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Export Administration Information Systems"
+        },
+        {
+          "count": 2,
+          "value": "Bureau of Fiscal Service"
+        },
+        {
+          "count": 36,
+          "value": "Bureau of Immigration and Customs Enforcement"
+        },
+        {
+          "count": 1,
+          "value": "Bureau of Indian Affairs."
+        },
+        {
+          "count": 2,
+          "value": "Bureau of Industry and Security Information Systems"
+        },
+        {
+          "count": 2,
+          "value": "Bureau of Land Management,"
+        },
+        {
+          "count": 3,
+          "value": "Bureau of Land Management."
+        },
+        {
+          "count": 4,
+          "value": "Bureau of Ocean Energy Management, Regulation and Enforcement (BOEMRE)"
+        },
+        {
+          "count": 2,
+          "value": "Bureau of Oceans and International Environmental and Scientific Affairs (OES)"
+        },
+        {
+          "count": 1,
+          "value": "Business and Operations Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "CGD01-01-074"
+        },
+        {
+          "count": 1,
+          "value": "CGD01-01-211"
+        },
+        {
+          "count": 1,
+          "value": "CGD01-01-214"
+        },
+        {
+          "count": 1,
+          "value": "CGD01-03-023"
+        },
+        {
+          "count": 1,
+          "value": "CGD08-98-020"
+        },
+        {
+          "count": 1,
+          "value": "CGD09-02-039"
+        },
+        {
+          "count": 1,
+          "value": "CGD09-03-216"
+        },
+        {
+          "count": 1,
+          "value": "CGD1-01-193"
+        },
+        {
+          "count": 1,
+          "value": "CMS-1325-IFC2"
+        },
+        {
+          "count": 1,
+          "value": "CMS-2087-FN"
+        },
+        {
+          "count": 1,
+          "value": "CMS-6145-FC"
+        },
+        {
+          "count": 2,
+          "value": "COMMITTEE FOR PURCHASE FROM PEOPLE WHO ARE BLIND OR DISABLED"
+        },
+        {
+          "count": 2,
+          "value": "COMMITTEE FOR PURCHASE FROM PEOPLE WHO ARE BLIND OR SEVERELY DISABLED."
+        },
+        {
+          "count": 1,
+          "value": "COMMITTEE FOR PURCHASE FROM PEOPLE WHO ARE BLIND OR SEVERELY; DISABLED"
+        },
+        {
+          "count": 1,
+          "value": "COMMODITY FUTURES TRADING COMMISSION."
+        },
+        {
+          "count": 1,
+          "value": "COTP Pittsburgh-02-002"
+        },
+        {
+          "count": 1,
+          "value": "Calvert Cliffs Nuclear Power Plant, Unit Nos. 1 and 2"
+        },
+        {
+          "count": 1,
+          "value": "Capital Asset Realignment for Enhanced Services (CARES) Commission"
+        },
+        {
+          "count": 1,
+          "value": "Carburetors and Products Containing Such Carburetors"
+        },
+        {
+          "count": 1,
+          "value": "Carolina Power & Light Company"
+        },
+        {
+          "count": 1,
+          "value": "Celerity Partners SBIC, L.P."
+        },
+        {
+          "count": 1,
+          "value": "Center for Substance Abuse Treatment National Advisory Council"
+        },
+        {
+          "count": 107,
+          "value": "Centers for Disease Control and Prevention (CDC)"
+        },
+        {
+          "count": 2,
+          "value": "Centers for Disease Control and Prevention and Agency for Toxic Substances and Disease Registry"
+        },
+        {
+          "count": 1,
+          "value": "Centers for Disease Control and Prevention)"
+        },
+        {
+          "count": 2,
+          "value": "Centers for Disease Control and Prevention."
+        },
+        {
+          "count": 1,
+          "value": "Centers for Disease Control and Prevention;"
+        },
+        {
+          "count": 1,
+          "value": "Centers for Disease Control and Prevention; National Center for Environmental Health/Agency for Toxic Substances and Disease Registry"
+        },
+        {
+          "count": 2,
+          "value": "Centers for Medicare & Medicaid Services (CMS)"
+        },
+        {
+          "count": 1,
+          "value": "Centers for Medicare & Medicaid Services;"
+        },
+        {
+          "count": 1,
+          "value": "Centers for Medicare and Medicaid Services (CMS)"
+        },
+        {
+          "count": 1,
+          "value": "Centers for Medicare and Medicaid Services."
+        },
+        {
+          "count": 5,
+          "value": "Centers for Medicare&Medicaid Services"
+        },
+        {
+          "count": 1,
+          "value": "Centers forMedicare&Medicaid Services"
+        },
+        {
+          "count": 1,
+          "value": "Certain Balanced Armature Devices, Products Containing Same, and Components Thereof"
+        },
+        {
+          "count": 1,
+          "value": "Certain Electronic Stud Finders, Metal Detectors and Electrical Scanners"
+        },
+        {
+          "count": 1,
+          "value": "Certain Televisions, Remote Controls, and Components Thereof"
+        },
+        {
+          "count": 1,
+          "value": "Certain Windshield Wipers and Components Thereof"
+        },
+        {
+          "count": 1,
+          "value": "Chicago Operations Office; Office of Industrial Technologies"
+        },
+        {
+          "count": 55,
+          "value": "Citizenship and Immigration Services"
+        },
+        {
+          "count": 3,
+          "value": "Citizenship and Immigration Services Bureau"
+        },
+        {
+          "count": 1,
+          "value": "City of Temple, Tex.-Abandonment Exemption-in Bell County, Tex."
+        },
+        {
+          "count": 4,
+          "value": "Civil Division"
+        },
+        {
+          "count": 1,
+          "value": "Coast Guard CFR 33 CFR 165"
+        },
+        {
+          "count": 1,
+          "value": "Codex Office"
+        },
+        {
+          "count": 1,
+          "value": "Commissioner"
+        },
+        {
+          "count": 1,
+          "value": "Committee Management"
+        },
+        {
+          "count": 1,
+          "value": "Commodity Credit Corporation Farm Service Agency"
+        },
+        {
+          "count": 1,
+          "value": "Commonwealth Edison Company; Dresden Nuclear Power Station, Units 2 and 3; Environmental Assessment and Finding of No Significant Impact"
+        },
+        {
+          "count": 4,
+          "value": "Companies Holding Certificates of Authority as Acceptable Sureties on"
+        },
+        {
+          "count": 2,
+          "value": "Corporate Senior Executive Management Office"
+        },
+        {
+          "count": 4,
+          "value": "Criminal Division"
+        },
+        {
+          "count": 1,
+          "value": "Cumulative List of Public Laws"
+        },
+        {
+          "count": 2,
+          "value": "Cybersecurity and Infrastructure Security Agency"
+        },
+        {
+          "count": 1,
+          "value": "DEARTMENT OF ENERGY"
+        },
+        {
+          "count": 1,
+          "value": "DEPARMENT OF HOMELAND SECURITY"
+        },
+        {
+          "count": 1,
+          "value": "DEPART"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF AGRICULTURE OFFICE OF TRIBAL RELATIONS"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF AGRICULTURE."
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF AMERICA"
+        },
+        {
+          "count": 23,
+          "value": "DEPARTMENT OF COMMERCE."
+        },
+        {
+          "count": 3,
+          "value": "DEPARTMENT OF COMMERCE:"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF COMMERCE�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF COMMERCE�09�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF COMMERCE�09�09�09�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE BILLING CODE"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE GENERAL SERVICES ADMINISTRATION NATIONAL AERONAUTICS AND SPACE ADMINISTRATION"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE."
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF DEFENSE�09�09�09�09"
+        },
+        {
+          "count": 6,
+          "value": "DEPARTMENT OF EDUCATION."
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF ENERGY."
+        },
+        {
+          "count": 2,
+          "value": "DEPARTMENT OF ENERGY�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF ENERGY�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HEALTH AND HUMAN FOCUS"
+        },
+        {
+          "count": 5,
+          "value": "DEPARTMENT OF HEALTH AND HUMAN RESOURCES"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HEALTH AND HUMAN SERVICES\\"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HEALTH AND HUMAN SERVICES�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HOMELAND SECURITY�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HOUSING AND URBAN DEVELOPMENT`"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF HOUSING AND URBAN DEVELOPMENT�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE INTERIOR National Park Service"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE INTERIOR,"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE INTERIOR�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE INTERIOR�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE TREASURY�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF THE TREASURY�09�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF TRANSPORTATION 4910-22-P"
+        },
+        {
+          "count": 2,
+          "value": "DEPARTMENT OF TRANSPORTATION Office of the Secretary"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF TRANSPORTATION �09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF TRANSPORTATION)"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMENT OF TRANSPORTATION�09�09�09"
+        },
+        {
+          "count": 2,
+          "value": "DEPARTMENT OF VETERANS AFFAIRS."
+        },
+        {
+          "count": 1,
+          "value": "DEPARTMET OF HOMELAND SECURITY"
+        },
+        {
+          "count": 1,
+          "value": "DEPARTNENT OF THE INTERIOR"
+        },
+        {
+          "count": 1,
+          "value": "Defense Partnership Council Meeting; Cancellation"
+        },
+        {
+          "count": 1,
+          "value": "Department of Commerce, National Institute of Standards and Technology, et al."
+        },
+        {
+          "count": 1,
+          "value": "Department of the Air Force, DoD."
+        },
+        {
+          "count": 1,
+          "value": "Department of the Army,"
+        },
+        {
+          "count": 1,
+          "value": "Department of the Army, Corps of Engineers;"
+        },
+        {
+          "count": 2,
+          "value": "Department of the Army, DOD."
+        },
+        {
+          "count": 1,
+          "value": "Department of the Army, U. S. Army Corps of Engineers"
+        },
+        {
+          "count": 1,
+          "value": "Department of the Army, US Army Corps of Engineers"
+        },
+        {
+          "count": 1,
+          "value": "Department of the Navy,"
+        },
+        {
+          "count": 1,
+          "value": "Department of the Treasury."
+        },
+        {
+          "count": 18,
+          "value": "Departmental Offices"
+        },
+        {
+          "count": 1,
+          "value": "Determination Under the African Growth and Opportunity Act"
+        },
+        {
+          "count": 2,
+          "value": "Directorate of Information Analysis and Infrastructure Protection (IAIP)"
+        },
+        {
+          "count": 1,
+          "value": "Directorate of Science and Technology"
+        },
+        {
+          "count": 1,
+          "value": "Disaster Declaration #11418 and #11419"
+        },
+        {
+          "count": 2,
+          "value": "Disaster Declaration #12566 and #12567"
+        },
+        {
+          "count": 1,
+          "value": "Disaster Declaration #12630 and #12631"
+        },
+        {
+          "count": 1,
+          "value": "Disaster Declaration #14932 and #14933"
+        },
+        {
+          "count": 1,
+          "value": "Disaster Declaration #15742 and #15743; Florida Disaster Number FL-00140"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 040810235-4235-01"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 041018284-4284-01"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 50-309"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 50-313"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 50-389"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. 72-1051; NRC-2018-0052]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. A2011-51; Order No. 824]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. CP2014-40; Order No. 2048]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FAA-2003-16531; Airspace Docket No. 96-ASO-10"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FAA-2003-19053; Airspace Docket No. 04-ANM-10"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FAA-2005-22047; Airspace Docket No. 05-ANM-10"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FAA-2005-22509; Airspace Docket No. 03-AWA-2"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FEMA-B-7424"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FEMA-P-7618"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FR-4675-N-01]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FR-5486-N-24]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FR-7014-N-21]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FRA 2001-11068, Notice No. 4"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FRA-2000-7257"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. FTA-2009-0010]"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. NHTSA-2004-25441"
+        },
+        {
+          "count": 1,
+          "value": "Docket No. PTO-C-2022-0004]"
+        },
+        {
+          "count": 1,
+          "value": "Docket Nos. 50-369 and 50-370"
+        },
+        {
+          "count": 1,
+          "value": "Docket Nos. MC2010-1 and CP2010-1; Order No. 313"
+        },
+        {
+          "count": 1,
+          "value": "Docket: RSPA-98-4957"
+        },
+        {
+          "count": 1,
+          "value": "Domestic Finance"
+        },
+        {
+          "count": 1,
+          "value": "Dominion Nuclear North Anna, LLC"
+        },
+        {
+          "count": 1,
+          "value": "Draft License Renewal Interim Staff Guidance LR-ISG-2009-01"
+        },
+        {
+          "count": 1,
+          "value": "Draft Report to Congress on the Costs and Benefits of Federal"
+        },
+        {
+          "count": 1,
+          "value": "ELECTION"
+        },
+        {
+          "count": 1,
+          "value": "ELECTION ASSISTANCE COMMISSION 2005"
+        },
+        {
+          "count": 1,
+          "value": "ENVIRONMENTAL"
+        },
+        {
+          "count": 2,
+          "value": "ENVIRONMENTAL PROTECTION AGENCY."
+        },
+        {
+          "count": 1,
+          "value": "ENVIRONMENTAL PROTECTION AGENCY�09�09"
+        },
+        {
+          "count": 1,
+          "value": "ENVIRONMENTAL PROTECTION AGENCY�09�09�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "EPA-HQ-OA-2006-0172; FRL-8203-7]"
+        },
+        {
+          "count": 1,
+          "value": "EPA-HQ-OAR-2016-0546; FRL-9969-55-OAR]"
+        },
+        {
+          "count": 1,
+          "value": "EPA-HQ-OARM-2011-0803, EPA-HQ-OARM-2-11-0804; FRL-9484-8]"
+        },
+        {
+          "count": 1,
+          "value": "EPA-HQ-ORD-2005-0530; FRL-9916-56-OEI]"
+        },
+        {
+          "count": 1,
+          "value": "EQUAL EMPLOYMENT OPPORTUNITY COMMISSSION"
+        },
+        {
+          "count": 2,
+          "value": "EXPORT-IMPORT"
+        },
+        {
+          "count": 1,
+          "value": "EXPORT-IMPORT BANK OF THE U. S."
+        },
+        {
+          "count": 1,
+          "value": "Emergency Clearance"
+        },
+        {
+          "count": 1,
+          "value": "Employee Thrift Advisory Council"
+        },
+        {
+          "count": 35,
+          "value": "Employment Standards Administration Wage and Hour Division"
+        },
+        {
+          "count": 1,
+          "value": "Employment Standards Administration Wage and Hour Division;"
+        },
+        {
+          "count": 89,
+          "value": "Employment Standards Administration, Wage and Hour Division"
+        },
+        {
+          "count": 1,
+          "value": "Employment and Training Administration Submission for OMB"
+        },
+        {
+          "count": 2,
+          "value": "Employment and Training Administration."
+        },
+        {
+          "count": 1,
+          "value": "Employment and Training Administration: Alan White Company Corporate Office, Stamps, AR; Notice of Revised Determination on Reconsideration"
+        },
+        {
+          "count": 1,
+          "value": "Energy Regulatory Commission"
+        },
+        {
+          "count": 1,
+          "value": "Environmental Impact Statement for Addition of Electric"
+        },
+        {
+          "count": 1,
+          "value": "Environmental Management Advisory Board Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Environmental Program Grants for Tribes"
+        },
+        {
+          "count": 1,
+          "value": "Environmental Protection Agency EPA"
+        },
+        {
+          "count": 1,
+          "value": "Executive Office for United States"
+        },
+        {
+          "count": 1,
+          "value": "Executive Office for United States Attorney"
+        },
+        {
+          "count": 1,
+          "value": "Existing Collection;"
+        },
+        {
+          "count": 1,
+          "value": "FARM CREDIT ADMINISTRATION."
+        },
+        {
+          "count": 1,
+          "value": "FEDERAL COMMUICATIONS COMMISSION"
+        },
+        {
+          "count": 1,
+          "value": "FEDERAL COMMUNICATIONS COMMISSION�09"
+        },
+        {
+          "count": 2,
+          "value": "FEDERAL DEPOSIT INSURANCE CORPORTATION"
+        },
+        {
+          "count": 2,
+          "value": "FEDERAL ELECTION COMMISSION."
+        },
+        {
+          "count": 2,
+          "value": "FEDERAL RESERVE SYSTEM."
+        },
+        {
+          "count": 2,
+          "value": "FEDERAL TRADE COMMISSION."
+        },
+        {
+          "count": 1,
+          "value": "FRA Docket No. RSOR-9, Notice 13"
+        },
+        {
+          "count": 1,
+          "value": "FRL-7432-2]"
+        },
+        {
+          "count": 1,
+          "value": "FRL-9970-67-OGC; EPA-HQ-OGC-2017-0630]"
+        },
+        {
+          "count": 1,
+          "value": "Farm Credit System Insurance Corporation Board"
+        },
+        {
+          "count": 1,
+          "value": "Farm Service Agency, Rural Housing Service, Rural Utilities Service, Rural Business-Cooperative Service"
+        },
+        {
+          "count": 1,
+          "value": "Faster Administration of Science and Technology"
+        },
+        {
+          "count": 1,
+          "value": "Federal Acquisition Security Council"
+        },
+        {
+          "count": 1,
+          "value": "Federal Alternative Dispute Resolution Council"
+        },
+        {
+          "count": 1,
+          "value": "Federal Aviation Administration, DOT"
+        },
+        {
+          "count": 5,
+          "value": "Federal Aviation Administration."
+        },
+        {
+          "count": 1,
+          "value": "Federal Aviation Information"
+        },
+        {
+          "count": 1,
+          "value": "Federal Bureau of Investigation, Justice."
+        },
+        {
+          "count": 1,
+          "value": "Federal Communcations Commission"
+        },
+        {
+          "count": 1,
+          "value": "Federal Contract Compliance Program Office"
+        },
+        {
+          "count": 1,
+          "value": "Federal Employees' Retirement System; Normal Cost Percentages"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy Regulatory Commission,"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy Regulatory Commission]"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy Regulatory Commission�09"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy Regulatory Commission�09�09"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy Regulatory Commission�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "Federal Energy RegulatoryCommission"
+        },
+        {
+          "count": 1,
+          "value": "Federal Highway Administration."
+        },
+        {
+          "count": 1,
+          "value": "Federal Prevailing Rate Advisory Committee;"
+        },
+        {
+          "count": 1,
+          "value": "Federal Prevailing Rate Advisory Committee; Open Committee Meetings"
+        },
+        {
+          "count": 1,
+          "value": "Federal Student Aid"
+        },
+        {
+          "count": 8,
+          "value": "Federal Supply Service"
+        },
+        {
+          "count": 1,
+          "value": "Federal Transit Administration Federal Register Notice"
+        },
+        {
+          "count": 1,
+          "value": "Federal Travel Regulation (FTR)"
+        },
+        {
+          "count": 1,
+          "value": "Finance, Budget & Program Committee of the Board of Directors;"
+        },
+        {
+          "count": 1,
+          "value": "Financial Assistamce Award (Grant)"
+        },
+        {
+          "count": 19,
+          "value": "Financial Management Service"
+        },
+        {
+          "count": 1,
+          "value": "Financial Management Service; Fiscal Service"
+        },
+        {
+          "count": 1,
+          "value": "FirstEnergy Nuclear Operating Company"
+        },
+        {
+          "count": 1,
+          "value": "Fiscal Service Surety Companies Acceptable on Federal Bonds"
+        },
+        {
+          "count": 1,
+          "value": "Fiscal Year"
+        },
+        {
+          "count": 1,
+          "value": "Fish and Wildlife Service, Interior."
+        },
+        {
+          "count": 1,
+          "value": "Florida Power Corporation, et al"
+        },
+        {
+          "count": 1,
+          "value": "Florida Power and Light Co.; Saint Lucie Plant, Units 1 and 2"
+        },
+        {
+          "count": 1,
+          "value": "Food Service"
+        },
+        {
+          "count": 3,
+          "value": "Foreign Claims Settlement Commission of the United States"
+        },
+        {
+          "count": 1,
+          "value": "Foreign-Trade Zone 42 Orlando, FL"
+        },
+        {
+          "count": 1,
+          "value": "Forest Service USDA"
+        },
+        {
+          "count": 1,
+          "value": "Forest Service,"
+        },
+        {
+          "count": 1,
+          "value": "Forest Service."
+        },
+        {
+          "count": 4,
+          "value": "Formations of, Acquisitions by, and Mergers of Bank Holding Companies"
+        },
+        {
+          "count": 1,
+          "value": "Fusion Energy Sciences Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Future Systems Technology Advisory Panel"
+        },
+        {
+          "count": 1,
+          "value": "Genomic Medicine Program Advisory Committee"
+        },
+        {
+          "count": 1,
+          "value": "Good Neighbor Environmental Board"
+        },
+        {
+          "count": 1,
+          "value": "Government in the Sunshine; Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Grain Inspection, Packers and Stockyards Administration (GIPSA)."
+        },
+        {
+          "count": 1,
+          "value": "Granting of Request for Early Termination of the Waiting Period Under the Premerger Notification Rules"
+        },
+        {
+          "count": 1,
+          "value": "HCFA-1084-P"
+        },
+        {
+          "count": 1,
+          "value": "HUD-2004-0022"
+        },
+        {
+          "count": 1,
+          "value": "HUMAN SERVICES National Institutes of Health"
+        },
+        {
+          "count": 1,
+          "value": "Health Care Financing Administration, DHHS."
+        },
+        {
+          "count": 1,
+          "value": "Health Care Financing Administration, HHS."
+        },
+        {
+          "count": 1,
+          "value": "Health Care Financing Administration."
+        },
+        {
+          "count": 1,
+          "value": "Health Data, Technology, and Interoperability: Certification Program"
+        },
+        {
+          "count": 1,
+          "value": "Health Resources & Services Administration"
+        },
+        {
+          "count": 1,
+          "value": "Health Systems Research (HSR) Scientific Merit Review Board"
+        },
+        {
+          "count": 1,
+          "value": "Homeland Security Academic Advisory Council"
+        },
+        {
+          "count": 1,
+          "value": "Human Resources, Recruitment, Examination and Evaluation, Office of Recruitment"
+        },
+        {
+          "count": 1,
+          "value": "INS No. 2072-00; AG Order No. 2540-2001"
+        },
+        {
+          "count": 2,
+          "value": "INTER-AMERICAN FOUNDATION BOARD"
+        },
+        {
+          "count": 2,
+          "value": "INTERNATIONAL BOUNDARY AND WATER COMMISSION,"
+        },
+        {
+          "count": 1,
+          "value": "INTERNATIONAL BOUNDARY AND WATER COMMISSION, UNITED STATES AND MEXICO, AND UNITED STATES SECTION"
+        },
+        {
+          "count": 2,
+          "value": "Idaho Operations Office"
+        },
+        {
+          "count": 2,
+          "value": "Immigration and Naturalization"
+        },
+        {
+          "count": 1,
+          "value": "Immigration and Naturalization Service."
+        },
+        {
+          "count": 3,
+          "value": "Import Administration"
+        },
+        {
+          "count": 1,
+          "value": "Indiana Michigan Power Company"
+        },
+        {
+          "count": 1,
+          "value": "Indiana Michigan Power Company, Donald C. Cook Nuclear Plant, Units 1 and 2; Notice of Correction to Biweekly Notice of Issuance of Amendments to Facility Operating Licenses"
+        },
+        {
+          "count": 2,
+          "value": "Inspector General"
+        },
+        {
+          "count": 1,
+          "value": "Institute of Education Sciences"
+        },
+        {
+          "count": 1,
+          "value": "Interagency Committee for Medical Records (ICMR)"
+        },
+        {
+          "count": 1,
+          "value": "Internal Revenue Service�09�09�09�09�09"
+        },
+        {
+          "count": 1,
+          "value": "International Energy Agency Meeting"
+        },
+        {
+          "count": 2,
+          "value": "International Trade Administration Mission Statement"
+        },
+        {
+          "count": 2,
+          "value": "International Trade Administration,"
+        },
+        {
+          "count": 3,
+          "value": "International Trade Administration, Commerce."
+        },
+        {
+          "count": 2,
+          "value": "International Trade Administration."
+        },
+        {
+          "count": 2,
+          "value": "International Trade Administration]"
+        },
+        {
+          "count": 1,
+          "value": "International Trade Administration�09"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 337-TA-1064"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 337-TA-1096]"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 701-TA-585 (Final)"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 731-1TA-856 (Final)"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 731-TA-1022 (Second Review)"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 731-TA-1574 (Preliminary)]"
+        },
+        {
+          "count": 1,
+          "value": "Investigation No. 731-TA-724 (Review)"
+        },
+        {
+          "count": 1,
+          "value": "Investigations Nos. 701-TA-402 (Final) and 731-TA-892-893 (Final)"
+        },
+        {
+          "count": 1,
+          "value": "Investigations Nos. 731-TA-624-625 (Review)"
+        },
+        {
+          "count": 1,
+          "value": "Investigations Nos. 731-TA-726, 727, and 729 (Review)"
+        },
+        {
+          "count": 1,
+          "value": "Investment Company Act Release No. 29163; 812-13161-01]"
+        },
+        {
+          "count": 1,
+          "value": "Investment Company Act Release No. 33325; 812-14969"
+        },
+        {
+          "count": 1,
+          "value": "Investment Company Act Release No. 33551; 812-15032"
+        },
+        {
+          "count": 3,
+          "value": "JUDICIAL CONFERENCE"
+        },
+        {
+          "count": 10,
+          "value": "Justice Management Division"
+        },
+        {
+          "count": 1,
+          "value": "MB Docket No. 18-349; DA 21-851; FR ID 40028]"
+        },
+        {
+          "count": 1,
+          "value": "MORRIS K. UDALL SCHOLARSHIP AND EXCELLENCE IN NATIONAL ENVIRONMENTAL POLICY FOUNDATION, THE UNITED STATES INSTITUTE FOR ENVIRONMENTAL CONFLICT RESOLUTION"
+        },
+        {
+          "count": 3,
+          "value": "Maritime Administration."
+        },
+        {
+          "count": 1,
+          "value": "Meeting of the Judicial Conference"
+        },
+        {
+          "count": 1,
+          "value": "Minority Business Development Agency."
+        },
+        {
+          "count": 1,
+          "value": "NATIONAL FOUNDATION ON THE ARTS AND THE HUMANITIES�09"
+        },
+        {
+          "count": 19,
+          "value": "NATIONAL SCIENCE BOARD"
+        },
+        {
+          "count": 1,
+          "value": "NORTHERN STATES POWER COMPANY"
+        },
+        {
+          "count": 1,
+          "value": "NRC-2019-0176]"
+        },
+        {
+          "count": 1,
+          "value": "NRC-2024-0001]"
+        },
+        {
+          "count": 1,
+          "value": "NUCLEAR *COM020*REGULATORY COMMISSION"
+        },
+        {
+          "count": 1,
+          "value": "NUCLEAR REGISTER NOTICE"
+        },
+        {
+          "count": 1,
+          "value": "NUCLEAR REGUALTORY COMMISSION"
+        },
+        {
+          "count": 1,
+          "value": "NUCLEAR REGULATORY COMMISSION."
+        },
+        {
+          "count": 1,
+          "value": "National Advisory Commission"
+        },
+        {
+          "count": 1,
+          "value": "National Bureau of Standards Reactor"
+        },
+        {
+          "count": 1,
+          "value": "National Cancer Institute; Notice of Closed Meeting"
+        },
+        {
+          "count": 1,
+          "value": "National Charters Booklet"
+        },
+        {
+          "count": 1,
+          "value": "National Committee on Vital and Health Statistics"
+        },
+        {
+          "count": 1,
+          "value": "National Instant Criminal Background Check System Section"
+        },
+        {
+          "count": 1,
+          "value": "National Institute of Diabetes and Digestive and Kidney Diseases; Notice of Closed Meetings"
+        },
+        {
+          "count": 1,
+          "value": "National Institute of Mental Health"
+        },
+        {
+          "count": 2,
+          "value": "National Institutes of Health,"
+        },
+        {
+          "count": 1,
+          "value": "National Institutes of Health, Clinical Center"
+        },
+        {
+          "count": 1,
+          "value": "National Institutes of Health, Office of the Director, Office of Biotechnology Activities"
+        },
+        {
+          "count": 1,
+          "value": "National Instututes of Health (NIH); National Institute on Drug Abuse (NIDA)"
+        },
+        {
+          "count": 1,
+          "value": "National Nuclear Security Administration \\1"
+        },
+        {
+          "count": 1,
+          "value": "National Oceanic and Atmospheric Administration (NOAA)."
+        },
+        {
+          "count": 1,
+          "value": "National Oceanic and Atmospheric Administration 50 CFR Parts 223 and 224"
+        },
+        {
+          "count": 1,
+          "value": "National Oceanic and Atmospheric Administration National Sea Grant Advisory Board"
+        },
+        {
+          "count": 3,
+          "value": "National Oceanic and Atmospheric Administration."
+        },
+        {
+          "count": 2,
+          "value": "National Oceanic and Atmospheric Administration�09"
+        },
+        {
+          "count": 2,
+          "value": "National Park Service, Interior."
+        },
+        {
+          "count": 1,
+          "value": "National Park Service, Northeast Region"
+        },
+        {
+          "count": 3,
+          "value": "National Park Service."
+        },
+        {
+          "count": 1,
+          "value": "National Petroleum Council, Office of Fossil Energy"
+        },
+        {
+          "count": 1,
+          "value": "National Protection and Programs Directorate Office of Infrastructure Protection"
+        },
+        {
+          "count": 2,
+          "value": "National Research Advisory Council"
+        },
+        {
+          "count": 2,
+          "value": "National Science Foundation."
+        },
+        {
+          "count": 2,
+          "value": "National Science and Technology Council"
+        },
+        {
+          "count": 2,
+          "value": "National Security Division"
+        },
+        {
+          "count": 1,
+          "value": "National Strategy To Secure Cyberspace"
+        },
+        {
+          "count": 1,
+          "value": "National Telecommunications and Information Administration First Responder Network Authority"
+        },
+        {
+          "count": 1,
+          "value": "National Wildlife Refuge System"
+        },
+        {
+          "count": 1,
+          "value": "Notice (00-092)"
+        },
+        {
+          "count": 1,
+          "value": "Notice (00-134)"
+        },
+        {
+          "count": 1,
+          "value": "Notice (00-143)"
+        },
+        {
+          "count": 1,
+          "value": "Notice (01-062)"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Action Subject to Intergovernmental Review"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Agency Meeting; Sunshine Act"
+        },
+        {
+          "count": 3,
+          "value": "Notice of Agreement(s) Filed"
+        },
+        {
+          "count": 2,
+          "value": "Notice of Agreements Filed"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Amendment and Technical Correction to the Notice of Funding"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Availability"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Closed Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Commission Meeting and Public Hearing"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Issuance of Amendment to Materials License SNM-2501"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Lodging of Consent Decree Under the Comprehensive Environmental Response, Compensation and Liability Act"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Lodging of a Consent Decree"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Permit Emergency Provision"
+        },
+        {
+          "count": 1,
+          "value": "Notice of Public Information Collection(s) Being Reviewed by the Federal Communications Commission for Extension Under Delegated Authority, Comments Requested."
+        },
+        {
+          "count": 1,
+          "value": "Notice of Public Meeting of the Wisconsin Advisory Committee for a Meeting To Discuss Civil Rights Concerns in the State"
+        },
+        {
+          "count": 2,
+          "value": "Notice of Sunshine Act Meetings"
+        },
+        {
+          "count": 1,
+          "value": "Notice of meeting."
+        },
+        {
+          "count": 1,
+          "value": "Notice-ID-2022-0X; Docket No. 2022-000X; Sequence No. XX]"
+        },
+        {
+          "count": 1,
+          "value": "Novus Ventures II, L.P."
+        },
+        {
+          "count": 1,
+          "value": "OAR-2003-0074"
+        },
+        {
+          "count": 1,
+          "value": "OFFICE OF FAITH-BASED AND NEIGHBORHOOD PARTNERSHIPS"
+        },
+        {
+          "count": 2,
+          "value": "OFFICE OF THE FEDERAL COORDINATOR FOR ALASKA NATURAL GAS TRANSPORTATION PROJECTS"
+        },
+        {
+          "count": 1,
+          "value": "OMB 3060-0760]"
+        },
+        {
+          "count": 1,
+          "value": "OMB Control No. 2900-0092"
+        },
+        {
+          "count": 1,
+          "value": "OMB Control No. 2900-0129"
+        },
+        {
+          "count": 1,
+          "value": "OMB Control No. 2900-0139"
+        },
+        {
+          "count": 1,
+          "value": "OMB Control No. 3090-0205; Docket No. 2021-0001; Sequence No. 9]"
+        },
+        {
+          "count": 1,
+          "value": "OMB Number 1190-0004]"
+        },
+        {
+          "count": 1,
+          "value": "OPIC EXPEDITED SCREENING QUESTIONNAIRE DOWNSTREAM INVESTMENT FORM"
+        },
+        {
+          "count": 1,
+          "value": "Occupational Safety and Health Administration (OSHA), Labor."
+        },
+        {
+          "count": 10,
+          "value": "Ocean Transportation Intermediary License"
+        },
+        {
+          "count": 1,
+          "value": "Ocean Transportation Intermediary License Applicant"
+        },
+        {
+          "count": 1,
+          "value": "Ocean Transportation Intermediary License Applicants"
+        },
+        {
+          "count": 1,
+          "value": "Ocean Transportation Intermediary License Reissuances"
+        },
+        {
+          "count": 1,
+          "value": "Ocean Transportation Intermediary License; Applicants"
+        },
+        {
+          "count": 60,
+          "value": "Office Of Fossil Energy"
+        },
+        {
+          "count": 5,
+          "value": "Office for Civil Rights"
+        },
+        {
+          "count": 1,
+          "value": "Office for Civil Rights and Civil Liberties"
+        },
+        {
+          "count": 1,
+          "value": "Office for Interoperability and Compatibility"
+        },
+        {
+          "count": 1,
+          "value": "Office of Acquisition and Property Management"
+        },
+        {
+          "count": 8,
+          "value": "Office of Administration"
+        },
+        {
+          "count": 1,
+          "value": "Office of American Indian Trust"
+        },
+        {
+          "count": 4,
+          "value": "Office of Arms Control and Nonproliferation"
+        },
+        {
+          "count": 2,
+          "value": "Office of Civil Rights"
+        },
+        {
+          "count": 3,
+          "value": "Office of Civilian Radioactive Waste Management"
+        },
+        {
+          "count": 6,
+          "value": "Office of Communications"
+        },
+        {
+          "count": 29,
+          "value": "Office of Community Oriented Policing Services"
+        },
+        {
+          "count": 8,
+          "value": "Office of Community Oriented Policing Services (COPS)"
+        },
+        {
+          "count": 2,
+          "value": "Office of Community Policing Services"
+        },
+        {
+          "count": 11,
+          "value": "Office of Community Services"
+        },
+        {
+          "count": 1,
+          "value": "Office of Compliance and Security"
+        },
+        {
+          "count": 1,
+          "value": "Office of Consumer Information and Insurance Oversight"
+        },
+        {
+          "count": 1,
+          "value": "Office of Counterintelligence"
+        },
+        {
+          "count": 1,
+          "value": "Office of Defense Nuclear Nonproliferation"
+        },
+        {
+          "count": 1,
+          "value": "Office of Defense Trade Control"
+        },
+        {
+          "count": 4,
+          "value": "Office of Defense Trade Controls"
+        },
+        {
+          "count": 2,
+          "value": "Office of Electricity Delivery and Energy Reliability"
+        },
+        {
+          "count": 9,
+          "value": "Office of Elementary and Secondary Education"
+        },
+        {
+          "count": 18,
+          "value": "Office of Energy Policy and New Uses"
+        },
+        {
+          "count": 1,
+          "value": "Office of English Language Acquisition"
+        },
+        {
+          "count": 3,
+          "value": "Office of Environmental Management"
+        },
+        {
+          "count": 1,
+          "value": "Office of Family Assistance (Assistance Programs),"
+        },
+        {
+          "count": 2,
+          "value": "Office of Foreign Missions"
+        },
+        {
+          "count": 1,
+          "value": "Office of Global Educational Programs (ECA-A-S)"
+        },
+        {
+          "count": 3,
+          "value": "Office of Government Information Services (OGIS)"
+        },
+        {
+          "count": 8,
+          "value": "Office of Governmentwide Policy"
+        },
+        {
+          "count": 1,
+          "value": "Office of Grants and Training"
+        },
+        {
+          "count": 2,
+          "value": "Office of Hazardous Materials Safety"
+        },
+        {
+          "count": 1,
+          "value": "Office of Human Resources Management"
+        },
+        {
+          "count": 3,
+          "value": "Office of Indian Education Programs"
+        },
+        {
+          "count": 3,
+          "value": "Office of Innovation and Improvement"
+        },
+        {
+          "count": 1,
+          "value": "Office of Innovation and Improvement (OII)"
+        },
+        {
+          "count": 246,
+          "value": "Office of Inspector General"
+        },
+        {
+          "count": 1,
+          "value": "Office of Inspector General-Health Care"
+        },
+        {
+          "count": 15,
+          "value": "Office of Insular Affairs"
+        },
+        {
+          "count": 2,
+          "value": "Office of International Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Office of International Energy and Commodities Policy"
+        },
+        {
+          "count": 1,
+          "value": "Office of International Regimes and Agreements"
+        },
+        {
+          "count": 2,
+          "value": "Office of Job Corps"
+        },
+        {
+          "count": 4,
+          "value": "Office of Justice Program"
+        },
+        {
+          "count": 1,
+          "value": "Office of Justice Programs, Office for Victims of Crime"
+        },
+        {
+          "count": 1,
+          "value": "Office of Justice Programs:"
+        },
+        {
+          "count": 2,
+          "value": "Office of Management Services"
+        },
+        {
+          "count": 1,
+          "value": "Office of Nonproliferation Policy"
+        },
+        {
+          "count": 3,
+          "value": "Office of Nuclear Energy"
+        },
+        {
+          "count": 1,
+          "value": "Office of Nuclear Security and Incident Response"
+        },
+        {
+          "count": 1,
+          "value": "Office of Oceans Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Office of Overseas Schools"
+        },
+        {
+          "count": 1,
+          "value": "Office of Planning, Research and Evaluation"
+        },
+        {
+          "count": 1,
+          "value": "Office of Policy and Strategic Planning"
+        },
+        {
+          "count": 19,
+          "value": "Office of Postsecondary Education"
+        },
+        {
+          "count": 1,
+          "value": "Office of Presidential Libraries; Proposed Disposal of Clinton Administration"
+        },
+        {
+          "count": 1,
+          "value": "Office of Protocol"
+        },
+        {
+          "count": 5,
+          "value": "Office of Public Health and Science"
+        },
+        {
+          "count": 2,
+          "value": "Office of Public Health and Science and Food and Drug Administration"
+        },
+        {
+          "count": 2,
+          "value": "Office of Public Health and Science; Office of the Secretary"
+        },
+        {
+          "count": 1,
+          "value": "Office of Recruitment, Examinations and Employment (HR/REE)"
+        },
+        {
+          "count": 11,
+          "value": "Office of Research and Development"
+        },
+        {
+          "count": 2,
+          "value": "Office of Safe and Drug-Free Schools"
+        },
+        {
+          "count": 36,
+          "value": "Office of Science"
+        },
+        {
+          "count": 1,
+          "value": "Office of Science Financial Assistance Program Notice 03-09; Environmental"
+        },
+        {
+          "count": 34,
+          "value": "Office of Secretary"
+        },
+        {
+          "count": 13,
+          "value": "Office of Secretary of Defense"
+        },
+        {
+          "count": 1,
+          "value": "Office of Secretary of Transportation"
+        },
+        {
+          "count": 6,
+          "value": "Office of Security"
+        },
+        {
+          "count": 1,
+          "value": "Office of Security and Strategic Information"
+        },
+        {
+          "count": 2,
+          "value": "Office of Small Business Utilization; Small Business Advisory Committee"
+        },
+        {
+          "count": 2,
+          "value": "Office of Small Business Utilization; Small Business Advisory Committee;"
+        },
+        {
+          "count": 14,
+          "value": "Office of Special Education and Rehabilitative Services"
+        },
+        {
+          "count": 1,
+          "value": "Office of Special Education and Rehabilitative Services;"
+        },
+        {
+          "count": 2,
+          "value": "Office of Surface Mining"
+        },
+        {
+          "count": 1,
+          "value": "Office of Surface Mining Reclamation and Enforcement, Interior"
+        },
+        {
+          "count": 2,
+          "value": "Office of Tribal Relations"
+        },
+        {
+          "count": 1,
+          "value": "Office of Trust Transition"
+        },
+        {
+          "count": 11,
+          "value": "Office of Visa Services"
+        },
+        {
+          "count": 1,
+          "value": "Office of Vocational and Adult Education"
+        },
+        {
+          "count": 2,
+          "value": "Office of Wildland Fire Coordination"
+        },
+        {
+          "count": 4,
+          "value": "Office of the Acting Secretary"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Administration"
+        },
+        {
+          "count": 12,
+          "value": "Office of the Assistant Secretary for Administration and Management"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Assistant Secretary for Civil Rights"
+        },
+        {
+          "count": 2,
+          "value": "Office of the Assistant Secretary for Health"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Assistant Secretary for International Affairs"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Office of Disability Employment Policy"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Assistant Secretary for Planning and Evaluation"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Policy"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Policy, Chief Evaluation Office"
+        },
+        {
+          "count": 4,
+          "value": "Office of the Assistant Secretary for Public and Indian Housing"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Veterans"
+        },
+        {
+          "count": 2,
+          "value": "Office of the Assistant Secretary for Veterans Employment and Training"
+        },
+        {
+          "count": 22,
+          "value": "Office of the Assistant Secretary for Veterans' Employment and Training"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Veterans' Employment and Training Service (VETS)"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Assistant Secretary for Water and Science"
+        },
+        {
+          "count": 59,
+          "value": "Office of the Attorney General"
+        },
+        {
+          "count": 18,
+          "value": "Office of the Chief Financial Officer"
+        },
+        {
+          "count": 5,
+          "value": "Office of the Chief Information Officer"
+        },
+        {
+          "count": 4,
+          "value": "Office of the Commissioner"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Coordinator for Counterterrorism"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Deputy Secretary"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Deputy Secretary of State"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Director"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Environment, Safety and Health"
+        },
+        {
+          "count": 5,
+          "value": "Office of the General Counsel"
+        },
+        {
+          "count": 15,
+          "value": "Office of the Inspector General"
+        },
+        {
+          "count": 10,
+          "value": "Office of the National Coordinator for Health Information Technology"
+        },
+        {
+          "count": 1,
+          "value": "Office of the National Coordinator for Health Information Technology (ONC), DHHS"
+        },
+        {
+          "count": 1,
+          "value": "Office of the National Coordinator for Health Information Technology;"
+        },
+        {
+          "count": 1,
+          "value": "Office of the National Counterintelligence Executive"
+        },
+        {
+          "count": 1,
+          "value": "Office of the National Ombudsman"
+        },
+        {
+          "count": 1,
+          "value": "Office of the National Ombudsman-Region V Regulatory Fairness Board"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Pardon Attorney"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Procurement Executive"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secreatry"
+        },
+        {
+          "count": 19882,
+          "value": "Office of the Secretary"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Secretary of Agriculture"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary of Defense."
+        },
+        {
+          "count": 32,
+          "value": "Office of the Secretary of Labor"
+        },
+        {
+          "count": 19,
+          "value": "Office of the Secretary of the Interior"
+        },
+        {
+          "count": 8,
+          "value": "Office of the Secretary of the Treasury"
+        },
+        {
+          "count": 2,
+          "value": "Office of the Secretary, Assistant Secretary for Planning and Evaluation"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary, DOL"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary, DOL."
+        },
+        {
+          "count": 2,
+          "value": "Office of the Secretary, Office of the Assistant Secretary for Administration"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary, US-VISIT"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary, Washington, DC"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary/Office of the Chief Information Officer"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary/Office of the Chief Scientist"
+        },
+        {
+          "count": 2,
+          "value": "Office of the Secretary;"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; National Telecommunications and Information Administration; International Trade Administration; National Institute of Standards and Technology"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; Office of Intergovernmental Affairs, Office of Public Health and Science"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; Office of Minority Health"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; Office of Public Health and Science"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Secretary; Privacy Office"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; Submission for OMB Emergency Review; Comment Request"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Secretary; Submission for OMB Review; Comment Request"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Solicitor"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Spokesman"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Treasury"
+        },
+        {
+          "count": 3,
+          "value": "Office of the Under Secretary"
+        },
+        {
+          "count": 8,
+          "value": "Office of the Under Secretary for Domestic Finance"
+        },
+        {
+          "count": 1,
+          "value": "Office of the Under Secretary for Management"
+        },
+        {
+          "count": 7,
+          "value": "Office of the Under Secretary, Research, Education, and Economics"
+        },
+        {
+          "count": 8,
+          "value": "Office on Violence Against Women"
+        },
+        {
+          "count": 2,
+          "value": "Open Meeting of the Federal Interagency Committee on Emergency Medical"
+        },
+        {
+          "count": 1,
+          "value": "Opportunity Act"
+        },
+        {
+          "count": 1,
+          "value": "Overseas Buildings Operations"
+        },
+        {
+          "count": 1,
+          "value": "Overview Information"
+        },
+        {
+          "count": 1,
+          "value": "PG&E Gas Transmission, Northwest Corporation; Notice of Proposed Changes in FERC Gas Tariff"
+        },
+        {
+          "count": 1,
+          "value": "POSTAL REGULATORY COMMISSION."
+        },
+        {
+          "count": 1,
+          "value": "Part II"
+        },
+        {
+          "count": 1,
+          "value": "Part III"
+        },
+        {
+          "count": 4,
+          "value": "Pipeline and Hazardous Materials Safety Administration, Office of Hazardous Materials Safety"
+        },
+        {
+          "count": 1,
+          "value": "Privacy Act of 1974; System of Records; Employee Conduct-Government Ethics (18-09-03)"
+        },
+        {
+          "count": 1,
+          "value": "Privacy Act of 1974; as Amended"
+        },
+        {
+          "count": 2,
+          "value": "Privacy Office"
+        },
+        {
+          "count": 1,
+          "value": "Private Fuel Storage, Limited Liability Company"
+        },
+        {
+          "count": 1,
+          "value": "Product Change-Priority Mail Express and Priority Mail Negotiated"
+        },
+        {
+          "count": 1,
+          "value": "Proposal Review Panel for Ocean Sciences"
+        },
+        {
+          "count": 1,
+          "value": "Proposal Review Panel in Earth Sciences"
+        },
+        {
+          "count": 1,
+          "value": "Proposed Agreement for Settlement of Response Costs, Site Access, Institutionial Controls and Conditional Convenant Not To Sue for the Superior Waste Rock Superfund Site, Mineral County, MT"
+        },
+        {
+          "count": 1,
+          "value": "Proposed Collection: Comment Request"
+        },
+        {
+          "count": 5,
+          "value": "Proposed Collection; Comment Request"
+        },
+        {
+          "count": 1,
+          "value": "Proposed Rule"
+        },
+        {
+          "count": 1,
+          "value": "Public Availability of Information"
+        },
+        {
+          "count": 1,
+          "value": "Public Notice #: 3604"
+        },
+        {
+          "count": 1,
+          "value": "Public Notice 11059]"
+        },
+        {
+          "count": 1,
+          "value": "Public Notice 11108]"
+        },
+        {
+          "count": 1,
+          "value": "Public Notice No. 3233"
+        },
+        {
+          "count": 1,
+          "value": "RIN 0660-ZA28"
+        },
+        {
+          "count": 1,
+          "value": "RIN 3084-AA98"
+        },
+        {
+          "count": 1,
+          "value": "Reader Aids"
+        },
+        {
+          "count": 1,
+          "value": "Region VIII Regulatory Fairness Board;"
+        },
+        {
+          "count": 1,
+          "value": "Regional Director-New England Region"
+        },
+        {
+          "count": 1,
+          "value": "Regional Docket No. II-2015-3"
+        },
+        {
+          "count": 1,
+          "value": "Regulation A; Docket No. R-1123"
+        },
+        {
+          "count": 1,
+          "value": "Regulation Z; Docket No. R-1208]"
+        },
+        {
+          "count": 1,
+          "value": "Regulations on Statements Made for Dietary Supplements Concerning the"
+        },
+        {
+          "count": 1,
+          "value": "Regulatory and Deregulatory Actions"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-105334; File No. SR- NYSEAMER-2026-17]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-54886; File No. SR-Phlx-2006-74]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-55371; File No. SR-Phlx-2007-06]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-58834; File No. SR-NYSE-2008-93]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-67478; File No. SR-CBOE-2012-066]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-73973; File No. SR-ISE-2014-43]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-85419; File No. SR-CBOE-2019-016]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-87976; File No. SR-CboeEDGX-2020-001]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-88324; File No. SR-FINRA-2020-006]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-94708; File No. SR-NYSE-2022-14]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. 34-98977; File No. SR-FINRA-2023-016]"
+        },
+        {
+          "count": 1,
+          "value": "Release No. IC-27323; 812-12354]"
+        },
+        {
+          "count": 1,
+          "value": "Rensselaer Polytechnic Institute"
+        },
+        {
+          "count": 1,
+          "value": "Report On 1998 Surveys Used to Determine"
+        },
+        {
+          "count": 1,
+          "value": "Request To Amend a License To Export Highly-Enriched Uranium"
+        },
+        {
+          "count": 1,
+          "value": "Request for Comments on Proposed Federal Emergency Travel Guide"
+        },
+        {
+          "count": 1,
+          "value": "Research and Special Programs Administration (RSPA), DOT."
+        },
+        {
+          "count": 1,
+          "value": "Research, Education, and Economics; Research Program on Health and Nutrition Effects of Popular Weight-Loss Diets: Notice of Public Meeting"
+        },
+        {
+          "count": 3,
+          "value": "Rule"
+        },
+        {
+          "count": 3,
+          "value": "Rural Development"
+        },
+        {
+          "count": 2,
+          "value": "Rural Housing Service, Rural Business-Cooperative Service, Rural Utilities Service, and Farm Service Agency"
+        },
+        {
+          "count": 1,
+          "value": "Rural Housing Service, et al."
+        },
+        {
+          "count": 1,
+          "value": "Rural Utilities Service:"
+        },
+        {
+          "count": 1,
+          "value": "SECURITIES AND EXCHANGE COMMISSION �09�09"
+        },
+        {
+          "count": 2,
+          "value": "SECURITIES AND EXCHANGE COMMISSION�09"
+        },
+        {
+          "count": 1,
+          "value": "SECURITIES EXCHANGE ACT OF 1934"
+        },
+        {
+          "count": 1,
+          "value": "SMALL BUSINESS ADMINISTRATION."
+        },
+        {
+          "count": 1,
+          "value": "STATES TRADE REPRESENTATIVE"
+        },
+        {
+          "count": 1,
+          "value": "Salem Halifax Capital Partners, L.P."
+        },
+        {
+          "count": 2,
+          "value": "Science Advisory Board Staff Office"
+        },
+        {
+          "count": 2,
+          "value": "Science and Technology (S&T) Directorate"
+        },
+        {
+          "count": 2,
+          "value": "Science and Technology Directorate"
+        },
+        {
+          "count": 1,
+          "value": "Secretary of Defense"
+        },
+        {
+          "count": 1,
+          "value": "Secretary of Energy Advisory Board; Notice of Open Meeting"
+        },
+        {
+          "count": 2,
+          "value": "Security for the Protection of the Public"
+        },
+        {
+          "count": 1,
+          "value": "Semiannual Regulatory Agenda"
+        },
+        {
+          "count": 1,
+          "value": "Series Airplanes"
+        },
+        {
+          "count": 1,
+          "value": "Small Business Size Standards"
+        },
+        {
+          "count": 1,
+          "value": "Southern Nuclear Operating Company"
+        },
+        {
+          "count": 1,
+          "value": "Southern Nuclear Operating Company, Inc., Georgia Power Company, Oglethorpe Power Corporation, Municipal Electric Authority of Georgia; City of Dalton, GA"
+        },
+        {
+          "count": 1,
+          "value": "Standards Administration"
+        },
+        {
+          "count": 1,
+          "value": "States Concerning Peaceful Uses of Nuclear Energy"
+        },
+        {
+          "count": 1,
+          "value": "Student Financial Assistance"
+        },
+        {
+          "count": 38,
+          "value": "Submission For OMB Review; Comment Request"
+        },
+        {
+          "count": 1,
+          "value": "Submission for OMB Review, Comment Request"
+        },
+        {
+          "count": 4,
+          "value": "Submission for OMB Review;"
+        },
+        {
+          "count": 1,
+          "value": "Submission for OMB Review; Comment Request-Safety"
+        },
+        {
+          "count": 1,
+          "value": "Substance Abuse and Mental Health Administration"
+        },
+        {
+          "count": 2,
+          "value": "Sunshine Act Federal Register Notice"
+        },
+        {
+          "count": 33,
+          "value": "Sunshine Act Meeting"
+        },
+        {
+          "count": 5,
+          "value": "Sunshine Act Meeting Notice"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Act Meeting; Farm Credit Administration Board; Regular Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Act Meeting; Notice"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Act Meeting; Open Commission Meeting Tuesday, July 16, 2002"
+        },
+        {
+          "count": 3,
+          "value": "Sunshine Act Meetings"
+        },
+        {
+          "count": 2,
+          "value": "Sunshine Act Notice"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Act Notice; Announcing an Open Meeting of the Board"
+        },
+        {
+          "count": 3,
+          "value": "Sunshine Act; Meeting"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Act; Notice of Meeting"
+        },
+        {
+          "count": 2,
+          "value": "Sunshine Federal Register Notice"
+        },
+        {
+          "count": 1,
+          "value": "Sunshine Meeting Notice"
+        },
+        {
+          "count": 1,
+          "value": "THE FEDERALRESERVE SYSTEM"
+        },
+        {
+          "count": 1,
+          "value": "Technical Support Division"
+        },
+        {
+          "count": 1,
+          "value": "Telesoft Partners II SBIC, L.P."
+        },
+        {
+          "count": 3,
+          "value": "The Bureau of Ocean Energy Management, Regulation and Enforcement"
+        },
+        {
+          "count": 1,
+          "value": "The Power Authority of the State of New York"
+        },
+        {
+          "count": 1,
+          "value": "The President"
+        },
+        {
+          "count": 2,
+          "value": "Treasury Inspector General for Tax Administration"
+        },
+        {
+          "count": 1,
+          "value": "U.S. Customs and Border Protection."
+        },
+        {
+          "count": 1,
+          "value": "U.S. Geological Survey."
+        },
+        {
+          "count": 1,
+          "value": "U.S. POSTAL SERVICE BOARD OF GOVERNORS"
+        },
+        {
+          "count": 1,
+          "value": "UNITED STATES OF AMERICA"
+        },
+        {
+          "count": 1,
+          "value": "USCBP-2005-0030 and [CBP Dec. 06-10]"
+        },
+        {
+          "count": 1,
+          "value": "USCG 2003-15137"
+        },
+        {
+          "count": 1,
+          "value": "USCG-2005-21531"
+        },
+        {
+          "count": 1,
+          "value": "Under Secretary for Economic Affairs"
+        },
+        {
+          "count": 2,
+          "value": "Under Secretary for Industry and Security"
+        },
+        {
+          "count": 1,
+          "value": "Under Secretary for Technology"
+        },
+        {
+          "count": 1,
+          "value": "United States Marine Corps; Privacy Act of 1974; System of Records"
+        },
+        {
+          "count": 2,
+          "value": "United States Section"
+        },
+        {
+          "count": 1,
+          "value": "United States Visitor and Immigrant Status Indicator Technology Program"
+        },
+        {
+          "count": 1,
+          "value": "Vermont Yankee Nuclear Power Corporation; Notice of Consideration of Issuance of Amendment to Facility Operating License, Proposed No Significant Hazards Consideration Determination, and Opportunity for a Hearing"
+        },
+        {
+          "count": 1,
+          "value": "Veterans' Advisory Committee on Education"
+        },
+        {
+          "count": 1,
+          "value": "Veterans' Advisory Committee on Rehabilitation (VACOR)"
+        },
+        {
+          "count": 1,
+          "value": "Virginia Electric and Power Company"
+        },
+        {
+          "count": 1,
+          "value": "WORLD AGRICULTURAL OUTLOOK BOARD"
+        },
+        {
+          "count": 1,
+          "value": "Westar Generating, Inc., et al.; Electric Rate and Corporate Filings"
+        },
+        {
+          "count": 1,
+          "value": "[EPA-HQ-OPP-2011-0399; FRL-8872-8]"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "unified-agenda-rin-status",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "resourceId": "unified-agenda-native-controls",
+      "sourceField": "rin_status",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 3954,
+      "sourceTable": "unified_agenda",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 3954,
+      "values": [
+        {
+          "count": 1119,
+          "value": "First Time Published in The Unified Agenda"
+        },
+        {
+          "count": 2835,
+          "value": "Previously Published in The Unified Agenda"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "unified-agenda-rule-stage",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "resourceId": "unified-agenda-native-controls",
+      "sourceField": "rule_stage",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 3954,
+      "sourceTable": "unified_agenda",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 3954,
+      "values": [
+        {
+          "count": 628,
+          "value": "Completed Actions"
+        },
+        {
+          "count": 985,
+          "value": "Final Rule Stage"
+        },
+        {
+          "count": 808,
+          "value": "Long-Term Actions"
+        },
+        {
+          "count": 96,
+          "value": "Prerule Stage"
+        },
+        {
+          "count": 1437,
+          "value": "Proposed Rule Stage"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "unified-agenda-priority-category",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:code-list-value",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "resourceId": "unified-agenda-native-controls",
+      "sourceField": "priority_category",
+      "sourceFieldMissingRowCount": 2,
+      "sourceRowCount": 3954,
+      "sourceTable": "unified_agenda",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 3952,
+      "values": [
+        {
+          "count": 345,
+          "value": "Economically Significant"
+        },
+        {
+          "count": 101,
+          "value": "Info./Admin./Other"
+        },
+        {
+          "count": 1275,
+          "value": "Other Significant"
+        },
+        {
+          "count": 41,
+          "value": "Routine and Frequent"
+        },
+        {
+          "count": 2190,
+          "value": "Substantive, Nonsignificant"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "unified-agenda-major-flag",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:code-list-value",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "resourceId": "unified-agenda-native-controls",
+      "sourceField": "major",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 3954,
+      "sourceTable": "unified_agenda",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "deterministicCodeOrClassification",
+      "valueOccurrenceCount": 3954,
+      "values": [
+        {
+          "count": 2780,
+          "value": "No"
+        },
+        {
+          "count": 865,
+          "value": "Undetermined"
+        },
+        {
+          "count": 309,
+          "value": "Yes"
+        }
+      ]
+    },
+    {
+      "conceptIdentityPolicy": "notAConcept",
+      "controlId": "unified-agenda-agency-code",
+      "extraction": "scalar",
+      "facet": "urn:ref:facet:entity",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "resourceId": "unified-agenda-native-controls",
+      "sourceField": "agency_code",
+      "sourceFieldMissingRowCount": 0,
+      "sourceRowCount": 3954,
+      "sourceTable": "unified_agenda",
+      "subjectUse": "forbidden",
+      "unresolvedValueCount": 0,
+      "use": "identifierAuthority",
+      "valueOccurrenceCount": 3954,
+      "values": [
+        {
+          "count": 34,
+          "value": "ACF"
+        },
+        {
+          "count": 3,
+          "value": "ACHP"
+        },
+        {
+          "count": 1,
+          "value": "ACL"
+        },
+        {
+          "count": 16,
+          "value": "ADMIN"
+        },
+        {
+          "count": 5,
+          "value": "AF"
+        },
+        {
+          "count": 11,
+          "value": "AID"
+        },
+        {
+          "count": 23,
+          "value": "AMS"
+        },
+        {
+          "count": 19,
+          "value": "APHIS"
+        },
+        {
+          "count": 1,
+          "value": "ASLM"
+        },
+        {
+          "count": 8,
+          "value": "ASPMB"
+        },
+        {
+          "count": 3,
+          "value": "ATBCB"
+        },
+        {
+          "count": 51,
+          "value": "ATF"
+        },
+        {
+          "count": 2,
+          "value": "AdmO"
+        },
+        {
+          "count": 8,
+          "value": "AgSEC"
+        },
+        {
+          "count": 2,
+          "value": "BEA"
+        },
+        {
+          "count": 9,
+          "value": "BIA"
+        },
+        {
+          "count": 73,
+          "value": "BIS"
+        },
+        {
+          "count": 57,
+          "value": "BLM"
+        },
+        {
+          "count": 13,
+          "value": "BOEM"
+        },
+        {
+          "count": 6,
+          "value": "BOP"
+        },
+        {
+          "count": 13,
+          "value": "BSEE"
+        },
+        {
+          "count": 8,
+          "value": "CDC"
+        },
+        {
+          "count": 11,
+          "value": "CENSUS"
+        },
+        {
+          "count": 1,
+          "value": "CEQ"
+        },
+        {
+          "count": 2,
+          "value": "CFO"
+        },
+        {
+          "count": 29,
+          "value": "CFPB"
+        },
+        {
+          "count": 30,
+          "value": "CFTC"
+        },
+        {
+          "count": 2,
+          "value": "CISA"
+        },
+        {
+          "count": 71,
+          "value": "CMS"
+        },
+        {
+          "count": 2,
+          "value": "CNCS"
+        },
+        {
+          "count": 11,
+          "value": "COE"
+        },
+        {
+          "count": 6,
+          "value": "CPBSD"
+        },
+        {
+          "count": 15,
+          "value": "CPD"
+        },
+        {
+          "count": 31,
+          "value": "CPSC"
+        },
+        {
+          "count": 6,
+          "value": "CRT"
+        },
+        {
+          "count": 1,
+          "value": "CSB"
+        },
+        {
+          "count": 4,
+          "value": "CSOSA"
+        },
+        {
+          "count": 9,
+          "value": "CUSTREV"
+        },
+        {
+          "count": 61,
+          "value": "DARC"
+        },
+        {
+          "count": 14,
+          "value": "DEA"
+        },
+        {
+          "count": 1,
+          "value": "DNFSB"
+        },
+        {
+          "count": 10,
+          "value": "DO"
+        },
+        {
+          "count": 7,
+          "value": "DOA"
+        },
+        {
+          "count": 6,
+          "value": "DODOASHA"
+        },
+        {
+          "count": 3,
+          "value": "DOEOA"
+        },
+        {
+          "count": 1,
+          "value": "DRA"
+        },
+        {
+          "count": 3,
+          "value": "DSA"
+        },
+        {
+          "count": 1,
+          "value": "EAC"
+        },
+        {
+          "count": 34,
+          "value": "EBSA"
+        },
+        {
+          "count": 13,
+          "value": "EDA"
+        },
+        {
+          "count": 3,
+          "value": "EDOGC"
+        },
+        {
+          "count": 67,
+          "value": "EE"
+        },
+        {
+          "count": 10,
+          "value": "EEOC"
+        },
+        {
+          "count": 14,
+          "value": "ENDEP"
+        },
+        {
+          "count": 20,
+          "value": "EOIR"
+        },
+        {
+          "count": 8,
+          "value": "ERA"
+        },
+        {
+          "count": 15,
+          "value": "ETA"
+        },
+        {
+          "count": 1,
+          "value": "EXIMBANK"
+        },
+        {
+          "count": 45,
+          "value": "FAA"
+        },
+        {
+          "count": 23,
+          "value": "FAR"
+        },
+        {
+          "count": 3,
+          "value": "FAS"
+        },
+        {
+          "count": 5,
+          "value": "FBI"
+        },
+        {
+          "count": 10,
+          "value": "FCA"
+        },
+        {
+          "count": 125,
+          "value": "FCC"
+        },
+        {
+          "count": 6,
+          "value": "FCIC"
+        },
+        {
+          "count": 89,
+          "value": "FDA"
+        },
+        {
+          "count": 32,
+          "value": "FDIC"
+        },
+        {
+          "count": 5,
+          "value": "FEMA"
+        },
+        {
+          "count": 42,
+          "value": "FERC"
+        },
+        {
+          "count": 6,
+          "value": "FFIEC"
+        },
+        {
+          "count": 12,
+          "value": "FHEO"
+        },
+        {
+          "count": 21,
+          "value": "FHFA"
+        },
+        {
+          "count": 21,
+          "value": "FHWA"
+        },
+        {
+          "count": 14,
+          "value": "FINCEN"
+        },
+        {
+          "count": 11,
+          "value": "FISCAL"
+        },
+        {
+          "count": 2,
+          "value": "FLRA"
+        },
+        {
+          "count": 13,
+          "value": "FMC"
+        },
+        {
+          "count": 5,
+          "value": "FMCS"
+        },
+        {
+          "count": 57,
+          "value": "FMCSA"
+        },
+        {
+          "count": 26,
+          "value": "FNS"
+        },
+        {
+          "count": 2,
+          "value": "FPISC"
+        },
+        {
+          "count": 39,
+          "value": "FRA"
+        },
+        {
+          "count": 25,
+          "value": "FRS"
+        },
+        {
+          "count": 17,
+          "value": "FS"
+        },
+        {
+          "count": 15,
+          "value": "FSA"
+        },
+        {
+          "count": 10,
+          "value": "FSIS"
+        },
+        {
+          "count": 16,
+          "value": "FTA"
+        },
+        {
+          "count": 15,
+          "value": "FTC"
+        },
+        {
+          "count": 279,
+          "value": "FWS"
+        },
+        {
+          "count": 1,
+          "value": "GCERC"
+        },
+        {
+          "count": 17,
+          "value": "GSA"
+        },
+        {
+          "count": 3,
+          "value": "HRSA"
+        },
+        {
+          "count": 12,
+          "value": "HUDSEC"
+        },
+        {
+          "count": 5,
+          "value": "IHS"
+        },
+        {
+          "count": 2,
+          "value": "IMLS"
+        },
+        {
+          "count": 199,
+          "value": "IRS"
+        },
+        {
+          "count": 3,
+          "value": "ITA"
+        },
+        {
+          "count": 11,
+          "value": "LA"
+        },
+        {
+          "count": 12,
+          "value": "MARAD"
+        },
+        {
+          "count": 1,
+          "value": "MCC"
+        },
+        {
+          "count": 30,
+          "value": "MSHA"
+        },
+        {
+          "count": 9,
+          "value": "MSPB"
+        },
+        {
+          "count": 17,
+          "value": "NARA"
+        },
+        {
+          "count": 12,
+          "value": "NASA"
+        },
+        {
+          "count": 2,
+          "value": "NAVY"
+        },
+        {
+          "count": 44,
+          "value": "NCUA"
+        },
+        {
+          "count": 4,
+          "value": "NEA"
+        },
+        {
+          "count": 2,
+          "value": "NEH"
+        },
+        {
+          "count": 92,
+          "value": "NHTSA"
+        },
+        {
+          "count": 1,
+          "value": "NIFA"
+        },
+        {
+          "count": 11,
+          "value": "NIGC"
+        },
+        {
+          "count": 3,
+          "value": "NIH"
+        },
+        {
+          "count": 3,
+          "value": "NIST"
+        },
+        {
+          "count": 2,
+          "value": "NNSA"
+        },
+        {
+          "count": 170,
+          "value": "NOAA"
+        },
+        {
+          "count": 30,
+          "value": "NPS"
+        },
+        {
+          "count": 76,
+          "value": "NRC"
+        },
+        {
+          "count": 3,
+          "value": "NRCS"
+        },
+        {
+          "count": 2,
+          "value": "NSD"
+        },
+        {
+          "count": 8,
+          "value": "NSF"
+        },
+        {
+          "count": 1,
+          "value": "NTIA"
+        },
+        {
+          "count": 2,
+          "value": "NTSB"
+        },
+        {
+          "count": 2,
+          "value": "OAM"
+        },
+        {
+          "count": 99,
+          "value": "OAR"
+        },
+        {
+          "count": 9,
+          "value": "OASAM"
+        },
+        {
+          "count": 3,
+          "value": "OASH"
+        },
+        {
+          "count": 31,
+          "value": "OCC"
+        },
+        {
+          "count": 2,
+          "value": "OCFO"
+        },
+        {
+          "count": 15,
+          "value": "OCR"
+        },
+        {
+          "count": 46,
+          "value": "OCSPP"
+        },
+        {
+          "count": 3,
+          "value": "OESE"
+        },
+        {
+          "count": 3,
+          "value": "OFCCP"
+        },
+        {
+          "count": 6,
+          "value": "OGC"
+        },
+        {
+          "count": 8,
+          "value": "OGE"
+        },
+        {
+          "count": 15,
+          "value": "OH"
+        },
+        {
+          "count": 3,
+          "value": "OHA"
+        },
+        {
+          "count": 3,
+          "value": "OIG"
+        },
+        {
+          "count": 2,
+          "value": "OJP"
+        },
+        {
+          "count": 25,
+          "value": "OLEM"
+        },
+        {
+          "count": 3,
+          "value": "OLMS"
+        },
+        {
+          "count": 13,
+          "value": "OMB"
+        },
+        {
+          "count": 3,
+          "value": "OMS"
+        },
+        {
+          "count": 6,
+          "value": "ONC"
+        },
+        {
+          "count": 1,
+          "value": "ONCD"
+        },
+        {
+          "count": 1,
+          "value": "ONDCP"
+        },
+        {
+          "count": 3,
+          "value": "ONRR"
+        },
+        {
+          "count": 9,
+          "value": "OPE"
+        },
+        {
+          "count": 3,
+          "value": "OPEPD"
+        },
+        {
+          "count": 57,
+          "value": "OPM"
+        },
+        {
+          "count": 73,
+          "value": "OS"
+        },
+        {
+          "count": 2,
+          "value": "OSERS"
+        },
+        {
+          "count": 49,
+          "value": "OSHA"
+        },
+        {
+          "count": 19,
+          "value": "OSMRE"
+        },
+        {
+          "count": 1,
+          "value": "OSOL"
+        },
+        {
+          "count": 47,
+          "value": "OST"
+        },
+        {
+          "count": 33,
+          "value": "OW"
+        },
+        {
+          "count": 1,
+          "value": "OWCP"
+        },
+        {
+          "count": 5,
+          "value": "PARCOM"
+        },
+        {
+          "count": 10,
+          "value": "PBGC"
+        },
+        {
+          "count": 4,
+          "value": "PEACE"
+        },
+        {
+          "count": 59,
+          "value": "PHMSA"
+        },
+        {
+          "count": 9,
+          "value": "PIH"
+        },
+        {
+          "count": 4,
+          "value": "PRC"
+        },
+        {
+          "count": 3,
+          "value": "PRESIDIO"
+        },
+        {
+          "count": 19,
+          "value": "PTO"
+        },
+        {
+          "count": 4,
+          "value": "RBS"
+        },
+        {
+          "count": 26,
+          "value": "RHS"
+        },
+        {
+          "count": 1,
+          "value": "RODALLAS"
+        },
+        {
+          "count": 2,
+          "value": "RODENVER"
+        },
+        {
+          "count": 1,
+          "value": "ROSEATTLE"
+        },
+        {
+          "count": 12,
+          "value": "RRB"
+        },
+        {
+          "count": 8,
+          "value": "RUS"
+        },
+        {
+          "count": 4,
+          "value": "SAMHSA"
+        },
+        {
+          "count": 103,
+          "value": "SBA"
+        },
+        {
+          "count": 2,
+          "value": "SCEP"
+        },
+        {
+          "count": 47,
+          "value": "SEC"
+        },
+        {
+          "count": 2,
+          "value": "SLSDC"
+        },
+        {
+          "count": 18,
+          "value": "SSA"
+        },
+        {
+          "count": 3,
+          "value": "SSS"
+        },
+        {
+          "count": 57,
+          "value": "STATE"
+        },
+        {
+          "count": 14,
+          "value": "STB"
+        },
+        {
+          "count": 7,
+          "value": "TSA"
+        },
+        {
+          "count": 47,
+          "value": "TTB"
+        },
+        {
+          "count": 1,
+          "value": "TVA"
+        },
+        {
+          "count": 1,
+          "value": "USAGM"
+        },
+        {
+          "count": 20,
+          "value": "USCBP"
+        },
+        {
+          "count": 22,
+          "value": "USCG"
+        },
+        {
+          "count": 30,
+          "value": "USCIS"
+        },
+        {
+          "count": 7,
+          "value": "USICE"
+        },
+        {
+          "count": 118,
+          "value": "VA"
+        },
+        {
+          "count": 15,
+          "value": "WHD"
+        }
+      ]
+    }
+  ],
+  "format": "urn:ref:registry:regulatory-native-control-capture:v1",
+  "identifierPolicy": {
+    "canonicalIdentifierSelected": false,
+    "cardinality": "zeroOrMore",
+    "duplicatesPreserved": true,
+    "requiredFields": [
+      "value",
+      "kind",
+      "authorityUri",
+      "sourceUri",
+      "observedAt"
+    ]
+  },
+  "parserVersion": "regulatory-native-controls-source-faithful-v1",
+  "sourcePins": [
+    {
+      "byteLength": 14347053,
+      "columns": [
+        "docket_id",
+        "agency_code",
+        "title",
+        "docket_type",
+        "modify_date",
+        "abstract",
+        "rin"
+      ],
+      "etag": "\"7eeeec4f91bfb333c4c221dade5bfbd6-2\"",
+      "lastModified": "Thu, 30 Jul 2026 12:46:40 GMT",
+      "profileIds": [
+        "regulations-docket-v2"
+      ],
+      "rowCount": 276326,
+      "sha256": "sha256:b14cd488b7898391cff448ac4de19f85936072dcb1aa105da32eea88e6fd7938",
+      "table": "dockets",
+      "uri": "https://r2.spicy-regs.dev/dockets.parquet"
+    },
+    {
+      "byteLength": 54621388,
+      "columns": [
+        "document_id",
+        "docket_id",
+        "agency_code",
+        "title",
+        "document_type",
+        "posted_date",
+        "modify_date",
+        "comment_start_date",
+        "comment_end_date",
+        "file_url",
+        "attachments_json",
+        "fr_doc_num",
+        "withdrawn",
+        "reason_withdrawn",
+        "additional_rins",
+        "text_content",
+        "text_extraction_status"
+      ],
+      "etag": "\"8ce03f270af76604dbabcd795c98d733-7\"",
+      "lastModified": "Thu, 30 Jul 2026 12:46:40 GMT",
+      "profileIds": [
+        "regulations-document-v2"
+      ],
+      "rowCount": 1989301,
+      "sha256": "sha256:b6c7eaccbf5e40d961065a7f78d04b6cca6c869f500f9e17a7dae3237e379908",
+      "table": "documents",
+      "uri": "https://r2.spicy-regs.dev/documents.parquet"
+    },
+    {
+      "byteLength": 122912849,
+      "columns": [
+        "document_number",
+        "title",
+        "abstract",
+        "document_type",
+        "publication_date",
+        "effective_on",
+        "comments_close_on",
+        "signing_date",
+        "agencies_json",
+        "agency_slugs",
+        "docket_ids_json",
+        "regulation_id_numbers_json",
+        "cfr_references_json",
+        "html_url",
+        "pdf_url",
+        "body_html_url",
+        "volume",
+        "start_page",
+        "end_page",
+        "subtype",
+        "executive_order_number",
+        "modify_date"
+      ],
+      "etag": "\"f2a3632cd8b3e27633702dce77bb6c53-15\"",
+      "lastModified": "Wed, 29 Jul 2026 22:05:49 GMT",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "rowCount": 800232,
+      "sha256": "sha256:71be917994c04e1effe93fc619dfd1f6ca1f671133fd2fc2cc5290f73642987e",
+      "table": "federal_register",
+      "uri": "https://r2.spicy-regs.dev/federal_register.parquet"
+    },
+    {
+      "byteLength": 1017503,
+      "columns": [
+        "rin",
+        "agency_code",
+        "agency_name",
+        "title",
+        "abstract",
+        "rin_status",
+        "rule_stage",
+        "priority_category",
+        "agenda_edition",
+        "major",
+        "publication_id",
+        "timetable_json",
+        "cfr_references_json",
+        "legal_authority_json",
+        "first_action_date",
+        "next_action_date",
+        "url"
+      ],
+      "etag": "\"70da846ac24f0a0ee9f1a21674d3a21e\"",
+      "lastModified": "Wed, 29 Jul 2026 20:48:13 GMT",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "rowCount": 3954,
+      "sha256": "sha256:e6862d5d6a5300f10c70eeaf321f1e82e1f5332f71069d07723cc584ee6a85ae",
+      "table": "unified_agenda",
+      "uri": "https://r2.spicy-regs.dev/unified_agenda.parquet"
+    }
+  ],
+  "spicyRegsRevision": "5c44c1c11d93ee70624aefbd95704b68d39ad46c"
+}
