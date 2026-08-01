@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from refspec.binding import CORE_FACETS
+from refspec.binding import CORE_FACETS, canonical_sha256
 
 PROFILE_SNAPSHOT_FORMAT = "urn:ref:portfolio:spicy-regs-source-profiles:v1"
 PORTFOLIO_INPUT_FORMAT = "urn:ref:portfolio:active-profile-controlled-resources:v1"
@@ -99,29 +99,13 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def canonical_json_bytes(value: Any) -> bytes:
-    """Return the deterministic JSON bytes used to pin portfolio inputs."""
-
-    return (
-        json.dumps(
-            value,
-            ensure_ascii=False,
-            allow_nan=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        + "\n"
-    ).encode("utf-8")
-
-
-def canonical_sha256(value: Any) -> str:
-    """Digest a JSON-compatible value using the portfolio canonical form."""
-
-    return f"sha256:{hashlib.sha256(canonical_json_bytes(value)).hexdigest()}"
-
-
 def render_json(value: Any) -> str:
-    """Render deterministic, reviewable checked-in JSON."""
+    """Render deterministic, reviewable checked-in JSON.
+
+    This is the writer, and the trailing newline it appends is the writer's
+    alone: :func:`refspec.binding.canonical_json_bytes` digests the same value
+    without one.
+    """
 
     return json.dumps(
         value,

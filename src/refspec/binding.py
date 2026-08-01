@@ -299,17 +299,34 @@ def digest_field(record: dict[str, Any]) -> str:
     return "canonicalPayloadDigest"
 
 
-def canonical_payload(record: dict[str, Any]) -> bytes:
-    field = digest_field(record)
-    payload = {key: value for key, value in record.items() if key != field}
-    validate_canonical_value(payload)
+def canonical_json_bytes(value: Any) -> bytes:
+    """Return the one canonical JSON encoding the platform digests.
+
+    The bytes never carry a trailing newline. A newline is a property of the
+    file writer that stores the value, not of the value being digested, so a
+    writer appends it after this function and a digest never sees it.
+    """
+
     return json.dumps(
-        payload,
+        value,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
         allow_nan=False,
     ).encode("utf-8")
+
+
+def canonical_sha256(value: Any) -> str:
+    """Digest any JSON-compatible value in the one canonical form."""
+
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def canonical_payload(record: dict[str, Any]) -> bytes:
+    field = digest_field(record)
+    payload = {key: value for key, value in record.items() if key != field}
+    validate_canonical_value(payload)
+    return canonical_json_bytes(payload)
 
 
 def canonical_payload_digest(record: dict[str, Any]) -> str:

@@ -5,11 +5,14 @@ from pathlib import Path
 
 import pytest
 
+from refspec import binding
 from refspec.profile_portfolio import (
     PortfolioInventoryError,
     build_portfolio_atlas,
+    canonical_sha256,
     extract_spicy_regs_profiles,
     load_json,
+    render_json,
     validate_generated_atlas,
     validate_portfolio_input,
     validate_profile_snapshot,
@@ -136,3 +139,34 @@ def test_resource_acquisition_gaps_and_versions_are_mandatory() -> None:
         match=r"resources\[0\]\.versionRepresentation",
     ):
         validate_portfolio_input(snapshot, unpinned)
+
+
+def test_one_canonical_digest_excludes_the_trailing_newline() -> None:
+    """The portfolio pins the platform digest, not a portfolio-only variant."""
+
+    assert canonical_sha256 is binding.canonical_sha256
+
+    value = {"id": "urn:test:portfolio", "members": ["a", "b"]}
+    assert binding.canonical_json_bytes(value) == b'{"id":"urn:test:portfolio","members":["a","b"]}'
+    assert not binding.canonical_json_bytes(value).endswith(b"\n")
+    assert canonical_sha256(value) == binding.canonical_payload_digest(value)
+
+
+def test_the_trailing_newline_belongs_to_the_file_writer() -> None:
+    """Checked-in JSON keeps its newline; the digested bytes never carry one."""
+
+    value = {"id": "urn:test:portfolio", "members": ["a", "b"]}
+    rendered = render_json(value)
+
+    assert rendered.endswith("\n")
+    assert not binding.canonical_json_bytes(value).endswith(b"\n")
+    assert ATLAS_PATH.read_bytes().endswith(b"\n")
+
+
+def test_checked_in_atlas_pins_the_consolidated_digest() -> None:
+    snapshot, portfolio_input = _inputs()
+    atlas = load_json(ATLAS_PATH)
+    generated_from = atlas["generatedFrom"]
+
+    assert generated_from["spicyRegsProfileSnapshotSha256"] == canonical_sha256(snapshot)
+    assert generated_from["refspecPortfolioInputSha256"] == canonical_sha256(portfolio_input)
