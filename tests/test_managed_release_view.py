@@ -825,6 +825,15 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
     manifest_path = build_bundle(tmp_path)
     view = _open_view(manifest_path)
 
+    assert view.rulespec_graph_id == GRAPH_ID
+    assert view.rulespec_graph["@graph"]
+    assert {
+        candidate.member_iri
+        for candidate in view.iter_members(release_iri=RELEASE_ID)
+    } == {
+        MEMBER_ID,
+        ELIGIBILITY_MEMBER_ID,
+    }
     member = view.lookup_member(MEMBER_ID)
     assert member is not None
     assert member.release_iri == RELEASE_ID
@@ -861,6 +870,8 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
         mapping.record["changed"] = True  # type: ignore[index]
     with pytest.raises(TypeError):
         view.release_graph_validation_receipt["changed"] = True  # type: ignore[index]
+    with pytest.raises(TypeError):
+        view.rulespec_graph["@graph"] = []  # type: ignore[index]
     with pytest.raises(FrozenInstanceError):
         member.member_iri = "urn:test:other"  # type: ignore[misc]
     for forbidden in ("mutate", "reconcile", "deploy", "authorize_output"):

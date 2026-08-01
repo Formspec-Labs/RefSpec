@@ -145,7 +145,9 @@ def test_tracked_packages_reopen_and_support_exact_code_lookup() -> None:
     assert filing_types.spec is LDA_FILING_TYPE_PACKAGE
     assert len(filing_types.observations_by_code) == 50
     assert filing_types.lookup_code("Q1")["labels"][0]["value"] == ("1st Quarter - Report")
-    assert filing_types.lookup_code("Q1")["eligibleUses"] == ["deterministicMetadata"]
+    assert filing_types.lookup_code("Q1")["eligibleUses"] == (
+        "deterministicMetadata",
+    )
 
 
 def test_lda_reader_rejects_a_self_consistent_unpinned_repackage(

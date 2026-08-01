@@ -163,5 +163,7 @@ def test_ref_test_172_rejects_stale_normative_pin_text(
     ), errors
 
 
-def test_ref_test_172_live_dependency_pin_passes(rulespec_dir: Path) -> None:
-    assert gate.validate_closure_pin(rulespec_dir) == []
+def test_ref_test_172_live_dependency_pin_passes(
+    legacy_rulespec_checkout: Path,
+) -> None:
+    assert gate.validate_closure_pin(legacy_rulespec_checkout) == []

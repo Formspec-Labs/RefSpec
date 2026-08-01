@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import pytest
@@ -65,17 +66,26 @@ def _view(
     release = configuration["vocabulary"]["referenceResourceReleases"][0][
         "id"
     ]
+    member_record = MappingProxyType(
+        {
+            "@id": "urn:example:concept:air-quality",
+            "@type": "rkaf:RegisteredConcept",
+        }
+    )
     member = ManagedReleaseMember(
         member_iri="urn:example:concept:air-quality",
         release_iri=release,
         scheme_iri="urn:example:scheme:subjects-a",
-        record={
-            "@id": "urn:example:concept:air-quality",
-            "@type": "rkaf:RegisteredConcept",
-        },
+        record=member_record,
     )
     return ManagedReleaseView(
         _release_id="urn:example:publication:subjects-a",
+        _rulespec_graph_id="urn:rulespec:release-graph:accepted-output",
+        _rulespec_graph=MappingProxyType(
+            {
+                "@graph": (member_record,),
+            }
+        ),
         _expression_corpus_snapshot=expression_corpus,
         _members={member.member_iri: member},
         _expressions=(),

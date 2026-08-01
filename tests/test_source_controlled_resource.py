@@ -65,9 +65,44 @@ def test_package_round_trips_and_rechecks_exact_sources(tmp_path: Path) -> None:
     opened = SourceControlledResourceView.open(package_path)
 
     assert opened.logical_digest == package.logical_digest
-    assert opened.observations == package.observations
+    assert opened.observations[0]["id"] == package.observations[0]["id"]
+    assert (
+        opened.observations[0]["labels"][0]["value"]
+        == package.observations[0]["labels"][0]["value"]
+    )
     assert opened.source_artifact_bytes(SOURCE_ID) == SOURCE_BYTES
     assert opened.coverage_report["reportStatus"] == "pass"
+
+
+def test_verified_view_deep_freezes_records_after_open(
+    tmp_path: Path,
+) -> None:
+    package_path = _bundle().write_to(tmp_path / "package")
+    opened = SourceControlledResourceView.open(package_path)
+
+    assert opened.path == package_path
+    assert isinstance(opened.resource_manifest["uses"], tuple)
+    assert isinstance(
+        opened.resource_manifest["sourceArtifacts"],
+        tuple,
+    )
+    assert isinstance(opened.coverage_report["gaps"], tuple)
+    assert isinstance(opened.observations[0]["labels"], tuple)
+    assert isinstance(opened.observations[0]["identifiers"], tuple)
+    assert opened.observations[0]["labels"][0]["value"] == "Alpha"
+    assert opened.source_artifact_bytes(SOURCE_ID) == SOURCE_BYTES
+
+    with pytest.raises(TypeError):
+        opened.resource_manifest["sourceArtifacts"][0]["path"] = (  # type: ignore[index]
+            "changed"
+        )
+    with pytest.raises(TypeError):
+        opened.observations[0]["labels"][0]["value"] = "Changed"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        opened.source_artifacts[SOURCE_ID] = b"changed"  # type: ignore[index]
+
+    assert opened.observations[0]["labels"][0]["value"] == "Alpha"
+    assert opened.source_artifact_bytes(SOURCE_ID) == SOURCE_BYTES
 
 
 def test_package_generation_is_deterministic(tmp_path: Path) -> None:

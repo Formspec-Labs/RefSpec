@@ -81,18 +81,8 @@ def _process_peak_memory_bytes() -> int:
 
 
 @pytest.fixture
-def rulespec_dir() -> Path:
-    configured = os.environ.get("RULESPEC_DIR")
-    path = (
-        Path(configured).resolve()
-        if configured
-        else DEFAULT_RULESPEC_DIR.resolve()
-    )
-    if not (path / ".git").exists():
-        pytest.skip(
-            f"live Rulespec checkout is unavailable: {path}"
-        )
-    return path
+def rulespec_dir(legacy_rulespec_checkout: Path) -> Path:
+    return legacy_rulespec_checkout
 
 
 def _fixture_release(
@@ -156,12 +146,9 @@ def _governance() -> ElsstCandidateGovernance:
 @pytest.fixture(scope="module")
 def managed_fixture(
     tmp_path_factory: pytest.TempPathFactory,
+    legacy_rulespec_checkout: Path,
 ) -> tuple[ElsstManagedRelease, Path]:
-    rulespec_dir = DEFAULT_RULESPEC_DIR.resolve()
-    if not (rulespec_dir / ".git").exists():
-        pytest.skip(
-            f"live Rulespec checkout is unavailable: {rulespec_dir}"
-        )
+    rulespec_dir = legacy_rulespec_checkout
     sources = _fixture_pair(
         tmp_path_factory.mktemp("elsst-acquired-sources")
     )

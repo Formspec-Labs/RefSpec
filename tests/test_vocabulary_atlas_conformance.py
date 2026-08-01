@@ -1,0 +1,72 @@
+"""Portable vocabulary-atlas schema and static conformance corpus."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+import pytest
+from jsonschema import Draft202012Validator
+
+from refspec.atlas import VocabularyAtlasAsset, VocabularyAtlasError
+
+_BINDING_ROOT = Path(__file__).parents[1] / "bindings" / "atlas" / "1.0"
+_FIXTURE_ROOT = _BINDING_ROOT / "fixtures"
+_CORPUS = json.loads((_FIXTURE_ROOT / "corpus.json").read_text(encoding="utf-8"))
+
+
+def _digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_atlas_manifest_schema_is_valid_and_producer_neutral() -> None:
+    schema = json.loads(
+        (_BINDING_ROOT / "schemas" / "vocabulary-atlas-manifest.schema.json").read_text(encoding="utf-8")
+    )
+    Draft202012Validator.check_schema(schema)
+    runtime = schema["$defs"]["implementation"]["properties"]["runtime"]
+    assert runtime == {
+        "additionalProperties": {"minLength": 1, "type": "string"},
+        "minProperties": 1,
+        "propertyNames": {"minLength": 1},
+        "type": "object",
+    }
+
+
+@pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: case["id"])
+def test_static_atlas_conformance_corpus(case: dict[str, Any]) -> None:
+    directory = _FIXTURE_ROOT / case["directory"]
+    manifest_path = directory / "atlas-manifest.json"
+    output_path = directory / "atlas.nq"
+    assert {path.name for path in directory.iterdir()} == {
+        "atlas-manifest.json",
+        "atlas.nq",
+    }
+    assert _digest(manifest_path) == case["manifestDigest"]
+    assert _digest(output_path) == case["outputDigest"]
+
+    schema = json.loads(
+        (_BINDING_ROOT / "schemas" / "vocabulary-atlas-manifest.schema.json").read_text(encoding="utf-8")
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    Draft202012Validator(schema).validate(manifest)
+
+    if case["valid"]:
+        asset = VocabularyAtlasAsset.open(
+            directory,
+            expected_manifest_digest=case["manifestDigest"],
+            expected_output_digest=case["outputDigest"],
+        )
+        assert asset.manifest_digest == case["manifestDigest"]
+        assert asset.output_digest == case["outputDigest"]
+        return
+
+    with pytest.raises(VocabularyAtlasError, match=re.escape(case["errorContains"])):
+        VocabularyAtlasAsset.open(
+            directory,
+            expected_manifest_digest=case["manifestDigest"],
+            expected_output_digest=case["outputDigest"],
+        )

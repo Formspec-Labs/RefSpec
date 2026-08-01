@@ -66,6 +66,12 @@ def _view() -> ManagedReleaseView:
     }
     return ManagedReleaseView(
         _release_id="urn:test:managed-release:elsst",
+        _rulespec_graph_id="urn:test:rulespec-graph:elsst",
+        _rulespec_graph=MappingProxyType(
+            {
+                "@graph": tuple(member.record for member in members.values()),
+            }
+        ),
         _expression_corpus_snapshot=MappingProxyType(
             {
                 "id": "urn:test:expression-corpus",

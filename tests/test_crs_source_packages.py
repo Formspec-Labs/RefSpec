@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from refspec.immutable import deep_freeze_json
 from refspec.registry import crs_legislative_resources as crs
 from refspec.registry.crs_source_packages import (
     CRS_COMPLETE_CAPTURED_AT,
@@ -167,7 +168,9 @@ def test_both_packages_round_trip_with_exact_source_bytes(
         destination = tmp_path / "packages" / str(package.resource_manifest["resourceId"])
         opened = SourceControlledResourceView.open(package.write_to(destination))
         assert opened.logical_digest == package.logical_digest
-        assert opened.observations == package.observations
+        assert opened.observations == deep_freeze_json(
+            package.observations
+        )
         assert opened.source_artifacts == package.source_artifacts
 
     packaged_payloads = {payload for package in packages.resources() for payload in package.source_artifacts.values()}

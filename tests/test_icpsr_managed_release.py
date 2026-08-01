@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
@@ -104,6 +105,35 @@ def test_reader_verifies_bundle_and_searches_labels_aliases_and_notes(
     assert note[0].official_label == "Abolition movement"
     assert note[0].role == "scopeNote"
     assert view.concept(ability[0].concept_iri)["publisherCode"] == "24042"
+
+
+def test_reader_deep_freezes_verified_records_after_open(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _build_fixture().write_to(tmp_path)
+    view = IcpsrManagedReleaseView.open(manifest_path)
+
+    assert isinstance(view.manifest["artifacts"], tuple)
+    assert isinstance(view.coverage["gaps"], Mapping)
+    assert isinstance(
+        view.coverage["gaps"]["indexOnlyTerms"],
+        tuple,
+    )
+    assert isinstance(view.concepts[0]["relations"], tuple)
+    assert isinstance(view.concepts[0]["relations"][0], Mapping)
+    assert isinstance(view.indexed_expressions, tuple)
+    assert view.concepts[0]["officialLabel"] == "ability"
+    assert view.indexed_expressions[0]["indexedText"]
+
+    with pytest.raises(TypeError):
+        view.manifest["artifacts"][0]["path"] = "changed"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        view.concepts[0]["relations"][0]["targetLabel"] = "Changed"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        view.indexed_expressions[0]["indexedText"] = "changed"  # type: ignore[index]
+
+    assert view.lookup("ability")[0].official_label == "ability"
+    assert view.concepts[0]["relations"][0]["targetLabel"] == "talent"
 
 
 def test_reader_fails_closed_when_an_artifact_changes(

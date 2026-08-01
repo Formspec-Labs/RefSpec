@@ -38,12 +38,8 @@ TEST_R6_RELEASE_IRI = "urn:test:elsst:release:r6"
 
 
 @pytest.fixture
-def rulespec_dir() -> Path:
-    configured = os.environ.get("RULESPEC_DIR")
-    path = Path(configured).resolve() if configured else DEFAULT_RULESPEC_DIR.resolve()
-    if not (path / ".git").exists():
-        pytest.skip(f"live Rulespec checkout is unavailable: {path}")
-    return path
+def rulespec_dir(legacy_rulespec_checkout: Path) -> Path:
+    return legacy_rulespec_checkout
 
 
 def _fixture_release(
