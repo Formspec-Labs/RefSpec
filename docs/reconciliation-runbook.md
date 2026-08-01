@@ -1,8 +1,33 @@
-# RefSpec Reconciliation Runbook — prepared commands, NOT executed
+# RefSpec Reconciliation Runbook
 
 **Prepared:** 1 August 2026
-**Status:** Every command below is prepared for a human to run deliberately. The agent that
-wrote this file did not run any of them.
+**Executed:** 1 August 2026 — R1, R2, R4, and R5 are done. R3 and the optional provenance
+restore remain open user decisions.
+
+> **Execution status, 2026-08-01.** The original title said "prepared commands, NOT
+> executed"; that no longer holds. What happened:
+>
+> - **R1 — executed.** `origin/main` was fast-forwarded in two pushes: `714866d..d05890e`,
+>   then `d05890e..247a9ac`. REF-007 is published, without the provenance sentence.
+> - **R2 — executed.** The retired standalone line is on `origin` as
+>   `archive/standalone-2026-07-31` (`de744a3`), matching
+>   `refs/archive/refspec-standalone/main`.
+> - **R3 — OPEN. The user's decision.** The pre-scrub initial commit `67c497f` is still
+>   unpublished and still preserved at `refs/archive/refspec-standalone/pre-scrub-initial`.
+> - **Provenance sentence — OPEN. The user's decision.** REF-007 still does not name the
+>   split commit. Restoring it is forward-only, but it re-publishes an identifier that was
+>   deliberately scrubbed on 2026-07-28.
+> - **R4 — executed.** The `spicy-regs` branch `feat/document-ai-pipeline` is published.
+> - **R5 — executed.** `/Users/mikewolfd/Work/RefSpec` was deleted after its gate checks
+>   passed: clean working tree, both archive refs resolving, and the archive branch listed
+>   on the remote.
+>
+> The commands below are kept verbatim as the record of what was run. Re-running R1, R2, or
+> R4 is a no-op; do not re-run R5.
+
+**Original preparation note, superseded by the status above:** every command below was
+prepared for a human to run deliberately, and the agent that wrote this file ran none of
+them.
 
 Local reconciliation is complete: the nested RefSpec line (the submodule inside `spicy-regs`)
 holds the atlas distribution, the imported decision ledger REF-001…REF-007, the adopted
@@ -16,6 +41,8 @@ gitlink against `https://github.com/Formspec-Labs/RefSpec.git`. **R1 must run be
 object" for the gitlink commit.
 
 ## R1 — Publish the nested RefSpec line (fast-forward)
+
+**Executed 2026-08-01** as `714866d..d05890e`, then `d05890e..247a9ac`.
 
 `origin/main` is `714866d`; the nested line descends from it, so this is a clean
 fast-forward with no force.
@@ -35,6 +62,10 @@ history. See "Optional: restore the provenance sentence" below and R3's warning.
 
 ## Optional: restore the provenance sentence to REF-007
 
+**Still open on 2026-08-01 — the user's decision.** REF-007 is published without it. Because
+R1 has already run, this is now a new forward-only commit and a second push, not a
+before-R1 edit.
+
 Only if you want the split origin stated in the published ledger. This is a forward-only
 edit — no rewriting. Append to the REF-007 section of
 `/Users/mikewolfd/Work/spicy-regs/RefSpec/docs/decisions.md`, then commit, **before** R1:
@@ -51,6 +82,8 @@ which created the RefSpec and Rulespec lines under Formspec Labs.
 
 ## R2 — Archive the standalone line on the remote
 
+**Executed 2026-08-01.** `archive/standalone-2026-07-31` is on `origin` at `de744a3`.
+
 Pushes the retired line to a clearly-named branch. Not a force; the branch does not exist yet.
 
 ```sh
@@ -59,6 +92,8 @@ git -C /Users/mikewolfd/Work/RefSpec push origin \
 ```
 
 ## R3 — OPTIONAL, PRIVACY-SENSITIVE: publish the pre-scrub initial commit
+
+**Still open on 2026-08-01 — the user's decision. Not run.**
 
 > **WARNING — this reverses a deliberate editorial scrub.** Commit `67c497f` is the original
 > initial commit. Its `README.md` carries a `## History` section naming
@@ -79,6 +114,8 @@ git -C /Users/mikewolfd/Work/RefSpec push origin \
 
 ## R4 — Publish the spicy-regs surgical commit
 
+**Executed 2026-08-01.** `feat/document-ai-pipeline` is published on the `spicy-regs` remote.
+
 Only after R1. The branch carries 140 unpushed commits, most unrelated to this work; review
 before pushing.
 
@@ -88,6 +125,9 @@ git -C /Users/mikewolfd/Work/spicy-regs push origin feat/document-ai-pipeline
 ```
 
 ## R5 — Delete the standalone checkout
+
+**Executed 2026-08-01** after all three gate checks passed. `/Users/mikewolfd/Work/RefSpec`
+no longer exists; do not re-run.
 
 Only after R1 **and** R2 have succeeded and been verified on GitHub.
 

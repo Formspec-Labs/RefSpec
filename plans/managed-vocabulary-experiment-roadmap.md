@@ -21,6 +21,12 @@
 > managed releases and static atlas files; Rulespec Extrapolator owns derived
 > assertions and accepted-output decisions; SpicySearch owns query processing,
 > indexes, and ranking.
+>
+> **Channel and ranking work is SpicySearch's (2026-08-01).** Sections 2.1, Gate 1, and the
+> 2026-07-29 execution checkpoint still route BM25, dense, hybrid, and reranking work
+> through this repository. They are bannered below as SpicyRegs-era execution records. New
+> channel, scoring, reranking, and retrieval-quality work belongs in SpicySearch, which
+> consumes RefSpec's published managed releases and atlas files.
 
 ## Decision
 
@@ -127,6 +133,11 @@ release records.
 
 ### 2.1 Inputs
 
+> **Historical — SpicyRegs-era execution record.** The channel list below (lexical, BM25,
+> dense, hybrid, reranking) describes the retrieval experiments this repository ran before
+> the four-product split. Those inputs now belong to a SpicySearch experiment definition;
+> RefSpec's share of this shape is the managed release and expression corpus it publishes.
+
 An experiment definition contains only behavior-changing choices:
 
 - hypothesis and decision rule;
@@ -181,6 +192,11 @@ Focused checks should finish fast enough to support repeated daily runs.
 ## 3. Execution gates
 
 ### Gate 1 — Run real lookup from the managed release
+
+> **Historical — SpicyRegs-era execution record.** This gate was run and closed inside
+> SpicyRegs before the split; see the 2026-07-29 checkpoint below. Building lexical, BM25,
+> exact-dense, and hybrid indexes is SpicySearch's work now. What RefSpec still owns from
+> this gate is the release and expression corpus the indexes are built from.
 
 Use the existing 629-concept Federal Register development release. Build
 verified lexical, BM25, exact-dense, and hybrid indexes from its RefSpec
@@ -245,6 +261,12 @@ repeat the experiment-to-release loop.
 editable local checkout.
 
 ### 3.1 Execution checkpoint — 2026-07-29
+
+> **Historical — SpicyRegs-era execution record, closed before the four-product split.**
+> Everything below happened inside SpicyRegs against RefSpec's managed releases. It records
+> what was run; it does not assign new work. Read every "Spicy Regs" retrieval, channel,
+> scoring, and reranking result here as SpicySearch's subject matter today, and every
+> release, permission, coverage, and portable-boundary result as RefSpec's.
 
 The first real Gate 1 run used the Federal Register thesaurus source at
 `sha256:d5e013336d4179790e8d6574d4dc9d8cfcb10ce76af202ff4db068617eb8fd30`.
@@ -376,6 +398,11 @@ Independent machine validation belongs at the publication boundary after the
 development loop selects a configuration worth testing. Human feedback may be
 appended later and can inform a future immutable release; it is not a
 prerequisite for `searchOnly`.
+
+> **Where this stands on 2026-08-01.** The two completeness claims below describe the
+> SpicyRegs runner as it was on 2026-07-29. They are not a statement about RefSpec's current
+> delivery. The channel paths they name are SpicySearch's now; the `require_candidate_use`
+> permission seam described immediately after them stayed in RefSpec and is implemented.
 
 Gate 1 is mechanically complete: lexical, BM25, dense, and hybrid paths run
 from the managed release and emit comparable, lineage-complete artifacts
@@ -590,6 +617,10 @@ This roadmap aims to prove a difficult approach, not a small toy:
 - missing-target detection and open-set abstention;
 - candidate and accepted-output separation; and
 - measurable product value.
+
+The retrieval line above is the research subject, not RefSpec's delivery: exact, lexical,
+sparse, dense, and hybrid retrieval, and every ranking and reranking question with it, is
+SpicySearch's work against RefSpec's published files.
 
 The current scope excludes the early implementation plan's three-matter
 regulatory-history release, inferred relationships, policy threads, broad
