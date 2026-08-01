@@ -9,11 +9,18 @@
 > **Research inputs:** [source and document-type matrix](../research/source-document-type-matrix-2026-07-28.md), [vocabulary and ontology catalog](../research/source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md), and [concept-tagging architecture proposal](../research/concept-tagging-architecture-proposal-2026-07-28.md)
 >
 > **Deferred standards work:** [standards composition and graph extensibility plan](standards-composition-and-graph-extensibility-plan.md)
+>
+> **Product-boundary clarification (2026-07-31):** This plan remains active for
+> RefSpec acquisition, managed-release, coverage, crosswalk-evidence, and static
+> atlas work. Its earlier SpicyRegs lookup and ranking sections are historical;
+> SpicySearch now owns query processing, indexes, expansion, and ranking.
+> Rulespec Extrapolator owns derived assertions and accepted-output decisions.
 
 ## Decision
 
 Build a RefSpec-managed portfolio for every source profile in the current Spicy
-Regs experiment before expanding the Spicy Regs lookup implementation.
+Regs experiment before Rulespec Extrapolator and SpicySearch expand their
+product-local consumers.
 
 The portfolio will include the controlled resource appropriate to each profile:
 
@@ -27,9 +34,11 @@ The portfolio will include the controlled resource appropriate to each profile:
 - structural schemas for parsing and stable joins.
 
 RefSpec will import and describe these resources as distinct releases, then
-produce a vocabulary atlas showing their contents, overlaps, gaps, and reviewed
-relationships. It will not create one fused master vocabulary. Spicy Regs will
-later consume the selected releases and mappings through profile-aware lookup.
+publish a static vocabulary atlas showing their contents, overlaps, gaps, and
+machine-qualified `searchOnly` relationships. It will not create one fused
+master vocabulary. Rulespec Extrapolator may use exact release membership for
+derived assignments, and SpicySearch may use directed qualified mappings for
+profile-aware discovery.
 
 This plan covers all 16 profiles active in the Step 4 source experiment. Ten
 profiles contain documents or document-like observations, three are containers,
@@ -44,12 +53,13 @@ At the end of the RefSpec phase, we can answer four practical questions:
 2. What concepts, labels, languages, hierarchies, aliases, codes, and
    identifiers does each resource actually contain?
 3. Where do resources overlap, disagree, or leave a gap?
-4. Which exact releases and reviewed mappings should Spicy Regs use for
-   profile-specific lookup and cross-source discovery?
+4. Which exact releases should Rulespec Extrapolator use for membership, and
+   which directed machine-qualified mappings should SpicySearch use for
+   discovery?
 
-The later Spicy Regs experiment should then be able to type a record first,
+The later SpicySearch experiment should then be able to type a query context,
 retrieve from the most relevant resources with higher weight, retain a global
-fallback, and use reviewed cross-vocabulary mappings to connect related
+fallback, and use directed cross-vocabulary mappings to connect related
 regulatory, legislative, oversight, judicial, lobbying, and filing records.
 
 ## Execution status — 2026-07-30
@@ -58,9 +68,9 @@ The inventory and the first acquisition slices are complete. The remaining
 work starts from these source-faithful records rather than the former fused
 registry.
 
-- **Batch 0 complete:** the generated atlas covers all 16 active profiles and
-  the one deferred profile, with 32 controlled resources and explicit uses,
-  gaps, and source status.
+- **Batch 0 complete:** the generated portfolio inventory covers all 16 active
+  profiles and the one deferred profile, with 32 controlled resources and
+  explicit uses, gaps, and source status.
 - **Identifier rule complete:** RefSpec records zero, one, or many identifiers
   as individually qualified values. Each retained identifier records its kind,
   issuing authority, source location, source capture, observation time, and
@@ -96,7 +106,7 @@ registry.
   rows remain separate mutable source evidence and are not candidate
   concepts. The evidence-only 1995 to 2025 crosswalk covers added, removed,
   renamed, redirected, and ambiguous terms.
-- **Batch 3 GAO work and reviewed mappings remain open.** Later batches for
+- **Batch 3 GAO work and machine-qualified mappings remain open.** Later batches for
   entity/classification, judicial/FCC, specialist vocabularies, and the final
   atlas remain planned.
 
@@ -115,8 +125,10 @@ ordinary offline verification.
 - managed release and expression-corpus production;
 - imported code lists, classifications, identifier authorities, and mapping
   sets;
-- vocabulary statistics, comparison, reconciliation, and mapping review; and
-- the immutable handoff bundle consumed by lookup implementations.
+- vocabulary statistics, comparison, reconciliation, mapping candidates, and
+  closed machine-validation evidence; and
+- managed-release distributions plus the immutable two-file atlas consumed by
+  product-local readers.
 
 ### Rulespec owns
 
@@ -124,14 +136,25 @@ ordinary offline verification.
   lifecycle events, assignments, and permissions; and
 - graph-wide semantic validation.
 
-### Spicy Regs owns after the RefSpec phase
+### Rulespec Extrapolator owns
+
+- evidence-bound derived assertions and assignments;
+- deterministic candidate selection; and
+- accepted-output decisions.
+
+### SpicyRegs owns after the RefSpec phase
 
 - document/profile routing;
+- source observations and evidence addresses;
+- a product-local, file-only diagnostic candidate reader; and
+- local source terms when no imported concept represents the document meaning.
+
+### SpicySearch owns after the RefSpec phase
+
 - physical indexes;
 - lexical, sparse, dense, hybrid, and reranking channels;
-- profile-specific boosts and the global fallback;
-- candidate fusion, user-facing lookup, and measured product value; and
-- local concepts when no imported concept represents the document meaning.
+- profile-specific boosts and the global fallback; and
+- candidate fusion, user-facing search, and measured search value.
 
 DDI, RDF Data Cube, GSIM, XKOS, Neuchâtel, USLM, Akoma Ntoso, ELI, and similar
 standards do not become subject vocabularies. Add one only when a real imported
@@ -151,16 +174,19 @@ The current local baseline already proves important parts of the approach:
 - ELSST Versions 5 and 6 are complete managed releases with 6,905 concepts,
   multilingual labels, hierarchy, notes, lifecycle history, and 308,639
   indexed expressions;
-- the ICPSR experiment contains seven reviewed lookup bridges into the Federal
-  Register release, but ICPSR is not yet a complete managed release;
+- the ICPSR experiment contains seven historically reviewed, analysis-only
+  lookup bridges into the Federal Register release, but ICPSR is not yet a
+  complete managed release;
 - the fused registry is no longer an authority for the managed-release
   experiment; and
 - Spicy Regs currently has managed-release builders for only Federal
   Register, Unified Agenda, and Congress bills, and its integrated adapter
   currently requests only the general-subject facet.
 
-The imported releases and reviewed bridge are reusable RefSpec assets. The
-Spicy Regs limitation is deliberately left for the later lookup phase.
+The imported releases remain reusable RefSpec assets. The seven-record bridge
+remains historical experiment evidence until it is replaced by a closed,
+machine-qualified crosswalk. Consumer limitations belong to the later
+Rulespec Extrapolator and SpicySearch phases.
 
 ### Minimum useful subject spine
 
@@ -186,7 +212,7 @@ not become a selectable subject scheme merely because it contains labels.
 | --- | --- | --- |
 | Selectable subject | A concept may be proposed as a document subject in its exact source scheme | Federal Register thesaurus, CRS Legislative Subject Terms, MeSH descriptors |
 | Source-assigned evidence | The publisher actually assigned the value to the source record | Federal Register topic, GAO Topic, CRS Product Topic, LDA General Issue Code |
-| Mapping and search expansion | The resource supplies reviewed alternate paths but does not consume a normal output slot | ELSST, ICPSR, FAST, LCSH, EuroVoc, AGROVOC when used only as references |
+| Mapping and search expansion | The resource supplies machine-qualified alternate paths but does not consume a normal output slot | ELSST, ICPSR, FAST, LCSH, EuroVoc, AGROVOC when used only as references |
 | Navigation | Broad grouping or browsing, not a detailed subject assignment | CRS Policy Areas |
 | Deterministic code or classification | A source value describes type, stage, industry, service, program, or process | Unified Agenda stage, NAICS, PSC, Nature of Suit |
 | Identifier authority | A value identifies an entity or legal/source object | UEI, CAGE, FEC committee ID, FRN, court ID |
@@ -211,11 +237,11 @@ it is an explicit finding, not permission to invent one.
 | `cfr-section-v1` | Legal document | General portfolio; CFR List of Subjects as ranking and evaluation evidence | eCFR and GovInfo hierarchy, citation, edition, point-in-time status, and USLM structure when available | Tag the section text. Do not duplicate CFR List of Subjects as an unlabeled scheme. |
 | `congress-bill-v1` | Legislative document | CRS Legislative Subject Terms; CRS Policy Areas for navigation; general portfolio; applicable specialist modules | Congress API and BILLSTATUS types, actions, versions, committees, BioGuide identities, and USLM structure | Preserve actual CRS assignments and release context. Keep policy areas broad. |
 | `sam-entity-v1` | Entity | No document subjects | UEI, CAGE, NAICS, legal name, registration status, location, and Federal Hierarchy | Normalize entity and classification values. Do not route them through subject ranking. |
-| `lobbying-filing-v1` | Document | LDA General Issue Codes as source evidence; reviewed mappings into CRS and the general portfolio; general and specialist candidates from specific-issue text | LDA filing type, period, status, client, registrant, government target, and amendment history | Tag specific-issue text. Keep filing codes and participants in their own facets. |
+| `lobbying-filing-v1` | Document | LDA General Issue Codes as source evidence; machine-qualified mappings into CRS and the general portfolio; general and specialist candidates from specific-issue text | LDA filing type, period, status, client, registrant, government target, and amendment history | Tag specific-issue text. Keep filing codes and participants in their own facets. |
 | `fec-committee-v1` | Entity | No document subjects | FEC committee ID, committee type, designation, organization type, party, sponsor and candidate links, cycle, and effective dates | Normalize the committee. Do not treat committee codes or party as subjects. |
 | `gao-report-v1` | Document | General portfolio; actual GAO Topics as source evidence; applicable specialist modules | GAO report ID, product type, date, agency, recommendations, and evidence depth | Use only an actual topic assignment. Keep the obsolete GAO thesaurus historical and mapping-only unless a maintained successor appears. |
 | `crs-report-v1` | Document | CRS Legislative Subject Terms and Policy Areas; matching-edition CRS Product Topics; general portfolio | CRS product type, edition, status, report number, dates, bill and committee joins | Never apply a current topic to a different report edition silently. |
-| `court-opinion-v1` | Legal document | General portfolio and applicable specialist modules; LCSH or FAST only through reviewed mappings | Court authority, opinion type, version, citations, case and package identity | Record the legal-topic subject gap. Tag opinion text without manufacturing a national court thesaurus. |
+| `court-opinion-v1` | Legal document | General portfolio and applicable specialist modules; LCSH or FAST only through machine-qualified mappings | Court authority, opinion type, version, citations, case and package identity | Record the legal-topic subject gap. Tag opinion text without manufacturing a national court thesaurus. |
 | `court-docket-v1` | Container | None on the docket; opinions and filings supply subjects | Court authority, Nature of Suit, case identity, parties, CourtListener status, dates, and access | Preserve the container and links. Keep official and platform-normalized values distinct. |
 | `usaspending-recipient-v1` | Entity | No document subjects | UEI, CAGE, recipient identity, NAICS, PSC, Federal Hierarchy, status, and vintage | Normalize entity and classification values. Subjects belong on award or program narratives, not the recipient. |
 | `fcc-proceeding-v1` | Container | None on the proceeding; linked filings supply subjects | ECFS proceeding number and flag, bureau, status, dates, and 47 CFR procedure class | Record the FCC-topic subject gap. Preserve the proceeding and links. |
@@ -288,15 +314,18 @@ base, while the two Federal Register publications remain visibly distinct.
 5. Retain ELSST R5 and R6 as separate completed releases and select R6 only for
    current development candidates.
 6. Replace the seven-record ICPSR lookup bridge as the primary source view with
-   reviewed mapping-set records between exact full releases. Keep the small
+   machine-qualified mapping records between exact full releases. Keep the small
    bridge as historical experiment evidence.
 7. Generate ICPSR-to-ELSST and ICPSR/ELSST-to-Federal-Register mapping
-   candidates. Review a useful sample before publishing any mapping.
+   candidates. Require deterministic checks and two machine validators on the
+   same sealed request with distinct actors, independence groups, providers,
+   provider model IDs, and responses before publishing a mapping as
+   `searchOnly`. Human feedback may be appended later.
 8. Keep each scheme independently searchable; do not form a “general core”
    union.
 
 **Exit:** RefSpec can compare three real general or social-policy concept
-families at full-release scale and can explain every reviewed connection, or
+families at full-release scale and can explain every qualified connection, or
 it has a precise ICPSR identity-gap report and continues safely with the
 verified subset.
 
@@ -311,8 +340,9 @@ verified subset.
 4. Import LDA General Issue Codes and filing code lists.
 5. Capture actual GAO Topics and product types. Keep the 1998 GAO thesaurus as
    a historical reference, not a current output authority.
-6. Generate reviewed mappings among Federal Register, CRS, ICPSR, ELSST, LDA,
-   and GAO concepts where evidence supports them.
+6. Generate evidence-backed mapping candidates among Federal Register, CRS,
+   ICPSR, ELSST, LDA, and GAO concepts, and publish only mappings that satisfy
+   the two-independent-machine `searchOnly` gate.
 
 **Exit:** bills, lobbying filings, CRS reports, and GAO reports have their
 source-native vocabularies plus documented paths into the wider policy graph.
@@ -360,14 +390,14 @@ Import one module at a time:
    when a measured profile use needs them.
 
 Do not concatenate module labels. Agency, document type, cited law, and source
-metadata may raise a module's retrieval weight, but the later Spicy Regs router
-must preserve a global candidate path.
+metadata may raise a module's retrieval weight, but the later SpicySearch query
+planner must preserve a global candidate path.
 
 **Exit:** each retained specialist module improves target availability or
 search behavior for at least one named profile without unacceptable
 cross-domain leakage.
 
-### Batch 7 — Vocabulary atlas and reviewed graph
+### Batch 7 — Vocabulary atlas and qualified graph
 
 Generate both machine-readable and human-readable outputs:
 
@@ -379,13 +409,18 @@ portfolio/
 │   └── <resource>/<release>/...
 ├── coverage/
 │   └── <resource>-coverage.json
-├── comparisons/
-│   ├── vocabulary-atlas.json
-│   ├── vocabulary-atlas.md
-│   └── mapping-candidates.jsonl
-└── mappings/
-    └── <reviewed-mapping-set>/...
+├── atlas/
+│   ├── atlas-manifest.json
+│   └── atlas.nq
+├── crosswalk/
+│   └── <closed-candidate-and-machine-evidence-bundle>/...
+└── reports/
+    └── vocabulary-atlas.md
 ```
+
+Only `atlas-manifest.json` and `atlas.nq` form the portable atlas distribution.
+The Markdown report is a non-authoritative view, and the closed crosswalk bundle
+is a pinned producer input rather than a third atlas file.
 
 For every release, the atlas reports:
 
@@ -397,16 +432,18 @@ For every release, the atlas reports:
 - source-assigned use by current Spicy Regs profile;
 - normalized label overlap with other schemes;
 - ambiguous reused labels, false friends, and near-duplicate candidates;
-- publisher-authored mappings separately from project-reviewed mappings; and
+- publisher-authored mappings separately from machine-qualified project
+  mappings;
 - explicit profile, facet, and use eligibility.
 
-Normalized label overlap is a review lead, never an identity rule. The atlas
-must show identical labels in different schemes as separate concepts unless a
-reviewed mapping connects them.
+Normalized label overlap is a candidate-generation lead, never an identity
+rule. The atlas must show identical labels in different schemes as separate
+concepts unless a qualified mapping connects them.
 
-**Exit:** a reviewer can inspect what every vocabulary contains, how it differs
-from the others, which mappings are supported, and which active profiles still
-have gaps.
+**Exit:** an independent consumer can verify what every vocabulary contains,
+how it differs from the others, which mappings satisfy the machine-first gate,
+and which active profiles still have gaps. People may inspect the report and
+append feedback later.
 
 ## Fast import loop
 
@@ -447,16 +484,17 @@ does not.
    relationships.
 2. Never create a mapping from label equality alone.
 3. Keep source and target release pins on every mapping.
-4. Keep publisher-authored and project-reviewed mappings distinguishable.
+4. Keep publisher-authored and machine-qualified project mappings
+   distinguishable.
 5. Start with one-hop candidate expansion. Measure longer paths separately.
 6. Use high-level concepts as navigation and ranking signals, not automatic
    replacements for more specific concepts.
 7. Discount labels reused broadly across unrelated vocabularies unless the
-   document context or a reviewed mapping disambiguates them.
+   document context or a qualified mapping disambiguates them.
 8. Keep aliases useful for retrieval but below exact preferred-label and
    source-assigned evidence in ranking.
 
-## RefSpec acceptance checks
+## RefSpec publication checks
 
 The RefSpec phase is complete when:
 
@@ -466,30 +504,33 @@ The RefSpec phase is complete when:
 - all three containers and all three entities use the correct non-subject
   controls;
 - every imported release passes lossless feature coverage;
-- conflicting official publications remain separate unless a reviewed
+- conflicting official publications remain separate unless an evidence-backed
   reconciliation resolves them;
 - the URI-verified ICPSR scope, ELSST, Federal Register, and CRS releases can be
   inspected together without merged identities;
 - the atlas reports scale, languages, hierarchy, label reuse, overlap, gaps,
   and mappings;
-- at least one reviewed path connects regulatory and legislative resources,
-  and another connects a lobbying or oversight source;
+- at least one machine-qualified path connects regulatory and legislative
+  resources, and another connects a lobbying or oversight source;
 - no active profile silently inherits an arbitrary vocabulary;
 - no label-derived identity or fused-registry authority reappears; and
 - the handoff bundle opens through RefSpec's public managed-release reader.
 
-## Later Spicy Regs phase
+## Later consumer phases
 
-After the atlas is reviewed, create a separate Spicy Regs execution plan from
-the selected portfolio. That plan should:
+After the atlas is published and pinned, create separate product-local consumer
+plans. SpicyRegs keeps source observations and its diagnostic file reader;
+Rulespec Extrapolator creates evidence-bound assignments; SpicySearch should:
 
-1. add managed-release support for the remaining document profiles;
+1. add source and profile coverage from published `DocumentRelease` and atlas
+   files;
 2. route each profile to its source-native, general, and specialist candidate
    lanes;
 3. rank source-assigned values and preferred labels above generic aliases, use
    high-level concepts as routing priors, and retain specific exact concepts;
 4. discount vocabulary labels with broad cross-scheme reuse;
-5. expand through reviewed mappings without flattening source identities;
+5. expand through directed, machine-qualified `searchOnly` mappings without
+   flattening source identities;
 6. keep entity, legal-location, genre, process, and subject candidates in
    separate facets;
 7. create a new profile-stratified development dataset instead of reviving the
@@ -499,12 +540,12 @@ the selected portfolio. That plan should:
 9. measure target availability, Recall@K, ranking, abstention, latency, cost,
    cross-facet leakage, and cross-profile search value separately.
 
-The first Spicy Regs experiment should compare:
+The first SpicySearch experiment should compare:
 
 - one global vocabulary index;
 - profile-specific indexes with a global fallback;
 - profile-specific indexes plus source-assigned evidence;
-- the same configuration plus reviewed one-hop mappings; and
+- the same configuration plus qualified one-hop mappings; and
 - the same configuration with specialist-module activation.
 
 Use a new 36-case development smoke test:

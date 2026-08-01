@@ -13,34 +13,44 @@
 > **Active portfolio expansion:** [Active Spicy Regs controlled-resource import plan](active-profile-controlled-resource-import-plan.md)
 >
 > **Historical reference:** [Early RefSpec implementation plan](implementation-plan.md)
+>
+> **Product-boundary clarification (2026-07-31):** This roadmap remains active
+> for managed-vocabulary research inside RefSpec. The
+> [product-boundary and atlas reconciliation plan](2026-07-31-refspec-product-boundary-and-atlas-reconciliation-plan.md)
+> supersedes its older ownership and promotion language. RefSpec publishes
+> managed releases and static atlas files; Rulespec Extrapolator owns derived
+> assertions and accepted-output decisions; SpicySearch owns query processing,
+> indexes, and ranking.
 
 ## Decision
 
 Move quickly through complex, real-world vocabulary experiments while keeping
 the few controls that protect the result.
 
-Rulespec defines portable semantic meaning. RefSpec manages exact vocabulary
-sources, imports, expressions, releases, permissions, and release history.
-Spicy Regs consumes those releases to build indexes, retrieve and rank
-candidates, test models, and measure product value.
+Rulespec Core defines portable semantic meaning. RefSpec manages exact
+vocabulary sources, imports, expressions, releases, crosswalk evidence, static
+atlas publication, and release history. SpicyRegs owns document capture and
+source observations. Rulespec Extrapolator owns evidence-bound derived
+assertions and accepted-output decisions. SpicySearch consumes the published
+files to build indexes, retrieve and rank candidates, and measure search value.
 
 The early implementation plan remains useful as a capability inventory. It no
 longer sets current sequence or release gates.
 
 ## 1. Two operating lanes
 
-| | Experiment lane | Promotion lane |
+| | Experiment lane | Release and adoption lane |
 | --- | --- | --- |
-| Purpose | Learn whether an approach works | Make a result safe for another consumer or accepted output |
-| Data | Development data | Independently adjudicated, sealed holdout |
-| Output | Candidates only; `developmentOnly` and `candidateUseOnly` | Output allowed by an exact RefSpec profile and Rulespec authorization |
-| Required record | One generated experiment manifest | Full configuration, evaluation, deployment, and release records |
+| Purpose | Learn whether an approach works | Publish a stable release or authorize use beyond machine-qualified `searchOnly` discovery |
+| Data | Development data | Exact release inputs; an independently adjudicated sealed holdout only for quality or adoption claims |
+| Output | Candidates only; `developmentOnly` and `candidateUseOnly` | A managed release or atlas, or output selected by Rulespec Extrapolator |
+| Required record | One generated experiment manifest | Full configuration, evaluation, conformance, and release records; product-specific promotion records when applicable |
 | Checks | Focused tests for the changed path and manifest reproducibility | Full RefSpec, Rulespec, package, cross-repository, rollback, and release gates |
-| Review | Research decision by the experiment owner | Independent review and named deployment authority |
+| Qualification | Research decision by the experiment owner | Two machine validators with distinct actors, independence groups, providers, provider model IDs, and responses, plus deterministic checks for `searchOnly`; any stronger adoption gate is separate |
 | Claim | Comparative development evidence | Published conformance, quality, compatibility, or readiness claim |
 
-Most work stays in the experiment lane. Promotion applies the ceremony once,
-after a result earns it.
+Most work stays in the experiment lane. Release and adoption controls apply
+once, after a result earns them.
 
 ### 1.1 Controls that always apply
 
@@ -57,24 +67,23 @@ Every experiment must preserve:
 - development and holdout separation;
 - candidate-only output;
 - stage-specific measures; and
-- an approved baseline, hypothesis, decision threshold, and stop rule.
+- a declared baseline, hypothesis, decision threshold, and stop rule.
 
 These controls prevent failures already reproduced in the playground. They do
 not require a production release process.
 
-### 1.2 Work deferred until promotion
+### 1.2 Work deferred until release or stronger adoption
 
 An ordinary experiment does not require:
 
-- a separately reviewed registry or enrichment deployment decision for a
-  stable environment; RefSpec may generate the local `developmentOnly`
+- a separate stable-environment decision; RefSpec may generate the local `developmentOnly`
   candidate selection needed to open the managed bundle;
 - complete accepted-output permission rows;
 - manually authored Rulespec attestations, local adoptions, or accepted
   assignments beyond any generated records that prove the local bundle is
   candidate-use eligible;
-- a manually reviewed release-graph validation receipt beyond the
-  automatically generated validation needed to open the local managed bundle;
+- release validation beyond the automatically generated checks needed to open
+  the local managed bundle;
 - sealed gold;
 - public Rulespec or RefSpec releases;
 - a requirement-to-test entry for each experimental field;
@@ -83,16 +92,20 @@ An ordinary experiment does not require:
 - a new rights review beyond the recorded playground risk unless the proposed
   use introduces a distinct privacy, access, security, or distribution risk.
 
-These controls become mandatory when the experiment enters the promotion lane
-and the applicable specification requires them.
+The applicable release and conformance controls become mandatory when an
+experiment enters the release and adoption lane. Human feedback and manually
+authored attestations remain optional later inputs unless a separately adopted
+policy defines a stronger use than `searchOnly`.
 
-### 1.3 Promotion triggers
+### 1.3 Release and stronger-adoption triggers
 
-Move a result into the promotion lane when any of these conditions holds:
+Publishing a digest-pinned managed release or machine-qualified `searchOnly`
+atlas to another product enters this lane for release and cross-repository
+gates. It does not require prior human approval. Apply the stronger adoption
+controls when any of these conditions holds:
 
-- another consumer will depend on it;
 - the team selects it for a stable environment;
-- output may leave `developmentOnly` or `candidateUseOnly`;
+- output may leave `developmentOnly`, `candidateUseOnly`, or `searchOnly`;
 - an adapter becomes reusable managed-registry infrastructure;
 - the team will publish an accuracy, conformance, compatibility, or readiness
   claim;
@@ -214,9 +227,10 @@ drawn but unadjudicated holdout authorizes nothing.
 
 ### Gate 5 — Exercise promotion
 
-If Gate 4 passes, promote one narrow use through exact output permissions,
-configuration, evaluation, deployment, Rulespec review, and rollback evidence.
-The team may also refuse promotion and record why.
+If Gate 4 passes, promote one narrow use through exact configuration,
+evaluation, Rulespec Extrapolator selection, product-specific deployment, and
+rollback evidence. The team may also refuse promotion and record why. This gate
+does not apply to machine-qualified `searchOnly` atlas publication.
 
 **Exit:** Accepted output follows the complete authorization chain, or the
 system proves that it can abstain safely.
@@ -225,7 +239,7 @@ system proves that it can abstain safely.
 
 Publish immutable Rulespec and RefSpec prereleases only when an external
 consumer needs stable resolution. Add vocabulary adapters one at a time and
-repeat the experiment-to-promotion loop.
+repeat the experiment-to-release loop.
 
 **Exit:** A clean consumer resolves exact versions and digests without an
 editable local checkout.
@@ -358,8 +372,10 @@ retirement plans, and true threats. Freeze `Cw` as the current complete dense
 query representation. The next lookup experiment may change scoring or
 reranking, but it must not also change the query representation.
 
-Independent target review belongs at the promotion boundary, after the
-development loop selects a configuration worth testing.
+Independent machine validation belongs at the publication boundary after the
+development loop selects a configuration worth testing. Human feedback may be
+appended later and can inform a future immutable release; it is not a
+prerequisite for `searchOnly`.
 
 Gate 1 is mechanically complete: lexical, BM25, dense, and hybrid paths run
 from the managed release and emit comparable, lineage-complete artifacts
@@ -503,6 +519,10 @@ Rulespec validator. These rows remain `developmentOnly`,
 `proposedUnsealed`, and outside reachable-candidate recall; accepted-output
 authorization still fails.
 
+The following Gate 3 result records the pre-split accepted-output implementation
+as migration evidence; current ownership follows the clarification at the top
+of this roadmap.
+
 The accepted-output boundary also uses the real release-graph receipt issuer.
 A source-derived Federal managed release reaches the Spicy consumer only
 after the exact Rulespec graph, REF record digests, test-only gold,
@@ -521,8 +541,10 @@ sources contain no authored SKOS mapping assertions.
 
 ## 4. Specification feedback rule
 
-The experiment may change Spicy Regs retrieval, ranking, models, prompts,
-indexes, and product interaction freely within the experiment lane.
+The experiment may change SpicySearch retrieval, ranking, models, prompts,
+indexes, and product interaction freely within the experiment lane. SpicyRegs
+experiments remain limited to document capture, source observations, and the
+diagnostic candidate seam.
 
 Change RefSpec or Rulespec when:
 
@@ -536,7 +558,7 @@ Change RefSpec or Rulespec when:
 Promote a new rule only after two real uses demonstrate its durability or one
 reproduced failure proves it necessary. Add focused positive and negative
 fixtures with the rule. Ranking, latency, model, prompting, and provider
-failures stay in Spicy Regs unless they expose a portable boundary defect.
+failures stay in SpicySearch unless they expose a portable boundary defect.
 
 ## 5. Working terminology
 

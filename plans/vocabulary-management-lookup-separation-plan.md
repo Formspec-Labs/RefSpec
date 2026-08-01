@@ -13,12 +13,21 @@
 > **Vocabulary prerequisite:** [RefSpec and Rulespec vocabulary gap closure plan](vocabulary-gap-closure-plan.md)
 >
 > **Semantic dependency:** [RefSpec Rulespec application profile](../profiles/rulespec-application-profile.md)
+>
+> **Supersession notice (2026-07-31):** This document preserves the locally
+> verified implementation baseline. The
+> [product-boundary and atlas reconciliation plan](2026-07-31-refspec-product-boundary-and-atlas-reconciliation-plan.md)
+> supersedes its ownership and promotion directions. RefSpec now owns managed
+> vocabulary releases and static atlas publication; Rulespec Extrapolator owns
+> derived assertions and accepted-output decisions; SpicySearch owns lookup,
+> indexes, and ranking.
 
 **Execution checkpoint:** All five iterations and the fifteen acceptance
-criteria have executable local evidence. RefSpec owns the managed-release path
-and accepted-output checks; Spicy Regs consumes immutable releases for lookup.
-The Rulespec dependency remains local and unpublished. No remote release or
-production deployment is authorized.
+criteria have executable local evidence. RefSpec owns the managed-release and
+static-atlas publication paths. Product-local file readers consume those
+immutable outputs; the historical accepted-output and lookup ownership below is
+superseded. The Rulespec dependency remains local and unpublished. No remote
+release or production deployment is authorized.
 
 ## Local closure record
 
@@ -69,12 +78,14 @@ evidence, attribution, assumption, and residual risk and does not claim legal
 clearance. Access, privacy, security, quality, and production-release controls
 remain independent.
 
-## Result
+## Historical result at local closure
 
-Make RefSpec the source of truth for the vocabulary releases that REF imports,
-normalizes, reconciles, approves, publishes, evaluates, deploys, and retires.
-Keep Spicy Regs as a read-only consumer that builds lookup indexes, retrieves
-and ranks candidates, and tests the system against real regulatory work.
+At the 29 July closure, the implementation made RefSpec the source of truth for
+the vocabulary releases that REF imported, normalized, reconciled, approved,
+published, evaluated, deployed, and retired. It kept Spicy Regs as a read-only
+consumer that built lookup indexes, retrieved and ranked candidates, and tested
+the system against real regulatory work. The supersession notice above replaces
+those ownership assignments while retaining this evidence.
 
 This boundary does not make RefSpec the original authority for an external
 vocabulary. A publisher's native distribution remains authoritative for what
@@ -96,33 +107,44 @@ now directs the work through two lanes:
 
 - the **experiment lane** runs ambitious, development-only lookup experiments
   with a small generated run manifest and focused checks; and
-- the **promotion lane** applies the full RefSpec and Rulespec records, reviews,
-  conformance suites, and release evidence when a result will become a
-  dependency or accepted output.
+- the **release and adoption lane** applies the full RefSpec and Rulespec
+  records, conformance suites, and release evidence when a result will become
+  stable or support use beyond machine-qualified `searchOnly` discovery.
 
 The experiment lane may vary retrieval, ranking, models, prompts, indexes, and
 product interactions without changing RefSpec or Rulespec. A reproduced
 semantic, ownership, identity, or preservation failure returns to the
-appropriate specification. Promotion never converts a research candidate into
-accepted output without the required authorization and evaluation.
+appropriate specification. The release and adoption lane never converts a
+research candidate into accepted output without Rulespec Extrapolator selection
+and the applicable product evaluation. Two machine validators with distinct
+actors, independence groups, providers, provider model IDs, and responses plus
+deterministic checks can qualify `searchOnly`; human feedback is optional later
+input.
 
 ## 1. Ownership boundary
 
 | Owner | Owns | Does not own |
 | --- | --- | --- |
 | Native vocabulary publisher | Canonical source distributions, publisher identifiers, and publisher release history | REF import decisions, REF deployment, or Spicy lookup behavior |
-| Rulespec | Reusable concept, scheme, mapping, release, lifecycle, assertion, attestation, adoption, provenance, and evidence semantics | REF acquisition workflow, REF output permissions, source-specific import code, or lookup ranking |
-| RefSpec | Source catalog, capture and verification, non-lossy import, normalization policy, coverage accounting, reconciliation, managed release assembly, output permissions, evaluation controls, deployment, rollback, and operational schemas | Duplicate Rulespec semantic types, source-publisher authority, document-specific extraction, or ranking algorithms |
-| Spicy Regs | Lookup-index construction, candidate generation, retrieval, ranking, provider and model experiments, document integration, product evaluation, and user workflow | Authoritative registry mutation, concept minting, release reconciliation, permission policy, or deployment authorization |
+| Rulespec Core | Reusable concept, scheme, mapping, release, lifecycle, assertion, attestation, adoption, provenance, and evidence semantics | RefSpec acquisition workflow, managed vocabulary content, or lookup ranking |
+| RefSpec | Source catalog, capture and verification, non-lossy import, normalization policy, coverage accounting, reconciliation, managed release assembly, crosswalk evidence, and static atlas publication | Duplicate Rulespec semantic types, source-publisher authority, document extraction, accepted-output decisions, or ranking algorithms |
+| SpicyRegs | Regulatory document capture, source observations, document identity, evidence addresses, and a product-local diagnostic file reader | Managed vocabulary authority, derived accepted-output decisions, or search ranking |
+| Rulespec Extrapolator | Evidence-bound derived assertions, deterministic selection, and accepted-output decisions | Vocabulary acquisition, source-document authority, or search serving |
+| SpicySearch | Query processing, disposable indexes, retrieval, ranking, explanations, coverage, and search feedback | Source-document authority, managed vocabulary publication, or accepted-output decisions |
 
 The short form is:
 
 - RefSpec answers: **What is in this managed vocabulary release, where did it
-  come from, and why may this use proceed?**
-- Spicy Regs answers: **Which permitted release members best match this text,
-  and how useful is that ranking in practice?**
+  come from, and what static atlas was published from it?**
+- Rulespec Extrapolator answers: **Which evidence-bound derived assertions were
+  selected for the declared use?**
+- SpicySearch answers: **Which pinned release facts best answer this query, and
+  why did each result rank where it did?**
 
-## 2. The lookup boundary
+## 2. Historical lookup boundary
+
+This section records the pre-split interface that the local closure exercised.
+The current file boundary and product owners are stated in section 1.
 
 RefSpec and Spicy Regs meet at immutable, content-digested interfaces.
 
@@ -359,10 +381,10 @@ the same meaning.
 
 | Question | RefSpec answer |
 | --- | --- |
-| What goes in? | Immutable native distributions, source metadata, rights information, exact Rulespec pins, import policy, and reviewer decisions |
-| What happens? | Verify, parse without silent loss, normalize without collapsing identity, account for coverage, reconcile conflicts, validate, approve, and assemble an immutable release |
-| What comes out? | A managed vocabulary release, expression corpus, release manifest, validation reports, deployment decision, and stable access interfaces |
-| How do we check it? | Positive and negative fixtures, source-to-release count and digest reconciliation, round-trip tests, exact Rulespec validation, and a Spicy Regs lookup regression |
+| What goes in? | Immutable native distributions, source metadata, rights information, exact Rulespec Core pins, import policy, and optional closed crosswalk evidence with machine-validation receipts |
+| What happens? | Verify, parse without silent loss, normalize without collapsing identity, account for coverage, reconcile conflicts, validate the release, and qualify `searchOnly` mappings through deterministic checks and two independent machine validators |
+| What comes out? | A managed vocabulary release, expression corpus, release manifest, validation reports, and the two-file atlas distribution: `atlas-manifest.json` and `atlas.nq` |
+| How do we check it? | Positive and negative fixtures, source-to-release count and digest reconciliation, round-trip tests, exact Rulespec validation, atlas reproduction, and product-local file-reader gates |
 
 ## 7. Completed delivery sequence
 
@@ -411,7 +433,11 @@ start with the 513,236-row legacy fusion.
 **Gate:** the managed release round-trips every supported source feature, and
 every excluded or failed source value is counted and explained.
 
-### Iteration 4 — Make Spicy Regs a consumer
+### Iteration 4 — Make Spicy Regs a consumer (historical delivery record)
+
+This iteration records the pre-split implementation. Its lookup, ranking, and
+accepted-output ownership is superseded by the notice at the top of this
+document; the preserved tests remain useful migration evidence.
 
 - replace local REF record definitions with a pinned RefSpec package;
 - obtain the selected managed release through its immutable manifest;
@@ -438,7 +464,7 @@ release policy.
 **Gate:** every production vocabulary follows the managed-release path, and no
 Spicy Regs code can silently become registry authority.
 
-## 8. First vertical slice
+## 8. Historical first vertical slice
 
 Use one small, structurally rich vocabulary before scaling.
 
@@ -476,7 +502,7 @@ Use one small, structurally rich vocabulary before scaling.
 - enrichment configuration and evaluation results; and
 - an enrichment deployment decision or an explicit refusal to deploy.
 
-## 9. Acceptance criteria
+## 9. Historical acceptance criteria
 
 The migration is complete when:
 

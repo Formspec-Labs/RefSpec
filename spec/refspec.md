@@ -26,6 +26,12 @@
 >
 > **Publication terms:** Pending; this public editor's draft grants no license
 
+> **Current product boundary:** This broad pipeline draft predates the
+> four-product split. New RefSpec work is limited to managed vocabulary source
+> packages, releases, crosswalk evidence, and static atlas publication. The
+> [product boundary and API disposition](../docs/product-boundary-and-api-disposition.md)
+> identifies compatibility sections and their destination products.
+
 ## Abstract
 
 RefSpec, the Regulatory Evidence Framework (REF), defines an acquisition,
