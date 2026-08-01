@@ -11,7 +11,8 @@ permission beyond rights supplied by applicable law.
 
 ## Documents
 
-- [RefSpec 1.0 editor's draft](spec/refspec.md)
+- [RefSpec managed vocabulary release specification](spec/managed-vocabulary-release.md)
+- [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
 - [Core enrichment profile](profiles/enrichment-profile.md)
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)

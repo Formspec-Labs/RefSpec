@@ -26,11 +26,12 @@
 >
 > **Publication terms:** Pending; this public editor's draft grants no license
 
-> **Current product boundary:** This broad pipeline draft predates the
-> four-product split. New RefSpec work is limited to managed vocabulary source
-> packages, releases, crosswalk evidence, and static atlas publication. The
-> [product boundary and API disposition](../docs/product-boundary-and-api-disposition.md)
-> identifies compatibility sections and their destination products.
+> **Historical:** This broad pipeline draft predates the four-product split and no longer
+> controls RefSpec's scope. It is retained as design lineage and as the compatibility
+> inventory referenced by the
+> [product boundary and API disposition](../docs/product-boundary-and-api-disposition.md).
+> The current normative specification is the
+> [RefSpec managed vocabulary release specification](managed-vocabulary-release.md).
 
 ## Abstract
 
