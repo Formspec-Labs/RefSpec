@@ -60,3 +60,14 @@ links to nine reports covering:
 
 - [ELSST R5/R6 managed-release scale proof](evidence/elsst-r5-r6-managed-release-2026-07-29/README.md)
 - [Federal Register topics unresolved reconciliation proof](evidence/federal-register-topics-reconciliation-2026-07-29/README.md)
+
+## Static atlas research
+
+- [Multidimensional vocabulary atlas experiment](evidence/vocabulary-atlas-graph-experiment-2026-07-31.md)
+- [LadybugDB static-atlas serving spike](evidence/ladybug-vocabulary-atlas-spike-2026-07-31/README.md)
+- [GraphDB v5 repository configuration](evidence/vocabulary-atlas-graphdb-v5/README.md)
+
+These snapshots preserve the experiments that led to the two-graph static
+asset. Their document-oriented projections predate the four-product split.
+Current RefSpec code retains only managed-vocabulary, crosswalk, and static
+atlas behavior; SpicyRegs and SpicySearch own document data and retrieval.
