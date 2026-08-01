@@ -61,6 +61,23 @@ _MAPPING_RELATIONS = frozenset(
     }
 )
 _ARTIFACT_ROLES = frozenset({"evidence", "validationRequest", "validationResponse"})
+_CORE_RELEASE_STATUSES = frozenset({"fixture", "candidate", "published"})
+_CORE_ARTIFACT_MANIFESTS = (
+    "conformance_fixture_artifacts",
+    "schema_artifacts",
+    "validator_artifacts",
+)
+_CORE_ARTIFACT_FIELDS = frozenset({"artifact_digest", "media_type", "name"})
+_CORE_RELEASE_FIELDS = frozenset(
+    {
+        "record_type",
+        "release_digest",
+        "release_id",
+        "release_status",
+        "version",
+        *_CORE_ARTIFACT_MANIFESTS,
+    }
+)
 _FEEDBACK_DISPOSITIONS = frozenset({"supports", "challenges", "comment"})
 _POLICIES = MappingProxyType(
     {
@@ -330,6 +347,41 @@ class PinnedManagedRelease:
         }
 
 
+def _require_core_release_contract(record: Mapping[str, Any]) -> None:
+    """Reject a pinned file that is not a complete Rulespec Core release.
+
+    Matching digests prove only that the bytes are the pinned bytes.  This
+    check proves the bytes are a Core release: without it a file containing
+    just ``{"record_type": "RulespecCoreRelease"}`` pins cleanly and publishes
+    an atlas that claims Rulespec Core conformance it cannot support.
+
+    RefSpec reimplements the required-field contract published in Rulespec's
+    ``release-records/schemas/rulespec-core-release.schema.json`` rather than
+    importing Rulespec, so the atlas keeps its file-only dependency.
+    """
+
+    missing = sorted(_CORE_RELEASE_FIELDS - set(record))
+    if missing:
+        raise VocabularyAtlasError(f"Rulespec Core release omits required fields {missing!r}")
+    unsupported = sorted(set(record) - _CORE_RELEASE_FIELDS)
+    if unsupported:
+        raise VocabularyAtlasError(f"Rulespec Core release contains unsupported fields {unsupported!r}")
+    if record["release_status"] not in _CORE_RELEASE_STATUSES:
+        raise VocabularyAtlasError("Rulespec Core release_status must be fixture, candidate, or published")
+    _require_text(record["version"], "Rulespec Core version")
+    for field in _CORE_ARTIFACT_MANIFESTS:
+        entries = record[field]
+        if not isinstance(entries, list) or not entries:
+            raise VocabularyAtlasError(f"Rulespec Core {field} must list at least one artifact")
+        for index, entry in enumerate(entries):
+            label = f"Rulespec Core {field}[{index}]"
+            if not isinstance(entry, Mapping) or set(entry) != _CORE_ARTIFACT_FIELDS:
+                raise VocabularyAtlasError(f"{label} must contain exactly name, media_type, and artifact_digest")
+            _require_text(entry["name"], f"{label} name")
+            _require_text(entry["media_type"], f"{label} media_type")
+            _require_digest(entry["artifact_digest"], f"{label} artifact_digest")
+
+
 @dataclass(frozen=True, slots=True)
 class PinnedRulespecCoreRelease:
     """Exact external Rulespec Core release bytes used by the atlas."""
@@ -357,6 +409,7 @@ class PinnedRulespecCoreRelease:
         record = _load_json_object(raw, "Rulespec Core release")
         if record.get("record_type") != "RulespecCoreRelease":
             raise VocabularyAtlasError("Rulespec Core record_type differs")
+        _require_core_release_contract(record)
         if record.get("release_id") != expected_release_id:
             raise VocabularyAtlasError("Rulespec Core release id differs")
         if record.get("release_digest") != expected_release_digest:

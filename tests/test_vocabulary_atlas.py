@@ -55,6 +55,7 @@ build_bundle = _FIXTURE_MODULE.build_bundle
 
 SHA_A = "sha256:" + "a" * 64
 SHA_B = "sha256:" + "b" * 64
+_ABSENT = object()
 SOURCE_MEMBER = "urn:test:atlas:source:concept"
 TARGET_MEMBER = "urn:test:atlas:target:concept"
 SOURCE_RELEASE = "urn:test:atlas:source:release"
@@ -96,16 +97,47 @@ def _plain_json(value: Any) -> Any:
     return value
 
 
-def _core_release(tmp_path: Path) -> PinnedRulespecCoreRelease:
-    preimage = {
+def _core_preimage(**overrides: Any) -> dict[str, Any]:
+    """Return the smallest record that satisfies the published Core contract."""
+
+    preimage: dict[str, Any] = {
         "record_type": "RulespecCoreRelease",
         "release_status": "fixture",
-        "version": "test",
-        "schema_artifacts": [],
-        "validator_artifacts": [],
-        "conformance_fixture_artifacts": [],
+        "version": "0.2.0-pre.9+test-fixture",
+        "schema_artifacts": [
+            {
+                "artifact_digest": SHA_A,
+                "media_type": "application/schema+json",
+                "name": "compiled/json-schema/core/artifact.schema.json",
+            }
+        ],
+        "validator_artifacts": [
+            {
+                "artifact_digest": SHA_B,
+                "media_type": "text/x-python",
+                "name": "tools/ci_validate.py",
+            }
+        ],
+        "conformance_fixture_artifacts": [
+            {
+                "artifact_digest": SHA_A,
+                "media_type": "application/ld+json",
+                "name": "fixtures/ailineage-positive.jsonld",
+            }
+        ],
     }
-    release_digest = "sha256:" + hashlib.sha256(canonical_json(preimage).encode("utf-8")).hexdigest()
+    for key, value in overrides.items():
+        if value is _ABSENT:
+            preimage.pop(key, None)
+        else:
+            preimage[key] = value
+    return preimage
+
+
+def _open_core_release(tmp_path: Path, preimage: Mapping[str, Any]) -> PinnedRulespecCoreRelease:
+    """Write the exact preimage with matching identity and open it."""
+
+    release_digest = "sha256:" + hashlib.sha256(canonical_json(dict(preimage)).encode("utf-8")).hexdigest()
     release_id = "urn:rulespec:core:" + release_digest.removeprefix("sha256:")
     path = tmp_path / "rulespec-core.json"
     path.write_text(
@@ -123,6 +155,10 @@ def _core_release(tmp_path: Path) -> PinnedRulespecCoreRelease:
         expected_release_id=release_id,
         expected_release_digest=release_digest,
     )
+
+
+def _core_release(tmp_path: Path) -> PinnedRulespecCoreRelease:
+    return _open_core_release(tmp_path, _core_preimage())
 
 
 def _real_release(tmp_path: Path) -> PinnedManagedRelease:
@@ -458,6 +494,52 @@ def test_cli_builds_from_exact_file_pins(tmp_path: Path, capsys: pytest.CaptureF
         expected_output_digest=selection["outputDigest"],
     )
     assert selection["assetId"] == reopened.manifest["id"]
+
+
+def test_core_pin_rejects_a_release_that_declares_only_its_record_type(tmp_path: Path) -> None:
+    with pytest.raises(VocabularyAtlasError, match="omits required fields"):
+        _open_core_release(tmp_path, {"record_type": "RulespecCoreRelease"})
+
+
+def test_core_pin_rejects_a_release_with_an_unknown_release_status(tmp_path: Path) -> None:
+    with pytest.raises(VocabularyAtlasError, match="release_status"):
+        _open_core_release(tmp_path, _core_preimage(release_status="draft"))
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["conformance_fixture_artifacts", "schema_artifacts", "validator_artifacts"],
+)
+def test_core_pin_rejects_a_release_with_empty_artifact_manifests(tmp_path: Path, field: str) -> None:
+    with pytest.raises(VocabularyAtlasError, match=f"{field} must list at least one artifact"):
+        _open_core_release(tmp_path, _core_preimage(**{field: []}))
+
+
+def test_core_pin_rejects_a_release_with_a_malformed_artifact_entry(tmp_path: Path) -> None:
+    with pytest.raises(VocabularyAtlasError, match=r"schema_artifacts\[0\]"):
+        _open_core_release(
+            tmp_path,
+            _core_preimage(
+                schema_artifacts=[
+                    {
+                        "media_type": "application/schema+json",
+                        "name": "compiled/json-schema/core/artifact.schema.json",
+                    }
+                ]
+            ),
+        )
+
+
+def test_core_pin_rejects_a_release_missing_its_version(tmp_path: Path) -> None:
+    with pytest.raises(VocabularyAtlasError, match="omits required fields"):
+        _open_core_release(tmp_path, _core_preimage(version=_ABSENT))
+
+
+def test_core_pin_accepts_the_minimally_valid_core_release(tmp_path: Path) -> None:
+    core = _core_release(tmp_path)
+
+    assert core.release_id.startswith("urn:rulespec:core:")
+    assert core.pin()["role"] == "RulespecCoreRelease"
 
 
 def test_declared_rulespec_core_profile_opens_the_exact_sibling_fixture() -> None:

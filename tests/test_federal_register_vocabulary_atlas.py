@@ -51,10 +51,28 @@ def _core_release(tmp_path: Path) -> PinnedRulespecCoreRelease:
     preimage = {
         "record_type": "RulespecCoreRelease",
         "release_status": "fixture",
-        "version": "test",
-        "schema_artifacts": [],
-        "validator_artifacts": [],
-        "conformance_fixture_artifacts": [],
+        "version": "0.2.0-pre.9+test-fixture",
+        "schema_artifacts": [
+            {
+                "artifact_digest": "sha256:" + "a" * 64,
+                "media_type": "application/schema+json",
+                "name": "compiled/json-schema/core/reference-resource-release.schema.json",
+            }
+        ],
+        "validator_artifacts": [
+            {
+                "artifact_digest": "sha256:" + "b" * 64,
+                "media_type": "text/x-python",
+                "name": "tools/ci_validate.py",
+            }
+        ],
+        "conformance_fixture_artifacts": [
+            {
+                "artifact_digest": "sha256:" + "c" * 64,
+                "media_type": "application/ld+json",
+                "name": "fixtures/reference-resource-release-digest-positive.jsonld",
+            }
+        ],
     }
     digest = "sha256:" + hashlib.sha256(canonical_json(preimage).encode()).hexdigest()
     release_id = "urn:rulespec:core:" + digest.removeprefix("sha256:")
