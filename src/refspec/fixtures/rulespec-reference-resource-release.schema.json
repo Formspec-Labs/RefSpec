@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rulespec.org/jsonschema/reference-resource-release.json",
+  "title": "reference-resource-release",
+  "$defs": {
+    "ReferenceResourceVersionBasis": {
+      "type": "string",
+      "enum": [
+        "rkaf:publisherAssigned",
+        "rkaf:contentDerived"
+      ]
+    },
+    "ReferenceResourceMembershipMode": {
+      "type": "string",
+      "enum": [
+        "rkaf:completeMembership",
+        "rkaf:partialMembership",
+        "rkaf:membershipNotEnumerated"
+      ]
+    },
+    "ReferenceResourceRelease": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "const": "rkaf:ReferenceResourceRelease"
+        },
+        "dcterms:isVersionOf": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+        },
+        "dcat:version": {
+          "type": "string"
+        },
+        "dcterms:type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+        },
+        "rkaf:membershipMode": {
+          "$ref": "#/$defs/ReferenceResourceMembershipMode"
+        },
+        "prov:hadMember": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+              },
+              "minItems": 1
+            }
+          ]
+        },
+        "dcat:distribution": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+              },
+              "minItems": 1
+            }
+          ]
+        },
+        "rkaf:referenceReleaseDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rkaf:versionBasis": {
+          "$ref": "#/$defs/ReferenceResourceVersionBasis"
+        },
+        "dcterms:issued": {
+          "type": "string"
+        },
+        "rkaf:hasEffectivePeriod": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+        }
+      },
+      "required": [
+        "@type",
+        "dcterms:isVersionOf",
+        "dcat:version",
+        "dcterms:type",
+        "rkaf:membershipMode",
+        "dcat:distribution",
+        "rkaf:referenceReleaseDigest"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "rkaf:membershipMode": {
+                "anyOf": [
+                  {
+                    "const": "rkaf:completeMembership"
+                  },
+                  {
+                    "type": "array",
+                    "contains": {
+                      "const": "rkaf:completeMembership"
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "rkaf:membershipMode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "prov:hadMember": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+                    },
+                    "minItems": 1
+                  }
+                ]
+              }
+            },
+            "required": [
+              "prov:hadMember"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "rkaf:membershipMode": {
+                "anyOf": [
+                  {
+                    "const": "rkaf:partialMembership"
+                  },
+                  {
+                    "type": "array",
+                    "contains": {
+                      "const": "rkaf:partialMembership"
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "rkaf:membershipMode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "prov:hadMember": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
+                    },
+                    "minItems": 1
+                  }
+                ]
+              }
+            },
+            "required": [
+              "prov:hadMember"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "rkaf:membershipMode": {
+                "anyOf": [
+                  {
+                    "const": "rkaf:membershipNotEnumerated"
+                  },
+                  {
+                    "type": "array",
+                    "contains": {
+                      "const": "rkaf:membershipNotEnumerated"
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "rkaf:membershipMode"
+            ]
+          },
+          "then": {
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "prov:hadMember"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

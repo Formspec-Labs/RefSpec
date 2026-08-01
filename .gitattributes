@@ -1,0 +1,2 @@
+# This source fixture is byte-pinned, including its final blank line.
+src/refspec/fixtures/federal-register-thesaurus-2025-first-slice-v1.json whitespace=-blank-at-eof

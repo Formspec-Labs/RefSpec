@@ -1,0 +1,45 @@
+{
+  "@context": "../context/rkaf-context.jsonld",
+  "@graph": [
+    {
+      "@id": "urn:rkaf:fixture:release:digest-vector",
+      "@type": "rkaf:ReferenceResourceRelease",
+      "dcterms:isVersionOf": "urn:rkaf:fixture:resource:topics",
+      "dcat:version": "2026.07.28",
+      "dcterms:type": "skos:ConceptScheme",
+      "rkaf:membershipMode": "rkaf:completeMembership",
+      "prov:hadMember": [
+        "urn:rkaf:fixture:concept:income",
+        "urn:rkaf:fixture:concept:eligibility"
+      ],
+      "dcat:distribution": [
+        "urn:rkaf:fixture:distribution:digest-vector-jsonld",
+        "urn:rkaf:fixture:distribution:digest-vector-turtle"
+      ],
+      "rkaf:referenceReleaseDigest": "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431",
+      "rkaf:versionBasis": "rkaf:publisherAssigned",
+      "dcterms:issued": "2026-07-28T12:00:00Z"
+    },
+    {
+      "@id": "urn:rkaf:fixture:distribution:digest-vector-jsonld",
+      "@type": "rkaf:Artifact",
+      "rkaf:hasArtifactIdentifier": [
+        "urn:rkaf:fixture:distribution:digest-vector-jsonld"
+      ],
+      "rkaf:artifactIdentifierScheme": ["rkaf:partner-defined"],
+      "dcterms:format": "application/ld+json",
+      "rkaf:hasContentDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "@id": "urn:rkaf:fixture:distribution:digest-vector-turtle",
+      "@type": "rkaf:Artifact",
+      "rkaf:hasArtifactIdentifier": [
+        "urn:rkaf:fixture:distribution:digest-vector-turtle"
+      ],
+      "rkaf:artifactIdentifierScheme": ["rkaf:partner-defined"],
+      "dcterms:format": "text/turtle",
+      "rkaf:hasContentDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "_comment": "Normative digest test vector. tools/reference_release_digest.py recomputes referenceReleaseDigest from the RDFC-1.0 canonical closed manifest graph."
+}

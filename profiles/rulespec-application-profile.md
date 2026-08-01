@@ -1,5 +1,10 @@
 <!-- markdownlint-disable MD013 -->
 
+> **Historical draft:** This profile predates the 2026-07-31 four-product
+> boundary. Use `spec/refspec.md` and `docs/decisions.md` for current RefSpec
+> ownership. This file remains as design lineage and may describe capabilities
+> now owned by Rulespec, SpicyRegs, or SpicySearch.
+
 # RefSpec Rulespec Application Profile
 
 ## Editor's Draft, 28 July 2026

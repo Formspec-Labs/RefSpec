@@ -1,0 +1,135 @@
+{
+  "fixture_id": "urn:refspec:fixture:federal-register-thesaurus:2025-04-01:first-slice-v1",
+  "fixture_version": "1",
+  "parser_version": "federal-register-thesaurus-2025-styled-pdf-v1",
+  "source": {
+    "byte_length": 1051423,
+    "issued": "2025-04-01",
+    "media_type": "application/pdf",
+    "page_count": 180,
+    "publisher": "Office of the Federal Register, National Archives and Records Administration",
+    "sha256": "sha256:66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f",
+    "url": "https://www.archives.gov/files/federal-register/cfr/thesaurus-4-1-2025.pdf"
+  },
+  "vocabulary": {
+    "complete_source_concept_count": 705,
+    "default_for_source_profiles": [
+      "federal-register-document-v1"
+    ],
+    "release_scope": "sealedFirstSliceFixture",
+    "root_ontology": false,
+    "scheme_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:first-slice",
+    "title": "Federal Register Thesaurus, April 1 2025, sealed first-slice fixture",
+    "version": "2025-04-01-first-slice-v1"
+  },
+  "concepts": [
+    {
+      "concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0219",
+      "label": "Food grades and standards",
+      "source_locator": {
+        "pdf_page": 52,
+        "printed_page": 49,
+        "source_ordinal": 1183
+      }
+    },
+    {
+      "concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0414",
+      "label": "Meat and meat products",
+      "source_locator": {
+        "pdf_page": 83,
+        "printed_page": 80,
+        "source_ordinal": 1966
+      }
+    },
+    {
+      "concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0415",
+      "label": "Meat inspection",
+      "source_locator": {
+        "pdf_page": 83,
+        "printed_page": 80,
+        "source_ordinal": 1971
+      }
+    },
+    {
+      "concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0517",
+      "label": "Poultry and poultry products",
+      "source_locator": {
+        "pdf_page": 104,
+        "printed_page": 101,
+        "source_ordinal": 2480
+      }
+    },
+    {
+      "concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0570",
+      "label": "Safety",
+      "source_locator": {
+        "pdf_page": 116,
+        "printed_page": 113,
+        "source_ordinal": 2784
+      }
+    }
+  ],
+  "recognized_variants": [
+    {
+      "label": "Accidents",
+      "source_locator": {
+        "pdf_page": 5,
+        "printed_page": 2,
+        "source_ordinal": 1
+      },
+      "target_concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0570",
+      "variant_id": "frt25-variant-0001"
+    }
+  ],
+  "resolution_examples": [
+    {
+      "language": "en",
+      "observation_kind": "listsOfSubjects",
+      "raw_value": "Meat inspection",
+      "reason": "Exact match to an official April 1 2025 indexing term.",
+      "source_native_path": "documents.lists_of_subjects[0]",
+      "source_system_and_profile_version": "federalregister.gov/federal-register-document-v1",
+      "status": "officialTerm",
+      "target_concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0415"
+    },
+    {
+      "language": "en",
+      "observation_kind": "listsOfSubjects",
+      "raw_value": "Accidents",
+      "reason": "The publisher-authored variant resolves to one official term.",
+      "source_native_path": "documents.lists_of_subjects[1]",
+      "source_system_and_profile_version": "federalregister.gov/federal-register-document-v1",
+      "status": "recognizedVariant",
+      "target_concept_id": "urn:refspec:vocabulary:federal-register-thesaurus:2025-04-01:concept:0570"
+    },
+    {
+      "language": "en",
+      "observation_kind": "listsOfSubjects",
+      "raw_value": "Project-specific novel subject",
+      "reason": "Preserve the source-authored open term without minting a concept.",
+      "source_context_discriminator": "FR-2026-03227",
+      "source_native_path": "documents.lists_of_subjects[2]",
+      "source_system_and_profile_version": "federalregister.gov/federal-register-document-v1",
+      "status": "sourceLocalOpenTerm"
+    },
+    {
+      "language": "en",
+      "observation_kind": "listsOfSubjects",
+      "raw_value": "Discrimination",
+      "reason": "The publisher variant has more than one possible target.",
+      "source_native_path": "documents.lists_of_subjects[3]",
+      "source_system_and_profile_version": "federalregister.gov/federal-register-document-v1",
+      "status": "unresolved"
+    },
+    {
+      "language": "en",
+      "observation_kind": "federalRegisterApiTopic",
+      "raw_value": "Meat inspection",
+      "reason": "The mutable API topic remains an input key pending separate evidence-backed resolution.",
+      "source_native_path": "documents.api_topics[0]",
+      "source_system_and_profile_version": "federalregister.gov/federal-register-document-v1",
+      "status": "unresolved"
+    }
+  ]
+}
+

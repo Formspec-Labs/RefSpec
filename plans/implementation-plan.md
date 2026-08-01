@@ -1,5 +1,9 @@
 <!-- markdownlint-disable MD013 -->
 
+> **Superseded plan:** The 2026-07-31 managed-vocabulary implementation in
+> `spec/refspec.md` and `docs/decisions.md` replaces this broad plan. This file
+> remains as design lineage and is not a current ownership or delivery plan.
+
 # RefSpec implementation plan
 
 > **Status:** Rulespec-dependent delivery plan

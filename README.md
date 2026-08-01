@@ -1,40 +1,68 @@
 # RefSpec
 
-RefSpec is the standalone home of the Regulatory Evidence Framework (REF), an
-evidence-first specification for acquiring, preserving, processing, enriching,
-and publishing auditable regulatory information.
+RefSpec publishes managed ontology and vocabulary releases. It captures an
+external vocabulary distribution, records the managed publication decision,
+resolves exact source-term keys, and exposes the complete Rulespec Core
+reference release used by downstream concept assignments.
 
-RefSpec is an unpublished editor's draft. The repository makes no W3C
-endorsement claim. No license has been selected, so publication does not grant
-permission beyond rights supplied by applicable law.
+RefSpec does not acquire documents, preserve document observations, execute
+extrapolation, or rank search results. Those responsibilities belong to
+SpicyRegs, Rulespec, and SpicySearch.
 
-## Documents
+## Implemented first slice
 
-- [RefSpec 1.0 editor's draft](spec/refspec.md)
-- [Rulespec application profile](profiles/rulespec-application-profile.md)
-- [Implementation plan](plans/implementation-plan.md)
-- [Research-input register](docs/research-inputs.md)
-- [Research archive](research/README.md)
+This repository contains a self-contained Python package that builds and
+validates a sealed first-slice fixture from the April 1, 2025 Federal Register
+Thesaurus. The fixture publishes five concepts for conformance testing. It does
+not claim to publish the complete 705-concept source vocabulary.
 
-## Ownership boundary
+The package provides:
 
-RefSpec owns operational acquisition, processing, portfolio accounting,
-evaluation, publication, and extension behavior.
+- canonical JSON and content-derived release identifiers;
+- `VocabularyRelease` and `VocabularyCoverage` records;
+- an exact, complete Rulespec Core `ReferenceResourceRelease` projection;
+- `SourceTermKey` and closed-state `SourceTermResolution` records;
+- `AgentValidationReceipt` and `BaselineValidationReceipt` records;
+- positive examples for all four Lists of Subjects resolution states; and
+- fail-closed validation for digests, references, membership, and target
+  cardinality.
 
-[Rulespec](https://github.com/Formspec-Labs/rulespec) owns reusable semantic
-records and their portable constraints. RefSpec binds to Rulespec through an
-application profile; it does not duplicate Rulespec classes or validation
-rules.
+The build uses package-local, digest-pinned fixtures. It never reads another
+repository checkout or a mutable database.
 
-Implementations and research projects remain consumers of RefSpec. The dated
-research snapshots used to develop this editor's draft are archived under
-[`research/`](research/README.md). They are nonnormative except where the
-specification explicitly identifies a portfolio baseline.
+The current Rulespec Core pin is an exact package-local copy of
+`rulespec-core-release-m2.json`, release `5ac6ba59…`. The package also copies
+the Core `ReferenceResourceRelease` schema and digest vector exactly. The Core
+release's declared status is `fixture`; replace it with a published release
+before publishing a production RefSpec release.
 
-## Current dependency state
+## Build and test
 
-The editor's draft targets Rulespec `0.2.0-pre.8`, local revision
-`c330aef9a7e13c59929631b7b7ba0c6869a57c22`, and constraint digest
-`sha256:71250f67b81fd54af3f6e6c45f2100f9a2307da589b364593e6708e5674b7172`.
-That Rulespec revision has not yet been published to its remote repository, so
-RefSpec does not yet make a production conformance claim.
+Python 3.11 or later is required.
+
+```sh
+pytest -q
+python -m refspec.cli --output build/federal-register-2025-first-slice.json
+```
+
+When the package is not installed, add `PYTHONPATH=src` to the builder command.
+Repeated builds produce identical canonical bytes and the same release digest.
+The checked-in release artifact is
+`release-records/fixtures/refspec-vocabulary-release-federal-register-2025-first-slice.json`.
+
+The conformance fixture includes two independent example validator receipts.
+They demonstrate receipt structure and reduction logic; they are not claims of
+production validation or release promotion.
+
+## Product boundary
+
+The current boundary and its four-product ownership map are recorded in
+[`docs/decisions.md`](docs/decisions.md). The normative RefSpec behavior is in
+[`spec/refspec.md`](spec/refspec.md).
+
+This implementation is local and unreleased.
+
+RefSpec is an independent project draft, not a W3C standard. The repository
+has no selected license; public visibility does not grant rights beyond
+applicable law. Historical research and superseded design drafts remain in
+`research/`, `profiles/`, and `plans/` as nonnormative lineage.
