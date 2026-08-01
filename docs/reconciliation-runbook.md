@@ -1,0 +1,124 @@
+# RefSpec Reconciliation Runbook — prepared commands, NOT executed
+
+**Prepared:** 1 August 2026
+**Status:** Every command below is prepared for a human to run deliberately. The agent that
+wrote this file did not run any of them.
+
+Local reconciliation is complete: the nested RefSpec line (the submodule inside `spicy-regs`)
+holds the atlas distribution, the imported decision ledger REF-001…REF-007, the adopted
+managed-vocabulary specification, and archive refs pinning the retired standalone line.
+
+## Ordering constraint — read first
+
+`spicy-regs` workflows now check out submodules. `actions/checkout` resolves the RefSpec
+gitlink against `https://github.com/Formspec-Labs/RefSpec.git`. **R1 must run before the
+`spicy-regs` branch is pushed**, or every CI job fails with "did not contain the requested
+object" for the gitlink commit.
+
+## R1 — Publish the nested RefSpec line (fast-forward)
+
+`origin/main` is `714866d`; the nested line descends from it, so this is a clean
+fast-forward with no force.
+
+```sh
+git -C /Users/mikewolfd/Work/spicy-regs/RefSpec fetch origin
+git -C /Users/mikewolfd/Work/spicy-regs/RefSpec merge-base --is-ancestor origin/main HEAD \
+  && echo "fast-forward confirmed"
+git -C /Users/mikewolfd/Work/spicy-regs/RefSpec push origin main
+```
+
+Publishes REF-007. **As committed, REF-007 does not name the split commit
+`civictechdc/spicy-regs@70f8ce1`.** The plan's draft ended with a provenance paragraph naming
+it; the executor left that paragraph out because committing it onto `main` would publish the
+scrubbed identifier by default at R1, and removing it afterwards would require rewriting
+history. See "Optional: restore the provenance sentence" below and R3's warning.
+
+## Optional: restore the provenance sentence to REF-007
+
+Only if you want the split origin stated in the published ledger. This is a forward-only
+edit — no rewriting. Append to the REF-007 section of
+`/Users/mikewolfd/Work/spicy-regs/RefSpec/docs/decisions.md`, then commit, **before** R1:
+
+```text
+RefSpec's documents originate in the split of `civictechdc/spicy-regs` commit `70f8ce1`,
+which created the RefSpec and Rulespec lines under Formspec Labs.
+```
+
+> **Same warning as R3 applies.** That identifier was deliberately amended out of the public
+> repository on 2026-07-28. Adding it here and running R1 re-publishes it. The provenance is
+> already preserved locally in `refs/archive/refspec-standalone/pre-scrub-initial`, which no
+> default push touches, so restoring it is not needed for preservation.
+
+## R2 — Archive the standalone line on the remote
+
+Pushes the retired line to a clearly-named branch. Not a force; the branch does not exist yet.
+
+```sh
+git -C /Users/mikewolfd/Work/RefSpec push origin \
+  refs/archive/main:refs/heads/archive/standalone-2026-07-31
+```
+
+## R3 — OPTIONAL, PRIVACY-SENSITIVE: publish the pre-scrub initial commit
+
+> **WARNING — this reverses a deliberate editorial scrub.** Commit `67c497f` is the original
+> initial commit. Its `README.md` carries a `## History` section naming
+> `civictechdc/spicy-regs` commit `70f8ce1` as the split origin. On 2026-07-28 that commit was
+> amended (`f7f14b9`) and force-pushed, removing that text from the public repository.
+> Publishing it re-exposes what was removed on purpose.
+>
+> **This is the user's call. Do not run it as part of routine execution.** The commit is
+> already preserved locally and durably at
+> `refs/archive/refspec-standalone/pre-scrub-initial` in the nested repo and at
+> `refs/archive/pre-scrub-initial` in the standalone; publication is not needed for
+> preservation.
+
+```sh
+git -C /Users/mikewolfd/Work/RefSpec push origin \
+  67c497f859fab4a392014ff71401d423cc911807:refs/heads/archive/pre-scrub-initial
+```
+
+## R4 — Publish the spicy-regs surgical commit
+
+Only after R1. The branch carries 140 unpushed commits, most unrelated to this work; review
+before pushing.
+
+```sh
+git -C /Users/mikewolfd/Work/spicy-regs log --oneline origin/main..HEAD | head -20
+git -C /Users/mikewolfd/Work/spicy-regs push origin feat/document-ai-pipeline
+```
+
+## R5 — Delete the standalone checkout
+
+Only after R1 **and** R2 have succeeded and been verified on GitHub.
+
+```sh
+git -C /Users/mikewolfd/Work/RefSpec status --porcelain          # must be empty
+git -C /Users/mikewolfd/Work/spicy-regs/RefSpec rev-parse \
+  refs/archive/refspec-standalone/main \
+  refs/archive/refspec-standalone/pre-scrub-initial              # both must resolve
+git ls-remote https://github.com/Formspec-Labs/RefSpec.git \
+  'refs/heads/archive/*'                                         # archive branch must be listed
+rm -rf /Users/mikewolfd/Work/RefSpec
+```
+
+## Follow-on architecture work — NOT in scope of this reconciliation
+
+1. **Promote RefSpec out of submodule-hood.** The submodule is why `spicy-regs` CI installs an
+   empty `RefSpec/` and why `pyproject.toml` carries
+   `[tool.uv.sources] refspec = { path = "RefSpec", editable = true }`. Replacing the gitlink
+   and the path source with a published, version-pinned `refspec` distribution removes both
+   the `submodules: true` workaround added here and the editable source-tree coupling. The
+   `submodules: true` change is an **interim fix**, not the destination.
+2. **Cut spicy-regs to published artifacts.** 18 `spicy-regs` files import the RefSpec package
+   directly. The boundary decision (REF-001, REF-006) is that consumers read digest-pinned
+   published files. Migrating those imports to file readers is a separate, test-covered change.
+3. **Vendor the atlas example into SpicySearch.**
+   `spicysearch/tests/test_refspec_atlas_cross_repository.py` resolves
+   `REFSPEC_CHECKOUT`, defaulting to `../spicy-regs/RefSpec`, and reads
+   `bindings/atlas/1.0/examples/federal-register-thesaurus-2025/`. That is a filesystem
+   dependency on a sibling checkout. Vendor the example plus its digests into SpicySearch's
+   fixtures (it already pins them in `fixtures/releases/vocabulary-atlas-pin.json`) so the
+   test is hermetic.
+4. **Retire the legacy Rulespec combined gate.** `profiles/rulespec-dependency.json` still pins
+   evidence revision `2c66a85`; Rulespec is at `320ed37`. Migrating the last consumers to
+   `RulespecCoreRelease` and Rulespec Extrapolator lets that manifest be removed.

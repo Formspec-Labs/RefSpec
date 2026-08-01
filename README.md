@@ -27,6 +27,7 @@ permission beyond rights supplied by applicable law.
 - [Historical conceptual implementation plan](plans/implementation-plan.md)
 - [Research-input register](docs/research-inputs.md)
 - [Decision ledger](docs/decisions.md)
+- [Reconciliation runbook](docs/reconciliation-runbook.md)
 - [Current product boundary and API disposition](docs/product-boundary-and-api-disposition.md)
 - [Nested and standalone implementation comparison](plans/2026-07-31-nested-and-standalone-refspec-comparison.md)
 - [Product-boundary and atlas reconciliation plan](plans/2026-07-31-refspec-product-boundary-and-atlas-reconciliation-plan.md)
