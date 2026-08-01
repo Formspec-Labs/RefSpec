@@ -97,3 +97,24 @@ may copy and pin the asset, then use it for document-query expansion, document
 candidate generation, and ranking. It does not regenerate crosswalk candidates,
 import RefSpec source code, ask RefSpec to serve a document query, or treat a
 machine-qualified mapping as publisher or editorial truth.
+
+### REF-007: Reconcile the standalone RefSpec line into this repository
+
+- **Date:** 2026-08-01
+- **Status:** Accepted
+
+Two RefSpec checkouts diverged after commit `714866d`. This repository — the RefSpec
+submodule inside `spicy-regs` — is the surviving line. It keeps the mature managed-release
+implementation, adopts the standalone line's product boundary, decision ledger, managed
+vocabulary specification, and static atlas design, and retires the standalone line's
+duplicate release machinery. No repository consumed that duplicate machinery.
+
+The standalone line's history is archived inside this repository as local refs:
+
+- `refs/archive/refspec-standalone/main` pins its final commit
+  `de744a3d8969bc333db0427321be81c4e4d750f3`, which descends from `210d671`; and
+- `refs/archive/refspec-standalone/pre-scrub-initial` pins `67c497f`, the pre-amend initial
+  commit that survives on no branch.
+
+Neither archive ref is published by a default push. The reconciliation runbook records the
+prepared commands for publishing them.
