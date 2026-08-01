@@ -428,6 +428,7 @@ def structural_key(value: Any) -> str:
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
+        allow_nan=False,
     )
 
 

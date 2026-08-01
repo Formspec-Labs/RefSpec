@@ -7,6 +7,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+import pytest
+
 import refspec
 from refspec import binding
 
@@ -207,3 +209,14 @@ def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
                 binding.canonical_payload_digest(round_tripped)
                 == record[digest_name]
             )
+
+
+def test_structural_key_refuses_non_finite_numbers() -> None:
+    """Structural comparison keys use the same canonical rules as digests."""
+
+    snapshot = {"id": "urn:test:release", "members": ["a", "b"]}
+    assert binding.structural_key(snapshot) == '{"id":"urn:test:release","members":["a","b"]}'
+
+    for value in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError, match="Out of range float"):
+            binding.structural_key({"id": "urn:test:release", "score": value})
