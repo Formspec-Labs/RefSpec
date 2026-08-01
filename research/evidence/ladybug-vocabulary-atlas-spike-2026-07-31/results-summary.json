@@ -1,0 +1,62 @@
+{
+  "atlasGenerationDigest": "sha256:98be18402dae5d2f5bf4e1ef10abc0bfc7da65bd596994b56eda278e828459a3",
+  "atlasManifestSha256": "sha256:4d18adb1d52e6ccaa7df36d91048c95679c28b40f98faa27a9aaa2a49bee6bac",
+  "adversarialChecks": {
+    "generationIdentityMismatchRejected": true,
+    "manifestPinMismatchRejected": true,
+    "sourceLocalConceptTargetRejected": true,
+    "sourceObservationConceptDualTypeRejected": true
+  },
+  "authorityChecks": {
+    "acceptedAssignments": 0,
+    "apiTopicAssignments": 0,
+    "apiTopicResolutions": 0,
+    "candidateAssignments": 26,
+    "candidateMappings": 1151,
+    "candidateMappingAuthorityViolations": 0,
+    "listsWithoutExactlyOneResolution": 0,
+    "nonFederalRegisterCandidateAssignments": 0,
+    "reviewedMappings": 0,
+    "sourceLocalAssignments": 0
+  },
+  "database": {
+    "byteLength": 50057216,
+    "nodeTables": 23,
+    "relationshipTables": 43,
+    "readOnlyWriteRejected": true,
+    "totalProjectedRows": 196528
+  },
+  "parity": {
+    "exactSourceControls": true,
+    "explicitCrossPost": true,
+    "listsResolutions": true,
+    "mutableApiTopic": true
+  },
+  "federalRegisterCandidatePolicy": {
+    "acceptedOutputAllowed": false,
+    "candidateLookupAllowed": true,
+    "rootOntology": false,
+    "sourcePriorityPolicy": "strongSourceNative",
+    "statisticsRanksFirstForFederalRegisterLookup": true
+  },
+  "recursivePathProbe": {
+    "inlineAcyclicMatchesRdf": true,
+    "isAcyclicFilterMatchesRdf": false,
+    "requiredForm": "BROADER* ACYCLIC 1..N"
+  },
+  "runtime": {
+    "ladybug": "0.19.0",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "pyarrow": "23.0.0",
+    "pyoxigraph": "0.5.9",
+    "python": "3.12.9"
+  },
+  "status": "pass-with-path-query-caveat",
+  "timingMs": {
+    "explicitCrossPostMedian": 0.370417,
+    "exactSourceControlsMedian": 1.180666,
+    "ladybugSchemaAndCopy": 2071.5,
+    "mutableApiTopicMedian": 0.905479,
+    "statisticsClusterMedian": 2.111479
+  }
+}

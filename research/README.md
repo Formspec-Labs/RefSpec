@@ -7,8 +7,8 @@ portfolio, design rationale, and evidence behind the specification.
 The files are research snapshots, not normative RefSpec requirements. The
 [specification](../spec/refspec.md) and
 [Rulespec application profile](../profiles/rulespec-application-profile.md)
-define conformance. The [implementation plan](../plans/implementation-plan.md)
-defines current delivery sequencing.
+define conformance. The [superseded implementation plan](../plans/implementation-plan.md)
+preserves the earlier delivery sequence as design history.
 
 Private transcript locations, session identifiers, product identifiers,
 private endpoints, and repository-local implementation paths were removed for
@@ -27,9 +27,15 @@ types, or controlled resources.
 
 - [Concept Tagging Architecture Research Proposal](concept-tagging-architecture-proposal-2026-07-28.md)
 - [Axiom Ecosystem Assessment](axiom-ecosystem-analysis-2026-07-28.md)
+- [Vocabulary-atlas graph experiment](evidence/vocabulary-atlas-graph-experiment-2026-07-31.md)
+- [LadybugDB vocabulary-atlas spike](evidence/ladybug-vocabulary-atlas-spike-2026-07-31/README.md)
+- [Historical GraphDB v5 configuration](evidence/vocabulary-atlas-graphdb-v5/README.md)
 
 These documents record proposals and adjacent-system analysis. RefSpec adopts
 only the decisions that appear in the specification or application profile.
+The vocabulary-atlas material records the superseded mixed-product v5 spike;
+the active RefSpec package implements only the crosswalk and deterministic
+static lookup asset.
 
 ## External label-space research
 

@@ -1,0 +1,18 @@
+@prefix graphdb: <http://www.ontotext.com/config/graphdb#> .
+@prefix rep: <http://www.openrdf.org/config/repository#> .
+@prefix sail: <http://www.openrdf.org/config/sail#> .
+@prefix sr: <http://www.openrdf.org/config/repository/sail#> .
+
+<#spicy-regs-vocabulary-atlas>
+    a rep:Repository ;
+    rep:repositoryID "spicy-regs-vocabulary-atlas" ;
+    rep:repositoryImpl [
+        rep:repositoryType "graphdb:SailRepository" ;
+        sr:sailImpl [
+            sail:sailType "graphdb:Sail" ;
+            graphdb:ruleset "empty" ;
+            graphdb:disable-sameAs "true" ;
+            graphdb:enable-context-index "true" ;
+            graphdb:enablePredicateList "true"
+        ]
+    ] .
