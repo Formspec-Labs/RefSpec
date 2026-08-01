@@ -7,12 +7,21 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
+from .federal_register import PinnedFederalRegisterThesaurus2025AtlasRelease
 from .model import (
     CrosswalkBundle,
     PinnedManagedRelease,
     PinnedRulespecCoreRelease,
+    VerifiedManagedReleaseSource,
     build_vocabulary_atlas,
 )
+
+AUTO_FORMAT = "auto"
+MANAGED_BUNDLE_FORMAT = "managed-bundle"
+FEDERAL_REGISTER_2025_FORMAT = "federal-register-thesaurus-2025"
+INPUT_FORMATS = (AUTO_FORMAT, MANAGED_BUNDLE_FORMAT, FEDERAL_REGISTER_2025_FORMAT)
+
+_FEDERAL_REGISTER_2025_MANIFEST_TYPE = "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,6 +33,15 @@ def build_parser() -> argparse.ArgumentParser:
         metavar=("MANIFEST", "SHA256"),
         required=True,
         help="managed-release manifest path and exact file digest; repeat for each release",
+    )
+    parser.add_argument(
+        "--input-format",
+        choices=INPUT_FORMATS,
+        default=AUTO_FORMAT,
+        help=(
+            "reader for every --managed-release input; 'auto' (the default) selects it from "
+            "the declared manifest type"
+        ),
     )
     parser.add_argument("--rulespec-core", type=Path, required=True)
     parser.add_argument("--rulespec-core-file-digest", required=True)
@@ -39,10 +57,46 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _detected_input_format(manifest_path: str) -> str:
+    """Name the reader that matches the declared manifest type.
+
+    Only the source-complete Federal Register package declares its own
+    manifest type.  Every other shape, and every unreadable file, routes to the
+    generic managed-bundle reader so its own fail-closed checks report the
+    error.  The caller has already pinned these bytes by digest, so the
+    declared type cannot select a reader the operator did not pin.
+    """
+
+    try:
+        manifest = json.loads(Path(manifest_path).read_bytes().decode("utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return MANAGED_BUNDLE_FORMAT
+    if isinstance(manifest, dict) and manifest.get("type") == _FEDERAL_REGISTER_2025_MANIFEST_TYPE:
+        return FEDERAL_REGISTER_2025_FORMAT
+    return MANAGED_BUNDLE_FORMAT
+
+
+def open_release(
+    manifest_path: str,
+    digest: str,
+    *,
+    input_format: str = AUTO_FORMAT,
+) -> VerifiedManagedReleaseSource:
+    """Open one exact pinned input through the reader its shape requires."""
+
+    selected = _detected_input_format(manifest_path) if input_format == AUTO_FORMAT else input_format
+    if selected == FEDERAL_REGISTER_2025_FORMAT:
+        return PinnedFederalRegisterThesaurus2025AtlasRelease.open(
+            manifest_path,
+            expected_manifest_digest=digest,
+        )
+    return PinnedManagedRelease.open(manifest_path, expected_manifest_digest=digest)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     releases = tuple(
-        PinnedManagedRelease.open(path, expected_manifest_digest=digest) for path, digest in args.managed_release
+        open_release(path, digest, input_format=args.input_format) for path, digest in args.managed_release
     )
     core = PinnedRulespecCoreRelease.open(
         args.rulespec_core,
@@ -75,4 +129,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-__all__ = ["build_parser", "main"]
+__all__ = [
+    "AUTO_FORMAT",
+    "FEDERAL_REGISTER_2025_FORMAT",
+    "INPUT_FORMATS",
+    "MANAGED_BUNDLE_FORMAT",
+    "build_parser",
+    "main",
+    "open_release",
+]

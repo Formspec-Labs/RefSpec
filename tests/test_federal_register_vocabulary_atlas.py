@@ -21,6 +21,8 @@ from refspec.atlas import (
     VocabularyAtlasAsset,
     build_vocabulary_atlas,
 )
+from refspec.atlas.cli import main as atlas_main
+from refspec.managed_release import ManagedReleaseError
 from refspec.registry.federal_register_thesaurus_2025 import (
     load_packaged_federal_register_thesaurus_2025,
 )
@@ -173,6 +175,93 @@ def test_complete_2025_package_builds_one_portable_705_member_atlas(
         expected_output_digest=asset.output_digest,
     )
     assert reproduced.payload == asset.payload
+
+
+def _atlas_command(manifest_path: Path, core: PinnedRulespecCoreRelease, output: Path) -> tuple[str, ...]:
+    return (
+        "--managed-release",
+        str(manifest_path),
+        _file_digest(manifest_path),
+        "--rulespec-core",
+        str(core.path),
+        "--rulespec-core-file-digest",
+        core.file_digest,
+        "--rulespec-core-release-id",
+        core.release_id,
+        "--rulespec-core-release-digest",
+        core.release_digest,
+        "--output",
+        str(output),
+    )
+
+
+def test_advertised_command_builds_the_complete_2025_package(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest_path = _complete_package(tmp_path, monkeypatch)
+    core = _core_release(tmp_path)
+    output = tmp_path / "cli-atlas"
+
+    assert atlas_main(_atlas_command(manifest_path, core, output)) == 0
+
+    selection = json.loads(capsys.readouterr().out)
+    reopened = VocabularyAtlasAsset.open(
+        output,
+        expected_manifest_digest=selection["manifestDigest"],
+        expected_output_digest=selection["outputDigest"],
+    )
+    release_graph_id = next(row["id"] for row in reopened.manifest["graphs"] if row["role"] == "releaseFacts")
+    dataset = Dataset(default_union=False)
+    dataset.parse(data=reopened.payload.decode("utf-8"), format="nquads")
+    release_graph = dataset.graph(URIRef(release_graph_id))
+    release = URIRef(FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI)
+
+    assert selection["assetId"] == reopened.manifest["id"]
+    assert len(set(release_graph.objects(release, PROV.hadMember))) == 705
+
+
+def test_advertised_command_accepts_the_explicit_specialized_input_format(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest_path = _complete_package(tmp_path, monkeypatch)
+    core = _core_release(tmp_path)
+    output = tmp_path / "cli-atlas"
+
+    assert (
+        atlas_main(
+            (
+                *_atlas_command(manifest_path, core, output),
+                "--input-format",
+                "federal-register-thesaurus-2025",
+            )
+        )
+        == 0
+    )
+
+    selection = json.loads(capsys.readouterr().out)
+    assert selection["outputDirectory"] == str(output.resolve())
+
+
+def test_advertised_command_fails_closed_when_the_wrong_reader_is_forced(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest_path = _complete_package(tmp_path, monkeypatch)
+    core = _core_release(tmp_path)
+    output = tmp_path / "cli-atlas"
+
+    with pytest.raises(ManagedReleaseError, match="bundle manifest contains unsupported fields"):
+        atlas_main(
+            (
+                *_atlas_command(manifest_path, core, output),
+                "--input-format",
+                "managed-bundle",
+            )
+        )
 
 
 def test_specialized_adapter_rejects_the_retired_rulespec_validator_input(
