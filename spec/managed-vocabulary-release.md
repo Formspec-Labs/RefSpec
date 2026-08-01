@@ -1,18 +1,33 @@
 <!-- markdownlint-disable MD013 -->
 
-# RefSpec Managed Vocabulary Release Specification
+# RefSpec Managed Vocabulary Release Decision Record
 
-- **Status:** Editor's draft with an implemented conformance slice
-- **Version:** 0.1.0-draft
+- **Status:** Decision record — retired design, superseded in place
+- **Version:** 0.1.0-draft, imported unchanged
 - **Date:** 2026-07-31
-- **Release status:** Unreleased
+- **Release status:** Unreleased; never published
 
-> **Provenance:** This document is imported verbatim from the retired standalone RefSpec
-> checkout at commit `210d671`. It is the current normative specification for RefSpec's
-> managed-vocabulary product. Section 10's reproduction commands describe that retired
-> build; in this repository use `make test` and `make test-cross-repository`, and build the
-> atlas with `refspec-build-vocabulary-atlas`. Its release-record paths under
-> `release-records/fixtures/` do not exist here.
+> **What this document is.** It is imported verbatim from the retired standalone RefSpec
+> checkout at commit `210d671` and is retained as the recorded reasoning behind decisions
+> [REF-001 through REF-006](../docs/decisions.md). **It is not a normative specification and
+> it does not describe the implemented release model.**
+>
+> **The implemented model is `ManagedVocabularyBundle` plus `VocabularyAtlasAsset`.** The
+> normative consumer contract is the
+> [Vocabulary Atlas Distribution 1.0 binding](../bindings/atlas/1.0/README.md). The
+> implementation is [`src/refspec/atlas/`](../src/refspec/atlas) and
+> [`src/refspec/managed_release.py`](../src/refspec/managed_release.py).
+>
+> **What was retired.** The compact `VocabularyRelease` object, the release digest taken over
+> that object, the `urn:refspec:vocabulary-release:<hex>` identifier, the required root-section
+> shape in section 4, and the `SourceTermResolution`, `AgentValidationReceipt`, and
+> `BaselineValidationReceipt` records were retired by the
+> [product-boundary and atlas reconciliation plan](../plans/2026-07-31-refspec-product-boundary-and-atlas-reconciliation-plan.md).
+> Nothing in this repository implements any of them. Sections 3, 4, 5, 6, 9, and 10 carry
+> their own historical banners; sections 7 and 8 record what survived and what changed.
+>
+> Nothing is deleted. The boundary, source-identity, atlas, and Federal Register reasoning
+> below is the context in which REF-001…REF-006 were decided.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**,
 **RECOMMENDED**, **MAY**, and **OPTIONAL** express requirement levels as
@@ -22,6 +37,11 @@ This independent project draft is not a W3C standard and does not imply W3C
 endorsement. The repository has no selected license.
 
 ## 1. Purpose
+
+> **The boundary below is current; the record name is not.** Sections 1 and 2 state the
+> product boundary REF-001 decided, and that boundary still holds. Read `VocabularyRelease`
+> here as "the managed vocabulary release": the implemented release unit is the
+> `ManagedVocabularyBundle`, not the compact object section 4 defines.
 
 RefSpec publishes evidence-backed, managed ontology and vocabulary releases
 and deterministic cross-vocabulary atlas assets. It gives downstream products
@@ -64,6 +84,14 @@ or a Rulespec assignment.
 
 ## 3. Canonical JSON and identity
 
+> **Historical — retired shape.** The `VocabularyRelease.release_digest` rule and the
+> `urn:refspec:vocabulary-release:<hex>` identifier below have no implementation. The
+> implemented canonical profile lives in [`src/refspec/storage.py`](../src/refspec/storage.py)
+> and [`src/refspec/binding.py`](../src/refspec/binding.py) and is stricter than the four
+> settings below: REF canonical JSON also rejects `null`, floating-point numbers, duplicate
+> keys, and integers outside the interoperable range. The published identifier is
+> `urn:ref:vocabulary-atlas:<generation hex>`.
+
 Implementations MUST serialize canonical JSON as UTF-8 with these settings:
 
 ```text
@@ -88,6 +116,13 @@ identifier; recomputing only the outer release digest cannot legitimize a
 tampered nested record.
 
 ## 4. VocabularyRelease
+
+> **Historical — retired shape.** No code constructs, validates, or reads a
+> `VocabularyRelease`. The implemented release unit is the closed multi-file managed bundle
+> opened by `ManagedReleaseView.open`, and the atlas builds from those bundles. Subsections
+> 4.1 and 4.2 are kept as the Rulespec Core projection and coverage reasoning behind REF-002
+> and REF-004; the complete-membership and coverage rules they state are implemented against
+> the managed bundle, not against the object below.
 
 A release contains these required sections:
 
@@ -154,6 +189,12 @@ source.
 
 ## 5. Source-term identity and resolution
 
+> **Historical — retired shape.** `SourceTermResolution` has no implementation, and no record
+> in this repository carries a `resolution_digest`. The `SourceTermKey` identity rule and the
+> fail-closed "a missing resolution fails closed" rule remain the recorded reasoning for
+> REF-003. The packaged Federal Register release expresses the same distinction through its
+> own recognized-variant and open-term-pattern records.
+
 RefSpec resolves an exact source key:
 
 ```text
@@ -202,6 +243,13 @@ similarity, or graph proximity cannot mint a concept, mapping, or resolution.
 
 ## 6. Validation receipts
 
+> **Historical — retired shape.** `AgentValidationReceipt` and `BaselineValidationReceipt`
+> have no implementation. The implemented qualification record is the pair of independent
+> atlas `MachineValidation` records required before a `searchOnly` mapping may be exposed;
+> its normative rules are the "`searchOnly` proof" section of the
+> [atlas binding](../bindings/atlas/1.0/README.md). This section is the recorded reasoning
+> for REF-005: machine-first qualification with no human approval gate.
+
 An `AgentValidationReceipt` records one immutable validator attempt. It pins
 the target, sealed input manifest, request, model or agent identity, response
 or failure artifact, per-check outcomes, evidence, timestamps, and independence
@@ -227,6 +275,13 @@ require human approval. Optional human review remains a separate referenced
 record.
 
 ## 7. Vocabulary atlas static asset
+
+> **Implemented, with one substitution.** This section survived reconciliation and is
+> implemented as `VocabularyAtlasAsset`. Its inputs are verified managed bundles, not
+> `VocabularyRelease` objects, and the published identifier is
+> `urn:ref:vocabulary-atlas:<generation hex>`, not the identifier in section 3. The normative
+> file rules are the [Vocabulary Atlas Distribution 1.0 binding](../bindings/atlas/1.0/README.md);
+> where this section and that binding disagree, the binding governs.
 
 A `VocabularyAtlasAsset` is a separate immutable publication from each input
 `VocabularyRelease`. It is a crosswalk and deterministic lookup representation;
@@ -289,6 +344,12 @@ does not match the canonical asset.
 
 ## 8. Federal Register profile
 
+> **Partly historical.** The default-candidate decision (REF-004) holds and is implemented.
+> The last paragraph is not: the five-concept conformance fixture and its two agent receipts
+> belong to the retired standalone line. This repository packages the complete 705-concept
+> April 1, 2025 release and publishes it through the atlas example under
+> [`bindings/atlas/1.0/examples/federal-register-thesaurus-2025/`](../bindings/atlas/1.0/examples/federal-register-thesaurus-2025).
+
 The April 1, 2025 Federal Register Thesaurus is the default candidate
 vocabulary for the `federal-register-document-v1` profile. It is not RefSpec's
 root ontology and does not become the default for unrelated sources.
@@ -306,6 +367,14 @@ rules. They do not assert that a production release has passed validation.
 
 ## 9. Fail-closed validation
 
+> **Historical — retired shape.** These conditions describe the retired `VocabularyRelease`
+> validator, which does not exist here. The implemented fail-closed checks are the
+> managed-bundle reader in [`src/refspec/managed_release.py`](../src/refspec/managed_release.py)
+> and the atlas producer and reader in [`src/refspec/atlas/`](../src/refspec/atlas). The
+> conditions that survived — nested digest recomputation, complete membership, closed
+> reference resolution, and count agreement — are enforced there against the managed bundle
+> and the atlas distribution.
+
 A validator MUST reject a release when any of these conditions occurs:
 
 - the outer or nested digest does not match canonical content;
@@ -320,6 +389,15 @@ A validator MUST reject a release when any of these conditions occurs:
 - the release contains document observation capture or search records.
 
 ## 10. Reproducible conformance build
+
+> **Historical — these commands do not run in this repository.** They reproduce the retired
+> standalone build and are kept only as its record. `refspec-build-federal-register-2025` is
+> not a console script here, the `--release`/`--output-directory` flags are not the atlas
+> command's flags, and there is no `release-records/` directory. In this repository run
+> `make test` and `make test-cross-repository`, and build the atlas with
+> `refspec-build-vocabulary-atlas` as shown in the [README](../README.md). The checked
+> conformance publications live under
+> [`bindings/atlas/1.0/`](../bindings/atlas/1.0/README.md), not under `release-records/`.
 
 Install the locked development environment, run the focused tests, and build
 both canonical conformance publications:

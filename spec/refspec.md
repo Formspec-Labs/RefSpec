@@ -30,8 +30,12 @@
 > controls RefSpec's scope. It is retained as design lineage and as the compatibility
 > inventory referenced by the
 > [product boundary and API disposition](../docs/product-boundary-and-api-disposition.md).
-> The current normative specification is the
-> [RefSpec managed vocabulary release specification](managed-vocabulary-release.md).
+> The normative consumer contract is the
+> [Vocabulary Atlas Distribution 1.0 binding](../bindings/atlas/1.0/README.md), which defines
+> the published two-file boundary that other products verify. The
+> [managed vocabulary release decision record](managed-vocabulary-release.md) records the
+> retired standalone design behind REF-001…REF-006; it is not a specification and it is not
+> implemented.
 
 ## Abstract
 

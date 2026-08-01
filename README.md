@@ -11,12 +11,12 @@ permission beyond rights supplied by applicable law.
 
 ## Documents
 
-- [RefSpec managed vocabulary release specification](spec/managed-vocabulary-release.md)
+- [Vocabulary Atlas Distribution 1.0 — normative consumer contract](bindings/atlas/1.0/README.md)
+- [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
 - [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
 - [Core enrichment profile](profiles/enrichment-profile.md)
 - [REF JSON Binding 1.0](bindings/json/1.0/README.md)
-- [Vocabulary Atlas Distribution 1.0](bindings/atlas/1.0/README.md)
 - [Authoritative REF structural model](model/README.md)
 - [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
 - [Active Spicy Regs controlled-resource import plan](plans/active-profile-controlled-resource-import-plan.md)
