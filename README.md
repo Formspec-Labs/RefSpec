@@ -1,5 +1,14 @@
 # RefSpec
 
+> **Retired line — 1 August 2026.** This standalone RefSpec checkout is retired. The
+> surviving implementation is the RefSpec submodule inside `spicy-regs`
+> (`Formspec-Labs/RefSpec`, branch `main`). This line's unique content — the decision ledger
+> `docs/decisions.md` (REF-001 through REF-006) and the managed-vocabulary
+> `spec/refspec.md` — has been imported there. This line's history is archived in that
+> repository under `refs/archive/refspec-standalone/main` and
+> `refs/archive/refspec-standalone/pre-scrub-initial`. This checkout may be deleted once
+> `docs/reconciliation-runbook.md` in the surviving repository has been executed.
+
 RefSpec publishes managed ontology and vocabulary releases plus static,
 query-ready cross-vocabulary atlas assets. It captures an external vocabulary
 distribution, records the managed publication decision, resolves exact
