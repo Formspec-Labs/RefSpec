@@ -36,6 +36,32 @@ def test_atlas_manifest_schema_is_valid_and_producer_neutral() -> None:
     }
 
 
+def test_atlas_manifest_schema_bounds_integers_to_the_interoperable_range() -> None:
+    schema = json.loads(
+        (_BINDING_ROOT / "schemas" / "vocabulary-atlas-manifest.schema.json").read_text(encoding="utf-8")
+    )
+
+    assert schema["$defs"]["nonnegativeInteger"] == {
+        "maximum": 9007199254740991,
+        "minimum": 0,
+        "type": "integer",
+    }
+    assert schema["$defs"]["positiveInteger"] == {
+        "maximum": 9007199254740991,
+        "minimum": 1,
+        "type": "integer",
+    }
+
+    validator = Draft202012Validator(schema)
+    manifest = json.loads(
+        (_FIXTURE_ROOT / "valid" / "minimal" / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    assert validator.is_valid(manifest)
+
+    manifest["output"]["byteLength"] = 9007199254740992
+    assert not validator.is_valid(manifest)
+
+
 @pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: case["id"])
 def test_static_atlas_conformance_corpus(case: dict[str, Any]) -> None:
     directory = _FIXTURE_ROOT / case["directory"]

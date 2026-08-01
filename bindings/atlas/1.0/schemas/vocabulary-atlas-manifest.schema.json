@@ -383,10 +383,12 @@
       "type": "object"
     },
     "nonnegativeInteger": {
+      "maximum": 9007199254740991,
       "minimum": 0,
       "type": "integer"
     },
     "positiveInteger": {
+      "maximum": 9007199254740991,
       "minimum": 1,
       "type": "integer"
     },
