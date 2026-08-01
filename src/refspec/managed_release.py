@@ -1104,6 +1104,8 @@ class ManagedReleaseView:
     """
 
     _release_id: str
+    _rulespec_graph_id: str
+    _rulespec_graph: Mapping[str, Any]
     _expression_corpus_snapshot: Mapping[str, str]
     _members: Mapping[str, ManagedReleaseMember]
     _expressions: tuple[ManagedReleaseExpression, ...]
@@ -2486,6 +2488,11 @@ class ManagedReleaseView:
         }
         return cls(
             _release_id=publication_id,
+            _rulespec_graph_id=graph_id,
+            _rulespec_graph=cast(
+                Mapping[str, Any],
+                _freeze(graph),
+            ),
             _expression_corpus_snapshot=cast(
                 Mapping[str, str],
                 _freeze(publication_snapshot),
@@ -2516,6 +2523,18 @@ class ManagedReleaseView:
     @property
     def release_id(self) -> str:
         return self._release_id
+
+    @property
+    def rulespec_graph_id(self) -> str:
+        """Return the external identifier of the verified Rulespec graph."""
+
+        return self._rulespec_graph_id
+
+    @property
+    def rulespec_graph(self) -> Mapping[str, Any]:
+        """Return the exact immutable Rulespec JSON-LD graph."""
+
+        return self._rulespec_graph
 
     @property
     def expression_corpus_snapshot(self) -> Mapping[str, str]:
@@ -2773,6 +2792,17 @@ class ManagedReleaseView:
         """Return one exact release member; no label or normalized lookup."""
 
         return self._members.get(member_iri)
+
+    def iter_members(
+        self,
+        *,
+        release_iri: str | None = None,
+    ) -> Iterator[ManagedReleaseMember]:
+        """Iterate exact members, optionally limited to one release."""
+
+        for member in self._members.values():
+            if release_iri is None or member.release_iri == release_iri:
+                yield member
 
     def iter_identity_links(
         self,

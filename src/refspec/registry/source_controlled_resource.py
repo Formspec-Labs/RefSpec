@@ -17,9 +17,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from urllib.parse import urlsplit
 
+from refspec.immutable import deep_freeze_json
 from refspec.storage import canonical_json
 
 SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION = "1.0"
@@ -724,10 +725,22 @@ class SourceControlledResourceView:
             raise SourceControlledResourceError("bundle manifest logicalDigest is stale")
         return cls(
             path=root,
-            resource_manifest=rebuilt.resource_manifest,
-            coverage_report=rebuilt.coverage_report,
-            observations=rebuilt.observations,
-            source_artifacts=rebuilt.source_artifacts,
+            resource_manifest=cast(
+                Mapping[str, Any],
+                deep_freeze_json(rebuilt.resource_manifest),
+            ),
+            coverage_report=cast(
+                Mapping[str, Any],
+                deep_freeze_json(rebuilt.coverage_report),
+            ),
+            observations=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(rebuilt.observations),
+            ),
+            source_artifacts=cast(
+                Mapping[str, bytes],
+                deep_freeze_json(rebuilt.source_artifacts),
+            ),
             logical_digest=rebuilt.logical_digest,
         )
 

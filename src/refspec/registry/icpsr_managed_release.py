@@ -20,8 +20,9 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, cast
 
+from refspec.immutable import deep_freeze_json
 from refspec.registry.controlled_identifier import validate_identifier_date
 from refspec.registry.icpsr_subject import (
     ICPSR_INDEX_LETTERS,
@@ -790,10 +791,22 @@ class IcpsrManagedReleaseView:
                 raise IcpsrManagedReleaseError("indexed expression identity or text digest drifted")
             expression_ids.add(identifier)
         return cls(
-            manifest=dict(manifest),
-            coverage=dict(coverage),
-            concepts=tuple(concepts),
-            indexed_expressions=tuple(expressions),
+            manifest=cast(
+                Mapping[str, Any],
+                deep_freeze_json(manifest),
+            ),
+            coverage=cast(
+                Mapping[str, Any],
+                deep_freeze_json(coverage),
+            ),
+            concepts=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(concepts),
+            ),
+            indexed_expressions=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(expressions),
+            ),
         )
 
     def concept(

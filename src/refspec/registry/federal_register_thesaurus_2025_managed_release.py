@@ -9,9 +9,10 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from refspec import binding
+from refspec.immutable import deep_freeze_json
 from refspec.registry.federal_register_thesaurus_2025 import (
     ALTERNATE_LABEL_PROPERTY_IRI,
     FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
@@ -468,6 +469,7 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
     concepts: tuple[Mapping[str, Any], ...]
     variants: tuple[Mapping[str, Any], ...]
     relations: tuple[Mapping[str, Any], ...]
+    suggested_open_term_patterns: tuple[Mapping[str, Any], ...]
     lists_of_subjects_policy: Mapping[str, Any]
     crosswalk: Mapping[str, Any]
 
@@ -521,6 +523,7 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
             _CONCEPTS_PATH,
             _VARIANTS_PATH,
             _RELATIONS_PATH,
+            _OPEN_PATTERNS_PATH,
             _CROSSWALK_PATH,
             _LISTS_POLICY_PATH,
             _COVERAGE_PATH,
@@ -553,6 +556,10 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
                 json.loads(line)
                 for line in artifacts[_RELATIONS_PATH].splitlines()
             )
+            open_patterns = tuple(
+                json.loads(line)
+                for line in artifacts[_OPEN_PATTERNS_PATH].splitlines()
+            )
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise FederalRegisterThesaurus2025ManagedReleaseError(
                 "managed-release record artifact is malformed"
@@ -568,6 +575,8 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
             counts.get("concepts") != len(concepts)
             or counts.get("variants") != len(variants)
             or counts.get("relations") != len(relations)
+            or counts.get("suggestedOpenTermPatterns")
+            != len(open_patterns)
         ):
             raise FederalRegisterThesaurus2025ManagedReleaseError(
                 "managed-release counts drifted"
@@ -581,13 +590,38 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
                 "Federal Register package must not contain SKOS broader"
             )
         return cls(
-            manifest=manifest,
-            coverage=coverage,
-            concepts=concepts,
-            variants=variants,
-            relations=relations,
-            lists_of_subjects_policy=lists_policy,
-            crosswalk=crosswalk,
+            manifest=cast(
+                Mapping[str, Any],
+                deep_freeze_json(manifest),
+            ),
+            coverage=cast(
+                Mapping[str, Any],
+                deep_freeze_json(coverage),
+            ),
+            concepts=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(concepts),
+            ),
+            variants=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(variants),
+            ),
+            relations=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(relations),
+            ),
+            suggested_open_term_patterns=cast(
+                tuple[Mapping[str, Any], ...],
+                deep_freeze_json(open_patterns),
+            ),
+            lists_of_subjects_policy=cast(
+                Mapping[str, Any],
+                deep_freeze_json(lists_policy),
+            ),
+            crosswalk=cast(
+                Mapping[str, Any],
+                deep_freeze_json(crosswalk),
+            ),
         )
 
 

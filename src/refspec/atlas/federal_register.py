@@ -1,0 +1,492 @@
+"""Atlas adapter for the source-complete 2025 Federal Register thesaurus."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from types import MappingProxyType
+from typing import Any, cast
+
+from rdflib import DCAT, DCTERMS, PROV, RDF, XSD, BNode, Graph, Literal, URIRef
+from typing_extensions import Self
+
+from refspec.immutable import deep_freeze_json
+from refspec.managed_release import ManagedReleaseExpression, ManagedReleaseMember
+from refspec.registry.federal_register_thesaurus_2025 import (
+    ALTERNATE_LABEL_PROPERTY_IRI,
+    FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
+    FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI,
+    FEDERAL_REGISTER_THESAURUS_2025_SHA256,
+    PREFERRED_LABEL_PROPERTY_IRI,
+    RELATED_PROPERTY_IRI,
+)
+from refspec.registry.federal_register_thesaurus_2025_managed_release import (
+    FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION,
+    FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID,
+    FederalRegisterThesaurus2025ManagedReleaseError,
+    FederalRegisterThesaurus2025ManagedReleaseView,
+)
+from refspec.release_graph import rulespec_graph_digest
+
+from .model import VocabularyAtlasError
+
+FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI = (
+    "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
+)
+FEDERAL_REGISTER_THESAURUS_2025_RULESPEC_GRAPH_IRI = "urn:ref:federal-register-thesaurus:2025-04-01:rulespec-graph:v1"
+FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI = (
+    "urn:ref:federal-register-thesaurus:2025-04-01:distribution:source-pdf"
+)
+
+_EXPECTED_CONCEPT_COUNT = 705
+_RKAF = "https://rulespec.org/ns/v1#"
+_RDF_TYPE = "@type"
+_SKOS_IN_SCHEME = "http://www.w3.org/2004/02/skos/core#inScheme"
+_SKOS_CONCEPT_SCHEME = "http://www.w3.org/2004/02/skos/core#ConceptScheme"
+_PROV_HAD_MEMBER = "http://www.w3.org/ns/prov#hadMember"
+_DCAT_DISTRIBUTION = "http://www.w3.org/ns/dcat#distribution"
+_DCAT_VERSION = "http://www.w3.org/ns/dcat#version"
+_DCTERMS_FORMAT = "http://purl.org/dc/terms/format"
+_DCTERMS_IS_VERSION_OF = "http://purl.org/dc/terms/isVersionOf"
+_DCTERMS_ISSUED = "http://purl.org/dc/terms/issued"
+_DCTERMS_TYPE = "http://purl.org/dc/terms/type"
+_REFERENCE_RELEASE_DIGEST = _RKAF + "referenceReleaseDigest"
+_MEMBERSHIP_MODE = _RKAF + "membershipMode"
+_COMPLETE_MEMBERSHIP = _RKAF + "completeMembership"
+_VERSION_BASIS = _RKAF + "versionBasis"
+_CONTENT_DERIVED = _RKAF + "contentDerived"
+_ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
+_CONTENT_DIGEST = _RKAF + "hasContentDigest"
+
+_RKAF_REFERENCE_RESOURCE_RELEASE = URIRef(_RKAF + "ReferenceResourceRelease")
+_RKAF_MEMBERSHIP_MODE = URIRef(_MEMBERSHIP_MODE)
+_RKAF_VERSION_BASIS = URIRef(_VERSION_BASIS)
+_RKAF_EFFECTIVE_PERIOD = URIRef(_RKAF + "hasEffectivePeriod")
+_RKAF_ARTIFACT_IDENTIFIER = URIRef(_ARTIFACT_IDENTIFIER)
+_RKAF_CONTENT_DIGEST = URIRef(_CONTENT_DIGEST)
+_DCAT_VERSION_TERM = URIRef(_DCAT_VERSION)
+_REFERENCE_RELEASE_PREDICATES = frozenset(
+    {
+        RDF.type,
+        DCTERMS.isVersionOf,
+        _DCAT_VERSION_TERM,
+        DCTERMS.type,
+        _RKAF_MEMBERSHIP_MODE,
+        PROV.hadMember,
+        DCAT.distribution,
+        _RKAF_VERSION_BASIS,
+        DCTERMS.issued,
+        _RKAF_EFFECTIVE_PERIOD,
+    }
+)
+_DISTRIBUTION_PREDICATES = frozenset(
+    {
+        _RKAF_ARTIFACT_IDENTIFIER,
+        DCTERMS.format,
+        _RKAF_CONTENT_DIGEST,
+    }
+)
+
+
+def _sha256_file(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _rdfc_term(term: Any) -> Any:
+    """Use the RDFC-1.0 spelling for an explicit ``xsd:string`` literal."""
+
+    if isinstance(term, Literal) and term.datatype == XSD.string:
+        return Literal(str(term))
+    return term
+
+
+def _reference_release_digest(graph_value: Mapping[str, Any], *, release_iri: str) -> str:
+    """Compute the Rulespec Core closed-manifest digest without a source checkout.
+
+    The closed ReferenceResourceRelease preimage contains named nodes only.
+    With no blank nodes to relabel, RDFC-1.0 is the lexicographically sorted
+    canonical N-Quads serialization.  RefSpec owns this small implementation,
+    pins its source and rdflib runtime in the atlas manifest, and fails closed
+    if a future Core shape introduces a blank node.
+    """
+
+    release = URIRef(_require_text(release_iri, "reference release IRI"))
+    parsed = Graph()
+    try:
+        parsed.parse(
+            data=json.dumps(
+                _plain(graph_value),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ),
+            format="json-ld",
+        )
+    except Exception as error:  # rdflib exposes parser-specific exception types
+        raise VocabularyAtlasError("Federal Register release graph is not valid JSON-LD") from error
+    if (release, RDF.type, _RKAF_REFERENCE_RESOURCE_RELEASE) not in parsed:
+        raise VocabularyAtlasError("Federal Register release is not a ReferenceResourceRelease")
+
+    triples: list[tuple[URIRef, URIRef, Any]] = []
+    for predicate in _REFERENCE_RELEASE_PREDICATES:
+        triples.extend((release, predicate, _rdfc_term(value)) for value in parsed.objects(release, predicate))
+    distributions = tuple(parsed.objects(release, DCAT.distribution))
+    if not distributions:
+        raise VocabularyAtlasError("Federal Register release has no distribution")
+    for distribution in distributions:
+        if not isinstance(distribution, URIRef):
+            raise VocabularyAtlasError("Federal Register release distribution must be an IRI")
+        for predicate in _DISTRIBUTION_PREDICATES:
+            values = tuple(parsed.objects(distribution, predicate))
+            if not values:
+                raise VocabularyAtlasError(f"Federal Register distribution lacks digest input {predicate}")
+            triples.extend((distribution, predicate, _rdfc_term(value)) for value in values)
+
+    if any(isinstance(term, BNode) for triple in triples for term in triple):
+        raise VocabularyAtlasError("Federal Register release digest preimage must not contain blank nodes")
+    lines = sorted(f"{subject.n3()} {predicate.n3()} {object_.n3()} ." for subject, predicate, object_ in triples)
+    preimage = ("\n".join(lines) + "\n").encode("utf-8")
+    return "sha256:" + hashlib.sha256(preimage).hexdigest()
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _plain(child) for key, child in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return [_plain(child) for child in value]
+    return value
+
+
+def _iri(value: str) -> dict[str, str]:
+    return {"@id": value}
+
+
+def _language_literal(value: str) -> dict[str, str]:
+    return {"@language": "en", "@value": value}
+
+
+def _require_text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise VocabularyAtlasError(f"{label} is required")
+    return value
+
+
+def _require_mapping(value: object, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise VocabularyAtlasError(f"{label} must be an object")
+    return cast(Mapping[str, Any], value)
+
+
+def _require_string_sequence(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise VocabularyAtlasError(f"{label} must be an array")
+    result = tuple(value)
+    if any(not isinstance(item, str) or not item.strip() for item in result):
+        raise VocabularyAtlasError(f"{label} must contain non-empty strings")
+    return cast(tuple[str, ...], result)
+
+
+@dataclass(frozen=True, slots=True)
+class FederalRegisterThesaurus2025AtlasView:
+    """Verified facts exposed through the atlas's narrow release-view seam."""
+
+    _publication_id: str
+    _graph: Mapping[str, Any]
+    _members: Mapping[str, ManagedReleaseMember]
+    _expressions: tuple[ManagedReleaseExpression, ...]
+
+    @property
+    def release_id(self) -> str:
+        return self._publication_id
+
+    @property
+    def rulespec_graph_id(self) -> str:
+        return FEDERAL_REGISTER_THESAURUS_2025_RULESPEC_GRAPH_IRI
+
+    @property
+    def rulespec_graph(self) -> Mapping[str, Any]:
+        return self._graph
+
+    def iter_members(self) -> Iterable[ManagedReleaseMember]:
+        return self._members.values()
+
+    def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
+        return self._members.get(member_iri)
+
+    def iter_expressions(self) -> Iterable[ManagedReleaseExpression]:
+        return iter(self._expressions)
+
+
+def _verified_package(
+    manifest_path: Path,
+    *,
+    expected_manifest_digest: str,
+) -> FederalRegisterThesaurus2025ManagedReleaseView:
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise VocabularyAtlasError("Federal Register managed-release manifest must be a regular file")
+    actual = _sha256_file(manifest_path)
+    if actual != expected_manifest_digest:
+        raise VocabularyAtlasError("Federal Register managed-release manifest digest differs")
+    try:
+        view = FederalRegisterThesaurus2025ManagedReleaseView.open(manifest_path)
+    except FederalRegisterThesaurus2025ManagedReleaseError as error:
+        raise VocabularyAtlasError(str(error)) from error
+    if _sha256_file(manifest_path) != expected_manifest_digest:
+        raise VocabularyAtlasError("Federal Register managed-release manifest changed while opening")
+    manifest = view.manifest
+    release = _require_mapping(manifest.get("release"), "Federal Register release pin")
+    counts = _require_mapping(manifest.get("counts"), "Federal Register release counts")
+    coverage = view.coverage
+    if (
+        manifest.get("type") != "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
+        or manifest.get("resourceId") != FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID
+        or manifest.get("version") != FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION
+        or release.get("issued") != FEDERAL_REGISTER_THESAURUS_2025_ISSUED
+        or release.get("schemeIri") != FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI
+        or release.get("sourceSha256") != FEDERAL_REGISTER_THESAURUS_2025_SHA256
+    ):
+        raise VocabularyAtlasError("Federal Register managed-release identity differs from the 2025 package")
+    if (
+        counts.get("concepts") != _EXPECTED_CONCEPT_COUNT
+        or len(view.concepts) != _EXPECTED_CONCEPT_COUNT
+        or coverage.get("managedConceptCount") != _EXPECTED_CONCEPT_COUNT
+        or coverage.get("candidateLookupAllowed") is not True
+        or coverage.get("acceptedOutputAllowed") is not False
+    ):
+        raise VocabularyAtlasError("Federal Register managed-release coverage is incomplete")
+    return view
+
+
+def _project_view(
+    package: FederalRegisterThesaurus2025ManagedReleaseView,
+) -> FederalRegisterThesaurus2025AtlasView:
+    concept_by_id: dict[str, Mapping[str, Any]] = {}
+    concept_by_iri: dict[str, Mapping[str, Any]] = {}
+    for row in package.concepts:
+        concept_id = _require_text(row.get("conceptId"), "Federal Register concept id")
+        concept_iri = _require_text(row.get("conceptIri"), "Federal Register concept IRI")
+        if concept_id in concept_by_id or concept_iri in concept_by_iri:
+            raise VocabularyAtlasError("Federal Register managed release repeats a concept")
+        if row.get("schemeIri") != FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI:
+            raise VocabularyAtlasError("Federal Register concept uses another scheme")
+        _require_text(row.get("preferredLabel"), "Federal Register preferred label")
+        _require_mapping(row.get("sourceLocator"), "Federal Register concept source locator")
+        concept_by_id[concept_id] = row
+        concept_by_iri[concept_iri] = row
+
+    variants_by_concept: dict[str, dict[str, Mapping[str, Any]]] = defaultdict(dict)
+    for row in package.variants:
+        if row.get("resolutionStatus") != "recognizedVariant":
+            continue
+        targets = _require_string_sequence(
+            row.get("targetConceptIds"),
+            "recognized Federal Register variant targets",
+        )
+        if len(targets) != 1 or targets[0] not in concept_by_id:
+            raise VocabularyAtlasError("recognized Federal Register variant has no exact concept")
+        label = _require_text(row.get("label"), "Federal Register variant label")
+        _require_mapping(row.get("sourceLocator"), "Federal Register variant source locator")
+        if label in variants_by_concept[targets[0]]:
+            raise VocabularyAtlasError("Federal Register managed release repeats a recognized variant")
+        variants_by_concept[targets[0]][label] = row
+
+    related_by_source: dict[str, set[str]] = defaultdict(set)
+    for row in package.relations:
+        if row.get("resolutionStatus") != "resolved":
+            continue
+        source = _require_text(row.get("sourceConceptIri"), "Federal Register relation source")
+        target = _require_text(row.get("targetConceptIri"), "Federal Register relation target")
+        if row.get("predicateIri") != RELATED_PROPERTY_IRI:
+            raise VocabularyAtlasError("resolved Federal Register relation uses another predicate")
+        if source not in concept_by_iri or target not in concept_by_iri:
+            raise VocabularyAtlasError("Federal Register relation endpoint is outside the release")
+        _require_mapping(row.get("sourceLocator"), "Federal Register relation source locator")
+        related_by_source[source].add(target)
+
+    concept_nodes: list[dict[str, Any]] = []
+    members: dict[str, ManagedReleaseMember] = {}
+    expressions: list[ManagedReleaseExpression] = []
+    for concept_id, row in sorted(concept_by_id.items()):
+        concept_iri = cast(str, row["conceptIri"])
+        preferred = cast(str, row["preferredLabel"])
+        declared_alternates = _require_string_sequence(
+            row.get("alternateLabels"),
+            "Federal Register alternate labels",
+        )
+        source_alternates = variants_by_concept.get(concept_id, {})
+        if set(declared_alternates) != set(source_alternates):
+            raise VocabularyAtlasError("Federal Register alternate labels differ from source variants")
+        node: dict[str, Any] = {
+            "@id": concept_iri,
+            _RDF_TYPE: _RKAF + "RegisteredConcept",
+            _SKOS_IN_SCHEME: _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
+            PREFERRED_LABEL_PROPERTY_IRI: _language_literal(preferred),
+        }
+        if declared_alternates:
+            node[ALTERNATE_LABEL_PROPERTY_IRI] = [_language_literal(label) for label in sorted(declared_alternates)]
+        related = sorted(related_by_source.get(concept_iri, ()))
+        if related:
+            node[RELATED_PROPERTY_IRI] = [_iri(target) for target in related]
+        concept_nodes.append(node)
+        frozen_node = cast(Mapping[str, Any], deep_freeze_json(node))
+        members[concept_iri] = ManagedReleaseMember(
+            member_iri=concept_iri,
+            release_iri=FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
+            scheme_iri=FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI,
+            record=frozen_node,
+        )
+        expressions.append(
+            ManagedReleaseExpression(
+                expression_id=concept_iri + ":preferred-label",
+                member_iri=concept_iri,
+                indexed_text=preferred.casefold(),
+                original_literal=preferred,
+                language_tag="en",
+                semantic_property_iri=PREFERRED_LABEL_PROPERTY_IRI,
+                source_property_or_path="records/concepts.jsonl/preferredLabel",
+                record=cast(
+                    Mapping[str, Any],
+                    deep_freeze_json(
+                        {
+                            "conceptId": concept_id,
+                            "labelRole": "preferred",
+                            "sourceLocator": row["sourceLocator"],
+                        }
+                    ),
+                ),
+                label_role="preferred",
+                source_status="active",
+            )
+        )
+        for ordinal, label in enumerate(sorted(declared_alternates), start=1):
+            variant = source_alternates[label]
+            expressions.append(
+                ManagedReleaseExpression(
+                    expression_id=concept_iri + f":alternate-label:{ordinal}",
+                    member_iri=concept_iri,
+                    indexed_text=label.casefold(),
+                    original_literal=label,
+                    language_tag="en",
+                    semantic_property_iri=ALTERNATE_LABEL_PROPERTY_IRI,
+                    source_property_or_path="records/variants.jsonl/label",
+                    record=cast(
+                        Mapping[str, Any],
+                        deep_freeze_json(
+                            {
+                                "conceptId": concept_id,
+                                "labelRole": "alternate",
+                                "sourceLocator": variant["sourceLocator"],
+                                "variantId": variant["variantId"],
+                            }
+                        ),
+                    ),
+                    label_role="alternate",
+                    source_status="active",
+                )
+            )
+
+    release_node: dict[str, Any] = {
+        "@id": FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
+        _RDF_TYPE: _RKAF + "ReferenceResourceRelease",
+        _DCTERMS_IS_VERSION_OF: _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
+        _DCAT_VERSION: FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION,
+        _DCTERMS_TYPE: _iri(_SKOS_CONCEPT_SCHEME),
+        _DCTERMS_ISSUED: FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
+        _MEMBERSHIP_MODE: _iri(_COMPLETE_MEMBERSHIP),
+        _PROV_HAD_MEMBER: [_iri(value) for value in sorted(concept_by_iri)],
+        _DCAT_DISTRIBUTION: _iri(FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI),
+        _VERSION_BASIS: _iri(_CONTENT_DERIVED),
+    }
+    graph: dict[str, Any] = {
+        "@graph": [
+            {
+                "@id": FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI,
+                _RDF_TYPE: _RKAF + "ConceptScheme",
+                PREFERRED_LABEL_PROPERTY_IRI: _language_literal(
+                    "Federal Register Thesaurus of Indexing Terms, April 1, 2025"
+                ),
+            },
+            {
+                "@id": FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI,
+                _RDF_TYPE: _RKAF + "Artifact",
+                _ARTIFACT_IDENTIFIER: FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI,
+                _DCTERMS_FORMAT: "application/pdf",
+                _CONTENT_DIGEST: FEDERAL_REGISTER_THESAURUS_2025_SHA256,
+            },
+            *concept_nodes,
+            release_node,
+        ]
+    }
+    release_node[_REFERENCE_RELEASE_DIGEST] = _reference_release_digest(
+        graph,
+        release_iri=FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
+    )
+    return FederalRegisterThesaurus2025AtlasView(
+        _publication_id=cast(str, package.manifest["id"]),
+        _graph=cast(Mapping[str, Any], deep_freeze_json(graph)),
+        _members=MappingProxyType(dict(members)),
+        _expressions=tuple(expressions),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class PinnedFederalRegisterThesaurus2025AtlasRelease:
+    """Exact specialized package adapted to the shared atlas producer seam.
+
+    Rulespec contributes only its pinned Core publication.  Release-digest
+    computation is part of the source-pinned RefSpec producer, so no Rulespec
+    checkout or unrecorded validator can change this release's facts.
+    """
+
+    manifest_path: Path
+    manifest_digest: str
+
+    @classmethod
+    def open(
+        cls,
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> Self:
+        selected = Path(manifest_path)
+        _verified_package(
+            selected,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+        return cls(
+            manifest_path=selected.resolve(strict=True),
+            manifest_digest=expected_manifest_digest,
+        )
+
+    def verified_view(self) -> FederalRegisterThesaurus2025AtlasView:
+        package = _verified_package(
+            self.manifest_path,
+            expected_manifest_digest=self.manifest_digest,
+        )
+        return _project_view(package)
+
+    def pin(self) -> dict[str, Any]:
+        view = self.verified_view()
+        return {
+            "role": "ManagedReleaseView",
+            "manifestDigest": self.manifest_digest,
+            "publicationReleaseId": view.release_id,
+            "rulespecGraph": {
+                "id": view.rulespec_graph_id,
+                "digest": rulespec_graph_digest(_plain(view.rulespec_graph)),
+            },
+        }
+
+
+__all__ = [
+    "FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI",
+    "FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI",
+    "FEDERAL_REGISTER_THESAURUS_2025_RULESPEC_GRAPH_IRI",
+    "FederalRegisterThesaurus2025AtlasView",
+    "PinnedFederalRegisterThesaurus2025AtlasRelease",
+]

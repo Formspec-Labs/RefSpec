@@ -14,6 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
+refspec-build-vocabulary-atlas = "refspec.atlas.cli:main"
 refspec-validate = "refspec.binding:main"
 refspec-release-graph-gate = "refspec.release_graph:main"
 

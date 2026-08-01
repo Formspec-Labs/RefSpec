@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "refspec-rulespec-core-dependency/v1",
+  "dependencyRole": "RulespecCoreRelease",
+  "sourceRevision": "320ed37f0df13a9609490a2b43389c6be57242cc",
+  "releaseAvailability": "localFixture",
+  "productionConformanceEligible": false,
+  "artifact": {
+    "path": "release-records/fixtures/rulespec-core-release-m2.json",
+    "mediaType": "application/json",
+    "sha256": "sha256:06adfaf4d3ee8532c9ae76719d48a4844a4b012c7fea31e83e4a89f8033d1a63"
+  },
+  "release": {
+    "recordType": "RulespecCoreRelease",
+    "releaseId": "urn:rulespec:core:5ac6ba59929eca874ec603cab0e90f7b15ab1a008b394cec5aefebdafe22564b",
+    "releaseDigest": "sha256:5ac6ba59929eca874ec603cab0e90f7b15ab1a008b394cec5aefebdafe22564b",
+    "releaseStatus": "fixture",
+    "version": "0.2.0-pre.9+m2-fixture"
+  }
+}
