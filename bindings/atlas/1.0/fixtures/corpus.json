@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "directory": "valid/minimal",
+      "id": "minimal-valid-distribution",
+      "manifestDigest": "sha256:b09358a4fdb47042b12c12c5e76e49d04732d61f2aed8b977937fc7568f256dd",
+      "outputDigest": "sha256:63a92d0bacd25fceb785f00070f972d59436871f24e5fa9d4da509b7490b665a",
+      "valid": true
+    },
+    {
+      "directory": "invalid/wrong-authoritative-membership",
+      "errorContains": "authoritative release facts",
+      "id": "analysis-membership-must-match-release-facts",
+      "manifestDigest": "sha256:e6c6ca8b93875973bad6678814dc3656c8ec2b32cc7f801b351013de8acc8353",
+      "outputDigest": "sha256:be0e90ba69d17e9134bfa64cf0a1f568e82a5459b601c23f9cbeda7a9f490bf5",
+      "valid": false
+    },
+    {
+      "directory": "invalid/contradictory-eligibility",
+      "errorContains": "mapping eligibility",
+      "id": "search-only-eligibility-has-exact-cardinality",
+      "manifestDigest": "sha256:ec55d49888e4ad4cefc4c03472789fd5781cd9f348c204015afbadaeee10e3b7",
+      "outputDigest": "sha256:e75f3c3813e81d925f9e08b321f05e13f3880a70aaaf90ebc70bcc221b3a22ad",
+      "valid": false
+    },
+    {
+      "directory": "invalid/three-machine-validations",
+      "errorContains": "exactly two machine validations",
+      "id": "search-only-requires-exactly-two-machines",
+      "manifestDigest": "sha256:7bc45cdd293b2cfa0b3f3d1c1385a0a37ec01731b8a920da066bf8cc2711ef75",
+      "outputDigest": "sha256:ff4b6c5d6a77d978b65f0f87323b7150c576d98c4cf4bc48efb9456a3f61a303",
+      "valid": false
+    },
+    {
+      "directory": "invalid/same-provider-model",
+      "errorContains": "validations are not independent",
+      "id": "search-only-requires-distinct-provider-models",
+      "manifestDigest": "sha256:7b232e8a52a1b968df662db59de3f8a5d9251bb50ba2a2f465c41f2a76c564f6",
+      "outputDigest": "sha256:50dac9c7c9964140a16ca6eb218c782f5a1aa13635981a732a72191d0b68b80d",
+      "valid": false
+    },
+    {
+      "directory": "invalid/duplicate-implementation-path",
+      "errorContains": "repeats a source module",
+      "id": "implementation-paths-are-unique",
+      "manifestDigest": "sha256:089688005e3c0d6e1177540b68e33c193b36265be19932fe7b975db3c9b105e4",
+      "outputDigest": "sha256:63a92d0bacd25fceb785f00070f972d59436871f24e5fa9d4da509b7490b665a",
+      "valid": false
+    },
+    {
+      "directory": "invalid/noncanonical-nquads",
+      "errorContains": "N-Quads bytes are not canonical",
+      "id": "nquads-lines-are-canonical",
+      "manifestDigest": "sha256:a48b89c41332431cf99d17f52423ac0802baf229a2874c8880ee0e60fe71f155",
+      "outputDigest": "sha256:670c4aab440ab3d0e6099ff11559eb4c956c161916c5e98d85d433396933ae8c",
+      "valid": false
+    }
+  ],
+  "schemaVersion": "refspec-vocabulary-atlas-conformance-corpus/v1"
+}

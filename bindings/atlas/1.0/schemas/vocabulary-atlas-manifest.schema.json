@@ -1,0 +1,419 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/1.0/schemas/vocabulary-atlas-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "properties": {
+        "inputs": {
+          "contains": {
+            "$ref": "#/$defs/managedReleaseInput"
+          },
+          "minContains": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "inputs": {
+          "contains": {
+            "$ref": "#/$defs/rulespecCoreInput"
+          },
+          "maxContains": 1,
+          "minContains": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "inputs": {
+          "contains": {
+            "$ref": "#/$defs/crosswalkInput"
+          },
+          "maxContains": 1,
+          "minContains": 0
+        }
+      }
+    },
+    {
+      "properties": {
+        "graphs": {
+          "contains": {
+            "properties": {
+              "role": {
+                "const": "releaseFacts"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "maxContains": 1,
+          "minContains": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "graphs": {
+          "contains": {
+            "properties": {
+              "role": {
+                "const": "analysis"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "maxContains": 1,
+          "minContains": 1
+        }
+      }
+    }
+  ],
+  "properties": {
+    "canonicalPayloadDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "analysisFacts": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "feedback": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "labelClusters": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "machineValidations": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "managedReleases": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "mappingCandidates": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "releaseFacts": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "searchOnlyMappings": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "managedReleases",
+        "releaseFacts",
+        "analysisFacts",
+        "labelClusters",
+        "mappingCandidates",
+        "searchOnlyMappings",
+        "machineValidations",
+        "feedback"
+      ],
+      "type": "object"
+    },
+    "format": {
+      "const": "refspec-vocabulary-atlas-nquads-1.0"
+    },
+    "generationDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "graphs": {
+      "items": {
+        "$ref": "#/$defs/graph"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^urn:ref:vocabulary-atlas:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "implementation": {
+      "$ref": "#/$defs/implementation"
+    },
+    "inputs": {
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/managedReleaseInput"
+          },
+          {
+            "$ref": "#/$defs/rulespecCoreInput"
+          },
+          {
+            "$ref": "#/$defs/crosswalkInput"
+          }
+        ]
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "output": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mediaType": {
+          "const": "application/n-quads"
+        },
+        "path": {
+          "const": "atlas.nq"
+        },
+        "quadCount": {
+          "$ref": "#/$defs/positiveInteger"
+        }
+      },
+      "required": [
+        "path",
+        "mediaType",
+        "digest",
+        "byteLength",
+        "quadCount"
+      ],
+      "type": "object"
+    },
+    "policies": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis": {
+          "const": "replaceableMachineAnalysis"
+        },
+        "humanFeedback": {
+          "const": "appendOnlyNonAuthorizing"
+        },
+        "labelEquality": {
+          "const": "clusterOnly"
+        },
+        "mappingEligibility": {
+          "const": "twoIndependentMachinesSearchOnly"
+        },
+        "releaseFacts": {
+          "const": "copiedManagedReleaseFactsOnly"
+        }
+      },
+      "required": [
+        "releaseFacts",
+        "analysis",
+        "labelEquality",
+        "mappingEligibility",
+        "humanFeedback"
+      ],
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "type": {
+      "const": "urn:ref:type:VocabularyAtlasManifest"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "schemaVersion",
+    "format",
+    "generationDigest",
+    "inputs",
+    "implementation",
+    "policies",
+    "graphs",
+    "output",
+    "counts",
+    "canonicalPayloadDigest"
+  ],
+  "title": "RefSpec Vocabulary Atlas Manifest 1.0",
+  "type": "object",
+  "$defs": {
+    "absoluteIri": {
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s<>]+$",
+      "type": "string"
+    },
+    "crosswalkInput": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "fileDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "id": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "mediaType": {
+          "const": "application/vnd.refspec.vocabulary-atlas-crosswalk+json"
+        },
+        "role": {
+          "const": "CrosswalkBundle"
+        }
+      },
+      "required": [
+        "role",
+        "id",
+        "digest",
+        "fileDigest",
+        "mediaType"
+      ],
+      "type": "object"
+    },
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "quadCount": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "role": {
+          "enum": [
+            "releaseFacts",
+            "analysis"
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "id",
+        "quadCount"
+      ],
+      "type": "object"
+    },
+    "implementation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "runtime": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "type": "object"
+        },
+        "sourceModules": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "digest"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "version": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "sourceModules",
+        "runtime"
+      ],
+      "type": "object"
+    },
+    "managedReleaseInput": {
+      "additionalProperties": false,
+      "properties": {
+        "manifestDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "publicationReleaseId": {
+          "$ref": "#/$defs/absoluteIri"
+        },
+        "role": {
+          "const": "ManagedReleaseView"
+        },
+        "rulespecGraph": {
+          "additionalProperties": false,
+          "properties": {
+            "digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "id": {
+              "$ref": "#/$defs/absoluteIri"
+            }
+          },
+          "required": [
+            "id",
+            "digest"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "role",
+        "manifestDigest",
+        "publicationReleaseId",
+        "rulespecGraph"
+      ],
+      "type": "object"
+    },
+    "nonnegativeInteger": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positiveInteger": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "rulespecCoreInput": {
+      "additionalProperties": false,
+      "properties": {
+        "fileDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "releaseDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "releaseId": {
+          "pattern": "^urn:rulespec:core:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "role": {
+          "const": "RulespecCoreRelease"
+        }
+      },
+      "required": [
+        "role",
+        "fileDigest",
+        "releaseId",
+        "releaseDigest"
+      ],
+      "type": "object"
+    }
+  }
+}
