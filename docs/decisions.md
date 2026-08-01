@@ -12,6 +12,11 @@
 The platform has four products. Each durable record has one owner even when a
 different product publishes a conforming projection.
 
+> **Superseded by [REF-008](#ref-008-count-four-products-and-five-ownership-rows):**
+> the four-row table below merges Rulespec Core and Rulespec Extrapolator into a
+> single Rulespec row. Ownership tables carry five rows, one per release unit;
+> the product count stays four. The table is retained verbatim as design lineage.
+
 | Product | Owns | Excludes |
 | --- | --- | --- |
 | SpicyRegs | Source connectors, document identity and versions, exact representations, structural passages, source observations, and acquisition coverage | Vocabulary policy, derived assertions, retrieval ranking, and legal judgment |
@@ -118,3 +123,36 @@ The standalone line's history is archived inside this repository as local refs:
 
 Neither archive ref is published by a default push. The reconciliation runbook records the
 prepared commands for publishing them.
+
+### REF-008: Count four products and five ownership rows
+
+- **Date:** 2026-08-01
+- **Status:** Accepted
+
+This ledger's product-ownership table said "four products" over four rows, while the
+authority map in [`product-boundary-and-api-disposition.md`](product-boundary-and-api-disposition.md)
+and the README ownership boundary list five owners. Both were describing the same
+boundary; the four-row table merged two distinct owners into one row.
+
+The resolution follows the Rulespec decision ledger (2026-07-31, "Separate source,
+vocabulary, extrapolation, and search ownership"): the platform has four products —
+SpicyRegs, RefSpec, Rulespec, and SpicySearch — and Rulespec is one product with two
+independent release units, **Rulespec Core** (`RulespecCoreRelease`) and **Rulespec
+Extrapolator** (`ExtrapolationRelease`). Ownership and authority tables therefore carry
+five rows, one per release unit, because each unit owns a distinct durable surface. A
+five-row table does not introduce a fifth product.
+
+The corrected ownership table splits only the Rulespec row:
+
+| Owner | Owns | Excludes |
+| --- | --- | --- |
+| SpicyRegs | Source connectors, document identity and versions, exact representations, structural passages, source observations, and acquisition coverage | Vocabulary policy, derived assertions, retrieval ranking, and legal judgment |
+| RefSpec | Managed ontology and vocabulary releases, source-term resolution, cross-vocabulary mapping validation, optional review references, vocabulary coverage, and deterministic static atlas assets with lookup projections | Document acquisition, general evidence primitives, extrapolation execution, live document queries, ranking, and search serving |
+| Rulespec Core | Portable semantic structures: generic schemas, generated types, validators, and conformance fixtures | Canonical source content, managed vocabulary publication, extrapolation execution, and general document search |
+| Rulespec Extrapolator | The extrapolation runtime: evidence-bound assertions, provenance and validation receipts, and extrapolation releases | Canonical source content, managed vocabulary publication, and general document search |
+| SpicySearch | Neutral document and passage retrieval, disposable indexes, ranking, explanations, search coverage, and feedback events | Canonical documents, managed vocabularies, extrapolation authority, and legal or organizational judgment |
+
+The four-row table at the top of this ledger is superseded in place and kept as design
+lineage. The same four-versus-five tension exists in
+`spicysearch/docs/decisions/0001-four-product-boundary.md`; that ledger belongs to the
+SpicySearch repository and is referenced here without being edited by this decision.
