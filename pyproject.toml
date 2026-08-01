@@ -1,13 +1,22 @@
 [project]
 name = "refspec"
 version = "0.1.0.dev0"
-description = "Operational vocabulary releases and source-term resolution for RefSpec"
+description = "Managed vocabulary releases, crosswalks, and static atlas assets for RefSpec"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "rdflib>=7.1,<8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff==0.3.4",
+]
 
 [project.scripts]
 refspec-build-federal-register-2025 = "refspec.cli:main"
+refspec-build-vocabulary-atlas = "refspec.atlas.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

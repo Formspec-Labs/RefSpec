@@ -1,13 +1,16 @@
 # RefSpec
 
-RefSpec publishes managed ontology and vocabulary releases. It captures an
-external vocabulary distribution, records the managed publication decision,
-resolves exact source-term keys, and exposes the complete Rulespec Core
-reference release used by downstream concept assignments.
+RefSpec publishes managed ontology and vocabulary releases plus static,
+query-ready cross-vocabulary atlas assets. It captures an external vocabulary
+distribution, records the managed publication decision, resolves exact
+source-term keys, generates and validates crosswalk candidates, and exposes the
+complete Rulespec Core reference release used by downstream concept
+assignments.
 
-RefSpec does not acquire documents, preserve document observations, execute
-extrapolation, or rank search results. Those responsibilities belong to
-SpicyRegs, Rulespec, and SpicySearch.
+RefSpec generates deterministic vocabulary lookup projections. It does not
+acquire documents, preserve document observations, execute document
+extrapolation, answer live document queries, or rank search results. Those
+responsibilities belong to SpicyRegs, Rulespec, and SpicySearch.
 
 ## Implemented first slice
 
@@ -23,6 +26,9 @@ The package provides:
 - an exact, complete Rulespec Core `ReferenceResourceRelease` projection;
 - `SourceTermKey` and closed-state `SourceTermResolution` records;
 - `AgentValidationReceipt` and `BaselineValidationReceipt` records;
+- a `VocabularyAtlasAsset` builder and read-only crosswalk/label queries;
+- deterministic, blank-node-free N-Quads with exactly two named graphs and a
+  canonical manifest;
 - positive examples for all four Lists of Subjects resolution states; and
 - fail-closed validation for digests, references, membership, and target
   cardinality.
@@ -41,11 +47,12 @@ before publishing a production RefSpec release.
 Python 3.11 or later is required.
 
 ```sh
-pytest -q
-python -m refspec.cli --output build/federal-register-2025-first-slice.json
+uv sync --all-groups
+uv run pytest -q
+uv run refspec-build-federal-register-2025 \
+  --output build/federal-register-2025-first-slice.json
 ```
 
-When the package is not installed, add `PYTHONPATH=src` to the builder command.
 Repeated builds produce identical canonical bytes and the same release digest.
 The checked-in release artifact is
 `release-records/fixtures/refspec-vocabulary-release-federal-register-2025-first-slice.json`.
@@ -53,6 +60,27 @@ The checked-in release artifact is
 The conformance fixture includes two independent example validator receipts.
 They demonstrate receipt structure and reduction logic; they are not claims of
 production validation or release promotion.
+
+The atlas accepts one or more exact `VocabularyRelease` files and an optional
+crosswalk bundle containing generated candidates and model/agent validation
+receipts. A usable pinned baseline can qualify a candidate for `searchOnly`
+without human approval. Optional human feedback is recorded separately and can
+only affect a later immutable asset.
+
+The atlas command writes `atlas.nq` and `atlas-manifest.json`. Consumers verify
+and copy those files; they do not import RefSpec source or read a mutable
+RefSpec database. Rebuild the checked-in single-release conformance asset with:
+
+```sh
+uv run refspec-build-vocabulary-atlas \
+  --release release-records/fixtures/refspec-vocabulary-release-federal-register-2025-first-slice.json=sha256:78f3937141f0a2152225a05ee4018c4ce92f49e77c1d97a6f07064754231bee8 \
+  --output-directory build/vocabulary-atlas
+```
+
+Pass `--crosswalk-bundle PATH=sha256:<digest>` to add sealed model/agent
+candidates, validation receipts, and optional later feedback. The checked
+single-release asset proves canonical generation and reload; focused tests seal
+two-release crosswalk examples and the machine-first qualification path.
 
 ## Product boundary
 

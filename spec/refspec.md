@@ -16,14 +16,15 @@ endorsement. The repository has no selected license.
 
 ## 1. Purpose
 
-RefSpec publishes evidence-backed, managed ontology and vocabulary releases.
-It gives downstream products an exact concept set, stable identifiers, source
-coverage, explicit source-term resolutions, and validation receipts.
+RefSpec publishes evidence-backed, managed ontology and vocabulary releases
+and deterministic cross-vocabulary atlas assets. It gives downstream products
+exact concept sets, stable identifiers, source coverage, explicit source-term
+resolutions, qualified mapping candidates, and validation receipts.
 
-RefSpec owns the operational `VocabularyRelease`. Rulespec Core owns the
-portable `ReferenceResourceRelease` shape and the meaning of its complete
-membership. External publishers remain authoritative for their distributions
-and native semantics.
+RefSpec owns the operational `VocabularyRelease` and `VocabularyAtlasAsset`.
+Rulespec Core owns the portable `ReferenceResourceRelease` shape and the
+meaning of its complete membership. External publishers remain authoritative
+for their distributions and native semantics.
 
 ## 2. Product boundary
 
@@ -38,14 +39,16 @@ RefSpec publishes:
 - one exact and complete Rulespec Core reference release;
 - source-term resolutions and their evidence;
 - baseline-validation receipts and supporting records; and
-- vocabulary coverage and known exclusions.
+- vocabulary coverage and known exclusions; and
+- deterministic, query-ready cross-vocabulary atlas assets.
 
 RefSpec excludes:
 
 - document acquisition, document versions, passages, and observation capture;
 - a general evidence framework or a redefinition of Rulespec Core;
 - extrapolation execution and derived document assertions; and
-- search indexes, candidate generation, ranking, and result serving.
+- document candidate generation, live search indexes, ranking, and result
+  serving.
 
 API Topics from the Federal Register enter RefSpec only through a complete
 `SourceTermKey`. SpicyRegs owns the corresponding source observation and its
@@ -216,7 +219,68 @@ They do not establish semantic truth, approve each downstream assignment, or
 require human approval. Optional human review remains a separate referenced
 record.
 
-## 7. Federal Register profile
+## 7. Vocabulary atlas static asset
+
+A `VocabularyAtlasAsset` is a separate immutable publication from each input
+`VocabularyRelease`. It is a crosswalk and deterministic lookup representation;
+it is not another source vocabulary, a mutable graph database, or a document
+search service.
+
+An atlas manifest MUST pin:
+
+- every input vocabulary release by `release_id`, canonical release digest,
+  and source-file byte digest;
+- the exact mapping-candidate input and its byte digest;
+- the candidate-selection policy and version;
+- the generator implementation files and their byte digests; and
+- every data distribution by media type, byte length, and SHA-256 digest.
+
+The canonical atlas identifier is content-derived:
+
+```text
+urn:refspec:vocabulary-atlas:<atlas-digest-hex>
+```
+
+The canonical manifest itself MUST be pinned externally by SHA-256 when copied
+to a consumer. A reader MUST verify that pin, the canonical manifest bytes, the
+asset and graph identities, the static distribution digest and length, graph
+and semantic counts, input-pin statements, and exactly two named graphs before
+exposing lookup queries.
+
+The atlas MUST publish canonical JSON for its manifest and deterministic,
+blank-node-free N-Quads containing exactly two named graphs: one graph for
+facts copied from the pinned vocabulary releases and one graph for replaceable
+cross-vocabulary mapping candidates. Rebuilding from identical pinned inputs,
+policy, and implementation MUST produce identical bytes, counts, digests, and
+identifiers.
+
+A mapping candidate MUST name concepts in the pinned input releases and MUST
+carry its origin, model and prompt lineage, verification state, disposition,
+evidence, policy, and validation receipt. Any emitted Rulespec
+`ConceptMapping` and `AILineage` MUST conform to the pinned Rulespec Core
+shapes and point to the nested complete `ReferenceResourceRelease` identifiers,
+not the outer operational RefSpec release identifiers. Label equality,
+normalization, embedding similarity, or graph proximity MAY seed a candidate
+but MUST NOT mint `skos:exactMatch`, an official source term, or
+publisher-authored truth.
+
+A model- or agent-generated candidate MAY receive `searchOnly` disposition
+when its exact evidence and endpoint releases pass a pinned baseline validation
+whose aggregate result is usable. It remains model-derived and unverified.
+Human approval is not a prerequisite. Optional human feedback is append-only
+input to a later atlas build; it MUST NOT mutate a published atlas or silently
+change a candidate's eligibility.
+
+RefSpec MAY expose read-only crosswalk and label lookup over the static asset.
+It MUST NOT accept document queries, rank documents, or serve mutable atlas
+state. A consumer such as SpicySearch MUST pin and verify the asset before use
+and owns its own document-query planning and ranking.
+
+Validation MUST fail closed when an input pin, implementation pin, output
+digest, graph count, mapping endpoint, qualification record, or declared count
+does not match the canonical asset.
+
+## 8. Federal Register profile
 
 The April 1, 2025 Federal Register Thesaurus is the default candidate
 vocabulary for the `federal-register-document-v1` profile. It is not RefSpec's
@@ -233,7 +297,7 @@ includes positive Lists of Subjects examples for every resolution status. The
 fixture's two independent agent receipts demonstrate the record and reduction
 rules. They do not assert that a production release has passed validation.
 
-## 8. Fail-closed validation
+## 9. Fail-closed validation
 
 A validator MUST reject a release when any of these conditions occurs:
 
@@ -248,18 +312,24 @@ A validator MUST reject a release when any of these conditions occurs:
 - a usable baseline lacks two completed independent attempts; or
 - the release contains document observation capture or search records.
 
-## 9. Reproducible conformance build
+## 10. Reproducible conformance build
 
-Run the focused tests and build the canonical release:
+Install the locked development environment, run the focused tests, and build
+both canonical conformance publications:
 
 ```sh
-pytest -q
-python -m refspec.cli --output build/federal-register-2025-first-slice.json
+uv sync --all-groups
+uv run pytest -q
+uv run refspec-build-federal-register-2025 \
+  --output build/federal-register-2025-first-slice.json
+uv run refspec-build-vocabulary-atlas \
+  --release release-records/fixtures/refspec-vocabulary-release-federal-register-2025-first-slice.json=sha256:78f3937141f0a2152225a05ee4018c4ce92f49e77c1d97a6f07064754231bee8 \
+  --output-directory build/vocabulary-atlas
 ```
 
-The command validates the release before writing it. Identical package inputs
-produce identical bytes, digests, and identifiers.
+Each command validates its publication before writing it. Identical pinned
+inputs produce identical bytes, digests, and identifiers.
 
-The repository pins the generated conformance artifact at
-`release-records/fixtures/refspec-vocabulary-release-federal-register-2025-first-slice.json`.
-Tests compare that artifact byte-for-byte with a fresh build.
+The repository pins the generated release and atlas under
+`release-records/fixtures/`. Tests compare both publications byte-for-byte with
+fresh builds.
