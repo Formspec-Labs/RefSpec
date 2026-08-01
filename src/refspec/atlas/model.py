@@ -1438,6 +1438,62 @@ def _one_literal(graph: Graph, subject: URIRef, predicate: URIRef, label: str) -
     return values[0]
 
 
+def _search_only_mapping_nodes(analysis: Graph) -> tuple[URIRef, ...]:
+    """Return every concept mapping in the analysis graph, in id order.
+
+    An atlas only ever carries ``searchOnly`` mappings, so a mapping with any
+    other eligibility is a defect rather than a row to skip.  This is the one
+    place that decides which nodes are mappings; :mod:`refspec.atlas.queries`
+    reads the same answer instead of re-deriving a laxer one.
+    """
+
+    nodes: list[URIRef] = []
+    for subject in sorted(set(analysis.subjects(RDF.type, RKAF.ConceptMapping)), key=str):
+        if not isinstance(subject, URIRef):
+            raise VocabularyAtlasError("searchOnly mapping id must be an IRI")
+        if _one_resource(analysis, subject, RKAF.usageEligibility, "mapping eligibility") != RKAF.searchOnly:
+            raise VocabularyAtlasError("searchOnly mapping has contradictory eligibility")
+        nodes.append(subject)
+    return tuple(nodes)
+
+
+def _search_only_mapping_validations(analysis: Graph, mapping: URIRef) -> tuple[URIRef, URIRef]:
+    """Return the exactly two machine validations that qualify one mapping."""
+
+    validations = tuple(sorted(set(analysis.objects(mapping, ATLAS.qualifiedBy)), key=str))
+    if len(validations) != 2 or any(not isinstance(value, URIRef) for value in validations):
+        raise VocabularyAtlasError("searchOnly mapping needs exactly two machine validations")
+    return cast(tuple[URIRef, URIRef], validations)
+
+
+def _label_cluster_nodes(analysis: Graph) -> tuple[URIRef, ...]:
+    """Return every label cluster in the analysis graph, in id order.
+
+    A cluster only means anything if it crosses releases, so the cross-release
+    and membership checks belong to reading a cluster, not to one caller.
+    """
+
+    clusters: list[URIRef] = []
+    for cluster in sorted(set(analysis.subjects(RDF.type, ATLAS.LabelCluster)), key=str):
+        if not isinstance(cluster, URIRef):
+            raise VocabularyAtlasError("label cluster id must be an IRI")
+        _one_literal(analysis, cluster, ATLAS.normalizedLabel, "label cluster normalized label")
+        members = tuple(analysis.objects(cluster, ATLAS.member))
+        releases = tuple(analysis.objects(cluster, ATLAS.memberRelease))
+        if len(members) < 2 or not releases:
+            raise VocabularyAtlasError("label cluster must contain members from releases")
+        if any(not isinstance(value, URIRef) for value in (*members, *releases)):
+            raise VocabularyAtlasError("label cluster members and releases must be IRIs")
+        if len(set(releases)) < 2:
+            raise VocabularyAtlasError("label cluster must cross releases")
+        if any(
+            not any((member, ATLAS.memberOfRelease, release) in analysis for release in releases) for member in members
+        ):
+            raise VocabularyAtlasError("label cluster member is outside its declared releases")
+        clusters.append(cluster)
+    return tuple(clusters)
+
+
 def _validate_input_pin(value: object) -> str:
     pin = _as_mapping(value, "atlas input")
     role = pin.get("role")
@@ -1550,36 +1606,10 @@ def _validate_query_graph_semantics(
         if (release, PROV.hadMember, member) not in release_graph:
             raise VocabularyAtlasError("atlas analysis membership is absent from authoritative release facts")
 
-    for cluster in set(analysis.subjects(RDF.type, ATLAS.LabelCluster)):
-        if not isinstance(cluster, URIRef):
-            raise VocabularyAtlasError("label cluster id must be an IRI")
-        _one_literal(analysis, cluster, ATLAS.normalizedLabel, "label cluster normalized label")
-        members = tuple(analysis.objects(cluster, ATLAS.member))
-        releases = tuple(analysis.objects(cluster, ATLAS.memberRelease))
-        if len(members) < 2 or not releases:
-            raise VocabularyAtlasError("label cluster must contain members from releases")
-        if any(not isinstance(value, URIRef) for value in (*members, *releases)):
-            raise VocabularyAtlasError("label cluster members and releases must be IRIs")
-        if len(set(releases)) < 2:
-            raise VocabularyAtlasError("label cluster must cross releases")
-        if any(
-            not any((member, ATLAS.memberOfRelease, release) in analysis for release in releases) for member in members
-        ):
-            raise VocabularyAtlasError("label cluster member is outside its declared releases")
+    _label_cluster_nodes(analysis)
 
-    mappings = {
-        subject
-        for subject in analysis.subjects(RDF.type, RKAF.ConceptMapping)
-        if (subject, RKAF.usageEligibility, RKAF.searchOnly) in analysis
-    }
-    for mapping in mappings:
-        if not isinstance(mapping, URIRef):
-            raise VocabularyAtlasError("searchOnly mapping id must be an IRI")
-        if _one_resource(analysis, mapping, RKAF.usageEligibility, "mapping eligibility") != RKAF.searchOnly:
-            raise VocabularyAtlasError("searchOnly mapping has contradictory eligibility")
-        validations = tuple(sorted(set(analysis.objects(mapping, ATLAS.qualifiedBy)), key=str))
-        if len(validations) != 2 or any(not isinstance(value, URIRef) for value in validations):
-            raise VocabularyAtlasError("searchOnly mapping needs exactly two machine validations")
+    for mapping in _search_only_mapping_nodes(analysis):
+        validations = _search_only_mapping_validations(analysis, mapping)
         source = _one_resource(analysis, mapping, RKAF.assertsSubject, "mapping source")
         relation = _one_resource(analysis, mapping, RKAF.assertsPredicate, "mapping relation")
         target = _one_resource(analysis, mapping, RKAF.assertsObject, "mapping target")
@@ -1647,7 +1677,7 @@ def _validate_query_graph_semantics(
             _validate_projected_artifact(analysis, artifact, role="evidence")
 
         independence: list[tuple[URIRef, URIRef, URIRef, str, URIRef]] = []
-        for validation in cast(tuple[URIRef, URIRef], validations):
+        for validation in validations:
             if (validation, RDF.type, ATLAS.MachineValidation) not in analysis:
                 raise VocabularyAtlasError("searchOnly mapping validation is missing")
             if _one_resource(analysis, validation, ATLAS.validates, "machine validation candidate") != candidate:

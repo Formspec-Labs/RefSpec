@@ -13,7 +13,7 @@ from types import MappingProxyType
 from typing import Any
 
 import pytest
-from rdflib import Dataset, URIRef
+from rdflib import Dataset, Literal, URIRef
 from rdflib.namespace import RDF
 
 import refspec
@@ -821,6 +821,109 @@ def test_file_only_open_rejects_forged_machine_proof_despite_resealed_counts(
     manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
 
     with pytest.raises(VocabularyAtlasError, match="mapping source"):
+        VocabularyAtlasAsset.open(
+            output,
+            expected_manifest_digest=_file_digest(manifest_path),
+            expected_output_digest=_file_digest(payload_path),
+        )
+
+
+def test_queries_refuse_a_concept_mapping_that_is_not_search_only(
+    tmp_path: Path,
+) -> None:
+    """Reading never accepts a mapping that opening would reject."""
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalk=_qualified_bundle(),
+    )
+    queries = VocabularyAtlasQueries(asset)
+    assert len(queries.search_only_mappings()) == 1
+
+    forged = URIRef("urn:test:atlas:not-search-only-mapping")
+    queries._analysis.add((forged, RDF.type, RKAF.ConceptMapping))
+    queries._analysis.add((forged, RKAF.usageEligibility, RKAF.notEligible))
+
+    with pytest.raises(VocabularyAtlasError, match="contradictory eligibility"):
+        queries.search_only_mappings()
+
+
+def test_queries_refuse_a_search_only_mapping_with_three_machine_validations(
+    tmp_path: Path,
+) -> None:
+    """Two independent machines is an exact count, not a floor."""
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalk=_qualified_bundle(),
+    )
+    queries = VocabularyAtlasQueries(asset)
+    mapping = URIRef(queries.search_only_mappings()[0].mapping_id)
+
+    queries._analysis.add(
+        (mapping, ATLAS.qualifiedBy, URIRef("urn:test:atlas:validation:third"))
+    )
+
+    with pytest.raises(VocabularyAtlasError, match="exactly two machine validations"):
+        queries.search_only_mappings()
+
+
+def test_queries_refuse_a_label_cluster_that_does_not_cross_releases(
+    tmp_path: Path,
+) -> None:
+    """Label clusters exist to cross releases; reading enforces that too."""
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+    )
+    queries = VocabularyAtlasQueries(asset)
+    assert len(queries.label_clusters()) == 1
+
+    forged = URIRef("urn:test:atlas:single-release-cluster")
+    queries._analysis.add((forged, RDF.type, ATLAS.LabelCluster))
+    queries._analysis.add((forged, ATLAS.normalizedLabel, Literal("single release label")))
+    queries._analysis.add((forged, ATLAS.member, URIRef(SOURCE_MEMBER)))
+    queries._analysis.add((forged, ATLAS.member, URIRef(TARGET_MEMBER)))
+    queries._analysis.add((forged, ATLAS.memberRelease, URIRef(SOURCE_RELEASE)))
+
+    with pytest.raises(VocabularyAtlasError, match="must cross releases"):
+        queries.label_clusters()
+
+
+def test_file_only_open_rejects_a_concept_mapping_that_is_not_search_only(
+    tmp_path: Path,
+) -> None:
+    """The lax read is impossible because opening rejects the same graph."""
+
+    release = _real_release(tmp_path)
+    core = _core_release(tmp_path)
+    asset = build_vocabulary_atlas((release,), rulespec_core=core)
+    output = asset.write(tmp_path / "atlas")
+    manifest_path = output / "atlas-manifest.json"
+    payload_path = output / "atlas.nq"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    analysis_id = next(row["id"] for row in manifest["graphs"] if row["role"] == "analysis")
+    forged = URIRef("urn:test:atlas:not-search-only-mapping")
+    forged_lines = [
+        f"<{forged}> <{RDF.type}> <{RKAF.ConceptMapping}> <{analysis_id}> .",
+        f"<{forged}> <{RKAF.usageEligibility}> <{RKAF.notEligible}> <{analysis_id}> .",
+    ]
+    payload = payload_path.read_text(encoding="utf-8").splitlines()
+    forged_payload = ("\n".join(sorted([*payload, *forged_lines])) + "\n").encode("utf-8")
+    payload_path.write_bytes(forged_payload)
+    manifest["output"]["digest"] = "sha256:" + hashlib.sha256(forged_payload).hexdigest()
+    manifest["output"]["byteLength"] = len(forged_payload)
+    manifest["output"]["quadCount"] += len(forged_lines)
+    analysis_graph = next(row for row in manifest["graphs"] if row["role"] == "analysis")
+    analysis_graph["quadCount"] += len(forged_lines)
+    manifest["counts"]["analysisFacts"] += len(forged_lines)
+    manifest["canonicalPayloadDigest"] = binding.canonical_payload_digest(manifest)
+    manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
+
+    with pytest.raises(VocabularyAtlasError, match="contradictory eligibility"):
         VocabularyAtlasAsset.open(
             output,
             expected_manifest_digest=_file_digest(manifest_path),
