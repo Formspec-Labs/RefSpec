@@ -1,0 +1,1224 @@
+{
+  "builds": {
+    "federalRegisterPlusIcpsr": {
+      "assetId": "urn:ref:vocabulary-atlas:74d298b20713436fe221ea81dc7c219298b80d105a01b89d7444f5d96d4781a4",
+      "counts": {
+        "analysisFacts": 5938,
+        "feedback": 0,
+        "hierarchyEdges": 1759,
+        "labelClusters": 245,
+        "machineValidations": 0,
+        "managedReleases": 2,
+        "mappingCandidates": 0,
+        "releaseFacts": 43021,
+        "searchOnlyMappings": 0
+      },
+      "outputDigest": "sha256:f1525cf4697e7195b1b888038887256b068ccf325f8d3a74e71cf3fc68017542"
+    },
+    "threeVocabularyPlusCrosswalk": {
+      "assetId": "urn:ref:vocabulary-atlas:d1f0d786155eb53ae659e76bc7dc8bb96aa2ed984009057479a6021c10b082a6",
+      "buildWallTimeSeconds": 710.6,
+      "counts": {
+        "analysisFacts": 620161,
+        "feedback": 0,
+        "hierarchyEdges": 8513,
+        "labelClusters": 96958,
+        "machineValidations": 729,
+        "managedReleases": 3,
+        "mappingCandidates": 365,
+        "releaseFacts": 309166,
+        "searchOnlyMappings": 121
+      },
+      "graphSplit": {
+        "analysis": {
+          "bytes": 194220102,
+          "quads": 620161,
+          "share": 0.702
+        },
+        "releaseFacts": {
+          "bytes": 82461672,
+          "quads": 309166,
+          "share": 0.298
+        }
+      },
+      "inputs": {
+        "crosswalkBundle": "sha256:d9a905a0d96bdf22ed829bfb7c5afc54b2084b1ebbcf3dbd88aebab0350d35d2",
+        "crosswalkFile": "sha256:508dd5611714ebbfb786bd87e814046ae40d072a8dd67e12c9e7f48e251c9b92",
+        "elsstR5R6": "sha256:8dd408effe1d57109460a01a9c6620107b4662cbb95eed829ef905f3bfe8b71e",
+        "federalRegister2025": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
+        "icpsr": "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a",
+        "rulespecCoreFile": "sha256:06adfaf4d3ee8532c9ae76719d48a4844a4b012c7fea31e83e4a89f8033d1a63"
+      },
+      "manifestDigest": "sha256:000595091c752df132b312178ec179b4baf8a180d0abb059dd5f24b42b7c04f7",
+      "outputDigest": "sha256:b7fcca718d4a57365a8230bb34d5b6d569888d06cb50828c72624c38ef75a897"
+    }
+  },
+  "consumer": {
+    "callerDigests": {
+      "src/spicysearch/concept_resolution.py": "sha256:4481fcdc310e54f3e13d5952c71d84a6a3cd3e5b678497946cf1b9342ed6278a",
+      "src/spicysearch/engine.py": "sha256:7adb03bd7e7cd327709b4fb1030d1284ea0b4c8f26f2ff5bc86fba71af583ec0",
+      "src/spicysearch/snapshot.py": "sha256:2a82ca38c747417a895d71f716e4ed8468e421ff130b3591f1c45adaed409e83"
+    },
+    "neverRead": [
+      "skos:definition",
+      "skos:scopeNote",
+      "skos:historyNote",
+      "skos:changeNote",
+      "skos:inScheme",
+      "skos:hasTopConcept",
+      "skos:topConceptOf",
+      "skos:notation",
+      "skos:broader",
+      "skos:narrower",
+      "owl:priorVersion",
+      "owl:deprecated",
+      "dcterms:*",
+      "xkos:additionalContentNote",
+      "dcat:*",
+      "prov:used",
+      "atlas:thesaurusUse",
+      "atlas:thesaurusUsedFor",
+      "atlas:inputContextArtifact",
+      "atlas:contentDigest",
+      "atlas:selectionPolicy",
+      "release-node rkaf: lifecycle statements"
+    ],
+    "readerDigest": "sha256:5f96c2419d2bcfd4759aa6fa30ea1af088e6989621ab348146f69550c7683d22",
+    "readerModule": "src/spicysearch/vocabulary_atlas.py",
+    "readsToday": {
+      "concept_labels": {
+        "caller": "concept_resolution.py:155 via engine.py:1819",
+        "filter": "subject must be a prov:hadMember object",
+        "graph": "releaseFacts",
+        "policy": "atlas-normalized-label-v1",
+        "predicates": [
+          "skos:prefLabel",
+          "skos:altLabel"
+        ],
+        "site": "vocabulary_atlas.py:555-575"
+      },
+      "contains_member": {
+        "caller": "snapshot.py:1312",
+        "graphs": [
+          "analysis",
+          "releaseFacts"
+        ],
+        "predicates": [
+          "atlas:memberOfRelease",
+          "prov:hadMember",
+          "rdf:type rkaf:ReferenceResourceRelease",
+          "rkaf:referenceReleaseDigest"
+        ],
+        "site": "vocabulary_atlas.py:536-546"
+      },
+      "reference_release_pin": {
+        "caller": "snapshot.py:1191, :1265",
+        "graph": "releaseFacts",
+        "predicates": [
+          "rdf:type rkaf:ReferenceResourceRelease",
+          "rkaf:referenceReleaseDigest"
+        ],
+        "site": "vocabulary_atlas.py:526-534"
+      },
+      "related": {
+        "caller": "concept_resolution.py:134 via engine.py:1223",
+        "graph": "releaseFacts",
+        "policy": "within-vocabulary-related-v1",
+        "predicates": [
+          "skos:related"
+        ],
+        "site": "vocabulary_atlas.py:577-597"
+      },
+      "rulespec_core_pin_and_pin": {
+        "caller": "snapshot.py:1172, :1183, :1419, :1472, :1516",
+        "graph": null,
+        "site": "vocabulary_atlas.py:477-499",
+        "source": "manifest inputs only"
+      }
+    },
+    "readsWhenExpansionPolicyFlips": {
+      "accessor": "search_only_mappings (vocabulary_atlas.py:636-823)",
+      "caller": "snapshot.py:1441",
+      "gate": "snapshot.py:1440",
+      "note": "open() already walks this closure as a fail-closed pass (vocabulary_atlas.py:470); the flip makes it load-bearing for output rather than only for admission.",
+      "policy": "atlas-search-only-directed-v1"
+    },
+    "readsWhenHierarchyExpansionLands": {
+      "accessor": null,
+      "finding": "no broader/narrower accessor exists; the string 'broader' does not occur anywhere in spicysearch/src/. Hierarchy needs a new accessor and the _COUNT_FIELDS amendment."
+    },
+    "repository": "spicysearch",
+    "validatedAtOpenButNeverRead": {
+      "label_clusters": {
+        "predicates": [
+          "rdf:type atlas:LabelCluster",
+          "atlas:normalizedLabel",
+          "atlas:member",
+          "atlas:memberRelease"
+        ],
+        "productCallers": [],
+        "site": "vocabulary_atlas.py:469, :610-634"
+      },
+      "unreferencedAccessors": [
+        "member_ids",
+        "require_member",
+        "related_pairs",
+        "label_clusters"
+      ]
+    }
+  },
+  "consumerProjection": {
+    "keepRule": {
+      "analysis": [
+        "atlas:memberOfRelease",
+        "every quad whose subject is in the closure of a qualified searchOnly mapping"
+      ],
+      "releaseFacts": [
+        "prov:hadMember",
+        "rkaf:referenceReleaseDigest",
+        "skos:related",
+        "rdf:type where object is rkaf:ReferenceResourceRelease",
+        "skos:prefLabel and skos:altLabel on release members only"
+      ]
+    },
+    "perPredicate": {
+      "dropped": {
+        "analysis\thttp://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
+          98790,
+          31323254
+        ],
+        "analysis\thttp://www.w3.org/ns/prov#wasDerivedFrom": [
+          3,
+          1010
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#artifactDigest": [
+          1100,
+          371800
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#artifactRole": [
+          1100,
+          308342
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#candidateDigest": [
+          244,
+          84912
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#contentDigest": [
+          244,
+          82228
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#deterministicChecksPassed": [
+          487,
+          163632
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#evidence": [
+          244,
+          89792
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#independenceGroup": [
+          487,
+          154132
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#inputContextArtifact": [
+          244,
+          92720
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#inputContextDigest": [
+          244,
+          85644
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#member": [
+          199493,
+          65630642
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#memberRelease": [
+          195447,
+          58549818
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#normalizedLabel": [
+          96958,
+          29469992
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#outcome": [
+          487,
+          134919
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#proposedRelation": [
+          244,
+          79056
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#provider": [
+          487,
+          143178
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#providerModelId": [
+          487,
+          144147
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#requestArtifact": [
+          487,
+          183112
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#responseArtifact": [
+          487,
+          183599
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sealedInputDigest": [
+          487,
+          170937
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sourceMember": [
+          244,
+          81008
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sourceRelease": [
+          244,
+          85400
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#targetMember": [
+          244,
+          82716
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#targetRelease": [
+          244,
+          73932
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validates": [
+          487,
+          184573
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validationDigest": [
+          487,
+          170450
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validatorActor": [
+          487,
+          157301
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#usageEligibility": [
+          244,
+          73200
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/format": [
+          9,
+          2602
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/identifier": [
+          30,
+          7410
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/isReplacedBy": [
+          15,
+          4260
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/isVersionOf": [
+          6876,
+          1931888
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/issued": [
+          3,
+          613
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/replaces": [
+          15,
+          4200
+        ],
+        "releaseFacts\thttp://purl.org/dc/terms/type": [
+          4,
+          1009
+        ],
+        "releaseFacts\thttp://rdf-vocabulary.ddialliance.org/xkos#additionalContentNote": [
+          275,
+          70247
+        ],
+        "releaseFacts\thttp://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
+          11397,
+          3100126
+        ],
+        "releaseFacts\thttp://www.w3.org/2002/07/owl#deprecated": [
+          71,
+          19170
+        ],
+        "releaseFacts\thttp://www.w3.org/2002/07/owl#priorVersion": [
+          6846,
+          1978350
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#broader": [
+          8513,
+          2468770
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#changeNote": [
+          1,
+          290
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#definition": [
+          17642,
+          6324147
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#hasTopConcept": [
+          495,
+          128700
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#historyNote": [
+          7702,
+          2268060
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#inScheme": [
+          11370,
+          3000870
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#narrower": [
+          8513,
+          2477283
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#notation": [
+          3760,
+          868560
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#prefLabel": [
+          31,
+          6546
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#scopeNote": [
+          4035,
+          1335139
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#topConceptOf": [
+          495,
+          128205
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/dcat#distribution": [
+          5,
+          1560
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/dcat#version": [
+          4,
+          1000
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/oa#exact": [
+          1,
+          345
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/oa#hasSelector": [
+          1,
+          353
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/oa#hasSource": [
+          1,
+          354
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/prov#used": [
+          3,
+          1058
+        ],
+        "releaseFacts\thttps://refspec.org/ns/vocabulary-atlas/v1#acceptedOutputAllowed": [
+          1,
+          328
+        ],
+        "releaseFacts\thttps://refspec.org/ns/vocabulary-atlas/v1#candidateLookupAllowed": [
+          1,
+          328
+        ],
+        "releaseFacts\thttps://refspec.org/ns/vocabulary-atlas/v1#operationalState": [
+          1,
+          289
+        ],
+        "releaseFacts\thttps://refspec.org/ns/vocabulary-atlas/v1#thesaurusUse": [
+          479,
+          144658
+        ],
+        "releaseFacts\thttps://refspec.org/ns/vocabulary-atlas/v1#thesaurusUsedFor": [
+          394,
+          120564
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#accessScopeKind": [
+          1,
+          319
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#adoptedAt": [
+          1,
+          339
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#adoptionAuthorityKind": [
+          1,
+          324
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#adoptionScope": [
+          1,
+          370
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#adoptionStatus": [
+          1,
+          307
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#appliesTo": [
+          3,
+          918
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#artifactIdentifierScheme": [
+          6,
+          1856
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertedAt": [
+          1,
+          335
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertionOrigin": [
+          1,
+          310
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertionPolarity": [
+          1,
+          307
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertsPredicate": [
+          1,
+          324
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertsSubject": [
+          1,
+          297
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#assertsValue": [
+          1,
+          315
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#attestationScope": [
+          1,
+          370
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#attestedAt": [
+          1,
+          337
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#attestor": [
+          1,
+          300
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#attestorKind": [
+          1,
+          310
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#authorizedBy": [
+          1,
+          307
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#basedOnAttestation": [
+          1,
+          391
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#bindsAssertion": [
+          1,
+          379
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#conceptLifecycleOperation": [
+          3,
+          885
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#decision": [
+          1,
+          300
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#effectiveDate": [
+          3,
+          945
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#emittedBy": [
+          3,
+          804
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#epistemicBasis": [
+          1,
+          314
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#fragmentContentDigest": [
+          1,
+          381
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#hasAccessScope": [
+          1,
+          383
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#hasArtifactIdentifier": [
+          9,
+          3108
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#hasContentDigest": [
+          8,
+          2833
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#lifecycleEventKind": [
+          3,
+          879
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#membershipMode": [
+          4,
+          1040
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#noEvidenceReason": [
+          1,
+          323
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#organization": [
+          1,
+          304
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#predecessorConceptRelease": [
+          3,
+          855
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#predecessorConcepts": [
+          3,
+          948
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#retentionDurationDays": [
+          1,
+          330
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#retentionPostExpiry": [
+          1,
+          317
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#retentionTrigger": [
+          1,
+          315
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#selectorKind": [
+          1,
+          299
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#successorConceptRelease": [
+          3,
+          849
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#successorConcepts": [
+          3,
+          942
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#targetAssertion": [
+          1,
+          386
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#targets": [
+          1,
+          375
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#usageEligibility": [
+          2,
+          631
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#versionBasis": [
+          4,
+          1023
+        ]
+      },
+      "kept": {
+        "analysis\thttp://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
+          1087,
+          346999
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#artifactDigest": [
+          603,
+          203814
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#artifactRole": [
+          603,
+          168612
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#candidateDigest": [
+          121,
+          42108
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#contentDigest": [
+          121,
+          40777
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#deterministicChecksPassed": [
+          242,
+          81312
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#evidence": [
+          121,
+          44528
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#independenceGroup": [
+          242,
+          76593
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#inputContextArtifact": [
+          121,
+          45980
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#inputContextDigest": [
+          121,
+          42471
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#memberOfRelease": [
+          11370,
+          3281710
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#outcome": [
+          242,
+          67276
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#proposedRelation": [
+          121,
+          39204
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#provider": [
+          242,
+          71148
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#providerModelId": [
+          242,
+          71632
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#qualifiedBy": [
+          242,
+          92686
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#qualifiedFrom": [
+          121,
+          46464
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#requestArtifact": [
+          242,
+          90992
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#responseArtifact": [
+          242,
+          91234
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sealedInputDigest": [
+          242,
+          84942
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#selectionPolicy": [
+          121,
+          37631
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sourceMember": [
+          121,
+          40172
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#sourceRelease": [
+          121,
+          42350
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#targetMember": [
+          121,
+          41019
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#targetRelease": [
+          121,
+          36663
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validates": [
+          242,
+          91718
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validationDigest": [
+          242,
+          84700
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#validatorActor": [
+          242,
+          78166
+        ],
+        "analysis\thttps://refspec.org/ns/vocabulary-atlas/v1#verificationStatus": [
+          121,
+          42350
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#assertionOrigin": [
+          121,
+          36421
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#assertsObject": [
+          121,
+          39446
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#assertsPredicate": [
+          121,
+          37510
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#assertsSubject": [
+          121,
+          38720
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#epistemicBasis": [
+          121,
+          37389
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#sourceConceptRelease": [
+          121,
+          41503
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#targetConceptRelease": [
+          121,
+          35816
+        ],
+        "analysis\thttps://rulespec.org/ns/v1#usageEligibility": [
+          242,
+          72600
+        ],
+        "releaseFacts\thttp://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
+          4,
+          1089
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#altLabel": [
+          74316,
+          18444611
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#prefLabel": [
+          107246,
+          26659577
+        ],
+        "releaseFacts\thttp://www.w3.org/2004/02/skos/core#related": [
+          27147,
+          7852316
+        ],
+        "releaseFacts\thttp://www.w3.org/ns/prov#hadMember": [
+          11370,
+          3077050
+        ],
+        "releaseFacts\thttps://rulespec.org/ns/v1#referenceReleaseDigest": [
+          4,
+          1263
+        ]
+      }
+    },
+    "readEquivalenceProof": {
+      "method": "the unmodified spicysearch reader was run against the full distribution and its projection; every accessor result was digested and compared",
+      "threeVocabulary": {
+        "conceptLabels": {
+          "full": [
+            181562,
+            "f31f8ab6a093ae00"
+          ],
+          "projection": [
+            181562,
+            "f31f8ab6a093ae00"
+          ]
+        },
+        "labelClusters": {
+          "full": 96958,
+          "projection": 0
+        },
+        "memberIds": {
+          "full": {
+            "elsstR6": 3470,
+            "fr": 705
+          },
+          "projection": {
+            "elsstR6": 3470,
+            "fr": 705
+          }
+        },
+        "openSeconds": {
+          "full": 28.77,
+          "projection": 6.71
+        },
+        "peakResidentBytes": {
+          "full": 4475781120,
+          "projection": 1029668864
+        },
+        "relatedPairs": {
+          "full": [
+            27147,
+            "d19f0fda97cbbd4d"
+          ],
+          "projection": [
+            27147,
+            "d19f0fda97cbbd4d"
+          ]
+        },
+        "searchOnlyMappings": {
+          "full": [
+            121,
+            "31e7f007b6af2239"
+          ],
+          "projection": [
+            121,
+            "31e7f007b6af2239"
+          ]
+        }
+      },
+      "twoVocabulary": {
+        "conceptLabels": {
+          "full": [
+            177802,
+            "450447ae7201fd57"
+          ],
+          "projection": [
+            177802,
+            "450447ae7201fd57"
+          ]
+        },
+        "openSeconds": {
+          "full": 28.12,
+          "projection": 6.33
+        },
+        "peakResidentBytes": {
+          "full": 4288479232,
+          "projection": 907100160
+        },
+        "relatedPairs": {
+          "full": [
+            12787,
+            "b8194a2425b887bb"
+          ],
+          "projection": [
+            12787,
+            "b8194a2425b887bb"
+          ]
+        },
+        "searchOnlyMappings": {
+          "full": [
+            121,
+            "31e7f007b6af2239"
+          ],
+          "projection": [
+            121,
+            "31e7f007b6af2239"
+          ]
+        }
+      }
+    }
+  },
+  "distributions": {
+    "federalRegisterOnly (vendored today)": {
+      "consumer-projection": {
+        "bytes": 1086877,
+        "gzip9": 28958,
+        "quads": 4001
+      },
+      "consumer-projection-plus-broader": {
+        "bytes": 1086877,
+        "gzip9": 28958,
+        "quads": 4001
+      },
+      "consumer-projection-plus-hierarchy-both": {
+        "bytes": 1086877,
+        "gzip9": 28958,
+        "quads": 4001
+      },
+      "consumer-projection-plus-label-clusters": {
+        "bytes": 1086877,
+        "gzip9": 28958,
+        "quads": 4001
+      },
+      "elsst-r6-only (derived)": {
+        "bytes": 1469637,
+        "gzip9": 35569,
+        "quads": 5426
+      },
+      "elsst-r6-only consumer-projection (derived)": {
+        "bytes": 1086877,
+        "gzip9": 28958,
+        "quads": 4001
+      },
+      "full": {
+        "bytes": 1469637,
+        "gzip9": 35569,
+        "quads": 5426
+      },
+      "full-minus-label-clusters": {
+        "bytes": 1469637,
+        "gzip9": 35569,
+        "quads": 5426
+      },
+      "release-facts-only": {
+        "bytes": 1255389,
+        "gzip9": 31905,
+        "quads": 4719
+      }
+    },
+    "federalRegisterPlusElsstPlusCrosswalk": {
+      "consumer-projection": {
+        "bytes": 54378005,
+        "gzip9": 3342100,
+        "quads": 213674
+      },
+      "consumer-projection-plus-broader": {
+        "bytes": 56336665,
+        "gzip9": 3579754,
+        "quads": 220428
+      },
+      "consumer-projection-plus-hierarchy-both": {
+        "bytes": 58302079,
+        "gzip9": 3790667,
+        "quads": 227182
+      },
+      "consumer-projection-plus-label-clusters": {
+        "bytes": 237711250,
+        "gzip9": 14185003,
+        "quads": 799480
+      },
+      "elsst-r6-only (derived)": {
+        "bytes": 44085242,
+        "gzip9": 3418770,
+        "quads": 161444
+      },
+      "elsst-r6-only consumer-projection (derived)": {
+        "bytes": 29190094,
+        "gzip9": 1792577,
+        "quads": 113411
+      },
+      "full": {
+        "bytes": 263620491,
+        "gzip9": 17038083,
+        "quads": 884214
+      },
+      "full-minus-label-clusters": {
+        "bytes": 80287246,
+        "gzip9": 6195435,
+        "quads": 298408
+      },
+      "release-facts-only": {
+        "bytes": 71705706,
+        "gzip9": 5628553,
+        "quads": 270864
+      }
+    },
+    "federalRegisterPlusElsstPlusIcpsrPlusCrosswalk": {
+      "consumer-projection": {
+        "bytes": 61900562,
+        "gzip9": 3497671,
+        "quads": 239316
+      },
+      "consumer-projection-plus-broader": {
+        "bytes": 64369332,
+        "gzip9": 3747738,
+        "quads": 247829
+      },
+      "consumer-projection-plus-hierarchy-both": {
+        "bytes": 66846615,
+        "gzip9": 3971446,
+        "quads": 256342
+      },
+      "consumer-projection-plus-label-clusters": {
+        "bytes": 246286700,
+        "gzip9": 14490185,
+        "quads": 828172
+      },
+      "elsst-r6-only (derived)": {
+        "bytes": 58492923,
+        "gzip9": 3849189,
+        "quads": 210931
+      },
+      "elsst-r6-only consumer-projection (derived)": {
+        "bytes": 36712651,
+        "gzip9": 1948253,
+        "quads": 139053
+      },
+      "full": {
+        "bytes": 276681774,
+        "gzip9": 17496208,
+        "quads": 929327
+      },
+      "full-minus-label-clusters": {
+        "bytes": 92295636,
+        "gzip9": 6504143,
+        "quads": 340471
+      },
+      "release-facts-only": {
+        "bytes": 82461672,
+        "gzip9": 5916836,
+        "quads": 309166
+      }
+    },
+    "federalRegisterPlusIcpsr": {
+      "consumer-projection": {
+        "bytes": 8609434,
+        "gzip9": 185110,
+        "quads": 29643
+      },
+      "consumer-projection-plus-broader": {
+        "bytes": 9119544,
+        "gzip9": 198246,
+        "quads": 31402
+      },
+      "consumer-projection-plus-hierarchy-both": {
+        "bytes": 9631413,
+        "gzip9": 209194,
+        "quads": 33161
+      },
+      "consumer-projection-plus-label-clusters": {
+        "bytes": 9091658,
+        "gzip9": 205394,
+        "quads": 31113
+      },
+      "elsst-r6-only (derived)": {
+        "bytes": 13960251,
+        "gzip9": 364499,
+        "quads": 48959
+      },
+      "elsst-r6-only consumer-projection (derived)": {
+        "bytes": 8609434,
+        "gzip9": 185110,
+        "quads": 29643
+      },
+      "full": {
+        "bytes": 13960251,
+        "gzip9": 364499,
+        "quads": 48959
+      },
+      "full-minus-label-clusters": {
+        "bytes": 13478027,
+        "gzip9": 344620,
+        "quads": 47489
+      },
+      "release-facts-only": {
+        "bytes": 12011355,
+        "gzip9": 322053,
+        "quads": 43021
+      }
+    },
+    "icpsrOnly": {
+      "consumer-projection": {
+        "bytes": 7522557,
+        "gzip9": 155467,
+        "quads": 25642
+      },
+      "consumer-projection-plus-broader": {
+        "bytes": 8032667,
+        "gzip9": 168970,
+        "quads": 27401
+      },
+      "consumer-projection-plus-hierarchy-both": {
+        "bytes": 8544536,
+        "gzip9": 179710,
+        "quads": 29160
+      },
+      "consumer-projection-plus-label-clusters": {
+        "bytes": 7522557,
+        "gzip9": 155467,
+        "quads": 25642
+      },
+      "elsst-r6-only (derived)": {
+        "bytes": 12008709,
+        "gzip9": 308614,
+        "quads": 42064
+      },
+      "elsst-r6-only consumer-projection (derived)": {
+        "bytes": 7522557,
+        "gzip9": 155467,
+        "quads": 25642
+      },
+      "full": {
+        "bytes": 12008709,
+        "gzip9": 308614,
+        "quads": 42064
+      },
+      "full-minus-label-clusters": {
+        "bytes": 12008709,
+        "gzip9": 308614,
+        "quads": 42064
+      },
+      "release-facts-only": {
+        "bytes": 10755966,
+        "gzip9": 289946,
+        "quads": 38302
+      }
+    }
+  },
+  "elsstEditionQuestion": {
+    "allCandidatesTargetR6": true,
+    "candidateCount": 365,
+    "derivedR6Only": {
+      "clustersAfter": 1461,
+      "clustersBefore": 96958,
+      "clustersDropped": 95497,
+      "priorRelease": "https://elsst.cessda.eu/id/5",
+      "quadsNamingPrior": 334390
+    },
+    "derivedR6OnlyTwoVocabulary": {
+      "clustersAfter": 279,
+      "clustersBefore": 96867,
+      "clustersDropped": 96588,
+      "priorRelease": "https://elsst.cessda.eu/id/5",
+      "quadsNamingPrior": 334386
+    },
+    "lossless": "for every read the consumer performs, yes. R5's labels and related edges leave the query-side index, but no assignment or mapping routes to them. This is a derived projection: no R6-only ELSST bundle exists, and building one is SpicyRegs-side work.",
+    "priorVersionEdges": {
+      "r5ToR4": 3423,
+      "r6ToR5": 3423
+    },
+    "qualifiedMappingCount": 121,
+    "r5ReferencedByMappings": 0,
+    "sourceRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+    "targetRelease": "https://elsst.cessda.eu/id/6"
+  },
+  "findings": {
+    "hierarchyFreeProjectionShipsToday": {
+      "claim": "a consumer projection that drops skos:broader/narrower declares no hierarchyEdges, so finding 1 never fires",
+      "consequence": "vendoring a projection needs no format amendment to be admitted; it needs one to be honest about being derived",
+      "executed": "the three-vocabulary consumer projection was admitted by VocabularyAtlas.open and by VocabularyAtlasAsset.open"
+    },
+    "projectionSharesParentIdentity": {
+      "assetId": "urn:ref:vocabulary-atlas:d1f0d786155eb53ae659e76bc7dc8bb96aa2ed984009057479a6021c10b082a6",
+      "bothOpenUnderProducerValidator": true,
+      "executed": {
+        "consumerOpen": {
+          "full": "refused (hierarchyEdges)",
+          "projection": "admitted"
+        },
+        "producerOpen": {
+          "full": "admitted",
+          "projection": "admitted"
+        },
+        "reproduceFromInputs": {
+          "freshBuild": "PASSES",
+          "method": "run on a freshly built Federal-Register-only atlas and its consumer projection, same pinned bundle and Rulespec Core",
+          "projection": "VocabularyAtlasError: atlas files do not reproduce from the exact pinned inputs",
+          "site": "src/refspec/atlas/model.py:2424-2460"
+        }
+      },
+      "fullBytes": 276681774,
+      "mitigation": "the consumer pin is three-part (snapshot.py:406-417)",
+      "projectionBytes": 61900562,
+      "reason": "generationDigest covers {format, inputs, implementation, policies} only (model.py:2286-2297)"
+    },
+    "releaseFactsOnlyIsInexpressible": {
+      "rule": "both readers require exactly two named graphs with positive quadCount",
+      "sites": [
+        "vocabulary_atlas.py:361-376, :403-406",
+        "model.py:2306-2320, :2350-2352"
+      ]
+    },
+    "todaysAtlasIsRefused": {
+      "cause": "manifest counts.hierarchyEdges",
+      "consequence": "no distribution stating hierarchy is accepted by both sides: declaring hierarchyEdges refuses on the consumer, omitting it refuses on the producer (both executed).",
+      "consumerRule": "spicysearch/src/spicysearch/vocabulary_atlas.py:43-52, :414",
+      "executedAgainst": [
+        "FR + ELSST + crosswalk",
+        "FR + ELSST + ICPSR + crosswalk"
+      ],
+      "executedRefusal": "IntegrityError: atlas counts must be nonnegative integers",
+      "producerRule": "src/refspec/atlas/model.py:1759-1763, :2370-2412"
+    }
+  },
+  "formatAmendmentSketch": {
+    "conformanceCasesAProjectionFormatWouldNeed": [
+      "a projection dropping a fact the consumer reads must refuse",
+      "a projection claiming an unrelated parent must refuse"
+    ],
+    "notBuilt": "no projection format was written; building one before the decision would prejudge it",
+    "toLetHierarchyReachTheConsumer": [
+      "add hierarchyEdges to spicysearch _COUNT_FIELDS (vocabulary_atlas.py:43-52)",
+      "add a broader/narrower accessor; none exists"
+    ],
+    "toMakeAProjectionDistinguishable": [
+      "a derivedFrom block naming the parent asset id, manifest digest and distribution digest",
+      "a projection policy naming the exact keep rule and its version",
+      "an asset id derived from {generationDigest, projectionPolicy, derivedFrom} so a projection cannot collide with its parent"
+    ]
+  },
+  "question": "What does the SpicySearch atlas consumer actually read, and what does each candidate distribution shape cost? Measurement only; the vendor-a-projection / publish-a-pointer / fetch-an-artifact decision is not made here.",
+  "recordedAt": "2026-08-02",
+  "reproduction": {
+    "buildCommand": "refspec-build-vocabulary-atlas --managed-release <fr> <digest> --managed-release <elsst> <digest> --managed-release <icpsr> <digest> --rulespec-core <core> --rulespec-core-file-digest <digest> --rulespec-core-release-id <id> --rulespec-core-release-digest <digest> --crosswalk <bundle> <fileDigest> <bundleDigest> --output <dir>",
+    "note": "the projections were produced by scratch scripts, not by a committed tool: no projection format exists yet, and building one before the decision is made would prejudge it.",
+    "scratchDirectory": "RefSpec/output/atlas-scratch/ (gitignored, machine-local)"
+  }
+}
