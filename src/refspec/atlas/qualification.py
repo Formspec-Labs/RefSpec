@@ -49,6 +49,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from jsonschema import Draft202012Validator
 
@@ -519,6 +520,40 @@ def generate_candidate_pairs(
 
     order = {name: index for index, name in enumerate(GENERATION_CLASSES)}
     return tuple(sorted(selected, key=lambda pair: (order[pair.generation_class], pair.key)))
+
+
+def stratified_subset(
+    rows: Sequence[Mapping[str, Any]],
+    limit: int,
+    *,
+    class_key: str = "generationClass",
+) -> list[Mapping[str, Any]]:
+    """Take ``limit`` rows spread across classes, never the first ``limit``.
+
+    ``candidates.json`` is written in class order, so a head slice of a
+    partial run is pure label equality — exactly the rubber-stamped slice the
+    six-class design exists to prevent.  A short run must still be able to
+    refuse something, so the subset takes one row from each class in turn
+    until it is full.
+    """
+
+    if limit < 0:
+        raise QualificationError("a candidate subset needs a nonnegative limit")
+    buckets: dict[str, list[Mapping[str, Any]]] = {name: [] for name in GENERATION_CLASSES}
+    for row in rows:
+        buckets.setdefault(str(row[class_key]), []).append(row)
+    order = [name for name in GENERATION_CLASSES if buckets.get(name)]
+    order += [name for name in sorted(buckets) if name not in GENERATION_CLASSES and buckets[name]]
+    taken: list[Mapping[str, Any]] = []
+    index = 0
+    while len(taken) < limit and any(len(buckets[name]) > index for name in order):
+        for name in order:
+            if len(taken) >= limit:
+                break
+            if len(buckets[name]) > index:
+                taken.append(buckets[name][index])
+        index += 1
+    return taken
 
 
 def _contains_token_run(haystack: Sequence[str], needle: Sequence[str]) -> bool:
@@ -1130,10 +1165,25 @@ class ValidationReading:
     completed_at: str
     response_sha256: str
     reason: str = ""
+    endpoint_host: str = ""
 
     @property
     def outcome(self) -> str:
         return VERDICT_OUTCOMES[self.verdict]
+
+
+def endpoint_host(url: str) -> str:
+    """The host an answer actually came from, with no credential in it.
+
+    A URL can carry userinfo, a query string, and a path; none of that belongs
+    in a sealed artifact, and any of it could carry a key. Only the host is
+    kept, and it is read from the call the receipt recorded rather than from
+    the family configuration — a host copied out of a configuration literal
+    would be one more cosmetic string, which is precisely the thing it exists
+    to give a reader evidence against.
+    """
+
+    return (urlparse(url).hostname or "").lower()
 
 
 def reading_from_receipt(
@@ -1166,6 +1216,7 @@ def reading_from_receipt(
         completed_at=str(receipt.get("finished_at") or _utcnow()),
         response_sha256=str(receipt.get("response_sha256") or ""),
         reason=str(answer.get("reason", ""))[:MAX_SEALED_REASON_CHARACTERS],
+        endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
     )
 
 
@@ -1230,6 +1281,13 @@ def assemble_candidate(
             content={
                 "candidate": candidate.reference(),
                 "deterministicChecksPassed": reading.deterministic_checks_passed,
+                # Endpoint evidence, not enforcement. The gate's five identity
+                # fields are all producer-declared strings, so a bundle alone
+                # cannot otherwise tell two genuinely independent machines from
+                # two labels on one. This is the observed host of the call that
+                # produced this answer, so a reader can at least see when two
+                # "independent" validators answered from the same endpoint.
+                "endpointHost": reading.endpoint_host,
                 "inputDigest": context.content_digest,
                 "outcome": reading.outcome,
                 "provider": reading.family.provider_iri,
@@ -1399,6 +1457,7 @@ __all__ = [
     "assemble_candidate",
     "concepts_from_view",
     "crosswalk_bundle",
+    "endpoint_host",
     "evidence_artifact",
     "generate_candidate_pairs",
     "input_context_artifact",
@@ -1410,6 +1469,7 @@ __all__ = [
     "reading_from_receipt",
     "resolve_validator_model",
     "scrubbed_headers",
+    "stratified_subset",
     "task_id",
     "validate_candidate",
     "validation_request_artifact",

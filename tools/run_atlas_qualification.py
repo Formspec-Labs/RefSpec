@@ -216,7 +216,10 @@ def command_qualify(args: argparse.Namespace) -> int:
     catalog = _read_json(output / CANDIDATES)
     rows = catalog["candidates"]
     if args.max_candidates is not None:
-        rows = rows[: args.max_candidates]
+        # Spread, never a head slice: candidates.json is written in class order,
+        # so `rows[:N]` for any N under the equality count would call only
+        # label-equal pairs and the run could not refuse anything.
+        rows = qual.stratified_subset(rows, args.max_candidates)
 
     families = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
     transport = qual.UrllibTransport()
@@ -413,7 +416,12 @@ def build_parser() -> argparse.ArgumentParser:
     qualify = subparsers.add_parser("qualify", help="ask each family about each candidate, once")
     qualify.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     qualify.add_argument("--families", default="gemini,openai")
-    qualify.add_argument("--max-candidates", type=int, default=None)
+    qualify.add_argument(
+        "--max-candidates",
+        type=int,
+        default=None,
+        help="call a stratified subset spread across every generation class, not the first N",
+    )
     qualify.add_argument(
         "--cap",
         action=_CapAction,

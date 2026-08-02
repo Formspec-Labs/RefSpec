@@ -27,10 +27,17 @@ directory does.
 Digests, for pinning:
 
 ```
-crosswalk-bundle.json  file    sha256:d95967187e804eaef8a4846237ef5d973d63ef607a4671d99c8f2a36687d8887
-crosswalk-bundle.json  bundle  sha256:e099b26aaa47d489639f1c47874a6c3d3791e13c003e70c51d63e21b2eb3b25b
+crosswalk-bundle.json  file    sha256:508dd5611714ebbfb786bd87e814046ae40d072a8dd67e12c9e7f48e251c9b92
+crosswalk-bundle.json  bundle  sha256:d9a905a0d96bdf22ed829bfb7c5afc54b2084b1ebbcf3dbd88aebab0350d35d2
 candidates.json                sha256:8855a3ad8b7db86d308562e8801e2985e6ed2830de29fc0925c6788fb5049a78
 ```
+
+The bundle was re-sealed after review to carry `endpointHost` on every
+validation response. Re-sealing reads these same receipts — no calls, no cost —
+and produced the same 365 candidates, 729 validations, and 121 qualified
+mappings. The superseded pre-seal digests were file
+`sha256:d95967187e804eaef8a4846237ef5d973d63ef607a4671d99c8f2a36687d8887` and
+bundle `sha256:e099b26aaa47d489639f1c47874a6c3d3791e13c003e70c51d63e21b2eb3b25b`.
 
 Rebuild the bundle from the receipts, with no provider calls and no cost:
 

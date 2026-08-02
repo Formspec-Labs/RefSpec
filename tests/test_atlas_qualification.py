@@ -143,6 +143,35 @@ def test_generation_refuses_a_source_and_target_in_one_release(sources) -> None:
         qual.generate_candidate_pairs(sources, sources)
 
 
+def test_a_short_run_still_spans_every_class(sources, targets) -> None:
+    """A head slice of a class-ordered catalog is pure label equality.
+
+    That is the rubber-stamped slice the six-class design exists to prevent:
+    a run that only calls label-equal pairs cannot refuse anything.
+    """
+
+    # The real catalog's shape: every class contiguous, in class order.
+    rows = [
+        {"generationClass": name, "candidateId": f"{name}-{index}"}
+        for name in qual.GENERATION_CLASSES
+        for index in range(10)
+    ]
+    assert {row["generationClass"] for row in rows[:6]} == {"normalizedLabelEquality"}
+
+    subset = qual.stratified_subset(rows, 6)
+    assert len(subset) == 6
+    assert {row["generationClass"] for row in subset} == set(qual.GENERATION_CLASSES)
+    # Order inside a class is preserved, so a subset is still a prefix per class.
+    assert [row["candidateId"] for row in qual.stratified_subset(rows, len(qual.GENERATION_CLASSES) * 2)][:2] == [
+        "normalizedLabelEquality-0",
+        "alternateLabelEquality-0",
+    ]
+    assert qual.stratified_subset(rows, 0) == []
+    assert len(qual.stratified_subset(rows, 10_000)) == len(rows)
+    with pytest.raises(VocabularyAtlasError):
+        qual.stratified_subset(rows, -1)
+
+
 # ---------------------------------------------------------------------------
 # sealed input and the closure the bundle enforces
 # ---------------------------------------------------------------------------
@@ -169,6 +198,7 @@ def _reading(
         deterministic_checks_passed=deterministic,
         completed_at="2026-08-02T12:05:00Z",
         response_sha256="sha256:" + "0" * 64,
+        endpoint_host=qual.endpoint_host(family.base_url),
     )
 
 
@@ -208,6 +238,42 @@ def test_assembled_candidate_cites_the_bundled_input_context(sources, targets) -
     )
     context = next(item for item in entry.artifacts if item.role == "inputContext")
     assert entry.candidate.to_dict()["inputContextDigest"] == context.content_digest
+
+
+def test_the_sealed_endpoint_host_comes_from_the_observed_call(sources, targets) -> None:
+    """Endpoint evidence must be observed, not copied from configuration.
+
+    The gate's five identity fields are all producer-declared strings, so a
+    host taken from the family literal would be one more cosmetic string. This
+    one is read from the URL the call actually went to.
+    """
+
+    pair = _pair(sources, targets)
+    entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
+    context = next(item for item in entry.artifacts if item.role == "inputContext")
+    transport = _StubTransport([_chat_reply(_answer(pair))])
+    receipt = qual.validate_candidate(
+        transport,
+        qual.GEMINI_FAMILY,
+        "key",
+        "models/gemini-3.6-flash",
+        pair=pair,
+        candidate_id=entry.candidate.identifier,
+        input_digest=context.content_digest,
+        tracker=qual.SpendTracker(qual.GEMINI_FAMILY),
+    )
+    reading = qual.reading_from_receipt(receipt, qual.GEMINI_FAMILY, "models/gemini-3.6-flash")
+    assert reading is not None
+    assert reading.endpoint_host == "generativelanguage.googleapis.com"
+
+    sealed = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=(reading,))
+    response = next(item for item in sealed.artifacts if item.role == "validationResponse")
+    assert response.to_dict()["content"]["endpointHost"] == "generativelanguage.googleapis.com"
+
+
+def test_the_endpoint_host_never_carries_a_credential() -> None:
+    assert qual.endpoint_host("https://user:secret@api.example.com/v1/chat?key=abc") == "api.example.com"
+    assert qual.endpoint_host("") == ""
 
 
 def test_the_two_families_are_independent_five_ways(sources, targets) -> None:
