@@ -27,7 +27,7 @@ from typing import Any, Literal, Protocol, cast
 from rdflib import BNode, Dataset, Graph, Namespace, URIRef
 from rdflib import Literal as RdfLiteral
 from rdflib.compare import to_canonical_graph
-from rdflib.namespace import PROV, RDF, RDFS, SKOS, XSD
+from rdflib.namespace import DCAT, DCTERMS, PROV, RDF, RDFS, SKOS, XSD
 from typing_extensions import Self
 
 from refspec import binding
@@ -91,9 +91,14 @@ _POLICIES = MappingProxyType(
         "humanFeedback": "appendOnlyNonAuthorizing",
     }
 )
+# Every module a specialized producer reads facts through, because those
+# producers compute the closed release digest locally instead of executing a
+# Rulespec checkout. A reader whose bytes could change without changing the
+# atlas identifier would leave that calculation unpinned.
 _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/__init__.py",
     "atlas/federal_register.py",
+    "atlas/icpsr.py",
     "atlas/model.py",
     "atlas/queries.py",
     "binding.py",
@@ -104,6 +109,8 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "registry/federal_register_thesaurus_2025.py",
     "registry/federal_register_thesaurus_2025_managed_release.py",
     "registry/federal_register_vocabulary_policy.py",
+    "registry/icpsr_managed_release.py",
+    "registry/icpsr_subject.py",
     "release_graph.py",
     "storage.py",
     "vocabulary.py",
@@ -284,6 +291,90 @@ def _read_exact_file(path: Path | str, label: str) -> tuple[Path, bytes]:
 def _normalize_label(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value).casefold()
     return " ".join(normalized.split())
+
+
+#: ``dcat:version`` is absent from rdflib's closed DCAT namespace, so it is
+#: spelled out rather than fetched as an attribute that warns.
+_DCAT_VERSION = URIRef("http://www.w3.org/ns/dcat#version")
+_CLOSED_RELEASE_PREDICATES = frozenset(
+    {
+        RDF.type,
+        DCTERMS.isVersionOf,
+        _DCAT_VERSION,
+        DCTERMS.type,
+        RKAF.membershipMode,
+        PROV.hadMember,
+        DCAT.distribution,
+        RKAF.versionBasis,
+        DCTERMS.issued,
+        RKAF.hasEffectivePeriod,
+    }
+)
+_CLOSED_DISTRIBUTION_PREDICATES = frozenset(
+    {
+        RKAF.hasArtifactIdentifier,
+        DCTERMS.format,
+        RKAF.hasContentDigest,
+    }
+)
+
+
+def _rdfc_term(term: Any) -> Any:
+    """Use the RDFC-1.0 spelling for an explicit ``xsd:string`` literal."""
+
+    if isinstance(term, RdfLiteral) and term.datatype == XSD.string:
+        return RdfLiteral(str(term))
+    return term
+
+
+def closed_reference_release_digest(
+    graph_value: Mapping[str, Any],
+    *,
+    release_iri: str,
+    label: str,
+) -> str:
+    """Compute the Rulespec Core closed-manifest digest without a source checkout.
+
+    The closed ``ReferenceResourceRelease`` preimage contains named nodes only.
+    With no blank nodes to relabel, RDFC-1.0 is the lexicographically sorted
+    canonical N-Quads serialization.  RefSpec owns this small implementation,
+    pins its source and rdflib runtime in the atlas manifest, and fails closed
+    if a future Core shape introduces a blank node.
+
+    Every specialized producer that packages a vocabulary Rulespec never sealed
+    calls exactly this function, so two adapters cannot drift into two
+    different answers for the same closed shape.
+    """
+
+    release = URIRef(_require_iri(release_iri, f"{label} reference release IRI"))
+    parsed = Graph()
+    try:
+        parsed.parse(data=canonical_json(_plain(graph_value)), format="json-ld")
+    except Exception as error:  # rdflib exposes parser-specific exception types
+        raise VocabularyAtlasError(f"{label} release graph is not valid JSON-LD") from error
+    if (release, RDF.type, RKAF.ReferenceResourceRelease) not in parsed:
+        raise VocabularyAtlasError(f"{label} release is not a ReferenceResourceRelease")
+
+    triples: list[tuple[URIRef, URIRef, Any]] = []
+    for predicate in _CLOSED_RELEASE_PREDICATES:
+        triples.extend((release, predicate, _rdfc_term(value)) for value in parsed.objects(release, predicate))
+    distributions = tuple(parsed.objects(release, DCAT.distribution))
+    if not distributions:
+        raise VocabularyAtlasError(f"{label} release has no distribution")
+    for distribution in distributions:
+        if not isinstance(distribution, URIRef):
+            raise VocabularyAtlasError(f"{label} release distribution must be an IRI")
+        for predicate in _CLOSED_DISTRIBUTION_PREDICATES:
+            values = tuple(parsed.objects(distribution, predicate))
+            if not values:
+                raise VocabularyAtlasError(f"{label} distribution lacks digest input {predicate}")
+            triples.extend((distribution, predicate, _rdfc_term(value)) for value in values)
+
+    if any(isinstance(term, BNode) for triple in triples for term in triple):
+        raise VocabularyAtlasError(f"{label} release digest preimage must not contain blank nodes")
+    lines = sorted(f"{subject.n3()} {predicate.n3()} {object_.n3()} ." for subject, predicate, object_ in triples)
+    preimage = ("\n".join(lines) + "\n").encode("utf-8")
+    return "sha256:" + hashlib.sha256(preimage).hexdigest()
 
 
 def _implementation_pin() -> dict[str, Any]:

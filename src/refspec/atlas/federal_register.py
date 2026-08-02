@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -11,7 +10,6 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, cast
 
-from rdflib import DCAT, DCTERMS, PROV, RDF, XSD, BNode, Graph, Literal, URIRef
 from typing_extensions import Self
 
 from refspec.immutable import deep_freeze_json
@@ -36,7 +34,7 @@ from refspec.registry.federal_register_thesaurus_2025_managed_release import (
 )
 from refspec.release_graph import rulespec_graph_digest
 
-from .model import VocabularyAtlasError
+from .model import VocabularyAtlasError, closed_reference_release_digest
 
 FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI = (
     "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
@@ -66,96 +64,9 @@ _CONTENT_DERIVED = _RKAF + "contentDerived"
 _ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
 _CONTENT_DIGEST = _RKAF + "hasContentDigest"
 
-_RKAF_REFERENCE_RESOURCE_RELEASE = URIRef(_RKAF + "ReferenceResourceRelease")
-_RKAF_MEMBERSHIP_MODE = URIRef(_MEMBERSHIP_MODE)
-_RKAF_VERSION_BASIS = URIRef(_VERSION_BASIS)
-_RKAF_EFFECTIVE_PERIOD = URIRef(_RKAF + "hasEffectivePeriod")
-_RKAF_ARTIFACT_IDENTIFIER = URIRef(_ARTIFACT_IDENTIFIER)
-_RKAF_CONTENT_DIGEST = URIRef(_CONTENT_DIGEST)
-_DCAT_VERSION_TERM = URIRef(_DCAT_VERSION)
-_REFERENCE_RELEASE_PREDICATES = frozenset(
-    {
-        RDF.type,
-        DCTERMS.isVersionOf,
-        _DCAT_VERSION_TERM,
-        DCTERMS.type,
-        _RKAF_MEMBERSHIP_MODE,
-        PROV.hadMember,
-        DCAT.distribution,
-        _RKAF_VERSION_BASIS,
-        DCTERMS.issued,
-        _RKAF_EFFECTIVE_PERIOD,
-    }
-)
-_DISTRIBUTION_PREDICATES = frozenset(
-    {
-        _RKAF_ARTIFACT_IDENTIFIER,
-        DCTERMS.format,
-        _RKAF_CONTENT_DIGEST,
-    }
-)
-
 
 def _sha256_file(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _rdfc_term(term: Any) -> Any:
-    """Use the RDFC-1.0 spelling for an explicit ``xsd:string`` literal."""
-
-    if isinstance(term, Literal) and term.datatype == XSD.string:
-        return Literal(str(term))
-    return term
-
-
-def _reference_release_digest(graph_value: Mapping[str, Any], *, release_iri: str) -> str:
-    """Compute the Rulespec Core closed-manifest digest without a source checkout.
-
-    The closed ReferenceResourceRelease preimage contains named nodes only.
-    With no blank nodes to relabel, RDFC-1.0 is the lexicographically sorted
-    canonical N-Quads serialization.  RefSpec owns this small implementation,
-    pins its source and rdflib runtime in the atlas manifest, and fails closed
-    if a future Core shape introduces a blank node.
-    """
-
-    release = URIRef(_require_text(release_iri, "reference release IRI"))
-    parsed = Graph()
-    try:
-        parsed.parse(
-            data=json.dumps(
-                _plain(graph_value),
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-                allow_nan=False,
-            ),
-            format="json-ld",
-        )
-    except Exception as error:  # rdflib exposes parser-specific exception types
-        raise VocabularyAtlasError("Federal Register release graph is not valid JSON-LD") from error
-    if (release, RDF.type, _RKAF_REFERENCE_RESOURCE_RELEASE) not in parsed:
-        raise VocabularyAtlasError("Federal Register release is not a ReferenceResourceRelease")
-
-    triples: list[tuple[URIRef, URIRef, Any]] = []
-    for predicate in _REFERENCE_RELEASE_PREDICATES:
-        triples.extend((release, predicate, _rdfc_term(value)) for value in parsed.objects(release, predicate))
-    distributions = tuple(parsed.objects(release, DCAT.distribution))
-    if not distributions:
-        raise VocabularyAtlasError("Federal Register release has no distribution")
-    for distribution in distributions:
-        if not isinstance(distribution, URIRef):
-            raise VocabularyAtlasError("Federal Register release distribution must be an IRI")
-        for predicate in _DISTRIBUTION_PREDICATES:
-            values = tuple(parsed.objects(distribution, predicate))
-            if not values:
-                raise VocabularyAtlasError(f"Federal Register distribution lacks digest input {predicate}")
-            triples.extend((distribution, predicate, _rdfc_term(value)) for value in values)
-
-    if any(isinstance(term, BNode) for triple in triples for term in triple):
-        raise VocabularyAtlasError("Federal Register release digest preimage must not contain blank nodes")
-    lines = sorted(f"{subject.n3()} {predicate.n3()} {object_.n3()} ." for subject, predicate, object_ in triples)
-    preimage = ("\n".join(lines) + "\n").encode("utf-8")
-    return "sha256:" + hashlib.sha256(preimage).hexdigest()
 
 
 def _plain(value: Any) -> Any:
@@ -436,9 +347,10 @@ def _project_view(
             release_node,
         ]
     }
-    release_node[_REFERENCE_RELEASE_DIGEST] = _reference_release_digest(
+    release_node[_REFERENCE_RELEASE_DIGEST] = closed_reference_release_digest(
         graph,
         release_iri=FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
+        label="Federal Register",
     )
     return FederalRegisterThesaurus2025AtlasView(
         _publication_id=cast(str, package.manifest["id"]),

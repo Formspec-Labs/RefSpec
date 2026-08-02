@@ -8,6 +8,10 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .federal_register import PinnedFederalRegisterThesaurus2025AtlasRelease
+from .icpsr import (
+    ICPSR_MANAGED_RELEASE_MANIFEST_TYPE,
+    PinnedIcpsrSubjectAtlasRelease,
+)
 from .model import (
     CrosswalkBundle,
     PinnedManagedRelease,
@@ -19,9 +23,19 @@ from .model import (
 AUTO_FORMAT = "auto"
 MANAGED_BUNDLE_FORMAT = "managed-bundle"
 FEDERAL_REGISTER_2025_FORMAT = "federal-register-thesaurus-2025"
-INPUT_FORMATS = (AUTO_FORMAT, MANAGED_BUNDLE_FORMAT, FEDERAL_REGISTER_2025_FORMAT)
+ICPSR_SUBJECT_FORMAT = "icpsr-subject-thesaurus"
+INPUT_FORMATS = (
+    AUTO_FORMAT,
+    MANAGED_BUNDLE_FORMAT,
+    FEDERAL_REGISTER_2025_FORMAT,
+    ICPSR_SUBJECT_FORMAT,
+)
 
 _FEDERAL_REGISTER_2025_MANIFEST_TYPE = "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
+_SPECIALIZED_FORMATS_BY_MANIFEST_TYPE = {
+    _FEDERAL_REGISTER_2025_MANIFEST_TYPE: FEDERAL_REGISTER_2025_FORMAT,
+    ICPSR_MANAGED_RELEASE_MANIFEST_TYPE: ICPSR_SUBJECT_FORMAT,
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,20 +74,20 @@ def build_parser() -> argparse.ArgumentParser:
 def _detected_input_format(manifest_path: str) -> str:
     """Name the reader that matches the declared manifest type.
 
-    Only the source-complete Federal Register package declares its own
-    manifest type.  Every other shape, and every unreadable file, routes to the
-    generic managed-bundle reader so its own fail-closed checks report the
-    error.  The caller has already pinned these bytes by digest, so the
-    declared type cannot select a reader the operator did not pin.
+    Only a specialized package declares its own manifest type.  Every other
+    shape, and every unreadable file, routes to the generic managed-bundle
+    reader so its own fail-closed checks report the error.  The caller has
+    already pinned these bytes by digest, so the declared type cannot select a
+    reader the operator did not pin.
     """
 
     try:
         manifest = json.loads(Path(manifest_path).read_bytes().decode("utf-8"))
     except (OSError, UnicodeDecodeError, ValueError):
         return MANAGED_BUNDLE_FORMAT
-    if isinstance(manifest, dict) and manifest.get("type") == _FEDERAL_REGISTER_2025_MANIFEST_TYPE:
-        return FEDERAL_REGISTER_2025_FORMAT
-    return MANAGED_BUNDLE_FORMAT
+    if not isinstance(manifest, dict):
+        return MANAGED_BUNDLE_FORMAT
+    return _SPECIALIZED_FORMATS_BY_MANIFEST_TYPE.get(manifest.get("type"), MANAGED_BUNDLE_FORMAT)
 
 
 def open_release(
@@ -87,6 +101,11 @@ def open_release(
     selected = _detected_input_format(manifest_path) if input_format == AUTO_FORMAT else input_format
     if selected == FEDERAL_REGISTER_2025_FORMAT:
         return PinnedFederalRegisterThesaurus2025AtlasRelease.open(
+            manifest_path,
+            expected_manifest_digest=digest,
+        )
+    if selected == ICPSR_SUBJECT_FORMAT:
+        return PinnedIcpsrSubjectAtlasRelease.open(
             manifest_path,
             expected_manifest_digest=digest,
         )
@@ -132,6 +151,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 __all__ = [
     "AUTO_FORMAT",
     "FEDERAL_REGISTER_2025_FORMAT",
+    "ICPSR_SUBJECT_FORMAT",
     "INPUT_FORMATS",
     "MANAGED_BUNDLE_FORMAT",
     "build_parser",
