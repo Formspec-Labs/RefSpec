@@ -34,7 +34,11 @@ historical machine decision and human approval does not gate M1, M2, or M3
 
 ## Authority map
 
-| Product | Durable authority |
+Rows are release units, not products. Rulespec is one product shipping two of
+them, so five rows describe four products — see
+[REF-008](decisions.md#ref-008-count-four-products-and-five-ownership-rows).
+
+| Owner | Durable authority |
 | --- | --- |
 | RefSpec | Controlled-vocabulary sources, imports, releases, coverage, crosswalk evidence, and static atlas assets |
 | SpicyRegs | Regulatory source capture, document identity, source observations, and evidence addresses |

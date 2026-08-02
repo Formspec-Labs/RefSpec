@@ -64,6 +64,10 @@ and their portable constraints. Rulespec Extrapolator owns derived assertions,
 evidence chains, and accepted-output decisions. SpicySearch owns query
 processing, indexes, ranking, retrieval, and serving.
 
+These are five owners across four products: Rulespec Core and Rulespec
+Extrapolator are two release units of one product, per
+[REF-008](docs/decisions.md#ref-008-count-four-products-and-five-ownership-rows).
+
 Published, digest-pinned files connect these products. Each consumer verifies
 the files and may build a disposable local index. It does not import another
 product's source tree or depend on that product's mutable database.
