@@ -85,6 +85,9 @@
         "feedback": {
           "$ref": "#/$defs/nonnegativeInteger"
         },
+        "hierarchyEdges": {
+          "$ref": "#/$defs/positiveInteger"
+        },
         "labelClusters": {
           "$ref": "#/$defs/nonnegativeInteger"
         },

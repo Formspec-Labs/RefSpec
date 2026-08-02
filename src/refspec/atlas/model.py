@@ -17,7 +17,7 @@ import platform
 import re
 import unicodedata
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -27,13 +27,14 @@ from typing import Any, Literal, Protocol, cast
 from rdflib import BNode, Dataset, Graph, Namespace, URIRef
 from rdflib import Literal as RdfLiteral
 from rdflib.compare import to_canonical_graph
-from rdflib.namespace import PROV, RDF, RDFS, XSD
+from rdflib.namespace import PROV, RDF, RDFS, SKOS, XSD
 from typing_extensions import Self
 
 from refspec import binding
 from refspec.managed_release import (
     ManagedReleaseExpression,
     ManagedReleaseMember,
+    ManagedReleaseRelation,
     ManagedReleaseView,
 )
 from refspec.release_graph import rulespec_graph_digest
@@ -130,6 +131,8 @@ class AtlasReleaseFactsView(Protocol):
     def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None: ...
 
     def iter_expressions(self) -> Iterable[ManagedReleaseExpression]: ...
+
+    def iter_relations(self) -> Iterable[ManagedReleaseRelation]: ...
 
 
 class VerifiedManagedReleaseSource(Protocol):
@@ -1213,6 +1216,83 @@ def _canonical_nquads(dataset: Dataset) -> bytes:
     return (("\n".join(lines) + "\n") if lines else "").encode("utf-8")
 
 
+def _release_members(release_graph: Graph) -> Mapping[URIRef, frozenset[URIRef]]:
+    """Return each member's authoritative releases from ``prov:hadMember``."""
+
+    memberships: dict[URIRef, set[URIRef]] = defaultdict(set)
+    for release, member in release_graph.subject_objects(PROV.hadMember):
+        if isinstance(release, URIRef) and isinstance(member, URIRef):
+            memberships[member].add(release)
+    return {member: frozenset(releases) for member, releases in memberships.items()}
+
+
+def _refuse_hierarchy_cycles(parents: Mapping[URIRef, tuple[URIRef, ...]]) -> None:
+    """Refuse a hierarchy cycle instead of admitting and marking it.
+
+    SKOS permits cycles in the wild, but a source thesaurus that emits one has
+    a defect rather than a meaning: nothing is genuinely broader than itself.
+    The published ELSST releases settle it from the data — R5 (3,361 edges)
+    and R6 (3,393 edges) are both strictly acyclic — so refusing costs no real
+    vocabulary and makes every transitive read finite by construction.
+    """
+
+    settled: set[URIRef] = set()
+    for start in sorted(parents):
+        if start in settled:
+            continue
+        active = {start}
+        stack: list[tuple[URIRef, Iterator[URIRef]]] = [(start, iter(parents.get(start, ())))]
+        while stack:
+            node, walk = stack[-1]
+            following = next(walk, None)
+            if following is None:
+                stack.pop()
+                active.discard(node)
+                settled.add(node)
+                continue
+            if following in active:
+                raise VocabularyAtlasError("atlas hierarchy contains a cycle")
+            if following in settled:
+                continue
+            active.add(following)
+            stack.append((following, iter(parents.get(following, ()))))
+
+
+def _hierarchy_edges(release_graph: Graph) -> tuple[tuple[URIRef, URIRef], ...]:
+    """Return the stored intra-scheme hierarchy as ``(narrower, broader)`` pairs.
+
+    Hierarchy comes from the source vocabulary's own structure, so it is a
+    layer-1 release fact copied verbatim like any other.  Only the broader
+    direction is stored: ``skos:narrower`` is the derived inverse of exactly
+    one statement, which is why the two can never disagree here.  ELSST states
+    both directions and they are exact inverses of one another (zero
+    asymmetric edges in either release), so storing one half loses nothing.
+
+    A cross-release edge is refused because that claim is what a qualified
+    ``searchOnly`` mapping exists to carry, and it must earn its two
+    independent machine validations rather than ride in as a copied fact.
+    """
+
+    if next(release_graph.triples((None, SKOS.narrower, None)), None) is not None:
+        raise VocabularyAtlasError("atlas hierarchy narrower is derived, never stored")
+    memberships = _release_members(release_graph)
+    grouped: dict[URIRef, list[URIRef]] = defaultdict(list)
+    for child, parent in release_graph.subject_objects(SKOS.broader):
+        if not isinstance(child, URIRef) or not isinstance(parent, URIRef):
+            raise VocabularyAtlasError("atlas hierarchy must connect two concept IRIs")
+        if child == parent:
+            raise VocabularyAtlasError("atlas hierarchy edge repeats one concept")
+        child_releases = memberships.get(child, frozenset())
+        parent_releases = memberships.get(parent, frozenset())
+        if not child_releases or not parent_releases:
+            raise VocabularyAtlasError("atlas hierarchy endpoint is not a release member")
+        if not child_releases & parent_releases:
+            raise VocabularyAtlasError("atlas hierarchy must stay inside one release")
+        grouped[child].append(parent)
+    _refuse_hierarchy_cycles({child: tuple(sorted(values)) for child, values in grouped.items()})
+    return tuple(sorted((child, parent) for child, values in grouped.items() for parent in values))
+
+
 def _stable_iri(prefix: str, *parts: str) -> URIRef:
     digest = _digest_value({"prefix": prefix, "parts": list(parts)})
     return URIRef(f"urn:ref:vocabulary-atlas-{prefix}:{digest.removeprefix('sha256:')}")
@@ -1254,6 +1334,26 @@ def _build_dataset(
             member_iri = URIRef(member.member_iri)
             release_graph.remove((release, PROV.hadMember, RdfLiteral(member.member_iri)))
             release_graph.add((release, PROV.hadMember, member_iri))
+    # ``skos:broader`` reaches the same generic parse the same way, and the
+    # release's normalized `concept_relations` rows are the verified,
+    # byte-pinned form of exactly these edges, so the distribution writes the
+    # resource-valued statement they already round-trip to. A literal broader
+    # value that no verified relation row covers survives untouched and is
+    # refused below.
+    for view in views:
+        for relation in view.iter_relations():
+            if relation.predicate_iri != str(SKOS.broader):
+                continue
+            child = URIRef(relation.subject_member_iri)
+            for stale in [
+                value
+                for value in release_graph.objects(child, SKOS.broader)
+                if isinstance(value, RdfLiteral) and str(value) == relation.object_member_iri
+            ]:
+                release_graph.remove((child, SKOS.broader, stale))
+            release_graph.add((child, SKOS.broader, URIRef(relation.object_member_iri)))
+
+    hierarchy = _hierarchy_edges(release_graph)
 
     analysis_root = URIRef(analysis_graph_id)
     analysis.add((analysis_root, RDF.type, ATLAS.ReplaceableAnalysis))
@@ -1521,6 +1621,11 @@ def _build_dataset(
         "machineValidations": validation_count,
         "feedback": feedback_count,
     }
+    if hierarchy:
+        # Absent means zero, so an atlas over a vocabulary without hierarchy —
+        # the Federal Register thesaurus, every earlier fixture — keeps the
+        # exact bytes its consumers already pinned.
+        counts["hierarchyEdges"] = len(hierarchy)
     return payload, counts, release_graph_id, analysis_graph_id
 
 
@@ -1722,6 +1827,8 @@ def _validate_query_graph_semantics(
 
     release_graph = dataset.graph(URIRef(release_graph_id))
     analysis = dataset.graph(URIRef(analysis_graph_id))
+
+    _hierarchy_edges(release_graph)
 
     for member, release in analysis.subject_objects(ATLAS.memberOfRelease):
         if not isinstance(member, URIRef) or not isinstance(release, URIRef):
@@ -2125,10 +2232,13 @@ class VocabularyAtlasAsset:
             "machineValidations",
             "feedback",
         }
-        if set(counts) != expected_count_fields:
+        # ``hierarchyEdges`` is declared exactly when the release facts state a
+        # hierarchy. Absent and zero are the same fact, so only one of them is
+        # a legal encoding and a hierarchy-free atlas keeps its published bytes.
+        if not expected_count_fields <= set(counts) <= expected_count_fields | {"hierarchyEdges"}:
             raise VocabularyAtlasError("atlas count fields differ from v1")
         for field, value in counts.items():
-            _require_count(value, f"atlas count {field}")
+            _require_count(value, f"atlas count {field}", positive=field == "hierarchyEdges")
         observed_counts = {
             "managedReleases": len(managed_inputs),
             "releaseFacts": graph_counts["releaseFacts"],
@@ -2160,6 +2270,9 @@ class VocabularyAtlasAsset:
                 set(dataset.graph(URIRef(expected_graphs["analysis"])).subjects(RDF.type, ATLAS.MappingFeedback))
             ),
         }
+        observed_hierarchy = _hierarchy_edges(dataset.graph(URIRef(expected_graphs["releaseFacts"])))
+        if observed_hierarchy:
+            observed_counts["hierarchyEdges"] = len(observed_hierarchy)
         if dict(counts) != observed_counts:
             raise VocabularyAtlasError("atlas declared counts differ")
         _validate_query_graph_semantics(

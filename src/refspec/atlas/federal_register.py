@@ -15,7 +15,11 @@ from rdflib import DCAT, DCTERMS, PROV, RDF, XSD, BNode, Graph, Literal, URIRef
 from typing_extensions import Self
 
 from refspec.immutable import deep_freeze_json
-from refspec.managed_release import ManagedReleaseExpression, ManagedReleaseMember
+from refspec.managed_release import (
+    ManagedReleaseExpression,
+    ManagedReleaseMember,
+    ManagedReleaseRelation,
+)
 from refspec.registry.federal_register_thesaurus_2025 import (
     ALTERNATE_LABEL_PROPERTY_IRI,
     FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
@@ -220,6 +224,16 @@ class FederalRegisterThesaurus2025AtlasView:
 
     def iter_expressions(self) -> Iterable[ManagedReleaseExpression]:
         return iter(self._expressions)
+
+    def iter_relations(self) -> Iterable[ManagedReleaseRelation]:
+        """The 2025 edition states no concept-to-concept relation of its own.
+
+        Its related references already ride in the source graph, and the
+        edition removed the 1995 broad categories, so there is no hierarchy
+        here to normalize.
+        """
+
+        return ()
 
 
 def _verified_package(

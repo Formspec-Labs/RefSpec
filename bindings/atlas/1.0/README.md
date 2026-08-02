@@ -135,6 +135,54 @@ nodes, so its RDFC-1.0 form is canonical N-Quads line order. The producer pins
 the calculation's source modules, Python version, and `rdflib` version in the
 atlas identity; it does not execute an unrecorded Rulespec checkout.
 
+### Amendment 2026-08-02-hierarchy: intra-scheme hierarchy
+
+Machine-readable marker: `fixtures/corpus.json` carries `"2026-08-02-hierarchy"`
+in `amendments`. Two amendments landed on the same day, so this one is named as
+well as dated; a bare date could not tell a consumer which of the two a pinned
+corpus predates. The new count is declared only when there is a hierarchy to
+count, so no distribution gains a field for a hierarchy it does not have. The
+four generator-built cases — `valid/qualified-search-only`,
+`invalid/missing-input-context`, `invalid/tampered-input-context`, and
+`invalid/same-provider-model` — still change digests, because an atlas
+identifier pins the generator's source modules and this amendment edits them.
+The six statically published cases and the complete Federal Register example
+are byte-identical, and the example keeps the exact pins named above.
+
+A source vocabulary's own hierarchy is a layer-1 release fact, not analysis, so
+it rides in the `releaseFacts` graph with everything else copied from the
+managed release. It is stated as `skos:broader` from the narrower concept to
+the broader one. A distribution MUST satisfy all of these:
+
+- every `skos:broader` statement in `releaseFacts` connects two IRIs;
+- both endpoints are members of one common release, proven by that release's
+  `prov:hadMember` statements. A broader edge between releases is refused: that
+  claim is what a qualified `searchOnly` mapping carries, and it MUST earn two
+  independent machine validations rather than ride in as a copied fact;
+- no statement joins a concept to itself, and the edges contain no cycle; and
+- `releaseFacts` contains no `skos:narrower` statement.
+
+A consumer derives narrower by inverting `skos:broader`. Storing one direction
+is what makes the two incapable of disagreeing. Sources commonly state both:
+ELSST states 3,393 broader and 3,393 narrower statements in R6, and they are
+exact inverses of one another, so the stored half loses nothing and halves the
+bytes.
+
+Cycles are refused rather than admitted and marked. SKOS permits them, but a
+thesaurus that emits one has a defect rather than a meaning — nothing is
+genuinely broader than itself — and the published data settles it: ELSST R5
+(3,361 edges) and R6 (3,393 edges) are both strictly acyclic. Refusal also
+makes every transitive read finite by construction.
+
+Polyhierarchy is not refused and MUST NOT be assumed away. A concept MAY have
+any number of broader concepts; ELSST R6 places 162 of its concepts under more
+than one, and its deepest branch is 8 levels.
+
+`counts.hierarchyEdges` is the number of `skos:broader` statements in
+`releaseFacts`. It MUST be present and equal to that number when the graph
+states a hierarchy, and MUST be absent when it states none. Absent and zero are
+the same fact, so exactly one of them is a legal encoding.
+
 ## Conformance corpus
 
 [`fixtures/corpus.json`](fixtures/corpus.json) lists portable valid and invalid
@@ -153,6 +201,16 @@ distributions derived from it — `invalid/missing-input-context`,
 `invalid/tampered-input-context`, and `invalid/same-provider-model` — each
 forge exactly one fact of that proof, so a reader that accepts any of them has
 a locatable defect.
+
+The same guard applies to hierarchy: three refusals prove nothing about a
+reader that rejects every hierarchy. `valid/hierarchy` is the case that must
+pass. It states four edges over four concepts — one root, a two-step chain, and
+one concept under two parents, so a reader that assumes a tree fails it while
+passing every other check. `invalid/cross-scheme-broader`,
+`invalid/cyclic-broader`, and `invalid/dangling-broader` each retarget exactly
+one of its edges. Each keeps `hierarchyEdges` at four on purpose: a forgery
+that added or dropped an edge would fail on the declared count before a reader
+reached the rule under test.
 
 ## Complete Federal Register example
 

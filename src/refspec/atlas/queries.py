@@ -13,15 +13,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from rdflib import Dataset, URIRef
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, SKOS
 
 from .model import (
     ATLAS,
     RKAF,
     VocabularyAtlasAsset,
+    VocabularyAtlasError,
     _label_cluster_nodes,
     _one_literal,
     _one_resource,
+    _require_iri,
     _search_only_mapping_nodes,
     _search_only_mapping_validations,
 )
@@ -55,6 +57,67 @@ class VocabularyAtlasQueries:
         dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
         graph_rows = {row["role"]: row for row in asset.manifest["graphs"]}
         self._analysis = dataset.graph(URIRef(graph_rows["analysis"]["id"]))
+        self._release_facts = dataset.graph(URIRef(graph_rows["releaseFacts"]["id"]))
+
+    def broader(self, concept_iri: str) -> tuple[str, ...]:
+        """Return one concept's immediate broader concepts.
+
+        ``model`` already refused every dangling, cross-release, self-joined,
+        and cyclic edge while opening the distribution, so this is a plain
+        read of the release facts the source vocabulary stated.  A concept may
+        have several parents: ELSST places 162 of them under more than one.
+        """
+
+        concept = URIRef(_require_iri(concept_iri, "concept id"))
+        return tuple(sorted(str(value) for value in self._release_facts.objects(concept, SKOS.broader)))
+
+    def narrower(self, concept_iri: str) -> tuple[str, ...]:
+        """Return one concept's immediate narrower concepts.
+
+        Only the broader direction is stored, so this inverts that one
+        statement rather than reading a second, separately fallible one.
+        """
+
+        concept = URIRef(_require_iri(concept_iri, "concept id"))
+        return tuple(sorted(str(value) for value in self._release_facts.subjects(SKOS.broader, concept)))
+
+    def hierarchy_edges(self) -> tuple[tuple[str, str], ...]:
+        """Return every stored edge as a ``(narrower, broader)`` pair."""
+
+        return tuple(
+            sorted(
+                (str(child), str(parent))
+                for child, parent in self._release_facts.subject_objects(SKOS.broader)
+            )
+        )
+
+    def transitive_broader(self, concept_iri: str, *, max_depth: int) -> tuple[str, ...]:
+        """Return the broader closure reachable within ``max_depth`` steps.
+
+        The bound is required rather than defaulted.  Refused cycles already
+        make the walk finite, so the bound is the caller's own statement of
+        how far a query may generalize — ELSST's deepest branch is 8 — not a
+        safety net this reader picked for them.
+        """
+
+        if max_depth < 1:
+            raise VocabularyAtlasError("transitive hierarchy needs a positive depth bound")
+        concept = URIRef(_require_iri(concept_iri, "concept id"))
+        reached: set[URIRef] = set()
+        frontier = {concept}
+        for _ in range(max_depth):
+            following = {
+                value
+                for node in frontier
+                for value in self._release_facts.objects(node, SKOS.broader)
+                if isinstance(value, URIRef)
+            } - reached
+            if not following:
+                break
+            reached |= following
+            frontier = following
+        reached.discard(concept)
+        return tuple(sorted(str(value) for value in reached))
 
     def search_only_mappings(self) -> tuple[SearchOnlyMapping, ...]:
         analysis = self._analysis

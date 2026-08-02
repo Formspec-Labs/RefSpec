@@ -51,8 +51,10 @@ BINDING_ROOT = ROOT / "bindings" / "atlas" / "1.0"
 FIXTURE_ROOT = BINDING_ROOT / "fixtures"
 CORPUS_PATH = FIXTURE_ROOT / "corpus.json"
 
-# Dated in-place amendments to binding 1.0, oldest first.
-AMENDMENTS = ("2026-08-02",)
+# Dated in-place amendments to binding 1.0, oldest first. Two landed on the
+# same day, so the later one carries a name as well: a bare date could not tell
+# a consumer which of the two a pinned corpus predates.
+AMENDMENTS = ("2026-08-02", "2026-08-02-hierarchy")
 
 SOURCE_PUBLICATION = "urn:ref:conformance:alpha-thesaurus:2026"
 TARGET_PUBLICATION = "urn:ref:conformance:beta-thesaurus:2026"
@@ -70,6 +72,39 @@ TARGET_CONCEPTS = (
     ("urn:ref:conformance:beta:energy-policy", "energy POLICY "),
     ("urn:ref:conformance:beta:water-pollution-control", "Water pollution control"),
 )
+
+# The hierarchy distribution is built separately so the qualification fixture
+# keeps proving exactly one thing. Its labels deliberately cluster with
+# nothing on the target side: this case is about edges, not equal strings.
+BROADER = "http://www.w3.org/2004/02/skos/core#broader"
+HIERARCHY_CONCEPTS = (
+    ("urn:ref:conformance:alpha:environmental-policy", "Environmental policy"),
+    ("urn:ref:conformance:alpha:renewable-energy-policy", "Renewable energy policy"),
+    ("urn:ref:conformance:alpha:marine-policy", "Marine policy"),
+    ("urn:ref:conformance:alpha:offshore-wind-policy", "Offshore wind policy"),
+)
+# One root, a two-step chain, and one concept under two parents. Polyhierarchy
+# is not an edge case to a real thesaurus: ELSST R6 places 162 of its concepts
+# under more than one broader concept.
+HIERARCHY_EDGES = (
+    (
+        "urn:ref:conformance:alpha:renewable-energy-policy",
+        "urn:ref:conformance:alpha:environmental-policy",
+    ),
+    (
+        "urn:ref:conformance:alpha:marine-policy",
+        "urn:ref:conformance:alpha:environmental-policy",
+    ),
+    (
+        "urn:ref:conformance:alpha:offshore-wind-policy",
+        "urn:ref:conformance:alpha:renewable-energy-policy",
+    ),
+    (
+        "urn:ref:conformance:alpha:offshore-wind-policy",
+        "urn:ref:conformance:alpha:marine-policy",
+    ),
+)
+ABSENT_CONCEPT = "urn:ref:conformance:alpha:absent-concept"
 
 _SOURCE_DIGEST = "sha256:" + "1" * 64
 _TARGET_DIGEST = "sha256:" + "2" * 64
@@ -120,13 +155,22 @@ def _view(
     release: str,
     concepts: Sequence[tuple[str, str]],
     release_digest: str,
+    edges: Sequence[tuple[str, str]] = (),
 ) -> ManagedReleaseView:
+    broader_by_child: dict[str, list[dict[str, str]]] = {}
+    for child, parent in edges:
+        broader_by_child.setdefault(child, []).append({"@id": parent})
     member_records = tuple(
         MappingProxyType(
             {
                 "@id": member,
                 "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
                 "http://www.w3.org/2004/02/skos/core#prefLabel": label,
+                **(
+                    {BROADER: tuple(broader_by_child[member])}
+                    if member in broader_by_child
+                    else {}
+                ),
             }
         )
         for member, label in concepts
@@ -212,6 +256,7 @@ def _core_release(directory: Path) -> PinnedRulespecCoreRelease:
         "sha256:" + hashlib.sha256(canonical_json(preimage).encode("utf-8")).hexdigest()
     )
     release_id = "urn:rulespec:core:" + release_digest.removeprefix("sha256:")
+    directory.mkdir(parents=True, exist_ok=True)
     path = directory / "rulespec-core.json"
     path.write_text(
         json.dumps(
@@ -488,6 +533,39 @@ def _build_valid_distribution(work: Path) -> tuple[bytes, bytes]:
     return asset.payload, asset.manifest_bytes()
 
 
+def _build_hierarchy_distribution(work: Path) -> tuple[bytes, bytes]:
+    """A two-release atlas whose source side states its own hierarchy.
+
+    No crosswalk bundle: hierarchy is a layer-1 release fact and must publish
+    without any qualification machinery. The second release exists so the
+    cross-release refusal below has a real foreign member to point at.
+    """
+
+    releases = (
+        _ConformanceReleaseSource(
+            _view(
+                publication=SOURCE_PUBLICATION,
+                release=SOURCE_RELEASE,
+                concepts=HIERARCHY_CONCEPTS,
+                release_digest=_SOURCE_DIGEST,
+                edges=HIERARCHY_EDGES,
+            ),
+            _SOURCE_DIGEST,
+        ),
+        _ConformanceReleaseSource(
+            _view(
+                publication=TARGET_PUBLICATION,
+                release=TARGET_RELEASE,
+                concepts=TARGET_CONCEPTS,
+                release_digest=_TARGET_DIGEST,
+            ),
+            _TARGET_DIGEST,
+        ),
+    )
+    asset = build_vocabulary_atlas(releases, rulespec_core=_core_release(work))
+    return asset.payload, asset.manifest_bytes()
+
+
 def _reseal(payload: bytes, manifest_bytes: bytes) -> bytes:
     """Re-derive every manifest fact that a forged line invalidates."""
 
@@ -607,11 +685,72 @@ def _share_provider_model(lines: list[str]) -> list[str]:
     return edited
 
 
+def _retarget_broader(child: str, parent: str, replacement: str) -> Any:
+    """Point one stored edge somewhere else without changing how many there are.
+
+    Every hierarchy refusal is forged this way on purpose. Adding or dropping
+    an edge would move `hierarchyEdges` too, and the distribution would then
+    fail on the count before a reader ever reached the rule under test.
+    """
+
+    def _edit(lines: list[str]) -> list[str]:
+        stated = f"<{child}> <{BROADER}> <{parent}>"
+        forged = f"<{child}> <{BROADER}> <{replacement}>"
+        edited = [line.replace(stated, forged) if line.startswith(stated) else line for line in lines]
+        if sum(1 for line in edited if forged in line) != 1:
+            raise VocabularyAtlasError("expected exactly one hierarchy edge to retarget")
+        return edited
+
+    return _edit
+
+
 _CASES: tuple[dict[str, Any], ...] = (
     {
         "directory": "valid/qualified-search-only",
         "id": "qualified-search-only-mapping-is-accepted",
         "valid": True,
+    },
+    {
+        "base": "hierarchy",
+        "directory": "valid/hierarchy",
+        "id": "intra-scheme-hierarchy-is-accepted",
+        "valid": True,
+    },
+    {
+        "base": "hierarchy",
+        "directory": "invalid/cross-scheme-broader",
+        "errorContains": "hierarchy must stay inside one release",
+        "forge": _retarget_broader(
+            "urn:ref:conformance:alpha:marine-policy",
+            "urn:ref:conformance:alpha:environmental-policy",
+            "urn:ref:conformance:beta:energy-policy",
+        ),
+        "id": "hierarchy-stays-inside-one-release",
+        "valid": False,
+    },
+    {
+        "base": "hierarchy",
+        "directory": "invalid/cyclic-broader",
+        "errorContains": "hierarchy contains a cycle",
+        "forge": _retarget_broader(
+            "urn:ref:conformance:alpha:renewable-energy-policy",
+            "urn:ref:conformance:alpha:environmental-policy",
+            "urn:ref:conformance:alpha:offshore-wind-policy",
+        ),
+        "id": "hierarchy-has-no-cycle",
+        "valid": False,
+    },
+    {
+        "base": "hierarchy",
+        "directory": "invalid/dangling-broader",
+        "errorContains": "hierarchy endpoint is not a release member",
+        "forge": _retarget_broader(
+            "urn:ref:conformance:alpha:marine-policy",
+            "urn:ref:conformance:alpha:environmental-policy",
+            ABSENT_CONCEPT,
+        ),
+        "id": "hierarchy-endpoints-are-release-members",
+        "valid": False,
     },
     {
         "directory": "invalid/missing-input-context",
@@ -639,9 +778,13 @@ _CASES: tuple[dict[str, Any], ...] = (
 
 def _generate() -> dict[str, tuple[bytes, bytes]]:
     with tempfile.TemporaryDirectory() as raw:
-        payload, manifest_bytes = _build_valid_distribution(Path(raw))
+        bases = {
+            "qualified": _build_valid_distribution(Path(raw) / "qualified"),
+            "hierarchy": _build_hierarchy_distribution(Path(raw) / "hierarchy"),
+        }
     generated: dict[str, tuple[bytes, bytes]] = {}
     for case in _CASES:
+        payload, manifest_bytes = bases[case.get("base", "qualified")]
         if case["valid"]:
             generated[case["directory"]] = (payload, manifest_bytes)
             continue

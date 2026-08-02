@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
@@ -1209,6 +1210,410 @@ def test_file_only_open_rejects_a_concept_mapping_that_is_not_search_only(
     manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
 
     with pytest.raises(VocabularyAtlasError, match="contradictory eligibility"):
+        VocabularyAtlasAsset.open(
+            output,
+            expected_manifest_digest=_file_digest(manifest_path),
+            expected_output_digest=_file_digest(payload_path),
+        )
+
+
+ALPHA_RELEASE = "urn:test:atlas:hierarchy:alpha:release"
+BETA_RELEASE = "urn:test:atlas:hierarchy:beta:release"
+BROADER = URIRef("http://www.w3.org/2004/02/skos/core#broader")
+NARROWER = URIRef("http://www.w3.org/2004/02/skos/core#narrower")
+
+
+def _hierarchy_view(
+    *,
+    publication: str,
+    release: str,
+    concepts: Mapping[str, str],
+    edges: tuple[tuple[str, Any], ...] = (),
+    narrower_edges: tuple[tuple[str, str], ...] = (),
+    release_digest: str = SHA_A,
+) -> ManagedReleaseView:
+    """A managed release whose own graph states its intra-scheme hierarchy.
+
+    ``edges`` are ``(narrower concept, broader concept)`` pairs exactly as the
+    source thesaurus states them.  A broader value may be any JSON-LD node so a
+    test can state a malformed one.
+    """
+
+    by_child: dict[str, list[Any]] = defaultdict(list)
+    for child, parent in edges:
+        by_child[child].append(parent if isinstance(parent, Mapping) else {"@id": parent})
+    by_parent: dict[str, list[Any]] = defaultdict(list)
+    for parent, child in narrower_edges:
+        by_parent[parent].append({"@id": child})
+
+    member_records = {}
+    for member, label in concepts.items():
+        record: dict[str, Any] = {
+            "@id": member,
+            "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
+            "http://www.w3.org/2004/02/skos/core#prefLabel": label,
+        }
+        if by_child.get(member):
+            record["http://www.w3.org/2004/02/skos/core#broader"] = tuple(by_child[member])
+        if by_parent.get(member):
+            record["http://www.w3.org/2004/02/skos/core#narrower"] = tuple(by_parent[member])
+        member_records[member] = MappingProxyType(record)
+
+    release_record = MappingProxyType(
+        {
+            "@id": release,
+            "@type": "https://rulespec.org/ns/v1#ReferenceResourceRelease",
+            "http://www.w3.org/ns/prov#hadMember": tuple(concepts),
+            "https://rulespec.org/ns/v1#referenceReleaseDigest": release_digest,
+        }
+    )
+    members = {
+        member: ManagedReleaseMember(
+            member_iri=member,
+            release_iri=release,
+            scheme_iri=release + ":scheme",
+            record=member_records[member],
+        )
+        for member in concepts
+    }
+    expressions = tuple(
+        ManagedReleaseExpression(
+            expression_id=member + ":expression",
+            member_iri=member,
+            indexed_text=label.casefold(),
+            original_literal=label,
+            language_tag="en",
+            semantic_property_iri="http://www.w3.org/2004/02/skos/core#prefLabel",
+            source_property_or_path="prefLabel",
+            record=MappingProxyType({}),
+            label_role="preferred",
+            source_status="current",
+        )
+        for member, label in concepts.items()
+    )
+    return ManagedReleaseView(
+        _release_id=publication,
+        _rulespec_graph_id=publication + ":graph",
+        _rulespec_graph=MappingProxyType({"@graph": (release_record, *member_records.values())}),
+        _expression_corpus_snapshot=MappingProxyType({"id": publication + ":corpus", "digest": release_digest}),
+        _members=MappingProxyType(members),
+        _expressions=expressions,
+        _relations=(),
+        _lifecycle_participants=(),
+        _concept_mappings=(),
+        _release_graph_validation_receipt=MappingProxyType({}),
+    )
+
+
+ALPHA_CONCEPTS = {
+    "urn:test:atlas:hierarchy:alpha:energy-policy": "Energy policy",
+    "urn:test:atlas:hierarchy:alpha:renewable-energy-policy": "Renewable energy policy",
+    "urn:test:atlas:hierarchy:alpha:offshore-wind-policy": "Offshore wind policy",
+    "urn:test:atlas:hierarchy:alpha:marine-policy": "Marine policy",
+}
+ALPHA_EDGES = (
+    (
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+        "urn:test:atlas:hierarchy:alpha:energy-policy",
+    ),
+    (
+        "urn:test:atlas:hierarchy:alpha:offshore-wind-policy",
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    ),
+    (
+        "urn:test:atlas:hierarchy:alpha:offshore-wind-policy",
+        "urn:test:atlas:hierarchy:alpha:marine-policy",
+    ),
+)
+
+
+def _alpha(tmp_path: Path, **overrides: Any) -> _FixturePinnedRelease:
+    view = _hierarchy_view(
+        publication="urn:test:atlas:hierarchy:alpha:publication",
+        release=ALPHA_RELEASE,
+        concepts=dict(overrides.pop("concepts", ALPHA_CONCEPTS)),
+        edges=overrides.pop("edges", ALPHA_EDGES),
+        **overrides,
+    )
+    return _FixturePinnedRelease(tmp_path / "alpha.json", SHA_A, view)
+
+
+def _beta(tmp_path: Path) -> _FixturePinnedRelease:
+    view = _hierarchy_view(
+        publication="urn:test:atlas:hierarchy:beta:publication",
+        release=BETA_RELEASE,
+        concepts={"urn:test:atlas:hierarchy:beta:energy-policy": "Beta energy policy"},
+        release_digest=SHA_B,
+    )
+    return _FixturePinnedRelease(tmp_path / "beta.json", SHA_B, view)
+
+
+def _release_facts(asset: VocabularyAtlasAsset) -> Any:
+    dataset = Dataset(default_union=False)
+    dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
+    row = next(item for item in asset.manifest["graphs"] if item["role"] == "releaseFacts")
+    return dataset.graph(URIRef(row["id"]))
+
+
+def test_source_hierarchy_is_published_as_release_layer_facts(tmp_path: Path) -> None:
+    """Broader edges are layer-1 source facts, so they ride in release facts."""
+
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+
+    graph = _release_facts(asset)
+    assert set(graph.subject_objects(BROADER)) == {
+        (URIRef(child), URIRef(parent)) for child, parent in ALPHA_EDGES
+    }
+    assert asset.manifest["counts"]["hierarchyEdges"] == len(ALPHA_EDGES)
+
+
+def test_only_the_broader_direction_is_stored(tmp_path: Path) -> None:
+    """One stored direction cannot disagree with its own inverse."""
+
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+
+    assert not set(_release_facts(asset).subject_objects(NARROWER))
+
+
+def test_a_release_without_hierarchy_declares_no_hierarchy_count(tmp_path: Path) -> None:
+    """Absent means zero, so every hierarchy-free atlas stays byte-identical."""
+
+    source, _ = _two_releases(tmp_path)
+    asset = build_vocabulary_atlas((source,), rulespec_core=_core_release(tmp_path))
+
+    assert "hierarchyEdges" not in asset.manifest["counts"]
+    assert not set(_release_facts(asset).subject_objects(BROADER))
+
+
+def test_a_verified_relation_row_publishes_its_edge_as_two_concept_iris(
+    tmp_path: Path,
+) -> None:
+    """A compact source context leaves the object a literal on a generic parse.
+
+    The normalized ``concept_relations`` rows are the verified form of exactly
+    those edges, so the distribution publishes what they round-trip to rather
+    than a string that no consumer could follow.
+    """
+
+    asset = build_vocabulary_atlas((_real_release(tmp_path),), rulespec_core=_core_release(tmp_path))
+
+    assert set(_release_facts(asset).subject_objects(BROADER)) == {
+        (
+            URIRef("urn:rkaf:fixture:concept:income"),
+            URIRef("urn:rkaf:fixture:concept:eligibility"),
+        )
+    }
+    assert asset.manifest["counts"]["hierarchyEdges"] == 1
+    assert VocabularyAtlasQueries(asset).narrower("urn:rkaf:fixture:concept:eligibility") == (
+        "urn:rkaf:fixture:concept:income",
+    )
+
+
+def test_broader_and_narrower_read_the_one_stored_edge_from_both_ends(tmp_path: Path) -> None:
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+    queries = VocabularyAtlasQueries(asset)
+
+    assert queries.broader("urn:test:atlas:hierarchy:alpha:renewable-energy-policy") == (
+        "urn:test:atlas:hierarchy:alpha:energy-policy",
+    )
+    assert queries.narrower("urn:test:atlas:hierarchy:alpha:energy-policy") == (
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    )
+    assert queries.broader("urn:test:atlas:hierarchy:alpha:energy-policy") == ()
+    assert queries.hierarchy_edges() == tuple(sorted(ALPHA_EDGES))
+
+
+def test_a_concept_may_have_more_than_one_broader_concept(tmp_path: Path) -> None:
+    """ELSST R6 places 162 concepts under two or more parents."""
+
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+    queries = VocabularyAtlasQueries(asset)
+
+    assert queries.broader("urn:test:atlas:hierarchy:alpha:offshore-wind-policy") == (
+        "urn:test:atlas:hierarchy:alpha:marine-policy",
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    )
+
+
+def test_transitive_broader_walks_every_parent_within_the_depth_bound(tmp_path: Path) -> None:
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+    queries = VocabularyAtlasQueries(asset)
+
+    assert queries.transitive_broader(
+        "urn:test:atlas:hierarchy:alpha:offshore-wind-policy", max_depth=1
+    ) == (
+        "urn:test:atlas:hierarchy:alpha:marine-policy",
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    )
+    assert queries.transitive_broader(
+        "urn:test:atlas:hierarchy:alpha:offshore-wind-policy", max_depth=2
+    ) == (
+        "urn:test:atlas:hierarchy:alpha:energy-policy",
+        "urn:test:atlas:hierarchy:alpha:marine-policy",
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    )
+
+
+def test_transitive_broader_requires_a_positive_depth_bound(tmp_path: Path) -> None:
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+    queries = VocabularyAtlasQueries(asset)
+
+    with pytest.raises(VocabularyAtlasError, match="depth bound"):
+        queries.transitive_broader("urn:test:atlas:hierarchy:alpha:offshore-wind-policy", max_depth=0)
+
+
+def test_broader_across_two_releases_is_refused_because_mappings_carry_it(tmp_path: Path) -> None:
+    """A cross-scheme claim needs the qualification proof, not a copied edge."""
+
+    alpha = _alpha(
+        tmp_path,
+        edges=(
+            (
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+                "urn:test:atlas:hierarchy:beta:energy-policy",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy must stay inside one release"):
+        build_vocabulary_atlas((alpha, _beta(tmp_path)), rulespec_core=_core_release(tmp_path))
+
+
+def test_broader_to_a_non_member_is_refused(tmp_path: Path) -> None:
+    alpha = _alpha(
+        tmp_path,
+        edges=(
+            (
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+                "urn:test:atlas:hierarchy:alpha:absent-concept",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy endpoint is not a release member"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_a_concept_cannot_be_broader_than_itself(tmp_path: Path) -> None:
+    alpha = _alpha(
+        tmp_path,
+        edges=(
+            (
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy edge repeats one concept"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_a_hierarchy_cycle_is_refused(tmp_path: Path) -> None:
+    """ELSST R5 and R6 are both acyclic, so a cycle is a source defect."""
+
+    alpha = _alpha(
+        tmp_path,
+        edges=(
+            *ALPHA_EDGES,
+            (
+                "urn:test:atlas:hierarchy:alpha:energy-policy",
+                "urn:test:atlas:hierarchy:alpha:offshore-wind-policy",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy contains a cycle"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_a_stored_narrower_statement_is_refused(tmp_path: Path) -> None:
+    """The inverse is derived; storing it invites the two to disagree."""
+
+    alpha = _alpha(
+        tmp_path,
+        edges=(),
+        narrower_edges=(
+            (
+                "urn:test:atlas:hierarchy:alpha:energy-policy",
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="narrower is derived, never stored"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_broader_must_connect_two_concept_iris(tmp_path: Path) -> None:
+    alpha = _alpha(
+        tmp_path,
+        edges=(
+            (
+                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+                {"@value": "Energy policy"},
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy must connect two concept IRIs"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def _write_forged_hierarchy(tmp_path: Path, edit: Any) -> tuple[Path, Path, Path]:
+    """Publish the valid hierarchy atlas, then reseal one forged line into it."""
+
+    asset = build_vocabulary_atlas((_alpha(tmp_path),), rulespec_core=_core_release(tmp_path))
+    output = asset.write(tmp_path / "atlas")
+    manifest_path = output / "atlas-manifest.json"
+    payload_path = output / "atlas.nq"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    lines = payload_path.read_text(encoding="utf-8").splitlines()
+    forged = sorted(edit(lines, manifest))
+    payload = ("\n".join(forged) + "\n").encode("utf-8")
+    payload_path.write_bytes(payload)
+    release_id = next(row["id"] for row in manifest["graphs"] if row["role"] == "releaseFacts")
+    analysis_id = next(row["id"] for row in manifest["graphs"] if row["role"] == "analysis")
+    release_quads = sum(1 for line in forged if line.endswith(f"<{release_id}> ."))
+    analysis_quads = sum(1 for line in forged if line.endswith(f"<{analysis_id}> ."))
+    for row in manifest["graphs"]:
+        row["quadCount"] = release_quads if row["role"] == "releaseFacts" else analysis_quads
+    manifest["counts"]["releaseFacts"] = release_quads
+    manifest["counts"]["analysisFacts"] = analysis_quads
+    manifest["output"]["digest"] = "sha256:" + hashlib.sha256(payload).hexdigest()
+    manifest["output"]["byteLength"] = len(payload)
+    manifest["output"]["quadCount"] = len(forged)
+    manifest.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = binding.canonical_payload_digest(manifest)
+    manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
+    return output, manifest_path, payload_path
+
+
+def test_file_only_open_refuses_a_forged_dangling_broader(tmp_path: Path) -> None:
+    """The consumer check stands alone; it never reopens producer inputs."""
+
+    def _retarget(lines: list[str], manifest: Mapping[str, Any]) -> list[str]:
+        marker = f"<{BROADER}> <urn:test:atlas:hierarchy:alpha:energy-policy>"
+        edited = [
+            line.replace(marker, f"<{BROADER}> <urn:test:atlas:hierarchy:alpha:absent-concept>")
+            if marker in line
+            else line
+            for line in lines
+        ]
+        assert edited != lines
+        return edited
+
+    output, manifest_path, payload_path = _write_forged_hierarchy(tmp_path, _retarget)
+    with pytest.raises(VocabularyAtlasError, match="hierarchy endpoint is not a release member"):
+        VocabularyAtlasAsset.open(
+            output,
+            expected_manifest_digest=_file_digest(manifest_path),
+            expected_output_digest=_file_digest(payload_path),
+        )
+
+
+def test_file_only_open_refuses_a_hierarchy_count_that_does_not_match(tmp_path: Path) -> None:
+    def _drop_one(lines: list[str], manifest: Mapping[str, Any]) -> list[str]:
+        kept = [line for line in lines if f"<{BROADER}>" not in line]
+        assert len(kept) == len(lines) - len(ALPHA_EDGES)
+        return kept
+
+    output, manifest_path, payload_path = _write_forged_hierarchy(tmp_path, _drop_one)
+    with pytest.raises(VocabularyAtlasError, match="declared counts differ"):
         VocabularyAtlasAsset.open(
             output,
             expected_manifest_digest=_file_digest(manifest_path),

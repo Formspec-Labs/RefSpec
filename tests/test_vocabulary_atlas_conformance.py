@@ -91,7 +91,7 @@ def test_the_corpus_marks_in_place_amendments_machine_readably() -> None:
     reading prose, which no reader does.
     """
 
-    assert _CORPUS["amendments"] == ["2026-08-02"]
+    assert _CORPUS["amendments"] == ["2026-08-02", "2026-08-02-hierarchy"]
     assert _CORPUS["schemaVersion"] == "refspec-vocabulary-atlas-conformance-corpus/v1"
 
     readme = (_BINDING_ROOT / "README.md").read_text(encoding="utf-8")
@@ -152,6 +152,73 @@ def test_the_qualified_fixture_qualifies_one_candidate_and_refuses_the_other() -
     nquads = asset.payload.decode("utf-8")
     assert nquads.count("<https://rulespec.org/ns/v1#notEligible>") == 1
     assert "<https://refspec.org/ns/vocabulary-atlas/v1#inputContextArtifact>" in nquads
+
+
+def test_the_corpus_proves_a_hierarchy_can_publish() -> None:
+    """Three hierarchy refusals prove nothing if none of them can be passed.
+
+    The same anti-vacuity guard the qualification path carries: a reader that
+    rejects every hierarchy is indistinguishable from a correct one unless
+    some valid distribution states one.
+    """
+
+    valid = {
+        case["directory"]: json.loads(
+            (_FIXTURE_ROOT / case["directory"] / "atlas-manifest.json").read_text(encoding="utf-8")
+        )
+        for case in _CORPUS["cases"]
+        if case["valid"]
+    }
+    with_hierarchy = {
+        directory: manifest
+        for directory, manifest in valid.items()
+        if manifest["counts"].get("hierarchyEdges", 0) > 0
+    }
+
+    assert with_hierarchy, "no valid distribution states a hierarchy"
+
+    case = next(item for item in _CORPUS["cases"] if item["directory"] == "valid/hierarchy")
+    asset = VocabularyAtlasAsset.open(
+        _FIXTURE_ROOT / "valid" / "hierarchy",
+        expected_manifest_digest=case["manifestDigest"],
+        expected_output_digest=case["outputDigest"],
+    )
+    queries = VocabularyAtlasQueries(asset)
+
+    assert asset.manifest["counts"]["hierarchyEdges"] == len(queries.hierarchy_edges()) == 4
+    # A tree-shaped reader passes every other check and still gets this wrong.
+    assert len(queries.broader("urn:ref:conformance:alpha:offshore-wind-policy")) == 2
+    assert queries.transitive_broader(
+        "urn:ref:conformance:alpha:offshore-wind-policy", max_depth=2
+    ) == (
+        "urn:ref:conformance:alpha:environmental-policy",
+        "urn:ref:conformance:alpha:marine-policy",
+        "urn:ref:conformance:alpha:renewable-energy-policy",
+    )
+    # Only the broader direction is ever stored.
+    assert "<http://www.w3.org/2004/02/skos/core#narrower>" not in asset.payload.decode("utf-8")
+
+
+def test_a_hierarchy_free_atlas_gains_no_count_and_the_example_no_new_bytes() -> None:
+    """`hierarchyEdges` is absent when there is no hierarchy to count.
+
+    The complete Federal Register example is the case that matters: it is a
+    real published distribution over a vocabulary with no hierarchy, and
+    consumers hold its two pins. Requiring the count unconditionally would
+    have restated it for nothing.
+    """
+
+    for name in ("valid/minimal", "valid/qualified-search-only"):
+        manifest = json.loads((_FIXTURE_ROOT / name / "atlas-manifest.json").read_text(encoding="utf-8"))
+        assert "hierarchyEdges" not in manifest["counts"]
+
+    example = _BINDING_ROOT / "examples" / "federal-register-thesaurus-2025"
+    assert _digest(example / "atlas-manifest.json") == (
+        "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
+    )
+    assert _digest(example / "atlas.nq") == (
+        "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
+    )
 
 
 @pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: case["id"])
