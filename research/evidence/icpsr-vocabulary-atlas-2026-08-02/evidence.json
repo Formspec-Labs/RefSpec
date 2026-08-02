@@ -1,0 +1,206 @@
+{
+  "evidenceType": "IcpsrSubjectThesaurusVocabularyAtlasBridge",
+  "recordedAt": "2026-08-02T18:30:00Z",
+  "analysis": "docs/icpsr-atlas-bridge.md",
+  "source": {
+    "capture": "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release",
+    "manifestFileDigest": "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a",
+    "manifestCanonicalPayloadDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
+    "managedReleaseVersion": "icpsr-uri-verified-development-v1",
+    "parserVersion": "refspec-icpsr-managed-release-v1",
+    "operationalState": "developmentOnly",
+    "subjectXmlDigest": "sha256:1875e0331a8403c00fa47a3ededca98c902f55d0b84d70884543ed1d2db629ff",
+    "indexCaptureDigest": "sha256:b155705626d53cce42a746ca582c4c8ca7e546db9b704a2223cad52fac45c6c6"
+  },
+  "measuredSourceFacts": {
+    "xmlTerms": 3765,
+    "publicIndexTerms": 3805,
+    "uriVerifiedConcepts": 3760,
+    "preferredLabelRole": 3280,
+    "alternateLabelRole": 480,
+    "labelRoleConflicts": 4,
+    "publisherCodes": 3760,
+    "scopeNotes": 730,
+    "conceptsWithScopeNote": 730,
+    "definitions": 0,
+    "indexedExpressions": 4490,
+    "broaderResolved": 1759,
+    "narrowerResolved": 1759,
+    "narrowerStated": 1763,
+    "relatedResolved": 14360,
+    "useResolved": 479,
+    "usedForResolved": 394,
+    "usedForStated": 395,
+    "unresolvedRelations": 5,
+    "xmlOnlyGaps": 5,
+    "indexOnlyGaps": 45
+  },
+  "hierarchyShape": {
+    "cycles": 0,
+    "conceptsWithAtLeastOneParent": 1695,
+    "roots": 2065,
+    "conceptsWithMoreThanOneParent": 64,
+    "maximumDepth": 5,
+    "conceptsWithNarrower": 499,
+    "directionsAgreeExactly": true,
+    "broaderOnlyEdges": 0,
+    "narrowerOnlyEdges": 0
+  },
+  "relatedShape": {
+    "statements": 14360,
+    "reciprocalPairs": 7180,
+    "fullySymmetric": true
+  },
+  "scopeNoteShape": {
+    "notes": 730,
+    "minimumNormalizedLength": 17,
+    "medianNormalizedLength": 103,
+    "maximumNormalizedLength": 342,
+    "notesEqualToAnyIcpsrLabel": 0,
+    "note": "all 730 scope-note expressions are handed to the atlas because the release indexed them; the atlas uses expressions only for label clusters, and none of these normalize to a label"
+  },
+  "projection": {
+    "module": "src/refspec/atlas/icpsr.py",
+    "adapter": "PinnedIcpsrSubjectAtlasRelease",
+    "membershipMode": "rkaf:partialMembership",
+    "versionBasis": "rkaf:contentDerived",
+    "projected": {
+      "http://www.w3.org/2004/02/skos/core#prefLabel": 3280,
+      "http://www.w3.org/2004/02/skos/core#altLabel": 480,
+      "http://www.w3.org/2004/02/skos/core#notation": 3760,
+      "http://www.w3.org/2004/02/skos/core#scopeNote": 730,
+      "http://www.w3.org/2004/02/skos/core#broader": 1759,
+      "http://www.w3.org/2004/02/skos/core#narrower": 1759,
+      "http://www.w3.org/2004/02/skos/core#related": 14360,
+      "http://www.w3.org/2004/02/skos/core#inScheme": 3760,
+      "http://www.w3.org/ns/prov#hadMember": 3760,
+      "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUse": 479,
+      "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUsedFor": 394
+    },
+    "notProjected": [
+      {
+        "fact": "inputTimestamp and updateTimestamp",
+        "count": 7520,
+        "reason": "the source writes '2023-03-06 10:09:43.0', which is not xsd:dateTime; a typed projection needs a materialization policy of the kind ELSST required for its dates, and an untyped one adds statements no consumer can compare"
+      },
+      {
+        "fact": "identifiers provenance rows",
+        "count": 7520,
+        "reason": "the publisher code and term URI are already in the graph as skos:notation and the concept IRI; the provenance stays in the digest-pinned bundle"
+      },
+      {
+        "fact": "unresolvedSourceSkew relations",
+        "count": 5,
+        "reason": "four NT and one UF name labels outside the verified subset, so they have no endpoint; already recorded as gaps in the bundle's coverage report"
+      },
+      {
+        "fact": "xmlLabelRole and the four label-role conflicts it disagrees on",
+        "count": 4,
+        "reason": "a term whose two source views disagree about DESCRIPTOR vs NON-DESCRIPTOR stays a member and the conflict is recorded in the bundle's coverage report; the graph states the public-index role, because that is the role the release's own indexed expressions use, and the atlas format has no way to state that two source views disagree about one term's role"
+      },
+      {
+        "fact": "a label for the concept scheme itself",
+        "count": 0,
+        "reason": "neither source view states one; naming the thesaurus in the copied-facts graph would be the projection's own assertion"
+      }
+    ],
+    "notExpressibleInSkos": {
+      "fact": "ISO 25964 USE/UF between two published concept URIs",
+      "carriedAs": [
+        "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUse",
+        "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUsedFor"
+      ],
+      "reason": "ICPSR mints a term URI for every DESCRIPTOR and NON-DESCRIPTOR record; skos:altLabel on the descriptor would discard the non-preferred URI and fuse two published identities, iso-thes links a concept to a SKOS-XL label rather than to a term URI, and a SKOS mapping predicate would demand two independent machine validations for a fact the publisher stated outright",
+      "notCollapsedBecause": "479 USE against 394 UF: the pair is not reciprocal in the source, so either collapse would invent one side of it",
+      "consumerCost": "480 concepts carry only skos:altLabel on themselves; an alternate ICPSR label is reached through the USE edge rather than through the descriptor's skos:altLabel"
+    }
+  },
+  "operationalStateDecision": {
+    "decision": "carryForwardAndRequire",
+    "requiredAtTheDoor": {
+      "manifest.operationalState": "developmentOnly",
+      "coverage.operationalState": "developmentOnly",
+      "manifest.acceptedOutputAllowed": false,
+      "coverage.acceptedOutputAllowed": false,
+      "manifest.candidateLookupAllowed": true,
+      "coverage.candidateLookupAllowed": true
+    },
+    "republishedOnTheReleaseNode": {
+      "https://refspec.org/ns/vocabulary-atlas/v1#operationalState": "developmentOnly",
+      "https://refspec.org/ns/vocabulary-atlas/v1#candidateLookupAllowed": true,
+      "https://refspec.org/ns/vocabulary-atlas/v1#acceptedOutputAllowed": false
+    },
+    "reason": "every atlas input is already candidate-only. ManagedReleaseView.usage_ceiling is candidateUseOnly, and the Federal Register adapter requires its own source-complete package to declare candidateLookupAllowed true and acceptedOutputAllowed false before it will open. Nothing in an atlas is production output, so a development marker is a fact to carry rather than a reason to refuse 3,760 concepts. Refusing was considered and rejected; laundering was never an option, which is why the marker is required at the door.",
+    "whyGraphAndNotManifest": "VocabularyAtlasAsset.open refuses any manifest whose key set differs from schema 1.0's closed set, so a new top-level field would need a binding version bump. The release node in releaseFacts is where the release's own declarations already live."
+  },
+  "atlasBuilds": {
+    "icpsrOnly": {
+      "managedReleases": 1,
+      "releaseFacts": 38302,
+      "analysisFacts": 3762,
+      "hierarchyEdges": 1759,
+      "labelClusters": 0,
+      "mappingCandidates": 0,
+      "searchOnlyMappings": 0,
+      "outputByteLength": 12008709,
+      "outputGzip9ByteLength": 308623,
+      "reproducesFromPinnedInputs": true
+    },
+    "federalRegisterPlusElsstPlusIcpsr": {
+      "managedReleases": 3,
+      "members": 11370,
+      "releaseFacts": 309166,
+      "analysisFacts": 600230,
+      "hierarchyEdges": 8513,
+      "hierarchyEdgesFromElsst": 6754,
+      "hierarchyEdgesFromIcpsr": 1759,
+      "labelClusters": 96958,
+      "mappingCandidates": 0,
+      "searchOnlyMappings": 0,
+      "outputByteLength": 270130849,
+      "outputGzip9ByteLength": 16992570,
+      "releaseFactsBytes": 82461672,
+      "analysisBytes": 187669177,
+      "analysisShare": 0.695,
+      "icpsrLines": 44741,
+      "icpsrBytes": 12943261,
+      "icpsrShare": 0.048,
+      "labelClustersAddedByIcpsr": 91,
+      "committed": false,
+      "note": "scratch build, written to RefSpec/output/atlas-scratch/ which is gitignored; rebuilds from the three pinned bundle digests. Its identifier is not recorded because an atlas id pins the generator's source modules and would go stale on the next unrelated edit."
+    }
+  },
+  "sizeReference": {
+    "federalRegister2025Only": {
+      "outputByteLength": 1469637,
+      "outputGzip9ByteLength": 35578,
+      "note": "the asset SpicySearch vendors today"
+    },
+    "federalRegisterPlusElsstPlusCrosswalk": {
+      "managedReleases": 2,
+      "releaseFacts": 270864,
+      "analysisFacts": 613350,
+      "labelClusters": 96867,
+      "hierarchyEdges": 6754,
+      "outputByteLength": 263620491,
+      "outputGzip9ByteLength": 17038092,
+      "releaseFactsBytes": 71705706,
+      "analysisBytes": 191914785,
+      "analysisShare": 0.728,
+      "labelClusterBytesApprox": 184267812,
+      "labelClusterShareApprox": 0.699
+    }
+  },
+  "generatorProvenance": {
+    "pinnedSourceModulesAdded": [
+      "refspec/atlas/icpsr.py",
+      "refspec/registry/icpsr_managed_release.py",
+      "refspec/registry/icpsr_subject.py"
+    ],
+    "regeneratedConformanceFixtures": 9,
+    "bindingRuleChanged": false,
+    "corpusAmendmentAdded": false,
+    "federalRegisterExampleByteIdentical": true,
+    "federalRegisterReferenceReleaseDigest": "sha256:30742a82b3e268942aec713a02c5ae4264eadea36aa61b564ffc93eeecfd5fe6"
+  }
+}

@@ -156,3 +156,41 @@ The four-row table at the top of this ledger is superseded in place and kept as 
 lineage. The same four-versus-five tension exists in
 `spicysearch/docs/decisions/0001-four-product-boundary.md`; that ledger belongs to the
 SpicySearch repository and is referenced here without being edited by this decision.
+
+### REF-009: Carry a development-only marker into the atlas rather than refuse it
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+
+The ICPSR subject thesaurus release declares `operationalState: developmentOnly`,
+because the public term-URI index and the pinned `subject.xml` snapshot are two source
+versions joined by label rather than one publisher-versioned release. Giving it an atlas
+adapter forced a choice: refuse to project a development-marked source into an atlas at
+all, or carry the marker forward so a consumer sees it.
+
+**An atlas adapter carries the marker and requires it; it never drops or overrides one.**
+`PinnedIcpsrSubjectAtlasRelease.open` refuses any bundle that does not declare
+`operationalState: developmentOnly` with `acceptedOutputAllowed: false` and
+`candidateLookupAllowed: true`, and the projection republishes all three on the release
+node in the `releaseFacts` graph.
+
+Refusal was considered and rejected because it would have been a claim this platform does
+not make. Every atlas input is already candidate-only: `ManagedReleaseView.usage_ceiling`
+is `candidateUseOnly`, and the Federal Register adapter requires its own **source-complete**
+2025 package to declare `candidateLookupAllowed: true` and `acceptedOutputAllowed: false`
+before it will open. No atlas anywhere is accepted output, so a development marker
+distinguishes one candidate-only input from another rather than separating production from
+non-production. Refusing on it would have dropped 3,760 verified concepts to enforce a
+boundary the format does not draw.
+
+The marker rides in `releaseFacts` rather than the atlas manifest because
+`VocabularyAtlasAsset.open` refuses any manifest whose key set differs from the closed
+schema 1.0 set. A top-level field would need a binding version bump; the release node is
+where the release's own declarations already live.
+
+The rule generalizes past ICPSR: a future adapter over a source that marks its own
+operational state must require that declaration at its door and republish it. Silently
+projecting a development-marked source into a production-shaped bundle is refused, and so
+is silently discarding a vocabulary because it was honest about its own state.
+
+The measured basis is in [`icpsr-atlas-bridge.md`](icpsr-atlas-bridge.md).

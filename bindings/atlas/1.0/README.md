@@ -129,11 +129,23 @@ is byte-identical because none contained a mapping candidate. A distribution
 that qualified a mapping while citing unobtainable input bytes was never
 serving a consumer, and is now refused.
 
-The specialized Federal Register producer computes the Core-defined closed
+A specialized producer computes the Core-defined closed
 `ReferenceResourceRelease` preimage locally. That preimage permits only named
 nodes, so its RDFC-1.0 form is canonical N-Quads line order. The producer pins
 the calculation's source modules, Python version, and `rdflib` version in the
-atlas identity; it does not execute an unrecorded Rulespec checkout.
+atlas identity; it does not execute an unrecorded Rulespec checkout. There are
+two such producers — the Federal Register 2025 package and the ICPSR subject
+thesaurus — and they call one shared implementation, so two adapters cannot
+drift into two answers for the same closed shape.
+
+**Producer provenance is not a rule.** `sourceModules` names the generator's
+own artifacts, so the generator-built fixture digests move whenever that list
+does — including when a new specialized reader joins it, as the ICPSR reader
+did on 2026-08-02. No rule in this document changed then, so `amendments`
+gained no entry: a distribution valid under the current rules stays valid, and
+the checked-in Federal Register example below is byte-identical because it is
+opened rather than reproduced. A consumer pinning fixture digests re-fetches
+them; a consumer validating against the rules does nothing.
 
 ### Amendment 2026-08-02-hierarchy: intra-scheme hierarchy
 
