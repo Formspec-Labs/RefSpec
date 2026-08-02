@@ -140,9 +140,10 @@ atlas identity; it does not execute an unrecorded Rulespec checkout.
 Machine-readable marker: `fixtures/corpus.json` carries `"2026-08-02-hierarchy"`
 in `amendments`. Two amendments landed on the same day, so this one is named as
 well as dated; a bare date could not tell a consumer which of the two a pinned
-corpus predates. The new count is declared only when there is a hierarchy to
-count, so no distribution gains a field for a hierarchy it does not have. The
-four generator-built cases — `valid/qualified-search-only`,
+corpus predates. This amendment is **widening**: every distribution the
+previous rules accepted is still valid, and the new count is declared only when
+there is a hierarchy to count, so nothing gains a field for a hierarchy it does
+not have. The four generator-built cases — `valid/qualified-search-only`,
 `invalid/missing-input-context`, `invalid/tampered-input-context`, and
 `invalid/same-provider-model` — still change digests, because an atlas
 identifier pins the generator's source modules and this amendment edits them.
@@ -151,22 +152,36 @@ are byte-identical, and the example keeps the exact pins named above.
 
 A source vocabulary's own hierarchy is a layer-1 release fact, not analysis, so
 it rides in the `releaseFacts` graph with everything else copied from the
-managed release. It is stated as `skos:broader` from the narrower concept to
-the broader one. A distribution MUST satisfy all of these:
+managed release. An edge runs from the narrower concept to the broader one as
+`skos:broader`. A distribution MUST satisfy all of these:
 
-- every `skos:broader` statement in `releaseFacts` connects two IRIs;
-- both endpoints are members of one common release, proven by that release's
-  `prov:hadMember` statements. A broader edge between releases is refused: that
-  claim is what a qualified `searchOnly` mapping carries, and it MUST earn two
-  independent machine validations rather than ride in as a copied fact;
-- no statement joins a concept to itself, and the edges contain no cycle; and
-- `releaseFacts` contains no `skos:narrower` statement.
+- every `skos:broader` and `skos:narrower` statement in `releaseFacts` connects
+  two IRIs;
+- if `releaseFacts` states any `skos:narrower`, the two directions agree
+  exactly: every `skos:broader` has its inverse `skos:narrower` and every
+  `skos:narrower` has its inverse `skos:broader`;
+- both endpoints of every `skos:broader` are members of one common release,
+  proven by that release's `prov:hadMember` statements. A broader edge between
+  releases is refused: that claim is what a qualified `searchOnly` mapping
+  carries, and it MUST earn two independent machine validations rather than
+  ride in as a copied fact; and
+- no statement joins a concept to itself, and the edges contain no cycle.
 
-A consumer derives narrower by inverting `skos:broader`. Storing one direction
-is what makes the two incapable of disagreeing. Sources commonly state both:
-ELSST states 3,393 broader and 3,393 narrower statements in R6, and they are
-exact inverses of one another, so the stored half loses nothing and halves the
-bytes.
+**Both directions are retained.** A thesaurus asserts BT and NT deliberately —
+ISO 25964 treats both as first-class, and SKOS declares them `owl:inverseOf`
+rather than asking a reader to infer one from the other — and `releaseFacts` is
+a copy, so nothing is dropped. What the rules above buy is that an edge is
+*projected* from the broader direction alone, so a consumer's broader and
+narrower reads cannot disagree with one another. The agreement check is what
+makes that projection sound: the property is proven against the source rather
+than assumed. ELSST is the case that matters — 6,754 broader and 6,754
+narrower statements across R5 and R6, perfectly reciprocal, zero asymmetric
+edges in either edition.
+
+> **Trap.** A reader that answers "narrower" as `broader ∪ inverse(narrower)`
+> *without* the agreement check silently absorbs whichever half the other
+> direction denies. The agreement check is mandatory under any rule a future
+> amendment might adopt, including one that admits narrower-only sources.
 
 Cycles are refused rather than admitted and marked. SKOS permits them, but a
 thesaurus that emits one has a defect rather than a meaning — nothing is
@@ -182,6 +197,33 @@ than one, and its deepest branch is 8 levels.
 `releaseFacts`. It MUST be present and equal to that number when the graph
 states a hierarchy, and MUST be absent when it states none. Absent and zero are
 the same fact, so exactly one of them is a legal encoding.
+
+### What `copiedManagedReleaseFactsOnly` actually permits
+
+The `releaseFacts` policy says copied, and a reader is entitled to know exactly
+which transformations a producer may apply between a managed release and the
+published graph. There are two, and both repair the *value type* of a statement
+the release already makes:
+
+1. `prov:hadMember` values are written as IRIs. A compact source context leaves
+   them as literals on a generic parse, and the verified view has already
+   checked those exact release-to-member pairs.
+2. `skos:broader` and `skos:narrower` values are written as IRIs on the same
+   grounds, using the release's normalized `concept_relations` rows — which are
+   the verified, byte-pinned form of exactly those edges.
+
+Nothing else changes, and in particular **a normalized relation row cannot
+introduce an edge**. If a row names an edge the release graph states nowhere, a
+producer MUST refuse rather than add it: an edge no statement makes is an
+assertion, not a copy. A row repairs how an existing statement writes its
+object and does nothing else.
+
+Note what this does *not* say. Admission of a `skos:broader` statement is
+decided by the rules above — value type, common-release membership, agreement,
+acyclicity — and **not** by finding a matching `concept_relations` row. The
+release graph is the authority; a resource-valued broader statement the graph
+makes is admitted whether or not a normalized row also covers it. The rows are
+consulted only for the repair in (2).
 
 ## Conformance corpus
 
@@ -202,15 +244,22 @@ distributions derived from it — `invalid/missing-input-context`,
 forge exactly one fact of that proof, so a reader that accepts any of them has
 a locatable defect.
 
-The same guard applies to hierarchy: three refusals prove nothing about a
-reader that rejects every hierarchy. `valid/hierarchy` is the case that must
-pass. It states four edges over four concepts — one root, a two-step chain, and
-one concept under two parents, so a reader that assumes a tree fails it while
-passing every other check. `invalid/cross-scheme-broader`,
-`invalid/cyclic-broader`, and `invalid/dangling-broader` each retarget exactly
-one of its edges. Each keeps `hierarchyEdges` at four on purpose: a forgery
-that added or dropped an edge would fail on the declared count before a reader
-reached the rule under test.
+The same guard applies to hierarchy: four refusals prove nothing about a reader
+that rejects every hierarchy. `valid/hierarchy` is the case that must pass. It
+states four edges over four concepts in **both directions**, so the happy path
+exercises the agreement check rather than only the absence of NT. Its shape is
+one root, a two-step chain, and one concept under two parents, so a reader that
+assumes a tree fails it while passing every other check.
+
+`invalid/cross-scheme-broader`, `invalid/cyclic-broader`, and
+`invalid/dangling-broader` each move exactly one edge, rewriting its
+`skos:broader` and reciprocal `skos:narrower` together so the two directions
+still agree and the rule under test is the only fact forged.
+`invalid/disagreeing-narrower` is the one case that touches a single direction,
+because a broken inverse is exactly what it forges. All four keep
+`hierarchyEdges` at four on purpose: a forgery that added or dropped a broader
+statement would fail on the declared count before a reader reached any
+hierarchy rule at all.
 
 ## Complete Federal Register example
 

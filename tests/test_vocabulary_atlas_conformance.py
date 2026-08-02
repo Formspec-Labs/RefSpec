@@ -195,8 +195,13 @@ def test_the_corpus_proves_a_hierarchy_can_publish() -> None:
         "urn:ref:conformance:alpha:marine-policy",
         "urn:ref:conformance:alpha:renewable-energy-policy",
     )
-    # Only the broader direction is ever stored.
-    assert "<http://www.w3.org/2004/02/skos/core#narrower>" not in asset.payload.decode("utf-8")
+    # Both directions are stated and retained; the edge count comes from
+    # broader alone, and the two agree. A reader that merged broader with the
+    # inverse of narrower without checking agreement passes this case and
+    # fails `invalid/disagreeing-narrower`.
+    nquads = asset.payload.decode("utf-8")
+    assert nquads.count("<http://www.w3.org/2004/02/skos/core#narrower>") == 4
+    assert nquads.count("<http://www.w3.org/2004/02/skos/core#broader>") == 4
 
 
 def test_a_hierarchy_free_atlas_gains_no_count_and_the_example_no_new_bytes() -> None:

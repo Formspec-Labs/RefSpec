@@ -77,6 +77,7 @@ TARGET_CONCEPTS = (
 # keeps proving exactly one thing. Its labels deliberately cluster with
 # nothing on the target side: this case is about edges, not equal strings.
 BROADER = "http://www.w3.org/2004/02/skos/core#broader"
+NARROWER = "http://www.w3.org/2004/02/skos/core#narrower"
 HIERARCHY_CONCEPTS = (
     ("urn:ref:conformance:alpha:environmental-policy", "Environmental policy"),
     ("urn:ref:conformance:alpha:renewable-energy-policy", "Renewable energy policy"),
@@ -157,20 +158,21 @@ def _view(
     release_digest: str,
     edges: Sequence[tuple[str, str]] = (),
 ) -> ManagedReleaseView:
+    # A real thesaurus states both directions, so the fixture does too:
+    # otherwise the happy path never exercises the inverse-agreement check.
     broader_by_child: dict[str, list[dict[str, str]]] = {}
+    narrower_by_parent: dict[str, list[dict[str, str]]] = {}
     for child, parent in edges:
         broader_by_child.setdefault(child, []).append({"@id": parent})
+        narrower_by_parent.setdefault(parent, []).append({"@id": child})
     member_records = tuple(
         MappingProxyType(
             {
                 "@id": member,
                 "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
                 "http://www.w3.org/2004/02/skos/core#prefLabel": label,
-                **(
-                    {BROADER: tuple(broader_by_child[member])}
-                    if member in broader_by_child
-                    else {}
-                ),
+                **({BROADER: tuple(broader_by_child[member])} if member in broader_by_child else {}),
+                **({NARROWER: tuple(narrower_by_parent[member])} if member in narrower_by_parent else {}),
             }
         )
         for member, label in concepts
@@ -685,21 +687,52 @@ def _share_provider_model(lines: list[str]) -> list[str]:
     return edited
 
 
-def _retarget_broader(child: str, parent: str, replacement: str) -> Any:
-    """Point one stored edge somewhere else without changing how many there are.
+def _substitute(lines: list[str], stated: str, forged: str) -> list[str]:
+    edited = [line.replace(stated, forged) if line.startswith(stated) else line for line in lines]
+    if sum(1 for line in edited if line.startswith(forged)) != 1:
+        raise VocabularyAtlasError(f"expected exactly one statement to retarget: {stated}")
+    return edited
 
-    Every hierarchy refusal is forged this way on purpose. Adding or dropping
-    an edge would move `hierarchyEdges` too, and the distribution would then
-    fail on the count before a reader ever reached the rule under test.
+
+def _retarget_edge(child: str, parent: str, replacement: str) -> Any:
+    """Move one edge, keeping both stated directions in agreement.
+
+    The forgery rewrites the `skos:broader` statement and its reciprocal
+    `skos:narrower` statement together. Rewriting only one would trip the
+    inverse-agreement check first and mask the rule under test — and adding or
+    dropping an edge would move `hierarchyEdges`, failing on the count before a
+    reader reached any rule at all.
     """
 
     def _edit(lines: list[str]) -> list[str]:
-        stated = f"<{child}> <{BROADER}> <{parent}>"
-        forged = f"<{child}> <{BROADER}> <{replacement}>"
-        edited = [line.replace(stated, forged) if line.startswith(stated) else line for line in lines]
-        if sum(1 for line in edited if forged in line) != 1:
-            raise VocabularyAtlasError("expected exactly one hierarchy edge to retarget")
-        return edited
+        edited = _substitute(
+            lines,
+            f"<{child}> <{BROADER}> <{parent}>",
+            f"<{child}> <{BROADER}> <{replacement}>",
+        )
+        return _substitute(
+            edited,
+            f"<{parent}> <{NARROWER}> <{child}>",
+            f"<{replacement}> <{NARROWER}> <{child}>",
+        )
+
+    return _edit
+
+
+def _disagree(parent: str, child: str, replacement: str) -> Any:
+    """Retarget one `skos:narrower` and leave its `skos:broader` behind.
+
+    This is the only hierarchy forgery that touches a single direction, which
+    is exactly the fact it forges. The broader count is untouched, so the
+    distribution reaches the agreement check with a correct `hierarchyEdges`.
+    """
+
+    def _edit(lines: list[str]) -> list[str]:
+        return _substitute(
+            lines,
+            f"<{parent}> <{NARROWER}> <{child}>",
+            f"<{parent}> <{NARROWER}> <{replacement}>",
+        )
 
     return _edit
 
@@ -720,7 +753,7 @@ _CASES: tuple[dict[str, Any], ...] = (
         "base": "hierarchy",
         "directory": "invalid/cross-scheme-broader",
         "errorContains": "hierarchy must stay inside one release",
-        "forge": _retarget_broader(
+        "forge": _retarget_edge(
             "urn:ref:conformance:alpha:marine-policy",
             "urn:ref:conformance:alpha:environmental-policy",
             "urn:ref:conformance:beta:energy-policy",
@@ -732,7 +765,7 @@ _CASES: tuple[dict[str, Any], ...] = (
         "base": "hierarchy",
         "directory": "invalid/cyclic-broader",
         "errorContains": "hierarchy contains a cycle",
-        "forge": _retarget_broader(
+        "forge": _retarget_edge(
             "urn:ref:conformance:alpha:renewable-energy-policy",
             "urn:ref:conformance:alpha:environmental-policy",
             "urn:ref:conformance:alpha:offshore-wind-policy",
@@ -742,9 +775,21 @@ _CASES: tuple[dict[str, Any], ...] = (
     },
     {
         "base": "hierarchy",
+        "directory": "invalid/disagreeing-narrower",
+        "errorContains": "hierarchy directions disagree",
+        "forge": _disagree(
+            "urn:ref:conformance:alpha:environmental-policy",
+            "urn:ref:conformance:alpha:marine-policy",
+            "urn:ref:conformance:alpha:offshore-wind-policy",
+        ),
+        "id": "hierarchy-directions-must-agree",
+        "valid": False,
+    },
+    {
+        "base": "hierarchy",
         "directory": "invalid/dangling-broader",
         "errorContains": "hierarchy endpoint is not a release member",
-        "forge": _retarget_broader(
+        "forge": _retarget_edge(
             "urn:ref:conformance:alpha:marine-policy",
             "urn:ref:conformance:alpha:environmental-policy",
             ABSENT_CONCEPT,

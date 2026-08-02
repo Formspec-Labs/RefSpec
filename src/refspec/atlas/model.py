@@ -1258,28 +1258,53 @@ def _refuse_hierarchy_cycles(parents: Mapping[URIRef, tuple[URIRef, ...]]) -> No
             stack.append((following, iter(parents.get(following, ()))))
 
 
+def _stated_edges(release_graph: Graph, predicate: URIRef) -> set[tuple[URIRef, URIRef]]:
+    """Return one direction's statements, refused unless they connect IRIs."""
+
+    edges: set[tuple[URIRef, URIRef]] = set()
+    for subject, value in release_graph.subject_objects(predicate):
+        if not isinstance(subject, URIRef) or not isinstance(value, URIRef):
+            raise VocabularyAtlasError("atlas hierarchy must connect two concept IRIs")
+        edges.add((subject, value))
+    return edges
+
+
 def _hierarchy_edges(release_graph: Graph) -> tuple[tuple[URIRef, URIRef], ...]:
-    """Return the stored intra-scheme hierarchy as ``(narrower, broader)`` pairs.
+    """Return the intra-scheme hierarchy as ``(narrower, broader)`` pairs.
 
     Hierarchy comes from the source vocabulary's own structure, so it is a
-    layer-1 release fact copied verbatim like any other.  Only the broader
-    direction is stored: ``skos:narrower`` is the derived inverse of exactly
-    one statement, which is why the two can never disagree here.  ELSST states
-    both directions and they are exact inverses of one another (zero
-    asymmetric edges in either release), so storing one half loses nothing.
+    layer-1 release fact copied verbatim like any other — including its
+    ``skos:narrower`` statements, which are kept exactly as the release made
+    them.  Thesauri assert both directions deliberately: ISO 25964 treats BT
+    and NT as first-class, and SKOS declares them ``owl:inverseOf`` rather
+    than asking a reader to infer one from the other.
+
+    An edge is projected from the broader direction only, so a consumer's
+    ``broader``/``narrower`` reads still cannot disagree with one another.
+    When the release states both directions they must agree exactly, and the
+    refusal below names the disagreement rather than the existence of NT.
+    That is what makes the one-direction projection sound: the property is
+    proven against the source instead of bought by refusing real data.  ELSST
+    is the case that matters — 6,754 broader and 6,754 narrower statements,
+    perfectly reciprocal, zero asymmetric edges in either edition.
 
     A cross-release edge is refused because that claim is what a qualified
     ``searchOnly`` mapping exists to carry, and it must earn its two
     independent machine validations rather than ride in as a copied fact.
     """
 
-    if next(release_graph.triples((None, SKOS.narrower, None)), None) is not None:
-        raise VocabularyAtlasError("atlas hierarchy narrower is derived, never stored")
+    broader = _stated_edges(release_graph, SKOS.broader)
+    narrower = {(child, parent) for parent, child in _stated_edges(release_graph, SKOS.narrower)}
+    if narrower and narrower != broader:
+        # Named for the disagreement, because a source that states only the
+        # agreeing half of a pair is the defect. A reader that merged
+        # ``broader`` with the inverse of ``narrower`` without this guard
+        # would silently absorb whichever half the other direction denies.
+        raise VocabularyAtlasError("atlas hierarchy directions disagree")
+
     memberships = _release_members(release_graph)
     grouped: dict[URIRef, list[URIRef]] = defaultdict(list)
-    for child, parent in release_graph.subject_objects(SKOS.broader):
-        if not isinstance(child, URIRef) or not isinstance(parent, URIRef):
-            raise VocabularyAtlasError("atlas hierarchy must connect two concept IRIs")
+    for child, parent in sorted(broader):
         if child == parent:
             raise VocabularyAtlasError("atlas hierarchy edge repeats one concept")
         child_releases = memberships.get(child, frozenset())
@@ -1290,7 +1315,7 @@ def _hierarchy_edges(release_graph: Graph) -> tuple[tuple[URIRef, URIRef], ...]:
             raise VocabularyAtlasError("atlas hierarchy must stay inside one release")
         grouped[child].append(parent)
     _refuse_hierarchy_cycles({child: tuple(sorted(values)) for child, values in grouped.items()})
-    return tuple(sorted((child, parent) for child, values in grouped.items() for parent in values))
+    return tuple(sorted(broader))
 
 
 def _stable_iri(prefix: str, *parts: str) -> URIRef:
@@ -1334,24 +1359,37 @@ def _build_dataset(
             member_iri = URIRef(member.member_iri)
             release_graph.remove((release, PROV.hadMember, RdfLiteral(member.member_iri)))
             release_graph.add((release, PROV.hadMember, member_iri))
-    # ``skos:broader`` reaches the same generic parse the same way, and the
-    # release's normalized `concept_relations` rows are the verified,
-    # byte-pinned form of exactly these edges, so the distribution writes the
-    # resource-valued statement they already round-trip to. A literal broader
-    # value that no verified relation row covers survives untouched and is
-    # refused below.
+    # ``skos:broader`` and ``skos:narrower`` reach the same generic parse the
+    # same way, and the release's normalized `concept_relations` rows are the
+    # verified, byte-pinned form of exactly these edges. A row therefore
+    # repairs the value type of a statement the graph already makes; it never
+    # authorizes one. Release facts are copied, so an edge no statement makes
+    # is an assertion rather than a copy, and it is refused. A literal value
+    # that no verified row covers survives untouched and is refused below.
+    # Admission is not decided here: the release graph is the authority, and a
+    # resource-valued edge it states is admitted by the rules in
+    # ``_hierarchy_edges`` whether or not a normalized row also covers it.
     for view in views:
         for relation in view.iter_relations():
-            if relation.predicate_iri != str(SKOS.broader):
+            if relation.predicate_iri not in (str(SKOS.broader), str(SKOS.narrower)):
                 continue
-            child = URIRef(relation.subject_member_iri)
-            for stale in [
+            predicate = URIRef(relation.predicate_iri)
+            subject = URIRef(relation.subject_member_iri)
+            resource = URIRef(relation.object_member_iri)
+            if (subject, predicate, resource) in release_graph:
+                continue
+            stale = [
                 value
-                for value in release_graph.objects(child, SKOS.broader)
+                for value in release_graph.objects(subject, predicate)
                 if isinstance(value, RdfLiteral) and str(value) == relation.object_member_iri
-            ]:
-                release_graph.remove((child, SKOS.broader, stale))
-            release_graph.add((child, SKOS.broader, URIRef(relation.object_member_iri)))
+            ]
+            if not stale:
+                raise VocabularyAtlasError(
+                    "atlas hierarchy relation row states an edge the release graph does not"
+                )
+            for value in stale:
+                release_graph.remove((subject, predicate, value))
+            release_graph.add((subject, predicate, resource))
 
     hierarchy = _hierarchy_edges(release_graph)
 

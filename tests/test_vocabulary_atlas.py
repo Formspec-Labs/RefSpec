@@ -39,6 +39,7 @@ from refspec.atlas.cli import main as atlas_main
 from refspec.managed_release import (
     ManagedReleaseExpression,
     ManagedReleaseMember,
+    ManagedReleaseRelation,
     ManagedReleaseView,
 )
 from refspec.release_graph import rulespec_graph_digest
@@ -1230,6 +1231,7 @@ def _hierarchy_view(
     concepts: Mapping[str, str],
     edges: tuple[tuple[str, Any], ...] = (),
     narrower_edges: tuple[tuple[str, str], ...] = (),
+    relations: tuple[tuple[str, str, str], ...] = (),
     release_digest: str = SHA_A,
 ) -> ManagedReleaseView:
     """A managed release whose own graph states its intra-scheme hierarchy.
@@ -1298,7 +1300,17 @@ def _hierarchy_view(
         _expression_corpus_snapshot=MappingProxyType({"id": publication + ":corpus", "digest": release_digest}),
         _members=MappingProxyType(members),
         _expressions=expressions,
-        _relations=(),
+        _relations=tuple(
+            ManagedReleaseRelation(
+                relation_id=f"{release}:relation:{index}",
+                subject_member_iri=subject,
+                predicate_iri=predicate,
+                object_member_iri=obj,
+                release_iri=release,
+                record=MappingProxyType({}),
+            )
+            for index, (subject, predicate, obj) in enumerate(relations)
+        ),
         _lifecycle_participants=(),
         _concept_mappings=(),
         _release_graph_validation_receipt=MappingProxyType({}),
@@ -1523,20 +1535,80 @@ def test_a_hierarchy_cycle_is_refused(tmp_path: Path) -> None:
         build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
 
 
-def test_a_stored_narrower_statement_is_refused(tmp_path: Path) -> None:
-    """The inverse is derived; storing it invites the two to disagree."""
+def test_a_release_stating_both_directions_is_admitted(tmp_path: Path) -> None:
+    """Thesauri assert BT and NT deliberately; both are first-class in ISO 25964.
+
+    The copied graph keeps every statement it arrived with. Only the broader
+    direction is projected as an edge, so a read still cannot disagree with
+    itself — but that property is now proven against the source rather than
+    bought by refusing real data.
+    """
+
+    alpha = _alpha(tmp_path, narrower_edges=tuple((parent, child) for child, parent in ALPHA_EDGES))
+    asset = build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+    graph = _release_facts(asset)
+    assert set(graph.subject_objects(BROADER)) == {
+        (URIRef(child), URIRef(parent)) for child, parent in ALPHA_EDGES
+    }
+    # Retained, not deleted: releaseFacts is a copy.
+    assert set(graph.subject_objects(NARROWER)) == {
+        (URIRef(parent), URIRef(child)) for child, parent in ALPHA_EDGES
+    }
+    assert asset.manifest["counts"]["hierarchyEdges"] == len(ALPHA_EDGES)
+    queries = VocabularyAtlasQueries(asset)
+    assert queries.narrower("urn:test:atlas:hierarchy:alpha:energy-policy") == (
+        "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+    )
+    assert queries.hierarchy_edges() == tuple(sorted(ALPHA_EDGES))
+
+
+def test_a_narrower_without_its_broader_inverse_is_refused(tmp_path: Path) -> None:
+    """The refusal names the disagreement, never the mere existence of NT."""
 
     alpha = _alpha(
         tmp_path,
-        edges=(),
         narrower_edges=(
+            *((parent, child) for child, parent in ALPHA_EDGES),
             (
                 "urn:test:atlas:hierarchy:alpha:energy-policy",
-                "urn:test:atlas:hierarchy:alpha:renewable-energy-policy",
+                "urn:test:atlas:hierarchy:alpha:marine-policy",
             ),
         ),
     )
-    with pytest.raises(VocabularyAtlasError, match="narrower is derived, never stored"):
+    with pytest.raises(VocabularyAtlasError, match="hierarchy directions disagree"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_a_broader_without_its_narrower_inverse_is_refused(tmp_path: Path) -> None:
+    """Agreement is strict in both directions once a source states any NT."""
+
+    alpha = _alpha(
+        tmp_path,
+        narrower_edges=tuple((parent, child) for child, parent in ALPHA_EDGES[1:]),
+    )
+    with pytest.raises(VocabularyAtlasError, match="hierarchy directions disagree"):
+        build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
+
+
+def test_a_relation_row_cannot_state_an_edge_the_release_graph_omits(
+    tmp_path: Path,
+) -> None:
+    """Release facts are copied. A normalized row repairs a value type; it
+    cannot assert an edge the graph never made."""
+
+    alpha = _alpha(
+        tmp_path,
+        edges=ALPHA_EDGES[:2],
+        relations=(
+            (
+                "urn:test:atlas:hierarchy:alpha:marine-policy",
+                str(BROADER),
+                "urn:test:atlas:hierarchy:alpha:energy-policy",
+            ),
+        ),
+    )
+    with pytest.raises(VocabularyAtlasError, match="states an edge the release graph does not"):
         build_vocabulary_atlas((alpha,), rulespec_core=_core_release(tmp_path))
 
 
