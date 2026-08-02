@@ -950,3 +950,96 @@ def test_opt_in_full_r5_r6_managed_release_opens_and_selects_current_r6(
     )
     assert wall_seconds <= REAL_GATE_MAX_WALL_SECONDS
     assert peak_memory_bytes <= REAL_GATE_MAX_PEAK_MEMORY_BYTES
+
+
+def test_single_edition_managed_release_opens_and_selects_its_only_release(
+    rulespec_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """One ELSST edition is a complete managed release, not half a pair.
+
+    The atlas reads a vocabulary through `ManagedReleaseView`, so an
+    edition-restricted release has to be a real bundle with its own digests
+    and its own combined Rulespec receipt — not a two-edition bundle with one
+    edition filtered out at read time.
+    """
+
+    _previous, current = _fixture_pair(tmp_path / "acquired")
+
+    managed = build_elsst_managed_release(
+        current,
+        rulespec_root=rulespec_dir,
+        recorded_at=RECORDED_AT,
+        recorded_by=RECORDED_BY,
+        governance=_governance(),
+    )
+
+    assert managed.projection.release_iris == (TEST_R6_RELEASE_IRI,)
+    assert managed.projection.lifecycle_transitions == ()
+    assert len(managed.import_records) == 1
+    assert len(managed.coverage_records) == 1
+    assert managed.participant_count == 0
+    assert (
+        managed.selected_deployment["referenceResourceRelease"]["id"]
+        == TEST_R6_RELEASE_IRI
+    )
+
+    output = tmp_path / "bundle"
+    managed.bundle.write_to(output)
+    manifest_path = output / "managed-release-bundle.json"
+    view = ManagedReleaseView.open(
+        manifest_path,
+        expected_manifest_digest=_manifest_digest(manifest_path),
+    )
+
+    releases = {member.release_iri for member in view.iter_members()}
+    assert releases == {TEST_R6_RELEASE_IRI}
+    assert view.release_id == managed.bundle.publication_release_manifest["id"]
+
+
+def test_single_edition_managed_release_opens_as_an_atlas_source(
+    rulespec_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """`PinnedManagedRelease.open` is the door every atlas input goes through."""
+
+    from refspec.atlas import PinnedManagedRelease
+
+    _previous, current = _fixture_pair(tmp_path / "acquired")
+    managed = build_elsst_managed_release(
+        current,
+        rulespec_root=rulespec_dir,
+        recorded_at=RECORDED_AT,
+        recorded_by=RECORDED_BY,
+        governance=_governance(),
+    )
+    output = tmp_path / "bundle"
+    managed.bundle.write_to(output)
+    manifest_path = output / "managed-release-bundle.json"
+
+    pinned = PinnedManagedRelease.open(
+        manifest_path,
+        expected_manifest_digest=_manifest_digest(manifest_path),
+    )
+
+    pin = pinned.pin()
+    assert pin["role"] == "ManagedReleaseView"
+    assert pin["manifestDigest"] == _manifest_digest(manifest_path)
+    assert {
+        member.release_iri for member in pinned.verified_view().iter_members()
+    } == {TEST_R6_RELEASE_IRI}
+
+
+def test_managed_release_requires_at_least_one_source(
+    rulespec_dir: Path,
+) -> None:
+    with pytest.raises(
+        ElsstManagedReleaseError,
+        match="at least one acquired ELSST source",
+    ):
+        build_elsst_managed_release(
+            rulespec_root=rulespec_dir,
+            recorded_at=RECORDED_AT,
+            recorded_by=RECORDED_BY,
+            governance=_governance(),
+        )

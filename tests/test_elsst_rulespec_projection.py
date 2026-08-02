@@ -18,11 +18,15 @@ from refspec.registry.elsst_acquisition import (
 from refspec.registry.elsst_rulespec_projection import (
     DCTERMS_ISSUED_IRI,
     ElsstRulespecProjectionError,
+    build_elsst_rulespec_history_projection,
     build_elsst_rulespec_projection,
     require_valid_elsst_rulespec_projection,
     seal_elsst_rulespec_projection,
 )
-from refspec.release_graph import load_pinned_rulespec_validator
+from refspec.release_graph import (
+    load_pinned_rulespec_validator,
+    rulespec_graph_digest,
+)
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULESPEC_DIR = REFSPEC_ROOT.parents[1] / "rulespec"
@@ -477,3 +481,130 @@ def test_opt_in_full_r5_r6_projection_passes_rulespec(
     assert len(native_concepts) == 3_435 + 3_470
     assert len(sealed.lifecycle_transitions) == 3
     assert {transition.operation for transition in sealed.lifecycle_transitions} == {"replacement"}
+
+
+def test_two_edition_projection_identity_is_byte_stable(
+    rulespec_dir: Path,
+) -> None:
+    """The published two-edition history keeps the identity it was built with.
+
+    Generalizing the builder from an exact pair to an ordered history has to
+    leave the R5/R6 preimage untouched: `sha256:8dd408ef…`, the bundle every
+    committed crosswalk and atlas measurement names, is derived from it. The
+    mini fixtures stand in for those sources because they exercise the same
+    preimage without the two 19 MB distributions.
+    """
+
+    previous, current, previous_release, current_release = _fixture_pair()
+    validator = load_pinned_rulespec_validator(rulespec_dir)
+
+    projection = build_elsst_rulespec_projection(
+        previous,
+        current,
+        validator=validator,
+        previous_release=previous_release,
+        current_release=current_release,
+    )
+
+    assert projection.identifier_scope == (
+        "0ece97f433b1ae84372b58dc4cc0c1427a48c41de2ac789f0d635e5c6d108449"
+    )
+    assert rulespec_graph_digest(projection.graph) == (
+        "sha256:03681d89d3e4a8c347d29341f17d9ae537605ca6da18b15df41cd4c306604615"
+    )
+    assert projection.distribution_iris == (
+        (
+            "urn:ref:elsst:distribution:"
+            "04aa3a3f4f0de9dcd3f30da6dea788e22789a15dbf23981338087ec84e8557ee"
+        ),
+        (
+            "urn:ref:elsst:distribution:"
+            "bd8c2170f1c47b42c2f9a18d28507239ab9a744c7d5570ab0fd52270938121ff"
+        ),
+    )
+
+
+def test_single_edition_history_projects_one_release_without_lifecycle(
+    rulespec_dir: Path,
+) -> None:
+    """One edition is a complete history, not a degenerate pair.
+
+    A lifecycle transition is derived by comparing two publisher releases, so
+    a one-edition history states none rather than inventing one. Everything
+    else a release carries — its scheme, its members, its complete-membership
+    manifest and its distribution — comes from that edition alone.
+    """
+
+    _previous, current, _previous_release, current_release = _fixture_pair()
+    validator = load_pinned_rulespec_validator(rulespec_dir)
+
+    projection = build_elsst_rulespec_history_projection(
+        (current,),
+        (current_release,),
+        validator=validator,
+    )
+
+    assert projection.release_iris == (current_release.release_iri,)
+    assert len(projection.distribution_iris) == 1
+    assert projection.lifecycle_transitions == ()
+
+    sealed = seal_elsst_rulespec_projection(projection, validator=validator)
+    require_valid_elsst_rulespec_projection(sealed, validator=validator)
+
+    nodes = {node["@id"]: node for node in sealed.graph["@graph"]}
+    assert nodes[current_release.release_iri]["rkaf:membershipMode"] == (
+        "rkaf:completeMembership"
+    )
+    assert ELSST_R6.concept_scheme_iri in nodes
+    assert ELSST_R5.concept_scheme_iri not in nodes
+    assert not any(
+        node.get("@type") == "rkaf:LifecycleEvent" for node in sealed.graph["@graph"]
+    )
+
+
+def test_single_edition_history_does_not_collide_with_the_pair(
+    rulespec_dir: Path,
+) -> None:
+    """Dropping an edition is a different generation, so it gets a new scope."""
+
+    previous, current, previous_release, current_release = _fixture_pair()
+    validator = load_pinned_rulespec_validator(rulespec_dir)
+
+    pair = build_elsst_rulespec_projection(
+        previous,
+        current,
+        validator=validator,
+        previous_release=previous_release,
+        current_release=current_release,
+    )
+    single = build_elsst_rulespec_history_projection(
+        (current,),
+        (current_release,),
+        validator=validator,
+    )
+
+    assert single.identifier_scope != pair.identifier_scope
+    assert single.distribution_iris[0] != pair.distribution_iris[1]
+
+
+def test_history_projection_refuses_an_empty_or_repeated_release(
+    rulespec_dir: Path,
+) -> None:
+    _previous, current, _previous_release, current_release = _fixture_pair()
+    validator = load_pinned_rulespec_validator(rulespec_dir)
+
+    with pytest.raises(
+        ElsstRulespecProjectionError,
+        match="at least one exact publisher release",
+    ):
+        build_elsst_rulespec_history_projection((), (), validator=validator)
+
+    with pytest.raises(
+        ElsstRulespecProjectionError,
+        match="distinct IRIs",
+    ):
+        build_elsst_rulespec_history_projection(
+            (current, current),
+            (current_release, current_release),
+            validator=validator,
+        )

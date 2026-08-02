@@ -46,7 +46,7 @@ from refspec.registry.elsst_import_coverage import (
 )
 from refspec.registry.elsst_rulespec_projection import (
     ElsstRulespecProjection,
-    build_elsst_rulespec_projection,
+    build_elsst_rulespec_history_projection,
     require_valid_elsst_rulespec_projection,
     seal_elsst_rulespec_projection,
 )
@@ -270,9 +270,9 @@ class ElsstManagedRelease:
 
     bundle: ManagedVocabularyBundle
     projection: ElsstRulespecProjection
-    release_references: tuple[Mapping[str, str], Mapping[str, str]]
-    import_records: tuple[Mapping[str, Any], Mapping[str, Any]]
-    coverage_records: tuple[Mapping[str, Any], Mapping[str, Any]]
+    release_references: tuple[Mapping[str, str], ...]
+    import_records: tuple[Mapping[str, Any], ...]
+    coverage_records: tuple[Mapping[str, Any], ...]
     selected_deployment: Mapping[str, Any]
     expression_count: int
     label_count: int
@@ -350,30 +350,41 @@ def _verified_acquired_source(
     return vocabulary, payload
 
 
+def _acquired_identity(source: AcquiredElsstSource) -> dict[str, Any]:
+    return {
+        "descriptor": asdict(source.release),
+        "verifiedDigest": source.sha256,
+        "verifiedByteLength": source.byte_length,
+    }
+
+
 def _build_identifiers(
     *,
-    previous: AcquiredElsstSource,
-    current: AcquiredElsstSource,
+    sources: Sequence[AcquiredElsstSource],
     validator: RulespecValidatorPin,
     recorded_at: str,
     recorded_by: str,
     governance: ElsstCandidateGovernance,
 ) -> _ElsstBuildIdentifiers:
+    identities = [_acquired_identity(source) for source in sources]
+    if len(identities) == 2:
+        # Kept verbatim: `sha256:8dd408ef…` and every committed digest derived
+        # from the R5/R6 bundle are functions of these exact keys.
+        history: dict[str, Any] = {
+            "identityVersion": "elsst-managed-release-v2",
+            "previousSource": identities[0],
+            "currentSource": identities[1],
+        }
+    else:
+        history = {
+            "identityVersion": "elsst-managed-release-history-v1",
+            "sources": identities,
+        }
     scope_digest = _digest_json(
         {
-            "identityVersion": "elsst-managed-release-v2",
+            **history,
             "bundleVersion": BUNDLE_VERSION,
             "parserVersion": PARSER_VERSION,
-            "previousSource": {
-                "descriptor": asdict(previous.release),
-                "verifiedDigest": previous.sha256,
-                "verifiedByteLength": previous.byte_length,
-            },
-            "currentSource": {
-                "descriptor": asdict(current.release),
-                "verifiedDigest": current.sha256,
-                "verifiedByteLength": current.byte_length,
-            },
             "validator": {
                 "identity": validator.identity,
                 "sourceRevision": validator.source_revision,
@@ -685,7 +696,7 @@ def _graph_support_nodes(
             "@type": "rkaf:ValueAssertion",
             "rkaf:assertionOrigin": "rkaf:humanAsserted",
             "rkaf:epistemicBasis": "rkaf:editorialAssertion",
-            "rkaf:assertsSubject": projection.release_iris[1],
+            "rkaf:assertsSubject": projection.release_iris[-1],
             "rkaf:assertsPredicate": (
                 "urn:ref:predicate:eligible-for-local-candidate-lookup"
             ),
@@ -767,22 +778,19 @@ def _managed_graph(
 
 def _build_rights_assessment(
     *,
-    previous: ElsstReleaseSource,
-    current: ElsstReleaseSource,
+    releases: Sequence[ElsstReleaseSource],
     recorded_at: str,
     recorded_by: str,
     identifiers: _ElsstBuildIdentifiers,
 ) -> Mapping[str, Any]:
+    current = releases[-1]
     combined_digest = _digest_json(
         [
             {
-                "source": previous.source_url,
-                "digest": previous.expected_sha256,
-            },
-            {
-                "source": current.source_url,
-                "digest": current.expected_sha256,
-            },
+                "source": release.source_url,
+                "digest": release.expected_sha256,
+            }
+            for release in releases
         ]
     )
     return seal_payload(
@@ -798,8 +806,8 @@ def _build_rights_assessment(
                 "kind": "source",
                 "reference": {
                     "id": "https://elsst.cessda.eu/id/",
-                    "version": (
-                        f"{previous.version}-{current.version}"
+                    "version": "-".join(
+                        release.version for release in releases
                     ),
                     "digest": combined_digest,
                 },
@@ -1833,24 +1841,31 @@ def _release_graph_gate_bundle(
 
 
 def build_elsst_managed_release(
-    previous_source: AcquiredElsstSource,
-    current_source: AcquiredElsstSource,
-    *,
+    *acquired_sources: AcquiredElsstSource,
     rulespec_root: Path,
     recorded_at: str,
     recorded_by: str,
     governance: ElsstCandidateGovernance,
 ) -> ElsstManagedRelease:
-    """Build from two reverified acquired sources and gate one history."""
+    """Build from reverified acquired sources and gate one ordered history.
 
-    previous, previous_payload = _verified_acquired_source(
-        previous_source,
-        label="previous_source",
+    Sources are given in publication order, oldest first; the last is the
+    edition the deployment decision selects.  One source is a complete
+    history — the crosswalk-bearing atlas needs exactly the edition its
+    mappings name, and carrying an edition nothing references costs 78.9% of
+    the distribution.
+    """
+
+    if not acquired_sources:
+        raise ElsstManagedReleaseError(
+            "a managed ELSST release needs at least one acquired ELSST source"
+        )
+    verified = tuple(
+        _verified_acquired_source(source, label=f"source[{index}]")
+        for index, source in enumerate(acquired_sources)
     )
-    current, current_payload = _verified_acquired_source(
-        current_source,
-        label="current_source",
-    )
+    vocabularies = tuple(vocabulary for vocabulary, _payload in verified)
+    payloads = tuple(payload for _vocabulary, payload in verified)
     try:
         source_censuses = tuple(
             (
@@ -1869,9 +1884,9 @@ def build_elsst_managed_release(
                 ),
             )
             for vocabulary, source, source_payload in zip(
-                (previous, current),
-                (previous_source, current_source),
-                (previous_payload, current_payload),
+                vocabularies,
+                acquired_sources,
+                payloads,
                 strict=True,
             )
         )
@@ -1886,19 +1901,16 @@ def build_elsst_managed_release(
             f"cannot load the pinned Rulespec validator: {error}"
         ) from error
     identifiers = _build_identifiers(
-        previous=previous_source,
-        current=current_source,
+        sources=acquired_sources,
         validator=validator,
         recorded_at=recorded_at,
         recorded_by=recorded_by,
         governance=governance,
     )
-    projection = build_elsst_rulespec_projection(
-        previous,
-        current,
+    projection = build_elsst_rulespec_history_projection(
+        vocabularies,
+        tuple(source.release for source in acquired_sources),
         validator=validator,
-        previous_release=previous_source.release,
-        current_release=current_source.release,
         identifier_scope=identifiers.scope,
     )
     projection = seal_elsst_rulespec_projection(
@@ -1934,7 +1946,7 @@ def build_elsst_managed_release(
             "managed graph validation-result digest is absent"
         )
 
-    release_inputs: tuple[_ReleaseInput, _ReleaseInput] = tuple(
+    release_inputs: tuple[_ReleaseInput, ...] = tuple(
         _ReleaseInput(
             vocabulary=vocabulary,
             acquired=acquired,
@@ -1956,9 +1968,9 @@ def build_elsst_managed_release(
             },
         )
         for vocabulary, acquired, source, distribution_iri in zip(
-            (previous, current),
-            (previous_source, current_source),
-            (previous_source.release, current_source.release),
+            vocabularies,
+            acquired_sources,
+            tuple(item.release for item in acquired_sources),
             projection.distribution_iris,
             strict=True,
         )
@@ -1969,8 +1981,7 @@ def build_elsst_managed_release(
         for seed in _expression_seeds(item)
     )
     rights_record = _build_rights_assessment(
-        previous=previous_source.release,
-        current=current_source.release,
+        releases=tuple(item.release for item in acquired_sources),
         recorded_at=recorded_at,
         recorded_by=recorded_by,
         identifiers=identifiers,
@@ -2093,8 +2104,8 @@ def build_elsst_managed_release(
         )
     )
     selected_deployment = _build_selected_deployment(
-        current=release_inputs[1],
-        coverage_record=coverage_records[1],
+        current=release_inputs[-1],
+        coverage_record=coverage_records[-1],
         output_profile_record=output_profile_record,
         governance=governance,
         recorded_by=recorded_by,
@@ -2194,26 +2205,18 @@ def build_elsst_managed_release(
             rulespec_dependency_bytes()
         ),
         expression_corpus_snapshot=expression_corpus_reference,
-        source_artifacts={
-            projection.distribution_iris[0]: previous_payload,
-            projection.distribution_iris[1]: current_payload,
-        },
+        source_artifacts=dict(
+            zip(projection.distribution_iris, payloads, strict=True)
+        ),
     )
     return ElsstManagedRelease(
         bundle=bundle,
         projection=projection,
-        release_references=(
-            release_inputs[0].release_reference,
-            release_inputs[1].release_reference,
+        release_references=tuple(
+            item.release_reference for item in release_inputs
         ),
-        import_records=(
-            imports[0],
-            imports[1],
-        ),
-        coverage_records=(
-            coverage_records[0],
-            coverage_records[1],
-        ),
+        import_records=tuple(imports),
+        coverage_records=tuple(coverage_records),
         selected_deployment=selected_deployment,
         expression_count=len(expressions),
         label_count=len(normalized_labels),

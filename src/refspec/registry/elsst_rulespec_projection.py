@@ -4,7 +4,12 @@ ELSST's native SKOS distribution remains canonical.  This module does not
 recast externally authored concepts as ``rkaf:RegisteredConcept`` records.
 It preserves the exact source SKOS nodes, adds portable complete-membership
 release manifests, and derives only lifecycle transitions proved by comparing
-two exact publisher releases.
+consecutive exact publisher releases.
+
+A history is one or more editions in publication order.  Two is the case this
+module was written for and it keeps its exact published identity; one is a
+complete history that simply states no transition, because a transition is
+derived by comparison and there is nothing to compare against.
 """
 
 from __future__ import annotations
@@ -14,7 +19,7 @@ import hashlib
 import json
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
@@ -100,13 +105,18 @@ class ElsstLifecycleTransition:
 
 @dataclass(frozen=True, slots=True)
 class ElsstRulespecProjection:
-    """A source-native graph plus its explicit projection evidence."""
+    """A source-native graph plus its explicit projection evidence.
+
+    ``release_iris``, ``distribution_iris`` and ``source_date_literals`` are
+    parallel and in publication order, oldest first.  The last entry is the
+    edition a deployment selects.
+    """
 
     graph: dict[str, Any]
-    release_iris: tuple[str, str]
-    distribution_iris: tuple[str, str]
+    release_iris: tuple[str, ...]
+    distribution_iris: tuple[str, ...]
     lifecycle_transitions: tuple[ElsstLifecycleTransition, ...]
-    source_date_literals: tuple[str, str]
+    source_date_literals: tuple[str, ...]
     date_materialization_policy: str
     rulespec_graph_iri: str
     projection_activity_iri: str
@@ -125,12 +135,21 @@ def _sha256_identifier(prefix: str, value: object) -> str:
     return f"{prefix}:{hashlib.sha256(payload).hexdigest()}"
 
 
+def _source_identity(
+    vocabulary: ElsstVocabulary,
+    release: ElsstReleaseSource,
+) -> dict[str, Any]:
+    return {
+        "descriptor": asdict(release),
+        "observedDigest": vocabulary.source_sha256,
+        "observedByteLength": vocabulary.source_bytes,
+    }
+
+
 def _projection_identifier_scope(
     *,
-    previous: ElsstVocabulary,
-    current: ElsstVocabulary,
-    previous_release: ElsstReleaseSource,
-    current_release: ElsstReleaseSource,
+    vocabularies: Sequence[ElsstVocabulary],
+    releases: Sequence[ElsstReleaseSource],
     validator: RulespecValidatorPin,
     identifier_scope: str | None,
 ) -> str:
@@ -140,29 +159,34 @@ def _projection_identifier_scope(
                 "identifier_scope must be 64 lowercase hexadecimal characters"
             )
         return identifier_scope
-    digest = _sha256_identifier(
-        "sha256",
-        {
+    identities = [
+        _source_identity(vocabulary, release)
+        for vocabulary, release in zip(vocabularies, releases, strict=True)
+    ]
+    validator_identity = {
+        "identity": validator.identity,
+        "sourceRevision": validator.source_revision,
+        "evidenceRevision": validator.evidence_revision,
+        "componentId": validator.component_id,
+        "componentDigest": validator.component_digest,
+    }
+    if len(identities) == 2:
+        # The published two-edition preimage, kept verbatim. Every committed
+        # digest that names the R5/R6 bundle is derived from these exact keys,
+        # so an ordered history must not restate the pair it already named.
+        preimage: dict[str, Any] = {
             "projectionVersion": "elsst-source-native-v2",
-            "previousSource": {
-                "descriptor": asdict(previous_release),
-                "observedDigest": previous.source_sha256,
-                "observedByteLength": previous.source_bytes,
-            },
-            "currentSource": {
-                "descriptor": asdict(current_release),
-                "observedDigest": current.source_sha256,
-                "observedByteLength": current.source_bytes,
-            },
-            "validator": {
-                "identity": validator.identity,
-                "sourceRevision": validator.source_revision,
-                "evidenceRevision": validator.evidence_revision,
-                "componentId": validator.component_id,
-                "componentDigest": validator.component_digest,
-            },
-        },
-    )
+            "previousSource": identities[0],
+            "currentSource": identities[1],
+            "validator": validator_identity,
+        }
+    else:
+        preimage = {
+            "projectionVersion": "elsst-source-native-history-v1",
+            "sources": identities,
+            "validator": validator_identity,
+        }
+    digest = _sha256_identifier("sha256", preimage)
     return digest.removeprefix("sha256:")
 
 
@@ -662,24 +686,31 @@ def _lifecycle_transitions(
     return tuple(result)
 
 
-def build_elsst_rulespec_projection(
-    previous: ElsstVocabulary,
-    current: ElsstVocabulary,
+def build_elsst_rulespec_history_projection(
+    vocabularies: Sequence[ElsstVocabulary],
+    releases: Sequence[ElsstReleaseSource],
     *,
     validator: RulespecValidatorPin,
-    previous_release: ElsstReleaseSource = ELSST_R5,
-    current_release: ElsstReleaseSource = ELSST_R6,
     identifier_scope: str | None = None,
 ) -> ElsstRulespecProjection:
-    """Build an unsealed, deterministic R5/R6 source-native Rulespec graph."""
+    """Build an unsealed source-native graph over an ordered ELSST history.
 
-    if previous_release.release_iri == current_release.release_iri:
-        raise ElsstRulespecProjectionError("previous and current releases must have distinct IRIs")
+    ``vocabularies`` and ``releases`` are parallel and in publication order,
+    oldest first.  One edition is a complete history and states no lifecycle
+    transition; each consecutive pair contributes the transitions its two
+    releases prove.
+    """
+
+    if len(vocabularies) != len(releases):
+        raise ElsstRulespecProjectionError("each ELSST vocabulary needs its exact release descriptor")
+    if not releases:
+        raise ElsstRulespecProjectionError("an ELSST history needs at least one exact publisher release")
+    release_iris = tuple(release.release_iri for release in releases)
+    if len(set(release_iris)) != len(release_iris):
+        raise ElsstRulespecProjectionError("ELSST history releases must have distinct IRIs")
     resolved_identifier_scope = _projection_identifier_scope(
-        previous=previous,
-        current=current,
-        previous_release=previous_release,
-        current_release=current_release,
+        vocabularies=vocabularies,
+        releases=releases,
         validator=validator,
         identifier_scope=identifier_scope,
     )
@@ -695,43 +726,60 @@ def build_elsst_rulespec_projection(
         ELSST_DATE_MATERIALIZATION_POLICY_IRI,
         resolved_identifier_scope,
     )
-    previous_nodes, previous_date, previous_registry, previous_distribution = _native_release_nodes(
-        previous,
-        previous_release,
-        identifier_scope=resolved_identifier_scope,
+    projected = tuple(
+        _native_release_nodes(
+            vocabulary,
+            release,
+            identifier_scope=resolved_identifier_scope,
+        )
+        for vocabulary, release in zip(vocabularies, releases, strict=True)
     )
-    current_nodes, current_date, current_registry, current_distribution = _native_release_nodes(
-        current,
-        current_release,
-        identifier_scope=resolved_identifier_scope,
-    )
-    if previous_registry != current_registry:
+    release_nodes = [nodes for nodes, _date, _registry, _distribution in projected]
+    dates = tuple(date for _nodes, date, _registry, _distribution in projected)
+    registries = {registry for _nodes, _date, registry, _distribution in projected}
+    distributions = tuple(distribution for _nodes, _date, _registry, distribution in projected)
+    if len(registries) != 1:
         raise ElsstRulespecProjectionError("ELSST releases do not identify the same stable resource")
-    comparison = compare_elsst_releases(previous, current)
-    transition_rows = _lifecycle_transitions(
-        comparison,
-        previous=previous,
-        current=current,
-        previous_release=previous_release,
-        current_release=current_release,
-        effective_date=current_date,
-        registry_iri=current_registry,
-        identifier_scope=resolved_identifier_scope,
-    )
+    registry_iri = next(iter(registries))
+
+    transition_rows: list[tuple[ElsstLifecycleTransition, dict[str, Any]]] = []
+    for index in range(1, len(releases)):
+        transition_rows.extend(
+            _lifecycle_transitions(
+                compare_elsst_releases(vocabularies[index - 1], vocabularies[index]),
+                previous=vocabularies[index - 1],
+                current=vocabularies[index],
+                previous_release=releases[index - 1],
+                current_release=releases[index],
+                effective_date=dates[index],
+                registry_iri=registry_iri,
+                identifier_scope=resolved_identifier_scope,
+            )
+        )
     transitions = tuple(item[0] for item in transition_rows)
     lifecycle_nodes = [item[1] for item in transition_rows]
-    graph_descriptor_digest = _sha256_identifier(
-        "sha256",
-        {
-            "previousSource": previous.source_sha256,
-            "currentSource": current.source_sha256,
+    if len(vocabularies) == 2:
+        # The published two-edition descriptor, kept verbatim for the same
+        # reason its identifier scope is.
+        descriptor_preimage: dict[str, Any] = {
+            "previousSource": vocabularies[0].source_sha256,
+            "currentSource": vocabularies[1].source_sha256,
             "projection": "elsst-source-native-r5-r6-v1",
             "identifierScope": resolved_identifier_scope,
             "dateMaterializationPolicy": (
                 date_materialization_policy_iri
             ),
-        },
-    )
+        }
+    else:
+        descriptor_preimage = {
+            "sources": [vocabulary.source_sha256 for vocabulary in vocabularies],
+            "projection": "elsst-source-native-history-v1",
+            "identifierScope": resolved_identifier_scope,
+            "dateMaterializationPolicy": (
+                date_materialization_policy_iri
+            ),
+        }
+    graph_descriptor_digest = _sha256_identifier("sha256", descriptor_preimage)
     graph = {
         "@context": _rulespec_context(validator),
         "@graph": [
@@ -747,8 +795,7 @@ def build_elsst_rulespec_projection(
                 "@id": projection_activity_iri,
                 "@type": "prov:Activity",
                 "prov:used": [
-                    previous_distribution,
-                    current_distribution,
+                    *distributions,
                     date_materialization_policy_iri,
                 ],
             },
@@ -772,29 +819,43 @@ def build_elsst_rulespec_projection(
                     },
                 ),
             },
-            *previous_nodes,
-            *current_nodes,
+            *(node for nodes in release_nodes for node in nodes),
             *lifecycle_nodes,
         ],
     }
     return ElsstRulespecProjection(
         graph=graph,
-        release_iris=(
-            previous_release.release_iri,
-            current_release.release_iri,
-        ),
-        distribution_iris=(
-            previous_distribution,
-            current_distribution,
-        ),
+        release_iris=release_iris,
+        distribution_iris=distributions,
         lifecycle_transitions=transitions,
-        source_date_literals=(previous_date, current_date),
+        source_date_literals=dates,
         date_materialization_policy=(
             date_materialization_policy_iri
         ),
         rulespec_graph_iri=rulespec_graph_iri,
         projection_activity_iri=projection_activity_iri,
         identifier_scope=resolved_identifier_scope,
+    )
+
+
+def build_elsst_rulespec_projection(
+    previous: ElsstVocabulary,
+    current: ElsstVocabulary,
+    *,
+    validator: RulespecValidatorPin,
+    previous_release: ElsstReleaseSource = ELSST_R5,
+    current_release: ElsstReleaseSource = ELSST_R6,
+    identifier_scope: str | None = None,
+) -> ElsstRulespecProjection:
+    """Build an unsealed, deterministic R5/R6 source-native Rulespec graph."""
+
+    if previous_release.release_iri == current_release.release_iri:
+        raise ElsstRulespecProjectionError("previous and current releases must have distinct IRIs")
+    return build_elsst_rulespec_history_projection(
+        (previous, current),
+        (previous_release, current_release),
+        validator=validator,
+        identifier_scope=identifier_scope,
     )
 
 
@@ -861,6 +922,7 @@ __all__ = [
     "ElsstLifecycleTransition",
     "ElsstRulespecProjection",
     "ElsstRulespecProjectionError",
+    "build_elsst_rulespec_history_projection",
     "build_elsst_rulespec_projection",
     "require_valid_elsst_rulespec_projection",
     "seal_elsst_rulespec_projection",
