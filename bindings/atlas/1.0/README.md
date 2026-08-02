@@ -273,6 +273,77 @@ because a broken inverse is exactly what it forges. All four keep
 statement would fail on the declared count before a reader reached any
 hierarchy rule at all.
 
+## Sibling kind: `refspec-vocabulary-atlas-projection-nquads-1.0`
+
+**This is not an amendment.** No rule above changes, `fixtures/corpus.json`
+gains no `amendments` entry, and every distribution valid under the rules above
+stays valid and byte-identical. A projection is a **different kind of file**
+that happens to carry an atlas payload, and it is described here so a consumer
+holding both can tell them apart.
+
+A projection is a subset of exactly one generated atlas, chosen by a named
+policy. Its manifest is
+[`schemas/vocabulary-atlas-projection-manifest.schema.json`](schemas/vocabulary-atlas-projection-manifest.schema.json),
+its `type` is `urn:ref:type:VocabularyAtlasProjectionManifest`, and its
+identifier is `urn:ref:vocabulary-atlas-projection:<projection hex>` where
+`projectionDigest` is SHA-256 over canonical JSON containing exactly `format`,
+`derivedFrom`, `implementation`, and `projectionPolicy`. It uses the same two
+file names and the same N-Quads byte profile.
+
+Why a separate kind rather than three optional fields on the manifest above:
+
+1. **The reproduction contract differs.** An atlas is a pure function of its
+   managed releases, its Rulespec Core release and its optional crosswalk. A
+   projection is a pure function of its parent distribution and its keep rule.
+   One `type` cannot carry both answers to "prove these bytes are what the
+   producer made" without one of them being false.
+2. **This manifest's field set is closed on both sides.** A producer and a
+   consumer each compare the key set for exact equality, so an *optional*
+   `derivedFrom` does not exist. An amendment would have to mean "one of two
+   field sets", which is a second kind wearing the first kind's name.
+3. **Nothing published moves.** Because a projection is its own format with its
+   own identity function, adding it changes no atlas identifier, no fixture
+   digest, and no byte of the example below.
+
+The defect this kind fixes, stated plainly: identity above is a digest of
+`{format, inputs, implementation, policies}`, and a subset of a generation has
+the *same* inputs, implementation and policies. So a projection and its parent
+carried **one identifier**, both opened under the same reader, and publisher
+reproduction refused the projection with the message reserved for a corrupted
+atlas. A projection manifest states the relationship instead:
+
+- `derivedFrom` names the parent's `assetId` and **both** of its file digests,
+  so the relationship is published rather than inferred from whichever digest a
+  consumer happened to pin;
+- `projectionPolicy` carries the named keep rule and its version in full, so
+  "what was dropped" is a pinned, testable statement rather than a diff; and
+- the identifier is derived from all three, so a projection can never collide
+  with its parent or with a projection of it under another policy.
+
+A projection's two named graph IRIs are the **parent's**
+(`<parent asset id>:release-facts` and `:analysis`), because its quads are the
+parent's quads. A consumer MUST check that the declared graph IRIs are derived
+from `derivedFrom.assetId`. Every declared count is re-derived from the
+projection's own payload — `referenceReleases` replaces `managedReleases`,
+because a projection has no `inputs` block to count and the number of
+`rkaf:ReferenceResourceRelease` nodes is checkable from the bytes.
+
+The published policy is
+`urn:ref:policy:vocabulary-atlas-projection:consumer-read-closure` version `1`.
+It keeps, in `releaseFacts`: `prov:hadMember`, `rkaf:referenceReleaseDigest`,
+`skos:related`, `skos:broader`, `rdf:type` where the object is
+`rkaf:ReferenceResourceRelease`, and `skos:prefLabel`/`skos:altLabel` on release
+members. In `analysis`: `atlas:memberOfRelease`, and every statement whose
+subject is in the closure of a qualified `searchOnly` mapping — the mapping, its
+candidate, its two validations, and every artifact any of them names. A consumer
+MUST refuse a projection naming a policy it does not implement, because a policy
+it cannot read makes "what was dropped" unanswerable.
+
+`skos:narrower` is dropped while `skos:broader` is kept. That is sound under
+the hierarchy amendment above and only under it: an edge is projected from the
+broader direction alone and a source stating both must have them agree, so the
+surviving half is the whole fact.
+
 ## Complete Federal Register example
 
 [`examples/federal-register-thesaurus-2025/`](examples/federal-register-thesaurus-2025/)
