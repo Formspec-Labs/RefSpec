@@ -129,6 +129,18 @@ two-file distributions. A conforming reader MUST accept every valid case and
 reject every invalid case without accessing a RefSpec checkout, producer
 inputs, or a mutable service.
 
+The corpus MUST contain at least one valid distribution that exercises the
+`searchOnly` proof end to end; a corpus of refusals alone cannot distinguish a
+correct reader from one that rejects everything.
+`valid/qualified-search-only` is that case. It carries two mapping candidates,
+three machine validations, one label cluster, and one qualified mapping: the
+first candidate is qualified by two independent machines, and the second stays
+`rkaf:notEligible` because a single machine validated it. The three
+distributions derived from it — `invalid/missing-input-context`,
+`invalid/tampered-input-context`, and `invalid/same-provider-model` — each
+forge exactly one fact of that proof, so a reader that accepts any of them has
+a locatable defect.
+
 ## Complete Federal Register example
 
 [`examples/federal-register-thesaurus-2025/`](examples/federal-register-thesaurus-2025/)

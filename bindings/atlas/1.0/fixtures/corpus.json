@@ -70,6 +70,13 @@
       "manifestDigest": "sha256:b09358a4fdb47042b12c12c5e76e49d04732d61f2aed8b977937fc7568f256dd",
       "outputDigest": "sha256:63a92d0bacd25fceb785f00070f972d59436871f24e5fa9d4da509b7490b665a",
       "valid": true
+    },
+    {
+      "directory": "valid/qualified-search-only",
+      "id": "qualified-search-only-mapping-is-accepted",
+      "manifestDigest": "sha256:4e1c3e8ebcf916b7433e0f44c85719e00dc30e6824b98af08b78824919d9b679",
+      "outputDigest": "sha256:55a152f04f9e0e405a9516a39be232983114ec4cda2c34772e87b1a6e98cbc8e",
+      "valid": true
     }
   ],
   "schemaVersion": "refspec-vocabulary-atlas-conformance-corpus/v1"

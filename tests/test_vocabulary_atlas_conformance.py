@@ -13,7 +13,11 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator
 
-from refspec.atlas import VocabularyAtlasAsset, VocabularyAtlasError
+from refspec.atlas import (
+    VocabularyAtlasAsset,
+    VocabularyAtlasError,
+    VocabularyAtlasQueries,
+)
 
 _REPO_ROOT = Path(__file__).parents[1]
 _BINDING_ROOT = _REPO_ROOT / "bindings" / "atlas" / "1.0"
@@ -77,6 +81,61 @@ def test_generated_conformance_distributions_are_current() -> None:
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_the_corpus_proves_the_qualification_path_can_pass() -> None:
+    """A corpus of refusals says nothing about the gate a producer must pass.
+
+    Every valid distribution published before this one carried zero mapping
+    candidates, so a reader could accept the whole corpus without ever
+    executing the `searchOnly` proof.
+    """
+
+    counts = {
+        case["directory"]: json.loads(
+            (_FIXTURE_ROOT / case["directory"] / "atlas-manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )["counts"]
+        for case in _CORPUS["cases"]
+        if case["valid"]
+    }
+    non_vacuous = {
+        directory: count
+        for directory, count in counts.items()
+        if count["searchOnlyMappings"] > 0
+    }
+
+    assert non_vacuous, "no valid distribution exercises the searchOnly gate"
+    for count in non_vacuous.values():
+        assert count["mappingCandidates"] >= 2
+        assert count["machineValidations"] >= 3
+
+
+def test_the_qualified_fixture_qualifies_one_candidate_and_refuses_the_other() -> None:
+    """The fixture proves both outcomes, or it only proves the gate is open."""
+
+    directory = _FIXTURE_ROOT / "valid" / "qualified-search-only"
+    case = next(
+        item
+        for item in _CORPUS["cases"]
+        if item["directory"] == "valid/qualified-search-only"
+    )
+    asset = VocabularyAtlasAsset.open(
+        directory,
+        expected_manifest_digest=case["manifestDigest"],
+        expected_output_digest=case["outputDigest"],
+    )
+    queries = VocabularyAtlasQueries(asset)
+
+    mappings = queries.search_only_mappings()
+    assert len(mappings) == 1
+    assert asset.manifest["counts"]["mappingCandidates"] == 2
+    assert asset.manifest["counts"]["searchOnlyMappings"] == 1
+
+    nquads = asset.payload.decode("utf-8")
+    assert nquads.count("<https://rulespec.org/ns/v1#notEligible>") == 1
+    assert "<https://refspec.org/ns/vocabulary-atlas/v1#inputContextArtifact>" in nquads
 
 
 @pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: case["id"])

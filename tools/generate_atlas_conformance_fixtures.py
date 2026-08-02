@@ -606,6 +606,11 @@ def _share_provider_model(lines: list[str]) -> list[str]:
 
 _CASES: tuple[dict[str, Any], ...] = (
     {
+        "directory": "valid/qualified-search-only",
+        "id": "qualified-search-only-mapping-is-accepted",
+        "valid": True,
+    },
+    {
         "directory": "invalid/missing-input-context",
         "errorContains": "mapping input context artifact must have exactly one IRI",
         "forge": _drop_input_context_link,
