@@ -1,182 +1,371 @@
 {
   "format": "urn:ref:portfolio:spicy-regs-source-profiles:v1",
-  "source": {
-    "gitBlob": "df9ebe6ebd4e558f6296e36c7b837ebdb6ebdd5f",
-    "path": "src/spicy_regs/docpipeline/source.py",
-    "repository": "https://github.com/civictechdc/spicy-regs",
-    "revision": "b94b48a44ec96323c12177330052240dae60351c",
-    "sha256": "sha256:ee6af706c26138a12dfa9425b6b93d0e27966bab3f17a2b76b86b5d5e0f0e69d"
-  },
   "profiles": [
     {
       "activeInStep4": true,
-      "idColumns": ["docket_id"],
+      "idColumns": [
+        "docket_id"
+      ],
       "profileId": "regulations-docket-v2",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "dockets",
       "subjectType": "docket",
-      "textColumns": ["title", "abstract"]
+      "textColumns": [
+        "title",
+        "abstract"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["document_id"],
+      "idColumns": [
+        "document_id"
+      ],
       "profileId": "regulations-document-v2",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "documents",
       "subjectType": "document",
-      "textColumns": ["title"]
+      "textColumns": [
+        "title"
+      ]
     },
     {
       "activeInStep4": false,
-      "idColumns": ["comment_id"],
+      "idColumns": [
+        "comment_id"
+      ],
       "profileId": "regulations-comment-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "comments",
       "subjectType": "comment",
-      "textColumns": ["title", "comment", "text_content", "organization", "category"]
+      "textColumns": [
+        "title",
+        "comment",
+        "text_content",
+        "organization",
+        "category"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["document_number"],
+      "idColumns": [
+        "document_number"
+      ],
       "profileId": "federal-register-document-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "federal_register",
       "subjectType": "federal_register_document",
-      "textColumns": ["title", "abstract", "document_type", "agency_slugs", "body_text", "body_html", "full_text"]
+      "textColumns": [
+        "title",
+        "abstract",
+        "document_type",
+        "agency_slugs",
+        "body_text",
+        "body_html",
+        "full_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["rin", "agenda_edition"],
+      "idColumns": [
+        "rin",
+        "agenda_edition"
+      ],
       "profileId": "unified-agenda-observation-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "unified_agenda",
       "subjectType": "regulatory_agenda_observation",
-      "textColumns": ["title", "abstract", "rule_stage", "priority_category", "cfr_references_json", "legal_authority_json"]
+      "textColumns": [
+        "title",
+        "abstract",
+        "rule_stage",
+        "priority_category",
+        "cfr_references_json",
+        "legal_authority_json"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["granule_id"],
+      "idColumns": [
+        "granule_id"
+      ],
       "profileId": "cfr-section-v1",
-      "runtimeAllowedSchemes": ["subject"],
+      "runtimeAllowedSchemes": [
+        "subject"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "cfr_sections",
       "subjectType": "cfr_section",
-      "textColumns": ["heading", "cfr_ref", "title", "part", "section", "text", "full_text", "xml_text"]
+      "textColumns": [
+        "heading",
+        "cfr_ref",
+        "title",
+        "part",
+        "section",
+        "text",
+        "full_text",
+        "xml_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["bill_id"],
+      "idColumns": [
+        "bill_id"
+      ],
       "profileId": "congress-bill-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "congress_bills",
       "subjectType": "congress_bill",
-      "textColumns": ["title", "latest_action_text", "origin_chamber", "summary", "full_text", "xml_text"]
+      "textColumns": [
+        "title",
+        "latest_action_text",
+        "origin_chamber",
+        "summary",
+        "full_text",
+        "xml_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["uei"],
+      "idColumns": [
+        "uei"
+      ],
       "profileId": "sam-entity-v1",
-      "runtimeAllowedSchemes": ["regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "sam_entities",
       "subjectType": "sam_entity",
-      "textColumns": ["legal_business_name", "dba_name", "entity_type_desc", "entity_structure_desc", "purpose_of_registration_desc", "primary_naics"]
+      "textColumns": [
+        "legal_business_name",
+        "dba_name",
+        "entity_type_desc",
+        "entity_structure_desc",
+        "purpose_of_registration_desc",
+        "primary_naics"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["filing_uuid"],
+      "idColumns": [
+        "filing_uuid"
+      ],
       "profileId": "lobbying-filing-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "structured-children",
       "sourceTable": "lobbying_filings",
       "subjectType": "lobbying_filing",
-      "textColumns": ["client_name", "registrant_name", "lobbying_activities_json", "government_entities_json"]
+      "textColumns": [
+        "client_name",
+        "registrant_name",
+        "lobbying_activities_json",
+        "government_entities_json"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["committee_id"],
+      "idColumns": [
+        "committee_id"
+      ],
       "profileId": "fec-committee-v1",
-      "runtimeAllowedSchemes": ["regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "fec_committees",
       "subjectType": "fec_committee",
-      "textColumns": ["name", "committee_type_full", "organization_type_full", "party_full", "candidate_ids_json"]
+      "textColumns": [
+        "name",
+        "committee_type_full",
+        "organization_type_full",
+        "party_full",
+        "candidate_ids_json"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["report_id"],
+      "idColumns": [
+        "report_id"
+      ],
       "profileId": "gao-report-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "gao_reports",
       "subjectType": "gao_report",
-      "textColumns": ["title", "abstract", "report_type", "agencies_json", "full_text", "pdf_text"]
+      "textColumns": [
+        "title",
+        "abstract",
+        "report_type",
+        "agencies_json",
+        "full_text",
+        "pdf_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["report_id"],
+      "idColumns": [
+        "report_id"
+      ],
       "profileId": "crs-report-v1",
-      "runtimeAllowedSchemes": ["subject"],
+      "runtimeAllowedSchemes": [
+        "subject"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "crs_reports",
       "subjectType": "crs_report",
-      "textColumns": ["title", "report_type", "status", "abstract", "full_text", "pdf_text"]
+      "textColumns": [
+        "title",
+        "report_type",
+        "status",
+        "abstract",
+        "full_text",
+        "pdf_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["opinion_id"],
+      "idColumns": [
+        "opinion_id"
+      ],
       "profileId": "court-opinion-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "court_opinions",
       "subjectType": "court_opinion",
-      "textColumns": ["case_name", "docket_number", "citation", "date_decided", "opinion_type", "holding", "html_with_citations", "plain_text", "pdf_text"]
+      "textColumns": [
+        "case_name",
+        "docket_number",
+        "citation",
+        "date_decided",
+        "opinion_type",
+        "holding",
+        "html_with_citations",
+        "plain_text",
+        "pdf_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["cl_docket_id"],
+      "idColumns": [
+        "cl_docket_id"
+      ],
       "profileId": "court-docket-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "court_dockets",
       "subjectType": "court_docket",
-      "textColumns": ["case_name_full", "case_name", "nature_of_suit", "cause", "court_citation_string", "opinion_text", "html_text", "full_text"]
+      "textColumns": [
+        "case_name_full",
+        "case_name",
+        "nature_of_suit",
+        "cause",
+        "court_citation_string",
+        "opinion_text",
+        "html_text",
+        "full_text"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["recipient_id"],
+      "idColumns": [
+        "recipient_id"
+      ],
       "profileId": "usaspending-recipient-v1",
-      "runtimeAllowedSchemes": ["regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "usaspending_recipients",
       "subjectType": "usaspending_recipient",
-      "textColumns": ["name", "recipient_level"]
+      "textColumns": [
+        "name",
+        "recipient_level"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["id_proceeding"],
+      "idColumns": [
+        "id_proceeding"
+      ],
       "profileId": "fcc-proceeding-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "atomic-record",
       "sourceTable": "fcc_proceedings",
       "subjectType": "fcc_proceeding",
-      "textColumns": ["name", "description", "rulemaking_or_docket", "bureau_name"]
+      "textColumns": [
+        "name",
+        "description",
+        "rulemaking_or_docket",
+        "bureau_name"
+      ]
     },
     {
       "activeInStep4": true,
-      "idColumns": ["id_submission"],
+      "idColumns": [
+        "id_submission"
+      ],
       "profileId": "fcc-filing-v1",
-      "runtimeAllowedSchemes": ["subject", "regulated_entity"],
+      "runtimeAllowedSchemes": [
+        "subject",
+        "regulated_entity"
+      ],
       "sourceMode": "hierarchical-document",
       "sourceTable": "fcc_filings",
       "subjectType": "fcc_filing",
-      "textColumns": ["submission_type", "text_data", "express_comment", "bureaus_json", "lawfirms_json", "full_text"]
+      "textColumns": [
+        "submission_type",
+        "text_data",
+        "express_comment",
+        "bureaus_json",
+        "lawfirms_json",
+        "full_text"
+      ]
     }
-  ]
+  ],
+  "source": {
+    "gitBlob": "e4ca5fd1dcb440aa2802e02d8c5645e89ad780e2",
+    "path": "src/spicy_regs/docpipeline/source.py",
+    "repository": "https://github.com/civictechdc/spicy-regs",
+    "revision": "16a2baf5bb21c8a1f6b56b6a2d60ef169db4f95a",
+    "sha256": "sha256:47bcb7a303a1b9e4c0752fbf9b38bb199f20a39158f764ea8332b705d636e71f"
+  }
 }

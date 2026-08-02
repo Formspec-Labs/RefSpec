@@ -21,13 +21,13 @@
       "path": "plans/active-profile-controlled-resource-import-plan.md"
     },
     "refspecPortfolioInputSha256": "sha256:9eb658d1daa137f43a0338ff230ad472a549c07712ee32aa3b960d26772cc0c2",
-    "spicyRegsProfileSnapshotSha256": "sha256:24c9f6750c5ef3e7a6f271b10e2d38abb188656a79abb7aea8c94ae39935ce3c",
+    "spicyRegsProfileSnapshotSha256": "sha256:19f66bbee576db2bbb617e7a5661df87400d90b591d5d8c9f798af5bf713cc88",
     "spicyRegsSource": {
-      "gitBlob": "df9ebe6ebd4e558f6296e36c7b837ebdb6ebdd5f",
+      "gitBlob": "e4ca5fd1dcb440aa2802e02d8c5645e89ad780e2",
       "path": "src/spicy_regs/docpipeline/source.py",
       "repository": "https://github.com/civictechdc/spicy-regs",
-      "revision": "b94b48a44ec96323c12177330052240dae60351c",
-      "sha256": "sha256:ee6af706c26138a12dfa9425b6b93d0e27966bab3f17a2b76b86b5d5e0f0e69d"
+      "revision": "16a2baf5bb21c8a1f6b56b6a2d60ef169db4f95a",
+      "sha256": "sha256:47bcb7a303a1b9e4c0752fbf9b38bb199f20a39158f764ea8332b705d636e71f"
     }
   },
   "profiles": [

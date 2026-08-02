@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from refspec.profile_portfolio import (
     PortfolioInventoryError,
     build_portfolio_atlas,
+    build_profile_snapshot,
     load_json,
     render_json,
     validate_profile_snapshot,
@@ -45,6 +46,14 @@ def _arguments() -> argparse.Namespace:
         action="store_true",
         help="replace the checked-in atlas with deterministic generation",
     )
+    mode.add_argument(
+        "--write-snapshot",
+        metavar="REVISION",
+        help=(
+            "re-pin the Spicy Regs profile snapshot to the sibling checkout's "
+            "current bytes at the given 40-character revision"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -54,10 +63,23 @@ def main() -> int:
         snapshot = load_json(args.snapshot)
         portfolio_input = load_json(args.input)
         source_path = ROOT.parent / snapshot["source"]["path"]
+
+        if args.write_snapshot:
+            regenerated = build_profile_snapshot(
+                source_path,
+                repository=snapshot["source"]["repository"],
+                revision=args.write_snapshot,
+                path=snapshot["source"]["path"],
+            )
+            args.snapshot.write_text(render_json(regenerated), encoding="utf-8")
+            print(f"wrote {args.snapshot.relative_to(ROOT)}")
+            snapshot = regenerated
+
         validate_profile_snapshot(snapshot, source_path=source_path)
         generated = render_json(build_portfolio_atlas(snapshot, portfolio_input))
 
-        if args.write:
+        # The atlas pins the snapshot digest, so re-pinning always rewrites it.
+        if args.write or args.write_snapshot:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(generated, encoding="utf-8")
             print(f"wrote {args.output.relative_to(ROOT)}")

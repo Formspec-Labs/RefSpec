@@ -258,6 +258,46 @@ def _require_unique_strings(value: Any, location: str) -> list[str]:
     return value
 
 
+def build_profile_snapshot(
+    source_path: Path,
+    *,
+    repository: str,
+    revision: str,
+    path: str,
+) -> dict[str, Any]:
+    """Re-derive the checked-in Spicy Regs profile snapshot from live source.
+
+    The pin is a sealed input: when the upstream file moves, it is regenerated
+    here rather than hand-edited. Every digest comes from the exact bytes this
+    function just read, and the result must pass the same validation the
+    checked-in snapshot faces. ``revision`` is supplied by the operator because
+    RefSpec reads the sibling checkout's bytes, never its Git database.
+    """
+
+    _require_nonempty_string(repository, "source.repository")
+    _require_nonempty_string(path, "source.path")
+    if not _GIT_OBJECT_PATTERN.fullmatch(str(revision)):
+        raise PortfolioInventoryError(
+            "source.revision must be a 40-character Git revision"
+        )
+
+    source_bytes = source_path.read_bytes()
+    git_blob_bytes = f"blob {len(source_bytes)}\0".encode() + source_bytes
+    snapshot = {
+        "format": PROFILE_SNAPSHOT_FORMAT,
+        "source": {
+            "repository": repository,
+            "revision": revision,
+            "path": path,
+            "sha256": f"sha256:{hashlib.sha256(source_bytes).hexdigest()}",
+            "gitBlob": hashlib.sha1(git_blob_bytes).hexdigest(),
+        },
+        "profiles": extract_spicy_regs_profiles(source_path),
+    }
+    validate_profile_snapshot(snapshot, source_path=source_path)
+    return snapshot
+
+
 def validate_profile_snapshot(
     snapshot: Mapping[str, Any],
     *,
