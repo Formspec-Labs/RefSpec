@@ -98,9 +98,29 @@ independence groups, providers, provider model IDs, and responses; human review
 is not a prerequisite. The command prints the manifest and N-Quads digests that
 a consumer must pin.
 
+`refspec-build-vocabulary-atlas-projection` cuts a verified atlas down to a
+named policy's keep rule and publishes the result as a **separate distribution
+kind**, `refspec-vocabulary-atlas-projection-nquads-1.0`
+([REF-011](docs/decisions.md#ref-011-publish-a-consumer-shaped-projection-as-its-own-distribution-kind)).
+A projection names its parent's asset id and both of its digests in
+`derivedFrom`, carries the keep rule and its version in `projectionPolicy`, and
+derives its own identifier from all three, so it can never be confused with the
+generation it came from. It reproduces from that parent and that policy rather
+than from managed releases:
+
+```sh
+uv run refspec-build-vocabulary-atlas-projection \
+  --atlas build/vocabulary-atlas \
+  --atlas-manifest-digest sha256:<manifest digest> \
+  --atlas-output-digest sha256:<n-quads digest> \
+  --output build/vocabulary-atlas-projection
+```
+
 Consumers call `VocabularyAtlasAsset.open` with only the atlas directory and
 those two external digests. Publishers may call `reproduce_from_inputs` to
-reopen every exact source and rebuild both files byte for byte. The checked
+reopen every exact source and rebuild both files byte for byte;
+`refspec.atlas.projection.reproduce_distribution` dispatches on the declared
+manifest type so each kind is asked for the inputs it actually has. The checked
 Federal Register example proves that the specialized, source-complete 2025
 package can publish all 705 concepts through this same file format; it does not
 introduce another release model. `test_advertised_command_builds_the_complete_2025_package`
@@ -166,9 +186,11 @@ PDF.
 `make test-real-vocabulary` remains a separate, explicitly networked
 historical regression. It downloads the pinned November 16, 1995 source,
 rejects any SHA-256 mismatch, exercises the former development selection path,
-and proves its rollback. That edition is not candidate-authorized in the
-active portfolio; it remains only for historical lookup, regression tests,
-and vocabulary-change analysis.
+and proves its rollback. **That edition is not being pursued**
+([REF-012](docs/decisions.md#ref-012-do-not-pursue-the-1995-federal-register-thesaurus-edition)):
+it is not candidate-authorized in the active portfolio and no artifact needs
+it. The gate stays as a regression over code already written, not as an
+integration in progress.
 
 The command removes the temporary source bytes on exit. The default
 `make test` remains offline. Git contains the deterministic semantic extract

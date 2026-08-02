@@ -43,6 +43,14 @@ SCALE_EVIDENCE_PATH = (
     / "elsst-r5-r6-managed-release-2026-07-29"
     / "evidence.json"
 )
+R6_ONLY_EVIDENCE_PATH = (
+    REFSPEC_ROOT
+    / "research"
+    / "evidence"
+    / "elsst-r6-only-atlas-2026-08-02"
+    / "evidence.json"
+)
+R6_ONLY_RECORDED_BY = "urn:ref:agent:refspec-elsst-managed-release"
 R5_FIXTURE = FIXTURE_DIR / "elsst-projection-mini-r5.ttl"
 R6_FIXTURE = FIXTURE_DIR / "elsst-projection-mini-r6.ttl"
 
@@ -166,6 +174,18 @@ def managed_fixture(
 
 def _manifest_digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _r6_only_evidence() -> dict:
+    return json.loads(R6_ONLY_EVIDENCE_PATH.read_text(encoding="utf-8"))
+
+
+def _r6_only_governance() -> ElsstCandidateGovernance:
+    return ElsstCandidateGovernance(
+        actor_iri="urn:ref:actor:spicy-regs-local-reviewer",
+        organization_iri="urn:ref:organization:spicy-regs",
+        effective_at="2026-07-29T20:00:00Z",
+    )
 
 
 def _scale_evidence() -> dict:
@@ -877,9 +897,26 @@ def test_opt_in_full_r5_r6_managed_release_opens_and_selects_current_r6(
 
     assert counts == (308_639, 176_664, 24_844, 6)
     evidence = _scale_evidence()
-    assert _manifest_digest(manifest_path) == (
-        evidence["managedRelease"]["bundleManifestDigest"]
-    )
+    # The 2026-07-29 bundle digest stopped being reproducible at `05805d4`, and
+    # that is a property of the bundle rather than of this gate: the publication
+    # release manifest records `operationalSerializationProfile.digest`, which is
+    # a digest of the REF JSON binding schema set, and that commit edited it.
+    # Rebuilt today, exactly two records differ from the recorded bundle — the
+    # publication manifest and the combined receipt that pins it — and every
+    # other byte, including the 308,639-row corpus and the Rulespec graph, is
+    # identical. Both values are pinned so a real regression still fails, and
+    # `research/evidence/elsst-r6-only-atlas-2026-08-02/README.md` records why
+    # there are two. Whether a managed release should pin a schema-set digest
+    # that moves underneath it is an open question, not a silent repair.
+    assert _manifest_digest(manifest_path) in {
+        # REF JSON binding schema set at `09c1ce9`
+        evidence["managedRelease"]["bundleManifestDigest"],
+        # REF JSON binding schema set at `05805d4`
+        (
+            "sha256:379bd131bdf4f1b2324580ca09230d0"
+            "aedad862e06b75f0285c7798fd4d413f2"
+        ),
+    }
     assert manifest["indexedExpressionCorpus"] == {
         "canonicalIdentityDigest": (
             evidence["managedRelease"]["expressionCorpus"][
@@ -1043,3 +1080,69 @@ def test_managed_release_requires_at_least_one_source(
             recorded_by=RECORDED_BY,
             governance=_governance(),
         )
+
+
+def test_opt_in_r6_only_managed_release_carries_the_edition_the_crosswalk_names(
+    rulespec_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """The edition-restricted release the atlas actually consumes.
+
+    Recorded in `research/evidence/elsst-r6-only-atlas-2026-08-02/`. Needs only
+    the R6 distribution, because that is the whole point.
+    """
+
+    r6_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
+    if r6_path is None:
+        pytest.skip("set REFSPEC_ELSST_R6_PATH")
+    gate_started = time.perf_counter()
+    source = acquire_elsst_release(
+        ELSST_R6,
+        tmp_path / "source-store-r6",
+        source_path=Path(r6_path),
+    )
+    managed = build_elsst_managed_release(
+        source,
+        rulespec_root=rulespec_dir,
+        recorded_at=RECORDED_AT,
+        recorded_by=R6_ONLY_RECORDED_BY,
+        governance=_r6_only_governance(),
+    )
+    counts = (
+        managed.expression_count,
+        managed.label_count,
+        managed.relation_count,
+        managed.participant_count,
+    )
+    assert managed.projection.release_iris == (ELSST_R6.release_iri,)
+    assert managed.projection.lifecycle_transitions == ()
+    assert len(managed.coverage_records) == 1
+    managed.bundle.write_to(tmp_path)
+    manifest_path = tmp_path / "managed-release-bundle.json"
+    del managed
+    del source
+    gc.collect()
+    view = ManagedReleaseView.open(
+        manifest_path,
+        expected_manifest_digest=_manifest_digest(manifest_path),
+    )
+
+    evidence = _r6_only_evidence()
+    assert counts == (155_447, 88_913, 12_482, 0)
+    assert counts == (
+        evidence["managedRelease"]["counts"]["indexedExpressions"],
+        evidence["managedRelease"]["counts"]["normalizedLabels"],
+        evidence["managedRelease"]["counts"]["normalizedRelations"],
+        evidence["managedRelease"]["counts"]["lifecycleParticipants"],
+    )
+    assert _manifest_digest(manifest_path) == (
+        evidence["managedRelease"]["bundleManifestDigest"]
+    )
+    assert {member.release_iri for member in view.iter_members()} == {
+        ELSST_R6.release_iri
+    }
+    assert sum(1 for _member in view.iter_members()) == 3_470
+
+    elapsed = time.perf_counter() - gate_started
+    assert elapsed < REAL_GATE_MAX_WALL_SECONDS
+    assert _process_peak_memory_bytes() < REAL_GATE_MAX_PEAK_MEMORY_BYTES

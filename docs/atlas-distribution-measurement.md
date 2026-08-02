@@ -1,5 +1,16 @@
 # Atlas distribution measurement, 2026-08-02
 
+> **Three things below were superseded by execution the same day.** See
+> [`elsst-r6-only-atlas-2026-08-02`](../research/evidence/elsst-r6-only-atlas-2026-08-02/README.md).
+> The R6-only numbers here are derived from a two-edition build; a real R6-only
+> managed release now exists, and the atlas built on it is **45,066,321 bytes**
+> with all 365 candidates and all 121 mappings intact and the qualified set
+> identical. A projection now has its own identity, so "a projection and its
+> parent share one asset identifier" describes the old format and not the
+> current one. And finding 1 has been fixed on the consumer side: the vendored
+> reader at `sha256:0b396888…` opens a hierarchy-bearing atlas that the reader
+> at `sha256:5f96c241…` refused. Everything else stands as measured.
+
 None of the atlas work reaches search until SpicySearch can consume an atlas
 that contains it. SpicySearch consumes by **vendoring the asset into its own
 repository** — today a 1,469,637-byte Federal-Register-only distribution under
@@ -355,12 +366,17 @@ yes, with one qualification and one caveat.
   describe. That is already the normal case — R5's own 3,423 point at ELSST
   **R4**, which no atlas has ever contained. No consumer reads the predicate at
   all; a future edition-aware one would be reading a dangling edge either way.
-- The caveat: **this is a projection, not a build.** No R6-only ELSST bundle
-  exists — `elsst-r5-r6-final-gate/test_opt_in_full_r5_r6_managed{0,current}`
-  are byte-identical two-edition bundles, and producing a real one is
-  SpicyRegs-side ELSST projection work. The numbers above are what an R6-only
-  build would contain, computed from the two-edition build; they are not the
-  output of one.
+- The caveat, **since closed**: when this was written no R6-only ELSST bundle
+  existed — `elsst-r5-r6-final-gate/test_opt_in_full_r5_r6_managed{0,current}`
+  are the same directory, the second being a symlink to the first, so the
+  "two byte-identical bundles" were one bundle. The numbers above were what an
+  R6-only build would contain, computed from the two-edition build. One now
+  exists: bundle manifest `sha256:e20928a6…`, built in RefSpec by the ELSST
+  importer from the R6 distribution alone, 3,470 members over one release, its
+  own combined Rulespec receipt. The atlas over it is 45,066,321 bytes with 365
+  candidates, 121 qualified mappings and an identical qualified set. It was not
+  SpicyRegs-side work: the importer lives here and only ever needed the source
+  bytes.
 
 ## Integrity consequences, per option
 

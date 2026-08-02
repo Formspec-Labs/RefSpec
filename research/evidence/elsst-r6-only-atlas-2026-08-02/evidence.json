@@ -1,0 +1,260 @@
+{
+  "consumerCheck": {
+    "editionRestrictedAtlas": {
+      "conceptLabels": 90051,
+      "opened": true,
+      "seconds": 4.18
+    },
+    "note": "The vendored reader now opens a hierarchy-bearing atlas: the `hierarchyEdges` refusal recorded on 2026-08-02 against reader sha256:5f96c241\u2026 no longer fires against sha256:0b396888\u2026. It refuses the projection because a projection manifest is a different kind, which the consumer has not been taught.",
+    "projection": {
+      "error": "IntegrityError: atlas manifest fields differ from the supported format",
+      "opened": false
+    },
+    "readerDigest": "sha256:0b396888ebaeb8ca1149fdae573517b2ad5f213d20eedf7f9073a26a9a5952d0",
+    "readerSource": "/Users/mikewolfd/Work/spicysearch/src/spicysearch/vocabulary_atlas.py"
+  },
+  "evidenceType": "ElsstR6OnlyManagedReleaseAndAtlasProjection",
+  "losslessnessByExecution": {
+    "baseline": {
+      "assetId": "urn:ref:vocabulary-atlas:70f4ecbe2dd8c1987a9a299718c3bf24ece1117b8839bde4eae350a3daff893a",
+      "byteLength": 263620491,
+      "counts": {
+        "analysisFacts": 613350,
+        "feedback": 0,
+        "hierarchyEdges": 6754,
+        "labelClusters": 96867,
+        "machineValidations": 729,
+        "managedReleases": 2,
+        "mappingCandidates": 365,
+        "releaseFacts": 270864,
+        "searchOnlyMappings": 121
+      },
+      "elsst": "R5 + R6 (spicy-regs/output/elsst-r5-r6-final-gate/test_opt_in_full_r5_r6_managed0)",
+      "membersByRelease": {
+        "https://elsst.cessda.eu/id/5": 3435,
+        "https://elsst.cessda.eu/id/6": 3470,
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1": 705
+      },
+      "releaseDigests": {
+        "https://elsst.cessda.eu/id/5": "sha256:7b3a045d1068f1d5f27ed81739fd715ad9e039662278a0d37e1b6ff530d1bbd5",
+        "https://elsst.cessda.eu/id/6": "sha256:a75f6dd4679a712fb494ee7ae5cc8ba48f0eb353047e9a3b034cb82e917deea2",
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1": "sha256:30742a82b3e268942aec713a02c5ae4264eadea36aa61b564ffc93eeecfd5fe6"
+      }
+    },
+    "editionRestricted": {
+      "assetId": "urn:ref:vocabulary-atlas:d33c05df2446cfa57129005db911d21c4fefe027598af3afb3b0cb559120a3e8",
+      "byteLength": 45066321,
+      "counts": {
+        "analysisFacts": 25783,
+        "feedback": 0,
+        "hierarchyEdges": 3393,
+        "labelClusters": 279,
+        "machineValidations": 729,
+        "managedReleases": 2,
+        "mappingCandidates": 365,
+        "releaseFacts": 139057,
+        "searchOnlyMappings": 121
+      },
+      "elsst": "R6 only (RefSpec/output/elsst-r6-only/managed-release)",
+      "membersByRelease": {
+        "https://elsst.cessda.eu/id/6": 3470,
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1": 705
+      },
+      "releaseDigests": {
+        "https://elsst.cessda.eu/id/6": "sha256:fdaf27ad3f013b21d1eaf1d745f37faa67229baa3f6c3033cfb822bf4dc96416",
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1": "sha256:30742a82b3e268942aec713a02c5ae4264eadea36aa61b564ffc93eeecfd5fe6"
+      }
+    },
+    "method": "Two crosswalk-bearing atlases were built from the same Federal Register 2025 managed package, the same Rulespec Core release and the same 2026-08-02 qualification bundle, differing only in the ELSST managed release. Both were reopened through VocabularyAtlasAsset.open and compared through VocabularyAtlasQueries and their graphs.",
+    "note": "R6's reference release digest moves because a distribution IRI is scoped to the set of sources the history was built from. The crosswalk pins release IRIs, not release digests, so every candidate still resolves; the atlas independently requires each named release to carry exactly one digest, and both do.",
+    "result": {
+      "byteReduction": 0.8290484900128647,
+      "candidateEligibility": [
+        {
+          "notEligible": 244,
+          "searchOnly": 121
+        },
+        {
+          "notEligible": 244,
+          "searchOnly": 121
+        }
+      ],
+      "mappingCandidates": [
+        365,
+        365
+      ],
+      "membersDroppedByRelease": {
+        "https://elsst.cessda.eu/id/5": 3435
+      },
+      "membersRetainedByRelease": {
+        "https://elsst.cessda.eu/id/6": [
+          3470,
+          3470
+        ],
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1": [
+          705,
+          705
+        ]
+      },
+      "qualifiedSetIdentical": true,
+      "searchOnlyMappings": [
+        121,
+        121
+      ]
+    }
+  },
+  "managedRelease": {
+    "bundleManifestDigest": "sha256:e20928a6cb68494dfac8b8c16d6aa3db1147f2145d99c31bd01287eeced9761f",
+    "counts": {
+      "coverageReports": 1,
+      "indexedExpressions": 155447,
+      "lifecycleParticipants": 0,
+      "members": 3470,
+      "normalizedLabels": 88913,
+      "normalizedRelations": 12482
+    },
+    "coverageDigests": [
+      "sha256:5728b7a478f787d98a024f3aa996b4c6e8d30ff9ee3d49944755789ba18f1ff1"
+    ],
+    "identifierScope": "f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552",
+    "lifecycleTransitions": 0,
+    "opensThrough": [
+      "ManagedReleaseView.open",
+      "PinnedManagedRelease.open"
+    ],
+    "performance": {
+      "peakMemoryBytes": 4068278272,
+      "wallSeconds": 406.55
+    },
+    "publicationReleaseId": "urn:ref:elsst:publication:development:f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552",
+    "releaseIris": [
+      "https://elsst.cessda.eu/id/6"
+    ],
+    "releaseReferences": [
+      {
+        "digest": "sha256:fdaf27ad3f013b21d1eaf1d745f37faa67229baa3f6c3033cfb822bf4dc96416",
+        "id": "https://elsst.cessda.eu/id/6",
+        "version": "6"
+      }
+    ],
+    "rulespecGraph": {
+      "digest": "sha256:9b2f22defaac98c2156b4d4bec2eebad9470de27efd9833e2747b89e8f263b03",
+      "id": "urn:ref:elsst:rulespec-graph:f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552"
+    },
+    "selectedRelease": "https://elsst.cessda.eu/id/6"
+  },
+  "projection": {
+    "assetId": "urn:ref:vocabulary-atlas-projection:f720ae717d10af5521c895817f296f1e1a1ab5b737c79080000b1e11efd65018",
+    "atlasReaderRefusal": "atlas manifest fields differ from v1",
+    "byteLength": 30174064,
+    "counts": {
+      "analysisFacts": 12034,
+      "feedback": 0,
+      "hierarchyEdges": 3393,
+      "labelClusters": 0,
+      "machineValidations": 242,
+      "mappingCandidates": 121,
+      "referenceReleases": 2,
+      "releaseFacts": 104770,
+      "searchOnlyMappings": 121
+    },
+    "derivedFrom": {
+      "assetId": "urn:ref:vocabulary-atlas:d33c05df2446cfa57129005db911d21c4fefe027598af3afb3b0cb559120a3e8",
+      "distributionDigest": "sha256:9a2f6fd04c43557e70637f3e13f82630a4265c811349db6d6238ffe0992ba877",
+      "manifestDigest": "sha256:8dfa9572d377cef09db75af0c8243f23e15157ff6a795d945c66f38336e444a0"
+    },
+    "gzip9": 1911890,
+    "identityDiffersFromParent": true,
+    "kind": "refspec-vocabulary-atlas-projection-nquads-1.0",
+    "manifestDigest": "sha256:0bf326586aba5c26e36b443d814b66813be1ee3ee1e6428260ecd67021b5fa12",
+    "openSeconds": 2.53,
+    "outputDigest": "sha256:63368282da8b1bc0657e27a1c9285283f2de9ac6e255195a773b1048b4b658a8",
+    "policy": "urn:ref:policy:vocabulary-atlas-projection:consumer-read-closure v1",
+    "rebuildByteIdentical": true,
+    "rebuildSeconds": 8.36,
+    "reproduceWithoutParentRefusal": "a vocabulary atlas projection reproduces from its parent distribution, not from managed releases; pass parent_directory",
+    "reproducesFromParent": true
+  },
+  "question": "Does an ELSST release restricted to R6 lose anything the crosswalk-bearing atlas needs, and what does a first-class consumer-shaped projection of that atlas actually cost?",
+  "readEquivalence": {
+    "atlas": {
+      "broader": [
+        "0137590b43c309b0",
+        3393
+      ],
+      "conceptLabels": [
+        "a6ac98f506c6a845",
+        90051
+      ],
+      "hadMember": [
+        "34727d988699e797",
+        4175
+      ],
+      "memberOfRelease": [
+        "b3ab0a17b6310bad",
+        4175
+      ],
+      "referenceReleaseDigest": [
+        "a50acbc743d2f35a",
+        2
+      ],
+      "referenceReleaseTypes": [
+        "02330cf5c3ec8a31",
+        2
+      ],
+      "related": [
+        "c3724535b7be6116",
+        7147
+      ]
+    },
+    "differences": {},
+    "identical": true,
+    "method": "Every predicate the SpicySearch reader consults, read from the edition-restricted atlas and from its projection and digested.",
+    "projection": {
+      "broader": [
+        "0137590b43c309b0",
+        3393
+      ],
+      "conceptLabels": [
+        "a6ac98f506c6a845",
+        90051
+      ],
+      "hadMember": [
+        "34727d988699e797",
+        4175
+      ],
+      "memberOfRelease": [
+        "b3ab0a17b6310bad",
+        4175
+      ],
+      "referenceReleaseDigest": [
+        "a50acbc743d2f35a",
+        2
+      ],
+      "referenceReleaseTypes": [
+        "02330cf5c3ec8a31",
+        2
+      ],
+      "related": [
+        "c3724535b7be6116",
+        7147
+      ]
+    }
+  },
+  "recordedAt": "2026-08-02",
+  "sizes": {
+    "federalRegisterOnlyVendoredToday": 1469637,
+    "frPlusElsstR5R6PlusCrosswalk": {
+      "bytes": 263620491,
+      "gzip9": 17038083
+    },
+    "frPlusElsstR6PlusCrosswalk": {
+      "bytes": 45066321,
+      "gzip9": 3443202
+    },
+    "frPlusElsstR6PlusCrosswalkProjection": {
+      "bytes": 30174064,
+      "gzip9": 1911890
+    }
+  }
+}
