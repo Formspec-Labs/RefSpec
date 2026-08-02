@@ -60,7 +60,9 @@ _MAPPING_RELATIONS = frozenset(
         "http://www.w3.org/2004/02/skos/core#relatedMatch",
     }
 )
-_ARTIFACT_ROLES = frozenset({"evidence", "validationRequest", "validationResponse"})
+_ARTIFACT_ROLES = frozenset(
+    {"evidence", "inputContext", "validationRequest", "validationResponse"}
+)
 _CORE_RELEASE_STATUSES = frozenset({"fixture", "candidate", "published"})
 _CORE_ARTIFACT_MANIFESTS = (
     "conformance_fixture_artifacts",
@@ -455,7 +457,12 @@ class CrosswalkArtifact:
     def create(
         cls,
         *,
-        role: Literal["evidence", "validationRequest", "validationResponse"],
+        role: Literal[
+            "evidence",
+            "inputContext",
+            "validationRequest",
+            "validationResponse",
+        ],
         media_type: str,
         content: Mapping[str, Any],
     ) -> Self:
@@ -491,11 +498,25 @@ class CrosswalkArtifact:
     def role(self) -> str:
         return str(self._record["role"])
 
+    @property
+    def content_digest(self) -> str:
+        """Digest the sealed content alone, which is what a candidate cites.
+
+        ``canonicalPayloadDigest`` also covers the role and media type, so it
+        cannot be what ``inputContextDigest`` names.
+        """
+
+        return _artifact_content_digest(self._record)
+
     def reference(self) -> dict[str, str]:
         return {"id": self.identifier, "digest": self.digest}
 
     def to_dict(self) -> dict[str, Any]:
         return cast(dict[str, Any], _plain(self._record))
+
+
+def _artifact_content_digest(record: Mapping[str, Any]) -> str:
+    return binding.canonical_sha256(_plain(record["content"]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -916,6 +937,32 @@ def _resolve_reference(
     return record
 
 
+def _resolve_input_context(
+    input_context_digest: object,
+    artifacts: Mapping[str, Mapping[str, Any]],
+) -> Mapping[str, Any]:
+    """Return the one bundled artifact whose bytes produce the cited digest.
+
+    Machine validations agreeing on a digest proves nothing about the model
+    input unless those bytes are in the closure a consumer receives, so the
+    digest MUST name an ``inputContext`` artifact present in this bundle.
+    """
+
+    digest = _require_digest(input_context_digest, "candidate input context digest")
+    matches = sorted(
+        record["id"]
+        for record in artifacts.values()
+        if record["role"] == "inputContext" and _artifact_content_digest(record) == digest
+    )
+    if not matches:
+        raise VocabularyAtlasError(
+            "candidate input context does not close against the bundle"
+        )
+    if len(matches) > 1:
+        raise VocabularyAtlasError("candidate input context resolves to several artifacts")
+    return artifacts[matches[0]]
+
+
 def _validate_crosswalk_closure(
     *,
     artifacts: Mapping[str, Mapping[str, Any]],
@@ -931,6 +978,7 @@ def _validate_crosswalk_closure(
             artifact = _resolve_reference(evidence, artifacts, "candidate evidence")
             if artifact["role"] != "evidence":
                 raise VocabularyAtlasError("candidate evidence has the wrong role")
+        _resolve_input_context(record["inputContextDigest"], artifacts)
     for record in validations.values():
         _validation_from_record(record)
         candidate = _resolve_reference(record["candidate"], candidates, "machine candidate")
@@ -1252,6 +1300,7 @@ def _build_dataset(
         bundle = crosswalk.to_dict()
         candidates = {item["id"]: item for item in bundle["mappingCandidates"]}
         validations = {item["id"]: item for item in bundle["machineValidations"]}
+        bundle_artifacts = {item["id"]: item for item in bundle["artifacts"]}
         qualified = _qualified_candidates(candidates, validations)
         for artifact in bundle["artifacts"]:
             node = URIRef(artifact["id"])
@@ -1264,6 +1313,16 @@ def _build_dataset(
                 )
             )
             analysis.add((node, ATLAS.artifactRole, RdfLiteral(artifact["role"])))
+            if artifact["role"] == "inputContext":
+                # Only this role is cited by digest, so only this role needs the
+                # content digest published for a consumer to resolve the citation.
+                analysis.add(
+                    (
+                        node,
+                        ATLAS.contentDigest,
+                        RdfLiteral(_artifact_content_digest(artifact)),
+                    )
+                )
         for candidate_id, candidate in sorted(candidates.items()):
             source = candidate["sourceMember"]
             target = candidate["targetMember"]
@@ -1314,6 +1373,18 @@ def _build_dataset(
                     node,
                     ATLAS.inputContextDigest,
                     RdfLiteral(candidate["inputContextDigest"]),
+                )
+            )
+            analysis.add(
+                (
+                    node,
+                    ATLAS.inputContextArtifact,
+                    URIRef(
+                        _resolve_input_context(
+                            candidate["inputContextDigest"],
+                            bundle_artifacts,
+                        )["id"]
+                    ),
                 )
             )
             for evidence in candidate["evidence"]:
@@ -1723,6 +1794,27 @@ def _validate_query_graph_semantics(
             str(_one_literal(analysis, candidate, ATLAS.inputContextDigest, "mapping input digest")),
             "mapping input digest",
         )
+        input_context = _one_resource(
+            analysis,
+            candidate,
+            ATLAS.inputContextArtifact,
+            "mapping input context artifact",
+        )
+        _validate_projected_artifact(analysis, input_context, role="inputContext")
+        if (
+            str(
+                _one_literal(
+                    analysis,
+                    input_context,
+                    ATLAS.contentDigest,
+                    "input context content digest",
+                )
+            )
+            != input_digest
+        ):
+            raise VocabularyAtlasError(
+                "searchOnly mapping input context does not carry the sealed input digest"
+            )
         evidence = tuple(analysis.objects(candidate, ATLAS.evidence))
         if not evidence or any(not isinstance(item, URIRef) for item in evidence):
             raise VocabularyAtlasError("searchOnly mapping candidate needs IRI evidence")

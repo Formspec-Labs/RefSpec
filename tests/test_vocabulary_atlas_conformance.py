@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +15,8 @@ from jsonschema import Draft202012Validator
 
 from refspec.atlas import VocabularyAtlasAsset, VocabularyAtlasError
 
-_BINDING_ROOT = Path(__file__).parents[1] / "bindings" / "atlas" / "1.0"
+_REPO_ROOT = Path(__file__).parents[1]
+_BINDING_ROOT = _REPO_ROOT / "bindings" / "atlas" / "1.0"
 _FIXTURE_ROOT = _BINDING_ROOT / "fixtures"
 _CORPUS = json.loads((_FIXTURE_ROOT / "corpus.json").read_text(encoding="utf-8"))
 
@@ -60,6 +63,20 @@ def test_atlas_manifest_schema_bounds_integers_to_the_interoperable_range() -> N
 
     manifest["output"]["byteLength"] = 9007199254740992
     assert not validator.is_valid(manifest)
+
+
+def test_generated_conformance_distributions_are_current() -> None:
+    """The non-vacuous distributions are tooling output, not hand-edited bytes."""
+
+    result = subprocess.run(
+        [sys.executable, "tools/generate_atlas_conformance_fixtures.py"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda case: case["id"])

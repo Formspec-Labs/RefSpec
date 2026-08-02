@@ -79,17 +79,42 @@ graph:
   `rkaf:statisticalInference`, and verification status is
   `atlas:machineQualifiedForSearch`;
 - the candidate has at least one evidence artifact and the declared sealed
-  input digest; and
+  input digest;
+- the candidate names exactly one `atlas:inputContextArtifact`; that artifact
+  is a crosswalk artifact whose `atlas:artifactRole` is `inputContext`, and its
+  `atlas:contentDigest` equals the candidate's `atlas:inputContextDigest`; and
 - exactly two supporting machine validations use that input and candidate,
   pass deterministic checks, resolve request and response artifacts, and have
   different validator actors, independence groups, providers, provider model
   identifiers, and response artifacts. Each machine validation and its sealed
   response MUST include the same non-empty `providerModelId`.
 
+The input-context rule is what makes the rest of the proof about a mapping
+rather than about a string. Every other check compares the candidate, the two
+validations, and their sealed request and response to one another; all four
+records can agree on an `inputContextDigest` whose bytes exist nowhere. A
+producer MUST therefore place the exact model input in the bundle as an
+`inputContext` artifact, and `inputContextDigest` MUST be SHA-256 over that
+artifact's canonical `content` alone — not over the artifact record, which also
+covers its role and media type.
+
 These graph checks prove the integrity of the published projection. Publisher
 reproduction is the stronger check: it also opens every managed release, the
 Rulespec Core release, and the optional closed crosswalk bundle, then rebuilds
-both files byte for byte.
+both files byte for byte. A producer MUST refuse to build a distribution whose
+candidate input context does not resolve to exactly one bundled artifact.
+
+### Amendment 2026-08-02: resolvable input context
+
+`inputContext` joins `evidence`, `validationRequest`, and `validationResponse`
+as an artifact role, and the two rules above are new. This amends 1.0 in place
+rather than opening 1.1, matching how this binding has carried its other
+refusal corrections. The amendment is compatible in the direction that matters:
+no distribution the previous rules accepted *and* that carried a resolvable
+model input becomes invalid, and every valid fixture published before this date
+is byte-identical because none contained a mapping candidate. A distribution
+that qualified a mapping while citing unobtainable input bytes was never
+serving a consumer, and is now refused.
 
 The specialized Federal Register producer computes the Core-defined closed
 `ReferenceResourceRelease` preimage locally. That preimage permits only named

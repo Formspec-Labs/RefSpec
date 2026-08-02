@@ -281,6 +281,24 @@ def _two_releases(tmp_path: Path) -> tuple[PinnedManagedRelease, PinnedManagedRe
     )
 
 
+INPUT_CONTEXT_CONTENT: Mapping[str, Any] = {
+    "protocol": "refspec-atlas-model-input-v1",
+    "sourceLabel": "energy policy",
+    "sourceMember": SOURCE_MEMBER,
+    "targetLabel": "energy policy",
+    "targetMember": TARGET_MEMBER,
+}
+INPUT_DIGEST = binding.canonical_sha256(dict(INPUT_CONTEXT_CONTENT))
+
+
+def _input_context() -> CrosswalkArtifact:
+    return CrosswalkArtifact.create(
+        role="inputContext",
+        media_type="application/json",
+        content=INPUT_CONTEXT_CONTENT,
+    )
+
+
 def _candidate_and_artifacts() -> tuple[
     MappingCandidate,
     CrosswalkArtifact,
@@ -305,7 +323,7 @@ def _candidate_and_artifacts() -> tuple[
         model_id="atlas-generator",
         model_version="1",
         prompt_template="urn:test:atlas:prompt:v1",
-        input_context_digest=SHA_A,
+        input_context_digest=INPUT_DIGEST,
         temperature="0",
         evidence=[evidence.reference()],
         generated_at="2026-07-31T18:00:00Z",
@@ -316,7 +334,7 @@ def _candidate_and_artifacts() -> tuple[
         media_type="application/json",
         content={
             "candidate": candidate.reference(),
-            "inputDigest": SHA_A,
+            "inputDigest": INPUT_DIGEST,
             "protocol": "refspec-atlas-machine-validation-v1",
         },
     )
@@ -338,7 +356,7 @@ def _response(
         media_type="application/json",
         content={
             "candidate": candidate.reference(),
-            "inputDigest": SHA_A,
+            "inputDigest": INPUT_DIGEST,
             "requestArtifact": request.reference(),
             "validatorActor": f"urn:test:atlas:validator:{suffix}",
             "provider": provider or f"urn:test:atlas:provider:{suffix}",
@@ -365,7 +383,7 @@ def _validation(
         independence_group=f"urn:test:atlas:group:{suffix}",
         provider=provider or f"urn:test:atlas:provider:{suffix}",
         provider_model_id=provider_model_id or f"provider-model-{suffix}",
-        sealed_input_digest=SHA_A,
+        sealed_input_digest=INPUT_DIGEST,
         request_artifact=request.reference(),
         response_artifact=response.reference(),
         deterministic_checks_passed=True,
@@ -421,7 +439,7 @@ def _qualified_bundle(
         ),
     )
     return CrosswalkBundle.create(
-        artifacts=(evidence, request, response_a, response_b),
+        artifacts=(_input_context(), evidence, request, response_a, response_b),
         mapping_candidates=(candidate,),
         machine_validations=validations,
     )
@@ -695,7 +713,7 @@ def test_machine_response_must_match_the_declared_validator_result() -> None:
         media_type="application/json",
         content={
             "candidate": candidate.reference(),
-            "inputDigest": SHA_A,
+            "inputDigest": INPUT_DIGEST,
             "requestArtifact": request.reference(),
             "validatorActor": "urn:test:atlas:validator:a",
             "provider": "urn:test:atlas:provider:a",
@@ -711,7 +729,7 @@ def test_machine_response_must_match_the_declared_validator_result() -> None:
 
     with pytest.raises(VocabularyAtlasError, match="response does not seal"):
         CrosswalkBundle.create(
-            artifacts=(evidence, request, contradictory, response_b),
+            artifacts=(_input_context(), evidence, request, contradictory, response_b),
             mapping_candidates=(candidate,),
             machine_validations=validations,
         )
@@ -743,6 +761,123 @@ def test_feedback_is_append_only_and_does_not_change_eligibility(tmp_path: Path)
     assert VocabularyAtlasQueries(after).feedback_ids() == (feedback.identifier,)
     with pytest.raises(VocabularyAtlasError, match="already present"):
         extended.with_feedback(feedback)
+
+
+def test_candidate_input_context_bytes_must_exist_in_the_bundle() -> None:
+    """The probe made permanent: a cited input context whose bytes are nowhere.
+
+    Before this refusal a candidate could reach ``searchOnly`` while naming a
+    sealed input no reader could ever obtain, so the two-machine gate proved
+    only that three records agreed on a string.
+    """
+
+    evidence = CrosswalkArtifact.create(
+        role="evidence",
+        media_type="application/json",
+        content={"method": "sealed-label-comparison", "version": "1"},
+    )
+    candidate = MappingCandidate.create(
+        source_member=SOURCE_MEMBER,
+        source_release=SOURCE_RELEASE,
+        target_member=TARGET_MEMBER,
+        target_release=TARGET_RELEASE,
+        proposed_relation="http://www.w3.org/2004/02/skos/core#closeMatch",
+        generator_kind="aiAgent",
+        generator_actor="urn:test:atlas:generator",
+        generator_provider="urn:test:atlas:provider:generator",
+        model_id="atlas-generator",
+        model_version="1",
+        prompt_template="urn:test:atlas:prompt:v1",
+        input_context_digest=SHA_A,
+        temperature="0",
+        evidence=[evidence.reference()],
+        generated_at="2026-07-31T18:00:00Z",
+        seed=7,
+    )
+    request = CrosswalkArtifact.create(
+        role="validationRequest",
+        media_type="application/json",
+        content={
+            "candidate": candidate.reference(),
+            "inputDigest": INPUT_DIGEST,
+            "protocol": "refspec-atlas-machine-validation-v1",
+        },
+    )
+    response_a = _response(candidate, request, suffix="a")
+    response_b = _response(candidate, request, suffix="b")
+    validations = (
+        _validation(candidate, request, response_a, suffix="a"),
+        _validation(candidate, request, response_b, suffix="b"),
+    )
+
+    with pytest.raises(VocabularyAtlasError, match="input context"):
+        CrosswalkBundle.create(
+            artifacts=(evidence, request, response_a, response_b),
+            mapping_candidates=(candidate,),
+            machine_validations=validations,
+        )
+
+
+def test_input_context_artifact_must_digest_to_the_declared_input() -> None:
+    """Naming an artifact is not enough; its bytes must produce the digest."""
+
+    impostor = CrosswalkArtifact.create(
+        role="inputContext",
+        media_type="application/json",
+        content={"sourceLabel": "wrong", "targetLabel": "wrong"},
+    )
+    candidate, evidence, request, response_a, response_b = _candidate_and_artifacts()
+    validations = (
+        _validation(candidate, request, response_a, suffix="a"),
+        _validation(candidate, request, response_b, suffix="b"),
+    )
+
+    with pytest.raises(VocabularyAtlasError, match="input context"):
+        CrosswalkBundle.create(
+            artifacts=(impostor, evidence, request, response_a, response_b),
+            mapping_candidates=(candidate,),
+            machine_validations=validations,
+        )
+
+
+def test_input_context_is_a_supported_artifact_role() -> None:
+    context = CrosswalkArtifact.create(
+        role="inputContext",
+        media_type="application/json",
+        content={"sourceLabel": "energy policy", "targetLabel": "energy policy"},
+    )
+
+    assert context.role == "inputContext"
+    assert context.content_digest == binding.canonical_sha256(
+        {"sourceLabel": "energy policy", "targetLabel": "energy policy"}
+    )
+
+
+def test_qualified_bundle_projects_a_resolvable_input_context(tmp_path: Path) -> None:
+    """The published graph carries the link a consumer needs to resolve."""
+
+    bundle = _qualified_bundle()
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalk=bundle,
+    )
+    dataset = Dataset()
+    dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
+    analysis_id = next(
+        graph["id"]
+        for graph in asset.manifest["graphs"]
+        if graph["role"] == "analysis"
+    )
+    analysis = dataset.graph(URIRef(analysis_id))
+
+    candidates = list(analysis.subjects(RDF.type, ATLAS.MappingCandidate))
+    assert len(candidates) == 1
+    context = list(analysis.objects(candidates[0], ATLAS.inputContextArtifact))
+    assert len(context) == 1
+    assert (context[0], ATLAS.artifactRole, Literal("inputContext")) in analysis
+    declared = list(analysis.objects(candidates[0], ATLAS.inputContextDigest))
+    assert list(analysis.objects(context[0], ATLAS.contentDigest)) == declared
 
 
 def test_crosswalk_references_must_close_against_bundled_artifacts() -> None:

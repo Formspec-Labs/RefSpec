@@ -4,9 +4,11 @@ RULESPEC_DIR ?= ../../rulespec
 
 generate:
 	python3 tools/generate_model.py
+	uv run python tools/generate_atlas_conformance_fixtures.py --write
 
 check-generated:
 	python3 tools/generate_model.py --check
+	uv run python tools/generate_atlas_conformance_fixtures.py
 
 test: check-generated test-json-binding test-package
 
