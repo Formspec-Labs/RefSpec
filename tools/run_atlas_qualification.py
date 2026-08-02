@@ -133,7 +133,9 @@ def command_extract(args: argparse.Namespace) -> int:
                 "conceptCount": len(concepts),
                 "language": args.language,
                 "manifestDigest": digest,
-                "manifestPath": str(path),
+                # The name, never the absolute path: the digest is the identity,
+                # and the research archive strips machine-local paths anyway.
+                "manifestName": path.name,
                 "publicationReleaseId": view.release_id,
                 "referenceRelease": release_iri or min({concept.release for concept in concepts}),
                 "role": role,
