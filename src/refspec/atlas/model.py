@@ -95,6 +95,11 @@ _POLICIES = MappingProxyType(
 # producers compute the closed release digest locally instead of executing a
 # Rulespec checkout. A reader whose bytes could change without changing the
 # atlas identifier would leave that calculation unpinned.
+#
+# The list is import-closed over those readers: whatever a pinned module
+# imports is pinned too. `registry/controlled_identifier.py` is here for that
+# reason and no other — the ICPSR reader imports it, and it is what extracts
+# the codes and term IRIs that become `skos:notation` and every concept IRI.
 _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/__init__.py",
     "atlas/federal_register.py",
@@ -105,6 +110,7 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "generated_rulespec_dependency.py",
     "immutable.py",
     "managed_release.py",
+    "registry/controlled_identifier.py",
     "registry/federal_register_thesaurus.py",
     "registry/federal_register_thesaurus_2025.py",
     "registry/federal_register_thesaurus_2025_managed_release.py",

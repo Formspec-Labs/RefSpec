@@ -87,7 +87,13 @@ def _detected_input_format(manifest_path: str) -> str:
         return MANAGED_BUNDLE_FORMAT
     if not isinstance(manifest, dict):
         return MANAGED_BUNDLE_FORMAT
-    return _SPECIALIZED_FORMATS_BY_MANIFEST_TYPE.get(manifest.get("type"), MANAGED_BUNDLE_FORMAT)
+    declared = manifest.get("type")
+    # A declared type that is not even a string is one of the "every other
+    # shape" cases above, so it routes generically. Looking it up directly
+    # would raise on an unhashable value instead.
+    if not isinstance(declared, str):
+        return MANAGED_BUNDLE_FORMAT
+    return _SPECIALIZED_FORMATS_BY_MANIFEST_TYPE.get(declared, MANAGED_BUNDLE_FORMAT)
 
 
 def open_release(

@@ -58,6 +58,7 @@ from refspec.managed_release import (
 from refspec.registry.icpsr_managed_release import (
     ALTERNATE_LABEL_IRI,
     MANAGED_RELEASE_VERSION,
+    PARSER_VERSION,
     PREFERRED_LABEL_IRI,
     SCOPE_NOTE_IRI,
     IcpsrManagedReleaseError,
@@ -70,18 +71,21 @@ from refspec.registry.icpsr_subject import (
 from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json
 
-from .model import ATLAS, VocabularyAtlasError, closed_reference_release_digest
+from .model import (
+    ATLAS,
+    VocabularyAtlasError,
+    _require_digest,
+    _require_iri,
+    closed_reference_release_digest,
+)
 
 ICPSR_MANAGED_RELEASE_MANIFEST_TYPE = "urn:ref:type:IcpsrManagedReleaseManifest"
+ICPSR_MANAGED_RELEASE_IRI_PREFIX = "urn:ref:icpsr:managed-release:"
 ICPSR_RELEASE_IRI_PREFIX = "urn:ref:icpsr:release:development:"
 ICPSR_RULESPEC_GRAPH_IRI_PREFIX = "urn:ref:icpsr:rulespec-graph:development:"
 ICPSR_XML_DISTRIBUTION_IRI_PREFIX = "urn:ref:icpsr:distribution:subject-xml:"
 ICPSR_INDEX_DISTRIBUTION_IRI_PREFIX = "urn:ref:icpsr:distribution:public-index:"
 ICPSR_CONCEPT_RELATION_IRI_PREFIX = "urn:ref:icpsr:concept-relation:"
-
-#: The ICPSR scheme carries no publisher-stated label of its own in either
-#: source view, so the atlas states the publisher's own name for the resource.
-ICPSR_SUBJECT_SCHEME_LABEL = "ICPSR Subject Thesaurus"
 
 #: ISO 25964 USE/UF between two published term URIs. SKOS cannot express it
 #: without fusing the two identities, so RefSpec owns the spelling and says so.
@@ -135,6 +139,19 @@ _LABEL_PROPERTY_IRIS = MappingProxyType(
         "alternate": ALTERNATE_LABEL_IRI,
     }
 )
+_LABEL_ROLE_BY_PROPERTY = MappingProxyType({value: key for key, value in _LABEL_PROPERTY_IRIS.items()})
+#: The release states a role on every indexed expression alongside its semantic
+#: property. Both are copied only after they are checked against each other, so
+#: two readers of one bundle cannot disagree about what a literal is.
+_EXPRESSION_PROPERTY_BY_ROLE = MappingProxyType(
+    {
+        "preferredLabel": PREFERRED_LABEL_IRI,
+        "alternateLabel": ALTERNATE_LABEL_IRI,
+        "scopeNote": SCOPE_NOTE_IRI,
+    }
+)
+_EXPRESSION_IRI_PREFIX = "urn:ref:icpsr:indexed-expression:"
+_LANGUAGE_TAG = "en"
 _HIERARCHY_PROPERTY_IRIS = frozenset({_SKOS_BROADER, _SKOS_NARROWER})
 
 
@@ -255,13 +272,23 @@ def _verified_package(
     manifest = view.manifest
     coverage = view.coverage
     release = _require_mapping(manifest.get("release"), "ICPSR release pin")
-    counts = _require_mapping(manifest.get("counts"), "ICPSR release counts")
+    sources = _require_mapping(manifest.get("sources"), "ICPSR sources")
     if (
         manifest.get("type") != ICPSR_MANAGED_RELEASE_MANIFEST_TYPE
         or manifest.get("version") != MANAGED_RELEASE_VERSION
+        or manifest.get("parserVersion") != PARSER_VERSION
         or release.get("schemeIri") != ICPSR_SUBJECT_SCHEME_IRI
     ):
         raise VocabularyAtlasError("ICPSR managed-release identity differs from the URI-verified package")
+    # The Federal Register adapter pins one constant source digest, because
+    # that package is one published edition. ICPSR is not: it is a development
+    # release over a capture that will be taken again, and its release IRI is
+    # derived from the digests of the bytes it actually read. So the binding
+    # here is per-bundle rather than to a constant — `_require_release_scope`
+    # proves the identifier came from these exact sources, which is what stops
+    # a bundle from claiming one capture's identity while packaging another.
+    _require_digest(sources.get("xmlDigest"), "ICPSR subject.xml digest")
+    _require_digest(sources.get("indexCaptureDigest"), "ICPSR index capture digest")
     # The bundle declares itself development-only. Requiring the declaration
     # here is what stops a differently-marked bundle from riding in on this
     # reader; the projection then republishes it rather than dropping it.
@@ -274,28 +301,85 @@ def _verified_package(
         or coverage.get("candidateLookupAllowed") is not True
     ):
         raise VocabularyAtlasError("ICPSR managed release must declare development-only candidate lookup")
-    if coverage.get("membershipCompleteForVerifiedSubset") is not True:
-        raise VocabularyAtlasError("ICPSR managed release does not enumerate its verified subset completely")
-    if counts.get("concepts") != len(view.concepts) or counts.get("indexedExpressions") != len(
-        view.indexed_expressions
+    if (
+        coverage.get("membershipCompleteForVerifiedSubset") is not True
+        or coverage.get("sourceVocabularyComplete") is not False
     ):
-        raise VocabularyAtlasError("ICPSR managed-release counts differ from its records")
+        raise VocabularyAtlasError("ICPSR managed release does not enumerate its verified subset completely")
     if not view.concepts:
         raise VocabularyAtlasError("ICPSR managed release has no members")
+    _require_release_scope(manifest)
+    _require_coverage_agrees(view)
     return view
 
 
-def _release_scope(view: IcpsrManagedReleaseView) -> str:
-    """Return the content-derived scope shared by every identifier it minted."""
+def _require_release_scope(manifest: Mapping[str, Any]) -> str:
+    """Prove the release identifier was derived from the sources it names.
 
-    release = _require_mapping(view.manifest.get("release"), "ICPSR release pin")
-    release_iri = _require_text(release.get("id"), "ICPSR reference release IRI")
-    if not release_iri.startswith(ICPSR_RELEASE_IRI_PREFIX):
-        raise VocabularyAtlasError("ICPSR reference release IRI is not a development release")
-    scope = release_iri.removeprefix(ICPSR_RELEASE_IRI_PREFIX)
-    if len(scope) != 64 or any(character not in "0123456789abcdef" for character in scope):
-        raise VocabularyAtlasError("ICPSR reference release IRI lacks its content-derived scope")
-    return scope
+    The builder mints the scope from the two source digests and the policy
+    version, and every one of those is in the manifest this reader already
+    verified. Without recomputing it, a bundle could mint a release IRI — and
+    through it both distribution IRIs — from a scope unrelated to its own
+    bytes, and the projection would publish that as identity.
+    """
+
+    release = _require_mapping(manifest.get("release"), "ICPSR release pin")
+    sources = _require_mapping(manifest.get("sources"), "ICPSR sources")
+    expected = hashlib.sha256(
+        canonical_json(
+            {
+                "indexCapture": sources.get("indexCaptureDigest"),
+                "policy": MANAGED_RELEASE_VERSION,
+                "xml": sources.get("xmlDigest"),
+            }
+        ).encode("utf-8")
+    ).hexdigest()
+    release_iri = _require_iri(release.get("id"), "ICPSR reference release IRI")
+    if release_iri != ICPSR_RELEASE_IRI_PREFIX + expected:
+        raise VocabularyAtlasError("ICPSR release identifier is not derived from its own source digests")
+    if manifest.get("id") != ICPSR_MANAGED_RELEASE_IRI_PREFIX + expected:
+        raise VocabularyAtlasError("ICPSR publication release identifier is not derived from its own source digests")
+    return expected
+
+
+def _require_coverage_agrees(view: IcpsrManagedReleaseView) -> None:
+    """Reconcile the records against the sealed coverage report they claim.
+
+    ``IcpsrManagedReleaseView`` already ties the manifest counts to the record
+    files, so repeating that adds nothing. What it never checks is whether the
+    records agree with the coverage report the same manifest pins by digest —
+    so a bundle whose ``concepts.jsonl`` silently omitted half its resolved
+    relations would still pass while its coverage still reported all of them.
+    """
+
+    coverage = view.coverage
+    source_counts = _require_mapping(coverage.get("sourceCounts"), "ICPSR coverage source counts")
+    relation_coverage = _require_mapping(coverage.get("relationCoverage"), "ICPSR relation coverage")
+    gaps = _require_mapping(coverage.get("gaps"), "ICPSR coverage gaps")
+    if source_counts.get("uriVerifiedJoins") != len(view.concepts):
+        raise VocabularyAtlasError("ICPSR coverage reports a different verified member count")
+    if relation_coverage.get("failedCount") != 0:
+        raise VocabularyAtlasError("ICPSR coverage reports a failed relation")
+
+    observed = 0
+    resolved = 0
+    for concept in view.concepts:
+        relations = concept.get("relations")
+        if not isinstance(relations, Sequence) or isinstance(relations, (str, bytes)):
+            raise VocabularyAtlasError("ICPSR concept relations must be an array")
+        observed += len(relations)
+        resolved += sum(
+            1
+            for relation in relations
+            if isinstance(relation, Mapping) and relation.get("resolutionStatus") == "uriVerified"
+        )
+    if relation_coverage.get("sourceObservedCount") != observed or relation_coverage.get("uriResolvedCount") != resolved:
+        raise VocabularyAtlasError("ICPSR coverage relation counts differ from the packaged concept records")
+    if (
+        relation_coverage.get("explicitlyExcludedCount") != observed - resolved
+        or gaps.get("unresolvedRelationCount") != observed - resolved
+    ):
+        raise VocabularyAtlasError("ICPSR coverage does not account for every unresolved relation")
 
 
 def _distribution_nodes(view: IcpsrManagedReleaseView, *, scope: str) -> tuple[list[dict[str, Any]], list[str]]:
@@ -310,7 +394,10 @@ def _distribution_nodes(view: IcpsrManagedReleaseView, *, scope: str) -> tuple[l
             _RDF_TYPE: _RKAF + "Artifact",
             _ARTIFACT_IDENTIFIER: ICPSR_SUBJECT_SCHEME_IRI,
             _DCTERMS_FORMAT: "text/html",
-            _CONTENT_DIGEST: _require_text(
+            # Digest shape is required, not merely non-blank: these two values
+            # are hashed into the closed release digest, so free text would
+            # become identity.
+            _CONTENT_DIGEST: _require_digest(
                 sources.get("indexCaptureDigest"),
                 "ICPSR index capture digest",
             ),
@@ -320,7 +407,7 @@ def _distribution_nodes(view: IcpsrManagedReleaseView, *, scope: str) -> tuple[l
             _RDF_TYPE: _RKAF + "Artifact",
             _ARTIFACT_IDENTIFIER: ICPSR_SUBJECT_XML_URL,
             _DCTERMS_FORMAT: "application/xml",
-            _CONTENT_DIGEST: _require_text(sources.get("xmlDigest"), "ICPSR subject.xml digest"),
+            _CONTENT_DIGEST: _require_digest(sources.get("xmlDigest"), "ICPSR subject.xml digest"),
         },
     ]
     return nodes, sorted((index_iri, xml_iri))
@@ -382,11 +469,14 @@ def _concept_projection(
             target = _require_text(entry.get("targetConceptIri"), "ICPSR relation target")
             if target not in concept_by_iri:
                 raise VocabularyAtlasError("ICPSR relation endpoint is outside the release")
-            stated[_RELATION_PROPERTY_IRIS[cast(str, kind)]][target] = _require_text(
-                entry.get("targetLabel"),
-                "ICPSR relation target label",
-            )
-        source_path = f"subject.xml#record={row.get('sourceLocalRecordNumber')}"
+            target_label = _require_text(entry.get("targetLabel"), "ICPSR relation target label")
+            predicate_iri = _RELATION_PROPERTY_IRIS[cast(str, kind)]
+            if stated[predicate_iri].setdefault(target, target_label) != target_label:
+                raise VocabularyAtlasError("ICPSR states one relation through two different target labels")
+        source_path = "subject.xml#record=" + _require_text(
+            row.get("sourceLocalRecordNumber"),
+            "ICPSR source record number",
+        )
         for predicate_iri, targets in sorted(stated.items()):
             node[predicate_iri] = [_iri(target) for target in sorted(targets)]
             if predicate_iri not in _HIERARCHY_PROPERTY_IRIS:
@@ -421,19 +511,36 @@ def _concept_projection(
     return nodes, members, relations
 
 
+def _stated_texts(view: IcpsrManagedReleaseView) -> set[tuple[str, str, str]]:
+    """Return every ``(member, property, literal)`` the concept records state.
+
+    The bundle carries concepts and indexed expressions as two files, and
+    nothing in the reader ties one to the other. Without this set the atlas
+    could publish a graph saying one thing while its label clusters and
+    crosswalk candidates — both built from expressions — indexed another.
+    """
+
+    stated: set[tuple[str, str, str]] = set()
+    for row in view.concepts:
+        member_iri = cast(str, row["conceptIri"])
+        role = cast(str, row["officialLabelRole"])
+        stated.add((member_iri, _LABEL_PROPERTY_IRIS[role], cast(str, row["officialLabel"])))
+        for note in cast(Sequence[str], row["scopeNotes"]):
+            stated.add((member_iri, SCOPE_NOTE_IRI, note))
+    return stated
+
+
 def _expressions(
     view: IcpsrManagedReleaseView,
     *,
+    release_iri: str,
     members: Mapping[str, ManagedReleaseMember],
 ) -> tuple[ManagedReleaseExpression, ...]:
     """Copy the release's own indexed expressions without adding any."""
 
-    label_role_by_property = {
-        PREFERRED_LABEL_IRI: "preferred",
-        ALTERNATE_LABEL_IRI: "alternate",
-    }
     result: list[ManagedReleaseExpression] = []
     seen: set[str] = set()
+    observed: set[tuple[str, str, str]] = set()
     for row in view.indexed_expressions:
         expression_id = _require_text(row.get("id"), "ICPSR indexed expression id")
         member_iri = _require_text(row.get("memberIri"), "ICPSR indexed expression member")
@@ -443,36 +550,58 @@ def _expressions(
             raise VocabularyAtlasError("ICPSR indexed expression has no exact member")
         seen.add(expression_id)
         property_iri = _require_text(row.get("semanticPropertyIri"), "ICPSR indexed expression property")
-        if property_iri not in {PREFERRED_LABEL_IRI, ALTERNATE_LABEL_IRI, SCOPE_NOTE_IRI}:
-            raise VocabularyAtlasError("ICPSR indexed expression uses an unsupported property")
+        role = row.get("role")
+        if _EXPRESSION_PROPERTY_BY_ROLE.get(cast(str, role)) != property_iri:
+            raise VocabularyAtlasError("ICPSR indexed expression role and semantic property disagree")
+        literal = _require_text(row.get("originalLiteral"), "ICPSR original literal")
+        source_path = _require_text(row.get("sourcePath"), "ICPSR expression source path")
+        language = _require_text(row.get("language"), "ICPSR expression language")
+        if language != _LANGUAGE_TAG:
+            raise VocabularyAtlasError("ICPSR indexed expression is not in the language the release projects")
+        # The release derives the identifier from exactly these fields, so
+        # recomputing it binds the expression to the member, property, and
+        # literal it claims instead of taking its word for them.
+        identity = canonical_json(
+            {
+                "language": language,
+                "literal": literal,
+                "member": member_iri,
+                "release": release_iri,
+                "semanticProperty": property_iri,
+                "sourcePath": source_path,
+            }
+        ).encode("utf-8")
+        if expression_id != _EXPRESSION_IRI_PREFIX + hashlib.sha256(identity).hexdigest():
+            raise VocabularyAtlasError("ICPSR indexed expression identifier is not derived from its own facts")
+        observed.add((member_iri, property_iri, literal))
         result.append(
             ManagedReleaseExpression(
                 expression_id=expression_id,
                 member_iri=member_iri,
                 indexed_text=_require_text(row.get("indexedText"), "ICPSR indexed text"),
-                original_literal=_require_text(row.get("originalLiteral"), "ICPSR original literal"),
-                language_tag=_require_text(row.get("language"), "ICPSR expression language"),
+                original_literal=literal,
+                language_tag=language,
                 semantic_property_iri=property_iri,
-                source_property_or_path=_require_text(row.get("sourcePath"), "ICPSR expression source path"),
+                source_property_or_path=source_path,
                 record=cast(
                     Mapping[str, Any],
-                    deep_freeze_json(
-                        {
-                            "role": row.get("role"),
-                            "sourcePath": row.get("sourcePath"),
-                        }
-                    ),
+                    deep_freeze_json({"role": role, "sourcePath": source_path}),
                 ),
-                label_role=label_role_by_property.get(property_iri),
-                source_status="active",
+                label_role=_LABEL_ROLE_BY_PROPERTY.get(property_iri),
+                # ICPSR states no lifecycle status for any term, so the honest
+                # value is that none was declared. It is not a retired status,
+                # so a consumer filtering retired terms keeps every one.
+                source_status="notDeclared",
             )
         )
+    if observed != _stated_texts(view):
+        raise VocabularyAtlasError("ICPSR indexed expressions and concept records state different text")
     return tuple(sorted(result, key=lambda item: item.expression_id))
 
 
 def _project_view(view: IcpsrManagedReleaseView) -> IcpsrSubjectAtlasView:
-    scope = _release_scope(view)
     manifest = view.manifest
+    scope = _require_release_scope(manifest)
     release_iri = ICPSR_RELEASE_IRI_PREFIX + scope
     graph_iri = ICPSR_RULESPEC_GRAPH_IRI_PREFIX + scope
     distribution_nodes, distribution_iris = _distribution_nodes(view, scope=scope)
@@ -500,10 +629,13 @@ def _project_view(view: IcpsrManagedReleaseView) -> IcpsrSubjectAtlasView:
     }
     graph: dict[str, Any] = {
         "@graph": [
+            # The scheme node carries a type and nothing else. Neither source
+            # view states a label for the scheme itself, and `releaseFacts` is
+            # `copiedManagedReleaseFactsOnly`, so naming the thesaurus here
+            # would be this projection's own assertion rather than ICPSR's.
             {
                 "@id": ICPSR_SUBJECT_SCHEME_IRI,
                 _RDF_TYPE: _RKAF + "ConceptScheme",
-                PREFERRED_LABEL_IRI: _language_literal(ICPSR_SUBJECT_SCHEME_LABEL),
             },
             *distribution_nodes,
             *concept_nodes,
@@ -516,12 +648,12 @@ def _project_view(view: IcpsrManagedReleaseView) -> IcpsrSubjectAtlasView:
         label="ICPSR",
     )
     return IcpsrSubjectAtlasView(
-        _publication_id=_require_text(manifest.get("id"), "ICPSR publication release id"),
+        _publication_id=_require_iri(manifest.get("id"), "ICPSR publication release id"),
         _reference_release_iri=release_iri,
         _rulespec_graph_id=graph_iri,
         _graph=cast(Mapping[str, Any], deep_freeze_json(graph)),
         _members=MappingProxyType(dict(members)),
-        _expressions=_expressions(view, members=members),
+        _expressions=_expressions(view, release_iri=release_iri, members=members),
         _relations=tuple(sorted(relations, key=lambda item: item.relation_id)),
     )
 
@@ -578,10 +710,10 @@ class PinnedIcpsrSubjectAtlasRelease:
 __all__ = [
     "ICPSR_CONCEPT_RELATION_IRI_PREFIX",
     "ICPSR_INDEX_DISTRIBUTION_IRI_PREFIX",
+    "ICPSR_MANAGED_RELEASE_IRI_PREFIX",
     "ICPSR_MANAGED_RELEASE_MANIFEST_TYPE",
     "ICPSR_RELEASE_IRI_PREFIX",
     "ICPSR_RULESPEC_GRAPH_IRI_PREFIX",
-    "ICPSR_SUBJECT_SCHEME_LABEL",
     "ICPSR_USED_FOR_PROPERTY_IRI",
     "ICPSR_USE_PROPERTY_IRI",
     "ICPSR_XML_DISTRIBUTION_IRI_PREFIX",

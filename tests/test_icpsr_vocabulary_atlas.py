@@ -10,6 +10,7 @@ import pytest
 from rdflib import Dataset, Literal, URIRef
 from rdflib.namespace import PROV, RDF, SKOS
 
+import refspec.atlas.cli as atlas_cli
 import refspec.atlas.model as atlas_model
 from refspec.atlas import (
     ATLAS,
@@ -21,6 +22,7 @@ from refspec.atlas import (
     build_vocabulary_atlas,
 )
 from refspec.atlas.cli import main as atlas_main
+from refspec.atlas.icpsr import ICPSR_RELEASE_IRI_PREFIX
 from refspec.atlas.queries import VocabularyAtlasQueries
 from refspec.managed_release import ManagedReleaseError
 from refspec.registry.icpsr_managed_release import (
@@ -238,6 +240,81 @@ def test_adapter_refuses_a_bundle_that_drops_its_development_marker(tmp_path: Pa
         )
 
 
+def _reseal(record: dict[str, object]) -> dict[str, object]:
+    unsealed = {key: value for key, value in record.items() if key != "canonicalPayloadDigest"}
+    digest = hashlib.sha256(canonical_json(unsealed).encode("utf-8")).hexdigest()
+    return {**unsealed, "canonicalPayloadDigest": "sha256:" + digest}
+
+
+def _forge(root: Path, relative: str, payload: bytes) -> None:
+    """Rewrite one packaged artifact and re-seal the manifest around it.
+
+    A bundle nobody can forge is a bundle whose checks are untested. This
+    produces the shape an adversary would: internally consistent digests and a
+    valid seal, differing only in the fact under test.
+    """
+
+    manifest_path = root / "managed-release.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    (root / relative).write_bytes(payload)
+    manifest["artifacts"] = [
+        (
+            {
+                **descriptor,
+                "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                "byteLength": len(payload),
+            }
+            if descriptor["path"] == relative
+            else descriptor
+        )
+        for descriptor in manifest["artifacts"]
+    ]
+    manifest_path.write_text(canonical_json(_reseal(manifest)) + "\n", encoding="utf-8")
+
+
+def test_adapter_refuses_a_release_identifier_its_own_sources_did_not_derive(tmp_path: Path) -> None:
+    manifest_path = _fixture_package(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["release"] = {**manifest["release"], "id": ICPSR_RELEASE_IRI_PREFIX + "0" * 64}
+    manifest_path.write_text(canonical_json(_reseal(manifest)) + "\n", encoding="utf-8")
+
+    with pytest.raises(VocabularyAtlasError, match="not derived from its own source digests"):
+        PinnedIcpsrSubjectAtlasRelease.open(
+            manifest_path,
+            expected_manifest_digest=_file_digest(manifest_path),
+        )
+
+
+def test_adapter_refuses_records_and_expressions_that_state_different_text(tmp_path: Path) -> None:
+    manifest_path = _fixture_package(tmp_path)
+    root = manifest_path.parent
+    concepts = [json.loads(line) for line in (root / "records/concepts.jsonl").read_bytes().splitlines()]
+    # The concept rows now claim a label no indexed expression carries, and the
+    # expressions carry one no concept row claims. Every digest still agrees.
+    concepts[0]["officialLabel"] = "forged label"
+    _forge(
+        root,
+        "records/concepts.jsonl",
+        b"".join(canonical_json(row).encode("utf-8") + b"\n" for row in concepts),
+    )
+
+    source = PinnedIcpsrSubjectAtlasRelease.open(
+        manifest_path,
+        expected_manifest_digest=_file_digest(manifest_path),
+    )
+    with pytest.raises(VocabularyAtlasError, match="state different text"):
+        source.verified_view()
+    with pytest.raises(VocabularyAtlasError, match="state different text"):
+        build_vocabulary_atlas((source,), rulespec_core=_core_release(tmp_path))
+
+
+def test_advertised_command_routes_a_non_string_manifest_type_generically(tmp_path: Path) -> None:
+    unreadable = tmp_path / "manifest.json"
+    unreadable.write_text(json.dumps({"type": ["not", "a", "string"]}), encoding="utf-8")
+
+    assert atlas_cli._detected_input_format(str(unreadable)) == atlas_cli.MANAGED_BUNDLE_FORMAT
+
+
 def test_adapter_refuses_a_manifest_whose_pinned_bytes_differ(tmp_path: Path) -> None:
     manifest_path = _fixture_package(tmp_path)
 
@@ -298,8 +375,12 @@ def test_generation_identity_pins_the_icpsr_reader_and_its_drift(
 ) -> None:
     original = atlas_model._implementation_pin()
     modules = {row["path"]: row["digest"] for row in original["sourceModules"]}
+    # Import-closed over the ICPSR reader: `controlled_identifier` is what
+    # extracts the codes and term IRIs that become every concept IRI, so
+    # leaving it out would let those change without changing the atlas id.
     required = {
         "refspec/atlas/icpsr.py",
+        "refspec/registry/controlled_identifier.py",
         "refspec/registry/icpsr_managed_release.py",
         "refspec/registry/icpsr_subject.py",
     }
@@ -353,7 +434,9 @@ def test_exact_2026_07_30_capture_reaches_the_atlas_with_its_measured_facts(
     assert len(set(graph.subject_objects(SKOS.narrower))) == 1_759
     assert len(set(graph.subject_objects(SKOS.related))) == 14_360
     assert len(set(graph.subject_objects(SKOS.scopeNote))) == 730
-    assert len(set(graph.subject_objects(SKOS.prefLabel))) == 3_281
+    # Exactly the concepts' own labels: the scheme node states none, because
+    # neither ICPSR source view gives the thesaurus a label to copy.
+    assert len(set(graph.subject_objects(SKOS.prefLabel))) == 3_280
     assert len(set(graph.subject_objects(SKOS.altLabel))) == 480
     # ISO 25964 USE/UF is not reciprocal in this source, which is the reason
     # neither direction may be collapsed into an alternate label.
