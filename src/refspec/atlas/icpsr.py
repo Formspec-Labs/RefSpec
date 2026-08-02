@@ -365,7 +365,7 @@ def _concept_projection(
         if scope_notes:
             node[SCOPE_NOTE_IRI] = [_language_literal(_require_text(note, "ICPSR scope note")) for note in scope_notes]
 
-        stated: dict[str, set[str]] = defaultdict(set)
+        stated: dict[str, dict[str, str]] = defaultdict(dict)
         source_relations = row.get("relations")
         if not isinstance(source_relations, Sequence) or isinstance(source_relations, (str, bytes)):
             raise VocabularyAtlasError("ICPSR concept relations must be an array")
@@ -382,7 +382,11 @@ def _concept_projection(
             target = _require_text(entry.get("targetConceptIri"), "ICPSR relation target")
             if target not in concept_by_iri:
                 raise VocabularyAtlasError("ICPSR relation endpoint is outside the release")
-            stated[_RELATION_PROPERTY_IRIS[cast(str, kind)]].add(target)
+            stated[_RELATION_PROPERTY_IRIS[cast(str, kind)]][target] = _require_text(
+                entry.get("targetLabel"),
+                "ICPSR relation target label",
+            )
+        source_path = f"subject.xml#record={row.get('sourceLocalRecordNumber')}"
         for predicate_iri, targets in sorted(stated.items()):
             node[predicate_iri] = [_iri(target) for target in sorted(targets)]
             if predicate_iri not in _HIERARCHY_PROPERTY_IRIS:
@@ -398,22 +402,13 @@ def _concept_projection(
                         Mapping[str, Any],
                         deep_freeze_json(
                             {
-                                "sourcePath": f"subject.xml#record={row.get('sourceLocalRecordNumber')}",
-                                "targetLabel": next(
-                                    (
-                                        entry.get("targetLabel")
-                                        for entry in cast(Sequence[Mapping[str, Any]], source_relations)
-                                        if entry.get("targetConceptIri") == target
-                                        and _RELATION_PROPERTY_IRIS.get(cast(str, entry.get("relation")))
-                                        == predicate_iri
-                                    ),
-                                    None,
-                                ),
+                                "sourcePath": source_path,
+                                "targetLabel": target_label,
                             }
                         ),
                     ),
                 )
-                for target in sorted(targets)
+                for target, target_label in sorted(targets.items())
             )
 
         nodes.append(node)
