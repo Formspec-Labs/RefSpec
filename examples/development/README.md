@@ -8,6 +8,20 @@ Thesaurus concepts to distinct members of the Federal Register Thesaurus
 development release. Every edge is `skos:closeMatch`; preferred-label equality
 alone does not justify `skos:exactMatch`.
 
+> **This file is a reader example, not a pending integration.** Its
+> `targetRelease` is `urn:ref:fr-thesaurus-1995:release:1995-11-16-preview`,
+> and
+> [REF-012](../../docs/decisions.md#ref-012-do-not-pursue-the-1995-federal-register-thesaurus-edition)
+> settled that RefSpec will not publish that edition. Nothing breaks: the
+> bridge reader takes the target view as a parameter, and the test that opens
+> this file supplies a stub, so it never depended on a 1995 managed release
+> existing. What it cannot become is a real ICPSR-to-Federal-Register bridge.
+> Its seven edges are not recoverable by retargeting either — 1995 concept
+> identifiers have no 2025 counterparts to rename to, so a real bridge would be
+> a new artifact generated against the 2025 release. The path a product would
+> use is the atlas's qualified `searchOnly` mappings; no ICPSR crosswalk has
+> produced any yet.
+
 The selected artifact is pinned as
 `sha256:41b08a28a4bd13de7cd0dbd7929adf780768c2f394d44db50a9ea6f280011c52`.
 The offline bridge reader verifies this artifact and every target member. It

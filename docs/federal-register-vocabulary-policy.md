@@ -9,10 +9,16 @@ resources and use the balanced cross-domain path.
 
 - The exact NARA PDF, pinned by URL, issue date, byte length, page count, and
   SHA-256 digest.
-- The 1995 text edition, used only to build historical comparisons.
 - Current FederalRegister.gov Topics, captured separately with their source
   records and capture time.
 - Lists of Subjects literals with the exact source record and field location.
+
+The 1995 text edition is **not** an input.
+[REF-012](decisions.md#ref-012-do-not-pursue-the-1995-federal-register-thesaurus-edition)
+closed it: the edition is not needed and is not being pursued. Its reader, its
+development vertical slice, and its networked gate stay in the tree as
+historical regressions, and the sections below describe what they do rather
+than work this policy expects.
 
 ## What happens
 
@@ -21,15 +27,16 @@ as variants, `See` as a redirect, and `See also` as an associative reference.
 It records ambiguous redirects, bracketed open-term suggestions, unresolved
 references, and index anomalies rather than guessing.
 
-The 1995 reader preserves `xx` statements as historical document groupings.
-It never converts them to `skos:broader`. The 2025 publication contains no
-semantic hierarchy.
+The 2025 publication contains no semantic hierarchy.
 
-The crosswalk compares each 1995 preferred and alternate label with 2025
-official terms and publisher-authored variants. It classifies historical rows
-as unchanged, renamed, redirected, ambiguous, or removed, and identifies 2025
-terms with no incoming evidence as added. The crosswalk is analysis evidence;
-it does not assert concept identity or authorize candidate selection.
+The historical 1995 reader preserves `xx` statements as document groupings and
+never converts them to `skos:broader`, and the historical crosswalk compares
+each 1995 preferred and alternate label with 2025 official terms and
+publisher-authored variants, classifying rows as unchanged, renamed,
+redirected, ambiguous, or removed. Both are regressions over a withdrawn
+edition, not a step in the current pipeline. The crosswalk was analysis
+evidence; it never asserted concept identity or authorized candidate
+selection.
 
 ## What comes out
 
@@ -38,9 +45,11 @@ it does not assert concept identity or authorize candidate selection.
   literal to one official concept.
 - Associative relations, open-term suggestions, unresolved references, and
   source anomalies as separate records.
-- An evidence-backed 1995 to 2025 crosswalk.
 - Current API Topics as mutable source-assigned metadata, never merged into the
   managed thesaurus.
+
+The 1995-to-2025 crosswalk is not among them. It remains buildable by the
+historical gate and is not published by this policy.
 
 Lists of Subjects receive one explicit result:
 
