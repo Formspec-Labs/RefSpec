@@ -5,10 +5,12 @@ RULESPEC_DIR ?= ../../rulespec
 generate:
 	python3 tools/generate_model.py
 	uv run python tools/generate_atlas_conformance_fixtures.py --write
+	uv run python tools/generate_profile_portfolio.py --write
 
 check-generated:
 	python3 tools/generate_model.py --check
 	uv run python tools/generate_atlas_conformance_fixtures.py
+	uv run python tools/generate_profile_portfolio.py --check
 
 test: check-generated test-json-binding test-package
 

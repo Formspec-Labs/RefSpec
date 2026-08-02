@@ -51,6 +51,9 @@ BINDING_ROOT = ROOT / "bindings" / "atlas" / "1.0"
 FIXTURE_ROOT = BINDING_ROOT / "fixtures"
 CORPUS_PATH = FIXTURE_ROOT / "corpus.json"
 
+# Dated in-place amendments to binding 1.0, oldest first.
+AMENDMENTS = ("2026-08-02",)
+
 SOURCE_PUBLICATION = "urn:ref:conformance:alpha-thesaurus:2026"
 TARGET_PUBLICATION = "urn:ref:conformance:beta-thesaurus:2026"
 SOURCE_RELEASE = "urn:ref:conformance:alpha-thesaurus:2026:reference-resource-release"
@@ -662,6 +665,10 @@ def _corpus_entry(case: Mapping[str, Any], files: tuple[bytes, bytes]) -> dict[s
 
 def _corpus(generated: Mapping[str, tuple[bytes, bytes]]) -> dict[str, Any]:
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
+    # Binding 1.0 is amended in place, so published case digests can change
+    # under an unchanged version. A consumer pinning digests from an earlier
+    # 1.0 needs to tell the two apart without reading prose.
+    corpus["amendments"] = sorted({*corpus.get("amendments", []), *AMENDMENTS})
     owned = {case["directory"]: case for case in _CASES}
     cases = [case for case in corpus["cases"] if case["directory"] not in owned]
     cases.extend(

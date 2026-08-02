@@ -1,4 +1,7 @@
 {
+  "amendments": [
+    "2026-08-02"
+  ],
   "cases": [
     {
       "directory": "invalid/contradictory-eligibility",

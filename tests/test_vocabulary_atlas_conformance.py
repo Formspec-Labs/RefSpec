@@ -83,6 +83,22 @@ def test_generated_conformance_distributions_are_current() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_the_corpus_marks_in_place_amendments_machine_readably() -> None:
+    """1.0 is amended in place, so the version alone cannot date a pin.
+
+    Case digests changed under an unchanged binding version. Without a marker a
+    consumer holding earlier 1.0 digests can only discover the difference by
+    reading prose, which no reader does.
+    """
+
+    assert _CORPUS["amendments"] == ["2026-08-02"]
+    assert _CORPUS["schemaVersion"] == "refspec-vocabulary-atlas-conformance-corpus/v1"
+
+    readme = (_BINDING_ROOT / "README.md").read_text(encoding="utf-8")
+    for amendment in _CORPUS["amendments"]:
+        assert f"Amendment {amendment}" in readme
+
+
 def test_the_corpus_proves_the_qualification_path_can_pass() -> None:
     """A corpus of refusals says nothing about the gate a producer must pass.
 

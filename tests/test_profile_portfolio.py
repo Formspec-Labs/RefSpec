@@ -14,6 +14,7 @@ from refspec.profile_portfolio import (
     extract_spicy_regs_profiles,
     load_json,
     render_json,
+    resolve_revision_blob,
     validate_generated_atlas,
     validate_portfolio_input,
     validate_profile_snapshot,
@@ -70,6 +71,11 @@ def test_checked_in_snapshot_is_exact_deterministic_generation() -> None:
         repository=snapshot["source"]["repository"],  # type: ignore[index]
         revision=snapshot["source"]["revision"],  # type: ignore[index]
         path=snapshot["source"]["path"],  # type: ignore[index]
+        revision_blob=resolve_revision_blob(
+            SPICY_REGS_ROOT,
+            snapshot["source"]["revision"],  # type: ignore[index]
+            snapshot["source"]["path"],  # type: ignore[index]
+        ),
     )
 
     assert regenerated == snapshot
@@ -81,18 +87,70 @@ def test_regenerated_snapshot_pins_the_live_source_bytes() -> None:
 
     snapshot, _ = _inputs()
     source_path = SPICY_REGS_ROOT / snapshot["source"]["path"]  # type: ignore[index]
-    revision = "0" * 40
+    revision = snapshot["source"]["revision"]  # type: ignore[index]
 
     regenerated = build_profile_snapshot(
         source_path,
         repository="https://example.invalid/spicy-regs",
         revision=revision,
         path=snapshot["source"]["path"],  # type: ignore[index]
+        revision_blob=resolve_revision_blob(
+            SPICY_REGS_ROOT,
+            revision,
+            snapshot["source"]["path"],  # type: ignore[index]
+        ),
     )
 
     validate_profile_snapshot(regenerated, source_path=source_path)
     assert regenerated["source"]["revision"] == revision
     assert regenerated["profiles"] == extract_spicy_regs_profiles(source_path)
+
+
+def test_regeneration_refuses_a_revision_that_does_not_name_these_bytes() -> None:
+    """An unverified revision is a claim, and the claim is now checked.
+
+    ``revision`` used to sit unverified beside two machine-checked digests, so
+    any 40-hex string round-tripped into the sealed pin and the record could
+    name a commit that never held these bytes.
+    """
+
+    snapshot, _ = _inputs()
+    source_path = SPICY_REGS_ROOT / snapshot["source"]["path"]  # type: ignore[index]
+
+    with pytest.raises(PortfolioInventoryError, match="does not contain the pinned"):
+        build_profile_snapshot(
+            source_path,
+            repository="https://example.invalid/spicy-regs",
+            revision="0" * 40,
+            path=snapshot["source"]["path"],  # type: ignore[index]
+            revision_blob="1" * 40,
+        )
+
+
+def test_the_checked_in_revision_really_holds_the_pinned_bytes() -> None:
+    """Resolve the pin against the sibling checkout's own object database."""
+
+    snapshot, _ = _inputs()
+    source = snapshot["source"]  # type: ignore[index]
+
+    resolved = resolve_revision_blob(
+        SPICY_REGS_ROOT,
+        source["revision"],
+        source["path"],
+    )
+
+    assert resolved == source["gitBlob"]
+
+
+def test_revision_resolution_refuses_an_unknown_revision() -> None:
+    snapshot, _ = _inputs()
+
+    with pytest.raises(PortfolioInventoryError, match="cannot be resolved"):
+        resolve_revision_blob(
+            SPICY_REGS_ROOT,
+            "0" * 40,
+            snapshot["source"]["path"],  # type: ignore[index]
+        )
 
 
 def test_regeneration_refuses_a_revision_that_is_not_a_git_object() -> None:
@@ -105,6 +163,7 @@ def test_regeneration_refuses_a_revision_that_is_not_a_git_object() -> None:
             repository="https://example.invalid/spicy-regs",
             revision="HEAD",
             path=snapshot["source"]["path"],  # type: ignore[index]
+            revision_blob="1" * 40,
         )
 
 

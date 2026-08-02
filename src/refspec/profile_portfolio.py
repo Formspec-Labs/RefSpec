@@ -12,6 +12,7 @@ import ast
 import hashlib
 import json
 import re
+import subprocess
 from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
@@ -258,20 +259,65 @@ def _require_unique_strings(value: Any, location: str) -> list[str]:
     return value
 
 
+def resolve_revision_blob(repository_root: Path, revision: str, path: str) -> str:
+    """Ask the sibling checkout which blob it holds at ``revision:path``.
+
+    This is the one Git query RefSpec makes, and it reads nothing into the
+    snapshot: the pinned bytes still come from the working-tree file. It exists
+    only to check the operator's claim about where those bytes came from, so a
+    failure to resolve is a refusal rather than a silently unverified pin.
+    """
+
+    if not _GIT_OBJECT_PATTERN.fullmatch(str(revision)):
+        raise PortfolioInventoryError(
+            "source.revision must be a 40-character Git revision"
+        )
+    try:
+        completed = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository_root),
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                f"{revision}:{path}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise PortfolioInventoryError(
+            f"source.revision cannot be resolved without Git: {error}"
+        ) from error
+    resolved = completed.stdout.strip()
+    if completed.returncode != 0 or not _GIT_OBJECT_PATTERN.fullmatch(resolved):
+        raise PortfolioInventoryError(
+            f"source.revision cannot be resolved in {repository_root}: {revision}:{path}"
+        )
+    return resolved
+
+
 def build_profile_snapshot(
     source_path: Path,
     *,
     repository: str,
     revision: str,
     path: str,
+    revision_blob: str,
 ) -> dict[str, Any]:
     """Re-derive the checked-in Spicy Regs profile snapshot from live source.
 
     The pin is a sealed input: when the upstream file moves, it is regenerated
     here rather than hand-edited. Every digest comes from the exact bytes this
     function just read, and the result must pass the same validation the
-    checked-in snapshot faces. ``revision`` is supplied by the operator because
-    RefSpec reads the sibling checkout's bytes, never its Git database.
+    checked-in snapshot faces.
+
+    ``revision`` is supplied by the operator, and ``revision_blob`` is what that
+    revision actually holds at ``path`` -- see :func:`resolve_revision_blob`.
+    The two must agree with the bytes on disk, otherwise the snapshot would
+    record an unfalsifiable provenance claim beside two verified digests.
     """
 
     _require_nonempty_string(repository, "source.repository")
@@ -280,9 +326,17 @@ def build_profile_snapshot(
         raise PortfolioInventoryError(
             "source.revision must be a 40-character Git revision"
         )
+    if not _GIT_OBJECT_PATTERN.fullmatch(str(revision_blob)):
+        raise PortfolioInventoryError(
+            "source.revision blob must be a 40-character Git object"
+        )
 
     source_bytes = source_path.read_bytes()
     git_blob_bytes = f"blob {len(source_bytes)}\0".encode() + source_bytes
+    if hashlib.sha1(git_blob_bytes).hexdigest() != revision_blob:
+        raise PortfolioInventoryError(
+            f"source.revision {revision} does not contain the pinned {path} bytes"
+        )
     snapshot = {
         "format": PROFILE_SNAPSHOT_FORMAT,
         "source": {

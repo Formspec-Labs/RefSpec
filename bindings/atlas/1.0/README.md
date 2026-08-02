@@ -106,10 +106,23 @@ candidate input context does not resolve to exactly one bundled artifact.
 
 ### Amendment 2026-08-02: resolvable input context
 
+Machine-readable marker: `fixtures/corpus.json` carries `"amendments":
+["2026-08-02"]`. A consumer holding pinned case digests from before this date
+reads no such entry, which is how pre- and post-amendment 1.0 are told apart.
+The digests of `invalid/same-provider-model` changed here, because its
+candidate cited an input digest no bytes could produce and nothing short of
+rebuilding it could exercise independence again.
+
 `inputContext` joins `evidence`, `validationRequest`, and `validationResponse`
 as an artifact role, and the two rules above are new. This amends 1.0 in place
 rather than opening 1.1, matching how this binding has carried its other
-refusal corrections. The amendment is compatible in the direction that matters:
+refusal corrections. The precedent is
+[`4021af1`](../../../docs/decisions.md), which bounded manifest integers in
+place. (The commit introducing this amendment also cited `d48dd9e`; that is an
+error preserved here rather than rewritten — `d48dd9e` corrected
+`src/refspec/binding.py` and never touched `bindings/`, so it carries no
+binding-amendment precedent.) The amendment is compatible in the direction
+that matters:
 no distribution the previous rules accepted *and* that carried a resolvable
 model input becomes invalid, and every valid fixture published before this date
 is byte-identical because none contained a mapping candidate. A distribution

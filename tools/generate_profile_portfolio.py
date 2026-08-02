@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -16,8 +17,15 @@ from refspec.profile_portfolio import (
     build_profile_snapshot,
     load_json,
     render_json,
+    resolve_revision_blob,
     validate_profile_snapshot,
 )
+
+
+def _display(path: Path) -> str:
+    """Name a path for a human without assuming it sits under the repository."""
+
+    return os.path.relpath(path, ROOT)
 
 DEFAULT_SNAPSHOT = (
     ROOT / "portfolio" / "inputs" / "spicy-regs-source-profiles-v1.json"
@@ -70,9 +78,14 @@ def main() -> int:
                 repository=snapshot["source"]["repository"],
                 revision=args.write_snapshot,
                 path=snapshot["source"]["path"],
+                revision_blob=resolve_revision_blob(
+                    ROOT.parent,
+                    args.write_snapshot,
+                    snapshot["source"]["path"],
+                ),
             )
             args.snapshot.write_text(render_json(regenerated), encoding="utf-8")
-            print(f"wrote {args.snapshot.relative_to(ROOT)}")
+            print(f"wrote {_display(args.snapshot)}")
             snapshot = regenerated
 
         validate_profile_snapshot(snapshot, source_path=source_path)
@@ -82,12 +95,12 @@ def main() -> int:
         if args.write or args.write_snapshot:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(generated, encoding="utf-8")
-            print(f"wrote {args.output.relative_to(ROOT)}")
+            print(f"wrote {_display(args.output)}")
             return 0
 
         if not args.output.exists():
             raise PortfolioInventoryError(
-                f"generated atlas is missing: {args.output.relative_to(ROOT)}"
+                f"generated atlas is missing: {_display(args.output)}"
             )
         if args.output.read_text(encoding="utf-8") != generated:
             raise PortfolioInventoryError(
@@ -99,7 +112,7 @@ def main() -> int:
             "1 deferred profile"
         )
         return 0
-    except (KeyError, OSError, PortfolioInventoryError) as error:
+    except (KeyError, OSError, PortfolioInventoryError, ValueError) as error:
         print(f"profile portfolio error: {error}", file=sys.stderr)
         return 1
 

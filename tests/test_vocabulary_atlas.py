@@ -840,6 +840,74 @@ def test_input_context_artifact_must_digest_to_the_declared_input() -> None:
         )
 
 
+def test_matching_bytes_under_another_role_do_not_close_the_input_context() -> None:
+    """The role filter is load-bearing, not decoration.
+
+    An evidence artifact can hold the exact model-input bytes and still leave
+    the citation open: a consumer resolving ``inputContextDigest`` looks for
+    the input a machine was given, and evidence is a different claim about a
+    different stage. Without the role test, any artifact whose content happened
+    to digest alike would silently satisfy the gate.
+    """
+
+    disguised = CrosswalkArtifact.create(
+        role="evidence",
+        media_type="application/json",
+        content=INPUT_CONTEXT_CONTENT,
+    )
+    assert disguised.content_digest == INPUT_DIGEST
+
+    candidate, evidence, request, response_a, response_b = _candidate_and_artifacts()
+    validations = (
+        _validation(candidate, request, response_a, suffix="a"),
+        _validation(candidate, request, response_b, suffix="b"),
+    )
+
+    with pytest.raises(
+        VocabularyAtlasError,
+        match="input context does not close against the bundle",
+    ):
+        CrosswalkBundle.create(
+            artifacts=(disguised, evidence, request, response_a, response_b),
+            mapping_candidates=(candidate,),
+            machine_validations=validations,
+        )
+
+
+def test_an_ambiguous_input_context_refuses_instead_of_picking_one() -> None:
+    """Two artifacts can share content bytes while differing in media type.
+
+    Resolution must be exact. Silently taking the first match would make the
+    published ``inputContextArtifact`` link depend on iteration order rather
+    than on the bundle, so the producer refuses the ambiguity outright.
+    """
+
+    first = _input_context()
+    second = CrosswalkArtifact.create(
+        role="inputContext",
+        media_type="application/vnd.refspec.model-input+json",
+        content=INPUT_CONTEXT_CONTENT,
+    )
+    assert first.identifier != second.identifier
+    assert first.content_digest == second.content_digest == INPUT_DIGEST
+
+    candidate, evidence, request, response_a, response_b = _candidate_and_artifacts()
+    validations = (
+        _validation(candidate, request, response_a, suffix="a"),
+        _validation(candidate, request, response_b, suffix="b"),
+    )
+
+    with pytest.raises(
+        VocabularyAtlasError,
+        match="input context resolves to several artifacts",
+    ):
+        CrosswalkBundle.create(
+            artifacts=(first, second, evidence, request, response_a, response_b),
+            mapping_candidates=(candidate,),
+            machine_validations=validations,
+        )
+
+
 def test_input_context_is_a_supported_artifact_role() -> None:
     context = CrosswalkArtifact.create(
         role="inputContext",
