@@ -1,0 +1,115 @@
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+xmlns:zthes="http://synaptica.net/zthes/"
+xmlns:skm="http://synaptica.net/skm/">
+<skos:Concept rdf:about="#64538"> 
+<skm:termUpdate>add</skm:termUpdate>
+<skos:prefLabel>2001 Mars Odyssey</skos:prefLabel>
+<zthes:termID>64538</zthes:termID>
+<zthes:termVocabulary>NASA Thesaurus</zthes:termVocabulary>
+<skos:broader rdf:resource="#55662" rdf:ID="r64538-55662" />
+<skos:related rdf:resource="#61887" rdf:ID="r64538-61887" />
+<skos:related rdf:resource="#47062" rdf:ID="r64538-47062" />
+<skos:related rdf:resource="#47068" rdf:ID="r64538-47068" />
+<skos:related rdf:resource="#47076" rdf:ID="r64538-47076" />
+<skos:related rdf:resource="#64440" rdf:ID="r64538-64440" />
+<zthes:termNote rdf:ID="DefinitionSource-64538">Definition Source</zthes:termNote>
+<zthes:termNote rdf:ID="Definition-64538">Definition</zthes:termNote>
+</skos:Concept>
+<rdf:Description rdf:about="DefinitionSource-64538">
+<zthes:label>NASA</zthes:label>
+</rdf:Description>
+<rdf:Description rdf:about="Definition-64538">
+<zthes:label>Mars orbiter mission designed to make global observations of Mars to improve our understanding of the Martian climate and geologic history, including the search for liquid water and evidence of past life. The three primary instruments carried onboard are THEMIS (Thermal Emission Imaging System), GRS (Gamma Ray Spectrometer), and MARIE (Mars Radiation Environment Experiment). Launched April 2001.</zthes:label>
+</rdf:Description>
+<rdf:Description rdf:about="r64538-61887">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r64538-55662">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<skos:Concept rdf:about="#37801"> 
+<skm:termUpdate>add</skm:termUpdate>
+<skos:prefLabel>A-1 aircraft</skos:prefLabel>
+<skos:altLabel>Skyraider aircraft</skos:altLabel>
+<zthes:termID>37801</zthes:termID>
+<zthes:termVocabulary>NASA Thesaurus</zthes:termVocabulary>
+<skm:UF rdf:resource="#185582" rdf:ID="r37801-185582" />
+<skos:broader rdf:resource="#38915" rdf:ID="r37801-38915" />
+<skos:broader rdf:resource="#41969" rdf:ID="r37801-41969" />
+<skos:broader rdf:resource="#47765" rdf:ID="r37801-47765" />
+<skos:related rdf:resource="#38167" rdf:ID="r37801-38167" />
+</skos:Concept>
+<rdf:Description rdf:about="r37801-38167">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37801-185582">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37801-38915">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37801-41969">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37801-47765">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<skos:Concept rdf:about="#185582"> 
+<skm:termUpdate>add</skm:termUpdate>
+<skos:prefLabel>Skyraider aircraft</skos:prefLabel>
+<zthes:termID>185582</zthes:termID>
+<zthes:termVocabulary>NASA Thesaurus</zthes:termVocabulary>
+<skm:Use rdf:resource="#37801" rdf:ID="r185582-37801" />
+</skos:Concept>
+<rdf:Description rdf:about="r185582-37801">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<skos:Concept rdf:about="#37824"> 
+<skm:termUpdate>add</skm:termUpdate>
+<skos:prefLabel>abilities</skos:prefLabel>
+<skos:altLabel>proficiency</skos:altLabel>
+<skos:altLabel>skills</skos:altLabel>
+<zthes:termID>37824</zthes:termID>
+<zthes:termVocabulary>NASA Thesaurus</zthes:termVocabulary>
+<skm:UF rdf:resource="#185093" rdf:ID="r37824-185093" />
+<skm:UF rdf:resource="#185576" rdf:ID="r37824-185576" />
+<skos:narrower rdf:resource="#38627" rdf:ID="r37824-38627" />
+<skos:related rdf:resource="#42214" rdf:ID="r37824-42214" />
+<skos:related rdf:resource="#44833" rdf:ID="r37824-44833" />
+</skos:Concept>
+<rdf:Description rdf:about="r37824-185093">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37824-185576">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37824-38627">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37824-42214">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37824-44833">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<skos:Concept rdf:about="#37841"> 
+<skm:termUpdate>add</skm:termUpdate>
+<skos:prefLabel>~ absorbers</skos:prefLabel>
+<zthes:termID>37841</zthes:termID>
+<zthes:termVocabulary>NASA Thesaurus</zthes:termVocabulary>
+<skos:related rdf:resource="#37840" rdf:ID="r37841-37840" />
+<skos:related rdf:resource="#37842" rdf:ID="r37841-37842" />
+<zthes:termNote rdf:ID="ScopeNote-37841">Scope Note</zthes:termNote>
+</skos:Concept>
+<rdf:Description rdf:about="ScopeNote-37841">
+<zthes:label>USE OF A MORE SPECIFIC TERM IS RECOMMENDED--CONSULT THE TERMS LISTED BELOW</zthes:label>
+</rdf:Description>
+<rdf:Description rdf:about="r37841-37840">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+<rdf:Description rdf:about="r37841-37842">
+<zthes:weight>100</zthes:weight>
+</rdf:Description>
+</rdf:RDF>

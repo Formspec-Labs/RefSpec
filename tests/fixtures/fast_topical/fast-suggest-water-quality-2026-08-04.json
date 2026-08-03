@@ -1,0 +1,1 @@
+{"responseHeader":{"status":0,"QTime":10,"params":{"q":"suggestall:quality suggestall:Water","fl":"suggestall","rows":"5","wt":"json"}},"response":{"numFound":476,"start":0,"docs":[{"suggestall":["Water quality"]},{"suggestall":["Water quality"]},{"suggestall":["Water quality"]},{"suggestall":["Quality of water"]},{"suggestall":["Water quality"]}]}}

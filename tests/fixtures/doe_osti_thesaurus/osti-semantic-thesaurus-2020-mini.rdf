@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rdf:RDF
+  xmlns="https://www.osti.gov/thesaurus/"
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#">
+  <skos:ConceptScheme rdf:about="https://www.osti.gov/thesaurus">
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/3792"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/3793"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/3794"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/22777"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/76446"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/76447"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/76448"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/76445"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/76395"/>
+    <skos:hasTopConcept rdf:resource="https://www.osti.gov/thesaurus/29668"/>
+    <skos:prefLabel xml:lang="en">OSTI Thesaurus</skos:prefLabel>
+  </skos:ConceptScheme>
+  <rdf:Description rdf:about="https://www.osti.gov/thesaurus/">
+  </rdf:Description>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/3792">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Castle Project</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/16903"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/24105"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/24971"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/16823"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/1708"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/2463"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/3793">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Castor</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/8000"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/14731"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/3794"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/3794">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Castor Oil</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/26815"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/3793"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/22777">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Solar Flux</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/11845"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/19889"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/22102"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/22810"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/6401"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/6537"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/37173"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/37174"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/37175"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/37176"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/20114"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/22799"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/7615"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/37177"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/36580"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/76446">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Metrology</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/14974"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/76447"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/76448"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/76447">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Radiation Metrology</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/3464"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/6725"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/76446"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/76448">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Radionuclide Metrology</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/20220"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/20175"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/76446"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/76445">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Inclinometers</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:definition xml:lang="en">Instruments for measuring angles of slope, elevation or depression of an object with respect to gravity.</skos:definition>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/14974"/>
+  </skos:Concept>
+  <skos:Concept rdf:about="https://www.osti.gov/thesaurus/76395">
+    <skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:prefLabel xml:lang="en">Severe Accidents</skos:prefLabel>
+    <skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>
+    <skos:scopeNote xml:lang="en">For severe reactor accidents coordinate with a descriptor from the word block of REACTOR ACCIDENTS.</skos:scopeNote>
+    <skos:related rdf:resource="https://www.osti.gov/thesaurus/76900"/>
+    <skos:narrower rdf:resource="https://www.osti.gov/thesaurus/14765"/>
+    <skos:broader rdf:resource="https://www.osti.gov/thesaurus/76443"/>
+  </skos:Concept>
+</rdf:RDF>

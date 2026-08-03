@@ -1,0 +1,236 @@
+@prefix rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+<http://eurovoc.europa.eu/4157>	rdf:type	rdf:about .
+@prefix ns1:	<http://eurovoc.europa.eu/schema#> .
+<http://eurovoc.europa.eu/4157>	rdf:type	ns1:ThesaurusConcept .
+@prefix skos:	<http://www.w3.org/2004/02/skos/core#> .
+<http://eurovoc.europa.eu/4157>	rdf:type	skos:Concept .
+@prefix ns3:	<http://publications.europa.eu/ontology/cdm#> .
+<http://eurovoc.europa.eu/4157>	rdf:type	ns3:concept_eurovoc .
+@prefix owl:	<http://www.w3.org/2002/07/owl#> .
+<http://eurovoc.europa.eu/4157>	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"parliamentary seat"@en ,
+		"si\u00E8ge parlementaire"@fr ,
+		"esca\u00F1o parlamentario"@es ,
+		"\u03B2\u03BF\u03C5\u03BB\u03B5\u03C5\u03C4\u03B9\u03BA\u03AE \u03AD\u03B4\u03C1\u03B1"@el ,
+		"Parlamentssitz"@de ;
+	skos:inScheme	<http://eurovoc.europa.eu/100165> ,
+		<http://eurovoc.europa.eu> ,
+		<http://eurovoc.europa.eu/100141> .
+@prefix dc:	<http://purl.org/dc/elements/1.1/> .
+<http://eurovoc.europa.eu/4157>	dc:identifier	"4157" .
+@prefix dcterms:	<http://purl.org/dc/terms/> .
+<http://eurovoc.europa.eu/4157>	dcterms:identifier	"4157" ;
+	skos:narrower	<http://eurovoc.europa.eu/3313> ,
+		<http://eurovoc.europa.eu/4159> ;
+	skos:notation	"4157" ;
+	skos:topConceptOf	<http://eurovoc.europa.eu/100165> ,
+		<http://eurovoc.europa.eu/100141> .
+@prefix ns7:	<http://publications.europa.eu/ontology/euvoc#> .
+@prefix ns8:	<http://publications.europa.eu/resource/authority/concept-status/> .
+<http://eurovoc.europa.eu/4157>	ns7:status	ns8:CURRENT .
+<http://eurovoc.europa.eu/2189>	rdf:type	ns1:ThesaurusConcept ,
+		rdf:about ,
+		skos:Concept ,
+		ns3:concept_eurovoc ;
+	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"\u03B4\u03B9\u03B5\u03B8\u03BD\u03B5\u03AF\u03C2 \u03BF\u03C1\u03B3\u03B1\u03BD\u03B9\u03C3\u03BC\u03BF\u03AF"@el ,
+		"internationale Organisation"@de ,
+		"international organisation"@en ,
+		"organizaci\u00F3n internacional"@es ,
+		"organisation internationale"@fr ;
+	skos:inScheme	<http://eurovoc.europa.eu/100170> ,
+		<http://eurovoc.europa.eu> ,
+		<http://eurovoc.europa.eu/100141> ;
+	dc:identifier	"2189" ;
+	dcterms:identifier	"2189" ;
+	skos:altLabel	"administraci\u00F3n p\u00FAblica internacional"@es ,
+		"international institution"@en ,
+		"internationale Beh\u00F6rde"@de ,
+		"\u00F3rgano internacional"@es ,
+		"organisme international"@fr ,
+		"international association"@en ,
+		"administration internationale"@fr ,
+		"association internationale"@fr ,
+		"international body"@en ,
+		"internationale Einrichtung"@de ,
+		"\u03B4\u03B9\u03B5\u03B8\u03BD\u03AE\u03C2 \u03B4\u03B9\u03BF\u03AF\u03BA\u03B7\u03C3\u03B7"@el ,
+		"administration publique internationale"@fr ,
+		"international administration"@en ,
+		"administraci\u00F3n internacional"@es ,
+		"organismo internacional"@es ,
+		"instituci\u00F3n internacional"@es ,
+		"internationale \u00F6ffentliche Verwaltung"@de ,
+		"internationale Institution"@de ,
+		"\u03B4\u03B9\u03B5\u03B8\u03BD\u03AD\u03C2 \u03B8\u03B5\u03C3\u03BC\u03B9\u03BA\u03CC \u03CC\u03C1\u03B3\u03B1\u03BD\u03BF"@el ,
+		"international organization"@en ,
+		"institution internationale"@fr ,
+		"\u03B4\u03B9\u03B5\u03B8\u03BD\u03AE\u03C2 \u03BF\u03C1\u03B3\u03AC\u03BD\u03C9\u03C3\u03B7"@el ,
+		"internationale Verwaltung"@de ;
+	skos:narrower	<http://eurovoc.europa.eu/5638> ,
+		<http://eurovoc.europa.eu/6704> ,
+		<http://eurovoc.europa.eu/5449> ,
+		<http://eurovoc.europa.eu/6372> ;
+	skos:notation	"2189" ;
+	skos:topConceptOf	<http://eurovoc.europa.eu/100170> ,
+		<http://eurovoc.europa.eu/100141> ;
+	ns7:status	ns8:CURRENT .
+<http://eurovoc.europa.eu/3313>	rdf:type	ns3:concept_eurovoc ,
+		ns1:ThesaurusConcept ,
+		skos:Concept ,
+		rdf:about ;
+	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"\u03BA\u03B1\u03C4\u03B1\u03BD\u03BF\u03BC\u03AE \u03C4\u03C9\u03BD \u03B5\u03B4\u03C1\u03CE\u03BD"@el ,
+		"Sitzverteilung"@de ,
+		"allocation of seats"@en ,
+		"reparto de esca\u00F1os"@es ,
+		"r\u00E9partition des si\u00E8ges"@fr ;
+	skos:inScheme	<http://eurovoc.europa.eu/100141> ,
+		<http://eurovoc.europa.eu> ,
+		<http://eurovoc.europa.eu/100165> ;
+	dc:identifier	"3313" ;
+	dcterms:identifier	"3313" ;
+	skos:altLabel	"\u03B4\u03B9\u03B1\u03BD\u03BF\u03BC\u03AE \u03C4\u03C9\u03BD \u03B5\u03B4\u03C1\u03CE\u03BD"@el ,
+		"sistema Hagenbach-Bischoff"@es ,
+		"Imperiali method"@en ,
+		"Mandatsverteilung"@de ,
+		"Sitzzuteilung"@de ,
+		"m\u00E9thode Hagenbach-Bischoff"@fr ,
+		"m\u00E9thode d'Hondt"@fr ,
+		"Sitzaufteilung"@de ,
+		"atribuci\u00F3n de esca\u00F1os"@es ,
+		"Hagenbach-Bischoff method"@en ,
+		"Verfahren nach Hagenbach-Bischoff"@de ,
+		"\u03C0\u03C1\u03BF\u03C3\u03BA\u03CD\u03C1\u03C9\u03C3\u03B7 \u03C4\u03C9\u03BD \u03B5\u03B4\u03C1\u03CE\u03BD"@el ,
+		"distribution des si\u00E8ges"@fr ,
+		"distribution of seats"@en ,
+		"\u03BC\u03AD\u03B8\u03BF\u03B4\u03BF\u03C2 Imperiali"@el ,
+		"D'Hondt method"@en ,
+		"\u03BC\u03AD\u03B8\u03BF\u03B4\u03BF\u03C2 Hagenbach-Bischoff"@el ,
+		"attribution des si\u00E8ges"@fr ,
+		"sistema Imperiali"@es ,
+		"Verfahren nach d'Hondt"@de ,
+		"sistema d'Hondt"@es ,
+		"m\u00E9thode Imperiali"@fr ,
+		"Verfahren nach Imperiali"@de ,
+		"distribuci\u00F3n de esca\u00F1os"@es ,
+		"\u03BC\u03AD\u03B8\u03BF\u03B4\u03BF\u03C2 D'Hondt"@el ;
+	skos:broader	<http://eurovoc.europa.eu/4157> ;
+	skos:narrower	<http://eurovoc.europa.eu/2880> ,
+		<http://eurovoc.europa.eu/6006> ;
+	skos:notation	"3313" ;
+	ns7:status	ns8:CURRENT .
+<http://eurovoc.europa.eu/4159>	rdf:type	ns1:ThesaurusConcept ,
+		skos:Concept ,
+		rdf:about ;
+	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"esca\u00F1o vacante"@es ,
+		"\u03BA\u03B5\u03BD\u03AE \u03AD\u03B4\u03C1\u03B1"@el ,
+		"frei gewordener Sitz"@de ,
+		"vacant seat"@en ,
+		"si\u00E8ge vacant"@fr ;
+	skos:inScheme	<http://eurovoc.europa.eu/100165> ,
+		<http://eurovoc.europa.eu/100141> ;
+	dc:identifier	"4159" ;
+	dcterms:identifier	"4159" ;
+	skos:altLabel	"\u03C7\u03B7\u03C1\u03B5\u03CD\u03BF\u03C5\u03C3\u03B1 \u03AD\u03B4\u03C1\u03B1"@el ;
+	skos:broader	<http://eurovoc.europa.eu/4157> ;
+	skos:notation	"4159" ;
+	ns7:status	ns8:CURRENT .
+<http://eurovoc.europa.eu/100142>	rdf:type	skos:Concept ,
+		ns1:Domain ;
+	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"04 VIDA POL\u00CDTICA"@es ,
+		"04 \u03A0\u039F\u039B\u0399\u03A4\u0399\u039A\u0397"@el ,
+		"04 POLITISCHES LEBEN"@de ,
+		"04 VIE POLITIQUE"@fr ,
+		"04 POLITICS"@en .
+@prefix ns9:	<http://eurovoc.europa.eu/> .
+<http://eurovoc.europa.eu/100142>	skos:inScheme	ns9:domains ;
+	dc:identifier	"04" ;
+	dcterms:identifier	"04" ;
+	skos:notation	"04" ;
+	skos:topConceptOf	ns9:domains ;
+	ns7:status	ns8:CURRENT .
+<http://eurovoc.europa.eu/100143>	rdf:type	ns1:Domain ,
+		skos:Concept ;
+	owl:versionInfo	"n/a" ;
+	skos:prefLabel	"08 RELATIONS INTERNATIONALES"@fr ,
+		"08 \u0394\u0399\u0395\u0398\u039D\u0395\u0399\u03A3 \u03A3\u03A7\u0395\u03A3\u0395\u0399\u03A3"@el ,
+		"08 INTERNATIONAL RELATIONS"@en ,
+		"08 RELACIONES INTERNACIONALES"@es ,
+		"08 INTERNATIONALE BEZIEHUNGEN"@de ;
+	skos:inScheme	ns9:domains ;
+	dc:identifier	"08" ;
+	dcterms:identifier	"08" ;
+	skos:notation	"08" ;
+	skos:topConceptOf	ns9:domains ;
+	ns7:status	ns8:CURRENT .
+ns9:domains	rdf:type	skos:ConceptScheme ;
+	skos:prefLabel	"Eurovoc domains"@en ;
+	skos:hasTopConcept	<http://eurovoc.europa.eu/100160> ,
+		<http://eurovoc.europa.eu/100158> ,
+		<http://eurovoc.europa.eu/100157> ,
+		<http://eurovoc.europa.eu/100146> ,
+		<http://eurovoc.europa.eu/100148> ,
+		<http://eurovoc.europa.eu/100143> ,
+		<http://eurovoc.europa.eu/100142> ,
+		<http://eurovoc.europa.eu/100155> ,
+		<http://eurovoc.europa.eu/100150> ,
+		<http://eurovoc.europa.eu/100154> ,
+		<http://eurovoc.europa.eu/100149> ,
+		<http://eurovoc.europa.eu/100153> ,
+		<http://eurovoc.europa.eu/100156> ,
+		<http://eurovoc.europa.eu/100159> ,
+		<http://eurovoc.europa.eu/100144> ,
+		<http://eurovoc.europa.eu/100152> ,
+		<http://eurovoc.europa.eu/100147> ,
+		<http://eurovoc.europa.eu/100151> ,
+		<http://eurovoc.europa.eu/100162> ,
+		<http://eurovoc.europa.eu/100145> ,
+		<http://eurovoc.europa.eu/100161> .
+<http://eurovoc.europa.eu/100141>	rdf:type	ns1:Thesaurus ,
+		owl:NamedIndividual ,
+		skos:ConceptScheme ;
+	owl:versionInfo	"4.24" ;
+	skos:prefLabel	"EuroVoc"@es ,
+		"EuroVoc"@el ,
+		"EuroVoc"@fr ,
+		"EuroVoc"@de ,
+		"EuroVoc"@en .
+<http://eurovoc.europa.eu/100165>	rdf:type	ns1:MicroThesaurus ,
+		skos:ConceptScheme ;
+	skos:prefLabel	"0416 Wahlverfahren"@de ,
+		"0416 proc\u00E9dure \u00E9lectorale et vote"@fr ,
+		"0416 electoral procedure and voting"@en ,
+		"0416 procedimiento electoral y sistema de votaci\u00F3n"@es ,
+		"0416 \u03B5\u03BA\u03BB\u03BF\u03B3\u03B9\u03BA\u03AE \u03B4\u03B9\u03B1\u03B4\u03B9\u03BA\u03B1\u03C3\u03AF\u03B1 \u03BA\u03B1\u03B9 \u03C8\u03B7\u03C6\u03BF\u03C6\u03BF\u03C1\u03AF\u03B1"@el ;
+	dc:identifier	"0416" ;
+	dcterms:identifier	"0416" ;
+	skos:hasTopConcept	<http://eurovoc.europa.eu/2186> ,
+		<http://eurovoc.europa.eu/4367> ,
+		<http://eurovoc.europa.eu/558> ,
+		<http://eurovoc.europa.eu/1953> ,
+		<http://eurovoc.europa.eu/4157> ,
+		<http://eurovoc.europa.eu/1748> ,
+		<http://eurovoc.europa.eu/695> ,
+		<http://eurovoc.europa.eu/4750> ;
+	skos:notation	"0416" ;
+	dcterms:isPartOf	<http://eurovoc.europa.eu/100141> ;
+	ns7:domain	<http://eurovoc.europa.eu/100142> .
+<http://eurovoc.europa.eu/100170>	rdf:type	ns1:MicroThesaurus ,
+		skos:ConceptScheme ;
+	skos:prefLabel	"0806 \u03B4\u03B9\u03B5\u03B8\u03BD\u03AE\u03C2 \u03C0\u03BF\u03BB\u03B9\u03C4\u03B9\u03BA\u03AE"@el ,
+		"0806 Internationale Politik"@de ,
+		"0806 pol\u00EDtica internacional"@es ,
+		"0806 international affairs"@en ,
+		"0806 politique internationale"@fr ;
+	dc:identifier	"0806" ;
+	dcterms:identifier	"0806" ;
+	skos:hasTopConcept	<http://eurovoc.europa.eu/3461> ,
+		<http://eurovoc.europa.eu/3467> ,
+		<http://eurovoc.europa.eu/1346> ,
+		<http://eurovoc.europa.eu/2189> ,
+		<http://eurovoc.europa.eu/3474> ;
+	skos:notation	"0806" ;
+	dcterms:isPartOf	<http://eurovoc.europa.eu/100141> ;
+	ns7:domain	<http://eurovoc.europa.eu/100143> .

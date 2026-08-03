@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<EnterpriseVocabularyReport>
+<Row>
+<Term>Non-Regulatory Solution</Term>
+<ChildTerms></ChildTerms>
+</Row>
+<Row>
+<Term>Regulatory Activity</Term>
+<ChildTerms><Row>
+<Term>Deregulation</Term>
+<ChildTerms></ChildTerms>
+</Row>
+</ChildTerms>
+</Row>
+</EnterpriseVocabularyReport>

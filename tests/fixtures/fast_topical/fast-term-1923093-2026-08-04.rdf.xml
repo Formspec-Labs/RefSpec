@@ -1,0 +1,55 @@
+<rdf:RDF xmlns:norm="http://whatever/java/org.oclc.marc.NormalFormC" xmlns:owl="http://www.w3.org/2002/07/owl#" xmlns:dct="http://purl.org/dc/terms/" xmlns:schema="http://schema.org/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:void="http://rdfs.org/ns/void#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:coord="http://whatever/java/org.oclc.marc.CoordToDecimal" xmlns:skosxl="http://www.w3.org/2008/05/skos-xl#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:skos="http://www.w3.org/2004/02/skos/core#" xmlns:madsrdf="http://www.loc.gov/mads/rdf/v1#" xmlns:mx="http://www.loc.gov/MARC21/slim" xmlns:dc="http://purl.org/dc/elements/1.1/" xml:base="http://id.worldcat.org/fast/">
+    <rdf:Description rdf:about="1923093">
+        <dct:identifier>1923093</dct:identifier>
+        <skos:inScheme rdf:resource="ontology/1.0/#fast"/>
+        <rdf:type rdf:resource="http://schema.org/Intangible"/>
+        <skos:inScheme rdf:resource="ontology/1.0/#facet-Topical"/>
+        <skos:prefLabel>No-fly zones</skos:prefLabel>
+        <schema:name>No-fly zones</schema:name>
+        <skos:altLabel>No-flight zones</skos:altLabel>
+        <schema:name>No-flight zones</schema:name>
+        <skos:altLabel>Zones, No-flight</skos:altLabel>
+        <schema:name>Zones, No-flight</schema:name>
+        <skos:altLabel>Zones, No-fly</skos:altLabel>
+        <schema:name>Zones, No-fly</schema:name>
+        <skos:broader>
+            <rdf:Description rdf:about="802704">
+                <rdfs:label>Air warfare</rdfs:label>
+            </rdf:Description>
+        </skos:broader>
+        <skos:relatedMatch>
+            <rdf:Description rdf:about="http://en.wikipedia.org/wiki/No-fly_zone"/>
+        </skos:relatedMatch>
+        <schema:sameAs>
+            <rdf:Description rdf:about="http://id.loc.gov/authorities/subjects/sh2015001713">
+                <rdfs:label>No-fly zones</rdfs:label>
+            </rdf:Description>
+        </schema:sameAs>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#anyURI">http://en.wikipedia.org/wiki/No-fly_zone</rdfs:seeAlso>
+    </rdf:Description>
+    <rdf:Description rdf:about="fst01923093">
+        <rdfs:comment>This identifier is deprecated. See the rdfs:seeAlso link for the new identifier.</rdfs:comment>
+        <rdfs:seeAlso rdf:resource="1923093"/>
+    </rdf:Description>
+    <foaf:Document rdf:about="1923093/rdf.xml">
+        <void:inDataset rdf:resource="http://id.worldcat.org/fast/void/0.1"/>
+        <foaf:primaryTopic rdf:resource="1923093"/>
+        <dc:format>application/rdf+xml</dc:format>
+        <dct:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-12-14T00:00:00.0</dct:created>
+        <dct:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2020-11-06T12:09:17.0</dct:modified>
+        <dct:language rdf:resource="http://lexvo.org/id/iso639-3/eng"/>
+        <skos:changeNote xml:lang="en">Cataloged by agency: OCoLC</skos:changeNote>
+        <skos:changeNote xml:lang="en">Transcribed by agency: OCoLC</skos:changeNote>
+    </foaf:Document>
+    <void:Dataset rdf:about="http://id.worldcat.org/fast/void/0.1">
+        <dct:title>FAST (Faceted Application of Subject Terminology) Data</dct:title>
+        <dct:license>
+            <rdf:Description rdf:about="http://www.oclc.org/research/activities/fast/odcby.htm">
+                <dct:title>Open Data Commons Attribution License (ODC-By) v1.0</dct:title>
+                <rdfs:comment>This is OCLC's "local copy" of the ODC-By license</rdfs:comment>
+                <rdfs:seeAlso rdf:resource="http://opendatacommons.org/licenses/by/#toc-anchor-337-3"/>
+                <owl:sameAs rdf:resource="http://opendatacommons.org/licenses/by/1-0/"/>
+            </rdf:Description>
+        </dct:license>
+    </void:Dataset>
+</rdf:RDF>

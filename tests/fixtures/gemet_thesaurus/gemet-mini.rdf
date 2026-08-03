@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/"
+ xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+ xmlns="http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#" xml:base="http://www.eionet.europa.eu/gemet/">
+
+<!-- This deterministic subset contains only triples copied verbatim from the
+     official, digest-pinned GEMET 4.2.3 RDF/XML publication
+     (https://www.eionet.europa.eu/gemet/latest/gemet.rdf.gz), trimmed to a
+     handful of concepts and, per concept, a subset of the published
+     languages and narrower/related targets. Every element, attribute, and
+     namespace below (including the xml:base-relative rdf:about values and
+     the unprefixed gemet-schema "source"/"hasWikipediaArticle" elements) is
+     reproduced exactly as GEMET publishes it, including the empty
+     dcterms:created/dcterms:modified literals GEMET emits on every concept. -->
+
+<skos:ConceptScheme rdf:about="gemetThesaurus">
+    <rdfs:label>GEMET - Concepts, version 4.2.3, 2021-12-06T13:37:25.364764+00:00</rdfs:label>
+    <dcterms:licence rdf:resource="http://creativecommons.org/licenses/by/4.0/"/>
+</skos:ConceptScheme>
+
+<rdf:Description rdf:about="gemetThesaurus">
+      <skos:hasTopConcept rdf:resource="concept/1063"/>
+      <skos:hasTopConcept rdf:resource="concept/1084"/>
+      <skos:hasTopConcept rdf:resource="concept/11089"/>
+      <skos:hasTopConcept rdf:resource="concept/1327"/>
+</rdf:Description>
+
+<skos:Concept rdf:about="concept/1063">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">built environment</skos:prefLabel>
+  <skos:prefLabel xml:lang="es">ambiente construido</skos:prefLabel>
+  <skos:prefLabel xml:lang="fr">environnement bâti</skos:prefLabel>
+  <skos:altLabel xml:lang="el">αστικοποιημένο περιβάλλον</skos:altLabel>
+  <skos:definition xml:lang="en">That part of the physical surroundings which are people-made or people-organized, such as buildings and other major structures, roads, bridges and the like, down to lesser objects such as traffic lights, telephone and pillar boxes.</skos:definition>
+  <skos:narrower rdf:resource="concept/1029"/>
+  <skos:narrower rdf:resource="concept/4321"/>
+  <skos:related rdf:resource="concept/1065"/>
+  <skos:broadMatch rdf:resource="http://eurovoc.europa.eu/4619"/>
+  <skos:closeMatch rdf:resource="http://dbpedia.org/resource/Built_environment"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Built_environment"/>
+  <source xml:lang="en">Goodall, B., Dictionary of Human Geography, Penguin Books, London, 1987</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/1065">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">built-up area</skos:prefLabel>
+  <skos:prefLabel xml:lang="es">zona edificada</skos:prefLabel>
+  <skos:prefLabel xml:lang="fr">agglomération</skos:prefLabel>
+  <skos:altLabel xml:lang="el">οικιστική περιοχή</skos:altLabel>
+  <skos:altLabel xml:lang="eu">eraikitako eremu</skos:altLabel>
+  <skos:altLabel xml:lang="hr">izgrađeno naselje</skos:altLabel>
+  <skos:definition xml:lang="en">Area which is full of houses, shops, offices and other buildings, with very little open space.</skos:definition>
+  <skos:broader rdf:resource="concept/4666"/>
+  <skos:related rdf:resource="concept/1063"/>
+  <skos:relatedMatch rdf:resource="http://dbpedia.org/resource/Urban_area"/>
+  <skos:closeMatch rdf:resource="http://data.uba.de/umt/_00041686"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Urban_area"/>
+  <source xml:lang="en">Collin, P. H., Dictionary of ecology and the environment - 3rd edition, Peter Collin Publishing, Teddington, 1995</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/1029">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">building</skos:prefLabel>
+  <skos:prefLabel xml:lang="es">edificios</skos:prefLabel>
+  <skos:prefLabel xml:lang="fr">bâtiment</skos:prefLabel>
+  <skos:definition xml:lang="en">Something built with a roof and walls, such as a house or factory.</skos:definition>
+  <skos:broader rdf:resource="concept/1063"/>
+  <skos:narrower rdf:resource="concept/1033"/>
+  <skos:narrower rdf:resource="concept/1064"/>
+  <skos:related rdf:resource="concept/1046"/>
+  <skos:related rdf:resource="concept/4211"/>
+  <skos:exactMatch rdf:resource="http://eurovoc.europa.eu/4831"/>
+  <skos:narrowMatch rdf:resource="http://eurovoc.europa.eu/1690"/>
+  <skos:narrowMatch rdf:resource="http://eurovoc.europa.eu/4833"/>
+  <skos:closeMatch rdf:resource="http://data.uba.de/umt/_00010547"/>
+  <skos:closeMatch rdf:resource="http://dbpedia.org/resource/Building"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Building"/>
+  <source xml:lang="en">Collins English Dictionary, Harper Collins Publishers, Glasgow, 1994</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/4321">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">infrastructure</skos:prefLabel>
+  <skos:prefLabel xml:lang="es">infraestructuras</skos:prefLabel>
+  <skos:prefLabel xml:lang="fr">infrastructure</skos:prefLabel>
+  <skos:definition xml:lang="en">The basic network or foundation of capital facilities or community investments which are necessary to support economic and community activities.</skos:definition>
+  <skos:broader rdf:resource="concept/1063"/>
+  <skos:narrower rdf:resource="concept/1061"/>
+  <skos:narrower rdf:resource="concept/1911"/>
+  <skos:exactMatch rdf:resource="http://aims.fao.org/aos/agrovoc/c_26790"/>
+  <skos:closeMatch rdf:resource="http://data.uba.de/umt/_00013396"/>
+  <skos:closeMatch rdf:resource="http://dbpedia.org/resource/Infrastructure"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Infrastructure"/>
+  <source xml:lang="en">Landy, M., Environmental Impact Statement Glossary. A Reference Source for EIS Writers, Revuewers, and Citizens., IFI/Plenum Publishing Corporation, New York, 1979</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/1100">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">cadmium</skos:prefLabel>
+  <skos:prefLabel xml:lang="es">cadmio</skos:prefLabel>
+  <skos:prefLabel xml:lang="fr">cadmium</skos:prefLabel>
+  <skos:definition xml:lang="en">One of the toxic heavy metal which has caused deaths and permanent illnesses in a series of major pollution incidents around the world. Cadmium has no useful biological purpose. However, it has wide industrial applications. It has been used for decades in metal plating to prevent corrosion, in rechargeable batteries and as a pigment in certain plastics and paints. Special care is taken in the industrial smelting of ores and subsequent handling of cadmium, because occupational exposure is known to have caused heart, chest and kidney disorders. Environmental health problems have come from exposure to various sources of pollution.</skos:definition>
+  <skos:notation xml:lang="en">Cd</skos:notation>
+  <skos:broader rdf:resource="concept/8629"/>
+  <skos:related rdf:resource="concept/3915"/>
+  <skos:exactMatch rdf:resource="http://aims.fao.org/aos/agrovoc/c_1178"/>
+  <skos:exactMatch rdf:resource="http://eurovoc.europa.eu/3836"/>
+  <skos:closeMatch rdf:resource="http://data.uba.de/umt/_00005866"/>
+  <skos:closeMatch rdf:resource="http://dbpedia.org/resource/Cadmium"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Cadmium"/>
+  <source xml:lang="en">The Environment Encyclopedia and Directory, Europa Publications Ltd., London, 1994</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/1327">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">chemical</skos:prefLabel>
+  <skos:hiddenLabel xml:lang="en">chemicals</skos:hiddenLabel>
+  <skos:definition xml:lang="en">Any substance used in or resulting from a reaction involving changes to atoms or molecules.</skos:definition>
+  <skos:narrower rdf:resource="concept/52"/>
+  <skos:narrower rdf:resource="concept/363"/>
+  <skos:related rdf:resource="concept/1298"/>
+  <skos:related rdf:resource="concept/2783"/>
+  <skos:exactMatch rdf:resource="http://aims.fao.org/aos/agrovoc/c_1520"/>
+  <skos:narrowMatch rdf:resource="http://eurovoc.europa.eu/3809"/>
+  <skos:relatedMatch rdf:resource="http://dbpedia.org/resource/Chemical_substance"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Chemical_substance"/>
+  <source xml:lang="en">Collins English Dictionary, Harper Collins Publishers, Glasgow, 1994</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/10968">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">NIMBY aptitude</skos:prefLabel>
+  <skos:definition xml:lang="en">Not In My BackYard: phrase used to describe people who encourage the development of agriculture land for building houses or factories, provided it is not near where they themselves are living.</skos:definition>
+  <skos:scopeNote xml:lang="en">aptitude "not in my back yard"</skos:scopeNote>
+  <skos:broader rdf:resource="concept/3788"/>
+  <source xml:lang="en">Collin, P. H., Dictionary of ecology and the environment - 3rd edition, Peter Collin Publishing, Teddington, 1995</source>
+</skos:Concept>
+
+<skos:Concept rdf:about="concept/10003">
+  <skos:inScheme rdf:resource="http://www.eionet.europa.eu/gemet/gemetThesaurus"/>
+  <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:created>
+  <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime"></dcterms:modified>
+  <skos:prefLabel xml:lang="en">animal life</skos:prefLabel>
+  <skos:editorialNote xml:lang="en">No definition needed.</skos:editorialNote>
+  <skos:broader rdf:resource="concept/867"/>
+  <skos:narrower rdf:resource="concept/3887"/>
+  <skos:narrower rdf:resource="concept/5161"/>
+  <skos:exactMatch rdf:resource="http://eurovoc.europa.eu/972"/>
+  <skos:relatedMatch rdf:resource="http://dbpedia.org/resource/Animal"/>
+  <hasWikipediaArticle rdf:resource="http://en.wikipedia.org/wiki/Animal"/>
+</skos:Concept>
+
+</rdf:RDF>

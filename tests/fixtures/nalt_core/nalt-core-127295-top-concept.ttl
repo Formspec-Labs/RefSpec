@@ -1,0 +1,95 @@
+@prefix nalt: <https://lod.nal.usda.gov/nalt/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ns0: <https://lod.nal.usda.gov/naltv#> .
+
+nalt:9018
+  skos:prefLabel "ecología animal"@es, "animal ecology"@en ;
+  a <https://lod.nal.usda.gov/naltv#Topic>, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:513
+  skos:prefLabel "endocrinología"@es, "endocrinology"@en ;
+  a <https://lod.nal.usda.gov/naltv#Topic>, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:11021
+  skos:prefLabel "apicultura"@es, "apiculture"@en ;
+  a <https://lod.nal.usda.gov/naltv#Topic>, skos:Concept ;
+  skos:broader nalt:127295 .
+
+<https://lod.nal.usda.gov/naltv#Topic>
+  rdfs:label "Topic"@en ;
+  a owl:Class .
+
+nalt:9084
+  skos:prefLabel "mantenimiento del bienestar animal"@es, "animal welfare"@en ;
+  a <https://lod.nal.usda.gov/naltv#Topic>, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:127295
+  skos:hiddenLabel "Ciencia de Animales y Productos de Animales"@es, "Animal-Science-and-Animal-Products"@en, "Animal Science and Animal Products"@en ;
+  skos:narrower nalt:11021, nalt:9056, nalt:8077, nalt:9018, nalt:9135, nalt:65, nalt:332, nalt:96816, nalt:9084, nalt:513, nalt:17473, nalt:22879, nalt:43 ;
+  a <https://lod.nal.usda.gov/naltv#Topic>, skos:Concept ;
+  skos:definition nalt:127295_def ;
+  skos:inScheme <https://lod.nal.usda.gov/nalt-core>, <https://lod.nal.usda.gov/nalt> ;
+  skos:prefLabel "animales, ganado, Una Sola Salud"@es, "Animals, Livestock, One Health"@en ;
+  dc:modified "2021-05-10"^^xsd:date ;
+  dc:created "2008-11-07"^^xsd:date ;
+  skos:topConceptOf <https://lod.nal.usda.gov/nalt-core> ;
+  ns0:marc001 "12729500033" .
+
+nalt:9056
+  skos:prefLabel "identificación de animales"@es, "animal identification"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:96816
+  skos:prefLabel "salud animal y humana"@es, "animal and human health"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:9135
+  skos:prefLabel "medicina veterinaria"@es, "veterinary medicine"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:65
+  skos:prefLabel "animales"@es, "animals"@en ;
+  a ns0:Organism, skos:Concept ;
+  skos:broader nalt:127295 .
+
+<https://lod.nal.usda.gov/nalt-core>
+  rdfs:label "NALT Core"@es, "NALT Core"@en ;
+  a skos:ConceptScheme ;
+  skos:hasTopConcept nalt:127295 .
+
+nalt:43
+  skos:prefLabel "estiércol"@es, "animal manures"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:8077
+  skos:prefLabel "acuicultura"@es, "aquaculture"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:127295_def a ns0:Definition .
+nalt:22879
+  skos:prefLabel "sociobiología de los insectos"@es, "insect sociobiology"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:332
+  skos:prefLabel "ciencia animal"@es, "animal science"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
+nalt:17473
+  skos:prefLabel "embriología"@es, "embryology"@en ;
+  a ns0:Topic, skos:Concept ;
+  skos:broader nalt:127295 .
+
