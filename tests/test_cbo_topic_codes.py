@@ -13,6 +13,17 @@ an HTTP 403 DataDome bot-challenge response instead of the feed (see
 verified live feed bytes were obtainable in this environment, so
 ``cbo-cost-estimates-mini.xml`` is a structural reconstruction faithful to the
 field list this catalog row documents, not an official capture.
+
+A REAL alternate discovery channel has since been captured (2026-08-04): CBO's
+per-Congress feeds at ``/rss/{congress}congress-cost-estimates.xml`` sit on a
+different CDN tier and serve plain HTTP 200 with no DataDome bot wall. The
+119th Congress feed is checked in byte-for-byte as
+``cbo-119congress-cost-estimates-2026-08-04.xml`` and pinned as
+``CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04``. Its custom ``<response>``/
+``<item>`` shape is unrelated to the RSS 2.0 shape above and carries only
+titles, dates, publication links, and bill numbers -- no Topic labels,
+budget-function codes, mandate flags, or PAYGO facets. The tests below for
+``parse_cbo_per_congress_feed`` exercise that real shape directly.
 """
 
 from __future__ import annotations
@@ -29,8 +40,39 @@ from refspec.registry.source_controlled_resource import SourceControlledResource
 FIXTURES = Path(__file__).parent / "fixtures" / "cbo_topic_codes"
 FEED_FIXTURE = FIXTURES / "cbo-cost-estimates-mini.xml"
 CHALLENGE_FIXTURE = FIXTURES / "cbo-datadome-challenge-real-capture.html"
+PER_CONGRESS_REAL_CAPTURE_FIXTURE = FIXTURES / "cbo-119congress-cost-estimates-2026-08-04.xml"
 
 RETRIEVED_AT = "2026-08-03T19:24:47Z"
+
+
+def _acquire_per_congress_real(
+    tmp_path: Path, source_path: Path = PER_CONGRESS_REAL_CAPTURE_FIXTURE
+) -> cbo.AcquiredCBOPerCongressFeed:
+    return cbo.acquire_cbo_per_congress_feed(
+        cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04, tmp_path, source_path=source_path
+    )
+
+
+def _per_congress_real_parsed(
+    tmp_path: Path, source_path: Path = PER_CONGRESS_REAL_CAPTURE_FIXTURE
+) -> cbo.ParsedCBOPerCongressFeed:
+    return cbo.parse_cbo_per_congress_feed(_acquire_per_congress_real(tmp_path, source_path))
+
+
+def _per_congress_pin_for(payload: bytes) -> cbo.CBOPerCongressFeedSnapshotPin:
+    return cbo.CBOPerCongressFeedSnapshotPin(
+        source_url=cbo.cbo_per_congress_cost_estimates_url(119),
+        retrieved_at=cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_RETRIEVED_AT,
+        expected_sha256=cbo.sha256_digest(payload),
+        expected_byte_length=len(payload),
+    )
+
+
+def _acquire_mutated_per_congress(tmp_path: Path, mutated: bytes) -> cbo.AcquiredCBOPerCongressFeed:
+    pin = _per_congress_pin_for(mutated)
+    source_path = tmp_path / "mutated-per-congress.xml"
+    source_path.write_bytes(mutated)
+    return cbo.acquire_cbo_per_congress_feed(pin, tmp_path / "store", source_path=source_path)
 
 
 def _payload(path: Path) -> bytes:
@@ -363,3 +405,259 @@ def test_fixture_digest_is_derived_from_exact_bytes() -> None:
     payload = _payload(FEED_FIXTURE)
     assert cbo.sha256_digest(payload) == cbo.sha256_digest(payload)
     assert cbo.sha256_digest(payload) != cbo.sha256_digest(payload + b" ")
+
+
+# --- REAL captured per-Congress discovery channel (2026-08-04) ---
+#
+# https://www.cbo.gov/rss/{congress}congress-cost-estimates.xml sits on a
+# different CDN tier than cost-estimates/xml above and served plain HTTP 200
+# to curl -- no DataDome bot wall. The 119th Congress feed is checked in
+# byte-for-byte. Its custom <response>/<item> shape carries no Topic labels,
+# budget-function codes, mandate flags, or PAYGO facets of its own.
+
+
+def test_per_congress_url_builder_documents_the_pattern() -> None:
+    assert cbo.cbo_per_congress_cost_estimates_url(119) == "https://www.cbo.gov/rss/119congress-cost-estimates.xml"
+    assert cbo.cbo_per_congress_cost_estimates_url(118) == "https://www.cbo.gov/rss/118congress-cost-estimates.xml"
+    with pytest.raises(cbo.CBOAcquisitionError, match="positive integer"):
+        cbo.cbo_per_congress_cost_estimates_url(0)
+
+
+def test_per_congress_feed_url_must_match_the_official_pattern() -> None:
+    payload = b"<?xml version='1.0'?><response><item key='0'></item></response>"
+    with pytest.raises(cbo.CBOAcquisitionError, match="per-Congress feed"):
+        cbo.CBOPerCongressFeedSnapshotPin(
+            source_url="https://www.cbo.gov/rss/cost-estimates.xml",
+            retrieved_at=RETRIEVED_AT,
+            expected_sha256=cbo.sha256_digest(payload),
+            expected_byte_length=len(payload),
+        )
+
+
+def test_real_capture_fixture_bytes_match_pinned_digest_and_length() -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+
+    assert len(payload) == 375_365
+    assert cbo.sha256_digest(payload) == "sha256:edc957a1115320f1c0da4b02c33d1af146a3c508592ee20b4909e0a8db44d968"
+    assert len(payload) == cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_BYTE_LENGTH
+    assert cbo.sha256_digest(payload) == cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_SHA256
+    assert cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.expected_byte_length == len(payload)
+    assert cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.expected_sha256 == cbo.sha256_digest(payload)
+    assert cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.retrieved_at == "2026-08-04T00:50:00Z"
+    assert (
+        cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.source_url
+        == "https://www.cbo.gov/rss/119congress-cost-estimates.xml"
+    )
+
+
+def test_real_capture_is_acquired_and_verified_against_its_pin(tmp_path: Path) -> None:
+    acquired = _acquire_per_congress_real(tmp_path)
+
+    assert acquired.sha256 == cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.expected_sha256
+    assert acquired.byte_length == cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_BYTE_LENGTH
+    assert acquired.acquisition_mode == "local"
+
+    cached = cbo.acquire_cbo_per_congress_feed(cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04, tmp_path)
+    assert cached.acquisition_mode == "cache"
+    assert cached.cache_hit is True
+
+
+def test_real_capture_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    calls: list[tuple[str, float]] = []
+
+    class Fetcher:
+        def fetch(self, source_url: str, *, timeout_seconds: float) -> cbo.FetchedCBOFeed:
+            calls.append((source_url, timeout_seconds))
+            return cbo.FetchedCBOFeed(
+                body=payload,
+                status_code=200,
+                content_type="application/xml; charset=UTF-8",
+                resolved_url=source_url,
+            )
+
+    acquired = cbo.acquire_cbo_per_congress_feed(
+        cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04,
+        tmp_path,
+        fetcher=Fetcher(),
+        timeout_seconds=9.0,
+    )
+
+    assert calls == [("https://www.cbo.gov/rss/119congress-cost-estimates.xml", 9.0)]
+    assert acquired.acquisition_mode == "fetcher"
+
+
+def test_real_capture_digest_drift_never_publishes_source(tmp_path: Path) -> None:
+    expected_payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    changed_payload = expected_payload.replace(b"H.R. 8844", b"H.R. 8845")
+    assert len(changed_payload) == len(expected_payload)
+
+    class Fetcher:
+        def fetch(self, source_url: str, *, timeout_seconds: float) -> cbo.FetchedCBOFeed:
+            del timeout_seconds
+            return cbo.FetchedCBOFeed(
+                body=changed_payload,
+                status_code=200,
+                content_type="application/xml",
+                resolved_url=source_url,
+            )
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="digest drift"):
+        cbo.acquire_cbo_per_congress_feed(cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04, tmp_path, fetcher=Fetcher())
+
+    digest_hex = cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04.expected_sha256.removeprefix("sha256:")
+    expected_path = tmp_path / "sha256" / digest_hex / "per-congress-cost-estimates.xml"
+    assert not expected_path.exists()
+
+
+def test_parses_the_real_119th_congress_feed_exact_item_count_and_first_item(tmp_path: Path) -> None:
+    parsed = _per_congress_real_parsed(tmp_path)
+
+    assert len(parsed.records) == 1058
+    assert parsed.source_url == "https://www.cbo.gov/rss/119congress-cost-estimates.xml"
+    assert parsed.retrieved_at == "2026-08-04T00:50:00Z"
+    assert parsed.source_byte_length == 375_365
+
+    first = parsed.records[0]
+    assert first.item_ordinal == 0
+    assert first.key == "0"
+    assert first.title == ("H.R. 8844, U.S. Customs and Border Protection Officer Retirement Technical Corrections Act")
+    assert first.date == "Mon, 03 Aug 2026 15:49:00 -0400"
+    assert first.link == "https://www.cbo.gov/publication/62634"
+    assert first.description == (
+        "As ordered reported by the House Committee on Oversight and Government Reform on May 20, 2026"
+    )
+    assert first.bill_number == "H.R. 8844"
+
+
+def test_real_feed_item_with_an_empty_bill_number_element_parses_as_none(tmp_path: Path) -> None:
+    parsed = _per_congress_real_parsed(tmp_path)
+
+    # Item 33 in the real capture is a weekly House suspension-calendar
+    # notice: it carries an empty <Bill_Number></Bill_Number> element rather
+    # than omitting the element entirely.
+    procedural_item = parsed.records[33]
+    assert procedural_item.bill_number is None
+    assert procedural_item.title == (
+        "Legislation considered under suspension of the Rules of the House of "
+        "Representatives during the week of July 20, 2026"
+    )
+    assert procedural_item.link == "https://www.cbo.gov/publication/62534"
+
+    empty_bill_records = [record for record in parsed.records if record.bill_number is None]
+    assert len(empty_bill_records) == 52
+    populated_bill_records = [record for record in parsed.records if record.bill_number is not None]
+    assert len(populated_bill_records) == 1006
+
+
+def test_real_feed_all_links_match_the_official_publication_pattern(tmp_path: Path) -> None:
+    parsed = _per_congress_real_parsed(tmp_path)
+
+    link_pattern = re.compile(r"^https://www\.cbo\.gov/publication/\d+$")
+    assert all(link_pattern.fullmatch(record.link) for record in parsed.records)
+
+
+def test_real_feed_record_by_bill_number_indexes_the_first_item(tmp_path: Path) -> None:
+    parsed = _per_congress_real_parsed(tmp_path)
+
+    by_bill = parsed.record_by_bill_number()
+
+    assert by_bill["H.R. 8844"].link == "https://www.cbo.gov/publication/62634"
+    assert "" not in by_bill
+
+
+def test_real_feed_gaps_disclose_no_fiscal_facets(tmp_path: Path) -> None:
+    parsed = _per_congress_real_parsed(tmp_path)
+
+    assert parsed.gaps == cbo.CBO_PER_CONGRESS_PORTFOLIO_GAPS
+    assert any("Topic" in gap for gap in parsed.gaps)
+    assert any("omb_a11_budget_codes" in gap for gap in parsed.gaps)
+
+
+def test_no_stable_topic_identifier_gap_documents_the_per_congress_channel(tmp_path: Path) -> None:
+    acquired = _acquire_fixture(tmp_path)
+    parsed = cbo.parse_cbo_cost_estimates_feed(acquired)
+    bundle = cbo.build_cbo_topic_evidence_package(acquired, parsed)
+
+    gaps = {gap["kind"]: gap["reason"] for gap in bundle.coverage_report["gaps"]}
+    reason = gaps["publisherTopicIdentifierUnavailable"]
+
+    assert "per-Congress" in reason
+    assert "bot-wall-free" in reason
+    assert "omb_a11_budget_codes" in reason
+
+
+def test_real_feed_non_response_root_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(b"<response>", b"<responses>", 1).replace(b"</response>\n", b"</responses>\n", 1)
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="root is no longer <response>"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_unexpected_root_child_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(b'<response><item key="0">', b'<response><meta>x</meta><item key="0">', 1)
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="is not <item>"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_item_with_unexpected_child_element_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(
+        b"<Bill_Number>H.R. 8844</Bill_Number></item>",
+        b"<Bill_Number>H.R. 8844</Bill_Number><Extra>x</Extra></item>",
+        1,
+    )
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="does not carry exactly"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_item_missing_a_required_child_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(
+        b"<Description>As ordered reported by the House Committee on Oversight and "
+        b"Government Reform on May 20, 2026</Description>",
+        b"",
+        1,
+    )
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="does not carry exactly"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_item_missing_its_key_attribute_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(b'<item key="0">', b"<item>", 1)
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="missing its key attribute"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_item_link_not_matching_publication_pattern_fails_closed(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(
+        b"<Link>https://www.cbo.gov/publication/62634</Link>",
+        b"<Link>https://www.cbo.gov/publication/abc</Link>",
+        1,
+    )
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="does not match"):
+        cbo.parse_cbo_per_congress_feed(acquired)
+
+
+def test_real_feed_malformed_xml_fails_as_source_drift(tmp_path: Path) -> None:
+    payload = _payload(PER_CONGRESS_REAL_CAPTURE_FIXTURE)
+    mutated = payload.replace(b"</response>\n", b"")
+    acquired = _acquire_mutated_per_congress(tmp_path, mutated)
+
+    with pytest.raises(cbo.CBOSourceDriftError, match="not valid XML"):
+        cbo.parse_cbo_per_congress_feed(acquired)
