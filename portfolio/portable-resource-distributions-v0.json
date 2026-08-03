@@ -1,0 +1,77 @@
+{
+  "distributions": [
+    {
+      "distributionKind": "refspec-vocabulary-atlas-nquads-1.0",
+      "files": [
+        {
+          "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
+          "sha256": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
+        },
+        {
+          "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas.nq",
+          "sha256": "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
+        }
+      ],
+      "manifestPath": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
+      "packageResourceId": "federal-register-thesaurus-2025",
+      "resourceId": "federal-register-thesaurus-2025"
+    },
+    {
+      "distributionKind": "refspec-source-controlled-resource-1.0",
+      "files": [
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/bundle-manifest.json",
+          "sha256": "sha256:8874d5a5744d3217d62059cdc5162df2fe371061eb505e74a68b2d160397bf41"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/coverage-report.json",
+          "sha256": "sha256:77e57a72f89ef2b67ef73d603a80ddd04a7cac33b7c875afce89c9ce504b475e"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/observations.jsonl",
+          "sha256": "sha256:13f621ddf8b41c24e8c126a72b008e341158411ce39f7b9d083c41c701a91b38"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/resource-manifest.json",
+          "sha256": "sha256:81a0319e220fb0846b2e815dcba4fe72f8589b50ff6a6d50c880f65b6095f2a4"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/sources/source-0ed0d737263a49b62c2aa98744c8be6f2b35b787032f7cd1b34a1b55b5deef0d.bin",
+          "sha256": "sha256:49fbd39383b0be63fb474878aa229d4e397880a30c2e0dac1a0905bc660a3149"
+        }
+      ],
+      "manifestPath": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/bundle-manifest.json",
+      "packageResourceId": "lda-filing-types",
+      "resourceId": "lda-native-controls"
+    },
+    {
+      "distributionKind": "refspec-source-controlled-resource-1.0",
+      "files": [
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
+          "sha256": "sha256:be21135816424ca76316f24f1df76546a4524e618696251537dea1d85a8cb66a"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/coverage-report.json",
+          "sha256": "sha256:c6bcfa64676a7903923220e87daaf7e389e3a770ca5054dc47ff434da897778b"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/observations.jsonl",
+          "sha256": "sha256:ebcbe7ec87c29d31c97563f290e18d87a4021dc068ae5263604d9c855f22ae6e"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/resource-manifest.json",
+          "sha256": "sha256:da046570ac8372227552ea5cd0f0c876f474b6c92b3fd9e433f238b938713e11"
+        },
+        {
+          "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/sources/source-477db45b9921f293cc474269df8cd7a8db40f0f996c27872c4bca733ae8ee995.bin",
+          "sha256": "sha256:e1820ef17f3e63048ae50e526c2f56e507b2cf60d720fc227c76ee7c3610d5bf"
+        }
+      ],
+      "manifestPath": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
+      "packageResourceId": "lda-general-issue-codes",
+      "resourceId": "lda-native-controls"
+    }
+  ],
+  "format": "refspec-portable-resource-distributions/experimental-v0"
+}

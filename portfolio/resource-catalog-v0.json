@@ -1,0 +1,599 @@
+{
+  "catalogDigest": "sha256:c0bcce7318ac6fedce2e0c51e77186ef32cf5c9d1039aa2170d7b28422de7dbe",
+  "catalogId": "urn:ref:resource-catalog:c0bcce7318ac6fedce2e0c51e77186ef32cf5c9d1039aa2170d7b28422de7dbe",
+  "experimental": true,
+  "format": "refspec-resource-catalog/experimental-v0",
+  "recordedAt": "2026-07-30T18:00:00Z",
+  "resources": [
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Resolve each literal as an official term, recognized variant, source-local open term, or unresolved value; never mint a managed concept implicitly.",
+      "identifierRepresentation": "Preserve the exact CFR part identity, authored literal, resolution class, matched managed identity when present, and source location.",
+      "officialLocator": "https://www.ecfr.gov/current/title-1/chapter-I/subchapter-A/part-3/subpart-B/section-3.12",
+      "resourceId": "cfr-list-of-subjects",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "partial",
+      "title": "CFR List of Subjects assignments",
+      "versionRepresentation": "Pin CFR title, part, edition or point-in-time date, source artifact, and digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Only procedure classes needed by active ECFS profiles enter the first portfolio release.",
+      "identifierRepresentation": "Preserve official 47 CFR citation and procedure-class meaning.",
+      "officialLocator": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-1",
+      "resourceId": "cfr47-procedure",
+      "resourceKind": "codeList",
+      "sourceAvailability": "available",
+      "title": "47 CFR procedure classes",
+      "versionRepresentation": "Pin title, part, section, point-in-time date, and source digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Congress.gov API and BILLSTATUS files must remain source/version-specific when their fields differ.",
+      "identifierRepresentation": "Preserve official bill, action, version, committee, and package identities.",
+      "officialLocator": "https://api.congress.gov/",
+      "resourceId": "congress-billstatus-native-controls",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "available",
+      "title": "Congress API and BILLSTATUS controls",
+      "versionRepresentation": "Pin API version or BILLSTATUS bulk-data date and artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Official court identifiers and CourtListener-normalized values must remain distinct and source-attributed.",
+      "identifierRepresentation": "Preserve court, case, docket, opinion, citation, package, and platform identifiers with authority type.",
+      "officialLocator": "https://www.courtlistener.com/help/api/",
+      "resourceId": "court-identifiers-and-controls",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "availableButUnreconciled",
+      "title": "Court identifiers and source controls",
+      "versionRepresentation": "Pin court source, platform API version, record version, capture time, and response digest."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/crs-source-packages-2026-07-30/package-evidence.json",
+          "identityStatus": "captureLocalObservationsOnly",
+          "packageClass": "sourceControlledResource",
+          "packageDigest": "sha256:a880ea10a8ef968028c7d1a464369344374d460e5a3cab7bb95751893556b194"
+        }
+      ],
+      "gap": "A complete machine-readable acquisition and exact release pin remain Batch 4 work.",
+      "identifierRepresentation": "Preserve Library of Congress legislative subject identifiers and labels.",
+      "officialLocator": "https://www.congress.gov/help/legislative-glossary",
+      "resourceId": "crs-legislative-subject-terms",
+      "resourceKind": "subjectVocabulary",
+      "sourceAvailability": "available",
+      "title": "CRS Legislative Subject Terms",
+      "versionRepresentation": "Managed release must pin the official distribution date and artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Product Topics are report-edition assignments, not an independently published concept scheme.",
+      "identifierRepresentation": "Preserve CRS report number, edition, status, product type, product-topic literal, bill, and committee links.",
+      "officialLocator": "https://crsreports.congress.gov/",
+      "resourceId": "crs-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "partial",
+      "title": "CRS report native controls",
+      "versionRepresentation": "Pin the exact report edition, product metadata capture, and artifact digest."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": false,
+          "evidencePath": "research/evidence/crs-source-packages-2026-07-30/package-evidence.json",
+          "identityStatus": "captureLocalObservationsOnly",
+          "packageClass": "sourceControlledResource",
+          "packageDigest": "sha256:d1d55330ffd7dfae66c7179131097f7e9e9733b559d26a8472bc6fb21c57b81b"
+        }
+      ],
+      "gap": "Policy areas are broad navigation values and must not silently replace detailed subject terms.",
+      "identifierRepresentation": "Preserve the official CRS policy-area values and their source context.",
+      "officialLocator": "https://www.congress.gov/browse",
+      "resourceId": "crs-policy-areas",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "available",
+      "title": "CRS Policy Areas",
+      "versionRepresentation": "Pin the Congress.gov capture time, report or bill edition, and response digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "eCFR current state and GovInfo packages have different publication/version behavior that must remain visible.",
+      "identifierRepresentation": "Preserve official title, chapter, part, section, granule, package, and citation identities.",
+      "officialLocator": "https://www.ecfr.gov/developers/documentation/api/v1",
+      "resourceId": "ecfr-govinfo-cfr-structure",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "available",
+      "title": "eCFR and GovInfo CFR structure",
+      "versionRepresentation": "Pin point-in-time date or GovInfo package version plus exact artifact digest."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/elsst-r5-r6-managed-release-2026-07-29/evidence.json",
+          "identityStatus": "publisherConceptIdentitiesPreserved",
+          "packageClass": "managedConceptRelease",
+          "packageDigest": "sha256:8dd408effe1d57109460a01a9c6620107b4662cbb95eed829ef905f3bfe8b71e"
+        }
+      ],
+      "gap": "RefSpec still needs a complete reproducible release capture and reviewed mappings to United States source schemes.",
+      "identifierRepresentation": "Preserve ELSST concept URIs and language-tagged labels.",
+      "officialLocator": "https://elsst.cessda.eu/",
+      "resourceId": "elsst",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "available",
+      "title": "European Language Social Science Thesaurus",
+      "versionRepresentation": "Pin the published ELSST release/version and distribution digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "UEI and CAGE resolve through different authorities; a combined portfolio row does not assert identity between them.",
+      "identifierRepresentation": "Preserve UEI and CAGE identifiers exactly, with authority type.",
+      "officialLocator": "https://sam.gov/content/entity-registration",
+      "resourceId": "entity-identifier-authorities",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "available",
+      "title": "UEI and CAGE entity identifier authorities",
+      "versionRepresentation": "Pin source record status, capture time, and authority-specific evidence."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "ECFS source fields and local genre mappings are separate; no maintained FCC topic thesaurus is known.",
+      "identifierRepresentation": "Preserve proceeding, submission, bureau, status, attachment, filer, and author values with source field.",
+      "officialLocator": "https://www.fcc.gov/ecfs/public-api-docs.html",
+      "resourceId": "fcc-ecfs-native-controls",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "partial",
+      "title": "FCC ECFS native controls",
+      "versionRepresentation": "Pin API version, record version, capture time, response digest, and local genre-map version."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Code definitions and committee records are time-varying; exact effective dates must remain attached.",
+      "identifierRepresentation": "Preserve FEC committee ID and native committee, designation, organization, party, sponsor, and candidate codes.",
+      "officialLocator": "https://api.open.fec.gov/developers/",
+      "resourceId": "fec-native-controls",
+      "resourceKind": "codeList",
+      "sourceAvailability": "available",
+      "title": "Federal Election Commission native controls",
+      "versionRepresentation": "Pin API version, cycle, effective date, capture time, and response digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The hierarchy changes over time and source systems may expose only partial snapshots.",
+      "identifierRepresentation": "Preserve official agency and organization identifiers and parent relations.",
+      "officialLocator": "https://sam.gov/content/federal-hierarchy",
+      "resourceId": "federal-hierarchy",
+      "resourceKind": "classification",
+      "sourceAvailability": "available",
+      "title": "Federal Hierarchy",
+      "versionRepresentation": "Pin the source snapshot date, hierarchy artifact, and digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The authorities are separately maintained and require exact source-specific version evidence.",
+      "identifierRepresentation": "Preserve BioGuide, committee, bill, and related legislative identifiers in their native authorities.",
+      "officialLocator": "https://bioguide.congress.gov/",
+      "resourceId": "federal-legislative-identifiers",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "available",
+      "title": "Federal legislative identifier authorities",
+      "versionRepresentation": "Pin each authority capture date, source locator, and digest independently."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": false,
+          "evidencePath": "research/evidence/federal-register-topics-source-package-2026-07-29/evidence.json",
+          "identityStatus": "captureLocalObservationsOnly",
+          "packageClass": "sourceControlledResource",
+          "packageDigest": "sha256:bfdd445ccccb96f173db658a32a0a043b6c77c25021af6089ce6877298ccaf27"
+        }
+      ],
+      "gap": "The API exposes mutable source assignments, not a complete versioned thesaurus distribution; do not merge it with the 2025 release.",
+      "identifierRepresentation": "Source topic strings and record links are evidence until official concept identifiers are available.",
+      "officialLocator": "https://www.federalregister.gov/developers/documentation/api/v1",
+      "resourceId": "federal-register-api-topics",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "availableButUnreconciled",
+      "title": "Federal Register API topics",
+      "versionRepresentation": "Capture time, endpoint, query, record identity, and response digest pin each observation."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Some values are API-native observations rather than a separately downloadable controlled list.",
+      "identifierRepresentation": "Preserve category, presidential subtype, TOC subject, agency, docket, CFR citation, and document-number values as authored.",
+      "officialLocator": "https://www.federalregister.gov/developers/documentation/api/v1",
+      "resourceId": "federal-register-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "partial",
+      "title": "Federal Register native controls",
+      "versionRepresentation": "Pin endpoint, API capture time, document version, and response digest."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": false,
+          "evidencePath": "research/evidence/federal-register-thesaurus-managed-release-2026-07-30/evidence.json",
+          "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
+          "packageClass": "managedConceptRelease",
+          "packageDigest": "sha256:96352a29a6ebadc0221af604eebebb2fffb0069ff4367181fd4640671215df70"
+        }
+      ],
+      "gap": "Retained only for historical lookup, regression tests, and vocabulary-change analysis.",
+      "identifierRepresentation": "Historical RefSpec-managed identities preserve source ordinals; broad categories remain document groupings and are not SKOS hierarchy.",
+      "officialLocator": "Federal Register Thesaurus of Indexing Terms, 1995 edition",
+      "resourceId": "federal-register-thesaurus-1995",
+      "resourceKind": "historicalVocabulary",
+      "sourceAvailability": "historicalOnly",
+      "title": "Federal Register Thesaurus of Indexing Terms, 1995",
+      "versionRepresentation": "Historical package pins the 1995 publication for lookup, regression, and the 1995 to 2025 evidence crosswalk."
+    },
+    {
+      "consumability": "verifiedDistribution",
+      "distributions": [
+        {
+          "distributionKind": "refspec-vocabulary-atlas-nquads-1.0",
+          "files": [
+            {
+              "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
+              "sha256": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
+            },
+            {
+              "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas.nq",
+              "sha256": "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
+            }
+          ],
+          "manifestDigest": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1",
+          "manifestPath": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
+          "packageResourceId": "federal-register-thesaurus-2025"
+        }
+      ],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
+          "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
+          "packageClass": "managedConceptRelease",
+          "packageDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6"
+        }
+      ],
+      "gap": "The official styled PDF is packaged with a pinned digest, a checked semantic extract, and explicit source anomalies.",
+      "identifierRepresentation": "RefSpec-managed concept IRIs use source-local term ordinals from the exact April 1, 2025 publication.",
+      "officialLocator": "https://www.archives.gov/files/federal-register/cfr/thesaurus-4-1-2025.pdf",
+      "resourceId": "federal-register-thesaurus-2025",
+      "resourceKind": "subjectVocabulary",
+      "sourceAvailability": "available",
+      "title": "Federal Register Thesaurus of Indexing Terms, April 1, 2025",
+      "versionRepresentation": "Managed release pins the April 1, 2025 publication, exact PDF digest, parser, source extract, and coverage report."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "FRNs identify registrants, not topical concepts, and resolution evidence must remain source-specific.",
+      "identifierRepresentation": "Official FCC Registration Number.",
+      "officialLocator": "https://apps.fcc.gov/cores/userLogin.do",
+      "resourceId": "frn-authority",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "available",
+      "title": "FCC Registration Number authority",
+      "versionRepresentation": "Pin source record status, lookup time, and authority evidence."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "GAO report controls are record-derived; exact enumerations may require bounded source captures.",
+      "identifierRepresentation": "Preserve report ID, product type, agency, recommendation state, and evidence-depth values.",
+      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "resourceId": "gao-native-controls",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "partial",
+      "title": "GAO report native controls",
+      "versionRepresentation": "Pin report edition, source fields, capture time, and artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The historical publication is not a maintained authority and is mapping-only unless a successor appears.",
+      "identifierRepresentation": "Preserve historical source entries and identifiers without promoting them to current selectable concepts.",
+      "officialLocator": "GAO Thesaurus, 1998 publication",
+      "resourceId": "gao-thesaurus-historical",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "historicalOnly",
+      "title": "GAO Thesaurus",
+      "versionRepresentation": "Pin the 1998 edition and exact scanned or machine-readable artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "GAO topics are source assignments and no complete maintained reusable thesaurus distribution is known.",
+      "identifierRepresentation": "Preserve the exact topic literal and report assignment context.",
+      "officialLocator": "https://www.gao.gov/reports-testimonies",
+      "resourceId": "gao-topics",
+      "resourceKind": "sourceAssignedVocabulary",
+      "sourceAvailability": "partial",
+      "title": "GAO report topics",
+      "versionRepresentation": "Pin report identity, edition or publication date, capture time, and source digest."
+    },
+    {
+      "consumability": "evidenceOnly",
+      "distributions": [],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
+          "identityStatus": "publisherConceptIdentitiesPreservedForVerifiedSubset",
+          "packageClass": "managedConceptRelease",
+          "packageDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7"
+        }
+      ],
+      "gap": "The current public term index and pinned XML differ in membership; full import must stop until every record joins to an official URI or code.",
+      "identifierRepresentation": "Official ICPSR numeric code and public term URI; XML record numbers remain source-local evidence.",
+      "officialLocator": "https://icpsr.umich.edu/web/pages/ICPSR/thesaurus/",
+      "resourceId": "icpsr-subject-thesaurus",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "availableButUnreconciled",
+      "title": "ICPSR Subject Thesaurus",
+      "versionRepresentation": "Pin the XML artifact plus every public index page, capture time, and aggregate digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Only reviewed mappings may influence retrieval; label similarity never establishes identity.",
+      "identifierRepresentation": "Preserve Library of Congress Subject Headings and FAST concept identifiers independently.",
+      "officialLocator": "https://id.loc.gov/authorities/subjects.html",
+      "resourceId": "lcsh-fast-mapping-references",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "available",
+      "title": "LCSH and FAST mapping references",
+      "versionRepresentation": "Pin each source release and every reviewed mapping snapshot independently."
+    },
+    {
+      "consumability": "verifiedDistribution",
+      "distributions": [
+        {
+          "distributionKind": "refspec-source-controlled-resource-1.0",
+          "files": [
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/bundle-manifest.json",
+              "sha256": "sha256:8874d5a5744d3217d62059cdc5162df2fe371061eb505e74a68b2d160397bf41"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/coverage-report.json",
+              "sha256": "sha256:77e57a72f89ef2b67ef73d603a80ddd04a7cac33b7c875afce89c9ce504b475e"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/observations.jsonl",
+              "sha256": "sha256:13f621ddf8b41c24e8c126a72b008e341158411ce39f7b9d083c41c701a91b38"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/resource-manifest.json",
+              "sha256": "sha256:81a0319e220fb0846b2e815dcba4fe72f8589b50ff6a6d50c880f65b6095f2a4"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/sources/source-0ed0d737263a49b62c2aa98744c8be6f2b35b787032f7cd1b34a1b55b5deef0d.bin",
+              "sha256": "sha256:49fbd39383b0be63fb474878aa229d4e397880a30c2e0dac1a0905bc660a3149"
+            }
+          ],
+          "manifestDigest": "sha256:8874d5a5744d3217d62059cdc5162df2fe371061eb505e74a68b2d160397bf41",
+          "manifestPath": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/bundle-manifest.json",
+          "packageResourceId": "lda-filing-types"
+        },
+        {
+          "distributionKind": "refspec-source-controlled-resource-1.0",
+          "files": [
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
+              "sha256": "sha256:be21135816424ca76316f24f1df76546a4524e618696251537dea1d85a8cb66a"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/coverage-report.json",
+              "sha256": "sha256:c6bcfa64676a7903923220e87daaf7e389e3a770ca5054dc47ff434da897778b"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/observations.jsonl",
+              "sha256": "sha256:ebcbe7ec87c29d31c97563f290e18d87a4021dc068ae5263604d9c855f22ae6e"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/resource-manifest.json",
+              "sha256": "sha256:da046570ac8372227552ea5cd0f0c876f474b6c92b3fd9e433f238b938713e11"
+            },
+            {
+              "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/sources/source-477db45b9921f293cc474269df8cd7a8db40f0f996c27872c4bca733ae8ee995.bin",
+              "sha256": "sha256:e1820ef17f3e63048ae50e526c2f56e507b2cf60d720fc227c76ee7c3610d5bf"
+            }
+          ],
+          "manifestDigest": "sha256:be21135816424ca76316f24f1df76546a4524e618696251537dea1d85a8cb66a",
+          "manifestPath": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
+          "packageResourceId": "lda-general-issue-codes"
+        }
+      ],
+      "evidence": [
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md",
+          "identityStatus": "publisherIdentifiersPreserved",
+          "packageClass": "sourceControlledResource",
+          "packageDigest": "sha256:27d784d14004228b024fa82962e91df7daadb4edaf3237125e420194dafd3588"
+        },
+        {
+          "acceptedOutputUseAuthorized": false,
+          "candidateUseAuthorized": true,
+          "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md",
+          "identityStatus": "publisherIdentifiersPreserved",
+          "packageClass": "sourceControlledResource",
+          "packageDigest": "sha256:3f3ec1e17f5503be8767d6e51142521ceba314ba555907438f8487ca1dfc04df"
+        }
+      ],
+      "gap": "General Issue Codes and filing controls must be captured from matching filing vintages.",
+      "identifierRepresentation": "Preserve LDA issue code, filing type, period, status, client, registrant, and filing UUID.",
+      "officialLocator": "https://lda.senate.gov/api/",
+      "resourceId": "lda-native-controls",
+      "resourceKind": "codeList",
+      "sourceAvailability": "available",
+      "title": "Lobbying Disclosure Act native controls",
+      "versionRepresentation": "Pin API/schema version, filing period, record version, and response digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The selected edition must match the source record date; later codes cannot be applied silently.",
+      "identifierRepresentation": "Official NAICS code and edition.",
+      "officialLocator": "https://www.census.gov/naics/",
+      "resourceId": "naics",
+      "resourceKind": "classification",
+      "sourceAvailability": "available",
+      "title": "North American Industry Classification System",
+      "versionRepresentation": "Pin the exact NAICS edition and official artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Courts and data providers may expose different vintages or normalized labels.",
+      "identifierRepresentation": "Preserve the official Nature of Suit code, label, and version.",
+      "officialLocator": "https://www.uscourts.gov/forms-rules/court-forms/nature-suit-code-descriptions",
+      "resourceId": "nature-of-suit",
+      "resourceKind": "codeList",
+      "sourceAvailability": "available",
+      "title": "Nature of Suit codes",
+      "versionRepresentation": "Pin the official publication date, artifact, and digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The selected PSC edition must match the award or source-record vintage.",
+      "identifierRepresentation": "Official Product and Service Code and edition.",
+      "officialLocator": "https://www.acquisition.gov/psc-manual",
+      "resourceId": "psc",
+      "resourceKind": "classification",
+      "sourceAvailability": "available",
+      "title": "Product and Service Codes",
+      "versionRepresentation": "Pin the PSC manual edition and official artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The source schemas and live value sets must be captured together so unpublished values cannot enter silently.",
+      "identifierRepresentation": "Preserve Regulations.gov docket, document, comment, attachment, agency, docket-ID, and Federal Register-number values.",
+      "officialLocator": "https://open.gsa.gov/api/regulationsgov/",
+      "resourceId": "regulations-gov-native-controls",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "available",
+      "title": "Regulations.gov native controls",
+      "versionRepresentation": "Pin API version, schema or OpenAPI artifact, capture time, and artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The grammar is public, while complete issuance and lifecycle history requires source-specific captures.",
+      "identifierRepresentation": "Regulation Identifier Number in its official printable form.",
+      "officialLocator": "https://www.reginfo.gov/public/jsp/Utilities/faq.myjsp",
+      "resourceId": "rin-authority",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "definitionOnly",
+      "title": "Regulation Identifier Number authority",
+      "versionRepresentation": "Pin the official grammar definition and the exact source observation date."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Each specialist scheme is admitted only after measured misses justify it and its own acquisition is reproducible.",
+      "identifierRepresentation": "Each member keeps its publisher-owned concept identifiers; the family mints no shared identities.",
+      "officialLocator": "RefSpec/plans/active-profile-controlled-resource-import-plan.md",
+      "resourceId": "specialist-subject-modules",
+      "resourceKind": "resourceFamily",
+      "sourceAvailability": "plannedFamily",
+      "title": "Measured specialist subject modules",
+      "versionRepresentation": "Every selected member requires an independent exact managed-release pin."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "A complete current distribution of all observed stage, priority, agency, and relationship values must be proven from source.",
+      "identifierRepresentation": "Preserve Unified Agenda codes or authored values and their record context.",
+      "officialLocator": "https://www.reginfo.gov/public/do/eAgendaMain",
+      "resourceId": "unified-agenda-native-controls",
+      "resourceKind": "codeList",
+      "sourceAvailability": "partial",
+      "title": "Unified Agenda native controls",
+      "versionRepresentation": "Pin agenda edition, record identity, acquisition time, and source artifact digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "Adoption is limited to structure needed by current bill and CFR profiles; it does not define RefSpec concepts.",
+      "identifierRepresentation": "Preserve official USLM element and schema identifiers.",
+      "officialLocator": "https://github.com/usgpo/uslm",
+      "resourceId": "uslm",
+      "resourceKind": "structuralSchema",
+      "sourceAvailability": "available",
+      "title": "United States Legislative Markup",
+      "versionRepresentation": "Pin the exact schema release or Git revision and artifact digest."
+    }
+  ],
+  "summary": {
+    "evidenceOnlyCount": 6,
+    "inventoryOnlyCount": 25,
+    "resourceCount": 33,
+    "verifiedDistributionCount": 3,
+    "verifiedResourceCount": 2
+  }
+}
