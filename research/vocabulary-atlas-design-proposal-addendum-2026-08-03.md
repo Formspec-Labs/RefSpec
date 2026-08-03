@@ -1,0 +1,225 @@
+<!-- markdownlint-disable MD013 -->
+
+# Addendum — what the atlas design proposal does not cover
+
+> **Status:** Companion record to a proposed design; not adopted
+>
+> **Date:** 2026-08-03
+>
+> **Decision synthesis:** [Vocabulary Atlas Final Synthesis](vocabulary-atlas-final-synthesis-2026-08-03.md)
+> resolves the review findings and supersedes the parent draft for decision-making.
+>
+> **Parent proposal:** [Vocabulary Atlas Design Proposal](vocabulary-atlas-design-proposal-2026-08-03.md)
+>
+> **Checked against:** [External research synthesis](large-label-space-tagging-external-research-synthesis-2026-08-03.md)
+
+The parent proposal was checked twice: point-by-point against the external
+research synthesis, and module-by-module against the full
+`src/refspec/registry/` inventory. This addendum records what those checks
+surfaced: three commitments that exceed the published evidence (§A), five
+synthesis demands the atlas deliberately leaves to other layers (§B), one
+clarification that prevents a predictable mis-citation (§C), and the
+registry-compatibility findings (§D). Items here are scope boundaries and
+successor work, not defects in the parent proposal — but each needs an
+owner, and three need their own design documents (B4's concept staging;
+B5's entity spine and legal-identity edge model).
+
+## A. Commitments that exceed the evidence
+
+The synthesis (§14) verified that certain techniques the proposal relies on
+have never been measured anywhere. The proposal treats each as an experiment
+to run, not a fact to inherit. Recording them together so no later document
+cites the proposal as if these were established:
+
+| # | Commitment | Evidence status | Instrument in the proposal |
+| --- | --- | --- | --- |
+| A1 | Ring/facet separation improves tagging (typed pools, separate eligibility per ring) | Synthesis §14 gap 7: no facet-separated retrieval experiment exists; motivation only (GND benchmark's own admission, MeSH/EPA structural precedent) | Proposal §10: ring assignments authorize nothing until a per-source-family holdout passes |
+| A2 | The mapping frontier's decoy value (keeping off-domain vocabulary in the index reduces wrong-concept emissions) | Synthesis §14 gap 1: the deletion ablation has never been published; CoRECT and DNB-AI support the two halves separately, not the combination | Proposal §10: frontier ablation against a frontier-less control; result recorded either way |
+| A3 | Hierarchy context in judge input improves mapping qualification | No literature either way; the pilot showed zero of 365 sealed inputs carried `broader` while the prompt asked a hierarchy question | Proposal §7.2: label-only vs ancestor-labels A/B on the same candidate slice decides it |
+
+If any of these experiments comes back negative, the affected structure
+(rings as eligibility tiers, frontier context depth, judge input shape) is
+revisable without changing the atlas format itself.
+
+## B. Synthesis demands assigned to other layers
+
+The atlas is a publication format. Five things the synthesis establishes as
+necessary belong to the consuming pipeline, to vocabulary governance, or to
+sibling reference publications, and their absence from the parent proposal
+is scope, not omission. Each entry names the owner so the demand does not
+fall between documents.
+
+### B1. Retrieval engineering — owner: SpicySearch pipeline
+
+Synthesis §3, §6, §13.3, §13.6. The measured levers, none of which the atlas
+can supply:
+
+- hybrid first-stage retrieval — lexical BM25/TF-IDF unioned with dense
+  (TF-IDF beat every neural retriever on EURLex; removing the lexical
+  channel cost 33 P@1 points);
+- an embedding-encoder audit before any other tuning (132× spread between
+  two sentence transformers on identical 500K-label data — the largest
+  effect size in the literature);
+- CSLS hubness correction (free; +2.1 to +9.3 P@1 on short-surface-form
+  retrieval);
+- candidate pools wider than the judge's shortlist (R@10→R@200 roughly
+  doubles recall at 500K-label scale), with a cross-encoder reranker above
+  the retriever — the shortlist is the binding constraint no judge quality
+  can fix;
+- LLM candidate reranking last, if at all (+0.009 F1@5 measured).
+
+What the atlas contributes to this layer: variant labels as synonym rings,
+qualified `searchOnly` mappings, bounded hierarchy — inputs, not the engine.
+
+### B2. Soft metadata priors — owner: SpicySearch scoring
+
+Synthesis §9. P(concept | CFR part) backed off to parent agency, then
+global; a frequency-weighted **score component**, candidates **unioned**
+with a global top-N, never intersected. Measured on the federal corpus:
+recall@12 42.2% → 76.0% (CFR part) / 71.0% (agency), while 90% of topic
+assignments land on cross-agency terms — the distribution is
+source-conditioned, the label set is not source-separable. The atlas stays
+metadata-free by design; priors live where scoring lives. Expect the
+prior's value to shrink as supervision grows.
+
+### B3. Generate-then-map serving and the free supervision — owner: SpicySearch pipeline
+
+Synthesis §4. The zero-shot architecture three groups converged on
+(generate free-text concepts → map by embedding nearest-neighbor → rerank)
+requires roughly 50 labeled optimization examples — the unoptimized variant
+measured *worse* than naive retrieval — plus constrained output counts
+(precision 0.26 at ~3 terms/record vs 0.05 at ~15) and calibrated
+abstention. The Federal Register's agency-assigned topics on Rules and
+Proposed Rules supply the bootstrap set, the evaluation gold, and the
+prior-estimation data at zero cost. None of this touches the atlas; all of
+it consumes atlas outputs.
+
+### B4. The concept-level staging tier — owner: **a successor proposal that does not yet exist**
+
+This is the one genuine hole the alignment check found. Synthesis §11 and
+§13.7 establish the governance machinery every long-lived vocabulary runs,
+and the parent proposal's promotion ladder covers *resources* (reader →
+release → ring) but not *concepts*. The emit core needs its own two-tier
+machinery:
+
+- an unbounded staging tier for source-grounded phrases that map to no
+  registered concept, every staged entry **anchored** to a registered
+  concept (MeSH's Heading-Mapped-To pattern) so nothing floats free;
+- promotion as a named-human editorial decision informed by usage evidence,
+  run as periodic campaigns (MeSH promotes ~100–500/year; EuroVoc gates on
+  a definition, a home in the hierarchy, and reviewer consensus — no
+  frequency threshold anywhere in either system);
+- growth by splitting: ~44% of MeSH's additions over 15 years refined
+  concepts already covered, so concept identity and history must support a
+  concept splitting into narrower children without breaking past
+  assignments;
+- the expensive steps (embedding, crosswalk qualification, translation-
+  equivalents) gated behind promotion, not candidacy;
+- candidate tooling: EuroVoc runs this workflow in VocBench (open source),
+  which is the obvious pilot vehicle;
+- evaluation hooks: staged-concept emergence is itself the "measured
+  recurring gaps" signal that the architecture proposal requires before any
+  vocabulary induction is considered.
+
+Until that proposal exists, the atlas's ring-0 core has no governed path for
+growth, and the pipeline's abstention/open-result facet has no destination
+for what it catches. This is the successor document to write first.
+
+### B5. The sibling reference publications — owners: two successor proposals plus one existing layer
+
+Synthesis §1, §9, and §13.2: entity registries and classification spaces are
+different objects; entity identity is not a subject; typed facets are
+separate outputs with separate registries. The parent proposal's ring 3
+(§3) now names the three sibling publications that carry this demand; their
+internals remain undesigned or partially designed:
+
+- **Entity spine — unwritten; the successor proposal after B4.** Agencies,
+  award entities, committees, providers, and substances as nodes with typed
+  identifier sets; identity links evidence-classed exactly as the parent's
+  §6 classes mappings (publisher-asserted crosswalks vs machine-suggested
+  matches vs human-reviewed merges), with "never merge on name equality" as
+  the identity twin of "never map on label equality." The source matrix's
+  `T3-04` already anticipates it. Priority: immediately after B4, because
+  every cross-document product feature (follow-the-company,
+  follow-the-rule) runs through the spine or the legal identity graph.
+- **Legal identity graph — half-built; needs an edge-model design.** CFR
+  structure, statutes, RINs, docket and bill identifiers exist as parsed
+  fields; the typed edges (*cites*, *amends*, *authorizes*, *implements*)
+  with point-in-time versions — the ELI analogue — do not.
+- **Code ledgers — essentially built.** `source_controlled_resource` and
+  `regulatory_native_controls` already publish versioned value sets with
+  preserved raw values; remaining work is reviewed edition crosswalks
+  (NAICS 2017→2022) as they become product-relevant.
+
+One composition rule recorded here because it crosses B3 and the parent's
+§3: the decoy function for entity labels (DNB's forced-choice snapping
+lesson) is served by the pipeline's mapping index unioning the atlas
+frontier with entity-spine labels at retrieval time. Entities never enter
+the atlas's release facts; absorb-in-one-space / emit-on-another-facet is
+pipeline composition, owned by B3's layer.
+
+## C. Clarification against a predictable mis-citation
+
+The parent proposal's **hub-and-spoke** (§5) is a crosswalk-qualification
+*scheduling* topology: which release pairs get candidate generation and
+two-model validation. It is not retrieval routing. Synthesis §9's finding
+that "hierarchical two-stage routing is unevidenced" concerns
+domain→descriptor classification cascades and does not bear on the hub
+spoke. Conversely, the hub spoke must never be cited as evidence for
+two-stage classification routing. Transitive hub claims (`A→LCSH→B`) are
+demoted to candidate generation only — mappings are never materialized
+across the hub, which is synthesis §13.5 ("nearest neighbor is not evidence
+of correctness") applied at the mapping layer.
+
+## D. Registry compatibility check (2026-08-03)
+
+Every module in `src/refspec/registry/` (~75 files) was classified against
+the parent proposal's rings and sibling publications, with docstrings
+verified for the modules the proposal's tables do not name. Result: no
+module conflicts with the design; two refinements were needed and have been
+folded into the parent.
+
+**D1 — Positive finding: the readers already enforce the design.** The ring
+model codifies decisions the readers individually enforce in code:
+`eurovoc_thesaurus` refuses any accepted use except mapping-reference;
+`lcsh_topical` hard-codes `candidate_use_authorized=False`; `gao_topics`
+captures only actual assignments and refuses to reconstruct a scheme from
+navigation; `federal_register_topics_api` preserves byte identity but mints
+no concept identifiers; `census_geo_codes` captures identifier grammar and
+refuses bulk entity rows; `crs_product_topics` treats topic labels as
+edition-bound evidence, not stable concepts. Nothing in the registry mints
+concepts from ring-3 material. Compatibility is by construction, not by
+accident.
+
+**D2 — Gap, fixed in parent §3: the eligible-use vocabulary is
+inconsistent.** `source_controlled_resource.ResourceUse` lacks
+`mappingReference`; EuroVoc enforces a literal outside the enum and LCSH
+declares `searchExpansion` only despite its hub role. The parent now
+requires the enum extension and makes the atlas index reconcile
+reader-declared uses against ring assignments. Owner: registry shared
+models, before any ring-2 promotion.
+
+**D3 — Gap, fixed in parent §3: source-assigned topic evidence is a named
+category.** GAO topics, CBO topic labels, CRS product topics, LDA issue
+codes, and SAM mission/subject fields are per-document publisher evidence —
+not schemes, not codes. They stay out of the atlas, flow through
+`sourceAssignedEvidence` observations to the pipeline, and may later earn
+small reviewed maps into ring-0 concepts through the parent's §6 evidence
+classes.
+
+**D4 — Placement corrections applied.** `courtlistener_codes` (court
+identity) and `census_geo_codes` (geography identifier grammar) moved from
+code ledgers to the entity spine; `census_gov_finance_codes` recorded as a
+ledger crosswalk reference. The parent's ring tables remain illustrative;
+the atlas index is the exhaustive assignment of record.
+
+**D5 — Not sources.** Roughly seventeen modules are shared models,
+transports, acquisition, policy, or development artifacts
+(`source_controlled_resource`, `managed_vocabulary_bundle`,
+`concept_domain_bridge`, `controlled_identifier`,
+`regulatory_native_controls`, `zyte_transport`, the `*_acquisition` and
+`*_zyte` modules, `federal_register_vocabulary_policy`,
+`federal_register_topics_reconciliation`,
+`federal_register_vertical_slice`, `elsst_import_coverage`,
+`elsst_rulespec_projection`, test helpers). They take no ring assignment
+and appear in the atlas index only as implementation, not as sources.
