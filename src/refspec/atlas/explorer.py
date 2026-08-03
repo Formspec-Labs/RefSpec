@@ -443,6 +443,16 @@ _HTML = r"""<!doctype html>
               <span class="edge-key" style="--edge-color:#75847e" aria-hidden="true"></span>
               <span><span class="label">Broader concept</span><small id="count-broader"></small></span>
             </label>
+            <label class="filter">
+              <input type="checkbox" data-edge="related" checked>
+              <span class="edge-key" style="--edge-color:#8eafd5" aria-hidden="true"></span>
+              <span><span class="label">Related concept</span><small id="count-related"></small></span>
+            </label>
+            <label class="filter">
+              <input type="checkbox" data-edge="use" checked>
+              <span class="edge-key mapping" style="--edge-color:#c497cf" aria-hidden="true"></span>
+              <span><span class="label">USE — preferred term</span><small id="count-use"></small></span>
+            </label>
           </div>
           <p class="hint">Equal labels are discovery signals. They are not qualified concept mappings.</p>
         </section>
@@ -523,8 +533,10 @@ _HTML = r"""<!doctype html>
     const releaseFilters = document.getElementById("release-filters");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
-    const edgeColors = { qualifiedMapping: "#e9b95f", sharedLabel: "#6dc8bb", broader: "#75847e" };
-    const edgeLabels = { qualifiedMapping: "qualified mapping", sharedLabel: "shared label", broader: "broader concept" };
+    const edgeColors = { qualifiedMapping: "#e9b95f", sharedLabel: "#6dc8bb", broader: "#75847e", related: "#8eafd5", use: "#c497cf" };
+    const edgeLabels = { qualifiedMapping: "qualified mapping", sharedLabel: "shared label", broader: "broader concept", related: "related concept", use: "USE — preferred term" };
+    const edgeAlpha = { qualifiedMapping: .52, sharedLabel: .24, broader: .2, related: .18, use: .6 };
+    const edgeWidth = { qualifiedMapping: 1.5, sharedLabel: .8, broader: .8, related: .7, use: 1.3 };
     const releaseById = new Map(data.releases.map((release, index) => [release.id, { ...release, index, color: palette[index % palette.length] }]));
     const nodeById = new Map(data.nodes.map(node => [node.id, { ...node, x: 0, y: 0 }]));
     const adjacency = new Map(data.nodes.map(node => [node.id, []]));
@@ -535,7 +547,7 @@ _HTML = r"""<!doctype html>
 
     const state = {
       activeReleases: new Set(data.releases.map(release => release.id)),
-      activeEdges: new Set(["qualifiedMapping", "sharedLabel", "broader"]),
+      activeEdges: new Set(["qualifiedMapping", "sharedLabel", "broader", "related", "use"]),
       selected: null,
       hover: null,
       matches: new Set(),
@@ -635,9 +647,13 @@ _HTML = r"""<!doctype html>
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
       ctx.strokeStyle = color;
-      ctx.globalAlpha = highlighted ? .95 : edge.type === "qualifiedMapping" ? .52 : edge.type === "sharedLabel" ? .24 : .2;
-      ctx.lineWidth = (highlighted ? 2.4 : edge.type === "qualifiedMapping" ? 1.5 : .8) / state.view.k;
-      ctx.setLineDash(edge.type === "qualifiedMapping" ? [7 / state.view.k, 5 / state.view.k] : []);
+      ctx.globalAlpha = highlighted ? .95 : edgeAlpha[edge.type] ?? .2;
+      ctx.lineWidth = (highlighted ? 2.4 : edgeWidth[edge.type] ?? .8) / state.view.k;
+      ctx.setLineDash(
+        edge.type === "qualifiedMapping" ? [7 / state.view.k, 5 / state.view.k]
+        : edge.type === "use" ? [2 / state.view.k, 4 / state.view.k]
+        : []
+      );
       ctx.stroke();
       ctx.setLineDash([]);
       if (edge.type === "broader" && highlighted) {
@@ -905,6 +921,8 @@ _HTML = r"""<!doctype html>
       document.getElementById("count-qualified").textContent = `${formatNumber(data.summary.qualifiedMappingCount)} shown`;
       document.getElementById("count-shared").textContent = `${formatNumber(data.summary.sharedLabelEdgeCount)} shown`;
       document.getElementById("count-broader").textContent = `${formatNumber(data.summary.hierarchyEdgeCount)} shown`;
+      document.getElementById("count-related").textContent = `${formatNumber(data.summary.relatedEdgeCount)} shown`;
+      document.getElementById("count-use").textContent = `${formatNumber(data.summary.useEdgeCount)} shown`;
       document.getElementById("selection-note").textContent = `${formatNumber(data.summary.nodeCount)} concepts and ${formatNumber(data.summary.edgeCount)} relationships are shown. The complete atlas remains in the download.`;
       document.getElementById("view-count").textContent = `${formatNumber(data.summary.nodeCount)} nodes · ${formatNumber(data.summary.edgeCount)} links`;
       document.getElementById("pin-id").textContent = data.atlas.assetId;

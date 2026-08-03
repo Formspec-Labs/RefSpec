@@ -182,3 +182,169 @@ def test_publication_model_contains_only_json_portable_values() -> None:
     model: dict[str, Any] = build_explorer_model(_asset("qualified-search-only"), max_nodes=20)
 
     binding.validate_canonical_value(model)
+
+
+# ---------------------------------------------------------------------------
+# Display semantics for ISO-25964 lead-in terms and associative relations
+# ---------------------------------------------------------------------------
+
+_USE_IRI = "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUse"
+_RELATED_IRI = "http://www.w3.org/2004/02/skos/core#related"
+_BROADER_IRI = "http://www.w3.org/2004/02/skos/core#broader"
+
+
+def _display_view(
+    *,
+    publication: str,
+    release: str,
+    concepts: dict[str, dict[str, Any]],
+) -> Any:
+    """A one-release view whose member records state display-relevant facts.
+
+    Each concept spec may carry ``prefLabel``, ``altLabel``, and ``links``
+    (predicate IRI to target members), mirroring how the ICPSR reader states
+    non-descriptor USE references and associative relations.
+    """
+
+    from types import MappingProxyType
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.managed_release import (
+        ManagedReleaseExpression,
+        ManagedReleaseMember,
+        ManagedReleaseView,
+    )
+
+    records: dict[str, Any] = {}
+    members: dict[str, Any] = {}
+    expressions: list[Any] = []
+    for member, spec in concepts.items():
+        record: dict[str, Any] = {
+            "@id": member,
+            "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
+        }
+        if "prefLabel" in spec:
+            record["http://www.w3.org/2004/02/skos/core#prefLabel"] = spec["prefLabel"]
+        if "altLabel" in spec:
+            record["http://www.w3.org/2004/02/skos/core#altLabel"] = spec["altLabel"]
+        for predicate, targets in spec.get("links", {}).items():
+            record[predicate] = tuple({"@id": target} for target in targets)
+        records[member] = MappingProxyType(record)
+        members[member] = ManagedReleaseMember(
+            member_iri=member,
+            release_iri=release,
+            scheme_iri=release + ":scheme",
+            record=records[member],
+        )
+        label = spec.get("prefLabel") or spec["altLabel"]
+        preferred = "prefLabel" in spec
+        expressions.append(
+            ManagedReleaseExpression(
+                expression_id=member + ":expression",
+                member_iri=member,
+                indexed_text=label.casefold(),
+                original_literal=label,
+                language_tag="en",
+                semantic_property_iri=(
+                    "http://www.w3.org/2004/02/skos/core#prefLabel"
+                    if preferred
+                    else "http://www.w3.org/2004/02/skos/core#altLabel"
+                ),
+                source_property_or_path="prefLabel" if preferred else "altLabel",
+                record=MappingProxyType({}),
+                label_role="preferred" if preferred else "alternate",
+                source_status="current",
+            )
+        )
+    release_record = MappingProxyType(
+        {
+            "@id": release,
+            "@type": "https://rulespec.org/ns/v1#ReferenceResourceRelease",
+            "http://www.w3.org/ns/prov#hadMember": tuple(concepts),
+            "https://rulespec.org/ns/v1#referenceReleaseDigest": tva.SHA_A,
+        }
+    )
+    return ManagedReleaseView(
+        _release_id=publication,
+        _rulespec_graph_id=publication + ":graph",
+        _rulespec_graph=MappingProxyType({"@graph": (release_record, *records.values())}),
+        _expression_corpus_snapshot=MappingProxyType({"id": publication + ":corpus", "digest": tva.SHA_A}),
+        _members=MappingProxyType(members),
+        _expressions=tuple(expressions),
+        _relations=(),
+        _lifecycle_participants=(),
+        _concept_mappings=(),
+        _release_graph_validation_receipt=MappingProxyType({}),
+    )
+
+
+def test_explorer_labels_non_descriptors_and_pulls_use_targets(tmp_path: Path) -> None:
+    """A lead-in term shows its alternate label, and its USE target joins the view.
+
+    The non-descriptor sorts first so it becomes the release representative;
+    its descriptor is reachable only through ``thesaurusUse``, never through
+    hierarchy, so this fails without USE-target context expansion.
+    """
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    lead_in = "urn:test:pub:use:a-ageism"
+    descriptor = "urn:test:pub:use:z-age-discrimination"
+    view = _display_view(
+        publication="urn:test:pub:use",
+        release="urn:test:pub:use:release",
+        concepts={
+            lead_in: {"altLabel": "ageism", "links": {_USE_IRI: (descriptor,)}},
+            descriptor: {"prefLabel": "Age discrimination"},
+        },
+    )
+    asset = build_vocabulary_atlas(
+        (tva._FixturePinnedRelease(tmp_path / "use.json", tva.SHA_A, view),),
+        rulespec_core=tva._core_release(tmp_path),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    labels = {node["id"]: node["label"] for node in model["nodes"]}
+    assert labels[lead_in] == "ageism"
+    assert labels[descriptor] == "Age discrimination"
+    use_edges = [edge for edge in model["edges"] if edge["type"] == "use"]
+    assert [(edge["source"], edge["target"]) for edge in use_edges] == [(lead_in, descriptor)]
+    assert model["summary"]["useEdgeCount"] == 1
+
+
+def test_explorer_draws_each_related_pair_once(tmp_path: Path) -> None:
+    """A reciprocal skos:related statement renders as one edge, not two."""
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    age = "urn:test:pub:rel:a-age"
+    research = "urn:test:pub:rel:d-ageism-research"
+    view = _display_view(
+        publication="urn:test:pub:rel",
+        release="urn:test:pub:rel:release",
+        concepts={
+            age: {"prefLabel": "Age", "links": {_RELATED_IRI: (research,)}},
+            research: {
+                "prefLabel": "Ageism research",
+                "links": {_RELATED_IRI: (age,), _BROADER_IRI: (age,)},
+            },
+        },
+    )
+    asset = build_vocabulary_atlas(
+        (tva._FixturePinnedRelease(tmp_path / "rel.json", tva.SHA_A, view),),
+        rulespec_core=tva._core_release(tmp_path),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    related = [edge for edge in model["edges"] if edge["type"] == "related"]
+    assert len(related) == 1
+    assert {related[0]["source"], related[0]["target"]} == {age, research}
+    assert model["summary"]["relatedEdgeCount"] == 1
+    assert model["summary"]["hierarchyEdgeCount"] == 1

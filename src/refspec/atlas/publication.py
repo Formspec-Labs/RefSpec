@@ -91,15 +91,19 @@ def _default_release_label(release_id: str) -> str:
 
 
 def _label_for(graph: Graph, concept: URIRef) -> str:
-    choices: list[tuple[int, str, str]] = []
-    for value in graph.objects(concept, SKOS.prefLabel):
-        if not isinstance(value, Literal):
-            continue
-        language = (value.language or "").casefold()
-        priority = 0 if language == "en" else 1 if not language else 2
-        choices.append((priority, language, str(value)))
-    if choices:
-        return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
+    # Preferred labels first; then alternate labels, because ISO-25964
+    # non-descriptor terms (ICPSR lead-in entries) carry only an altLabel on
+    # their own URI. The IRI tail is a last resort, not a labelling policy.
+    for predicate in (SKOS.prefLabel, SKOS.altLabel):
+        choices: list[tuple[int, str, str]] = []
+        for value in graph.objects(concept, predicate):
+            if not isinstance(value, Literal):
+                continue
+            language = (value.language or "").casefold()
+            priority = 0 if language == "en" else 1 if not language else 2
+            choices.append((priority, language, str(value)))
+        if choices:
+            return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
     return _iri_tail(str(concept))
 
 
@@ -333,7 +337,9 @@ def build_explorer_model(
             node_roles[representative].add("releaseRepresentative")
 
     # Immediate parents come before children because they explain where a
-    # mapped or shared concept sits with fewer nodes in most thesauri.
+    # mapped or shared concept sits with fewer nodes in most thesauri. USE
+    # targets and lead-in terms come with them: a non-descriptor without its
+    # descriptor renders as a bare identifier.
     context_candidates: list[str] = []
     roots = tuple(sorted(selected))
     for member in roots:
@@ -344,8 +350,15 @@ def build_explorer_model(
         children = sorted(
             str(value) for value in release_facts.subjects(SKOS.broader, node) if isinstance(value, URIRef)
         )
+        use_neighbours = sorted(
+            str(value)
+            for predicate in (ATLAS.thesaurusUse, ATLAS.thesaurusUsedFor)
+            for value in release_facts.objects(node, predicate)
+            if isinstance(value, URIRef)
+        )
         context_candidates.extend(parents)
         context_candidates.extend(children)
+        context_candidates.extend(use_neighbours)
     for member in context_candidates:
         if len(selected) >= max_nodes:
             break
@@ -414,6 +427,44 @@ def build_explorer_model(
                     "label": "broader concept",
                 }
             )
+    # One edge per USE reference: the stated thesaurusUse direction, with the
+    # reciprocal thesaurusUsedFor inverted into it, because ICPSR's 479 USE and
+    # 394 UF statements are not reciprocal and a viewer needs one line, not two.
+    use_pairs: set[tuple[str, str]] = set()
+    for lead_in, descriptor in release_facts.subject_objects(ATLAS.thesaurusUse):
+        if isinstance(lead_in, URIRef) and isinstance(descriptor, URIRef):
+            use_pairs.add((str(lead_in), str(descriptor)))
+    for descriptor, lead_in in release_facts.subject_objects(ATLAS.thesaurusUsedFor):
+        if isinstance(lead_in, URIRef) and isinstance(descriptor, URIRef):
+            use_pairs.add((str(lead_in), str(descriptor)))
+    for lead_in_id, descriptor_id in sorted(use_pairs):
+        if lead_in_id in selected and descriptor_id in selected:
+            edges.append(
+                {
+                    "id": _edge_id("use", lead_in_id, descriptor_id),
+                    "type": "use",
+                    "source": lead_in_id,
+                    "target": descriptor_id,
+                    "label": "USE (preferred term)",
+                }
+            )
+    # skos:related is symmetric and thesauri state both directions; the pair
+    # renders once, in canonical order.
+    related_pairs: set[tuple[str, str]] = set()
+    for left, right in release_facts.subject_objects(SKOS.related):
+        if isinstance(left, URIRef) and isinstance(right, URIRef):
+            related_pairs.add((min(str(left), str(right)), max(str(left), str(right))))
+    for left_id, right_id in sorted(related_pairs):
+        if left_id in selected and right_id in selected:
+            edges.append(
+                {
+                    "id": _edge_id("related", left_id, right_id),
+                    "type": "related",
+                    "source": left_id,
+                    "target": right_id,
+                    "label": "related concept",
+                }
+            )
     edges.sort(key=lambda row: (str(row["type"]), str(row["source"]), str(row["target"]), str(row["id"])))
 
     shown_by_release: dict[str, int] = defaultdict(int)
@@ -442,7 +493,7 @@ def build_explorer_model(
     ]
     edge_counts = {
         kind: sum(1 for edge in edges if edge["type"] == kind)
-        for kind in ("qualifiedMapping", "sharedLabel", "broader")
+        for kind in ("qualifiedMapping", "sharedLabel", "broader", "related", "use")
     }
     return {
         "type": _EXPLORER_TYPE,
@@ -458,7 +509,7 @@ def build_explorer_model(
             "managedInputs": managed_inputs,
         },
         "selectionPolicy": {
-            "id": "refspec-atlas-explorer-selection-v1",
+            "id": "refspec-atlas-explorer-selection-v2",
             "maxNodes": max_nodes,
             "maxMappings": max_mappings,
             "maxSharedLabelClusters": max_shared_clusters,
@@ -466,7 +517,7 @@ def build_explorer_model(
                 "qualifiedMappingEndpoints",
                 "crossReleaseSharedLabelsRoundRobinByReleaseSet",
                 "missingReleaseRepresentatives",
-                "immediateParentsThenChildren",
+                "immediateParentsThenChildrenThenUseNeighbours",
             ],
         },
         "summary": {
@@ -478,6 +529,8 @@ def build_explorer_model(
             "sharedLabelEdgeCount": edge_counts["sharedLabel"],
             "sharedLabelClusterCount": len(displayed_clusters),
             "hierarchyEdgeCount": edge_counts["broader"],
+            "relatedEdgeCount": edge_counts["related"],
+            "useEdgeCount": edge_counts["use"],
         },
         "releases": releases,
         "nodes": nodes,
