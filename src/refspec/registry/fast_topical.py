@@ -61,6 +61,35 @@ FAST_TOPICAL_BULK_NT_ZIP_URL = "https://researchworks.oclc.org/researchdata/fast
 FAST_TOPICAL_BULK_NT_ZIP_SHA256 = "sha256:217826c90649895bfca71e81e2ed88919b2e061646ec42a185bc12d0bd3c19db"
 FAST_TOPICAL_BULK_NT_ZIP_BYTE_LENGTH = 55_099_212
 FAST_TOPICAL_BULK_NT_ZIP_RETRIEVED_AT = "2026-07-27"
+# NEW VERIFIED FINDING (2026-08-04): unlike the bulk-data host, OCLC's own
+# Linked Data and searchFAST suggest API tier carries no bot wall and needs
+# no key. Two channels were checked live and pinned below.
+#
+# (1) Per-term Linked Data: id.worldcat.org answers a numeric FAST id with
+#     RDF/XML at the ``.rdf.xml`` path suffix and stable rdf:about URIs.
+#     Only that suffix answered; ``.json``, ``.ttl``, and ``.jsonld`` all came
+#     back HTTP 404 on the same live check.
+FAST_TERM_RDF_URL_PATTERN = "https://id.worldcat.org/fast/{numeric_id}.rdf.xml"
+FAST_TERM_RDF_CAPTURE_SHA256 = "sha256:88940a98a42dca5605f06aef661c07f3591dcc82be32dcd1fbcae2d782318553"
+FAST_TERM_RDF_CAPTURE_BYTE_LENGTH = 3_806
+FAST_TERM_RDF_CAPTURE_RETRIEVED_AT = "2026-08-04T00:50:00Z"
+
+# (2) The searchFAST suggest API answers term-prefix lookups as CORS-open
+#     JSON, also with no key.
+FAST_SUGGEST_API_URL_PATTERN = (
+    "https://fast.oclc.org/searchfast/fastsuggest?query={query}&queryIndex=suggestall&rows={rows}"
+)
+FAST_SUGGEST_CAPTURE_SHA256 = "sha256:309c71da16146beabb187199ce03716e7f2e5aec7a9585bc2dbcee1a5df661cd"
+FAST_SUGGEST_CAPTURE_BYTE_LENGTH = 352
+FAST_SUGGEST_CAPTURE_RETRIEVED_AT = "2026-08-04T00:50:00Z"
+
+# The suggest API's response on 2026-08-04 carried an x-ratelimit-limit-day
+# header value of 10,000. This was observed on that one response header, not
+# published anywhere as OCLC's documented policy, so it may change without
+# notice. At this ceiling a full-vocabulary crawl through the per-term
+# channel would take weeks of continuous daily-capped calls rather than a
+# single acquisition run.
+FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT = 10_000
 FAST_URI_BASE = "http://id.worldcat.org/fast/"
 FAST_IDENTIFIER_AUTHORITY_URI = FAST_URI_BASE
 FAST_ATTRIBUTION_NOTICE = (
@@ -337,6 +366,25 @@ FAST_TOPICAL_GAPS = (
         "The project's documented full topical extract has "
         f"{FAST_TOPICAL_DOCUMENTED_ROW_COUNT:,} rows; a single package built by "
         "this module reflects only the rows in its own pinned capture."
+    ),
+    (
+        "A verified bot-wall-free channel exists alongside the blocked bulk "
+        "host: OCLC's per-term Linked Data at id.worldcat.org answers a "
+        "numeric FAST id with RDF/XML at the .rdf.xml path suffix only "
+        "(FAST_TERM_RDF_URL_PATTERN), confirmed live on 2026-08-04 with no "
+        "bot wall and no key. Its one observed response header put the "
+        "daily cap at "
+        f"{FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT:,} "
+        "(FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT, not published policy); "
+        "at that ceiling a full "
+        f"{FAST_TOPICAL_DOCUMENTED_ROW_COUNT:,}-term Topical crawl through "
+        "this channel is a multi-week job, not a single acquisition run."
+    ),
+    (
+        "Research performed on 2026-08-04 found no sunset or deprecation "
+        "announcement, and no explicit continuity commitment, for FAST from "
+        "OCLC across 2025-2026. FAST's maintenance status is publisher "
+        "silence, not a documented guarantee in either direction."
     ),
 )
 

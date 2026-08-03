@@ -20,12 +20,77 @@ from refspec.registry.source_controlled_resource import SourceControlledResource
 
 FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-topical-mini.csv"
 LANDING_PAGE_FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-download-landing-2026-08-04.html"
+TERM_RDF_FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-term-1923093-2026-08-04.rdf.xml"
+SUGGEST_FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-suggest-water-quality-2026-08-04.json"
 
 
 def test_landing_page_capture_matches_its_reference_pin() -> None:
     payload = LANDING_PAGE_FIXTURE.read_bytes()
     assert len(payload) == fast.FAST_LANDING_PAGE_CAPTURE_BYTE_LENGTH
     assert fast.sha256_digest(payload) == fast.FAST_LANDING_PAGE_CAPTURE_SHA256
+
+
+def test_term_rdf_capture_matches_its_reference_pin() -> None:
+    payload = TERM_RDF_FIXTURE.read_bytes()
+    assert len(payload) == fast.FAST_TERM_RDF_CAPTURE_BYTE_LENGTH
+    assert fast.sha256_digest(payload) == fast.FAST_TERM_RDF_CAPTURE_SHA256
+
+
+def test_term_rdf_capture_parses_as_xml_with_rdf_root_and_contains_the_fast_uri() -> None:
+    from urllib.parse import urljoin
+    from xml.etree import ElementTree
+
+    RDF_NS = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}"
+
+    root = ElementTree.fromstring(TERM_RDF_FIXTURE.read_bytes())
+
+    assert root.tag == f"{RDF_NS}RDF"
+
+    base = root.get("{http://www.w3.org/XML/1998/namespace}base")
+    abouts = [element.get(f"{RDF_NS}about") for element in root.iter(f"{RDF_NS}Description")]
+    resolved_uris = {urljoin(base, about) for about in abouts if about is not None}
+
+    assert "http://id.worldcat.org/fast/1923093" in resolved_uris
+
+
+def test_suggest_capture_matches_its_reference_pin() -> None:
+    payload = SUGGEST_FIXTURE.read_bytes()
+    assert len(payload) == fast.FAST_SUGGEST_CAPTURE_BYTE_LENGTH
+    assert fast.sha256_digest(payload) == fast.FAST_SUGGEST_CAPTURE_SHA256
+
+
+def test_suggest_capture_parses_and_has_its_real_top_level_shape() -> None:
+    import json
+
+    payload = json.loads(SUGGEST_FIXTURE.read_bytes())
+
+    # This is the actual shape read from the fixture: a Solr-style envelope
+    # with "responseHeader" and "response" keys, the latter carrying
+    # "numFound"/"start"/"docs", where each doc is a single-key
+    # {"suggestall": [...]} match.
+    assert set(payload) == {"responseHeader", "response"}
+    assert payload["responseHeader"]["params"]["rows"] == "5"
+    assert payload["response"]["numFound"] == 476
+    assert payload["response"]["start"] == 0
+    docs = payload["response"]["docs"]
+    assert len(docs) == 5
+    assert all(set(doc) == {"suggestall"} for doc in docs)
+    assert docs[0]["suggestall"] == ["Water quality"]
+
+
+def test_suggest_api_observed_daily_rate_limit_is_recorded_as_observed_not_policy() -> None:
+    assert fast.FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT == 10_000
+
+
+def test_gaps_document_the_bot_wall_free_per_term_channel_and_publisher_silence() -> None:
+    joined = " ".join(fast.FAST_TOPICAL_GAPS)
+    assert "id.worldcat.org" in joined
+    assert "10,000" in joined
+    assert "multi-week" in joined
+    assert "publisher silence" in joined
+    assert "2026-08-04" in joined
+
+
 FIXTURE_SHA256 = "sha256:4f1906f7475cc8818c8c702a12ad8fad6b4099d7207854d5324b40b92e940698"
 FIXTURE_BYTE_LENGTH = 447
 FIXTURE_ROW_COUNT = 6
