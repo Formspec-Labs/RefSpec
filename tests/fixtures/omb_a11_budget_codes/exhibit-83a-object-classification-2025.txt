@@ -1,0 +1,61 @@
+EXHIBIT 83A OBJECT CLASSIFICATION (MAX SCHEDULE O) 
+ 
+ 
+Page 32 of Section 83 OMB Circular No. A–11 (2025) 
+Standard Titles
+Personnel compensation and benefits
+Personnel compensation
+X111 Full-time permanent
+X113 Other than full-time permanent
+X115 Other personnel compensation
+X116 Military personnel - basic allowance for housing
+X117 Military personnel
+X118 Special personal services payments
+X119 Total personnel compensation*
+X121 Civilian personnel benefits
+X122 Military personnel benefits
+X130 Benefits for former personnel
+Contractual services and supplies
+X210 Travel and transportation of persons
+X220 Transportation of things
+Rent, communications, and utilities
+X231 Rental payments to GSA
+X232 Rental payments to others
+X233 Communications, utilities, and miscellaneous charges
+X240 Printing and reproduction
+Other contractual services
+X251 Advisory and assistance services
+X252 Other services from non-Federal sources
+X253 Other goods and services from Federal sources
+X254 Operation and maintenance of facilities
+X255 Research and development contracts
+X256 Medical care
+X257 Operation and maintenance of equipment
+X258 Subsistence and support of persons
+X260 Supplies and materials
+Acquisition of assets
+X310 Equipment
+X320 Land and structures
+X330 Investments and loans
+Grants and fixed charges
+X410 Grants, subsidies, and contributions
+X420 Insurance claims and indemnities
+X430 Interest and dividends
+X440 Refunds
+Other
+X910 Unvouchered
+X920 Undistributed
+X940 Financial transfers
+X990 Subtotal, obligations *
+9995 Adjustment for rounding
+9999 Total new obligations, unexpired accounts *
+*   Automatically calculated by MAX A-11 DE
+3-digit object
+Summary of Object Class Codes and Standard Titles (Schedule O)
+class code
+Prefix Type of obligation
+1xxx    Parent account—direct
+2xxx    Parent account—reimbursable
+4-digit object class
+line number in 
+schedule O.

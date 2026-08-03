@@ -1,0 +1,1467 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SAM.gov Get Opportunities Public API | GSA Open Technology</title>
+  <meta name="description" content="Overview">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SAM.gov Get Opportunities Public API | GSA Open Technology" />
+  <meta name="twitter:title" content="SAM.gov Get Opportunities Public API | GSA Open Technology">
+  <meta property="og:url" content="https://open.gsa.gov/api/get-opportunities-public-api/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="og:image" content="https://open.gsa.gov/assets/img/feature-background.jpg">
+  <meta name="twitter:image" content="https://open.gsa.gov/assets/img/feature-background.jpg">
+  <meta property="og:description" content="Overview">
+  <meta name="twitter:description" content="Overview">
+  <meta name="google-site-verification" content="1mdRfaEaI19uCixYkGGmRsv2iA_si1n44fNtk4jzixQ" />
+
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+  <link rel="shortcut icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+  <link rel="canonical" href="https://open.gsa.gov/api/get-opportunities-public-api/">
+
+  <script>
+    if (/^www\./.test(window.location.hostname)) {
+      window.location = window.location.href.replace('www.', '');
+    }
+  </script>
+</head>
+
+
+<body>
+    <div id="wrapper">
+        <div id="header"><div class="skip-nav">
+    <a href="#content" class="skips">Skip to main content</a>
+</div>
+
+<header class="usa-header usa-header-extended" role="banner">
+  <!-- Gov banner BEGIN -->
+<div class="usa-banner">
+<div class="usa-accordion">
+  <header class="usa-banner-header">
+    <div class="usa-grid usa-banner-inner">
+    <img src="/assets/uswds/img/favicons/favicon-57.png" alt="U.S. flag">
+    <p>An official website of the United States government</p>
+    <button class="usa-accordion-button usa-banner-button"
+      aria-expanded="false" aria-controls="gov-banner">
+      <span class="usa-banner-button-text">Here's how you know</span>
+    </button>
+    </div>
+  </header>
+  <div class="usa-banner-content usa-grid usa-accordion-content" id="gov-banner">
+    <div class="usa-banner-guidance-gov usa-width-one-half">
+      <img class="usa-banner-icon usa-media_block-img" src="/assets/uswds/img/icon-dot-gov.svg" alt="Dot gov">
+      <div class="usa-media_block-body">
+        <p>
+          <strong>The .gov means it’s official.</strong>
+          <br>
+          Federal government websites always use a .gov or .mil domain. Before sharing sensitive information online, make sure you’re on a .gov or .mil site by inspecting your browser’s address (or “location”) bar.
+        </p>
+      </div>
+    </div>
+    <div class="usa-banner-guidance-ssl usa-width-one-half">
+      <img class="usa-banner-icon usa-media_block-img" src="/assets/uswds/img/icon-https.svg" alt="SSL">
+      <div class="usa-media_block-body">
+        <p>This site is also protected by an SSL (Secure Sockets Layer) certificate that’s been signed by the U.S. government. The <strong>https://</strong> means all transmitted data is encrypted  — in other words, any information or browsing history that you provide is transmitted securely.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<!-- Gov banner END -->
+  <nav class="usa-site-navbar" aria-label="primary navigation">
+    <div class="usa-grid top-nav">
+      <div id="logo">
+        <a href="/" accesskey="1" title="Home" aria-label="Home">
+          <img class="header-logo" src="/assets/img/gsa_logo.svg" alt="GSA Open Technology">
+          <span class="header-title">U.S. General Services Administration</span>
+        </a>
+      </div>
+      <ul class="usa-nav-list usa-unstyled-list">
+        <li class="usa-menu-item"><a href="/search.html"> <i class="fa fa-search"></i> Search</a></li>
+        <li class="usa-menu-item"><a href="/data">Data</a></li>
+        <li class="usa-menu-item"><a href="/api">APIs</a></li>
+        <li class="usa-menu-item"><a href="/code">Code</a></li>
+      </ul>
+    </div>
+    <br/>
+  </nav>
+</header>
+</div>
+        <div id="content">
+  <section class="usa-section usa-section-dark banner-header">
+    <div class="usa-grid">
+        <div class="usa-width-one-whole usa-end-row">
+            <h2>SAM.gov Get Opportunities Public API</h2>  
+        </div>
+    </div>
+</section>
+
+
+
+<main class="usa-grid" id="main" tabindex="-1">
+  <section>
+    <aside class="usa-width-one-fourth sidebar-sticky" style="word-wrap: break-word;">
+  <ul id="toc" class="usa-sidenav-list">
+<li class="toc-entry toc-h2"><a href="#overview">Overview</a></li>
+<li class="toc-entry toc-h2"><a href="#getting-started">Getting Started</a>
+<ul class="usa-sidenav-sub_list">
+<li class="toc-entry toc-h3"><a href="#version-control---v2">Version Control - v2</a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#authentication-and-api-keys">Authentication and API Keys</a>
+<ul class="usa-sidenav-sub_list">
+<li class="toc-entry toc-h4"><a href="#user-account-api-key-creation">User Account API Key Creation</a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#get-opportunities-request-parameters">Get Opportunities Request Parameters</a></li>
+<li class="toc-entry toc-h2"><a href="#get-opportunities-response-parameters">Get Opportunities Response Parameters</a>
+<ul class="usa-sidenav-sub_list">
+<li class="toc-entry toc-h3"><a href="#set-aside-values">Set-Aside Values</a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#examples">Examples</a>
+<ul class="usa-sidenav-sub_list">
+<li class="toc-entry toc-h3"><a href="#example-1-search-by-award-type">Example 1: Search by award type</a></li>
+<li class="toc-entry toc-h3"><a href="#example-2-updated-v2-endpoint-with-fh-information">Example 2: Updated v2 Endpoint with FH Information</a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#openapi-specification-file">OpenAPI Specification File</a></li>
+<li class="toc-entry toc-h2"><a href="#http-response-codes">HTTP Response Codes</a></li>
+<li class="toc-entry toc-h2"><a href="#error-messages">Error Messages</a></li>
+<li class="toc-entry toc-h2"><a href="#faq">FAQ</a></li>
+<li class="toc-entry toc-h2"><a href="#contact-us">Contact Us</a></li>
+<li class="toc-entry toc-h2"><a href="#change-log">Change Log</a></li>
+</ul>
+</aside>
+
+<div class="usa-width-three-fourths">
+  <h2 id="overview">Overview</h2>
+
+<p>Get Opportunities API provides all the published opportunity details based on the request parameters. This API requires pagination, and the response will be provided to users synchronously.</p>
+
+<p><strong>This API only provides the latest active version of the opportunity. To view all version of the opportunity, please visit Data Services Section of SAM.gov. All active notices in SAM.gov are updated daily and all archived notices are updated on a weekly basis.</strong></p>
+
+<p><a href="https://sam.gov/data-services?domain=Contract%20Opportunities%2Fdatagov">Active Opportunities</a></p>
+
+<p><a href="https://sam.gov/data-services?domain=Contract%20Opportunities%2FArchived%20Data">Archived Opportunities</a></p>
+
+<h2 id="getting-started">Getting Started</h2>
+
+<p>Get Opportunities API can be accessed from Production or Alpha via the following environments:</p>
+
+<h3 id="version-control---v2">Version Control - v2</h3>
+
+<ul>
+  <li>Production: <br />  https://api.sam.gov/opportunities/v2/search</li>
+  <li>Alpha: <br /> https://api-alpha.sam.gov/opportunities/v2/search</li>
+</ul>
+
+<h2 id="authentication-and-api-keys">Authentication and API Keys</h2>
+<p>User of this public API must provide an API key to use this Opportunities public API. Request per day are limited based on the federal or non-federal or general roles. 
+Note: User can request a public API Key in the Account Details page on SAM.gov (if testing in production) Else on alpha.sam.gov (if testing in prodlike).</p>
+
+<h4 id="user-account-api-key-creation">User Account API Key Creation</h4>
+<ul>
+  <li>Registered user can request for a public API on ‘Account Details’ page. This page can be accessed on Account Details page on SAM.gov</li>
+  <li>User must enter account password on ‘Account Details’ page to view the API Key information. If an incorrect password is entered, an error will be returned.</li>
+  <li>After the API Key is generated on ‘Account Details’ page, the API Key can be viewed on the Account Details page immediately. The API Key is visible until user navigates to a different page.</li>
+  <li>If an error is encountered during the API Key generation/retrieval, then user will receive an error message and must try again.</li>
+</ul>
+
+<h2 id="get-opportunities-request-parameters">Get Opportunities Request Parameters</h2>
+
+<p>Users can search by any of the below request parameters with Date field as mandatory.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Request Parameters that API accepts</th>
+      <th>Description</th>
+      <th>Required</th>
+      <th>Data Type</th>
+      <th>Applicable Versions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>api_key</td>
+      <td>Public Key of users</td>
+      <td>Yes</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>ptype</td>
+      <td>Procurement Type. Below are the available Procurement Types: <br /> u= Justification (J&amp;A) <br />p = Pre solicitation <br />a = Award Notice <br />r = Sources Sought <br />s = Special Notice <br />o = Solicitation <br />g = Sale of Surplus Property <br />k = Combined Synopsis/Solicitation <br />i = Intent to Bundle Requirements (DoD-Funded) <br /><br /> Note: Below services are now retired:<br />f = Foreign Government Standard <br />l = Fair Opportunity / Limited Sources  <br /> <br />Use Justification (u) instead of fair Opportunity</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>solnum</td>
+      <td>Solicitation Number</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>noticeid</td>
+      <td>Notice ID</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>title</td>
+      <td>Title</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>postedFrom</td>
+      <td>Posted date From <br />Format must be MM/dd/yyyy <br /> Note: Date range between Posted Date From and To is 1 year</td>
+      <td>Yes</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>postedTo</td>
+      <td>Posted date To  Format must be MM/dd/yyyy <br /> Note: Date range between Posted Date From and To is 1 year</td>
+      <td>Yes</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>deptname</td>
+      <td>Department Name (L1)</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2 - Deprecated</td>
+    </tr>
+    <tr>
+      <td>subtier</td>
+      <td>Agency Name (L2)</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2 - Deprecated</td>
+    </tr>
+    <tr>
+      <td>state</td>
+      <td>Place of Performance (State)</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>status (Coming Soon)</td>
+      <td>Status of the opportunity <br /> Accepts following:  active, inactive, archived, cancelled, deleted</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>zip</td>
+      <td>Place of Performance (Zip code)</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>organizationCode</td>
+      <td>Code of associated organization</td>
+      <td>No</td>
+      <td>string</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>organizationName</td>
+      <td>Name of associated organization. This Request Parameter can be used to filter the dataset by Department Name or Subtier Name <br /> <em>Note: General Search can be performed</em></td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>typeOfSetAside</td>
+      <td><a href="#set-aside-values">Refer Set-Aside Value Section</a></td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>typeOfSetAsideDescription</td>
+      <td>Set Aside code Description. See above descriptions mentioned against each of the Set Aside Code</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>ncode</td>
+      <td>NAICS Code. This code is maximum of 6 digits</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>ccode</td>
+      <td>Classification Code</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>rdlfrom</td>
+      <td>Response Deadline date. Format must be MM/dd/yyyy <br />Note: If response date From &amp; To is provided, then the date range is 1 year</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>rdlto</td>
+      <td>Response Deadline date. Format must be MM/dd/yyyy <br />Note: If response date From &amp; To is provided, then the date range is 1 year</td>
+      <td>No</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>limit</td>
+      <td>Total number of records to be retrieved per page. This field must be a number <br /> Max Value = 1000. Default limit value is 1.</td>
+      <td>No</td>
+      <td>Int</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>offset</td>
+      <td>Indicates the page index. Default offset starts with 0</td>
+      <td>No</td>
+      <td>Int</td>
+      <td>v2</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="get-opportunities-response-parameters">Get Opportunities Response Parameters</h2>
+
+<p>Based on the request parameters, API provides below response parameters.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Request Parameters that API accepts</th>
+      <th>Description</th>
+      <th>Data Type</th>
+      <th>Applicable Versions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>totalRecords</td>
+      <td>Total number of records for the search</td>
+      <td>Number</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>limit</td>
+      <td>Limit entered by a user while making the request i.e. total number of records that user wished to retrieve per page</td>
+      <td>Number</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>offset</td>
+      <td>Page index specified by a user. Default offset starts with 0 if user does not provide any offset in the request</td>
+      <td>Number</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>title</td>
+      <td>Opportunity Title</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>solicitationNumber</td>
+      <td>Solicitation Number</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>fullParentPathName</td>
+      <td>Names of all organizations notice is associated with</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>fullParentPathCode</td>
+      <td>Codes of all organizations notice is associated with</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>department</td>
+      <td>Department (L1)</td>
+      <td>String</td>
+      <td>v2 - Deprecated</td>
+    </tr>
+    <tr>
+      <td>subtier</td>
+      <td>Sub-Tier (L2)</td>
+      <td>String</td>
+      <td>v2 - Deprecated</td>
+    </tr>
+    <tr>
+      <td>office</td>
+      <td>Office (L3)</td>
+      <td>String</td>
+      <td>v2 - Deprecated</td>
+    </tr>
+    <tr>
+      <td>postedDate</td>
+      <td>Opportunity Posted Date <br /> YYYY-MM-DD HH:MM:SS</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>type</td>
+      <td>Opportunity current type</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>baseType</td>
+      <td>Opportunity original type</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>archiveType</td>
+      <td>Archive Type</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>archiveDate</td>
+      <td>Archived Date</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>setAside</td>
+      <td>Set Aside Description</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>setAsideCode</td>
+      <td>Set Aside Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>reponseDeadLine</td>
+      <td>Response Deadline Date</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>naicsCode</td>
+      <td>NAICS Code. This code is maximum of 6 digits</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>classificationCode</td>
+      <td>Classification Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>active</td>
+      <td>If Active = Yes, then the opportunity is active, if No, then opportunity is Archived</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award</td>
+      <td>Award Information (If Available): <br /> Award amount <br />Awardee <br /> Award date <br /> Award Number</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.number</td>
+      <td>Award Number</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.amount</td>
+      <td>Award Amount</td>
+      <td>Number</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.date</td>
+      <td>Award Date</td>
+      <td>Date and Time</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee</td>
+      <td>Name <br /> Location <br /> ueiSAM</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.name</td>
+      <td>Awardee Name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.ueiSAM</td>
+      <td>Unique Entity Identifier SAM - Allow 12 digit value, alphanumeric <br /> Example: ueiSAM=025114695AST</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />streetAddress</td>
+      <td>Awardee Street Address 1</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />streetAddress2</td>
+      <td>Awardee Street Address 2</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />city</td>
+      <td>Awardee City</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />city.code</td>
+      <td>Awardee City Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />city.name</td>
+      <td>Awardee City Name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />state</td>
+      <td>Awardee State</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />state.code</td>
+      <td>Awardee State Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />state.name</td>
+      <td>Awardee State Name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />country</td>
+      <td>Awardee Country</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />country.code</td>
+      <td>Awardee Country Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />country.name</td>
+      <td>Awardee Country Name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.award.awardee.location.<br />zip</td>
+      <td>Awardee Zip</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>pointofContact</td>
+      <td>Point of Contact Information. It can have below fields if available: <br /> Fax <br />Type<br /> Email <br />Phone<br /> Title<br /> Full name</td>
+      <td>JSON Array</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.type</td>
+      <td>Point of Contact Type</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.title</td>
+      <td>Point of Contact Title</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.fullname</td>
+      <td>Point of Contact Full Name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.email</td>
+      <td>Point of Contact Email</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.phone</td>
+      <td>Point of Contact Phone</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.fax</td>
+      <td>Point of Contact Fax</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>description</td>
+      <td>A link to an opportunity description. <br />Note: To download the description, user should append the public API Key. If no description is available then, user is shown an error message “ Description not found”</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.additionalInfo</td>
+      <td>Additional Information <br /> <em>Note: This field will only show if additional information is given</em></td>
+      <td>JSON Array</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.pointOfContact.additionalInfo.content</td>
+      <td>Content of Additional Information <br /> <em>Note: This field will only show if a text is provided for additional information</em></td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>organizationType</td>
+      <td>Type of an organization – department/sub-tier/office</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>officeAddress</td>
+      <td>Office Address Information. It can have below fields if available: <br /> City<br /> State<br />Zip</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.officeAddress.city</td>
+      <td>Office Address City</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.officeAddress.state</td>
+      <td>Office Address State</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.officeAddress.zip</td>
+      <td>Office Address Zip</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>placeOfPerformance</td>
+      <td>Place of performance information. It can have below fields if available: Street<br /> City<br /> State<br />Zip</td>
+      <td>JSON Object</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.streetAddress</td>
+      <td>Pop Address</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.streetAddress2</td>
+      <td>Pop Address2</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.city</td>
+      <td>JSON Object</td>
+      <td>Pop City</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.city.code</td>
+      <td>Pop City code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.city.name</td>
+      <td>Pop City name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.city.state</td>
+      <td>JSON Object</td>
+      <td>Pop City state</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.state.code</td>
+      <td>Pop city state code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.state.name</td>
+      <td>Pop city state name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.country</td>
+      <td>JSON Object</td>
+      <td>Pop Country</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.country.code</td>
+      <td>Pop Country Code</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.country.name</td>
+      <td>Pop Country name</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>data.placeOfPerformance.zip</td>
+      <td>Pop Country zip</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>additionalInfoLink</td>
+      <td>Any additional info link if available for the opportunity</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>uiLink</td>
+      <td>Direct UI link to the opportunity. To view the opportunity on UI, user must have either a contracting officer or a Contracting Specialist role. If user hits the link without logging in, user is directed to 404 not found page</td>
+      <td>String</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>links</td>
+      <td>Every record in a response has this links array consisting of: <br /> rel: self<br />href: link to the specific opportunity itself. User should provide an API key to access the opportunity directly<br /><br />Also, every response has a master links array consisting of:<br />    rel: self<br />href: link to the actual request. User should provide an API key to access the request</td>
+      <td>Array</td>
+      <td>v2</td>
+    </tr>
+    <tr>
+      <td>resourceLinks</td>
+      <td>Direct URL to download attachments in the opportunity</td>
+      <td>Array of Strings</td>
+      <td>v2</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="set-aside-values">Set-Aside Values</h3>
+<p>Several methods pertaining to submitting Contract Opportunities involve the Set-Aside Type field. Use the Set-Aside codes to submit notices.</p>
+
+<p>Only one Set-Aside value is accepted in the field at this time</p>
+
+<p>Refer below table for valid Set-Aside values:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>SetAside Values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>SBA</td>
+      <td>Total Small Business Set-Aside (FAR 19.5)</td>
+    </tr>
+    <tr>
+      <td>SBP</td>
+      <td>Partial Small Business Set-Aside (FAR 19.5)</td>
+    </tr>
+    <tr>
+      <td>8A</td>
+      <td>8(a) Set-Aside (FAR 19.8)</td>
+    </tr>
+    <tr>
+      <td>8AN</td>
+      <td>8(a) Sole Source (FAR 19.8)</td>
+    </tr>
+    <tr>
+      <td>HZC</td>
+      <td>Historically Underutilized Business (HUBZone) Set-Aside (FAR 19.13)</td>
+    </tr>
+    <tr>
+      <td>HZS</td>
+      <td>Historically Underutilized Business (HUBZone) Sole Source (FAR 19.13)</td>
+    </tr>
+    <tr>
+      <td>SDVOSBC</td>
+      <td>Service-Disabled Veteran-Owned Small Business (SDVOSB) Set-Aside (FAR 19.14)</td>
+    </tr>
+    <tr>
+      <td>SDVOSBS</td>
+      <td>Service-Disabled Veteran-Owned Small Business (SDVOSB) Sole Source (FAR 19.14)</td>
+    </tr>
+    <tr>
+      <td>WOSB</td>
+      <td>Women-Owned Small Business (WOSB) Program Set-Aside (FAR 19.15)</td>
+    </tr>
+    <tr>
+      <td>WOSBSS</td>
+      <td>Women-Owned Small Business (WOSB) Program Sole Source (FAR 19.15)</td>
+    </tr>
+    <tr>
+      <td>EDWOSB</td>
+      <td>Economically Disadvantaged WOSB (EDWOSB) Program Set-Aside (FAR 19.15)</td>
+    </tr>
+    <tr>
+      <td>EDWOSBSS</td>
+      <td>Economically Disadvantaged WOSB (EDWOSB) Program Sole Source (FAR 19.15)</td>
+    </tr>
+    <tr>
+      <td>LAS</td>
+      <td>Local Area Set-Aside (FAR 26.2)</td>
+    </tr>
+    <tr>
+      <td>IEE</td>
+      <td>Indian Economic Enterprise (IEE) Set-Aside (specific to Department of Interior)</td>
+    </tr>
+    <tr>
+      <td>ISBEE</td>
+      <td>Indian Small Business Economic Enterprise (ISBEE) Set-Aside (specific to Department of Interior)</td>
+    </tr>
+    <tr>
+      <td>BICiv</td>
+      <td>Buy Indian Set-Aside (specific to Department of Health and Human Services, Indian Health Services)</td>
+    </tr>
+    <tr>
+      <td>VSA</td>
+      <td>Veteran-Owned Small Business Set-Aside (specific to Department of Veterans Affairs)</td>
+    </tr>
+    <tr>
+      <td>VSS</td>
+      <td>Veteran-Owned Small Business Sole source (specific to Department of Veterans Affairs)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="examples">Examples</h2>
+
+<h3 id="example-1-search-by-award-type">Example 1: Search by award type</h3>
+
+<details>
+    <summary>Request URL</summary>
+
+Production URL: https://api.sam.gov/prod/opportunities/v2/search?limit=1&amp;api_key={User’s Public API Key}&amp;postedFrom=01/01/2018&amp;postedTo=05/10/2018&amp;ptype=a&amp;deptname=general <br />
+ <br />
+Alpha URL: https://api-alpha.sam.gov/prodlike/opportunities/v2/search?limit=1&amp;api_key={User’s Public API Key}&amp;postedFrom=01/01/2018&amp;postedTo=05/10/2018&amp;ptype=a&amp;deptname=general<br />
+
+Note: Request URL for alpha is used in this example
+</details>
+
+<details>
+    <summary>Response (JSON Output) v2</summary>
+
+Note: Response for one record is provided as an example <br />
+
+<p>
+<code><pre>
+{
+    "totalRecords": 34,
+    "limit": 1,
+    "offset": 0,
+    "opportunitiesData": [
+        {
+            "noticeId": "5b345bbb7127b91a3ad577b203fc6f68",
+            "title": "Historic Office Renovation ",
+            "solicitationNumber": " 47PF0018R0023 ",
+            "department": "GENERAL SERVICES ADMINISTRATION",
+            "subTier": "PUBLIC BUILDINGS SERVICE",
+            "office": "PBS R5",
+            "postedDate": "2018-05-04",
+            "type": "Award Notice",
+            "baseType": "Combined Synopsis/Solicitation",
+            "archiveType": "manual",
+            "archiveDate": null,
+            "typeOfSetAsideDescription": null,
+            "typeOfSetAside": null,
+            "responseDeadLine": null,
+            "naicsCode": "236220",
+            "classificationCode": "Z",
+            "active": "Yes",
+            "award": {
+                "date": "2018-05-04",
+                "number": "47PF0018C0066",
+                "amount": "800620",
+                "awardee": {
+                    "name": "D.G. Beyer, Inc.",
+                    "location": {
+                        "streetAddress": "3080 S Calhoun Rd.",
+                        "city": {
+                            "code": "56375",
+                            "name": "New Berlin"
+                        },
+                        "state": {
+                            "code": "WI"
+                        },
+                        "zip": "53151",
+                        "country": {
+                            "code": "USA"
+                        }
+                    },
+                    "ueiSAM": "025114695AST"
+
+                }
+            },
+            "pointOfContact": [
+                {
+                    "fax": null,
+                    "type": "primary",
+                    "email": "jesse.jones@gsa.gov",
+                    "phone": "2174941263",
+                    "title": "Contracting Officer ",
+                    "fullName": "Jesse L. Jones"
+                }
+            ],
+            "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=5b345bbb7127b91a3ad577b203fc6f68",
+            "organizationType": "OFFICE",
+            "officeAddress": {
+                "zipcode": "60604",
+                "city": "CHICAGO",
+                "countryCode": "USA",
+                "state": "IL"
+            },
+            "placeOfPerformance": {
+                "streetAddress": "517 E Wisconsin Ave",
+                "city": {
+                    "code": "53000",
+                    "name": "Milwaukee"
+                },
+                "state": {
+                    "code": "WI"
+                },
+                "zip": "53202",
+                "country": {
+                    "code": "USA"
+                }
+            },
+            "additionalInfoLink": null,
+            "uiLink": "https://beta.sam.gov/opp/5b345bbb7127b91a3ad577b203fc6f68/view",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://api.sam.gov/prod/opportunities/v1/search?noticeid=5b345bbb7127b91a3ad577b203fc6f68&amp;limit=1",
+                    "hreflang": null,
+                    "media": null,
+                    "title": null,
+                    "type": null,
+                    "deprecation": null
+                }
+            ]
+        }
+    ],
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://api.sam.gov/prod/opportunities/v1/search?limit=1&amp;postedFrom=01/01/2018&amp;postedTo=05/10/2018&amp;ptype=a&amp;deptname=general",
+            "hreflang": null,
+            "media": null,
+            "title": null,
+            "type": null,
+            "deprecation": null
+        }
+    ]
+}
+</pre></code>
+</p>
+</details>
+
+<h3 id="example-2-updated-v2-endpoint-with-fh-information">Example 2: Updated v2 Endpoint with FH Information</h3>
+
+<details>
+    <summary>Request URL</summary>
+Production URL: https://api.sam.gov/opportunities/v2/search?limit=10&amp;api_key={User’s Public API Key}&amp;postedFrom=01/01/2018&amp;postedTo=05/10/2018&amp;title=Driving <br />
+ <br />
+Alpha URL: https://api-alpha.sam.gov/opportunities/v2/search?limit=10&amp;api_key={User’s Public API Key}&amp;postedFrom=01/01/2020&amp;postedTo=05/10/2020 <br />
+</details>
+
+<details>
+    <summary>Response (JSON Output)</summary>
+
+Note: Response for one record is provided as an example <br />
+
+<p>
+<code><pre>
+{
+            "noticeId": "ff826a59eac743c4a1a07ff5e0cf3e3a",
+            "title": "Test-Award notice-V2 27",
+            "solicitationNumber": "test-123456789",
+            "fullParentPathName": "GENERAL SERVICES ADMINISTRATION.FEDERAL ACQUISITION SERVICE.GSA/FAS CENTER FOR IT SCHEDULE PROG",
+            "fullParentPathCode": "047.4732.47QTCA",
+            "postedDate": "2020-07-02",
+            "type": "Award Notice",
+            "baseType": "Award Notice",
+            "archiveType": "autocustom",
+            "archiveDate": "2021-01-02",
+            "typeOfSetAsideDescription": null,
+            "typeOfSetAside": null,
+            "responseDeadLine": null,
+            "naicsCode": null,
+            "classificationCode": null,
+            "active": "Yes",
+            "award": {
+                "date": "2020-12-01",
+                "number": "4376487348950",
+                "amount": "350567.00"
+            },
+            "pointOfContact": null,
+            "description": "null",
+            "organizationType": "OFFICE",
+            "officeAddress": {
+                "zipcode": "20405",
+                "city": "WASHINGTON",
+                "countryCode": "USA",
+                "state": "DC"
+            },
+            "placeOfPerformance": null,
+            "additionalInfoLink": null,
+            "uiLink": "null",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "null"
+                }
+            ],
+            "resourceLinks": null
+        }
+</pre></code>
+</p>
+</details>
+
+<h2 id="openapi-specification-file">OpenAPI Specification File</h2>
+
+<p>You can view the full details of this API in the OpenAPI Specification file available here:
+<a href="v1/get-opportunities-v2.yml" download="get-opportunities-v2">OpenAPI File</a></p>
+
+<details>
+<summary>Get Opportunities Public API v2</summary>
+<p>
+<code><pre>
+/v1/search:
+    get:
+      tags:
+        - 'Public GET Opportunities API '
+      summary: 'API to get opportunities based on filter'
+      operationId: getOpportunitiesUsingGET
+      consumes:
+        - application/json
+      produces:
+        - application/json
+        - text/plain
+      parameters:
+        -
+          name: ptype
+          in: query
+          description: 'Enter Procurement type.'
+          required: false
+          type: array
+          items:
+            type: String
+          collectionFormat: multi
+        -
+          name: noticeid
+          in: query
+          description: 'Enter Notice Id.'
+          required: false
+          type: String
+        -
+          name: solnum
+          in: query
+          description: 'Enter Solicitation number.'
+          required: false
+          type: String
+        -
+          name: title
+          in: query
+          description: 'Enter Title.'
+          required: false
+          type: String
+        -
+          name: state
+          in: query
+          description: 'Enter Place of performence State.'
+          required: false
+          type: String
+        -
+          name: zip
+          in: query
+          description: 'Enter Place of performence Zip.'
+          required: false
+          type: String
+        -
+          name: typeOfSetAsideDescription
+          in: query
+          description: 'Enter type Of SetAside Description.'
+          required: false
+          type: String
+        -
+          name: typeOfSetAside
+          in: query
+          description: 'Enter type Of SetAside Code.'
+          required: false
+          type: String
+        -
+          name: ncode
+          in: query
+          description: 'Enter Naics code.'
+          required: false
+          type: String
+        -
+          name: ccode
+          in: query
+          description: 'Enter Classification code.'
+          required: false
+          type: String
+        -
+          name: postedFrom
+          in: query
+          description: "Enter posted from date in mm/dd/yyyy format. Required when providing\nlimit."
+          required: false
+          type: String
+        -
+          name: postedTo
+          in: query
+          description: "Enter posted to date in mm/dd/yyyy format. Required when providing\nlimit."
+          required: false
+          type: String
+        -
+          name: rdlfrom
+          in: query
+          description: 'Enter response deadline in mm/dd/yyyy format'
+          required: false
+          type: String
+        -
+          name: rdlto
+          in: query
+          description: 'Enter response deadline to in mm/dd/yyyy format'
+          required: false
+          type: String
+        -
+          name: limit
+          in: query
+          description: 'Enter limit to fetch number of records'
+          required: true
+          type: String
+        -
+          name: offset
+          in: query
+          description: 'Enter offset value'
+          required: true
+          type: String
+          default: '0'
+        -
+          name: api_key
+          in: query
+          description: 'Enter the Public API Key.'
+          required: true
+          type: String
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: 'Not Found'
+</pre></code>
+</p>
+</details>
+
+<h2 id="http-response-codes">HTTP Response Codes</h2>
+
+<p>200 - Success</p>
+
+<p>404 – No Data found</p>
+
+<p>400 – Bad Request</p>
+
+<p>500	– Internal Server Error</p>
+
+<h2 id="error-messages">Error Messages</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>Error Messages</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>For limit, user provides range beyond 1000.</td>
+      <td>Limit valid range is 0-1000. Please provide valid input.</td>
+    </tr>
+    <tr>
+      <td>For limit or offset, user inputs characters/special characters.</td>
+      <td>limit/offset must be a positive number.</td>
+    </tr>
+    <tr>
+      <td>For postedFrom, postedTo, rdlfrom, rdlto user enters an invalid date format.</td>
+      <td>Invalid Date Entered. Expected date format is MM/dd/yyyy</td>
+    </tr>
+    <tr>
+      <td>User does not provide postedFrom and postedTo values.</td>
+      <td>PostedFrom and PostedTo are mandatory</td>
+    </tr>
+    <tr>
+      <td>User provides more than 1 year of date range for postedFrom and postedTo <br />OR<br />User provides more than 1 year of date range for rdlfrom and rdlto</td>
+      <td>Date range must be 1 year(s) apart</td>
+    </tr>
+    <tr>
+      <td>User provides invalid API Key</td>
+      <td>An invalid api_key was supplied</td>
+    </tr>
+    <tr>
+      <td>User does not provide any API key</td>
+      <td>No api_key was supplied</td>
+    </tr>
+    <tr>
+      <td>User clicks on the description link available in the response and description content is not available</td>
+      <td>Description Not Found</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="faq">FAQ</h2>
+
+<p><small><a href="#">Back to top</a></small></p>
+
+<h2 id="contact-us">Contact Us</h2>
+
+<ul>
+  <li>Reach out to the SAM.gov team at <a href="https://www.fsd.gov">www.fsd.gov</a></li>
+</ul>
+
+<h2 id="change-log">Change Log</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Version</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5/20/19</td>
+      <td>v0.1</td>
+      <td>Base Version</td>
+    </tr>
+    <tr>
+      <td>8/6/19</td>
+      <td>v0.2</td>
+      <td>Format Updated</td>
+    </tr>
+    <tr>
+      <td>10/17/19</td>
+      <td>v0.3</td>
+      <td>Added Set-Aside Code</td>
+    </tr>
+    <tr>
+      <td>10/23/19</td>
+      <td>v0.4</td>
+      <td>Set-Aside Values Updated</td>
+    </tr>
+    <tr>
+      <td>10/24/19</td>
+      <td>v0.5</td>
+      <td>Office Address Description Updated</td>
+    </tr>
+    <tr>
+      <td>11/1/19</td>
+      <td>v1.0</td>
+      <td>Initial Release Finalized</td>
+    </tr>
+    <tr>
+      <td>12/2/19</td>
+      <td>v1.1</td>
+      <td>Added OpenAPI Specification</td>
+    </tr>
+    <tr>
+      <td>12/18/19</td>
+      <td>v1.2</td>
+      <td>Opportunities Response parameters updated to include Award Details JSON Specification and provided the  examples</td>
+    </tr>
+    <tr>
+      <td>1/20/2020</td>
+      <td>v1.3</td>
+      <td>Added Award Response and Versioning columns</td>
+    </tr>
+    <tr>
+      <td>1/31/2020</td>
+      <td>v1.4</td>
+      <td>Added field “ResourceLinks” with Coming Soon to prod</td>
+    </tr>
+    <tr>
+      <td>2/18/2020</td>
+      <td>v1.5</td>
+      <td>Added UEI information and versioning column and response example for awards</td>
+    </tr>
+    <tr>
+      <td>2/27/2020</td>
+      <td>v1.6</td>
+      <td>Added ResourceLinks to Response Section</td>
+    </tr>
+    <tr>
+      <td>6/20/2020</td>
+      <td>v1.7</td>
+      <td>Added additional information field to point of contact parameter in the response</td>
+    </tr>
+    <tr>
+      <td>7/3/2020</td>
+      <td>v1.8</td>
+      <td>Updated field parameters to include all FH information for given notices in both request and response</td>
+    </tr>
+    <tr>
+      <td>9/14/2020</td>
+      <td>v1.9</td>
+      <td>Updated OpenAPI Specification section to include v2 endpoints</td>
+    </tr>
+    <tr>
+      <td>10/25/2020</td>
+      <td>v1.91</td>
+      <td>Added new request field for status</td>
+    </tr>
+    <tr>
+      <td>05/12/2021</td>
+      <td>v1.92</td>
+      <td>Changed Beta.SAM to SAM and Changed Beta to Prodution based on JIRA IAEDEV-51713</td>
+    </tr>
+    <tr>
+      <td>05/17/2021</td>
+      <td>v1.93</td>
+      <td>Changed Beta to Prod and removed coming soon JIRA IAEDEV-51713</td>
+    </tr>
+    <tr>
+      <td>05/18/2021</td>
+      <td>v1.94</td>
+      <td>Changed SAM.Gov to SAM.gov based on JIRA IAEDEV-51713</td>
+    </tr>
+    <tr>
+      <td>05/18/2021</td>
+      <td>v1.95</td>
+      <td>Changed Prod to Production JIRA IAEDEV-51713</td>
+    </tr>
+    <tr>
+      <td>05/19/2021</td>
+      <td>v1.96</td>
+      <td>Changed SAM.Gov to SAM.gov based on JIRA IAEDEV-51713</td>
+    </tr>
+    <tr>
+      <td>06/11/2021</td>
+      <td>v1.97</td>
+      <td>Added inactive in status</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><small><a href="#">Back to top</a></small></p>
+
+</div>
+
+  </section>
+  <div class="fixed-page-height"></div>
+</main>
+</div>
+        <div id="footer">  <footer class="usa-identifier usa-footer usa-background-dark">
+    <div class="usa-grid">
+      <nav aria-label="footer navigation">
+        <div class="usa-width-one-whole" style="margin-bottom: 1em; color: white;">
+          <div>open.gsa.gov / GSA Office of Office of Enterprise Data & Privacy Management</div>
+          <div style="font-weight: bold;">An official website of the U.S. General Services Administration</div>
+        </div>
+        <div class="usa-width-one-fourth">
+          <ul class="usa-unstyled-list">
+            <li><a href="https://www.gsa.gov/about-us">About us</a></li>
+            <li><a href="https://www.gsa.gov/website-information/accessibility-aids">Accessibility support</a></li>
+          </ul>
+        </div>
+        <div class="usa-width-one-fourth">
+          <ul class="usa-unstyled-list">
+            <li><a href="https://www.gsa.gov/reference/freedom-of-information-act-foia">FOIA requests</a></li>
+            <li><a href="https://www.gsa.gov/reference/civil-rights-programs/notification-and-federal-employee-antidiscrimination-and-retaliation-act-of-2002">No FEAR Act data</a></li>
+          </ul>
+        </div>
+        <div class="usa-width-one-fourth">
+          <ul class="usa-unstyled-list">
+            <li><a href="https://www.gsa.gov/website-information/website-policies">Privacy policy</a></li>
+            <li><a href="/contact">Contact us</a></li>
+          </ul>
+        </div>
+        <div class="usa-width-one-fourth">
+          <ul class="usa-unstyled-list">
+            <li><a href="https://www.gsaig.gov/">Office of the Inspector General</a></li>
+            <li><a href="https://www.gsa.gov/reference/reports/budget-performance">Performance reports</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+    </div>
+      <script src="/assets/js/lib/jquery.min.js"></script>
+<script src="/assets/js/lib/details-polyfill.js"></script>
+<script async src="/assets/uswds/js/uswds.js"></script>
+<script src="https://use.fontawesome.com/2982e64340.js"></script>
+<!-- We participate in the US government's analytics program. See the data at analytics.usa.gov. -->
+<script async type="text/javascript" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=GSA&subagency=CTO&sitetopic=IT&sp=term&dclink=true&enhlink=true&cto=12" id="_fed_an_ua_tag"></script>
+</body>
+
+</html>

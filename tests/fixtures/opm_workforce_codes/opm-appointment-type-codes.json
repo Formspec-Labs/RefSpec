@@ -1,0 +1,6 @@
+[
+  {"code": "10", "label": "Career or Career-Conditional Appointment", "category": "appointmentType"},
+  {"code": "30", "label": "Excepted Service Appointment", "category": "appointmentType"},
+  {"code": "38", "label": "Schedule C Appointment", "category": "appointmentType"},
+  {"code": "50", "label": "Senior Executive Service Appointment", "category": "appointmentType"}
+]

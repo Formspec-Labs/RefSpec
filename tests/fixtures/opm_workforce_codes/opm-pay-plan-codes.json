@@ -1,0 +1,8 @@
+[
+  {"code": "GS", "label": "General Schedule", "category": "payPlan"},
+  {"code": "ES", "label": "Senior Executive Service", "category": "payPlan"},
+  {"code": "EX", "label": "Executive Schedule", "category": "payPlan"},
+  {"code": "WG", "label": "Federal Wage System (Wage Grade)", "category": "payPlan"},
+  {"code": "WS", "label": "Federal Wage System (Wage Grade Supervisor)", "category": "payPlan"},
+  {"code": "AD", "label": "Administratively Determined", "category": "payPlan"}
+]

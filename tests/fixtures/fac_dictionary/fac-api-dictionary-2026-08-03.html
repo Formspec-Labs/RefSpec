@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'self';
+                    connect-src https://www.google-analytics.com https://gov1.siteintercept.qualtrics.com https://api.data.gov ws://localhost:8080/;
+                    frame-src 'self' https://feedback.gsa.gov/ https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://metabase.app.cloud.gov/;
+                    img-src 'self' https://gov1.siteintercept.qualtrics.com https://*.amazonaws.com/uploads/form/logo/3110/logo_square_Vector80w(2).jpg data:;
+                    object-src 'none';
+                    script-src 'self' 'unsafe-inline' https://gov1.siteintercept.qualtrics.com https://*.gov1.siteintercept.qualtrics.com
+                        https://dap.digitalgov.gov https://www.google-analytics.com https://www.googletagmanager.com
+                        http://search.usa.gov
+                        https://api.data.gov https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;
+                    style-src 'self' 'unsafe-inline' https://api.data.gov;
+                    worker-src 'none';">
+        <meta name="FAC data dictionary" description="A description of fields in the API.">
+        <link rel="icon" type="image/x-icon" href="/assets/img/favicons/icon_logo.svg" />
+        <link rel="stylesheet" href="/assets/css/styles.css" media="all" type="text/css">
+        <title>FAC data dictionary</title>
+
+        
+        
+
+<!--BEGIN QUALTRICS WEBSITE FEEDBACK SNIPPET-->
+<script type='text/javascript'>
+(function(){var g=function(e,h,f,g){
+this.get=function(a){for(var a=a+"=",c=document.cookie.split(";"),b=0,e=c.length;b<e;b++){for(var d=c[b];" "==d.charAt(0);)d=d.substring(1,d.length);if(0==d.indexOf(a))return d.substring(a.length,d.length)}return null};
+this.set=function(a,c){var b="",b=new Date;b.setTime(b.getTime()+6048E5);b="; expires="+b.toGMTString();document.cookie=a+"="+c+b+"; path=/; "};
+this.check=function(){var a=this.get(f);if(a)a=a.split(":");else if(100!=e)"v"==h&&(e=Math.random()>=e/100?0:100),a=[h,e,0],this.set(f,a.join(":"));else return!0;var c=a[1];if(100==c)return!0;switch(a[0]){case "v":return!1;case "r":return c=a[2]%Math.floor(100/c),a[2]++,this.set(f,a.join(":")),!c}return!0};
+this.go=function(){if(this.check()){var a=document.createElement("script");a.type="text/javascript";a.src=g;document.body&&document.body.appendChild(a)}};
+this.start=function(){var t=this;"complete"!==document.readyState?window.addEventListener?window.addEventListener("load",function(){t.go()},!1):window.attachEvent&&window.attachEvent("onload",function(){t.go()}):t.go()};};
+try{(new g(100,"r","QSI_S_ZN_cN4gyJuBGhPsmcx","https://zncn4gyjubghpsmcx-cemgsa.gov1.siteintercept.qualtrics.com/SIE/?Q_ZID=ZN_cN4gyJuBGhPsmcx")).start()}catch(i){}})();
+</script><div id='ZN_cN4gyJuBGhPsmcx'><!--DO NOT REMOVE-CONTENTS PLACED HERE--></div>
+<!--END WEBSITE FEEDBACK SNIPPET-->
+    </head>
+
+    <body>
+        <section class="usa-banner" aria-label="Official government website">
+  <div class="usa-accordion">
+    <header class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <div class="grid-col-auto">
+          <img
+            class="usa-banner__header-flag"
+            src="/assets/img/us_flag_small.png"
+            alt="U.S. flag"
+          />
+        </div>
+        <div class="grid-col-fill tablet:grid-col-auto">
+          <p class="usa-banner__header-text">
+            An official website of the United States government
+          </p>
+          <p class="usa-banner__header-action" aria-hidden="true">
+            Here’s how you know
+          </p>
+        </div>
+        <button
+          class="usa-accordion__button usa-banner__button"
+          aria-expanded="false"
+          aria-controls="gov-banner"
+        >
+          <span class="usa-banner__button-text">Here’s how you know</span>
+        </button>
+      </div>
+    </header>
+    <div class="usa-banner__content usa-accordion__content" id="gov-banner">
+      <div class="grid-row grid-gap-lg">
+        <div class="usa-banner__guidance tablet:grid-col-6">
+          <img
+            class="usa-banner__icon usa-media-block__img"
+            src="/assets/img/icon-dot-gov.svg"
+            role="img"
+            alt=""
+            aria-hidden="true"
+          />
+          <div class="usa-media-block__body">
+            <p>
+              <strong> Official websites use .gov </strong>
+              <br />
+              A <strong>.gov</strong> website belongs to an official government
+              organization in the United States.
+            </p>
+          </div>
+        </div>
+        <div class="usa-banner__guidance tablet:grid-col-6">
+          <img
+            class="usa-banner__icon usa-media-block__img"
+            src="/assets/img/icon-https.svg"
+            role="img"
+            alt=""
+            aria-hidden="true"
+          />
+          <div class="usa-media-block__body">
+            <p>
+              <strong> Secure .gov websites use HTTPS </strong>
+              <br />
+              A <strong>lock</strong> (
+              <span class="icon-lock"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="52"
+                  height="64"
+                  viewBox="0 0 52 64"
+                  class="usa-banner__lock-image"
+                  role="img"
+                  aria-labelledby="banner-lock-title banner-lock-description"
+                  focusable="false"
+                >
+                  <title id="banner-lock-title">Lock</title>
+                  <desc id="banner-lock-description">A locked padlock</desc>
+                  <path
+                    fill="#000000"
+                    fill-rule="evenodd"
+                    d="M26 0c10.493 0 19 8.507 19 19v9h3a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4h3v-9C7 8.507 15.507 0 26 0zm0 8c-5.979 0-10.843 4.77-10.996 10.712L15 19v9h22v-9c0-6.075-4.925-11-11-11z"
+                  /></svg
+              ></span>
+              ) or <strong>https://</strong> means you’ve safely connected to
+              the .gov website. Share sensitive information only on official,
+              secure websites.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+        
+        
+        
+        
+        <div class="usa-overlay"></div>
+<header class="usa-header usa-header--extended">
+
+    <div class="usa-navbar">
+            <div class="usa-logo" id="basic-logo">
+                <a class="usa-logo-link" href="/">
+                    <em class="usa-logo__text grid-row">
+                        <div class="font-sans-sm text-normal text-primary-dark width-15 margin-left-1 margin-top-05 display-grid grid-column">
+                            <p class="margin-0">Federal Audit</p>
+                            <p class="margin-0">Clearinghouse</p>
+                        </div>
+                    </em>
+                </a>
+            </div>
+        <button type="button" class="usa-menu-btn">Menu</button>
+    </div>
+    <nav aria-label="Primary navigation" class="usa-nav usa-nav-container-links">
+        <div class="usa-nav__inner">
+            <button type="button" class="usa-nav__close">
+                <img src="/assets/img/usa-icons/close.svg" role="img" alt="Close" />
+            </button>
+            <div class="usa-nav-container padding-0">
+                <ul class="usa-nav__primary usa-accordion">
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-search" >
+                                    <span>Audit search</span>
+                                </button>
+                                <ul id="basic-nav-search" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                            <a href="https://app.fac.gov/dissemination/search/" >Basic search</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                            <a href="https://app.fac.gov/dissemination/search/advanced" >Advanced search</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/tribal" >Tribal audit search</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/search-resources" >Search resources</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-audits" >
+                                    <span>Audit submission</span>
+                                </button>
+                                <ul id="basic-nav-audits" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                            <a href="https://app.fac.gov/openid/login/" >Submit an audit</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/audit-resources" >Submission resources</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/audit-resources/submission-guide/about" >Submission guide</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/audit-resources/sf-sac" >SF-SAC workbooks</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-data" >
+                                    <span>Data</span>
+                                </button>
+                                <ul id="basic-nav-data" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/data" >About the data</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/data/download" >Download CSV data</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/api" >Developer API resources</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/data/reliability" >Data reliability</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/data/reliability/curation" >Data curation</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/data/migration" >Data migration</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-news" >
+                                    <span>Updates &amp; News</span>
+                                </button>
+                                <ul id="basic-nav-news" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/updates" >FAC updates</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/omb" >OMB announcements</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/status" >System status</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-policy" >
+                                    <span>Policy &amp; Compliance</span>
+                                </button>
+                                <ul id="basic-nav-policy" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/compliance" >Compliance</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/uniform-guidance" >Uniform guidance</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/audit-resources/burden-statement" >FAC Burden statement</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                        
+                            <li class="usa-nav__primary-item">
+                                <button
+                                    class="usa-accordion__button usa-nav__link"
+                                    aria-expanded="false"
+                                    aria-controls="basic-nav-contact" >
+                                    <span>Contacts</span>
+                                </button>
+                                <ul id="basic-nav-contact" class="usa-nav__submenu">
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/contact-resources" >Contact resources</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                            <a href="https://support.fac.gov/hc/en-us" >FAC Helpdesk</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/contact-resources/cognizant-agency-contacts" >Cognizant agency contacts</a>
+                                        </li>
+                                    
+                                        <li class="usa-nav__submenu-item">
+                                            
+                                            
+                                                
+                                            
+                                            <a href="/assets/agency-contacts/2024-agency-contacts.pdf" >NSAC and KMSAL contacts</a>
+                                        </li>
+                                    
+                                </ul>
+                            </li>
+                        
+                    
+                    <li class="usa-nav__primary-item flex-align-self-center margin-left-2 width-card desktop:width-15 padding-top-2 desktop:padding-top-0">
+                        <span class="text-primary-darker"><strong>OMB#</strong> 3090-0330 <strong>EXP:</strong> 04/30/2029</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="usa-nav__secondary flex flex-row flex-align-center">
+                <div class="search">
+                    <form class="usa-search usa-search--small margin-bottom-1" id="search_form" action="https://search.usa.gov/search" method="get" role="search">
+                        <input type="hidden" name="affiliate" id="affiliate" value="fac-transition-site" autocomplete="off">
+                        <label class="usa-sr-only" for="query">
+                            Search
+                        </label>
+                        <input class="usa-input" id="query" type="search" name="query" placeholder="Search www.fac.gov">
+                        <button class="usa-button bg-primary-darker" type="submit" data-disable-with="Search">
+                            <img src="/assets/img/usa-icons-bg/search--white.svg" class="usa-search__submit-icon" alt="Search">
+                        </button>
+                    </form>
+                </div>
+                <div class="sign-in padding-left-2 margin-left-2 border-left border-primary-dark">
+                    <a class="sign-in-logo display-flex flex-row"
+                    aria-controls="login-modal"
+                    href="https://app.fac.gov/openid/login/"
+                    data-open-modal
+                    tabindex="0"
+                    role="button">
+                        <svg class="usa-icon usa-icon--size-4" aria-hidden="true" focusable="false" role="img">
+                            <use xlink:href="/assets/img/sprite.svg#save_alt"></use>
+                        </svg>
+                        <span class="font-sans-sm">Sign in</span>
+                    </a>
+                    <div class="usa-modal usa-modal--lg"
+                        id="login-modal"
+                        aria-labelledby="login-modal-heading"
+                        aria-describedby="login-modal-description">
+                        <div class="usa-modal__content">
+                            <div class="usa-modal__main">
+                                <h2 class="usa-modal__heading" id="login-modal-heading">You must log in to continue</h2>
+                                <div id="login-modal-description">
+                                    <p>
+                                        Submitting information to the Federal Audit Clearinghouse requires authentication
+                                        which will now be handled by <a href="http://login.gov">Login.gov</a>.
+                                        <strong>You cannot use your old Census FAC credentials to access the new GSA
+                                        system.</strong> On the next screen you can use an existing Login.gov
+                                        account or create a new one to securely sign in.
+                                    </p>
+                                </div>
+                                <div class="usa-modal__footer">
+                                    <ul class="usa-button-group">
+                                        <li class="usa-button-group__item">
+                                            <a href="https://app.fac.gov/openid/login/">
+                                                <button type="button"
+                                                        class="usa-button sign-in-button"
+                                                        id="sign-in"
+                                                        data-close-modal>Authenticate with Login.gov</button>
+                                            </a>
+                                        </li>
+                                        <li class="usa-button-group__item">
+                                            <button type="button"
+                                                    class="usa-button usa-button--unstyled padding-105 text-center"
+                                                    data-close-modal>Cancel</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <button class="usa-button usa-modal__close"
+                                    aria-label="Close this window"
+                                    data-close-modal>
+                                <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                                    <img src="/assets/img/usa-icons/close.svg" role="img" alt="Close" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+
+        
+        
+            <div class="usa-section padding-top-0">
+                <div class="usa-in-page-nav-container">
+                    <aside
+                        class="usa-in-page-nav"
+                        data-title-text="On this page"
+                        data-title-heading-level="h2"
+                        data-scroll-offset="25"
+                        data-root-margin="0px 0px 0px 0px"
+                        data-threshold="1"
+                    ></aside>
+                    <div class="grid-container margin-bottom-4">
+                        <main id="main-content" class="main-content usa-prose">
+                            
+<div class="grid-container margin-y-4">
+    
+
+
+
+    <div>
+        
+            
+                <a class="usa-link" href="/">Home</a>
+                <svg style="width: 20; height: 20; left: 0px; top: 5px; position: relative"
+                 class="usa-icon text-base" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#navigate_next"></use>
+                </svg>
+            
+        
+            
+                <a class="usa-link" href="/api/">API resources</a>
+                <svg style="width: 20; height: 20; left: 0px; top: 5px; position: relative"
+                 class="usa-icon text-base" aria-hidden="true" focusable="false" role="img">
+                    <use xlink:href="/assets/img/sprite.svg#navigate_next"></use>
+                </svg>
+            
+        
+            
+                <span>Data dictionary</span>
+            
+        
+    </div>
+
+    
+    
+        <h1>Data dictionary</h1>
+<p><a href="/assets/api/FAC%20API%20Data%20Dictionary.xlsx">Download the Data Dictionary (Excel)</a> for definitions, descriptions, and details of the data fields for each endpoint of the FAC API.</p>
+<h1>Legacy Field Mapping</h1>
+<p>The following table maps fields from the Census Bureau’s previous data structure to the new FAC API fields.</p>
+<h2>Dictionary by endpoint</h2>
+<ol>
+  <li><a href="#endpoint-general">general</a></li>
+  <li><a href="#endpoint-federal_awards">federal_awards</a></li>
+  <li><a href="#endpoint-notes_to_sefa">notes_to_sefa</a></li>
+  <li><a href="#endpoint-findings">findings</a></li>
+  <li><a href="#endpoint-findings_text">findings_text</a></li>
+  <li><a href="#endpoint-corrective_action_plans">corrective_action_plans</a></li>
+  <li><a href="#endpoint-passthrough">passthrough</a></li>
+  <li><a href="#endpoint-secondary_auditors">secondary_auditors</a></li>
+  <li><a href="#endpoint-additional_ueis">additional_ueis</a></li>
+  <li><a href="#endpoint-additional_eins">additional_eins</a></li>
+  <li><a href="#endpoint-resubmission">resubmission</a></li>
+</ol>
+  <h3 id="endpoint-general">Endpoint: <code>general</code> (formerly <code>gen)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the general endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FACACCEPTEDDATE</td>
+<th scope="row">fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>TYPEOFENTITY</td>
+<th scope="row">entity_type</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FYSTARTDATE</td>
+<th scope="row">fy_start_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>FYENDDATE</td>
+<th scope="row">fy_end_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>AUDITTYPE</td>
+<th scope="row">audit_type</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>PERIODCOVERED</td>
+<th scope="row">audit_period_covered</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>NUMBERMONTHS</td>
+<th scope="row">number_months</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>EIN</td>
+<th scope="row">auditee_ein</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEENAME</td>
+<th scope="row">auditee_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>STREET1</td>
+<th scope="row">auditee_address_line_1</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CITY</td>
+<th scope="row">auditee_city</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>STATE</td>
+<th scope="row">auditee_state</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>ZIPCODE</td>
+<th scope="row">auditee_zip</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">auditor_certify_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">auditor_certify_title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEETITLE</td>
+<th scope="row">auditee_contact_title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEEPHONE</td>
+<th scope="row">auditee_phone</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEEEMAIL</td>
+<th scope="row">auditee_email</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEEDATESIGNED</td>
+<th scope="row">auditee_certified_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">submitted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>CPAFIRMNAME</td>
+<th scope="row">auditor_firm_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPASTREET1</td>
+<th scope="row">auditor_address_line_1</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPACITY</td>
+<th scope="row">auditor_city</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPASTATE</td>
+<th scope="row">auditor_state</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAZIPCODE</td>
+<th scope="row">auditor_zip</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPACONTACT</td>
+<th scope="row">auditor_contact_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPATITLE</td>
+<th scope="row">auditor_contact_title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAPHONE</td>
+<th scope="row">auditor_phone</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAEMAIL</td>
+<th scope="row">auditor_email</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPADATESIGNED</td>
+<th scope="row">auditor_certified_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>COGAGENCY</td>
+<th scope="row">cognizant_agency</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>OVERSIGHTAGENCY</td>
+<th scope="row">oversight_agency</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TYPEREPORT_FS</td>
+<th scope="row">gaap_results</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>SP_FRAMEWORK</td>
+<th scope="row">sp_framework_basis</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TYPEREPORT_SP_FRAMEWORK</td>
+<th scope="row">sp_framework_opinions</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>GOINGCONCERN</td>
+<th scope="row">is_going_concern_included</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>MATERIALWEAKNESS</td>
+<th scope="row">is_internal_control_material_weakness_disclosed</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>DUP_REPORTS</td>
+<th scope="row">is_aicpa_audit_guide_included</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>DOLLARTHRESHOLD</td>
+<th scope="row">dollar_threshold</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>LOWRISK</td>
+<th scope="row">is_low_risk_auditee</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>TOTFEDEXPEND</td>
+<th scope="row">total_amount_expended</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>AUDITOR_EIN</td>
+<th scope="row">auditor_ein</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>FACACCEPTEDDATE</td>
+<th scope="row">fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>CPAFOREIGN</td>
+<th scope="row">auditor_foreign_address</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPACOUNTRY</td>
+<th scope="row">auditor_country</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>EUI</td>
+<th scope="row">auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>MULTIPLEUEIS</td>
+<th scope="row">is_additional_ueis</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>AUDITEECERTIFYNAME</td>
+<th scope="row">auditee_certify_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITEECERTIFYTITLE</td>
+<th scope="row">auditee_certify_title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>SP_FRAMEWORK_REQUIRED</td>
+<th scope="row">is_sp_framework_required</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>SIGNIFICANTDEFICIENCY</td>
+<th scope="row">is_internal_control_deficiency_disclosed</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>MATERIALNONCOMPLIANCE</td>
+<th scope="row">is_material_noncompliance_disclosed</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>Question 3.d - Audit Info</td>
+<th scope="row">agencies_with_prior_findings</th>
+<td>ARRAY</td>
+</tr></p>
+<p><tr>
+<td>INTIALDATE</td>
+<th scope="row">date_created</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>TYPE_AUDITCODE</td>
+<th scope="row">type_audit_code</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>SUPPRESSION_CODE</td>
+<th scope="row">is_public</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">ready_for_certification_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">data_source</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">resubmission_version</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">resubmission_status</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">is_multiple_eins</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">is_secondary_auditors</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-federal_awards">Endpoint: <code>federal_awards</code> (formerly <code>cfda)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the federal_awards endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CFDA</td>
+<th scope="row">federal_agency_prefix + federal_award_extension</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AWARDIDENTIFICATION</td>
+<th scope="row">additional_award_identification</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FEDERALPROGRAMNAME</td>
+<th scope="row">federal_program_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AMOUNT</td>
+<th scope="row">amount_expended</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>CLUSTERNAME</td>
+<th scope="row">cluster_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>STATECLUSTERNAME</td>
+<th scope="row">state_cluster_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>PROGRAMTOTAL</td>
+<th scope="row">federal_program_total</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>CLUSTERTOTAL</td>
+<th scope="row">cluster_total</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>DIRECT</td>
+<th scope="row">is_direct</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>PASSTHROUGHAWARD</td>
+<th scope="row">is_passthrough_award</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>PASSTHROUGHAMOUNT</td>
+<th scope="row">passthrough_amount</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>MAJORPROGRAM</td>
+<th scope="row">is_major</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>TYPEREPORT_MP</td>
+<th scope="row">audit_report_type</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>LOANS</td>
+<th scope="row">is_loan</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>LOANBALANCE</td>
+<th scope="row">loan_balance</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FINDINGSCOUNT</td>
+<th scope="row">findings_count</th>
+<td>INT</td>
+</tr></p>
+<p><tr>
+<td>ELECAUDITSID</td>
+<th scope="row">award_reference</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>OTHERCLUSTERNAME</td>
+<th scope="row">other_cluster_name</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-notes_to_sefa">Endpoint: <code>notes_to_sefa</code> (formerly <code>notes)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the notes_to_sefa endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TITLE</td>
+<th scope="row">title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CONTENT</td>
+<th scope="row">content</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">accounting_policies</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">is_minimis_rate_used</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">rate_explained</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">contains_chart_or_table</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-findings">Endpoint: <code>findings</code> (formerly <code>findings)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the findings endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>ELECAUDITSID</td>
+<th scope="row">FederalAward.award_reference</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FINDINGSREFNUMS</td>
+<th scope="row">reference_number</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TYPEREQUIREMENT</td>
+<th scope="row">type_requirement</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>MODIFIEDOPINION</td>
+<th scope="row">is_modified_opinion</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>OTHERNONCOMPLIANCE</td>
+<th scope="row">is_other_matters</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>MATERIALWEAKNESS</td>
+<th scope="row">is_material_weakness</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>SIGNIFICANTDEFICIENCY</td>
+<th scope="row">is_significant_deficiency</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>OTHERFINDINGS</td>
+<th scope="row">is_other_findings</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>QCOSTS</td>
+<th scope="row">is_questioned_costs</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>REPEATFINDING</td>
+<th scope="row">is_repeat_finding</th>
+<td>BOOLEAN</td>
+</tr></p>
+<p><tr>
+<td>PRIORFINDINGREFNUMS</td>
+<th scope="row">prior_finding_ref_numbers</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-findings_text">Endpoint: <code>findings_text</code> (formerly <code>findingstext)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the findings_text endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FINDINGREFNUMS</td>
+<th scope="row">finding_ref_number</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TEXT</td>
+<th scope="row">finding_text</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CHARTSTABLES</td>
+<th scope="row">contains_chart_or_table</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-corrective_action_plans">Endpoint: <code>corrective_action_plans</code> (formerly <code>captext)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the corrective_action_plans endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>FINDINGREFNUMS</td>
+<th scope="row">finding_ref_number</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>TEXT</td>
+<th scope="row">planned_action</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CHARTSTABLES</td>
+<th scope="row">contains_chart_or_table</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-passthrough">Endpoint: <code>passthrough</code> (formerly <code>passthrough)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the passthrough endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>ELECAUDITSID</td>
+<th scope="row">award_reference</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>PASSTHROUGHNAME</td>
+<th scope="row">passthrough_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>PASSTHROUGHID</td>
+<th scope="row">passthrough_id</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-secondary_auditors">Endpoint: <code>secondary_auditors</code> (formerly <code>cpas)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the secondary_auditors endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAFIRMNAME</td>
+<th scope="row">auditor_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAEIN</td>
+<th scope="row">auditor_ein</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPASTREET1</td>
+<th scope="row">address_street</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPACITY</td>
+<th scope="row">address_city</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPASTATE</td>
+<th scope="row">address_state</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAZIPCODE</td>
+<th scope="row">address_zipcode</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPACONTACT</td>
+<th scope="row">contact_name</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPATITLE</td>
+<th scope="row">contact_title</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAPHONE</td>
+<th scope="row">contact_phone</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>CPAEMAIL</td>
+<th scope="row">contact_email</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-additional_ueis">Endpoint: <code>additional_ueis</code> (formerly <code>ueis)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the additional_ueis endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>UEI</td>
+<th scope="row">additional_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-additional_eins">Endpoint: <code>additional_eins</code> (formerly <code>eins)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the additional_eins endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>AUDITYEAR + DBKEY</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>AUDITYEAR</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>EIN</td>
+<th scope="row">additional_ein</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+  <h3 id="endpoint-resubmission">Endpoint: <code>resubmission</code> (formerly <code>____)</h3>
+  <div class="usa-table-container--scrollable" tabindex="0">
+    <table class="usa-table">
+      <caption>
+      Data from the resubmission endpoint in the FAC API.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Census</th>
+          <th scope="col">GSA</th>
+          <th scope="col">Data type</th>
+        </tr>
+      </thead>
+      <tbody>
+<p><tr>
+<td>____</td>
+<th scope="row">General.report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.audit_year</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.fac_accepted_date</th>
+<td>DATE</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">General.auditee_uei</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">version</th>
+<td>BIGINT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">status</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">previous_report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p><tr>
+<td>____</td>
+<th scope="row">next_report_id</th>
+<td>TEXT</td>
+</tr></p>
+<p></tbody>
+</table></p>
+  </div>
+
+    
+</div>
+
+                        </main>
+                    </div>
+                </div>
+            </div>
+        
+
+        <footer class="usa-footer usa-footer--big">
+    <div class="usa-footer__primary-section">
+        <div class="grid-container">
+            <div class="grid-row grid-gap">
+                <div class="tablet:grid-col-12">
+                    <nav class="usa-footer__nav" aria-label="Footer navigation">
+                        <div class="grid-row grid-gap">
+                            <div class="usa-logo__footer mobile-lg:grid-col desktop:grid-col">
+                                <div class="usa-logo-link">
+                                    <em class="usa-logo__text grid-row">
+                                    </em>
+                                </div>
+                                <p>The Federal Audit Clearinghouse (FAC) is the place to submit and review federal grant audits.</p>
+                            </div>
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Audit search</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="https://app.fac.gov/dissemination/search/"
+                                                    rel="noopener noreferrer">Basic search</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="https://app.fac.gov/dissemination/search/advanced"
+                                                    rel="noopener noreferrer">Advanced search</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/tribal"
+                                                    rel="noopener noreferrer">Tribal audit search</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/search-resources"
+                                                    rel="noopener noreferrer">Search resources</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Audit submission</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="https://app.fac.gov/openid/login/"
+                                                    rel="noopener noreferrer">Submit an audit</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/audit-resources"
+                                                    rel="noopener noreferrer">Submission resources</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/audit-resources/submission-guide/about"
+                                                    rel="noopener noreferrer">Submission guide</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/audit-resources/sf-sac"
+                                                    rel="noopener noreferrer">SF-SAC workbooks</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Data</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/data"
+                                                    rel="noopener noreferrer">About the data</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/data/download"
+                                                    rel="noopener noreferrer">Download CSV data</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/api"
+                                                    rel="noopener noreferrer">Developer API resources</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/data/reliability"
+                                                    rel="noopener noreferrer">Data reliability</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/data/reliability/curation"
+                                                    rel="noopener noreferrer">Data curation</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/data/migration"
+                                                    rel="noopener noreferrer">Data migration</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Updates &amp; News</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/updates"
+                                                    rel="noopener noreferrer">FAC updates</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/omb"
+                                                    rel="noopener noreferrer">OMB announcements</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/status"
+                                                    rel="noopener noreferrer">System status</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Policy &amp; Compliance</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/compliance"
+                                                    rel="noopener noreferrer">Compliance</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/uniform-guidance"
+                                                    rel="noopener noreferrer">Uniform guidance</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/audit-resources/burden-statement"
+                                                    rel="noopener noreferrer">FAC Burden statement</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                                
+                                    <div class="mobile-lg:grid-col desktop:grid-col">
+                                        <section
+                                        class="usa-footer__primary-content usa-footer__primary-content--collapsible"
+                                        >
+                                            <span class="usa-footer__primary-link">Contacts</span>
+                                            <ul class="usa-list usa-list--unstyled">
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/contact-resources"
+                                                    rel="noopener noreferrer">Contact resources</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="https://support.fac.gov/hc/en-us"
+                                                    rel="noopener noreferrer">FAC Helpdesk</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/contact-resources/cognizant-agency-contacts"
+                                                    rel="noopener noreferrer">Cognizant agency contacts</a>
+                                                </li>
+                                                
+                                                
+                                                
+                                                    
+                                                
+                                                <li class="usa-footer__secondary-link">
+                                                    <a href="/assets/agency-contacts/2024-agency-contacts.pdf"
+                                                    rel="noopener noreferrer">NSAC and KMSAL contacts</a>
+                                                </li>
+                                                
+                                            </ul>
+                                        </section>
+                                    </div>
+                                
+                            
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="usa-identifier">
+        <section class="usa-identifier__section usa-identifier__section--masthead">
+            <div class="usa-identifier__container">
+                <div class="usa-identifier__logos">
+                    <a href="https://www.gsa.gov/" class="usa-identifier__logo">
+                        <img class="usa-identifier__logo-img"
+                            src="/assets/img/gsa-logo-w100.png"
+                            alt="GSA logo"
+                            role="img"/>
+                    </a>
+                </div>
+                <div class="usa-identifier__identity text-base-lightest">
+                    <p class="usa-identifier__identity-domain">FAC.gov</p>
+                    <p class="usa-identifier__identity-disclaimer text-base-lightest">
+                        An official website of the
+                        <a href="https://www.gsa.gov/about-us/organization/federal-acquisition-service/technology-transformation-services">
+                            GSA’s Technology Transformation Services
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </section>
+        <nav class="usa-identifier__section usa-identifier__section--required-links">
+            <div class="usa-identifier__container">
+                <ul class="usa-identifier__required-links-list">
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                            href="https://www.gsaig.gov/"
+                            title="Report fraud, waste, or abuse to the Office of the Inspector General">
+                            Report fraud, waste, or abuse to the Office of the Inspector General
+                        </a>
+                    </li>
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                            href="https://www.gsa.gov/reference/freedom-of-information-act-foia"
+                            title="Submit a Freedom of Information Act (FOIA) request">
+                            Submit a Freedom of Information Act (FOIA) request
+                        </a>
+                    </li>
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                            href="https://www.gsa.gov/reference/reports/budget-performance"
+                            title="View budget and performance reports">
+                            View budget and performance reports
+                        </a>
+                    </li>
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                            href="https://www.gsa.gov/website-information/accessibility-aids"
+                            title="View accessibility statement">
+                            View accessibility statement
+                        </a>
+                    </li>
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                            href="https://www.gsa.gov/reference/civil-rights-programs/the-no-fear-act"
+                            title="View No FEAR Act data">
+                            View No FEAR Act data
+                        </a>
+                    </li>
+                    <li class="usa-identifier__required-links-item">
+                        <a class="usa-identifier__required-link usa-link"
+                           href="https://www.gsa.gov/website-information/website-policies#privacy"
+                           title="View privacy policy">
+                            View privacy policy
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <section class="usa-identifier__section usa-identifier__section--usagov">
+            <div class="usa-identifier__container">
+                <div class="usa-identifier__usagov-description text-base-lightest">
+                    Looking for U.S. government information and services?
+                </div>
+                <a href="https://www.usa.gov/" class="usa-link">Visit USA.gov</a>
+            </div>
+        </section>
+    </div>
+</footer>
+
+        <script src="/assets/js/uswds.min.js" type="text/javascript"></script>
+
+        <!-- We participate in the US government's analytics program. See the data at analytics.usa.gov. -->
+        <script async type="text/javascript" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=GSA&subagency=TTS" id="_fed_an_ua_tag"></script>
+
+        <script>
+        //<![CDATA[
+            var usasearch_config = { siteHandle:"fac-transition-site" };
+
+            var script = document.createElement("script");
+            script.type = "text/javascript";
+            script.src = "//search.usa.gov/javascripts/remote.loader.js";
+            document.getElementsByTagName("head")[0].appendChild(script);
+
+        //]]>
+        </script>
+    </body>
+</html>

@@ -1,0 +1,9 @@
+[
+  {"code": "PAS", "label": "Presidential Appointment with Senate Confirmation", "category": "plumAppointmentAuthority"},
+  {"code": "PA", "label": "Presidential Appointment without Senate Confirmation", "category": "plumAppointmentAuthority"},
+  {"code": "CA", "label": "Career Appointment (Senior Executive Service)", "category": "plumAppointmentAuthority"},
+  {"code": "NA", "label": "Noncareer Appointment (Senior Executive Service)", "category": "plumAppointmentAuthority"},
+  {"code": "SC", "label": "Schedule C Appointment", "category": "plumAppointmentAuthority"},
+  {"code": "VACANT", "label": "Position Vacant at Time of Publication", "category": "plumIncumbentStatusMarker"},
+  {"code": "REDACTED", "label": "Incumbent Identity Withheld Under Statutory Redaction Authority", "category": "plumIncumbentStatusMarker"}
+]

@@ -1,0 +1,8 @@
+[
+  {"code": "0201", "label": "Human Resources Management", "category": "occupationalSeries"},
+  {"code": "0301", "label": "Miscellaneous Administration and Program", "category": "occupationalSeries"},
+  {"code": "0343", "label": "Management and Program Analysis", "category": "occupationalSeries"},
+  {"code": "0905", "label": "General Attorney", "category": "occupationalSeries"},
+  {"code": "1102", "label": "Contracting", "category": "occupationalSeries"},
+  {"code": "2210", "label": "Information Technology Management", "category": "occupationalSeries"}
+]

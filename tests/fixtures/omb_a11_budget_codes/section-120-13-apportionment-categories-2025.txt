@@ -1,0 +1,55 @@
+SECTION 120—APPORTIONMENT PROCESS 
+ 
+ 
+Page 10 of Section 120                        OMB Circular No. A–11 (2025) 
+120.12 After OMB approves an apportionment, can I obligate against all budgetary resources? 
+ 
+Not necessarily.  You should not obligate until apportioned amounts have been allotted in accordance with 
+your agency's OMB-approved funds control regulations (see section 150, Administrative Control of Funds).  
+There are other circum stances in which you cannot obligate funds following an apportionment.  For 
+example, you cannot obligate against anticipated resources.  You must wait until the resources are realized 
+before incurring obligations.  Additionally, in some cases, a footnote t o the apportionment will state that 
+amounts are apportioned, but are only available for obligation when specified events occur (such as an 
+agency taking certain action). 
+120.13 What is the format of the Application of Budgetary Resources section and what categories 
+does OMB use to apportion funds? 
+ 
+OMB usually uses one of four categories to apportion budgetary resources in a TAFS.   
+ 
+Category A  apportions budgetary resources by fiscal quarters, e.g., quarter one (October 1 through 
+December 31) and quarter two (January 1 through March 31).  Lines 6001 through 6004 are used for 
+quarters one through four, respectively. 
+ 
+Category B apportions budgetary resources by program, project, activities, objects or a combination of these 
+categories.  Lines 6011 thro ugh 6110 are used for Category B apportioned amounts.  One TAFS can 
+potentially have dozens of Category B apportionments, each pertaining to specific activities, projects, and 
+so on.  There are also cases when it makes programmatic sense for OMB to use a s ingle, Category B 
+apportionment for a given TAFS. 
+   
+Category AB apportions budgetary resources by a combination of fiscal quarters and projects.  You may 
+use Lines 6111 through 6159 to apportion in this manner. See section 8 of Appendix F for a full list of line 
+numbers and descriptions.  
+ 
+Category C apportions budgetary resources in multi-year and no-year TAFSs into future fiscal years.  Lines 
+6170 thru 6173 are used for Category C apportioned amounts.  (Note: Category C amounts that OMB 
+apportions in one year are not available for you to obligate against in the following year.  For these amounts 
+to be available, OMB must approve a new request in the following year that apportions these amounts on 
+Category A, B, or AB lines.)  See section 120.52 for additional information.  
+ 
+Apportionments may include a combination of categories. 
+ 
+In some cases (uncommon), resources in the Budgetary Resources section are not apportioned. In such 
+cases, the non-apportioned budgetary resources are shown using one of four apportionment lines —  
+ 
+6180, Withheld pending rescission (rarely used),  
+ 
+6181, Deferred (rarely used),  
+ 
+6182, Unapportioned balance of a revolving fund, and  
+ 
+6183, Exempt from apportionment (uncommon, and used in TAFSs with both budgetary resources 
+subject to and exempt from apportionment — at the bottom of the section on the Application of 
+Budgetary Resources).   
+ 
+Agencies must report obligations to Treasury (GTAS) using the same level of specificity as appears on the 
+apportioned section of your most recent approved apportionment.  For instance, if OMB uses a single 

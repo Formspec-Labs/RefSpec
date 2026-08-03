@@ -1,0 +1,7 @@
+[
+  {"code": "F", "label": "Full-Time", "category": "workSchedule"},
+  {"code": "P", "label": "Part-Time", "category": "workSchedule"},
+  {"code": "I", "label": "Intermittent", "category": "workSchedule"},
+  {"code": "J", "label": "Part-Time Job Sharing", "category": "workSchedule"},
+  {"code": "Q", "label": "Full-Time Seasonal", "category": "workSchedule"}
+]
