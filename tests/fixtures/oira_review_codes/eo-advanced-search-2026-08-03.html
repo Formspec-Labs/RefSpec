@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- Real excerpt captured 2026-08-03 from
+     https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD
+     Unrelated markup (agency list, date pickers, tooltips) is omitted
+     between captured fields; the field fragments below are byte-exact. -->
+<html><body><form name="eoAdvancedSearchForm">
+<table><tr><td>
+<p>
+<label class="generalTxt" for="Review Status">Review Status<br></label>
+<label style="font-weight:100"><input id="eoStatusCode1" name="eoStatusCode" onclick="javascript:showConcludedDataDiv();" type="radio" value="PR"/>Pending Review</label>
+                 			&nbsp;&nbsp;
+                 			<label style="font-weight:100"><input id="eoStatusCode2" name="eoStatusCode" onclick="javascript:showConcludedDataDiv();" type="radio" value="CD" checked="checked"/>Concluded</label>
+</p>
+</td></tr>
+<!-- omitted: agency, sub-agency, RIN, date-range markup -->
+<tr><td width="50%">
+<p>
+<label class="generalTxt" for="ruleStages">Stage of Rulemaking</label><br>
+<label for="ruleStagePrerule" style="font-weight:100">
+							<input id="ruleStagePrerule" name="ruleStages" type="checkbox" value="1"/><input type="hidden" name="_ruleStages" value="on"/>Prerule </label>&nbsp;&nbsp;
+							<label for="ruleStageProposed" style="font-weight:100">
+							<input id="ruleStageProposed" name="ruleStages" type="checkbox" value="2"/><input type="hidden" name="_ruleStages" value="on"/>Proposed Rule </label>&nbsp;&nbsp;
+							<label for="ruleStageInterimFinal" style="font-weight:100">
+							<input id="ruleStageInterimFinal" name="ruleStages" type="checkbox" value="3"/><input type="hidden" name="_ruleStages" value="on"/>Interim Final Rule </label><br>
+							<label for="ruleStageFinal" style="font-weight:100">
+							<input id="ruleStageFinal" name="ruleStages" type="checkbox" value="4"/><input type="hidden" name="_ruleStages" value="on"/>Final Rule	</label>&nbsp;&nbsp;
+							<label for="ruleStageFinalNoMaterialChange" style="font-weight:100">
+							<input id="ruleStageFinalNoMaterialChange" name="ruleStages" type="checkbox" value="5"/><input type="hidden" name="_ruleStages" value="on"/>Final Rule No Material Change </label>&nbsp;&nbsp;
+							<label for="ruleStageNotice" style="font-weight:100">
+							<input id="ruleStageNotice" name="ruleStages" type="checkbox" value="6"/><input type="hidden" name="_ruleStages" value="on"/>Notice</label>
+</p>
+</td></tr>
+<!-- omitted: related-rule and unfunded-mandate markup -->
+<tr><td width="50%">
+<p>
+<label class="generalTxt" for="concludedActionCode">Concluded Action</label><br>
+<select id="concludedActionCode" name="concludedActionCode">
+								<option value="" selected="selected"></option><option value="CC">Consistent with Change</option><option value="CW">Consistent without Change</option><option value="EM">Emergency</option><option value="EX">Exempt from Executive Order</option><option value="IS">Improperly Submitted</option><option value="RR">Returned for Reconsideration</option><option value="SJ">Statutory or Judicial Deadline</option><option value="SR">Suspended Review</option><option value="WD">Withdrawn</option>
+							</select>
+</p>
+</td></tr>
+</table>
+</form></body></html>
