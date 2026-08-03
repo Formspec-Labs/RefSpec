@@ -12,6 +12,7 @@ import pytest
 
 from refspec.registry import (
     ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256,
+    ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256,
     ConceptDomainBridgeError,
     load_concept_domain_bridge,
 )
@@ -419,3 +420,54 @@ def test_tracked_icpsr_federal_register_bridge_matches_its_pin() -> None:
     }
     assert "asylum seekers" in aliases
     assert "warrants" not in aliases
+
+
+def test_tracked_icpsr_federal_register_bridge_v2_matches_its_pin() -> None:
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "development"
+        / "icpsr-federal-register-concept-bridge-v2.json"
+    )
+    release = (
+        "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
+    )
+    raw = json.loads(path.read_bytes())
+    target_ids = {
+        mapping["rkaf:assertsObject"] for mapping in raw["mappings"]
+    }
+    bridge = load_concept_domain_bridge(
+        path,
+        expected_sha256=ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256,
+        target_view=_TargetView(
+            {
+                concept_id: _TargetMember(release_iri=release)
+                for concept_id in target_ids
+            }
+        ),
+    )
+
+    assert bridge.target_release_iri == release
+    assert len(bridge.mappings) == 122
+    assert {
+        mapping.relation_iri for mapping in bridge.mappings
+    } == {"skos:closeMatch"}
+    subjects_by_object = {
+        mapping.target_member_iri: mapping.source_member_iri
+        for mapping in bridge.mappings
+    }
+    # Adult education, judged safe in both directions.
+    assert (
+        subjects_by_object[
+            "urn:ref:federal-register-thesaurus:2025-04-01:concept:0007"
+        ]
+        == "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24105"
+    )
+    # ICPSR "drugs" is the broad illicit-substance parent; both of its
+    # equal-label candidates were judged related_but_distinct, so the
+    # concept must be absent from the bridge entirely.
+    subjects = {mapping.source_member_iri for mapping in bridge.mappings}
+    assert (
+        "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25081"
+        not in subjects
+    )

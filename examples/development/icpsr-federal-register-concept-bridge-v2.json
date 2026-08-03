@@ -1,0 +1,2577 @@
+{
+  "developmentOnly": true,
+  "sourceSnapshot": {
+    "url": "https://raw.githubusercontent.com/ICPSR/metadata/6e2651e55fb42b119a167f34000ec728d1206865/projects/thesaurus/processed/subject.xml",
+    "revision": "6e2651e55fb42b119a167f34000ec728d1206865",
+    "sha256": "sha256:1875e0331a8403c00fa47a3ededca98c902f55d0b84d70884543ed1d2db629ff"
+  },
+  "sourceScheme": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001",
+  "sourceRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+  "targetRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+  "sourceConcepts": [
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24105",
+      "prefLabel": {
+        "en": "adult education"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24105"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24111",
+      "prefLabel": {
+        "en": "advertising"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24111"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24148",
+      "prefLabel": {
+        "en": "agriculture"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24148"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24153",
+      "prefLabel": {
+        "en": "air transportation"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24153"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24155",
+      "prefLabel": {
+        "en": "aircraft"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24155"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24159",
+      "prefLabel": {
+        "en": "airports"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24159"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24166",
+      "prefLabel": {
+        "en": "alcoholism"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24166"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24169",
+      "prefLabel": {
+        "en": "alimony"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24169"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24211",
+      "prefLabel": {
+        "en": "antibiotics"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24211"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24236",
+      "prefLabel": {
+        "en": "armed forces"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24236"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24279",
+      "prefLabel": {
+        "en": "asbestos"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24279"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24293",
+      "prefLabel": {
+        "en": "assisted suicide"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24293"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24305",
+      "prefLabel": {
+        "en": "attorneys"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24305"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24336",
+      "prefLabel": {
+        "en": "bankruptcy"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24336"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24448",
+      "prefLabel": {
+        "en": "campaign funds"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24448"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24459",
+      "prefLabel": {
+        "en": "cancer"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24459"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24485",
+      "prefLabel": {
+        "en": "carpools"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24485"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24542",
+      "prefLabel": {
+        "en": "child care"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24542"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24553",
+      "prefLabel": {
+        "en": "child support"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24553"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24595",
+      "prefLabel": {
+        "en": "civil defense"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24595"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24597",
+      "prefLabel": {
+        "en": "civil disorders"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24597"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24619",
+      "prefLabel": {
+        "en": "clemency"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24619"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24634",
+      "prefLabel": {
+        "en": "coal"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24634"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24673",
+      "prefLabel": {
+        "en": "community development"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24673"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24780",
+      "prefLabel": {
+        "en": "copyright"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24780"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24836",
+      "prefLabel": {
+        "en": "courts"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24836"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24842",
+      "prefLabel": {
+        "en": "credit"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24842"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24846",
+      "prefLabel": {
+        "en": "credit unions"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24846"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24961",
+      "prefLabel": {
+        "en": "dental health"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24961"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25003",
+      "prefLabel": {
+        "en": "disease"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25003"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25130",
+      "prefLabel": {
+        "en": "education"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25130"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25173",
+      "prefLabel": {
+        "en": "elections"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25173"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25179",
+      "prefLabel": {
+        "en": "electric power"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25179"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25180",
+      "prefLabel": {
+        "en": "electric utilities"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25180"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25188",
+      "prefLabel": {
+        "en": "electronic surveillance"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25188"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25200",
+      "prefLabel": {
+        "en": "emergency preparedness"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25200"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25231",
+      "prefLabel": {
+        "en": "energy conservation"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25231"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25265",
+      "prefLabel": {
+        "en": "Equal Employment Opportunity"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25265"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25294",
+      "prefLabel": {
+        "en": "euthanasia"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25294"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25306",
+      "prefLabel": {
+        "en": "executive orders"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25306"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25317",
+      "prefLabel": {
+        "en": "explosives"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25317"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25318",
+      "prefLabel": {
+        "en": "exports"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25318"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25342",
+      "prefLabel": {
+        "en": "family planning"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25342"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25393",
+      "prefLabel": {
+        "en": "Federal Reserve System"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25393"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25407",
+      "prefLabel": {
+        "en": "films"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25407"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25426",
+      "prefLabel": {
+        "en": "firefighters"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25426"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25430",
+      "prefLabel": {
+        "en": "fishing"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25430"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25435",
+      "prefLabel": {
+        "en": "food"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25435"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25453",
+      "prefLabel": {
+        "en": "foreign aid"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25453"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25471",
+      "prefLabel": {
+        "en": "foundations"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25471"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25473",
+      "prefLabel": {
+        "en": "fraud"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25473"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25481",
+      "prefLabel": {
+        "en": "freedom of information"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25481"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25502",
+      "prefLabel": {
+        "en": "gambling"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25502"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25509",
+      "prefLabel": {
+        "en": "gasoline"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25509"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25558",
+      "prefLabel": {
+        "en": "government contracts"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25558"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25575",
+      "prefLabel": {
+        "en": "government securities"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25575"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630",
+      "prefLabel": {
+        "en": "hazardous substances"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25634",
+      "prefLabel": {
+        "en": "health"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25634"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654",
+      "prefLabel": {
+        "en": "health professions"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25700",
+      "prefLabel": {
+        "en": "home health care"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25700"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25716",
+      "prefLabel": {
+        "en": "hospitals"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25716"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25723",
+      "prefLabel": {
+        "en": "household appliances"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25723"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25731",
+      "prefLabel": {
+        "en": "housing"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25731"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25754",
+      "prefLabel": {
+        "en": "hunting"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25754"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25779",
+      "prefLabel": {
+        "en": "immunization"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25779"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25822",
+      "prefLabel": {
+        "en": "information"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25822"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25863",
+      "prefLabel": {
+        "en": "insurance"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25863"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25887",
+      "prefLabel": {
+        "en": "international agreements"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25887"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25903",
+      "prefLabel": {
+        "en": "international organizations"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25903"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25910",
+      "prefLabel": {
+        "en": "international trade"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25910"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25911",
+      "prefLabel": {
+        "en": "Internet"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25911"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25926",
+      "prefLabel": {
+        "en": "investments"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25926"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040",
+      "prefLabel": {
+        "en": "labor unions"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26063",
+      "prefLabel": {
+        "en": "lead"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26063"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26119",
+      "prefLabel": {
+        "en": "livestock"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26119"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26171",
+      "prefLabel": {
+        "en": "marijuana"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26171"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26202",
+      "prefLabel": {
+        "en": "Medicaid"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26202"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26203",
+      "prefLabel": {
+        "en": "medical care"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26203"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26218",
+      "prefLabel": {
+        "en": "medical records"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26218"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26282",
+      "prefLabel": {
+        "en": "military law"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26282"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26288",
+      "prefLabel": {
+        "en": "military personnel"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26288"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26329",
+      "prefLabel": {
+        "en": "mortgages"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26329"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26346",
+      "prefLabel": {
+        "en": "music"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26346"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26360",
+      "prefLabel": {
+        "en": "national defense"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26360"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26372",
+      "prefLabel": {
+        "en": "national parks"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26372"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26391",
+      "prefLabel": {
+        "en": "natural gas"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26391"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26425",
+      "prefLabel": {
+        "en": "nonprofit organizations"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26425"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26435",
+      "prefLabel": {
+        "en": "nuclear energy"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26435"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26447",
+      "prefLabel": {
+        "en": "nursing homes"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26447"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26457",
+      "prefLabel": {
+        "en": "occupational safety and health"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26457"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26470",
+      "prefLabel": {
+        "en": "oil imports"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26470"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26472",
+      "prefLabel": {
+        "en": "oil pollution"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26472"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26572",
+      "prefLabel": {
+        "en": "pensions"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26572"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26600",
+      "prefLabel": {
+        "en": "petroleum"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26600"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26632",
+      "prefLabel": {
+        "en": "police"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26632"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26794",
+      "prefLabel": {
+        "en": "price controls"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26794"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26817",
+      "prefLabel": {
+        "en": "prisoners of war"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26817"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26820",
+      "prefLabel": {
+        "en": "privacy"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26820"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905",
+      "prefLabel": {
+        "en": "public housing"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26942",
+      "prefLabel": {
+        "en": "radioactive materials"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26942"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26945",
+      "prefLabel": {
+        "en": "radios"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26945"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26946",
+      "prefLabel": {
+        "en": "railroads"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26946"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981",
+      "prefLabel": {
+        "en": "refugees"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27015",
+      "prefLabel": {
+        "en": "renewable energy"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27015"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27046",
+      "prefLabel": {
+        "en": "retirement"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27046"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27071",
+      "prefLabel": {
+        "en": "rural areas"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27071"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27087",
+      "prefLabel": {
+        "en": "satellites"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27087"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27114",
+      "prefLabel": {
+        "en": "schools"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27114"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27124",
+      "prefLabel": {
+        "en": "search warrants"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27124"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27164",
+      "prefLabel": {
+        "en": "sex discrimination"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27164"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27218",
+      "prefLabel": {
+        "en": "small businesses"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27218"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27377",
+      "prefLabel": {
+        "en": "students"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27377"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27429",
+      "prefLabel": {
+        "en": "taxes"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27429"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27447",
+      "prefLabel": {
+        "en": "teachers"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27447"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27464",
+      "prefLabel": {
+        "en": "television"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27464"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27475",
+      "prefLabel": {
+        "en": "terrorism"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27475"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27510",
+      "prefLabel": {
+        "en": "trade agreements"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27510"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27591",
+      "prefLabel": {
+        "en": "urban areas"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27591"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27615",
+      "prefLabel": {
+        "en": "veterans"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27615"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642",
+      "prefLabel": {
+        "en": "vocational education"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27699",
+      "prefLabel": {
+        "en": "weather"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27699"
+    },
+    {
+      "id": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27724",
+      "prefLabel": {
+        "en": "women"
+      },
+      "evidenceUrl": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27724"
+    }
+  ],
+  "mappings": [
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:adult-education-frt25-0007",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24105",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0007",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:advertising-frt25-0009",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24111",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0009",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:agriculture-frt25-0014",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24148",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0014",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:air-transportation-frt25-0022",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24153",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0022",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:aircraft-frt25-0023",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24155",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0023",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:airports-frt25-0025",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24159",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0025",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:alcoholism-frt25-0030",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24166",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0030",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:alimony-frt25-0032",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24169",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0032",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:antibiotics-frt25-0044",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24211",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0044",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:armed-forces-frt25-0048",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24236",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0048",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:asbestos-frt25-0052",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24279",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0052",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:assisted-suicide-frt25-0053",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24293",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0053",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:attorneys-frt25-0367",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24305",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0367",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:bankruptcy-frt25-0057",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24336",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0057",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:campaign-funds-frt25-0077",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24448",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0077",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:cancer-frt25-0078",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24459",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0078",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:carpools-frt25-0081",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24485",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0081",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:child-care-frt25-0141",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24542",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0141",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:child-support-frt25-0089",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24553",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0089",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:civil-defense-frt25-0093",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24595",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0093",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:civil-disorders-frt25-0094",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24597",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0094",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:clemency-frt25-0098",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24619",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0098",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:coal-frt25-0100",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24634",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0100",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:community-development-frt25-0111",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24673",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0111",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:copyright-frt25-0124",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24780",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0124",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:courts-frt25-0130",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24836",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0130",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:credit-frt25-0131",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24842",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0131",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:credit-unions-frt25-0132",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24846",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0132",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:dental-health-frt25-0144",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24961",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0144",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:disease-frt25-0149",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25003",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0149",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:education-frt25-0157",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25130",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0157",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:elections-frt25-0164",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25173",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0164",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:electric-power-frt25-0165",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25179",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0165",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:electric-utilities-frt25-0168",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25180",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0168",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:electronic-surveillance-frt25-0698",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25188",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0698",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:emergency-preparedness-frt25-0175",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25200",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0175",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:energy-conservation-frt25-0181",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25231",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0181",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:equal-employment-opportunity-frt25-0187",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25265",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0187",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:euthanasia-frt25-0053",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25294",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0053",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:executive-orders-frt25-0191",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25306",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0191",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:explosives-frt25-0192",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25317",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0192",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:exports-frt25-0193",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25318",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0193",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:family-planning-frt25-0196",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25342",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0196",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:federal-reserve-system-frt25-0200",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25393",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0200",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:films-frt25-0442",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25407",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0442",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:firefighters-frt25-0207",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25426",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0207",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:fishing-frt25-0210",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25430",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0210",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:food-frt25-0222",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25435",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0222",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:foreign-aid-frt25-0223",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25453",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0223",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:foundations-frt25-0235",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25471",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0235",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:fraud-frt25-0236",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25473",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0236",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:freedom-of-information-frt25-0237",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25481",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0237",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:gambling-frt25-0245",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25502",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0245",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:gasoline-frt25-0248",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25509",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0248",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:government-contracts-frt25-0255",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25558",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0255",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:government-securities-frt25-0261",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25575",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0261",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:hazardous-substances-frt25-0292",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25630",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0292",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:health-frt25-0294",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25634",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0294",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:health-professions-frt25-0299",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25654",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0299",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:home-health-care-frt25-0306",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25700",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0306",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:hospitals-frt25-0311",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25716",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0311",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:household-appliances-frt25-0313",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25723",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0313",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:housing-frt25-0314",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25731",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0314",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:hunting-frt25-0320",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25754",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0320",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:immunization-frt25-0323",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25779",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0323",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:information-frt25-0340",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25822",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0340",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:insurance-frt25-0342",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25863",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0342",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:international-agreements-frt25-0651",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25887",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0651",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:international-organizations-frt25-0348",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25903",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0348",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:international-trade-frt25-0231",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25910",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0231",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:internet-frt25-0349",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25911",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0349",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:investments-frt25-0353",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/25926",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0353",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:labor-unions-frt25-0361",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26040",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0361",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:lead-frt25-0368",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26063",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0368",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:livestock-frt25-0377",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26119",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0377",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:marijuana-frt25-0402",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26171",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0402",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:medicaid-frt25-0416",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26202",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0416",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:medical-care-frt25-0295",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26203",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0295",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:medical-records-frt25-0300",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26218",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0300",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:military-law-frt25-0428",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26282",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0428",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:military-personnel-frt25-0429",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26288",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0429",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:mortgages-frt25-0441",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26329",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0441",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:music-frt25-0449",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26346",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0449",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:national-defense-frt25-0451",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26360",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0451",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:national-parks-frt25-0454",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26372",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0454",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:natural-gas-frt25-0457",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26391",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0457",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:nonprofit-organizations-frt25-0464",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26425",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0464",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:nuclear-energy-frt25-0465",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26435",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0465",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:nursing-homes-frt25-0470",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26447",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0470",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:occupational-safety-and-health-frt25-0473",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26457",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0473",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:oil-imports-frt25-0477",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26470",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0477",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:oil-pollution-frt25-0478",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26472",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0478",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:pensions-frt25-0497",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26572",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0497",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:petroleum-frt25-0500",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26600",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0500",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:police-frt25-0366",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26632",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0366",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:price-controls-frt25-0520",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26794",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0520",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:prisoners-of-war-frt25-0524",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26817",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0524",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:privacy-frt25-0526",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26820",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0526",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:public-housing-frt25-0532",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26905",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0532",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:radioactive-materials-frt25-0545",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26942",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0545",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:radios-frt25-0544",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26945",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0544",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:railroads-frt25-0550",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26946",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0550",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:refugees-frt25-0557",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/26981",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0557",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:renewable-energy-frt25-0560",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27015",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0560",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:retirement-frt25-0565",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27046",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0565",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:rural-areas-frt25-0569",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27071",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0569",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:satellites-frt25-0571",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27087",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0571",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:schools-frt25-0576",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27114",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0576",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:search-warrants-frt25-0583",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27124",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0583",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:sex-discrimination-frt25-0592",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27164",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0592",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:small-businesses-frt25-0596",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27218",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0596",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:students-frt25-0612",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27377",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0612",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:taxes-frt25-0626",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27429",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0626",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:teachers-frt25-0628",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27447",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0628",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:television-frt25-0634",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27464",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0634",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:terrorism-frt25-0635",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27475",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0635",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:trade-agreements-frt25-0642",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27510",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0642",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:urban-areas-frt25-0660",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27591",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0660",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:veterans-frt25-0668",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27615",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0668",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:vocational-education-frt25-0672",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27642",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0672",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:weather-frt25-0692",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27699",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0692",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    },
+    {
+      "@id": "urn:ref:mapping:icpsr-fr-development-v2:women-frt25-0699",
+      "@type": "rkaf:ConceptMapping",
+      "rkaf:assertionOrigin": "rkaf:humanAsserted",
+      "rkaf:epistemicBasis": "rkaf:editorialAssertion",
+      "rkaf:assertsSubject": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27724",
+      "rkaf:assertsPredicate": "skos:closeMatch",
+      "rkaf:assertsObject": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0699",
+      "rkaf:assertionPolarity": "rkaf:affirmed",
+      "rkaf:sourceConceptRelease": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "rkaf:targetConceptRelease": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "rkaf:managedByRegistry": "urn:ref:registry:concept-domain-bridges:development",
+      "rkaf:usageEligibility": "rkaf:localOperationalUse"
+    }
+  ]
+}

@@ -26,6 +26,10 @@ ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256 = (
     "sha256:41b08a28a4bd13de7cd0dbd7929adf78"
     "0768c2f394d44db50a9ea6f280011c52"
 )
+ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256 = (
+    "sha256:1146c3a763a762c8cb1340cfa5bf5fef"
+    "cf5cacd12ccfa7e931011e3a56acb8aa"
+)
 _CONCEPT_MAPPING_TYPES = frozenset(
     {
         "rkaf:ConceptMapping",

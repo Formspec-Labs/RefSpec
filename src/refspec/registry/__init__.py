@@ -147,6 +147,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "refspec.registry.concept_domain_bridge",
         "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256",
     ),
+    "ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256": (
+        "refspec.registry.concept_domain_bridge",
+        "ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256",
+    ),
     "IcpsrLookupHit": ("refspec.registry.icpsr_managed_release", "IcpsrLookupHit"),
     "IcpsrManagedRelease": ("refspec.registry.icpsr_managed_release", "IcpsrManagedRelease"),
     "IcpsrManagedReleaseError": ("refspec.registry.icpsr_managed_release", "IcpsrManagedReleaseError"),
@@ -309,6 +313,7 @@ __all__ = [
     "FEDERAL_REGISTER_TOPICS_RESOURCE_ID",
     "HISTORICAL_GROUPING_PREDICATE_IRI",
     "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256",
+    "ICPSR_FEDERAL_REGISTER_BRIDGE_V2_SHA256",
     "LISTS_OF_SUBJECTS_RESOLUTION_POLICY_VERSION",
     "NOTE_PREDICATE_IRIS",
     "AcquiredElsstSource",
