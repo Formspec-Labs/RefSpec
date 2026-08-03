@@ -732,8 +732,10 @@ def sec_category_readiness(parsed: ParsedSECRulesRegulationsPage) -> SECCategory
 
     blockers = [
         "sec.gov does not publish stable identifiers for rules-regulations page categories",
-        "the side-navigation and subpage-card collections label and link overlapping "
-        "categories differently and must not be reconciled into one taxonomy",
+        (
+            "the side-navigation and subpage-card collections label and link overlapping "
+            "categories differently and must not be reconciled into one taxonomy"
+        ),
         "sec.gov does not publish this page as a named, versioned code-list release",
     ]
     if parsed.duplicate_label_evidence:
