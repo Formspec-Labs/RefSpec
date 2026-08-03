@@ -23,7 +23,8 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 [dependency-groups]
 dev = [
     "pytest>=8,<9",
-    "ruff>=0.12,<1"
+    "ruff>=0.12,<1",
+    "sssom>=0.4,<1"
 ]
 
 [build-system]
