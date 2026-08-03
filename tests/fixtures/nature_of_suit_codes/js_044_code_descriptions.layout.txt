@@ -1,0 +1,370 @@
+Civil Nature of Suit Code Descriptions
+(Rev. 04/21)
+
+ Contract
+  Code      Title                                        Description
+  110       Insurance                                    Action alleging breach of insurance contract, tort claim, or other cause
+                                                         related to an insurance contract, except for maritime insurance
+                                                         contracts.
+  120       Marine                                       Action (Admiralty or Maritime) based on service, employment,
+                                                         insurance or other contracts relating to maritime vessels and other
+                                                         maritime contractual matters.
+  130       Miller Act                                   Action based on performance and payment bonds agreed to by
+                                                         contractors on federal construction projects as required under the
+                                                         Miller Act, 40 U.S.C. § 3131-3134.
+  140       Negotiable Instrument                        Action relating to an agreement to pay a specific amount of money,
+                                                         including promissory notes, loan agreements and checks.
+  150       Recovery of Overpayment & Enforcement        Action to recover debt owed to the United States, including
+            Judgment                                     enforcement of judgments, based on overpayments and restitution
+                                                         agreements involving matters other than Medicare benefits, student
+                                                         loans and veterans’ benefits.
+  151       Medicare                                     Action relating to Medicare payments, including actions for payments of
+                                                         benefits, to recover overpayments, and for judicial review of
+                                                         administrative decisions.
+  152       Recovery of Defaulted Student Loans          Action to recover debt owed to the United States from defaulted
+            (Excludes Veterans)                          student loan.
+  153       Recovery of Overpayment of Veterans'         Action relating to payments of veterans’ benefits, primarily including
+            Benefits                                     actions to recover overpayments.
+  160       Stockholders' Suits                          Action brought by stockholder(s) of a corporation (including both
+                                                         stockholder derivative suits and direct actions based on plaintiff’s rights
+                                                         as a stockholder), usually alleging claims based on contract and/or tort
+                                                         law and/or fiduciary obligations.
+  190       Other Contract                               Action primarily based on rights and obligations under a contract not
+                                                         classifiable elsewhere under the specific natures of suit under
+                                                         “Contract.”
+  195       Contract Product Liability                   Action concerning damages caused by a defective product, not primarily
+                                                         involving personal injury or property damage, and based primarily on
+            Actions primarily alleging personal injury   breach of contract, breach of warranty, misrepresentation, and/or
+            or property damage caused by a defective     violation of consumer protection laws.
+            product should be classified under the
+            appropriate nature of suit code under
+            “TORTS.”
+  196       Franchise                                    Action arising from a dispute over a franchise agreement, typically
+                                                         alleging breach of contract, misrepresentation or unfair trade practices.
+
+
+
+
+                                                                                                                        Page 1 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+
+ Real Property
+  Code     Title                                        Description
+  210      Land Condemnation                            Action by a governmental entity to take privately-owned real property
+                                                        (land or buildings) for public use for compensation.
+  220      Foreclosure                                  Action to enjoin foreclosure on real property by mortgage lender.
+  230      Rent Lease & Ejectment                       Action for rental or lease payments owed on real property and/or to
+                                                        eject a party occupying real property illegally.
+  240      Torts to Land                                Action alleging trespass to land, nuisance, contamination or other
+                                                        unlawful entry on or interference with real property possessed by
+                                                        another.
+  245      Tort Product Liability                       Action alleging harm by an unsafe product based on negligence, breach
+                                                        of warranty, misrepresentation, and strict tort liability.
+  290      All Other Real Property                      Action primarily based on unlawful conduct relating to real property
+                                                        that cannot be classified under any other nature of suit.
+
+ Torts/Personal Injury
+  Code     Title                                        Description
+  310      Airplane                                     Action alleging personal injury or wrongful death from an air crash or
+           (Excludes airplane product liability         other occurrence involving an airplane.
+           claims)
+  315      Airplane Product Liability                   Action alleging personal injury or death from an air crash or other
+                                                        occurrence involving an airplane and caused by a defective product.
+  320      Assault, Libel & Slander                     Action alleging intentional acts of assault, libel, trade libel or slander by
+           (Excludes a government employee)             a private party.
+  330      Federal Employers' Liability                 Action for personal injury or wrongful death brought by a railroad
+                                                        employee or his survivors under the Federal Employers’ Liability Act
+                                                        (FELA), 45 U.S.C. § 51, et. seq.
+  340      Marine                                       Action (Admiralty and Maritime) alleging personal injury or death from
+           (Excludes marine product liability claims)   an accident involving a water vessel or harbor/dock facilities, including
+                                                        suits brought under the Jones Act and the Limitation of Liability Act.
+  345      Marine Product Liability                     Action (Admiralty and Maritime) alleging personal injury or wrongful
+                                                        death from an accident involving a water vessel or harbor/dock
+                                                        facilities and caused by a defective product.
+  350      Motor Vehicle                                Action alleging personal injury or wrongful death from negligence
+                                                        involving a motor vehicle but not caused by a defective product.
+  355      Motor Vehicle Product Liability              Action alleging personal injury or wrongful death involving a motor
+                                                        vehicle and caused by a defective product.
+  360      Other Personal Injury                        Action primarily based on personal injury or death caused by
+                                                        negligence or intentional misconduct, including suits brought against
+                                                        the United States under the Federal Tort Claims Act, and which cannot
+                                                        be classified under any other nature of suit.
+  362      Personal Injury - Medical Malpractice        Action alleging personal injury or wrongful death caused by negligence
+                                                        in medical care provided by a doctor or other health care professional.
+  365      Personal Injury - Product Liability          Action alleging personal injury or death resulting from a defective
+           (Excludes a marine or airplane product)      product.
+  367      Health Care/Pharmaceutical Personal          Action alleging personal injury or death caused by a defective medical
+           Injury Product Liability                     or pharmaceutical product.
+  368      Asbestos Personal Injury Product Liability   Action alleging personal injury or death caused by exposure to asbestos
+                                                        products.
+
+
+                                                                                                                         Page 2 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+ Personal Property
+  Code          Title                                        Description
+  370           Other Fraud                                  Action primarily based on fraud relating to personal property that
+                (Excludes any property that is not real      cannot be classified under any other nature of suit.
+                property)
+  371           Truth in Lending                             Action alleging violation of the federal Truth in Lending Act arising from
+                                                             consumer loan transactions involving personal property including
+                Actions relating to fraud or                 automobile loans and revolving credit accounts.
+                misrepresentation in the transfer of real
+                property should be classified under
+                nature of suit 290, “All Other Real
+                Property,” or, if foreclosure is involved,
+                under nature of suit 220, “Foreclosure.”
+  380           Other Personal Property Damage               Action primarily based on damage to personal property caused by
+                                                             harmful conduct such as negligence, misrepresentation, interference
+                                                             with business relationships or unfair trade practices.
+  385           Property Damage Product Liability            Action alleging damage to personal property caused by a defective
+                                                             product.
+
+ Civil Rights
+  Code          Title                                        Description
+  440           Other Civil Rights                           Action alleging a civil rights violation other than the specific civil rights
+                (Excludes claims against corrections         categories listed below or a violation related to prison. Example:
+                officials)                                   Action alleging excessive force by police incident to an arrest.
+  441           Voting                                       Action filed under Civil Rights Act, 52 U.S.C. § 10101, and Voting Rights
+                                                             Act, 52 U.S.C. § 10301
+  442           Employment                                   Action filed under Age Discrimination in Employment Act 29:621:634,
+                                                             Equal Employment Opportunity Act (Title VII) 42:2000E, Performance
+                                                             Rating Act of 1950 5:4303
+  443           Housing/Accommodations                       Action filed under the Fair Housing Act (Title VII), 42 U.S.C. § 3601 &
+                                                             3602.
+  445           Americans With Disabilities -                Action of discrimination against an employee with disabilities of any
+                Employment                                   type in the work place, filed under 42 U.S.C. § 12117
+  446           Americans With Disabilities - Other          Action of discrimination against an individual with disabilities in areas
+                                                             other than employment, filed under 42 U.S.C. § 12133 (exclusion or
+                                                             discrimination in provision of services, programs or activities of a public
+                                                             entity) or 42 U.S.C. § 12188 (public accommodations)
+  448           Education                                    Action filed under the Individuals with Disabilities Educations Act, 20
+                                                             U.S.C. § 1401 and Title IX of the Education Amendment of 1972, 20
+                                                             U.S.C. § 1681 et seq.
+
+
+
+
+                                                                                                                              Page 3 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+ Prisoner Petitions
+ Habeas Corpus
+  Code      Title                                    Description
+  463       Alien Detainee                           Immigration habeas petition under 28 U.S.C. § 2241. All cases filed
+                                                     with this nature of suit code are restricted to case participants and
+                                                     public terminals. Petition is filed by an alien detainee.
+  510       Motions to Vacate Sentence               Action by a prisoner to vacate or modify a sentence imposed in federal
+                                                     court, other than a death sentence, under 28 U.S.C. § 2255.
+  530       General                                  Action by a federal or state prisoner currently in custody challenging
+                                                     the legality of confinement or other punishment. This includes claims
+                                                     alleging illegalities that occurred in trial (for example, ineffective
+                                                     assistance of counsel), sentencing (including fines and restitution
+                                                     orders), or disciplinary proceedings in prison (for example, loss of good
+                                                     time credits). Habeas petition under 28 U.S.C. § 2254 or prisoner
+                                                     habeas under 28 U.S.C. § 2241.
+  535       Death Penalty                            Action by a federal or state prisoner challenging a death sentence.
+
+
+ Other
+ Prisoner Petitions
+  Code      Title                                    Description
+  540       Mandamus & Other                         Action by prisoner currently in custody for a writ of mandamus to
+                                                     compel action by a judge or government official relating to the
+                                                     prisoner’s confinement, including conditions of confinement. This
+                                                     category also includes any actions other than mandamus brought by a
+                                                     prisoner currently in custody, whether or not it relates to his
+                                                     confinement, if it is not classifiable under any other nature of suit
+                                                     category under Prisoner Petitions (for example, action by prisoner to
+                                                     recover property taken by the government in a criminal case).
+  550       Civil Rights                             Action by current or former prisoner alleging a civil rights violation by
+                                                     corrections officials that is not related to a condition of prison life.
+  555       Prison Condition                         Action by current prisoner, or former prisoner or their families alleging
+                                                     a civil rights, Federal Tort Claims Act, or state law claim with respect to
+                                                     a condition of prison life, whether general circumstances or particular
+                                                     episodes. Examples: inadequate medical care or excessive force by
+                                                     prison guards. Includes non-habeas actions by alien detainees alleging
+                                                     unlawful prison conditions.
+  560       Civil Detainee - Conditions of           Action by former prisoner who was involuntarily committed to a non-
+            Confinement (Excludes actions by alien   criminal facility after expiration of his or her prison term alleging
+            detainees)                               unlawful conditions of confinement while in the non-criminal facility.
+                                                     This category includes, for example, an action by a former prisoner
+                                                     classified as a Sexually Dangerous Person or Sexually Violent Predator
+                                                     alleging civil rights violations during his detention in a medical facility.
+
+
+
+
+                                                                                                                      Page 4 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+ Forfeiture/Penalty
+  Code     Title                                 Description
+  625      Drug Related Seizure of Property 21   Action (Forfeiture) by which property itself is accused of wrongdoing
+           U.S.C. § 881                          and is forfeited to the government as a result.
+  690      Other                                 Action primarily based on Acts or Bills that cannot be classified under
+                                                 any other nature of suit, such as: Endangered Species Act, Federal
+                                                 Hazardous Substance Act 15:1261, Game & Wildlife Act 15:256C et seq.
+                                                 (Penalty), Federal Trade Commission Act 15:41-51 (Penalty), Federal
+                                                 Coal Mine Health & Safety Act 30:801 et seq. (Penalty), Load Line Act
+                                                 46:85-85G, McGuire Bill (Federal Fair Trade) 15:45L Penalty, Marihuana
+                                                 Tax Act 50 STAT 551, Motorboat Act 46:526-526T, National Traffic &
+                                                 Motor Vehicle Safety Act penalty 49:1655, Veterans' Benefit Act, Title
+                                                 38 Penalty.
+
+ Labor
+  Code     Title                                 Description
+  710      Fair Labor                            Action relating to non-union workplace related disputes filed under the
+           Standards Act (Non-Union)             Fair Labor Standards Act, 29 U.S.C. § 201 including but not limited to
+                                                 wage discrimination, paid leave, minimum wage and overtime pay.
+
+  720      Labor/Management Relations (Union)    Action relating to disputes between labor unions and employers as well
+                                                 as all petitions regarding actions of the Nation Labor Relations Board
+                                                 (NLRB)
+  740      Railway Labor Act                     Action relating to disputes filed under the Railway Labor Act, 45 U.S.C.
+                                                 § 151 including labor disputes, individual claims, and response to
+                                                 sanctions.
+  751      Family and Medical Leave Act          Action filed under the Family Medical Leave Act, 29 U.S.C. § 2601
+
+  790      Other Labor Litigation                Action primarily based on labor disputes not addressed by other NOS
+                                                 codes (includes Labor/Management Reporting and Disclosure Act)
+  791      Employee Retirement Income Security   Action filed under the Employee Retirement Income Security Act, 29
+           Act                                   U.S.C. § 1132 by individuals and labor organizations.
+
+ Immigration
+  Code     Title                                 Description
+  462      Naturalization Application            Action seeking review of denial of an application for naturalization [8
+                                                 U.S.C. § 1447(b)] or alleging failure to make a determination regarding
+                                                 an application for naturalization [8 U.S.C. § 1421(c)].
+  465      Other Immigration                     Action (Immigration-related) that do not involve Naturalization
+           Actions                               Applications or petitions for Writ of Habeas Corpus, such as complaints
+                                                 alleging failure to adjudicate an application to adjust immigration
+                                                 status to permanent resident.
+
+
+
+
+                                                                                                               Page 5 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+ Bankruptcy
+  Code      Title                                     Description
+  422       Appeal 28 USC § 158                       All appeals of previous bankruptcy decisions filed under
+                                                      28 U.S.C. § 158
+  423       Withdrawal of Reference 28 USC § 157      Action held in bankruptcy court requesting withdrawal under the
+                                                      provisions of 28 U.S.C. § 157
+
+ Intellectual Property Rights
+  Code      Title                                     Description
+  820       Copyright                                 Action filed in support or to dispute a copyright claim.
+  830       Patent                                    Action filed in support or to dispute a patent claim.
+  835       Patent – Abbreviated New Drug             Action filed in support or to dispute a patent claim involving an
+            Application (ANDA)                        Abbreviated New Drug Application (ANDA). These cases are also known
+                                                      as “Hatch-Waxman” cases.
+  840       Trademark                                 Action filed in support or to dispute a trademark claim
+  880       Defend Trade Secrets Act of 2016 (DTSA)   Action filed in support or to dispute a trade secret misappropriation
+
+ Social Security
+  Code      Title                                     Description
+  861       HIA (1395ff)                              Action filed with regard to social security benefits associated with
+                                                      Health Insurance Part A Medicare
+  862       Black Lung (923)                          Action filed with regard to social security benefits provided for those
+                                                      who contracted Black Lung or their beneficiaries
+  863       DIWC/DIWW (405(g))                        Action filed with regard to social security benefits provided to disabled
+                                                      individuals: worker or child, or widow
+  864       SSID Title XVI                            Action filed with regard to social security benefits provided to
+                                                      Supplemental Security Income Disability under Title XVI
+  865       RSI (405(g))                              Action filed with regard to social security benefits provided for
+                                                      Retirement, Survivor Insurance under 42 U.S.C. § 405
+
+ Federal Tax Suits
+  Code      Title                                     Description
+  870       Taxes (U.S. Plaintiff or Defendant)       Action filed under the Internal Revenue Code (General)
+  871       IRS-Third Party 26 USC 7609               Action filed under the Internal Revenue Code - Tax Reform Act of 1976
+                                                      (P.L. 94-455) Third Party
+
+
+
+
+                                                                                                                    Page 6 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+ Other Statutes
+  Code     Title                               Description
+  375      False Claims Act                    Action filed by private individuals alleging fraud against the U.S.
+                                               Government under 31 U.S.C. § 3729.
+  376      Qui Tam (31 U.S.C. § 3729(a))       Action brought under the False Claims Act by private persons (also
+                                               known as "whistleblowers") on their own behalf and on behalf of the
+                                               United States to recover damages against another person or entity that
+                                               acted fraudulently in receiving payments or property from, or avoiding
+                                               debts owed to, the United States Government, 31 U.S.C. § 3730
+  400      State Reapportionment               Action filed under the Reapportionment Act of 1929 Ch. 28, 46 Stat. 21,
+                                               2 U.S.C. § 2a.
+  410      Antitrust                           Action brought under the Clayton Act 15 U.S.C. § 12 - 27 alleging
+                                               undue restriction of trade and commerce by designated methods that
+                                               limit free competition in the market place amongst consumers such as
+                                               anti-competitive price discrimination, corporate mergers, interlocking
+                                               directorates or tying and exclusive dealing contracts.
+  430      Banks and Banking                   Action filed under the Federal Home Loan Bank Act 12:1421-1449,
+                                               Home Owners Loan Act 12:1461 or Federal Reserve Acts 12:142 et seq.
+  450      Commerce                            Action filed under the Interstate Commerce Acts 49:1 et seq., 49:301
+  460      Deportation                         Action filed under the Immigration Acts (Habeas Corpus & Review)
+                                               8:1101/18:1546
+  470      Racketeer Influenced and Corrupt    Racketeer Influenced and Corrupt Organization Act, RICO 18:1961-1968
+           Organizations
+  480      Consumer Credit                     Action filed under the Fair Credit Reporting Act, 15 U.S.C. 1681n or
+                                               15 U.S.C. 1681o, and the Fair Debt Collection Practices Act,
+                                               15 U.S.C. § 1692k
+  485      Telephone Consumer Protection Act   Action filed under the Telephone Consumer Protection Act 47 U.S.C. §
+           (TCPA)                              227
+  490      Cable/Satellite TV                  Action filed involving unauthorized reception of cable/satellite TV
+                                               service under 47 U.S.C. § 553 (unauthorized reception of cable/satellite
+                                               TV), or 47 U.S.C. § 605 (e)(3) (unauthorized use or publication of a
+                                               communication)
+  850      Securities/Commodities/Exchange     Action filed under Small Business Investment Act 15:681, Securities
+                                               Exchange Act 15:78, Securities Act 15:77, Investment Advisers Act
+                                               15:80B(1-21)
+  890      Other Statutory Actions             Action primarily based on Statutes that cannot be classified under any
+                                               other nature of suit, such as: Foreign Agents Registration Act 22:611-
+                                               621, Klamath Termination Act 25:564-564W-L, Federal Aid Highway Act
+                                               23:101-142, Federal Corrupt Practices Act 2:241-256, Federal Election
+                                               Campaign Act, Highway Safety Act 23:401 Immigration & Nationality
+                                               Act 8:1503, Natural Gas Pipeline Safety Act 49:1671-1700,
+                                               Naturalization Acts 8:1421/18:911, 1015, 1421, et seq., 3282 or Federal
+                                               Aviation Act 49:1301 et seq.
+  891      Agricultural Acts                   Action filed under the Federal Crop Insurance Act 7:1501-1550,
+                                               Commodity Credit Corporation Act 15:713A-L & 4.
+  893      Environmental Matters               Action filed under Air Pollution Control Act 42:1857-57L, Clean Air Act
+                                               42:1857:57L, Federal Environment Pesticide Control Act, Federal
+                                               Insecticide, Fungicide & Rodenticide Act 7:135, Federal Water Pollution
+                                               Control Act 33:1151 et seq., Land & Water Conservation Fund Act
+                                               16:4602,460 1-4, Motor Vehicle Air Pollution Control Act 42:1857F-1-8,
+
+                                                                                                            Page 7 of 8
+Civil Nature of Suit Code Descriptions
+(Rev. 10/20)
+                                                           National Environmental Policy Act 42:4321, 4331-35G, 4341-47, River &
+                                                           Harbor Act penalty 3:401-437, 1251.
+
+
+
+ Other Statutes (Continued)
+  Code        Title                                        Description
+  895         Freedom of Information Act                   Action filed under the Freedom of Information Act 5:552.
+  896         Arbitration                                  Action involving actions to confirm or modify arbitration awards filed
+                                                           under Title 9 of the U.S. Code.
+  899         Administrative Procedure Act/Review or       Action filed under the Administrative Procedures Act, 5 U.S.C. § 701, or
+              Appeal of Agency Decision                    civil actions to review or appeal a federal agency decision.
+  950         Constitutionality of State Statutes          Action drawing into question the constitutionality of a federal or state
+                                                           statute filed under (Rule 5.1). Rule 5.1 implements 28 U.S.C. §2403.
+
+Note: The statutes listed above are not all-inclusive, and other statues might be applicable to each nature of suit.
+     Statutes that are included in the descriptions should be viewed as examples.
+
+
+
+
+                                                                                                                         Page 8 of 8
+
