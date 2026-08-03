@@ -21,6 +21,18 @@ The tests below for ``parse_gao_cra_real_page_echoed_query`` exercise that
 real shape directly, including its explicit refusal to enumerate any
 facet's legal value list (that list is client-rendered and requires a
 rendered-DOM capture this module does not perform).
+
+Two further real artifacts, both captured 2026-08-04, narrow that
+enumeration gap without closing it. GAO's own blank "Submission of Federal
+Rules Under the Congressional Review Act" form (``BLANK_FORM_FIXTURE``) is
+reference-only provenance -- its PDF bytes are never parsed at runtime --
+for the ``CRA_RULE_TYPES`` and ``CRA_PRIORITY_LEVELS`` vocabulary constants.
+A real fedrules per-rule detail page (``FEDRULES_167777_FIXTURE``,
+gao.gov/fedrules/167777) is, unlike the search page, server-rendered: the
+tests below for ``parse_gao_fedrules_page`` confirm it exposes one rule's
+type, priority, and control number directly in Drupal field markup, and
+that the extracted type and priority values validate against those
+publisher-stated vocabulary constants.
 """
 
 from __future__ import annotations
@@ -38,6 +50,8 @@ FIXTURES = Path(__file__).parent / "fixtures" / "gao_cra_facets"
 FACETS_FIXTURE = FIXTURES / "gao-cra-database-facets-2026-08-03.html"
 ACCESS_DENIED_FIXTURE = FIXTURES / "gao-cra-access-denied-real-capture-2026-08-03.html"
 REAL_CAPTURE_FIXTURE = FIXTURES / "gao-cra-database-real-capture-2026-08-04.html"
+BLANK_FORM_FIXTURE = FIXTURES / "gao-cra-blank-form-2023-11-2026-08-04.pdf"
+FEDRULES_167777_FIXTURE = FIXTURES / "gao-fedrules-167777-2026-08-04.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = FACETS_FIXTURE) -> cra.AcquiredGAOCRAFacetPage:
@@ -75,6 +89,28 @@ def _real_pin_for(payload: bytes) -> cra.GAOCRAFacetSnapshotPin:
     return cra.GAOCRAFacetSnapshotPin(
         source_url=cra.GAO_CRA_DATABASE_URL,
         retrieved_at="2026-08-04T00:12:00Z",
+        expected_sha256=cra.sha256_digest(payload),
+        expected_byte_length=len(payload),
+    )
+
+
+def _acquire_fedrules(
+    tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE
+) -> cra.AcquiredGAOFedRulesPage:
+    return cra.acquire_gao_fedrules_page(cra.GAO_FEDRULES_167777, tmp_path, source_path=source_path)
+
+
+def _fedrules_parsed(
+    tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE
+) -> cra.ParsedGAOFedRulesPage:
+    return cra.parse_gao_fedrules_page(_acquire_fedrules(tmp_path, source_path))
+
+
+def _fedrules_pin_for(payload: bytes, *, control_number: str = "167777") -> cra.GAOFedRulesPageSnapshotPin:
+    return cra.GAOFedRulesPageSnapshotPin(
+        source_url=f"https://www.gao.gov/fedrules/{control_number}",
+        control_number=control_number,
+        retrieved_at=cra.GAO_FEDRULES_167777_RETRIEVED_AT,
         expected_sha256=cra.sha256_digest(payload),
         expected_byte_length=len(payload),
     )
@@ -622,3 +658,256 @@ def test_real_page_missing_one_echoed_facet_fails_closed(tmp_path: Path) -> None
 
     with pytest.raises(cra.GAOCRASourceDriftError, match="priority"):
         cra.parse_gao_cra_real_page_echoed_query(acquired)
+
+
+def test_real_page_enumeration_gap_now_credits_form_vocabulary_and_fedrules_capture(
+    tmp_path: Path,
+) -> None:
+    """The gap text is honestly narrowed, not silently closed: item 4 of the task."""
+
+    parsed = _real_parsed(tmp_path)
+
+    enumeration_gap = next(gap for gap in parsed.gaps if "search page's own slug enumeration" in gap)
+    assert "CRA_RULE_TYPES" in enumeration_gap
+    assert "CRA_PRIORITY_LEVELS" in enumeration_gap
+    assert "GAO_CRA_BLANK_FORM_2023_11" in enumeration_gap
+    assert "parse_gao_fedrules_page" in enumeration_gap
+    assert "rendered-DOM" in enumeration_gap
+
+
+# --- Artifact A: GAO's blank CRA submission form (2023-11 edition) ---
+#
+# Reference-only provenance: this PDF is never fetched through the
+# acquisition pipeline and never parsed at runtime, the same way
+# treasury_tas_fast_book.py pins its Component TAS-BETC flyer. It is the
+# publisher-stated authority for CRA_RULE_TYPES and CRA_PRIORITY_LEVELS.
+
+
+def test_blank_form_fixture_bytes_match_pinned_digest_and_length() -> None:
+    payload = BLANK_FORM_FIXTURE.read_bytes()
+
+    assert len(payload) == cra.GAO_CRA_BLANK_FORM_2023_11_BYTE_LENGTH
+    assert cra.sha256_digest(payload) == cra.GAO_CRA_BLANK_FORM_2023_11_SHA256
+
+
+def test_cra_rule_types_and_priority_levels_are_the_blank_forms_exact_wording() -> None:
+    assert cra.CRA_RULE_TYPES == ("Major Rule", "Non-major Rule")
+    assert cra.CRA_PRIORITY_LEVELS == (
+        "Economically Significant",
+        "Significant",
+        "Substantive, Nonsignificant",
+        "Routine and Frequent",
+        "Informational/Administrative/Other",
+    )
+
+
+# --- Artifact B: a real fedrules per-rule detail page (control number 167777) ---
+#
+# Unlike the CRA database search page, gao.gov/fedrules/{control_number}
+# pages are server-rendered: the rule type, priority, and control number are
+# present directly in Drupal field markup.
+
+_TYPE_FIELD_BLOCK = (
+    '<div class="field field--name-field-type field--type-string field--label-above">\n'
+    '    <h2 class="field__label">Type</h2>\n'
+    '              <div class="field__item">Non-Major</div>\n'
+    "          </div>"
+)
+_PRIORITY_FIELD_BLOCK = (
+    '<div class="field field--name-field-priority field--type-entity-reference field--label-above">\n'
+    '    <h2 class="field__label">Priority</h2>\n'
+    '              <div class="field__item">Routine/Info/Other</div>\n'
+    "          </div>"
+)
+_CONTROL_NUMBER_FIELD_BLOCK = (
+    '<div class="field field--name-field-control-number field--type-integer field--label-above">\n'
+    '    <h2 class="field__label">Control Number</h2>\n'
+    '              <div class="field__item">167777</div>\n'
+    "          </div>"
+)
+
+
+def test_fedrules_fixture_bytes_match_pinned_digest_and_length() -> None:
+    payload = FEDRULES_167777_FIXTURE.read_bytes()
+
+    assert len(payload) == cra.GAO_FEDRULES_167777_BYTE_LENGTH
+    assert cra.sha256_digest(payload) == cra.GAO_FEDRULES_167777_SHA256
+
+
+def test_fedrules_fixture_field_blocks_match_the_real_markup() -> None:
+    """Guards the mutation tests below: fail loudly if the fixture's markup ever changes shape."""
+
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+
+    assert text.count(_TYPE_FIELD_BLOCK) == 1
+    assert text.count(_PRIORITY_FIELD_BLOCK) == 1
+    assert text.count(_CONTROL_NUMBER_FIELD_BLOCK) == 1
+
+
+def test_fedrules_page_is_acquired_and_verified_against_its_pin(tmp_path: Path) -> None:
+    acquired = _acquire_fedrules(tmp_path)
+
+    assert acquired.sha256 == cra.GAO_FEDRULES_167777.expected_sha256
+    assert acquired.byte_length == cra.GAO_FEDRULES_167777_BYTE_LENGTH
+    assert acquired.acquisition_mode == "local"
+
+
+def test_parses_fedrules_rule_type_priority_and_control_number(tmp_path: Path) -> None:
+    parsed = _fedrules_parsed(tmp_path)
+
+    assert parsed.control_number == "167777"
+    assert parsed.rule_type == "Non-Major"
+    assert parsed.priority == "Routine/Info/Other"
+    assert parsed.source_url == cra.GAO_FEDRULES_167777_URL
+    assert parsed.retrieved_at == cra.GAO_FEDRULES_167777_RETRIEVED_AT
+    assert parsed.source_sha256 == cra.GAO_FEDRULES_167777_SHA256
+    assert parsed.source_byte_length == cra.GAO_FEDRULES_167777_BYTE_LENGTH
+
+
+def test_fedrules_gaps_disclose_priority_vocabulary_reconciliation_and_no_bulk_listing(
+    tmp_path: Path,
+) -> None:
+    parsed = _fedrules_parsed(tmp_path)
+
+    assert any("Routine/Info/Other" in gap for gap in parsed.gaps)
+    assert any("CRA_PRIORITY_LEVELS" in gap for gap in parsed.gaps)
+    assert any("bulk" in gap.lower() for gap in parsed.gaps)
+
+
+def test_fedrules_missing_type_field_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(_TYPE_FIELD_BLOCK, "").encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "no-type.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="field--name-field-type"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_missing_priority_field_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(_PRIORITY_FIELD_BLOCK, "").encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "no-priority.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="field--name-field-priority"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_missing_control_number_field_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(_CONTROL_NUMBER_FIELD_BLOCK, "").encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "no-control-number.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="field--name-field-control-number"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_title_identity_mismatch_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "<title>Federal Rules: MAJOR SYSTEM ACQUISITION; EARNED VALUE MANAGEMENT | U.S. GAO</title>",
+        "<title>Some Unrelated GAO Page</title>",
+    ).encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "no-title.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="title"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_canonical_link_mismatch_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        '<link rel="canonical" href="https://www.gao.gov/fedrules/167777" />',
+        '<link rel="canonical" href="https://www.gao.gov/fedrules/999999" />',
+    ).encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "wrong-canonical.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="canonical"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_missing_article_anchor_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        '<article class="node node--type-federal-rules node--view-mode-full">',
+        '<article class="node node--type-other-page node--view-mode-full">',
+    ).encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "no-article.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="article anchor"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_control_number_body_url_mismatch_fails_closed(tmp_path: Path) -> None:
+    """The control-number field's own text must agree with its page's pinned URL."""
+
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated_block = _CONTROL_NUMBER_FIELD_BLOCK.replace("167777", "999999")
+    mutated = text.replace(_CONTROL_NUMBER_FIELD_BLOCK, mutated_block).encode("utf-8")
+
+    # source_url/control_number stay at 167777 (matching the untouched canonical
+    # link and title); only the control-number field's own body text changes.
+    pin = _fedrules_pin_for(mutated, control_number="167777")
+    source_path = tmp_path / "mismatched-control-number.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRASourceDriftError, match="does not match its pinned source_url"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_unknown_rule_type_value_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated_block = _TYPE_FIELD_BLOCK.replace("Non-Major", "Ultra-Major")
+    mutated = text.replace(_TYPE_FIELD_BLOCK, mutated_block).encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "unknown-type.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRAVocabularyDriftError, match="rule-type vocabulary"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_unknown_priority_value_fails_closed(tmp_path: Path) -> None:
+    text = FEDRULES_167777_FIXTURE.read_text(encoding="utf-8")
+    mutated_block = _PRIORITY_FIELD_BLOCK.replace("Routine/Info/Other", "Ultra Rare Priority")
+    mutated = text.replace(_PRIORITY_FIELD_BLOCK, mutated_block).encode("utf-8")
+
+    pin = _fedrules_pin_for(mutated)
+    source_path = tmp_path / "unknown-priority.html"
+    source_path.write_bytes(mutated)
+    acquired = cra.acquire_gao_fedrules_page(pin, tmp_path / "store", source_path=source_path)
+
+    with pytest.raises(cra.GAOCRAVocabularyDriftError, match="priority vocabulary"):
+        cra.parse_gao_fedrules_page(acquired)
+
+
+def test_fedrules_vocabulary_drift_error_is_a_source_drift_error(tmp_path: Path) -> None:
+    """GAOCRAVocabularyDriftError is a distinct, catchable subclass, not a bare GAOCRASourceDriftError."""
+
+    assert issubclass(cra.GAOCRAVocabularyDriftError, cra.GAOCRASourceDriftError)
