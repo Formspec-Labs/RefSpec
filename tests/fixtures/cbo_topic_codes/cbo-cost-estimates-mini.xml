@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:cbo="https://www.cbo.gov/xmlns/cost-estimates/1.0">
+  <channel>
+    <title>Congressional Budget Office - Cost Estimates</title>
+    <link>https://www.cbo.gov/cost-estimates</link>
+    <description>The most recently published cost estimates from the Congressional Budget Office.</description>
+    <language>en-us</language>
+    <item>
+      <title>H.R. 1234, Rural Health Clinic Modernization Act</title>
+      <link>https://www.cbo.gov/publication/62345</link>
+      <description>CBO estimates that enacting H.R. 1234 would increase direct spending by $1.2 billion over the 2027-2036 period.</description>
+      <pubDate>Mon, 03 Aug 2026 00:00:00 GMT</pubDate>
+      <guid isPermaLink="true">https://www.cbo.gov/publication/62345</guid>
+      <cbo:congress>119</cbo:congress>
+      <cbo:billNumber>H.R. 1234</cbo:billNumber>
+      <cbo:committee>House Committee on Energy and Commerce</cbo:committee>
+      <cbo:topics>
+        <cbo:topic>Health</cbo:topic>
+        <cbo:topic>Native Americans</cbo:topic>
+        <cbo:topic>Health</cbo:topic>
+      </cbo:topics>
+      <cbo:budgetFunctions>
+        <cbo:budgetFunction code="550">Health</cbo:budgetFunction>
+      </cbo:budgetFunctions>
+      <cbo:mandates intergovernmental="false" privateSector="false" exceedsThreshold="false"/>
+      <cbo:payAsYouGo>true</cbo:payAsYouGo>
+    </item>
+    <item>
+      <title>S. 4567, Federal Lands Grazing Fee Adjustment Act</title>
+      <link>https://www.cbo.gov/publication/62399</link>
+      <description>CBO estimates that enacting S. 4567 would increase revenues by $8 million over the 2027-2036 period.</description>
+      <pubDate>Fri, 31 Jul 2026 00:00:00 GMT</pubDate>
+      <guid isPermaLink="true">https://www.cbo.gov/publication/62399</guid>
+      <cbo:congress>119</cbo:congress>
+      <cbo:billNumber>S. 4567</cbo:billNumber>
+      <cbo:topics>
+        <cbo:topic>Public Lands and Natural Resources</cbo:topic>
+      </cbo:topics>
+      <cbo:mandates intergovernmental="true" privateSector="false" exceedsThreshold="true"/>
+      <cbo:payAsYouGo>false</cbo:payAsYouGo>
+    </item>
+    <item>
+      <title>CBO's Baseline Projections for Farm Programs</title>
+      <link>https://www.cbo.gov/publication/62410</link>
+      <description>CBO's baseline projections for programs administered by the Department of Agriculture.</description>
+      <pubDate>Thu, 30 Jul 2026 00:00:00 GMT</pubDate>
+      <guid isPermaLink="true">https://www.cbo.gov/publication/62410</guid>
+      <cbo:budgetFunctions>
+        <cbo:budgetFunction code="350">Agriculture</cbo:budgetFunction>
+      </cbo:budgetFunctions>
+    </item>
+  </channel>
+</rss>
