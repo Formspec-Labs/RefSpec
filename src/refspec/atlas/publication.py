@@ -26,7 +26,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from rdflib import Dataset, Graph, Literal, URIRef
-from rdflib.namespace import PROV, RDF, SKOS
+from rdflib.namespace import DCTERMS, OWL, PROV, RDF, SKOS
 
 from refspec import binding
 from refspec.storage import canonical_json
@@ -95,16 +95,25 @@ def _label_for(graph: Graph, concept: URIRef) -> str:
     # non-descriptor terms (ICPSR lead-in entries) carry only an altLabel on
     # their own URI. The IRI tail is a last resort, not a labelling policy.
     for predicate in (SKOS.prefLabel, SKOS.altLabel):
-        choices: list[tuple[int, str, str]] = []
-        for value in graph.objects(concept, predicate):
-            if not isinstance(value, Literal):
-                continue
-            language = (value.language or "").casefold()
-            priority = 0 if language == "en" else 1 if not language else 2
-            choices.append((priority, language, str(value)))
-        if choices:
-            return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
+        chosen = _note_for(graph, concept, predicate)
+        if chosen is not None:
+            return chosen
     return _iri_tail(str(concept))
+
+
+def _note_for(graph: Graph, concept: URIRef, predicate: URIRef) -> str | None:
+    """Return one English-first literal for the predicate, or None."""
+
+    choices: list[tuple[int, str, str]] = []
+    for value in graph.objects(concept, predicate):
+        if not isinstance(value, Literal):
+            continue
+        language = (value.language or "").casefold()
+        priority = 0 if language == "en" else 1 if not language else 2
+        choices.append((priority, language, str(value)))
+    if choices:
+        return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
+    return None
 
 
 def _relation_label(relation: str) -> str:
@@ -237,6 +246,25 @@ def build_explorer_model(
         node_roles[str(row["target"])].add("mappingEndpoint")
         displayed_mappings.append(row)
 
+    # Lifecycle facts are rare and load-bearing: every deprecated concept and
+    # every replacement endpoint is shown, so a retirement is never invisible.
+    lifecycle_members: set[str] = set()
+    for concept in release_facts.subjects(OWL.deprecated, None):
+        if isinstance(concept, URIRef):
+            lifecycle_members.add(str(concept))
+    for left, right in release_facts.subject_objects(DCTERMS.isReplacedBy):
+        if isinstance(left, URIRef) and isinstance(right, URIRef):
+            lifecycle_members.update((str(left), str(right)))
+    for left, right in release_facts.subject_objects(DCTERMS.replaces):
+        if isinstance(left, URIRef) and isinstance(right, URIRef):
+            lifecycle_members.update((str(left), str(right)))
+    for member in sorted(lifecycle_members):
+        if len(selected) >= max_nodes:
+            break
+        if member in member_releases:
+            selected.add(member)
+            node_roles[member].add("lifecycle")
+
     cluster_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for cluster in sorted(
         {
@@ -352,7 +380,12 @@ def build_explorer_model(
         )
         use_neighbours = sorted(
             str(value)
-            for predicate in (ATLAS.thesaurusUse, ATLAS.thesaurusUsedFor)
+            for predicate in (
+                ATLAS.thesaurusUse,
+                ATLAS.thesaurusUsedFor,
+                DCTERMS.isReplacedBy,
+                DCTERMS.replaces,
+            )
             for value in release_facts.objects(node, predicate)
             if isinstance(value, URIRef)
         )
@@ -371,15 +404,34 @@ def build_explorer_model(
         for member in selected
         if member_releases.get(member)
     }
-    nodes = [
-        {
+    nodes = []
+    for member in sorted(primary_release):
+        concept = URIRef(member)
+        roles = set(node_roles.get(member, {"hierarchyContext"}))
+        if next(release_facts.objects(concept, SKOS.topConceptOf), None) is not None or next(
+            release_facts.subjects(SKOS.hasTopConcept, concept), None
+        ) is not None:
+            roles.add("topConcept")
+        node: dict[str, Any] = {
             "id": member,
-            "label": _label_for(release_facts, URIRef(member)),
+            "label": _label_for(release_facts, concept),
             "releaseId": primary_release[member],
-            "roles": sorted(node_roles.get(member, {"hierarchyContext"})),
+            "roles": sorted(roles),
         }
-        for member in sorted(primary_release)
-    ]
+        for field, predicate in (
+            ("definition", SKOS.definition),
+            ("scopeNote", SKOS.scopeNote),
+            ("notation", SKOS.notation),
+        ):
+            value = _note_for(release_facts, concept, predicate)
+            if value is not None:
+                node[field] = value
+        if any(
+            isinstance(value, Literal) and str(value).casefold() == "true"
+            for value in release_facts.objects(concept, OWL.deprecated)
+        ):
+            node["deprecated"] = True
+        nodes.append(node)
     selected = {str(node["id"]) for node in nodes}
 
     edges: list[dict[str, Any]] = []
@@ -465,6 +517,50 @@ def build_explorer_model(
                     "label": "related concept",
                 }
             )
+    # Lifecycle succession: a retired concept points at its replacement. The
+    # stated isReplacedBy direction wins, with reciprocal dcterms:replaces
+    # statements inverted into it so one succession is one edge.
+    replaced_pairs: set[tuple[str, str]] = set()
+    for retired, successor in release_facts.subject_objects(DCTERMS.isReplacedBy):
+        if isinstance(retired, URIRef) and isinstance(successor, URIRef):
+            replaced_pairs.add((str(retired), str(successor)))
+    for successor, retired in release_facts.subject_objects(DCTERMS.replaces):
+        if isinstance(retired, URIRef) and isinstance(successor, URIRef):
+            replaced_pairs.add((str(retired), str(successor)))
+    for retired_id, successor_id in sorted(replaced_pairs):
+        if retired_id in selected and successor_id in selected:
+            edges.append(
+                {
+                    "id": _edge_id("replacedBy", retired_id, successor_id),
+                    "type": "replacedBy",
+                    "source": retired_id,
+                    "target": successor_id,
+                    "label": "replaced by",
+                }
+            )
+    # The gate's refusals, drawable but default-off in the viewer: every
+    # candidate that failed two-independent-machine qualification.
+    for candidate in sorted(analysis.subjects(RDF.type, ATLAS.MappingCandidate), key=str):
+        if not isinstance(candidate, URIRef):
+            continue
+        if (candidate, RKAF.usageEligibility, RKAF.notEligible) not in analysis:
+            continue
+        source_member = next(analysis.objects(candidate, ATLAS.sourceMember), None)
+        target_member = next(analysis.objects(candidate, ATLAS.targetMember), None)
+        if not isinstance(source_member, URIRef) or not isinstance(target_member, URIRef):
+            continue
+        source_id, target_id = str(source_member), str(target_member)
+        if source_id in selected and target_id in selected:
+            edges.append(
+                {
+                    "id": _edge_id("rejectedCandidate", str(candidate)),
+                    "type": "rejectedCandidate",
+                    "source": source_id,
+                    "target": target_id,
+                    "label": "not qualified",
+                    "candidateId": str(candidate),
+                }
+            )
     edges.sort(key=lambda row: (str(row["type"]), str(row["source"]), str(row["target"]), str(row["id"])))
 
     shown_by_release: dict[str, int] = defaultdict(int)
@@ -493,7 +589,15 @@ def build_explorer_model(
     ]
     edge_counts = {
         kind: sum(1 for edge in edges if edge["type"] == kind)
-        for kind in ("qualifiedMapping", "sharedLabel", "broader", "related", "use")
+        for kind in (
+            "qualifiedMapping",
+            "sharedLabel",
+            "broader",
+            "related",
+            "use",
+            "replacedBy",
+            "rejectedCandidate",
+        )
     }
     return {
         "type": _EXPLORER_TYPE,
@@ -515,6 +619,7 @@ def build_explorer_model(
             "maxSharedLabelClusters": max_shared_clusters,
             "order": [
                 "qualifiedMappingEndpoints",
+                "lifecycleConcepts",
                 "crossReleaseSharedLabelsRoundRobinByReleaseSet",
                 "missingReleaseRepresentatives",
                 "immediateParentsThenChildrenThenUseNeighbours",
@@ -531,6 +636,8 @@ def build_explorer_model(
             "hierarchyEdgeCount": edge_counts["broader"],
             "relatedEdgeCount": edge_counts["related"],
             "useEdgeCount": edge_counts["use"],
+            "replacedByEdgeCount": edge_counts["replacedBy"],
+            "rejectedCandidateEdgeCount": edge_counts["rejectedCandidate"],
         },
         "releases": releases,
         "nodes": nodes,

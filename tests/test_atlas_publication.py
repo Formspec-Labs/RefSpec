@@ -228,6 +228,8 @@ def _display_view(
             record["http://www.w3.org/2004/02/skos/core#prefLabel"] = spec["prefLabel"]
         if "altLabel" in spec:
             record["http://www.w3.org/2004/02/skos/core#altLabel"] = spec["altLabel"]
+        for predicate, literal in spec.get("literals", {}).items():
+            record[predicate] = literal
         for predicate, targets in spec.get("links", {}).items():
             record[predicate] = tuple({"@id": target} for target in targets)
         records[member] = MappingProxyType(record)
@@ -348,3 +350,125 @@ def test_explorer_draws_each_related_pair_once(tmp_path: Path) -> None:
     assert {related[0]["source"], related[0]["target"]} == {age, research}
     assert model["summary"]["relatedEdgeCount"] == 1
     assert model["summary"]["hierarchyEdgeCount"] == 1
+
+
+_DEPRECATED_IRI = "http://www.w3.org/2002/07/owl#deprecated"
+_IS_REPLACED_BY_IRI = "http://purl.org/dc/terms/isReplacedBy"
+_REPLACES_IRI = "http://purl.org/dc/terms/replaces"
+_TOP_CONCEPT_OF_IRI = "http://www.w3.org/2004/02/skos/core#topConceptOf"
+_DEFINITION_IRI = "http://www.w3.org/2004/02/skos/core#definition"
+_SCOPE_NOTE_IRI = "http://www.w3.org/2004/02/skos/core#scopeNote"
+_NOTATION_IRI = "http://www.w3.org/2004/02/skos/core#notation"
+
+
+def test_explorer_marks_deprecated_concepts_and_draws_replacement_edges(tmp_path: Path) -> None:
+    """A retired concept is flagged, and one replacedBy edge joins it to its successor.
+
+    The reciprocal ``dcterms:replaces`` statement folds into the same edge.
+    """
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    retired = "urn:test:pub:life:a-capital-punishment"
+    successor = "urn:test:pub:life:z-death-penalty"
+    view = _display_view(
+        publication="urn:test:pub:life",
+        release="urn:test:pub:life:release",
+        concepts={
+            retired: {
+                "prefLabel": "Capital punishment",
+                "literals": {_DEPRECATED_IRI: True},
+                "links": {_IS_REPLACED_BY_IRI: (successor,)},
+            },
+            successor: {
+                "prefLabel": "Death penalty",
+                "links": {_REPLACES_IRI: (retired,)},
+            },
+        },
+    )
+    asset = build_vocabulary_atlas(
+        (tva._FixturePinnedRelease(tmp_path / "life.json", tva.SHA_A, view),),
+        rulespec_core=tva._core_release(tmp_path),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    nodes = {node["id"]: node for node in model["nodes"]}
+    assert nodes[retired]["deprecated"] is True
+    assert "deprecated" not in nodes[successor]
+    replaced = [edge for edge in model["edges"] if edge["type"] == "replacedBy"]
+    assert [(edge["source"], edge["target"]) for edge in replaced] == [(retired, successor)]
+    assert model["summary"]["replacedByEdgeCount"] == 1
+
+
+def test_explorer_surfaces_notes_notation_and_top_concept_badges(tmp_path: Path) -> None:
+    """Definition, scope note, notation, and top-concept status reach the node payload."""
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    concept = "urn:test:pub:notes:a-ageism"
+    plain = "urn:test:pub:notes:b-plain"
+    scheme = "urn:test:pub:notes:release:scheme"
+    view = _display_view(
+        publication="urn:test:pub:notes",
+        release="urn:test:pub:notes:release",
+        concepts={
+            concept: {
+                "prefLabel": "Ageism",
+                "literals": {
+                    _DEFINITION_IRI: "Prejudice on the basis of age.",
+                    _SCOPE_NOTE_IRI: "Use for age-based discrimination attitudes.",
+                    _NOTATION_IRI: "24128",
+                },
+                "links": {_TOP_CONCEPT_OF_IRI: (scheme,), _BROADER_IRI: (plain,)},
+            },
+            plain: {"prefLabel": "Attitudes"},
+        },
+    )
+    asset = build_vocabulary_atlas(
+        (tva._FixturePinnedRelease(tmp_path / "notes.json", tva.SHA_A, view),),
+        rulespec_core=tva._core_release(tmp_path),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    nodes = {node["id"]: node for node in model["nodes"]}
+    assert nodes[concept]["definition"] == "Prejudice on the basis of age."
+    assert nodes[concept]["scopeNote"] == "Use for age-based discrimination attitudes."
+    assert nodes[concept]["notation"] == "24128"
+    assert "topConcept" in nodes[concept]["roles"]
+    for field in ("definition", "scopeNote", "notation"):
+        assert field not in nodes[plain]
+    assert "topConcept" not in nodes[plain]["roles"]
+
+
+def test_explorer_offers_rejected_candidates_as_their_own_edge_type(tmp_path: Path) -> None:
+    """A candidate the gate refused renders as a rejectedCandidate edge, not silence.
+
+    ``same_provider=True`` produces two validations without independence, so
+    the candidate is ``notEligible`` — the shape of every refused pair.
+    """
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    bundle = tva._qualified_bundle(same_provider=True)
+    asset = build_vocabulary_atlas(
+        tva._two_releases(tmp_path),
+        rulespec_core=tva._core_release(tmp_path),
+        crosswalks=(bundle,),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    rejected = [edge for edge in model["edges"] if edge["type"] == "rejectedCandidate"]
+    assert len(rejected) == 1
+    assert rejected[0]["candidateId"].startswith("urn:ref:vocabulary-atlas-mapping-candidate:")
+    assert {rejected[0]["source"], rejected[0]["target"]} == {tva.SOURCE_MEMBER, tva.TARGET_MEMBER}
+    assert model["summary"]["rejectedCandidateEdgeCount"] == 1
+    assert model["summary"]["qualifiedMappingCount"] == 0

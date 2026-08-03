@@ -453,6 +453,16 @@ _HTML = r"""<!doctype html>
               <span class="edge-key mapping" style="--edge-color:#c497cf" aria-hidden="true"></span>
               <span><span class="label">USE — preferred term</span><small id="count-use"></small></span>
             </label>
+            <label class="filter">
+              <input type="checkbox" data-edge="replacedBy" checked>
+              <span class="edge-key" style="--edge-color:#ee8b78" aria-hidden="true"></span>
+              <span><span class="label">Replaced by</span><small id="count-replaced"></small></span>
+            </label>
+            <label class="filter">
+              <input type="checkbox" data-edge="rejectedCandidate">
+              <span class="edge-key mapping" style="--edge-color:#8a6a63" aria-hidden="true"></span>
+              <span><span class="label">Rejected candidate</span><small id="count-rejected"></small></span>
+            </label>
           </div>
           <p class="hint">Equal labels are discovery signals. They are not qualified concept mappings.</p>
         </section>
@@ -487,8 +497,14 @@ _HTML = r"""<!doctype html>
           <dl class="facts">
             <dt>Identifier</dt>
             <dd><a class="iri" id="node-iri"></a><button class="copy-button" type="button" id="copy-iri">Copy IRI</button></dd>
+            <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
             <dt>Shown links</dt><dd id="node-link-count"></dd>
           </dl>
+          <section class="control-section" id="node-notes" hidden>
+            <h3>Source notes</h3>
+            <p class="hint" id="node-definition" hidden></p>
+            <p class="hint" id="node-scope-note" hidden></p>
+          </section>
           <section class="control-section">
             <h3>Relationships in this view</h3>
             <div class="connections" id="connections"></div>
@@ -533,10 +549,10 @@ _HTML = r"""<!doctype html>
     const releaseFilters = document.getElementById("release-filters");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
-    const edgeColors = { qualifiedMapping: "#e9b95f", sharedLabel: "#6dc8bb", broader: "#75847e", related: "#8eafd5", use: "#c497cf" };
-    const edgeLabels = { qualifiedMapping: "qualified mapping", sharedLabel: "shared label", broader: "broader concept", related: "related concept", use: "USE — preferred term" };
-    const edgeAlpha = { qualifiedMapping: .52, sharedLabel: .24, broader: .2, related: .18, use: .6 };
-    const edgeWidth = { qualifiedMapping: 1.5, sharedLabel: .8, broader: .8, related: .7, use: 1.3 };
+    const edgeColors = { qualifiedMapping: "#e9b95f", sharedLabel: "#6dc8bb", broader: "#75847e", related: "#8eafd5", use: "#c497cf", replacedBy: "#ee8b78", rejectedCandidate: "#8a6a63" };
+    const edgeLabels = { qualifiedMapping: "qualified mapping", sharedLabel: "shared label", broader: "broader concept", related: "related concept", use: "USE — preferred term", replacedBy: "replaced by", rejectedCandidate: "rejected candidate" };
+    const edgeAlpha = { qualifiedMapping: .52, sharedLabel: .24, broader: .2, related: .18, use: .6, replacedBy: .65, rejectedCandidate: .3 };
+    const edgeWidth = { qualifiedMapping: 1.5, sharedLabel: .8, broader: .8, related: .7, use: 1.3, replacedBy: 1.3, rejectedCandidate: .9 };
     const releaseById = new Map(data.releases.map((release, index) => [release.id, { ...release, index, color: palette[index % palette.length] }]));
     const nodeById = new Map(data.nodes.map(node => [node.id, { ...node, x: 0, y: 0 }]));
     const adjacency = new Map(data.nodes.map(node => [node.id, []]));
@@ -547,7 +563,7 @@ _HTML = r"""<!doctype html>
 
     const state = {
       activeReleases: new Set(data.releases.map(release => release.id)),
-      activeEdges: new Set(["qualifiedMapping", "sharedLabel", "broader", "related", "use"]),
+      activeEdges: new Set(["qualifiedMapping", "sharedLabel", "broader", "related", "use", "replacedBy"]),
       selected: null,
       hover: null,
       matches: new Set(),
@@ -652,6 +668,7 @@ _HTML = r"""<!doctype html>
       ctx.setLineDash(
         edge.type === "qualifiedMapping" ? [7 / state.view.k, 5 / state.view.k]
         : edge.type === "use" ? [2 / state.view.k, 4 / state.view.k]
+        : edge.type === "rejectedCandidate" ? [3 / state.view.k, 3 / state.view.k]
         : []
       );
       ctx.stroke();
@@ -723,11 +740,21 @@ _HTML = r"""<!doctype html>
         }
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = release ? release.color : "#edf1ed";
-        ctx.fill();
-        ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
-        ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
-        ctx.stroke();
+        if (node.deprecated) {
+          // Retired concepts are hollow: the release colour survives as an
+          // outline so the succession edge reads as "this one ended".
+          ctx.fillStyle = "#0c1211";
+          ctx.fill();
+          ctx.strokeStyle = release ? release.color : "#edf1ed";
+          ctx.lineWidth = (selected ? 2 : 1.4) / state.view.k;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = release ? release.color : "#edf1ed";
+          ctx.fill();
+          ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
+          ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
+          ctx.stroke();
+        }
         ctx.globalAlpha = 1;
         if (selected || hovered || (state.matches.has(node.id) && state.matches.size <= 12)) drawLabel(node, radius);
       });
@@ -788,10 +815,15 @@ _HTML = r"""<!doctype html>
     }
 
     function roleLabel(node) {
-      if (node.roles.includes("mappingEndpoint")) return "Qualified mapping endpoint";
-      if (node.roles.includes("sharedLabel")) return "Cross-release shared label";
-      if (node.roles.includes("releaseRepresentative")) return "Reference release sample";
-      return "Hierarchy context";
+      let base = "Hierarchy context";
+      if (node.roles.includes("mappingEndpoint")) base = "Qualified mapping endpoint";
+      else if (node.roles.includes("sharedLabel")) base = "Cross-release shared label";
+      else if (node.roles.includes("lifecycle")) base = "Lifecycle record";
+      else if (node.roles.includes("releaseRepresentative")) base = "Reference release sample";
+      const badges = [];
+      if (node.deprecated) badges.push("deprecated");
+      if (node.roles.includes("topConcept")) badges.push("top concept");
+      return badges.length ? `${base} · ${badges.join(" · ")}` : base;
     }
 
     function selectNode(node, move = false) {
@@ -828,6 +860,16 @@ _HTML = r"""<!doctype html>
         iri.removeAttribute("target");
       }
       document.getElementById("node-link-count").textContent = formatNumber(links.length);
+      const notation = document.getElementById("notation-value");
+      document.getElementById("notation-term").hidden = notation.hidden = !node.notation;
+      notation.textContent = node.notation || "";
+      const definition = document.getElementById("node-definition");
+      definition.hidden = !node.definition;
+      definition.textContent = node.definition ? `Definition — ${node.definition}` : "";
+      const scopeNote = document.getElementById("node-scope-note");
+      scopeNote.hidden = !node.scopeNote;
+      scopeNote.textContent = node.scopeNote ? `Scope note — ${node.scopeNote}` : "";
+      document.getElementById("node-notes").hidden = !(node.definition || node.scopeNote);
       const container = document.getElementById("connections");
       container.replaceChildren();
       links
@@ -923,6 +965,8 @@ _HTML = r"""<!doctype html>
       document.getElementById("count-broader").textContent = `${formatNumber(data.summary.hierarchyEdgeCount)} shown`;
       document.getElementById("count-related").textContent = `${formatNumber(data.summary.relatedEdgeCount)} shown`;
       document.getElementById("count-use").textContent = `${formatNumber(data.summary.useEdgeCount)} shown`;
+      document.getElementById("count-replaced").textContent = `${formatNumber(data.summary.replacedByEdgeCount)} shown`;
+      document.getElementById("count-rejected").textContent = `${formatNumber(data.summary.rejectedCandidateEdgeCount)} available`;
       document.getElementById("selection-note").textContent = `${formatNumber(data.summary.nodeCount)} concepts and ${formatNumber(data.summary.edgeCount)} relationships are shown. The complete atlas remains in the download.`;
       document.getElementById("view-count").textContent = `${formatNumber(data.summary.nodeCount)} nodes · ${formatNumber(data.summary.edgeCount)} links`;
       document.getElementById("pin-id").textContent = data.atlas.assetId;
