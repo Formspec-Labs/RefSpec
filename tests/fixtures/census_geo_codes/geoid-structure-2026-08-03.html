@@ -1,0 +1,135 @@
+<!doctype html>
+<!-- Real excerpt captured 2026-08-03 from
+     https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html
+     This is the companion Census geography guidance page that publishes the
+     GEOID Structure and GEO.ID/NAME tables the TIGER/Line technical
+     documentation hub (tiger-geo-line.html) links out to. Unrelated prose
+     is omitted between the two tables; each span's bytes below are
+     byte-exact copies of the live response, including its CRLF endings. -->
+<html><body>
+<table class="datatablewide" style="table-layout: fixed;">
+<thead>
+	<tr>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 17%;">Area Type</th>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 20%;">GEOID Structure</th>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 18%;">Number of Digits</th>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 24%;">Example Geographic Area</th>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 21%;">Example GEOID</th>
+	</tr>
+</thead>
+<tbody>
+	<tr>
+		<td scope="row" style="text-align: left;">State</td>
+		<td style="text-align: left;">STATE</td>
+		<td style="text-align: left;">2</td>
+		<td style="text-align: left;">Texas</td>
+		<td style="text-align: left;">48</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">County</td>
+		<td style="text-align: left;">STATE+COUNTY</td>
+		<td style="text-align: left;">2+3=5</td>
+		<td style="text-align: left;">Harris County, TX</td>
+		<td style="text-align: left;">48201</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">County Subdivision</td>
+		<td style="text-align: left;">STATE+COUNTY+COUSUB</td>
+		<td style="text-align: left;">2+3+5=10</td>
+		<td style="text-align: left;">Pasadena CCD, Harris County, TX</td>
+		<td style="text-align: left;">4820192975</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">Places</td>
+		<td style="text-align: left;">STATE+PLACE</td>
+		<td style="text-align: left;">2+5=7</td>
+		<td style="text-align: left;">Houston, TX</td>
+		<td style="text-align: left;">4835000</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">Census Tract</td>
+		<td style="text-align: left;">STATE+COUNTY+TRACT</td>
+		<td style="text-align: left;">2+3+6=11</td>
+		<td style="text-align: left;">Census Tract 2231 in Harris County, TX</td>
+		<td style="text-align: left;">48201223100</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">Block Group</td>
+		<td style="text-align: left;">STATE+COUNTY+TRACT+BLOCK GROUP</td>
+		<td style="text-align: left;">2+3+6+1=12</td>
+		<td style="text-align: left;">Block Group 1 in Census Tract 2231 in Harris County, TX</td>
+		<td style="text-align: left;">482012231001</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">Block<sup>*</sup></td>
+		<td style="text-align: left;">STATE+COUNTY+TRACT+BLOCK</td>
+		<td style="text-align: left;">2+3+6+4=15 (Note – some blocks also contain a one character suffix (A, B, C, ect.)</td>
+		<td style="text-align: left;">Block 1050 in Census Tract 2231 in Harris County, TX</td>
+		<td style="text-align: left;">482012231001050</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">Congressional District (113th Congress)</td>
+		<td style="text-align: left;">STATE+CD</td>
+		<td style="text-align: left;">2+2=4</td>
+		<td style="text-align: left;">Connecticut District 2</td>
+		<td style="text-align: left;">902</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">State Legislative District (Upper Chamber)</td>
+		<td style="text-align: left;">STATE+SLDU</td>
+		<td style="text-align: left;">2+3=5</td>
+		<td style="text-align: left;">Connecticut State Senate District 33</td>
+		<td style="text-align: left;">9033</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">State Legislative District (Lower Chamber)</td>
+		<td style="text-align: left;">STATE+SLDL</td>
+		<td style="text-align: left;">2+3=5</td>
+		<td style="text-align: left;">Connecticut State House District 147</td>
+		<td style="text-align: left;">9147</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">ZCTA<sup>**</sup></td>
+		<td style="text-align: left;">ZCTA</td>
+		<td style="text-align: left;">5</td>
+		<td style="text-align: left;">Suitland, MD ZCTA</td>
+		<td style="text-align: left;">20746</td>
+	</tr>
+</tbody>
+<tfoot>
+	<tr>
+		<td colspan="5" style="text-align: left;"><sup>*</sup>The block group code is not included in the census block GEOID code because the first digit of a census block code represents the block group code.</td>
+	</tr>
+	<tr>
+		<td colspan="5" style="text-align: left;"><sup>**</sup>ZIP Code Tabulation Areas (ZCTAs) are generalized areal representations of United States Postal Service (USPS) ZIP Code service areas.</td>
+	</tr>
+</tfoot>
+</table>
+<!-- omitted: intervening "GEOIDS in Downloads from data.census.gov" prose -->
+<table class="datatable" style="table-layout: fixed;">
+<thead>
+	<tr>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 50%;">GEO.ID</th>
+		<th scope="col" style="text-align: left; vertical-align: middle; width: 50%;">NAME</th>
+	</tr>
+</thead>
+<tbody>
+	<tr>
+		<td scope="row" style="text-align: left;">id</td>
+		<td style="text-align: left;">Geographic Area Name</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">0500000US10001</td>
+		<td style="text-align: left;">Kent County, Delaware</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">0500000US10003</td>
+		<td style="text-align: left;">New Castle County, Delaware</td>
+	</tr>
+	<tr>
+		<td scope="row" style="text-align: left;">0500000US10005</td>
+		<td style="text-align: left;">Sussex County, Delaware</td>
+	</tr>
+</tbody>
+</table>
+</body></html>

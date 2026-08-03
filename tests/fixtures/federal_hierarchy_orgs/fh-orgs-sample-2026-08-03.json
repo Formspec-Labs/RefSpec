@@ -1,0 +1,126 @@
+{
+  "totalrecords": 3,
+  "orglist": [
+    {
+      "fhorgid": 100006688,
+      "fhorgname": "GENERAL SERVICES ADMINISTRATION",
+      "fhorgtype": "Department/Ind. Agency",
+      "status": "ACTIVE",
+      "createddate": "2003-06-11 00:00",
+      "lastupdateddate": "2003-06-11 00:00",
+      "fhdeptindagencyorgid": 100006688,
+      "fhagencyorgname": "GENERAL SERVICES ADMINISTRATION",
+      "agencycode": "4700",
+      "oldfpdsofficecode": "4700",
+      "cgaclist": [
+        {
+          "cgac": "047"
+        }
+      ],
+      "fhorgnamehistory": [
+        {
+          "fhorgname": "GENERAL SERVICES ADMINISTRATION",
+          "effectivedate": null
+        }
+      ],
+      "fhorgparenthistory": [
+        {
+          "fhfullparentpathid": "100006688",
+          "fhfullparentpathname": "GENERAL SERVICES ADMINISTRATION",
+          "effectivedate": null,
+          "codehierarchy": "4700",
+          "actiontype": "CREATE"
+        }
+      ],
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgid=100006688"
+        },
+        {
+          "rel": "nextlevelchildren",
+          "href": "https://api.sam.gov/prod/federalorganizations/v1/org/hierarchy?fhorgid=100006688"
+        }
+      ]
+    },
+    {
+      "fhorgid": 100148640,
+      "fhorgname": "AGENCY FOR INTERNATIONAL DEVELOPMENT",
+      "fhorgtype": "Department/Ind. Agency",
+      "status": "ACTIVE",
+      "createddate": "2005-07-21 00:00",
+      "lastupdateddate": "2006-03-31 00:00",
+      "fhdeptindagencyorgid": 100148640,
+      "fhagencyorgname": "AGENCY FOR INTERNATIONAL DEVELOPMENT",
+      "agencycode": "7200",
+      "oldfpdsofficecode": "7200",
+      "cgaclist": [
+        {
+          "cgac": "072"
+        }
+      ],
+      "fhorgnamehistory": [
+        {
+          "fhorgname": "AGENCY FOR INTERNATIONAL DEVELOPMENT",
+          "effectivedate": null
+        }
+      ],
+      "fhorgparenthistory": [
+        {
+          "fhfullparentpathid": "100148640",
+          "fhfullparentpathname": "AGENCY FOR INTERNATIONAL DEVELOPMENT",
+          "effectivedate": null,
+          "codehierarchy": "7200",
+          "actiontype": "CREATE"
+        }
+      ],
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgid=100148640"
+        },
+        {
+          "rel": "nextlevelchildren",
+          "href": "https://api.sam.gov/prod/federalorganizations/v1/org/hierarchy?fhorgid=100148640"
+        }
+      ]
+    },
+    {
+      "fhorgid": 300000352,
+      "fhorgname": "ACADEMIC IMPROVEMENT AND TEACHER QUALITY PROGRAMS",
+      "fhorgtype": "Sub-Tier",
+      "status": "ACTIVE",
+      "createdby": "IAE_DATA_TEAM",
+      "createddate": "2017-10-11 14:09",
+      "fhdeptindagencyorgid": 100001616,
+      "fhagencyorgname": "EDUCATION, DEPARTMENT OF",
+      "agencycode": "9147",
+      "cgaclist": [
+        {
+          "cgac": "091"
+        }
+      ],
+      "fhorgnamehistory": [
+        {
+          "fhorgname": "ACADEMIC IMPROVEMENT AND TEACHER QUALITY PROGRAMS",
+          "effectivedate": null
+        }
+      ],
+      "fhorgparenthistory": [
+        {
+          "fhfullparentpathid": "100001616.300000352",
+          "fhfullparentpathname": "EDUCATION, DEPARTMENT OF.ACADEMIC IMPROVEMENT AND TEACHER QUALITY PROGRAMS",
+          "effectivedate": null,
+          "codehierarchy": "9147",
+          "actiontype": "CREATE"
+        }
+      ],
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.sam.gov/prod/federalorganizations/v1/orgs?fhorgid=300000352"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "format": "urn:ref:registry:uei-cage-identifier-authority-sample:v1",
+  "parserVersion": "uei-cage-identifier-authority-sample-v1",
+  "capturedAt": "2026-08-03",
+  "sampleProvenance": "illustrativeFormatExample",
+  "maxSampleSize": 25,
+  "ueis": [
+    {
+      "identifier": {
+        "value": "SGVKKZK4NX79",
+        "kind": "samUniqueEntityId",
+        "authorityUri": "https://sam.gov/entity-registration",
+        "sourceUri": "https://sam.gov/entity-registration",
+        "observedAt": "2026-08-03T19:21:13Z",
+        "effectiveAt": null,
+        "sourceDigest": "sha256:af69548c8461ecb09da9aaa024afbfb2f5ee1831880062916ceb1e2c9527a4cc"
+      },
+      "legalBusinessName": "Example Registrant One",
+      "registrationStatus": "active",
+      "accessClassification": "public",
+      "immediateParentUei": null,
+      "highestLevelOwnerUei": null
+    },
+    {
+      "identifier": {
+        "value": "ZZZZZZZZZZZZ",
+        "kind": "samUniqueEntityId",
+        "authorityUri": "https://sam.gov/entity-registration",
+        "sourceUri": "https://sam.gov/entity-registration",
+        "observedAt": "2026-08-03T19:21:13Z",
+        "effectiveAt": null,
+        "sourceDigest": "sha256:af69548c8461ecb09da9aaa024afbfb2f5ee1831880062916ceb1e2c9527a4cc"
+      },
+      "legalBusinessName": "Example Registrant Two Subsidiary",
+      "registrationStatus": "inactive",
+      "accessClassification": "excludedFromPublicSearch",
+      "immediateParentUei": "SGVKKZK4NX79",
+      "highestLevelOwnerUei": "SGVKKZK4NX79"
+    }
+  ],
+  "cages": [
+    {
+      "identifier": {
+        "value": "1A2B3",
+        "kind": "dlaCageCode",
+        "authorityUri": "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/cage-code-commercial-and-government-entity-code/",
+        "sourceUri": "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/cage-code-commercial-and-government-entity-code/",
+        "observedAt": "2026-08-03T19:21:13Z",
+        "effectiveAt": null,
+        "sourceDigest": null
+      },
+      "facilityName": "Example Facility A",
+      "cageStatus": "active",
+      "accessClassification": "public",
+      "associatedUei": "SGVKKZK4NX79"
+    },
+    {
+      "identifier": {
+        "value": "9ZZZ1",
+        "kind": "dlaCageCode",
+        "authorityUri": "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/cage-code-commercial-and-government-entity-code/",
+        "sourceUri": "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/cage-code-commercial-and-government-entity-code/",
+        "observedAt": "2026-08-03T19:21:13Z",
+        "effectiveAt": null,
+        "sourceDigest": null
+      },
+      "facilityName": "Example Facility B",
+      "cageStatus": "inactive",
+      "accessClassification": "controlledUnclassifiedInformation",
+      "associatedUei": null
+    }
+  ]
+}

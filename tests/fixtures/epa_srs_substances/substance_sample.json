@@ -1,0 +1,30 @@
+{
+  "format": "urn:ref:registry:epa-srs-substance-identifier-capture:v1",
+  "capturedAt": "2026-08-03T00:00:00Z",
+  "records": [
+    {
+      "dtxsid": "DTXSID7020182",
+      "dtxcid": "DTXCID30182",
+      "casrn": "80-05-7",
+      "preferredName": "Bisphenol A",
+      "tscaInventoryStatus": "active",
+      "sourceUri": "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182"
+    },
+    {
+      "dtxsid": "DTXSID80999901",
+      "dtxcid": "DTXCID609999",
+      "casrn": "999995-90-3",
+      "preferredName": "RefSpec Test Substance B (fixture, not an EPA record)",
+      "tscaInventoryStatus": "inactive",
+      "sourceUri": "https://comptox.epa.gov/dashboard/"
+    },
+    {
+      "dtxsid": "DTXSID209999",
+      "dtxcid": null,
+      "casrn": null,
+      "preferredName": "RefSpec Test Substance C (fixture, not an EPA record)",
+      "tscaInventoryStatus": "notListed",
+      "sourceUri": "https://comptox.epa.gov/dashboard/"
+    }
+  ]
+}
