@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+
 from refspec import registry
 from refspec.registry import (
     elsst_import_coverage,
@@ -38,3 +41,24 @@ def test_registry_exposes_completed_resource_package_readers() -> None:
     assert callable(registry.build_crs_source_packages)
     assert callable(registry.build_lda_general_issue_code_package)
     assert callable(registry.build_lda_filing_type_package)
+
+
+def test_importing_source_controlled_resources_does_not_load_other_adapters() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import refspec.registry.source_controlled_resource; "
+                "unexpected=[name for name in sys.modules if "
+                "name.startswith(('refspec.registry.elsst', "
+                "'refspec.registry.federal_register', 'refspec.registry.icpsr'))]; "
+                "print(','.join(unexpected)); raise SystemExit(bool(unexpected))"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout

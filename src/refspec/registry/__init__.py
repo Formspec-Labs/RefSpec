@@ -1,164 +1,286 @@
-"""Source adapters for REF-managed vocabulary imports."""
+"""Lazy public exports for RefSpec source adapters.
+
+Importing one registry submodule must not initialize every publisher adapter.
+The compatibility re-exports remain available and load only when requested.
+"""
+
+from __future__ import annotations
 
 import importlib
 from typing import Any
 
-from refspec.registry.concept_domain_bridge import (
-    ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256,
-    ConceptDomainBridge,
-    ConceptDomainBridgeError,
-    ConceptDomainSourceConcept,
-    ConceptDomainSourceSnapshot,
-    ManagedReleaseViewLike,
-    load_concept_domain_bridge,
-)
-from refspec.registry.crs_source_packages import (
-    CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID,
-    CRS_POLICY_AREAS_RESOURCE_ID,
-    CRSSourcePackages,
-    build_crs_source_packages,
-    build_crs_source_packages_from_capture_root,
-)
-from refspec.registry.elsst import (
-    ELSST_METADATA_LITERAL_PREDICATE_IRIS,
-    ELSST_NOTE_PREDICATE_IRIS,
-    NOTE_PREDICATE_IRIS,
-    ElsstConcept,
-    ElsstConceptScheme,
-    ElsstDeprecation,
-    ElsstImportCounts,
-    ElsstIriRelation,
-    ElsstLabelExpression,
-    ElsstLiteral,
-    ElsstMetadataLiteral,
-    ElsstNotation,
-    ElsstNote,
-    ElsstParseError,
-    ElsstPredicateCount,
-    ElsstReleaseComparison,
-    ElsstStableIdentityMatch,
-    ElsstVocabulary,
-    compare_elsst_releases,
-    parse_acquired_elsst_source,
-    parse_elsst_file,
-    parse_elsst_turtle,
-)
-from refspec.registry.elsst_import_coverage import (
-    ELSST_COVERAGE_FEATURES,
-    ElsstCoverageDifference,
-    ElsstFeatureCensus,
-    ElsstImportCensus,
-    ElsstImportCoverageError,
-    ElsstImportCoverageValidation,
-    census_indexed_elsst,
-    census_parsed_elsst,
-    census_raw_elsst_turtle,
-    require_complete_elsst_import_coverage,
-    validate_elsst_import_coverage,
-)
-from refspec.registry.elsst_managed_release import (
-    ElsstCandidateGovernance,
-    ElsstManagedRelease,
-    ElsstManagedReleaseError,
-    build_elsst_managed_release,
-)
-from refspec.registry.federal_register_thesaurus import (
-    ASSOCIATIVE_PREDICATE_IRI,
-    BROADER_PREDICATE_IRI,
-    FEDERAL_REGISTER_THESAURUS_1995_URL,
-    HISTORICAL_GROUPING_PREDICATE_IRI,
-    CategoryNotation,
-    ConceptRelation,
-    CrossReference,
-    FederalRegisterThesaurus,
-    ImportCounts,
-    LabelExpression,
-    PreferredConcept,
-    ScopeNote,
-    SourceEntry,
-    SourceLocator,
-    ThesaurusParseError,
-    UnresolvedReference,
-    UnresolvedReferenceError,
-    parse_federal_register_thesaurus,
-)
-from refspec.registry.federal_register_thesaurus_2025 import (
-    FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
-    FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI,
-    FEDERAL_REGISTER_THESAURUS_2025_SHA256,
-    FEDERAL_REGISTER_THESAURUS_2025_URL,
-    FederalRegisterThesaurus2025,
-    FederalRegisterThesaurus2025Error,
-    load_federal_register_thesaurus_2025_extract,
-    load_packaged_federal_register_thesaurus_2025,
-    parse_federal_register_thesaurus_2025_pdf,
-)
-from refspec.registry.federal_register_thesaurus_2025_managed_release import (
-    FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID,
-    FederalRegisterThesaurus2025ManagedRelease,
-    FederalRegisterThesaurus2025ManagedReleaseError,
-    FederalRegisterThesaurus2025ManagedReleaseView,
-    build_federal_register_thesaurus_2025_managed_release,
-)
-from refspec.registry.federal_register_topics_api import (
-    FEDERAL_REGISTER_TOPICS_API_URL,
-    FEDERAL_REGISTER_TOPICS_PARSER_VERSION,
-    AcquiredFederalRegisterTopics,
-    FederalRegisterTopicLink,
-    FederalRegisterTopicRecord,
-    FederalRegisterTopicsComparison,
-    FederalRegisterTopicsError,
-    FederalRegisterTopicsSnapshot,
-    TopicCollection,
-    capture_federal_register_topics,
-    compare_historical_thesaurus_to_topics,
-    open_federal_register_topics_capture,
-    parse_federal_register_topics_api,
-)
-from refspec.registry.federal_register_topics_package import (
-    FEDERAL_REGISTER_TOPICS_RESOURCE_ID,
-    build_federal_register_topics_source_package,
-)
-from refspec.registry.federal_register_topics_reconciliation import (
-    FederalRegisterTopicsReconciliationError,
-    FederalRegisterTopicsReconciliationProof,
-    build_federal_register_topics_reconciliation,
-    federal_register_topic_source_identity_rows,
-    federal_register_topic_source_record_id,
-    require_unique_capture_local_observation_ids,
-)
-from refspec.registry.federal_register_vocabulary_policy import (
-    FEDERAL_REGISTER_CROSSWALK_VERSION,
-    LISTS_OF_SUBJECTS_RESOLUTION_POLICY_VERSION,
-    ListsOfSubjectsResolution,
-    build_federal_register_thesaurus_crosswalk,
-    resolve_list_of_subjects_term,
-)
-from refspec.registry.icpsr_managed_release import (
-    IcpsrLookupHit,
-    IcpsrManagedRelease,
-    IcpsrManagedReleaseError,
-    IcpsrManagedReleaseSources,
-    IcpsrManagedReleaseView,
-    build_icpsr_managed_release,
-    open_icpsr_managed_release_sources,
-)
-from refspec.registry.lda_controlled_list_resources import (
-    LDAControlledListPackageError,
-    LDAControlledListView,
-    build_lda_filing_type_package,
-    build_lda_general_issue_code_package,
-)
-from refspec.registry.managed_vocabulary_bundle import (
-    ManagedVocabularyBundle,
-    ManagedVocabularyBundleError,
-)
-from refspec.registry.source_controlled_resource import (
-    SourceControlledResourceBundle,
-    SourceControlledResourceError,
-    SourceControlledResourceView,
-    build_source_controlled_resource_bundle,
-)
+_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "ASSOCIATIVE_PREDICATE_IRI": ("refspec.registry.federal_register_thesaurus", "ASSOCIATIVE_PREDICATE_IRI"),
+    "AcquiredElsstSource": ("refspec.registry.elsst_acquisition", "AcquiredElsstSource"),
+    "AcquiredFederalRegisterTopics": ("refspec.registry.federal_register_topics_api", "AcquiredFederalRegisterTopics"),
+    "BROADER_PREDICATE_IRI": ("refspec.registry.federal_register_thesaurus", "BROADER_PREDICATE_IRI"),
+    "CRSSourcePackages": ("refspec.registry.crs_source_packages", "CRSSourcePackages"),
+    "CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID": (
+        "refspec.registry.crs_source_packages",
+        "CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID",
+    ),
+    "CRS_POLICY_AREAS_RESOURCE_ID": ("refspec.registry.crs_source_packages", "CRS_POLICY_AREAS_RESOURCE_ID"),
+    "CategoryNotation": ("refspec.registry.federal_register_thesaurus", "CategoryNotation"),
+    "ConceptDomainBridge": ("refspec.registry.concept_domain_bridge", "ConceptDomainBridge"),
+    "ConceptDomainBridgeError": ("refspec.registry.concept_domain_bridge", "ConceptDomainBridgeError"),
+    "ConceptDomainSourceConcept": ("refspec.registry.concept_domain_bridge", "ConceptDomainSourceConcept"),
+    "ConceptDomainSourceSnapshot": ("refspec.registry.concept_domain_bridge", "ConceptDomainSourceSnapshot"),
+    "ConceptRelation": ("refspec.registry.federal_register_thesaurus", "ConceptRelation"),
+    "CrossReference": ("refspec.registry.federal_register_thesaurus", "CrossReference"),
+    "ELSST_ATTRIBUTION": ("refspec.registry.elsst_acquisition", "ELSST_ATTRIBUTION"),
+    "ELSST_COVERAGE_FEATURES": ("refspec.registry.elsst_import_coverage", "ELSST_COVERAGE_FEATURES"),
+    "ELSST_LICENSE_IRI": ("refspec.registry.elsst_acquisition", "ELSST_LICENSE_IRI"),
+    "ELSST_LICENSE_LABEL": ("refspec.registry.elsst_acquisition", "ELSST_LICENSE_LABEL"),
+    "ELSST_METADATA_LITERAL_PREDICATE_IRIS": ("refspec.registry.elsst", "ELSST_METADATA_LITERAL_PREDICATE_IRIS"),
+    "ELSST_NOTE_PREDICATE_IRIS": ("refspec.registry.elsst", "ELSST_NOTE_PREDICATE_IRIS"),
+    "ELSST_PUBLISHER": ("refspec.registry.elsst_acquisition", "ELSST_PUBLISHER"),
+    "ELSST_R5": ("refspec.registry.elsst_acquisition", "ELSST_R5"),
+    "ELSST_R6": ("refspec.registry.elsst_acquisition", "ELSST_R6"),
+    "ELSST_RELEASES": ("refspec.registry.elsst_acquisition", "ELSST_RELEASES"),
+    "ElsstAcquisitionError": ("refspec.registry.elsst_acquisition", "ElsstAcquisitionError"),
+    "ElsstCandidateGovernance": ("refspec.registry.elsst_managed_release", "ElsstCandidateGovernance"),
+    "ElsstConcept": ("refspec.registry.elsst", "ElsstConcept"),
+    "ElsstConceptScheme": ("refspec.registry.elsst", "ElsstConceptScheme"),
+    "ElsstCoverageDifference": ("refspec.registry.elsst_import_coverage", "ElsstCoverageDifference"),
+    "ElsstDeprecation": ("refspec.registry.elsst", "ElsstDeprecation"),
+    "ElsstFeatureCensus": ("refspec.registry.elsst_import_coverage", "ElsstFeatureCensus"),
+    "ElsstImportCensus": ("refspec.registry.elsst_import_coverage", "ElsstImportCensus"),
+    "ElsstImportCounts": ("refspec.registry.elsst", "ElsstImportCounts"),
+    "ElsstImportCoverageError": ("refspec.registry.elsst_import_coverage", "ElsstImportCoverageError"),
+    "ElsstImportCoverageValidation": ("refspec.registry.elsst_import_coverage", "ElsstImportCoverageValidation"),
+    "ElsstIriRelation": ("refspec.registry.elsst", "ElsstIriRelation"),
+    "ElsstLabelExpression": ("refspec.registry.elsst", "ElsstLabelExpression"),
+    "ElsstLiteral": ("refspec.registry.elsst", "ElsstLiteral"),
+    "ElsstManagedRelease": ("refspec.registry.elsst_managed_release", "ElsstManagedRelease"),
+    "ElsstManagedReleaseError": ("refspec.registry.elsst_managed_release", "ElsstManagedReleaseError"),
+    "ElsstMetadataLiteral": ("refspec.registry.elsst", "ElsstMetadataLiteral"),
+    "ElsstNotation": ("refspec.registry.elsst", "ElsstNotation"),
+    "ElsstNote": ("refspec.registry.elsst", "ElsstNote"),
+    "ElsstParseError": ("refspec.registry.elsst", "ElsstParseError"),
+    "ElsstPredicateCount": ("refspec.registry.elsst", "ElsstPredicateCount"),
+    "ElsstReleaseComparison": ("refspec.registry.elsst", "ElsstReleaseComparison"),
+    "ElsstReleaseSource": ("refspec.registry.elsst_acquisition", "ElsstReleaseSource"),
+    "ElsstStableIdentityMatch": ("refspec.registry.elsst", "ElsstStableIdentityMatch"),
+    "ElsstVocabulary": ("refspec.registry.elsst", "ElsstVocabulary"),
+    "FEDERAL_REGISTER_CROSSWALK_VERSION": (
+        "refspec.registry.federal_register_vocabulary_policy",
+        "FEDERAL_REGISTER_CROSSWALK_VERSION",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_1995_URL": (
+        "refspec.registry.federal_register_thesaurus",
+        "FEDERAL_REGISTER_THESAURUS_1995_URL",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_2025_ISSUED": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FEDERAL_REGISTER_THESAURUS_2025_ISSUED",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID": (
+        "refspec.registry.federal_register_thesaurus_2025_managed_release",
+        "FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_2025_SHA256": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FEDERAL_REGISTER_THESAURUS_2025_SHA256",
+    ),
+    "FEDERAL_REGISTER_THESAURUS_2025_URL": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FEDERAL_REGISTER_THESAURUS_2025_URL",
+    ),
+    "FEDERAL_REGISTER_TOPICS_API_URL": (
+        "refspec.registry.federal_register_topics_api",
+        "FEDERAL_REGISTER_TOPICS_API_URL",
+    ),
+    "FEDERAL_REGISTER_TOPICS_PARSER_VERSION": (
+        "refspec.registry.federal_register_topics_api",
+        "FEDERAL_REGISTER_TOPICS_PARSER_VERSION",
+    ),
+    "FEDERAL_REGISTER_TOPICS_RESOURCE_ID": (
+        "refspec.registry.federal_register_topics_package",
+        "FEDERAL_REGISTER_TOPICS_RESOURCE_ID",
+    ),
+    "FederalRegisterThesaurus": ("refspec.registry.federal_register_thesaurus", "FederalRegisterThesaurus"),
+    "FederalRegisterThesaurus2025": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FederalRegisterThesaurus2025",
+    ),
+    "FederalRegisterThesaurus2025Error": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "FederalRegisterThesaurus2025Error",
+    ),
+    "FederalRegisterThesaurus2025ManagedRelease": (
+        "refspec.registry.federal_register_thesaurus_2025_managed_release",
+        "FederalRegisterThesaurus2025ManagedRelease",
+    ),
+    "FederalRegisterThesaurus2025ManagedReleaseError": (
+        "refspec.registry.federal_register_thesaurus_2025_managed_release",
+        "FederalRegisterThesaurus2025ManagedReleaseError",
+    ),
+    "FederalRegisterThesaurus2025ManagedReleaseView": (
+        "refspec.registry.federal_register_thesaurus_2025_managed_release",
+        "FederalRegisterThesaurus2025ManagedReleaseView",
+    ),
+    "FederalRegisterTopicLink": ("refspec.registry.federal_register_topics_api", "FederalRegisterTopicLink"),
+    "FederalRegisterTopicRecord": ("refspec.registry.federal_register_topics_api", "FederalRegisterTopicRecord"),
+    "FederalRegisterTopicsComparison": (
+        "refspec.registry.federal_register_topics_api",
+        "FederalRegisterTopicsComparison",
+    ),
+    "FederalRegisterTopicsError": ("refspec.registry.federal_register_topics_api", "FederalRegisterTopicsError"),
+    "FederalRegisterTopicsReconciliationError": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "FederalRegisterTopicsReconciliationError",
+    ),
+    "FederalRegisterTopicsReconciliationProof": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "FederalRegisterTopicsReconciliationProof",
+    ),
+    "FederalRegisterTopicsSnapshot": ("refspec.registry.federal_register_topics_api", "FederalRegisterTopicsSnapshot"),
+    "HISTORICAL_GROUPING_PREDICATE_IRI": (
+        "refspec.registry.federal_register_thesaurus",
+        "HISTORICAL_GROUPING_PREDICATE_IRI",
+    ),
+    "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256": (
+        "refspec.registry.concept_domain_bridge",
+        "ICPSR_FEDERAL_REGISTER_BRIDGE_V1_SHA256",
+    ),
+    "IcpsrLookupHit": ("refspec.registry.icpsr_managed_release", "IcpsrLookupHit"),
+    "IcpsrManagedRelease": ("refspec.registry.icpsr_managed_release", "IcpsrManagedRelease"),
+    "IcpsrManagedReleaseError": ("refspec.registry.icpsr_managed_release", "IcpsrManagedReleaseError"),
+    "IcpsrManagedReleaseSources": ("refspec.registry.icpsr_managed_release", "IcpsrManagedReleaseSources"),
+    "IcpsrManagedReleaseView": ("refspec.registry.icpsr_managed_release", "IcpsrManagedReleaseView"),
+    "ImportCounts": ("refspec.registry.federal_register_thesaurus", "ImportCounts"),
+    "LDAControlledListPackageError": (
+        "refspec.registry.lda_controlled_list_resources",
+        "LDAControlledListPackageError",
+    ),
+    "LDAControlledListView": ("refspec.registry.lda_controlled_list_resources", "LDAControlledListView"),
+    "LISTS_OF_SUBJECTS_RESOLUTION_POLICY_VERSION": (
+        "refspec.registry.federal_register_vocabulary_policy",
+        "LISTS_OF_SUBJECTS_RESOLUTION_POLICY_VERSION",
+    ),
+    "LabelExpression": ("refspec.registry.federal_register_thesaurus", "LabelExpression"),
+    "ListsOfSubjectsResolution": ("refspec.registry.federal_register_vocabulary_policy", "ListsOfSubjectsResolution"),
+    "ManagedReleaseViewLike": ("refspec.registry.concept_domain_bridge", "ManagedReleaseViewLike"),
+    "ManagedVocabularyBundle": ("refspec.registry.managed_vocabulary_bundle", "ManagedVocabularyBundle"),
+    "ManagedVocabularyBundleError": ("refspec.registry.managed_vocabulary_bundle", "ManagedVocabularyBundleError"),
+    "NOTE_PREDICATE_IRIS": ("refspec.registry.elsst", "NOTE_PREDICATE_IRIS"),
+    "PreferredConcept": ("refspec.registry.federal_register_thesaurus", "PreferredConcept"),
+    "ScopeNote": ("refspec.registry.federal_register_thesaurus", "ScopeNote"),
+    "SourceControlledResourceBundle": ("refspec.registry.source_controlled_resource", "SourceControlledResourceBundle"),
+    "SourceControlledResourceError": ("refspec.registry.source_controlled_resource", "SourceControlledResourceError"),
+    "SourceControlledResourceView": ("refspec.registry.source_controlled_resource", "SourceControlledResourceView"),
+    "SourceEntry": ("refspec.registry.federal_register_thesaurus", "SourceEntry"),
+    "SourceLocator": ("refspec.registry.federal_register_thesaurus", "SourceLocator"),
+    "ThesaurusParseError": ("refspec.registry.federal_register_thesaurus", "ThesaurusParseError"),
+    "TopicCollection": ("refspec.registry.federal_register_topics_api", "TopicCollection"),
+    "UnresolvedReference": ("refspec.registry.federal_register_thesaurus", "UnresolvedReference"),
+    "UnresolvedReferenceError": ("refspec.registry.federal_register_thesaurus", "UnresolvedReferenceError"),
+    "acquire_elsst_release": ("refspec.registry.elsst_acquisition", "acquire_elsst_release"),
+    "build_crs_source_packages": ("refspec.registry.crs_source_packages", "build_crs_source_packages"),
+    "build_crs_source_packages_from_capture_root": (
+        "refspec.registry.crs_source_packages",
+        "build_crs_source_packages_from_capture_root",
+    ),
+    "build_elsst_managed_release": ("refspec.registry.elsst_managed_release", "build_elsst_managed_release"),
+    "build_federal_register_thesaurus_2025_managed_release": (
+        "refspec.registry.federal_register_thesaurus_2025_managed_release",
+        "build_federal_register_thesaurus_2025_managed_release",
+    ),
+    "build_federal_register_thesaurus_crosswalk": (
+        "refspec.registry.federal_register_vocabulary_policy",
+        "build_federal_register_thesaurus_crosswalk",
+    ),
+    "build_federal_register_topics_reconciliation": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "build_federal_register_topics_reconciliation",
+    ),
+    "build_federal_register_topics_source_package": (
+        "refspec.registry.federal_register_topics_package",
+        "build_federal_register_topics_source_package",
+    ),
+    "build_icpsr_managed_release": ("refspec.registry.icpsr_managed_release", "build_icpsr_managed_release"),
+    "build_lda_filing_type_package": (
+        "refspec.registry.lda_controlled_list_resources",
+        "build_lda_filing_type_package",
+    ),
+    "build_lda_general_issue_code_package": (
+        "refspec.registry.lda_controlled_list_resources",
+        "build_lda_general_issue_code_package",
+    ),
+    "build_source_controlled_resource_bundle": (
+        "refspec.registry.source_controlled_resource",
+        "build_source_controlled_resource_bundle",
+    ),
+    "capture_federal_register_topics": (
+        "refspec.registry.federal_register_topics_api",
+        "capture_federal_register_topics",
+    ),
+    "census_indexed_elsst": ("refspec.registry.elsst_import_coverage", "census_indexed_elsst"),
+    "census_parsed_elsst": ("refspec.registry.elsst_import_coverage", "census_parsed_elsst"),
+    "census_raw_elsst_turtle": ("refspec.registry.elsst_import_coverage", "census_raw_elsst_turtle"),
+    "compare_elsst_releases": ("refspec.registry.elsst", "compare_elsst_releases"),
+    "compare_historical_thesaurus_to_topics": (
+        "refspec.registry.federal_register_topics_api",
+        "compare_historical_thesaurus_to_topics",
+    ),
+    "federal_register_topic_source_identity_rows": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "federal_register_topic_source_identity_rows",
+    ),
+    "federal_register_topic_source_record_id": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "federal_register_topic_source_record_id",
+    ),
+    "load_concept_domain_bridge": ("refspec.registry.concept_domain_bridge", "load_concept_domain_bridge"),
+    "load_federal_register_thesaurus_2025_extract": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "load_federal_register_thesaurus_2025_extract",
+    ),
+    "load_packaged_federal_register_thesaurus_2025": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "load_packaged_federal_register_thesaurus_2025",
+    ),
+    "open_federal_register_topics_capture": (
+        "refspec.registry.federal_register_topics_api",
+        "open_federal_register_topics_capture",
+    ),
+    "open_icpsr_managed_release_sources": (
+        "refspec.registry.icpsr_managed_release",
+        "open_icpsr_managed_release_sources",
+    ),
+    "parse_acquired_elsst_source": ("refspec.registry.elsst", "parse_acquired_elsst_source"),
+    "parse_elsst_file": ("refspec.registry.elsst", "parse_elsst_file"),
+    "parse_elsst_turtle": ("refspec.registry.elsst", "parse_elsst_turtle"),
+    "parse_federal_register_thesaurus": (
+        "refspec.registry.federal_register_thesaurus",
+        "parse_federal_register_thesaurus",
+    ),
+    "parse_federal_register_thesaurus_2025_pdf": (
+        "refspec.registry.federal_register_thesaurus_2025",
+        "parse_federal_register_thesaurus_2025_pdf",
+    ),
+    "parse_federal_register_topics_api": (
+        "refspec.registry.federal_register_topics_api",
+        "parse_federal_register_topics_api",
+    ),
+    "require_complete_elsst_import_coverage": (
+        "refspec.registry.elsst_import_coverage",
+        "require_complete_elsst_import_coverage",
+    ),
+    "require_unique_capture_local_observation_ids": (
+        "refspec.registry.federal_register_topics_reconciliation",
+        "require_unique_capture_local_observation_ids",
+    ),
+    "resolve_list_of_subjects_term": (
+        "refspec.registry.federal_register_vocabulary_policy",
+        "resolve_list_of_subjects_term",
+    ),
+    "validate_elsst_import_coverage": ("refspec.registry.elsst_import_coverage", "validate_elsst_import_coverage"),
+}
 
 __all__ = [
     "ASSOCIATIVE_PREDICATE_IRI",
@@ -298,29 +420,20 @@ __all__ = [
     "validate_elsst_import_coverage",
 ]
 
-_ACQUISITION_EXPORTS = frozenset(
-    {
-        "ELSST_ATTRIBUTION",
-        "ELSST_LICENSE_IRI",
-        "ELSST_LICENSE_LABEL",
-        "ELSST_PUBLISHER",
-        "ELSST_R5",
-        "ELSST_R6",
-        "ELSST_RELEASES",
-        "AcquiredElsstSource",
-        "ElsstAcquisitionError",
-        "ElsstReleaseSource",
-        "acquire_elsst_release",
-    }
-)
-
 
 def __getattr__(name: str) -> Any:
-    """Load acquisition helpers lazily so ``python -m`` has no runpy warning."""
+    """Load a compatibility export only when a caller requests it."""
 
-    if name not in _ACQUISITION_EXPORTS:
-        raise AttributeError(name)
-    module = importlib.import_module("refspec.registry.elsst_acquisition")
-    value = getattr(module, name)
+    try:
+        module_name, attribute_name = _LAZY_EXPORTS[name]
+    except KeyError:
+        raise AttributeError(name) from None
+    value = getattr(importlib.import_module(module_name), attribute_name)
     globals()[name] = value
     return value
+
+
+def __dir__() -> list[str]:
+    """Expose lazy names to interactive callers and documentation tools."""
+
+    return sorted(set(globals()) | set(_LAZY_EXPORTS))
