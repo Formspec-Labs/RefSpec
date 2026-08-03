@@ -1424,7 +1424,7 @@ def _build_dataset(
     releases: Sequence[_ResolvedManagedRelease],
     *,
     asset_id: str,
-    crosswalk: CrosswalkBundle | None,
+    crosswalks: Sequence[CrosswalkBundle],
 ) -> tuple[bytes, dict[str, int], str, str]:
     release_graph_id = asset_id + ":release-facts"
     analysis_graph_id = asset_id + ":analysis"
@@ -1531,11 +1531,19 @@ def _build_dataset(
     validation_count = 0
     feedback_count = 0
     search_mapping_count = 0
-    if crosswalk is not None:
+    seen_sealed_ids: set[str] = set()
+    for crosswalk in sorted(crosswalks, key=lambda item: item.identifier):
         bundle = crosswalk.to_dict()
         candidates = {item["id"]: item for item in bundle["mappingCandidates"]}
         validations = {item["id"]: item for item in bundle["machineValidations"]}
         bundle_artifacts = {item["id"]: item for item in bundle["artifacts"]}
+        # Artifacts are content-addressed: an identical id is identical bytes,
+        # so a shared artifact re-states the same triples and needs no refusal.
+        # A candidate or validation appearing twice is double-counted evidence.
+        bundle_ids = set(candidates) | set(validations)
+        if bundle_ids & seen_sealed_ids:
+            raise VocabularyAtlasError("crosswalk bundles repeat a sealed record id")
+        seen_sealed_ids |= bundle_ids
         qualified = _qualified_candidates(candidates, validations)
         for artifact in bundle["artifacts"]:
             node = URIRef(artifact["id"])
@@ -2272,10 +2280,20 @@ class VocabularyAtlasAsset:
             for item, role in zip(actual_inputs, roles, strict=True)
             if role == "ManagedReleaseView"
         ]
-        if not managed_inputs or roles.count("RulespecCoreRelease") != 1 or roles.count("CrosswalkBundle") > 1:
+        if not managed_inputs or roles.count("RulespecCoreRelease") != 1:
             raise VocabularyAtlasError(
-                "atlas inputs require managed releases, one Rulespec Core, and at most one crosswalk"
+                "atlas inputs require managed releases and one Rulespec Core"
             )
+        crosswalk_inputs = [
+            cast(Mapping[str, Any], item)
+            for item, role in zip(actual_inputs, roles, strict=True)
+            if role == "CrosswalkBundle"
+        ]
+        crosswalk_identities = [item["id"] for item in crosswalk_inputs]
+        if len(set(crosswalk_identities)) != len(crosswalk_identities):
+            raise VocabularyAtlasError("atlas repeats a crosswalk input")
+        if crosswalk_identities != sorted(crosswalk_identities):
+            raise VocabularyAtlasError("atlas crosswalk inputs are not in canonical order")
         if len(managed_inputs) + roles.count("RulespecCoreRelease") + roles.count("CrosswalkBundle") != len(
             actual_inputs
         ):
@@ -2429,7 +2447,7 @@ class VocabularyAtlasAsset:
         rulespec_core: PinnedRulespecCoreRelease,
         expected_manifest_digest: str,
         expected_output_digest: str,
-        crosswalk: CrosswalkBundle | None = None,
+        crosswalks: Sequence[CrosswalkBundle] = (),
     ) -> Self:
         """Verify the distribution and reproduce it from exact producer inputs."""
 
@@ -2446,14 +2464,14 @@ class VocabularyAtlasAsset:
         expected_inputs = _input_pins(
             resolved,
             rulespec_core=rulespec_core,
-            crosswalk=crosswalk,
+            crosswalks=crosswalks,
         )
         if actual_inputs != expected_inputs:
             raise VocabularyAtlasError("atlas release input pins differ")
         rebuilt = _build_resolved_vocabulary_atlas(
             resolved,
             rulespec_core=rulespec_core,
-            crosswalk=crosswalk,
+            crosswalks=crosswalks,
         )
         if rebuilt.manifest != opened.manifest or rebuilt.payload != opened.payload:
             raise VocabularyAtlasError("atlas files do not reproduce from the exact pinned inputs")
@@ -2513,12 +2531,14 @@ def _input_pins(
     releases: Sequence[_ResolvedManagedRelease],
     *,
     rulespec_core: PinnedRulespecCoreRelease,
-    crosswalk: CrosswalkBundle | None,
+    crosswalks: Sequence[CrosswalkBundle],
 ) -> list[dict[str, Any]]:
     release_pins = [cast(dict[str, Any], _plain(item.pin)) for item in releases]
     result: list[dict[str, Any]] = [*release_pins, rulespec_core.pin()]
-    if crosswalk is not None:
-        result.append(crosswalk.pin())
+    result.extend(
+        bundle.pin()
+        for bundle in sorted(crosswalks, key=lambda item: item.identifier)
+    )
     return result
 
 
@@ -2526,14 +2546,14 @@ def _build_resolved_vocabulary_atlas(
     releases: Sequence[_ResolvedManagedRelease],
     *,
     rulespec_core: PinnedRulespecCoreRelease,
-    crosswalk: CrosswalkBundle | None = None,
+    crosswalks: Sequence[CrosswalkBundle] = (),
 ) -> VocabularyAtlasAsset:
     """Build deterministic release-facts and replaceable-analysis graphs."""
 
     inputs = _input_pins(
         releases,
         rulespec_core=rulespec_core,
-        crosswalk=crosswalk,
+        crosswalks=crosswalks,
     )
     implementation = _implementation_pin()
     generation_input = {
@@ -2547,7 +2567,7 @@ def _build_resolved_vocabulary_atlas(
     payload, counts, release_graph_id, analysis_graph_id = _build_dataset(
         releases,
         asset_id=asset_id,
-        crosswalk=crosswalk,
+        crosswalks=crosswalks,
     )
     graphs = [
         {
@@ -2591,14 +2611,14 @@ def build_vocabulary_atlas(
     releases: Sequence[VerifiedManagedReleaseSource],
     *,
     rulespec_core: PinnedRulespecCoreRelease,
-    crosswalk: CrosswalkBundle | None = None,
+    crosswalks: Sequence[CrosswalkBundle] = (),
 ) -> VocabularyAtlasAsset:
     """Build deterministic release-facts and replaceable-analysis graphs."""
 
     return _build_resolved_vocabulary_atlas(
         _resolve_managed_releases(tuple(releases)),
         rulespec_core=rulespec_core,
-        crosswalk=crosswalk,
+        crosswalks=crosswalks,
     )
 
 

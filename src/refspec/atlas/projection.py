@@ -691,7 +691,7 @@ def reproduce_distribution(
     parent_directory: Path | str | None = None,
     releases: Sequence[Any] | None = None,
     rulespec_core: Any | None = None,
-    crosswalk: Any | None = None,
+    crosswalks: Sequence[Any] = (),
 ) -> VocabularyAtlasAsset | VocabularyAtlasProjection:
     """Reproduce whichever kind the directory holds, from its own inputs.
 
@@ -725,7 +725,7 @@ def reproduce_distribution(
         rulespec_core=rulespec_core,
         expected_manifest_digest=expected_manifest_digest,
         expected_output_digest=expected_output_digest,
-        crosswalk=crosswalk,
+        crosswalks=crosswalks,
     )
 
 

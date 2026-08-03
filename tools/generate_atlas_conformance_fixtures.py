@@ -530,7 +530,7 @@ def _build_valid_distribution(work: Path) -> tuple[bytes, bytes]:
     asset = build_vocabulary_atlas(
         releases,
         rulespec_core=_core_release(work),
-        crosswalk=_qualified_bundle(),
+        crosswalks=(_qualified_bundle(),),
     )
     return asset.payload, asset.manifest_bytes()
 

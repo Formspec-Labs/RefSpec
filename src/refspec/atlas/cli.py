@@ -65,7 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--crosswalk",
         nargs=3,
         metavar=("FILE", "FILE_SHA256", "BUNDLE_SHA256"),
-        help="optional canonical crosswalk file and its exact file and root digests",
+        action="append",
+        help="optional canonical crosswalk file and its exact file and root digests; repeatable",
     )
     parser.add_argument("--output", type=Path, required=True)
     return parser
@@ -129,15 +130,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         expected_release_id=args.rulespec_core_release_id,
         expected_release_digest=args.rulespec_core_release_digest,
     )
-    crosswalk = None
-    if args.crosswalk is not None:
-        path, file_digest, bundle_digest = args.crosswalk
-        crosswalk = CrosswalkBundle.open(
+    crosswalks = tuple(
+        CrosswalkBundle.open(
             path,
             expected_file_digest=file_digest,
             expected_bundle_digest=bundle_digest,
         )
-    asset = build_vocabulary_atlas(releases, rulespec_core=core, crosswalk=crosswalk)
+        for path, file_digest, bundle_digest in (args.crosswalk or ())
+    )
+    asset = build_vocabulary_atlas(releases, rulespec_core=core, crosswalks=crosswalks)
     output = asset.write(args.output)
     print(
         json.dumps(

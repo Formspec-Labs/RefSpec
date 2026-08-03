@@ -301,7 +301,10 @@ def _input_context() -> CrosswalkArtifact:
     )
 
 
-def _candidate_and_artifacts() -> tuple[
+def _candidate_and_artifacts(
+    *,
+    generated_at: str = "2026-07-31T18:00:00Z",
+) -> tuple[
     MappingCandidate,
     CrosswalkArtifact,
     CrosswalkArtifact,
@@ -328,7 +331,7 @@ def _candidate_and_artifacts() -> tuple[
         input_context_digest=INPUT_DIGEST,
         temperature="0",
         evidence=[evidence.reference()],
-        generated_at="2026-07-31T18:00:00Z",
+        generated_at=generated_at,
         seed=7,
     )
     request = CrosswalkArtifact.create(
@@ -398,8 +401,9 @@ def _qualified_bundle(
     *,
     same_provider: bool = False,
     same_provider_model: bool = False,
+    generated_at: str = "2026-07-31T18:00:00Z",
 ) -> CrosswalkBundle:
-    candidate, evidence, request, _, _ = _candidate_and_artifacts()
+    candidate, evidence, request, _, _ = _candidate_and_artifacts(generated_at=generated_at)
     providers = (
         ("urn:test:atlas:provider:shared",) * 2
         if same_provider
@@ -664,7 +668,7 @@ def test_two_independent_machines_qualify_search_without_human_review(
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=bundle,
+        crosswalks=(bundle,),
     )
 
     mappings = VocabularyAtlasQueries(asset).search_only_mappings()
@@ -679,7 +683,7 @@ def test_shared_machine_provider_cannot_qualify_search(tmp_path: Path) -> None:
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=_qualified_bundle(same_provider=True),
+        crosswalks=(_qualified_bundle(same_provider=True),),
     )
 
     assert VocabularyAtlasQueries(asset).search_only_mappings() == ()
@@ -689,7 +693,7 @@ def test_shared_provider_model_cannot_qualify_search(tmp_path: Path) -> None:
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=_qualified_bundle(same_provider_model=True),
+        crosswalks=(_qualified_bundle(same_provider_model=True),),
     )
 
     assert VocabularyAtlasQueries(asset).search_only_mappings() == ()
@@ -754,8 +758,8 @@ def test_feedback_is_append_only_and_does_not_change_eligibility(tmp_path: Path)
     releases = _two_releases(tmp_path)
     core = _core_release(tmp_path)
 
-    before = build_vocabulary_atlas(releases, rulespec_core=core, crosswalk=bundle)
-    after = build_vocabulary_atlas(releases, rulespec_core=core, crosswalk=extended)
+    before = build_vocabulary_atlas(releases, rulespec_core=core, crosswalks=(bundle,))
+    after = build_vocabulary_atlas(releases, rulespec_core=core, crosswalks=(extended,))
 
     assert VocabularyAtlasQueries(before).search_only_mappings() == (
         VocabularyAtlasQueries(after).search_only_mappings()
@@ -763,6 +767,35 @@ def test_feedback_is_append_only_and_does_not_change_eligibility(tmp_path: Path)
     assert VocabularyAtlasQueries(after).feedback_ids() == (feedback.identifier,)
     with pytest.raises(VocabularyAtlasError, match="already present"):
         extended.with_feedback(feedback)
+
+
+def test_two_crosswalk_bundles_may_not_repeat_a_sealed_record(tmp_path: Path) -> None:
+    """The same sealed bundle twice is a repeated record, not double evidence."""
+
+    bundle = _qualified_bundle()
+    with pytest.raises(VocabularyAtlasError, match="repeat a sealed record id"):
+        build_vocabulary_atlas(
+            _two_releases(tmp_path),
+            rulespec_core=_core_release(tmp_path),
+            crosswalks=(bundle, bundle),
+        )
+
+
+def test_crosswalk_bundle_order_never_reaches_the_bytes(tmp_path: Path) -> None:
+    """Input order is the caller's accident; the pins and payload are sorted."""
+
+    bundle = _qualified_bundle()
+    second = _qualified_bundle(generated_at="2026-07-31T19:00:00Z")
+    releases = _two_releases(tmp_path)
+    core = _core_release(tmp_path)
+
+    forward = build_vocabulary_atlas(releases, rulespec_core=core, crosswalks=(bundle, second))
+    reverse = build_vocabulary_atlas(releases, rulespec_core=core, crosswalks=(second, bundle))
+
+    assert forward.manifest == reverse.manifest
+    assert forward.payload == reverse.payload
+    assert forward.manifest["counts"]["mappingCandidates"] == 2
+    assert forward.manifest["counts"]["searchOnlyMappings"] == 2
 
 
 def test_candidate_input_context_bytes_must_exist_in_the_bundle() -> None:
@@ -930,7 +963,7 @@ def test_qualified_bundle_projects_a_resolvable_input_context(tmp_path: Path) ->
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=bundle,
+        crosswalks=(bundle,),
     )
     dataset = Dataset()
     dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
@@ -1039,7 +1072,7 @@ def test_reproduction_requires_crosswalk_bundle_and_rejects_release_pin_change(
     asset = build_vocabulary_atlas(
         releases,
         rulespec_core=core,
-        crosswalk=bundle,
+        crosswalks=(bundle,),
     )
     output = asset.write(tmp_path / "atlas")
 
@@ -1062,7 +1095,7 @@ def test_reproduction_requires_crosswalk_bundle_and_rejects_release_pin_change(
         rulespec_core=core,
         expected_manifest_digest=asset.manifest_digest,
         expected_output_digest=asset.output_digest,
-        crosswalk=bundle,
+        crosswalks=(bundle,),
     )
     changed = (replace(releases[0], manifest_digest=SHA_B), releases[1])
     with pytest.raises(VocabularyAtlasError, match="release input pins differ"):
@@ -1072,7 +1105,7 @@ def test_reproduction_requires_crosswalk_bundle_and_rejects_release_pin_change(
             rulespec_core=core,
             expected_manifest_digest=asset.manifest_digest,
             expected_output_digest=asset.output_digest,
-            crosswalk=bundle,
+            crosswalks=(bundle,),
         )
 
 
@@ -1123,7 +1156,7 @@ def test_queries_refuse_a_concept_mapping_that_is_not_search_only(
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=_qualified_bundle(),
+        crosswalks=(_qualified_bundle(),),
     )
     queries = VocabularyAtlasQueries(asset)
     assert len(queries.search_only_mappings()) == 1
@@ -1144,7 +1177,7 @@ def test_queries_refuse_a_search_only_mapping_with_three_machine_validations(
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
         rulespec_core=_core_release(tmp_path),
-        crosswalk=_qualified_bundle(),
+        crosswalks=(_qualified_bundle(),),
     )
     queries = VocabularyAtlasQueries(asset)
     mapping = URIRef(queries.search_only_mappings()[0].mapping_id)
