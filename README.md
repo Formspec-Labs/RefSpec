@@ -12,6 +12,7 @@ permission beyond rights supplied by applicable law.
 ## Documents
 
 - [Vocabulary Atlas Distribution 1.0 — normative consumer contract](bindings/atlas/1.0/README.md)
+- [Publish and inspect a vocabulary atlas](docs/atlas-publication.md)
 - [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
 - [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
@@ -126,6 +127,22 @@ Federal Register example proves that the specialized, source-complete 2025
 package can publish all 705 concepts through this same file format; it does not
 introduce another release model. `test_advertised_command_builds_the_complete_2025_package`
 builds that package through the command above.
+
+`refspec-publish-vocabulary-atlas` verifies those same two pins and produces a
+static publication directory with a deterministic gzip download, reusable
+bounded graph data, an offline explorer, and a manifest that pins every
+payload. It neither acquires source files nor changes atlas semantics:
+
+```sh
+uv run refspec-publish-vocabulary-atlas \
+  --atlas build/vocabulary-atlas \
+  --atlas-manifest-digest sha256:<manifest digest> \
+  --atlas-output-digest sha256:<n-quads digest> \
+  --output build/vocabulary-atlas-publication
+```
+
+See [Publish and inspect a vocabulary atlas](docs/atlas-publication.md) for the
+real Federal Register, ELSST, and ICPSR MVP command and its exact pins.
 
 The broad REF pipeline APIs and specification sections remain compatibility
 surfaces while consumers migrate. They do not define the scope for new RefSpec
