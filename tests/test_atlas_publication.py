@@ -446,6 +446,87 @@ def test_explorer_surfaces_notes_notation_and_top_concept_badges(tmp_path: Path)
     assert "topConcept" not in nodes[plain]["roles"]
 
 
+def test_a_qualified_mapping_edge_carries_both_machines_reasons() -> None:
+    """A published edge should answer "why" without a trip to the sealed bundle.
+
+    Two machines qualified this pair independently; the explorer shows both of
+    their sealed reasons so a reader can weigh the agreement rather than take
+    the verdict on trust.
+    """
+
+    asset = _asset("qualified-search-only")
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    mapping = next(edge for edge in model["edges"] if edge["type"] == "qualifiedMapping")
+    assert len(mapping["reasons"]) == len(mapping["validationIds"]) == 2
+    assert [entry["label"] for entry in mapping["reasons"]] == [
+        "provider-model-first",
+        "provider-model-other",
+    ]
+    assert "same policy area" in mapping["reasons"][0]["reason"]
+    assert "different house style" in mapping["reasons"][1]["reason"]
+    # Reasons ride only on the two decision edge types; a shared label or a
+    # hierarchy edge is not a machine's judgement and carries no prose.
+    for edge in model["edges"]:
+        if edge["type"] not in {"qualifiedMapping", "rejectedCandidate"}:
+            assert "reasons" not in edge
+
+
+def test_a_rejected_candidate_edge_carries_its_refusal_reasons(tmp_path: Path) -> None:
+    """A typed refusal is only distinguishable from noise if it says why.
+
+    A refused candidate cites its validations through the candidate, not through
+    a mapping — it has none — so this is a different lookup from the qualified
+    case and needs its own coverage.
+    """
+
+    import test_vocabulary_atlas as tva
+
+    from refspec.atlas import build_vocabulary_atlas
+
+    bundle = tva._qualified_bundle(
+        same_provider=True,
+        reasons=(
+            "The target is the control programme, not the phenomenon; not interchangeable.",
+            "Related but distinct: one names an activity, the other its subject.",
+        ),
+    )
+    asset = build_vocabulary_atlas(
+        tva._two_releases(tmp_path),
+        rulespec_core=tva._core_release(tmp_path),
+        crosswalks=(bundle,),
+    )
+
+    model = build_explorer_model(asset, max_nodes=20)
+
+    rejected = next(edge for edge in model["edges"] if edge["type"] == "rejectedCandidate")
+    assert [entry["label"] for entry in rejected["reasons"]] == [
+        "provider-model-a",
+        "provider-model-b",
+    ]
+    assert "control programme" in rejected["reasons"][0]["reason"]
+    assert "Related but distinct" in rejected["reasons"][1]["reason"]
+
+
+def test_every_adjudicated_relation_publishes_its_reason(tmp_path: Path) -> None:
+    """v1 and v2 alike: the reason rides on the validation, not on the protocol."""
+
+    asset = _asset("relation-adjudication")
+
+    model = build_explorer_model(asset, max_nodes=40)
+
+    decisions = [
+        edge
+        for edge in model["edges"]
+        if edge["type"] in {"qualifiedMapping", "rejectedCandidate"}
+    ]
+    assert decisions
+    assert all(edge["reasons"] for edge in decisions)
+    broad = next(edge for edge in decisions if edge.get("relation", "").endswith("broadMatch"))
+    assert "wider field" in broad["reasons"][0]["reason"]
+
+
 def test_explorer_offers_rejected_candidates_as_their_own_edge_type(tmp_path: Path) -> None:
     """A candidate the gate refused renders as a rejectedCandidate edge, not silence.
 

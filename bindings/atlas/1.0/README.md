@@ -90,7 +90,10 @@ graph:
   pass deterministic checks, resolve request and response artifacts, and have
   different validator actors, independence groups, providers, provider model
   identifiers, and response artifacts. Each machine validation and its sealed
-  response MUST include the same non-empty `providerModelId`.
+  response MUST include the same non-empty `providerModelId`; and
+- both of those validations resolve the **same** `atlas:requestArtifact`. Two
+  machines that answered different requests are two answers to two questions,
+  not a corroboration of one.
 
 The input-context rule is what makes the rest of the proof about a mapping
 rather than about a string. Every other check compares the candidate, the two
@@ -259,19 +262,33 @@ answer *which* relation holds. Two facts are new, both optional:
 - `atlas:adjudicatedRelation` on an `atlas:MappingCandidate`, one IRI drawn from
   the supported SKOS mapping relations.
 
-Where they appear, a consumer MUST additionally verify:
+This amendment also states one rule that is **not** new to v2 and applies to
+every `searchOnly` mapping: the two qualifying validations MUST resolve the same
+`atlas:requestArtifact` (added to the proof list above). It was always implied by
+"two answers to one question" and is now written down, so a reader that
+previously accepted a mapping whose two validations answered different requests
+now refuses it. No distribution this binding has published is affected.
 
-- every supporting machine validation of one candidate either carries
+A consumer MUST verify, for **every** mapping candidate:
+
+- every supporting machine validation of that candidate either carries
   `atlas:verdictRelation` or none does — a distribution may not mix the two;
-- all such validations resolve the same `atlas:requestArtifact`, and their
-  distinct verdicts agree under the lattice: `{same}` adjudicates
+- where they carry one, those validations resolve the same
+  `atlas:requestArtifact`, and their distinct verdicts agree under the lattice:
+  `{same}` adjudicates
   `skos:exactMatch`; any subset of `{same, near_same}` adjudicates
   `skos:closeMatch`; `{target_is_broader}` adjudicates `skos:broadMatch`;
   `{target_is_narrower}` adjudicates `skos:narrowMatch`; `{related}` adjudicates
   `skos:relatedMatch`; every other set is a disagreement and adjudicates
   nothing;
-- the candidate's `atlas:adjudicatedRelation` equals that adjudicated relation;
-  and
+- the candidate's `atlas:adjudicatedRelation` equals that adjudicated relation.
+  A candidate whose verdicts adjudicate a relation and which states none MUST be
+  refused — the check is owed by the *verdicts*, not by the producer choosing to
+  publish an adjudication. Were it otherwise, omitting one statement would drop
+  a mapping back onto the uniform `atlas:proposedRelation` and publish a
+  `broadMatch` finding as a `closeMatch`;
+- where the verdicts adjudicate nothing — a real disagreement — the candidate
+  states no adjudicated relation and qualifies no mapping; and
 - a candidate adjudicated `skos:relatedMatch` carries `rkaf:notEligible` and
   qualifies no `rkaf:ConceptMapping`. Two machines agreeing that a pair is
   associated is not a licence to substitute one for the other in search, so the
@@ -292,6 +309,21 @@ mapping's anchor when an adjudicated relation is present. The amendment is
 compatible in the direction that matters: a distribution carrying neither new
 fact is read exactly as before, and every previously valid distribution stays
 valid, because none of them adjudicated a relation.
+
+### `atlas:reason` is an unverified convenience copy
+
+An `atlas:MachineValidation` MAY carry `atlas:reason`, a literal holding the free
+text the machine wrote, copied from its sealed `validationResponse` artifact and
+truncated to 400 characters. It exists so a reader can see *why* a mapping
+qualified or a candidate was refused without opening the crosswalk bundle.
+
+It is **not** part of any proof and a consumer MUST NOT treat it as evidence.
+Nothing in the distribution ties the literal to the response artifact it quotes;
+only a producer reproducing the atlas from its exact inputs re-derives it. The
+analysis graph is replaceable machine analysis by policy
+(`policies.analysis = replaceableMachineAnalysis`), and this field is squarely
+inside that. A consumer that needs the authoritative text MUST read the sealed
+response artifact in the bundle.
 
 The manifest's `policies.mappingEligibility` deliberately stays
 `twoIndependentMachinesSearchOnly`. That field set is closed on both sides and

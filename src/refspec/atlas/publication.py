@@ -127,6 +127,44 @@ def _relation_label(relation: str) -> str:
     return known.get(relation, _iri_tail(relation))
 
 
+def _validation_reasons(analysis: Graph) -> dict[str, dict[str, str]]:
+    """Each machine validation's sealed reason, labelled by the model that gave it.
+
+    The label is the provider model id, because that is what distinguishes the
+    two machines to a reader; the provider IRI is the independence claim and is
+    already checked elsewhere.
+    """
+
+    reasons: dict[str, dict[str, str]] = {}
+    for validation, value in analysis.subject_objects(ATLAS.reason):
+        if not isinstance(validation, URIRef) or not isinstance(value, Literal):
+            continue
+        text = str(value).strip()
+        if not text:
+            continue
+        label = next(
+            (
+                str(item)
+                for item in analysis.objects(validation, ATLAS.providerModelId)
+                if isinstance(item, Literal)
+            ),
+            "",
+        )
+        reasons[str(validation)] = {"label": label, "reason": text}
+    return reasons
+
+
+def _reason_rows(
+    reasons: Mapping[str, Mapping[str, str]],
+    validation_ids: Sequence[str],
+) -> list[dict[str, str]]:
+    """The reasons for one decision, ordered by label so two runs read alike."""
+
+    rows = [dict(reasons[value]) for value in validation_ids if value in reasons]
+    rows.sort(key=lambda row: (row["label"], row["reason"]))
+    return rows
+
+
 def _edge_id(kind: str, *parts: str) -> str:
     digest = hashlib.sha256("\x1f".join((kind, *parts)).encode("utf-8")).hexdigest()
     return f"urn:ref:vocabulary-atlas-explorer-edge:{digest}"
@@ -434,6 +472,11 @@ def build_explorer_model(
         nodes.append(node)
     selected = {str(node["id"]) for node in nodes}
 
+    # Reasons ride on the two edge types that carry a machine's judgement. A
+    # shared label or a hierarchy edge is a release fact, not a decision, and
+    # attaching prose to those would both mislead and inflate the payload.
+    reasons = _validation_reasons(analysis)
+
     edges: list[dict[str, Any]] = []
     for row in displayed_mappings:
         if row["source"] not in selected or row["target"] not in selected:
@@ -447,6 +490,7 @@ def build_explorer_model(
                 "label": row["relationLabel"],
                 "relation": row["relation"],
                 "validationIds": row["validationIds"],
+                "reasons": _reason_rows(reasons, row["validationIds"]),
             }
         )
     for cluster in displayed_clusters:
@@ -551,6 +595,13 @@ def build_explorer_model(
             continue
         source_id, target_id = str(source_member), str(target_member)
         if source_id in selected and target_id in selected:
+            # A refusal's validations are found through the candidate, since a
+            # refused candidate has no mapping to cite them from.
+            refused = sorted(
+                str(value)
+                for value in analysis.subjects(ATLAS.validates, candidate)
+                if isinstance(value, URIRef)
+            )
             edges.append(
                 {
                     "id": _edge_id("rejectedCandidate", str(candidate)),
@@ -559,6 +610,7 @@ def build_explorer_model(
                     "target": target_id,
                     "label": "not qualified",
                     "candidateId": str(candidate),
+                    "reasons": _reason_rows(reasons, refused),
                 }
             )
     edges.sort(key=lambda row: (str(row["type"]), str(row["source"]), str(row["target"]), str(row["id"])))

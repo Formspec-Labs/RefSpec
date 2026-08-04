@@ -252,24 +252,147 @@ def test_three_agreeing_machines_still_emit_the_weakest_claim(tmp_path: Path) ->
     ]
 
 
+def _reverify(asset) -> None:
+    """Re-run the distribution checks a consumer runs, over a graph in hand."""
+
+    from rdflib import Dataset
+
+    from refspec.atlas.model import _validate_query_graph_semantics
+
+    dataset = Dataset(default_union=False)
+    dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
+    graphs = {row["role"]: row["id"] for row in asset.manifest["graphs"]}
+    _validate_query_graph_semantics(
+        dataset,
+        release_graph_id=graphs["releaseFacts"],
+        analysis_graph_id=graphs["analysis"],
+    )
+    return dataset, graphs
+
+
+def test_dropping_the_adjudication_does_not_escape_the_lattice(tmp_path: Path) -> None:
+    """The lattice must not be opt-in for the party with a motive to skip it.
+
+    A producer that simply omits `atlas:adjudicatedRelation` would otherwise
+    fall back to the uniform proposal, so a pair two machines typed as
+    `broadMatch` could be published as `closeMatch` — the exact over-claim the
+    relation vocabulary exists to prevent. The refusal has to come from the
+    verdicts being present, not from the adjudication being volunteered.
+    """
+
+    from rdflib import URIRef
+
+    from refspec.atlas.model import ATLAS, _validate_query_graph_semantics
+
+    bundle = _v2_bundle("target_is_broader", "target_is_broader")
+    asset, _ = _built_mappings(tmp_path, bundle)
+    dataset, graphs = _reverify(asset)
+
+    analysis = dataset.graph(URIRef(graphs["analysis"]))
+    removed = list(analysis.triples((None, ATLAS.adjudicatedRelation, None)))
+    assert len(removed) == 1
+    for triple in removed:
+        analysis.remove(triple)
+
+    with pytest.raises(VocabularyAtlasError, match="omits the adjudicated relation"):
+        _validate_query_graph_semantics(
+            dataset,
+            release_graph_id=graphs["releaseFacts"],
+            analysis_graph_id=graphs["analysis"],
+        )
+
+
+def test_dropping_a_related_adjudication_does_not_hide_the_refusal(tmp_path: Path) -> None:
+    """Adjudicated-`related` is the claim with no mapping to audit it by.
+
+    Omitting it would turn a typed refusal back into a blank one while the
+    verdicts still say the pair is merely associated.
+    """
+
+    from rdflib import URIRef
+
+    from refspec.atlas.model import ATLAS, _validate_query_graph_semantics
+
+    bundle = _v2_bundle("related", "related")
+    asset, _ = _built_mappings(tmp_path, bundle)
+    dataset, graphs = _reverify(asset)
+
+    analysis = dataset.graph(URIRef(graphs["analysis"]))
+    for triple in list(analysis.triples((None, ATLAS.adjudicatedRelation, None))):
+        analysis.remove(triple)
+
+    with pytest.raises(VocabularyAtlasError, match="omits the adjudicated relation"):
+        _validate_query_graph_semantics(
+            dataset,
+            release_graph_id=graphs["releaseFacts"],
+            analysis_graph_id=graphs["analysis"],
+        )
+
+
+def test_a_v1_distribution_still_needs_no_adjudication(tmp_path: Path) -> None:
+    """The new refusal keys on the verdicts, so v1 is untouched by it."""
+
+    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
+    bundle = CrosswalkBundle.create(
+        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            tva._validation(candidate, request, response_a, suffix="a"),
+            tva._validation(candidate, request, response_b, suffix="b"),
+        ),
+    )
+    asset, mappings = _built_mappings(tmp_path, bundle)
+
+    _reverify(asset)
+    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
+    assert [mapping.relation for mapping in mappings] == [
+        "http://www.w3.org/2004/02/skos/core#closeMatch"
+    ]
+
+
+def _sssom_row(text: str) -> dict[str, str]:
+    columns = next(line for line in text.splitlines() if line.startswith("subject_id")).split("\t")
+    return dict(zip(columns, text.splitlines()[-1].split("\t"), strict=True))
+
+
 def test_sssom_reports_the_adjudicated_relation_not_the_proposal() -> None:
     """Publishing the proposal would export a false predicate to SSSOM."""
 
-    text = sssom_text(_v2_bundle("target_is_broader", "target_is_broader"))
-    columns = next(line for line in text.splitlines() if line.startswith("subject_id")).split("\t")
-    row = dict(zip(columns, text.splitlines()[-1].split("\t"), strict=True))
+    row = _sssom_row(sssom_text(_v2_bundle("target_is_broader", "target_is_broader")))
 
     assert row["predicate_id"] == "skos:broadMatch"
-    assert "predicate_modifier" not in columns
+    assert row["mapping_justification"] == "semapv:MappingReview"
 
 
-def test_sssom_marks_adjudicated_related_as_asserted_but_not_a_mapping() -> None:
+def test_sssom_states_adjudicated_related_plainly_and_never_negates_it() -> None:
+    """SSSOM's only modifier negates the predicate, which is not what we found.
+
+    `predicate_modifier: Not` means "subject is NOT a predicate match to
+    object". Writing it on a `relatedMatch` row would publish the opposite of
+    what two independent machines agreed. The predicate carries the distinction
+    on its own; eligibility for search is a RefSpec fact SSSOM cannot express,
+    and inventing a negation to stand in for it would be a lie in an
+    interoperability format.
+    """
+
     text = sssom_text(_v2_bundle("related", "related"), qualified_only=False)
-    columns = next(line for line in text.splitlines() if line.startswith("subject_id")).split("\t")
-    row = dict(zip(columns, text.splitlines()[-1].split("\t"), strict=True))
+    row = _sssom_row(text)
 
     assert row["predicate_id"] == "skos:relatedMatch"
-    assert row["predicate_modifier"] == "Not"
+    assert "predicate_modifier" not in text
+    # Two machines adjudicated it, so the review happened even though the gate
+    # published no mapping from it.
+    assert row["mapping_justification"] == "semapv:MappingReview"
+
+
+def test_sssom_leaves_an_unadjudicated_candidate_unreviewed() -> None:
+    """A direction disagreement adjudicates nothing, so it claims nothing."""
+
+    text = sssom_text(_v2_bundle("near_same", "target_is_broader"), qualified_only=False)
+    row = _sssom_row(text)
+
+    assert row["predicate_id"] == "skos:closeMatch"
+    assert row["mapping_justification"] == "semapv:UnspecifiedMatching"
 
 
 def test_bundle_refuses_mixed_protocols() -> None:

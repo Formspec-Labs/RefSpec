@@ -314,6 +314,18 @@ _HTML = r"""<!doctype html>
     .connection:hover { color: var(--ink); background: rgba(255, 255, 255, .045); }
     .connection b { display: block; color: inherit; font-size: .78rem; font-weight: 550; }
     .connection small { color: var(--faint); }
+    /* Why the gate decided, under the decision it explains. Text only: these
+       are two machines' words, not another thing to click. */
+    .connection-group { display: grid; gap: .3rem; }
+    .connection-reason {
+      margin: 0 0 0 .55rem;
+      padding-left: .5rem;
+      border-left: 1px solid var(--rule);
+      color: var(--faint);
+      font-size: .72rem;
+      line-height: 1.45;
+    }
+    .connection-reason b { color: var(--muted); font-weight: 550; }
 
     .provenance {
       display: grid;
@@ -887,7 +899,26 @@ _HTML = r"""<!doctype html>
           relation.textContent = `${detail} · ${releaseById.get(other.releaseId).label}`;
           button.append(name, relation);
           button.addEventListener("click", () => selectNode(other, true));
-          container.append(button);
+          const reasons = item.edge.reasons || [];
+          if (!reasons.length) {
+            container.append(button);
+            return;
+          }
+          // Only the two decision edge types carry reasons, so this is the
+          // gate's own words about this pair — shown under the relationship
+          // rather than behind another click.
+          const group = document.createElement("div");
+          group.className = "connection-group";
+          group.append(button);
+          reasons.forEach(entry => {
+            const note = document.createElement("p");
+            note.className = "connection-reason";
+            const who = document.createElement("b");
+            who.textContent = `${entry.label} — `;
+            note.append(who, document.createTextNode(entry.reason));
+            group.append(note);
+          });
+          container.append(group);
         });
     }
 

@@ -355,20 +355,27 @@ def _response(
     suffix: str,
     provider: str | None = None,
     provider_model_id: str | None = None,
+    reason: str | None = None,
 ) -> CrosswalkArtifact:
+    # ``reason`` is omitted unless a test asks for it: adding it unconditionally
+    # would move every artifact digest, and with it every candidate identity
+    # these helpers produce.
+    content: dict[str, Any] = {
+        "candidate": candidate.reference(),
+        "inputDigest": INPUT_DIGEST,
+        "requestArtifact": request.reference(),
+        "validatorActor": f"urn:test:atlas:validator:{suffix}",
+        "provider": provider or f"urn:test:atlas:provider:{suffix}",
+        "providerModelId": provider_model_id or f"provider-model-{suffix}",
+        "deterministicChecksPassed": True,
+        "outcome": "supports",
+    }
+    if reason is not None:
+        content["reason"] = reason
     return CrosswalkArtifact.create(
         role="validationResponse",
         media_type="application/json",
-        content={
-            "candidate": candidate.reference(),
-            "inputDigest": INPUT_DIGEST,
-            "requestArtifact": request.reference(),
-            "validatorActor": f"urn:test:atlas:validator:{suffix}",
-            "provider": provider or f"urn:test:atlas:provider:{suffix}",
-            "providerModelId": provider_model_id or f"provider-model-{suffix}",
-            "deterministicChecksPassed": True,
-            "outcome": "supports",
-        },
+        content=content,
     )
 
 
@@ -402,8 +409,10 @@ def _qualified_bundle(
     same_provider: bool = False,
     same_provider_model: bool = False,
     generated_at: str = "2026-07-31T18:00:00Z",
+    reasons: tuple[str, str] | None = None,
 ) -> CrosswalkBundle:
     candidate, evidence, request, _, _ = _candidate_and_artifacts(generated_at=generated_at)
+    sealed_reasons = reasons or (None, None)
     providers = (
         ("urn:test:atlas:provider:shared",) * 2
         if same_provider
@@ -418,6 +427,7 @@ def _qualified_bundle(
         suffix="a",
         provider=providers[0],
         provider_model_id=provider_model_ids[0],
+        reason=sealed_reasons[0],
     )
     response_b = _response(
         candidate,
@@ -425,6 +435,7 @@ def _qualified_bundle(
         suffix="b",
         provider=providers[1],
         provider_model_id=provider_model_ids[1],
+        reason=sealed_reasons[1],
     )
     validations = (
         _validation(
@@ -873,6 +884,102 @@ def test_input_context_artifact_must_digest_to_the_declared_input() -> None:
             mapping_candidates=(candidate,),
             machine_validations=validations,
         )
+
+
+def test_the_machine_reason_is_projected_and_survives_write_and_open(tmp_path: Path) -> None:
+    """A decision without its reason is a verdict a reader must take on trust.
+
+    The reason is already sealed in the response artifact and already bounded,
+    so projecting it costs one literal per validation and makes every qualified
+    mapping and every refusal answerable in the atlas itself. It is replaceable
+    analysis, so no sealed format changes and no version moves.
+    """
+
+    candidate, evidence, request, _, _ = _candidate_and_artifacts()
+    first_reason = "Both labels name the same policy area; substitution is safe both ways."
+    second_reason = "Agreed: the target is the same concept under a different house style."
+    response_a = _response(candidate, request, suffix="a", reason=first_reason)
+    response_b = _response(candidate, request, suffix="b", reason=second_reason)
+    bundle = CrosswalkBundle.create(
+        artifacts=(_input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            _validation(candidate, request, response_a, suffix="a"),
+            _validation(candidate, request, response_b, suffix="b"),
+        ),
+    )
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalks=(bundle,),
+    )
+    directory = tmp_path / "published"
+    asset.write(directory)
+    reopened = VocabularyAtlasAsset.open(
+        directory,
+        expected_manifest_digest=_file_digest(directory / "atlas-manifest.json"),
+        expected_output_digest=_file_digest(directory / "atlas.nq"),
+    )
+
+    payload = reopened.payload.decode("utf-8")
+    assert "https://refspec.org/ns/vocabulary-atlas/v1#reason" in payload
+    for reason in (first_reason, second_reason):
+        assert reason in payload
+
+
+def test_a_projected_reason_is_bounded_against_a_foreign_bundle(tmp_path: Path) -> None:
+    """The producer bounds what it seals; the atlas bounds what it republishes.
+
+    A bundle RefSpec did not produce can carry any length of free text. Copying
+    it verbatim would let one verbose response inflate the distribution every
+    consumer downloads.
+    """
+
+    candidate, evidence, request, _, _ = _candidate_and_artifacts()
+    response_a = _response(candidate, request, suffix="a", reason="x" * 5000)
+    response_b = _response(candidate, request, suffix="b", reason="short and sufficient")
+    bundle = CrosswalkBundle.create(
+        artifacts=(_input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            _validation(candidate, request, response_a, suffix="a"),
+            _validation(candidate, request, response_b, suffix="b"),
+        ),
+    )
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalks=(bundle,),
+    )
+
+    payload = asset.payload.decode("utf-8")
+    assert "x" * 400 in payload
+    assert "x" * 401 not in payload
+    assert "short and sufficient" in payload
+
+
+def test_a_validation_without_a_sealed_reason_projects_no_reason(tmp_path: Path) -> None:
+    """Silence is not an empty string. A response that said nothing states nothing."""
+
+    candidate, evidence, request, response_a, response_b = _candidate_and_artifacts()
+    bundle = CrosswalkBundle.create(
+        artifacts=(_input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            _validation(candidate, request, response_a, suffix="a"),
+            _validation(candidate, request, response_b, suffix="b"),
+        ),
+    )
+
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalks=(bundle,),
+    )
+
+    assert "vocabulary-atlas/v1#reason" not in asset.payload.decode("utf-8")
 
 
 def test_matching_bytes_under_another_role_do_not_close_the_input_context() -> None:

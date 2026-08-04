@@ -78,6 +78,12 @@ _V2_VERDICT_OUTCOMES: Mapping[str, str] = MappingProxyType(
 )
 _V2_VERDICTS = frozenset(_V2_VERDICT_OUTCOMES)
 _CROSSWALK_SCHEMA_V2 = "2.0"
+#: Ceiling on the free text projected from a sealed response, mirroring
+#: ``qualification.MAX_SEALED_REASON_CHARACTERS`` without importing it (that
+#: module reads this one).  The producer already bounds what it seals; this
+#: bounds what a *foreign* bundle can put into a published atlas, so one verbose
+#: response cannot inflate the distribution every consumer downloads.
+_MAX_PROJECTED_REASON_CHARACTERS = 400
 #: Adjudicated-``related`` is a relation like any other — it is recorded on the
 #: candidate as ``skos:relatedMatch`` — but it is the one agreed relation that
 #: emits no ``ConceptMapping``.  Promoting associative links to consumable
@@ -149,7 +155,7 @@ _POLICIES = MappingProxyType(
 # atlas identifier would leave that calculation unpinned.
 #
 # The list is import-closed over those readers: whatever a pinned module
-# imports is pinned too. `registry/controlled_identifier.py` is here for that
+# imports is pinned too. `registry/infrastructure/controlled_identifier.py` is here for that
 # reason and no other — the ICPSR reader imports it, and it is what extracts
 # the codes and term IRIs that become `skos:notation` and every concept IRI.
 _IMPLEMENTATION_SOURCE_PATHS = (
@@ -162,12 +168,12 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "generated_rulespec_dependency.py",
     "immutable.py",
     "managed_release.py",
-    "registry/controlled_identifier.py",
+    "registry/infrastructure/controlled_identifier.py",
     "registry/federal_register_thesaurus.py",
     "registry/federal_register_thesaurus_2025.py",
-    "registry/federal_register_thesaurus_2025_managed_release.py",
-    "registry/federal_register_vocabulary_policy.py",
-    "registry/icpsr_managed_release.py",
+    "registry/projections/federal_register_thesaurus_2025_managed_release.py",
+    "registry/projections/federal_register_vocabulary_policy.py",
+    "registry/projections/icpsr_managed_release.py",
     "registry/icpsr_subject.py",
     "release_graph.py",
     "storage.py",
@@ -1880,6 +1886,14 @@ def _build_dataset(
                 )
             )
             analysis.add((node, ATLAS.outcome, RdfLiteral(validation["outcome"])))
+            # What the machine said, not just what it decided. The reason is
+            # already sealed in the response artifact and already bounded there,
+            # so projecting it makes every qualified mapping and every refusal
+            # answerable from the atlas instead of only from the bundle. Absent
+            # when the response stated none: silence is not an empty string.
+            reason = _sealed_reason(validation, bundle_artifacts)
+            if reason:
+                analysis.add((node, ATLAS.reason, RdfLiteral(reason)))
             if "verdictRelation" in validation:
                 # Published so the agreement lattice is checkable from the atlas
                 # bytes alone.  Without it a reader can see *that* a relation was
@@ -2118,7 +2132,35 @@ def _validate_projected_artifact(graph: Graph, artifact: URIRef, *, role: str) -
     )
 
 
-def _verify_adjudicated_relation(graph: Graph, *, candidate: URIRef, anchor: URIRef) -> None:
+def _sealed_reason(
+    validation: Mapping[str, Any],
+    artifacts: Mapping[str, Mapping[str, Any]],
+) -> str:
+    """The free text this validation's sealed response carried, if any.
+
+    Read from the response artifact rather than the validation record because
+    that is where the producer sealed it, and it is already bounded there.
+    """
+
+    record = artifacts.get(str(validation["responseArtifact"]["id"]))
+    if record is None:
+        return ""
+    content = record.get("content")
+    if not isinstance(content, Mapping):
+        return ""
+    reason = content.get("reason")
+    if not isinstance(reason, str):
+        return ""
+    return reason.strip()[:_MAX_PROJECTED_REASON_CHARACTERS]
+
+
+def _verify_adjudicated_relation(
+    graph: Graph,
+    *,
+    candidate: URIRef,
+    anchor: URIRef | None,
+    has_mapping: bool,
+) -> None:
     """The agreement lattice, re-derived from the published verdicts.
 
     Checking only that a mapping matches its candidate's adjudicated relation
@@ -2126,6 +2168,13 @@ def _verify_adjudicated_relation(graph: Graph, *, candidate: URIRef, anchor: URI
     it cites. The rule is universal: every supporting validation that answered
     this candidate's sealed question must be relation-compatible with every
     other, and the adjudicated relation is the weakest claim any of them made.
+
+    Driven by the *verdicts*, never by whether the producer volunteered an
+    adjudication. Keying it off the adjudication would make the whole check
+    opt-in for exactly the party with a motive to skip it: omit one triple and a
+    pair two machines typed ``target_is_broader`` falls back to the uniform
+    proposal and publishes as ``closeMatch``. So verdicts present and no
+    adjudication is a refusal, not a v1 distribution.
     """
 
     input_digest = str(_one_literal(graph, candidate, ATLAS.inputContextDigest, "mapping input digest"))
@@ -2159,10 +2208,14 @@ def _verify_adjudicated_relation(graph: Graph, *, candidate: URIRef, anchor: URI
         if stated:
             carriers += 1
             relations.add(str(stated[0]))
-    if carriers != supporters:
+    if carriers not in (0, supporters):
         raise VocabularyAtlasError("machine validations mix adjudicated and unadjudicated verdicts")
     if not relations:
-        raise VocabularyAtlasError("mapping candidate states an adjudicated relation with no verdicts")
+        # No verdict relations at all is the v1 shape, which states no
+        # adjudication and needs none. Claiming one anyway is unsupported.
+        if anchor is not None:
+            raise VocabularyAtlasError("mapping candidate states an adjudicated relation with no verdicts")
+        return
     if len(requests) != 1:
         # Machines that answered different requests are answers to different
         # questions, and folding them would invent an agreement.
@@ -2171,7 +2224,15 @@ def _verify_adjudicated_relation(graph: Graph, *, candidate: URIRef, anchor: URI
         raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
     agreed = _agreed_relation_for(relations)
     if agreed is None:
-        raise VocabularyAtlasError("qualifying validations disagree about the relation")
+        # A real disagreement adjudicates nothing, so nothing is owed — but
+        # nothing may be claimed either, and no mapping may rest on it.
+        if anchor is not None:
+            raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
+        if has_mapping:
+            raise VocabularyAtlasError("qualifying validations disagree about the relation")
+        return
+    if anchor is None:
+        raise VocabularyAtlasError("mapping candidate omits the adjudicated relation its verdicts state")
     if agreed != str(anchor):
         raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
 
@@ -2230,14 +2291,19 @@ def _validate_query_graph_semantics(
         if not isinstance(candidate, URIRef):
             raise VocabularyAtlasError("mapping candidate must be an IRI")
         stated = tuple(analysis.objects(candidate, ATLAS.adjudicatedRelation))
-        if not stated:
-            continue
-        if len(stated) > 1 or not isinstance(stated[0], URIRef):
+        if len(stated) > 1 or (stated and not isinstance(stated[0], URIRef)):
             raise VocabularyAtlasError("mapping candidate adjudicated relation must have exactly one IRI")
-        if str(stated[0]) not in _MAPPING_RELATIONS:
+        if stated and str(stated[0]) not in _MAPPING_RELATIONS:
             raise VocabularyAtlasError("mapping candidate adjudicated relation is unsupported")
-        _verify_adjudicated_relation(analysis, candidate=candidate, anchor=stated[0])
-        if str(stated[0]) != _RELATED_MATCH:
+        # Every candidate, not only the ones that state an adjudication: the
+        # verdicts decide whether one is owed.
+        _verify_adjudicated_relation(
+            analysis,
+            candidate=candidate,
+            anchor=stated[0] if stated else None,
+            has_mapping=candidate in qualified_candidates,
+        )
+        if not stated or str(stated[0]) != _RELATED_MATCH:
             continue
         if candidate in qualified_candidates:
             raise VocabularyAtlasError("adjudicated related must not qualify a searchOnly mapping")
