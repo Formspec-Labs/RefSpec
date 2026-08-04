@@ -277,12 +277,6 @@ RESPONSE_SCHEMA_V2: Mapping[str, Any] = {
     },
 }
 
-#: Free-text the machine wrote, kept in the sealed response artifact so a
-#: reader can see what it said, bounded so one verbose model cannot dominate
-#: the bundle's bytes.
-MAX_SEALED_REASON_CHARACTERS = 400
-
-
 def instructions_text() -> str:
     """The exact system text every family receives, schema included.
 
@@ -1330,7 +1324,7 @@ def reading_from_receipt(
         deterministic_checks_passed=bool(deterministic),
         completed_at=str(receipt.get("finished_at") or _utcnow()),
         response_sha256=str(receipt.get("response_sha256") or ""),
-        reason=str(answer.get("reason", ""))[:MAX_SEALED_REASON_CHARACTERS],
+        reason=str(answer.get("reason", "")),
         endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
         protocol=protocol,
     )

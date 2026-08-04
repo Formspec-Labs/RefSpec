@@ -358,6 +358,33 @@ def test_the_sealed_endpoint_host_comes_from_the_observed_call(sources, targets)
     assert response.to_dict()["content"]["endpointHost"] == "generativelanguage.googleapis.com"
 
 
+def test_the_sealed_reason_preserves_the_complete_provider_answer(sources, targets) -> None:
+    pair = _pair(sources, targets)
+    reason = "The concepts differ because " + "supporting evidence; " * 40
+    answer = {**_answer(pair), "reason": reason}
+    entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
+    context = next(item for item in entry.artifacts if item.role == "inputContext")
+    receipt = qual.validate_candidate(
+        _StubTransport([_chat_reply(answer)]),
+        qual.GEMINI_FAMILY,
+        "key",
+        "models/gemini-3.6-flash",
+        pair=pair,
+        candidate_id=entry.candidate.identifier,
+        input_digest=context.content_digest,
+        tracker=qual.SpendTracker(qual.GEMINI_FAMILY),
+    )
+
+    reading = qual.reading_from_receipt(receipt, qual.GEMINI_FAMILY, "models/gemini-3.6-flash")
+    assert reading is not None
+    assert len(reason) > 400
+    assert reading.reason == reason
+
+    sealed = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=(reading,))
+    response = next(item for item in sealed.artifacts if item.role == "validationResponse")
+    assert response.to_dict()["content"]["reason"] == reason
+
+
 def test_the_endpoint_host_never_carries_a_credential() -> None:
     assert qual.endpoint_host("https://user:secret@api.example.com/v1/chat?key=abc") == "api.example.com"
     assert qual.endpoint_host("") == ""
