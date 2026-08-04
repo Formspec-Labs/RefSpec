@@ -305,6 +305,41 @@ Ring views, source-module views, search indexes, and other consumer products
 are derived from this canonical distribution and MUST pin its manifest and
 N-Quads digests. They do not become additional canonical files.
 
+### Ring and subject-module projections
+
+A portable projection contains exactly `atlas.nq` and
+`atlas-manifest.json`. Its manifest MUST validate against
+[`schemas/vocabulary-atlas-projection-manifest.schema.json`](schemas/vocabulary-atlas-projection-manifest.schema.json).
+The projection is a sibling distribution type,
+`VocabularyAtlasProjectionManifest`, and MUST NOT claim to be a canonical
+atlas or reuse its parent's identifier. `derivedFrom` pins the verified
+parent's atlas identifier, manifest digest, and N-Quads digest.
+
+Projection policies use absolute, versioned identifiers and declarative
+selectors:
+
+- `ring:<semanticRing>` retains every release in one ring and each complete
+  relation bundle whose endpoint releases remain selected.
+- `module:<sourceModule>` requires a subject-ring specialist module, retains
+  that module plus every subject-core release, and retains a relation bundle
+  only when all endpoint releases remain selected.
+
+The policy `id` is an absolute
+`urn:ref:policy:vocabulary-atlas-projection:...` IRI. Its `selectors` object
+contains only `semanticRing` or `sourceModule`; it MUST NOT copy the release
+identifiers resolved from the parent or an output digest. The projection keeps
+each selected canonical JSON record byte-for-byte. A selected relation bundle
+brings its complete mapping, evidence, and machine-proof record closure. A
+projection MUST NOT publish a mapping with only one endpoint release.
+
+Reproduction accepts the verified parent distribution as its only source and
+reapplies the named selector. It MUST reproduce the projection manifest and
+N-Quads bytes exactly. Atlas 2.0 defines no separate
+`consumer-read-closure` policy: unlike Atlas 1.0, the canonical cross-release
+graph already carries closed assertions rather than disposable candidate and
+label-cluster analysis. Product permission remains in the separately pinned
+product policy.
+
 SSSOM, the Simple Standard for Sharing Ontological Mappings, is an optional
 interoperability view for `subject` mapping assertions and `value` crosswalk
 assertions only. An SSSOM exporter MUST NOT emit `entity` or `legalIdentity`
