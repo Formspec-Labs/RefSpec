@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+import refspec.atlas as atlas_api
 from refspec import binding, seal_payload
 from refspec.atlas.concept_release import (
     ManagedReleaseRingAssignment,
@@ -56,6 +57,12 @@ SHA_A = "sha256:" + "a" * 64
 SHA_B = "sha256:" + "b" * 64
 
 
+def test_concept_authoring_is_part_of_the_atlas_governance_api() -> None:
+    assert atlas_api.ConceptAuthoringTransition is ConceptAuthoringTransition
+    assert atlas_api.build_concept_authoring_transition is build_concept_authoring_transition
+    assert atlas_api.read_concept_authoring_transition is read_concept_authoring_transition
+
+
 def _file_digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -89,12 +96,8 @@ def _reseal_graph(
     nodes = graph["@graph"]
     concept = next(node for node in nodes if node["@id"] == AUTHORED_CONCEPT)
     if include_authored_text:
-        concept["skos:altLabel"] = {
-            "en": ["Eligibility requirement", "Eligibility rule"]
-        }
-        concept["skos:definition"] = {
-            "en": "A governed subject describing eligibility requirements."
-        }
+        concept["skos:altLabel"] = {"en": ["Eligibility requirement", "Eligibility rule"]}
+        concept["skos:definition"] = {"en": "A governed subject describing eligibility requirements."}
     if include_attestation:
         attestation = {
             "@id": AUTHORING_ATTESTATION,
@@ -123,15 +126,11 @@ def _reseal_graph(
     receipt = _json(receipt_path)
     receipt["rulespecGraph"]["digest"] = graph_digest
     publication_reference = next(
-        reference
-        for reference in receipt["refRecordDigests"]
-        if reference["id"] == publication["id"]
+        reference for reference in receipt["refRecordDigests"] if reference["id"] == publication["id"]
     )
     publication_reference["digest"] = publication["canonicalPayloadDigest"]
     if include_attestation:
-        receipt["coveredRulespecIdentifiers"] = sorted(
-            [*receipt["coveredRulespecIdentifiers"], AUTHORING_ATTESTATION]
-        )
+        receipt["coveredRulespecIdentifiers"] = sorted([*receipt["coveredRulespecIdentifiers"], AUTHORING_ATTESTATION])
     receipt = seal_payload(receipt)
     _rewrite_json(receipt_path, receipt)
 
@@ -194,22 +193,16 @@ def _managed_release(
 
 
 def _proposal(*, accepted: bool = True) -> dict[str, Any]:
-    fixture = _json(
-        Path("bindings/json/1.0/fixtures/valid/concept-proposal.json")
-    )
+    fixture = _json(Path("bindings/json/1.0/fixtures/valid/concept-proposal.json"))
     proposal = fixture["records"][0]
-    proposal["workflowState"] = (
-        "acceptedForPromotion" if accepted else "underReview"
-    )
+    proposal["workflowState"] = "acceptedForPromotion" if accepted else "underReview"
     proposal["operationalState"] = proposal["workflowState"]
     proposal["canonicalPayloadDigest"] = binding.canonical_payload_digest(proposal)
     return proposal
 
 
 def _rights() -> dict[str, Any]:
-    fixture = _json(
-        Path("bindings/json/1.0/fixtures/valid/managed-release-minimal.json")
-    )
+    fixture = _json(Path("bindings/json/1.0/fixtures/valid/managed-release-minimal.json"))
     return fixture["records"][0]
 
 
@@ -239,13 +232,11 @@ def _build(
         exclusion_cues=("General program descriptions without an eligibility rule.",),
         placement={"status": "topConcept"},
         duplicate_and_mapping_analysis=(
-            "No source identity expresses the reviewed scope; close candidates "
-            "remain separately mapped."
+            "No source identity expresses the reviewed scope; close candidates remain separately mapped."
         ),
         evidence_policy=_policy("evidence-policy"),
         expected_assignment_effect=(
-            "Future assignments may use the new identity; prior assignments "
-            "retain their recorded origin."
+            "Future assignments may use the new identity; prior assignments retain their recorded origin."
         ),
         rights_assessment=_rights(),
         governance_policy=_policy("governance-policy"),
@@ -267,19 +258,11 @@ def test_transition_seals_the_full_checklist_over_real_rulespec_authority(
         "digest": proposal["canonicalPayloadDigest"],
     }
     assert record["authoredConcept"] == AUTHORED_CONCEPT
-    assert record["authoredConceptRelease"]["releaseKind"] == (
-        "managedReferenceRelease"
-    )
+    assert record["authoredConceptRelease"]["releaseKind"] == ("managedReferenceRelease")
     assert record["authoringAttestation"] == {"id": AUTHORING_ATTESTATION}
-    assert record["checklist"]["preferredLabels"] == {
-        "en": "Eligibility policy"
-    }
-    assert record["checklist"]["alternateLabels"] == {
-        "en": ["Eligibility requirement", "Eligibility rule"]
-    }
-    assert record["checklist"]["definition"] == {
-        "en": ["A governed subject describing eligibility requirements."]
-    }
+    assert record["checklist"]["preferredLabels"] == {"en": "Eligibility policy"}
+    assert record["checklist"]["alternateLabels"] == {"en": ["Eligibility requirement", "Eligibility rule"]}
+    assert record["checklist"]["definition"] == {"en": ["A governed subject describing eligibility requirements."]}
     assert "decision" not in record
     assert "reviewer" not in record
     transition.validate_context(
@@ -398,9 +381,7 @@ def test_transition_rejects_non_subject_output_and_context_drift(tmp_path: Path)
     transition = _build(release)
     changed_proposal = copy.deepcopy(_proposal())
     changed_proposal["wording"]["value"] = "Changed reviewed wording"
-    changed_proposal["canonicalPayloadDigest"] = binding.canonical_payload_digest(
-        changed_proposal
-    )
+    changed_proposal["canonicalPayloadDigest"] = binding.canonical_payload_digest(changed_proposal)
     with pytest.raises(ConceptStagingError, match="names another proposal"):
         transition.validate_context(
             proposal=changed_proposal,

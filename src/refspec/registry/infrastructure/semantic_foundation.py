@@ -324,6 +324,25 @@ def _validated_relation_context(
     return MappingProxyType(context)
 
 
+def validate_ring_relation(
+    semantic_ring: SemanticRing,
+    relation: str,
+    context: Mapping[str, str] | None,
+) -> None:
+    """Require one relation and context to obey their semantic ring.
+
+    This is the shared read-boundary check for derived views that do not carry
+    a complete :class:`MappingAssertion`.  It deliberately validates meaning
+    without manufacturing the assertion fields those views omit.
+    """
+
+    ring = _require_ring(semantic_ring, "ring_relation.semanticRing")
+    predicate = _require_iri(relation, "ring_relation.relation")
+    if predicate not in RING_RELATIONS[ring]:
+        raise SemanticFoundationError(f"ring_relation relation is not valid for the {ring} ring")
+    _validated_relation_context(ring, context, label="ring_relation.context")
+
+
 def validate_machine_evidence_proof_pin(
     value: Mapping[str, Any],
     *,
@@ -1298,4 +1317,5 @@ __all__ = [
     "validate_mapping_assertions",
     "validate_rights_metadata",
     "validate_rights_metadata_records",
+    "validate_ring_relation",
 ]

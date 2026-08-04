@@ -334,11 +334,10 @@ projection MUST NOT publish a mapping with only one endpoint release.
 
 Reproduction accepts the verified parent distribution as its only source and
 reapplies the named selector. It MUST reproduce the projection manifest and
-N-Quads bytes exactly. Atlas 2.0 defines no separate
-`consumer-read-closure` policy: unlike Atlas 1.0, the canonical cross-release
-graph already carries closed assertions rather than disposable candidate and
-label-cluster analysis. Product permission remains in the separately pinned
-product policy.
+N-Quads bytes exactly. Registered selectors are limited to complete ring and
+subject-module views. The canonical cross-release graph carries closed
+assertions, and product permission remains in the separately pinned product
+policy.
 
 SSSOM, the Simple Standard for Sharing Ontological Mappings, is an optional
 interoperability view for `subject` mapping assertions and `value` crosswalk

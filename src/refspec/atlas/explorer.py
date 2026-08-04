@@ -4,9 +4,329 @@ from __future__ import annotations
 
 import html
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from string import Template
-from typing import Any
+from typing import Any, cast
+
+from refspec.registry.infrastructure.semantic_foundation import (
+    SemanticFoundationError,
+    SemanticRing,
+    validate_ring_relation,
+)
+
+EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
+EXPLORER_SCHEMA_VERSION = "2.0"
+
+_MODEL_FIELDS = frozenset(
+    {
+        "type",
+        "schemaVersion",
+        "title",
+        "atlas",
+        "selectionPolicy",
+        "summary",
+        "conceptReleases",
+        "concepts",
+        "mappingAssertions",
+    }
+)
+_ATLAS_FIELDS = frozenset({"kind", "assetId", "manifestDigest", "distributionDigest", "counts", "quadCount"})
+_PARENT_FIELDS = frozenset({"assetId", "manifestDigest", "distributionDigest"})
+_COUNT_FIELDS = frozenset(
+    {
+        "conceptReleases",
+        "concepts",
+        "releaseRecords",
+        "relationBundles",
+        "evidenceAssertions",
+        "mappingAssertions",
+        "machineProofs",
+    }
+)
+_SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappingAssertions"})
+_SUMMARY_FIELDS = frozenset(
+    {
+        "shownConceptCount",
+        "shownMappingAssertionCount",
+        "availableConceptCount",
+        "availableMappingAssertionCount",
+        "truncated",
+    }
+)
+_RELEASE_FIELDS = frozenset({"releaseId", "label", "semanticRing", "conceptCount", "shownConceptCount"})
+_CONCEPT_FIELDS = frozenset(
+    {
+        "viewId",
+        "conceptId",
+        "releaseId",
+        "semanticRing",
+        "recordId",
+        "recordDigest",
+        "label",
+        "selectionReasons",
+    }
+)
+_CONCEPT_OPTIONAL_FIELDS = frozenset({"notation", "definition", "scopeNote"})
+_MAPPING_FIELDS = frozenset(
+    {
+        "id",
+        "sourceViewId",
+        "targetViewId",
+        "sourceConcept",
+        "targetConcept",
+        "sourceRelease",
+        "targetRelease",
+        "semanticRing",
+        "relation",
+        "relationLabel",
+        "directEvidenceAssertions",
+        "evidenceAssertions",
+        "evidenceClasses",
+        "externalEvidence",
+        "candidateIds",
+        "validationReceiptIds",
+        "machineProofs",
+    }
+)
+_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
+_SELECTION_REASONS = frozenset({"mappingEndpoint", "releaseRepresentative"})
+_EVIDENCE_CLASSES = frozenset(
+    {
+        "machineQualified",
+        "machineReviewed",
+        "publisherAsserted",
+        "operatorAdopted",
+        "humanReviewed",
+        "ruleGenerated",
+    }
+)
+
+
+class AtlasExplorerError(ValueError):
+    """The bounded explorer model is not the closed Atlas 2.0 shape."""
+
+
+def _mapping(value: object, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise AtlasExplorerError(f"{label} must be an object")
+    return cast(Mapping[str, Any], value)
+
+
+def _sequence(value: object, label: str) -> Sequence[Any]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise AtlasExplorerError(f"{label} must be an array")
+    return cast(Sequence[Any], value)
+
+
+def _exact_fields(
+    value: Mapping[str, Any],
+    expected: frozenset[str],
+    label: str,
+    *,
+    optional: frozenset[str] = frozenset(),
+) -> None:
+    actual = set(value)
+    if not expected <= actual or not actual <= expected | optional:
+        raise AtlasExplorerError(f"{label} fields differ from Atlas 2.0")
+
+
+def _text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise AtlasExplorerError(f"{label} must be non-empty trimmed text")
+    return value
+
+
+def _count(value: object, label: str, *, positive: bool = False) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < (1 if positive else 0):
+        qualifier = "positive" if positive else "non-negative"
+        raise AtlasExplorerError(f"{label} must be a {qualifier} integer")
+    return value
+
+
+def _ring(value: object, label: str) -> str:
+    if not isinstance(value, str) or value not in _RINGS:
+        raise AtlasExplorerError(f"{label} must be an Atlas 2.0 semantic ring")
+    return value
+
+
+def _text_array(value: object, label: str) -> tuple[str, ...]:
+    rows = _sequence(value, label)
+    result = tuple(_text(item, f"{label}[]") for item in rows)
+    if len(result) != len(set(result)):
+        raise AtlasExplorerError(f"{label} must not repeat values")
+    return result
+
+
+def _validate_model(model: Mapping[str, Any]) -> None:
+    _exact_fields(model, _MODEL_FIELDS, "atlas explorer")
+    if model.get("type") != EXPLORER_TYPE or model.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
+        raise AtlasExplorerError("atlas explorer type or schemaVersion differs from 2.0")
+    _text(model.get("title"), "atlas explorer title")
+
+    atlas = _mapping(model.get("atlas"), "atlas explorer atlas")
+    kind = atlas.get("kind")
+    expected_atlas_fields = _ATLAS_FIELDS if kind == "atlas" else _ATLAS_FIELDS | {"parent"}
+    if kind not in {"atlas", "projection"}:
+        raise AtlasExplorerError("atlas explorer kind must be atlas or projection")
+    _exact_fields(atlas, expected_atlas_fields, "atlas explorer atlas")
+    for field in ("assetId", "manifestDigest", "distributionDigest"):
+        _text(atlas.get(field), f"atlas explorer atlas.{field}")
+    _count(atlas.get("quadCount"), "atlas explorer atlas.quadCount", positive=True)
+    counts = _mapping(atlas.get("counts"), "atlas explorer atlas.counts")
+    _exact_fields(counts, _COUNT_FIELDS, "atlas explorer atlas.counts")
+    for field in _COUNT_FIELDS:
+        _count(counts.get(field), f"atlas explorer atlas.counts.{field}")
+    if kind == "projection":
+        parent = _mapping(atlas.get("parent"), "atlas explorer atlas.parent")
+        _exact_fields(parent, _PARENT_FIELDS, "atlas explorer atlas.parent")
+        for field in _PARENT_FIELDS:
+            _text(parent.get(field), f"atlas explorer atlas.parent.{field}")
+
+    selection = _mapping(model.get("selectionPolicy"), "atlas explorer selectionPolicy")
+    _exact_fields(selection, _SELECTION_FIELDS, "atlas explorer selectionPolicy")
+    if selection.get("type") != "boundedExplorerView" or selection.get("version") != EXPLORER_SCHEMA_VERSION:
+        raise AtlasExplorerError("atlas explorer selectionPolicy differs from 2.0")
+    _text(selection.get("id"), "atlas explorer selectionPolicy.id")
+    max_concepts = _count(
+        selection.get("maxConcepts"),
+        "atlas explorer selectionPolicy.maxConcepts",
+        positive=True,
+    )
+    max_mappings = _count(
+        selection.get("maxMappingAssertions"),
+        "atlas explorer selectionPolicy.maxMappingAssertions",
+    )
+
+    summary = _mapping(model.get("summary"), "atlas explorer summary")
+    _exact_fields(summary, _SUMMARY_FIELDS, "atlas explorer summary")
+    shown_concepts = _count(summary.get("shownConceptCount"), "atlas explorer summary.shownConceptCount")
+    shown_mappings = _count(
+        summary.get("shownMappingAssertionCount"),
+        "atlas explorer summary.shownMappingAssertionCount",
+    )
+    available_concepts = _count(
+        summary.get("availableConceptCount"),
+        "atlas explorer summary.availableConceptCount",
+    )
+    available_mappings = _count(
+        summary.get("availableMappingAssertionCount"),
+        "atlas explorer summary.availableMappingAssertionCount",
+    )
+    if not isinstance(summary.get("truncated"), bool):
+        raise AtlasExplorerError("atlas explorer summary.truncated must be boolean")
+
+    releases = _sequence(model.get("conceptReleases"), "atlas explorer conceptReleases")
+    release_by_id: dict[str, Mapping[str, Any]] = {}
+    for index, raw in enumerate(releases):
+        label = f"atlas explorer conceptReleases[{index}]"
+        row = _mapping(raw, label)
+        _exact_fields(row, _RELEASE_FIELDS, label)
+        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
+        if release_id in release_by_id:
+            raise AtlasExplorerError("atlas explorer repeats a concept release")
+        _text(row.get("label"), f"{label}.label")
+        _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        concept_count = _count(row.get("conceptCount"), f"{label}.conceptCount", positive=True)
+        shown_count = _count(row.get("shownConceptCount"), f"{label}.shownConceptCount")
+        if shown_count > concept_count:
+            raise AtlasExplorerError("atlas explorer release shows more concepts than it contains")
+        release_by_id[release_id] = row
+    if len(release_by_id) != counts["conceptReleases"]:
+        raise AtlasExplorerError("atlas explorer concept release count differs from the distribution")
+
+    concepts = _sequence(model.get("concepts"), "atlas explorer concepts")
+    concept_by_view_id: dict[str, Mapping[str, Any]] = {}
+    release_concept_keys: set[tuple[str, str]] = set()
+    shown_by_release: dict[str, int] = {release_id: 0 for release_id in release_by_id}
+    for index, raw in enumerate(concepts):
+        label = f"atlas explorer concepts[{index}]"
+        row = _mapping(raw, label)
+        _exact_fields(row, _CONCEPT_FIELDS, label, optional=_CONCEPT_OPTIONAL_FIELDS)
+        view_id = _text(row.get("viewId"), f"{label}.viewId")
+        concept_id = _text(row.get("conceptId"), f"{label}.conceptId")
+        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
+        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        if view_id in concept_by_view_id or (release_id, concept_id) in release_concept_keys:
+            raise AtlasExplorerError("atlas explorer repeats a release-scoped concept")
+        release = release_by_id.get(release_id)
+        if release is None or release["semanticRing"] != ring:
+            raise AtlasExplorerError("atlas explorer concept differs from its concept release")
+        _text(row.get("recordId"), f"{label}.recordId")
+        _text(row.get("recordDigest"), f"{label}.recordDigest")
+        _text(row.get("label"), f"{label}.label")
+        reasons = _text_array(row.get("selectionReasons"), f"{label}.selectionReasons")
+        if not set(reasons) <= _SELECTION_REASONS:
+            raise AtlasExplorerError("atlas explorer concept has an unsupported selection reason")
+        for field in _CONCEPT_OPTIONAL_FIELDS & set(row):
+            _text(row[field], f"{label}.{field}")
+        concept_by_view_id[view_id] = row
+        release_concept_keys.add((release_id, concept_id))
+        shown_by_release[release_id] += 1
+    if any(release_by_id[key]["shownConceptCount"] != value for key, value in shown_by_release.items()):
+        raise AtlasExplorerError("atlas explorer release shown counts differ from its concepts")
+
+    mappings = _sequence(model.get("mappingAssertions"), "atlas explorer mappingAssertions")
+    mapping_ids: set[str] = set()
+    for index, raw in enumerate(mappings):
+        label = f"atlas explorer mappingAssertions[{index}]"
+        row = _mapping(raw, label)
+        _exact_fields(row, _MAPPING_FIELDS, label, optional=frozenset({"context"}))
+        mapping_id = _text(row.get("id"), f"{label}.id")
+        if mapping_id in mapping_ids:
+            raise AtlasExplorerError("atlas explorer repeats a mapping assertion")
+        source = concept_by_view_id.get(_text(row.get("sourceViewId"), f"{label}.sourceViewId"))
+        target = concept_by_view_id.get(_text(row.get("targetViewId"), f"{label}.targetViewId"))
+        if source is None or target is None or source is target:
+            raise AtlasExplorerError("atlas explorer mapping assertion has an unavailable endpoint")
+        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        endpoint_facts = (
+            (source, "sourceConcept", "sourceRelease"),
+            (target, "targetConcept", "targetRelease"),
+        )
+        if any(
+            endpoint["semanticRing"] != ring
+            or endpoint["conceptId"] != row[concept_field]
+            or endpoint["releaseId"] != row[release_field]
+            for endpoint, concept_field, release_field in endpoint_facts
+        ):
+            raise AtlasExplorerError("atlas explorer mapping assertion differs from its endpoints")
+        relation = _text(row.get("relation"), f"{label}.relation")
+        _text(row.get("relationLabel"), f"{label}.relationLabel")
+        direct = _text_array(row.get("directEvidenceAssertions"), f"{label}.directEvidenceAssertions")
+        evidence = _text_array(row.get("evidenceAssertions"), f"{label}.evidenceAssertions")
+        if not direct or not set(direct) <= set(evidence):
+            raise AtlasExplorerError("atlas explorer mapping assertion evidence closure is incomplete")
+        classes = _text_array(row.get("evidenceClasses"), f"{label}.evidenceClasses")
+        if not classes or not set(classes) <= _EVIDENCE_CLASSES:
+            raise AtlasExplorerError("atlas explorer mapping assertion evidence class is unsupported")
+        for field in ("externalEvidence", "candidateIds", "validationReceiptIds", "machineProofs"):
+            _text_array(row.get(field), f"{label}.{field}")
+        context_value = row.get("context")
+        if "context" in row and not isinstance(context_value, Mapping):
+            raise AtlasExplorerError(f"{label}.context must be an object")
+        try:
+            validate_ring_relation(
+                cast(SemanticRing, ring),
+                relation,
+                cast(Mapping[str, str], context_value) if isinstance(context_value, Mapping) else None,
+            )
+        except SemanticFoundationError as error:
+            raise AtlasExplorerError(f"{label} violates ring relation semantics: {error}") from error
+        mapping_ids.add(mapping_id)
+
+    if (
+        shown_concepts != len(concepts)
+        or shown_mappings != len(mappings)
+        or shown_concepts > available_concepts
+        or shown_mappings > available_mappings
+        or shown_concepts > max_concepts
+        or shown_mappings > max_mappings
+        or available_mappings != counts["mappingAssertions"]
+    ):
+        raise AtlasExplorerError("atlas explorer summary or selection bounds differ from its records")
+    expected_truncated = shown_concepts < available_concepts or shown_mappings < available_mappings
+    if summary["truncated"] is not expected_truncated:
+        raise AtlasExplorerError("atlas explorer summary.truncated differs from its records")
 
 
 class _Template(Template):
@@ -416,7 +736,7 @@ _HTML = r"""<!doctype html>
         <span><strong>Sealed input</strong><br><code id="short-id"></code></span>
       </div>
       <div class="metrics" aria-label="Atlas totals">
-        <div class="metric"><b id="metric-sources">—</b><span>sources</span></div>
+        <div class="metric"><b id="metric-releases">—</b><span>releases</span></div>
         <div class="metric"><b id="metric-quads">—</b><span>quads</span></div>
         <div class="metric"><b id="metric-mappings">—</b><span>mappings</span></div>
       </div>
@@ -434,49 +754,13 @@ _HTML = r"""<!doctype html>
           <div class="results" id="search-results" aria-live="polite"></div>
         </section>
         <section class="control-section">
-          <h3>Reference releases</h3>
+          <h3>Concept releases</h3>
           <div class="filter-list" id="release-filters"></div>
         </section>
         <section class="control-section">
-          <h3>Relationships</h3>
-          <div class="filter-list">
-            <label class="filter">
-              <input type="checkbox" data-edge="qualifiedMapping" checked>
-              <span class="edge-key mapping" style="--edge-color:#e9b95f" aria-hidden="true"></span>
-              <span><span class="label">Qualified mapping</span><small id="count-qualified"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="sharedLabel" checked>
-              <span class="edge-key" style="--edge-color:#6dc8bb" aria-hidden="true"></span>
-              <span><span class="label">Shared label</span><small id="count-shared"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="broader" checked>
-              <span class="edge-key" style="--edge-color:#75847e" aria-hidden="true"></span>
-              <span><span class="label">Broader concept</span><small id="count-broader"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="related" checked>
-              <span class="edge-key" style="--edge-color:#8eafd5" aria-hidden="true"></span>
-              <span><span class="label">Related concept</span><small id="count-related"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="use" checked>
-              <span class="edge-key mapping" style="--edge-color:#c497cf" aria-hidden="true"></span>
-              <span><span class="label">USE — preferred term</span><small id="count-use"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="replacedBy" checked>
-              <span class="edge-key" style="--edge-color:#ee8b78" aria-hidden="true"></span>
-              <span><span class="label">Replaced by</span><small id="count-replaced"></small></span>
-            </label>
-            <label class="filter">
-              <input type="checkbox" data-edge="rejectedCandidate">
-              <span class="edge-key mapping" style="--edge-color:#8a6a63" aria-hidden="true"></span>
-              <span><span class="label">Rejected candidate</span><small id="count-rejected"></small></span>
-            </label>
-          </div>
-          <p class="hint">Equal labels are discovery signals. They are not qualified concept mappings.</p>
+          <h3>Mapping assertions by ring</h3>
+          <div class="filter-list" id="ring-filters"></div>
+          <p class="hint">Every shown line is a typed Atlas 2.0 mapping assertion. Labels never create a line.</p>
         </section>
         <section class="control-section">
           <h3>View boundary</h3>
@@ -486,7 +770,7 @@ _HTML = r"""<!doctype html>
 
       <section class="stage" id="stage" aria-label="Vocabulary graph">
         <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
-        <p id="graph-description" class="legend-note">Drag to pan. Scroll or use the controls to zoom. Select a node for exact source and relationship details.</p>
+        <p id="graph-description" class="legend-note">Drag to pan. Scroll or use the controls to zoom. Select a concept for its source identity and typed mappings.</p>
         <div class="graph-tools" aria-label="Graph view controls">
           <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
           <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
@@ -499,18 +783,18 @@ _HTML = r"""<!doctype html>
       <aside class="panel inspector" id="inspector" aria-label="Concept inspector">
         <h2>Concept inspector</h2>
         <div class="empty-state" id="empty-inspector">
-          <strong>Select a node</strong>
-          Search by label, or choose a point in the graph to inspect its exact identifier and atlas relationships.
+          <strong>Select a concept</strong>
+          Search by label, or choose a point in the graph to inspect its source identity and typed mapping assertions.
         </div>
         <div class="inspector-content" id="inspector-content" hidden>
           <p class="node-kicker" id="node-role"></p>
           <h3 class="node-title" id="node-title"></h3>
           <p class="node-release"><i id="node-swatch"></i><span id="node-release"></span></p>
           <dl class="facts">
-            <dt>Identifier</dt>
+            <dt>Source concept identity</dt>
             <dd><a class="iri" id="node-iri"></a><button class="copy-button" type="button" id="copy-iri">Copy IRI</button></dd>
             <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
-            <dt>Shown links</dt><dd id="node-link-count"></dd>
+            <dt>Shown mapping assertions</dt><dd id="node-link-count"></dd>
           </dl>
           <section class="control-section" id="node-notes" hidden>
             <h3>Source notes</h3>
@@ -518,7 +802,7 @@ _HTML = r"""<!doctype html>
             <p class="hint" id="node-scope-note" hidden></p>
           </section>
           <section class="control-section">
-            <h3>Relationships in this view</h3>
+            <h3>Mapping assertions in this view</h3>
             <div class="connections" id="connections"></div>
           </section>
         </div>
@@ -559,23 +843,23 @@ _HTML = r"""<!doctype html>
     const search = document.getElementById("search");
     const resultBox = document.getElementById("search-results");
     const releaseFilters = document.getElementById("release-filters");
+    const ringFilters = document.getElementById("ring-filters");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
-    const edgeColors = { qualifiedMapping: "#e9b95f", sharedLabel: "#6dc8bb", broader: "#75847e", related: "#8eafd5", use: "#c497cf", replacedBy: "#ee8b78", rejectedCandidate: "#8a6a63" };
-    const edgeLabels = { qualifiedMapping: "qualified mapping", sharedLabel: "shared label", broader: "broader concept", related: "related concept", use: "USE — preferred term", replacedBy: "replaced by", rejectedCandidate: "rejected candidate" };
-    const edgeAlpha = { qualifiedMapping: .52, sharedLabel: .24, broader: .2, related: .18, use: .6, replacedBy: .65, rejectedCandidate: .3 };
-    const edgeWidth = { qualifiedMapping: 1.5, sharedLabel: .8, broader: .8, related: .7, use: 1.3, replacedBy: 1.3, rejectedCandidate: .9 };
-    const releaseById = new Map(data.releases.map((release, index) => [release.id, { ...release, index, color: palette[index % palette.length] }]));
-    const nodeById = new Map(data.nodes.map(node => [node.id, { ...node, x: 0, y: 0 }]));
-    const adjacency = new Map(data.nodes.map(node => [node.id, []]));
-    data.edges.forEach(edge => {
-      if (adjacency.has(edge.source)) adjacency.get(edge.source).push({ edge, other: edge.target });
-      if (adjacency.has(edge.target)) adjacency.get(edge.target).push({ edge, other: edge.source });
+    const ringOrder = ["subject", "entity", "value", "legalIdentity"];
+    const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
+    const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
+    const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
+    const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
+    const adjacency = new Map(data.concepts.map(concept => [concept.viewId, []]));
+    data.mappingAssertions.forEach(mapping => {
+      adjacency.get(mapping.sourceViewId).push({ mapping, other: mapping.targetViewId });
+      adjacency.get(mapping.targetViewId).push({ mapping, other: mapping.sourceViewId });
     });
 
     const state = {
-      activeReleases: new Set(data.releases.map(release => release.id)),
-      activeEdges: new Set(["qualifiedMapping", "sharedLabel", "broader", "related", "use", "replacedBy"]),
+      activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
+      activeRings: new Set(ringOrder),
       selected: null,
       hover: null,
       matches: new Set(),
@@ -585,8 +869,7 @@ _HTML = r"""<!doctype html>
       height: 1,
       dpr: 1,
       panning: false,
-      dragStart: null,
-      lastPointer: null
+      dragStart: null
     };
 
     function formatNumber(value) { return new Intl.NumberFormat("en-US").format(value); }
@@ -594,48 +877,44 @@ _HTML = r"""<!doctype html>
       const tail = value.split(":").pop();
       return tail.length > 16 ? `${tail.slice(0, 8)}…${tail.slice(-6)}` : tail;
     }
-    function worldToScreen(node) {
-      return { x: node.x * state.view.k + state.view.x, y: node.y * state.view.k + state.view.y };
-    }
     function screenToWorld(x, y) {
       return { x: (x - state.view.x) / state.view.k, y: (y - state.view.y) / state.view.k };
     }
-    function isNodeVisible(node) { return state.activeReleases.has(node.releaseId); }
-    function isEdgeVisible(edge) {
-      const source = nodeById.get(edge.source);
-      const target = nodeById.get(edge.target);
-      return state.activeEdges.has(edge.type) && source && target && isNodeVisible(source) && isNodeVisible(target);
+    function isConceptVisible(concept) { return state.activeReleases.has(concept.releaseId); }
+    function isMappingVisible(mapping) {
+      const source = conceptByViewId.get(mapping.sourceViewId);
+      const target = conceptByViewId.get(mapping.targetViewId);
+      return state.activeRings.has(mapping.semanticRing) && isConceptVisible(source) && isConceptVisible(target);
     }
-    function nodeRadius(node) {
-      if (node.roles.includes("mappingEndpoint")) return 5.2;
-      if (node.roles.includes("sharedLabel")) return 4.2;
+    function conceptRadius(concept) {
+      if (concept.selectionReasons.includes("mappingEndpoint")) return 5.2;
       return 3.4;
     }
 
     function layout() {
-      const worldWidth = Math.max(1050, data.releases.length * 330);
+      const worldWidth = Math.max(1050, data.conceptReleases.length * 330);
       const worldHeight = 780;
-      data.releases.forEach((release, releaseIndex) => {
-        const members = data.nodes
-          .filter(node => node.releaseId === release.id)
-          .sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
-        const angle = data.releases.length === 1 ? 0 : (Math.PI * 2 * releaseIndex / data.releases.length) - Math.PI / 2;
-        const cx = data.releases.length <= 2
-          ? worldWidth * ((releaseIndex + 1) / (data.releases.length + 1))
+      data.conceptReleases.forEach((release, releaseIndex) => {
+        const members = data.concepts
+          .filter(concept => concept.releaseId === release.releaseId)
+          .sort((a, b) => a.label.localeCompare(b.label) || a.viewId.localeCompare(b.viewId));
+        const angle = data.conceptReleases.length === 1 ? 0 : (Math.PI * 2 * releaseIndex / data.conceptReleases.length) - Math.PI / 2;
+        const cx = data.conceptReleases.length <= 2
+          ? worldWidth * ((releaseIndex + 1) / (data.conceptReleases.length + 1))
           : worldWidth / 2 + Math.cos(angle) * worldWidth * .31;
-        const cy = data.releases.length <= 2 ? worldHeight / 2 : worldHeight / 2 + Math.sin(angle) * worldHeight * .29;
+        const cy = data.conceptReleases.length <= 2 ? worldHeight / 2 : worldHeight / 2 + Math.sin(angle) * worldHeight * .29;
         members.forEach((value, index) => {
-          const node = nodeById.get(value.id);
+          const concept = conceptByViewId.get(value.viewId);
           const theta = index * 2.399963229728653;
           const radius = 13.5 * Math.sqrt(index);
-          node.x = cx + Math.cos(theta) * radius;
-          node.y = cy + Math.sin(theta) * radius;
+          concept.x = cx + Math.cos(theta) * radius;
+          concept.y = cy + Math.sin(theta) * radius;
         });
       });
     }
 
     function bounds() {
-      const visible = data.nodes.map(node => nodeById.get(node.id)).filter(isNodeVisible);
+      const visible = data.concepts.map(concept => conceptByViewId.get(concept.viewId)).filter(isConceptVisible);
       if (!visible.length) return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
       return {
         minX: Math.min(...visible.map(node => node.x)),
@@ -669,47 +948,31 @@ _HTML = r"""<!doctype html>
       fitView();
     }
 
-    function drawEdge(edge, source, target, highlighted) {
-      const color = edgeColors[edge.type];
+    function drawMapping(mapping, source, target, highlighted) {
+      const color = ringColors[mapping.semanticRing];
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
       ctx.strokeStyle = color;
-      ctx.globalAlpha = highlighted ? .95 : edgeAlpha[edge.type] ?? .2;
-      ctx.lineWidth = (highlighted ? 2.4 : edgeWidth[edge.type] ?? .8) / state.view.k;
-      ctx.setLineDash(
-        edge.type === "qualifiedMapping" ? [7 / state.view.k, 5 / state.view.k]
-        : edge.type === "use" ? [2 / state.view.k, 4 / state.view.k]
-        : edge.type === "rejectedCandidate" ? [3 / state.view.k, 3 / state.view.k]
-        : []
-      );
+      ctx.globalAlpha = highlighted ? .95 : .52;
+      ctx.lineWidth = (highlighted ? 2.4 : 1.5) / state.view.k;
+      ctx.setLineDash([7 / state.view.k, 5 / state.view.k]);
       ctx.stroke();
       ctx.setLineDash([]);
-      if (edge.type === "broader" && highlighted) {
-        const angle = Math.atan2(target.y - source.y, target.x - source.x);
-        const size = 5 / state.view.k;
-        ctx.beginPath();
-        ctx.moveTo(target.x, target.y);
-        ctx.lineTo(target.x - Math.cos(angle - .45) * size, target.y - Math.sin(angle - .45) * size);
-        ctx.lineTo(target.x - Math.cos(angle + .45) * size, target.y - Math.sin(angle + .45) * size);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-      }
       ctx.globalAlpha = 1;
     }
 
-    function drawLabel(node, radius) {
-      const release = releaseById.get(node.releaseId);
+    function drawLabel(concept, radius) {
+      const release = releaseById.get(concept.releaseId);
       ctx.font = `${11 / state.view.k}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textBaseline = "middle";
-      const textWidth = ctx.measureText(node.label).width;
-      const x = node.x + radius + 5 / state.view.k;
-      const y = node.y;
+      const textWidth = ctx.measureText(concept.label).width;
+      const x = concept.x + radius + 5 / state.view.k;
+      const y = concept.y;
       ctx.fillStyle = "rgba(8, 13, 12, .9)";
       ctx.fillRect(x - 2 / state.view.k, y - 8 / state.view.k, textWidth + 5 / state.view.k, 16 / state.view.k);
       ctx.fillStyle = release ? release.color : "#edf1ed";
-      ctx.fillText(node.label, x, y);
+      ctx.fillText(concept.label, x, y);
     }
 
     function draw() {
@@ -720,55 +983,45 @@ _HTML = r"""<!doctype html>
         state.dpr * state.view.x, state.dpr * state.view.y
       );
 
-      data.edges.forEach(edge => {
-        if (!isEdgeVisible(edge)) return;
-        const source = nodeById.get(edge.source);
-        const target = nodeById.get(edge.target);
-        const highlighted = state.selected && (edge.source === state.selected || edge.target === state.selected);
-        drawEdge(edge, source, target, highlighted);
+      data.mappingAssertions.forEach(mapping => {
+        if (!isMappingVisible(mapping)) return;
+        const source = conceptByViewId.get(mapping.sourceViewId);
+        const target = conceptByViewId.get(mapping.targetViewId);
+        const highlighted = state.selected && (mapping.sourceViewId === state.selected || mapping.targetViewId === state.selected);
+        drawMapping(mapping, source, target, highlighted);
       });
 
-      data.nodes.forEach(row => {
-        const node = nodeById.get(row.id);
-        if (!isNodeVisible(node)) return;
-        const release = releaseById.get(node.releaseId);
-        const radius = nodeRadius(node) / state.view.k;
-        const selected = state.selected === node.id;
-        const hovered = state.hover === node.id;
-        const searchDimmed = state.query && !state.matches.has(node.id) && !selected;
+      data.concepts.forEach(row => {
+        const concept = conceptByViewId.get(row.viewId);
+        if (!isConceptVisible(concept)) return;
+        const release = releaseById.get(concept.releaseId);
+        const radius = conceptRadius(concept) / state.view.k;
+        const selected = state.selected === concept.viewId;
+        const hovered = state.hover === concept.viewId;
+        const searchDimmed = state.query && !state.matches.has(concept.viewId) && !selected;
         ctx.globalAlpha = searchDimmed ? .14 : 1;
-        if (node.roles.includes("mappingEndpoint")) {
+        if (concept.selectionReasons.includes("mappingEndpoint")) {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, radius + 3 / state.view.k, 0, Math.PI * 2);
+          ctx.arc(concept.x, concept.y, radius + 3 / state.view.k, 0, Math.PI * 2);
           ctx.strokeStyle = "rgba(233, 185, 95, .42)";
           ctx.lineWidth = 1 / state.view.k;
           ctx.stroke();
         }
         if (selected || hovered) {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, radius + 5 / state.view.k, 0, Math.PI * 2);
+          ctx.arc(concept.x, concept.y, radius + 5 / state.view.k, 0, Math.PI * 2);
           ctx.fillStyle = selected ? "rgba(233, 185, 95, .2)" : "rgba(140, 211, 199, .15)";
           ctx.fill();
         }
         ctx.beginPath();
-        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-        if (node.deprecated) {
-          // Retired concepts are hollow: the release colour survives as an
-          // outline so the succession edge reads as "this one ended".
-          ctx.fillStyle = "#0c1211";
-          ctx.fill();
-          ctx.strokeStyle = release ? release.color : "#edf1ed";
-          ctx.lineWidth = (selected ? 2 : 1.4) / state.view.k;
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = release ? release.color : "#edf1ed";
-          ctx.fill();
-          ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
-          ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
-          ctx.stroke();
-        }
+        ctx.arc(concept.x, concept.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = release ? release.color : "#edf1ed";
+        ctx.fill();
+        ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
+        ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
+        ctx.stroke();
         ctx.globalAlpha = 1;
-        if (selected || hovered || (state.matches.has(node.id) && state.matches.size <= 12)) drawLabel(node, radius);
+        if (selected || hovered || (state.matches.has(concept.viewId) && state.matches.size <= 12)) drawLabel(concept, radius);
       });
     }
 
@@ -777,15 +1030,15 @@ _HTML = r"""<!doctype html>
       const point = screenToWorld(clientX - rect.left, clientY - rect.top);
       let found = null;
       let distance = Infinity;
-      data.nodes.forEach(row => {
-        const node = nodeById.get(row.id);
-        if (!isNodeVisible(node)) return;
-        const dx = node.x - point.x;
-        const dy = node.y - point.y;
+      data.concepts.forEach(row => {
+        const concept = conceptByViewId.get(row.viewId);
+        if (!isConceptVisible(concept)) return;
+        const dx = concept.x - point.x;
+        const dy = concept.y - point.y;
         const candidate = Math.hypot(dx, dy);
-        const threshold = nodeRadius(node) / state.view.k + 8 / state.view.k;
+        const threshold = conceptRadius(concept) / state.view.k + 8 / state.view.k;
         if (candidate <= threshold && candidate < distance) {
-          found = node;
+          found = concept;
           distance = candidate;
         }
       });
@@ -800,12 +1053,12 @@ _HTML = r"""<!doctype html>
       draw();
     }
 
-    function focusNode(node) {
+    function focusConcept(concept) {
       const targetScale = Math.max(1.1, Math.min(2.8, state.view.k));
       const target = {
         k: targetScale,
-        x: state.width / 2 - node.x * targetScale,
-        y: state.height / 2 - node.y * targetScale
+        x: state.width / 2 - concept.x * targetScale,
+        y: state.height / 2 - concept.y * targetScale
       };
       if (reducedMotion) {
         state.view = target;
@@ -826,45 +1079,42 @@ _HTML = r"""<!doctype html>
       requestAnimationFrame(frame);
     }
 
-    function roleLabel(node) {
-      let base = "Hierarchy context";
-      if (node.roles.includes("mappingEndpoint")) base = "Qualified mapping endpoint";
-      else if (node.roles.includes("sharedLabel")) base = "Cross-release shared label";
-      else if (node.roles.includes("lifecycle")) base = "Lifecycle record";
-      else if (node.roles.includes("releaseRepresentative")) base = "Reference release sample";
-      const badges = [];
-      if (node.deprecated) badges.push("deprecated");
-      if (node.roles.includes("topConcept")) badges.push("top concept");
-      return badges.length ? `${base} · ${badges.join(" · ")}` : base;
+    function roleLabel(concept) {
+      const role = concept.selectionReasons.includes("mappingEndpoint")
+        ? "Mapping assertion endpoint"
+        : concept.selectionReasons.includes("releaseRepresentative")
+          ? "Concept release sample"
+          : "Concept";
+      return `${role} · ${ringLabels[concept.semanticRing]} ring`;
     }
 
-    function selectNode(node, move = false) {
-      state.selected = node ? node.id : null;
-      if (node && !state.activeReleases.has(node.releaseId)) state.activeReleases.add(node.releaseId);
+    function selectConcept(concept, move = false) {
+      state.selected = concept ? concept.viewId : null;
+      if (concept && !state.activeReleases.has(concept.releaseId)) state.activeReleases.add(concept.releaseId);
       renderInspector();
       draw();
-      if (node && move) focusNode(node);
+      if (concept && move) focusConcept(concept);
     }
 
     function renderInspector() {
       const empty = document.getElementById("empty-inspector");
       const content = document.getElementById("inspector-content");
       const inspector = document.getElementById("inspector");
-      const node = state.selected ? nodeById.get(state.selected) : null;
-      empty.hidden = Boolean(node);
-      content.hidden = !node;
-      inspector.classList.toggle("open", Boolean(node));
-      if (!node) return;
-      const release = releaseById.get(node.releaseId);
-      const links = adjacency.get(node.id).filter(item => isEdgeVisible(item.edge));
-      document.getElementById("node-role").textContent = roleLabel(node);
-      document.getElementById("node-title").textContent = node.label;
+      const concept = state.selected ? conceptByViewId.get(state.selected) : null;
+      empty.hidden = Boolean(concept);
+      content.hidden = !concept;
+      inspector.classList.toggle("open", Boolean(concept));
+      if (!concept) return;
+      const release = releaseById.get(concept.releaseId);
+      const links = adjacency.get(concept.viewId).filter(item => isMappingVisible(item.mapping));
+      document.getElementById("node-role").textContent = roleLabel(concept);
+      document.getElementById("node-title").textContent = concept.label;
       document.getElementById("node-release").textContent = release.label;
       document.getElementById("node-swatch").style.setProperty("--node-color", release.color);
       const iri = document.getElementById("node-iri");
-      iri.textContent = node.id;
-      if (/^https?:/.test(node.id)) {
-        iri.href = node.id;
+      iri.textContent = concept.conceptId;
+      if (/^https?:/.test(concept.conceptId)) {
+        iri.href = concept.conceptId;
         iri.target = "_blank";
         iri.rel = "noreferrer";
       } else {
@@ -873,52 +1123,33 @@ _HTML = r"""<!doctype html>
       }
       document.getElementById("node-link-count").textContent = formatNumber(links.length);
       const notation = document.getElementById("notation-value");
-      document.getElementById("notation-term").hidden = notation.hidden = !node.notation;
-      notation.textContent = node.notation || "";
+      document.getElementById("notation-term").hidden = notation.hidden = !concept.notation;
+      notation.textContent = concept.notation || "";
       const definition = document.getElementById("node-definition");
-      definition.hidden = !node.definition;
-      definition.textContent = node.definition ? `Definition — ${node.definition}` : "";
+      definition.hidden = !concept.definition;
+      definition.textContent = concept.definition ? `Definition — ${concept.definition}` : "";
       const scopeNote = document.getElementById("node-scope-note");
-      scopeNote.hidden = !node.scopeNote;
-      scopeNote.textContent = node.scopeNote ? `Scope note — ${node.scopeNote}` : "";
-      document.getElementById("node-notes").hidden = !(node.definition || node.scopeNote);
+      scopeNote.hidden = !concept.scopeNote;
+      scopeNote.textContent = concept.scopeNote ? `Scope note — ${concept.scopeNote}` : "";
+      document.getElementById("node-notes").hidden = !(concept.definition || concept.scopeNote);
       const container = document.getElementById("connections");
       container.replaceChildren();
       links
-        .sort((a, b) => a.edge.type.localeCompare(b.edge.type) || nodeById.get(a.other).label.localeCompare(nodeById.get(b.other).label))
+        .sort((a, b) => a.mapping.semanticRing.localeCompare(b.mapping.semanticRing) || a.mapping.relation.localeCompare(b.mapping.relation) || conceptByViewId.get(a.other).label.localeCompare(conceptByViewId.get(b.other).label))
         .forEach(item => {
-          const other = nodeById.get(item.other);
+          const other = conceptByViewId.get(item.other);
           const button = document.createElement("button");
           button.type = "button";
           button.className = "connection";
-          button.style.setProperty("--connection-color", edgeColors[item.edge.type]);
+          button.style.setProperty("--connection-color", ringColors[item.mapping.semanticRing]);
           const name = document.createElement("b");
           name.textContent = other.label;
           const relation = document.createElement("small");
-          const detail = item.edge.type === "qualifiedMapping" ? item.edge.label : edgeLabels[item.edge.type];
-          relation.textContent = `${detail} · ${releaseById.get(other.releaseId).label}`;
+          const evidence = item.mapping.evidenceClasses.join(", ") || "typed evidence";
+          relation.textContent = `${item.mapping.relationLabel} · ${ringLabels[item.mapping.semanticRing]} · ${evidence} · ${releaseById.get(other.releaseId).label}`;
           button.append(name, relation);
-          button.addEventListener("click", () => selectNode(other, true));
-          const reasons = item.edge.reasons || [];
-          if (!reasons.length) {
-            container.append(button);
-            return;
-          }
-          // Only the two decision edge types carry reasons, so this is the
-          // gate's own words about this pair — shown under the relationship
-          // rather than behind another click.
-          const group = document.createElement("div");
-          group.className = "connection-group";
-          group.append(button);
-          reasons.forEach(entry => {
-            const note = document.createElement("p");
-            note.className = "connection-reason";
-            const who = document.createElement("b");
-            who.textContent = `${entry.label} — `;
-            note.append(who, document.createTextNode(entry.reason));
-            group.append(note);
-          });
-          container.append(group);
+          button.addEventListener("click", () => selectConcept(other, true));
+          container.append(button);
         });
     }
 
@@ -926,9 +1157,9 @@ _HTML = r"""<!doctype html>
       const query = search.value.trim().toLocaleLowerCase();
       state.query = query;
       const matching = query
-        ? data.nodes.filter(node => node.label.toLocaleLowerCase().includes(query) || node.id.toLocaleLowerCase().includes(query))
+        ? data.concepts.filter(concept => concept.label.toLocaleLowerCase().includes(query) || concept.conceptId.toLocaleLowerCase().includes(query))
         : [];
-      state.matches = new Set(matching.map(node => node.id));
+      state.matches = new Set(matching.map(concept => concept.viewId));
       resultBox.replaceChildren();
       matching.slice(0, 8).forEach(row => {
         const button = document.createElement("button");
@@ -939,7 +1170,7 @@ _HTML = r"""<!doctype html>
         const source = document.createElement("small");
         source.textContent = releaseById.get(row.releaseId).label;
         button.append(label, source);
-        button.addEventListener("click", () => selectNode(nodeById.get(row.id), true));
+        button.addEventListener("click", () => selectConcept(conceptByViewId.get(row.viewId), true));
         resultBox.append(button);
       });
       if (query && !matching.length) {
@@ -951,14 +1182,14 @@ _HTML = r"""<!doctype html>
     }
 
     function renderFilters() {
-      data.releases.forEach(release => {
-        const meta = releaseById.get(release.id);
+      data.conceptReleases.forEach(release => {
+        const meta = releaseById.get(release.releaseId);
         const label = document.createElement("label");
         label.className = "filter release-filter";
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = true;
-        input.dataset.release = release.id;
+        input.dataset.release = release.releaseId;
         const swatch = document.createElement("span");
         swatch.className = "swatch";
         swatch.style.setProperty("--swatch", meta.color);
@@ -966,20 +1197,39 @@ _HTML = r"""<!doctype html>
         text.className = "label";
         text.textContent = release.label;
         const count = document.createElement("small");
-        count.textContent = formatNumber(release.shownNodeCount);
+        count.textContent = formatNumber(release.shownConceptCount);
         label.append(input, swatch, text, count);
         releaseFilters.append(label);
         input.addEventListener("change", () => {
-          if (input.checked) state.activeReleases.add(release.id);
-          else state.activeReleases.delete(release.id);
-          if (state.selected && !isNodeVisible(nodeById.get(state.selected))) selectNode(null);
+          if (input.checked) state.activeReleases.add(release.releaseId);
+          else state.activeReleases.delete(release.releaseId);
+          if (state.selected && !isConceptVisible(conceptByViewId.get(state.selected))) selectConcept(null);
           fitView();
         });
       });
-      document.querySelectorAll("[data-edge]").forEach(input => {
+      const countByRing = new Map(ringOrder.map(ring => [ring, data.mappingAssertions.filter(mapping => mapping.semanticRing === ring).length]));
+      ringOrder.forEach(ring => {
+        const label = document.createElement("label");
+        label.className = "filter";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = true;
+        input.dataset.ring = ring;
+        const key = document.createElement("span");
+        key.className = "edge-key mapping";
+        key.style.setProperty("--edge-color", ringColors[ring]);
+        const text = document.createElement("span");
+        const name = document.createElement("span");
+        name.className = "label";
+        name.textContent = ringLabels[ring];
+        const count = document.createElement("small");
+        count.textContent = `${formatNumber(countByRing.get(ring))} shown`;
+        text.append(name, count);
+        label.append(input, key, text);
+        ringFilters.append(label);
         input.addEventListener("change", () => {
-          if (input.checked) state.activeEdges.add(input.dataset.edge);
-          else state.activeEdges.delete(input.dataset.edge);
+          if (input.checked) state.activeRings.add(ring);
+          else state.activeRings.delete(ring);
           renderInspector();
           draw();
         });
@@ -988,18 +1238,11 @@ _HTML = r"""<!doctype html>
 
     function populateText() {
       document.getElementById("short-id").textContent = shortId(data.atlas.assetId);
-      document.getElementById("metric-sources").textContent = formatNumber(data.atlas.counts.managedReleases);
+      document.getElementById("metric-releases").textContent = formatNumber(data.atlas.counts.conceptReleases);
       document.getElementById("metric-quads").textContent = formatNumber(data.atlas.quadCount);
-      document.getElementById("metric-mappings").textContent = formatNumber(data.atlas.counts.searchOnlyMappings);
-      document.getElementById("count-qualified").textContent = `${formatNumber(data.summary.qualifiedMappingCount)} shown`;
-      document.getElementById("count-shared").textContent = `${formatNumber(data.summary.sharedLabelEdgeCount)} shown`;
-      document.getElementById("count-broader").textContent = `${formatNumber(data.summary.hierarchyEdgeCount)} shown`;
-      document.getElementById("count-related").textContent = `${formatNumber(data.summary.relatedEdgeCount)} shown`;
-      document.getElementById("count-use").textContent = `${formatNumber(data.summary.useEdgeCount)} shown`;
-      document.getElementById("count-replaced").textContent = `${formatNumber(data.summary.replacedByEdgeCount)} shown`;
-      document.getElementById("count-rejected").textContent = `${formatNumber(data.summary.rejectedCandidateEdgeCount)} available`;
-      document.getElementById("selection-note").textContent = `${formatNumber(data.summary.nodeCount)} concepts and ${formatNumber(data.summary.edgeCount)} relationships are shown. The complete atlas remains in the download.`;
-      document.getElementById("view-count").textContent = `${formatNumber(data.summary.nodeCount)} nodes · ${formatNumber(data.summary.edgeCount)} links`;
+      document.getElementById("metric-mappings").textContent = formatNumber(data.atlas.counts.mappingAssertions);
+      document.getElementById("selection-note").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts and ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions are shown. The complete distribution remains in the download.`;
+      document.getElementById("view-count").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts · ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions`;
       document.getElementById("pin-id").textContent = data.atlas.assetId;
       document.getElementById("pin-manifest").textContent = data.atlas.manifestDigest;
       document.getElementById("pin-output").textContent = data.atlas.distributionDigest;
@@ -1009,9 +1252,8 @@ _HTML = r"""<!doctype html>
     canvas.addEventListener("pointerdown", event => {
       canvas.setPointerCapture(event.pointerId);
       const hit = hitTest(event.clientX, event.clientY);
-      state.lastPointer = { x: event.clientX, y: event.clientY };
       if (hit) {
-        selectNode(hit);
+        selectConcept(hit);
       } else {
         state.panning = true;
         state.dragStart = { x: event.clientX, y: event.clientY, viewX: state.view.x, viewY: state.view.y };
@@ -1019,7 +1261,6 @@ _HTML = r"""<!doctype html>
       }
     });
     canvas.addEventListener("pointermove", event => {
-      state.lastPointer = { x: event.clientX, y: event.clientY };
       if (state.panning && state.dragStart) {
         state.view.x = state.dragStart.viewX + event.clientX - state.dragStart.x;
         state.view.y = state.dragStart.viewY + event.clientY - state.dragStart.y;
@@ -1027,7 +1268,7 @@ _HTML = r"""<!doctype html>
         return;
       }
       const hit = hitTest(event.clientX, event.clientY);
-      state.hover = hit ? hit.id : null;
+      state.hover = hit ? hit.viewId : null;
       if (hit) {
         const rect = stage.getBoundingClientRect();
         tooltip.replaceChildren();
@@ -1082,7 +1323,7 @@ _HTML = r"""<!doctype html>
     document.getElementById("copy-iri").addEventListener("click", async event => {
       if (!state.selected) return;
       try {
-        await navigator.clipboard.writeText(state.selected);
+        await navigator.clipboard.writeText(conceptByViewId.get(state.selected).conceptId);
         event.currentTarget.textContent = "Copied";
         window.setTimeout(() => { event.currentTarget.textContent = "Copy IRI"; }, 1200);
       } catch (_) {
@@ -1098,7 +1339,7 @@ _HTML = r"""<!doctype html>
       if (event.key === "Escape") {
         search.value = "";
         renderSearch();
-        selectNode(null);
+        selectConcept(null);
       }
     });
     new ResizeObserver(resize).observe(stage);
@@ -1121,13 +1362,21 @@ def _safe_json(value: Mapping[str, Any]) -> str:
 
 
 def render_atlas_explorer(model: Mapping[str, Any]) -> str:
-    """Return one self-contained HTML file for a bounded atlas view."""
+    """Validate Atlas 2.0 explorer data and return one self-contained HTML file."""
 
-    title = str(model.get("title") or "RefSpec vocabulary atlas")
+    if not isinstance(model, Mapping):
+        raise AtlasExplorerError("atlas explorer must be an object")
+    _validate_model(model)
+    title = cast(str, model["title"])
     return _Template(_HTML).substitute(
         title=html.escape(title, quote=True),
         atlas_data=_safe_json(model),
     )
 
 
-__all__ = ["render_atlas_explorer"]
+__all__ = [
+    "EXPLORER_SCHEMA_VERSION",
+    "EXPLORER_TYPE",
+    "AtlasExplorerError",
+    "render_atlas_explorer",
+]

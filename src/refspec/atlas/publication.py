@@ -1,14 +1,10 @@
-"""Publish a verified vocabulary atlas as a static, inspectable release.
+"""Publish one authorized Atlas 2.0 distribution as static files.
 
-The atlas manifest and N-Quads remain authoritative.  This module adds two
-disposable delivery forms around those exact bytes:
-
-* a deterministic gzip file for download; and
-* a bounded JSON view plus an offline HTML explorer.
-
-Neither form can add an atlas fact.  The publisher first opens the canonical
-distribution with both external digests, and every generated file names those
-same pins in ``publication-manifest.json``.
+The canonical atlas or a closed projection remains the semantic authority.
+Publication preserves that distribution's exact manifest bytes, compresses its
+exact N-Quads deterministically, carries the exact publication decision, and
+adds only a bounded explorer view.  Every published byte is pinned by a
+content-derived publication manifest.
 """
 
 from __future__ import annotations
@@ -18,51 +14,213 @@ import gzip
 import hashlib
 import io
 import json
-from collections import defaultdict, deque
+import os
+import re
+import shutil
+import stat
+import tempfile
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import unquote, urlparse
 
-from rdflib import Dataset, Graph, Literal, URIRef
-from rdflib.namespace import DCTERMS, OWL, PROV, RDF, SKOS
-
 from refspec import binding
-from refspec.storage import canonical_json
+from refspec.immutable import deep_freeze_json
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    plain_json,
+    sha256_digest,
+)
 
-from .explorer import render_atlas_explorer
+from .explorer import (
+    EXPLORER_SCHEMA_VERSION,
+    EXPLORER_TYPE,
+    render_atlas_explorer,
+)
 from .model import (
-    ATLAS,
-    RKAF,
+    ATLAS_FILE,
+    MANIFEST_FILE,
+    SCOPE_FILE,
     VocabularyAtlasAsset,
     VocabularyAtlasError,
-    _one_resource,
-    _search_only_mapping_nodes,
-    _search_only_mapping_validations,
+)
+from .projection import (
+    VocabularyAtlasProjection,
+    build_atlas_projection,
+    distribution_kind,
+)
+from .publication_decision import (
+    PublicationDecisionError,
+    VocabularyAtlasPublicationDecision,
+    read_vocabulary_atlas_publication_decision,
+)
+from .queries import (
+    ConceptVersion,
+    VocabularyAtlasDistribution,
+    VocabularyAtlasQueries,
 )
 
 PUBLICATION_MANIFEST = "publication-manifest.json"
 EXPLORER_DATA = "atlas-explorer.json"
 EXPLORER_HTML = "index.html"
 COMPRESSED_ATLAS = "atlas.nq.gz"
-ATLAS_MANIFEST = "atlas-manifest.json"
-PUBLICATION_SCHEMA_VERSION = "1.0"
-EXPLORER_SCHEMA_VERSION = "1.0"
+ATLAS_MANIFEST = MANIFEST_FILE
+ATLAS_SCOPE = SCOPE_FILE
+PUBLICATION_DECISION = "publication-decision.json"
+PUBLICATION_SCHEMA_VERSION = "2.0"
 
 _PUBLICATION_TYPE = "urn:ref:type:VocabularyAtlasPublicationManifest"
-_EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
-_DEFAULT_MAX_NODES = 640
-_DEFAULT_MAX_MAPPINGS = 240
-_DEFAULT_SHARED_CLUSTERS = 180
+_PUBLICATION_ID_PREFIX = "urn:ref:vocabulary-atlas-publication:"
+_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/2.0"
+_DEFAULT_MAX_CONCEPTS = 640
+_DEFAULT_MAX_MAPPING_ASSERTIONS = 240
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+_PUBLICATION_CONSTRUCTION_TOKEN = object()
+_READ_CHUNK_SIZE = 1024 * 1024
+_DESCRIPTOR_RELATIVE_READS_SUPPORTED = os.open in os.supports_dir_fd and os.listdir in os.supports_fd
+
+_PUBLICATION_FIELDS = frozenset(
+    {
+        "id",
+        "type",
+        "schemaVersion",
+        "publicationDigest",
+        "title",
+        "distribution",
+        "decision",
+        "selectionPolicy",
+        "summary",
+        "artifacts",
+        "canonicalPayloadDigest",
+    }
+)
+_PUBLICATION_BASIS_FIELDS = (
+    "type",
+    "schemaVersion",
+    "title",
+    "distribution",
+    "decision",
+    "selectionPolicy",
+    "summary",
+    "artifacts",
+)
+_ATLAS_DISTRIBUTION_FIELDS = frozenset({"kind", "assetId", "manifestDigest", "distributionDigest"})
+_PROJECTION_DISTRIBUTION_FIELDS = _ATLAS_DISTRIBUTION_FIELDS | {"parent"}
+_PARENT_FIELDS = frozenset({"assetId", "manifestDigest", "distributionDigest"})
+_DECISION_FIELDS = frozenset({"id", "recordDigest", "fileDigest"})
+_SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappingAssertions"})
+_SUMMARY_FIELDS = frozenset(
+    {
+        "shownConceptCount",
+        "shownMappingAssertionCount",
+        "availableConceptCount",
+        "availableMappingAssertionCount",
+        "truncated",
+    }
+)
+_ARTIFACT_FIELDS = frozenset({"path", "role", "mediaType", "fileDigest", "byteLength"})
+_COMPRESSED_ARTIFACT_FIELDS = _ARTIFACT_FIELDS | {
+    "contentEncoding",
+    "uncompressedDigest",
+    "uncompressedByteLength",
+}
+_ARTIFACT_SPEC = {
+    ATLAS_MANIFEST: ("sourceDistributionManifest", "application/json"),
+    ATLAS_SCOPE: ("canonicalScope", "application/json"),
+    COMPRESSED_ATLAS: ("compressedDistribution", "application/n-quads"),
+    PUBLICATION_DECISION: ("publicationDecision", "application/json"),
+    EXPLORER_DATA: ("derivedExplorerData", "application/json"),
+    EXPLORER_HTML: ("offlineExplorer", "text/html; charset=utf-8"),
+}
+_RING_ORDER = {"subject": 0, "entity": 1, "value": 2, "legalIdentity": 3}
 
 
-def _digest_bytes(value: bytes) -> str:
-    return "sha256:" + hashlib.sha256(value).hexdigest()
+class AtlasPublicationError(VocabularyAtlasError):
+    """A publication is unauthorized, malformed, stale, or tampered with."""
 
 
-def _canonical_file_bytes(value: object) -> bytes:
-    return (canonical_json(value) + "\n").encode("utf-8")
+def _plain(value: Any) -> Any:
+    return plain_json(value)
+
+
+def _canonical_bytes(value: object) -> bytes:
+    try:
+        binding.validate_canonical_value(_plain(value))
+    except (TypeError, ValueError) as error:
+        raise AtlasPublicationError(str(error)) from error
+    return canonical_json_bytes(value)
+
+
+def _require_mapping(value: object, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise AtlasPublicationError(f"{label} must be an object")
+    return cast(Mapping[str, Any], value)
+
+
+def _require_sequence(value: object, label: str) -> Sequence[Any]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise AtlasPublicationError(f"{label} must be an array")
+    return cast(Sequence[Any], value)
+
+
+def _require_exact_fields(
+    value: Mapping[str, Any],
+    expected: frozenset[str],
+    label: str,
+) -> None:
+    actual = set(value)
+    if actual != expected:
+        raise AtlasPublicationError(
+            f"{label} fields differ; missing={sorted(expected - actual)}, extra={sorted(actual - expected)}"
+        )
+
+
+def _require_text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise AtlasPublicationError(f"{label} must be non-empty trimmed text")
+    return value
+
+
+def _require_digest(value: object, label: str) -> str:
+    if not isinstance(value, str) or _SHA256.fullmatch(value) is None:
+        raise AtlasPublicationError(f"{label} must be sha256:<64 lowercase hex>")
+    return value
+
+
+def _require_count(value: object, label: str, *, positive: bool = False) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < (1 if positive else 0):
+        qualifier = "positive" if positive else "non-negative"
+        raise AtlasPublicationError(f"{label} must be a {qualifier} integer")
+    return value
+
+
+def _load_canonical_json(payload: bytes, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=binding.reject_duplicate_keys,
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise AtlasPublicationError(f"{label} must be valid canonical UTF-8 JSON") from error
+    if not isinstance(value, dict) or _canonical_bytes(value) != payload:
+        raise AtlasPublicationError(f"{label} bytes are not canonical")
+    return value
+
+
+def _gzip_bytes(payload: bytes) -> bytes:
+    output = io.BytesIO()
+    with gzip.GzipFile(
+        filename="",
+        mode="wb",
+        fileobj=output,
+        compresslevel=9,
+        mtime=0,
+    ) as stream:
+        stream.write(payload)
+    return output.getvalue()
 
 
 def _iri_tail(value: str) -> str:
@@ -75,836 +233,1115 @@ def _iri_tail(value: str) -> str:
 
 
 def _default_release_label(release_id: str) -> str:
-    lowered = release_id.casefold()
-    if "federal-register-thesaurus" in lowered:
-        return "Federal Register 2025"
-    if "elsst.cessda.eu/id/" in lowered:
-        version = release_id.rstrip("/").rsplit("/", 1)[-1]
-        return f"ELSST {version}"
-    if "icpsr" in lowered:
-        return "ICPSR"
     parsed = urlparse(release_id)
-    if parsed.scheme in {"http", "https"}:
-        tail = _iri_tail(release_id)
-        return f"{parsed.netloc} · {tail}" if tail != parsed.netloc else tail
-    return _iri_tail(release_id).title()
-
-
-def _label_for(graph: Graph, concept: URIRef) -> str:
-    # Preferred labels first; then alternate labels, because ISO-25964
-    # non-descriptor terms (ICPSR lead-in entries) carry only an altLabel on
-    # their own URI. The IRI tail is a last resort, not a labelling policy.
-    for predicate in (SKOS.prefLabel, SKOS.altLabel):
-        chosen = _note_for(graph, concept, predicate)
-        if chosen is not None:
-            return chosen
-    return _iri_tail(str(concept))
-
-
-def _note_for(graph: Graph, concept: URIRef, predicate: URIRef) -> str | None:
-    """Return one English-first literal for the predicate, or None."""
-
-    choices: list[tuple[int, str, str]] = []
-    for value in graph.objects(concept, predicate):
-        if not isinstance(value, Literal):
-            continue
-        language = (value.language or "").casefold()
-        priority = 0 if language == "en" else 1 if not language else 2
-        choices.append((priority, language, str(value)))
-    if choices:
-        return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
-    return None
+    tail = _iri_tail(release_id)
+    if parsed.scheme in {"http", "https"} and tail != parsed.netloc:
+        return f"{parsed.netloc} · {tail}"
+    return tail
 
 
 def _relation_label(relation: str) -> str:
-    known = {
-        str(SKOS.exactMatch): "exact match",
-        str(SKOS.closeMatch): "close match",
-        str(SKOS.broadMatch): "broader match",
-        str(SKOS.narrowMatch): "narrower match",
-        str(SKOS.relatedMatch): "related match",
-    }
-    return known.get(relation, _iri_tail(relation))
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", _iri_tail(relation)).casefold()
 
 
-def _validation_reasons(analysis: Graph) -> dict[str, dict[str, str]]:
-    """Each machine validation's sealed reason, labelled by the model that gave it.
+def _concept_view_id(version: ConceptVersion, repeated_ids: Counter[str]) -> str:
+    if repeated_ids[version.concept_id] == 1:
+        return version.concept_id
+    digest = hashlib.sha256(f"{version.release_id}\x1f{version.concept_id}\x1f{version.record_id}".encode()).hexdigest()
+    return f"urn:ref:vocabulary-atlas-explorer-node:{digest}"
 
-    The label is the provider model id, because that is what distinguishes the
-    two machines to a reader; the provider IRI is the independence claim and is
-    already checked elsewhere.
-    """
 
-    reasons: dict[str, dict[str, str]] = {}
-    for validation, value in analysis.subject_objects(ATLAS.reason):
-        if not isinstance(validation, URIRef) or not isinstance(value, Literal):
-            continue
-        text = str(value).strip()
-        if not text:
-            continue
-        label = next(
-            (
-                str(item)
-                for item in analysis.objects(validation, ATLAS.providerModelId)
-                if isinstance(item, Literal)
+def _language_values(value: object) -> tuple[tuple[str, str | None], ...]:
+    if isinstance(value, str):
+        return ((value, None),)
+    if isinstance(value, Mapping):
+        literal = value.get("@value")
+        if isinstance(literal, str):
+            language = value.get("@language")
+            return ((literal, language if isinstance(language, str) else None),)
+        result: list[tuple[str, str | None]] = []
+        for language, child in value.items():
+            normalized = language if isinstance(language, str) and language not in {"", "@none"} else None
+            if isinstance(child, str):
+                result.append((child, normalized))
+            elif isinstance(child, Sequence) and not isinstance(child, (str, bytes)):
+                result.extend((item, normalized) for item in child if isinstance(item, str))
+        return tuple(result)
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return tuple(item for child in value for item in _language_values(child))
+    return ()
+
+
+def _first_text(record: Mapping[str, Any], *fields: str) -> str | None:
+    choices: list[tuple[int, str, str]] = []
+    for field in fields:
+        for text, language in _language_values(record.get(field)):
+            stripped = text.strip()
+            if stripped:
+                normalized = (language or "").casefold()
+                priority = 0 if normalized == "en" else 1 if not normalized else 2
+                choices.append((priority, normalized, stripped))
+    if not choices:
+        return None
+    return min(choices, key=lambda item: (item[0], item[1], item[2].casefold(), item[2]))[2]
+
+
+def _preferred_label(
+    queries: VocabularyAtlasQueries,
+    version: ConceptVersion,
+) -> str:
+    labels = queries.concept_labels(version.concept_id, release_id=version.release_id)
+    if labels:
+        role_order = {"preferred": 0, "alternate": 1, "hidden": 2}
+        selected = min(
+            labels,
+            key=lambda value: (
+                role_order[value.role],
+                0 if (value.language or "").casefold() == "en" else 1 if not value.language else 2,
+                (value.language or "").casefold(),
+                value.value.casefold(),
+                value.value,
+                value.evidence_record_id,
             ),
-            "",
         )
-        reasons[str(validation)] = {"label": label, "reason": text}
-    return reasons
+        return selected.value
+    return _iri_tail(version.concept_id)
 
 
-def _reason_rows(
-    reasons: Mapping[str, Mapping[str, str]],
-    validation_ids: Sequence[str],
-) -> list[dict[str, str]]:
-    """The reasons for one decision, ordered by label so two runs read alike."""
-
-    rows = [dict(reasons[value]) for value in validation_ids if value in reasons]
-    rows.sort(key=lambda row: (row["label"], row["reason"]))
-    return rows
-
-
-def _edge_id(kind: str, *parts: str) -> str:
-    digest = hashlib.sha256("\x1f".join((kind, *parts)).encode("utf-8")).hexdigest()
-    return f"urn:ref:vocabulary-atlas-explorer-edge:{digest}"
-
-
-def _round_robin(values: Mapping[str, list[dict[str, Any]]]) -> Sequence[dict[str, Any]]:
-    queues = {key: deque(rows) for key, rows in sorted(values.items())}
-    ordered: list[dict[str, Any]] = []
-    while queues:
-        exhausted: list[str] = []
-        for key, rows in queues.items():
-            if rows:
-                ordered.append(rows.popleft())
-            if not rows:
-                exhausted.append(key)
-        for key in exhausted:
-            del queues[key]
-    return ordered
-
-
-def _parse_dataset(asset: VocabularyAtlasAsset) -> tuple[Graph, Graph]:
-    asset._require_verified()
-    dataset = Dataset(default_union=False)
-    dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
-    graph_rows = {str(row["role"]): row for row in asset.manifest["graphs"]}
-    return (
-        dataset.graph(URIRef(str(graph_rows["releaseFacts"]["id"]))),
-        dataset.graph(URIRef(str(graph_rows["analysis"]["id"]))),
-    )
-
-
-def build_explorer_model(
-    asset: VocabularyAtlasAsset,
-    *,
-    title: str = "RefSpec vocabulary atlas",
-    release_labels: Mapping[str, str] | None = None,
-    max_nodes: int = _DEFAULT_MAX_NODES,
-    max_mappings: int = _DEFAULT_MAX_MAPPINGS,
-    max_shared_clusters: int = _DEFAULT_SHARED_CLUSTERS,
-) -> dict[str, Any]:
-    """Build a bounded browser view from one already verified atlas.
-
-    Qualified mappings are selected first, then cross-release equal-label
-    clusters, one representative per otherwise unseen release, and immediate
-    hierarchy context.  The selection is deterministic and is disclosed in
-    the output; it never claims to be the complete graph.
-    """
-
-    if not title.strip():
-        raise VocabularyAtlasError("atlas publication title must not be empty")
-    if max_nodes < 2:
-        raise VocabularyAtlasError("atlas explorer max nodes must be at least 2")
-    if max_mappings < 0 or max_shared_clusters < 0:
-        raise VocabularyAtlasError("atlas explorer limits must not be negative")
-    overrides = {key: value.strip() for key, value in dict(release_labels or {}).items()}
-    if any(not key or not value.strip() for key, value in overrides.items()):
-        raise VocabularyAtlasError("release label overrides need a non-empty IRI and label")
-
-    release_facts, analysis = _parse_dataset(asset)
-    release_ids = tuple(
-        sorted(
-            str(value)
-            for value in set(release_facts.subjects(RDF.type, RKAF.ReferenceResourceRelease))
-            if isinstance(value, URIRef)
-        )
-    )
-    if len(release_ids) > max_nodes:
-        raise VocabularyAtlasError("atlas explorer max nodes is smaller than the number of releases")
-    release_set = set(release_ids)
-    unknown_overrides = set(overrides) - release_set
-    if unknown_overrides:
-        raise VocabularyAtlasError("release label override does not match an atlas reference release")
-    release_names = {
-        release_id: overrides.get(release_id, _default_release_label(release_id))
-        for release_id in release_ids
-    }
-    member_releases: dict[str, set[str]] = defaultdict(set)
-    for member, release in analysis.subject_objects(ATLAS.memberOfRelease):
-        if isinstance(member, URIRef) and isinstance(release, URIRef) and str(release) in release_set:
-            member_releases[str(member)].add(str(release))
-
-    all_mappings: list[dict[str, Any]] = []
-    for mapping in _search_only_mapping_nodes(analysis):
-        source = str(_one_resource(analysis, mapping, RKAF.assertsSubject, "mapping source"))
-        target = str(_one_resource(analysis, mapping, RKAF.assertsObject, "mapping target"))
-        relation = str(_one_resource(analysis, mapping, RKAF.assertsPredicate, "mapping relation"))
-        source_release = str(
-            _one_resource(analysis, mapping, RKAF.sourceConceptRelease, "mapping source release")
-        )
-        target_release = str(
-            _one_resource(analysis, mapping, RKAF.targetConceptRelease, "mapping target release")
-        )
-        all_mappings.append(
-            {
-                "id": str(mapping),
-                "source": source,
-                "target": target,
-                "relation": relation,
-                "relationLabel": _relation_label(relation),
-                "sourceRelease": source_release,
-                "targetRelease": target_release,
-                "validationIds": [
-                    str(value) for value in _search_only_mapping_validations(analysis, mapping)
-                ],
-            }
-        )
-
-    selected: set[str] = set()
-    node_roles: dict[str, set[str]] = defaultdict(set)
-    displayed_mappings: list[dict[str, Any]] = []
-    for row in all_mappings[:max_mappings]:
-        additions = {str(row["source"]), str(row["target"])} - selected
-        if len(selected) + len(additions) > max_nodes:
-            continue
-        selected.update(additions)
-        node_roles[str(row["source"])].add("mappingEndpoint")
-        node_roles[str(row["target"])].add("mappingEndpoint")
-        displayed_mappings.append(row)
-
-    # Lifecycle facts are rare and load-bearing: every deprecated concept and
-    # every replacement endpoint is shown, so a retirement is never invisible.
-    lifecycle_members: set[str] = set()
-    for concept in release_facts.subjects(OWL.deprecated, None):
-        if isinstance(concept, URIRef):
-            lifecycle_members.add(str(concept))
-    for left, right in release_facts.subject_objects(DCTERMS.isReplacedBy):
-        if isinstance(left, URIRef) and isinstance(right, URIRef):
-            lifecycle_members.update((str(left), str(right)))
-    for left, right in release_facts.subject_objects(DCTERMS.replaces):
-        if isinstance(left, URIRef) and isinstance(right, URIRef):
-            lifecycle_members.update((str(left), str(right)))
-    for member in sorted(lifecycle_members):
-        if len(selected) >= max_nodes:
-            break
-        if member in member_releases:
-            selected.add(member)
-            node_roles[member].add("lifecycle")
-
-    cluster_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for cluster in sorted(
-        {
-            value
-            for value in analysis.subjects(RDF.type, ATLAS.LabelCluster)
-            if isinstance(value, URIRef)
-        },
-        key=str,
-    ):
-        members = sorted(
-            {
-                str(value)
-                for value in analysis.objects(cluster, ATLAS.member)
-                if isinstance(value, URIRef)
-            }
-        )
-        cluster_releases = sorted(
-            {
-                release
-                for member in members
-                for release in member_releases.get(member, ())
-                if release in release_set
-            }
-        )
-        if len(cluster_releases) < 2:
-            continue
-        # A single pathological label must not consume the whole browser view.
-        release_first: list[str] = []
-        remaining: list[str] = []
-        seen_releases: set[str] = set()
-        for member in members:
-            member_release = next(
-                (
-                    release
-                    for release in sorted(member_releases.get(member, ()))
-                    if release in release_set
-                ),
-                "",
-            )
-            if member_release and member_release not in seen_releases:
-                release_first.append(member)
-                seen_releases.add(member_release)
-            else:
-                remaining.append(member)
-        chosen_members = (release_first + remaining)[:8]
-        normalized = next(
-            (
-                str(value)
-                for value in analysis.objects(cluster, ATLAS.normalizedLabel)
-                if isinstance(value, Literal)
-            ),
-            "",
-        )
-        cluster_groups["|".join(cluster_releases)].append(
-            {
-                "id": str(cluster),
-                "members": chosen_members,
-                "normalizedLabel": normalized,
-            }
-        )
-    for rows in cluster_groups.values():
-        rows.sort(key=lambda row: (str(row["normalizedLabel"]).casefold(), str(row["id"])))
-
-    displayed_clusters: list[dict[str, Any]] = []
-    for row in _round_robin(cluster_groups):
-        if len(displayed_clusters) >= max_shared_clusters:
-            break
-        additions = set(row["members"]) - selected
-        if len(selected) + len(additions) > max_nodes:
-            continue
-        selected.update(additions)
-        for member in row["members"]:
-            node_roles[str(member)].add("sharedLabel")
-        displayed_clusters.append(row)
-
-    # Show every reference release even when it has no qualified mapping or
-    # selected cross-release label cluster.
-    for release_id in release_ids:
-        if any(release_id in member_releases.get(member, ()) for member in selected):
-            continue
-        representative = next(
-            (
-                str(value)
-                for value in sorted(
-                    {
-                        member
-                        for member in release_facts.objects(URIRef(release_id), PROV.hadMember)
-                        if isinstance(member, URIRef)
-                    },
-                    key=str,
-                )
-                if str(value) in member_releases
-            ),
-            None,
-        )
-        if representative is not None and len(selected) < max_nodes:
-            selected.add(representative)
-            node_roles[representative].add("releaseRepresentative")
-
-    # Immediate parents come before children because they explain where a
-    # mapped or shared concept sits with fewer nodes in most thesauri. USE
-    # targets and lead-in terms come with them: a non-descriptor without its
-    # descriptor renders as a bare identifier.
-    context_candidates: list[str] = []
-    roots = tuple(sorted(selected))
-    for member in roots:
-        node = URIRef(member)
-        parents = sorted(
-            str(value) for value in release_facts.objects(node, SKOS.broader) if isinstance(value, URIRef)
-        )
-        children = sorted(
-            str(value) for value in release_facts.subjects(SKOS.broader, node) if isinstance(value, URIRef)
-        )
-        use_neighbours = sorted(
-            str(value)
-            for predicate in (
-                ATLAS.thesaurusUse,
-                ATLAS.thesaurusUsedFor,
-                DCTERMS.isReplacedBy,
-                DCTERMS.replaces,
-            )
-            for value in release_facts.objects(node, predicate)
-            if isinstance(value, URIRef)
-        )
-        context_candidates.extend(parents)
-        context_candidates.extend(children)
-        context_candidates.extend(use_neighbours)
-    for member in context_candidates:
-        if len(selected) >= max_nodes:
-            break
-        if member not in selected and member in member_releases:
-            selected.add(member)
-            node_roles[member].add("hierarchyContext")
-
-    primary_release = {
-        member: min(member_releases[member])
-        for member in selected
-        if member_releases.get(member)
-    }
-    nodes = []
-    for member in sorted(primary_release):
-        concept = URIRef(member)
-        roles = set(node_roles.get(member, {"hierarchyContext"}))
-        if next(release_facts.objects(concept, SKOS.topConceptOf), None) is not None or next(
-            release_facts.subjects(SKOS.hasTopConcept, concept), None
-        ) is not None:
-            roles.add("topConcept")
-        node: dict[str, Any] = {
-            "id": member,
-            "label": _label_for(release_facts, concept),
-            "releaseId": primary_release[member],
-            "roles": sorted(roles),
-        }
-        for field, predicate in (
-            ("definition", SKOS.definition),
-            ("scopeNote", SKOS.scopeNote),
-            ("notation", SKOS.notation),
-        ):
-            value = _note_for(release_facts, concept, predicate)
-            if value is not None:
-                node[field] = value
-        if any(
-            isinstance(value, Literal) and str(value).casefold() == "true"
-            for value in release_facts.objects(concept, OWL.deprecated)
-        ):
-            node["deprecated"] = True
-        nodes.append(node)
-    selected = {str(node["id"]) for node in nodes}
-
-    # Reasons ride on the two edge types that carry a machine's judgement. A
-    # shared label or a hierarchy edge is a release fact, not a decision, and
-    # attaching prose to those would both mislead and inflate the payload.
-    reasons = _validation_reasons(analysis)
-
-    edges: list[dict[str, Any]] = []
-    for row in displayed_mappings:
-        if row["source"] not in selected or row["target"] not in selected:
-            continue
-        edges.append(
-            {
-                "id": row["id"],
-                "type": "qualifiedMapping",
-                "source": row["source"],
-                "target": row["target"],
-                "label": row["relationLabel"],
-                "relation": row["relation"],
-                "validationIds": row["validationIds"],
-                "reasons": _reason_rows(reasons, row["validationIds"]),
-            }
-        )
-    for cluster in displayed_clusters:
-        members = [member for member in cluster["members"] if member in selected]
-        if len(members) < 2:
-            continue
-        anchor = members[0]
-        for member in members[1:]:
-            edges.append(
-                {
-                    "id": _edge_id("sharedLabel", str(cluster["id"]), anchor, member),
-                    "type": "sharedLabel",
-                    "source": anchor,
-                    "target": member,
-                    "label": str(cluster["normalizedLabel"]),
-                    "clusterId": str(cluster["id"]),
-                }
-            )
-    for child, parent in release_facts.subject_objects(SKOS.broader):
-        if not isinstance(child, URIRef) or not isinstance(parent, URIRef):
-            continue
-        child_id, parent_id = str(child), str(parent)
-        if child_id in selected and parent_id in selected:
-            edges.append(
-                {
-                    "id": _edge_id("broader", child_id, parent_id),
-                    "type": "broader",
-                    "source": child_id,
-                    "target": parent_id,
-                    "label": "broader concept",
-                }
-            )
-    # One edge per USE reference: the stated thesaurusUse direction, with the
-    # reciprocal thesaurusUsedFor inverted into it, because ICPSR's 479 USE and
-    # 394 UF statements are not reciprocal and a viewer needs one line, not two.
-    use_pairs: set[tuple[str, str]] = set()
-    for lead_in, descriptor in release_facts.subject_objects(ATLAS.thesaurusUse):
-        if isinstance(lead_in, URIRef) and isinstance(descriptor, URIRef):
-            use_pairs.add((str(lead_in), str(descriptor)))
-    for descriptor, lead_in in release_facts.subject_objects(ATLAS.thesaurusUsedFor):
-        if isinstance(lead_in, URIRef) and isinstance(descriptor, URIRef):
-            use_pairs.add((str(lead_in), str(descriptor)))
-    for lead_in_id, descriptor_id in sorted(use_pairs):
-        if lead_in_id in selected and descriptor_id in selected:
-            edges.append(
-                {
-                    "id": _edge_id("use", lead_in_id, descriptor_id),
-                    "type": "use",
-                    "source": lead_in_id,
-                    "target": descriptor_id,
-                    "label": "USE (preferred term)",
-                }
-            )
-    # skos:related is symmetric and thesauri state both directions; the pair
-    # renders once, in canonical order.
-    related_pairs: set[tuple[str, str]] = set()
-    for left, right in release_facts.subject_objects(SKOS.related):
-        if isinstance(left, URIRef) and isinstance(right, URIRef):
-            related_pairs.add((min(str(left), str(right)), max(str(left), str(right))))
-    for left_id, right_id in sorted(related_pairs):
-        if left_id in selected and right_id in selected:
-            edges.append(
-                {
-                    "id": _edge_id("related", left_id, right_id),
-                    "type": "related",
-                    "source": left_id,
-                    "target": right_id,
-                    "label": "related concept",
-                }
-            )
-    # Lifecycle succession: a retired concept points at its replacement. The
-    # stated isReplacedBy direction wins, with reciprocal dcterms:replaces
-    # statements inverted into it so one succession is one edge.
-    replaced_pairs: set[tuple[str, str]] = set()
-    for retired, successor in release_facts.subject_objects(DCTERMS.isReplacedBy):
-        if isinstance(retired, URIRef) and isinstance(successor, URIRef):
-            replaced_pairs.add((str(retired), str(successor)))
-    for successor, retired in release_facts.subject_objects(DCTERMS.replaces):
-        if isinstance(retired, URIRef) and isinstance(successor, URIRef):
-            replaced_pairs.add((str(retired), str(successor)))
-    for retired_id, successor_id in sorted(replaced_pairs):
-        if retired_id in selected and successor_id in selected:
-            edges.append(
-                {
-                    "id": _edge_id("replacedBy", retired_id, successor_id),
-                    "type": "replacedBy",
-                    "source": retired_id,
-                    "target": successor_id,
-                    "label": "replaced by",
-                }
-            )
-    # The gate's refusals, drawable but default-off in the viewer: every
-    # candidate that failed two-independent-machine qualification.
-    for candidate in sorted(analysis.subjects(RDF.type, ATLAS.MappingCandidate), key=str):
-        if not isinstance(candidate, URIRef):
-            continue
-        if (candidate, RKAF.usageEligibility, RKAF.notEligible) not in analysis:
-            continue
-        source_member = next(analysis.objects(candidate, ATLAS.sourceMember), None)
-        target_member = next(analysis.objects(candidate, ATLAS.targetMember), None)
-        if not isinstance(source_member, URIRef) or not isinstance(target_member, URIRef):
-            continue
-        source_id, target_id = str(source_member), str(target_member)
-        if source_id in selected and target_id in selected:
-            # A refusal's validations are found through the candidate, since a
-            # refused candidate has no mapping to cite them from.
-            refused = sorted(
-                str(value)
-                for value in analysis.subjects(ATLAS.validates, candidate)
-                if isinstance(value, URIRef)
-            )
-            edges.append(
-                {
-                    "id": _edge_id("rejectedCandidate", str(candidate)),
-                    "type": "rejectedCandidate",
-                    "source": source_id,
-                    "target": target_id,
-                    "label": "not qualified",
-                    "candidateId": str(candidate),
-                    "reasons": _reason_rows(reasons, refused),
-                }
-            )
-    edges.sort(key=lambda row: (str(row["type"]), str(row["source"]), str(row["target"]), str(row["id"])))
-
-    shown_by_release: dict[str, int] = defaultdict(int)
-    for node in nodes:
-        shown_by_release[str(node["releaseId"])] += 1
-    releases = [
-        {
-            "id": release_id,
-            "label": release_names[release_id],
-            "memberCount": len(set(release_facts.objects(URIRef(release_id), PROV.hadMember))),
-            "shownNodeCount": shown_by_release[release_id],
-        }
-        for release_id in release_ids
-    ]
-    managed_inputs = [
-        {
-            "manifestDigest": str(value["manifestDigest"]),
-            "publicationReleaseId": str(value["publicationReleaseId"]),
-            "rulespecGraph": {
-                "id": str(value["rulespecGraph"]["id"]),
-                "digest": str(value["rulespecGraph"]["digest"]),
-            },
-        }
-        for value in asset.manifest["inputs"]
-        if value.get("role") == "ManagedReleaseView"
-    ]
-    edge_counts = {
-        kind: sum(1 for edge in edges if edge["type"] == kind)
-        for kind in (
-            "qualifiedMapping",
-            "sharedLabel",
-            "broader",
-            "related",
-            "use",
-            "replacedBy",
-            "rejectedCandidate",
-        )
-    }
-    return {
-        "type": _EXPLORER_TYPE,
-        "schemaVersion": EXPLORER_SCHEMA_VERSION,
-        "title": title.strip(),
-        "atlas": {
-            "assetId": str(asset.manifest["id"]),
-            "manifestDigest": asset.manifest_digest,
-            "distributionDigest": asset.output_digest,
-            "counts": dict(asset.manifest["counts"]),
-            "quadCount": int(asset.manifest["output"]["quadCount"]),
-            "byteLength": int(asset.manifest["output"]["byteLength"]),
-            "managedInputs": managed_inputs,
-        },
-        "selectionPolicy": {
-            "id": "refspec-atlas-explorer-selection-v2",
-            "maxNodes": max_nodes,
-            "maxMappings": max_mappings,
-            "maxSharedLabelClusters": max_shared_clusters,
-            "order": [
-                "qualifiedMappingEndpoints",
-                "lifecycleConcepts",
-                "crossReleaseSharedLabelsRoundRobinByReleaseSet",
-                "missingReleaseRepresentatives",
-                "immediateParentsThenChildrenThenUseNeighbours",
-            ],
-        },
-        "summary": {
-            "referenceReleaseCount": len(releases),
-            "nodeCount": len(nodes),
-            "edgeCount": len(edges),
-            "qualifiedMappingCount": edge_counts["qualifiedMapping"],
-            "availableQualifiedMappingCount": len(all_mappings),
-            "sharedLabelEdgeCount": edge_counts["sharedLabel"],
-            "sharedLabelClusterCount": len(displayed_clusters),
-            "hierarchyEdgeCount": edge_counts["broader"],
-            "relatedEdgeCount": edge_counts["related"],
-            "useEdgeCount": edge_counts["use"],
-            "replacedByEdgeCount": edge_counts["replacedBy"],
-            "rejectedCandidateEdgeCount": edge_counts["rejectedCandidate"],
-        },
-        "releases": releases,
-        "nodes": nodes,
-        "edges": edges,
-    }
-
-
-def _gzip_bytes(payload: bytes) -> bytes:
-    target = io.BytesIO()
-    with gzip.GzipFile(filename="", mode="wb", fileobj=target, compresslevel=9, mtime=0) as stream:
-        stream.write(payload)
-    return target.getvalue()
-
-
-def _artifact(
-    *,
-    path: str,
-    role: str,
-    media_type: str,
-    payload: bytes,
-    **extra: object,
-) -> dict[str, Any]:
-    return {
-        "path": path,
-        "role": role,
-        "mediaType": media_type,
-        "digest": _digest_bytes(payload),
-        "byteLength": len(payload),
-        **extra,
-    }
-
-
-@dataclass(frozen=True, slots=True)
-class AtlasPublication:
-    directory: Path
-    manifest: Mapping[str, Any]
-
-    @property
-    def manifest_digest(self) -> str:
-        return _digest_bytes(_canonical_file_bytes(dict(self.manifest)))
-
-
-def publish_vocabulary_atlas(
-    asset: VocabularyAtlasAsset,
-    output: Path | str,
-    *,
-    title: str = "RefSpec vocabulary atlas",
-    release_labels: Mapping[str, str] | None = None,
-    max_nodes: int = _DEFAULT_MAX_NODES,
-    max_mappings: int = _DEFAULT_MAX_MAPPINGS,
-    max_shared_clusters: int = _DEFAULT_SHARED_CLUSTERS,
-) -> AtlasPublication:
-    """Write a deterministic static publication for one verified atlas."""
-
-    target = Path(output)
-    if target.exists() or target.is_symlink():
-        raise VocabularyAtlasError("atlas publication output already exists")
-    model = build_explorer_model(
-        asset,
-        title=title,
-        release_labels=release_labels,
-        max_nodes=max_nodes,
-        max_mappings=max_mappings,
-        max_shared_clusters=max_shared_clusters,
-    )
-    atlas_manifest_bytes = asset.manifest_bytes()
-    compressed_bytes = _gzip_bytes(asset.payload)
-    explorer_bytes = _canonical_file_bytes(model)
-    html_bytes = render_atlas_explorer(model).encode("utf-8")
-    artifacts = sorted(
-        [
-            _artifact(
-                path=ATLAS_MANIFEST,
-                role="canonicalAtlasManifest",
-                media_type="application/json",
-                payload=atlas_manifest_bytes,
-            ),
-            _artifact(
-                path=COMPRESSED_ATLAS,
-                role="compressedCanonicalAtlas",
-                media_type="application/n-quads",
-                payload=compressed_bytes,
-                contentEncoding="gzip",
-                uncompressedDigest=asset.output_digest,
-                uncompressedByteLength=len(asset.payload),
-            ),
-            _artifact(
-                path=EXPLORER_DATA,
-                role="derivedExplorerData",
-                media_type="application/json",
-                payload=explorer_bytes,
-            ),
-            _artifact(
-                path=EXPLORER_HTML,
-                role="offlineExplorer",
-                media_type="text/html; charset=utf-8",
-                payload=html_bytes,
-            ),
-        ],
-        key=lambda row: str(row["path"]),
-    )
-    atlas_pin = {
-        "assetId": str(asset.manifest["id"]),
-        "manifestDigest": asset.manifest_digest,
-        "distributionDigest": asset.output_digest,
-    }
-    publication_digest = binding.canonical_sha256(
-        {
-            "atlas": atlas_pin,
-            "artifacts": artifacts,
-            "selectionPolicy": model["selectionPolicy"],
-            "title": title.strip(),
-        }
-    )
-    manifest: dict[str, Any] = {
-        "id": "urn:ref:vocabulary-atlas-publication:" + publication_digest.removeprefix("sha256:"),
-        "type": _PUBLICATION_TYPE,
-        "schemaVersion": PUBLICATION_SCHEMA_VERSION,
-        "publicationDigest": publication_digest,
-        "title": title.strip(),
-        "atlas": atlas_pin,
-        "selectionPolicy": model["selectionPolicy"],
-        "summary": model["summary"],
-        "artifacts": artifacts,
-    }
-    manifest["canonicalPayloadDigest"] = binding.canonical_payload_digest(manifest)
-    publication_bytes = _canonical_file_bytes(manifest)
-
-    target.parent.mkdir(parents=True, exist_ok=True)
+def _verified_distribution(distribution: VocabularyAtlasDistribution) -> None:
+    if not isinstance(distribution, (VocabularyAtlasAsset, VocabularyAtlasProjection)):
+        raise AtlasPublicationError("publication requires a verified Atlas 2.0 distribution")
     try:
-        target.mkdir()
-    except FileExistsError as error:
-        raise VocabularyAtlasError("atlas publication output already exists") from error
-    (target / ATLAS_MANIFEST).write_bytes(atlas_manifest_bytes)
-    (target / COMPRESSED_ATLAS).write_bytes(compressed_bytes)
-    (target / EXPLORER_DATA).write_bytes(explorer_bytes)
-    (target / EXPLORER_HTML).write_bytes(html_bytes)
-    (target / PUBLICATION_MANIFEST).write_bytes(publication_bytes)
-    return AtlasPublication(directory=target.resolve(), manifest=manifest)
+        distribution._require_verified()
+    except VocabularyAtlasError as error:
+        raise AtlasPublicationError(str(error)) from error
 
 
-def _release_label_overrides(values: Sequence[str]) -> dict[str, str]:
-    result: dict[str, str] = {}
-    for value in values:
-        release_id, separator, label = value.rpartition("=")
-        if not separator or not release_id or not label.strip():
-            raise VocabularyAtlasError("--release-label must be RELEASE_IRI=DISPLAY_NAME")
-        if release_id in result:
-            raise VocabularyAtlasError("--release-label repeats a release IRI")
-        result[release_id] = label.strip()
+def _distribution_descriptor(
+    distribution: VocabularyAtlasDistribution,
+) -> dict[str, Any]:
+    _verified_distribution(distribution)
+    result: dict[str, Any] = {
+        "kind": "atlas" if isinstance(distribution, VocabularyAtlasAsset) else "projection",
+        "assetId": str(distribution.manifest["id"]),
+        "manifestDigest": distribution.manifest_digest,
+        "distributionDigest": distribution.output_digest,
+    }
+    if isinstance(distribution, VocabularyAtlasProjection):
+        result["parent"] = distribution.parent_pin
     return result
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="refspec-publish-vocabulary-atlas")
-    parser.add_argument("--atlas", type=Path, required=True, help="directory containing atlas-manifest.json and atlas.nq")
-    parser.add_argument("--atlas-manifest-digest", required=True, help="exact SHA-256 pin for atlas-manifest.json")
-    parser.add_argument("--atlas-output-digest", required=True, help="exact SHA-256 pin for atlas.nq")
-    parser.add_argument("--output", type=Path, required=True, help="new static publication directory")
-    parser.add_argument("--title", default="RefSpec vocabulary atlas")
-    parser.add_argument(
-        "--release-label",
-        action="append",
-        default=[],
-        metavar="RELEASE_IRI=DISPLAY_NAME",
-        help="optional display label for one reference release; repeat as needed",
+def _selection_policy(
+    *,
+    max_concepts: int,
+    max_mapping_assertions: int,
+) -> dict[str, Any]:
+    return {
+        "id": _SELECTION_POLICY_ID,
+        "type": "boundedExplorerView",
+        "version": EXPLORER_SCHEMA_VERSION,
+        "maxConcepts": max_concepts,
+        "maxMappingAssertions": max_mapping_assertions,
+    }
+
+
+def build_explorer_model(
+    distribution: VocabularyAtlasDistribution,
+    *,
+    title: str = "RefSpec vocabulary atlas",
+    release_labels: Mapping[str, str] | None = None,
+    max_concepts: int = _DEFAULT_MAX_CONCEPTS,
+    max_mapping_assertions: int = _DEFAULT_MAX_MAPPING_ASSERTIONS,
+) -> dict[str, Any]:
+    """Build one deterministic, bounded view through generic Atlas 2.0 queries."""
+
+    _verified_distribution(distribution)
+    clean_title = _require_text(title, "atlas publication title")
+    _require_count(max_concepts, "atlas explorer max_concepts", positive=True)
+    _require_count(
+        max_mapping_assertions,
+        "atlas explorer max_mapping_assertions",
     )
-    parser.add_argument("--max-nodes", type=int, default=_DEFAULT_MAX_NODES)
-    parser.add_argument("--max-mappings", type=int, default=_DEFAULT_MAX_MAPPINGS)
-    parser.add_argument("--max-shared-clusters", type=int, default=_DEFAULT_SHARED_CLUSTERS)
+    labels = dict(release_labels or {})
+    if any(
+        not isinstance(key, str)
+        or not isinstance(value, str)
+        or not key.strip()
+        or not value.strip()
+        or key != key.strip()
+        or value != value.strip()
+        for key, value in labels.items()
+    ):
+        raise AtlasPublicationError("atlas explorer release labels must be trimmed non-empty text")
+
+    queries = VocabularyAtlasQueries(distribution)
+    snapshots = queries.release_snapshots()
+    release_ids = {snapshot.release_id for snapshot in snapshots}
+    unknown_labels = sorted(set(labels) - release_ids)
+    if unknown_labels:
+        raise AtlasPublicationError(f"atlas explorer release labels name unknown releases: {unknown_labels}")
+
+    concepts = queries.concepts()
+    concept_by_key = {(value.release_id, value.concept_id): value for value in concepts}
+    repeated_ids = Counter(value.concept_id for value in concepts)
+    mappings = queries.mapping_assertions()
+    selected: dict[tuple[str, str], ConceptVersion] = {}
+    selected_assertions = []
+
+    for view in mappings:
+        if len(selected_assertions) >= max_mapping_assertions:
+            break
+        assertion = view.assertion
+        source_key = (assertion.source_release, assertion.source_concept)
+        target_key = (assertion.target_release, assertion.target_concept)
+        endpoints = (concept_by_key.get(source_key), concept_by_key.get(target_key))
+        if any(endpoint is None for endpoint in endpoints):
+            raise AtlasPublicationError("atlas mapping endpoint is absent from the verified concept records")
+        required = set(selected) | {source_key, target_key}
+        if len(required) > max_concepts:
+            continue
+        selected[source_key] = cast(ConceptVersion, endpoints[0])
+        selected[target_key] = cast(ConceptVersion, endpoints[1])
+        selected_assertions.append(view)
+
+    representative_keys: set[tuple[str, str]] = set()
+    for snapshot in snapshots:
+        candidates = queries.concepts(release_id=snapshot.release_id)
+        if candidates and len(selected) < max_concepts:
+            representative = candidates[0]
+            key = (representative.release_id, representative.concept_id)
+            selected.setdefault(key, representative)
+            representative_keys.add(key)
+    for version in concepts:
+        if len(selected) >= max_concepts:
+            break
+        selected.setdefault((version.release_id, version.concept_id), version)
+
+    view_id_by_key = {key: _concept_view_id(version, repeated_ids) for key, version in selected.items()}
+    mapping_endpoint_keys = {
+        key
+        for view in selected_assertions
+        for key in (
+            (view.assertion.source_release, view.assertion.source_concept),
+            (view.assertion.target_release, view.assertion.target_concept),
+        )
+    }
+    concept_rows: list[dict[str, Any]] = []
+    for key, version in sorted(
+        selected.items(),
+        key=lambda item: (
+            _RING_ORDER[item[1].semantic_ring],
+            item[1].release_id,
+            item[1].concept_id,
+            item[1].record_id,
+        ),
+    ):
+        selection_reasons: list[str] = []
+        if key in mapping_endpoint_keys:
+            selection_reasons.append("mappingEndpoint")
+        if key in representative_keys:
+            selection_reasons.append("releaseRepresentative")
+        concept_row: dict[str, Any] = {
+            "viewId": view_id_by_key[key],
+            "conceptId": version.concept_id,
+            "releaseId": version.release_id,
+            "semanticRing": version.semantic_ring,
+            "recordId": version.record_id,
+            "recordDigest": version.record_digest,
+            "label": _preferred_label(queries, version),
+            "selectionReasons": selection_reasons,
+        }
+        notation = _first_text(version.record, "skos:notation", "http://www.w3.org/2004/02/skos/core#notation")
+        definition = _first_text(
+            version.record,
+            "skos:definition",
+            "http://www.w3.org/2004/02/skos/core#definition",
+        )
+        scope_note = _first_text(
+            version.record,
+            "skos:scopeNote",
+            "http://www.w3.org/2004/02/skos/core#scopeNote",
+        )
+        if notation is not None:
+            concept_row["notation"] = notation
+        if definition is not None:
+            concept_row["definition"] = definition
+        if scope_note is not None:
+            concept_row["scopeNote"] = scope_note
+        concept_rows.append(concept_row)
+
+    mapping_rows: list[dict[str, Any]] = []
+    for view in selected_assertions:
+        assertion = view.assertion
+        source_key = (assertion.source_release, assertion.source_concept)
+        target_key = (assertion.target_release, assertion.target_concept)
+        mapping_row: dict[str, Any] = {
+            "id": view.mapping_id,
+            "sourceViewId": view_id_by_key[source_key],
+            "targetViewId": view_id_by_key[target_key],
+            "sourceConcept": assertion.source_concept,
+            "targetConcept": assertion.target_concept,
+            "sourceRelease": assertion.source_release,
+            "targetRelease": assertion.target_release,
+            "semanticRing": assertion.semantic_ring,
+            "relation": assertion.relation,
+            "relationLabel": _relation_label(assertion.relation),
+            "directEvidenceAssertions": list(assertion.evidence),
+            "evidenceAssertions": sorted({item.assertion.identifier for item in view.evidence_assertions}),
+            "evidenceClasses": sorted({item.assertion.evidence_class for item in view.evidence_assertions}),
+            "externalEvidence": list(view.external_evidence_ids),
+            "candidateIds": list(view.candidate_ids),
+            "validationReceiptIds": list(view.validation_receipt_ids),
+            "machineProofs": [item.proof_id for item in view.machine_proofs],
+        }
+        if assertion.context is not None:
+            mapping_row["context"] = _plain(assertion.context)
+        mapping_rows.append(mapping_row)
+    mapping_rows.sort(key=lambda value: (_RING_ORDER[value["semanticRing"]], value["id"]))
+
+    release_rows = []
+    for snapshot in snapshots:
+        members = queries.concepts(release_id=snapshot.release_id)
+        release_rows.append(
+            {
+                "releaseId": snapshot.release_id,
+                "label": labels.get(snapshot.release_id, _default_release_label(snapshot.release_id)),
+                "semanticRing": snapshot.semantic_ring,
+                "conceptCount": len(members),
+                "shownConceptCount": sum(concept["releaseId"] == snapshot.release_id for concept in concept_rows),
+            }
+        )
+
+    source_counts = _plain(distribution.manifest["counts"])
+    if not isinstance(source_counts, dict):
+        raise AtlasPublicationError("verified atlas manifest counts must be an object")
+    output = _require_mapping(distribution.manifest.get("output"), "verified atlas output")
+    quad_count = _require_count(output.get("quadCount"), "verified atlas output.quadCount", positive=True)
+    summary = {
+        "shownConceptCount": len(concept_rows),
+        "shownMappingAssertionCount": len(mapping_rows),
+        "availableConceptCount": len(concepts),
+        "availableMappingAssertionCount": len(mappings),
+        "truncated": len(concept_rows) < len(concepts) or len(mapping_rows) < len(mappings),
+    }
+    atlas_row: dict[str, Any] = {
+        "kind": "atlas" if isinstance(distribution, VocabularyAtlasAsset) else "projection",
+        "assetId": str(distribution.manifest["id"]),
+        "manifestDigest": distribution.manifest_digest,
+        "distributionDigest": distribution.output_digest,
+        "counts": source_counts,
+        "quadCount": quad_count,
+    }
+    if isinstance(distribution, VocabularyAtlasProjection):
+        atlas_row["parent"] = distribution.parent_pin
+    return {
+        "type": EXPLORER_TYPE,
+        "schemaVersion": EXPLORER_SCHEMA_VERSION,
+        "title": clean_title,
+        "atlas": atlas_row,
+        "selectionPolicy": _selection_policy(
+            max_concepts=max_concepts,
+            max_mapping_assertions=max_mapping_assertions,
+        ),
+        "summary": summary,
+        "conceptReleases": release_rows,
+        "concepts": concept_rows,
+        "mappingAssertions": mapping_rows,
+    }
+
+
+def _artifact_row(
+    path: str,
+    payload: bytes,
+    *,
+    uncompressed: bytes | None = None,
+) -> dict[str, Any]:
+    role, media_type = _ARTIFACT_SPEC[path]
+    result: dict[str, Any] = {
+        "path": path,
+        "role": role,
+        "mediaType": media_type,
+        "fileDigest": sha256_digest(payload),
+        "byteLength": len(payload),
+    }
+    if uncompressed is not None:
+        result.update(
+            {
+                "contentEncoding": "gzip",
+                "uncompressedDigest": sha256_digest(uncompressed),
+                "uncompressedByteLength": len(uncompressed),
+            }
+        )
+    return result
+
+
+def _publication_manifest(
+    *,
+    title: str,
+    distribution: VocabularyAtlasDistribution,
+    decision: VocabularyAtlasPublicationDecision,
+    explorer: Mapping[str, Any],
+    payloads: Mapping[str, bytes],
+) -> dict[str, Any]:
+    rows = [
+        _artifact_row(
+            path,
+            payloads[path],
+            uncompressed=distribution.payload if path == COMPRESSED_ATLAS else None,
+        )
+        for path in sorted(payloads)
+    ]
+    basis = {
+        "type": _PUBLICATION_TYPE,
+        "schemaVersion": PUBLICATION_SCHEMA_VERSION,
+        "title": title,
+        "distribution": _distribution_descriptor(distribution),
+        "decision": {
+            "id": decision.identifier,
+            "recordDigest": decision.record_digest,
+            "fileDigest": sha256_digest(decision.artifact_bytes()),
+        },
+        "selectionPolicy": _plain(explorer["selectionPolicy"]),
+        "summary": _plain(explorer["summary"]),
+        "artifacts": rows,
+    }
+    publication_digest = binding.canonical_sha256(basis)
+    result = {
+        **basis,
+        "id": _PUBLICATION_ID_PREFIX + publication_digest.removeprefix("sha256:"),
+        "publicationDigest": publication_digest,
+    }
+    result["canonicalPayloadDigest"] = binding.canonical_payload_digest(result)
+    return result
+
+
+def _write_publication(directory: Path | str, payloads: Mapping[str, bytes]) -> Path:
+    target = Path(directory)
+    if target.exists() or target.is_symlink():
+        raise AtlasPublicationError(f"atlas publication destination already exists: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staged = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
+    try:
+        for name, payload in payloads.items():
+            (staged / name).write_bytes(payload)
+        if target.exists() or target.is_symlink():
+            raise AtlasPublicationError(f"atlas publication destination already exists: {target}")
+        os.replace(staged, target)
+    except BaseException:
+        shutil.rmtree(staged, ignore_errors=True)
+        raise
+    return target.resolve()
+
+
+def _validate_decision(
+    distribution: VocabularyAtlasDistribution,
+    decision: VocabularyAtlasPublicationDecision,
+    *,
+    parent: VocabularyAtlasAsset | None,
+) -> None:
+    if not isinstance(decision, VocabularyAtlasPublicationDecision):
+        raise AtlasPublicationError("publication requires a VocabularyAtlasPublicationDecision")
+    try:
+        decision.validate_distribution(distribution, parent=parent)
+    except PublicationDecisionError as error:
+        raise AtlasPublicationError(str(error)) from error
+
+
+def _validate_projection_reproduction(
+    distribution: VocabularyAtlasProjection,
+    parent: VocabularyAtlasAsset,
+) -> None:
+    """Require one projection to be the exact registered cut of its parent."""
+
+    try:
+        rebuilt = build_atlas_projection(
+            parent,
+            policy=cast(Mapping[str, Any], distribution.manifest["projectionPolicy"]),
+        )
+    except (KeyError, VocabularyAtlasError) as error:
+        raise AtlasPublicationError("atlas projection cannot be reproduced from its verified parent") from error
+    if rebuilt.manifest_bytes() != distribution.manifest_bytes() or rebuilt.payload != distribution.payload:
+        raise AtlasPublicationError("atlas projection does not reproduce from its verified parent")
+
+
+@dataclass(frozen=True, slots=True, init=False)
+class AtlasPublication:
+    """One verified, path-backed Atlas 2.0 static publication."""
+
+    directory: Path
+    manifest: Mapping[str, Any]
+    distribution: VocabularyAtlasDistribution
+    decision: VocabularyAtlasPublicationDecision
+    _verification_token: object
+
+    def __init__(
+        self,
+        directory: Path,
+        manifest: Mapping[str, Any],
+        distribution: VocabularyAtlasDistribution,
+        decision: VocabularyAtlasPublicationDecision,
+        *,
+        _construction_token: object | None = None,
+    ) -> None:
+        if _construction_token is not _PUBLICATION_CONSTRUCTION_TOKEN:
+            raise TypeError("AtlasPublication must come from AtlasPublication.open()")
+        object.__setattr__(self, "directory", directory)
+        object.__setattr__(self, "manifest", manifest)
+        object.__setattr__(self, "distribution", distribution)
+        object.__setattr__(self, "decision", decision)
+        object.__setattr__(self, "_verification_token", _PUBLICATION_CONSTRUCTION_TOKEN)
+
+    @classmethod
+    def _verified(
+        cls,
+        *,
+        directory: Path,
+        manifest: Mapping[str, Any],
+        distribution: VocabularyAtlasDistribution,
+        decision: VocabularyAtlasPublicationDecision,
+    ) -> AtlasPublication:
+        return cls(
+            directory,
+            manifest,
+            distribution,
+            decision,
+            _construction_token=_PUBLICATION_CONSTRUCTION_TOKEN,
+        )
+
+    def _require_verified(self) -> None:
+        if (
+            getattr(self, "_verification_token", None) is not _PUBLICATION_CONSTRUCTION_TOKEN
+            or not isinstance(self.directory, Path)
+            or not isinstance(self.manifest, Mapping)
+            or not isinstance(self.distribution, (VocabularyAtlasAsset, VocabularyAtlasProjection))
+            or not isinstance(self.decision, VocabularyAtlasPublicationDecision)
+        ):
+            raise AtlasPublicationError("atlas publication is not a verified 2.0 publication")
+
+    @property
+    def manifest_digest(self) -> str:
+        self._require_verified()
+        return sha256_digest(_canonical_bytes(self.manifest))
+
+    @classmethod
+    def open(
+        cls,
+        directory: Path | str,
+        *,
+        expected_manifest_digest: str,
+        parent: VocabularyAtlasAsset | None = None,
+    ) -> AtlasPublication:
+        """Verify exact files, optionally reproducing a projection from its parent."""
+
+        trusted_digest = _require_digest(
+            expected_manifest_digest,
+            "expected publication manifest digest",
+        )
+        root, payloads = _read_publication_files(directory)
+        manifest_payload = payloads[PUBLICATION_MANIFEST]
+        if sha256_digest(manifest_payload) != trusted_digest:
+            raise AtlasPublicationError("publication external manifest digest differs")
+        manifest = _load_canonical_json(manifest_payload, "publication manifest")
+        _validate_publication_manifest(manifest, payloads)
+
+        compressed = payloads[COMPRESSED_ATLAS]
+        try:
+            raw_atlas = gzip.decompress(compressed)
+        except (OSError, EOFError) as error:
+            raise AtlasPublicationError("published atlas gzip is invalid") from error
+        if _gzip_bytes(raw_atlas) != compressed:
+            raise AtlasPublicationError("published atlas gzip is not deterministic")
+        compressed_row = next(
+            cast(Mapping[str, Any], row)
+            for row in cast(Sequence[Mapping[str, Any]], manifest["artifacts"])
+            if row["path"] == COMPRESSED_ATLAS
+        )
+        if compressed_row["uncompressedDigest"] != sha256_digest(raw_atlas) or compressed_row[
+            "uncompressedByteLength"
+        ] != len(raw_atlas):
+            raise AtlasPublicationError("published atlas uncompressed descriptor differs")
+
+        descriptor = cast(Mapping[str, Any], manifest["distribution"])
+        distribution = _open_published_distribution(
+            descriptor,
+            manifest_bytes=payloads[ATLAS_MANIFEST],
+            scope_bytes=payloads.get(ATLAS_SCOPE),
+            atlas_bytes=raw_atlas,
+        )
+        decision_record = _load_canonical_json(
+            payloads[PUBLICATION_DECISION],
+            "publication decision",
+        )
+        try:
+            decision = VocabularyAtlasPublicationDecision.from_record(decision_record)
+        except PublicationDecisionError as error:
+            raise AtlasPublicationError(str(error)) from error
+        _validate_opened_decision(
+            distribution,
+            decision,
+            manifest,
+            parent=parent,
+        )
+
+        explorer = _load_canonical_json(payloads[EXPLORER_DATA], "atlas explorer data")
+        if (
+            explorer.get("title") != manifest["title"]
+            or _plain(explorer.get("selectionPolicy")) != _plain(manifest["selectionPolicy"])
+            or _plain(explorer.get("summary")) != _plain(manifest["summary"])
+        ):
+            raise AtlasPublicationError("publication manifest differs from its exact explorer data")
+        _validate_explorer(distribution, explorer)
+        expected_html = render_atlas_explorer(explorer).encode("utf-8")
+        if payloads[EXPLORER_HTML] != expected_html:
+            raise AtlasPublicationError("offline explorer HTML differs from its exact explorer data")
+
+        return cls._verified(
+            directory=root,
+            manifest=cast(Mapping[str, Any], deep_freeze_json(manifest)),
+            distribution=distribution,
+            decision=decision,
+        )
+
+
+def _descriptor_identity(metadata: os.stat_result) -> tuple[int, int, int]:
+    return (metadata.st_dev, metadata.st_ino, stat.S_IFMT(metadata.st_mode))
+
+
+def _descriptor_state(metadata: os.stat_result) -> tuple[int, int, int, int, int, int, int]:
+    return (
+        *_descriptor_identity(metadata),
+        metadata.st_nlink,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def _no_follow_flags(*, directory: bool = False) -> int:
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if no_follow is None or not _DESCRIPTOR_RELATIVE_READS_SUPPORTED:
+        raise AtlasPublicationError(
+            "secure descriptor-relative no-follow publication reads are unsupported on this platform"
+        )
+    flags = os.O_RDONLY | no_follow | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+    if directory:
+        directory_flag = getattr(os, "O_DIRECTORY", None)
+        if directory_flag is None:
+            raise AtlasPublicationError("secure no-follow publication directory reads are unsupported on this platform")
+        flags |= directory_flag
+    return flags
+
+
+def _read_regular_file_at(
+    root_descriptor: int,
+    name: str,
+) -> tuple[bytes, tuple[int, int, int, int, int, int, int]]:
+    try:
+        descriptor = os.open(
+            name,
+            _no_follow_flags(),
+            dir_fd=root_descriptor,
+        )
+    except OSError as error:
+        raise AtlasPublicationError("atlas publication must contain regular files and no symlinks") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise AtlasPublicationError("atlas publication must contain regular files and no symlinks")
+        remaining = before.st_size
+        chunks: list[bytes] = []
+        while remaining:
+            chunk = os.read(descriptor, min(remaining, _READ_CHUNK_SIZE))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        extra = os.read(descriptor, 1)
+        after = os.fstat(descriptor)
+    except OSError as error:
+        raise AtlasPublicationError("atlas publication changed while opening") from error
+    finally:
+        os.close(descriptor)
+    payload = b"".join(chunks)
+    if remaining or extra or _descriptor_state(before) != _descriptor_state(after):
+        raise AtlasPublicationError("atlas publication changed while opening")
+    return payload, _descriptor_state(after)
+
+
+def _read_publication_files(directory: Path | str) -> tuple[Path, dict[str, bytes]]:
+    selected = Path(directory).absolute()
+    try:
+        root_descriptor = os.open(selected, _no_follow_flags(directory=True))
+    except OSError as error:
+        raise AtlasPublicationError("atlas publication path must be an existing non-symlink directory") from error
+    try:
+        root_before = os.fstat(root_descriptor)
+        if not stat.S_ISDIR(root_before.st_mode):
+            raise AtlasPublicationError("atlas publication path must be a directory")
+        entries = set(os.listdir(root_descriptor))
+        if PUBLICATION_MANIFEST not in entries:
+            raise AtlasPublicationError("atlas publication has no publication manifest")
+        payloads: dict[str, bytes] = {}
+        states: dict[str, tuple[int, int, int, int, int, int, int]] = {}
+        for name in entries:
+            payloads[name], states[name] = _read_regular_file_at(root_descriptor, name)
+
+        manifest = _load_canonical_json(payloads[PUBLICATION_MANIFEST], "publication manifest")
+        artifacts = _require_sequence(manifest.get("artifacts"), "publication manifest artifacts")
+        declared_paths = {
+            _require_text(_require_mapping(row, "publication artifact").get("path"), "publication artifact.path")
+            for row in artifacts
+        }
+        expected = declared_paths | {PUBLICATION_MANIFEST}
+        if entries != expected:
+            raise AtlasPublicationError("atlas publication file set differs from its manifest")
+
+        final_entries = set(os.listdir(root_descriptor))
+        if final_entries != expected:
+            raise AtlasPublicationError("atlas publication changed while opening")
+        for name in expected:
+            final_payload, final_state = _read_regular_file_at(root_descriptor, name)
+            if final_state != states[name] or final_payload != payloads[name]:
+                raise AtlasPublicationError("atlas publication changed while opening")
+        if _descriptor_state(os.fstat(root_descriptor)) != _descriptor_state(root_before):
+            raise AtlasPublicationError("atlas publication changed while opening")
+
+        try:
+            current = os.stat(selected, follow_symlinks=False)
+            resolved = selected.resolve(strict=True)
+            resolved_metadata = os.stat(resolved, follow_symlinks=False)
+        except OSError as error:
+            raise AtlasPublicationError("atlas publication changed while opening") from error
+        root_identity = _descriptor_identity(root_before)
+        if (
+            not stat.S_ISDIR(current.st_mode)
+            or _descriptor_identity(current) != root_identity
+            or _descriptor_identity(resolved_metadata) != root_identity
+        ):
+            raise AtlasPublicationError("atlas publication changed while opening")
+        return resolved, payloads
+    finally:
+        os.close(root_descriptor)
+
+
+def _validate_parent(value: object, label: str) -> dict[str, str]:
+    row = _require_mapping(value, label)
+    _require_exact_fields(row, _PARENT_FIELDS, label)
+    return {
+        "assetId": _require_text(row.get("assetId"), f"{label}.assetId"),
+        "manifestDigest": _require_digest(row.get("manifestDigest"), f"{label}.manifestDigest"),
+        "distributionDigest": _require_digest(
+            row.get("distributionDigest"),
+            f"{label}.distributionDigest",
+        ),
+    }
+
+
+def _validate_distribution_descriptor(value: object) -> dict[str, Any]:
+    row = _require_mapping(value, "publication distribution")
+    kind = row.get("kind")
+    expected = _ATLAS_DISTRIBUTION_FIELDS if kind == "atlas" else _PROJECTION_DISTRIBUTION_FIELDS
+    if kind not in {"atlas", "projection"}:
+        raise AtlasPublicationError("publication distribution kind must be atlas or projection")
+    _require_exact_fields(row, expected, "publication distribution")
+    result: dict[str, Any] = {
+        "kind": kind,
+        "assetId": _require_text(row.get("assetId"), "publication distribution.assetId"),
+        "manifestDigest": _require_digest(
+            row.get("manifestDigest"),
+            "publication distribution.manifestDigest",
+        ),
+        "distributionDigest": _require_digest(
+            row.get("distributionDigest"),
+            "publication distribution.distributionDigest",
+        ),
+    }
+    if kind == "projection":
+        result["parent"] = _validate_parent(row.get("parent"), "publication distribution.parent")
+    return result
+
+
+def _validate_selection(value: object) -> dict[str, Any]:
+    row = _require_mapping(value, "publication selectionPolicy")
+    _require_exact_fields(row, _SELECTION_FIELDS, "publication selectionPolicy")
+    if (
+        row.get("id") != _SELECTION_POLICY_ID
+        or row.get("type") != "boundedExplorerView"
+        or row.get("version") != EXPLORER_SCHEMA_VERSION
+    ):
+        raise AtlasPublicationError("publication selectionPolicy is unsupported")
+    return {
+        "id": _SELECTION_POLICY_ID,
+        "type": "boundedExplorerView",
+        "version": EXPLORER_SCHEMA_VERSION,
+        "maxConcepts": _require_count(
+            row.get("maxConcepts"),
+            "publication selectionPolicy.maxConcepts",
+            positive=True,
+        ),
+        "maxMappingAssertions": _require_count(
+            row.get("maxMappingAssertions"),
+            "publication selectionPolicy.maxMappingAssertions",
+        ),
+    }
+
+
+def _validate_summary(value: object) -> dict[str, Any]:
+    row = _require_mapping(value, "publication summary")
+    _require_exact_fields(row, _SUMMARY_FIELDS, "publication summary")
+    result = {
+        field: _require_count(row.get(field), f"publication summary.{field}")
+        for field in _SUMMARY_FIELDS - {"truncated"}
+    }
+    if not isinstance(row.get("truncated"), bool):
+        raise AtlasPublicationError("publication summary.truncated must be boolean")
+    result["truncated"] = row["truncated"]
+    if cast(int, result["shownConceptCount"]) > cast(int, result["availableConceptCount"]) or cast(
+        int, result["shownMappingAssertionCount"]
+    ) > cast(int, result["availableMappingAssertionCount"]):
+        raise AtlasPublicationError("publication summary shown counts exceed available counts")
+    return result
+
+
+def _validate_publication_manifest(
+    manifest: Mapping[str, Any],
+    payloads: Mapping[str, bytes],
+) -> None:
+    _require_exact_fields(manifest, _PUBLICATION_FIELDS, "publication manifest")
+    if manifest.get("type") != _PUBLICATION_TYPE or manifest.get("schemaVersion") != PUBLICATION_SCHEMA_VERSION:
+        raise AtlasPublicationError("publication manifest version or type is unsupported")
+    _require_text(manifest.get("title"), "publication manifest.title")
+    distribution = _validate_distribution_descriptor(manifest.get("distribution"))
+    decision = _require_mapping(manifest.get("decision"), "publication decision descriptor")
+    _require_exact_fields(decision, _DECISION_FIELDS, "publication decision descriptor")
+    _require_text(decision.get("id"), "publication decision descriptor.id")
+    _require_digest(decision.get("recordDigest"), "publication decision descriptor.recordDigest")
+    _require_digest(decision.get("fileDigest"), "publication decision descriptor.fileDigest")
+    selection = _validate_selection(manifest.get("selectionPolicy"))
+    summary = _validate_summary(manifest.get("summary"))
+
+    rows = _require_sequence(manifest.get("artifacts"), "publication manifest artifacts")
+    expected_paths = set(_ARTIFACT_SPEC) if distribution["kind"] == "atlas" else set(_ARTIFACT_SPEC) - {ATLAS_SCOPE}
+    normalized_rows = []
+    seen_paths: set[str] = set()
+    for index, raw in enumerate(rows):
+        label = f"publication manifest artifacts[{index}]"
+        row = _require_mapping(raw, label)
+        path = _require_text(row.get("path"), f"{label}.path")
+        expected_spec = _ARTIFACT_SPEC.get(path)
+        if expected_spec is None or path in seen_paths:
+            raise AtlasPublicationError("publication artifact paths must be unique supported files")
+        seen_paths.add(path)
+        fields = _COMPRESSED_ARTIFACT_FIELDS if path == COMPRESSED_ATLAS else _ARTIFACT_FIELDS
+        _require_exact_fields(row, fields, label)
+        role, media_type = expected_spec
+        if row.get("role") != role or row.get("mediaType") != media_type:
+            raise AtlasPublicationError(f"{label} role or media type differs")
+        file_digest = _require_digest(row.get("fileDigest"), f"{label}.fileDigest")
+        byte_length = _require_count(row.get("byteLength"), f"{label}.byteLength")
+        payload = payloads.get(path)
+        if payload is None or sha256_digest(payload) != file_digest or len(payload) != byte_length:
+            raise AtlasPublicationError(f"{label} differs from the published bytes")
+        normalized = dict(row)
+        if path == COMPRESSED_ATLAS:
+            if row.get("contentEncoding") != "gzip":
+                raise AtlasPublicationError("compressed atlas contentEncoding must be gzip")
+            _require_digest(row.get("uncompressedDigest"), f"{label}.uncompressedDigest")
+            _require_count(row.get("uncompressedByteLength"), f"{label}.uncompressedByteLength")
+        normalized_rows.append(normalized)
+    if seen_paths != expected_paths:
+        raise AtlasPublicationError("publication artifact set differs from its distribution kind")
+    if normalized_rows != sorted(normalized_rows, key=lambda row: row["path"]):
+        raise AtlasPublicationError("publication artifacts must be ordered by path")
+
+    basis = {field: _plain(manifest[field]) for field in _PUBLICATION_BASIS_FIELDS}
+    publication_digest = binding.canonical_sha256(basis)
+    if manifest.get("publicationDigest") != publication_digest or manifest.get(
+        "id"
+    ) != _PUBLICATION_ID_PREFIX + publication_digest.removeprefix("sha256:"):
+        raise AtlasPublicationError("publication manifest content-derived identity differs")
+    if manifest.get("canonicalPayloadDigest") != binding.canonical_payload_digest(dict(manifest)):
+        raise AtlasPublicationError("publication manifest canonicalPayloadDigest differs")
+    if _plain(manifest["selectionPolicy"]) != selection or _plain(manifest["summary"]) != summary:
+        raise AtlasPublicationError("publication manifest normalized fields differ")
+
+
+def _open_published_distribution(
+    descriptor: Mapping[str, Any],
+    *,
+    manifest_bytes: bytes,
+    scope_bytes: bytes | None,
+    atlas_bytes: bytes,
+) -> VocabularyAtlasDistribution:
+    manifest_digest = cast(str, descriptor["manifestDigest"])
+    if sha256_digest(manifest_bytes) != manifest_digest:
+        raise AtlasPublicationError("source distribution manifest digest differs")
+    if sha256_digest(atlas_bytes) != descriptor["distributionDigest"]:
+        raise AtlasPublicationError("source distribution N-Quads digest differs")
+    with tempfile.TemporaryDirectory(prefix="refspec-atlas-publication-open-") as temporary_name:
+        temporary = Path(temporary_name)
+        (temporary / MANIFEST_FILE).write_bytes(manifest_bytes)
+        (temporary / ATLAS_FILE).write_bytes(atlas_bytes)
+        try:
+            if descriptor["kind"] == "atlas":
+                if scope_bytes is None:
+                    raise AtlasPublicationError("canonical atlas publication has no exact scope bytes")
+                (temporary / SCOPE_FILE).write_bytes(scope_bytes)
+                distribution: VocabularyAtlasDistribution = VocabularyAtlasAsset.open(
+                    temporary,
+                    expected_manifest_digest=manifest_digest,
+                )
+            else:
+                if scope_bytes is not None:
+                    raise AtlasPublicationError("atlas projection publication must not carry a canonical scope")
+                distribution = VocabularyAtlasProjection.open(
+                    temporary,
+                    expected_manifest_digest=manifest_digest,
+                )
+        except VocabularyAtlasError as error:
+            raise AtlasPublicationError(str(error)) from error
+    if _distribution_descriptor(distribution) != _plain(descriptor):
+        raise AtlasPublicationError("published distribution descriptor differs from its exact files")
+    return distribution
+
+
+def _validate_opened_decision(
+    distribution: VocabularyAtlasDistribution,
+    decision: VocabularyAtlasPublicationDecision,
+    manifest: Mapping[str, Any],
+    *,
+    parent: VocabularyAtlasAsset | None,
+) -> None:
+    descriptor = _require_mapping(manifest["decision"], "publication decision descriptor")
+    if (
+        decision.identifier != descriptor["id"]
+        or decision.record_digest != descriptor["recordDigest"]
+        or sha256_digest(decision.artifact_bytes()) != descriptor["fileDigest"]
+    ):
+        raise AtlasPublicationError("publication decision descriptor differs from its exact bytes")
+    expected_kind = "atlas" if isinstance(distribution, VocabularyAtlasAsset) else "projection"
+    if decision.artifact_kind != expected_kind:
+        raise AtlasPublicationError("publication decision artifact kind differs from the distribution")
+    result: dict[str, Any] = {
+        "role": "VocabularyAtlas" if expected_kind == "atlas" else "VocabularyAtlasProjection",
+        "id": str(distribution.manifest["id"]),
+        "manifestDigest": distribution.manifest_digest,
+        "distributionDigest": distribution.output_digest,
+    }
+    if isinstance(distribution, VocabularyAtlasProjection):
+        result["parent"] = distribution.parent_pin
+    try:
+        decision.validate_result(result)
+        if isinstance(distribution, VocabularyAtlasAsset) or parent is not None:
+            decision.validate_distribution(distribution, parent=parent)
+    except PublicationDecisionError as error:
+        raise AtlasPublicationError(str(error)) from error
+    if isinstance(distribution, VocabularyAtlasProjection):
+        policy = _plain(distribution.manifest["projectionPolicy"])
+        expected_pin = {
+            "role": "projectionPolicy",
+            "id": policy["id"],
+            "version": policy["version"],
+            "contentDigest": sha256_digest(canonical_json_bytes(policy)),
+        }
+        decision_policies = cast(Sequence[Mapping[str, Any]], decision.record["policies"])
+        actual = [dict(row) for row in decision_policies if row.get("role") == "projectionPolicy"]
+        if actual != [expected_pin]:
+            raise AtlasPublicationError("publication decision projection policy differs from the distribution")
+        if parent is not None:
+            _validate_projection_reproduction(distribution, parent)
+
+
+def _validate_explorer(
+    distribution: VocabularyAtlasDistribution,
+    explorer: Mapping[str, Any],
+) -> None:
+    if explorer.get("type") != EXPLORER_TYPE or explorer.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
+        raise AtlasPublicationError("atlas explorer type or version is unsupported")
+    title = _require_text(explorer.get("title"), "atlas explorer title")
+    selection = _validate_selection(explorer.get("selectionPolicy"))
+    releases = _require_sequence(
+        explorer.get("conceptReleases"),
+        "atlas explorer conceptReleases",
+    )
+    release_labels: dict[str, str] = {}
+    for index, raw in enumerate(releases):
+        row = _require_mapping(raw, f"atlas explorer conceptReleases[{index}]")
+        identifier = _require_text(
+            row.get("releaseId"),
+            f"atlas explorer conceptReleases[{index}].releaseId",
+        )
+        label = _require_text(
+            row.get("label"),
+            f"atlas explorer conceptReleases[{index}].label",
+        )
+        if identifier in release_labels:
+            raise AtlasPublicationError("atlas explorer repeats a release")
+        release_labels[identifier] = label
+    rebuilt = build_explorer_model(
+        distribution,
+        title=title,
+        release_labels=release_labels,
+        max_concepts=selection["maxConcepts"],
+        max_mapping_assertions=selection["maxMappingAssertions"],
+    )
+    if _plain(explorer) != rebuilt:
+        raise AtlasPublicationError("atlas explorer data differs from the verified distribution")
+
+
+def publish_vocabulary_atlas(
+    distribution: VocabularyAtlasDistribution,
+    directory: Path | str,
+    *,
+    decision: VocabularyAtlasPublicationDecision,
+    parent: VocabularyAtlasAsset | None = None,
+    title: str = "RefSpec vocabulary atlas",
+    release_labels: Mapping[str, str] | None = None,
+    max_concepts: int = _DEFAULT_MAX_CONCEPTS,
+    max_mapping_assertions: int = _DEFAULT_MAX_MAPPING_ASSERTIONS,
+) -> AtlasPublication:
+    """Publish one verified, explicitly authorized Atlas 2.0 distribution."""
+
+    _verified_distribution(distribution)
+    _validate_decision(distribution, decision, parent=parent)
+    if isinstance(distribution, VocabularyAtlasProjection):
+        if parent is None:  # The decision check above normally supplies the specific error.
+            raise AtlasPublicationError("atlas projection publication requires its verified atlas parent")
+        _validate_projection_reproduction(distribution, parent)
+    explorer = build_explorer_model(
+        distribution,
+        title=title,
+        release_labels=release_labels,
+        max_concepts=max_concepts,
+        max_mapping_assertions=max_mapping_assertions,
+    )
+    explorer_bytes = _canonical_bytes(explorer)
+    payloads: dict[str, bytes] = {
+        ATLAS_MANIFEST: distribution.manifest_bytes(),
+        COMPRESSED_ATLAS: _gzip_bytes(distribution.payload),
+        PUBLICATION_DECISION: decision.artifact_bytes(),
+        EXPLORER_DATA: explorer_bytes,
+        EXPLORER_HTML: render_atlas_explorer(explorer).encode("utf-8"),
+    }
+    if isinstance(distribution, VocabularyAtlasAsset):
+        payloads[ATLAS_SCOPE] = distribution.scope_payload
+    manifest = _publication_manifest(
+        title=cast(str, explorer["title"]),
+        distribution=distribution,
+        decision=decision,
+        explorer=explorer,
+        payloads=payloads,
+    )
+    payloads[PUBLICATION_MANIFEST] = _canonical_bytes(manifest)
+    target = _write_publication(directory, payloads)
+    return AtlasPublication.open(
+        target,
+        expected_manifest_digest=sha256_digest(payloads[PUBLICATION_MANIFEST]),
+        parent=parent,
+    )
+
+
+def _release_label_values(values: Sequence[str]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for value in values:
+        identifier, separator, label = value.partition("=")
+        if not separator or not identifier.strip() or not label.strip():
+            raise AtlasPublicationError("--release-label must be RELEASE_ID=LABEL")
+        identifier = identifier.strip()
+        label = label.strip()
+        if identifier in result:
+            raise AtlasPublicationError("--release-label repeats a release id")
+        result[identifier] = label
+    return result
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="python -m refspec.atlas.publication",
+        description="Publish an exact, authorized Atlas 2.0 distribution.",
+    )
+    parser.add_argument("--distribution", type=Path, required=True)
+    parser.add_argument("--distribution-manifest-digest", required=True)
+    parser.add_argument("--decision", type=Path, required=True)
+    parser.add_argument("--decision-file-digest", required=True)
+    parser.add_argument("--parent", type=Path)
+    parser.add_argument("--parent-manifest-digest")
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--title", default="RefSpec vocabulary atlas")
+    parser.add_argument("--max-concepts", type=int, default=_DEFAULT_MAX_CONCEPTS)
+    parser.add_argument(
+        "--max-mapping-assertions",
+        type=int,
+        default=_DEFAULT_MAX_MAPPING_ASSERTIONS,
+    )
+    parser.add_argument("--release-label", action="append", default=[], metavar="RELEASE_ID=LABEL")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    asset = VocabularyAtlasAsset.open(
-        args.atlas,
-        expected_manifest_digest=args.atlas_manifest_digest,
-        expected_output_digest=args.atlas_output_digest,
-    )
-    publication = publish_vocabulary_atlas(
-        asset,
-        args.output,
-        title=args.title,
-        release_labels=_release_label_overrides(args.release_label),
-        max_nodes=args.max_nodes,
-        max_mappings=args.max_mappings,
-        max_shared_clusters=args.max_shared_clusters,
-    )
-    print(
-        json.dumps(
-            {
-                "publicationId": publication.manifest["id"],
-                "publicationManifestDigest": publication.manifest_digest,
-                "atlas": publication.manifest["atlas"],
-                "summary": publication.manifest["summary"],
-                "outputDirectory": str(publication.directory),
-                "explorer": str(publication.directory / EXPLORER_HTML),
-            },
-            indent=2,
-            sort_keys=True,
+    parser = _parser()
+    args = parser.parse_args(argv)
+    try:
+        kind = distribution_kind(args.distribution)
+        parent: VocabularyAtlasAsset | None = None
+        if kind == "vocabularyAtlas":
+            if args.parent is not None or args.parent_manifest_digest is not None:
+                raise AtlasPublicationError("canonical atlas publication does not accept --parent")
+            distribution: VocabularyAtlasDistribution = VocabularyAtlasAsset.open(
+                args.distribution,
+                expected_manifest_digest=args.distribution_manifest_digest,
+            )
+        else:
+            if args.parent is None or args.parent_manifest_digest is None:
+                raise AtlasPublicationError(
+                    "atlas projection publication requires --parent and --parent-manifest-digest"
+                )
+            distribution = VocabularyAtlasProjection.open(
+                args.distribution,
+                expected_manifest_digest=args.distribution_manifest_digest,
+            )
+            parent = VocabularyAtlasAsset.open(
+                args.parent,
+                expected_manifest_digest=args.parent_manifest_digest,
+            )
+        decision = read_vocabulary_atlas_publication_decision(
+            args.decision,
+            expected_file_digest=args.decision_file_digest,
         )
-    )
+        publication = publish_vocabulary_atlas(
+            distribution,
+            args.output,
+            decision=decision,
+            parent=parent,
+            title=args.title,
+            release_labels=_release_label_values(args.release_label),
+            max_concepts=args.max_concepts,
+            max_mapping_assertions=args.max_mapping_assertions,
+        )
+    except (AtlasPublicationError, PublicationDecisionError, VocabularyAtlasError) as error:
+        parser.error(str(error))
+    print(publication.manifest_digest)
     return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
 
 
 __all__ = [
     "ATLAS_MANIFEST",
+    "ATLAS_SCOPE",
     "COMPRESSED_ATLAS",
     "EXPLORER_DATA",
     "EXPLORER_HTML",
+    "EXPLORER_SCHEMA_VERSION",
+    "PUBLICATION_DECISION",
     "PUBLICATION_MANIFEST",
+    "PUBLICATION_SCHEMA_VERSION",
     "AtlasPublication",
+    "AtlasPublicationError",
     "build_explorer_model",
-    "build_parser",
     "main",
     "publish_vocabulary_atlas",
 ]

@@ -128,15 +128,13 @@ def test_relation_proof_registry_rejects_duplicate_authorities() -> None:
         register_trusted_relation_machine_proof_adapter(adapter_id)(OtherAdapter)  # type: ignore[arg-type]
 
     with pytest.raises(RelationMachineProofTrustError, match="class is already registered"):
-        register_trusted_relation_machine_proof_adapter(
-            "urn:ref:test:adapter:duplicate-class:v1"
-        )(FirstAdapter)  # type: ignore[arg-type]
+        register_trusted_relation_machine_proof_adapter("urn:ref:test:adapter:duplicate-class:v1")(FirstAdapter)  # type: ignore[arg-type]
     with pytest.raises(RelationMachineProofTrustError, match="absolute IRI"):
         register_trusted_relation_machine_proof_adapter("relative-adapter-id")
     with pytest.raises(RelationMachineProofTrustError, match="class with pin"):
-        register_trusted_relation_machine_proof_adapter(
-            "urn:ref:test:adapter:missing-pin:v1"
-        )(type("MissingPinAdapter", (), {}))  # type: ignore[arg-type]
+        register_trusted_relation_machine_proof_adapter("urn:ref:test:adapter:missing-pin:v1")(
+            type("MissingPinAdapter", (), {})
+        )  # type: ignore[arg-type]
 
     registered = atlas_api.registered_relation_machine_proof_adapters()
     assert registered[adapter_id] is FirstAdapter
@@ -356,7 +354,7 @@ def _crosswalk_machine_proofs(
                 "providerModelId": f"provider-model-{suffix}",
                 "deterministicChecksPassed": True,
                 "outcome": "supports",
-                "verdictRelation": "same",
+                "verdict": "same",
             },
         )
         responses.append(response)
@@ -422,9 +420,7 @@ def test_qualified_proof_retains_every_validation_that_determined_the_relation(
     assert evidence.validation_receipts == tuple(row["id"] for row in pin["validations"])
     assert pin["type"] == "MachineEvidenceProof"
     assert pin["proofSource"]["type"] == "CrosswalkBundle"
-    assert pin["proofDetails"]["sealedQuestion"]["request"]["id"].startswith(
-        "urn:ref:vocabulary-atlas-artifact:"
-    )
+    assert pin["proofDetails"]["sealedQuestion"]["request"]["id"].startswith("urn:ref:vocabulary-atlas-artifact:")
 
 
 def test_source_relation_bundle_is_content_derived_deterministic_and_reopenable(
@@ -811,11 +807,7 @@ def test_unregistered_adapter_cannot_turn_decoy_bytes_into_proof(tmp_path: Path)
 
         def pin(self) -> dict[str, Any]:
             trusted_pin = qualified_proof.pin()
-            basis = {
-                key: value
-                for key, value in trusted_pin.items()
-                if key not in {"id", "contentDigest"}
-            }
+            basis = {key: value for key, value in trusted_pin.items() if key not in {"id", "contentDigest"}}
             decoy_digest = _file_digest(self.path)
             basis["proofAdapter"] = "urn:ref:test:adapter:unregistered-decoy:v1"
             basis["proofSource"] = {
@@ -885,9 +877,7 @@ def test_registered_adapter_pin_must_name_its_registered_adapter(tmp_path: Path)
         asserted_at=ASSERTED_AT,
     )
 
-    @register_trusted_relation_machine_proof_adapter(
-        "urn:ref:test:adapter:intentionally-mismatched-crosswalk:v1"
-    )
+    @register_trusted_relation_machine_proof_adapter("urn:ref:test:adapter:intentionally-mismatched-crosswalk:v1")
     class MismatchedCrosswalkAdapter(PinnedCrosswalkMachineProof):
         pass
 

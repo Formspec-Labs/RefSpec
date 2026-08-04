@@ -124,7 +124,7 @@ def _crosswalk_case(
                 "providerModelId": provider_model_id,
                 "deterministicChecksPassed": True,
                 "outcome": outcome,
-                "verdictRelation": verdict,
+                "verdict": verdict,
             },
         )
         responses.append(response)

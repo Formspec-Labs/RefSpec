@@ -160,34 +160,6 @@ def test_cli_requires_exactly_one_selector() -> None:
         )
 
 
-@pytest.mark.parametrize(
-    "removed_flag",
-    [
-        "--atlas-output-digest",
-        "--policy",
-        "--policy-version",
-    ],
-)
-def test_cli_rejects_removed_v1_flags(removed_flag: str) -> None:
-    parser = build_parser()
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(
-            [
-                "--atlas",
-                "parent",
-                "--atlas-manifest-digest",
-                "sha256:" + "1" * 64,
-                "--output",
-                "projection",
-                "--ring",
-                "subject",
-                removed_flag,
-                "removed",
-            ]
-        )
-
-
 def test_cli_refuses_a_malformed_subject_module_before_opening_parent() -> None:
     with pytest.raises(VocabularyAtlasError, match="dotted Python module"):
         main(

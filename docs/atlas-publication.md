@@ -1,99 +1,136 @@
-# Publish and inspect a vocabulary atlas
+# Publish and inspect Atlas 2.0
 
-`refspec-publish-vocabulary-atlas` turns one verified atlas into a directory
-that can be uploaded to any static file host or opened locally. It does not
-fetch, license, or approve source vocabularies. The operator supplies the
-files; the existing atlas builder verifies their managed-release pins before
-this command runs.
-
-The canonical atlas remains the two-file distribution defined by
-[`bindings/atlas/1.0`](../bindings/atlas/1.0/README.md). Publication adds a
-compressed download and a bounded browser view. Neither one can authorize a
-mapping or change a source fact.
+The Atlas 2.0 publisher turns one authorized canonical atlas or closed
+projection into a static directory. It preserves the source distribution and
+the publication decision exactly. The added gzip download and bounded explorer
+do not create concepts, mappings, evidence, or permission.
 
 ## What goes in?
 
-Pass a directory containing `atlas-manifest.json` and `atlas.nq`, plus an
-independent SHA-256 pin for each file. A multi-vocabulary atlas is built by
-repeating `--managed-release` with `refspec-build-vocabulary-atlas`; source
-acquisition is outside both commands.
+Publication requires:
+
+- a verified Atlas 2.0 distribution and its independently obtained manifest
+  digest;
+- a `VocabularyAtlasPublicationDecision` file and its independently obtained
+  file digest; and
+- for a projection, the verified canonical parent and its manifest digest.
+
+A canonical atlas contains `atlas-manifest.json`, `atlas-scope.json`, and
+`atlas.nq`. A projection contains `atlas-manifest.json` and `atlas.nq`; its
+manifest pins the canonical parent and the exact projection policy.
+
+The decision must name the exact distribution result. A projection decision
+must also name the same parent and projection policy. Publication fails before
+writing output if any pin or decision differs.
 
 ## What happens?
 
-The publisher performs the full `VocabularyAtlasAsset.open` check before it
-writes anything. It then:
+The publisher:
 
-1. compresses the exact `atlas.nq` bytes with a deterministic gzip header;
-2. selects a bounded graph view in a fixed order: qualified mapping endpoints,
-   cross-release shared labels, one representative for any unseen reference
-   release, and immediate hierarchy context;
-3. writes a standalone HTML explorer with no remote scripts, fonts, database,
-   or API calls; and
-4. records every payload file, byte length, and digest in
-   `publication-manifest.json`.
+1. opens and fully verifies the canonical atlas or projection;
+2. checks `VocabularyAtlasPublicationDecision.validate_distribution(...)`;
+3. copies the exact source manifest, exact decision, and canonical scope when
+   present;
+4. compresses the exact N-Quads with a deterministic gzip header;
+5. uses `VocabularyAtlasQueries` to make a bounded explorer view; and
+6. writes a content-derived publication manifest with the digest and byte
+   length of every artifact.
 
-Equal labels remain discovery signals in the explorer. Only the atlas's
-qualified `searchOnly` rows appear as mappings.
+The explorer's closed 2.0 JSON names `conceptReleases`, `concepts`, and
+`mappingAssertions` directly. It keeps release-scoped concept identity intact.
+Each mapping assertion retains its semantic ring, native ring-scoped relation,
+evidence classes, evidence assertion identifiers, and machine-proof
+identifiers. Labels select display text only; label equality never creates
+identity or a mapping.
+
+## Publish a canonical atlas
+
+```sh
+uv run python -m refspec.atlas.publication \
+  --distribution output/atlas-2.0 \
+  --distribution-manifest-digest sha256:<atlas-manifest-digest> \
+  --decision decisions/atlas-publication-decision.json \
+  --decision-file-digest sha256:<decision-file-digest> \
+  --title "RefSpec vocabulary atlas" \
+  --output output/publications/refspec-atlas
+```
+
+The command prints the digest of `publication-manifest.json`. Keep that digest
+outside the publication directory; it is the trust anchor for reopening the
+static publication.
+
+## Publish a projection
+
+```sh
+uv run python -m refspec.atlas.publication \
+  --distribution output/atlas-subject-projection \
+  --distribution-manifest-digest sha256:<projection-manifest-digest> \
+  --parent output/atlas-2.0 \
+  --parent-manifest-digest sha256:<parent-manifest-digest> \
+  --decision decisions/subject-projection-publication-decision.json \
+  --decision-file-digest sha256:<decision-file-digest> \
+  --output output/publications/refspec-atlas-subject
+```
+
+The publisher detects canonical and projection manifests itself. Canonical
+publication rejects parent arguments. Projection publication requires both
+parent arguments.
+
+Optional `--max-concepts`, `--max-mapping-assertions`, and repeated
+`--release-label RELEASE_ID=LABEL` arguments affect only the bounded explorer.
+They do not affect the authoritative distribution.
 
 ## What comes out?
 
-The new output directory contains:
+Every publication contains:
 
 | File | Purpose |
 |---|---|
-| `atlas-manifest.json` | The unchanged canonical atlas manifest |
-| `atlas.nq.gz` | The unchanged canonical N-Quads after decompression |
-| `atlas-explorer.json` | A bounded, digest-linked browser view that other tools may reuse |
-| `index.html` | The offline graph explorer with the view embedded |
-| `publication-manifest.json` | Digests and byte lengths for every payload file |
+| `atlas-manifest.json` | Exact canonical or projection manifest |
+| `atlas.nq.gz` | Deterministic gzip of the exact source N-Quads |
+| `publication-decision.json` | Exact authorization decision |
+| `atlas-explorer.json` | Deterministic bounded view |
+| `index.html` | Dependency-free offline explorer |
+| `publication-manifest.json` | Content-derived identity and exact artifact digests |
 
-The explorer supports concept search, reference-release filters, relationship
-filters, pan and zoom, and an inspector that exposes exact identifiers and
-visible relationships. The complete graph stays in `atlas.nq.gz`; the browser
-view states its limits and never presents itself as the full dataset.
-
-## Current multi-vocabulary MVP
-
-Atlas `urn:ref:vocabulary-atlas:57a69e9a68a5877cb8b4e2b225153e2674b56af128a1ab9877f1787e57fb3042`
-has manifest file digest
-`sha256:a86ece8d75a003d1fea50ab92e0e920451ecd12b4f97eff44f0d7c51d617ea2a`
-and N-Quads digest
-`sha256:0cca97156192fc15e2fed8b0386f70a1ea9b313e34da12e3703adab1bd1ef58f`.
-That named build combines three managed-release inputs: Federal Register
-Thesaurus 2025, ELSST R6, and the ICPSR subject thesaurus. It contains 233,999
-quads, 5,152 hierarchy edges, and 240 qualified `searchOnly` mappings.
-
-Publish that exact local build with:
-
-```sh
-uv run refspec-publish-vocabulary-atlas \
-  --atlas output/atlas-fr-elsst-icpsr-2026-08-03 \
-  --atlas-manifest-digest sha256:a86ece8d75a003d1fea50ab92e0e920451ecd12b4f97eff44f0d7c51d617ea2a \
-  --atlas-output-digest sha256:0cca97156192fc15e2fed8b0386f70a1ea9b313e34da12e3703adab1bd1ef58f \
-  --title "Federal Register · ELSST · ICPSR atlas" \
-  --output output/publications/refspec-atlas-mvp
-```
-
-Open `output/publications/refspec-atlas-mvp/index.html` directly, or serve the
-directory for an ordinary HTTP check:
-
-```sh
-python -m http.server 8000 \
-  --directory output/publications/refspec-atlas-mvp
-```
+Canonical publication also contains the exact `atlas-scope.json`. Projection
+publication does not copy the parent scope; it retains the exact parent pin in
+the projection manifest, publication manifest, and decision.
 
 ## How do we check it?
 
-The command prints the publication identifier, publication-manifest digest,
-original atlas pins, selected graph counts, output directory, and explorer
-path. For an independent content check:
+Use the printed publication-manifest digest as the external pin:
 
-1. verify every file against `publication-manifest.json`;
-2. decompress `atlas.nq.gz` without transforming its bytes;
-3. confirm the decompressed digest equals `atlas.distributionDigest`; and
-4. place the decompressed file beside `atlas-manifest.json` as `atlas.nq`, then
-   call `VocabularyAtlasAsset.open` with the two printed atlas pins.
+```python
+from refspec.atlas.publication import AtlasPublication
 
-The test suite performs that complete round trip. Uploading the directory,
-creating a hosted release, and setting a public URL are delivery actions after
-the local MVP build; this command does not choose a hosting provider.
+publication = AtlasPublication.open(
+    "output/publications/refspec-atlas",
+    expected_manifest_digest="sha256:<publication-manifest-digest>",
+)
+```
+
+That file-only form verifies the closed file set, canonical JSON bytes, every
+artifact digest and byte length, deterministic gzip bytes, the full Atlas 2.0
+distribution, the decision result and embedded policy pins, the derived
+explorer data, and the exact HTML rendering. For a projection, pass the verified
+canonical parent to prove that the published bytes reproduce from it:
+
+```python
+publication = AtlasPublication.open(
+    "output/publications/refspec-atlas-subject",
+    expected_manifest_digest="sha256:<publication-manifest-digest>",
+    parent=verified_canonical_atlas,
+)
+```
+
+The parent-backed form also validates the decision against the parent's exact
+scope and rebuilds the projection byte for byte. The reader opens the
+publication directory and every child through descriptor-relative no-follow
+operations, then verifies stable descriptor metadata and bytes twice. It
+rejects symlinks, unexpected files, and changes observed while opening. On a
+platform without descriptor-relative no-follow support, it fails closed instead
+of falling back to path-based reads.
+
+Open `index.html` directly, or serve the directory with any static file server.
+Hosting and release remain separate delivery actions.

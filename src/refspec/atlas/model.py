@@ -18,7 +18,7 @@ import platform
 import re
 import unicodedata
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -27,8 +27,7 @@ from typing import Any, Literal, Protocol, cast
 
 from rdflib import BNode, Dataset, Graph, Namespace, URIRef
 from rdflib import Literal as RdfLiteral
-from rdflib.compare import to_canonical_graph
-from rdflib.namespace import DCAT, DCTERMS, PROV, RDF, RDFS, SKOS, XSD
+from rdflib.namespace import DCAT, DCTERMS, PROV, RDF, XSD
 from typing_extensions import Self
 
 from refspec import binding
@@ -85,9 +84,6 @@ _CROSSWALK_SCHEMA_V2 = "2.0"
 #: emits no ``ConceptMapping``.  Promoting associative links to consumable
 #: mappings is a separate decision for a consumer that actually wants them.
 _RELATED_MATCH = "http://www.w3.org/2004/02/skos/core#relatedMatch"
-#: v1 validations carry no verdict relation at all; their agreement is the v1
-#: yes/no and emission uses the candidate's proposed relation exactly as before.
-_PROPOSED_TAG = "proposed"
 
 
 def _agreed_relation_for(verdicts: frozenset[str]) -> str | None:
@@ -118,24 +114,6 @@ def _agreed_relation_for(verdicts: frozenset[str]) -> str | None:
 
 
 _ARTIFACT_ROLES = frozenset({"evidence", "inputContext", "validationRequest", "validationResponse"})
-_CORE_RELEASE_STATUSES = frozenset({"fixture", "candidate", "published"})
-_CORE_ARTIFACT_MANIFESTS = (
-    "conformance_fixture_artifacts",
-    "schema_artifacts",
-    "validator_artifacts",
-)
-_CORE_ARTIFACT_FIELDS = frozenset({"artifact_digest", "media_type", "name"})
-_CORE_RELEASE_FIELDS = frozenset(
-    {
-        "record_type",
-        "release_digest",
-        "release_id",
-        "release_status",
-        "version",
-        *_CORE_ARTIFACT_MANIFESTS,
-    }
-)
-_FEEDBACK_DISPOSITIONS = frozenset({"supports", "challenges", "comment"})
 _POLICIES = MappingProxyType(
     {
         "graphPartition": "releaseFactsAndCrossReleaseRecords",
@@ -204,14 +182,6 @@ class VerifiedManagedReleaseSource(Protocol):
     def verified_view(self) -> AtlasReleaseFactsView: ...
 
     def pin(self) -> dict[str, Any]: ...
-
-
-@dataclass(frozen=True, slots=True)
-class _ResolvedManagedRelease:
-    """One verified view bound to the exact pin checked for this build."""
-
-    view: AtlasReleaseFactsView
-    pin: Mapping[str, Any]
 
 
 def _plain(value: Any) -> Any:
@@ -433,29 +403,6 @@ def closed_reference_release_digest(
     return "sha256:" + hashlib.sha256(preimage).hexdigest()
 
 
-def _implementation_pin() -> dict[str, Any]:
-    package_root = Path(__file__).parents[1]
-    sources = [
-        {
-            "path": f"refspec/{relative}",
-            "digest": _digest_bytes((package_root / relative).read_bytes()),
-        }
-        for relative in _IMPLEMENTATION_SOURCE_PATHS
-    ]
-    return {
-        "id": "urn:ref:implementation:vocabulary-atlas:1.0",
-        "version": "1.0",
-        "sourceModules": sources,
-        "runtime": {
-            "jsonschemaVersion": importlib.metadata.version("jsonschema"),
-            "pyarrowVersion": importlib.metadata.version("pyarrow"),
-            "pythonRequirement": ">=3.10",
-            "pythonVersion": platform.python_version(),
-            "rdflibVersion": importlib.metadata.version("rdflib"),
-        },
-    }
-
-
 @dataclass(frozen=True, slots=True)
 class PinnedManagedRelease:
     """One exact managed-bundle manifest and its verified read view."""
@@ -496,104 +443,6 @@ class PinnedManagedRelease:
                 "id": view.rulespec_graph_id,
                 "digest": rulespec_graph_digest(_plain(view.rulespec_graph)),
             },
-        }
-
-
-def _require_core_release_contract(record: Mapping[str, Any]) -> None:
-    """Reject a pinned file that is not a complete Rulespec Core release.
-
-    Matching digests prove only that the bytes are the pinned bytes.  This
-    check proves the bytes are a Core release: without it a file containing
-    just ``{"record_type": "RulespecCoreRelease"}`` pins cleanly and publishes
-    an atlas that claims Rulespec Core conformance it cannot support.
-
-    RefSpec reimplements the required-field contract published in Rulespec's
-    ``release-records/schemas/rulespec-core-release.schema.json`` rather than
-    importing Rulespec, so the atlas keeps its file-only dependency.
-    """
-
-    missing = sorted(_CORE_RELEASE_FIELDS - set(record))
-    if missing:
-        raise VocabularyAtlasError(f"Rulespec Core release omits required fields {missing!r}")
-    unsupported = sorted(set(record) - _CORE_RELEASE_FIELDS)
-    if unsupported:
-        raise VocabularyAtlasError(f"Rulespec Core release contains unsupported fields {unsupported!r}")
-    if record["release_status"] not in _CORE_RELEASE_STATUSES:
-        raise VocabularyAtlasError("Rulespec Core release_status must be fixture, candidate, or published")
-    _require_text(record["version"], "Rulespec Core version")
-    for field in _CORE_ARTIFACT_MANIFESTS:
-        entries = record[field]
-        if not isinstance(entries, list) or not entries:
-            raise VocabularyAtlasError(f"Rulespec Core {field} must list at least one artifact")
-        for index, entry in enumerate(entries):
-            label = f"Rulespec Core {field}[{index}]"
-            if not isinstance(entry, Mapping) or set(entry) != _CORE_ARTIFACT_FIELDS:
-                raise VocabularyAtlasError(f"{label} must contain exactly name, media_type, and artifact_digest")
-            _require_text(entry["name"], f"{label} name")
-            _require_text(entry["media_type"], f"{label} media_type")
-            _require_digest(entry["artifact_digest"], f"{label} artifact_digest")
-
-
-@dataclass(frozen=True, slots=True)
-class PinnedRulespecCoreRelease:
-    """Exact external Rulespec Core release bytes used by the atlas."""
-
-    path: Path
-    file_digest: str
-    release_id: str
-    release_digest: str
-
-    @classmethod
-    def open(
-        cls,
-        path: Path | str,
-        *,
-        expected_file_digest: str,
-        expected_release_id: str,
-        expected_release_digest: str,
-    ) -> Self:
-        expected_file_digest = _require_digest(expected_file_digest, "Rulespec Core file digest")
-        expected_release_id = _require_iri(expected_release_id, "Rulespec Core release id")
-        expected_release_digest = _require_digest(expected_release_digest, "Rulespec Core release digest")
-        resolved, raw = _read_exact_file(path, "Rulespec Core release")
-        if _digest_bytes(raw) != expected_file_digest:
-            raise VocabularyAtlasError("Rulespec Core file digest differs")
-        record = _load_json_object(raw, "Rulespec Core release")
-        if record.get("record_type") != "RulespecCoreRelease":
-            raise VocabularyAtlasError("Rulespec Core record_type differs")
-        _require_core_release_contract(record)
-        if record.get("release_id") != expected_release_id:
-            raise VocabularyAtlasError("Rulespec Core release id differs")
-        if record.get("release_digest") != expected_release_digest:
-            raise VocabularyAtlasError("Rulespec Core release digest differs")
-        preimage = {key: value for key, value in record.items() if key not in {"release_id", "release_digest"}}
-        if _digest_value(preimage) != expected_release_digest:
-            raise VocabularyAtlasError("Rulespec Core content-derived release digest differs")
-        expected_id = "urn:rulespec:core:" + expected_release_digest.removeprefix("sha256:")
-        if expected_release_id != expected_id:
-            raise VocabularyAtlasError("Rulespec Core content-derived id differs")
-        return cls(
-            path=resolved,
-            file_digest=expected_file_digest,
-            release_id=expected_release_id,
-            release_digest=expected_release_digest,
-        )
-
-    def verify(self) -> None:
-        self.open(
-            self.path,
-            expected_file_digest=self.file_digest,
-            expected_release_id=self.release_id,
-            expected_release_digest=self.release_digest,
-        )
-
-    def pin(self) -> dict[str, str]:
-        self.verify()
-        return {
-            "role": "RulespecCoreRelease",
-            "fileDigest": self.file_digest,
-            "releaseId": self.release_id,
-            "releaseDigest": self.release_digest,
         }
 
 
@@ -791,7 +640,7 @@ class MachineValidation:
         deterministic_checks_passed: bool,
         outcome: Literal["supports", "rejects", "abstains"],
         completed_at: str,
-        verdict_relation: str | None = None,
+        verdict_relation: str,
     ) -> Self:
         if validator_kind not in {"aiModel", "aiAgent"}:
             raise VocabularyAtlasError("validator kind is unsupported")
@@ -799,11 +648,10 @@ class MachineValidation:
             raise VocabularyAtlasError("machine validation outcome is unsupported")
         if not isinstance(deterministic_checks_passed, bool):
             raise VocabularyAtlasError("deterministicChecksPassed must be boolean")
-        if verdict_relation is not None:
-            if verdict_relation not in _V2_VERDICTS:
-                raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
-            if _V2_VERDICT_OUTCOMES[verdict_relation] != outcome:
-                raise VocabularyAtlasError("machine validation outcome disagrees with its verdictRelation")
+        if verdict_relation not in _V2_VERDICTS:
+            raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
+        if _V2_VERDICT_OUTCOMES[verdict_relation] != outcome:
+            raise VocabularyAtlasError("machine validation outcome disagrees with its verdictRelation")
         payload = {
             "candidate": _reference(candidate, "machine candidate"),
             "validatorKind": validator_kind,
@@ -816,10 +664,9 @@ class MachineValidation:
             "responseArtifact": _reference(response_artifact, "machine response artifact"),
             "deterministicChecksPassed": deterministic_checks_passed,
             "outcome": outcome,
+            "verdictRelation": verdict_relation,
             "completedAt": _require_text(completed_at, "machine completed timestamp"),
         }
-        if verdict_relation is not None:
-            payload["verdictRelation"] = verdict_relation
         return cls(
             cast(
                 Mapping[str, Any],
@@ -849,58 +696,8 @@ class MachineValidation:
 
 
 @dataclass(frozen=True, slots=True)
-class MappingFeedback:
-    """Optional human feedback that never changes current eligibility."""
-
-    _record: Mapping[str, Any]
-
-    @classmethod
-    def create(
-        cls,
-        *,
-        candidate: Mapping[str, str],
-        actor: str,
-        disposition: Literal["supports", "challenges", "comment"],
-        comment: str,
-        recorded_at: str,
-    ) -> Self:
-        if disposition not in _FEEDBACK_DISPOSITIONS:
-            raise VocabularyAtlasError("mapping feedback disposition is unsupported")
-        payload = {
-            "candidate": _reference(candidate, "feedback candidate"),
-            "actor": _require_iri(actor, "feedback actor"),
-            "disposition": disposition,
-            "comment": _require_text(comment, "feedback comment"),
-            "recordedAt": _require_text(recorded_at, "feedback timestamp"),
-        }
-        return cls(
-            cast(
-                Mapping[str, Any],
-                _freeze(
-                    _seal_record(
-                        record_type="urn:ref:type:VocabularyAtlasMappingFeedback",
-                        id_prefix="urn:ref:vocabulary-atlas-mapping-feedback:",
-                        payload=payload,
-                    )
-                ),
-            )
-        )
-
-    @property
-    def identifier(self) -> str:
-        return str(self._record["id"])
-
-    @property
-    def digest(self) -> str:
-        return str(self._record["canonicalPayloadDigest"])
-
-    def to_dict(self) -> dict[str, Any]:
-        return cast(dict[str, Any], _plain(self._record))
-
-
-@dataclass(frozen=True, slots=True)
 class CrosswalkBundle:
-    """Closed crosswalk input with machine validation and optional feedback."""
+    """Closed protocol-v2 crosswalk input with machine validation."""
 
     _record: Mapping[str, Any]
 
@@ -935,34 +732,23 @@ class CrosswalkBundle:
         artifacts: Sequence[CrosswalkArtifact],
         mapping_candidates: Sequence[MappingCandidate],
         machine_validations: Sequence[MachineValidation] = (),
-        feedback: Sequence[MappingFeedback] = (),
     ) -> Self:
         artifact_records = _unique_records(artifacts, "crosswalk artifact")
         candidate_records = _unique_records(mapping_candidates, "mapping candidate")
         validation_records = _unique_records(machine_validations, "machine validation")
-        feedback_records = _unique_records(feedback, "mapping feedback")
         _validate_crosswalk_closure(
             artifacts=artifact_records,
             candidates=candidate_records,
             validations=validation_records,
-            feedback=feedback_records,
         )
-        # A bundle is protocol-homogeneous: every validation carries a
-        # verdictRelation (v2) or none does (v1).  A mix would make the
-        # agreement rule ambiguous for the exact candidates it matters for.
-        with_relation = sum(1 for value in validation_records.values() if "verdictRelation" in value)
-        if with_relation not in (0, len(validation_records)):
-            raise VocabularyAtlasError("crosswalk bundle mixes v1 and v2 machine validations")
-        schema_version = _CROSSWALK_SCHEMA_V2 if with_relation and validation_records else SCHEMA_VERSION
         record = _seal_record(
             record_type="urn:ref:type:VocabularyAtlasCrosswalkBundle",
             id_prefix="urn:ref:vocabulary-atlas-crosswalk-bundle:",
             payload={
-                "schemaVersion": schema_version,
+                "schemaVersion": _CROSSWALK_SCHEMA_V2,
                 "artifacts": [artifact_records[key] for key in sorted(artifact_records)],
                 "mappingCandidates": [candidate_records[key] for key in sorted(candidate_records)],
                 "machineValidations": [validation_records[key] for key in sorted(validation_records)],
-                "feedback": [feedback_records[key] for key in sorted(feedback_records)],
             },
         )
         return cls(cast(Mapping[str, Any], _freeze(record)))
@@ -1013,52 +799,24 @@ class CrosswalkBundle:
             "artifacts",
             "mappingCandidates",
             "machineValidations",
-            "feedback",
             "canonicalPayloadDigest",
         }
         if set(record) != expected_fields:
-            raise VocabularyAtlasError("crosswalk bundle fields differ from v1")
+            raise VocabularyAtlasError("crosswalk bundle fields differ from v2")
         _verify_sealed_record(
             record,
             record_type="urn:ref:type:VocabularyAtlasCrosswalkBundle",
             id_prefix="urn:ref:vocabulary-atlas-crosswalk-bundle:",
         )
-        if record["schemaVersion"] not in (SCHEMA_VERSION, _CROSSWALK_SCHEMA_V2):
+        if record["schemaVersion"] != _CROSSWALK_SCHEMA_V2:
             raise VocabularyAtlasError("crosswalk bundle schemaVersion differs")
         artifacts = _index_serialized_records(record["artifacts"], "crosswalk artifact")
         candidates = _index_serialized_records(record["mappingCandidates"], "mapping candidate")
         validations = _index_serialized_records(record["machineValidations"], "machine validation")
-        expects_relation = record["schemaVersion"] == _CROSSWALK_SCHEMA_V2
-        for value in validations.values():
-            if ("verdictRelation" in value) != expects_relation:
-                raise VocabularyAtlasError("crosswalk bundle validations disagree with its schemaVersion")
-        feedback = _index_serialized_records(record["feedback"], "mapping feedback")
         _validate_crosswalk_closure(
             artifacts=artifacts,
             candidates=candidates,
             validations=validations,
-            feedback=feedback,
-        )
-
-    def with_feedback(self, *items: MappingFeedback) -> Self:
-        """Return a new bundle that retains every existing feedback record."""
-
-        self.verify()
-        record = self.to_dict()
-        existing = {str(item["id"]): item for item in cast(list[dict[str, Any]], record["feedback"])}
-        for item in items:
-            if item.identifier in existing:
-                raise VocabularyAtlasError("mapping feedback is already present")
-            existing[item.identifier] = item.to_dict()
-        artifacts = [_artifact_from_record(item) for item in record["artifacts"]]
-        candidates = [_candidate_from_record(item) for item in record["mappingCandidates"]]
-        validations = [_validation_from_record(item) for item in record["machineValidations"]]
-        feedback = [_feedback_from_record(item) for item in existing.values()]
-        return type(self).create(
-            artifacts=artifacts,
-            mapping_candidates=candidates,
-            machine_validations=validations,
-            feedback=feedback,
         )
 
     def qualified(self) -> dict[str, tuple[dict[str, Any], ...]]:
@@ -1079,8 +837,7 @@ class CrosswalkBundle:
         """Every candidate's agreed relation IRI, adjudicated-``related`` included.
 
         Read through the same lattice the atlas builder uses, so a report that
-        counts relations can never drift from the gate that emitted them. v1
-        candidates are absent: their agreement carries no relation of its own.
+        counts relations can never drift from the gate that emitted them.
         """
 
         self.verify()
@@ -1090,7 +847,6 @@ class CrosswalkBundle:
         return {
             candidate_id: relation
             for candidate_id, (_, relation) in _independent_agreements(candidates, validations).items()
-            if relation != _PROPOSED_TAG
         }
 
 
@@ -1160,7 +916,6 @@ def _validate_crosswalk_closure(
     artifacts: Mapping[str, Mapping[str, Any]],
     candidates: Mapping[str, Mapping[str, Any]],
     validations: Mapping[str, Mapping[str, Any]],
-    feedback: Mapping[str, Mapping[str, Any]],
 ) -> None:
     for record in artifacts.values():
         _artifact_from_record(record)
@@ -1199,32 +954,16 @@ def _validate_crosswalk_closure(
             or response_content.get("provider") != record["provider"]
             or response_content.get("providerModelId") != record["providerModelId"]
             or response_content.get("outcome") != record["outcome"]
+            or response_content.get("verdict") != record["verdictRelation"]
             or response_content.get("deterministicChecksPassed") is not record["deterministicChecksPassed"]
         ):
             raise VocabularyAtlasError("machine response does not seal its validator result")
-    for record in feedback.values():
-        _feedback_from_record(record)
-        _resolve_reference(record["candidate"], candidates, "feedback candidate")
 
 
 def _agreement_relation_tag(values: Sequence[Mapping[str, Any]]) -> str | None:
-    """The relation every supporting validation on one question agrees on.
+    """The v2 relation every supporting validation on one question agrees on."""
 
-    v1 validations carry no ``verdictRelation``; their agreement is the v1
-    yes/no, tagged ``proposed`` so emission uses the candidate's proposed
-    relation exactly as before.  A mixture of v1 and v2 validations cannot be
-    adjudicated at all — the bundle already refuses to seal one, and this is the
-    same refusal stated where the rule is applied.
-    """
-
-    relations = [value.get("verdictRelation") for value in values]
-    if not relations:
-        return None
-    if all(relation is None for relation in relations):
-        return _PROPOSED_TAG
-    if any(relation is None for relation in relations):
-        return None
-    return _agreed_relation_for(frozenset(str(relation) for relation in relations))
+    return _agreed_relation_for(frozenset(str(value["verdictRelation"]) for value in values))
 
 
 def _independent_agreements(
@@ -1311,7 +1050,7 @@ def _artifact_from_record(record: Mapping[str, Any]) -> CrosswalkArtifact:
         "content",
         "canonicalPayloadDigest",
     }:
-        raise VocabularyAtlasError("crosswalk artifact fields differ from v1")
+        raise VocabularyAtlasError("crosswalk artifact fields differ from v2")
     rebuilt = CrosswalkArtifact.create(
         role=record["role"],  # type: ignore[arg-type]
         media_type=record["mediaType"],
@@ -1349,7 +1088,7 @@ def _candidate_from_record(record: Mapping[str, Any]) -> MappingCandidate:
         "canonicalPayloadDigest",
     }
     if not required <= set(record) or set(record) - required != ({"seed"} if "seed" in record else set()):
-        raise VocabularyAtlasError("mapping candidate fields differ from v1")
+        raise VocabularyAtlasError("mapping candidate fields differ from v2")
     rebuilt = MappingCandidate.create(
         source_member=record["sourceMember"],
         source_release=record["sourceRelease"],
@@ -1396,8 +1135,8 @@ def _validation_from_record(record: Mapping[str, Any]) -> MachineValidation:
         "completedAt",
         "canonicalPayloadDigest",
     }
-    if set(record) not in (base_fields, base_fields | {"verdictRelation"}):
-        raise VocabularyAtlasError("machine validation fields differ from v1")
+    if set(record) != base_fields | {"verdictRelation"}:
+        raise VocabularyAtlasError("machine validation fields differ from v2")
     rebuilt = MachineValidation.create(
         candidate=record["candidate"],
         validator_kind=record["validatorKind"],  # type: ignore[arg-type]
@@ -1411,39 +1150,10 @@ def _validation_from_record(record: Mapping[str, Any]) -> MachineValidation:
         deterministic_checks_passed=record["deterministicChecksPassed"],
         outcome=record["outcome"],  # type: ignore[arg-type]
         completed_at=record["completedAt"],
-        verdict_relation=record.get("verdictRelation"),
+        verdict_relation=record["verdictRelation"],
     )
     if rebuilt.to_dict() != _plain(record):
         raise VocabularyAtlasError("machine validation content differs")
-    return rebuilt
-
-
-def _feedback_from_record(record: Mapping[str, Any]) -> MappingFeedback:
-    _verify_sealed_record(
-        record,
-        record_type="urn:ref:type:VocabularyAtlasMappingFeedback",
-        id_prefix="urn:ref:vocabulary-atlas-mapping-feedback:",
-    )
-    if set(record) != {
-        "id",
-        "type",
-        "candidate",
-        "actor",
-        "disposition",
-        "comment",
-        "recordedAt",
-        "canonicalPayloadDigest",
-    }:
-        raise VocabularyAtlasError("mapping feedback fields differ from v1")
-    rebuilt = MappingFeedback.create(
-        candidate=record["candidate"],
-        actor=record["actor"],
-        disposition=record["disposition"],  # type: ignore[arg-type]
-        comment=record["comment"],
-        recorded_at=record["recordedAt"],
-    )
-    if rebuilt.to_dict() != _plain(record):
-        raise VocabularyAtlasError("mapping feedback content differs")
     return rebuilt
 
 
@@ -1454,504 +1164,6 @@ def _canonical_nquads(dataset: Dataset) -> bytes:
     text = serialized.decode("utf-8") if isinstance(serialized, bytes) else serialized
     lines = sorted(line.strip() for line in text.splitlines() if line.strip())
     return (("\n".join(lines) + "\n") if lines else "").encode("utf-8")
-
-
-def _release_members(release_graph: Graph) -> Mapping[URIRef, frozenset[URIRef]]:
-    """Return each member's authoritative releases from ``prov:hadMember``."""
-
-    memberships: dict[URIRef, set[URIRef]] = defaultdict(set)
-    for release, member in release_graph.subject_objects(PROV.hadMember):
-        if isinstance(release, URIRef) and isinstance(member, URIRef):
-            memberships[member].add(release)
-    return {member: frozenset(releases) for member, releases in memberships.items()}
-
-
-def _refuse_hierarchy_cycles(parents: Mapping[URIRef, tuple[URIRef, ...]]) -> None:
-    """Refuse a hierarchy cycle instead of admitting and marking it.
-
-    SKOS permits cycles in the wild, but a source thesaurus that emits one has
-    a defect rather than a meaning: nothing is genuinely broader than itself.
-    The published ELSST releases settle it from the data — R5 (3,361 edges)
-    and R6 (3,393 edges) are both strictly acyclic — so refusing costs no real
-    vocabulary and makes every transitive read finite by construction.
-    """
-
-    settled: set[URIRef] = set()
-    for start in sorted(parents):
-        if start in settled:
-            continue
-        active = {start}
-        stack: list[tuple[URIRef, Iterator[URIRef]]] = [(start, iter(parents.get(start, ())))]
-        while stack:
-            node, walk = stack[-1]
-            following = next(walk, None)
-            if following is None:
-                stack.pop()
-                active.discard(node)
-                settled.add(node)
-                continue
-            if following in active:
-                raise VocabularyAtlasError("atlas hierarchy contains a cycle")
-            if following in settled:
-                continue
-            active.add(following)
-            stack.append((following, iter(parents.get(following, ()))))
-
-
-def _stated_edges(release_graph: Graph, predicate: URIRef) -> set[tuple[URIRef, URIRef]]:
-    """Return one direction's statements, refused unless they connect IRIs."""
-
-    edges: set[tuple[URIRef, URIRef]] = set()
-    for subject, value in release_graph.subject_objects(predicate):
-        if not isinstance(subject, URIRef) or not isinstance(value, URIRef):
-            raise VocabularyAtlasError("atlas hierarchy must connect two concept IRIs")
-        edges.add((subject, value))
-    return edges
-
-
-def _hierarchy_edges(release_graph: Graph) -> tuple[tuple[URIRef, URIRef], ...]:
-    """Return the intra-scheme hierarchy as ``(narrower, broader)`` pairs.
-
-    Hierarchy comes from the source vocabulary's own structure, so it is a
-    layer-1 release fact copied verbatim like any other — including its
-    ``skos:narrower`` statements, which are kept exactly as the release made
-    them.  Thesauri assert both directions deliberately: ISO 25964 treats BT
-    and NT as first-class, and SKOS declares them ``owl:inverseOf`` rather
-    than asking a reader to infer one from the other.
-
-    An edge is projected from the broader direction only, so a consumer's
-    ``broader``/``narrower`` reads still cannot disagree with one another.
-    When the release states both directions they must agree exactly, and the
-    refusal below names the disagreement rather than the existence of NT.
-    That is what makes the one-direction projection sound: the property is
-    proven against the source instead of bought by refusing real data.  ELSST
-    is the case that matters — 6,754 broader and 6,754 narrower statements,
-    perfectly reciprocal, zero asymmetric edges in either edition.
-
-    A cross-release edge is refused because that claim is what a qualified
-    ``searchOnly`` mapping exists to carry, and it must earn its two
-    independent machine validations rather than ride in as a copied fact.
-    """
-
-    broader = _stated_edges(release_graph, SKOS.broader)
-    narrower = {(child, parent) for parent, child in _stated_edges(release_graph, SKOS.narrower)}
-    if narrower and narrower != broader:
-        # Named for the disagreement, because a source that states only the
-        # agreeing half of a pair is the defect. A reader that merged
-        # ``broader`` with the inverse of ``narrower`` without this guard
-        # would silently absorb whichever half the other direction denies.
-        raise VocabularyAtlasError("atlas hierarchy directions disagree")
-
-    memberships = _release_members(release_graph)
-    grouped: dict[URIRef, list[URIRef]] = defaultdict(list)
-    for child, parent in sorted(broader):
-        if child == parent:
-            raise VocabularyAtlasError("atlas hierarchy edge repeats one concept")
-        child_releases = memberships.get(child, frozenset())
-        parent_releases = memberships.get(parent, frozenset())
-        if not child_releases or not parent_releases:
-            raise VocabularyAtlasError("atlas hierarchy endpoint is not a release member")
-        if not child_releases & parent_releases:
-            raise VocabularyAtlasError("atlas hierarchy must stay inside one release")
-        grouped[child].append(parent)
-    _refuse_hierarchy_cycles({child: tuple(sorted(values)) for child, values in grouped.items()})
-    return tuple(sorted(broader))
-
-
-def _stable_iri(prefix: str, *parts: str) -> URIRef:
-    digest = _digest_value({"prefix": prefix, "parts": list(parts)})
-    return URIRef(f"urn:ref:vocabulary-atlas-{prefix}:{digest.removeprefix('sha256:')}")
-
-
-def _build_dataset(
-    releases: Sequence[_ResolvedManagedRelease],
-    *,
-    asset_id: str,
-    crosswalks: Sequence[CrosswalkBundle],
-) -> tuple[bytes, dict[str, int], str, str]:
-    release_graph_id = asset_id + ":release-facts"
-    analysis_graph_id = asset_id + ":analysis"
-    dataset = Dataset(default_union=False)
-    release_graph = dataset.graph(URIRef(release_graph_id))
-    analysis = dataset.graph(URIRef(analysis_graph_id))
-
-    source_union = Graph()
-    views = [item.view for item in releases]
-    for view in views:
-        source_union.parse(
-            data=canonical_json(_plain(view.rulespec_graph)),
-            format="json-ld",
-        )
-    for triple in to_canonical_graph(source_union):
-        release_graph.add(
-            cast(
-                tuple[Any, Any, Any],
-                tuple(URIRef(f"{asset_id}:bnode:{term}") if isinstance(term, BNode) else term for term in triple),
-            )
-        )
-    # Some historical managed graphs use a compact JSON-LD context that leaves
-    # ``prov:hadMember`` values as literals when parsed generically.  The
-    # verified view has already checked these exact release/member pairs, so the
-    # portable RDF distribution writes their required resource-valued form.
-    for view in views:
-        for member in view.iter_members():
-            release = URIRef(member.release_iri)
-            member_iri = URIRef(member.member_iri)
-            release_graph.remove((release, PROV.hadMember, RdfLiteral(member.member_iri)))
-            release_graph.add((release, PROV.hadMember, member_iri))
-    # ``skos:broader`` and ``skos:narrower`` reach the same generic parse the
-    # same way, and the release's normalized `concept_relations` rows are the
-    # verified, byte-pinned form of exactly these edges. A row therefore
-    # repairs the value type of a statement the graph already makes; it never
-    # authorizes one. Release facts are copied, so an edge no statement makes
-    # is an assertion rather than a copy, and it is refused. A literal value
-    # that no verified row covers survives untouched and is refused below.
-    # Admission is not decided here: the release graph is the authority, and a
-    # resource-valued edge it states is admitted by the rules in
-    # ``_hierarchy_edges`` whether or not a normalized row also covers it.
-    for view in views:
-        for relation in view.iter_relations():
-            if relation.predicate_iri not in (str(SKOS.broader), str(SKOS.narrower)):
-                continue
-            predicate = URIRef(relation.predicate_iri)
-            subject = URIRef(relation.subject_member_iri)
-            resource = URIRef(relation.object_member_iri)
-            if (subject, predicate, resource) in release_graph:
-                continue
-            stale = [
-                value
-                for value in release_graph.objects(subject, predicate)
-                if isinstance(value, RdfLiteral) and str(value) == relation.object_member_iri
-            ]
-            if not stale:
-                raise VocabularyAtlasError("atlas hierarchy relation row states an edge the release graph does not")
-            for value in stale:
-                release_graph.remove((subject, predicate, value))
-            release_graph.add((subject, predicate, resource))
-
-    hierarchy = _hierarchy_edges(release_graph)
-
-    analysis_root = URIRef(analysis_graph_id)
-    analysis.add((analysis_root, RDF.type, ATLAS.ReplaceableAnalysis))
-    for view in views:
-        analysis.add((analysis_root, PROV.wasDerivedFrom, URIRef(view.release_id)))
-
-    endpoint_releases: dict[str, set[str]] = defaultdict(set)
-    labels: dict[str, set[tuple[str, str]]] = defaultdict(set)
-    for view in views:
-        for member in view.iter_members():
-            endpoint_releases[member.member_iri].add(member.release_iri)
-            analysis.add(
-                (
-                    URIRef(member.member_iri),
-                    ATLAS.memberOfRelease,
-                    URIRef(member.release_iri),
-                )
-            )
-        for expression in view.iter_expressions():
-            member = view.lookup_member(expression.member_iri)
-            if member is None:
-                raise VocabularyAtlasError("release expression has no exact member")
-            normalized = _normalize_label(expression.original_literal)
-            if normalized:
-                labels[normalized].add((expression.member_iri, member.release_iri))
-
-    cluster_count = 0
-    for normalized, members in sorted(labels.items()):
-        if len(members) < 2 or len({release for _, release in members}) < 2:
-            continue
-        cluster = _stable_iri("label-cluster", normalized)
-        analysis.add((cluster, RDF.type, ATLAS.LabelCluster))
-        analysis.add((cluster, ATLAS.normalizedLabel, RdfLiteral(normalized)))
-        for member_iri, release_iri in sorted(members):
-            analysis.add((cluster, ATLAS.member, URIRef(member_iri)))
-            analysis.add((cluster, ATLAS.memberRelease, URIRef(release_iri)))
-        cluster_count += 1
-
-    candidate_count = 0
-    validation_count = 0
-    feedback_count = 0
-    search_mapping_count = 0
-    seen_sealed_ids: set[str] = set()
-    for crosswalk in sorted(crosswalks, key=lambda item: item.identifier):
-        bundle = crosswalk.to_dict()
-        candidates = {item["id"]: item for item in bundle["mappingCandidates"]}
-        validations = {item["id"]: item for item in bundle["machineValidations"]}
-        bundle_artifacts = {item["id"]: item for item in bundle["artifacts"]}
-        # Artifacts are content-addressed: an identical id is identical bytes,
-        # so a shared artifact re-states the same triples and needs no refusal.
-        # A candidate or validation appearing twice is double-counted evidence.
-        bundle_ids = set(candidates) | set(validations)
-        if bundle_ids & seen_sealed_ids:
-            raise VocabularyAtlasError("crosswalk bundles repeat a sealed record id")
-        seen_sealed_ids |= bundle_ids
-        agreements = _independent_agreements(candidates, validations)
-        qualified = {
-            candidate_id: pair for candidate_id, (pair, relation) in agreements.items() if relation != _RELATED_MATCH
-        }
-        for artifact in bundle["artifacts"]:
-            node = URIRef(artifact["id"])
-            analysis.add((node, RDF.type, ATLAS.CrosswalkArtifact))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.artifactDigest,
-                    RdfLiteral(artifact["canonicalPayloadDigest"]),
-                )
-            )
-            analysis.add((node, ATLAS.artifactRole, RdfLiteral(artifact["role"])))
-            if artifact["role"] == "inputContext":
-                # Only this role is cited by digest, so only this role needs the
-                # content digest published for a consumer to resolve the citation.
-                analysis.add(
-                    (
-                        node,
-                        ATLAS.contentDigest,
-                        RdfLiteral(_artifact_content_digest(artifact)),
-                    )
-                )
-        for candidate_id, candidate in sorted(candidates.items()):
-            source = candidate["sourceMember"]
-            target = candidate["targetMember"]
-            if candidate["sourceRelease"] not in endpoint_releases.get(source, set()):
-                raise VocabularyAtlasError(f"candidate {candidate_id} source is outside its exact release")
-            if candidate["targetRelease"] not in endpoint_releases.get(target, set()):
-                raise VocabularyAtlasError(f"candidate {candidate_id} target is outside its exact release")
-            for release_iri, endpoint_role in (
-                (candidate["sourceRelease"], "source"),
-                (candidate["targetRelease"], "target"),
-            ):
-                release_digests = tuple(
-                    release_graph.objects(
-                        URIRef(release_iri),
-                        RKAF.referenceReleaseDigest,
-                    )
-                )
-                if len(release_digests) != 1 or not isinstance(
-                    release_digests[0],
-                    RdfLiteral,
-                ):
-                    raise VocabularyAtlasError(
-                        f"candidate {candidate_id} {endpoint_role} release lacks one exact digest"
-                    )
-                _require_digest(
-                    str(release_digests[0]),
-                    f"candidate {candidate_id} {endpoint_role} release digest",
-                )
-            node = URIRef(candidate_id)
-            analysis.add((node, RDF.type, ATLAS.MappingCandidate))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.candidateDigest,
-                    RdfLiteral(candidate["canonicalPayloadDigest"]),
-                )
-            )
-            for predicate, field in (
-                (ATLAS.sourceMember, "sourceMember"),
-                (ATLAS.sourceRelease, "sourceRelease"),
-                (ATLAS.targetMember, "targetMember"),
-                (ATLAS.targetRelease, "targetRelease"),
-                (ATLAS.proposedRelation, "proposedRelation"),
-            ):
-                analysis.add((node, predicate, URIRef(candidate[field])))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.inputContextDigest,
-                    RdfLiteral(candidate["inputContextDigest"]),
-                )
-            )
-            analysis.add(
-                (
-                    node,
-                    ATLAS.inputContextArtifact,
-                    URIRef(
-                        _resolve_input_context(
-                            candidate["inputContextDigest"],
-                            bundle_artifacts,
-                        )["id"]
-                    ),
-                )
-            )
-            for evidence in candidate["evidence"]:
-                analysis.add((node, ATLAS.evidence, URIRef(evidence["id"])))
-            candidate_count += 1
-
-            agreement = agreements.get(candidate_id)
-            # The adjudicated relation is the candidate's own fact under v2, and
-            # it is what anchors the mapping's predicate.  `proposedRelation` is
-            # the hypothesis the judge was tested against and stays untouched;
-            # under v1 there is no adjudicated relation and the proposal is
-            # still the anchor, exactly as before.
-            if agreement is not None and agreement[1] != _PROPOSED_TAG:
-                analysis.add((node, ATLAS.adjudicatedRelation, URIRef(agreement[1])))
-            if agreement is not None and agreement[1] == _RELATED_MATCH:
-                # Independent machines agreed the pair is associated but not
-                # substitutable.  The relation is stated on the candidate so the
-                # refusal is typed rather than blank, and no mapping is emitted.
-                analysis.add((node, RKAF.usageEligibility, RKAF.notEligible))
-                continue
-            selected = qualified.get(candidate_id)
-            if selected is None:
-                analysis.add((node, RKAF.usageEligibility, RKAF.notEligible))
-                continue
-            relation_iri = (
-                agreement[1]
-                if agreement is not None and agreement[1] != _PROPOSED_TAG
-                else str(candidate["proposedRelation"])
-            )
-            analysis.add((node, RKAF.usageEligibility, RKAF.searchOnly))
-            mapping = _stable_iri(
-                "search-only-mapping",
-                candidate_id,
-                *(validation["id"] for validation in selected),
-            )
-            analysis.add((mapping, RDF.type, RKAF.ConceptMapping))
-            analysis.add((mapping, RKAF.assertsSubject, URIRef(source)))
-            analysis.add((mapping, RKAF.assertsPredicate, URIRef(relation_iri)))
-            analysis.add((mapping, RKAF.assertsObject, URIRef(target)))
-            analysis.add(
-                (
-                    mapping,
-                    RKAF.sourceConceptRelease,
-                    URIRef(candidate["sourceRelease"]),
-                )
-            )
-            analysis.add(
-                (
-                    mapping,
-                    RKAF.targetConceptRelease,
-                    URIRef(candidate["targetRelease"]),
-                )
-            )
-            analysis.add((mapping, RKAF.usageEligibility, RKAF.searchOnly))
-            analysis.add((mapping, RKAF.assertionOrigin, RKAF.aiSuggested))
-            analysis.add((mapping, RKAF.epistemicBasis, RKAF.statisticalInference))
-            analysis.add((mapping, ATLAS.qualifiedFrom, node))
-            analysis.add(
-                (
-                    mapping,
-                    ATLAS.selectionPolicy,
-                    RdfLiteral(_POLICIES["mappingEligibility"]),
-                )
-            )
-            analysis.add(
-                (
-                    mapping,
-                    ATLAS.verificationStatus,
-                    ATLAS.machineQualifiedForSearch,
-                )
-            )
-            for validation in selected:
-                analysis.add((mapping, ATLAS.qualifiedBy, URIRef(validation["id"])))
-            search_mapping_count += 1
-
-        for validation in sorted(validations.values(), key=lambda item: item["id"]):
-            node = URIRef(validation["id"])
-            analysis.add((node, RDF.type, ATLAS.MachineValidation))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.validationDigest,
-                    RdfLiteral(validation["canonicalPayloadDigest"]),
-                )
-            )
-            analysis.add((node, ATLAS.validates, URIRef(validation["candidate"]["id"])))
-            for predicate, field in (
-                (ATLAS.validatorActor, "validatorActor"),
-                (ATLAS.independenceGroup, "independenceGroup"),
-                (ATLAS.provider, "provider"),
-                (ATLAS.requestArtifact, "requestArtifact"),
-                (ATLAS.responseArtifact, "responseArtifact"),
-            ):
-                value = validation[field]
-                analysis.add((node, predicate, URIRef(value["id"] if isinstance(value, dict) else value)))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.providerModelId,
-                    RdfLiteral(validation["providerModelId"]),
-                )
-            )
-            analysis.add(
-                (
-                    node,
-                    ATLAS.sealedInputDigest,
-                    RdfLiteral(validation["sealedInputDigest"]),
-                )
-            )
-            analysis.add((node, ATLAS.outcome, RdfLiteral(validation["outcome"])))
-            # What the machine said, not just what it decided. The reason is
-            # already sealed in the response artifact and already bounded there,
-            # so projecting it makes every qualified mapping and every refusal
-            # answerable from the atlas instead of only from the bundle. Absent
-            # when the response stated none: silence is not an empty string.
-            reason = _sealed_reason(validation, bundle_artifacts)
-            if reason:
-                analysis.add((node, ATLAS.reason, RdfLiteral(reason)))
-            if "verdictRelation" in validation:
-                # Published so the agreement lattice is checkable from the atlas
-                # bytes alone.  Without it a reader can see *that* a relation was
-                # adjudicated but never that it follows from the verdicts.
-                analysis.add(
-                    (
-                        node,
-                        ATLAS.verdictRelation,
-                        RdfLiteral(validation["verdictRelation"]),
-                    )
-                )
-            analysis.add(
-                (
-                    node,
-                    ATLAS.deterministicChecksPassed,
-                    RdfLiteral(
-                        validation["deterministicChecksPassed"],
-                        datatype=XSD.boolean,
-                    ),
-                )
-            )
-            validation_count += 1
-        for feedback in sorted(bundle["feedback"], key=lambda item: item["id"]):
-            node = URIRef(feedback["id"])
-            analysis.add((node, RDF.type, ATLAS.MappingFeedback))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.feedbackDigest,
-                    RdfLiteral(feedback["canonicalPayloadDigest"]),
-                )
-            )
-            analysis.add((node, ATLAS.feedbackOn, URIRef(feedback["candidate"]["id"])))
-            analysis.add((node, ATLAS.feedbackActor, URIRef(feedback["actor"])))
-            analysis.add(
-                (
-                    node,
-                    ATLAS.feedbackDisposition,
-                    RdfLiteral(feedback["disposition"]),
-                )
-            )
-            analysis.add((node, RDFS.comment, RdfLiteral(feedback["comment"])))
-            analysis.add((node, PROV.generatedAtTime, RdfLiteral(feedback["recordedAt"])))
-            feedback_count += 1
-
-    payload = _canonical_nquads(dataset)
-    counts = {
-        "managedReleases": len(releases),
-        "releaseFacts": len(release_graph),
-        "analysisFacts": len(analysis),
-        "labelClusters": cluster_count,
-        "mappingCandidates": candidate_count,
-        "searchOnlyMappings": search_mapping_count,
-        "machineValidations": validation_count,
-        "feedback": feedback_count,
-    }
-    if hierarchy:
-        # Absent means zero, so an atlas over a vocabulary without hierarchy —
-        # the Federal Register thesaurus, every earlier fixture — keeps the
-        # exact bytes its consumers already pinned.
-        counts["hierarchyEdges"] = len(hierarchy)
-    return payload, counts, release_graph_id, analysis_graph_id
 
 
 def _manifest_digest(manifest: Mapping[str, Any]) -> str:
@@ -1970,579 +1182,6 @@ def _as_sequence(value: object, label: str) -> Sequence[Any]:
     return cast(Sequence[Any], value)
 
 
-def _require_count(value: object, label: str, *, positive: bool = False) -> int:
-    minimum = 1 if positive else 0
-    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
-        qualifier = "positive" if positive else "nonnegative"
-        raise VocabularyAtlasError(f"{label} must be a {qualifier} integer")
-    return value
-
-
-def _one_resource(graph: Graph, subject: URIRef, predicate: URIRef, label: str) -> URIRef:
-    values = tuple(graph.objects(subject, predicate))
-    if len(values) != 1 or not isinstance(values[0], URIRef):
-        raise VocabularyAtlasError(f"{label} must have exactly one IRI")
-    return values[0]
-
-
-def _one_literal(graph: Graph, subject: URIRef, predicate: URIRef, label: str) -> RdfLiteral:
-    values = tuple(graph.objects(subject, predicate))
-    if len(values) != 1 or not isinstance(values[0], RdfLiteral):
-        raise VocabularyAtlasError(f"{label} must have exactly one literal")
-    return values[0]
-
-
-def _search_only_mapping_nodes(analysis: Graph) -> tuple[URIRef, ...]:
-    """Return every concept mapping in the analysis graph, in id order.
-
-    An atlas only ever carries ``searchOnly`` mappings, so a mapping with any
-    other eligibility is a defect rather than a row to skip.  This is the one
-    place that decides which nodes are mappings; :mod:`refspec.atlas.queries`
-    reads the same answer instead of re-deriving a laxer one.
-    """
-
-    nodes: list[URIRef] = []
-    for subject in sorted(set(analysis.subjects(RDF.type, RKAF.ConceptMapping)), key=str):
-        if not isinstance(subject, URIRef):
-            raise VocabularyAtlasError("searchOnly mapping id must be an IRI")
-        if _one_resource(analysis, subject, RKAF.usageEligibility, "mapping eligibility") != RKAF.searchOnly:
-            raise VocabularyAtlasError("searchOnly mapping has contradictory eligibility")
-        nodes.append(subject)
-    return tuple(nodes)
-
-
-def _search_only_mapping_validations(analysis: Graph, mapping: URIRef) -> tuple[URIRef, ...]:
-    """Return the complete supporting set that qualifies one mapping."""
-
-    validations = tuple(sorted(set(analysis.objects(mapping, ATLAS.qualifiedBy)), key=str))
-    if len(validations) < 2 or any(not isinstance(value, URIRef) for value in validations):
-        raise VocabularyAtlasError("searchOnly mapping needs at least two machine validations")
-    if any((value, RDF.type, ATLAS.MachineValidation) not in analysis for value in validations):
-        raise VocabularyAtlasError("searchOnly mapping validation is missing")
-    return cast(tuple[URIRef, ...], validations)
-
-
-def _label_cluster_nodes(analysis: Graph) -> tuple[URIRef, ...]:
-    """Return every label cluster in the analysis graph, in id order.
-
-    A cluster only means anything if it crosses releases, so the cross-release
-    and membership checks belong to reading a cluster, not to one caller.
-    """
-
-    clusters: list[URIRef] = []
-    for cluster in sorted(set(analysis.subjects(RDF.type, ATLAS.LabelCluster)), key=str):
-        if not isinstance(cluster, URIRef):
-            raise VocabularyAtlasError("label cluster id must be an IRI")
-        _one_literal(analysis, cluster, ATLAS.normalizedLabel, "label cluster normalized label")
-        members = tuple(analysis.objects(cluster, ATLAS.member))
-        releases = tuple(analysis.objects(cluster, ATLAS.memberRelease))
-        if len(members) < 2 or not releases:
-            raise VocabularyAtlasError("label cluster must contain members from releases")
-        if any(not isinstance(value, URIRef) for value in (*members, *releases)):
-            raise VocabularyAtlasError("label cluster members and releases must be IRIs")
-        if len(set(releases)) < 2:
-            raise VocabularyAtlasError("label cluster must cross releases")
-        if any(
-            not any((member, ATLAS.memberOfRelease, release) in analysis for release in releases) for member in members
-        ):
-            raise VocabularyAtlasError("label cluster member is outside its declared releases")
-        clusters.append(cluster)
-    return tuple(clusters)
-
-
-def _validate_input_pin(value: object) -> str:
-    pin = _as_mapping(value, "atlas input")
-    role = pin.get("role")
-    if role == "ManagedReleaseView":
-        if set(pin) != {
-            "role",
-            "manifestDigest",
-            "publicationReleaseId",
-            "rulespecGraph",
-        }:
-            raise VocabularyAtlasError("managed release input fields differ from v1")
-        _require_digest(pin.get("manifestDigest"), "managed release manifest digest")
-        _require_iri(pin.get("publicationReleaseId"), "managed publication release id")
-        graph = _as_mapping(pin.get("rulespecGraph"), "managed Rulespec graph pin")
-        if set(graph) != {"id", "digest"}:
-            raise VocabularyAtlasError("managed Rulespec graph pin fields differ from v1")
-        _require_iri(graph.get("id"), "managed Rulespec graph id")
-        _require_digest(graph.get("digest"), "managed Rulespec graph digest")
-        return role
-    if role == "RulespecCoreRelease":
-        if set(pin) != {"role", "fileDigest", "releaseId", "releaseDigest"}:
-            raise VocabularyAtlasError("Rulespec Core input fields differ from v1")
-        _require_digest(pin.get("fileDigest"), "Rulespec Core file digest")
-        release_id = _require_iri(pin.get("releaseId"), "Rulespec Core release id")
-        release_digest = _require_digest(pin.get("releaseDigest"), "Rulespec Core release digest")
-        if release_id != "urn:rulespec:core:" + release_digest.removeprefix("sha256:"):
-            raise VocabularyAtlasError("Rulespec Core release id differs from its digest")
-        return role
-    if role == "CrosswalkBundle":
-        if set(pin) != {"role", "id", "digest", "fileDigest", "mediaType"}:
-            raise VocabularyAtlasError("crosswalk input fields differ from v1")
-        _require_iri(pin.get("id"), "crosswalk bundle id")
-        _require_digest(pin.get("digest"), "crosswalk bundle digest")
-        _require_digest(pin.get("fileDigest"), "crosswalk file digest")
-        if pin.get("mediaType") != CROSSWALK_MEDIA_TYPE:
-            raise VocabularyAtlasError("crosswalk media type differs")
-        return role
-    raise VocabularyAtlasError("atlas input role is unsupported")
-
-
-def _validate_implementation_pin(value: object) -> Mapping[str, Any]:
-    implementation = _as_mapping(value, "atlas implementation")
-    if set(implementation) != {"id", "version", "sourceModules", "runtime"}:
-        raise VocabularyAtlasError("atlas implementation fields differ from v1")
-    _require_iri(implementation.get("id"), "atlas implementation id")
-    _require_text(implementation.get("version"), "atlas implementation version")
-    modules = _as_sequence(implementation.get("sourceModules"), "atlas implementation source modules")
-    if not modules:
-        raise VocabularyAtlasError("atlas implementation needs at least one source module")
-    seen_paths: set[str] = set()
-    for item in modules:
-        module = _as_mapping(item, "atlas implementation source module")
-        if set(module) != {"path", "digest"}:
-            raise VocabularyAtlasError("atlas implementation source module fields differ from v1")
-        path = _require_text(module.get("path"), "atlas implementation source module path")
-        if path in seen_paths:
-            raise VocabularyAtlasError("atlas implementation repeats a source module")
-        seen_paths.add(path)
-        _require_digest(module.get("digest"), f"atlas implementation module {path} digest")
-    runtime = _as_mapping(implementation.get("runtime"), "atlas implementation runtime")
-    if not runtime:
-        raise VocabularyAtlasError("atlas implementation runtime must not be empty")
-    for field, runtime_value in runtime.items():
-        _require_text(field, "atlas implementation runtime name")
-        _require_text(runtime_value, f"atlas implementation runtime {field}")
-    return implementation
-
-
-def _validate_projected_artifact(graph: Graph, artifact: URIRef, *, role: str) -> None:
-    if (artifact, RDF.type, ATLAS.CrosswalkArtifact) not in graph:
-        raise VocabularyAtlasError("searchOnly mapping references a missing crosswalk artifact")
-    observed_role = _one_literal(graph, artifact, ATLAS.artifactRole, "crosswalk artifact role")
-    if str(observed_role) != role:
-        raise VocabularyAtlasError("searchOnly mapping references a crosswalk artifact with the wrong role")
-    _require_digest(
-        str(_one_literal(graph, artifact, ATLAS.artifactDigest, "crosswalk artifact digest")),
-        "crosswalk artifact digest",
-    )
-
-
-def _sealed_reason(
-    validation: Mapping[str, Any],
-    artifacts: Mapping[str, Mapping[str, Any]],
-) -> str:
-    """The free text this validation's sealed response carried, if any.
-
-    Read from the response artifact rather than the validation record because
-    that is where the producer sealed it, and it is already bounded there.
-    """
-
-    record = artifacts.get(str(validation["responseArtifact"]["id"]))
-    if record is None:
-        return ""
-    content = record.get("content")
-    if not isinstance(content, Mapping):
-        return ""
-    reason = content.get("reason")
-    if not isinstance(reason, str):
-        return ""
-    return reason.strip()
-
-
-def _verify_adjudicated_relation(
-    graph: Graph,
-    *,
-    candidate: URIRef,
-    anchor: URIRef | None,
-    has_mapping: bool,
-) -> None:
-    """The agreement lattice, re-derived from the published verdicts.
-
-    Checking only that a mapping matches its candidate's adjudicated relation
-    would accept a distribution whose adjudication contradicts the very verdicts
-    it cites. The rule is universal: every supporting validation that answered
-    this candidate's sealed question must be relation-compatible with every
-    other, and the adjudicated relation is the weakest claim any of them made.
-
-    Driven by the *verdicts*, never by whether the producer volunteered an
-    adjudication. Keying it off the adjudication would make the whole check
-    opt-in for exactly the party with a motive to skip it: omit one triple and a
-    pair two machines typed ``target_is_broader`` falls back to the uniform
-    proposal and publishes as ``closeMatch``. So verdicts present and no
-    adjudication is a refusal, not a v1 distribution.
-    """
-
-    input_digest = str(_one_literal(graph, candidate, ATLAS.inputContextDigest, "mapping input digest"))
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    carriers = 0
-    supporters = 0
-    for validation in graph.subjects(ATLAS.validates, candidate):
-        if not isinstance(validation, URIRef):
-            raise VocabularyAtlasError("machine validation must be an IRI")
-        if (validation, RDF.type, ATLAS.MachineValidation) not in graph:
-            raise VocabularyAtlasError("machine validation is untyped")
-        sealed = _one_literal(graph, validation, ATLAS.sealedInputDigest, "machine sealed input digest")
-        if str(sealed) != input_digest:
-            continue
-        if str(_one_literal(graph, validation, ATLAS.outcome, "machine validation outcome")) != "supports":
-            continue
-        deterministic = _one_literal(
-            graph,
-            validation,
-            ATLAS.deterministicChecksPassed,
-            "machine deterministic check",
-        )
-        if deterministic.toPython() is not True:
-            continue
-        supporters += 1
-        stated = tuple(graph.objects(validation, ATLAS.verdictRelation))
-        if len(stated) > 1:
-            raise VocabularyAtlasError("machine validation verdictRelation must have exactly one value")
-        if stated:
-            carriers += 1
-        request = _one_resource(graph, validation, ATLAS.requestArtifact, "machine request artifact")
-        grouped[str(request)].append(
-            {
-                "id": str(validation),
-                "verdictRelation": str(stated[0]) if stated else None,
-                # The five identity fields the gate requires to differ. Read
-                # here so the graph applies the same independence predicate the
-                # writer applied to the sealed records.
-                "identity": (
-                    str(_one_resource(graph, validation, ATLAS.validatorActor, "machine validator actor")),
-                    str(_one_resource(graph, validation, ATLAS.independenceGroup, "machine independence group")),
-                    str(_one_resource(graph, validation, ATLAS.provider, "machine provider")),
-                    str(_one_literal(graph, validation, ATLAS.providerModelId, "machine provider model id")),
-                    str(_one_resource(graph, validation, ATLAS.responseArtifact, "machine response artifact")),
-                ),
-            }
-        )
-    if carriers not in (0, supporters):
-        raise VocabularyAtlasError("machine validations mix adjudicated and unadjudicated verdicts")
-    if carriers == 0:
-        # The v1 shape states no adjudication and needs none.
-        if anchor is not None:
-            raise VocabularyAtlasError("mapping candidate states an adjudicated relation with no verdicts")
-        return
-    for values in grouped.values():
-        for value in values:
-            if value["verdictRelation"] not in _V2_VERDICTS:
-                raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
-
-    # Mirror the writer exactly: an adjudication is owed precisely when the gate
-    # would have emitted one, which needs BOTH a relation every supporting
-    # validation on one question agrees with AND an independent pair among them.
-    # Deriving "the verdicts state a relation" from anything wider — a lone
-    # support, or a pair from one machine — refuses the ordinary shape where the
-    # second machine abstained or answered no.
-    agreed: str | None = None
-    for key in sorted(grouped):
-        values = sorted(grouped[key], key=lambda item: str(item["id"]))
-        relation = _agreed_relation_for(frozenset(str(value["verdictRelation"]) for value in values))
-        if relation is None:
-            continue
-        if any(
-            all(left != right for left, right in zip(first["identity"], second["identity"], strict=True))
-            for first, second in itertools.combinations(values, 2)
-        ):
-            agreed = relation
-            break
-
-    if agreed is None:
-        # Nothing was adjudicated, so nothing is owed — but nothing may be
-        # claimed either, and no mapping may rest on it.
-        if anchor is not None:
-            raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
-        if has_mapping:
-            raise VocabularyAtlasError("qualifying validations disagree about the relation")
-        return
-    if anchor is None:
-        raise VocabularyAtlasError("mapping candidate omits the adjudicated relation its verdicts state")
-    if agreed != str(anchor):
-        raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
-
-
-def _reference_release_digest(graph: Graph, release: URIRef) -> str:
-    if (release, RDF.type, RKAF.ReferenceResourceRelease) not in graph:
-        raise VocabularyAtlasError("searchOnly mapping release is not a ReferenceResourceRelease")
-    return _require_digest(
-        str(_one_literal(graph, release, RKAF.referenceReleaseDigest, "reference release digest")),
-        "reference release digest",
-    )
-
-
-def _validate_query_graph_semantics(
-    dataset: Dataset,
-    *,
-    release_graph_id: str,
-    analysis_graph_id: str,
-) -> None:
-    """Validate the graph facts exposed by :mod:`refspec.atlas.queries`.
-
-    This is intentionally a distribution check.  Producer-only reconstruction
-    additionally reopens the crosswalk bundle and recomputes every projected
-    fact from its exact inputs.
-    """
-
-    release_graph = dataset.graph(URIRef(release_graph_id))
-    analysis = dataset.graph(URIRef(analysis_graph_id))
-
-    _hierarchy_edges(release_graph)
-
-    for member, release in analysis.subject_objects(ATLAS.memberOfRelease):
-        if not isinstance(member, URIRef) or not isinstance(release, URIRef):
-            raise VocabularyAtlasError("atlas membership must connect two IRIs")
-        _reference_release_digest(release_graph, release)
-        if (release, PROV.hadMember, member) not in release_graph:
-            raise VocabularyAtlasError("atlas analysis membership is absent from authoritative release facts")
-
-    _label_cluster_nodes(analysis)
-
-    # Every adjudication is checked here, on the candidate that states it,
-    # whether or not it went on to earn a mapping. Checking only the ones that
-    # qualified would leave adjudicated-`related` — the single agreed relation
-    # that emits no mapping — unverifiable, and that is exactly the claim a
-    # producer would have the most reason to overstate.
-    #
-    # Mapping subjects are collected without cardinality checks on purpose: the
-    # mapping loop below owns those, and preempting them here would change which
-    # refusal a forged distribution gets.
-    qualified_candidates = {
-        value
-        for mapping in _search_only_mapping_nodes(analysis)
-        for value in analysis.objects(mapping, ATLAS.qualifiedFrom)
-    }
-    for candidate in sorted(analysis.subjects(RDF.type, ATLAS.MappingCandidate), key=str):
-        if not isinstance(candidate, URIRef):
-            raise VocabularyAtlasError("mapping candidate must be an IRI")
-        stated = tuple(analysis.objects(candidate, ATLAS.adjudicatedRelation))
-        if len(stated) > 1 or (stated and not isinstance(stated[0], URIRef)):
-            raise VocabularyAtlasError("mapping candidate adjudicated relation must have exactly one IRI")
-        if stated and str(stated[0]) not in _MAPPING_RELATIONS:
-            raise VocabularyAtlasError("mapping candidate adjudicated relation is unsupported")
-        # Every candidate, not only the ones that state an adjudication: the
-        # verdicts decide whether one is owed.
-        _verify_adjudicated_relation(
-            analysis,
-            candidate=candidate,
-            anchor=stated[0] if stated else None,
-            has_mapping=candidate in qualified_candidates,
-        )
-        if not stated or str(stated[0]) != _RELATED_MATCH:
-            continue
-        if candidate in qualified_candidates:
-            raise VocabularyAtlasError("adjudicated related must not qualify a searchOnly mapping")
-        if _one_resource(analysis, candidate, RKAF.usageEligibility, "candidate eligibility") != RKAF.notEligible:
-            raise VocabularyAtlasError("adjudicated related candidate must not be eligible")
-
-    for mapping in _search_only_mapping_nodes(analysis):
-        validations = _search_only_mapping_validations(analysis, mapping)
-        source = _one_resource(analysis, mapping, RKAF.assertsSubject, "mapping source")
-        relation = _one_resource(analysis, mapping, RKAF.assertsPredicate, "mapping relation")
-        target = _one_resource(analysis, mapping, RKAF.assertsObject, "mapping target")
-        source_release = _one_resource(
-            analysis,
-            mapping,
-            RKAF.sourceConceptRelease,
-            "mapping source release",
-        )
-        target_release = _one_resource(
-            analysis,
-            mapping,
-            RKAF.targetConceptRelease,
-            "mapping target release",
-        )
-        if str(relation) not in _MAPPING_RELATIONS:
-            raise VocabularyAtlasError("searchOnly mapping relation is unsupported")
-        if _one_resource(analysis, mapping, RKAF.assertionOrigin, "mapping origin") != RKAF.aiSuggested:
-            raise VocabularyAtlasError("searchOnly mapping origin differs")
-        if (
-            _one_resource(analysis, mapping, RKAF.epistemicBasis, "mapping epistemic basis")
-            != RKAF.statisticalInference
-        ):
-            raise VocabularyAtlasError("searchOnly mapping epistemic basis differs")
-        if (
-            str(_one_literal(analysis, mapping, ATLAS.selectionPolicy, "mapping selection policy"))
-            != _POLICIES["mappingEligibility"]
-        ):
-            raise VocabularyAtlasError("searchOnly mapping selection policy differs")
-        if (
-            _one_resource(analysis, mapping, ATLAS.verificationStatus, "mapping verification status")
-            != ATLAS.machineQualifiedForSearch
-        ):
-            raise VocabularyAtlasError("searchOnly mapping verification status differs")
-
-        candidate = _one_resource(analysis, mapping, ATLAS.qualifiedFrom, "mapping candidate")
-        if (candidate, RDF.type, ATLAS.MappingCandidate) not in analysis:
-            raise VocabularyAtlasError("searchOnly mapping candidate is missing")
-        if _one_resource(analysis, candidate, RKAF.usageEligibility, "candidate eligibility") != RKAF.searchOnly:
-            raise VocabularyAtlasError("searchOnly mapping candidate is not searchOnly")
-        # The relation anchor. Under v1 the candidate's proposal *is* the
-        # adjudicated answer, so the proposal anchors the mapping. Under v2 the
-        # judge answers a richer question than the one proposed, so the
-        # adjudicated relation anchors it and the proposal stays the untouched
-        # record of what was tested. Anchoring v2 to the proposal would forbid
-        # every relation except the one hypothesis it holds.
-        adjudicated = tuple(analysis.objects(candidate, ATLAS.adjudicatedRelation))
-        if len(adjudicated) > 1:
-            raise VocabularyAtlasError("mapping candidate adjudicated relation must have exactly one IRI")
-        if adjudicated and not isinstance(adjudicated[0], URIRef):
-            raise VocabularyAtlasError("mapping candidate adjudicated relation must be an IRI")
-        if adjudicated and str(adjudicated[0]) not in _MAPPING_RELATIONS:
-            raise VocabularyAtlasError("mapping candidate adjudicated relation is unsupported")
-        anchor = adjudicated[0] if adjudicated else None
-        proposed = _one_resource(analysis, candidate, ATLAS.proposedRelation, "mapping candidate proposal")
-        expected_candidate_values = (
-            (ATLAS.sourceMember, source),
-            (ATLAS.targetMember, target),
-            (ATLAS.sourceRelease, source_release),
-            (ATLAS.targetRelease, target_release),
-        )
-        if any(
-            _one_resource(analysis, candidate, predicate, "mapping candidate endpoint") != expected
-            for predicate, expected in expected_candidate_values
-        ):
-            raise VocabularyAtlasError("searchOnly mapping differs from its candidate")
-        if (anchor if anchor is not None else proposed) != relation:
-            raise VocabularyAtlasError("searchOnly mapping differs from its candidate")
-        _require_digest(
-            str(_one_literal(analysis, candidate, ATLAS.candidateDigest, "mapping candidate digest")),
-            "mapping candidate digest",
-        )
-        input_digest = _require_digest(
-            str(_one_literal(analysis, candidate, ATLAS.inputContextDigest, "mapping input digest")),
-            "mapping input digest",
-        )
-        input_context = _one_resource(
-            analysis,
-            candidate,
-            ATLAS.inputContextArtifact,
-            "mapping input context artifact",
-        )
-        _validate_projected_artifact(analysis, input_context, role="inputContext")
-        if (
-            str(
-                _one_literal(
-                    analysis,
-                    input_context,
-                    ATLAS.contentDigest,
-                    "input context content digest",
-                )
-            )
-            != input_digest
-        ):
-            raise VocabularyAtlasError("searchOnly mapping input context does not carry the sealed input digest")
-        evidence = tuple(analysis.objects(candidate, ATLAS.evidence))
-        if not evidence or any(not isinstance(item, URIRef) for item in evidence):
-            raise VocabularyAtlasError("searchOnly mapping candidate needs IRI evidence")
-        for artifact in cast(tuple[URIRef, ...], evidence):
-            _validate_projected_artifact(analysis, artifact, role="evidence")
-
-        independence: list[tuple[URIRef, URIRef, URIRef, str, URIRef]] = []
-        requests: set[URIRef] = set()
-        for validation in validations:
-            if (validation, RDF.type, ATLAS.MachineValidation) not in analysis:
-                raise VocabularyAtlasError("searchOnly mapping validation is missing")
-            if _one_resource(analysis, validation, ATLAS.validates, "machine validation candidate") != candidate:
-                raise VocabularyAtlasError("machine validation applies to another candidate")
-            _require_digest(
-                str(_one_literal(analysis, validation, ATLAS.validationDigest, "machine validation digest")),
-                "machine validation digest",
-            )
-            if (
-                str(_one_literal(analysis, validation, ATLAS.sealedInputDigest, "machine sealed input digest"))
-                != input_digest
-            ):
-                raise VocabularyAtlasError("machine validation uses another sealed input")
-            outcome = _one_literal(analysis, validation, ATLAS.outcome, "machine validation outcome")
-            deterministic = _one_literal(
-                analysis,
-                validation,
-                ATLAS.deterministicChecksPassed,
-                "machine deterministic check",
-            )
-            if (
-                str(outcome) != "supports"
-                or deterministic.datatype != XSD.boolean
-                or deterministic.toPython() is not True
-            ):
-                raise VocabularyAtlasError("machine validation does not support deterministic search use")
-            actor = _one_resource(analysis, validation, ATLAS.validatorActor, "machine validator actor")
-            group = _one_resource(analysis, validation, ATLAS.independenceGroup, "machine independence group")
-            provider = _one_resource(analysis, validation, ATLAS.provider, "machine provider")
-            provider_model_id = _require_text(
-                str(
-                    _one_literal(
-                        analysis,
-                        validation,
-                        ATLAS.providerModelId,
-                        "machine provider model id",
-                    )
-                ),
-                "machine provider model id",
-            )
-            request = _one_resource(analysis, validation, ATLAS.requestArtifact, "machine request artifact")
-            response = _one_resource(analysis, validation, ATLAS.responseArtifact, "machine response artifact")
-            _validate_projected_artifact(analysis, request, role="validationRequest")
-            _validate_projected_artifact(analysis, response, role="validationResponse")
-            requests.add(request)
-            independence.append((actor, group, provider, provider_model_id, response))
-        if not any(
-            all(left != right for left, right in zip(first, second, strict=True))
-            for first, second in itertools.combinations(independence, 2)
-        ):
-            raise VocabularyAtlasError("searchOnly mapping validations are not independent")
-        if len(requests) != 1:
-            # Two machines that answered different requests are two answers to
-            # two questions, not a corroboration.
-            raise VocabularyAtlasError("searchOnly mapping validations answered different requests")
-        selected_request = next(iter(requests))
-        complete_support = {
-            validation
-            for validation in analysis.subjects(ATLAS.validates, candidate)
-            if isinstance(validation, URIRef)
-            and str(_one_literal(analysis, validation, ATLAS.sealedInputDigest, "machine sealed input digest"))
-            == input_digest
-            and str(_one_literal(analysis, validation, ATLAS.outcome, "machine validation outcome")) == "supports"
-            and _one_literal(
-                analysis,
-                validation,
-                ATLAS.deterministicChecksPassed,
-                "machine deterministic check",
-            ).toPython()
-            is True
-            and _one_resource(analysis, validation, ATLAS.requestArtifact, "machine request artifact")
-            == selected_request
-        }
-        if set(validations) != complete_support:
-            raise VocabularyAtlasError("searchOnly mapping does not cite its complete supporting validation set")
-        expected_mapping = _stable_iri(
-            "search-only-mapping",
-            str(candidate),
-            *(str(value) for value in validations),
-        )
-        if mapping != expected_mapping:
-            raise VocabularyAtlasError("searchOnly mapping id differs from its proof")
-        if (source, ATLAS.memberOfRelease, source_release) not in analysis or (
-            target,
-            ATLAS.memberOfRelease,
-            target_release,
-        ) not in analysis:
-            raise VocabularyAtlasError("searchOnly mapping endpoints are outside their releases")
-        _reference_release_digest(release_graph, source_release)
-        _reference_release_digest(release_graph, target_release)
-        if (source_release, PROV.hadMember, source) not in release_graph or (
-            target_release,
-            PROV.hadMember,
-            target,
-        ) not in release_graph:
-            raise VocabularyAtlasError("searchOnly mapping endpoint is absent from its release facts")
-
-
-# ---------------------------------------------------------------------------
 # Canonical Atlas 2.0 distribution
 # ---------------------------------------------------------------------------
 #

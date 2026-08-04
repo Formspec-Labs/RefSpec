@@ -1,555 +1,743 @@
-"""Static publication and offline-explorer regressions."""
+"""Static publication preserves and authorizes exact Atlas 2.0 bytes."""
 
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 import pytest
+import test_atlas_publication_decision as decision_fixtures
+import test_relation_assertion_bundle as relation_fixtures
+import test_vocabulary_atlas_model as model_fixtures
 
+import refspec.atlas.publication as publication_module
 from refspec import binding
-from refspec.atlas import VocabularyAtlasAsset, VocabularyAtlasError
+from refspec.atlas.atlas_scope import AtlasScopeRelease, PinnedVocabularyAtlasScope
+from refspec.atlas.explorer import AtlasExplorerError, render_atlas_explorer
+from refspec.atlas.model import ATLAS_FILE, VocabularyAtlasAsset, build_vocabulary_atlas
+from refspec.atlas.projection import (
+    VocabularyAtlasProjection,
+    build_atlas_projection,
+    ring_projection_policy,
+)
 from refspec.atlas.publication import (
     ATLAS_MANIFEST,
+    ATLAS_SCOPE,
     COMPRESSED_ATLAS,
     EXPLORER_DATA,
     EXPLORER_HTML,
+    PUBLICATION_DECISION,
     PUBLICATION_MANIFEST,
+    AtlasPublication,
+    AtlasPublicationError,
     build_explorer_model,
+    main,
     publish_vocabulary_atlas,
 )
+from refspec.atlas.publication_decision import (
+    VocabularyAtlasPublicationDecision,
+    build_vocabulary_atlas_publication_decision,
+)
+from refspec.atlas.relation_assertion import (
+    PinnedRelationAssertionBundle,
+    RelationAssertionBundle,
+)
+from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
+from refspec.registry.infrastructure.semantic_foundation import (
+    ENTITY_RELATED,
+    LEGAL_CITES,
+    SUBJECT_EXACT_MATCH,
+    VALUE_EXACT_CROSSWALK,
+)
 
-_REPO_ROOT = Path(__file__).parents[1]
-_FIXTURE_ROOT = _REPO_ROOT / "bindings" / "atlas" / "1.0" / "fixtures"
-_CORPUS = json.loads((_FIXTURE_ROOT / "corpus.json").read_text(encoding="utf-8"))
+DECIDED_AT = "2026-08-04T20:15:00Z"
+DECISION_ACTOR = "https://refspec.org/actors/publication-test-reviewer"
 
 
-def _digest(value: bytes) -> str:
-    return "sha256:" + hashlib.sha256(value).hexdigest()
-
-
-def _asset(name: str) -> VocabularyAtlasAsset:
-    case = next(value for value in _CORPUS["cases"] if value["directory"] == f"valid/{name}")
-    return VocabularyAtlasAsset.open(
-        _FIXTURE_ROOT / "valid" / name,
-        expected_manifest_digest=case["manifestDigest"],
-        expected_output_digest=case["outputDigest"],
-    )
-
-
-def test_explorer_view_keeps_qualified_mappings_and_distinguishes_equal_labels() -> None:
-    asset = _asset("qualified-search-only")
-
-    model = build_explorer_model(asset, max_nodes=20)
-
-    mapping_edges = [edge for edge in model["edges"] if edge["type"] == "qualifiedMapping"]
-    label_edges = [edge for edge in model["edges"] if edge["type"] == "sharedLabel"]
-    assert model["atlas"] == {
-        "assetId": asset.manifest["id"],
+def _atlas_result(asset: VocabularyAtlasAsset) -> dict[str, str]:
+    return {
+        "role": "VocabularyAtlas",
+        "id": str(asset.manifest["id"]),
         "manifestDigest": asset.manifest_digest,
         "distributionDigest": asset.output_digest,
-        "counts": dict(asset.manifest["counts"]),
-        "quadCount": asset.manifest["output"]["quadCount"],
-        "byteLength": asset.manifest["output"]["byteLength"],
-        "managedInputs": [
-            {
-                "manifestDigest": value["manifestDigest"],
-                "publicationReleaseId": value["publicationReleaseId"],
-                "rulespecGraph": dict(value["rulespecGraph"]),
-            }
-            for value in asset.manifest["inputs"]
-            if value["role"] == "ManagedReleaseView"
-        ],
     }
-    assert len(mapping_edges) == model["summary"]["availableQualifiedMappingCount"] == 1
-    assert len(mapping_edges[0]["validationIds"]) == 2
-    assert len(label_edges) == 1
-    assert mapping_edges[0]["id"].startswith("urn:ref:vocabulary-atlas-search-only-mapping:")
-    assert label_edges[0]["clusterId"].startswith("urn:ref:vocabulary-atlas-label-cluster:")
-    assert {edge["id"] for edge in mapping_edges}.isdisjoint(edge["id"] for edge in label_edges)
 
 
-def test_explorer_view_includes_real_hierarchy_context() -> None:
-    model = build_explorer_model(
-        _asset("hierarchy"),
-        max_nodes=20,
-        max_mappings=0,
-        max_shared_clusters=0,
+def _projection_result(projection: VocabularyAtlasProjection) -> dict[str, Any]:
+    return {
+        "role": "VocabularyAtlasProjection",
+        "id": str(projection.manifest["id"]),
+        "manifestDigest": projection.manifest_digest,
+        "distributionDigest": projection.output_digest,
+        "parent": projection.parent_pin,
+    }
+
+
+def _atlas_decision(
+    scope: PinnedVocabularyAtlasScope,
+    asset: VocabularyAtlasAsset,
+) -> VocabularyAtlasPublicationDecision:
+    return build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="atlas",
+        policies=decision_fixtures._policies(),
+        decision_actor=DECISION_ACTOR,
+        decided_at=DECIDED_AT,
+        result=_atlas_result(asset),
     )
 
-    hierarchy = [edge for edge in model["edges"] if edge["type"] == "broader"]
-    assert hierarchy
-    assert model["summary"]["referenceReleaseCount"] == 2
-    assert all(edge["label"] == "broader concept" for edge in hierarchy)
-    assert any("hierarchyContext" in node["roles"] for node in model["nodes"])
+
+def _projection_decision(
+    scope: PinnedVocabularyAtlasScope,
+    projection: VocabularyAtlasProjection,
+) -> VocabularyAtlasPublicationDecision:
+    return build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="projection",
+        policies=decision_fixtures._verified_projection_policies(projection),
+        decision_actor=DECISION_ACTOR,
+        decided_at=DECIDED_AT,
+        result=_projection_result(projection),
+    )
 
 
-def test_publication_is_deterministic_self_contained_and_reopens_as_an_atlas(tmp_path: Path) -> None:
-    asset = _asset("qualified-search-only")
-    title = "Atlas </script><img src=x onerror=alert(1)>"
-    first = publish_vocabulary_atlas(asset, tmp_path / "first", title=title, max_nodes=20)
-    second = publish_vocabulary_atlas(asset, tmp_path / "second", title=title, max_nodes=20)
+def _canonical_fixture(
+    tmp_path: Path,
+    *,
+    name: str,
+) -> tuple[PinnedVocabularyAtlasScope, VocabularyAtlasAsset, VocabularyAtlasPublicationDecision]:
+    scope = decision_fixtures._pinned_scope(tmp_path, name=name)
+    asset = build_vocabulary_atlas(scope)
+    return scope, asset, _atlas_decision(scope, asset)
 
-    expected_files = {
+
+def _projection_fixture(
+    tmp_path: Path,
+    *,
+    name: str,
+) -> tuple[
+    PinnedVocabularyAtlasScope,
+    VocabularyAtlasAsset,
+    VocabularyAtlasProjection,
+    VocabularyAtlasPublicationDecision,
+]:
+    scope, parent, _ = _canonical_fixture(tmp_path, name=name)
+    projection = build_atlas_projection(
+        parent,
+        policy=ring_projection_policy("subject"),
+    )
+    return scope, parent, projection, _projection_decision(scope, projection)
+
+
+def _mapped_fixture(
+    tmp_path: Path,
+) -> tuple[PinnedVocabularyAtlasScope, VocabularyAtlasAsset, VocabularyAtlasPublicationDecision, str]:
+    source, source_release_id, source_concept = relation_fixtures._source_release(
+        tmp_path,
+        "publication-source",
+    )
+    target, target_release_id, target_concept = relation_fixtures._source_release(
+        tmp_path,
+        "publication-target",
+    )
+    evidence = relation_fixtures._human_evidence("publication-review")
+    mapping = relation_fixtures._mapping(
+        source_concept=source_concept,
+        target_concept=target_concept,
+        source_release=source_release_id,
+        target_release=target_release_id,
+        evidence=(evidence.identifier,),
+    )
+    bundle = RelationAssertionBundle.create(
+        semantic_ring="subject",
+        release_sources=(source, target),
+        evidence_assertions=(evidence,),
+        mapping_assertions=(mapping,),
+    )
+    relation_root = bundle.write_to(tmp_path / "publication-relation")
+    relation = PinnedRelationAssertionBundle.open(
+        relation_root,
+        expected_manifest_digest=bundle.manifest_digest,
+        release_sources=(source, target),
+    )
+    source_release = AtlasScopeRelease(source)
+    target_release = AtlasScopeRelease(target)
+    scope, _ = model_fixtures._pinned_scope(
+        tmp_path,
+        name="publication-mapping",
+        releases=(source_release, target_release),
+        specs=(
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                source_release,
+                "publication-source",
+                participation="core",
+            ),
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                target_release,
+                "publication-target",
+                participation="specialist",
+            ),
+        ),
+        relations=(relation,),
+    )
+    asset = build_vocabulary_atlas(scope)
+    return scope, asset, _atlas_decision(scope, asset), mapping.relation
+
+
+def _manifest_digest(directory: Path) -> str:
+    return sha256_digest((directory / PUBLICATION_MANIFEST).read_bytes())
+
+
+def test_canonical_publication_preserves_exact_authoritative_bytes_and_reopens(
+    tmp_path: Path,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name="canonical-publication")
+
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published",
+        decision=decision,
+        title="Canonical Atlas 2.0",
+        max_concepts=12,
+    )
+
+    assert {path.name for path in publication.directory.iterdir()} == {
         ATLAS_MANIFEST,
+        ATLAS_SCOPE,
         COMPRESSED_ATLAS,
         EXPLORER_DATA,
         EXPLORER_HTML,
+        PUBLICATION_DECISION,
         PUBLICATION_MANIFEST,
     }
-    assert {path.name for path in first.directory.iterdir()} == expected_files
-    for name in expected_files:
-        assert (first.directory / name).read_bytes() == (second.directory / name).read_bytes()
-
-    publication = json.loads((first.directory / PUBLICATION_MANIFEST).read_text(encoding="utf-8"))
-    explorer = json.loads((first.directory / EXPLORER_DATA).read_text(encoding="utf-8"))
-    assert publication["canonicalPayloadDigest"] == binding.canonical_payload_digest(publication)
-    assert first.manifest_digest == _digest((first.directory / PUBLICATION_MANIFEST).read_bytes())
-    assert publication["atlas"] == {
+    assert (publication.directory / ATLAS_MANIFEST).read_bytes() == asset.manifest_bytes()
+    assert (publication.directory / ATLAS_SCOPE).read_bytes() == asset.scope_payload
+    assert (publication.directory / PUBLICATION_DECISION).read_bytes() == decision.artifact_bytes()
+    assert gzip.decompress((publication.directory / COMPRESSED_ATLAS).read_bytes()) == asset.payload
+    assert publication.manifest["distribution"] == {
+        "kind": "atlas",
         "assetId": asset.manifest["id"],
         "manifestDigest": asset.manifest_digest,
         "distributionDigest": asset.output_digest,
     }
-    assert explorer["atlas"]["distributionDigest"] == asset.output_digest
-    assert {artifact["path"] for artifact in publication["artifacts"]} == expected_files - {
-        PUBLICATION_MANIFEST
-    }
-    for artifact in publication["artifacts"]:
-        payload = (first.directory / artifact["path"]).read_bytes()
-        assert artifact["digest"] == _digest(payload)
-        assert artifact["byteLength"] == len(payload)
 
-    compressed = (first.directory / COMPRESSED_ATLAS).read_bytes()
-    assert gzip.decompress(compressed) == asset.payload
-    compressed_record = next(
-        artifact for artifact in publication["artifacts"] if artifact["path"] == COMPRESSED_ATLAS
+    reopened = AtlasPublication.open(
+        publication.directory,
+        expected_manifest_digest=publication.manifest_digest,
     )
-    assert compressed_record["uncompressedDigest"] == asset.output_digest
-    assert compressed_record["uncompressedByteLength"] == len(asset.payload)
-
-    extracted = tmp_path / "extracted"
-    extracted.mkdir()
-    (extracted / "atlas-manifest.json").write_bytes((first.directory / ATLAS_MANIFEST).read_bytes())
-    (extracted / "atlas.nq").write_bytes(gzip.decompress(compressed))
-    reopened = VocabularyAtlasAsset.open(
-        extracted,
-        expected_manifest_digest=publication["atlas"]["manifestDigest"],
-        expected_output_digest=publication["atlas"]["distributionDigest"],
-    )
-    assert reopened.manifest["id"] == asset.manifest["id"]
-
-    page = (first.directory / EXPLORER_HTML).read_text(encoding="utf-8")
-    assert "<script src=" not in page
-    assert "fetch(" not in page
-    assert title not in page
-    assert "&lt;/script&gt;&lt;img" in page
-    assert "\\u003c/script\\u003e\\u003cimg" in page
-    assert "atlas.nq.gz" in page
+    assert isinstance(reopened.distribution, VocabularyAtlasAsset)
+    assert reopened.distribution.payload == asset.payload
+    assert reopened.decision.as_record() == decision.as_record()
 
 
-def test_publication_refuses_ambiguous_limits_and_existing_output(tmp_path: Path) -> None:
-    asset = _asset("qualified-search-only")
-
-    with pytest.raises(VocabularyAtlasError, match="at least 2"):
-        build_explorer_model(asset, max_nodes=1)
-    with pytest.raises(VocabularyAtlasError, match="must not be negative"):
-        build_explorer_model(asset, max_mappings=-1)
-
-    output = tmp_path / "publication"
-    publish_vocabulary_atlas(asset, output, max_nodes=20)
-    with pytest.raises(VocabularyAtlasError, match="already exists"):
-        publish_vocabulary_atlas(asset, output, max_nodes=20)
-
-
-def test_release_label_override_is_display_only() -> None:
-    asset = _asset("qualified-search-only")
-    release_id = "urn:ref:conformance:alpha-thesaurus:2026:reference-resource-release"
-
-    model = build_explorer_model(asset, release_labels={release_id: "Alpha source"}, max_nodes=20)
-
-    release = next(value for value in model["releases"] if value["id"] == release_id)
-    assert release["label"] == "Alpha source"
-    assert model["atlas"]["assetId"] == asset.manifest["id"]
-
-    with pytest.raises(VocabularyAtlasError, match="does not match"):
-        build_explorer_model(asset, release_labels={"urn:missing": "Missing"}, max_nodes=20)
-
-
-def test_publication_model_contains_only_json_portable_values() -> None:
-    model: dict[str, Any] = build_explorer_model(_asset("qualified-search-only"), max_nodes=20)
-
-    binding.validate_canonical_value(model)
-
-
-# ---------------------------------------------------------------------------
-# Display semantics for ISO-25964 lead-in terms and associative relations
-# ---------------------------------------------------------------------------
-
-_USE_IRI = "https://refspec.org/ns/vocabulary-atlas/v1#thesaurusUse"
-_RELATED_IRI = "http://www.w3.org/2004/02/skos/core#related"
-_BROADER_IRI = "http://www.w3.org/2004/02/skos/core#broader"
-
-
-def _display_view(
-    *,
-    publication: str,
-    release: str,
-    concepts: dict[str, dict[str, Any]],
-) -> Any:
-    """A one-release view whose member records state display-relevant facts.
-
-    Each concept spec may carry ``prefLabel``, ``altLabel``, and ``links``
-    (predicate IRI to target members), mirroring how the ICPSR reader states
-    non-descriptor USE references and associative relations.
-    """
-
-    from types import MappingProxyType
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.managed_release import (
-        ManagedReleaseExpression,
-        ManagedReleaseMember,
-        ManagedReleaseView,
+def test_projection_publication_requires_parent_and_carries_no_canonical_scope(
+    tmp_path: Path,
+) -> None:
+    _, parent, projection, decision = _projection_fixture(
+        tmp_path,
+        name="projection-publication",
     )
 
-    records: dict[str, Any] = {}
-    members: dict[str, Any] = {}
-    expressions: list[Any] = []
-    for member, spec in concepts.items():
-        record: dict[str, Any] = {
-            "@id": member,
-            "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
-        }
-        if "prefLabel" in spec:
-            record["http://www.w3.org/2004/02/skos/core#prefLabel"] = spec["prefLabel"]
-        if "altLabel" in spec:
-            record["http://www.w3.org/2004/02/skos/core#altLabel"] = spec["altLabel"]
-        for predicate, literal in spec.get("literals", {}).items():
-            record[predicate] = literal
-        for predicate, targets in spec.get("links", {}).items():
-            record[predicate] = tuple({"@id": target} for target in targets)
-        records[member] = MappingProxyType(record)
-        members[member] = ManagedReleaseMember(
-            member_iri=member,
-            release_iri=release,
-            scheme_iri=release + ":scheme",
-            record=records[member],
+    with pytest.raises(AtlasPublicationError, match="requires its verified atlas parent"):
+        publish_vocabulary_atlas(
+            projection,
+            tmp_path / "missing-parent",
+            decision=decision,
         )
-        label = spec.get("prefLabel") or spec["altLabel"]
-        preferred = "prefLabel" in spec
-        expressions.append(
-            ManagedReleaseExpression(
-                expression_id=member + ":expression",
-                member_iri=member,
-                indexed_text=label.casefold(),
-                original_literal=label,
-                language_tag="en",
-                semantic_property_iri=(
-                    "http://www.w3.org/2004/02/skos/core#prefLabel"
-                    if preferred
-                    else "http://www.w3.org/2004/02/skos/core#altLabel"
-                ),
-                source_property_or_path="prefLabel" if preferred else "altLabel",
-                record=MappingProxyType({}),
-                label_role="preferred" if preferred else "alternate",
-                source_status="current",
-            )
-        )
-    release_record = MappingProxyType(
+
+    publication = publish_vocabulary_atlas(
+        projection,
+        tmp_path / "published-projection",
+        decision=decision,
+        parent=parent,
+    )
+
+    assert ATLAS_SCOPE not in {path.name for path in publication.directory.iterdir()}
+    assert (publication.directory / ATLAS_MANIFEST).read_bytes() == projection.manifest_bytes()
+    assert (publication.directory / PUBLICATION_DECISION).read_bytes() == decision.artifact_bytes()
+    assert publication.manifest["distribution"]["parent"] == projection.parent_pin
+    reopened = AtlasPublication.open(
+        publication.directory,
+        expected_manifest_digest=publication.manifest_digest,
+        parent=parent,
+    )
+    assert isinstance(reopened.distribution, VocabularyAtlasProjection)
+    assert reopened.distribution.parent_pin == projection.parent_pin
+
+
+def test_projection_publication_refuses_internally_valid_parent_incomplete_projection(
+    tmp_path: Path,
+) -> None:
+    scope, parent, _, _ = _mapped_fixture(tmp_path)
+    complete = build_atlas_projection(
+        parent,
+        policy=ring_projection_policy("subject"),
+    )
+    manifest = json.loads(complete.manifest_bytes())
+    cross_graph = next(row for row in manifest["graphs"] if row["role"] == "crossRelease")
+    cross_graph_suffix = f" <{cross_graph['id']}> .\n".encode()
+    payload = b"".join(
+        line for line in complete.payload.splitlines(keepends=True) if not line.endswith(cross_graph_suffix)
+    )
+    assert payload != complete.payload
+    cross_graph["quadCount"] = 0
+    for field in ("relationBundles", "evidenceAssertions", "mappingAssertions", "machineProofs"):
+        manifest["counts"][field] = 0
+    for ring in manifest["rings"]:
+        ring["relationBundleCount"] = 0
+        ring["mappingAssertionCount"] = 0
+    release_quad_count = next(row["quadCount"] for row in manifest["graphs"] if row["role"] == "releaseFacts")
+    manifest["output"].update(
         {
-            "@id": release,
-            "@type": "https://rulespec.org/ns/v1#ReferenceResourceRelease",
-            "http://www.w3.org/ns/prov#hadMember": tuple(concepts),
-            "https://rulespec.org/ns/v1#referenceReleaseDigest": tva.SHA_A,
+            "digest": sha256_digest(payload),
+            "byteLength": len(payload),
+            "quadCount": release_quad_count,
         }
     )
-    return ManagedReleaseView(
-        _release_id=publication,
-        _rulespec_graph_id=publication + ":graph",
-        _rulespec_graph=MappingProxyType({"@graph": (release_record, *records.values())}),
-        _expression_corpus_snapshot=MappingProxyType({"id": publication + ":corpus", "digest": tva.SHA_A}),
-        _members=MappingProxyType(members),
-        _expressions=tuple(expressions),
-        _relations=(),
-        _lifecycle_participants=(),
-        _concept_mappings=(),
-        _release_graph_validation_receipt=MappingProxyType({}),
+    manifest["canonicalPayloadDigest"] = binding.canonical_payload_digest(manifest)
+    manifest_bytes = canonical_json_bytes(manifest)
+    incomplete_root = tmp_path / "internally-valid-incomplete-projection"
+    incomplete_root.mkdir()
+    (incomplete_root / ATLAS_FILE).write_bytes(payload)
+    (incomplete_root / ATLAS_MANIFEST).write_bytes(manifest_bytes)
+    incomplete = VocabularyAtlasProjection.open(
+        incomplete_root,
+        expected_manifest_digest=sha256_digest(manifest_bytes),
+    )
+    decision = _projection_decision(scope, incomplete)
+    target = tmp_path / "nonreproducing-projection"
+
+    with pytest.raises(AtlasPublicationError, match="does not reproduce from its verified parent"):
+        publish_vocabulary_atlas(
+            incomplete,
+            target,
+            decision=decision,
+            parent=parent,
+        )
+
+    assert not target.exists()
+
+
+def test_projection_publication_refuses_another_parent_or_decision_kind(
+    tmp_path: Path,
+) -> None:
+    _, parent, projection, decision = _projection_fixture(
+        tmp_path / "first",
+        name="projection-gates",
+    )
+    _, other_parent, _ = _canonical_fixture(
+        tmp_path / "other",
+        name="other-parent",
+    )
+    atlas_decision = _atlas_decision(
+        decision_fixtures._pinned_scope(tmp_path / "atlas-decision", name="atlas-decision"),
+        other_parent,
     )
 
+    with pytest.raises(AtlasPublicationError, match="parent pin differs"):
+        publish_vocabulary_atlas(
+            projection,
+            tmp_path / "wrong-parent",
+            decision=decision,
+            parent=other_parent,
+        )
+    with pytest.raises(AtlasPublicationError, match="cannot validate a projection"):
+        publish_vocabulary_atlas(
+            projection,
+            tmp_path / "wrong-decision",
+            decision=atlas_decision,
+            parent=parent,
+        )
 
-def test_explorer_labels_non_descriptors_and_pulls_use_targets(tmp_path: Path) -> None:
-    """A lead-in term shows its alternate label, and its USE target joins the view.
 
-    The non-descriptor sorts first so it becomes the release representative;
-    its descriptor is reachable only through ``thesaurusUse``, never through
-    hierarchy, so this fails without USE-target context expansion.
-    """
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    lead_in = "urn:test:pub:use:a-ageism"
-    descriptor = "urn:test:pub:use:z-age-discrimination"
-    view = _display_view(
-        publication="urn:test:pub:use",
-        release="urn:test:pub:use:release",
-        concepts={
-            lead_in: {"altLabel": "ageism", "links": {_USE_IRI: (descriptor,)}},
-            descriptor: {"prefLabel": "Age discrimination"},
-        },
+def test_publication_is_byte_deterministic(
+    tmp_path: Path,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name="deterministic-publication")
+    first = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "first",
+        decision=decision,
+        title="Deterministic Atlas",
+        max_concepts=7,
+        max_mapping_assertions=3,
     )
-    asset = build_vocabulary_atlas(
-        (tva._FixturePinnedRelease(tmp_path / "use.json", tva.SHA_A, view),),
-        rulespec_core=tva._core_release(tmp_path),
-    )
-
-    model = build_explorer_model(asset, max_nodes=20)
-
-    labels = {node["id"]: node["label"] for node in model["nodes"]}
-    assert labels[lead_in] == "ageism"
-    assert labels[descriptor] == "Age discrimination"
-    use_edges = [edge for edge in model["edges"] if edge["type"] == "use"]
-    assert [(edge["source"], edge["target"]) for edge in use_edges] == [(lead_in, descriptor)]
-    assert model["summary"]["useEdgeCount"] == 1
-
-
-def test_explorer_draws_each_related_pair_once(tmp_path: Path) -> None:
-    """A reciprocal skos:related statement renders as one edge, not two."""
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    age = "urn:test:pub:rel:a-age"
-    research = "urn:test:pub:rel:d-ageism-research"
-    view = _display_view(
-        publication="urn:test:pub:rel",
-        release="urn:test:pub:rel:release",
-        concepts={
-            age: {"prefLabel": "Age", "links": {_RELATED_IRI: (research,)}},
-            research: {
-                "prefLabel": "Ageism research",
-                "links": {_RELATED_IRI: (age,), _BROADER_IRI: (age,)},
-            },
-        },
-    )
-    asset = build_vocabulary_atlas(
-        (tva._FixturePinnedRelease(tmp_path / "rel.json", tva.SHA_A, view),),
-        rulespec_core=tva._core_release(tmp_path),
+    second = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "second",
+        decision=decision,
+        title="Deterministic Atlas",
+        max_concepts=7,
+        max_mapping_assertions=3,
     )
 
-    model = build_explorer_model(asset, max_nodes=20)
-
-    related = [edge for edge in model["edges"] if edge["type"] == "related"]
-    assert len(related) == 1
-    assert {related[0]["source"], related[0]["target"]} == {age, research}
-    assert model["summary"]["relatedEdgeCount"] == 1
-    assert model["summary"]["hierarchyEdgeCount"] == 1
+    assert {path.name for path in first.directory.iterdir()} == {path.name for path in second.directory.iterdir()}
+    assert {path.name: path.read_bytes() for path in first.directory.iterdir()} == {
+        path.name: path.read_bytes() for path in second.directory.iterdir()
+    }
 
 
-_DEPRECATED_IRI = "http://www.w3.org/2002/07/owl#deprecated"
-_IS_REPLACED_BY_IRI = "http://purl.org/dc/terms/isReplacedBy"
-_REPLACES_IRI = "http://purl.org/dc/terms/replaces"
-_TOP_CONCEPT_OF_IRI = "http://www.w3.org/2004/02/skos/core#topConceptOf"
-_DEFINITION_IRI = "http://www.w3.org/2004/02/skos/core#definition"
-_SCOPE_NOTE_IRI = "http://www.w3.org/2004/02/skos/core#scopeNote"
-_NOTATION_IRI = "http://www.w3.org/2004/02/skos/core#notation"
-
-
-def test_explorer_marks_deprecated_concepts_and_draws_replacement_edges(tmp_path: Path) -> None:
-    """A retired concept is flagged, and one replacedBy edge joins it to its successor.
-
-    The reciprocal ``dcterms:replaces`` statement folds into the same edge.
-    """
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    retired = "urn:test:pub:life:a-capital-punishment"
-    successor = "urn:test:pub:life:z-death-penalty"
-    view = _display_view(
-        publication="urn:test:pub:life",
-        release="urn:test:pub:life:release",
-        concepts={
-            retired: {
-                "prefLabel": "Capital punishment",
-                "literals": {_DEPRECATED_IRI: True},
-                "links": {_IS_REPLACED_BY_IRI: (successor,)},
-            },
-            successor: {
-                "prefLabel": "Death penalty",
-                "links": {_REPLACES_IRI: (retired,)},
-            },
-        },
+@pytest.mark.parametrize(
+    "filename",
+    [
+        ATLAS_MANIFEST,
+        ATLAS_SCOPE,
+        COMPRESSED_ATLAS,
+        PUBLICATION_DECISION,
+        EXPLORER_DATA,
+        EXPLORER_HTML,
+        PUBLICATION_MANIFEST,
+    ],
+)
+def test_file_only_open_rejects_every_tampered_material_file(
+    tmp_path: Path,
+    filename: str,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name=f"tamper-{filename.replace('.', '-')}")
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published",
+        decision=decision,
     )
-    asset = build_vocabulary_atlas(
-        (tva._FixturePinnedRelease(tmp_path / "life.json", tva.SHA_A, view),),
-        rulespec_core=tva._core_release(tmp_path),
+    digest = publication.manifest_digest
+    target = publication.directory / filename
+    target.write_bytes(target.read_bytes() + b"tampered")
+
+    with pytest.raises(AtlasPublicationError):
+        AtlasPublication.open(
+            publication.directory,
+            expected_manifest_digest=digest,
+        )
+
+
+def test_publication_type_cannot_be_constructed_without_file_verification(
+    tmp_path: Path,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name="verified-construction")
+
+    with pytest.raises(TypeError, match=r"must come from AtlasPublication\.open"):
+        AtlasPublication(tmp_path, {}, asset, decision)
+
+
+def test_open_uses_no_follow_descriptor_when_file_becomes_a_symlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name="no-follow-race")
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published",
+        decision=decision,
+    )
+    digest = publication.manifest_digest
+    target = publication.directory / ATLAS_MANIFEST
+    replacement = tmp_path / "replacement-manifest.json"
+    replacement.write_bytes(target.read_bytes())
+    real_open = os.open
+    swapped = False
+
+    def swap_then_open(
+        path: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+        flags: int,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> int:
+        nonlocal swapped
+        if path == ATLAS_MANIFEST and dir_fd is not None and not swapped:
+            swapped = True
+            target.unlink()
+            target.symlink_to(replacement)
+        if dir_fd is None:
+            return real_open(path, flags, mode)
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(publication_module.os, "open", swap_then_open)
+
+    with pytest.raises(AtlasPublicationError, match="regular files and no symlinks"):
+        AtlasPublication.open(
+            publication.directory,
+            expected_manifest_digest=digest,
+        )
+
+
+def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
+    tmp_path: Path,
+) -> None:
+    _, asset, _, relation = _mapped_fixture(tmp_path)
+
+    model = build_explorer_model(
+        asset,
+        title="Typed Atlas",
+        max_concepts=2,
+        max_mapping_assertions=1,
     )
 
-    model = build_explorer_model(asset, max_nodes=20)
+    assert {concept["label"] for concept in model["concepts"]} == {
+        "Publication-Source",
+        "Publication-Target",
+    }
+    assert {concept["semanticRing"] for concept in model["concepts"]} == {"subject"}
+    assert len(model["mappingAssertions"]) == 1
+    mapping = model["mappingAssertions"][0]
+    assert mapping["semanticRing"] == "subject"
+    assert mapping["relation"] == relation
+    assert mapping["evidenceClasses"] == ["humanReviewed"]
+    assert model["summary"] == {
+        "shownConceptCount": 2,
+        "shownMappingAssertionCount": 1,
+        "availableConceptCount": 2,
+        "availableMappingAssertionCount": 1,
+        "truncated": False,
+    }
 
-    nodes = {node["id"]: node for node in model["nodes"]}
-    assert nodes[retired]["deprecated"] is True
-    assert "deprecated" not in nodes[successor]
-    replaced = [edge for edge in model["edges"] if edge["type"] == "replacedBy"]
-    assert [(edge["source"], edge["target"]) for edge in replaced] == [(retired, successor)]
-    assert model["summary"]["replacedByEdgeCount"] == 1
-
-
-def test_explorer_surfaces_notes_notation_and_top_concept_badges(tmp_path: Path) -> None:
-    """Definition, scope note, notation, and top-concept status reach the node payload."""
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    concept = "urn:test:pub:notes:a-ageism"
-    plain = "urn:test:pub:notes:b-plain"
-    scheme = "urn:test:pub:notes:release:scheme"
-    view = _display_view(
-        publication="urn:test:pub:notes",
-        release="urn:test:pub:notes:release",
-        concepts={
-            concept: {
-                "prefLabel": "Ageism",
-                "literals": {
-                    _DEFINITION_IRI: "Prejudice on the basis of age.",
-                    _SCOPE_NOTE_IRI: "Use for age-based discrimination attitudes.",
-                    _NOTATION_IRI: "24128",
-                },
-                "links": {_TOP_CONCEPT_OF_IRI: (scheme,), _BROADER_IRI: (plain,)},
-            },
-            plain: {"prefLabel": "Attitudes"},
-        },
+    bounded = build_explorer_model(
+        asset,
+        max_concepts=1,
+        max_mapping_assertions=1,
     )
-    asset = build_vocabulary_atlas(
-        (tva._FixturePinnedRelease(tmp_path / "notes.json", tva.SHA_A, view),),
-        rulespec_core=tva._core_release(tmp_path),
-    )
-
-    model = build_explorer_model(asset, max_nodes=20)
-
-    nodes = {node["id"]: node for node in model["nodes"]}
-    assert nodes[concept]["definition"] == "Prejudice on the basis of age."
-    assert nodes[concept]["scopeNote"] == "Use for age-based discrimination attitudes."
-    assert nodes[concept]["notation"] == "24128"
-    assert "topConcept" in nodes[concept]["roles"]
-    for field in ("definition", "scopeNote", "notation"):
-        assert field not in nodes[plain]
-    assert "topConcept" not in nodes[plain]["roles"]
+    assert len(bounded["concepts"]) == 1
+    assert bounded["mappingAssertions"] == []
+    assert bounded["summary"]["truncated"] is True
 
 
-def test_a_qualified_mapping_edge_carries_both_machines_reasons() -> None:
-    """A published edge should answer "why" without a trip to the sealed bundle.
+def test_renderer_fails_closed_on_non_2_0_view_fields(tmp_path: Path) -> None:
+    _, asset, _ = _canonical_fixture(tmp_path, name="closed-explorer-shape")
+    model = build_explorer_model(asset)
 
-    Two machines qualified this pair independently; the explorer shows both of
-    their sealed reasons so a reader can weigh the agreement rather than take
-    the verdict on trust.
-    """
+    old_collections = dict(model)
+    old_collections["releases"] = old_collections.pop("conceptReleases")
+    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas 2.0"):
+        render_atlas_explorer(old_collections)
 
-    asset = _asset("qualified-search-only")
-
-    model = build_explorer_model(asset, max_nodes=20)
-
-    mapping = next(edge for edge in model["edges"] if edge["type"] == "qualifiedMapping")
-    assert len(mapping["reasons"]) == len(mapping["validationIds"]) == 2
-    assert [entry["label"] for entry in mapping["reasons"]] == [
-        "provider-model-first",
-        "provider-model-other",
-    ]
-    assert "same policy area" in mapping["reasons"][0]["reason"]
-    assert "different house style" in mapping["reasons"][1]["reason"]
-    # Reasons ride only on the two decision edge types; a shared label or a
-    # hierarchy edge is not a machine's judgement and carries no prose.
-    for edge in model["edges"]:
-        if edge["type"] not in {"qualifiedMapping", "rejectedCandidate"}:
-            assert "reasons" not in edge
+    unknown_counts = json.loads(json.dumps(model))
+    unknown_counts["atlas"]["counts"]["unexpectedCount"] = 1
+    with pytest.raises(AtlasExplorerError, match="counts fields differ"):
+        render_atlas_explorer(unknown_counts)
 
 
-def test_a_rejected_candidate_edge_carries_its_refusal_reasons(tmp_path: Path) -> None:
-    """A typed refusal is only distinguishable from noise if it says why.
+def _explorer_model_for_ring(
+    tmp_path: Path,
+    *,
+    semantic_ring: str,
+    relation: str,
+    context: dict[str, str] | None,
+) -> dict[str, Any]:
+    _, asset, _, _ = _mapped_fixture(tmp_path)
+    model = json.loads(json.dumps(build_explorer_model(asset)))
+    for release in model["conceptReleases"]:
+        release["semanticRing"] = semantic_ring
+    for concept in model["concepts"]:
+        concept["semanticRing"] = semantic_ring
+    mapping = model["mappingAssertions"][0]
+    mapping["semanticRing"] = semantic_ring
+    mapping["relation"] = relation
+    if context is None:
+        mapping.pop("context", None)
+    else:
+        mapping["context"] = context
+    return model
 
-    A refused candidate cites its validations through the candidate, not through
-    a mapping — it has none — so this is a different lookup from the qualified
-    case and needs its own coverage.
-    """
 
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    bundle = tva._qualified_bundle(
-        same_provider=True,
-        reasons=(
-            "The target is the control programme, not the phenomenon; not interchangeable.",
-            "Related but distinct: one names an activity, the other its subject.",
+@pytest.mark.parametrize(
+    ("semantic_ring", "relation", "context"),
+    (
+        ("subject", SUBJECT_EXACT_MATCH, None),
+        ("entity", ENTITY_RELATED, None),
+        (
+            "value",
+            VALUE_EXACT_CROSSWALK,
+            {"sourceEdition": "2025", "targetEdition": "2026", "effectiveFrom": "2026-01-01"},
         ),
-    )
-    asset = build_vocabulary_atlas(
-        tva._two_releases(tmp_path),
-        rulespec_core=tva._core_release(tmp_path),
-        crosswalks=(bundle,),
+        ("legalIdentity", LEGAL_CITES, {"effectiveAt": "2026-08-04"}),
+    ),
+)
+def test_renderer_accepts_each_ring_relation_and_context_shape(
+    tmp_path: Path,
+    semantic_ring: str,
+    relation: str,
+    context: dict[str, str] | None,
+) -> None:
+    model = _explorer_model_for_ring(
+        tmp_path,
+        semantic_ring=semantic_ring,
+        relation=relation,
+        context=context,
     )
 
-    model = build_explorer_model(asset, max_nodes=20)
+    assert render_atlas_explorer(model).startswith("<!doctype html>")
 
-    rejected = next(edge for edge in model["edges"] if edge["type"] == "rejectedCandidate")
-    assert [entry["label"] for entry in rejected["reasons"]] == [
-        "provider-model-a",
-        "provider-model-b",
+
+@pytest.mark.parametrize(
+    ("semantic_ring", "foreign_relation"),
+    (
+        ("subject", ENTITY_RELATED),
+        ("entity", VALUE_EXACT_CROSSWALK),
+        ("value", LEGAL_CITES),
+        ("legalIdentity", SUBJECT_EXACT_MATCH),
+    ),
+)
+def test_renderer_rejects_relations_from_another_ring(
+    tmp_path: Path,
+    semantic_ring: str,
+    foreign_relation: str,
+) -> None:
+    model = _explorer_model_for_ring(
+        tmp_path,
+        semantic_ring=semantic_ring,
+        relation=foreign_relation,
+        context=None,
+    )
+
+    with pytest.raises(AtlasExplorerError, match=f"not valid for the {semantic_ring} ring"):
+        render_atlas_explorer(model)
+
+
+@pytest.mark.parametrize(
+    ("semantic_ring", "relation", "foreign_context"),
+    (
+        ("subject", SUBJECT_EXACT_MATCH, {"effectiveAt": "2026-08-04"}),
+        (
+            "entity",
+            ENTITY_RELATED,
+            {"sourceEdition": "2025", "targetEdition": "2026", "effectiveFrom": "2026-01-01"},
+        ),
+        ("value", VALUE_EXACT_CROSSWALK, {"effectiveAt": "2026-08-04"}),
+        (
+            "legalIdentity",
+            LEGAL_CITES,
+            {"sourceEdition": "2025", "targetEdition": "2026", "effectiveFrom": "2026-01-01"},
+        ),
+    ),
+)
+def test_renderer_rejects_context_from_another_ring(
+    tmp_path: Path,
+    semantic_ring: str,
+    relation: str,
+    foreign_context: dict[str, str],
+) -> None:
+    model = _explorer_model_for_ring(
+        tmp_path,
+        semantic_ring=semantic_ring,
+        relation=relation,
+        context=foreign_context,
+    )
+
+    with pytest.raises(AtlasExplorerError, match="violates ring relation semantics"):
+        render_atlas_explorer(model)
+
+
+def test_explorer_html_is_exact_and_script_safe(
+    tmp_path: Path,
+) -> None:
+    _, asset, decision = _canonical_fixture(tmp_path, name="script-safe")
+    title = "Atlas </script><script>alert('no')</script>"
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published",
+        decision=decision,
+        title=title,
+    )
+    explorer = json.loads((publication.directory / EXPLORER_DATA).read_text())
+    html = (publication.directory / EXPLORER_HTML).read_text()
+
+    assert explorer["title"] == title
+    assert title not in html
+    assert "\\u003c/script\\u003e" in html
+    assert html.count('<script id="atlas-data" type="application/json">') == 1
+
+
+def test_cli_auto_opens_canonical_and_projection_with_exact_decision_pins(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, asset, atlas_decision = _canonical_fixture(tmp_path / "canonical", name="cli-atlas")
+    atlas_root = asset.write(tmp_path / "atlas-distribution")
+    atlas_decision_path = atlas_decision.write_to(tmp_path / "atlas-decision.json")
+    atlas_output = tmp_path / "atlas-publication"
+
+    assert (
+        main(
+            [
+                "--distribution",
+                str(atlas_root),
+                "--distribution-manifest-digest",
+                asset.manifest_digest,
+                "--decision",
+                str(atlas_decision_path),
+                "--decision-file-digest",
+                sha256_digest(atlas_decision_path.read_bytes()),
+                "--output",
+                str(atlas_output),
+            ]
+        )
+        == 0
+    )
+    AtlasPublication.open(
+        atlas_output,
+        expected_manifest_digest=_manifest_digest(atlas_output),
+    )
+
+    _, parent, projection, projection_decision = _projection_fixture(
+        tmp_path / "projection",
+        name="cli-projection",
+    )
+    parent_root = parent.write(tmp_path / "projection-parent")
+    projection_root = projection.write(tmp_path / "projection-distribution")
+    projection_decision_path = projection_decision.write_to(tmp_path / "projection-decision.json")
+    projection_output = tmp_path / "projection-publication"
+    assert (
+        main(
+            [
+                "--distribution",
+                str(projection_root),
+                "--distribution-manifest-digest",
+                projection.manifest_digest,
+                "--decision",
+                str(projection_decision_path),
+                "--decision-file-digest",
+                sha256_digest(projection_decision_path.read_bytes()),
+                "--parent",
+                str(parent_root),
+                "--parent-manifest-digest",
+                parent.manifest_digest,
+                "--output",
+                str(projection_output),
+            ]
+        )
+        == 0
+    )
+    reopened = AtlasPublication.open(
+        projection_output,
+        expected_manifest_digest=_manifest_digest(projection_output),
+    )
+    assert isinstance(reopened.distribution, VocabularyAtlasProjection)
+    assert len(capsys.readouterr().out.splitlines()) == 2
+
+
+def test_cli_rejects_projection_without_parent(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, _, projection, decision = _projection_fixture(tmp_path, name="cli-refusal")
+    projection_root = projection.write(tmp_path / "projection-distribution")
+    decision_path = decision.write_to(tmp_path / "projection-decision.json")
+    base = [
+        "--distribution",
+        str(projection_root),
+        "--distribution-manifest-digest",
+        projection.manifest_digest,
+        "--decision",
+        str(decision_path),
+        "--decision-file-digest",
+        sha256_digest(decision_path.read_bytes()),
+        "--output",
+        str(tmp_path / "published"),
     ]
-    assert "control programme" in rejected["reasons"][0]["reason"]
-    assert "Related but distinct" in rejected["reasons"][1]["reason"]
 
-
-def test_every_adjudicated_relation_publishes_its_reason(tmp_path: Path) -> None:
-    """v1 and v2 alike: the reason rides on the validation, not on the protocol."""
-
-    asset = _asset("relation-adjudication")
-
-    model = build_explorer_model(asset, max_nodes=40)
-
-    decisions = [
-        edge
-        for edge in model["edges"]
-        if edge["type"] in {"qualifiedMapping", "rejectedCandidate"}
-    ]
-    assert decisions
-    assert all(edge["reasons"] for edge in decisions)
-    broad = next(edge for edge in decisions if edge.get("relation", "").endswith("broadMatch"))
-    assert "wider field" in broad["reasons"][0]["reason"]
-
-
-def test_explorer_offers_rejected_candidates_as_their_own_edge_type(tmp_path: Path) -> None:
-    """A candidate the gate refused renders as a rejectedCandidate edge, not silence.
-
-    ``same_provider=True`` produces two validations without independence, so
-    the candidate is ``notEligible`` — the shape of every refused pair.
-    """
-
-    import test_vocabulary_atlas as tva
-
-    from refspec.atlas import build_vocabulary_atlas
-
-    bundle = tva._qualified_bundle(same_provider=True)
-    asset = build_vocabulary_atlas(
-        tva._two_releases(tmp_path),
-        rulespec_core=tva._core_release(tmp_path),
-        crosswalks=(bundle,),
-    )
-
-    model = build_explorer_model(asset, max_nodes=20)
-
-    rejected = [edge for edge in model["edges"] if edge["type"] == "rejectedCandidate"]
-    assert len(rejected) == 1
-    assert rejected[0]["candidateId"].startswith("urn:ref:vocabulary-atlas-mapping-candidate:")
-    assert {rejected[0]["source"], rejected[0]["target"]} == {tva.SOURCE_MEMBER, tva.TARGET_MEMBER}
-    assert model["summary"]["rejectedCandidateEdgeCount"] == 1
-    assert model["summary"]["qualifiedMappingCount"] == 0
+    with pytest.raises(SystemExit, match="2"):
+        main(base)
+    assert "requires --parent" in capsys.readouterr().err
