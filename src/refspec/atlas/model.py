@@ -1,10 +1,11 @@
-"""Deterministic static vocabulary-atlas assets over managed release views.
+"""Deterministic, lossless vocabulary-atlas distributions.
 
-The atlas is a publication format, not a second vocabulary release model.
-Every release fact comes from a fail-closed verified release source.  The
-second named graph contains replaceable analysis, including explicitly bounded
-``searchOnly`` mappings.  Consumers need only the canonical manifest and
-N-Quads files.
+The canonical Atlas 2.0 publisher accepts one exact
+``PinnedVocabularyAtlasScope``.  It preserves source and RefSpec concept
+identity, release-scoped records, typed evidence, and ring-specific mapping
+assertions as canonical JSON records.  RDF supplies only the exact record
+index and containment needed to read those records; labels never mint identity
+or relations.
 """
 
 from __future__ import annotations
@@ -40,13 +41,14 @@ from refspec.managed_release import (
 from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json
 
-FORMAT_ID = "refspec-vocabulary-atlas-nquads-1.0"
-SCHEMA_VERSION = "1.0"
+FORMAT_ID = "refspec-vocabulary-atlas-nquads-2.0"
+SCHEMA_VERSION = "2.0"
 ATLAS_FILE = "atlas.nq"
 MANIFEST_FILE = "atlas-manifest.json"
+SCOPE_FILE = "atlas-scope.json"
 CROSSWALK_MEDIA_TYPE = "application/vnd.refspec.vocabulary-atlas-crosswalk+json"
 
-ATLAS = Namespace("https://refspec.org/ns/vocabulary-atlas/v1#")
+ATLAS = Namespace("https://refspec.org/ns/vocabulary-atlas/v2#")
 RKAF = Namespace("https://rulespec.org/ns/v1#")
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -136,53 +138,35 @@ _CORE_RELEASE_FIELDS = frozenset(
 _FEEDBACK_DISPOSITIONS = frozenset({"supports", "challenges", "comment"})
 _POLICIES = MappingProxyType(
     {
-        "releaseFacts": "copiedManagedReleaseFactsOnly",
-        "analysis": "replaceableMachineAnalysis",
-        "labelEquality": "clusterOnly",
-        "mappingEligibility": "twoIndependentMachinesSearchOnly",
-        "humanFeedback": "appendOnlyNonAuthorizing",
+        "graphPartition": "releaseFactsAndCrossReleaseRecords",
+        "recordEncoding": "canonicalRefJsonV1",
+        "recordIndexing": "derivedExactEqualityV1",
+        "labelEquality": "discoveryOnly",
+        "permission": "externalProductPolicyOnly",
     }
 )
-# Every module a specialized producer reads facts through, because those
-# producers compute the closed release digest locally instead of executing a
-# Rulespec checkout. A reader whose bytes could change without changing the
-# atlas identifier would leave that calculation unpinned.
-#
-# The list is import-closed over those readers: whatever a pinned module
-# imports is pinned too. `registry/infrastructure/controlled_identifier.py` is here for that
-# reason and no other — the ICPSR reader imports it, and it is what extracts
-# the codes and term IRIs that become `skos:notation` and every concept IRI.
+# This is the import-closed Atlas 2.0 build path: scope resolution, exact
+# release snapshots, relation records, and the codecs that determine output
+# bytes. It deliberately excludes source-specific producers, queries,
+# projections, product policy, publication UI, and package facades.
 _IMPLEMENTATION_SOURCE_PATHS = (
-    "atlas/__init__.py",
     "atlas/atlas_scope.py",
     "atlas/concept_release.py",
-    "atlas/federal_register.py",
-    "atlas/icpsr.py",
-    "atlas/machine_evidence.py",
     "atlas/model.py",
-    "atlas/queries.py",
     "atlas/relation_assertion.py",
     "atlas/relation_proof.py",
-    "atlas/relation_sssom.py",
-    "atlas/source_concept.py",
-    "atlas/subject_admission.py",
-    "atlas/subject_emission.py",
+    "atlas/release_snapshot.py",
+    "atlas_index.py",
     "binding.py",
     "generated_rulespec_dependency.py",
     "immutable.py",
     "managed_release.py",
     "registry/infrastructure/artifact_serialization.py",
-    "registry/infrastructure/controlled_identifier.py",
     "registry/infrastructure/identifier_validation.py",
     "registry/infrastructure/semantic_foundation.py",
     "registry/infrastructure/source_concept_release.py",
     "registry/infrastructure/source_controlled_resource.py",
     "registry/infrastructure/source_identity.py",
-    "registry/federal_register_thesaurus_2025.py",
-    "registry/managed_releases/federal_register_thesaurus_2025_managed_release.py",
-    "policies/federal_register_lists_of_subjects.py",
-    "registry/managed_releases/icpsr_managed_release.py",
-    "registry/icpsr_subject.py",
     "release_graph.py",
     "storage.py",
     "vocabulary.py",
@@ -2558,51 +2542,1134 @@ def _validate_query_graph_semantics(
             raise VocabularyAtlasError("searchOnly mapping endpoint is absent from its release facts")
 
 
-_ASSET_CONSTRUCTION_TOKEN = object()
+# ---------------------------------------------------------------------------
+# Canonical Atlas 2.0 distribution
+# ---------------------------------------------------------------------------
+#
+# The classes above remain useful to the evidence and source adapters while
+# they move onto the shared semantic foundation.  The publication boundary
+# below intentionally does not accept those adapter-specific objects.  One
+# pinned scope is the complete and only public build input.
+
+from refspec.atlas_index import AtlasIndexError
+from refspec.registry.infrastructure.semantic_foundation import SemanticRing
+
+from .atlas_scope import (
+    AtlasScopeError,
+    PinnedVocabularyAtlasScope,
+    validate_atlas_scope_record,
+)
+from .relation_assertion import (
+    EmbeddedRelationAssertionBundle,
+    RelationAssertionError,
+)
+from .release_snapshot import (
+    AtlasReleaseSnapshot,
+    AtlasReleaseSnapshotError,
+)
+
+_RING_ORDER: tuple[SemanticRing, ...] = (
+    "subject",
+    "entity",
+    "value",
+    "legalIdentity",
+)
+_RELEASE_GRAPH_ROLES = frozenset({"conceptRelease", "concept", "releaseRecord"})
+_CROSS_RELEASE_GRAPH_ROLES = frozenset(
+    {
+        "relationBundle",
+        "evidenceAssertion",
+        "mappingAssertion",
+        "machineProof",
+    }
+)
+_CHILD_ROLE_CONTAINMENT = MappingProxyType(
+    {
+        "concept": "release",
+        "releaseRecord": "release",
+        "evidenceAssertion": "relationBundle",
+        "mappingAssertion": "relationBundle",
+        "machineProof": "relationBundle",
+    }
+)
+_MANIFEST_FIELDS_V2 = frozenset(
+    {
+        "id",
+        "type",
+        "schemaVersion",
+        "format",
+        "generationDigest",
+        "scope",
+        "implementation",
+        "policies",
+        "graphs",
+        "output",
+        "counts",
+        "rings",
+        "canonicalPayloadDigest",
+    }
+)
+_COUNT_FIELDS_V2 = frozenset(
+    {
+        "conceptReleases",
+        "concepts",
+        "releaseRecords",
+        "relationBundles",
+        "evidenceAssertions",
+        "mappingAssertions",
+        "machineProofs",
+    }
+)
+_ROLE_COUNT_FIELD = MappingProxyType(
+    {
+        "conceptRelease": "conceptReleases",
+        "concept": "concepts",
+        "releaseRecord": "releaseRecords",
+        "relationBundle": "relationBundles",
+        "evidenceAssertion": "evidenceAssertions",
+        "mappingAssertion": "mappingAssertions",
+        "machineProof": "machineProofs",
+    }
+)
+_SCOPE_MEDIA_TYPE = "application/vnd.refspec.vocabulary-atlas-scope+json"
+_RECORD_PREDICATES = frozenset(
+    {
+        RDF.type,
+        ATLAS.recordRole,
+        ATLAS.recordDigest,
+        ATLAS.canonicalJson,
+        ATLAS.recordId,
+        ATLAS.inRelease,
+        ATLAS.inRelationBundle,
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _CanonicalAtlasRecord:
+    record: Mapping[str, Any]
+    role: str
+    release_containers: frozenset[str] = frozenset()
+    relation_containers: frozenset[str] = frozenset()
+
+    @property
+    def record_bytes(self) -> bytes:
+        return _atlas_record_bytes(self.record)
+
+    @property
+    def digest(self) -> str:
+        return _digest_bytes(self.record_bytes)
+
+    @property
+    def identifier(self) -> str:
+        return "urn:ref:vocabulary-atlas-record:" + self.digest.removeprefix("sha256:")
+
+
+class _CanonicalRecordSet:
+    """Deduplicate only byte-identical records and merge exact containment."""
+
+    def __init__(self) -> None:
+        self._records: dict[str, _CanonicalAtlasRecord] = {}
+
+    def add(
+        self,
+        value: Mapping[str, Any],
+        *,
+        role: str,
+        in_release: str | None = None,
+        in_relation_bundle: str | None = None,
+    ) -> None:
+        if role not in _ROLE_COUNT_FIELD:
+            raise VocabularyAtlasError(f"unsupported canonical record role {role!r}")
+        if in_release is not None and in_relation_bundle is not None:
+            raise VocabularyAtlasError("one atlas record cannot cross container kinds")
+        expected_container = _CHILD_ROLE_CONTAINMENT.get(role)
+        actual_container = (
+            "release" if in_release is not None else "relationBundle" if in_relation_bundle is not None else None
+        )
+        if expected_container != actual_container:
+            raise VocabularyAtlasError(f"atlas {role} record containment differs from its role")
+        plain = cast(Mapping[str, Any], _plain(value))
+        record = _CanonicalAtlasRecord(
+            record=cast(Mapping[str, Any], _freeze(plain)),
+            role=role,
+            release_containers=(
+                frozenset({_require_iri(in_release, "atlas release container")})
+                if in_release is not None
+                else frozenset()
+            ),
+            relation_containers=(
+                frozenset(
+                    {
+                        _require_iri(
+                            in_relation_bundle,
+                            "atlas relation-bundle container",
+                        )
+                    }
+                )
+                if in_relation_bundle is not None
+                else frozenset()
+            ),
+        )
+        identifier = record.identifier
+        current = self._records.get(identifier)
+        if current is None:
+            self._records[identifier] = record
+            return
+        if current.record != record.record or current.role != role:
+            raise VocabularyAtlasError("one canonical atlas record digest has conflicting content or roles")
+        self._records[identifier] = _CanonicalAtlasRecord(
+            record=current.record,
+            role=current.role,
+            release_containers=(current.release_containers | record.release_containers),
+            relation_containers=(current.relation_containers | record.relation_containers),
+        )
+
+    def values(self) -> tuple[_CanonicalAtlasRecord, ...]:
+        return tuple(self._records[key] for key in sorted(self._records))
+
+
+@dataclass(frozen=True, slots=True)
+class _ResolvedAtlasScope:
+    record: Mapping[str, Any]
+    payload: bytes
+    snapshots: tuple[AtlasReleaseSnapshot, ...]
+    index_rows: Mapping[str, tuple[Mapping[str, Any], ...]]
+    relations: tuple[EmbeddedRelationAssertionBundle, ...]
+
+
+def _atlas_record_bytes(value: Mapping[str, Any]) -> bytes:
+    plain = _plain(value)
+    _validate_atlas_record_value(plain, path="$")
+    return canonical_json(plain).encode("utf-8")
+
+
+def _validate_atlas_record_value(value: Any, *, path: str) -> None:
+    """Validate native record JSON, retaining captured null values exactly."""
+
+    if value is None or isinstance(value, (str, bool)):
+        return
+    if isinstance(value, int):
+        if abs(value) > binding.SAFE_INTEGER:
+            raise VocabularyAtlasError(f"{path}: integer exceeds the interoperable JSON range")
+        return
+    if isinstance(value, float):
+        raise VocabularyAtlasError(f"{path}: floating-point numbers are not canonical REF JSON")
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise VocabularyAtlasError(f"{path}: object keys must be strings")
+            _validate_atlas_record_value(child, path=f"{path}.{key}")
+        return
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, child in enumerate(value):
+            _validate_atlas_record_value(child, path=f"{path}[{index}]")
+        return
+    raise VocabularyAtlasError(f"{path}: unsupported canonical record value {type(value).__name__}")
+
+
+def _atlas_record_identifier(value: Mapping[str, Any]) -> str:
+    digest = _digest_bytes(_atlas_record_bytes(value))
+    return "urn:ref:vocabulary-atlas-record:" + digest.removeprefix("sha256:")
+
+
+def _native_record_id(value: Mapping[str, Any]) -> str | None:
+    native_id = value.get("id")
+    jsonld_id = value.get("@id")
+    if isinstance(native_id, str) and isinstance(jsonld_id, str) and native_id != jsonld_id:
+        raise VocabularyAtlasError("atlas native record carries conflicting id and @id identities")
+    if "id" in value:
+        if isinstance(native_id, str) and _ABSOLUTE_IRI.fullmatch(native_id):
+            return native_id
+        return None
+    if isinstance(jsonld_id, str) and _ABSOLUTE_IRI.fullmatch(jsonld_id):
+        return jsonld_id
+    return None
+
+
+def _snapshot_release_records(
+    snapshot: AtlasReleaseSnapshot,
+) -> tuple[Mapping[str, Any], ...]:
+    """Return non-concept native records carried by one release snapshot."""
+
+    excluded = {
+        "type",
+        "schemaVersion",
+        "id",
+        "contentDigest",
+        "releasePin",
+        "concepts",
+        "members",
+    }
+    rows: list[Mapping[str, Any]] = []
+    for key, value in snapshot.record.items():
+        if key in excluded:
+            continue
+        if isinstance(value, Mapping):
+            rows.append(value)
+            continue
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            if not all(isinstance(item, Mapping) for item in value):
+                raise VocabularyAtlasError(f"atlas release snapshot {key} must contain native records")
+            rows.extend(cast(Sequence[Mapping[str, Any]], value))
+            continue
+        raise VocabularyAtlasError(f"atlas release snapshot {key} is not a native record or record array")
+    return tuple(rows)
+
+
+def _resolved_index_rows(
+    *,
+    scope_record: Mapping[str, Any],
+    index: Mapping[str, Any],
+) -> Mapping[str, tuple[Mapping[str, Any], ...]]:
+    raw_rows = index.get("rows")
+    if not isinstance(raw_rows, Sequence) or isinstance(raw_rows, (str, bytes)):
+        raise VocabularyAtlasError("pinned atlas index rows must be an array")
+    rows: dict[str, Mapping[str, Any]] = {}
+    for position, value in enumerate(raw_rows):
+        if not isinstance(value, Mapping):
+            raise VocabularyAtlasError(f"pinned atlas index rows[{position}] must be an object")
+        row_id = _require_iri(value.get("rowId"), f"pinned atlas index rows[{position}].rowId")
+        if row_id in rows:
+            raise VocabularyAtlasError("pinned atlas index repeats a rowId")
+        row_digest = _require_digest(
+            value.get("rowDigest"),
+            f"pinned atlas index rows[{position}].rowDigest",
+        )
+        basis = {key: _plain(item) for key, item in value.items() if key not in {"rowId", "rowDigest"}}
+        if binding.canonical_sha256(basis) != row_digest:
+            raise VocabularyAtlasError("pinned atlas index rowDigest is stale")
+        if row_id != "urn:ref:atlas-index-row:" + row_digest.removeprefix("sha256:"):
+            raise VocabularyAtlasError("pinned atlas index rowId is stale")
+        rows[row_id] = cast(Mapping[str, Any], _freeze(_plain(value)))
+
+    resolved: dict[str, tuple[Mapping[str, Any], ...]] = {}
+    used: set[str] = set()
+    for position, release in enumerate(cast(Sequence[Mapping[str, Any]], scope_record["releases"])):
+        release_id = cast(str, release["releaseId"])
+        values: list[Mapping[str, Any]] = []
+        for reference in cast(Sequence[Mapping[str, Any]], release["atlasIndexRows"]):
+            row_id = cast(str, reference["rowId"])
+            row = rows.get(row_id)
+            if row is None:
+                raise VocabularyAtlasError("atlas scope index-row reference is absent from the pinned index")
+            if row.get("rowDigest") != reference.get("rowDigest"):
+                raise VocabularyAtlasError("atlas scope index-row digest differs from the pinned index")
+            release_pin = row.get("release")
+            if (
+                not isinstance(release_pin, Mapping)
+                or release_pin.get("releaseId") != release_id
+                or release_pin.get("manifestDigest") != release.get("manifestDigest")
+                or row.get("semanticRing") != release.get("semanticRing")
+            ):
+                raise VocabularyAtlasError("resolved atlas index row differs from its exact scope release")
+            if row_id in used:
+                raise VocabularyAtlasError("one atlas index row cannot classify two scoped releases")
+            used.add(row_id)
+            values.append(row)
+        if not values:
+            raise VocabularyAtlasError(f"atlas scope releases[{position}] has no resolved index row")
+        resolved[release_id] = tuple(values)
+    return cast(Mapping[str, tuple[Mapping[str, Any], ...]], _freeze(resolved))
+
+
+def _resolve_atlas_scope(scope: PinnedVocabularyAtlasScope) -> _ResolvedAtlasScope:
+    if not isinstance(scope, PinnedVocabularyAtlasScope):
+        raise VocabularyAtlasError("build_vocabulary_atlas requires one PinnedVocabularyAtlasScope")
+    try:
+        verified = scope.verified_scope()
+        scope_record = verified.as_record()
+        scope_payload = verified.artifact_bytes()
+        if _digest_bytes(scope_payload) != scope.file_digest:
+            raise VocabularyAtlasError("atlas scope canonical bytes differ from the pinned file")
+        index = verified.atlas_index.verified_index()
+        index_rows = _resolved_index_rows(
+            scope_record=scope_record,
+            index=index,
+        )
+        snapshots = tuple(AtlasReleaseSnapshot.create(release) for release in verified.releases)
+        memberships = {snapshot.release_id: snapshot.member_ids for snapshot in snapshots}
+        relations: list[EmbeddedRelationAssertionBundle] = []
+        for pinned in verified.relation_bundles:
+            bundle = pinned.verified_bundle()
+            relations.append(
+                EmbeddedRelationAssertionBundle.from_record(
+                    bundle.as_record(),
+                    release_memberships={
+                        cast(str, release_pin["releaseId"]): memberships[cast(str, release_pin["releaseId"])]
+                        for release_pin in bundle.release_pins
+                    },
+                )
+            )
+    except (
+        AtlasIndexError,
+        AtlasReleaseSnapshotError,
+        AtlasScopeError,
+        KeyError,
+        RelationAssertionError,
+    ) as error:
+        if isinstance(error, VocabularyAtlasError):
+            raise
+        raise VocabularyAtlasError(str(error)) from error
+    return _ResolvedAtlasScope(
+        record=cast(Mapping[str, Any], _freeze(scope_record)),
+        payload=scope_payload,
+        snapshots=snapshots,
+        index_rows=index_rows,
+        relations=tuple(relations),
+    )
+
+
+def _concept_identity(value: Mapping[str, Any]) -> str:
+    identifier = value.get("id", value.get("@id"))
+    return _require_iri(identifier, "atlas concept identity")
+
+
+def _scope_record_set(resolved: _ResolvedAtlasScope) -> _CanonicalRecordSet:
+    records = _CanonicalRecordSet()
+    concept_rings: dict[str, SemanticRing] = {}
+    for snapshot in resolved.snapshots:
+        records.add(snapshot.as_record(), role="conceptRelease")
+        for concept in snapshot.concept_records:
+            identity = _concept_identity(concept)
+            previous = concept_rings.setdefault(identity, snapshot.semantic_ring)
+            if previous != snapshot.semantic_ring:
+                raise VocabularyAtlasError("one concept identity cannot belong to two semantic rings")
+            records.add(
+                concept,
+                role="concept",
+                in_release=snapshot.release_id,
+            )
+        for row in _snapshot_release_records(snapshot):
+            records.add(
+                row,
+                role="releaseRecord",
+                in_release=snapshot.release_id,
+            )
+        for row in resolved.index_rows[snapshot.release_id]:
+            records.add(
+                row,
+                role="releaseRecord",
+                in_release=snapshot.release_id,
+            )
+
+    for bundle in resolved.relations:
+        records.add(bundle.as_record(), role="relationBundle")
+        for evidence in bundle.evidence_assertions:
+            records.add(
+                evidence.as_record(),
+                role="evidenceAssertion",
+                in_relation_bundle=bundle.identifier,
+            )
+        for mapping in bundle.mapping_assertions:
+            records.add(
+                mapping.as_record(),
+                role="mappingAssertion",
+                in_relation_bundle=bundle.identifier,
+            )
+        for proof in bundle.machine_proof_pins:
+            records.add(
+                proof,
+                role="machineProof",
+                in_relation_bundle=bundle.identifier,
+            )
+    return records
+
+
+def _record_dataset(
+    records: Sequence[_CanonicalAtlasRecord],
+    *,
+    asset_id: str,
+) -> tuple[bytes, Mapping[str, int]]:
+    release_graph_id = asset_id + ":release-facts"
+    cross_graph_id = asset_id + ":cross-release"
+    dataset = Dataset(default_union=False)
+    release_graph = dataset.graph(URIRef(release_graph_id))
+    cross_graph = dataset.graph(URIRef(cross_graph_id))
+    counts = {field: 0 for field in _COUNT_FIELDS_V2}
+    for record in records:
+        graph = release_graph if record.role in _RELEASE_GRAPH_ROLES else cross_graph
+        node = URIRef(record.identifier)
+        graph.add((node, RDF.type, ATLAS.CanonicalRecord))
+        graph.add((node, ATLAS.recordRole, ATLAS[record.role]))
+        graph.add((node, ATLAS.recordDigest, RdfLiteral(record.digest)))
+        graph.add(
+            (
+                node,
+                ATLAS.canonicalJson,
+                RdfLiteral(
+                    record.record_bytes.decode("utf-8"),
+                    datatype=RDF.JSON,
+                ),
+            )
+        )
+        native_id = _native_record_id(record.record)
+        if native_id is not None:
+            graph.add((node, ATLAS.recordId, URIRef(native_id)))
+        for release in sorted(record.release_containers):
+            graph.add((node, ATLAS.inRelease, URIRef(release)))
+        for bundle in sorted(record.relation_containers):
+            graph.add((node, ATLAS.inRelationBundle, URIRef(bundle)))
+        counts[_ROLE_COUNT_FIELD[record.role]] += 1
+    payload = _canonical_nquads(dataset)
+    graph_counts = {
+        "releaseFacts": len(release_graph),
+        "crossRelease": len(cross_graph),
+    }
+    return payload, cast(Mapping[str, int], {**counts, **graph_counts})
+
+
+def _implementation_pin_v2() -> dict[str, Any]:
+    package_root = Path(__file__).parents[1]
+    sources = [
+        {
+            "path": f"refspec/{relative}",
+            "digest": _digest_bytes((package_root / relative).read_bytes()),
+        }
+        for relative in _IMPLEMENTATION_SOURCE_PATHS
+    ]
+    return {
+        "id": "urn:ref:implementation:vocabulary-atlas:2.0",
+        "version": "2.0",
+        "sourceModules": sources,
+        "runtime": {
+            "jsonschemaVersion": importlib.metadata.version("jsonschema"),
+            "pyarrowVersion": importlib.metadata.version("pyarrow"),
+            "pythonRequirement": ">=3.10",
+            "pythonVersion": platform.python_version(),
+            "rdflibVersion": importlib.metadata.version("rdflib"),
+        },
+    }
+
+
+def _scope_descriptor(resolved: _ResolvedAtlasScope) -> dict[str, Any]:
+    return {
+        "role": "VocabularyAtlasScope",
+        "path": SCOPE_FILE,
+        "mediaType": _SCOPE_MEDIA_TYPE,
+        "id": cast(str, resolved.record["id"]),
+        "contentDigest": cast(str, resolved.record["contentDigest"]),
+        "fileDigest": _digest_bytes(resolved.payload),
+        "byteLength": len(resolved.payload),
+    }
+
+
+def _ring_summaries(
+    records: Sequence[_CanonicalAtlasRecord],
+    *,
+    snapshots: Sequence[AtlasReleaseSnapshot],
+    relations: Sequence[EmbeddedRelationAssertionBundle],
+) -> list[dict[str, Any]]:
+    release_rings = {snapshot.release_id: snapshot.semantic_ring for snapshot in snapshots}
+    bundle_rings = {bundle.identifier: bundle.semantic_ring for bundle in relations}
+    values: dict[SemanticRing, dict[str, set[str]]] = {
+        ring: {
+            "release": set(),
+            "concept": set(),
+            "bundle": set(),
+            "mapping": set(),
+        }
+        for ring in _RING_ORDER
+    }
+    for record in records:
+        if record.role == "conceptRelease":
+            snapshot = AtlasReleaseSnapshot.from_record(record.record)
+            values[snapshot.semantic_ring]["release"].add(record.identifier)
+        elif record.role == "concept":
+            rings = {release_rings[value] for value in record.release_containers}
+            if len(rings) != 1:
+                raise VocabularyAtlasError("one canonical concept record cannot cross semantic rings")
+            values[rings.pop()]["concept"].add(record.identifier)
+        elif record.role == "relationBundle":
+            bundle = EmbeddedRelationAssertionBundle.from_record(record.record)
+            values[bundle.semantic_ring]["bundle"].add(record.identifier)
+        elif record.role == "mappingAssertion":
+            rings = {bundle_rings[value] for value in record.relation_containers}
+            if len(rings) != 1:
+                raise VocabularyAtlasError("one mapping assertion record cannot cross semantic rings")
+            values[rings.pop()]["mapping"].add(record.identifier)
+    return [
+        {
+            "semanticRing": ring,
+            "releaseCount": len(values[ring]["release"]),
+            "conceptCount": len(values[ring]["concept"]),
+            "relationBundleCount": len(values[ring]["bundle"]),
+            "mappingAssertionCount": len(values[ring]["mapping"]),
+        }
+        for ring in _RING_ORDER
+    ]
+
+
+def _build_resolved_atlas_v2(resolved: _ResolvedAtlasScope) -> VocabularyAtlasAsset:
+    implementation = _implementation_pin_v2()
+    scope_descriptor = _scope_descriptor(resolved)
+    generation_basis = {
+        "format": FORMAT_ID,
+        "scope": scope_descriptor,
+        "implementation": implementation,
+        "policies": dict(_POLICIES),
+    }
+    generation_digest = _digest_value(generation_basis)
+    asset_id = "urn:ref:vocabulary-atlas:" + generation_digest.removeprefix("sha256:")
+    record_set = _scope_record_set(resolved)
+    records = record_set.values()
+    payload, observed = _record_dataset(records, asset_id=asset_id)
+    counts = {field: observed[field] for field in _COUNT_FIELDS_V2}
+    graphs = [
+        {
+            "role": "releaseFacts",
+            "id": asset_id + ":release-facts",
+            "quadCount": observed["releaseFacts"],
+        },
+        {
+            "role": "crossRelease",
+            "id": asset_id + ":cross-release",
+            "quadCount": observed["crossRelease"],
+        },
+    ]
+    manifest: dict[str, Any] = {
+        "id": asset_id,
+        "type": "urn:ref:type:VocabularyAtlasManifest",
+        "schemaVersion": SCHEMA_VERSION,
+        "format": FORMAT_ID,
+        "generationDigest": generation_digest,
+        "scope": scope_descriptor,
+        "implementation": implementation,
+        "policies": dict(_POLICIES),
+        "graphs": graphs,
+        "output": {
+            "path": ATLAS_FILE,
+            "mediaType": "application/n-quads",
+            "digest": _digest_bytes(payload),
+            "byteLength": len(payload),
+            "quadCount": observed["releaseFacts"] + observed["crossRelease"],
+        },
+        "counts": counts,
+        "rings": _ring_summaries(
+            records,
+            snapshots=resolved.snapshots,
+            relations=resolved.relations,
+        ),
+    }
+    manifest["canonicalPayloadDigest"] = _manifest_digest(manifest)
+    return VocabularyAtlasAsset._verified(
+        payload=payload,
+        scope_payload=resolved.payload,
+        manifest=cast(Mapping[str, Any], _freeze(manifest)),
+    )
+
+
+def _read_distribution(directory: Path | str) -> tuple[Path, dict[str, bytes]]:
+    root = Path(directory)
+    if root.is_symlink():
+        raise VocabularyAtlasError("atlas directory must not be a symlink")
+    try:
+        root = root.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise VocabularyAtlasError("atlas directory does not exist") from error
+    if not root.is_dir():
+        raise VocabularyAtlasError("atlas path must be a directory")
+    expected = {ATLAS_FILE, MANIFEST_FILE, SCOPE_FILE}
+    entries = {item.name: item for item in root.iterdir()}
+    if set(entries) != expected:
+        raise VocabularyAtlasError("atlas distribution file set differs from 2.0")
+    if any(item.is_symlink() or not item.is_file() for item in entries.values()):
+        raise VocabularyAtlasError("atlas distribution must contain three regular files and no symlinks")
+    payloads = {name: entries[name].read_bytes() for name in expected}
+    final_entries = {item.name: item for item in root.iterdir()}
+    if (
+        set(final_entries) != expected
+        or any(item.is_symlink() or not item.is_file() for item in final_entries.values())
+        or any(final_entries[name].read_bytes() != payloads[name] for name in expected)
+    ):
+        raise VocabularyAtlasError("atlas distribution changed while opening")
+    return root, payloads
+
+
+def _require_v2_count(value: object, label: str, *, positive: bool = False) -> int:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or value < (1 if positive else 0)
+        or value > binding.SAFE_INTEGER
+    ):
+        qualifier = "positive" if positive else "non-negative"
+        raise VocabularyAtlasError(f"{label} must be a {qualifier} safe integer")
+    return value
+
+
+def _validate_implementation_v2(candidate: object) -> Mapping[str, Any]:
+    row = _as_mapping(candidate, "atlas implementation")
+    if set(row) != {"id", "version", "sourceModules", "runtime"}:
+        raise VocabularyAtlasError("atlas implementation fields differ from 2.0")
+    _require_iri(row.get("id"), "atlas implementation id")
+    _require_text(row.get("version"), "atlas implementation version")
+    sources = _as_sequence(row.get("sourceModules"), "atlas implementation sourceModules")
+    if not sources:
+        raise VocabularyAtlasError("atlas implementation sourceModules must not be empty")
+    paths: list[str] = []
+    for position, value in enumerate(sources):
+        source = _as_mapping(value, f"atlas implementation sourceModules[{position}]")
+        if set(source) != {"path", "digest"}:
+            raise VocabularyAtlasError("atlas implementation source-module fields differ")
+        path = _require_text(source.get("path"), "atlas implementation source-module path")
+        if Path(path).is_absolute() or ".." in Path(path).parts:
+            raise VocabularyAtlasError("atlas implementation source-module path is unsafe")
+        _require_digest(source.get("digest"), "atlas implementation source-module digest")
+        paths.append(path)
+    if paths != sorted(paths) or len(set(paths)) != len(paths):
+        raise VocabularyAtlasError("atlas implementation sourceModules are not unique and ordered")
+    runtime = _as_mapping(row.get("runtime"), "atlas implementation runtime")
+    if not runtime or any(
+        not isinstance(key, str) or not key or not isinstance(item, str) or not item for key, item in runtime.items()
+    ):
+        raise VocabularyAtlasError("atlas implementation runtime is invalid")
+    return row
+
+
+def _parse_canonical_record(value: str) -> Mapping[str, Any]:
+    try:
+        decoded = json.loads(
+            value,
+            object_pairs_hook=binding.reject_duplicate_keys,
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+    except (json.JSONDecodeError, ValueError) as error:
+        raise VocabularyAtlasError("atlas canonicalJson is not valid canonical REF JSON") from error
+    if not isinstance(decoded, Mapping):
+        raise VocabularyAtlasError("atlas canonicalJson record must be an object")
+    if _atlas_record_bytes(decoded) != value.encode("utf-8"):
+        raise VocabularyAtlasError("atlas canonicalJson bytes are not canonical")
+    return cast(Mapping[str, Any], decoded)
+
+
+def _one_object(values: Mapping[URIRef, Sequence[Any]], predicate: URIRef, label: str) -> Any:
+    found = tuple(values.get(predicate, ()))
+    if len(found) != 1:
+        raise VocabularyAtlasError(f"atlas record must have exactly one {label}")
+    return found[0]
+
+
+def _decode_record_dataset(
+    payload: bytes,
+    *,
+    asset_id: str,
+) -> tuple[_CanonicalAtlasRecord, ...]:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise VocabularyAtlasError("atlas N-Quads is not valid UTF-8") from error
+    dataset = Dataset(default_union=False)
+    try:
+        dataset.parse(data=text, format="nquads")
+    except Exception as error:  # rdflib exposes parser-specific subclasses
+        raise VocabularyAtlasError("atlas output is not valid N-Quads") from error
+    if any(
+        isinstance(term, BNode)
+        for subject, predicate, object_, context in dataset.quads((None, None, None, None))
+        for term in (subject, predicate, object_, context)
+    ):
+        raise VocabularyAtlasError("atlas output contains a blank node")
+    if _canonical_nquads(dataset) != payload:
+        raise VocabularyAtlasError("atlas N-Quads bytes are not canonical")
+
+    graph_roles = {
+        asset_id + ":release-facts": _RELEASE_GRAPH_ROLES,
+        asset_id + ":cross-release": _CROSS_RELEASE_GRAPH_ROLES,
+    }
+    grouped: dict[tuple[str, URIRef], dict[URIRef, list[Any]]] = defaultdict(lambda: defaultdict(list))
+    for subject, predicate, object_, context in dataset.quads((None, None, None, None)):
+        graph_id = str(context)
+        if graph_id not in graph_roles:
+            raise VocabularyAtlasError("atlas N-Quads named graphs differ")
+        if not isinstance(subject, URIRef) or not isinstance(predicate, URIRef):
+            raise VocabularyAtlasError("atlas exact index requires IRI subjects and predicates")
+        grouped[(graph_id, subject)][predicate].append(object_)
+
+    records = _CanonicalRecordSet()
+    for (graph_id, node), values in grouped.items():
+        if not set(values) <= _RECORD_PREDICATES:
+            raise VocabularyAtlasError("atlas exact record index has an extra predicate")
+        type_value = _one_object(values, RDF.type, "rdf:type")
+        if type_value != ATLAS.CanonicalRecord:
+            raise VocabularyAtlasError("atlas record rdf:type differs")
+        role_value = _one_object(values, ATLAS.recordRole, "recordRole")
+        if not isinstance(role_value, URIRef) or not str(role_value).startswith(str(ATLAS)):
+            raise VocabularyAtlasError("atlas recordRole is invalid")
+        role = str(role_value).removeprefix(str(ATLAS))
+        if role not in graph_roles[graph_id]:
+            raise VocabularyAtlasError("atlas record role is in the wrong named graph")
+        digest_value = _one_object(values, ATLAS.recordDigest, "recordDigest")
+        if (
+            not isinstance(digest_value, RdfLiteral)
+            or digest_value.datatype is not None
+            or digest_value.language is not None
+        ):
+            raise VocabularyAtlasError("atlas recordDigest must be a plain literal")
+        digest = _require_digest(str(digest_value), "atlas recordDigest")
+        json_value = _one_object(values, ATLAS.canonicalJson, "canonicalJson")
+        if not isinstance(json_value, RdfLiteral) or json_value.datatype != RDF.JSON:
+            raise VocabularyAtlasError("atlas canonicalJson must be an rdf:JSON literal")
+        record = _parse_canonical_record(str(json_value))
+        if _digest_bytes(_atlas_record_bytes(record)) != digest:
+            raise VocabularyAtlasError("atlas recordDigest differs from canonicalJson")
+        if str(node) != "urn:ref:vocabulary-atlas-record:" + digest.removeprefix("sha256:"):
+            raise VocabularyAtlasError("atlas record IRI differs from recordDigest")
+
+        record_ids = tuple(values.get(ATLAS.recordId, ()))
+        expected_record_id = _native_record_id(record)
+        if expected_record_id is None:
+            if record_ids:
+                raise VocabularyAtlasError("atlas recordId is not derived from native id")
+        elif record_ids != (URIRef(expected_record_id),):
+            raise VocabularyAtlasError("atlas recordId differs from native id")
+
+        release_containers = tuple(values.get(ATLAS.inRelease, ()))
+        relation_containers = tuple(values.get(ATLAS.inRelationBundle, ()))
+        if any(not isinstance(value, URIRef) for value in (*release_containers, *relation_containers)):
+            raise VocabularyAtlasError("atlas record containment must use IRIs")
+        expected = _CHILD_ROLE_CONTAINMENT.get(role)
+        if expected == "release" and (not release_containers or relation_containers):
+            raise VocabularyAtlasError("atlas release child containment differs")
+        if expected == "relationBundle" and (not relation_containers or release_containers):
+            raise VocabularyAtlasError("atlas relation child containment differs")
+        if expected is None and (release_containers or relation_containers):
+            raise VocabularyAtlasError("atlas top-level record points to itself or a container")
+        for value in release_containers:
+            records.add(record, role=role, in_release=str(value))
+        for value in relation_containers:
+            records.add(record, role=role, in_relation_bundle=str(value))
+        if not release_containers and not relation_containers:
+            records.add(record, role=role)
+
+    result = records.values()
+    rebuilt, _ = _record_dataset(result, asset_id=asset_id)
+    if rebuilt != payload:
+        raise VocabularyAtlasError("atlas derived exact-equality index is incomplete")
+    return result
+
+
+def _record_ids_for_container(
+    records: Sequence[_CanonicalAtlasRecord],
+    *,
+    role: str,
+    release: str | None = None,
+    relation_bundle: str | None = None,
+) -> frozenset[str]:
+    return frozenset(
+        record.identifier
+        for record in records
+        if record.role == role
+        and (release is None or release in record.release_containers)
+        and (relation_bundle is None or relation_bundle in record.relation_containers)
+    )
+
+
+def _validate_embedded_scope_records(
+    records: Sequence[_CanonicalAtlasRecord],
+    *,
+    scope_record: Mapping[str, Any],
+) -> tuple[
+    tuple[AtlasReleaseSnapshot, ...],
+    tuple[EmbeddedRelationAssertionBundle, ...],
+]:
+    release_records = [record for record in records if record.role == "conceptRelease"]
+    snapshots = tuple(AtlasReleaseSnapshot.from_record(record.record) for record in release_records)
+    snapshots_by_release = {snapshot.release_id: snapshot for snapshot in snapshots}
+    if len(snapshots_by_release) != len(snapshots):
+        raise VocabularyAtlasError("atlas repeats a concept release")
+    scope_releases = {
+        cast(str, row["releaseId"]): row for row in cast(Sequence[Mapping[str, Any]], scope_record["releases"])
+    }
+    if set(snapshots_by_release) != set(scope_releases):
+        raise VocabularyAtlasError("atlas concept releases differ from its exact scope")
+
+    memberships: dict[str, frozenset[str]] = {}
+    for release_id, snapshot in snapshots_by_release.items():
+        scope_pin = {key: _plain(value) for key, value in scope_releases[release_id].items() if key != "atlasIndexRows"}
+        if _plain(snapshot.release_pin) != scope_pin:
+            raise VocabularyAtlasError("atlas concept release pin differs from its exact scope")
+        memberships[release_id] = snapshot.member_ids
+        expected_concepts = {_atlas_record_identifier(value) for value in snapshot.concept_records}
+        if _record_ids_for_container(records, role="concept", release=release_id) != expected_concepts:
+            raise VocabularyAtlasError("atlas release-scoped concept records differ from its snapshot")
+
+        refs = {
+            cast(str, value["rowId"]): cast(str, value["rowDigest"])
+            for value in cast(
+                Sequence[Mapping[str, Any]],
+                scope_releases[release_id]["atlasIndexRows"],
+            )
+        }
+        resolved_index_rows: list[Mapping[str, Any]] = []
+        for record in records:
+            if record.role != "releaseRecord" or release_id not in record.release_containers:
+                continue
+            row_id = record.record.get("rowId")
+            if not isinstance(row_id, str) or row_id not in refs:
+                continue
+            row_digest = refs[row_id]
+            if record.record.get("rowDigest") != row_digest:
+                raise VocabularyAtlasError("atlas resolved index row differs from the scope reference")
+            basis = {key: _plain(value) for key, value in record.record.items() if key not in {"rowId", "rowDigest"}}
+            if binding.canonical_sha256(
+                basis
+            ) != row_digest or row_id != "urn:ref:atlas-index-row:" + row_digest.removeprefix("sha256:"):
+                raise VocabularyAtlasError("atlas resolved index-row identity is stale")
+            indexed_release = record.record.get("release")
+            if (
+                not isinstance(indexed_release, Mapping)
+                or indexed_release.get("releaseId") != release_id
+                or indexed_release.get("manifestDigest") != scope_pin.get("manifestDigest")
+                or record.record.get("semanticRing") != scope_pin.get("semanticRing")
+            ):
+                raise VocabularyAtlasError("atlas resolved index row differs from its scope release")
+            resolved_index_rows.append(record.record)
+        if {cast(str, value["rowId"]) for value in resolved_index_rows} != set(refs):
+            raise VocabularyAtlasError("atlas does not resolve every selected index-row fact")
+        classifications = {
+            (
+                value.get("semanticRing"),
+                value.get("atlasParticipation"),
+                value.get("sourceModule"),
+                value.get("resourceId"),
+            )
+            for value in resolved_index_rows
+        }
+        if len(classifications) != 1:
+            raise VocabularyAtlasError("atlas selected index rows conflict on release classification")
+        expected_release_records = {
+            _atlas_record_identifier(value)
+            for value in (
+                *_snapshot_release_records(snapshot),
+                *resolved_index_rows,
+            )
+        }
+        if _record_ids_for_container(records, role="releaseRecord", release=release_id) != expected_release_records:
+            raise VocabularyAtlasError("atlas release records differ from its snapshot and selected index rows")
+
+    relation_records = [record for record in records if record.role == "relationBundle"]
+    relations = tuple(
+        EmbeddedRelationAssertionBundle.from_record(
+            record.record,
+            release_memberships={
+                cast(str, pin["releaseId"]): memberships[cast(str, pin["releaseId"])]
+                for pin in cast(Sequence[Mapping[str, Any]], record.record["releasePins"])
+            },
+        )
+        for record in relation_records
+    )
+    relations_by_id = {relation.identifier: relation for relation in relations}
+    if len(relations_by_id) != len(relations):
+        raise VocabularyAtlasError("atlas repeats a relation bundle")
+    scope_relations = {
+        cast(str, row["id"]): row for row in cast(Sequence[Mapping[str, Any]], scope_record["relationBundles"])
+    }
+    if set(relations_by_id) != set(scope_relations):
+        raise VocabularyAtlasError("atlas relation bundles differ from its exact scope")
+    for bundle_id, relation in relations_by_id.items():
+        pin = scope_relations[bundle_id]
+        if pin.get("semanticRing") != relation.semantic_ring or pin.get("contentDigest") != relation.content_digest:
+            raise VocabularyAtlasError("atlas relation bundle differs from its exact scope pin")
+        expected_by_role = {
+            "evidenceAssertion": {
+                _atlas_record_identifier(value.as_record()) for value in relation.evidence_assertions
+            },
+            "mappingAssertion": {_atlas_record_identifier(value.as_record()) for value in relation.mapping_assertions},
+            "machineProof": {_atlas_record_identifier(value) for value in relation.machine_proof_pins},
+        }
+        for role, expected in expected_by_role.items():
+            if _record_ids_for_container(records, role=role, relation_bundle=bundle_id) != expected:
+                raise VocabularyAtlasError(f"atlas {role} records differ from their relation bundle")
+    return snapshots, relations
+
+
+def _validate_manifest_v2(
+    manifest: Mapping[str, Any],
+    *,
+    scope_payload: bytes,
+    payload: bytes,
+) -> tuple[tuple[AtlasReleaseSnapshot, ...], tuple[EmbeddedRelationAssertionBundle, ...]]:
+    if set(manifest) != _MANIFEST_FIELDS_V2:
+        raise VocabularyAtlasError("atlas manifest fields differ from 2.0")
+    if (
+        manifest.get("type") != "urn:ref:type:VocabularyAtlasManifest"
+        or manifest.get("schemaVersion") != SCHEMA_VERSION
+        or manifest.get("format") != FORMAT_ID
+    ):
+        raise VocabularyAtlasError("atlas manifest version or format differs")
+    generation_digest = _require_digest(manifest.get("generationDigest"), "atlas generationDigest")
+    asset_id = _require_iri(manifest.get("id"), "atlas id")
+    if asset_id != "urn:ref:vocabulary-atlas:" + generation_digest.removeprefix("sha256:"):
+        raise VocabularyAtlasError("atlas id differs from generationDigest")
+    if manifest.get("canonicalPayloadDigest") != _manifest_digest(manifest):
+        raise VocabularyAtlasError("atlas manifest canonicalPayloadDigest differs")
+    if manifest.get("policies") != dict(_POLICIES):
+        raise VocabularyAtlasError("atlas policies differ from 2.0")
+    implementation = _validate_implementation_v2(manifest.get("implementation"))
+
+    scope = _as_mapping(manifest.get("scope"), "atlas scope descriptor")
+    if set(scope) != {
+        "role",
+        "path",
+        "mediaType",
+        "id",
+        "contentDigest",
+        "fileDigest",
+        "byteLength",
+    }:
+        raise VocabularyAtlasError("atlas scope descriptor fields differ")
+    if (
+        scope.get("role") != "VocabularyAtlasScope"
+        or scope.get("path") != SCOPE_FILE
+        or scope.get("mediaType") != _SCOPE_MEDIA_TYPE
+    ):
+        raise VocabularyAtlasError("atlas scope descriptor differs")
+    _require_iri(scope.get("id"), "atlas scope id")
+    _require_digest(scope.get("contentDigest"), "atlas scope contentDigest")
+    if scope.get("fileDigest") != _digest_bytes(scope_payload):
+        raise VocabularyAtlasError("atlas scope file digest differs")
+    if scope.get("byteLength") != len(scope_payload):
+        raise VocabularyAtlasError("atlas scope byteLength differs")
+    try:
+        scope_record = _load_json_object(scope_payload, "atlas scope")
+        if _canonical_bytes(scope_record) != scope_payload:
+            raise VocabularyAtlasError("atlas scope bytes are not canonical")
+        scope_record = validate_atlas_scope_record(scope_record)
+    except AtlasScopeError as error:
+        raise VocabularyAtlasError(str(error)) from error
+    if scope.get("id") != scope_record.get("id") or scope.get("contentDigest") != scope_record.get("contentDigest"):
+        raise VocabularyAtlasError("atlas scope identity differs from its file")
+
+    generation_basis = {
+        "format": FORMAT_ID,
+        "scope": _plain(scope),
+        "implementation": _plain(implementation),
+        "policies": dict(_POLICIES),
+    }
+    if _digest_value(generation_basis) != generation_digest:
+        raise VocabularyAtlasError("atlas generationDigest differs")
+
+    graph_rows = _as_sequence(manifest.get("graphs"), "atlas graphs")
+    expected_graphs = (
+        ("releaseFacts", asset_id + ":release-facts", True),
+        ("crossRelease", asset_id + ":cross-release", False),
+    )
+    if len(graph_rows) != len(expected_graphs):
+        raise VocabularyAtlasError("atlas must declare exactly two named graphs")
+    for position, (role, identifier, positive) in enumerate(expected_graphs):
+        row = _as_mapping(graph_rows[position], f"atlas graphs[{position}]")
+        if set(row) != {"role", "id", "quadCount"}:
+            raise VocabularyAtlasError("atlas graph fields differ from 2.0")
+        if row.get("role") != role or row.get("id") != identifier:
+            raise VocabularyAtlasError("atlas graph role or id differs")
+        _require_v2_count(row.get("quadCount"), f"atlas {role} quadCount", positive=positive)
+
+    output = _as_mapping(manifest.get("output"), "atlas output")
+    if set(output) != {"path", "mediaType", "digest", "byteLength", "quadCount"}:
+        raise VocabularyAtlasError("atlas output fields differ from 2.0")
+    if output.get("path") != ATLAS_FILE or output.get("mediaType") != "application/n-quads":
+        raise VocabularyAtlasError("atlas output descriptor differs")
+    if output.get("digest") != _digest_bytes(payload):
+        raise VocabularyAtlasError("atlas output digest differs")
+    if output.get("byteLength") != len(payload):
+        raise VocabularyAtlasError("atlas output byteLength differs")
+    _require_v2_count(output.get("quadCount"), "atlas output quadCount", positive=True)
+
+    records = _decode_record_dataset(payload, asset_id=asset_id)
+    observed_role_counts = {
+        count_field: sum(record.role == role for record in records) for role, count_field in _ROLE_COUNT_FIELD.items()
+    }
+    counts = _as_mapping(manifest.get("counts"), "atlas counts")
+    if set(counts) != _COUNT_FIELDS_V2:
+        raise VocabularyAtlasError("atlas count fields differ from 2.0")
+    for field in _COUNT_FIELDS_V2:
+        _require_v2_count(
+            counts.get(field),
+            f"atlas counts.{field}",
+            positive=field in {"conceptReleases", "concepts", "releaseRecords"},
+        )
+    if dict(counts) != observed_role_counts:
+        raise VocabularyAtlasError("atlas record counts differ")
+
+    dataset = Dataset(default_union=False)
+    dataset.parse(data=payload.decode("utf-8"), format="nquads")
+    graph_counts = {role: len(dataset.graph(URIRef(identifier))) for role, identifier, _ in expected_graphs}
+    for position, (role, _, _) in enumerate(expected_graphs):
+        if cast(Mapping[str, Any], graph_rows[position]).get("quadCount") != graph_counts[role]:
+            raise VocabularyAtlasError("atlas graph quadCount differs")
+    if output.get("quadCount") != sum(graph_counts.values()):
+        raise VocabularyAtlasError("atlas output quadCount differs")
+
+    snapshots, relations = _validate_embedded_scope_records(
+        records,
+        scope_record=scope_record,
+    )
+    expected_rings = _ring_summaries(
+        records,
+        snapshots=snapshots,
+        relations=relations,
+    )
+    if manifest.get("rings") != expected_rings:
+        raise VocabularyAtlasError("atlas ring summaries differ")
+    return snapshots, relations
+
+
+_ASSET_CONSTRUCTION_TOKEN_V2 = object()
 
 
 @dataclass(frozen=True, slots=True, init=False)
 class VocabularyAtlasAsset:
-    """Canonical atlas bytes and the manifest that verifies them."""
+    """A file-only verified canonical Atlas 2.0 distribution."""
 
     payload: bytes
+    scope_payload: bytes
     manifest: Mapping[str, Any]
     _verification_token: object
 
     def __init__(
         self,
         payload: bytes,
+        scope_payload: bytes,
         manifest: Mapping[str, Any],
         *,
         _construction_token: object | None = None,
     ) -> None:
-        if _construction_token is not _ASSET_CONSTRUCTION_TOKEN:
+        if _construction_token is not _ASSET_CONSTRUCTION_TOKEN_V2:
             raise TypeError(
                 "VocabularyAtlasAsset must come from build_vocabulary_atlas() or VocabularyAtlasAsset.open()"
             )
         object.__setattr__(self, "payload", payload)
+        object.__setattr__(self, "scope_payload", scope_payload)
         object.__setattr__(self, "manifest", manifest)
-        object.__setattr__(self, "_verification_token", _ASSET_CONSTRUCTION_TOKEN)
+        object.__setattr__(self, "_verification_token", _ASSET_CONSTRUCTION_TOKEN_V2)
 
     @classmethod
-    def _verified(cls, *, payload: bytes, manifest: Mapping[str, Any]) -> Self:
+    def _verified(
+        cls,
+        *,
+        payload: bytes,
+        scope_payload: bytes,
+        manifest: Mapping[str, Any],
+    ) -> Self:
         return cls(
             payload,
+            scope_payload,
             manifest,
-            _construction_token=_ASSET_CONSTRUCTION_TOKEN,
+            _construction_token=_ASSET_CONSTRUCTION_TOKEN_V2,
         )
 
     def _require_verified(self) -> None:
-        """Marker check used by query helpers before parsing public bytes."""
-
         if (
-            getattr(self, "_verification_token", None) is not _ASSET_CONSTRUCTION_TOKEN
+            getattr(self, "_verification_token", None) is not _ASSET_CONSTRUCTION_TOKEN_V2
             or not isinstance(self.payload, bytes)
+            or not isinstance(self.scope_payload, bytes)
             or not isinstance(self.manifest, Mapping)
         ):
-            raise VocabularyAtlasError("atlas asset is not a verified distribution")
+            raise VocabularyAtlasError("atlas asset is not a verified 2.0 distribution")
 
     def manifest_bytes(self) -> bytes:
+        self._require_verified()
         return _canonical_bytes(_plain(self.manifest))
 
     @property
@@ -2611,24 +3678,20 @@ class VocabularyAtlasAsset:
 
     @property
     def output_digest(self) -> str:
+        self._require_verified()
         return _digest_bytes(self.payload)
 
-    def rulespec_core_pin(self) -> dict[str, str]:
-        """Return the one Core identity selected by this verified distribution."""
-
+    @property
+    def scope_digest(self) -> str:
         self._require_verified()
-        values = [value for value in self.manifest["inputs"] if value.get("role") == "RulespecCoreRelease"]
-        if len(values) != 1:
-            raise VocabularyAtlasError("atlas must contain exactly one Rulespec Core input")
-        return {
-            "release_id": str(values[0]["releaseId"]),
-            "release_digest": str(values[0]["releaseDigest"]),
-        }
+        return _digest_bytes(self.scope_payload)
 
     def write(self, directory: Path | str) -> Path:
+        self._require_verified()
         target = Path(directory)
         target.mkdir(parents=True, exist_ok=False)
         (target / ATLAS_FILE).write_bytes(self.payload)
+        (target / SCOPE_FILE).write_bytes(self.scope_payload)
         (target / MANIFEST_FILE).write_bytes(self.manifest_bytes())
         return target
 
@@ -2638,414 +3701,73 @@ class VocabularyAtlasAsset:
         directory: Path | str,
         *,
         expected_manifest_digest: str,
-        expected_output_digest: str,
     ) -> Self:
-        """Verify a static distribution using only its two external digests."""
+        """Verify all three files from one independently trusted manifest pin."""
 
-        root = Path(directory)
-        if root.is_symlink():
-            raise VocabularyAtlasError("atlas directory must not be a symlink")
-        try:
-            root = root.resolve(strict=True)
-        except FileNotFoundError as error:
-            raise VocabularyAtlasError("atlas directory does not exist") from error
-        if not root.is_dir():
-            raise VocabularyAtlasError("atlas path must be a directory")
-        manifest_path, manifest_bytes = _read_exact_file(root / MANIFEST_FILE, "atlas manifest")
-        del manifest_path
-        expected_manifest_digest = _require_digest(expected_manifest_digest, "expected atlas manifest digest")
-        if _digest_bytes(manifest_bytes) != expected_manifest_digest:
+        _, payloads = _read_distribution(directory)
+        digest = _require_digest(expected_manifest_digest, "expected atlas manifest digest")
+        manifest_payload = payloads[MANIFEST_FILE]
+        if _digest_bytes(manifest_payload) != digest:
             raise VocabularyAtlasError("atlas external manifest digest differs")
-        manifest = _load_json_object(manifest_bytes, "atlas manifest")
-        if _canonical_bytes(manifest) != manifest_bytes:
+        manifest = _load_json_object(manifest_payload, "atlas manifest")
+        if _canonical_bytes(manifest) != manifest_payload:
             raise VocabularyAtlasError("atlas manifest bytes are not canonical")
-        required = {
-            "id",
-            "type",
-            "schemaVersion",
-            "format",
-            "generationDigest",
-            "inputs",
-            "implementation",
-            "policies",
-            "graphs",
-            "output",
-            "counts",
-            "canonicalPayloadDigest",
-        }
-        if set(manifest) != required:
-            raise VocabularyAtlasError("atlas manifest fields differ from v1")
-        if manifest["type"] != "urn:ref:type:VocabularyAtlasManifest":
-            raise VocabularyAtlasError("atlas manifest type differs")
-        if manifest["schemaVersion"] != SCHEMA_VERSION:
-            raise VocabularyAtlasError("atlas manifest schemaVersion differs")
-        if manifest["format"] != FORMAT_ID:
-            raise VocabularyAtlasError("atlas format differs")
-        _require_iri(manifest["id"], "atlas id")
-        _require_digest(manifest["generationDigest"], "atlas generation digest")
-        _require_digest(manifest["canonicalPayloadDigest"], "atlas canonical payload digest")
-        if manifest["canonicalPayloadDigest"] != _manifest_digest(manifest):
-            raise VocabularyAtlasError("atlas manifest digest differs")
-        implementation = _validate_implementation_pin(manifest["implementation"])
-        actual_inputs = list(_as_sequence(manifest["inputs"], "atlas inputs"))
-        roles = [_validate_input_pin(item) for item in actual_inputs]
-        managed_inputs = [
-            cast(Mapping[str, Any], item)
-            for item, role in zip(actual_inputs, roles, strict=True)
-            if role == "ManagedReleaseView"
-        ]
-        if not managed_inputs or roles.count("RulespecCoreRelease") != 1:
-            raise VocabularyAtlasError("atlas inputs require managed releases and one Rulespec Core")
-        crosswalk_inputs = [
-            cast(Mapping[str, Any], item)
-            for item, role in zip(actual_inputs, roles, strict=True)
-            if role == "CrosswalkBundle"
-        ]
-        crosswalk_identities = [item["id"] for item in crosswalk_inputs]
-        if len(set(crosswalk_identities)) != len(crosswalk_identities):
-            raise VocabularyAtlasError("atlas repeats a crosswalk input")
-        if crosswalk_identities != sorted(crosswalk_identities):
-            raise VocabularyAtlasError("atlas crosswalk inputs are not in canonical order")
-        if len(managed_inputs) + roles.count("RulespecCoreRelease") + roles.count("CrosswalkBundle") != len(
-            actual_inputs
-        ):
-            raise VocabularyAtlasError("atlas input roles differ from v1")
-        managed_identities = {(item["publicationReleaseId"], item["manifestDigest"]) for item in managed_inputs}
-        if len(managed_identities) != len(managed_inputs):
-            raise VocabularyAtlasError("atlas repeats a managed release input")
-        generation_input = {
-            "format": FORMAT_ID,
-            "inputs": actual_inputs,
-            "implementation": _plain(implementation),
-            "policies": _plain(manifest["policies"]),
-        }
-        generation_digest = _digest_value(generation_input)
-        if manifest["generationDigest"] != generation_digest:
-            raise VocabularyAtlasError("atlas generation digest differs")
-        asset_id = "urn:ref:vocabulary-atlas:" + generation_digest.removeprefix("sha256:")
-        if manifest["id"] != asset_id:
-            raise VocabularyAtlasError("atlas id differs from generation digest")
-        policies = _as_mapping(manifest["policies"], "atlas policies")
-        if dict(policies) != dict(_POLICIES):
-            raise VocabularyAtlasError("atlas policies differ")
-        expected_graphs = {
-            "releaseFacts": asset_id + ":release-facts",
-            "analysis": asset_id + ":analysis",
-        }
-        graph_rows = _as_sequence(manifest["graphs"], "atlas graphs")
-        if len(graph_rows) != 2:
-            raise VocabularyAtlasError("atlas must declare exactly two named graphs")
-        graph_by_role: dict[str, Mapping[str, Any]] = {}
-        for value in graph_rows:
-            row = _as_mapping(value, "atlas graph")
-            if set(row) != {"role", "id", "quadCount"}:
-                raise VocabularyAtlasError("atlas graph fields differ from v1")
-            role = row.get("role")
-            if role not in expected_graphs or role in graph_by_role:
-                raise VocabularyAtlasError("atlas graph roles differ")
-            _require_iri(row.get("id"), f"atlas {role} graph id")
-            _require_count(row.get("quadCount"), f"atlas {role} graph count", positive=True)
-            graph_by_role[cast(str, role)] = row
-        if set(graph_by_role) != set(expected_graphs):
-            raise VocabularyAtlasError("atlas graph roles differ")
-        for role, graph_id in expected_graphs.items():
-            if graph_by_role[role].get("id") != graph_id:
-                raise VocabularyAtlasError("atlas graph id differs")
-
-        _, payload = _read_exact_file(root / ATLAS_FILE, "atlas N-Quads")
-        expected_output_digest = _require_digest(expected_output_digest, "expected atlas output digest")
-        if _digest_bytes(payload) != expected_output_digest:
-            raise VocabularyAtlasError("atlas external output digest differs")
-        output = _as_mapping(manifest["output"], "atlas output")
-        if set(output) != {"path", "mediaType", "digest", "byteLength", "quadCount"}:
-            raise VocabularyAtlasError("atlas output fields differ from v1")
-        if output.get("path") != ATLAS_FILE or output.get("mediaType") != ("application/n-quads"):
-            raise VocabularyAtlasError("atlas output declaration differs")
-        _require_digest(output.get("digest"), "atlas output digest")
-        _require_count(output.get("byteLength"), "atlas output byte length", positive=True)
-        _require_count(output.get("quadCount"), "atlas output quad count", positive=True)
-        if output.get("byteLength") != len(payload):
-            raise VocabularyAtlasError("atlas output byte length differs")
-        if output.get("digest") != _digest_bytes(payload):
-            raise VocabularyAtlasError("atlas output digest differs")
-        dataset = Dataset(default_union=False)
-        try:
-            dataset.parse(data=payload.decode("utf-8"), format="nquads")
-        except Exception as error:  # rdflib exposes parser-specific subclasses
-            raise VocabularyAtlasError("atlas output is not valid N-Quads") from error
-        if any(isinstance(term, BNode) for context in dataset.graphs() for triple in context for term in triple):
-            raise VocabularyAtlasError("atlas output contains a blank node")
-        if _canonical_nquads(dataset) != payload:
-            raise VocabularyAtlasError("atlas N-Quads bytes are not canonical")
-        named_ids = {str(context.identifier) for context in dataset.graphs() if len(context) > 0}
-        if named_ids != set(expected_graphs.values()):
-            raise VocabularyAtlasError("atlas N-Quads named graphs differ")
-        graph_counts = {role: len(dataset.graph(URIRef(graph_id))) for role, graph_id in expected_graphs.items()}
-        if any(graph_by_role[role].get("quadCount") != count for role, count in graph_counts.items()):
-            raise VocabularyAtlasError("atlas graph counts differ")
-        total = sum(graph_counts.values())
-        if output.get("quadCount") != total:
-            raise VocabularyAtlasError("atlas output quad count differs")
-        counts = _as_mapping(manifest["counts"], "atlas counts")
-        expected_count_fields = {
-            "managedReleases",
-            "releaseFacts",
-            "analysisFacts",
-            "labelClusters",
-            "mappingCandidates",
-            "searchOnlyMappings",
-            "machineValidations",
-            "feedback",
-        }
-        # ``hierarchyEdges`` is declared exactly when the release facts state a
-        # hierarchy. Absent and zero are the same fact, so only one of them is
-        # a legal encoding and a hierarchy-free atlas keeps its published bytes.
-        if not expected_count_fields <= set(counts) <= expected_count_fields | {"hierarchyEdges"}:
-            raise VocabularyAtlasError("atlas count fields differ from v1")
-        for field, value in counts.items():
-            _require_count(value, f"atlas count {field}", positive=field == "hierarchyEdges")
-        observed_counts = {
-            "managedReleases": len(managed_inputs),
-            "releaseFacts": graph_counts["releaseFacts"],
-            "analysisFacts": graph_counts["analysis"],
-            "labelClusters": len(
-                set(dataset.graph(URIRef(expected_graphs["analysis"])).subjects(RDF.type, ATLAS.LabelCluster))
-            ),
-            "mappingCandidates": len(
-                set(dataset.graph(URIRef(expected_graphs["analysis"])).subjects(RDF.type, ATLAS.MappingCandidate))
-            ),
-            "searchOnlyMappings": len(
-                {
-                    subject
-                    for subject in dataset.graph(URIRef(expected_graphs["analysis"])).subjects(
-                        RDF.type, RKAF.ConceptMapping
-                    )
-                    if (
-                        subject,
-                        RKAF.usageEligibility,
-                        RKAF.searchOnly,
-                    )
-                    in dataset.graph(URIRef(expected_graphs["analysis"]))
-                }
-            ),
-            "machineValidations": len(
-                set(dataset.graph(URIRef(expected_graphs["analysis"])).subjects(RDF.type, ATLAS.MachineValidation))
-            ),
-            "feedback": len(
-                set(dataset.graph(URIRef(expected_graphs["analysis"])).subjects(RDF.type, ATLAS.MappingFeedback))
-            ),
-        }
-        observed_hierarchy = _hierarchy_edges(dataset.graph(URIRef(expected_graphs["releaseFacts"])))
-        if observed_hierarchy:
-            observed_counts["hierarchyEdges"] = len(observed_hierarchy)
-        if dict(counts) != observed_counts:
-            raise VocabularyAtlasError("atlas declared counts differ")
-        _validate_query_graph_semantics(
-            dataset,
-            release_graph_id=expected_graphs["releaseFacts"],
-            analysis_graph_id=expected_graphs["analysis"],
+        _validate_manifest_v2(
+            manifest,
+            scope_payload=payloads[SCOPE_FILE],
+            payload=payloads[ATLAS_FILE],
         )
         return cls._verified(
-            payload=payload,
+            payload=payloads[ATLAS_FILE],
+            scope_payload=payloads[SCOPE_FILE],
             manifest=cast(Mapping[str, Any], _freeze(manifest)),
         )
 
     @classmethod
-    def reproduce_from_inputs(
+    def reproduce_from_scope(
         cls,
         directory: Path | str,
         *,
-        releases: Sequence[VerifiedManagedReleaseSource],
-        rulespec_core: PinnedRulespecCoreRelease,
+        scope: PinnedVocabularyAtlasScope,
         expected_manifest_digest: str,
-        expected_output_digest: str,
-        crosswalks: Sequence[CrosswalkBundle] = (),
     ) -> Self:
-        """Verify the distribution and reproduce it from exact producer inputs."""
+        """Reopen the exact producer scope and rebuild all three files."""
 
         opened = cls.open(
             directory,
             expected_manifest_digest=expected_manifest_digest,
-            expected_output_digest=expected_output_digest,
         )
-        implementation = _implementation_pin()
-        if _plain(opened.manifest["implementation"]) != implementation:
-            raise VocabularyAtlasError("atlas implementation pin differs")
-        actual_inputs = cast(list[dict[str, Any]], _plain(opened.manifest["inputs"]))
-        resolved = _resolve_managed_releases(releases)
-        expected_inputs = _input_pins(
-            resolved,
-            rulespec_core=rulespec_core,
-            crosswalks=crosswalks,
-        )
-        if actual_inputs != expected_inputs:
-            raise VocabularyAtlasError("atlas release input pins differ")
-        rebuilt = _build_resolved_vocabulary_atlas(
-            resolved,
-            rulespec_core=rulespec_core,
-            crosswalks=crosswalks,
-        )
-        if rebuilt.manifest != opened.manifest or rebuilt.payload != opened.payload:
-            raise VocabularyAtlasError("atlas files do not reproduce from the exact pinned inputs")
+        resolved = _resolve_atlas_scope(scope)
+        if opened.scope_payload != resolved.payload:
+            raise VocabularyAtlasError("atlas distribution scope differs from the exact producer scope")
+        rebuilt = _build_resolved_atlas_v2(resolved)
+        if (
+            rebuilt.payload != opened.payload
+            or rebuilt.scope_payload != opened.scope_payload
+            or rebuilt.manifest != opened.manifest
+        ):
+            raise VocabularyAtlasError("atlas files do not reproduce from the exact pinned scope")
         return opened
 
 
-def _resolve_managed_releases(
-    releases: Sequence[VerifiedManagedReleaseSource],
-) -> tuple[_ResolvedManagedRelease, ...]:
-    """Bind every claimed input pin to the same verified view used to build."""
-
-    if not releases:
-        raise VocabularyAtlasError("an atlas needs at least one managed release")
-    resolved: list[_ResolvedManagedRelease] = []
-    for source in releases:
-        view = source.verified_view()
-        release_id = _require_iri(view.release_id, "managed publication release id")
-        graph_id = _require_iri(view.rulespec_graph_id, "managed Rulespec graph id")
-        graph_digest = rulespec_graph_digest(_plain(view.rulespec_graph))
-        pin = source.pin()
-        if _validate_input_pin(pin) != "ManagedReleaseView":
-            raise VocabularyAtlasError("managed release source returned another input role")
-        expected_view_pin = {
-            "publicationReleaseId": release_id,
-            "rulespecGraph": {
-                "id": graph_id,
-                "digest": graph_digest,
-            },
-        }
-        if (
-            pin.get("publicationReleaseId") != expected_view_pin["publicationReleaseId"]
-            or pin.get("rulespecGraph") != expected_view_pin["rulespecGraph"]
-        ):
-            raise VocabularyAtlasError("managed release pin differs from its verified view")
-        resolved.append(
-            _ResolvedManagedRelease(
-                view=view,
-                pin=cast(Mapping[str, Any], _freeze(_plain(pin))),
-            )
-        )
-    ordered = tuple(
-        sorted(
-            resolved,
-            key=lambda item: (
-                item.pin["publicationReleaseId"],
-                item.pin["manifestDigest"],
-            ),
-        )
-    )
-    identities = [(item.pin["publicationReleaseId"], item.pin["manifestDigest"]) for item in ordered]
-    if len(set(identities)) != len(identities):
-        raise VocabularyAtlasError("atlas repeats a managed release input")
-    return ordered
-
-
-def _input_pins(
-    releases: Sequence[_ResolvedManagedRelease],
-    *,
-    rulespec_core: PinnedRulespecCoreRelease,
-    crosswalks: Sequence[CrosswalkBundle],
-) -> list[dict[str, Any]]:
-    release_pins = [cast(dict[str, Any], _plain(item.pin)) for item in releases]
-    result: list[dict[str, Any]] = [*release_pins, rulespec_core.pin()]
-    result.extend(bundle.pin() for bundle in sorted(crosswalks, key=lambda item: item.identifier))
-    return result
-
-
-def _build_resolved_vocabulary_atlas(
-    releases: Sequence[_ResolvedManagedRelease],
-    *,
-    rulespec_core: PinnedRulespecCoreRelease,
-    crosswalks: Sequence[CrosswalkBundle] = (),
-) -> VocabularyAtlasAsset:
-    """Build deterministic release-facts and replaceable-analysis graphs."""
-
-    inputs = _input_pins(
-        releases,
-        rulespec_core=rulespec_core,
-        crosswalks=crosswalks,
-    )
-    implementation = _implementation_pin()
-    generation_input = {
-        "format": FORMAT_ID,
-        "inputs": inputs,
-        "implementation": implementation,
-        "policies": dict(_POLICIES),
-    }
-    generation_digest = _digest_value(generation_input)
-    asset_id = "urn:ref:vocabulary-atlas:" + generation_digest.removeprefix("sha256:")
-    payload, counts, release_graph_id, analysis_graph_id = _build_dataset(
-        releases,
-        asset_id=asset_id,
-        crosswalks=crosswalks,
-    )
-    graphs = [
-        {
-            "role": "releaseFacts",
-            "id": release_graph_id,
-            "quadCount": counts["releaseFacts"],
-        },
-        {
-            "role": "analysis",
-            "id": analysis_graph_id,
-            "quadCount": counts["analysisFacts"],
-        },
-    ]
-    manifest: dict[str, Any] = {
-        "id": asset_id,
-        "type": "urn:ref:type:VocabularyAtlasManifest",
-        "schemaVersion": SCHEMA_VERSION,
-        "format": FORMAT_ID,
-        "generationDigest": generation_digest,
-        "inputs": inputs,
-        "implementation": implementation,
-        "policies": dict(_POLICIES),
-        "graphs": graphs,
-        "output": {
-            "path": ATLAS_FILE,
-            "mediaType": "application/n-quads",
-            "digest": _digest_bytes(payload),
-            "byteLength": len(payload),
-            "quadCount": counts["releaseFacts"] + counts["analysisFacts"],
-        },
-        "counts": counts,
-    }
-    manifest["canonicalPayloadDigest"] = _manifest_digest(manifest)
-    return VocabularyAtlasAsset._verified(
-        payload=payload,
-        manifest=cast(Mapping[str, Any], _freeze(manifest)),
-    )
-
-
 def build_vocabulary_atlas(
-    releases: Sequence[VerifiedManagedReleaseSource],
-    *,
-    rulespec_core: PinnedRulespecCoreRelease,
-    crosswalks: Sequence[CrosswalkBundle] = (),
+    scope: PinnedVocabularyAtlasScope,
 ) -> VocabularyAtlasAsset:
-    """Build deterministic release-facts and replaceable-analysis graphs."""
+    """Build Atlas 2.0 from one exact, index-bound, non-authorizing scope."""
 
-    return _build_resolved_vocabulary_atlas(
-        _resolve_managed_releases(tuple(releases)),
-        rulespec_core=rulespec_core,
-        crosswalks=crosswalks,
-    )
+    return _build_resolved_atlas_v2(_resolve_atlas_scope(scope))
 
 
 __all__ = [
     "ATLAS",
-    "CROSSWALK_MEDIA_TYPE",
+    "ATLAS_FILE",
     "FORMAT_ID",
+    "MANIFEST_FILE",
     "RKAF",
-    "AtlasReleaseFactsView",
-    "CrosswalkArtifact",
-    "CrosswalkBundle",
-    "MachineValidation",
-    "MappingCandidate",
-    "MappingFeedback",
-    "PinnedManagedRelease",
-    "PinnedRulespecCoreRelease",
-    "VerifiedManagedReleaseSource",
+    "SCHEMA_VERSION",
+    "SCOPE_FILE",
     "VocabularyAtlasAsset",
     "VocabularyAtlasError",
     "build_vocabulary_atlas",
+    "closed_reference_release_digest",
 ]
