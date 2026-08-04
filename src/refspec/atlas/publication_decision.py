@@ -32,7 +32,16 @@ from refspec.registry.infrastructure.source_identity import (
     require_aware_datetime_text,
 )
 
-from .atlas_scope import AtlasScopeError, PinnedVocabularyAtlasScope
+from .atlas_scope import (
+    AtlasScopeError,
+    PinnedVocabularyAtlasScope,
+    validate_atlas_scope_record,
+)
+from .model import (
+    VocabularyAtlasAsset,
+    VocabularyAtlasError,
+)
+from .projection import VocabularyAtlasProjection
 
 PUBLICATION_DECISION_TYPE = "VocabularyAtlasPublicationDecision"
 PUBLICATION_DECISION_VERSION = "1.0"
@@ -322,10 +331,7 @@ def _normalize_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         "qualificationPolicy",
     } - policy_roles
     if missing_base_policies:
-        raise PublicationDecisionError(
-            "a publication decision requires selectionPolicy and "
-            "qualificationPolicy pins"
-        )
+        raise PublicationDecisionError("a publication decision requires selectionPolicy and qualificationPolicy pins")
     projection_policies = [policy for policy in policies if policy["role"] == "projectionPolicy"]
     if normalized_kind == "atlas" and projection_policies:
         raise PublicationDecisionError("an atlas publication decision cannot name a projection policy")
@@ -405,18 +411,82 @@ class VocabularyAtlasPublicationDecision:
         return _canonical_bytes(self.as_record())
 
     def validate_for_scope(self, scope: PinnedVocabularyAtlasScope) -> None:
-        expected_scope, planning_index, intended_scope = _scope_facts(scope)
-        if _plain(self.record["scope"]) != expected_scope:
-            raise PublicationDecisionError("publication decision names another exact atlas scope")
-        if _plain(self.record["planningIndex"]) != planning_index:
-            raise PublicationDecisionError("publication decision planning index differs from its exact scope")
-        if _plain(self.record["intendedScope"]) != intended_scope:
-            raise PublicationDecisionError("publication decision intended scope differs from its exact scope")
+        self._validate_scope_facts(*_scope_facts(scope))
 
     def validate_result(self, result: Mapping[str, Any]) -> None:
         normalized = _normalize_result(result, artifact_kind=self.artifact_kind)
         if _plain(self.record["result"]) != normalized:
             raise PublicationDecisionError("publication decision names another exact result")
+
+    def validate_distribution(
+        self,
+        distribution: VocabularyAtlasAsset | VocabularyAtlasProjection,
+        *,
+        parent: VocabularyAtlasAsset | None = None,
+    ) -> None:
+        """Validate this decision against one concrete verified distribution.
+
+        Selection and qualification policies remain external decision inputs;
+        Atlas 2.0 does not embed them.  A projection does embed its selector,
+        so that one policy pin is checked against the exact projection bytes.
+        """
+
+        if isinstance(distribution, VocabularyAtlasAsset):
+            if self.artifact_kind != "atlas":
+                raise PublicationDecisionError("a projection publication decision cannot validate an atlas")
+            if parent is not None:
+                raise PublicationDecisionError("an atlas distribution does not accept a projection parent")
+            scope, planning_index, intended_scope = _distribution_scope_facts(distribution)
+            self._validate_scope_facts(
+                scope,
+                planning_index,
+                intended_scope,
+            )
+            self.validate_result(_atlas_distribution_result(distribution))
+            return
+
+        if not isinstance(distribution, VocabularyAtlasProjection):
+            raise PublicationDecisionError("publication decision requires a verified atlas or projection")
+        if self.artifact_kind != "projection":
+            raise PublicationDecisionError("an atlas publication decision cannot validate a projection")
+        if not isinstance(parent, VocabularyAtlasAsset):
+            raise PublicationDecisionError("a projection publication decision requires its verified atlas parent")
+        _require_verified_projection(distribution)
+        expected_parent = _atlas_parent_pin(parent)
+        if _plain(distribution.parent_pin) != expected_parent:
+            raise PublicationDecisionError("atlas projection parent pin differs from the verified parent")
+        scope, planning_index, intended_scope = _distribution_scope_facts(parent)
+        self._validate_scope_facts(scope, planning_index, intended_scope)
+        expected_policy = _projection_policy_pin(distribution)
+        decision_policy = next(
+            policy
+            for policy in cast(
+                Sequence[Mapping[str, Any]],
+                self.record["policies"],
+            )
+            if policy["role"] == "projectionPolicy"
+        )
+        if _plain(decision_policy) != expected_policy:
+            raise PublicationDecisionError("publication decision projection policy differs from the distribution")
+        self.validate_result(
+            _projection_distribution_result(
+                distribution,
+                parent_pin=expected_parent,
+            )
+        )
+
+    def _validate_scope_facts(
+        self,
+        scope: Mapping[str, Any],
+        planning_index: Mapping[str, Any],
+        intended_scope: Mapping[str, Any],
+    ) -> None:
+        if _plain(self.record["scope"]) != _plain(scope):
+            raise PublicationDecisionError("publication decision names another exact atlas scope")
+        if _plain(self.record["planningIndex"]) != _plain(planning_index):
+            raise PublicationDecisionError("publication decision planning index differs from its exact scope")
+        if _plain(self.record["intendedScope"]) != _plain(intended_scope):
+            raise PublicationDecisionError("publication decision intended scope differs from its exact scope")
 
     def write_to(self, path: Path | str) -> Path:
         destination = Path(path)
@@ -433,6 +503,128 @@ class VocabularyAtlasPublicationDecision:
             temporary.unlink(missing_ok=True)
             raise
         return destination
+
+
+def _require_verified_asset(asset: VocabularyAtlasAsset) -> None:
+    try:
+        asset._require_verified()
+    except VocabularyAtlasError as error:
+        raise PublicationDecisionError(str(error)) from error
+
+
+def _require_verified_projection(projection: VocabularyAtlasProjection) -> None:
+    try:
+        projection._require_verified()
+    except VocabularyAtlasError as error:
+        raise PublicationDecisionError(str(error)) from error
+
+
+def _atlas_parent_pin(asset: VocabularyAtlasAsset) -> dict[str, str]:
+    _require_verified_asset(asset)
+    return {
+        "assetId": _require_iri(
+            asset.manifest.get("id"),
+            "verified atlas manifest id",
+        ),
+        "manifestDigest": asset.manifest_digest,
+        "distributionDigest": asset.output_digest,
+    }
+
+
+def _atlas_distribution_result(asset: VocabularyAtlasAsset) -> dict[str, str]:
+    parent = _atlas_parent_pin(asset)
+    return {
+        "role": "VocabularyAtlas",
+        "id": parent["assetId"],
+        "manifestDigest": parent["manifestDigest"],
+        "distributionDigest": parent["distributionDigest"],
+    }
+
+
+def _projection_distribution_result(
+    projection: VocabularyAtlasProjection,
+    *,
+    parent_pin: Mapping[str, str],
+) -> dict[str, Any]:
+    _require_verified_projection(projection)
+    return {
+        "role": "VocabularyAtlasProjection",
+        "id": _require_iri(
+            projection.manifest.get("id"),
+            "verified atlas projection manifest id",
+        ),
+        "manifestDigest": projection.manifest_digest,
+        "distributionDigest": projection.output_digest,
+        "parent": _plain(parent_pin),
+    }
+
+
+def _projection_policy_pin(
+    projection: VocabularyAtlasProjection,
+) -> dict[str, str]:
+    _require_verified_projection(projection)
+    policy = _require_mapping(
+        projection.manifest.get("projectionPolicy"),
+        "verified atlas projection policy",
+    )
+    return {
+        "role": "projectionPolicy",
+        "id": _require_iri(
+            policy.get("id"),
+            "verified atlas projection policy.id",
+        ),
+        "version": _require_text(
+            policy.get("version"),
+            "verified atlas projection policy.version",
+        ),
+        "contentDigest": sha256_digest(_canonical_bytes(policy)),
+    }
+
+
+def _distribution_scope_facts(
+    asset: VocabularyAtlasAsset,
+) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+    _require_verified_asset(asset)
+    try:
+        raw_scope = json.loads(
+            asset.scope_payload.decode("utf-8"),
+            object_pairs_hook=binding.reject_duplicate_keys,
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+        scope_record = validate_atlas_scope_record(raw_scope)
+    except (
+        AtlasScopeError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as error:
+        raise PublicationDecisionError("verified atlas scope bytes are invalid") from error
+    descriptor = _require_mapping(
+        asset.manifest.get("scope"),
+        "verified atlas scope descriptor",
+    )
+    scope_pin = _normalize_scope_pin(
+        {
+            "role": descriptor.get("role"),
+            "id": descriptor.get("id"),
+            "contentDigest": descriptor.get("contentDigest"),
+            "fileDigest": descriptor.get("fileDigest"),
+        }
+    )
+    if (
+        scope_pin["id"] != scope_record["id"]
+        or scope_pin["contentDigest"] != scope_record["contentDigest"]
+        or scope_pin["fileDigest"] != sha256_digest(asset.scope_payload)
+    ):
+        raise PublicationDecisionError("verified atlas scope descriptor differs from its scope bytes")
+    planning_index = _normalize_index_pin(scope_record.get("atlasIndex"))
+    intended_scope = _normalize_intended_scope(
+        {
+            "name": scope_record.get("scopeName"),
+            "kind": scope_record.get("scopeKind"),
+        }
+    )
+    return scope_pin, planning_index, intended_scope
 
 
 def _scope_facts(

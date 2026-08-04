@@ -16,6 +16,12 @@ from refspec.atlas.atlas_scope import (
     PinnedVocabularyAtlasScope,
     VocabularyAtlasScope,
 )
+from refspec.atlas.model import VocabularyAtlasAsset, build_vocabulary_atlas
+from refspec.atlas.projection import (
+    VocabularyAtlasProjection,
+    build_atlas_projection,
+    ring_projection_policy,
+)
 from refspec.atlas.publication_decision import (
     PUBLICATION_DECISION_TYPE,
     PUBLICATION_DECISION_VERSION,
@@ -24,7 +30,11 @@ from refspec.atlas.publication_decision import (
     build_vocabulary_atlas_publication_decision,
     read_vocabulary_atlas_publication_decision,
 )
-from refspec.registry.infrastructure.artifact_serialization import sha256_digest
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    plain_json,
+    sha256_digest,
+)
 
 
 def _pinned_scope(tmp_path: Path, *, name: str = "decision") -> PinnedVocabularyAtlasScope:
@@ -112,6 +122,43 @@ def _policies(*, projection: bool = False) -> list[dict[str, str]]:
     return result
 
 
+def _verified_atlas_result(asset: VocabularyAtlasAsset) -> dict[str, str]:
+    return {
+        "role": "VocabularyAtlas",
+        "id": str(asset.manifest["id"]),
+        "manifestDigest": asset.manifest_digest,
+        "distributionDigest": asset.output_digest,
+    }
+
+
+def _verified_projection_result(
+    projection: VocabularyAtlasProjection,
+) -> dict[str, Any]:
+    return {
+        "role": "VocabularyAtlasProjection",
+        "id": str(projection.manifest["id"]),
+        "manifestDigest": projection.manifest_digest,
+        "distributionDigest": projection.output_digest,
+        "parent": projection.parent_pin,
+    }
+
+
+def _verified_projection_policies(
+    projection: VocabularyAtlasProjection,
+) -> list[dict[str, str]]:
+    policy = plain_json(projection.manifest["projectionPolicy"])
+    assert isinstance(policy, dict)
+    return [
+        *_policies(),
+        {
+            "role": "projectionPolicy",
+            "id": str(policy["id"]),
+            "version": str(policy["version"]),
+            "contentDigest": sha256_digest(canonical_json_bytes(policy)),
+        },
+    ]
+
+
 def _decision(
     scope: PinnedVocabularyAtlasScope,
     *,
@@ -180,6 +227,112 @@ def test_atlas_decision_derives_scope_and_planning_index_from_one_exact_scope(
     assert decision.identifier.startswith("urn:ref:vocabulary-atlas-publication-decision:")
     decision.validate_for_scope(scope)
     decision.validate_result(_atlas_result())
+
+
+def test_atlas_decision_validates_the_verified_distribution_bytes(
+    tmp_path: Path,
+) -> None:
+    scope = _pinned_scope(tmp_path, name="verified-atlas")
+    asset = build_vocabulary_atlas(scope)
+    decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="atlas",
+        policies=_policies(),
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_verified_atlas_result(asset),
+    )
+
+    decision.validate_distribution(asset)
+
+    with pytest.raises(PublicationDecisionError, match="does not accept a projection parent"):
+        decision.validate_distribution(asset, parent=asset)
+    with pytest.raises(PublicationDecisionError, match="verified atlas or projection"):
+        decision.validate_distribution(object())  # type: ignore[arg-type]
+
+
+def test_projection_decision_validates_parent_scope_policy_and_result(
+    tmp_path: Path,
+) -> None:
+    scope = _pinned_scope(tmp_path, name="verified-projection")
+    parent = build_vocabulary_atlas(scope)
+    projection = build_atlas_projection(
+        parent,
+        policy=ring_projection_policy("subject"),
+    )
+    policies = _verified_projection_policies(projection)
+    decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="projection",
+        policies=policies,
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_verified_projection_result(projection),
+    )
+
+    decision.validate_distribution(projection, parent=parent)
+    assert [
+        policy["contentDigest"] for policy in decision.as_record()["policies"] if policy["role"] != "projectionPolicy"
+    ] == [
+        _digest("qualification-policy-v2"),
+        _digest("selection-policy-v1"),
+    ]
+
+    with pytest.raises(PublicationDecisionError, match="requires its verified atlas parent"):
+        decision.validate_distribution(projection)
+
+    other_scope = _pinned_scope(tmp_path, name="other-projection-parent")
+    other_parent = build_vocabulary_atlas(other_scope)
+    with pytest.raises(PublicationDecisionError, match="parent pin differs"):
+        decision.validate_distribution(projection, parent=other_parent)
+
+
+def test_projection_distribution_rejects_wrong_policy_result_or_decision_kind(
+    tmp_path: Path,
+) -> None:
+    scope = _pinned_scope(tmp_path, name="projection-refusals")
+    parent = build_vocabulary_atlas(scope)
+    projection = build_atlas_projection(
+        parent,
+        policy=ring_projection_policy("subject"),
+    )
+    policies = _verified_projection_policies(projection)
+    wrong_policy = copy.deepcopy(policies)
+    wrong_policy[-1]["contentDigest"] = _digest("wrong-projection-policy")
+    policy_decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="projection",
+        policies=wrong_policy,
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_verified_projection_result(projection),
+    )
+    with pytest.raises(PublicationDecisionError, match="projection policy differs"):
+        policy_decision.validate_distribution(projection, parent=parent)
+
+    wrong_result = _verified_projection_result(projection)
+    wrong_result["distributionDigest"] = _digest("wrong-projection-result")
+    result_decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="projection",
+        policies=policies,
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=wrong_result,
+    )
+    with pytest.raises(PublicationDecisionError, match="another exact result"):
+        result_decision.validate_distribution(projection, parent=parent)
+
+    atlas_decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="atlas",
+        policies=_policies(),
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_verified_atlas_result(parent),
+    )
+    with pytest.raises(PublicationDecisionError, match="cannot validate a projection"):
+        atlas_decision.validate_distribution(projection, parent=parent)
 
 
 def test_decision_is_deterministic_content_derived_and_immutable(tmp_path: Path) -> None:
