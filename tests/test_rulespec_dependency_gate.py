@@ -173,12 +173,14 @@ def test_ref_test_172_rejects_stale_normative_pin_text(
 ) -> None:
     mock_expensive_digests(monkeypatch, dependency_manifest)
     pin_root = tmp_path / "pin-text"
+    mutation_target = "spec/refspec.md"
+    assert mutation_target in dependency_manifest["pinTextFiles"]
     for relative in dependency_manifest["pinTextFiles"]:
         source = REFSPEC_ROOT / relative
         target = pin_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         text = source.read_text(encoding="utf-8")
-        if relative == "README.md":
+        if relative == mutation_target:
             text = text.replace(
                 dependency_manifest["rulespecVersion"],
                 "0.2.0-pre.8",
@@ -191,5 +193,6 @@ def test_ref_test_172_rejects_stale_normative_pin_text(
     )
 
     assert any(
-        "README.md contains Rulespec versions ['0.2.0-pre.8'], expected only '0.2.0-pre.9'" in error for error in errors
+        "spec/refspec.md contains Rulespec versions ['0.2.0-pre.8'], expected only '0.2.0-pre.9'" in error
+        for error in errors
     ), errors

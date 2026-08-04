@@ -13,7 +13,6 @@
     "constraints/profiles/refspec/open-label.cue"
   ],
   "pinTextFiles": {
-    "README.md": "complete",
     "spec/refspec.md": "complete",
     "profiles/rulespec-application-profile.md": "complete",
     "plans/implementation-plan.md": "versionOnly"
