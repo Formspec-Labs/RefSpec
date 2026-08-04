@@ -61,6 +61,48 @@ _MAPPING_RELATIONS = frozenset(
         "http://www.w3.org/2004/02/skos/core#relatedMatch",
     }
 )
+
+#: Protocol v2 verdict strings a sealed validation may carry, with the outcome
+#: each one derives.  Mirrors ``qualification.VERDICTS_V2`` without importing
+#: it: the format is the authority on what a sealed record admits.
+_V2_VERDICT_OUTCOMES: Mapping[str, str] = MappingProxyType(
+    {
+        "same": "supports",
+        "near_same": "supports",
+        "target_is_broader": "supports",
+        "target_is_narrower": "supports",
+        "related": "supports",
+        "unrelated": "rejects",
+        "insufficient_evidence": "abstains",
+    }
+)
+_V2_VERDICTS = frozenset(_V2_VERDICT_OUTCOMES)
+_CROSSWALK_SCHEMA_V2 = "2.0"
+#: Adjudicated-``related``: recorded on the candidate, but no mapping emitted.
+_RELATED_SENTINEL = "related"
+
+
+def _agreed_relation(first: str, second: str) -> str | None:
+    """The v2 agreement lattice: two compatible verdicts, emitted at the weaker.
+
+    ``same``+``near_same`` agree that substitution is symmetric and disagree
+    only about identity, so the pair qualifies at ``closeMatch``.  Every other
+    cross-relation combination is a real disagreement about the claim itself
+    and yields nothing.
+    """
+
+    pair = {first, second}
+    if pair == {"same"}:
+        return "http://www.w3.org/2004/02/skos/core#exactMatch"
+    if pair <= {"same", "near_same"}:
+        return "http://www.w3.org/2004/02/skos/core#closeMatch"
+    if pair == {"target_is_broader"}:
+        return "http://www.w3.org/2004/02/skos/core#broadMatch"
+    if pair == {"target_is_narrower"}:
+        return "http://www.w3.org/2004/02/skos/core#narrowMatch"
+    if pair == {"related"}:
+        return _RELATED_SENTINEL
+    return None
 _ARTIFACT_ROLES = frozenset(
     {"evidence", "inputContext", "validationRequest", "validationResponse"}
 )
@@ -741,6 +783,7 @@ class MachineValidation:
         deterministic_checks_passed: bool,
         outcome: Literal["supports", "rejects", "abstains"],
         completed_at: str,
+        verdict_relation: str | None = None,
     ) -> Self:
         if validator_kind not in {"aiModel", "aiAgent"}:
             raise VocabularyAtlasError("validator kind is unsupported")
@@ -748,6 +791,11 @@ class MachineValidation:
             raise VocabularyAtlasError("machine validation outcome is unsupported")
         if not isinstance(deterministic_checks_passed, bool):
             raise VocabularyAtlasError("deterministicChecksPassed must be boolean")
+        if verdict_relation is not None:
+            if verdict_relation not in _V2_VERDICTS:
+                raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
+            if _V2_VERDICT_OUTCOMES[verdict_relation] != outcome:
+                raise VocabularyAtlasError("machine validation outcome disagrees with its verdictRelation")
         payload = {
             "candidate": _reference(candidate, "machine candidate"),
             "validatorKind": validator_kind,
@@ -762,6 +810,8 @@ class MachineValidation:
             "outcome": outcome,
             "completedAt": _require_text(completed_at, "machine completed timestamp"),
         }
+        if verdict_relation is not None:
+            payload["verdictRelation"] = verdict_relation
         return cls(
             cast(
                 Mapping[str, Any],
@@ -889,11 +939,18 @@ class CrosswalkBundle:
             validations=validation_records,
             feedback=feedback_records,
         )
+        # A bundle is protocol-homogeneous: every validation carries a
+        # verdictRelation (v2) or none does (v1).  A mix would make the
+        # agreement rule ambiguous for the exact candidates it matters for.
+        with_relation = sum(1 for value in validation_records.values() if "verdictRelation" in value)
+        if with_relation not in (0, len(validation_records)):
+            raise VocabularyAtlasError("crosswalk bundle mixes v1 and v2 machine validations")
+        schema_version = _CROSSWALK_SCHEMA_V2 if with_relation and validation_records else SCHEMA_VERSION
         record = _seal_record(
             record_type="urn:ref:type:VocabularyAtlasCrosswalkBundle",
             id_prefix="urn:ref:vocabulary-atlas-crosswalk-bundle:",
             payload={
-                "schemaVersion": SCHEMA_VERSION,
+                "schemaVersion": schema_version,
                 "artifacts": [artifact_records[key] for key in sorted(artifact_records)],
                 "mappingCandidates": [candidate_records[key] for key in sorted(candidate_records)],
                 "machineValidations": [validation_records[key] for key in sorted(validation_records)],
@@ -958,11 +1015,15 @@ class CrosswalkBundle:
             record_type="urn:ref:type:VocabularyAtlasCrosswalkBundle",
             id_prefix="urn:ref:vocabulary-atlas-crosswalk-bundle:",
         )
-        if record["schemaVersion"] != SCHEMA_VERSION:
+        if record["schemaVersion"] not in (SCHEMA_VERSION, _CROSSWALK_SCHEMA_V2):
             raise VocabularyAtlasError("crosswalk bundle schemaVersion differs")
         artifacts = _index_serialized_records(record["artifacts"], "crosswalk artifact")
         candidates = _index_serialized_records(record["mappingCandidates"], "mapping candidate")
         validations = _index_serialized_records(record["machineValidations"], "machine validation")
+        expects_relation = record["schemaVersion"] == _CROSSWALK_SCHEMA_V2
+        for value in validations.values():
+            if ("verdictRelation" in value) != expects_relation:
+                raise VocabularyAtlasError("crosswalk bundle validations disagree with its schemaVersion")
         feedback = _index_serialized_records(record["feedback"], "mapping feedback")
         _validate_crosswalk_closure(
             artifacts=artifacts,
@@ -1115,15 +1176,34 @@ def _validate_crosswalk_closure(
         _resolve_reference(record["candidate"], candidates, "feedback candidate")
 
 
-def _qualified_candidates(
+def _agreement_relation_tag(first: Mapping[str, Any], second: Mapping[str, Any]) -> str | None:
+    """The relation an independent supporting pair agrees on, or None.
+
+    v1 validations carry no ``verdictRelation``; their agreement is the v1
+    yes/no, tagged ``proposed`` so emission uses the candidate's proposed
+    relation exactly as before.
+    """
+
+    left = first.get("verdictRelation")
+    right = second.get("verdictRelation")
+    if left is None and right is None:
+        return "proposed"
+    if left is None or right is None:
+        return None
+    return _agreed_relation(str(left), str(right))
+
+
+def _independent_agreements(
     candidates: Mapping[str, Mapping[str, Any]],
     validations: Mapping[str, Mapping[str, Any]],
-) -> dict[str, tuple[dict[str, Any], ...]]:
+) -> dict[str, tuple[tuple[dict[str, Any], ...], str]]:
+    """Every candidate with an independent, relation-compatible supporting pair."""
+
     by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in validations.values():
         if record["outcome"] == "supports" and record["deterministicChecksPassed"] is True:
             by_candidate[record["candidate"]["id"]].append(dict(record))
-    qualified: dict[str, tuple[dict[str, Any], ...]] = {}
+    agreements: dict[str, tuple[tuple[dict[str, Any], ...], str]] = {}
     for candidate_id, candidate in candidates.items():
         grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
         for validation in by_candidate.get(candidate_id, []):
@@ -1138,11 +1218,13 @@ def _qualified_candidates(
             grouped[key].append(validation)
         for key in sorted(grouped):
             values = sorted(grouped[key], key=lambda item: item["id"])
-            pair = next(
+            found = next(
                 (
-                    pair
+                    (pair, relation)
                     for pair in itertools.combinations(values, 2)
-                    if pair[0]["validatorActor"] != pair[1]["validatorActor"]
+                    for relation in (_agreement_relation_tag(pair[0], pair[1]),)
+                    if relation is not None
+                    and pair[0]["validatorActor"] != pair[1]["validatorActor"]
                     and pair[0]["independenceGroup"] != pair[1]["independenceGroup"]
                     and pair[0]["provider"] != pair[1]["provider"]
                     and pair[0]["providerModelId"] != pair[1]["providerModelId"]
@@ -1150,10 +1232,23 @@ def _qualified_candidates(
                 ),
                 None,
             )
-            if pair is not None:
-                qualified[candidate_id] = cast(tuple[dict[str, Any], ...], pair)
+            if found is not None:
+                agreements[candidate_id] = (cast(tuple[dict[str, Any], ...], found[0]), found[1])
                 break
-    return qualified
+    return agreements
+
+
+def _qualified_candidates(
+    candidates: Mapping[str, Mapping[str, Any]],
+    validations: Mapping[str, Mapping[str, Any]],
+) -> dict[str, tuple[dict[str, Any], ...]]:
+    """Candidates that earn a mapping: adjudicated-``related`` is excluded."""
+
+    return {
+        candidate_id: pair
+        for candidate_id, (pair, relation) in _independent_agreements(candidates, validations).items()
+        if relation != _RELATED_SENTINEL
+    }
 
 
 def _artifact_from_record(record: Mapping[str, Any]) -> CrosswalkArtifact:
@@ -1238,7 +1333,7 @@ def _validation_from_record(record: Mapping[str, Any]) -> MachineValidation:
         record_type="urn:ref:type:VocabularyAtlasMachineValidation",
         id_prefix="urn:ref:vocabulary-atlas-machine-validation:",
     )
-    if set(record) != {
+    base_fields = {
         "id",
         "type",
         "candidate",
@@ -1254,7 +1349,8 @@ def _validation_from_record(record: Mapping[str, Any]) -> MachineValidation:
         "outcome",
         "completedAt",
         "canonicalPayloadDigest",
-    }:
+    }
+    if set(record) not in (base_fields, base_fields | {"verdictRelation"}):
         raise VocabularyAtlasError("machine validation fields differ from v1")
     rebuilt = MachineValidation.create(
         candidate=record["candidate"],
@@ -1269,6 +1365,7 @@ def _validation_from_record(record: Mapping[str, Any]) -> MachineValidation:
         deterministic_checks_passed=record["deterministicChecksPassed"],
         outcome=record["outcome"],  # type: ignore[arg-type]
         completed_at=record["completedAt"],
+        verdict_relation=record.get("verdictRelation"),
     )
     if rebuilt.to_dict() != _plain(record):
         raise VocabularyAtlasError("machine validation content differs")
@@ -1544,7 +1641,12 @@ def _build_dataset(
         if bundle_ids & seen_sealed_ids:
             raise VocabularyAtlasError("crosswalk bundles repeat a sealed record id")
         seen_sealed_ids |= bundle_ids
-        qualified = _qualified_candidates(candidates, validations)
+        agreements = _independent_agreements(candidates, validations)
+        qualified = {
+            candidate_id: pair
+            for candidate_id, (pair, relation) in agreements.items()
+            if relation != _RELATED_SENTINEL
+        }
         for artifact in bundle["artifacts"]:
             node = URIRef(artifact["id"])
             analysis.add((node, RDF.type, ATLAS.CrosswalkArtifact))
@@ -1634,10 +1736,23 @@ def _build_dataset(
                 analysis.add((node, ATLAS.evidence, URIRef(evidence["id"])))
             candidate_count += 1
 
+            agreement = agreements.get(candidate_id)
+            if agreement is not None and agreement[1] == _RELATED_SENTINEL:
+                # Two independent machines agreed the pair is associated but
+                # not substitutable.  The typed refusal is stated so it never
+                # reads as noise, and no mapping is emitted.
+                analysis.add((node, ATLAS.adjudicatedRelation, RdfLiteral(_RELATED_SENTINEL)))
+                analysis.add((node, RKAF.usageEligibility, RKAF.notEligible))
+                continue
             selected = qualified.get(candidate_id)
             if selected is None:
                 analysis.add((node, RKAF.usageEligibility, RKAF.notEligible))
                 continue
+            relation_iri = (
+                agreement[1]
+                if agreement is not None and agreement[1] != "proposed"
+                else str(candidate["proposedRelation"])
+            )
             analysis.add((node, RKAF.usageEligibility, RKAF.searchOnly))
             mapping = _stable_iri(
                 "search-only-mapping",
@@ -1646,7 +1761,7 @@ def _build_dataset(
             )
             analysis.add((mapping, RDF.type, RKAF.ConceptMapping))
             analysis.add((mapping, RKAF.assertsSubject, URIRef(source)))
-            analysis.add((mapping, RKAF.assertsPredicate, URIRef(candidate["proposedRelation"])))
+            analysis.add((mapping, RKAF.assertsPredicate, URIRef(relation_iri)))
             analysis.add((mapping, RKAF.assertsObject, URIRef(target)))
             analysis.add(
                 (

@@ -16,32 +16,32 @@
       "directory": "invalid/cross-scheme-broader",
       "errorContains": "hierarchy must stay inside one release",
       "id": "hierarchy-stays-inside-one-release",
-      "manifestDigest": "sha256:b2d543236f3d9c88fc1162013b94d4bcfee15e4db0a6f853587c912943c02221",
-      "outputDigest": "sha256:ac8ad27f26b553e4bd528a96bdca837854c4d1bc7737c5e41d5d02a2077c1bc2",
+      "manifestDigest": "sha256:11ea515948fb9ff45b1ab4e2ab3e71e780910efd214fcf3d831c6e85971dcf8d",
+      "outputDigest": "sha256:9fed34131d93a42940317e6396e76f323628af5e0f8116e3348d05c09af783a4",
       "valid": false
     },
     {
       "directory": "invalid/cyclic-broader",
       "errorContains": "hierarchy contains a cycle",
       "id": "hierarchy-has-no-cycle",
-      "manifestDigest": "sha256:469220dad3469d8e6c10332d5864daa26c802006b55d96d9b01c4b904d81cb70",
-      "outputDigest": "sha256:4e0bb54b7a64fc720b5ced34e25d3faffa86b5c2a364384a4b25a39e32ac8917",
+      "manifestDigest": "sha256:8d913aed3e25a99956bb5f4944c98a2229513cc53f36690a67609cb0f6745400",
+      "outputDigest": "sha256:4874a945f7fb72a5a6967399a0b473bcb90a1abbee9ff624b1e4453339e9ae9f",
       "valid": false
     },
     {
       "directory": "invalid/dangling-broader",
       "errorContains": "hierarchy endpoint is not a release member",
       "id": "hierarchy-endpoints-are-release-members",
-      "manifestDigest": "sha256:00c2a42a899497caff308a41b93c3f2a997b9c23a78a0a4735bd9cbe5d72e697",
-      "outputDigest": "sha256:675f6b71dd76f26ec453a5411ae1c564e68f7a30cf775adc1180aacffda41a43",
+      "manifestDigest": "sha256:1782f384b330d319522a9b7667bea3124f64580f86d1eebe2f52099f55b8c8fc",
+      "outputDigest": "sha256:427bfe55d99aeeef9f182963f2b81cea0d175fc55896efb44f5ab6b0854053fd",
       "valid": false
     },
     {
       "directory": "invalid/disagreeing-narrower",
       "errorContains": "hierarchy directions disagree",
       "id": "hierarchy-directions-must-agree",
-      "manifestDigest": "sha256:803ce9b346ebc50d85941f2e78264b1b5a726aa1e5630a3e6b0f7c1fd8c1f209",
-      "outputDigest": "sha256:bb3da2482fab7d1e4d0be8b9bc1f8c22a777f2f54e9352aeaa64821d8bdbfe4d",
+      "manifestDigest": "sha256:22e07ee03c090f15b74ad60c0ad090d29a85f2d7d3e1a6c1205fc0ef5c305ffe",
+      "outputDigest": "sha256:a2a6a9f3674684fd2b080e0e2cff977572707d1e930b829fbfd0ee2dd7d7ec69",
       "valid": false
     },
     {
@@ -56,8 +56,8 @@
       "directory": "invalid/missing-input-context",
       "errorContains": "mapping input context artifact must have exactly one IRI",
       "id": "search-only-input-context-must-resolve",
-      "manifestDigest": "sha256:a591a2533872c403333fd0d6cde37ea37ad81c62c35e376dce877fec26186994",
-      "outputDigest": "sha256:c2a6598455102ff40e27f60febbecb337509f53dc17eba8fa3e1f8aa8a8f0dfb",
+      "manifestDigest": "sha256:713c1a821e900e1c718ac2a31ab1307b37fd5e79e135523e0e7863fe204ae2c2",
+      "outputDigest": "sha256:2fa9e5d433ce39c93601cf059c10c3dbd5e30bd5a2333d9463caeaa19d5da178",
       "valid": false
     },
     {
@@ -72,16 +72,16 @@
       "directory": "invalid/same-provider-model",
       "errorContains": "validations are not independent",
       "id": "search-only-requires-distinct-provider-models",
-      "manifestDigest": "sha256:fe87a29e204a19188d1d1df93ce4d4744a5260f6334e3f449f84c8d0089e8fb4",
-      "outputDigest": "sha256:1785176e0503e4e68ba53d3e48976ba2012b1cb745719ba41ec9f97abcb3defe",
+      "manifestDigest": "sha256:b89e482483ca9f0a9f9d2221842adc1d8537f7f72bbd36f90d93d566af6e56c9",
+      "outputDigest": "sha256:7006cabbc3a38d983b10b8e1e8dd0b92a3975052733f4aede009a1cf6b1fd4ff",
       "valid": false
     },
     {
       "directory": "invalid/tampered-input-context",
       "errorContains": "input context does not carry the sealed input digest",
       "id": "search-only-input-context-must-match-the-sealed-digest",
-      "manifestDigest": "sha256:019f32791a61c444cbff8c4fddde8dcd1f4fa7301a25fb5c36a485563caa4561",
-      "outputDigest": "sha256:49a8c341b1b1c6e93fed65c0b5438aab2b52eeaa20b1293e9bce8ad127e1f106",
+      "manifestDigest": "sha256:1ed30dbb127f58e2737feceead7cdf7dff6b9375be69d6783b0607dc39bc5ca9",
+      "outputDigest": "sha256:1f5fa35cfe1cd147d9c19ef3c1ac67fd12444245b7ce0e349b560ba8c4165705",
       "valid": false
     },
     {
@@ -103,8 +103,8 @@
     {
       "directory": "valid/hierarchy",
       "id": "intra-scheme-hierarchy-is-accepted",
-      "manifestDigest": "sha256:8d06d25e7e480b7ac1dddba6b16d90caef20b73f8a3113f7565d2d541331c150",
-      "outputDigest": "sha256:a8fd2a5ef41bf816975d1ef2b24de38364b8a41de705c273147cc48405dbf18a",
+      "manifestDigest": "sha256:5f547889b7eb823eae730e0110bad546afbec3ce05884f06ca8c4865570a57a1",
+      "outputDigest": "sha256:ac5df7d002de003f11b2f8447b1e26e72755ae1b7db8467d44999581dce50cbe",
       "valid": true
     },
     {
@@ -117,8 +117,8 @@
     {
       "directory": "valid/qualified-search-only",
       "id": "qualified-search-only-mapping-is-accepted",
-      "manifestDigest": "sha256:02388ef4e2920e9ac4a6dd676acf11d79927a9e5d2edfe1839342853596d5bf6",
-      "outputDigest": "sha256:fdcc66d3d2947311f9210c63d9e4d1dc050dbd3c921dc890615faaed0af9a783",
+      "manifestDigest": "sha256:7ee263859d0dde809e75833804d06ee783d1f1b8f04f08e7b44866c120c6cc61",
+      "outputDigest": "sha256:a8c4cf9215c738ebeea45713679c87378e58bc6bb7b8e518ea5dbcc83f4356b9",
       "valid": true
     }
   ],
