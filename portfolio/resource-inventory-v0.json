@@ -1,6 +1,6 @@
 {
   "format": "refspec-resource-catalog-input/experimental-v0",
-  "recordedAt": "2026-07-30T18:00:00Z",
+  "recordedAt": "2026-08-04T08:01:00Z",
   "resources": [
     {
       "accessOrReproducibilityGap": "The official styled PDF is packaged with a pinned digest, a checked semantic extract, and explicit source anomalies.",
@@ -331,6 +331,536 @@
       "resourceKind": "sourceAssignedVocabulary",
       "title": "GAO report native controls",
       "versionRepresentation": "Pin report edition, source fields, capture time, and artifact digest."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry has one exact publisher concept sample, not a complete release package, and language-specific contributor rights still require reconciliation.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each AGROVOC publisher concept IRI, multilingual label, and authored SKOS mapping relation without merging AGROVOC identity with NALT.",
+      "officialLocator": "https://aims.fao.org/aos/agrovoc",
+      "resourceId": "agrovoc",
+      "resourceKind": "mappingReference",
+      "title": "AGROVOC multilingual concept scheme",
+      "versionRepresentation": "Pin the exact AGROVOC distribution or concept response, observation time, byte digest, and applicable language rights evidence."
+    },
+    {
+      "accessOrReproducibilityGap": "The topic-bearing XML endpoint is blocked by DataDome in the current environment; the verified per-Congress feed omits topics and fiscal facets, so the reconstructed topic-and-facet fixture is not publication-ready evidence.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each cost-estimate record link, authored topic literal, publisher budget-function code, mandate flag, PAYGO flag, bill value, and committee value without minting topic identity.",
+      "officialLocator": "https://www.cbo.gov/cost-estimates/xml",
+      "resourceId": "cbo-cost-estimate-feed",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "CBO cost-estimate topics and fiscal facets",
+      "versionRepresentation": "Pin the exact feed URL, Congress, capture time, response digest, and parser version; separately identify reconstructed fixtures and verified publisher captures."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry pins reviewed byte spans and a representative field subset rather than the full mutable variables table.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve ACS variable names and geography predicate fields exactly as publisher-issued structural identifiers; do not treat variable labels as entity identities.",
+      "officialLocator": "https://api.census.gov/data/2024/acs/acs1/spp/variables.html",
+      "resourceId": "census-acs-geography-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "Census ACS geography identifier fields",
+      "versionRepresentation": "Pin the ACS product vintage, exact captured byte spans, observation time, source digest, and promoted-versus-excluded coverage counts."
+    },
+    {
+      "accessOrReproducibilityGap": "The identifier structure is documented, but the registry deliberately does not ingest the nationwide geography entity table.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the publisher's summary-level, geographic-component, state, county, tract, block-group, block, and related GEOID components and concatenation rules.",
+      "officialLocator": "https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html",
+      "resourceId": "census-tiger-geoid-structure",
+      "resourceKind": "identifierAuthority",
+      "title": "Census TIGER/Line GEOID structure",
+      "versionRepresentation": "Pin the exact guidance-page capture, observation date, digest, documented structure rows, and any referenced vintage."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry captures identifier grammar and selected file fields only; it does not ingest the bulk Geographic Names Information System entity file.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve the permanent GNIS feature ID and the publisher-documented state and county code fields without substituting the retired FIPS 55 place code.",
+      "officialLocator": "https://www.usgs.gov/us-board-on-geographic-names/download-gnis-data",
+      "resourceId": "usgs-gnis-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "USGS GNIS feature identifiers",
+      "versionRepresentation": "Pin the official file-format publication, exact artifact digest, observation date, and reviewed field coverage."
+    },
+    {
+      "accessOrReproducibilityGap": "The independently published HTML list covers functional item codes only; object, fund-source, and other classifications in the larger manual remain separate work.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each official three-digit ASPEP function item code, label, section, and source edition exactly.",
+      "officialLocator": "https://www.census.gov/programs-surveys/apes/technical-documentation/code-lists/data-function.html",
+      "resourceId": "census-aspep-function-item-codes",
+      "resourceKind": "classification",
+      "title": "Census ASPEP function item codes",
+      "versionRepresentation": "Pin the exact HTML capture, observation time, artifact digest, complete code count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "These flags explain reported values but do not replace the independently versioned government-finance classifications they qualify.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each official single-letter ASPEP data flag, publisher label, and Reported Data or Imputed Data grouping.",
+      "officialLocator": "https://www.census.gov/programs-surveys/apes/technical-documentation/code-lists/data-flags.html",
+      "resourceId": "census-aspep-data-flags",
+      "resourceKind": "codeList",
+      "title": "Census ASPEP data flags",
+      "versionRepresentation": "Pin the exact HTML capture, observation time, artifact digest, complete flag count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "NASBO publishes program-area labels without stable per-area codes or IRIs, so they remain capture-local mapping references rather than publisher-identified concepts.",
+      "distributionStatus": "unresolvedIdentity",
+      "identifierRepresentation": "Preserve the exact authored program-area heading and source section with no minted identifier.",
+      "officialLocator": "https://www.nasbo.org/mainsite/reports-data/state-expenditure-report",
+      "resourceId": "nasbo-state-expenditure-program-areas",
+      "resourceKind": "mappingReference",
+      "title": "NASBO State Expenditure Report program areas",
+      "versionRepresentation": "Pin the report-page edition or observation date, exact capture digest, program-area membership, and any later report-specific mapping review."
+    },
+    {
+      "accessOrReproducibilityGap": "CourtListener abbreviations are platform identifiers, not official identifiers issued by each court, and the mutable page is only a dated observation.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Preserve CourtListener abbreviation, jurisdiction class, court label, citation abbreviation, dates, status, and source timestamp distinctly from official court identifiers.",
+      "officialLocator": "https://www.courtlistener.com/help/api/jurisdictions/",
+      "resourceId": "courtlistener-jurisdictions",
+      "resourceKind": "identifierAuthority",
+      "title": "CourtListener jurisdiction identifiers",
+      "versionRepresentation": "Pin the exact jurisdictions-page capture, observation time, response digest, parser version, and sampled-versus-complete coverage statement."
+    },
+    {
+      "accessOrReproducibilityGap": "The verified public export is from 2020, embeds no release metadata or license, and no newer public release or changelog has been verified.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Preserve each DOE OSTI publisher concept IRI and authored SKOS relation; never infer currency or licensing from the identifier.",
+      "officialLocator": "https://www.osti.gov/dataexplorer/biblio/dataset/1668761",
+      "resourceId": "doe-osti-semantic-thesaurus-2020",
+      "resourceKind": "mappingReference",
+      "title": "DOE OSTI Semantic Thesaurus v1, 2020",
+      "versionRepresentation": "Pin dataset identifier 1668761, DOI, publication date 2020-09-30, exact RDF digest and byte length, and the unresolved currency and license findings."
+    },
+    {
+      "accessOrReproducibilityGap": "Only one topic-tier export is captured; current edition, complete membership, maintenance history, durable bulk access, license, and stable term identifiers remain unverified.",
+      "distributionStatus": "unresolvedIdentity",
+      "identifierRepresentation": "Preserve exact labels, definitions, scope notes, child nesting, and positional source paths; the source exports no stable term code or IRI, so mint none.",
+      "officialLocator": "https://www.epa.gov/research/epa-enterprise-vocabulary",
+      "resourceId": "epa-enterprise-vocabulary",
+      "resourceKind": "mappingReference",
+      "title": "EPA Enterprise Vocabulary",
+      "versionRepresentation": "Pin the landing-page claims, selected tier, export request, observation time, exact XML digest, and all unresolved edition, access, license, and identity gaps."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry captures identifier syntax and a bounded sample, not the bulk SRS, CompTox, DSSTox, or TSCA inventories.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve DTXSID substance identifiers and DTXCID structure identifiers as separate kinds; retain TSCA membership as status and never merge identity by label or CAS number.",
+      "officialLocator": "https://sor.epa.gov/sor_internet/registry/sysofreg/sorservices/sorServices.html",
+      "resourceId": "epa-substance-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "EPA SRS and CompTox substance identifiers",
+      "versionRepresentation": "Pin each source endpoint or documentation capture, observation time, digest, identifier-shape revision, and bounded sample coverage."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry contains a pinned mapping sample, not a reconciled complete EuroVoc release, and search-expansion use remains evaluation-gated.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve EuroVoc domain, micro-thesaurus, and concept identifiers exactly; keep domain records distinct even when the source also types them as SKOS concepts.",
+      "officialLocator": "https://op.europa.eu/en/web/eu-vocabularies/concept-scheme/-/resource?uri=http://eurovoc.europa.eu/100141",
+      "resourceId": "eurovoc",
+      "resourceKind": "mappingReference",
+      "title": "EuroVoc multilingual thesaurus",
+      "versionRepresentation": "Pin the exact EuroVoc release or export version, source artifact, digest, language coverage, and selected mapping scope."
+    },
+    {
+      "accessOrReproducibilityGap": "The data dictionary documents fields and legacy mappings but does not publish the enumerated values those fields may contain.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve endpoint name, field name, SQL type, legacy Census field, source position, and observation time; do not infer code values from field labels.",
+      "officialLocator": "https://www.fac.gov/api/dictionary/",
+      "resourceId": "fac-api-dictionary",
+      "resourceKind": "structuralSchema",
+      "title": "Federal Audit Clearinghouse API data dictionary",
+      "versionRepresentation": "Pin the exact documentation-page capture, retrieval time, digest, endpoint-table membership, and parser version because the page publishes no release identifier."
+    },
+    {
+      "accessOrReproducibilityGap": "The current registry has exact publisher samples and change records but no complete, reproducible frontier release suitable for atlas membership.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each OCLC FAST identifier and id.worldcat.org URI plus publisher-authored LCSH derivation links; never replace LCSH identity with FAST identity.",
+      "officialLocator": "https://www.oclc.org/research/areas/data-science/fast/download.html",
+      "resourceId": "fast-topical",
+      "resourceKind": "mappingReference",
+      "title": "OCLC FAST Topical facet",
+      "versionRepresentation": "Pin the exact bulk snapshot or bounded frontier, chronological change files, source digests, ODC-BY attribution, coverage receipt, and conversion-rule version."
+    },
+    {
+      "accessOrReproducibilityGap": "Some legacy package paths still rely on a constructed compatibility fixture; only the separately pinned class/type and docket-prefix publications count as current source evidence.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve FERC document class, document type, sector, security-level, and docket-prefix codes exactly with source family and effective status.",
+      "officialLocator": "https://www.ferc.gov/media/elibrary-classtype-information",
+      "resourceId": "ferc-elibrary-native-controls",
+      "resourceKind": "codeList",
+      "title": "FERC eLibrary native controls",
+      "versionRepresentation": "Pin each official PDF or help-page publication independently by edition, capture time, exact digest, complete row count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The source documents accession-number format and docket-prefix values, but it does not provide a separately versioned authority file for all filing identifiers.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Preserve FERC accession-number grammar and docket-prefix code as distinct identifier components with their exact official source.",
+      "officialLocator": "https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm",
+      "resourceId": "ferc-elibrary-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "FERC eLibrary filing identifiers",
+      "versionRepresentation": "Pin the exact search-help and docket-prefix publications, observation date, digests, and identifier-shape parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The real page confirms priority and type controls, while exhaustive query-slug and processed-state behavior still needs a rendered-page capture and review.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the exact GAO query value, visible label, source field, and capture identity; do not invent a subject concept from a search facet.",
+      "officialLocator": "https://www.gao.gov/legal/congressional-review-act/search-database-rules",
+      "resourceId": "gao-cra-database-facets",
+      "resourceKind": "codeList",
+      "title": "GAO Congressional Review Act database facets",
+      "versionRepresentation": "Pin the exact rendered source capture, observation time, digest, form field, option membership, and unresolved query-behavior gaps."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry packages a bounded source-evidence sample and does not yet publish a complete managed atlas frontier or demonstrate document-subject value.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve every GCMD publisher concept UUID, authored path label, category, and version; exclude separately governed instrument, platform, project, and provider schemes.",
+      "officialLocator": "https://gcmd.earthdata.nasa.gov/KeywordViewer/scheme/sciencekeywords/27478148-b4b6-4c89-8829-08d2ee7bfe10/",
+      "resourceId": "gcmd-science-keywords",
+      "resourceKind": "mappingReference",
+      "title": "NASA GCMD Science Keywords",
+      "versionRepresentation": "Pin the exact keyword version, revision date, CSV bytes, source digest, concept-scheme UUID, coverage statement, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "A complete publisher distribution is available, but atlas specialist use still requires a managed release, United States regulatory-text holdout, and strong abstention gate.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve GEMET publisher concept and scheme IRIs, multilingual labels, and authored SKOS relations without modeling collection and bibliographic records as concepts.",
+      "officialLocator": "https://www.eionet.europa.eu/gemet/en/exports/rdf/latest",
+      "resourceId": "gemet",
+      "resourceKind": "subjectVocabulary",
+      "title": "GEMET multilingual environmental thesaurus",
+      "versionRepresentation": "Pin GEMET release 4.2.3 or its successor by compressed and decompressed digests, byte lengths, source URL, license, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The API collection roster is mutable and requires a caller-supplied key for live acquisition; collection codes do not define document subjects.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each official GovInfo collectionCode and display name exactly as returned by the pinned API response.",
+      "officialLocator": "https://api.govinfo.gov/collections",
+      "resourceId": "govinfo-collections",
+      "resourceKind": "codeList",
+      "title": "GovInfo collection codes",
+      "versionRepresentation": "Pin API behavior, capture time, exact response digest, complete observed collection count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The current-title roster and point-in-time structure endpoints have different version behavior; observed node-type values are not a separately published closed enumeration.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve CFR title, chapter, subchapter, part, subpart, subject-group, section, appendix, and heading identities with their point-in-time source context.",
+      "officialLocator": "https://www.ecfr.gov/developers/documentation/api/v1",
+      "resourceId": "ecfr-cfr-structure",
+      "resourceKind": "structuralSchema",
+      "title": "eCFR title and provision structure",
+      "versionRepresentation": "Pin each point-in-time date, endpoint and query, exact response digest, title currency fields, and observed-versus-authoritative structure coverage."
+    },
+    {
+      "accessOrReproducibilityGap": "Package summaries and PREMIS records describe individual GovInfo packages; they do not by themselves supply typed legal-effect edges across packages.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official GovInfo package, granule, collection, docket-class, version, file, and fixity identifiers without conflating them with eCFR current-state identities.",
+      "officialLocator": "https://www.govinfo.gov/developers",
+      "resourceId": "govinfo-cfr-packages",
+      "resourceKind": "identifierAuthority",
+      "title": "GovInfo CFR package identifiers",
+      "versionRepresentation": "Pin the exact package ID, API response and PREMIS artifacts, capture time, file-level fixity, response digests, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The official page publishes eligibility and funding-category tables only; instrument, opportunity-status, and statutory-initiative lists named elsewhere are absent.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve exact Grants.gov eligibility and funding-category codes, labels, source table, and observation time; treat funding categories as publisher-assigned evidence, not managed concepts.",
+      "officialLocator": "https://www.grants.gov/api/status-codes",
+      "resourceId": "grants-gov-status-codes",
+      "resourceKind": "codeList",
+      "title": "Grants.gov eligibility and funding category codes",
+      "versionRepresentation": "Pin the exact page capture, observation time, artifact digest, complete scoped table counts, parser version, and declared absent-list gaps."
+    },
+    {
+      "accessOrReproducibilityGap": "The publisher bulk distribution is much larger than an atlas bridge; RefSpec has only a bounded development sample and still needs the reproducible two-pass frontier release.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Library of Congress Subject Heading concept IRI and LCCN; retain only topical authorities selected by a declared frontier rule.",
+      "officialLocator": "https://id.loc.gov/authorities/subjects.html",
+      "resourceId": "lcsh-topical",
+      "resourceKind": "mappingReference",
+      "title": "Library of Congress Subject Headings, topical authorities",
+      "versionRepresentation": "Pin the exact bulk distribution, source digest, observed topical count, frontier policy and inputs, selected membership, coverage receipt, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The API publishes no named code-list release; retrieval time and exact response digest are the revision evidence.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each official LDA General Issue Code and name as publisher-assigned filing evidence without minting concept identity.",
+      "officialLocator": "https://lda.gov/api/v1/constants/general_issues/",
+      "resourceId": "lda-general-issue-codes",
+      "resourceKind": "sourceAssignedVocabulary",
+      "title": "Lobbying Disclosure Act General Issue Codes",
+      "versionRepresentation": "Pin API interface version, endpoint, capture time, exact response digest, complete code count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The API publishes no named code-list release and no separate filing-status constants list.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each official LDA filing-type code and name, and keep the separately documented filing-period enum tied to its OpenAPI source.",
+      "officialLocator": "https://lda.gov/api/v1/constants/filing/filingtypes/",
+      "resourceId": "lda-filing-types",
+      "resourceKind": "codeList",
+      "title": "Lobbying Disclosure Act filing types",
+      "versionRepresentation": "Pin API interface version, endpoint, capture time, exact response digest, complete code count, OpenAPI evidence, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The complete annual descriptor file is available, but only descriptors are in scope; Supplemental Concept Records and qualifiers remain separate resources, and specialist use needs its own holdout.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each National Library of Medicine DescriptorUI and corresponding id.nlm.nih.gov URI; never admit supplemental records through the descriptor reader.",
+      "officialLocator": "https://www.nlm.nih.gov/databases/download/mesh.html",
+      "resourceId": "mesh-descriptors",
+      "resourceKind": "subjectVocabulary",
+      "title": "Medical Subject Headings descriptors",
+      "versionRepresentation": "Pin the exact annual descriptor release, source digest, record count, attribution notice, parser version, coverage report, and managed-release identity when produced."
+    },
+    {
+      "accessOrReproducibilityGap": "NALT Core has no single downloadable distribution, and its CC BY 4.0 statement conflicts with broader USDA public-domain or CC0 claims.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each NALT publisher concept IRI and exact Core scheme membership; refuse NALT Full records and never mint identity from a label.",
+      "officialLocator": "https://lod.nal.usda.gov/nalt-core/",
+      "resourceId": "nalt-core",
+      "resourceKind": "subjectVocabulary",
+      "title": "National Agricultural Library Thesaurus Core",
+      "versionRepresentation": "Pin every concept response URL, capture time, exact digest, Core scheme assertion, membership coverage, license evidence, and eventual managed-release selection."
+    },
+    {
+      "accessOrReproducibilityGap": "The current registry captures only the top-level technology-area roster; deeper nodes require additional requests and document-subject value remains unevaluated.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve NASA taxonomy root ID, publisher node ID, technology-area code, title, level, and current status; exclude instrument and platform branches from policy topics.",
+      "officialLocator": "https://techport.nasa.gov/api/taxonomies",
+      "resourceId": "nasa-technology-taxonomy",
+      "resourceKind": "mappingReference",
+      "title": "NASA Technology Taxonomy",
+      "versionRepresentation": "Pin the taxonomy root roster and selected taxonomy response, capture time, exact digests, release title and status, level coverage, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The distribution states no explicit reuse license, and specialist adoption still requires freshness confirmation, a managed release, and a measured holdout.",
+      "distributionStatus": "availableButUnreconciled",
+      "identifierRepresentation": "Preserve NASA's same-document concept, relation, and note identifiers exactly; do not invent a concept scheme or connect detached annotations by matching local strings.",
+      "officialLocator": "https://sti.nasa.gov/nasa-thesaurus/",
+      "resourceId": "nasa-thesaurus",
+      "resourceKind": "subjectVocabulary",
+      "title": "NASA Thesaurus",
+      "versionRepresentation": "Pin the exact SKOS/RDF distribution URL, byte length, digest, capture or content date, attribution statement, parser version, and eventual managed-release coverage."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry validates National Provider Identifier syntax and a bounded public-file sample; it does not ingest the multi-gigabyte bulk provider registry or licensed NUCC taxonomy values.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each ten-digit NPI under the NPPES authority and validate its Luhn check digit using the health-industry prefix; never infer provider identity from taxonomy fields.",
+      "officialLocator": "https://nppes.cms.hhs.gov/",
+      "resourceId": "nppes-npi-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "NPPES National Provider Identifier authority",
+      "versionRepresentation": "Pin the official definition and file-vintage evidence, exact bounded sample digest, observation time, identifier validation revision, and sample ceiling."
+    },
+    {
+      "accessOrReproducibilityGap": "Only identifier shape is captured; a complete public authority file and lifecycle history are outside this registry reader.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Preserve six- or ten-character CMS Certification Numbers as a distinct identifier kind from NPI and validate only the documented shape.",
+      "officialLocator": "https://www.cms.gov/medicare/health-safety-standards/certification-compliance",
+      "resourceId": "cms-certification-number-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "CMS Certification Number authority",
+      "versionRepresentation": "Pin the official identifier definition, observation date, source locator, and validation-rule revision."
+    },
+    {
+      "accessOrReproducibilityGap": "The registry captures a bounded weekly-file excerpt and the public field layout, not bulk NPPES provider records; NUCC taxonomy code values remain excluded for licensing reasons.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the exact Version 2 public-file column names and positions as structural fields, including taxonomy field names without storing taxonomy code values.",
+      "officialLocator": "https://download.cms.gov/nppes/NPI_Files.html",
+      "resourceId": "nppes-data-dissemination-layout",
+      "resourceKind": "structuralSchema",
+      "title": "NPPES Data Dissemination file layout",
+      "versionRepresentation": "Pin the file-layout version, exact source ZIP and entry, capture date, digest, bounded excerpt, field count, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "ADAMS publishes no dedicated constants endpoint; result-field and library-facet labels are snapshot observations from the current search application, not publisher-asserted exhaustive lists.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each observed search field, library facet, and reference-category label with exact source asset and position; do not mint concept identity.",
+      "officialLocator": "https://www.nrc.gov/reading-rm/adams",
+      "resourceId": "nrc-adams-native-controls",
+      "resourceKind": "codeList",
+      "title": "NRC ADAMS public-search controls",
+      "versionRepresentation": "Pin the exact NRC pages and application asset, full-asset and excerpt digests, capture time, observed membership, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "Legacy accession and docket shapes are documented, while the current ML accession shape is inferred only from publisher examples and no complete identifier authority file is published.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Preserve NRC docket, Public Legacy Library accession, and current ML accession identifiers as distinct documented or source-observed shapes with explicit basis.",
+      "officialLocator": "https://www.nrc.gov/reading-rm/adams/faq.html",
+      "resourceId": "nrc-adams-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "NRC ADAMS docket and accession identifiers",
+      "versionRepresentation": "Pin each defining page or example capture, observation time, digest, identifier-shape basis, validation-rule revision, and known documentation gaps."
+    },
+    {
+      "accessOrReproducibilityGap": "RegInfo.gov publishes no separate release identifier for the review and meeting value sets, and the enclosing pages contain request-specific session and CSRF values.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Review Status, Stage of Rulemaking, Concluded Action, and Meeting Type value with its exact page-specific label and source field.",
+      "officialLocator": "https://www.reginfo.gov/public/do/eoAdvancedSearch?eoStatusCode=CD",
+      "resourceId": "oira-review-native-controls",
+      "resourceKind": "codeList",
+      "title": "OIRA EO 12866 review and meeting controls",
+      "versionRepresentation": "Pin each exact control byte span, anchor rule, source page, capture time, digest, option membership, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The source is a large narrative PDF rather than a machine-readable code service; only the named fiscal tables are imported, and later editions must remain separate.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve official budget function, subfunction, object-class, apportionment-category, and non-apportioned line codes exactly with table and edition.",
+      "officialLocator": "https://www.whitehouse.gov/omb/information-resources/guidance/circulars/",
+      "resourceId": "omb-a11-budget-codes",
+      "resourceKind": "codeList",
+      "title": "OMB Circular A-11 budget codes",
+      "versionRepresentation": "Pin the Circular edition, full-document reference digest, exact page extracts and digests, source table, row counts, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The current package fixtures are documented-shape samples, not verified full OPM captures; publication must use the complete official EHRI workbook and retain its edition.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve official pay-plan, work-schedule, appointment-type, and occupational-series codes with source sheet, label, status, and effective context.",
+      "officialLocator": "https://data.opm.gov/data-standards/ehri-data-standards",
+      "resourceId": "opm-ehri-workforce-codes",
+      "resourceKind": "codeList",
+      "title": "OPM EHRI workforce codes",
+      "versionRepresentation": "Pin the complete workbook edition, source URL, capture time, artifact digest, sheet membership and counts, parser version, and any sample-versus-production limitation."
+    },
+    {
+      "accessOrReproducibilityGap": "The current package fixture is an unverified documented-shape sample; PLUM releases also carry statutory redaction, agency-certification, and vintage rules.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve PLUM appointment-authority and incumbent-status marker values exactly without inferring redacted incumbent identity.",
+      "officialLocator": "https://www.opm.gov/about-us/open-government/plum-reporting/plum-data/",
+      "resourceId": "opm-plum-position-status-codes",
+      "resourceKind": "codeList",
+      "title": "OPM PLUM position status codes",
+      "versionRepresentation": "Pin the exact PLUM release vintage, certified source file, capture time, digest, code membership, redaction rules, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The report-type facet is embedded in a mutable results page and carries Drupal term IDs rather than a separately versioned code-list distribution.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve every published report-type option, Drupal filter identifier, display label, source position, and observation time.",
+      "officialLocator": "https://www.oversight.gov/reports/federal",
+      "resourceId": "oversight-report-types",
+      "resourceKind": "codeList",
+      "title": "Oversight.gov federal report types",
+      "versionRepresentation": "Pin the exact page capture, retrieval time, artifact digest, complete facet membership, parser version, and volatile-page limitation."
+    },
+    {
+      "accessOrReproducibilityGap": "The scoped page omits JavaScript-populated agency codes and several other search controls; those values remain explicit gaps rather than inferred enumerations.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve OMB Control Number grammar, request type, ICR status, and burden-range field identifiers and values exactly as published.",
+      "officialLocator": "https://www.reginfo.gov/public/do/PRASearch",
+      "resourceId": "pra-icr-native-controls",
+      "resourceKind": "codeList",
+      "title": "Paperwork Reduction Act ICR search controls",
+      "versionRepresentation": "Pin the exact PRASearch capture, observation time, artifact digest, scoped control membership, parser version, and declared out-of-scope fields."
+    },
+    {
+      "accessOrReproducibilityGap": "The documentation publishes assistance, applicant, and beneficiary type tables, while mission and subject values are record-level evidence outside this reader and several referenced restrictions have no list.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each official assistance type, eligible applicant type, and eligible beneficiary type code and label with source table and interface version.",
+      "officialLocator": "https://open.gsa.gov/api/assistance-listings-api/",
+      "resourceId": "sam-assistance-listing-controls",
+      "resourceKind": "codeList",
+      "title": "SAM.gov Assistance Listings controls",
+      "versionRepresentation": "Pin the documentation interface version, exact page capture and digest, complete scoped table counts, parser version, and documented schema inconsistencies."
+    },
+    {
+      "accessOrReproducibilityGap": "The official documentation is the only code source, the live API exposes only the latest active opportunity, and older set-aside history is incomplete.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve procurement notice type, opportunity status, and set-aside codes exactly, including publisher-marked retired values and source chronology.",
+      "officialLocator": "https://open.gsa.gov/api/get-opportunities-public-api/",
+      "resourceId": "sam-opportunities-native-controls",
+      "resourceKind": "codeList",
+      "title": "SAM.gov Opportunities native controls",
+      "versionRepresentation": "Pin the documentation version, exact page capture and digest, change-log evidence, complete scoped code membership, retired-code status, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The Court publishes navigation labels and a prose publication ladder but no stable codes or IRIs, and it does not expose reliable boundaries for individual majority, concurrence, or dissent writings on this page.",
+      "distributionStatus": "unresolvedIdentity",
+      "identifierRepresentation": "Preserve exact opinion-category and package-stage labels with source path and term context; mint no publisher identifier from a changing navigation URL.",
+      "officialLocator": "https://www.supremecourt.gov/opinions/opinions.aspx",
+      "resourceId": "scotus-opinion-and-package-types",
+      "resourceKind": "codeList",
+      "title": "Supreme Court opinion and package types",
+      "versionRepresentation": "Pin the exact resolved page capture, observation time, artifact digest, category and publication-stage membership, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The two navigation blocks differ in labels and destinations and expose no stable category identifiers; they must remain separate dated observations.",
+      "distributionStatus": "unresolvedIdentity",
+      "identifierRepresentation": "Preserve each SEC navigation collection, authored label, relative target path, position, and capture identity without reconciling labels by similarity.",
+      "officialLocator": "https://www.sec.gov/rules-regulations",
+      "resourceId": "sec-rules-regulations-categories",
+      "resourceKind": "codeList",
+      "title": "SEC Rules and Regulations page categories",
+      "versionRepresentation": "Pin the exact page capture, observation time, artifact digest, separate navigation-block membership, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The source documents the eight-component grammar and page edition but does not publish a separate machine-readable authority table for every valid Treasury Account Symbol.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Preserve the Treasury Account Symbol string and each documented component field without deriving account identity from the account title.",
+      "officialLocator": "https://fiscal.treasury.gov/accounting/central-accounting-reporting-system-cars/",
+      "resourceId": "treasury-account-symbol-structure",
+      "resourceKind": "identifierAuthority",
+      "title": "Treasury Account Symbol structure",
+      "versionRepresentation": "Pin the documentation page edition, exact capture digest, component grammar, supporting component-size authority, observation time, and validation-rule revision."
+    },
+    {
+      "accessOrReproducibilityGap": "Parts II and III are machine-readable while Part I remains a formatted PDF; page bytes also contain request-specific analytics tokens, so captures are dated observations.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each official FAST Book Treasury account symbol, title, part, and fund group exactly; never mint concept identity from an account title.",
+      "officialLocator": "https://fiscal.treasury.gov/accounting/fast-book/description-of-contents",
+      "resourceId": "treasury-fast-book",
+      "resourceKind": "classification",
+      "title": "Federal Account Symbols and Titles Book",
+      "versionRepresentation": "Pin the page's Last Updated date, exact page capture, official workbook and digest, part coverage, complete parsed row counts, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "Public SAM responses are bounded samples and do not provide complete entity history; a UEI must remain distinct from associated CAGE identifiers.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the official twelve-character Unique Entity ID, SAM registration status, source record, and authority type exactly.",
+      "officialLocator": "https://sam.gov/entity-registration",
+      "resourceId": "uei-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "SAM.gov Unique Entity ID authority",
+      "versionRepresentation": "Pin the official grammar documentation, exact bounded public API response, record status, capture time, digest, and sample ceiling."
+    },
+    {
+      "accessOrReproducibilityGap": "The DLA documentation is not reproducibly pinnable in the current environment, and SAM public responses do not publish DLA CAGE status.",
+      "distributionStatus": "definitionOnly",
+      "identifierRepresentation": "Preserve each five-character CAGE code under the Defense Logistics Agency authority and keep association evidence separate from SAM registration status.",
+      "officialLocator": "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/cage-code-commercial-and-government-entity-code/",
+      "resourceId": "cage-authority",
+      "resourceKind": "identifierAuthority",
+      "title": "Defense Logistics Agency CAGE code authority",
+      "versionRepresentation": "Pin any reproducible official grammar evidence, lookup time, authority-specific record status, and source digest; otherwise retain the definition-only limitation."
+    },
+    {
+      "accessOrReproducibilityGap": "LEGAL_AUTHORITY remains unrestricted free text; only three citation-type prefixes are documented, and no row establishes a resolved legal identity or legal-effect edge by itself.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the exact authored legal-authority citation, source ordinal, and any documented U.S.C., Public Law, or Executive Order prefix classification without rewriting the citation.",
+      "officialLocator": "https://www.reginfo.gov/public/jsp/eAgenda/StaticContent/202210/RiscPreamble.pdf",
+      "resourceId": "unified-agenda-legal-authority-citations",
+      "resourceKind": "identifierAuthority",
+      "title": "Unified Agenda legal authority citations",
+      "versionRepresentation": "Pin the agenda edition, exact RISC Preamble artifact and digest, source record identity, observation time, citation text, classifier revision, and unresolved values."
+    },
+    {
+      "accessOrReproducibilityGap": "The endpoint is live and versionless; short API labels and fuller data-dictionary descriptions must remain separate source facts.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each USAspending award and assistance type code, source-specific description, category, and observation time without reconciling differing labels implicitly.",
+      "officialLocator": "https://api.usaspending.gov/api/v2/references/award_types/",
+      "resourceId": "usaspending-award-type-codes",
+      "resourceKind": "codeList",
+      "title": "USAspending award and assistance type codes",
+      "versionRepresentation": "Pin the exact endpoint response, capture time, digest, complete observed code count, referenced data-dictionary edition, and parser version."
+    },
+    {
+      "accessOrReproducibilityGap": "The architecture document defines the model while the separately maintained online data dictionary supplies element domains; only the catalog-scoped elements are curated here.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each Governmentwide Spending Data Model element name, version, mapped submission or download field, and reviewed domain values as schema facts.",
+      "officialLocator": "https://fiscal.treasury.gov/files/data-transparency/gsdm-architecture-v1.0.1.pdf",
+      "resourceId": "governmentwide-spending-data-model",
+      "resourceKind": "structuralSchema",
+      "title": "Governmentwide Spending Data Model",
+      "versionRepresentation": "Pin GSDM version 1.0.1, exact architecture-document digest, online data-dictionary capture or pin, selected element scope, and review revision."
     }
   ]
 }

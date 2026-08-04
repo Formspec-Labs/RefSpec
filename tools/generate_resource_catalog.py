@@ -34,14 +34,13 @@ def main() -> int:
 
     args = _arguments()
     try:
-        generated = render_json(
-            build_resource_catalog(
-                load_json(INVENTORY),
-                load_json(COMPLETED),
-                load_json(DISTRIBUTIONS),
-                repository_root=ROOT,
-            )
+        catalog = build_resource_catalog(
+            load_json(INVENTORY),
+            load_json(COMPLETED),
+            load_json(DISTRIBUTIONS),
+            repository_root=ROOT,
         )
+        generated = render_json(catalog)
         if args.write:
             OUTPUT.write_text(generated, encoding="utf-8")
             print(f"wrote {OUTPUT.relative_to(ROOT)}")
@@ -50,7 +49,12 @@ def main() -> int:
             raise ResourceCatalogError(
                 "checked resource catalog differs from generation; run tools/generate_resource_catalog.py --write"
             )
-        print("resource catalog is current: 33 known resources, 3 verified distributions")
+        summary = catalog["summary"]
+        print(
+            "resource catalog is current: "
+            f"{summary['resourceCount']} known resources, "
+            f"{summary['verifiedDistributionCount']} verified distributions"
+        )
         return 0
     except (OSError, ResourceCatalogError, ValueError) as error:
         print(f"resource catalog error: {error}", file=sys.stderr)

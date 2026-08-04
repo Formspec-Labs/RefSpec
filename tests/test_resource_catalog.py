@@ -39,9 +39,9 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
     )
 
     assert catalog["summary"] == {
-        "evidenceOnlyCount": 6,
-        "inventoryOnlyCount": 25,
-        "resourceCount": 33,
+        "evidenceOnlyCount": 8,
+        "inventoryOnlyCount": 76,
+        "resourceCount": 86,
         "verifiedDistributionCount": 3,
         "verifiedResourceCount": 2,
     }
