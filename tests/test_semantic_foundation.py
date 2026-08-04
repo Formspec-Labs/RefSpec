@@ -107,6 +107,25 @@ def _mapping(
     )
 
 
+@pytest.mark.parametrize("semantic_ring", ([], {}))
+def test_malformed_semantic_ring_is_a_domain_error(
+    semantic_ring: object,
+) -> None:
+    with pytest.raises(
+        SemanticFoundationError,
+        match="must be subject, entity, value, or legalIdentity",
+    ):
+        EvidenceAssertion(
+            semantic_ring=semantic_ring,  # type: ignore[arg-type]
+            evidence_class="humanReviewed",
+            basis="editorialReview",
+            asserted_by="https://refspec.org/actors/reviewer-1",
+            asserted_at=ASSERTED_AT,
+            evidence=("urn:ref:test:evidence:malformed-ring",),
+            review_decision="urn:ref:test:decision:malformed-ring",
+        )
+
+
 def test_rights_metadata_represents_facts_and_canonicalizes_holders() -> None:
     stated = RightsMetadata(
         rights_status="stated",

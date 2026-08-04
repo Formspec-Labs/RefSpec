@@ -214,7 +214,7 @@ def _require_date(value: object, label: str) -> str:
 
 
 def _require_ring(value: object, label: str) -> SemanticRing:
-    if value not in SEMANTIC_RINGS:
+    if not isinstance(value, str) or value not in SEMANTIC_RINGS:
         raise SemanticFoundationError(f"{label} must be subject, entity, value, or legalIdentity")
     return cast(SemanticRing, value)
 
