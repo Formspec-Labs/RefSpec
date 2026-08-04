@@ -27,6 +27,7 @@ from refspec.atlas.machine_evidence import (
 )
 from refspec.atlas.model import CrosswalkArtifact, CrosswalkBundle, MachineValidation, MappingCandidate
 from refspec.atlas.relation_assertion import (
+    EmbeddedRelationAssertionBundle,
     RelationAssertionBundle,
     RelationAssertionError,
     RelationMachineProofSource,
@@ -462,6 +463,60 @@ def test_source_relation_bundle_is_content_derived_deterministic_and_reopenable(
     assert reopened.as_record() == first.as_record()
     assert reopened.artifact_bytes() == first.artifact_bytes()
     reopened.verify()
+
+
+def test_embedded_relation_record_revalidates_without_producer_directories(
+    tmp_path: Path,
+) -> None:
+    source, target, evidence, mapping = _subject_facts(tmp_path)
+    bundle = RelationAssertionBundle.create(
+        semantic_ring="subject",
+        release_sources=(source, target),
+        evidence_assertions=(evidence,),
+        mapping_assertions=(mapping,),
+    )
+    memberships = {
+        source.release_id: source.member_ids(),
+        target.release_id: target.member_ids(),
+    }
+
+    embedded = EmbeddedRelationAssertionBundle.from_record(
+        bundle.as_record(),
+        release_memberships=memberships,
+    )
+
+    assert embedded.identifier == bundle.identifier
+    assert embedded.content_digest == bundle.content_digest
+    assert embedded.as_record() == bundle.as_record()
+    assert embedded.mapping_assertions == (mapping,)
+    assert embedded.evidence_assertions == (evidence,)
+
+
+def test_embedded_relation_record_requires_exact_membership_and_order(
+    tmp_path: Path,
+) -> None:
+    source, target, evidence, mapping = _subject_facts(tmp_path)
+    bundle = RelationAssertionBundle.create(
+        semantic_ring="subject",
+        release_sources=(source, target),
+        evidence_assertions=(evidence,),
+        mapping_assertions=(mapping,),
+    )
+    memberships = {
+        source.release_id: frozenset(),
+        target.release_id: target.member_ids(),
+    }
+
+    with pytest.raises(RelationAssertionError, match="sourceConcept is outside"):
+        EmbeddedRelationAssertionBundle.from_record(
+            bundle.as_record(),
+            release_memberships=memberships,
+        )
+
+    reordered = bundle.as_record()
+    reordered["releasePins"] = list(reversed(reordered["releasePins"]))
+    with pytest.raises(RelationAssertionError, match="canonically ordered"):
+        EmbeddedRelationAssertionBundle.from_record(reordered)
 
 
 def test_source_to_managed_relation_uses_the_exact_complete_release(

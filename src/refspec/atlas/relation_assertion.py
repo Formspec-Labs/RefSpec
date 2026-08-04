@@ -53,10 +53,12 @@ from .concept_release import (
     ConceptReleaseSource,
     PinnedManagedConceptRelease,
     PinnedSourceConceptRelease,
+    normalize_concept_release_pin,
 )
 from .relation_proof import (
     RelationMachineProofSource,
     RelationMachineProofTrustError,
+    registered_relation_machine_proof_adapters,
     trusted_relation_machine_proof_adapter_id,
 )
 
@@ -379,6 +381,198 @@ def _content_record(
         "id": f"urn:ref:relation-assertion-bundle:{semantic_ring}:{content_digest.removeprefix('sha256:')}",
         "contentDigest": content_digest,
     }
+
+
+@dataclass(frozen=True, slots=True)
+class EmbeddedRelationAssertionBundle:
+    """A file-only verified relation record and its typed contents."""
+
+    record: Mapping[str, Any]
+    semantic_ring: SemanticRing
+    release_pins: tuple[Mapping[str, Any], ...]
+    machine_proof_pins: tuple[Mapping[str, Any], ...]
+    evidence_assertions: tuple[EvidenceAssertion, ...]
+    mapping_assertions: tuple[MappingAssertion, ...]
+
+    @classmethod
+    def from_record(
+        cls,
+        value: Mapping[str, Any],
+        *,
+        release_memberships: Mapping[str, frozenset[str]] | None = None,
+    ) -> Self:
+        """Verify embedded bytes without reopening their producer inputs.
+
+        Producer construction remains stronger: :class:`RelationAssertionBundle`
+        also reopens every release and executable proof source. This verifier
+        proves the complete logical record preserved in a canonical atlas.
+        """
+
+        if not isinstance(value, Mapping):
+            raise RelationAssertionError("embedded relation assertion bundle must be an object")
+        row = cast(dict[str, Any], _plain(value))
+        _require_exact_fields(row, set(_RECORD_FIELDS), "embedded relation assertion bundle")
+        if (
+            row.get("type") != "RelationAssertionBundle"
+            or row.get("schemaVersion") != RELATION_ASSERTION_BUNDLE_VERSION
+        ):
+            raise RelationAssertionError("embedded relation assertion bundle version is unsupported")
+        ring = _require_ring(
+            row.get("semanticRing"),
+            "embedded relation assertion bundle semanticRing",
+        )
+
+        raw_release_pins = row.get("releasePins")
+        if (
+            not isinstance(raw_release_pins, Sequence)
+            or isinstance(raw_release_pins, (str, bytes))
+            or not raw_release_pins
+        ):
+            raise RelationAssertionError("embedded relation releasePins must be a non-empty array")
+        release_pins: list[Mapping[str, Any]] = []
+        release_ids: list[str] = []
+        for index, raw_pin in enumerate(raw_release_pins):
+            try:
+                pin = normalize_concept_release_pin(raw_pin)
+            except ConceptReleaseError as error:
+                raise RelationAssertionError(str(error)) from error
+            if pin["semanticRing"] != ring:
+                raise RelationAssertionError("embedded relation release pin crosses semantic rings")
+            release_id = _require_iri(
+                pin.get("releaseId"),
+                f"embedded relation releasePins[{index}].releaseId",
+            )
+            release_ids.append(release_id)
+            release_pins.append(
+                cast(Mapping[str, Any], deep_freeze_json(pin))
+            )
+        if release_ids != sorted(release_ids) or len(set(release_ids)) != len(release_ids):
+            raise RelationAssertionError("embedded relation release pins must be unique and canonically ordered")
+
+        raw_proof_pins = row.get("machineProofPins")
+        if not isinstance(raw_proof_pins, Sequence) or isinstance(
+            raw_proof_pins,
+            (str, bytes),
+        ):
+            raise RelationAssertionError("embedded relation machineProofPins must be an array")
+        trusted_adapters = registered_relation_machine_proof_adapters()
+        proof_pins: list[Mapping[str, Any]] = []
+        proof_ids: list[str] = []
+        for raw_pin in raw_proof_pins:
+            try:
+                pin = validate_machine_evidence_proof_pin(
+                    cast(Mapping[str, Any], raw_pin),
+                    semantic_ring=ring,
+                )
+            except (SemanticFoundationError, TypeError) as error:
+                raise RelationAssertionError(str(error)) from error
+            adapter_id = pin["proofAdapter"]
+            if adapter_id not in trusted_adapters:
+                raise RelationAssertionError(
+                    "embedded machine proof names an unregistered executable adapter"
+                )
+            proof_ids.append(
+                _require_iri(pin.get("id"), "embedded relation machine proof id")
+            )
+            proof_pins.append(
+                cast(Mapping[str, Any], deep_freeze_json(pin))
+            )
+        if proof_ids != sorted(proof_ids) or len(set(proof_ids)) != len(proof_ids):
+            raise RelationAssertionError("embedded relation proof pins must be unique and canonically ordered")
+
+        raw_evidence = row.get("evidenceAssertions")
+        raw_mappings = row.get("mappingAssertions")
+        if not isinstance(raw_evidence, Sequence) or isinstance(raw_evidence, (str, bytes)):
+            raise RelationAssertionError("embedded relation evidenceAssertions must be an array")
+        if not isinstance(raw_mappings, Sequence) or isinstance(raw_mappings, (str, bytes)):
+            raise RelationAssertionError("embedded relation mappingAssertions must be an array")
+        try:
+            evidence = validate_evidence_assertions(
+                cast(Sequence[Mapping[str, Any]], raw_evidence),
+                semantic_ring=ring,
+            )
+            mappings = _validate_mapping_assertions_with_machine_evidence(
+                cast(Sequence[Mapping[str, Any]], raw_mappings),
+                evidence_assertions=evidence,
+                semantic_ring=ring,
+            )
+        except SemanticFoundationError as error:
+            raise RelationAssertionError(str(error)) from error
+        if not mappings:
+            raise RelationAssertionError("embedded relation bundle must contain a mapping assertion")
+        _validate_machine_evidence_proofs(evidence, proof_pins, mappings)
+
+        evidence_by_id = {assertion.identifier: assertion for assertion in evidence}
+        used_evidence = _required_evidence_ids(mappings, evidence_by_id)
+        if used_evidence != set(evidence_by_id):
+            raise RelationAssertionError("embedded relation bundle evidence closure differs")
+        mapping_ids = {assertion.identifier for assertion in mappings}
+        candidate_ids = {
+            cast(str, assertion.candidate)
+            for assertion in evidence
+            if assertion.evidence_class in {"machineQualified", "machineReviewed"}
+        }
+        if set(evidence_by_id) & mapping_ids or candidate_ids & (
+            set(evidence_by_id) | mapping_ids
+        ):
+            raise RelationAssertionError(
+                "embedded candidate, evidence, and mapping identities must remain distinct"
+            )
+
+        required_release_ids = {
+            release_id
+            for mapping in mappings
+            for release_id in (mapping.source_release, mapping.target_release)
+        }
+        if required_release_ids != set(release_ids):
+            raise RelationAssertionError(
+                "embedded relation release pins do not equal the mapping endpoint closure"
+            )
+        if release_memberships is not None:
+            if set(release_memberships) != set(release_ids):
+                raise RelationAssertionError(
+                    "embedded relation membership inputs differ from its exact releases"
+                )
+            for mapping in mappings:
+                if mapping.source_concept not in release_memberships[mapping.source_release]:
+                    raise RelationAssertionError(
+                        "embedded mapping sourceConcept is outside sourceRelease"
+                    )
+                if mapping.target_concept not in release_memberships[mapping.target_release]:
+                    raise RelationAssertionError(
+                        "embedded mapping targetConcept is outside targetRelease"
+                    )
+
+        expected = _content_record(
+            semantic_ring=ring,
+            release_pins=release_pins,
+            machine_proof_pins=proof_pins,
+            evidence_assertions=evidence,
+            mapping_assertions=mappings,
+        )
+        if row != expected:
+            raise RelationAssertionError(
+                "embedded relation bundle content identity or canonical order differs"
+            )
+        return cls(
+            record=cast(Mapping[str, Any], deep_freeze_json(expected)),
+            semantic_ring=ring,
+            release_pins=tuple(release_pins),
+            machine_proof_pins=tuple(proof_pins),
+            evidence_assertions=evidence,
+            mapping_assertions=mappings,
+        )
+
+    @property
+    def identifier(self) -> str:
+        return cast(str, self.record["id"])
+
+    @property
+    def content_digest(self) -> str:
+        return cast(str, self.record["contentDigest"])
+
+    def as_record(self) -> dict[str, Any]:
+        return cast(dict[str, Any], _plain(self.record))
 
 
 @dataclass(frozen=True, slots=True)
@@ -781,6 +975,7 @@ class PinnedRelationAssertionBundle:
 __all__ = [
     "RELATION_ASSERTION_BUNDLE_MEDIA_TYPE",
     "RELATION_ASSERTION_BUNDLE_VERSION",
+    "EmbeddedRelationAssertionBundle",
     "PinnedRelationAssertionBundle",
     "RelationAssertionBundle",
     "RelationAssertionError",
