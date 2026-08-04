@@ -316,6 +316,16 @@ def _normalize_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         raise PublicationDecisionError("publication decision artifactKind must be atlas or projection")
     normalized_kind = cast(PublicationArtifactKind, artifact_kind)
     policies = _normalize_policy_pins(row.get("policies"))
+    policy_roles = {policy["role"] for policy in policies}
+    missing_base_policies = {
+        "selectionPolicy",
+        "qualificationPolicy",
+    } - policy_roles
+    if missing_base_policies:
+        raise PublicationDecisionError(
+            "a publication decision requires selectionPolicy and "
+            "qualificationPolicy pins"
+        )
     projection_policies = [policy for policy in policies if policy["role"] == "projectionPolicy"]
     if normalized_kind == "atlas" and projection_policies:
         raise PublicationDecisionError("an atlas publication decision cannot name a projection policy")

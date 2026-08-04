@@ -289,6 +289,34 @@ def test_atlas_decision_rejects_projection_policy_and_result_shape(tmp_path: Pat
         )
 
 
+@pytest.mark.parametrize(
+    "policies",
+    [
+        [],
+        [_policies()[0]],
+        [_policies()[1]],
+    ],
+)
+def test_every_decision_requires_selection_and_qualification_policy_pins(
+    tmp_path: Path,
+    policies: list[dict[str, str]],
+) -> None:
+    scope = _pinned_scope(tmp_path)
+
+    with pytest.raises(
+        PublicationDecisionError,
+        match="requires selectionPolicy and qualificationPolicy",
+    ):
+        build_vocabulary_atlas_publication_decision(
+            scope,
+            artifact_kind="atlas",
+            policies=policies,
+            decision_actor="https://refspec.org/actors/reviewer",
+            decided_at="2026-08-04T20:15:00Z",
+            result=_atlas_result(),
+        )
+
+
 def test_decision_fails_closed_for_other_scope_result_or_stale_content(
     tmp_path: Path,
 ) -> None:
