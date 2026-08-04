@@ -6,6 +6,11 @@ scope as lossless JSON records in a deterministic N-Quads dataset. A Python
 publisher may implement this binding, but Python is not part of the consumer
 interface.
 
+This is one closed 2.0 boundary. Producers and consumers MUST reject another
+`format`, manifest `schemaVersion`, scope `schemaVersion`, graph role, or
+missing required pin. They MUST NOT infer omitted fields or translate another
+atlas shape while claiming conformance to this binding.
+
 The key words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
 
 ## Distribution
@@ -78,8 +83,11 @@ The scope uses `VocabularyAtlasScope` schema version `1.0`. Its
 terminal LF, of exactly `type`, `schemaVersion`, `scopeName`, `scopeKind`,
 `atlasIndex`, `releases`, and `relationBundles`. Its identifier MUST be
 `urn:ref:vocabulary-atlas-scope:<contentDigest hex>`. The manifest scope
-descriptor's `id` and `contentDigest` MUST equal the fields in
-`atlas-scope.json`; its `digest` covers the complete scope file bytes.
+descriptor combines the exact scope pin with its distribution file descriptor.
+Its `role` MUST be `VocabularyAtlasScope`; its `id` and `contentDigest` MUST
+equal the fields in `atlas-scope.json`; and its `fileDigest` MUST cover the
+complete scope file bytes. Its `path`, `mediaType`, and `byteLength` identify
+those same bytes.
 
 `scopeKind` is either `bench` or `product`. It describes the intended build
 context and grants no permission.
@@ -87,9 +95,10 @@ context and grants no permission.
 `atlasIndex` pins one exact index identity, content digest, and file digest.
 Every release row MUST contain every matching index row as a non-empty
 `atlasIndexRows` array of exact `{rowId,rowDigest}` references. Releases MUST
-be ordered by `releaseId`; each release's index references MUST be ordered by
-`rowId`; relation bundles MUST be ordered by `id`. All identifiers in each
-array MUST be unique.
+be ordered by `(semanticRing, releaseId)`; each release's index references MUST
+be ordered by `rowId`; relation bundles MUST be ordered by `id`. All
+identifiers in each array MUST be unique. An index row MUST occur in exactly
+one release row.
 
 A producer MUST resolve every index-row reference against the pinned index and
 verify all of these conditions:
@@ -122,8 +131,11 @@ is planning metadata, not admission or use permission.
 The graph identifiers MUST be `<atlas id>:release-facts` and
 `<atlas id>:cross-release`. The manifest lists their rows in the fixed order
 `releaseFacts`, then `crossRelease`. `releaseFacts` is non-empty.
-`crossRelease` MAY have zero quads when the exact scope contains no relation
-bundle.
+`crossRelease` MUST be non-empty when the exact scope contains a relation
+bundle. It MUST have zero quads when the scope contains no relation bundle; in
+that case all four cross-release counters MUST also be zero. A relation bundle
+contains at least one mapping assertion and its evidence, so non-zero relation
+bundle, mapping-assertion, and evidence-assertion counts rise together.
 
 The namespace prefix `atlas:` in this binding means
 `https://refspec.org/ns/vocabulary-atlas/v2#`. `rdf:` means

@@ -2,6 +2,85 @@
   "$id": "https://refspec.org/bindings/atlas/2.0/schemas/vocabulary-atlas-manifest.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "counts": {
+            "properties": {
+              "evidenceAssertions": {
+                "$ref": "#/$defs/positiveInteger"
+              },
+              "mappingAssertions": {
+                "$ref": "#/$defs/positiveInteger"
+              },
+              "relationBundles": {
+                "$ref": "#/$defs/positiveInteger"
+              }
+            }
+          },
+          "graphs": {
+            "prefixItems": [
+              {},
+              {
+                "properties": {
+                  "quadCount": {
+                    "$ref": "#/$defs/positiveInteger"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "counts": {
+            "properties": {
+              "relationBundles": {
+                "const": 0
+              }
+            },
+            "required": [
+              "relationBundles"
+            ]
+          }
+        },
+        "required": [
+          "counts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "counts": {
+            "properties": {
+              "evidenceAssertions": {
+                "const": 0
+              },
+              "machineProofs": {
+                "const": 0
+              },
+              "mappingAssertions": {
+                "const": 0
+              }
+            }
+          },
+          "graphs": {
+            "prefixItems": [
+              {},
+              {
+                "properties": {
+                  "quadCount": {
+                    "const": 0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "canonicalPayloadDigest": {
       "$ref": "#/$defs/digest"
@@ -133,7 +212,8 @@
       "additionalProperties": false,
       "properties": {
         "id": {
-          "$ref": "#/$defs/absoluteIri"
+          "pattern": "^urn:ref:vocabulary-atlas:[0-9a-f]{64}:cross-release$",
+          "type": "string"
         },
         "quadCount": {
           "$ref": "#/$defs/nonnegativeInteger"
@@ -291,7 +371,8 @@
       "additionalProperties": false,
       "properties": {
         "id": {
-          "$ref": "#/$defs/absoluteIri"
+          "pattern": "^urn:ref:vocabulary-atlas:[0-9a-f]{64}:release-facts$",
+          "type": "string"
         },
         "quadCount": {
           "$ref": "#/$defs/positiveInteger"
@@ -344,7 +425,7 @@
         "contentDigest": {
           "$ref": "#/$defs/digest"
         },
-        "digest": {
+        "fileDigest": {
           "$ref": "#/$defs/digest"
         },
         "id": {
@@ -356,14 +437,18 @@
         },
         "path": {
           "const": "atlas-scope.json"
+        },
+        "role": {
+          "const": "VocabularyAtlasScope"
         }
       },
       "required": [
+        "role",
         "path",
         "mediaType",
         "id",
         "contentDigest",
-        "digest",
+        "fileDigest",
         "byteLength"
       ],
       "type": "object"
