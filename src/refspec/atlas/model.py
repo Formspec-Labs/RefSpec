@@ -160,6 +160,7 @@ _POLICIES = MappingProxyType(
 # the codes and term IRIs that become `skos:notation` and every concept IRI.
 _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/__init__.py",
+    "atlas/concept_release.py",
     "atlas/federal_register.py",
     "atlas/icpsr.py",
     "atlas/machine_evidence.py",
