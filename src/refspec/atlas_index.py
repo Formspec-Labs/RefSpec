@@ -529,7 +529,7 @@ class PinnedAtlasIndex:
         resource_catalog: Mapping[str, Any],
         repository_root: Path,
         registry_root: Path | None = None,
-    ) -> "PinnedAtlasIndex":
+    ) -> PinnedAtlasIndex:
         """Open exact bytes and reproduce the index from its planning inputs."""
 
         digest = _digest(expected_file_digest, "atlas index file digest")
@@ -584,11 +584,7 @@ class PinnedAtlasIndex:
                 deep_freeze_json(resource_catalog),
             ),
             _repository_root=repository_root.resolve(strict=True),
-            _registry_root=(
-                None
-                if registry_root is None
-                else registry_root.resolve(strict=True)
-            ),
+            _registry_root=(None if registry_root is None else registry_root.resolve(strict=True)),
         )
 
     def verified_index(self) -> Mapping[str, Any]:
@@ -602,10 +598,7 @@ class PinnedAtlasIndex:
             repository_root=self._repository_root,
             registry_root=self._registry_root,
         )
-        if (
-            reopened.index_id != self.index_id
-            or reopened.index_digest != self.index_digest
-        ):
+        if reopened.index_id != self.index_id or reopened.index_digest != self.index_digest:
             raise AtlasIndexError("atlas index identity or content digest changed")
         return reopened._index
 
