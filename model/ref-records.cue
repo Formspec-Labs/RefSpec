@@ -1544,6 +1544,7 @@
         "publicationViews",
         "releasePermissions",
         "mappingPermissions",
+        "subjectAdmissionPermissions",
         "openLabelPermissions"
       ],
       "properties": {
@@ -1655,6 +1656,31 @@
                   "sourceToTarget",
                   "targetToSource"
                 ]
+              }
+            },
+            "unevaluatedProperties": false
+          }
+        },
+        "subjectAdmissionPermissions": {
+          "description": "Product-use grants for source-scoped subject concepts that an exact subject-emission policy has found eligible.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/permissionBase"
+              }
+            ],
+            "required": [
+              "subjectEmissionPolicy",
+              "intendedProductUse"
+            ],
+            "properties": {
+              "subjectEmissionPolicy": {
+                "$ref": "common.schema.json#/$defs/versionedDigestReference"
+              },
+              "intendedProductUse": {
+                "$ref": "common.schema.json#/$defs/absoluteIri"
               }
             },
             "unevaluatedProperties": false

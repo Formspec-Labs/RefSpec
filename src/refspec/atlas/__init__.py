@@ -48,6 +48,16 @@ from .subject_admission import (
     build_subject_admission_review,
     validate_subject_admission_reviews,
 )
+from .subject_emission import (
+    SUBJECT_EMISSION_POLICY_TYPE,
+    SUBJECT_EMISSION_POLICY_VERSION,
+    SubjectEmissionError,
+    SubjectEmissionPolicy,
+    SubjectEmissionPolicyResolution,
+    build_subject_emission_policy,
+    resolve_subject_emission_policy,
+    subject_emission_eligibility,
+)
 
 __all__ = [
     "ATLAS",
@@ -63,6 +73,8 @@ __all__ = [
     "SUBJECT_ADMISSION_ADMIT",
     "SUBJECT_ADMISSION_REJECT",
     "SUBJECT_ADMISSION_REVIEW_VERSION",
+    "SUBJECT_EMISSION_POLICY_TYPE",
+    "SUBJECT_EMISSION_POLICY_VERSION",
     "AtlasReleaseFactsView",
     "CrosswalkArtifact",
     "CrosswalkBundle",
@@ -81,13 +93,19 @@ __all__ = [
     "SourceConceptSubjectAtlasView",
     "SubjectAdmissionError",
     "SubjectAdmissionReview",
+    "SubjectEmissionError",
+    "SubjectEmissionPolicy",
+    "SubjectEmissionPolicyResolution",
     "VerifiedManagedReleaseSource",
     "VocabularyAtlasAsset",
     "VocabularyAtlasError",
     "VocabularyAtlasQueries",
     "admitted_subject_concept_ids",
     "build_subject_admission_review",
+    "build_subject_emission_policy",
     "build_vocabulary_atlas",
+    "resolve_subject_emission_policy",
     "source_concept_subject_atlas_view",
+    "subject_emission_eligibility",
     "validate_subject_admission_reviews",
 ]

@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:cdd395b174b13b0df078af8d14caeee3bcbe2debbf5878898766b51202ca0795"
+MODEL_SHA256 = "sha256:733b56042c5cacf3178a4eb703e7b5ab1e79f5b27b15efee3e4b214fc86a06ec"
 
 
 class REFRecordData(TypedDict, total=False):
@@ -150,6 +150,7 @@ class OutputProfileData(REFRecordData, total=False):
     publicationViews: Required[list[Any]]
     releasePermissions: Required[list[dict[str, Any]]]
     mappingPermissions: Required[list[dict[str, Any]]]
+    subjectAdmissionPermissions: Required[list[dict[str, Any]]]
     openLabelPermissions: Required[list[dict[str, Any]]]
 
 

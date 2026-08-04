@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "source": "model/ref-records.cue",
-  "sourceSha256": "sha256:cdd395b174b13b0df078af8d14caeee3bcbe2debbf5878898766b51202ca0795",
+  "sourceSha256": "sha256:733b56042c5cacf3178a4eb703e7b5ab1e79f5b27b15efee3e4b214fc86a06ec",
   "artifacts": {
     "bindings/json/1.0/schemas/capture.schema.json": "sha256:489ffc9b9c21b3f2f0118ed783856a6990616dd1db43de0dc148187338072c62",
     "bindings/json/1.0/schemas/common.schema.json": "sha256:d5d769a8ecf812430c1100c83c13cd7f625a4c7acc4c08419f3d3a2cd86cc26e",
@@ -11,7 +11,7 @@
     "bindings/json/1.0/schemas/enrichment-evaluation-result.schema.json": "sha256:57872b37937f2063440c985f925afc8d9838f0f02edfce700c929b11d3912aed",
     "bindings/json/1.0/schemas/enrichment-profile.schema.json": "sha256:7e2844e4b88a4de86d4270c876986d5ea1b34af824509a386c59b53be8cf78a7",
     "bindings/json/1.0/schemas/indexed-vocabulary-expression.schema.json": "sha256:c37aaf3a10108c7f92be54c6203f38f73da3006fa2aa90507d67f3ee787d508c",
-    "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:b88c4f14c3d4b37c7bf5c2f5cafb8b0075d1905034a2c3dc04bf6c68852989c5",
+    "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:5a591807c83b821577ff294f24cce60cd7681ebbf6e6a692dcf52bcca9e2afdf",
     "bindings/json/1.0/schemas/publication-release-manifest.schema.json": "sha256:2951b792b7f844c362a2366d7bf79d9e6074b172df35aaee4086a49b80c592f6",
     "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:c591da7854464544959a330af6a7d1af9f1bf0d3347dc0cbc3ba7c61d4dc07a8",
     "bindings/json/1.0/schemas/registry-deployment-decision.schema.json": "sha256:e4d400ee3da7098ec32119cdc2c12c863c5a1a6e4d7fe4dc2aadcd97e078c10e",
@@ -23,9 +23,9 @@
     "bindings/json/1.0/schemas/run-receipt.schema.json": "sha256:45d37b467079eb256185ba215fb23dd98c373db85bb070d9e08e2e3de6856da8",
     "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
     "bindings/json/1.0/schemas/source-identifier-set.schema.json": "sha256:097b3b05402c488e5c8005f6717a815cb904eff1294ba574e72147daead05be5",
-    "src/refspec/generated_conformance_assets.py": "sha256:6f9e14ec8ba281cbf91d366770a130365b428fd59ad4bb901d3facd525907f90",
+    "src/refspec/generated_conformance_assets.py": "sha256:0de09a7edd455adaa0decc924b0664a4036b20f031b66782d27e9443464d05e3",
     "src/refspec/generated_rulespec_dependency.py": "sha256:9caed4aa1acd1aef685274b4c2dabee4f23dbae1d940a790612cf346f0f7f05a",
-    "src/refspec/generated_schemas.py": "sha256:012e0f892fc88907da2357d6db3d6d112dfbc8577bfc01e52d0d26f3ca0654b2",
-    "src/refspec/generated_types.py": "sha256:b903902d862024aa8ea7697dd97f96f61d42548ea9b34549e72e108ba65209e5"
+    "src/refspec/generated_schemas.py": "sha256:574dc21f937485387c7e45e31157d01e576814f220935f78a5dbe801a9a81632",
+    "src/refspec/generated_types.py": "sha256:4c73de1c35cdf1b990a168e6830f50292e3e20e4292ae30e79859a038b4e29e0"
   }
 }

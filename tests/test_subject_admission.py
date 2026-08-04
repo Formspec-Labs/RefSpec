@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
+from refspec import binding
 from refspec.atlas.subject_admission import (
     SUBJECT_ADMISSION_ADMIT,
     SUBJECT_ADMISSION_REJECT,
@@ -16,6 +18,13 @@ from refspec.atlas.subject_admission import (
     admitted_subject_concept_ids,
     build_subject_admission_review,
     validate_subject_admission_reviews,
+)
+from refspec.atlas.subject_emission import (
+    SubjectEmissionError,
+    SubjectEmissionPolicy,
+    build_subject_emission_policy,
+    resolve_subject_emission_policy,
+    subject_emission_eligibility,
 )
 from refspec.registry.infrastructure.semantic_foundation import EvidenceAssertion
 from refspec.registry.infrastructure.source_concept_release import (
@@ -26,6 +35,7 @@ from refspec.registry.infrastructure.source_controlled_resource import (
     build_source_controlled_resource_bundle,
 )
 from refspec.registry.infrastructure.source_identity import derive_uuid7
+from refspec.vocabulary import EnrichmentProfile, OutputProfile, ReferenceRuntimeError
 
 CAPTURED_AT = "2026-08-04T12:00:00Z"
 REVIEWED_AT = "2026-08-04T16:00:00Z"
@@ -34,6 +44,12 @@ SCHEME_ID = "https://publisher.example/schemes/subjects"
 REVIEWER = "https://refspec.org/actors/reviewer-1"
 FACET = "urn:ref:facet:public-policy"
 PRODUCT_USE = "urn:ref:product-use:subject-emission"
+ASSIGNMENT_ROLE = "https://rulespec.org/ns/v1#assignmentPrimary"
+NORMAL_ACCEPTANCE_POLICY = {
+    "id": "urn:ref:test:acceptance-policy:subject-extraction",
+    "version": "2026-08-04",
+    "digest": "sha256:" + "c" * 64,
+}
 
 
 def _release(
@@ -158,6 +174,83 @@ def _mapping_keys(value: object) -> set[str]:
     return set()
 
 
+def _emission_policy(
+    release: SourceConceptReleaseBundle,
+    review: SubjectAdmissionReview,
+) -> SubjectEmissionPolicy:
+    return build_subject_emission_policy(
+        release,
+        (review,),
+        version="2026-08-04",
+        recorded_at=REVIEWED_AT,
+        recorded_by=REVIEWER,
+        eligibility=(
+            subject_emission_eligibility(
+                review,
+                assignment_role=ASSIGNMENT_ROLE,
+                intended_product_use=PRODUCT_USE,
+            ),
+        ),
+    )
+
+
+def _output_profile(
+    policy: SubjectEmissionPolicy,
+    *,
+    candidate_use: bool = True,
+    accepted_output_use: bool = True,
+    include_permission: bool = True,
+    operational_state: str = "active",
+    permission_policy: Mapping[str, str] | None = None,
+) -> OutputProfile:
+    enrichment = EnrichmentProfile(
+        profile_id="urn:ref:test:enrichment-profile:subject-emission",
+        version="2026-08-04",
+        recorded_at=REVIEWED_AT,
+        recorded_by=REVIEWER,
+        operational_state="active",
+        facets=(
+            {
+                "iri": FACET,
+                "label": "Public policy",
+                "definition": "Government policy subject matter.",
+                "inclusionCues": ["policy subject"],
+                "exclusionCues": ["named organization"],
+                "compatibleResourceRoutes": ["document"],
+                "compatibleAssignmentPredicates": [ASSIGNMENT_ROLE],
+            },
+        ),
+    )
+    permission = {
+        "facet": FACET,
+        "assignmentRole": ASSIGNMENT_ROLE,
+        "subjectEmissionPolicy": dict(
+            policy.reference if permission_policy is None else permission_policy
+        ),
+        "intendedProductUse": PRODUCT_USE,
+        "candidateUse": candidate_use,
+        "acceptedOutputUse": accepted_output_use,
+    }
+    return OutputProfile(
+        profile_id="urn:ref:test:output-profile:subject-emission",
+        version="2026-08-04",
+        recorded_at=REVIEWED_AT,
+        recorded_by=REVIEWER,
+        operational_state=operational_state,
+        enrichment_profile=enrichment.reference,
+        acceptance_policies=(NORMAL_ACCEPTANCE_POLICY,),
+        publication_views=(
+            {
+                "id": "urn:ref:test:publication-view:subject-emission",
+                "version": "2026-08-04",
+                "digest": "sha256:" + "a" * 64,
+            },
+        ),
+        subject_admission_permissions=(permission,) if include_permission else (),
+        enrichment_profile_record=enrichment,
+    )
+
+
 def test_admission_preserves_the_exact_source_identity_and_is_content_derived() -> None:
     release = _release()
 
@@ -272,3 +365,285 @@ def test_admission_record_is_deeply_immutable() -> None:
     with pytest.raises(TypeError):
         review.record["hierarchyPlacement"]["status"] = "unresolved"  # type: ignore[index]
     assert isinstance(review.record["intendedProductUses"], tuple)
+
+
+def test_exact_output_grant_resolves_the_existing_source_identity() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    output_profile = _output_profile(policy)
+
+    authorization = resolve_subject_emission_policy(
+        output_profile=output_profile,
+        policy=policy,
+        release=release,
+        admission_reviews=(review,),
+        subject_concept=review.subject_concept,
+        facet=FACET,
+        assignment_role=ASSIGNMENT_ROLE,
+        intended_product_use=PRODUCT_USE,
+        resource_route="document",
+    )
+
+    assert authorization.subject_concept == release.concepts[0]["id"]
+    assert authorization.admission_review == review.reference
+    assert authorization.emission_policy == policy.reference
+    assert authorization.output_profile == output_profile.reference
+    assert authorization.eligibility["subjectConcept"] == review.subject_concept
+    assert authorization.output_permission["acceptedOutputUse"] is True
+    assert authorization.resolution == "productPolicyAuthorized"
+    assert dict(policy.reference) not in output_profile.acceptance_policies
+    assert SubjectEmissionPolicy.from_record(policy.as_record()) == policy
+    assert "LocalConcept" not in str(authorization)
+
+
+def test_admission_policy_alone_never_grants_product_use() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+
+    with pytest.raises(SubjectEmissionError, match="authorization must match"):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy, include_permission=False),
+            policy=policy,
+            release=release,
+            admission_reviews=(review,),
+            subject_concept=review.subject_concept,
+            facet=FACET,
+            assignment_role=ASSIGNMENT_ROLE,
+            intended_product_use=PRODUCT_USE,
+            resource_route="document",
+        )
+
+
+def test_candidate_only_permission_cannot_authorize_accepted_output() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+
+    with pytest.raises(SubjectEmissionError, match="acceptedOutputUse=true"):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy, accepted_output_use=False),
+            policy=policy,
+            release=release,
+            admission_reviews=(review,),
+            subject_concept=review.subject_concept,
+            facet=FACET,
+            assignment_role=ASSIGNMENT_ROLE,
+            intended_product_use=PRODUCT_USE,
+            resource_route="document",
+        )
+
+
+def test_output_profile_rejects_accepted_use_without_candidate_use() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+
+    with pytest.raises(ReferenceRuntimeError, match="requires candidate permission"):
+        _output_profile(
+            policy,
+            candidate_use=False,
+            accepted_output_use=True,
+        ).payload()
+
+
+def test_output_grant_must_pin_the_same_exact_eligibility_policy() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    other_policy = {
+        "id": "urn:ref:test:subject-emission-policy:other",
+        "version": "2026-08-04",
+        "digest": "sha256:" + "b" * 64,
+    }
+
+    output_profile = _output_profile(policy, permission_policy=other_policy)
+    output_profile.payload()
+
+    with pytest.raises(SubjectEmissionError, match="authorization must match"):
+        resolve_subject_emission_policy(
+            output_profile=output_profile,
+            policy=policy,
+            release=release,
+            admission_reviews=(review,),
+            subject_concept=review.subject_concept,
+            facet=FACET,
+            assignment_role=ASSIGNMENT_ROLE,
+            intended_product_use=PRODUCT_USE,
+            resource_route="document",
+        )
+
+
+def test_output_profile_rejects_duplicate_subject_grant_selectors() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    output_profile = _output_profile(policy)
+    first = output_profile.subject_admission_permissions[0]
+
+    with pytest.raises(ReferenceRuntimeError, match="duplicate permission selector"):
+        replace(
+            output_profile,
+            subject_admission_permissions=(
+                first,
+                {**first, "acceptedOutputUse": False},
+            ),
+        ).payload()
+
+
+def test_json_binding_checks_shape_but_never_claims_full_subject_authorization() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    output_profile = _output_profile(policy)
+    enrichment = output_profile.enrichment_profile_record
+    assert enrichment is not None
+    output_record = output_profile.sealed_payload()
+    enrichment_record = enrichment.sealed_payload()
+    permission_check = {
+        "id": "urn:ref:test:permission-check:subject-emission",
+        "profile": output_profile.profile_id,
+        "kind": "subjectAdmission",
+        "use": "acceptedOutput",
+        "resourceRoute": "document",
+        "tuple": {
+            "facet": FACET,
+            "assignmentRole": ASSIGNMENT_ROLE,
+            "subjectEmissionPolicy": dict(policy.reference),
+            "intendedProductUse": PRODUCT_USE,
+        },
+        "claimedAuthorized": True,
+    }
+
+    assert binding.validate([enrichment_record, output_record]) == []
+    diagnostics = binding.validate(
+        [enrichment_record, output_record],
+        permission_checks=[permission_check],
+    )
+    assert len(diagnostics) == 1
+    assert diagnostics[0].requirement == "REF-TEST-150"
+    assert "unknown permission-check kind 'subjectAdmission'" in diagnostics[0].message
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("subject_concept", "urn:ref:test:subject:unreviewed"),
+        ("facet", "urn:ref:facet:other"),
+        ("assignment_role", "https://rulespec.org/ns/v1#assignmentSecondary"),
+        ("intended_product_use", "urn:ref:product-use:other"),
+    ),
+)
+def test_subject_emission_requires_the_exact_reviewed_scope(
+    field: str,
+    value: str,
+) -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    arguments = {
+        "subject_concept": review.subject_concept,
+        "facet": FACET,
+        "assignment_role": ASSIGNMENT_ROLE,
+        "intended_product_use": PRODUCT_USE,
+    }
+    arguments[field] = value
+
+    with pytest.raises(SubjectEmissionError):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy),
+            policy=policy,
+            release=release,
+            admission_reviews=(review,),
+            resource_route="document",
+            **arguments,
+        )
+
+
+def test_subject_emission_rejects_stale_release_review_and_inactive_profile() -> None:
+    release = _release()
+    changed_release = _release(payload=b'{"subjects":["oversight","review"]}\n')
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    common = {
+        "policy": policy,
+        "subject_concept": review.subject_concept,
+        "facet": FACET,
+        "assignment_role": ASSIGNMENT_ROLE,
+        "intended_product_use": PRODUCT_USE,
+        "resource_route": "document",
+    }
+
+    with pytest.raises(SubjectEmissionError, match="another exact release"):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy),
+            release=changed_release,
+            admission_reviews=(review,),
+            **common,
+        )
+
+    changed_review = _review(
+        release,
+        hierarchy_placement={
+            "status": "unresolved",
+            "reason": "A different review result.",
+        },
+    )
+    with pytest.raises(SubjectEmissionError, match="exactly its pinned admission review set"):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy),
+            release=release,
+            admission_reviews=(changed_review,),
+            **common,
+        )
+
+    with pytest.raises(SubjectEmissionError, match="active OutputProfile"):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(policy, operational_state="inactive"),
+            release=release,
+            admission_reviews=(review,),
+            **common,
+        )
+
+
+def test_rejection_cannot_enter_subject_emission_policy() -> None:
+    release = _release()
+    review = _review(release, decision="reject")
+
+    with pytest.raises(SubjectEmissionError, match="rejected review"):
+        subject_emission_eligibility(
+            review,
+            assignment_role=ASSIGNMENT_ROLE,
+            intended_product_use=PRODUCT_USE,
+        )
+
+
+def test_subject_emission_policy_and_authorization_are_deeply_immutable() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    authorization = resolve_subject_emission_policy(
+        output_profile=_output_profile(policy),
+        policy=policy,
+        release=release,
+        admission_reviews=(review,),
+        subject_concept=review.subject_concept,
+        facet=FACET,
+        assignment_role=ASSIGNMENT_ROLE,
+        intended_product_use=PRODUCT_USE,
+        resource_route="document",
+    )
+
+    with pytest.raises(TypeError):
+        policy.record["eligibility"][0]["subjectConcept"] = "urn:ref:changed"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        authorization.output_permission["acceptedOutputUse"] = False  # type: ignore[index]
+    with pytest.raises(SubjectEmissionError, match="output grant is inconsistent"):
+        replace(
+            authorization,
+            output_permission={
+                **authorization.output_permission,
+                "acceptedOutputUse": False,
+            },
+        )

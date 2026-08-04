@@ -1978,6 +1978,7 @@ class OutputProfile:
     publication_views: tuple[Mapping[str, str], ...]
     release_permissions: tuple[Mapping[str, Any], ...] = ()
     mapping_permissions: tuple[Mapping[str, Any], ...] = ()
+    subject_admission_permissions: tuple[Mapping[str, Any], ...] = ()
     open_label_permissions: tuple[Mapping[str, Any], ...] = ()
     enrichment_profile_record: EnrichmentProfile | None = None
 
@@ -2038,6 +2039,16 @@ class OutputProfile:
                 "targetRelease",
                 "relation",
                 "direction",
+                "candidateUse",
+                "acceptedOutputUse",
+            }
+        )
+        subject_admission_fields = frozenset(
+            {
+                "facet",
+                "assignmentRole",
+                "subjectEmissionPolicy",
+                "intendedProductUse",
                 "candidateUse",
                 "acceptedOutputUse",
             }
@@ -2114,6 +2125,27 @@ class OutputProfile:
             if row["direction"] not in {"sourceToTarget", "targetToSource"}:
                 raise ReferenceRuntimeError(f"{label}.direction is invalid")
             all_rows.append(("mapping", row))
+        for index, row in enumerate(self.subject_admission_permissions):
+            label = f"subjectAdmissionPermissions[{index}]"
+            _require_exact_fields(row, subject_admission_fields, label)
+            _validate_permission_use(row, label)
+            _require_iri(row["facet"], f"{label}.facet")
+            _require_iri(row["assignmentRole"], f"{label}.assignmentRole")
+            enrichment_profile.require_compatible(
+                facet=str(row["facet"]),
+                assignment_role=str(row["assignmentRole"]),
+                resource_route=None,
+            )
+            _require_reference(
+                row["subjectEmissionPolicy"],
+                f"{label}.subjectEmissionPolicy",
+                versioned=True,
+            )
+            _require_iri(
+                row["intendedProductUse"],
+                f"{label}.intendedProductUse",
+            )
+            all_rows.append(("subjectAdmission", row))
         for index, row in enumerate(self.open_label_permissions):
             label = f"openLabelPermissions[{index}]"
             mode = row.get("mode")
@@ -2151,6 +2183,12 @@ class OutputProfile:
                 "relation",
                 "direction",
             ),
+            "subjectAdmission": (
+                "facet",
+                "assignmentRole",
+                "subjectEmissionPolicy",
+                "intendedProductUse",
+            ),
             "openLabel": (
                 "facet",
                 "assignmentRole",
@@ -2175,6 +2213,9 @@ class OutputProfile:
             "publicationViews": [dict(view) for view in self.publication_views],
             "releasePermissions": [dict(row) for row in self.release_permissions],
             "mappingPermissions": [dict(row) for row in self.mapping_permissions],
+            "subjectAdmissionPermissions": [
+                dict(row) for row in self.subject_admission_permissions
+            ],
             "openLabelPermissions": [dict(row) for row in self.open_label_permissions],
         }
 
@@ -2317,6 +2358,35 @@ class OutputProfile:
                 "mappings, identifiers, and membership"
             )
         return row
+
+    def select_subject_admission_grant(
+        self,
+        *,
+        facet: str,
+        assignment_role: str,
+        resource_route: str,
+        subject_emission_policy: Mapping[str, str],
+        intended_product_use: str,
+        accepted_output: bool,
+    ) -> Mapping[str, Any]:
+        """Select one grant row; eligibility validation remains separate."""
+
+        self._resolved_enrichment_profile().require_compatible(
+            facet=facet,
+            assignment_role=assignment_role,
+            resource_route=resource_route,
+        )
+        return self._authorize(
+            self.subject_admission_permissions,
+            {
+                "facet": facet,
+                "assignmentRole": assignment_role,
+                "subjectEmissionPolicy": subject_emission_policy,
+                "intendedProductUse": intended_product_use,
+            },
+            accepted_output=accepted_output,
+            kind="subject admission",
+        )
 
     def authorize_open_label(
         self,

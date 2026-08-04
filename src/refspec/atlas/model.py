@@ -166,6 +166,7 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/queries.py",
     "atlas/source_concept.py",
     "atlas/subject_admission.py",
+    "atlas/subject_emission.py",
     "binding.py",
     "generated_rulespec_dependency.py",
     "immutable.py",

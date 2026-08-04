@@ -4,7 +4,8 @@ A source-concept release supplies identity and the wide subject mapping tier.
 This module records the separate editorial decision that places one existing
 identity in the curated emit tier.  The review pins the exact release and its
 rights facts; it never creates a second concept and never grants product use.
-Only an exact product policy may activate emission later.
+An exact product profile may later grant use, while accepted assignment still
+requires the evaluated configuration and deployment chain.
 """
 
 from __future__ import annotations
@@ -344,12 +345,27 @@ class SubjectAdmissionReview:
         return cast(str, self.record["recordDigest"])
 
     @property
+    def reference(self) -> Mapping[str, str]:
+        return {
+            "id": self.identifier,
+            "digest": self.record_digest,
+        }
+
+    @property
     def decision(self) -> AdmissionDecision:
         return cast(AdmissionDecision, self.record["decision"])
 
     @property
     def subject_concept(self) -> str:
         return cast(str, self.record["subjectConcept"])
+
+    @property
+    def facet(self) -> str:
+        return cast(str, self.record["facet"])
+
+    @property
+    def intended_product_uses(self) -> tuple[str, ...]:
+        return cast(tuple[str, ...], self.record["intendedProductUses"])
 
     def as_record(self) -> dict[str, Any]:
         return cast(dict[str, Any], _plain(self.record))

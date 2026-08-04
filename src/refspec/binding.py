@@ -609,6 +609,7 @@ def permission_prerequisite_diagnostics(
     for kind, collection in (
         ("release", "releasePermissions"),
         ("mapping", "mappingPermissions"),
+        ("subjectAdmission", "subjectAdmissionPermissions"),
         ("openLabel", "openLabelPermissions"),
     ):
         selector_keys: set[str] = set()
@@ -701,6 +702,13 @@ def permission_row_fields(kind: str) -> tuple[str, ...]:
             "targetRelease",
             "relation",
             "direction",
+        )
+    if kind == "subjectAdmission":
+        return (
+            "facet",
+            "assignmentRole",
+            "subjectEmissionPolicy",
+            "intendedProductUse",
         )
     if kind == "openLabel":
         return (
