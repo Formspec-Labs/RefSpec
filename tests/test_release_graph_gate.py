@@ -602,6 +602,68 @@ def test_schema_aware_resolver_accepts_external_native_skos_members(
     assert report.passed
 
 
+def test_concept_proposal_placement_target_is_a_typed_cross_reference(
+    tmp_path: Path,
+) -> None:
+    target = "urn:rulespec:concept:proposal-target"
+    activity = "urn:rulespec:activity:concept-proposal"
+    record = {
+        "id": "urn:ref:concept-proposal:typed-placement",
+        "type": "urn:ref:type:ConceptProposal",
+        "placement": {
+            "status": "placed",
+            "relation": "narrowerThan",
+            "targetConcept": target,
+        },
+        "activity": activity,
+    }
+    graph_nodes = [
+        {"@id": target, "@type": "rkaf:LocalConcept"},
+        {"@id": activity, "@type": "prov:Activity"},
+    ]
+
+    report = validate_release_graph_bundle(
+        schema_aware_bundle(record, graph_nodes, [target, activity]),
+        validator=validator_pin(tmp_path),
+    )
+
+    assert report.passed
+
+
+def test_concept_proposal_placement_rejects_a_non_concept_target(
+    tmp_path: Path,
+) -> None:
+    target = "urn:rulespec:artifact:not-a-concept"
+    activity = "urn:rulespec:activity:concept-proposal"
+    record = {
+        "id": "urn:ref:concept-proposal:wrong-placement-type",
+        "type": "urn:ref:type:ConceptProposal",
+        "placement": {
+            "status": "placed",
+            "relation": "relatedTo",
+            "targetConcept": target,
+        },
+        "activity": activity,
+    }
+    graph_nodes = [
+        {"@id": target, "@type": "rkaf:Artifact"},
+        {"@id": activity, "@type": "prov:Activity"},
+    ]
+
+    report = validate_release_graph_bundle(
+        schema_aware_bundle(record, graph_nodes, [target, activity]),
+        validator=validator_pin(tmp_path),
+    )
+
+    assert not report.passed
+    assert any(
+        "/placement/targetConcept requires" in failure
+        and "LocalConcept" in failure
+        and "Artifact" in failure
+        for failure in report.cross_boundary_failures
+    )
+
+
 def test_authorization_kind_must_match_rulespec_node_type(
     tmp_path: Path,
 ) -> None:

@@ -1,0 +1,14 @@
+{
+  "base": "../valid/concept-proposal.json",
+  "mutations": [
+    {
+      "recordId": "urn:ref:concept-proposal:development:001",
+      "path": "/placement/relation",
+      "operation": "replace",
+      "value": "exactMatch"
+    }
+  ],
+  "expectedRequirements": [
+    "REF-ENR-010"
+  ]
+}

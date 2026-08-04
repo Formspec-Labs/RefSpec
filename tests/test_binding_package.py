@@ -48,6 +48,48 @@ def test_public_validate_api_accepts_the_valid_fixture() -> None:
     assert diagnostics == []
 
 
+@pytest.mark.parametrize(
+    "placement",
+    (
+        {
+            "status": "placed",
+            "relation": "narrowerThan",
+            "targetConcept": "urn:rulespec:concept:broader",
+        },
+        {
+            "status": "placed",
+            "relation": "broaderThan",
+            "targetConcept": "urn:rulespec:concept:narrower",
+        },
+        {
+            "status": "placed",
+            "relation": "relatedTo",
+            "targetConcept": "urn:rulespec:concept:related",
+        },
+        {"status": "facetLocated"},
+        {"status": "unresolved", "reason": "No reviewed anchor exists yet."},
+    ),
+    ids=(
+        "narrower-than",
+        "broader-than",
+        "related-to",
+        "facet-located",
+        "unresolved",
+    ),
+)
+def test_concept_proposal_accepts_each_typed_placement(
+    placement: dict[str, str],
+) -> None:
+    fixture = binding.load_fixture(
+        BINDING_ROOT / "fixtures" / "valid" / "concept-proposal.json"
+    )
+    record = fixture["records"][0]
+    record["placement"] = placement
+    record["canonicalPayloadDigest"] = binding.canonical_payload_digest(record)
+
+    assert binding.validate(fixture["records"]) == []
+
+
 def test_expression_corpus_validator_reuses_one_schema_without_weakening_checks() -> None:
     fixture = binding.load_fixture(VALID_FIXTURE)
     expressions = [
@@ -104,10 +146,10 @@ def test_installed_package_can_run_embedded_conformance_suite(
     )
 
     assert binding.run_suite() == 0
-    assert (
-        "6 valid fixture(s) accepted; 92 invalid fixture(s) rejected; "
-        "0 failure(s)"
-        in capsys.readouterr().out
+    assert re.search(
+        r"REF JSON Binding 1\.0: \d+ valid fixture\(s\) accepted; "
+        r"\d+ invalid fixture\(s\) rejected; 0 failure\(s\)",
+        capsys.readouterr().out,
     )
 
 

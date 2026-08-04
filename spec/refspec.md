@@ -1636,11 +1636,13 @@ MUST NOT represent all four states.
 
 **REF-ENR-010:** A `ConceptProposal` MUST have a stable operational identifier,
 facet, wording, evidence addresses, generating activity, workflow state, and
-supersession history. It MAY identify proposed anchors or mappings to Rulespec
-concepts. Promotion MUST create a separate `rkaf:LocalConcept` or
-`rkaf:RegisteredConcept`, the applicable `rkaf:Attestation`, and explicit
-Rulespec provenance. REF MUST NOT copy Rulespec concept lifecycle into the
-proposal record.
+supersession history. It MUST carry one explicit placement: `narrowerThan`,
+`broaderThan`, or `relatedTo` a named Rulespec concept; located only in its
+named facet; or unresolved with a reason. Wording or label similarity MUST NOT
+establish identity or equivalence. Promotion MUST create a separate
+`rkaf:LocalConcept` or `rkaf:RegisteredConcept`, the applicable
+`rkaf:Attestation`, and explicit Rulespec provenance. REF MUST NOT copy
+Rulespec concept lifecycle into the proposal record.
 
 **REF-ENR-011:** An `OutputProfile` MUST have a stable identifier, immutable
 version, and content digest. It MUST identify one immutable

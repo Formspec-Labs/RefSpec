@@ -110,11 +110,10 @@ apply one named invalid mutation or permission claim. The
 [`requirement-to-test manifest`](tests/requirement-to-test-manifest.json)
 connects the new RefSpec requirements and `REF-TEST-150` through
 `REF-TEST-184` to local fixtures, real-bundle consumer checks, and the
-Rulespec checks that remain upstream. The current binding corpus contains 5
-valid fixtures and 90 intentionally invalid conformance fixtures. Two
-additional raw parser inputs exercise duplicate-key and non-finite-number
-rejection; together with the requirement manifest, the installed package
-embeds 98 conformance assets.
+Rulespec checks that remain upstream. The binding corpus includes positive
+examples, intentionally invalid examples, and raw parser inputs for
+duplicate-key and non-finite-number rejection. The installed package embeds
+the same corpus and requirement manifest.
 
 The authoritative structures live in
 [`model/ref-records.cue`](../../../model/ref-records.cue). Run `make generate`

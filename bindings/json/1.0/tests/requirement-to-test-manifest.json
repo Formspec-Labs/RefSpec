@@ -127,10 +127,15 @@
       "requirement": "REF-ENR-010",
       "localFixtures": [
         "fixtures/valid/concept-proposal.json",
-        "fixtures/invalid/concept-proposal-claims-authoritative-id.json"
+        "fixtures/invalid/concept-proposal-claims-authoritative-id.json",
+        "fixtures/invalid/concept-proposal-disallowed-identity-relation.json",
+        "fixtures/invalid/concept-proposal-missing-placement.json",
+        "fixtures/invalid/concept-proposal-unresolved-without-reason.json"
       ],
       "validatorChecks": [
-        "concept proposal remains a workflow record and cannot mint an authoritative concept identifier"
+        "concept proposal remains a workflow record and cannot mint an authoritative concept identifier",
+        "concept proposal has a typed placement or an explicit unresolved reason",
+        "label similarity cannot supply identity or equivalence"
       ]
     },
     {

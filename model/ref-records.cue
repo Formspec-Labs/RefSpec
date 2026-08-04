@@ -409,6 +409,7 @@
         "activity",
         "workflowState",
         "governanceQueue",
+        "placement",
         "supersessionHistory"
       ],
       "properties": {
@@ -461,11 +462,61 @@
         "governanceQueue": {
           "$ref": "common.schema.json#/$defs/absoluteIri"
         },
-        "proposedAnchors": {
-          "$ref": "common.schema.json#/$defs/iriList"
-        },
-        "proposedMappingRefs": {
-          "$ref": "common.schema.json#/$defs/iriList"
+        "placement": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "status",
+                "relation",
+                "targetConcept"
+              ],
+              "properties": {
+                "status": {
+                  "const": "placed"
+                },
+                "relation": {
+                  "enum": [
+                    "narrowerThan",
+                    "broaderThan",
+                    "relatedTo"
+                  ]
+                },
+                "targetConcept": {
+                  "$ref": "common.schema.json#/$defs/absoluteIri"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "const": "facetLocated"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "status",
+                "reason"
+              ],
+              "properties": {
+                "status": {
+                  "const": "unresolved"
+                },
+                "reason": {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         },
         "supersessionHistory": {
           "type": "array",

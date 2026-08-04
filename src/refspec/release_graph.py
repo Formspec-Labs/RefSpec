@@ -234,8 +234,7 @@ RULESPEC_REFERENCE_RULES: Mapping[str, tuple[RulespecReferenceRule, ...]] = {
         _rule("activity", *ACTIVITY_TYPES),
     ),
     "urn:ref:type:ConceptProposal": (
-        _rule("proposedAnchors/*", *CONCEPT_TYPES),
-        _rule("proposedMappingRefs/*", RULESPEC_CONCEPT_MAPPING),
+        _rule("placement/targetConcept", *CONCEPT_TYPES),
         _rule("activity", *ACTIVITY_TYPES),
     ),
     "urn:ref:type:OutputProfile": (

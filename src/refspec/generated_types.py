@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:733b56042c5cacf3178a4eb703e7b5ab1e79f5b27b15efee3e4b214fc86a06ec"
+MODEL_SHA256 = "sha256:8eb2426ff4ec4a1a067a3e5649bc3d93d7cb511d4fb72ebbbcdc3b90aa18d9c4"
 
 
 class REFRecordData(TypedDict, total=False):
@@ -52,8 +52,7 @@ class ConceptProposalData(REFRecordData, total=False):
     activity: Required[Any]
     workflowState: Required[Literal['submitted', 'underReview', 'acceptedForPromotion', 'rejected', 'withdrawn', 'superseded']]
     governanceQueue: Required[Any]
-    proposedAnchors: NotRequired[Any]
-    proposedMappingRefs: NotRequired[Any]
+    placement: Required[dict[str, Any]]
     supersessionHistory: Required[list[Any]]
 
 
