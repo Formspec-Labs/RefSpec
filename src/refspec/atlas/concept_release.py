@@ -99,7 +99,7 @@ def _require_digest(value: object, label: str) -> str:
 
 
 def _require_ring(value: object, label: str) -> SemanticRing:
-    if value not in SEMANTIC_RINGS:
+    if not isinstance(value, str) or value not in SEMANTIC_RINGS:
         raise ConceptReleaseError(
             f"{label} must be subject, entity, value, or legalIdentity"
         )
@@ -603,7 +603,6 @@ ConceptReleaseSource: TypeAlias = (
 )
 SubjectConceptRelease: TypeAlias = (
     SourceConceptReleaseBundle
-    | SourceConceptReleaseView
     | PinnedSourceConceptRelease
     | PinnedManagedConceptRelease
 )
@@ -643,7 +642,7 @@ def _source_member_ids(
 def concept_release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
     """Return one discriminated exact-release pin for any supported release."""
 
-    if isinstance(release, (SourceConceptReleaseBundle, SourceConceptReleaseView)):
+    if isinstance(release, SourceConceptReleaseBundle):
         return _source_release_pin(release)
     if isinstance(release, (PinnedSourceConceptRelease, PinnedManagedConceptRelease)):
         return release.pin()
@@ -655,7 +654,7 @@ def concept_release_member_ids(
 ) -> frozenset[str]:
     """Return the exact identifiers selected by one release."""
 
-    if isinstance(release, (SourceConceptReleaseBundle, SourceConceptReleaseView)):
+    if isinstance(release, SourceConceptReleaseBundle):
         return _source_member_ids(release)
     if isinstance(release, (PinnedSourceConceptRelease, PinnedManagedConceptRelease)):
         return release.member_ids()

@@ -10,6 +10,11 @@ from typing import Any
 
 import pytest
 
+from refspec.atlas.concept_release import (
+    ConceptReleaseError,
+    concept_release_pin,
+    normalize_concept_release_pin,
+)
 from refspec.registry.infrastructure.source_concept_release import (
     SOURCE_CONCEPT_IDENTITY_POLICY_ID,
     SourceConceptReleaseError,
@@ -515,3 +520,46 @@ def test_external_manifest_pin_refuses_a_resealed_forgery(tmp_path: Path) -> Non
             manifest_path,
             expected_manifest_digest=release.manifest_digest,
         )
+
+
+def test_atlas_authority_rejects_a_publicly_constructed_source_release_view(
+    tmp_path: Path,
+) -> None:
+    release = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Pinned",
+                    local_record_id=_local_record_id(1),
+                ),
+            )
+        )
+    )
+    forged = SourceConceptReleaseView(
+        path=tmp_path,
+        bundle=release,
+        manifest_digest="sha256:" + "0" * 64,
+    )
+
+    with pytest.raises(ConceptReleaseError, match="exact supported release"):
+        concept_release_pin(forged)  # type: ignore[arg-type]
+
+
+def test_concept_release_pin_reports_a_domain_error_for_a_non_string_ring() -> None:
+    release = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Pinned",
+                    local_record_id=_local_record_id(1),
+                ),
+            )
+        )
+    )
+    pin = concept_release_pin(release)
+    pin["semanticRing"] = []
+
+    with pytest.raises(ConceptReleaseError, match="must be subject, entity, value"):
+        normalize_concept_release_pin(pin)
