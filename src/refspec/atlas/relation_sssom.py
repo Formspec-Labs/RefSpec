@@ -36,17 +36,48 @@ from refspec.registry.infrastructure.artifact_serialization import (
 from refspec.registry.infrastructure.semantic_foundation import EvidenceAssertion, MappingAssertion
 
 from .relation_assertion import RelationAssertionBundle, RelationAssertionError
-from .sssom_export import (
-    COLUMNS,
-    REVIEWED_JUSTIFICATION,
-    UNREVIEWED_JUSTIFICATION,
-    UNSPECIFIED_LICENSE,
-    WELL_KNOWN_PREFIXES,
-)
 
 RELATION_SSSOM_VERSION = "1.0"
 RELATION_SSSOM_PACKAGE_KIND = "relationAssertionSssomDistribution"
 RELATION_SSSOM_MAPPING_SET_NAMESPACE = "https://refspec.org/id/relation-assertion-sssom/"
+
+# SSSOM uses standard Semantic Mapping Vocabulary terms for justification.
+# Evidence classes remain in the lossless sidecar rather than minting custom
+# SSSOM values that downstream mapping tools would not understand.
+_SEMAPV = "https://w3id.org/semapv/vocab/"
+REVIEWED_JUSTIFICATION = _SEMAPV + "MappingReview"
+UNREVIEWED_JUSTIFICATION = _SEMAPV + "UnspecifiedMatching"
+UNSPECIFIED_LICENSE = "https://w3id.org/sssom/license/unspecified"
+
+# Edition-specific names prevent a consumer from silently expanding a concept
+# through another edition of the same vocabulary. Unknown namespaces receive
+# deterministic ns1, ns2, ... names below.
+WELL_KNOWN_PREFIXES: Mapping[str, str] = {
+    "http://www.w3.org/2004/02/skos/core#": "skos",
+    "https://elsst.cessda.eu/id/": "elsstedition",
+    "https://elsst.cessda.eu/id/6/": "elsst6",
+    "https://w3id.org/semapv/vocab/": "semapv",
+    "urn:ref:federal-register-thesaurus:2025-04-01:concept:": "frt25",
+    "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:": ("frt25release"),
+}
+
+# Confidence is absent by design: MappingAssertion carries evidence, not a
+# numeric confidence score, so the exporter must not invent one.
+COLUMNS = (
+    "subject_id",
+    "subject_label",
+    "predicate_id",
+    "object_id",
+    "object_label",
+    "mapping_justification",
+    "mapping_source",
+    "subject_source",
+    "object_source",
+    "mapping_tool",
+    "mapping_tool_version",
+    "see_also",
+    "comment",
+)
 
 MAPPINGS_PATH = "mappings.sssom.tsv"
 EVIDENCE_PATH = "mapping-evidence.jsonl"
@@ -112,10 +143,7 @@ def _require_digest(value: object, label: str) -> str:
 
 def _require_supported_ring(bundle: RelationAssertionBundle) -> None:
     if bundle.semantic_ring not in _SUPPORTED_RINGS:
-        raise RelationSssomError(
-            "relation SSSOM supports only subject and value rings; "
-            f"got {bundle.semantic_ring}"
-        )
+        raise RelationSssomError(f"relation SSSOM supports only subject and value rings; got {bundle.semantic_ring}")
 
 
 def _require_exact_fields(value: Mapping[str, Any], expected: set[str], label: str) -> None:

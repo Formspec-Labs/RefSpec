@@ -237,7 +237,7 @@ def _jsonl(payload: bytes) -> list[dict[str, Any]]:
     return [json.loads(line) for line in payload.decode("utf-8").splitlines()]
 
 
-def test_distribution_is_deterministic_and_sssom_rows_keep_assertion_identity(tmp_path: Path) -> None:
+def test_distribution_is_deterministic_and_only_assertions_become_sssom_rows(tmp_path: Path) -> None:
     bundle = _subject_bundle(tmp_path)
     first = RelationSssomDistribution.create(bundle)
     second = RelationSssomDistribution.create(bundle)
@@ -247,7 +247,8 @@ def test_distribution_is_deterministic_and_sssom_rows_keep_assertion_identity(tm
     assert first.content_digest.startswith("sha256:")
     assert set(first.artifact_bytes()) == {MAPPINGS_PATH, EVIDENCE_PATH, MANIFEST_PATH}
 
-    header, rows = _split_sssom(first.artifact_bytes()[MAPPINGS_PATH].decode())
+    mapping_text = first.artifact_bytes()[MAPPINGS_PATH].decode()
+    header, rows = _split_sssom(mapping_text)
     prefixes = _curie_map(header)
     by_assertion = {row["see_also"]: row for row in rows}
     by_relation = {mapping.relation: by_assertion[mapping.identifier] for mapping in bundle.mapping_assertions}
@@ -255,9 +256,15 @@ def test_distribution_is_deterministic_and_sssom_rows_keep_assertion_identity(tm
     assert {row["mapping_source"] for row in rows} == {bundle.identifier}
     machine_evidence = next(row for row in bundle.evidence_assertions if row.evidence_class == "machineQualified")
     assert machine_evidence.candidate not in by_assertion
+    assert machine_evidence.candidate not in mapping_text
+    assert len(rows) == len(bundle.mapping_assertions)
     assert _expand(by_relation[SUBJECT_EXACT_MATCH]["mapping_justification"], prefixes).endswith("MappingReview")
     assert _expand(by_relation[SUBJECT_RELATED_MATCH]["mapping_justification"], prefixes).endswith("MappingReview")
     assert _expand(by_relation[SUBJECT_CLOSE_MATCH]["mapping_justification"], prefixes).endswith("UnspecifiedMatching")
+
+
+def test_raw_candidate_export_api_is_retired() -> None:
+    assert importlib.util.find_spec("refspec.atlas.sssom_export") is None
 
 
 def test_sidecar_is_one_to_one_lossless_and_never_fakes_machine_facts(tmp_path: Path) -> None:

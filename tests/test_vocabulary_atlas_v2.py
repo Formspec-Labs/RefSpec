@@ -19,7 +19,6 @@ from refspec.atlas.model import (
 from refspec.atlas.projection import build_atlas_projection
 from refspec.atlas.qualification import VERDICT_OUTCOMES_V2
 from refspec.atlas.queries import VocabularyAtlasQueries
-from refspec.atlas.sssom_export import sssom_text
 
 _ADJUDICATED_RELATION = "https://refspec.org/ns/vocabulary-atlas/v1#adjudicatedRelation"
 _RELATED_MATCH = "http://www.w3.org/2004/02/skos/core#relatedMatch"
@@ -144,9 +143,7 @@ def test_the_adjudicated_relation_anchors_the_mapping_not_the_proposal(tmp_path:
     asset, mappings = _built_mappings(tmp_path, bundle)
     _round_trip(tmp_path, asset)
 
-    assert [mapping.relation for mapping in mappings] == [
-        "http://www.w3.org/2004/02/skos/core#broadMatch"
-    ]
+    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#broadMatch"]
 
 
 def test_adjudicated_related_records_the_relation_but_emits_no_mapping(tmp_path: Path) -> None:
@@ -247,9 +244,7 @@ def test_three_agreeing_machines_still_emit_the_weakest_claim(tmp_path: Path) ->
 
     # `same` twice would be exactMatch on its own; the third machine withheld
     # identity, so the set qualifies at the weaker claim.
-    assert [mapping.relation for mapping in mappings] == [
-        "http://www.w3.org/2004/02/skos/core#closeMatch"
-    ]
+    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#closeMatch"]
 
 
 def _reverify(asset) -> None:
@@ -434,54 +429,7 @@ def test_a_v1_distribution_still_needs_no_adjudication(tmp_path: Path) -> None:
 
     _reverify(asset)
     assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
-    assert [mapping.relation for mapping in mappings] == [
-        "http://www.w3.org/2004/02/skos/core#closeMatch"
-    ]
-
-
-def _sssom_row(text: str) -> dict[str, str]:
-    columns = next(line for line in text.splitlines() if line.startswith("subject_id")).split("\t")
-    return dict(zip(columns, text.splitlines()[-1].split("\t"), strict=True))
-
-
-def test_sssom_reports_the_adjudicated_relation_not_the_proposal() -> None:
-    """Publishing the proposal would export a false predicate to SSSOM."""
-
-    row = _sssom_row(sssom_text(_v2_bundle("target_is_broader", "target_is_broader")))
-
-    assert row["predicate_id"] == "skos:broadMatch"
-    assert row["mapping_justification"] == "semapv:MappingReview"
-
-
-def test_sssom_states_adjudicated_related_plainly_and_never_negates_it() -> None:
-    """SSSOM's only modifier negates the predicate, which is not what we found.
-
-    `predicate_modifier: Not` means "subject is NOT a predicate match to
-    object". Writing it on a `relatedMatch` row would publish the opposite of
-    what two independent machines agreed. The predicate carries the distinction
-    on its own; eligibility for search is a RefSpec fact SSSOM cannot express,
-    and inventing a negation to stand in for it would be a lie in an
-    interoperability format.
-    """
-
-    text = sssom_text(_v2_bundle("related", "related"), qualified_only=False)
-    row = _sssom_row(text)
-
-    assert row["predicate_id"] == "skos:relatedMatch"
-    assert "predicate_modifier" not in text
-    # Two machines adjudicated it, so the review happened even though the gate
-    # published no mapping from it.
-    assert row["mapping_justification"] == "semapv:MappingReview"
-
-
-def test_sssom_leaves_an_unadjudicated_candidate_unreviewed() -> None:
-    """A direction disagreement adjudicates nothing, so it claims nothing."""
-
-    text = sssom_text(_v2_bundle("near_same", "target_is_broader"), qualified_only=False)
-    row = _sssom_row(text)
-
-    assert row["predicate_id"] == "skos:closeMatch"
-    assert row["mapping_justification"] == "semapv:UnspecifiedMatching"
+    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#closeMatch"]
 
 
 def test_bundle_refuses_mixed_protocols() -> None:
