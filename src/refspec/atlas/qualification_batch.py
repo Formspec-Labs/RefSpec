@@ -270,19 +270,53 @@ def custom_id(family: ValidatorFamily, candidate_id: str) -> str:
     return f"{family.name}-{digest}"
 
 
-def resolved_protocol(requested: str | None = None) -> str:
-    """The verdict protocol this run speaks.
+def run_protocol(catalog: Mapping[str, Any], *, requested: str | None = None) -> str:
+    """The verdict protocol *this run* speaks, taken from its own candidates.
 
-    Read off ``validate_candidate`` rather than restated, so the batch road
-    speaks whatever the serial road currently defaults to.
+    Single-sourced from ``candidates.json`` on purpose.  Defaulting it from
+    anywhere else — a library signature, a flag that was not passed — is how a
+    run generated under one rubric gets asked under another: the candidates say
+    v2, the batch asks v1, and the answers look valid while measuring the wrong
+    question.  Batch makes that unrecoverable, because the wrong question is
+    already bought by the time anyone reads a receipt.
+
+    A catalog with no protocol is refused rather than assumed.
     """
 
-    if requested is not None:
-        return requested
-    parameter = inspect.signature(qual.validate_candidate).parameters.get("protocol")
-    if parameter is None or parameter.default is inspect.Parameter.empty:
-        return "v1"
-    return str(parameter.default)
+    recorded = catalog.get("protocol")
+    if not recorded:
+        raise BatchError(
+            "candidates.json records no protocol; regenerate the run with "
+            "`generate --protocol ...` so the rubric is pinned by the candidates themselves"
+        )
+    speaks = str(recorded)
+    if requested is not None and requested != speaks:
+        raise BatchError(
+            f"--protocol {requested!r} contradicts candidates.json, which records {speaks!r}; "
+            "the candidates are the run's protocol, so drop the flag or regenerate the run"
+        )
+    return speaks
+
+
+def protocol_verdicts(protocol: str) -> tuple[str, ...]:
+    """The verdict vocabulary one protocol admits, referenced not restated."""
+
+    if protocol == "v2":
+        return tuple(getattr(qual, "VERDICTS_V2", qual.VERDICTS))
+    return tuple(qual.VERDICTS)
+
+
+def distinguishing_verdicts(protocol: str) -> tuple[str, ...]:
+    """Verdicts this protocol admits and the other one does not.
+
+    These are the tokens whose presence in a request body proves which rubric
+    the bytes actually carry.  Derived from the vocabularies rather than
+    written down, so a protocol change cannot leave the check asserting a
+    string nobody sends any more.
+    """
+
+    other = "v1" if protocol == "v2" else "v2"
+    return tuple(sorted(set(protocol_verdicts(protocol)) - set(protocol_verdicts(other))))
 
 
 def _protocol_kwargs(function: Callable[..., Any], protocol: str) -> dict[str, str]:
@@ -359,6 +393,35 @@ def input_jsonl(requests: Sequence[BatchRequest]) -> bytes:
     """The upload payload: one canonical JSON object per line."""
 
     return "".join(request.line() + "\n" for request in requests).encode("utf-8")
+
+
+def assert_payload_speaks(payload: bytes, protocol: str, *, rows: Sequence[CandidateRow]) -> None:
+    """Refuse to upload bytes that do not carry this run's rubric.
+
+    The last gate before money is spent, and the only one that inspects what is
+    actually going up rather than what the code believes it built.  A batch
+    asking the wrong rubric cannot be recalled, cannot be told from a right one
+    by looking at its receipts, and costs the whole slice; the check is cheap
+    and it reads the bytes.
+    """
+
+    if not rows:
+        return
+    text = payload.decode("utf-8")
+    system, _user = qual.model_input_texts(rows[0].pair, **_protocol_kwargs(qual.model_input_texts, protocol))
+    # The system text appears JSON-escaped inside each line, so it is compared
+    # in the encoding it is actually written in.
+    escaped = canonical_json(system)[1:-1]
+    if escaped not in text:
+        raise BatchError(
+            f"the batch payload does not carry the protocol {protocol!r} instructions; refusing to upload"
+        )
+    missing = [verdict for verdict in distinguishing_verdicts(protocol) if verdict not in text]
+    if missing:
+        raise BatchError(
+            f"the batch payload is missing the verdicts {missing} that identify protocol {protocol!r}; "
+            "refusing to upload a batch that would ask the wrong rubric"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -464,6 +527,20 @@ class BatchProvider:
             self.family.timeout_seconds,
         )
         return _decode_json(status, payload, f"{self.family.name} batch retrieve")
+
+    def cancel_job(self, transport: BatchHttpTransport, api_key: str, job_id: str) -> dict[str, Any]:
+        """Stop a job that should never have been bought.
+
+        The only lever a batch offers after submit.  It does not refund what
+        already ran, so what it buys back is the remainder.
+        """
+
+        url = self.job_url(job_id) + "/cancel"
+        status, _headers, payload = transport.request(
+            "POST", url, self._bearer(api_key), b"", self.family.timeout_seconds
+        )
+        text = payload.decode("utf-8", errors="replace")
+        return {"endpoint": url, "response": text[:2000], "status": status}
 
     # -- per-vendor file transfer ------------------------------------------
 
@@ -589,6 +666,23 @@ class GeminiBatchProvider(BatchProvider):
         if not file_id:
             raise BatchError(f"{self.family.name} resumable upload returned no file name")
         return UploadedInput(file_id=file_id, endpoint=self.upload_url)
+
+    def cancel_job(self, transport: BatchHttpTransport, api_key: str, job_id: str) -> dict[str, Any]:
+        """Cancel through the native endpoint; the compat layer has no cancel.
+
+        The compatibility layer covers creating a batch, watching it, and
+        reading its results — not cancelling one — so this goes to
+        ``v1beta/{batches/id}:cancel`` with the native credential header.  The
+        job id is already the native resource name, which is what that path
+        wants.
+        """
+
+        url = f"{self._root}/{self._api_version}/{job_id.lstrip('/')}:cancel"
+        status, _headers, payload = transport.request(
+            "POST", url, {"x-goog-api-key": api_key, "Content-Type": "application/json"}, b"", self.family.timeout_seconds
+        )
+        text = payload.decode("utf-8", errors="replace")
+        return {"endpoint": url, "response": text[:2000], "status": status}
 
     def download_file(self, transport: BatchHttpTransport, api_key: str, file_id: str) -> tuple[bytes, str]:
         url = self.download_url(file_id)
@@ -937,7 +1031,7 @@ def submit(
     models: Mapping[str, str],
     rows: Sequence[CandidateRow],
     caps: Mapping[str, float] | None = None,
-    protocol: str | None = None,
+    protocol: str,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Build, price-check, upload and create one batch job per family.
@@ -948,7 +1042,7 @@ def submit(
     one has not finished spending yet.
     """
 
-    speaks = resolved_protocol(protocol)
+    speaks = protocol
     sidecar = read_sidecar(sidecar_path)
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
     committed = committed_by_family(sidecar)
@@ -993,6 +1087,7 @@ def submit(
         model_id = models[family.name]
         requests = [build_request(family, model_id, row, protocol=speaks) for row in pending]
         payload = input_jsonl(requests)
+        assert_payload_speaks(payload, speaks, rows=pending)
         display_name = f"refspec-atlas-crosswalk-{family.name}-{len(requests)}"
         uploaded = provider.upload_input(transport, keys[family.name], payload, display_name + ".jsonl")
         job = provider.create_job(
@@ -1126,6 +1221,7 @@ def collect(
     families: Mapping[str, ValidatorFamily],
     keys: Mapping[str, str],
     rows: Sequence[CandidateRow],
+    protocol: str,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Download finished jobs, receipt every answer, and never receipt twice.
@@ -1143,9 +1239,21 @@ def collect(
     reached.  An expired batch publishes what it finished and bills for it, so
     treating expiry as "nothing to read" would both discard paid-for answers
     and let the same slice be bought again.
+
+    A job whose recorded protocol disagrees with the run's is refused outright.
+    Its answers are to a different question, and letting them into
+    ``receipts.jsonl`` would put two rubrics in one bundle with nothing in the
+    receipt to tell them apart.
     """
 
     sidecar = read_sidecar(sidecar_path)
+    for job in sidecar.get("jobs", ()):
+        asked = str(job.get("protocol") or "")
+        if asked and asked != protocol:
+            raise BatchError(
+                f"job {job.get('jobId')} ({job.get('family')}) asked protocol {asked!r} but this run is "
+                f"{protocol!r}; move its sidecar aside rather than collecting answers to another question"
+            )
     done = read_receipt_pairs(receipts_path)
     rows_by_id = {row.candidate_id: row for row in rows}
     trackers: dict[str, qual.SpendTracker] = {}
@@ -1199,7 +1307,7 @@ def collect(
                 receipt = receipt_from_result(
                     family=family,
                     model_id=str(job["modelId"]),
-                    protocol=str(job.get("protocol") or resolved_protocol()),
+                    protocol=str(job.get("protocol") or protocol),
                     row=row,
                     request=request,
                     result=parsed,
@@ -1253,6 +1361,56 @@ def collect(
         "spendByFamily": spend,
         "totalBatchAssumedCostUsd": sidecar["totalBatchAssumedCostUsd"],
     }
+
+
+def cancel(
+    *,
+    transport: BatchHttpTransport,
+    sidecar_path: Path,
+    families: Mapping[str, ValidatorFamily],
+    keys: Mapping[str, str],
+    now: Callable[[], str] = qual._utcnow,
+) -> dict[str, Any]:
+    """Cancel every non-terminal job and record the outcome in the sidecar.
+
+    The cancellation is receipted whether or not it worked.  "We tried to stop
+    this and the provider said no" is exactly the fact a spend audit needs, and
+    it is the fact that goes missing if a failed cancel is silently retried or
+    silently dropped.
+    """
+
+    sidecar = read_sidecar(sidecar_path)
+    outcomes: list[dict[str, Any]] = []
+    for job in sidecar.get("jobs", ()):
+        family = families[str(job["family"])]
+        if str(job.get("state")) in TERMINAL_STATES:
+            outcomes.append({"family": family.name, "jobId": job["jobId"], "skipped": str(job.get("state"))})
+            continue
+        provider = provider_for(family)
+        result = provider.cancel_job(transport, keys[family.name], str(job["jobId"]))
+        accepted = 200 <= int(result["status"]) < 300
+        job["cancellation"] = {
+            "accepted": accepted,
+            "endpoint": result["endpoint"],
+            "requestedAt": now(),
+            "responseStatus": result["status"],
+            "response": result["response"],
+        }
+        if accepted:
+            job["state"] = "cancelled"
+            job["providerStatus"] = "cancelled"
+        outcomes.append(
+            {
+                "accepted": accepted,
+                "endpoint": result["endpoint"],
+                "family": family.name,
+                "jobId": job["jobId"],
+                "responseStatus": result["status"],
+            }
+        )
+    sidecar["updatedAt"] = now()
+    write_sidecar(sidecar_path, sidecar)
+    return {"cancellations": outcomes}
 
 
 def _collected_row(job: Mapping[str, Any]) -> dict[str, Any]:

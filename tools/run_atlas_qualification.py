@@ -467,6 +467,18 @@ def _batch_rows(args: argparse.Namespace, *, subset: bool) -> list[qbatch.Candid
     ]
 
 
+def _batch_protocol(args: argparse.Namespace) -> str:
+    """The run's protocol, read from the run's own candidates and nowhere else.
+
+    A batch buys the question before anyone can read an answer, so the rubric
+    has to come from the artifact that defines the run rather than from a flag
+    someone might forget or a library default that might move.
+    """
+
+    catalog = _read_json(Path(args.output) / CANDIDATES)
+    return qbatch.run_protocol(catalog, requested=getattr(args, "protocol", None))
+
+
 def _batch_keys(args: argparse.Namespace, families: Sequence[qual.ValidatorFamily]) -> dict[str, str]:
     return {family.name: qual.load_env_value(args.env, family.api_key_env) for family in families}
 
@@ -487,6 +499,8 @@ def _batch_sidecar_families(args: argparse.Namespace) -> dict[str, qual.Validato
 
 def command_batch_submit(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    protocol = _batch_protocol(args)
+    print(f"protocol {protocol} (from {CANDIDATES})", file=sys.stderr, flush=True)
     families = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
     transport = qbatch.default_transport()
     plain = qbatch.PlainTransport(transport)
@@ -522,7 +536,7 @@ def command_batch_submit(args: argparse.Namespace) -> int:
             models=resolved,
             rows=_batch_rows(args, subset=True),
             caps=args.cap,
-            protocol=args.protocol,
+            protocol=protocol,
         )
     except qbatch.BatchSpendCapReached as error:
         # Refused before anything was bought.  A batch cannot be stopped once
@@ -569,6 +583,7 @@ def command_batch_collect(args: argparse.Namespace) -> int:
         families=families,
         keys=keys,
         rows=_batch_rows(args, subset=False),
+        protocol=_batch_protocol(args),
     )
     # Additive only.  `spend.json` belongs to `qualify`; the batch road adds its
     # own keys beside whatever the serial road wrote and never rewrites them.
@@ -577,6 +592,24 @@ def command_batch_collect(args: argparse.Namespace) -> int:
     spend["batchSpendByFamily"] = summary["spendByFamily"]
     spend["totalBatchAssumedCostUsd"] = summary["totalBatchAssumedCostUsd"]
     _write_json(spend_path, spend)
+    print(canonical_json(summary))
+    return 0
+
+
+def command_batch_cancel(args: argparse.Namespace) -> int:
+    output = Path(args.output)
+    families = _batch_sidecar_families(args)
+    if not families:
+        print(canonical_json({"cancellations": []}))
+        return 0
+    summary = qbatch.cancel(
+        transport=qbatch.default_transport(),
+        sidecar_path=output / qbatch.SIDECAR,
+        families=families,
+        keys=_batch_keys(args, list(families.values())),
+    )
+    for item in summary["cancellations"]:
+        print(canonical_json(item), file=sys.stderr, flush=True)
     print(canonical_json(summary))
     return 0
 
@@ -673,6 +706,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     batch_collect.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     batch_collect.set_defaults(handler=command_batch_collect)
+
+    batch_cancel = subparsers.add_parser(
+        "batch-cancel",
+        help="ask both providers to stop every job this run still has in flight",
+    )
+    batch_cancel.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
+    batch_cancel.set_defaults(handler=command_batch_cancel)
     return parser
 
 

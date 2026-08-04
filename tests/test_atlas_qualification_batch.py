@@ -104,6 +104,7 @@ def run_dir(tmp_path: Path) -> Path:
                 "generatedAt": GENERATED_AT,
                 "generationPolicy": qual.CANDIDATE_GENERATION_POLICY,
                 "proposedRelation": qual.PROPOSED_RELATION,
+                "protocol": "v1",
                 "sourceManifestDigest": "sha256:" + "0" * 64,
                 "targetManifestDigest": "sha256:" + "1" * 64,
                 "total": len(rows),
@@ -271,11 +272,22 @@ class FakeProviders:
                 return 404, {}, b"{}"
             return 200, {}, self.files[file_id]
 
+        # -- cancel ---------------------------------------------------------
+        if url.endswith(("/cancel", ":cancel")):
+            target = url[: -len("/cancel")] if url.endswith("/cancel") else url[: -len(":cancel")]
+            job_id = next((key for key in self.jobs if target.endswith(key)), None)
+            if job_id is None:
+                return 404, {}, b"{}"
+            self.jobs[job_id]["status"] = "cancelled"
+            return 200, {}, _json(self.jobs[job_id])
+
         # -- batches, identical for both vendors ----------------------------
         if url.endswith("/batches") and method == "POST":
             request = json.loads((body or b"{}").decode("utf-8"))
             vendor = "google" if "googleapis" in url else "openai"
-            job_id = self._next(f"batch_{vendor}")
+            # Gemini hands back the native resource name even through the
+            # compatibility layer, exactly as the live runs recorded.
+            job_id = self._next("batches/g" if vendor == "google" else "batch_openai")
             self.jobs[job_id] = {
                 "completion_window": request["completion_window"],
                 "endpoint": request["endpoint"],
@@ -289,8 +301,12 @@ class FakeProviders:
             }
             return 200, {}, _json(self.jobs[job_id])
         if "/batches/" in url and method == "GET":
-            job_id = url.rsplit("/", 1)[-1]
-            if job_id not in self.jobs:
+            # Suffix match, because Gemini's job identity is the native
+            # resource name ("batches/xyz") even through the compatibility
+            # layer, so the retrieve URL doubles the segment -- and Google
+            # answers it, as the live runs recorded.
+            job_id = next((key for key in self.jobs if url.endswith(key)), None)
+            if job_id is None:
                 return 404, {}, b"{}"
             return 200, {}, _json(self.jobs[job_id])
         raise AssertionError(f"the fake provider was asked for an unrouted URL: {method} {url}")
@@ -336,7 +352,7 @@ def test_a_batch_line_carries_the_serial_request_body_and_digest() -> None:
     entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
     context = next(item for item in entry.artifacts if item.role == "inputContext")
     row = qbatch.CandidateRow(entry.candidate.identifier, pair, context.content_digest)
-    protocol = qbatch.resolved_protocol()
+    protocol = qbatch.run_protocol({"protocol": "v1"})
 
     request = qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol=protocol)
 
@@ -586,11 +602,143 @@ def test_an_answer_that_does_not_echo_the_task_id_fails_the_deterministic_check(
     assert _sidecar(run_dir)["jobs"][0]["collection"]["taskIdEchoMismatches"] == 1
 
 
+def _regenerate_as_v2(run_dir: Path) -> None:
+    """Rewrite the run's candidates the way `generate --protocol v2` would."""
+
+    catalog = json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))
+    catalog["protocol"] = "v2"
+    (run_dir / RUNNER.CANDIDATES).write_text(canonical_json(catalog) + "\n", encoding="utf-8")
+
+
+def test_a_v2_run_is_never_submitted_under_the_v1_rubric(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """The live defect: a v2 run bought six batch jobs asking the v1 rubric.
+
+    The protocol was defaulted off a library signature instead of read from
+    the run's own ``candidates.json``, so `batch-submit` with no flag silently
+    asked the wrong question — and a batch cannot be recalled once bought.
+    The run's candidates are now the only source of its rubric.
+    """
+
+    verdicts = getattr(qual, "VERDICTS_V2", None)
+    if not verdicts:
+        pytest.skip("the serial path offers only one verdict protocol")
+
+    _regenerate_as_v2(run_dir)
+    server = FakeProviders(verdict=verdicts[0])
+    # No --protocol flag, exactly as the live run was invoked.
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+
+    job = _sidecar(run_dir)["jobs"][0]
+    assert job["protocol"] == "v2"
+    uploaded = server.files[job["inputFileId"]].decode("utf-8")
+    assert "target_is_broader" in uploaded
+
+
+def test_a_flag_contradicting_the_candidates_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    if not getattr(qual, "VERDICTS_V2", None):
+        pytest.skip("the serial path offers only one verdict protocol")
+    _regenerate_as_v2(run_dir)
+    server = FakeProviders()
+    with pytest.raises(qbatch.BatchError) as failure:
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai", "--protocol", "v1")
+    assert "contradicts candidates.json" in str(failure.value)
+    assert not (run_dir / qbatch.SIDECAR).exists()
+
+
+def test_candidates_without_a_protocol_are_refused(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
+    """Absent is refused, never assumed; assuming is what bought the bad batch."""
+
+    catalog = json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))
+    del catalog["protocol"]
+    (run_dir / RUNNER.CANDIDATES).write_text(canonical_json(catalog) + "\n", encoding="utf-8")
+    server = FakeProviders()
+    with pytest.raises(qbatch.BatchError) as failure:
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert "records no protocol" in str(failure.value)
+
+
+def test_a_payload_that_does_not_carry_the_rubric_is_never_uploaded(run_dir: Path) -> None:
+    """The last gate before money: read the bytes, not the intention."""
+
+    if not getattr(qual, "VERDICTS_V2", None):
+        pytest.skip("the serial path offers only one verdict protocol")
+    rows = [
+        qbatch.CandidateRow(str(row["candidateId"]), RUNNER._pair_from_dict(row), str(row["inputDigest"]))
+        for row in json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))["candidates"]
+    ]
+    v1_bytes = qbatch.input_jsonl(
+        [qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol="v1") for row in rows]
+    )
+    # v1 bytes claimed to be a v2 batch: exactly the live defect, caught.
+    with pytest.raises(qbatch.BatchError) as failure:
+        qbatch.assert_payload_speaks(v1_bytes, "v2", rows=rows)
+    assert "refusing to upload" in str(failure.value)
+    assert "target_is_broader" not in v1_bytes.decode("utf-8")
+
+    v2_bytes = qbatch.input_jsonl(
+        [qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol="v2") for row in rows]
+    )
+    # The token the coordinator asked to see in the bytes before any upload.
+    assert "target_is_broader" in qbatch.distinguishing_verdicts("v2")
+    assert "target_is_broader" in v2_bytes.decode("utf-8")
+    qbatch.assert_payload_speaks(v2_bytes, "v2", rows=rows)
+    qbatch.assert_payload_speaks(v1_bytes, "v1", rows=rows)
+
+    # Losing the vocabulary anywhere in the payload is refused too.  The
+    # instructions carry the schema, so this trips the first gate rather than
+    # the second; both refuse, which is the property that matters.
+    hollowed = v2_bytes.decode("utf-8").replace("target_is_broader", "REDACTED").encode("utf-8")
+    with pytest.raises(qbatch.BatchError):
+        qbatch.assert_payload_speaks(hollowed, "v2", rows=rows)
+
+
+def test_collect_refuses_answers_to_the_other_rubric(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
+    """A polluted sidecar must never reach receipts.jsonl."""
+
+    if not getattr(qual, "VERDICTS_V2", None):
+        pytest.skip("the serial path offers only one verdict protocol")
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    # The run is regenerated as v2 after a v1 batch was already bought.
+    _regenerate_as_v2(run_dir)
+    with pytest.raises(qbatch.BatchError) as failure:
+        _run(monkeypatch, server, run_dir, "batch-collect")
+    assert "asked protocol 'v1' but this run is 'v2'" in str(failure.value)
+    assert _receipts(run_dir) == []
+
+
+def test_cancelling_records_the_outcome_against_every_live_job(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai,gemini")
+    assert _run(monkeypatch, server, run_dir, "batch-cancel") == 0
+
+    urls = server.urls()
+    assert any(url.startswith("https://api.openai.com/v1/batches/") and url.endswith("/cancel") for url in urls)
+    # The compatibility layer has no cancel; Gemini goes native.
+    assert any(url.startswith("https://generativelanguage.googleapis.com/v1beta/batches/") for url in urls)
+    assert any(url.endswith(":cancel") for url in urls)
+
+    for job in _sidecar(run_dir)["jobs"]:
+        assert job["state"] == "cancelled"
+        assert job["cancellation"]["accepted"] is True
+        assert job["cancellation"]["requestedAt"].endswith("Z")
+
+
 def test_the_verdict_protocol_is_referenced_never_restated(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
 ) -> None:
-    """Whatever protocol the serial path speaks, the batch path speaks too.
+    """Whatever protocol the run speaks, the batch path speaks too.
 
     The prompt, the schema and the verdict vocabulary all live in
     ``qualification``; this asserts the batch road carries the choice through
@@ -601,8 +749,9 @@ def test_the_verdict_protocol_is_referenced_never_restated(
     if not verdicts:
         pytest.skip("the serial path offers only one verdict protocol")
 
+    _regenerate_as_v2(run_dir)
     server = FakeProviders(verdict=verdicts[0])
-    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai", "--protocol", "v2")
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
     server.complete_jobs()
     _run(monkeypatch, server, run_dir, "batch-status")
     _run(monkeypatch, server, run_dir, "batch-collect")
