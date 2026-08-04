@@ -1,89 +1,22 @@
 """Pinned GAO Congressional Review Act database search-facet import.
 
-GAO's CRA database page (``/legal/other-legal-work/congressional-review-act``)
-exposes three named search facets, visible directly in its own documented URL
-(``?priority=all&processed=1&type=all``):
+GAO's actual ``Search Database of Rules`` page is server-rendered and
+publishes two radio groups directly in its HTML: ``priority`` and ``type``.
+The six literal query values are preserved as deterministic filing metadata;
+none are promoted to general subject concepts. ``processed=1`` occurs in
+GAO's own query string and Drupal settings but is not a visible search facet,
+so this module does not invent a code list for it.
 
-* ``priority`` -- the major/non-major rule flag GAO assigns on review.
-* ``processed`` -- whether GAO has completed its review of the submission.
-* ``type`` -- the record type shown (a rule submission, a report on a major
-  rule, a legal coverage decision, or a rule disapproved by joint
-  resolution).
-
-Every facet value is a code GAO itself assigns and publishes as the literal
-query-string value used to filter its own database; this module preserves
-that exact value as identity and never mints a substitute. The catalog's
-recommended role for this source is deterministic metadata, not
-filer-selected evidence and not a subject vocabulary: nothing parsed here is
-treated as a general subject concept.
-
-GAO's CRA search page also renders per-row receipt and effective dates for
-each submission. Those two fields are accepted here only as opaque,
-already-formatted passthrough text -- this module never interprets them and
-never computes, accepts, or stores a project-calculated CRA review window
-(the statutory 60-day/legislative-day count is a project-owned, separately
-versioned rule, out of scope for this source-facet import). Any rule
-submission record that carries a review-window-shaped field is refused, not
-silently dropped.
-
-The search UI publishes no documented stable bulk API and no facet code-list
-release identifier (confirmed in the catalog research evidence for this
-source). A live fetch attempted at initial implementation time (2026-08-03)
-returned an Akamai access-denied response (HTTP 403); that denial response is
-kept on disk as ``gao-cra-access-denied-real-capture-2026-08-03.html``,
-historical negative evidence that acquisition fails closed on a block page,
-not a source of facet shape. Because that attempt failed, the original
-pinned bytes (``GAO_CRA_FACETS_2026_08_03``) were a hand-built fixture
-constructed to be faithful to the *documented, but unverified* Drupal
-exposed-filter ``<select>``/``<option>`` shape -- a hypothesis, never a
-confirmed capture.
-
-A REAL page has since been captured through the project's Zyte transport
-(2026-08-04, pinned as ``GAO_CRA_REAL_CAPTURE_2026_08_04``) and confirmed to
-be the live CRA database page (title "Congressional Review Act | U.S. GAO"),
-not a denial page. It falsifies the hypothesis: the real page renders ZERO
-``<select>`` and ZERO ``<option>`` elements. The three facets are visible
-only as the currently-selected filter state GAO's own client-side JavaScript
-echoes back into the page's ``drupal-settings-json`` blob, at
-``path.currentQuery``. ``parse_gao_cra_facets`` and its ``<select>``-based
-fixture are therefore kept only as legacy strict-parser test coverage -- they
-describe a plausible markup shape the real server HTML does not satisfy, not
-a claim about how the live page actually renders. Use
-``parse_gao_cra_real_page_echoed_query`` for the shape the real capture
-actually confirms: it verifies the page's identity (title/heading anchor),
-extracts the three facets' currently-echoed query values, and explicitly
-refuses to enumerate the legal value list for any facet -- that list is
-client-rendered and not present in any server HTML this module has
-captured. Enumerating it is an open follow-up that requires a rendered-DOM
-capture (a browser-executed snapshot taken after client-side JavaScript
-renders the facet widgets).
-
-Two further real artifacts, both captured 2026-08-04 through the project's
-Zyte transport, close most of that gap without contradicting it. GAO's own
-blank "Submission of Federal Rules Under the Congressional Review Act" form
-(pinned as ``GAO_CRA_BLANK_FORM_2023_11`` -- reference-only provenance, its
-PDF bytes are never parsed at runtime, the same way
-``treasury_tas_fast_book.py`` pins its Component TAS-BETC flyer)
-publisher-documents the exact vocabularies behind two facets this catalog
-cares about: item 5's rule-type choice ("Major Rule" / "Non-major Rule",
-``CRA_RULE_TYPES``) and item 8's five-value priority-of-regulation scale
-(``CRA_PRIORITY_LEVELS``). Separately, GAO's ``fedrules/{control_number}``
-per-rule detail pages (e.g. ``https://www.gao.gov/fedrules/167777``, pinned
-as ``GAO_FEDRULES_167777``) are server-rendered, not client-rendered: each
-one exposes a single rule's type, priority, and control number directly in
-Drupal field markup, and ``parse_gao_fedrules_page`` extracts and validates
-those three fields against the form's vocabulary constants.
-
-This closes the *facet vocabulary* gap (what the legal values are) and the
-*per-rule value* gap (what one specific rule's actual value is), but not the
-*search-page enumeration* gap: the exhaustive query-string slug list the CRA
-database search page's own client-rendered ``<select>`` would offer for
-``priority``, ``processed``, and ``type`` is still unknown and still
-requires a rendered-DOM capture this module does not perform; see
-``GAOCRAFacetEnumerationUnavailableError``.
+The exact page was captured through the project's Zyte transport on
+2026-08-04 and is pinned as ``GAO_CRA_REAL_CAPTURE_2026_08_04``. The earlier
+``GAO_CRA_FACETS_2026_08_03`` select-shaped fixture is retained only as
+historical parser evidence and cannot be packaged. GAO exposes no documented
+bulk API; public GitHub implementations likewise scrape this page and its
+``fedrules/{control_number}`` detail pages.
 
 Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+this module never opens a network connection, and package generation accepts
+only the verified real-page digest.
 """
 
 from __future__ import annotations
@@ -113,26 +46,26 @@ from refspec.registry.infrastructure.source_controlled_resource import (
 GAO_CRA_PUBLISHER = "Government Accountability Office"
 GAO_CRA_IDENTIFIER_AUTHORITY_URI = "https://www.gao.gov/"
 GAO_CRA_HOSTS = frozenset({"gao.gov", "www.gao.gov"})
-GAO_CRA_DATABASE_PATH = "/legal/other-legal-work/congressional-review-act"
+GAO_CRA_OVERVIEW_PATH = "/legal/other-legal-work/congressional-review-act"
+GAO_CRA_OVERVIEW_URL = f"https://www.gao.gov{GAO_CRA_OVERVIEW_PATH}?priority=all&processed=1&type=all"
+GAO_CRA_DATABASE_PATH = "/legal/congressional-review-act/search-database-of-rules"
 GAO_CRA_DATABASE_URL = f"https://www.gao.gov{GAO_CRA_DATABASE_PATH}?priority=all&processed=1&type=all"
 GAO_CRA_LANGUAGE = "en"
-GAO_CRA_RESOURCE_ID = "gao-cra-database-facets-2026-08-03"
+GAO_CRA_RESOURCE_ID = "gao-cra-database-facets-2026-08-04"
 
 # Hand-built fixture bytes describing a hypothesized <select>-based shape,
-# not a verified live gao.gov capture -- a real capture now exists and is
-# pinned separately below as GAO_CRA_REAL_CAPTURE_2026_08_04; see the module
-# docstring and the ``liveCaptureUnverified`` package gap below.
+# not a verified live gao.gov capture. It is retained only as historical
+# negative evidence and cannot be packaged.
 GAO_CRA_FACETS_2026_08_03_SHA256 = "sha256:f98e37c6c5a25c5448a9fb2f4effadcf98fff4252ef2f514102f9ee0fb344de9"
 GAO_CRA_FACETS_2026_08_03_BYTE_LENGTH = 1_906
 GAO_CRA_FACETS_2026_08_03_RETRIEVED_AT = "2026-08-03T00:00:00Z"
 
 # A REAL gao.gov CRA database page, captured through the project's Zyte
-# transport and confirmed to be the live page (title "Congressional Review
-# Act | U.S. GAO"), not a denial page. It renders zero <select> and zero
-# <option> elements; see parse_gao_cra_real_page_echoed_query.
-GAO_CRA_REAL_CAPTURE_2026_08_04_SHA256 = "sha256:d1a8ba0607dc3c8c9aff63fe98355f4a3c503252b31b8ae39e48632718b5b6e0"
-GAO_CRA_REAL_CAPTURE_2026_08_04_BYTE_LENGTH = 87_676
-GAO_CRA_REAL_CAPTURE_2026_08_04_RETRIEVED_AT = "2026-08-04T00:12:00Z"
+# transport and confirmed to be the live Search Database of Rules page, not a
+# denial page. It server-renders the two public facets as radio groups.
+GAO_CRA_REAL_CAPTURE_2026_08_04_SHA256 = "sha256:50c6a5a94627a09539ddfb991397a22e257e2d1ec1f25e1206be5214322d9c12"
+GAO_CRA_REAL_CAPTURE_2026_08_04_BYTE_LENGTH = 130_944
+GAO_CRA_REAL_CAPTURE_2026_08_04_RETRIEVED_AT = "2026-08-04T04:35:23Z"
 
 # GAO's own blank "Submission of Federal Rules Under the Congressional
 # Review Act" form (the "11/17/23" edition footer on the PDF page itself),
@@ -163,12 +96,12 @@ ResourceUse = Literal["deterministicMetadata"]
 AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
-_FACET_OPTION_VALUE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-_EXPECTED_FACET_NAMES: frozenset[FacetName] = frozenset({"priority", "processed", "type"})
-# Identity anchors and extraction pattern for the REAL captured page shape,
-# where the three facets never render as <select>/<option> markup -- they
-# are echoed query parameters inside a drupal-settings JSON script tag.
-_CRA_DATABASE_PAGE_HEADING = "Congressional Review Act"
+_FACET_OPTION_VALUE = re.compile(r"^[A-Za-z0-9]+(?:[ /-][A-Za-z0-9]+)*$")
+_EXPECTED_FACET_NAMES: frozenset[FacetName] = frozenset({"priority", "type"})
+_LEGACY_FACET_NAMES: frozenset[FacetName] = frozenset({"priority", "processed", "type"})
+# Identity anchors and extraction pattern for the real page's selected query
+# values in its Drupal settings. Full enumeration uses the radio-form parser.
+_CRA_DATABASE_PAGE_HEADING = "Search Database of Rules"
 _TITLE_TAG = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _H1_HEADING = re.compile(r"<h1[^>]*>(.*?)</h1>", re.IGNORECASE | re.DOTALL)
 _DRUPAL_SETTINGS_SCRIPT = re.compile(
@@ -195,7 +128,7 @@ _CHALLENGE_MARKERS = (
     b"attention required! | cloudflare",
     b"just a moment...</title>",
 )
-_ALLOWED_RECORD_FIELDS = frozenset({"priority", "processed", "type", "receivedDate", "effectiveDate"})
+_ALLOWED_RECORD_FIELDS = frozenset({"priority", "type", "receivedDate", "effectiveDate"})
 # Any unsupported field whose name looks like a computed CRA review window is
 # refused with a distinct, explicit error rather than the generic unknown-
 # field error, so the binding scope constraint ("source facets only") is
@@ -208,7 +141,7 @@ _NOT_A_STABLE_BULK_API_GAP = MappingProxyType(
         "reason": (
             "GAO's CRA database search page has no documented stable bulk API; "
             "this module captures only the exposed HTML facet controls "
-            "(priority, processed, type), not a machine-readable listing "
+            "(priority and type), not a machine-readable listing "
             "endpoint or the underlying rule-submission row schema."
         ),
     }
@@ -232,15 +165,11 @@ _LIVE_CAPTURE_UNVERIFIED_GAP = MappingProxyType(
             "fetch attempted at implementation time (2026-08-03) returned an "
             "Akamai access-denied response (HTTP 403), so the fixture was "
             "built faithful to a hypothesized Drupal exposed-filter "
-            "<select>/<option> shape. A real page has since been captured "
-            "through the project's Zyte transport (2026-08-04) and is pinned "
-            "separately as GAO_CRA_REAL_CAPTURE_2026_08_04; it renders zero "
-            "<select> and zero <option> elements, so the hypothesis this "
-            "parser encodes is one the real gao.gov server HTML does not "
-            "satisfy. Use parse_gao_cra_real_page_echoed_query for the shape "
-            "confirmed against the real capture; this <select>-based parser "
-            "and its fixture are retained only as legacy strict-parser test "
-            "coverage."
+            "<select>/<option> shape. GAO's actual Search Database of Rules "
+            "page has since been captured through Zyte and is pinned as "
+            "GAO_CRA_REAL_CAPTURE_2026_08_04. It server-renders radio groups "
+            "for priority and type. This select-shaped fixture remains only "
+            "as historical negative evidence and cannot be packaged."
         ),
     }
 )
@@ -284,12 +213,22 @@ _FACET_VALUE_ENUMERATION_REQUIRES_RENDERED_DOM_GAP = MappingProxyType(
         ),
     }
 )
-GAO_CRA_PACKAGE_GAPS = (
+GAO_CRA_LEGACY_PACKAGE_GAPS = (
     _NOT_A_STABLE_BULK_API_GAP,
     _NO_FACET_RELEASE_GAP,
     _LIVE_CAPTURE_UNVERIFIED_GAP,
     _REVIEW_WINDOW_OUT_OF_SCOPE_GAP,
-    _FACET_VALUE_ENUMERATION_REQUIRES_RENDERED_DOM_GAP,
+)
+GAO_CRA_LEGACY_KNOWN_GAPS = tuple(gap["reason"] for gap in GAO_CRA_LEGACY_PACKAGE_GAPS)
+
+# The actual Search Database of Rules page is server-rendered. Its two public
+# radio groups enumerate all six query values directly in the pinned bytes.
+# ``processed=1`` remains in GAO's own query string but is not a visible facet
+# and is therefore not promoted into a code list.
+GAO_CRA_PACKAGE_GAPS = (
+    _NOT_A_STABLE_BULK_API_GAP,
+    _NO_FACET_RELEASE_GAP,
+    _REVIEW_WINDOW_OUT_OF_SCOPE_GAP,
 )
 GAO_CRA_KNOWN_GAPS = tuple(gap["reason"] for gap in GAO_CRA_PACKAGE_GAPS)
 
@@ -297,12 +236,7 @@ GAO_CRA_KNOWN_GAPS = tuple(gap["reason"] for gap in GAO_CRA_PACKAGE_GAPS)
 # (parse_gao_cra_real_page_echoed_query). This omits liveCaptureUnverified
 # (the real capture IS verified) but keeps facetValueEnumerationRequires-
 # RenderedDom, since the real page still cannot supply a facet value list.
-GAO_CRA_REAL_PAGE_GAPS = (
-    _NOT_A_STABLE_BULK_API_GAP,
-    _NO_FACET_RELEASE_GAP,
-    _REVIEW_WINDOW_OUT_OF_SCOPE_GAP,
-    _FACET_VALUE_ENUMERATION_REQUIRES_RENDERED_DOM_GAP,
-)
+GAO_CRA_REAL_PAGE_GAPS = GAO_CRA_PACKAGE_GAPS
 GAO_CRA_REAL_PAGE_KNOWN_GAPS = tuple(gap["reason"] for gap in GAO_CRA_REAL_PAGE_GAPS)
 
 _FEDRULES_NO_BULK_LISTING_GAP = MappingProxyType(
@@ -373,17 +307,11 @@ class GAOCRAScopeError(GAOCRAFacetError):
 
 
 class GAOCRAFacetEnumerationUnavailableError(GAOCRAFacetError):
-    """A caller asked for a facet's legal value list from a static server capture.
+    """A caller asked the echoed-query view to enumerate a facet.
 
-    The real gao.gov CRA database page renders zero ``<select>`` and zero
-    ``<option>`` elements; only the currently-echoed query value is visible
-    in server HTML. Enumerating the *search page's own query-string slug
-    list* requires a rendered-DOM capture, which this module does not
-    perform. This is distinct from the facet *vocabularies*, which GAO's own
-    blank CRA submission form publisher-documents (``CRA_RULE_TYPES``,
-    ``CRA_PRIORITY_LEVELS``), and from one specific rule's actual *values*,
-    which ``parse_gao_fedrules_page`` extracts from a server-rendered
-    ``fedrules/{control_number}`` detail page.
+    That narrow view retains only selected query values. Call
+    ``parse_gao_cra_facets`` on the same page to read the complete public
+    radio groups.
     """
 
 
@@ -410,9 +338,9 @@ def _validate_source_url(source_url: str) -> None:
         raise GAOCRAAcquisitionError("source_url must be an official HTTPS gao.gov URL")
     if parsed.username is not None or parsed.password is not None:
         raise GAOCRAAcquisitionError("source_url must not contain credentials")
-    if parsed.path != GAO_CRA_DATABASE_PATH:
+    if parsed.path not in {GAO_CRA_DATABASE_PATH, GAO_CRA_OVERVIEW_PATH}:
         raise GAOCRAAcquisitionError(
-            f"source_url must address the CRA database search page ({GAO_CRA_DATABASE_PATH}); "
+            f"source_url must address the CRA search page ({GAO_CRA_DATABASE_PATH}); "
             "other gao.gov pages are out of scope for this facet capture"
         )
 
@@ -437,7 +365,7 @@ class GAOCRAFacetSnapshotPin:
 
 
 GAO_CRA_FACETS_2026_08_03 = GAOCRAFacetSnapshotPin(
-    source_url=GAO_CRA_DATABASE_URL,
+    source_url=GAO_CRA_OVERVIEW_URL,
     retrieved_at=GAO_CRA_FACETS_2026_08_03_RETRIEVED_AT,
     expected_sha256=GAO_CRA_FACETS_2026_08_03_SHA256,
     expected_byte_length=GAO_CRA_FACETS_2026_08_03_BYTE_LENGTH,
@@ -902,7 +830,7 @@ class _CRAFacetFormParser(HTMLParser):
     def _open(self, tag: str, attr_map: dict[str, str | None]) -> None:
         if tag == "select":
             name = attr_map.get("name")
-            if name in _EXPECTED_FACET_NAMES:
+            if name in _LEGACY_FACET_NAMES:
                 self.facet_open_count[name] = self.facet_open_count.get(name, 0) + 1
                 if self.facet_open_count[name] > 1:
                     raise GAOCRASourceDriftError(f"facet <select name={name!r}> appears more than once")
@@ -927,6 +855,64 @@ class _CRAFacetFormParser(HTMLParser):
         label = _normalize_text(self._current_option["text"])
         self.facets[self._current_facet].append((self._current_option["value"], label, self._current_option["default"]))
         self._current_option = None
+
+
+class _CRARadioFacetFormParser(HTMLParser):
+    """Read the two public radio groups from GAO's real database search form."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.facets: dict[str, list[tuple[str, str, bool]]] = {}
+        self._in_search_form = False
+        self._inputs: dict[str, tuple[str, str, bool]] = {}
+        self._current_label_for: str | None = None
+        self._current_label_text: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attr_map = dict(attrs)
+        if tag == "form" and attr_map.get("id") == "database-rules-search-form":
+            if self._in_search_form:
+                raise GAOCRASourceDriftError("CRA database search form appears more than once")
+            self._in_search_form = True
+            return
+        if not self._in_search_form:
+            return
+        if tag == "input" and attr_map.get("type") == "radio":
+            name = attr_map.get("name")
+            if name not in _EXPECTED_FACET_NAMES:
+                return
+            element_id = attr_map.get("id")
+            value = attr_map.get("value")
+            if not element_id or value is None:
+                raise GAOCRASourceDriftError(f"facet {name!r} radio is missing id or value")
+            if element_id in self._inputs:
+                raise GAOCRASourceDriftError(f"facet radio id {element_id!r} appears more than once")
+            self._inputs[element_id] = (name, value, "checked" in attr_map)
+        elif tag == "label":
+            label_for = attr_map.get("for")
+            if label_for in self._inputs:
+                self._current_label_for = label_for
+                self._current_label_text = []
+
+    def handle_data(self, data: str) -> None:
+        if self._current_label_for is not None:
+            self._current_label_text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "label" and self._current_label_for is not None:
+            name, value, is_default = self._inputs.pop(self._current_label_for)
+            label = _normalize_text(self._current_label_text)
+            self.facets.setdefault(name, []).append((value, label, is_default))
+            self._current_label_for = None
+            self._current_label_text = []
+        elif tag == "form" and self._in_search_form:
+            self._in_search_form = False
+
+    def finish(self) -> None:
+        if self._inputs:
+            raise GAOCRASourceDriftError(
+                f"CRA database facet radio(s) have no matching label: {sorted(self._inputs)}"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -976,7 +962,12 @@ def _read_acquired_payload(page: AcquiredGAOCRAFacetPage) -> bytes:
 
 
 def parse_gao_cra_facets(page: AcquiredGAOCRAFacetPage) -> ParsedGAOCRAFacets:
-    """Parse the three exact search facets from one digest-pinned CRA database page."""
+    """Parse exact search facets from a digest-pinned CRA database page.
+
+    The current publisher page exposes two radio groups: ``priority`` and
+    ``type``. The older select parser remains only for the explicitly marked
+    legacy hypothesis fixture; it is not accepted by package generation.
+    """
 
     payload = _read_acquired_payload(page)
     try:
@@ -984,21 +975,26 @@ def parse_gao_cra_facets(page: AcquiredGAOCRAFacetPage) -> ParsedGAOCRAFacets:
     except UnicodeDecodeError as error:
         raise GAOCRASourceDriftError("gao.gov CRA database page is not UTF-8") from error
 
-    parser = _CRAFacetFormParser()
+    is_real_search_page = 'id="database-rules-search-form"' in decoded
+    parser: _CRARadioFacetFormParser | _CRAFacetFormParser
+    parser = _CRARadioFacetFormParser() if is_real_search_page else _CRAFacetFormParser()
     try:
         parser.feed(decoded)
         parser.close()
+        if isinstance(parser, _CRARadioFacetFormParser):
+            parser.finish()
     except GAOCRAFacetError:
         raise
     except Exception as error:
         raise GAOCRASourceDriftError("gao.gov CRA database page is malformed HTML") from error
 
-    missing = _EXPECTED_FACET_NAMES - set(parser.facets)
+    expected_names = _EXPECTED_FACET_NAMES if is_real_search_page else _LEGACY_FACET_NAMES
+    missing = expected_names - set(parser.facets)
     if missing:
         raise GAOCRASourceDriftError(f"CRA database page is missing facet(s) {sorted(missing)}")
 
     facets: dict[FacetName, tuple[GAOCRAFacetCode, ...]] = {}
-    for facet_name in sorted(_EXPECTED_FACET_NAMES):
+    for facet_name in sorted(expected_names):
         options = parser.facets[facet_name]
         if not options:
             raise GAOCRASourceDriftError(f"facet {facet_name!r} has no options")
@@ -1044,23 +1040,16 @@ def parse_gao_cra_facets(page: AcquiredGAOCRAFacetPage) -> ParsedGAOCRAFacets:
         source_sha256=page.sha256,
         source_byte_length=page.byte_length,
         facets=MappingProxyType(facets),
-        gaps=GAO_CRA_KNOWN_GAPS,
+        gaps=GAO_CRA_KNOWN_GAPS if is_real_search_page else GAO_CRA_LEGACY_KNOWN_GAPS,
     )
 
 
 @dataclass(frozen=True, slots=True)
 class ParsedGAOCRAEchoedFacetQuery:
-    """The three facets' currently-echoed query values from a REAL captured page.
+    """The two public facets' currently echoed values from the Drupal settings.
 
-    This is read directly from the real gao.gov CRA database page's
-    ``drupal-settings-json`` blob, at ``path.currentQuery`` -- the *only*
-    place the three facets appear in that page's server HTML. It captures
-    only the currently-selected filter state GAO's own client-side
-    JavaScript echoes back; it is never an enumeration of the legal values
-    each facet accepts. The real page renders zero ``<select>`` and zero
-    ``<option>`` elements, so any list of legal facet values is
-    client-rendered and not present here -- call ``available_facet_values``
-    for the explicit refusal.
+    This view intentionally captures only selection state. Use
+    ``parse_gao_cra_facets`` to read all six server-rendered radio values.
     """
 
     source_url: str
@@ -1071,47 +1060,18 @@ class ParsedGAOCRAEchoedFacetQuery:
     gaps: tuple[str, ...]
 
     def available_facet_values(self, facet_name: FacetName) -> NoReturn:
-        """Refuse to enumerate the legal value list for one facet.
-
-        This static server capture never carries the legal value list for
-        any facet -- only the currently-echoed query value. Enumerating the
-        full list GAO accepts (e.g., every ``priority`` code) requires a
-        rendered-DOM capture (a browser-executed snapshot taken after
-        client-side JavaScript renders the facet widgets), which this
-        module does not perform. Always raises
-        ``GAOCRAFacetEnumerationUnavailableError``.
-        """
+        """Refuse because this narrow view contains only selected values."""
 
         if facet_name not in self.echoed_query:
             raise GAOCRASourceDriftError(f"unknown CRA facet {facet_name!r}")
         raise GAOCRAFacetEnumerationUnavailableError(
-            f"cannot enumerate the search page's own query-string slug list for CRA facet "
-            f"{facet_name!r} from a static server-rendered capture; the real gao.gov CRA "
-            "database page renders zero <select> and zero <option> elements, only this "
-            "facet's currently echoed query value; enumerating that slug list requires a "
-            "rendered-DOM capture. This is separate from the facet vocabulary, which GAO's "
-            "own blank CRA submission form publisher-documents (CRA_RULE_TYPES, "
-            "CRA_PRIORITY_LEVELS), and from one rule's actual value, which "
-            "parse_gao_fedrules_page extracts from its own fedrules/{control_number} page"
+            f"echoed-query view does not enumerate CRA facet {facet_name!r}; "
+            "call parse_gao_cra_facets on the same acquired page"
         )
 
 
 def parse_gao_cra_real_page_echoed_query(page: AcquiredGAOCRAFacetPage) -> ParsedGAOCRAEchoedFacetQuery:
-    """Parse the three facets' echoed query values from a REAL captured CRA database page.
-
-    Unlike ``parse_gao_cra_facets`` (which parses the hand-built, hypothesized
-    ``<select>``/``<option>`` shape), this function parses the shape
-    confirmed against a real page captured through the project's Zyte
-    transport: the three facets never render as ``<select>`` controls in
-    server HTML at all. They are visible only as the filter state GAO's own
-    client-side JavaScript echoes back into the page's
-    ``drupal-settings-json`` blob, at ``path.currentQuery``.
-
-    This function confirms page identity via the ``<title>`` and ``<h1>``
-    anchors before trusting any extracted values, and it deliberately does
-    not -- and cannot -- enumerate the legal values each facet accepts; see
-    ``ParsedGAOCRAEchoedFacetQuery.available_facet_values``.
-    """
+    """Parse the two public facets' selected values from Drupal settings."""
 
     payload = _read_acquired_payload(page)
     try:
@@ -1125,7 +1085,7 @@ def parse_gao_cra_real_page_echoed_query(page: AcquiredGAOCRAFacetPage) -> Parse
     heading_match = _H1_HEADING.search(decoded)
     if heading_match is None or _normalize_text([heading_match.group(1)]) != _CRA_DATABASE_PAGE_HEADING:
         raise GAOCRASourceDriftError(
-            "gao.gov CRA database page is missing its 'Congressional Review Act' <h1> heading anchor"
+            "gao.gov CRA database page is missing its 'Search Database of Rules' <h1> heading anchor"
         )
 
     settings_match = _DRUPAL_SETTINGS_SCRIPT.search(decoded)
@@ -1342,7 +1302,6 @@ class ValidatedGAOCRARuleSubmissionFacets:
     """
 
     priority: GAOCRAFacetAssignment
-    processed: GAOCRAFacetAssignment
     rule_type: GAOCRAFacetAssignment
     received_date: str | None
     effective_date: str | None
@@ -1413,7 +1372,6 @@ def validate_cra_rule_submission_facets(
 
     return ValidatedGAOCRARuleSubmissionFacets(
         priority=_required_facet(record, parsed, "priority"),
-        processed=_required_facet(record, parsed, "processed"),
         rule_type=_required_facet(record, parsed, "type"),
         received_date=_optional_date(record, "receivedDate"),
         effective_date=_optional_date(record, "effectiveDate"),
@@ -1423,7 +1381,7 @@ def validate_cra_rule_submission_facets(
 
 def _observation(parsed: ParsedGAOCRAFacets, code: GAOCRAFacetCode, ordinal: int) -> dict[str, Any]:
     identifier = code.identifiers[0]
-    source_path = f"form.select[name={code.facet_name}].option[{ordinal}]"
+    source_path = f"form#database-rules-search-form input[type=radio][name={code.facet_name}][{ordinal}]"
     return {
         "id": (f"urn:ref:source-observation:{GAO_CRA_RESOURCE_ID}:{identifier.kind}:{identifier.value}"),
         "sourceArtifact": parsed.source_url,
@@ -1456,12 +1414,12 @@ def build_gao_cra_facets_package(
     page: AcquiredGAOCRAFacetPage,
     parsed: ParsedGAOCRAFacets,
 ) -> SourceControlledResourceBundle:
-    """Package the three exact CRA database facets as a development-only controlled code list.
+    """Package six real GAO search values as a controlled code list.
 
     This never promotes the result into a concept scheme: every observation's
     ``eligibleUses`` stays ``deterministicMetadata``, ``conceptIdentityClaimed``
-    stays false, and ``candidateUseAuthorized`` stays false pending a verified
-    live capture (see the ``liveCaptureUnverified`` gap).
+    stays false. Package generation accepts only the verified Search Database
+    of Rules capture; the historical hand-built select fixture is rejected.
     """
 
     payload = page.path.read_bytes()
@@ -1471,6 +1429,12 @@ def build_gao_cra_facets_package(
         raise GAOCRASourceDriftError("parsed CRA database page and acquired page digests differ")
     if parsed.source_url != page.pin.source_url:
         raise GAOCRASourceDriftError("parsed CRA database page source_url differs from its acquired pin")
+    if page.sha256 != GAO_CRA_REAL_CAPTURE_2026_08_04_SHA256 or page.pin.source_url != GAO_CRA_DATABASE_URL:
+        raise GAOCRASourceDriftError(
+            "CRA facet packages require the verified GAO Search Database of Rules capture"
+        )
+    if set(parsed.facets) != set(_EXPECTED_FACET_NAMES):
+        raise GAOCRASourceDriftError("CRA facet package must contain exactly the real priority and type facets")
 
     observations = tuple(
         _observation(parsed, code, ordinal)
