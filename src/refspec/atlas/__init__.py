@@ -33,6 +33,21 @@ from .model import (
     build_vocabulary_atlas,
 )
 from .queries import LabelCluster, SearchOnlyMapping, VocabularyAtlasQueries
+from .source_concept import (
+    PinnedSourceConceptSubjectAtlasRelease,
+    SourceConceptSubjectAtlasView,
+    source_concept_subject_atlas_view,
+)
+from .subject_admission import (
+    SUBJECT_ADMISSION_ADMIT,
+    SUBJECT_ADMISSION_REJECT,
+    SUBJECT_ADMISSION_REVIEW_VERSION,
+    SubjectAdmissionError,
+    SubjectAdmissionReview,
+    admitted_subject_concept_ids,
+    build_subject_admission_review,
+    validate_subject_admission_reviews,
+)
 
 __all__ = [
     "ATLAS",
@@ -45,6 +60,9 @@ __all__ = [
     "ICPSR_USED_FOR_PROPERTY_IRI",
     "ICPSR_USE_PROPERTY_IRI",
     "RKAF",
+    "SUBJECT_ADMISSION_ADMIT",
+    "SUBJECT_ADMISSION_REJECT",
+    "SUBJECT_ADMISSION_REVIEW_VERSION",
     "AtlasReleaseFactsView",
     "CrosswalkArtifact",
     "CrosswalkBundle",
@@ -58,10 +76,18 @@ __all__ = [
     "PinnedIcpsrSubjectAtlasRelease",
     "PinnedManagedRelease",
     "PinnedRulespecCoreRelease",
+    "PinnedSourceConceptSubjectAtlasRelease",
     "SearchOnlyMapping",
+    "SourceConceptSubjectAtlasView",
+    "SubjectAdmissionError",
+    "SubjectAdmissionReview",
     "VerifiedManagedReleaseSource",
     "VocabularyAtlasAsset",
     "VocabularyAtlasError",
     "VocabularyAtlasQueries",
+    "admitted_subject_concept_ids",
+    "build_subject_admission_review",
     "build_vocabulary_atlas",
+    "source_concept_subject_atlas_view",
+    "validate_subject_admission_reviews",
 ]

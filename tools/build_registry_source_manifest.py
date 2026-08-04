@@ -563,7 +563,7 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "sha256": "sha256:b14cd488b7898391cff448ac4de19f85936072dcb1aa105da32eea88e6fd7938",
             "byteLength": 14_347_053,
             "rowCount": 276_326,
-            "etag": "\"7eeeec4f91bfb333c4c221dade5bfbd6-2\"",
+            "etag": '"7eeeec4f91bfb333c4c221dade5bfbd6-2"',
             "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
             "provenance": "downstreamPublishedSnapshot",
         },
@@ -574,7 +574,7 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "sha256": "sha256:bb42f79eacd0a1bfb19b7711f5d6859d288133acffa8f585ee468acdd5cb4975",
             "byteLength": 54_865_512,
             "rowCount": 1_990_136,
-            "etag": "\"8faaa53955c26ddb3f5ed957cf599865-7\"",
+            "etag": '"8faaa53955c26ddb3f5ed957cf599865-7"',
             "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
             "provenance": "downstreamPublishedSnapshot",
         },
@@ -585,7 +585,7 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "sha256": "sha256:702018767f73b914ef11696b47ff360e616acc2da4769f40b0d0d90f03c5ffea",
             "byteLength": 122_957_045,
             "rowCount": 800_619,
-            "etag": "\"d88fd82c9326590699ace479d609815d-15\"",
+            "etag": '"d88fd82c9326590699ace479d609815d-15"',
             "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
             "provenance": "downstreamPublishedSnapshot",
         },
@@ -596,7 +596,7 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "sha256": "sha256:e6862d5d6a5300f10c70eeaf321f1e82e1f5332f71069d07723cc584ee6a85ae",
             "byteLength": 1_017_503,
             "rowCount": 3_954,
-            "etag": "\"70da846ac24f0a0ee9f1a21674d3a21e\"",
+            "etag": '"70da846ac24f0a0ee9f1a21674d3a21e"',
             "producerRevision": "f1fcb8c9c8838071e9c45462799db788971baca4",
             "provenance": "downstreamPublishedSnapshot",
         },
@@ -608,42 +608,106 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
 # fixture discovery: constructed mini fixtures are intentionally absent.
 PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
     "agrovoc_thesaurus.py": (
-        {"name": "agrovocC330Sample", "constant": "AGROVOC_C330_SAMPLE", "localPath": "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl"},
+        {
+            "name": "agrovocC330Sample",
+            "constant": "AGROVOC_C330_SAMPLE",
+            "localPath": "tests/fixtures/agrovoc_thesaurus/agrovoc-c330-sample.ttl",
+        },
     ),
     "billstatus_codes.py": (
-        {"name": "billstatusUserGuide", "constant": "BILLSTATUS_USER_GUIDE_2026_08_03", "localPath": "tests/fixtures/billstatus_codes/billstatus-xml-user-guide-2026-08-03.md"},
+        {
+            "name": "billstatusUserGuide",
+            "constant": "BILLSTATUS_USER_GUIDE_2026_08_03",
+            "localPath": "tests/fixtures/billstatus_codes/billstatus-xml-user-guide-2026-08-03.md",
+        },
     ),
     "cbo_topic_codes.py": (
-        {"name": "cbo119CongressFeed", "constant": "CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04", "localPath": "tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml"},
+        {
+            "name": "cbo119CongressFeed",
+            "constant": "CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04",
+            "localPath": "tests/fixtures/cbo_topic_codes/cbo-119congress-cost-estimates-2026-08-04.xml",
+        },
     ),
     "census_geo_codes.py": (
-        {"name": "gnisFileFormat", "constant": "GNIS_FILE_FORMAT_PIN_2026_08_03", "localPath": "tests/fixtures/census_geo_codes/gnis-file-format-2026-08-03.pdf"},
+        {
+            "name": "gnisFileFormat",
+            "constant": "GNIS_FILE_FORMAT_PIN_2026_08_03",
+            "localPath": "tests/fixtures/census_geo_codes/gnis-file-format-2026-08-03.pdf",
+        },
     ),
     "census_gov_finance_codes.py": (
-        {"name": "censusFunctionItemCodes", "constant": "CENSUS_FUNCTION_ITEM_CODES_2026_08_03", "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-function-item-codes-2026-08-03.html"},
-        {"name": "censusDataFlagCodes", "constant": "CENSUS_DATA_FLAG_CODES_2026_08_03", "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-data-flag-codes-2026-08-03.html"},
-        {"name": "nasboProgramAreas", "constant": "NASBO_PROGRAM_AREA_CHAPTERS_2026_08_03", "localPath": "tests/fixtures/census_gov_finance_codes/nasbo-ser-program-area-chapters-2026-08-03.html"},
+        {
+            "name": "censusFunctionItemCodes",
+            "constant": "CENSUS_FUNCTION_ITEM_CODES_2026_08_03",
+            "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-function-item-codes-2026-08-03.html",
+        },
+        {
+            "name": "censusDataFlagCodes",
+            "constant": "CENSUS_DATA_FLAG_CODES_2026_08_03",
+            "localPath": "tests/fixtures/census_gov_finance_codes/census-aspep-data-flag-codes-2026-08-03.html",
+        },
+        {
+            "name": "nasboProgramAreas",
+            "constant": "NASBO_PROGRAM_AREA_CHAPTERS_2026_08_03",
+            "localPath": "tests/fixtures/census_gov_finance_codes/nasbo-ser-program-area-chapters-2026-08-03.html",
+        },
     ),
     "epa_enterprise_vocabulary.py": (
-        {"name": "epaEnterpriseTier", "constant": "EPA_REGULATORY_ACTIVITIES_TIER_CAPTURE", "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100.xml"},
-        {"name": "epaEnterpriseTierDefinitions", "constant": "EPA_REGULATORY_ACTIVITIES_TIER_WITH_DEFINITIONS_CAPTURE", "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100-with-definitions.xml"},
+        {
+            "name": "epaEnterpriseTier",
+            "constant": "EPA_REGULATORY_ACTIVITIES_TIER_CAPTURE",
+            "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100.xml",
+        },
+        {
+            "name": "epaEnterpriseTierDefinitions",
+            "constant": "EPA_REGULATORY_ACTIVITIES_TIER_WITH_DEFINITIONS_CAPTURE",
+            "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100-with-definitions.xml",
+        },
     ),
     "eurovoc_thesaurus.py": (
-        {"name": "eurovocDomainSample", "constant": "EUROVOC_SAMPLE_2026_08_03", "localPath": "tests/fixtures/eurovoc_thesaurus/eurovoc-domains-sample-2026-08-03.ttl"},
+        {
+            "name": "eurovocDomainSample",
+            "constant": "EUROVOC_SAMPLE_2026_08_03",
+            "localPath": "tests/fixtures/eurovoc_thesaurus/eurovoc-domains-sample-2026-08-03.ttl",
+        },
     ),
     "fac_dictionary.py": (
-        {"name": "facDictionaryDocs", "constant": "FAC_DICTIONARY_DOC_2026_08_03", "localPath": "tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html"},
+        {
+            "name": "facDictionaryDocs",
+            "constant": "FAC_DICTIONARY_DOC_2026_08_03",
+            "localPath": "tests/fixtures/fac_dictionary/fac-api-dictionary-2026-08-03.html",
+        },
     ),
     "fcc_ecfs_codes.py": (
-        {"name": "fccEcfsFilings", "constant": "FCC_ECFS_FILINGS_SNAPSHOT_2026_08_03", "localPath": "tests/fixtures/fcc_ecfs_codes/fcc-ecfs-filings-2026-08-03.json"},
+        {
+            "name": "fccEcfsFilings",
+            "constant": "FCC_ECFS_FILINGS_SNAPSHOT_2026_08_03",
+            "localPath": "tests/fixtures/fcc_ecfs_codes/fcc-ecfs-filings-2026-08-03.json",
+        },
     ),
     "fec_committee_codes.py": (
-        {"name": "fecCommitteeMaster", "constant": "FEC_COMMITTEE_MASTER_FILE_2026_08_03", "localPath": "tests/fixtures/fec_committee_codes/fec-committee-master-file-description-2026-08-03.html"},
-        {"name": "fecCommitteeTypes", "constant": "FEC_COMMITTEE_TYPE_CODES_2026_08_03", "localPath": "tests/fixtures/fec_committee_codes/fec-committee-type-code-descriptions-2026-08-03.html"},
-        {"name": "fecPartyCodes", "constant": "FEC_PARTY_CODES_2026_08_03", "localPath": "tests/fixtures/fec_committee_codes/fec-party-code-descriptions-2026-08-03.html"},
+        {
+            "name": "fecCommitteeMaster",
+            "constant": "FEC_COMMITTEE_MASTER_FILE_2026_08_03",
+            "localPath": "tests/fixtures/fec_committee_codes/fec-committee-master-file-description-2026-08-03.html",
+        },
+        {
+            "name": "fecCommitteeTypes",
+            "constant": "FEC_COMMITTEE_TYPE_CODES_2026_08_03",
+            "localPath": "tests/fixtures/fec_committee_codes/fec-committee-type-code-descriptions-2026-08-03.html",
+        },
+        {
+            "name": "fecPartyCodes",
+            "constant": "FEC_PARTY_CODES_2026_08_03",
+            "localPath": "tests/fixtures/fec_committee_codes/fec-party-code-descriptions-2026-08-03.html",
+        },
     ),
     "gao_cra_facets.py": (
-        {"name": "gaoCraDatabase", "constant": "GAO_CRA_REAL_CAPTURE_2026_08_04", "localPath": "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html"},
+        {
+            "name": "gaoCraDatabase",
+            "constant": "GAO_CRA_REAL_CAPTURE_2026_08_04",
+            "localPath": "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html",
+        },
         {
             "name": "gaoFedRulesRecord",
             "constant": "GAO_FEDRULES_167777",
@@ -654,74 +718,194 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
         },
     ),
     "gao_topics.py": (
-        {"name": "gaoProductTopics", "constant": "GAO_PRODUCT_GAO_26_108505_2026_08_04", "localPath": "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html"},
+        {
+            "name": "gaoProductTopics",
+            "constant": "GAO_PRODUCT_GAO_26_108505_2026_08_04",
+            "localPath": "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html",
+        },
     ),
     "govinfo_collections.py": (
-        {"name": "govinfoCollections", "constant": "GOVINFO_COLLECTIONS_2026_08_03", "localPath": "tests/fixtures/govinfo_collections/govinfo-collections-2026-08-03.json"},
-        {"name": "govinfoEcfrTitles", "constant": "ECFR_CFR_TITLES_2026_08_03", "localPath": "tests/fixtures/govinfo_collections/ecfr-cfr-titles-2026-08-03.json"},
-        {"name": "govinfoCfrSummary", "constant": "GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03", "localPath": "tests/fixtures/govinfo_collections/govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json"},
-        {"name": "govinfoCfrPremis", "constant": "GOVINFO_CFR_PACKAGE_PREMIS_2026_08_03", "localPath": "tests/fixtures/govinfo_collections/govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml"},
+        {
+            "name": "govinfoCollections",
+            "constant": "GOVINFO_COLLECTIONS_2026_08_03",
+            "localPath": "tests/fixtures/govinfo_collections/govinfo-collections-2026-08-03.json",
+        },
+        {
+            "name": "govinfoEcfrTitles",
+            "constant": "ECFR_CFR_TITLES_2026_08_03",
+            "localPath": "tests/fixtures/govinfo_collections/ecfr-cfr-titles-2026-08-03.json",
+        },
+        {
+            "name": "govinfoCfrSummary",
+            "constant": "GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03",
+            "localPath": "tests/fixtures/govinfo_collections/govinfo-package-summary-cfr-2023-title1-vol1-2026-08-03.json",
+        },
+        {
+            "name": "govinfoCfrPremis",
+            "constant": "GOVINFO_CFR_PACKAGE_PREMIS_2026_08_03",
+            "localPath": "tests/fixtures/govinfo_collections/govinfo-premis-cfr-2023-title1-vol1-mini-2026-08-03.xml",
+        },
     ),
     "grants_gov_codes.py": (
-        {"name": "grantsGovStatusCodes", "constant": "GRANTS_GOV_STATUS_CODES_2026_08_03", "localPath": "tests/fixtures/grants_gov_codes/grants-gov-status-codes-2026-08-03.html"},
+        {
+            "name": "grantsGovStatusCodes",
+            "constant": "GRANTS_GOV_STATUS_CODES_2026_08_03",
+            "localPath": "tests/fixtures/grants_gov_codes/grants-gov-status-codes-2026-08-03.html",
+        },
     ),
     "lda_controlled_codes.py": (
-        {"name": "ldaGeneralIssueCodes", "constant": "LDA_GENERAL_ISSUE_CODES_2026_07_30", "localPath": "tests/fixtures/lda-general-issue-codes-2026-07-30.json"},
-        {"name": "ldaFilingTypes", "constant": "LDA_FILING_TYPES_2026_07_30", "localPath": "tests/fixtures/lda-filing-types-2026-07-30.json"},
+        {
+            "name": "ldaGeneralIssueCodes",
+            "constant": "LDA_GENERAL_ISSUE_CODES_2026_07_30",
+            "localPath": "tests/fixtures/lda-general-issue-codes-2026-07-30.json",
+        },
+        {
+            "name": "ldaFilingTypes",
+            "constant": "LDA_FILING_TYPES_2026_07_30",
+            "localPath": "tests/fixtures/lda-filing-types-2026-07-30.json",
+        },
     ),
     "nalt_core.py": (
-        {"name": "naltCoreAnimalWelfare", "constant": "NALT_CORE_ANIMAL_WELFARE_CAPTURE", "localPath": "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl"},
-        {"name": "naltCoreTopConcept", "constant": "NALT_CORE_TOP_CONCEPT_CAPTURE", "localPath": "tests/fixtures/nalt_core/nalt-core-127295-top-concept.ttl"},
+        {
+            "name": "naltCoreAnimalWelfare",
+            "constant": "NALT_CORE_ANIMAL_WELFARE_CAPTURE",
+            "localPath": "tests/fixtures/nalt_core/nalt-core-9084-animal-welfare.ttl",
+        },
+        {
+            "name": "naltCoreTopConcept",
+            "constant": "NALT_CORE_TOP_CONCEPT_CAPTURE",
+            "localPath": "tests/fixtures/nalt_core/nalt-core-127295-top-concept.ttl",
+        },
     ),
     "nasa_technology_taxonomy.py": (
-        {"name": "nasaTechnologyRoots", "constant": "NASA_TAXONOMY_ROOT_INDEX_2026_08_03", "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-roots-2026-08-03.json"},
-        {"name": "nasaTechnologyChildren", "constant": "NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03", "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-8817-children-2026-08-03.json"},
+        {
+            "name": "nasaTechnologyRoots",
+            "constant": "NASA_TAXONOMY_ROOT_INDEX_2026_08_03",
+            "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-roots-2026-08-03.json",
+        },
+        {
+            "name": "nasaTechnologyChildren",
+            "constant": "NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03",
+            "localPath": "tests/fixtures/nasa_technology_taxonomy/techport-taxonomy-8817-children-2026-08-03.json",
+        },
     ),
     "nrc_adams_codes.py": (
-        {"name": "nrcAdamsLanding", "constant": "NRC_ADAMS_LANDING_PAGE_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-landing-page-2026-08-03.html"},
-        {"name": "nrcAdamsHelp", "constant": "NRC_ADAMS_HELP_REFERENCE_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-help-reference-2026-08-03.html"},
-        {"name": "nrcAdamsFaq", "constant": "NRC_ADAMS_FAQ_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html"},
-        {"name": "nrcAdamsNotices", "constant": "NRC_ADAMS_SYSTEM_NOTICES_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-system-notices-2026-08-03.html"},
-        {"name": "nrcAdamsResultLabels", "constant": "NRC_APS_RESULT_FIELD_LABELS_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-result-field-labels-excerpt-2026-08-03.js"},
-        {"name": "nrcAdamsFacetLabels", "constant": "NRC_APS_LIBRARY_FACET_LABELS_2026_08_03", "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-library-facet-labels-excerpt-2026-08-03.js"},
+        {
+            "name": "nrcAdamsLanding",
+            "constant": "NRC_ADAMS_LANDING_PAGE_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-landing-page-2026-08-03.html",
+        },
+        {
+            "name": "nrcAdamsHelp",
+            "constant": "NRC_ADAMS_HELP_REFERENCE_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-help-reference-2026-08-03.html",
+        },
+        {
+            "name": "nrcAdamsFaq",
+            "constant": "NRC_ADAMS_FAQ_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-faq-2026-08-03.html",
+        },
+        {
+            "name": "nrcAdamsNotices",
+            "constant": "NRC_ADAMS_SYSTEM_NOTICES_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-adams-system-notices-2026-08-03.html",
+        },
+        {
+            "name": "nrcAdamsResultLabels",
+            "constant": "NRC_APS_RESULT_FIELD_LABELS_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-result-field-labels-excerpt-2026-08-03.js",
+        },
+        {
+            "name": "nrcAdamsFacetLabels",
+            "constant": "NRC_APS_LIBRARY_FACET_LABELS_2026_08_03",
+            "localPath": "tests/fixtures/nrc_adams_codes/nrc-aps-library-facet-labels-excerpt-2026-08-03.js",
+        },
     ),
     "oversight_report_types.py": (
-        {"name": "oversightReportTypes", "constant": "OVERSIGHT_REPORT_TYPES_2026_08_03", "localPath": "tests/fixtures/oversight_report_types/oversight-reports-federal-2026-08-03.html"},
+        {
+            "name": "oversightReportTypes",
+            "constant": "OVERSIGHT_REPORT_TYPES_2026_08_03",
+            "localPath": "tests/fixtures/oversight_report_types/oversight-reports-federal-2026-08-03.html",
+        },
     ),
     "pra_icr_codes.py": (
-        {"name": "praSearchCodes", "constant": "PRA_SEARCH_PAGE_2026_08_03", "localPath": "tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html"},
+        {
+            "name": "praSearchCodes",
+            "constant": "PRA_SEARCH_PAGE_2026_08_03",
+            "localPath": "tests/fixtures/pra_icr_codes/pra-search-2026-08-03.html",
+        },
     ),
     "regulations_gov_codes.py": (
-        {"name": "regulationsGovOpenApi", "constant": "RGOV_OPENAPI_2026_08_03", "localPath": "tests/fixtures/regulations_gov_codes/regulations-gov-openapi-v4-2026-08-03.yaml"},
+        {
+            "name": "regulationsGovOpenApi",
+            "constant": "RGOV_OPENAPI_2026_08_03",
+            "localPath": "tests/fixtures/regulations_gov_codes/regulations-gov-openapi-v4-2026-08-03.yaml",
+        },
     ),
     "sam_assistance_listing_codes.py": (
-        {"name": "samAssistanceDocs", "constant": "SAM_ASSISTANCE_DOC_2026_08_03", "localPath": "tests/fixtures/sam_assistance_listing_codes/sam-assistance-listings-api-2026-08-03.html"},
+        {
+            "name": "samAssistanceDocs",
+            "constant": "SAM_ASSISTANCE_DOC_2026_08_03",
+            "localPath": "tests/fixtures/sam_assistance_listing_codes/sam-assistance-listings-api-2026-08-03.html",
+        },
     ),
     "sam_opportunities_codes.py": (
-        {"name": "samOpportunitiesDocs", "constant": "SAM_OPPORTUNITIES_DOC_2026_08_03", "localPath": "tests/fixtures/sam_opportunities_codes/sam-get-opportunities-public-api-2026-08-03.html"},
+        {
+            "name": "samOpportunitiesDocs",
+            "constant": "SAM_OPPORTUNITIES_DOC_2026_08_03",
+            "localPath": "tests/fixtures/sam_opportunities_codes/sam-get-opportunities-public-api-2026-08-03.html",
+        },
     ),
     "scotus_opinion_types.py": (
-        {"name": "scotusOpinionTypes", "constant": "SCOTUS_OPINIONS_2026_08_03", "localPath": "tests/fixtures/scotus_opinion_types/scotus-opinions-2026-08-03.html"},
+        {
+            "name": "scotusOpinionTypes",
+            "constant": "SCOTUS_OPINIONS_2026_08_03",
+            "localPath": "tests/fixtures/scotus_opinion_types/scotus-opinions-2026-08-03.html",
+        },
     ),
     "sec_series_categories.py": (
-        {"name": "secSeriesCategories", "constant": "SEC_RULES_REGULATIONS_PIN_2026_08_03", "localPath": "tests/fixtures/sec_series_categories/sec-rules-regulations-2026-08-03.html"},
+        {
+            "name": "secSeriesCategories",
+            "constant": "SEC_RULES_REGULATIONS_PIN_2026_08_03",
+            "localPath": "tests/fixtures/sec_series_categories/sec-rules-regulations-2026-08-03.html",
+        },
     ),
     "treasury_tas_fast_book.py": (
-        {"name": "treasuryTasFormat", "constant": "TAS_COMPONENT_FORMAT_2026_08_03", "localPath": "tests/fixtures/treasury_tas_fast_book/treasury-account-symbol-reporting-2026-08-03.html"},
+        {
+            "name": "treasuryTasFormat",
+            "constant": "TAS_COMPONENT_FORMAT_2026_08_03",
+            "localPath": "tests/fixtures/treasury_tas_fast_book/treasury-account-symbol-reporting-2026-08-03.html",
+        },
         {
             "name": "treasuryFastBook",
             "constant": "FAST_BOOK_DESCRIPTION_2026_08_03",
             "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-description-of-contents-2026-08-03.html",
             "receiptRequired": False,
         },
-        {"name": "treasuryFastBookPartIIIII", "constant": "FAST_BOOK_PART_II_III_2026_07_31", "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-iii-2026-07-31.xlsx"},
+        {
+            "name": "treasuryFastBookPartIIIII",
+            "constant": "FAST_BOOK_PART_II_III_2026_07_31",
+            "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-iii-2026-07-31.xlsx",
+        },
     ),
     "usaspending_gsdm_codes.py": (
-        {"name": "usaspendingAwardTypes", "constant": "USASPENDING_AWARD_TYPES_2026_08_03", "localPath": "tests/fixtures/usaspending_gsdm_codes/usaspending-award-types-2026-08-03.json"},
+        {
+            "name": "usaspendingAwardTypes",
+            "constant": "USASPENDING_AWARD_TYPES_2026_08_03",
+            "localPath": "tests/fixtures/usaspending_gsdm_codes/usaspending-award-types-2026-08-03.json",
+        },
     ),
     "unified_agenda_codes.py": (
-        {"name": "unifiedAgendaSchema", "constant": "UA_REGINFO_SCHEMA_2026_08_03", "localPath": "tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd"},
-        {"name": "unifiedAgendaPreamble", "constant": "UA_RISC_PREAMBLE_2026_08_03", "localPath": "tests/fixtures/unified_agenda_codes/risc-preamble-202210.pdf"},
+        {
+            "name": "unifiedAgendaSchema",
+            "constant": "UA_REGINFO_SCHEMA_2026_08_03",
+            "localPath": "tests/fixtures/unified_agenda_codes/reginfo-rin-data-ver10262011.xsd",
+        },
+        {
+            "name": "unifiedAgendaPreamble",
+            "constant": "UA_RISC_PREAMBLE_2026_08_03",
+            "localPath": "tests/fixtures/unified_agenda_codes/risc-preamble-202210.pdf",
+        },
     ),
 }
 
@@ -779,10 +963,25 @@ NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
         "coveredBy": ["adapters/elsst_acquisition.py"],
         "inputRefs": [("elsst.py", "elsstR6")],
     },
+    "infrastructure/semantic_foundation.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
     "infrastructure/source_controlled_resource.py": {
         "auditRole": "downstreamProjection",
         "coveredBy": ["packages/federal_register_topics_package.py"],
         "inputRefs": [("federal_register_topics_api.py", "federalRegisterTopics")],
+    },
+    "infrastructure/source_concept_release.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["packages/crs_source_concept_releases.py"],
+        "inputRefs": [
+            ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeGeographic20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeOrganizations20260730"),
+            ("crs_legislative_resources.py", "crsPolicyAreas20260730"),
+        ],
     },
     "infrastructure/source_identity.py": {
         "auditRole": "support",
@@ -810,6 +1009,16 @@ NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
     "packages/crs_source_packages.py": {
         "auditRole": "downstreamProjection",
         "coveredBy": ["crs_legislative_resources.py"],
+        "inputRefs": [
+            ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeGeographic20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeOrganizations20260730"),
+            ("crs_legislative_resources.py", "crsPolicyAreas20260730"),
+        ],
+    },
+    "packages/crs_source_concept_releases.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["packages/crs_source_packages.py"],
         "inputRefs": [
             ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
             ("crs_legislative_resources.py", "crsLegislativeGeographic20260730"),
@@ -867,18 +1076,13 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
     specifications = PINNED_FIXTURE_INPUTS.get(module_filename, ())
     if not specifications:
         return []
-    module = importlib.import_module(
-        "refspec.registry."
-        + module_filename.removesuffix(".py").replace("/", ".")
-    )
+    module = importlib.import_module("refspec.registry." + module_filename.removesuffix(".py").replace("/", "."))
     resolved: list[dict[str, Any]] = []
     for specification in specifications:
         pin_name = specification["constant"]
         pin = getattr(module, pin_name)
         source = getattr(pin, "source", None) or getattr(pin, "document", None) or pin
-        expected_digest = getattr(pin, "expected_sha256", None) or getattr(
-            source, "expected_sha256", None
-        )
+        expected_digest = getattr(pin, "expected_sha256", None) or getattr(source, "expected_sha256", None)
         expected_length = getattr(pin, "expected_byte_length", None)
         if expected_length is None:
             expected_length = getattr(source, "expected_byte_length", None)
@@ -889,9 +1093,7 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
             or getattr(source, "url", None)
         )
         if not isinstance(expected_digest, str) or not isinstance(expected_length, int):
-            raise TypeError(
-                f"{module_filename}.{pin_name} must declare expected_sha256 and expected_byte_length"
-            )
+            raise TypeError(f"{module_filename}.{pin_name} must declare expected_sha256 and expected_byte_length")
         if not isinstance(publisher_url, str) or not publisher_url.startswith(("http://", "https://")):
             raise ValueError(f"{module_filename}.{pin_name} has no publisher URL")
 
@@ -933,9 +1135,7 @@ def _icpsr_managed_release_test_inputs(
 ) -> list[dict[str, Any]]:
     """Describe the multi-artifact publisher capture as one source collection."""
 
-    capture_root = Path(
-        "output/refspec-vocabulary-portfolio/icpsr/2026-07-30"
-    )
+    capture_root = Path("output/refspec-vocabulary-portfolio/icpsr/2026-07-30")
     manifest_path = repository_root / capture_root / "index/manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     descriptors = [manifest["robots"], *manifest["pages"]]
@@ -994,13 +1194,7 @@ def _icpsr_index_page_a_test_input(repository_root: Path) -> dict[str, Any]:
 
 
 def _registry_module_paths(registry: Path) -> tuple[Path, ...]:
-    return tuple(
-        sorted(
-            path
-            for path in registry.rglob("*.py")
-            if path.name != "__init__.py"
-        )
-    )
+    return tuple(sorted(path for path in registry.rglob("*.py") if path.name != "__init__.py"))
 
 
 def build_manifest(repository_root: Path) -> dict[str, Any]:
@@ -1037,30 +1231,19 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
         )
         test_inputs = [dict(item) for item in direct_inputs[module]]
         for source_module, input_name in config["inputRefs"]:
-            matches = [
-                descriptor
-                for descriptor in direct_inputs[source_module]
-                if descriptor["name"] == input_name
-            ]
+            matches = [descriptor for descriptor in direct_inputs[source_module] if descriptor["name"] == input_name]
             if len(matches) != 1:
-                raise ValueError(
-                    f"{module} input reference {source_module}:{input_name} did not resolve exactly once"
-                )
+                raise ValueError(f"{module} input reference {source_module}:{input_name} did not resolve exactly once")
             test_inputs.append(dict(matches[0]))
         for test_input in test_inputs:
             descriptors = (
-                test_input.get("members", [])
-                if test_input.get("kind") == "sourceCollection"
-                else [test_input]
+                test_input.get("members", []) if test_input.get("kind") == "sourceCollection" else [test_input]
             )
             if any(
-                not isinstance(descriptor.get("sha256"), str)
-                or not isinstance(descriptor.get("byteLength"), int)
+                not isinstance(descriptor.get("sha256"), str) or not isinstance(descriptor.get("byteLength"), int)
                 for descriptor in descriptors
             ):
-                raise ValueError(
-                    f"{module} audit inputs must carry immutable sha256 and byteLength pins"
-                )
+                raise ValueError(f"{module} audit inputs must carry immutable sha256 and byteLength pins")
             declared_urls.update(
                 descriptor["publisherUrl"]
                 for descriptor in descriptors
@@ -1077,9 +1260,7 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
                 "auditRole": role,
                 "coveredBy": list(config["coveredBy"]),
                 "sourceStatus": (
-                    "notApplicable"
-                    if role == "support"
-                    else ("blocked" if blockers else "publisherBytes")
+                    "notApplicable" if role == "support" else ("blocked" if blockers else "publisherBytes")
                 ),
                 "blockers": blockers,
                 "declaredUrls": sorted(declared_urls),

@@ -132,11 +132,14 @@ def test_gao_fedrules_reference_page_is_not_a_required_package_receipt() -> None
 def test_registry_audit_inventory_includes_nested_runtime_modules() -> None:
     modules = set(audit.registry_modules(REPOSITORY_ROOT))
 
-    assert len(modules) == 72
+    assert len(modules) == 75
     assert "adapters/crs_zyte.py" in modules
     assert "infrastructure/pinned_acquisition.py" in modules
+    assert "infrastructure/semantic_foundation.py" in modules
+    assert "infrastructure/source_concept_release.py" in modules
     assert "managed_releases/icpsr_managed_release.py" in modules
     assert "packages/federal_register_topics_package.py" in modules
+    assert "packages/crs_source_concept_releases.py" in modules
     assert not any(module.endswith("/__init__.py") for module in modules)
 
 
@@ -155,11 +158,7 @@ def test_nested_data_paths_name_real_inputs_and_measured_coverage() -> None:
         publisher_inputs = [
             publisher_input
             for item in row["testInputs"]
-            for publisher_input in (
-                item.get("members", [])
-                if item.get("kind") == "sourceCollection"
-                else [item]
-            )
+            for publisher_input in (item.get("members", []) if item.get("kind") == "sourceCollection" else [item])
         ]
         assert all(item["publisherUrl"].startswith("https://") for item in publisher_inputs)
 
@@ -281,10 +280,13 @@ def test_receipt_gate_checks_collection_capture_and_member_pins() -> None:
         }
     )
 
-    assert audit.execution_receipt_failures(
-        manifest,
-        _receipts(_execution(digests=[capture, member_a, member_b], counts={"concepts": 7})),
-    ) == ()
+    assert (
+        audit.execution_receipt_failures(
+            manifest,
+            _receipts(_execution(digests=[capture, member_a, member_b], counts={"concepts": 7})),
+        )
+        == ()
+    )
 
     failures = audit.execution_receipt_failures(
         manifest,
@@ -306,14 +308,8 @@ def test_receipt_collector_preserves_distinct_pinned_inputs() -> None:
         )
 
     executions = receipt_plugin._MODULES["example"]["executions"]
-    retained_digests = {
-        digest
-        for execution in executions
-        for digest in execution["sourceEvidence"]["digests"]
-    }
-    assert retained_digests == {
-        "sha256:" + hashlib.sha256(payload).hexdigest() for payload in payloads
-    }
+    retained_digests = {digest for execution in executions for digest in execution["sourceEvidence"]["digests"]}
+    assert retained_digests == {"sha256:" + hashlib.sha256(payload).hexdigest() for payload in payloads}
 
 
 def test_receipt_collector_prefers_publisher_location_for_the_same_pin() -> None:
@@ -352,6 +348,4 @@ def test_receipt_collector_records_only_the_outer_production_call() -> None:
     result = receipt_plugin._call_and_record("example", "outer", outer, (payload,), {})
 
     assert result == {"records": [{"value": "publisher bytes"}]}
-    assert [execution["function"] for execution in receipt_plugin._MODULES["example"]["executions"]] == [
-        "outer"
-    ]
+    assert [execution["function"] for execution in receipt_plugin._MODULES["example"]["executions"]] == ["outer"]

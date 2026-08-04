@@ -19,6 +19,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "CRSIdentityLink": ("refspec.registry.packages.crs_source_packages", "CRSIdentityLink"),
     "CRSIdentityReview": ("refspec.registry.packages.crs_source_packages", "CRSIdentityReview"),
     "CRSSourcePackages": ("refspec.registry.packages.crs_source_packages", "CRSSourcePackages"),
+    "CRSSourceConceptReleases": (
+        "refspec.registry.packages.crs_source_concept_releases",
+        "CRSSourceConceptReleases",
+    ),
     "CRS_REGISTRATION_EVENT": (
         "refspec.registry.packages.crs_source_packages",
         "CRS_REGISTRATION_EVENT",
@@ -50,6 +54,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ELSST_PUBLISHER": ("refspec.registry.adapters.elsst_acquisition", "ELSST_PUBLISHER"),
     "ELSST_R6": ("refspec.registry.adapters.elsst_acquisition", "ELSST_R6"),
     "ELSST_RELEASES": ("refspec.registry.adapters.elsst_acquisition", "ELSST_RELEASES"),
+    "EvidenceAssertion": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "EvidenceAssertion",
+    ),
     "ElsstAcquisitionError": ("refspec.registry.adapters.elsst_acquisition", "ElsstAcquisitionError"),
     "ElsstConcept": ("refspec.registry.elsst", "ElsstConcept"),
     "ElsstConceptScheme": ("refspec.registry.elsst", "ElsstConceptScheme"),
@@ -59,7 +67,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ElsstImportCensus": ("refspec.registry.adapters.elsst_import_coverage", "ElsstImportCensus"),
     "ElsstImportCounts": ("refspec.registry.elsst", "ElsstImportCounts"),
     "ElsstImportCoverageError": ("refspec.registry.adapters.elsst_import_coverage", "ElsstImportCoverageError"),
-    "ElsstImportCoverageValidation": ("refspec.registry.adapters.elsst_import_coverage", "ElsstImportCoverageValidation"),
+    "ElsstImportCoverageValidation": (
+        "refspec.registry.adapters.elsst_import_coverage",
+        "ElsstImportCoverageValidation",
+    ),
     "ElsstIriRelation": ("refspec.registry.elsst", "ElsstIriRelation"),
     "ElsstLabelExpression": ("refspec.registry.elsst", "ElsstLabelExpression"),
     "ElsstLiteral": ("refspec.registry.elsst", "ElsstLiteral"),
@@ -151,7 +162,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "IcpsrLookupHit": ("refspec.registry.managed_releases.icpsr_managed_release", "IcpsrLookupHit"),
     "IcpsrManagedRelease": ("refspec.registry.managed_releases.icpsr_managed_release", "IcpsrManagedRelease"),
     "IcpsrManagedReleaseError": ("refspec.registry.managed_releases.icpsr_managed_release", "IcpsrManagedReleaseError"),
-    "IcpsrManagedReleaseSources": ("refspec.registry.managed_releases.icpsr_managed_release", "IcpsrManagedReleaseSources"),
+    "IcpsrManagedReleaseSources": (
+        "refspec.registry.managed_releases.icpsr_managed_release",
+        "IcpsrManagedReleaseSources",
+    ),
     "IcpsrManagedReleaseView": ("refspec.registry.managed_releases.icpsr_managed_release", "IcpsrManagedReleaseView"),
     "LDAControlledListPackageError": (
         "refspec.registry.packages.lda_controlled_list_resources",
@@ -164,12 +178,56 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     ),
     "ListsOfSubjectsResolution": ("refspec.policies.federal_register_lists_of_subjects", "ListsOfSubjectsResolution"),
     "ManagedReleaseViewLike": ("refspec.registry.adapters.concept_domain_bridge", "ManagedReleaseViewLike"),
+    "MappingAssertion": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "MappingAssertion",
+    ),
     "ManagedVocabularyBundle": ("refspec.registry.infrastructure.managed_vocabulary_bundle", "ManagedVocabularyBundle"),
-    "ManagedVocabularyBundleError": ("refspec.registry.infrastructure.managed_vocabulary_bundle", "ManagedVocabularyBundleError"),
+    "ManagedVocabularyBundleError": (
+        "refspec.registry.infrastructure.managed_vocabulary_bundle",
+        "ManagedVocabularyBundleError",
+    ),
     "NOTE_PREDICATE_IRIS": ("refspec.registry.elsst", "NOTE_PREDICATE_IRIS"),
-    "SourceControlledResourceBundle": ("refspec.registry.infrastructure.source_controlled_resource", "SourceControlledResourceBundle"),
-    "SourceControlledResourceError": ("refspec.registry.infrastructure.source_controlled_resource", "SourceControlledResourceError"),
-    "SourceControlledResourceView": ("refspec.registry.infrastructure.source_controlled_resource", "SourceControlledResourceView"),
+    "RING_RELATIONS": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "RING_RELATIONS",
+    ),
+    "RightsMetadata": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "RightsMetadata",
+    ),
+    "SEMANTIC_RINGS": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "SEMANTIC_RINGS",
+    ),
+    "SemanticFoundationError": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "SemanticFoundationError",
+    ),
+    "SourceControlledResourceBundle": (
+        "refspec.registry.infrastructure.source_controlled_resource",
+        "SourceControlledResourceBundle",
+    ),
+    "SourceControlledResourceError": (
+        "refspec.registry.infrastructure.source_controlled_resource",
+        "SourceControlledResourceError",
+    ),
+    "SourceControlledResourceView": (
+        "refspec.registry.infrastructure.source_controlled_resource",
+        "SourceControlledResourceView",
+    ),
+    "SourceConceptReleaseBundle": (
+        "refspec.registry.infrastructure.source_concept_release",
+        "SourceConceptReleaseBundle",
+    ),
+    "SourceConceptReleaseError": (
+        "refspec.registry.infrastructure.source_concept_release",
+        "SourceConceptReleaseError",
+    ),
+    "SourceConceptReleaseView": (
+        "refspec.registry.infrastructure.source_concept_release",
+        "SourceConceptReleaseView",
+    ),
     "SourceCaptureEvent": ("refspec.registry.infrastructure.source_identity", "SourceCaptureEvent"),
     "SourceIdentityError": ("refspec.registry.infrastructure.source_identity", "SourceIdentityError"),
     "SourceRegistrationEvent": (
@@ -179,6 +237,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "TopicCollection": ("refspec.registry.federal_register_topics_api", "TopicCollection"),
     "acquire_elsst_release": ("refspec.registry.adapters.elsst_acquisition", "acquire_elsst_release"),
     "build_crs_source_packages": ("refspec.registry.packages.crs_source_packages", "build_crs_source_packages"),
+    "build_crs_source_concept_releases": (
+        "refspec.registry.packages.crs_source_concept_releases",
+        "build_crs_source_concept_releases",
+    ),
     "build_crs_source_packages_from_capture_root": (
         "refspec.registry.packages.crs_source_packages",
         "build_crs_source_packages_from_capture_root",
@@ -191,7 +253,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "refspec.registry.packages.federal_register_topics_package",
         "build_federal_register_topics_source_package",
     ),
-    "build_icpsr_managed_release": ("refspec.registry.managed_releases.icpsr_managed_release", "build_icpsr_managed_release"),
+    "build_icpsr_managed_release": (
+        "refspec.registry.managed_releases.icpsr_managed_release",
+        "build_icpsr_managed_release",
+    ),
     "build_lda_filing_type_package": (
         "refspec.registry.packages.lda_controlled_list_resources",
         "build_lda_filing_type_package",
@@ -203,6 +268,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "build_source_controlled_resource_bundle": (
         "refspec.registry.infrastructure.source_controlled_resource",
         "build_source_controlled_resource_bundle",
+    ),
+    "build_source_concept_release_bundle": (
+        "refspec.registry.infrastructure.source_concept_release",
+        "build_source_concept_release_bundle",
     ),
     "capture_federal_register_topics": (
         "refspec.registry.federal_register_topics_api",
@@ -253,7 +322,30 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "refspec.policies.federal_register_lists_of_subjects",
         "resolve_list_of_subjects_term",
     ),
-    "validate_elsst_import_coverage": ("refspec.registry.adapters.elsst_import_coverage", "validate_elsst_import_coverage"),
+    "source_scoped_concept_iri": (
+        "refspec.registry.infrastructure.source_concept_release",
+        "source_scoped_concept_iri",
+    ),
+    "validate_elsst_import_coverage": (
+        "refspec.registry.adapters.elsst_import_coverage",
+        "validate_elsst_import_coverage",
+    ),
+    "validate_evidence_assertions": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_evidence_assertions",
+    ),
+    "validate_mapping_assertions": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_mapping_assertions",
+    ),
+    "validate_rights_metadata": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_rights_metadata",
+    ),
+    "validate_rights_metadata_records": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_rights_metadata_records",
+    ),
 }
 
 __all__ = list(_LAZY_EXPORTS)

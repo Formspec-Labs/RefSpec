@@ -119,9 +119,9 @@ def _agreed_relation_for(verdicts: frozenset[str]) -> str | None:
     if verdicts == {"related"}:
         return _RELATED_MATCH
     return None
-_ARTIFACT_ROLES = frozenset(
-    {"evidence", "inputContext", "validationRequest", "validationResponse"}
-)
+
+
+_ARTIFACT_ROLES = frozenset({"evidence", "inputContext", "validationRequest", "validationResponse"})
 _CORE_RELEASE_STATUSES = frozenset({"fixture", "candidate", "published"})
 _CORE_ARTIFACT_MANIFESTS = (
     "conformance_fixture_artifacts",
@@ -164,11 +164,19 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/icpsr.py",
     "atlas/model.py",
     "atlas/queries.py",
+    "atlas/source_concept.py",
+    "atlas/subject_admission.py",
     "binding.py",
     "generated_rulespec_dependency.py",
     "immutable.py",
     "managed_release.py",
+    "registry/infrastructure/artifact_serialization.py",
     "registry/infrastructure/controlled_identifier.py",
+    "registry/infrastructure/identifier_validation.py",
+    "registry/infrastructure/semantic_foundation.py",
+    "registry/infrastructure/source_concept_release.py",
+    "registry/infrastructure/source_controlled_resource.py",
+    "registry/infrastructure/source_identity.py",
     "registry/federal_register_thesaurus_2025.py",
     "registry/managed_releases/federal_register_thesaurus_2025_managed_release.py",
     "policies/federal_register_lists_of_subjects.py",
@@ -1149,9 +1157,7 @@ def _resolve_input_context(
         if record["role"] == "inputContext" and _artifact_content_digest(record) == digest
     )
     if not matches:
-        raise VocabularyAtlasError(
-            "candidate input context does not close against the bundle"
-        )
+        raise VocabularyAtlasError("candidate input context does not close against the bundle")
     if len(matches) > 1:
         raise VocabularyAtlasError("candidate input context resolves to several artifacts")
     return artifacts[matches[0]]
@@ -1623,9 +1629,7 @@ def _build_dataset(
                 if isinstance(value, RdfLiteral) and str(value) == relation.object_member_iri
             ]
             if not stale:
-                raise VocabularyAtlasError(
-                    "atlas hierarchy relation row states an edge the release graph does not"
-                )
+                raise VocabularyAtlasError("atlas hierarchy relation row states an edge the release graph does not")
             for value in stale:
                 release_graph.remove((subject, predicate, value))
             release_graph.add((subject, predicate, resource))
@@ -1688,9 +1692,7 @@ def _build_dataset(
         seen_sealed_ids |= bundle_ids
         agreements = _independent_agreements(candidates, validations)
         qualified = {
-            candidate_id: pair
-            for candidate_id, (pair, relation) in agreements.items()
-            if relation != _RELATED_MATCH
+            candidate_id: pair for candidate_id, (pair, relation) in agreements.items() if relation != _RELATED_MATCH
         }
         for artifact in bundle["artifacts"]:
             node = URIRef(artifact["id"])
@@ -2435,9 +2437,7 @@ def _validate_query_graph_semantics(
             )
             != input_digest
         ):
-            raise VocabularyAtlasError(
-                "searchOnly mapping input context does not carry the sealed input digest"
-            )
+            raise VocabularyAtlasError("searchOnly mapping input context does not carry the sealed input digest")
         evidence = tuple(analysis.objects(candidate, ATLAS.evidence))
         if not evidence or any(not isinstance(item, URIRef) for item in evidence):
             raise VocabularyAtlasError("searchOnly mapping candidate needs IRI evidence")
@@ -2660,9 +2660,7 @@ class VocabularyAtlasAsset:
             if role == "ManagedReleaseView"
         ]
         if not managed_inputs or roles.count("RulespecCoreRelease") != 1:
-            raise VocabularyAtlasError(
-                "atlas inputs require managed releases and one Rulespec Core"
-            )
+            raise VocabularyAtlasError("atlas inputs require managed releases and one Rulespec Core")
         crosswalk_inputs = [
             cast(Mapping[str, Any], item)
             for item, role in zip(actual_inputs, roles, strict=True)
@@ -2914,10 +2912,7 @@ def _input_pins(
 ) -> list[dict[str, Any]]:
     release_pins = [cast(dict[str, Any], _plain(item.pin)) for item in releases]
     result: list[dict[str, Any]] = [*release_pins, rulespec_core.pin()]
-    result.extend(
-        bundle.pin()
-        for bundle in sorted(crosswalks, key=lambda item: item.identifier)
-    )
+    result.extend(bundle.pin() for bundle in sorted(crosswalks, key=lambda item: item.identifier))
     return result
 
 
