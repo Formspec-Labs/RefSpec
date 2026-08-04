@@ -9,11 +9,12 @@ import importlib
 import inspect
 import json
 from collections.abc import Mapping, Sequence
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
 _MODULES: dict[str, dict[str, Any]] = {}
-_MAX_EXECUTIONS_PER_FUNCTION = 3
+_CALL_DEPTH: ContextVar[int] = ContextVar("registry_receipt_call_depth", default=0)
 _COUNT_FIELDS = frozenset(
     {
         "assignments",
@@ -44,7 +45,13 @@ def pytest_addoption(parser: Any) -> None:
 
 def _registry_module_names() -> tuple[str, ...]:
     registry = Path(__file__).resolve().parents[1] / "src" / "refspec" / "registry"
-    return tuple(sorted(path.stem for path in registry.glob("*.py") if path.name != "__init__.py"))
+    return tuple(
+        sorted(
+            path.relative_to(registry).with_suffix("").as_posix()
+            for path in registry.rglob("*.py")
+            if path.name != "__init__.py"
+        )
+    )
 
 
 def _type_name(value: object) -> str:
@@ -156,7 +163,10 @@ def _source_evidence(value: object, result: dict[str, set[Any]], *, depth: int =
         return
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         for field in dataclasses.fields(value):
-            _source_evidence(getattr(value, field.name), result, depth=depth + 1)
+            child = getattr(value, field.name)
+            if field.name in {"byte_length", "source_byte_length"} and isinstance(child, int):
+                result["byteLengths"].add(child)
+            _source_evidence(child, result, depth=depth + 1)
         return
     if isinstance(value, Mapping):
         for key, child in list(value.items())[:100]:
@@ -187,32 +197,78 @@ def _record(module_name: str, function_name: str, arguments: tuple[Any, ...], re
         "sample": _sample(result_value),
         "sourceEvidence": {key: sorted(values) for key, values in evidence.items()},
     }
-    matching_indexes = [
-        index
-        for index, existing in enumerate(executions)
-        if existing["function"] == function_name
-    ]
-    if len(matching_indexes) < _MAX_EXECUTIONS_PER_FUNCTION:
-        executions.append(execution)
-        return
 
-    def evidence_strength(candidate: Mapping[str, Any]) -> tuple[int, int, int]:
+    def evidence_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+        """Group repeat calls without combining distinct source artifacts."""
+
+        source = candidate.get("sourceEvidence", {})
+        digests = tuple(source.get("digests", ()))
+        if digests:
+            return (candidate.get("function"), "digests", digests)
+        return (
+            candidate.get("function"),
+            "locations",
+            tuple(source.get("paths", ())),
+            tuple(source.get("urls", ())),
+            tuple(source.get("byteLengths", ())),
+        )
+
+    def evidence_strength(candidate: Mapping[str, Any]) -> tuple[int, int, int, int, int, str]:
         source = candidate.get("sourceEvidence", {})
         byte_lengths = source.get("byteLengths", ())
         locations = (*source.get("paths", ()), *source.get("urls", ()))
+        publisher_locations = sum(
+            isinstance(location, str)
+            and location.startswith(("https://", "http://"))
+            and "example.test" not in location
+            for location in locations
+        )
+        example_locations = sum(
+            isinstance(location, str) and "example.test" in location
+            for location in locations
+        )
         return (
-            max(byte_lengths, default=0),
             sum(candidate.get("counts", {}).values()),
+            publisher_locations,
+            -example_locations,
+            max(byte_lengths, default=0),
             len(locations),
+            json.dumps(candidate, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
         )
 
-    weakest_index = min(matching_indexes, key=lambda index: evidence_strength(executions[index]))
-    if evidence_strength(execution) > evidence_strength(executions[weakest_index]):
-        executions[weakest_index] = execution
+    key = evidence_key(execution)
+    matching_index = next(
+        (index for index, existing in enumerate(executions) if evidence_key(existing) == key),
+        None,
+    )
+    if matching_index is None:
+        executions.append(execution)
+    elif evidence_strength(execution) > evidence_strength(executions[matching_index]):
+        executions[matching_index] = execution
+
+
+def _call_and_record(
+    module_name: str,
+    function_name: str,
+    function: Any,
+    args: tuple[Any, ...],
+    kwargs: Mapping[str, Any],
+) -> Any:
+    """Record one test-facing production call, not every nested helper call."""
+
+    depth = _CALL_DEPTH.get()
+    token = _CALL_DEPTH.set(depth + 1)
+    try:
+        result = function(*args, **kwargs)
+    finally:
+        _CALL_DEPTH.reset(token)
+    if depth == 0:
+        _record(module_name, function_name, (*args, dict(kwargs)), result)
+    return result
 
 
 def _wrap_module(module_name: str) -> None:
-    qualified_name = f"refspec.registry.{module_name}"
+    qualified_name = "refspec.registry." + module_name.replace("/", ".")
     module = importlib.import_module(qualified_name)
     _MODULES[module_name] = {"module": f"{module_name}.py", "executions": []}
     for function_name, function in tuple(vars(module).items()):
@@ -221,14 +277,16 @@ def _wrap_module(module_name: str) -> None:
 
         @functools.wraps(function)
         def wrapped(*args: Any, __function: Any = function, __name: str = function_name, **kwargs: Any) -> Any:
-            result = __function(*args, **kwargs)
-            _record(module_name, __name, (*args, kwargs), result)
-            return result
+            return _call_and_record(module_name, __name, __function, args, kwargs)
 
         setattr(module, function_name, wrapped)
 
     for class_name, class_value in tuple(vars(module).items()):
-        if not inspect.isclass(class_value) or class_value.__module__ != qualified_name:
+        if (
+            class_name.startswith("_")
+            or not inspect.isclass(class_value)
+            or class_value.__module__ != qualified_name
+        ):
             continue
         for method_name, descriptor in tuple(vars(class_value).items()):
             if method_name.startswith("_") and method_name != "__call__":
@@ -254,9 +312,7 @@ def _wrap_module(module_name: str) -> None:
                 __name: str = f"{class_name}.{method_name}",
                 **kwargs: Any,
             ) -> Any:
-                result = __method(*args, **kwargs)
-                _record(module_name, __name, (*args, kwargs), result)
-                return result
+                return _call_and_record(module_name, __name, __method, args, kwargs)
 
             replacement = descriptor_type(wrapped_method) if descriptor_type is not None else wrapped_method
             setattr(class_value, method_name, replacement)
@@ -279,7 +335,15 @@ def pytest_unconfigure(config: Any) -> None:
         "modules": [
             {
                 "module": module["module"],
-                "executions": sorted(module["executions"], key=lambda execution: execution["function"]),
+                "executions": sorted(
+                    module["executions"],
+                    key=lambda execution: (
+                        execution["function"],
+                        tuple(execution.get("sourceEvidence", {}).get("digests", ())),
+                        tuple(execution.get("sourceEvidence", {}).get("urls", ())),
+                        json.dumps(execution, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+                    ),
+                ),
             }
             for module in _MODULES.values()
         ],

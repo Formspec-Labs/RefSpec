@@ -64,6 +64,7 @@ TEST_INPUT_ENVIRONMENT = {
     "federalHierarchySubTierPage": "REFSPEC_FH_ORGS_SUB_TIER_PATH",
     "gcmdScienceKeywords244": "REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH",
     "icpsrSubjectXml": "REFSPEC_ICPSR_SUBJECT_XML_PATH",
+    "icpsrManagedIndexA": "REFSPEC_ICPSR_INDEX_PAGE_A_PATH",
     "samEntity3mPublic": "REFSPEC_SAM_ENTITY_PUBLIC_PATH",
     "regulatoryNativeDockets": "REFSPEC_REGULATORY_NATIVE_DOCKETS_PATH",
     "regulatoryNativeDocuments": "REFSPEC_REGULATORY_NATIVE_DOCUMENTS_PATH",
@@ -77,10 +78,20 @@ class RegistryAuditError(ValueError):
 
 
 def registry_modules(repository_root: Path) -> tuple[str, ...]:
-    """Return every independent source-reader filename in deterministic order."""
+    """Return every registry module path in deterministic order."""
 
     registry = repository_root / "src" / "refspec" / "registry"
-    return tuple(sorted(path.name for path in registry.glob("*.py") if path.name != "__init__.py"))
+    return tuple(
+        sorted(
+            path.relative_to(registry).as_posix()
+            for path in registry.rglob("*.py")
+            if path.name != "__init__.py"
+        )
+    )
+
+
+def _qualified_module_name(module: str) -> str:
+    return "refspec.registry." + module.removesuffix(".py").replace("/", ".")
 
 
 def load_source_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
@@ -140,48 +151,75 @@ def materialize_test_inputs(
     """Resolve publisher artifacts from the JSON manifest for existing opt-in tests."""
 
     resolved: dict[str, str] = {}
+
+    def resolve_path(descriptor: Mapping[str, Any], *, label: str) -> Path:
+        relative_path = Path(str(descriptor["localPath"]))
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            raise RegistryAuditError(f"{label} must use a RefSpec-owned relative path")
+        local_path = (repository_root / relative_path).resolve()
+        try:
+            local_path.relative_to(repository_root)
+        except ValueError as error:
+            raise RegistryAuditError(f"{label} escapes the RefSpec repository") from error
+        return local_path
+
+    def materialize_file(descriptor: Mapping[str, Any], *, label: str) -> Path:
+        local_path = resolve_path(descriptor, label=label)
+        if local_path.is_file():
+            payload = _normalize_test_input(local_path.read_bytes(), descriptor)
+        else:
+            if descriptor.get("acquisition") == "browserExport":
+                raise RegistryAuditError(
+                    f"{label} requires the documented browser export at {local_path}"
+                )
+            source_url = descriptor.get("publisherUrl")
+            if not isinstance(source_url, str):
+                raise RegistryAuditError(f"{label} is absent and has no publisherUrl")
+            request = Request(source_url, headers={"User-Agent": "RefSpec real-data audit/1"})
+            try:
+                with urlopen(request, timeout=120.0) as response:
+                    downloaded = response.read()
+            except OSError as error:
+                raise RegistryAuditError(f"could not download {label}: {error}") from error
+            expected_download_digest = descriptor.get("downloadSha256")
+            if expected_download_digest is not None and _digest(downloaded) != expected_download_digest:
+                raise RegistryAuditError(f"{label} compressed download digest drift")
+            try:
+                payload = gzip.decompress(downloaded) if descriptor.get("compression") == "gzip" else downloaded
+            except gzip.BadGzipFile as error:
+                raise RegistryAuditError(f"{label} is not the declared gzip stream") from error
+            payload = _normalize_test_input(payload, descriptor)
+            _verify_test_input(payload, descriptor, label)
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.write_bytes(payload)
+        _verify_test_input(payload, descriptor, label)
+        return local_path
+
     for module in source_manifest["modules"]:
         for descriptor in module["testInputs"]:
             name = descriptor["name"]
-            if name in resolved:
-                raise RegistryAuditError(f"source-link manifest has a duplicate test input {name!r}")
-            relative_path = Path(descriptor["localPath"])
-            if relative_path.is_absolute() or ".." in relative_path.parts:
-                raise RegistryAuditError(f"test input {name!r} must use a RefSpec-owned relative path")
-            local_path = (repository_root / relative_path).resolve()
-            try:
-                local_path.relative_to(repository_root)
-            except ValueError as error:
-                raise RegistryAuditError(f"test input {name!r} escapes the RefSpec repository") from error
-            if local_path.is_file():
-                payload = _normalize_test_input(local_path.read_bytes(), descriptor)
-            else:
-                if descriptor.get("acquisition") == "browserExport":
+            if descriptor.get("kind") == "sourceCollection":
+                local_path = resolve_path(descriptor, label=f"source collection {name!r}")
+                if not local_path.is_dir():
                     raise RegistryAuditError(
-                        f"test input {name!r} requires the documented browser export at {local_path}"
+                        f"source collection {name!r} is not available at {local_path}"
                     )
-                source_url = descriptor.get("publisherUrl")
-                if not isinstance(source_url, str):
-                    raise RegistryAuditError(f"test input {name!r} is absent and has no publisherUrl")
-                request = Request(source_url, headers={"User-Agent": "RefSpec real-data audit/1"})
-                try:
-                    with urlopen(request, timeout=120.0) as response:
-                        downloaded = response.read()
-                except OSError as error:
-                    raise RegistryAuditError(f"could not download test input {name!r}: {error}") from error
-                expected_download_digest = descriptor.get("downloadSha256")
-                if expected_download_digest is not None and _digest(downloaded) != expected_download_digest:
-                    raise RegistryAuditError(f"test input {name!r} compressed download digest drift")
-                try:
-                    payload = gzip.decompress(downloaded) if descriptor.get("compression") == "gzip" else downloaded
-                except gzip.BadGzipFile as error:
-                    raise RegistryAuditError(f"test input {name!r} is not the declared gzip stream") from error
-                payload = _normalize_test_input(payload, descriptor)
-                _verify_test_input(payload, descriptor, f"test input {name!r}")
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_bytes(payload)
-            _verify_test_input(payload, descriptor, f"test input {name!r}")
-            resolved[name] = str(local_path)
+                members = descriptor.get("members")
+                if not isinstance(members, list) or len(members) != descriptor.get("memberCount"):
+                    raise RegistryAuditError(f"source collection {name!r} has invalid members")
+                for member in members:
+                    materialize_file(
+                        member,
+                        label=f"source collection {name!r} member {member.get('name')!r}",
+                    )
+            else:
+                local_path = materialize_file(descriptor, label=f"test input {name!r}")
+            rendered_path = str(local_path)
+            if name in resolved and resolved[name] != rendered_path:
+                raise RegistryAuditError(
+                    f"source-link manifest gives test input {name!r} conflicting paths"
+                )
+            resolved[name] = rendered_path
     missing = sorted(set(TEST_INPUT_ENVIRONMENT) - set(resolved))
     if missing:
         raise RegistryAuditError(f"source-link manifest omits required test inputs: {missing}")
@@ -206,7 +244,7 @@ def import_audited_modules(repository_root: Path, rows: Sequence[Mapping[str, An
     if source_root not in sys.path:
         sys.path.insert(0, source_root)
     for row in rows:
-        importlib.import_module("refspec.registry." + str(row["module"]).removesuffix(".py"))
+        importlib.import_module(_qualified_module_name(str(row["module"])))
 
 
 def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) -> tuple[Path, ...]:
@@ -216,7 +254,13 @@ def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) 
     missing: list[str] = []
     for row in rows:
         module = str(row["module"])
-        relative_paths = (f"tests/test_{module.removesuffix('.py')}.py",)
+        test_name = module.rsplit("/", 1)[-1].removesuffix(".py")
+        relative_paths = {
+            "infrastructure/pinned_acquisition.py": ("tests/test_elsst_acquisition.py",),
+            "managed_releases/federal_register_thesaurus_2025_managed_release.py": (
+                "tests/test_federal_register_thesaurus_2025.py",
+            ),
+        }.get(module, (f"tests/test_{test_name}.py",))
         paths = tuple(repository_root / relative_path for relative_path in relative_paths)
         if not paths or any(not path.is_file() for path in paths):
             missing.append(module)
@@ -233,7 +277,7 @@ def real_data_evidence_failures(rows: Sequence[Mapping[str, Any]]) -> tuple[str,
     failures: list[str] = []
     for row in rows:
         module = str(row["module"])
-        if row["auditRole"] != "dataReader":
+        if row["auditRole"] == "support":
             continue
         if row["sourceStatus"] != "publisherBytes":
             blockers = row.get("blockers") or ["publisher-origin source evidence is unavailable"]
@@ -256,6 +300,21 @@ def execution_receipt_failures(
 ) -> tuple[str, ...]:
     """Validate measurements emitted by the current direct-test process."""
 
+    def has_structure_and_sample(execution: Mapping[str, Any]) -> bool:
+        return bool(execution.get("shape")) and "sample" in execution
+
+    def has_substantive_counts(execution: Mapping[str, Any]) -> bool:
+        counts = execution.get("counts")
+        if not isinstance(counts, Mapping):
+            return False
+        excluded_parts = {"blocker", "blockers", "gap", "gaps"}
+        return any(
+            isinstance(count, int)
+            and count > 0
+            and not excluded_parts.intersection(str(name).lower().split("."))
+            for name, count in counts.items()
+        )
+
     if receipts.get("format") != "refspec-registry-execution-receipts/v1":
         return ("execution receipt format is missing or unsupported",)
     receipt_rows = receipts.get("modules")
@@ -272,6 +331,11 @@ def execution_receipt_failures(
         receipt = by_module.get(module)
         executions = receipt.get("executions", []) if isinstance(receipt, Mapping) else []
         role = source_row["auditRole"]
+        if not executions:
+            failures.append(f"{module}: current test process captured no successful production call")
+            continue
+        if not any(has_structure_and_sample(execution) for execution in executions):
+            failures.append(f"{module}: current execution recorded no output structure and sample")
         if role in {"downstreamProjection", "networkHarness"}:
             covered_by = source_row["coveredBy"]
             missing_coverage = [
@@ -279,24 +343,28 @@ def execution_receipt_failures(
             ]
             if not covered_by or missing_coverage:
                 failures.append(f"{module}: declared {role} coverage is incomplete: {missing_coverage}")
-            continue
-        if not executions:
-            failures.append(f"{module}: current test process captured no successful production call")
-            continue
+        elif role not in {"dataReader", "support"}:
+            failures.append(f"{module}: unknown audit role {role!r}")
         if role == "support":
             continue
-        if role != "dataReader":
-            failures.append(f"{module}: unknown audit role {role!r}")
-            continue
-        if not any(execution.get("counts") for execution in executions):
-            failures.append(f"{module}: current execution measured no output collection sizes")
-        if not any(execution.get("shape") and "sample" in execution for execution in executions):
-            failures.append(f"{module}: current execution recorded no output structure and sample")
-        pinned_digests = {
-            descriptor.get("sha256")
-            for descriptor in source_row["testInputs"]
-            if isinstance(descriptor, Mapping) and descriptor.get("receiptRequired", True)
-        }
+        needs_parsed_counts = role in {"dataReader", "downstreamProjection"}
+        if needs_parsed_counts and not any(has_substantive_counts(execution) for execution in executions):
+            failures.append(f"{module}: current execution measured no substantive output collection sizes")
+        pinned_digests: set[str] = set()
+        for descriptor in source_row["testInputs"]:
+            if not isinstance(descriptor, Mapping) or not descriptor.get("receiptRequired", True):
+                continue
+            if descriptor.get("kind") == "sourceCollection":
+                capture_digest = descriptor.get("captureDigest")
+                if isinstance(capture_digest, str):
+                    pinned_digests.add(capture_digest)
+                pinned_digests.update(
+                    member["sha256"]
+                    for member in descriptor.get("members", ())
+                    if isinstance(member, Mapping) and isinstance(member.get("sha256"), str)
+                )
+            elif isinstance(descriptor.get("sha256"), str):
+                pinned_digests.add(descriptor["sha256"])
         if source_row["sourceStatus"] != "publisherBytes":
             continue
         if not pinned_digests:
@@ -307,6 +375,30 @@ def execution_receipt_failures(
         }
         if missing_pins := sorted(pinned_digests - observed_digests):
             failures.append(f"{module}: current execution did not consume pinned real-data inputs {missing_pins}")
+        for pinned_digest in sorted(pinned_digests):
+            matching_executions = [
+                execution
+                for execution in executions
+                if pinned_digest in execution.get("sourceEvidence", {}).get("digests", ())
+            ]
+            if not matching_executions:
+                continue
+            substantive_executions = [
+                execution
+                for execution in matching_executions
+                if has_structure_and_sample(execution)
+                and (not needs_parsed_counts or has_substantive_counts(execution))
+            ]
+            if not substantive_executions:
+                requirement = (
+                    "substantive parsed counts, output structure, and sample"
+                    if needs_parsed_counts
+                    else "substantive output structure and sample"
+                )
+                failures.append(
+                    f"{module}: pinned real-data input {pinned_digest} did not produce {requirement} "
+                    "in the same execution"
+                )
         if not any(
             execution.get("sourceEvidence", {}).get("digests")
             and (
@@ -326,7 +418,7 @@ def run_direct_tests(
     *,
     test_inputs: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, int | float], dict[str, Any]]:
-    """Run each module's direct test file when the repository contains one."""
+    """Run each registry module's direct tests with execution receipts."""
 
     tests = direct_test_paths(repository_root, rows)
     selected = [str(path.relative_to(repository_root)) for path in tests]
@@ -389,11 +481,60 @@ def run_direct_tests(
     )
 
 
+def run_full_test_suite(repository_root: Path) -> dict[str, int | float]:
+    """Run the complete suite without receipt instrumentation.
+
+    Receipt collection belongs only on the focused registry qualification run.
+    Attaching it to the complete suite repeatedly measured and serialized large
+    publisher datasets, turning a normal suite into a multi-hour audit.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="refspec-full-suite-") as temporary_directory:
+        report_path = Path(temporary_directory) / "pytest.xml"
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                f"--junitxml={report_path}",
+            ],
+            cwd=repository_root,
+            check=False,
+        )
+        if not report_path.is_file():
+            raise RegistryAuditError("complete repository tests produced no JUnit report")
+        root = ElementTree.parse(report_path).getroot()
+    if completed.returncode:
+        raise RegistryAuditError(f"complete repository tests failed with exit code {completed.returncode}")
+    suites = (root,) if root.tag == "testsuite" else tuple(root.findall("testsuite"))
+    if not suites:
+        raise RegistryAuditError("complete repository JUnit report contains no test suites")
+
+    def total(attribute: str) -> int:
+        return sum(int(suite.attrib.get(attribute, "0")) for suite in suites)
+
+    test_count = total("tests")
+    failures = total("failures")
+    errors = total("errors")
+    skipped = total("skipped")
+    return {
+        "testFiles": len(tuple((repository_root / "tests").glob("test_*.py"))),
+        "tests": test_count,
+        "passed": test_count - failures - errors - skipped,
+        "failures": failures,
+        "errors": errors,
+        "skipped": skipped,
+        "seconds": round(sum(float(suite.attrib.get("time", "0")) for suite in suites), 3),
+    }
+
+
 def audit_summary(
     rows: Sequence[Mapping[str, Any]],
     *,
     real_data_failures: Sequence[str] = (),
     direct_test_result: Mapping[str, int | float] | None = None,
+    full_suite_result: Mapping[str, int | float] | None = None,
     execution_receipts: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return a deterministic summary while retaining every source-specific row."""
@@ -404,6 +545,7 @@ def audit_summary(
         "format": "refspec-registry-audit-summary/v1",
         "moduleCount": len(rows),
         "execution": dict(direct_test_result) if direct_test_result is not None else None,
+        "fullSuiteExecution": dict(full_suite_result) if full_suite_result is not None else None,
         "executionReceipts": dict(execution_receipts) if execution_receipts is not None else None,
         "realDataGate": {
             "status": "failed" if real_data_failures else "passed",
@@ -420,6 +562,11 @@ def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--repository-root", type=Path, default=REPOSITORY_ROOT)
     parser.add_argument("--source-manifest", type=Path, default=DEFAULT_SOURCE_MANIFEST)
     parser.add_argument("--run-tests", action="store_true", help="run every available direct module test")
+    parser.add_argument(
+        "--run-all-tests",
+        action="store_true",
+        help="qualify registry sources once, then run the complete suite without receipt instrumentation",
+    )
     parser.add_argument(
         "--require-real-data",
         action="store_true",
@@ -439,8 +586,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         import_audited_modules(repository_root, rows)
         direct_test_paths(repository_root, rows)
         direct_test_result = None
+        full_suite_result = None
         execution_receipts = None
-        if args.run_tests or args.require_real_data:
+        if args.run_tests or args.run_all_tests or args.require_real_data:
             test_inputs = materialize_test_inputs(repository_root, source_manifest)
             direct_test_result, execution_receipts = run_direct_tests(
                 repository_root,
@@ -453,28 +601,35 @@ def main(argv: Sequence[str] | None = None) -> int:
                 *real_data_evidence_failures(rows),
                 *execution_receipt_failures(source_manifest, execution_receipts or {}),
             )
-        rendered = (
-            json.dumps(
-                audit_summary(
-                    rows,
-                    real_data_failures=evidence_failures,
-                    direct_test_result=direct_test_result,
-                    execution_receipts=execution_receipts,
-                ),
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
+        def render_summary() -> str:
+            return (
+                json.dumps(
+                    audit_summary(
+                        rows,
+                        real_data_failures=evidence_failures,
+                        direct_test_result=direct_test_result,
+                        full_suite_result=full_suite_result,
+                        execution_receipts=execution_receipts,
+                    ),
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n"
             )
-            + "\n"
-        )
+
         if args.output is not None:
             args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(rendered, encoding="utf-8")
-        else:
-            print(rendered, end="")
+            args.output.write_text(render_summary(), encoding="utf-8")
         if evidence_failures:
             details = "\n  - ".join(evidence_failures)
             raise RegistryAuditError(f"real-data gate failed:\n  - {details}")
+        if args.run_all_tests:
+            full_suite_result = run_full_test_suite(repository_root)
+            if args.output is not None:
+                args.output.write_text(render_summary(), encoding="utf-8")
+        if args.output is None:
+            print(render_summary(), end="")
         return 0
     except (OSError, json.JSONDecodeError, RegistryAuditError) as error:
         print(f"registry audit error: {error}", file=sys.stderr)

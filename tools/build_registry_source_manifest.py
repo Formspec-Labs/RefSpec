@@ -7,6 +7,7 @@ import argparse
 import ast
 import hashlib
 import importlib
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -643,7 +644,14 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
     ),
     "gao_cra_facets.py": (
         {"name": "gaoCraDatabase", "constant": "GAO_CRA_REAL_CAPTURE_2026_08_04", "localPath": "tests/fixtures/gao_cra_facets/gao-cra-database-real-capture-2026-08-04.html"},
-        {"name": "gaoFedRulesRecord", "constant": "GAO_FEDRULES_167777", "localPath": "tests/fixtures/gao_cra_facets/gao-fedrules-167777-2026-08-04.html"},
+        {
+            "name": "gaoFedRulesRecord",
+            "constant": "GAO_FEDRULES_167777",
+            "localPath": "tests/fixtures/gao_cra_facets/gao-fedrules-167777-2026-08-04.html",
+            # Reference-only evidence for the scalar detail-page parser. The
+            # six-observation package consumes only gaoCraDatabase above.
+            "receiptRequired": False,
+        },
     ),
     "gao_topics.py": (
         {"name": "gaoProductTopics", "constant": "GAO_PRODUCT_GAO_26_108505_2026_08_04", "localPath": "tests/fixtures/gao_topics/gao-product-gao-26-108505-2026-08-04.html"},
@@ -700,7 +708,13 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
     ),
     "treasury_tas_fast_book.py": (
         {"name": "treasuryTasFormat", "constant": "TAS_COMPONENT_FORMAT_2026_08_03", "localPath": "tests/fixtures/treasury_tas_fast_book/treasury-account-symbol-reporting-2026-08-03.html"},
-        {"name": "treasuryFastBook", "constant": "FAST_BOOK_DESCRIPTION_2026_08_03", "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-description-of-contents-2026-08-03.html"},
+        {
+            "name": "treasuryFastBook",
+            "constant": "FAST_BOOK_DESCRIPTION_2026_08_03",
+            "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-description-of-contents-2026-08-03.html",
+            "receiptRequired": False,
+        },
+        {"name": "treasuryFastBookPartIIIII", "constant": "FAST_BOOK_PART_II_III_2026_07_31", "localPath": "tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-iii-2026-07-31.xlsx"},
     ),
     "usaspending_gsdm_codes.py": (
         {"name": "usaspendingAwardTypes", "constant": "USASPENDING_AWARD_TYPES_2026_08_03", "localPath": "tests/fixtures/usaspending_gsdm_codes/usaspending-award-types-2026-08-03.json"},
@@ -713,6 +727,110 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 
 
 SOURCE_BLOCKERS: dict[str, list[str]] = {}
+
+NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
+    "adapters/concept_domain_bridge.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "adapters/crs_zyte.py": {
+        "auditRole": "networkHarness",
+        "coveredBy": ["crs_legislative_resources.py"],
+        "inputRefs": [("crs_legislative_resources.py", "crsLegislativeSubjects20260730")],
+    },
+    "adapters/elsst_acquisition.py": {
+        "auditRole": "networkHarness",
+        "coveredBy": ["elsst.py"],
+        "inputRefs": [("elsst.py", "elsstR6")],
+    },
+    "adapters/elsst_import_coverage.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["elsst.py"],
+        "inputRefs": [("elsst.py", "elsstR6")],
+    },
+    "adapters/icpsr_zyte.py": {
+        "auditRole": "networkHarness",
+        "coveredBy": ["icpsr_subject.py"],
+        "inputRefs": [],
+    },
+    "infrastructure/artifact_serialization.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "infrastructure/controlled_identifier.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "infrastructure/identifier_validation.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "infrastructure/managed_vocabulary_bundle.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "infrastructure/pinned_acquisition.py": {
+        "auditRole": "networkHarness",
+        "coveredBy": ["adapters/elsst_acquisition.py"],
+        "inputRefs": [("elsst.py", "elsstR6")],
+    },
+    "infrastructure/source_controlled_resource.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["packages/federal_register_topics_package.py"],
+        "inputRefs": [("federal_register_topics_api.py", "federalRegisterTopics")],
+    },
+    "infrastructure/source_identity.py": {
+        "auditRole": "support",
+        "coveredBy": [],
+        "inputRefs": [],
+    },
+    "infrastructure/zyte_transport.py": {
+        "auditRole": "networkHarness",
+        "coveredBy": ["adapters/crs_zyte.py", "adapters/icpsr_zyte.py"],
+        "inputRefs": [
+            ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
+            ("adapters/icpsr_zyte.py", "icpsrManagedIndexA"),
+        ],
+    },
+    "managed_releases/federal_register_thesaurus_2025_managed_release.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["federal_register_thesaurus_2025.py"],
+        "inputRefs": [("federal_register_thesaurus_2025.py", "federalRegister2025")],
+    },
+    "managed_releases/icpsr_managed_release.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["icpsr_subject.py"],
+        "inputRefs": [],
+    },
+    "packages/crs_source_packages.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["crs_legislative_resources.py"],
+        "inputRefs": [
+            ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeGeographic20260730"),
+            ("crs_legislative_resources.py", "crsLegislativeOrganizations20260730"),
+            ("crs_legislative_resources.py", "crsPolicyAreas20260730"),
+        ],
+    },
+    "packages/federal_register_topics_package.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["federal_register_topics_api.py"],
+        "inputRefs": [("federal_register_topics_api.py", "federalRegisterTopics")],
+    },
+    "packages/lda_controlled_list_resources.py": {
+        "auditRole": "downstreamProjection",
+        "coveredBy": ["lda_controlled_codes.py"],
+        "inputRefs": [
+            ("lda_controlled_codes.py", "ldaGeneralIssueCodes"),
+            ("lda_controlled_codes.py", "ldaFilingTypes"),
+        ],
+    },
+}
 
 
 def _literal_urls(path: Path) -> tuple[str, ...]:
@@ -733,7 +851,14 @@ def _literal_urls(path: Path) -> tuple[str, ...]:
 
 
 def _classification(module: str) -> str:
-    return "data-registry"
+    if "/" not in module:
+        return "data-registry"
+    return {
+        "adapters": "registry-adapter",
+        "infrastructure": "registry-infrastructure",
+        "managed_releases": "registry-managed-release",
+        "packages": "registry-source-package",
+    }[module.split("/", 1)[0]]
 
 
 def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> list[dict[str, Any]]:
@@ -743,7 +868,8 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
     if not specifications:
         return []
     module = importlib.import_module(
-        "refspec.registry." + module_filename.removesuffix(".py")
+        "refspec.registry."
+        + module_filename.removesuffix(".py").replace("/", ".")
     )
     resolved: list[dict[str, Any]] = []
     for specification in specifications:
@@ -787,46 +913,174 @@ def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> 
                 f"{module_filename}.{pin_name} does not match its immutable source pin: "
                 f"expected {expected_digest}/{expected_length}, got {actual_digest}/{len(payload)}"
             )
-        resolved.append(
+        descriptor = {
+            "name": specification["name"],
+            "localPath": relative_path.as_posix(),
+            "publisherUrl": publisher_url,
+            "sha256": expected_digest,
+            "byteLength": expected_length,
+            "provenance": "pinnedPublisherCapture",
+            "pinConstant": pin_name,
+        }
+        if "receiptRequired" in specification:
+            descriptor["receiptRequired"] = specification["receiptRequired"]
+        resolved.append(descriptor)
+    return resolved
+
+
+def _icpsr_managed_release_test_inputs(
+    repository_root: Path,
+) -> list[dict[str, Any]]:
+    """Describe the multi-artifact publisher capture as one source collection."""
+
+    capture_root = Path(
+        "output/refspec-vocabulary-portfolio/icpsr/2026-07-30"
+    )
+    manifest_path = repository_root / capture_root / "index/manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    descriptors = [manifest["robots"], *manifest["pages"]]
+    members: list[dict[str, Any]] = []
+    for descriptor in descriptors:
+        relative_source_path = Path(str(descriptor["path"]))
+        if relative_source_path.is_absolute() or ".." in relative_source_path.parts:
+            raise ValueError("ICPSR capture manifest contains an unsafe source path")
+        letter = descriptor.get("letter")
+        suffix = "Robots" if letter is None else ("Hash" if letter == "#" else str(letter).upper())
+        members.append(
             {
-                "name": specification["name"],
-                "localPath": relative_path.as_posix(),
-                "publisherUrl": publisher_url,
-                "sha256": expected_digest,
-                "byteLength": expected_length,
-                "provenance": "pinnedPublisherCapture",
-                "pinConstant": pin_name,
+                "name": f"index{suffix}",
+                "localPath": (capture_root / "index" / relative_source_path).as_posix(),
+                "publisherUrl": descriptor["url"],
+                "sha256": descriptor["sha256"],
+                "byteLength": descriptor["byteLength"],
+                "acquisition": "zyteRawHttp",
+                "provenance": "publisherPageResponse",
             }
         )
-    return resolved
+    xml_path = capture_root / "subject.xml"
+    xml_payload = (repository_root / xml_path).read_bytes()
+    members.append(
+        {
+            "name": "subjectXml",
+            "localPath": xml_path.as_posix(),
+            "publisherUrl": (
+                "https://raw.githubusercontent.com/ICPSR/metadata/"
+                "6e2651e55fb42b119a167f34000ec728d1206865/"
+                "projects/thesaurus/processed/subject.xml"
+            ),
+            "sha256": "sha256:" + hashlib.sha256(xml_payload).hexdigest(),
+            "byteLength": len(xml_payload),
+            "acquisition": "zyteRawHttp",
+            "provenance": "publisherGitRepositoryAtCommit",
+        }
+    )
+    return [
+        {
+            "name": "icpsrManagedReleaseCapture",
+            "kind": "sourceCollection",
+            "localPath": capture_root.as_posix(),
+            "captureDigest": manifest["captureDigest"],
+            "memberCount": len(members),
+            "members": members,
+            "provenance": "publisherCaptureCollection",
+        }
+    ]
+
+
+def _icpsr_index_page_a_test_input(repository_root: Path) -> dict[str, Any]:
+    collection = _icpsr_managed_release_test_inputs(repository_root)[0]
+    page = next(member for member in collection["members"] if member["name"] == "indexA")
+    return {**page, "name": "icpsrManagedIndexA"}
+
+
+def _registry_module_paths(registry: Path) -> tuple[Path, ...]:
+    return tuple(
+        sorted(
+            path
+            for path in registry.rglob("*.py")
+            if path.name != "__init__.py"
+        )
+    )
 
 
 def build_manifest(repository_root: Path) -> dict[str, Any]:
     registry = repository_root / "src" / "refspec" / "registry"
+    paths = _registry_module_paths(registry)
+    module_ids = tuple(path.relative_to(registry).as_posix() for path in paths)
+    nested_ids = {module for module in module_ids if "/" in module}
+    configured_nested_ids = set(NESTED_MODULE_AUDIT)
+    if nested_ids != configured_nested_ids:
+        raise ValueError(
+            "nested registry audit configuration drifted: "
+            f"missing={sorted(nested_ids - configured_nested_ids)}, "
+            f"unknown={sorted(configured_nested_ids - nested_ids)}"
+        )
+
+    direct_inputs: dict[str, list[dict[str, Any]]] = {}
+    for module, path in zip(module_ids, paths, strict=True):
+        inputs = [dict(configured) for configured in TEST_INPUTS.get(module, ())]
+        inputs.extend(_pinned_fixture_test_inputs(module, repository_root))
+        if module == "managed_releases/icpsr_managed_release.py":
+            inputs.extend(_icpsr_managed_release_test_inputs(repository_root))
+        if module == "adapters/icpsr_zyte.py":
+            inputs.append(_icpsr_index_page_a_test_input(repository_root))
+        direct_inputs[module] = inputs
+
     modules: list[dict[str, Any]] = []
-    for path in sorted(registry.glob("*.py")):
-        if path.name == "__init__.py":
-            continue
+    for module, path in zip(module_ids, paths, strict=True):
         declared_urls = set(_literal_urls(path))
-        declared_urls.update(ADDITIONAL_URLS.get(path.name, ()))
-        classification = _classification(path.name)
-        test_inputs = [dict(configured) for configured in TEST_INPUTS.get(path.name, ())]
-        test_inputs.extend(_pinned_fixture_test_inputs(path.name, repository_root))
-        if any(
-            not isinstance(test_input.get("sha256"), str) or not isinstance(test_input.get("byteLength"), int)
-            for test_input in test_inputs
-        ):
-            raise ValueError(f"{path.name} audit inputs must carry immutable sha256 and byteLength pins")
-        blockers = list(SOURCE_BLOCKERS.get(path.name, ()))
-        if not test_inputs and not blockers:
+        declared_urls.update(ADDITIONAL_URLS.get(module, ()))
+        classification = _classification(module)
+        config = NESTED_MODULE_AUDIT.get(
+            module,
+            {"auditRole": "dataReader", "coveredBy": [], "inputRefs": []},
+        )
+        test_inputs = [dict(item) for item in direct_inputs[module]]
+        for source_module, input_name in config["inputRefs"]:
+            matches = [
+                descriptor
+                for descriptor in direct_inputs[source_module]
+                if descriptor["name"] == input_name
+            ]
+            if len(matches) != 1:
+                raise ValueError(
+                    f"{module} input reference {source_module}:{input_name} did not resolve exactly once"
+                )
+            test_inputs.append(dict(matches[0]))
+        for test_input in test_inputs:
+            descriptors = (
+                test_input.get("members", [])
+                if test_input.get("kind") == "sourceCollection"
+                else [test_input]
+            )
+            if any(
+                not isinstance(descriptor.get("sha256"), str)
+                or not isinstance(descriptor.get("byteLength"), int)
+                for descriptor in descriptors
+            ):
+                raise ValueError(
+                    f"{module} audit inputs must carry immutable sha256 and byteLength pins"
+                )
+            declared_urls.update(
+                descriptor["publisherUrl"]
+                for descriptor in descriptors
+                if isinstance(descriptor.get("publisherUrl"), str)
+            )
+        role = config["auditRole"]
+        blockers = list(SOURCE_BLOCKERS.get(module, ()))
+        if role != "support" and not test_inputs and not blockers:
             blockers.append("No independently pinned publisher input is configured for this reader.")
         modules.append(
             {
-                "module": path.name,
+                "module": module,
                 "classification": classification,
-                "auditRole": "dataReader",
-                "coveredBy": [],
-                "sourceStatus": "blocked" if blockers else "publisherBytes",
+                "auditRole": role,
+                "coveredBy": list(config["coveredBy"]),
+                "sourceStatus": (
+                    "notApplicable"
+                    if role == "support"
+                    else ("blocked" if blockers else "publisherBytes")
+                ),
                 "blockers": blockers,
                 "declaredUrls": sorted(declared_urls),
                 "testInputs": test_inputs,
