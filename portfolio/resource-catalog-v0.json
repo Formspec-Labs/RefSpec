@@ -1,6 +1,6 @@
 {
-  "catalogDigest": "sha256:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
-  "catalogId": "urn:ref:resource-catalog:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
+  "catalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
+  "catalogId": "urn:ref:resource-catalog:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-08-04T08:01:00Z",
@@ -705,25 +705,8 @@
       "versionRepresentation": "Historical package pins the 1995 publication for lookup, regression, and the 1995 to 2025 evidence crosswalk."
     },
     {
-      "consumability": "verifiedDistribution",
-      "distributions": [
-        {
-          "distributionKind": "refspec-vocabulary-atlas-nquads-1.0",
-          "files": [
-            {
-              "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
-              "sha256": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
-            },
-            {
-              "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas.nq",
-              "sha256": "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
-            }
-          ],
-          "manifestDigest": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1",
-          "manifestPath": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
-          "packageResourceId": "federal-register-thesaurus-2025"
-        }
-      ],
+      "consumability": "evidenceOnly",
+      "distributions": [],
       "evidence": [
         {
           "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
@@ -1531,10 +1514,10 @@
     }
   ],
   "summary": {
-    "evidenceOnlyCount": 6,
+    "evidenceOnlyCount": 7,
     "inventoryOnlyCount": 76,
     "resourceCount": 86,
-    "verifiedDistributionCount": 6,
-    "verifiedResourceCount": 4
+    "verifiedDistributionCount": 5,
+    "verifiedResourceCount": 3
   }
 }

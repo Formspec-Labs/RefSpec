@@ -1,22 +1,6 @@
 {
   "distributions": [
     {
-      "distributionKind": "refspec-vocabulary-atlas-nquads-1.0",
-      "files": [
-        {
-          "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
-          "sha256": "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
-        },
-        {
-          "path": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas.nq",
-          "sha256": "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
-        }
-      ],
-      "manifestPath": "bindings/atlas/1.0/examples/federal-register-thesaurus-2025/atlas-manifest.json",
-      "packageResourceId": "federal-register-thesaurus-2025",
-      "resourceId": "federal-register-thesaurus-2025"
-    },
-    {
       "distributionKind": "refspec-source-controlled-resource-2.0",
       "files": [
         {

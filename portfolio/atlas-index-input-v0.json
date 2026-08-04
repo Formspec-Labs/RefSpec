@@ -24,7 +24,7 @@
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
   "recordedAt": "2026-08-04T10:18:54Z",
-  "resourceCatalogDigest": "sha256:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
+  "resourceCatalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
   "rows": [
     {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":"bridge","facet":"urn:ref:facet:specialist-subject","intendedUses":["mappingReference","searchExpansion"],"planningStatus":"planned","semanticRing":"subject","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/agrovoc_thesaurus.py"},{"kind":"parserTest","path":"tests/test_agrovoc_thesaurus.py"}],"release":null,"resourceId":"agrovoc","sourceModule":"refspec.registry.agrovoc_thesaurus"},
     {"assignmentRole":"https://rulespec.org/ns/v1#assignmentContextual","atlasParticipation":null,"facet":"urn:ref:facet:code-list-value","intendedUses":["deterministicMetadata"],"planningStatus":"notApplicable","semanticRing":"value","readinessEvidence":[{"kind":"sourceImplementation","path":"src/refspec/registry/billstatus_codes.py"},{"kind":"parserTest","path":"tests/test_billstatus_codes.py"}],"release":null,"resourceId":"congress-billstatus-native-controls","sourceModule":"refspec.registry.billstatus_codes"},

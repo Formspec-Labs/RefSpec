@@ -34,14 +34,6 @@ def _inputs() -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
     inventory = load_json(INVENTORY)
     completed = load_json(COMPLETED)
     distributions = load_json(DISTRIBUTIONS)
-    # The checked portfolio still names the retired Atlas 1.0 example. Keep
-    # that separate migration blocker out of tests for the greenfield 2.0
-    # reader; all other checked distributions remain exact inputs here.
-    distributions["distributions"] = [
-        row
-        for row in distributions["distributions"]  # type: ignore[union-attr]
-        if row["distributionKind"] != "refspec-vocabulary-atlas-nquads-1.0"
-    ]
     return inventory, completed, distributions
 
 
@@ -137,7 +129,7 @@ def _temporary_atlas_distribution(
     )
 
 
-def test_catalog_without_the_retired_atlas_is_exact_and_two_tier() -> None:
+def test_checked_catalog_is_exact_and_two_tier() -> None:
     inventory, completed, distributions = _inputs()
     catalog = build_resource_catalog(
         inventory,
@@ -168,18 +160,17 @@ def test_catalog_without_the_retired_atlas_is_exact_and_two_tier() -> None:
     }
 
 
-def test_retired_checked_atlas_1_distribution_is_not_accepted() -> None:
-    inventory = load_json(INVENTORY)
-    completed = load_json(COMPLETED)
+def test_source_catalog_input_excludes_atlas_outputs() -> None:
     distributions = load_json(DISTRIBUTIONS)
 
-    with pytest.raises(ResourceCatalogError, match="distributionKind is unsupported"):
-        build_resource_catalog(
-            inventory,
-            completed,
-            distributions,
-            repository_root=ROOT,
-        )
+    atlas_rows = [
+        row for row in distributions["distributions"] if row["distributionKind"].startswith("refspec-vocabulary-atlas-")
+    ]
+
+    # Atlas scopes pin the AtlasIndex, which pins this source catalog. Atlas
+    # outputs belong in a downstream publication catalog, not back in this
+    # source inventory where they would create a digest cycle.
+    assert atlas_rows == []
 
 
 def test_catalog_generation_is_relocatable(tmp_path: Path) -> None:

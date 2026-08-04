@@ -24,12 +24,12 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:507c0e64a386993529e132a5cc5682e14a451f6f6e7471ebd44db1f6067cc946",
-  "indexId": "urn:ref:atlas-index:507c0e64a386993529e132a5cc5682e14a451f6f6e7471ebd44db1f6067cc946",
+  "indexDigest": "sha256:087b3e2e453ebb3bd81f1e80e0e7ba124421a63f8446cb7cddbc78490318ef24",
+  "indexId": "urn:ref:atlas-index:087b3e2e453ebb3bd81f1e80e0e7ba124421a63f8446cb7cddbc78490318ef24",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-04T10:18:54Z",
-  "resourceCatalogDigest": "sha256:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
-  "resourceCatalogId": "urn:ref:resource-catalog:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
+  "resourceCatalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
+  "resourceCatalogId": "urn:ref:resource-catalog:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
