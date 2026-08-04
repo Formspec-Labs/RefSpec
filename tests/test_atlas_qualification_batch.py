@@ -54,6 +54,58 @@ def _target(member: str, label: str, **kwargs: Any) -> qual.AtlasConcept:
     return qual.AtlasConcept(member=member, release=TARGET_RELEASE, pref_label=label, **kwargs)
 
 
+@pytest.mark.parametrize(
+    ("declared_type", "expected_reader"),
+    (
+        (
+            "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest",
+            "federal-register",
+        ),
+        ("urn:ref:type:IcpsrManagedReleaseManifest", "icpsr"),
+        ("urn:ref:type:UnknownManagedReleaseManifest", "managed"),
+        (["not", "a", "string"], "managed"),
+    ),
+)
+def test_qualification_runner_privately_selects_the_managed_release_reader(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    declared_type: object,
+    expected_reader: str,
+) -> None:
+    manifest = tmp_path / "managed-release.json"
+    manifest.write_text(json.dumps({"type": declared_type}), encoding="utf-8")
+    calls: list[tuple[str, Path, str]] = []
+
+    def reader(label: str) -> type:
+        class FakeReader:
+            @staticmethod
+            def open(
+                manifest_path: Path,
+                *,
+                expected_manifest_digest: str,
+            ) -> str:
+                calls.append((label, manifest_path, expected_manifest_digest))
+                return label
+
+        return FakeReader
+
+    monkeypatch.setattr(RUNNER, "PinnedManagedRelease", reader("managed"))
+    monkeypatch.setattr(
+        RUNNER,
+        "PinnedFederalRegisterThesaurus2025AtlasRelease",
+        reader("federal-register"),
+    )
+    monkeypatch.setattr(
+        RUNNER,
+        "PinnedIcpsrSubjectAtlasRelease",
+        reader("icpsr"),
+    )
+
+    digest = "sha256:" + "a" * 64
+    assert RUNNER._open_managed_release(manifest, digest) == expected_reader
+    assert calls == [(expected_reader, manifest, digest)]
+
+
 def _pairs() -> tuple[qual.CandidatePair, ...]:
     sources = (
         _source("urn:ref:test:alpha:1", "Energy policy"),
@@ -640,14 +692,10 @@ def test_a_non_v2_candidate_catalog_is_refused_before_provider_calls(
 
 def test_cli_has_no_protocol_override() -> None:
     parser = RUNNER.build_parser()
-    parsed = parser.parse_args(
-        ["--output", "run", "generate", "--generated-at", GENERATED_AT]
-    )
+    parsed = parser.parse_args(["--output", "run", "generate", "--generated-at", GENERATED_AT])
     assert not hasattr(parsed, "protocol")
     with pytest.raises(SystemExit):
-        parser.parse_args(
-            ["--output", "run", "generate", "--generated-at", GENERATED_AT, "--protocol", "v1"]
-        )
+        parser.parse_args(["--output", "run", "generate", "--generated-at", GENERATED_AT, "--protocol", "v1"])
 
 
 def test_candidates_without_a_protocol_are_refused(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:

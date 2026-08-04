@@ -181,12 +181,14 @@ expression carries `source_status = "notDeclared"` — what ELSST writes, and
 outside the retired set consumers filter on. The Federal Register adapter says
 `"active"`; for ICPSR that would be a claim the source does not make.
 
-## The build, end to end
+## Retired Atlas 1.0 build measurements
 
-`refspec-build-vocabulary-atlas` detects the ICPSR package from its declared
-manifest type and routes it to the new reader; `--input-format
-icpsr-subject-thesaurus` forces it, and `--input-format managed-bundle` fails
-closed on the 1.0 contract as it should.
+The measurements below came from the retired Atlas 1.0 command and two-graph
+format. Treat them as evidence about the verified ICPSR capture and its size,
+not as current build instructions. Atlas 2.0 construction accepts an opened
+`PinnedVocabularyAtlasScope` through the programmatic API. RefSpec will add a
+producer command after it defines a pinned build-input file for the scope's
+path-backed inputs and trusted readers.
 
 **ICPSR alone**, from the real capture:
 
@@ -212,12 +214,14 @@ label. A cluster would need another vocabulary to state that exact sentence as
 a label, and a cluster is a discovery hint that cannot create a mapping by
 itself.
 
-`VocabularyAtlasAsset.reproduce_from_inputs` rebuilds this distribution byte
-for byte from the pinned bundle and Rulespec Core release, so the projection is
-deterministic over the real capture and not only over the test fixture.
+The retired `VocabularyAtlasAsset.reproduce_from_inputs` path rebuilt this
+distribution byte for byte from the pinned bundle and Rulespec Core release.
+That result establishes the historical measurement; current Atlas 2.0 producer
+reproduction uses `VocabularyAtlasAsset.reproduce_from_scope` with the exact
+path-backed scope.
 
 **All three vocabularies**, the acid test: Federal Register 2025 + ELSST R5/R6
-+ ICPSR, one command, no crosswalk.
++ ICPSR, one retired build, no crosswalk.
 
 | | |
 |---|---:|

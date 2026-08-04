@@ -80,29 +80,22 @@ Published, digest-pinned files connect these products. Each consumer verifies
 the files and may build a disposable local index. It does not import another
 product's source tree or depend on that product's mutable database.
 
-`refspec-build-vocabulary-atlas` builds the two-graph static asset from exact
-managed-release and Rulespec Core file pins:
+Atlas 2.0 construction is programmatic. A producer first opens the exact atlas
+index, concept releases, relation bundles, and machine-proof sources, then
+creates a `PinnedVocabularyAtlasScope` that retains those verified inputs:
 
-```sh
-uv run refspec-build-vocabulary-atlas \
-  --managed-release path/to/managed-release.json sha256:<manifest digest> \
-  --rulespec-core ../../rulespec/release-records/fixtures/rulespec-core-release-m2.json \
-  --rulespec-core-file-digest sha256:<file digest> \
-  --rulespec-core-release-id urn:rulespec:core:<release digest hex> \
-  --rulespec-core-release-digest sha256:<release digest hex> \
-  --output build/vocabulary-atlas
+```python
+from refspec.atlas import build_vocabulary_atlas
+
+asset = build_vocabulary_atlas(pinned_scope)
+asset.write("build/vocabulary-atlas")
 ```
 
-Repeat `--managed-release` for each input. `--input-format` selects the reader
-for those inputs and defaults to `auto`, which routes the source-complete
-Federal Register 2025 package to its specialized adapter and every other shape
-to the generic managed bundle; `managed-bundle` and
-`federal-register-thesaurus-2025` pin the reader explicitly. An optional
-canonical crosswalk file supplies closed evidence and machine-validation
-receipts. A `searchOnly` mapping requires two validators with distinct actors,
-independence groups, providers, provider model IDs, and responses; human review
-is not a prerequisite. The command prints the manifest and N-Quads digests that
-a consumer must pin.
+The producer writes `atlas-manifest.json`, `atlas-scope.json`, and `atlas.nq`.
+The portable scope records content identities and digests, but it omits the
+local paths and trusted reader choices needed to reopen every input. RefSpec
+will add an Atlas 2.0 build command only after it defines one pinned build-input
+file that records those paths and choices explicitly.
 
 `refspec-build-vocabulary-atlas-projection` cuts a verified atlas down to a
 named policy's keep rule and publishes the result as a **separate distribution
@@ -122,15 +115,11 @@ uv run refspec-build-vocabulary-atlas-projection \
   --output build/vocabulary-atlas-projection
 ```
 
-Consumers call `VocabularyAtlasAsset.open` with only the atlas directory and
-those two external digests. Publishers may call `reproduce_from_inputs` to
-reopen every exact source and rebuild both files byte for byte;
-`refspec.atlas.projection.reproduce_distribution` dispatches on the declared
-manifest type so each kind is asked for the inputs it actually has. The checked
-Federal Register example proves that the specialized, source-complete 2025
-package can publish all 705 concepts through this same file format; it does not
-introduce another release model. `test_advertised_command_builds_the_complete_2025_package`
-builds that package through the command above.
+Atlas 2.0 consumers call `VocabularyAtlasAsset.open` with the atlas directory
+and one independently trusted manifest digest. The manifest pins the scope and
+N-Quads files. Producers may call `reproduce_from_scope` with
+the exact `PinnedVocabularyAtlasScope` to reopen every source and rebuild all
+three files byte for byte.
 
 `refspec-publish-vocabulary-atlas` verifies those same two pins and produces a
 static publication directory with a deterministic gzip download, reusable

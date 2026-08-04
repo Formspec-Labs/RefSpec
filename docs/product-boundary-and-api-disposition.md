@@ -57,10 +57,10 @@ boundary and source of truth.
 | --- | --- | --- |
 | `ManagedReleaseView` | Keep | Canonical read-only view of a verified managed release |
 | Managed vocabulary bundles, importers, source packages, coverage, and reconciliation | Keep | Core RefSpec behavior |
-| `refspec.atlas.VocabularyAtlasAsset` and atlas queries | Add | Keep the producer surface in the `refspec.atlas` namespace; consumers use the two published files and their external digests |
+| `refspec.atlas.VocabularyAtlasAsset` and atlas queries | Add | Keep the producer surface in the `refspec.atlas` namespace; consumers verify the three Atlas 2.0 files from one independently trusted manifest digest |
 | `VerifiedManagedReleaseSource` and the Federal Register 2025 adapter | Add | Let complete verified package shapes publish one atlas format without translating them into a duplicate generic bundle |
 | Canonical crosswalk bundle, candidates, evidence, machine receipts, deterministic checks, and feedback | Add | Keep every reference closed, bind each response to its validator and provider model, and require two distinct actors, independence groups, providers, provider model IDs, and responses; qualify `searchOnly` without human approval or a redundant aggregate receipt |
-| `refspec-build-vocabulary-atlas` | Add | Build the static files from exact release, Core, and optional crosswalk file pins |
+| `refspec-build-vocabulary-atlas` | Retire | Keep Atlas 2.0 construction programmatic until one pinned build-input file records the paths and trusted readers needed to reopen the complete `PinnedVocabularyAtlasScope` input set |
 | Standalone `VocabularyRelease` and duplicate canonical JSON helpers | Retire | Do not add them to this implementation |
 | Five-concept Federal Register release builder | Retire | Use the complete managed Federal Register package |
 | Source-controlled document observations and capture records | Move | SpicyRegs owns new work; retain current RefSpec paths only for compatibility during migration |
@@ -73,8 +73,9 @@ need a file-reader migration and a deprecation period before RefSpec removes a
 compatibility API.
 
 New atlas types are not re-exported from the broad `refspec` package root. The
-submodule and command are the intentional producer API; the published files are
-the consumer API.
+`refspec.atlas` submodule is the intentional producer API; the published files
+are the consumer API. RefSpec will add a producer command after it defines a
+pinned build-input file.
 
 ## Consumer-reader rule
 

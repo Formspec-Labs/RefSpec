@@ -4,8 +4,9 @@
 Qualification never runs inside an atlas build.  This tool runs beside one: it
 reads two pinned managed releases, proposes a diverse candidate slice, asks two
 independent model families about each candidate, and writes one sealed
-digest-pinned ``CrosswalkBundle`` that ``refspec-build-vocabulary-atlas
---crosswalk`` consumes as a pinned input.
+digest-pinned ``CrosswalkBundle``.  Atlas 2.0 can select qualified or reviewed
+proofs from that bundle through its trusted crosswalk machine-proof adapter;
+qualification remains separate from atlas construction.
 
 Four stages, because opening a real managed release is expensive (ELSST takes
 about eight minutes) and provider calls cost money.  Each stage writes a file
@@ -36,7 +37,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from refspec.atlas import qualification as qual
 from refspec.atlas import qualification_batch as qbatch
-from refspec.atlas.cli import open_release
+from refspec.atlas.federal_register import PinnedFederalRegisterThesaurus2025AtlasRelease
+from refspec.atlas.icpsr import (
+    ICPSR_MANAGED_RELEASE_MANIFEST_TYPE,
+    PinnedIcpsrSubjectAtlasRelease,
+)
+from refspec.atlas.model import PinnedManagedRelease, VerifiedManagedReleaseSource
 from refspec.storage import canonical_json
 
 CONCEPTS_SOURCE = "concepts-source.json"
@@ -46,6 +52,8 @@ RECEIPTS = "receipts.jsonl"
 BUNDLE = "crosswalk-bundle.json"
 RUN_RECEIPT = "qualification-receipt.json"
 MODELS_RECEIPT = "models-list.json"
+
+_FEDERAL_REGISTER_2025_MANIFEST_TYPE = "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
 
 
 def _file_digest(path: Path) -> str:
@@ -61,6 +69,33 @@ def _write_json(path: Path, payload: Any) -> str:
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _open_managed_release(
+    manifest_path: Path,
+    expected_manifest_digest: str,
+) -> VerifiedManagedReleaseSource:
+    """Open one exact qualification input through its source-specific reader."""
+
+    try:
+        manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        manifest = None
+    declared_type = manifest.get("type") if isinstance(manifest, dict) else None
+    if declared_type == _FEDERAL_REGISTER_2025_MANIFEST_TYPE:
+        return PinnedFederalRegisterThesaurus2025AtlasRelease.open(
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+    if declared_type == ICPSR_MANAGED_RELEASE_MANIFEST_TYPE:
+        return PinnedIcpsrSubjectAtlasRelease.open(
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+    return PinnedManagedRelease.open(
+        manifest_path,
+        expected_manifest_digest=expected_manifest_digest,
+    )
 
 
 def _concept_dict(concept: qual.AtlasConcept) -> dict[str, Any]:
@@ -118,7 +153,7 @@ def command_extract(args: argparse.Namespace) -> int:
         path = Path(manifest)
         digest = _file_digest(path)
         print(f"opening {role} release {path} ({digest})", file=sys.stderr, flush=True)
-        view = open_release(str(path), digest).verified_view()
+        view = _open_managed_release(path, digest).verified_view()
         concepts = qual.concepts_from_view(
             view,
             language=args.language,
@@ -392,9 +427,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         },
         "callOutcomes": dict(sorted(outcomes.items())),
         "candidateGenerationPolicy": catalog["generationPolicy"],
-        "candidatesByClass": {
-            name: dict(sorted(tally.items())) for name, tally in sorted(by_class.items())
-        },
+        "candidatesByClass": {name: dict(sorted(tally.items())) for name, tally in sorted(by_class.items())},
         "determinism": (
             "NOT reproducible. This artifact records provider calls; a rebuild will not "
             "reproduce it byte-for-byte. Every call carries its own request and response digest, "
@@ -622,7 +655,9 @@ def build_parser() -> argparse.ArgumentParser:
     extract.set_defaults(handler=command_extract)
 
     generate = subparsers.add_parser("generate", help="propose the deterministic candidate slice")
-    generate.add_argument("--generated-at", required=True, help="pinned candidate timestamp; part of candidate identity")
+    generate.add_argument(
+        "--generated-at", required=True, help="pinned candidate timestamp; part of candidate identity"
+    )
     generate.add_argument("--seed", default=qual.GENERATION_SEED)
     generate.add_argument("--limit", action="append", metavar="CLASS=N")
     generate.set_defaults(handler=command_generate)

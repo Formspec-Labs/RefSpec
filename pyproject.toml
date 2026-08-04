@@ -16,7 +16,6 @@ dependencies = [
 ]
 
 [project.scripts]
-refspec-build-vocabulary-atlas = "refspec.atlas.cli:main"
 refspec-build-vocabulary-atlas-projection = "refspec.atlas.projection_cli:main"
 refspec-publish-vocabulary-atlas = "refspec.atlas.publication:main"
 refspec-validate = "refspec.binding:main"

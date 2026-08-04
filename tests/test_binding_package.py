@@ -19,13 +19,24 @@ LEGACY_CLI = BINDING_ROOT / "tools" / "validate.py"
 
 
 def test_public_package_version_matches_project_metadata() -> None:
-    project_text = (REFSPEC_ROOT / "pyproject.toml").read_text(
-        encoding="utf-8"
-    )
+    project_text = (REFSPEC_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'(?m)^version = "([^"]+)"$', project_text)
 
     assert match is not None
     assert refspec.__version__ == match.group(1)
+
+
+def test_retired_atlas_builder_is_not_a_packaged_command() -> None:
+    project_text = (REFSPEC_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert (
+        re.search(
+            r"(?m)^refspec-build-vocabulary-atlas\s*=",
+            project_text,
+        )
+        is None
+    )
+    assert not (REFSPEC_ROOT / "src" / "refspec" / "atlas" / "cli.py").exists()
 
 
 def test_editable_checkout_resolves_binding_assets() -> None:
@@ -80,9 +91,7 @@ def test_public_validate_api_accepts_the_valid_fixture() -> None:
 def test_concept_proposal_accepts_each_typed_placement(
     placement: dict[str, str],
 ) -> None:
-    fixture = binding.load_fixture(
-        BINDING_ROOT / "fixtures" / "valid" / "concept-proposal.json"
-    )
+    fixture = binding.load_fixture(BINDING_ROOT / "fixtures" / "valid" / "concept-proposal.json")
     record = fixture["records"][0]
     record["placement"] = placement
     record["canonicalPayloadDigest"] = binding.canonical_payload_digest(record)
@@ -93,20 +102,14 @@ def test_concept_proposal_accepts_each_typed_placement(
 def test_expression_corpus_validator_reuses_one_schema_without_weakening_checks() -> None:
     fixture = binding.load_fixture(VALID_FIXTURE)
     expressions = [
-        record
-        for record in fixture["records"]
-        if record["type"]
-        == "urn:ref:type:IndexedVocabularyExpression"
+        record for record in fixture["records"] if record["type"] == "urn:ref:type:IndexedVocabularyExpression"
     ]
 
     assert binding.validate_indexed_expression_records(expressions) == []
 
-    diagnostics = binding.validate_indexed_expression_records(
-        [*expressions, expressions[0]]
-    )
+    diagnostics = binding.validate_indexed_expression_records([*expressions, expressions[0]])
     assert any(
-        item.requirement == "REF-CORE-005"
-        and "duplicate durable record identifier" in item.message
+        item.requirement == "REF-CORE-005" and "duplicate durable record identifier" in item.message
         for item in diagnostics
     )
 
@@ -185,38 +188,21 @@ def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
     for path in sorted((binding.FIXTURE_ROOT / "invalid").glob("*.json")):
         descriptor = binding.load_json(path)
         mutated_ids = {
-            mutation.get("recordId")
-            for mutation in descriptor.get("mutations", [])
-            if isinstance(mutation, dict)
+            mutation.get("recordId") for mutation in descriptor.get("mutations", []) if isinstance(mutation, dict)
         }
         fixture = binding.load_fixture(path)
         for record in fixture["records"]:
             record_type = record.get("type")
-            if (
-                record_type in binding.TYPE_SCHEMAS
-                and record.get("id") in mutated_ids
-            ):
+            if record_type in binding.TYPE_SCHEMAS and record.get("id") in mutated_ids:
                 invalid_by_type[record_type].append(path)
 
-    manifest = binding.load_json(
-        binding.BINDING_ROOT
-        / "tests"
-        / "requirement-to-test-manifest.json"
-    )
-    manifest_by_requirement = {
-        entry["requirement"]: entry for entry in manifest["coverage"]
-    }
+    manifest = binding.load_json(binding.BINDING_ROOT / "tests" / "requirement-to-test-manifest.json")
+    manifest_by_requirement = {entry["requirement"]: entry for entry in manifest["coverage"]}
 
     for record_type, requirement in binding.TYPE_REQUIREMENTS.items():
-        assert valid_by_type[record_type], (
-            f"{record_type} has no valid fixture"
-        )
-        assert invalid_by_type[record_type], (
-            f"{record_type} has no type-specific invalid fixture"
-        )
-        assert requirement in manifest_by_requirement, (
-            f"{record_type} requirement {requirement} is not linked"
-        )
+        assert valid_by_type[record_type], f"{record_type} has no valid fixture"
+        assert invalid_by_type[record_type], f"{record_type} has no type-specific invalid fixture"
+        assert requirement in manifest_by_requirement, f"{record_type} requirement {requirement} is not linked"
         linked = set(
             manifest_by_requirement[requirement].get(
                 "localFixtures",
@@ -224,20 +210,15 @@ def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
             )
         )
         assert any(
-            str(path.relative_to(binding.BINDING_ROOT)) in linked
-            for path, _record in valid_by_type[record_type]
+            str(path.relative_to(binding.BINDING_ROOT)) in linked for path, _record in valid_by_type[record_type]
         ), f"{record_type} has no requirement-linked valid fixture"
-        assert any(
-            str(path.relative_to(binding.BINDING_ROOT)) in linked
-            for path in invalid_by_type[record_type]
-        ), f"{record_type} has no requirement-linked invalid fixture"
+        assert any(str(path.relative_to(binding.BINDING_ROOT)) in linked for path in invalid_by_type[record_type]), (
+            f"{record_type} has no requirement-linked invalid fixture"
+        )
 
         for _path, record in valid_by_type[record_type]:
             digest_name = binding.digest_field(record)
-            assert (
-                record[digest_name]
-                == binding.canonical_payload_digest(record)
-            )
+            assert record[digest_name] == binding.canonical_payload_digest(record)
             round_tripped = json.loads(
                 json.dumps(
                     record,
@@ -247,10 +228,7 @@ def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
                 )
             )
             assert round_tripped == record
-            assert (
-                binding.canonical_payload_digest(round_tripped)
-                == record[digest_name]
-            )
+            assert binding.canonical_payload_digest(round_tripped) == record[digest_name]
 
 
 def test_structural_key_refuses_non_finite_numbers() -> None:

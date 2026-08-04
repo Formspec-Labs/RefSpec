@@ -392,11 +392,12 @@ A validator MUST reject a release when any of these conditions occurs:
 
 > **Historical — these commands do not run in this repository.** They reproduce the retired
 > standalone build and are kept only as its record. `refspec-build-federal-register-2025` is
-> not a console script here, the `--release`/`--output-directory` flags are not the atlas
-> command's flags, and there is no `release-records/` directory. In this repository run
-> `make test` and `make test-cross-repository`, and build the atlas with
-> `refspec-build-vocabulary-atlas` as shown in the [README](../README.md). The checked
-> conformance publications live under
+> not a console script here, and there is no `release-records/` directory. The Atlas 1.0
+> producer command is also retired. In this repository run `make test` and
+> `make test-cross-repository`; Atlas 2.0 construction is programmatic through
+> `build_vocabulary_atlas(pinned_scope)` until a pinned build-input file records the paths
+> and trusted readers needed to reopen its inputs. The
+> checked conformance publications live under
 > [`bindings/atlas/1.0/`](../bindings/atlas/1.0/README.md), not under `release-records/`.
 
 Install the locked development environment, run the focused tests, and build
