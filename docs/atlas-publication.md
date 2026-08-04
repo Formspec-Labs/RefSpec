@@ -54,19 +54,22 @@ view states its limits and never presents itself as the full dataset.
 
 ## Current multi-vocabulary MVP
 
-The current real build combines three verified managed-release inputs:
-Federal Register Thesaurus 2025, ELSST, and the ICPSR subject thesaurus. The
-ELSST package contains R5 and R6, so the explorer shows four reference
-releases. The atlas contains 929,327 quads, 8,513 hierarchy edges, and 121
-qualified mappings.
+Atlas `urn:ref:vocabulary-atlas:57a69e9a68a5877cb8b4e2b225153e2674b56af128a1ab9877f1787e57fb3042`
+has manifest file digest
+`sha256:a86ece8d75a003d1fea50ab92e0e920451ecd12b4f97eff44f0d7c51d617ea2a`
+and N-Quads digest
+`sha256:0cca97156192fc15e2fed8b0386f70a1ea9b313e34da12e3703adab1bd1ef58f`.
+That named build combines three managed-release inputs: Federal Register
+Thesaurus 2025, ELSST R6, and the ICPSR subject thesaurus. It contains 233,999
+quads, 5,152 hierarchy edges, and 240 qualified `searchOnly` mappings.
 
 Publish that exact local build with:
 
 ```sh
 uv run refspec-publish-vocabulary-atlas \
-  --atlas output/atlas-scratch/three-vocab-crosswalk \
-  --atlas-manifest-digest sha256:000595091c752df132b312178ec179b4baf8a180d0abb059dd5f24b42b7c04f7 \
-  --atlas-output-digest sha256:b7fcca718d4a57365a8230bb34d5b6d569888d06cb50828c72624c38ef75a897 \
+  --atlas output/atlas-fr-elsst-icpsr-2026-08-03 \
+  --atlas-manifest-digest sha256:a86ece8d75a003d1fea50ab92e0e920451ecd12b4f97eff44f0d7c51d617ea2a \
+  --atlas-output-digest sha256:0cca97156192fc15e2fed8b0386f70a1ea9b313e34da12e3703adab1bd1ef58f \
   --title "Federal Register · ELSST · ICPSR atlas" \
   --output output/publications/refspec-atlas-mvp
 ```

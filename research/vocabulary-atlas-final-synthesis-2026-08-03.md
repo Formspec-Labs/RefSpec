@@ -65,13 +65,12 @@ reports must name the atlas identifier and both file digests before quoting
 counts. They supersede the unpinned opening counts in the draft proposal.
 
 The registry-wide [source audit](evidence/registry-real-data-audit-2026-08-03/summary.json)
-also states its limit directly. It inventories 77 modules and its direct run
-passed 1,263 tests with 42 skips and no failures or errors. Ten reader rows
-have independently pinned publisher bytes, 52 remain blocked on source
-evidence, and 15 are support or otherwise not applicable. The separate
-publisher-data acceptance gate therefore remains red; the normal suite checks
-that this failure inventory is current instead of treating local files as
-publisher proof.
+also states its limit directly. It inventories 72 modules and its direct run
+passed 1,289 tests with no skips, failures, or errors. Sixty-six rows executed
+against independently pinned publisher bytes, and six support rows were not
+applicable. The separate publisher-data acceptance gate passed; the normal
+suite checks that the audit and its exact input receipts remain current instead
+of treating illustrative fixtures as publisher proof.
 
 Atlas 1.0 already supports multiple crosswalk bundles, deterministic
 reproduction, bounded hierarchy, SSSOM export, a static explorer, and a
