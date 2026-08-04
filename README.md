@@ -21,7 +21,8 @@ permission beyond rights supplied by applicable law.
 - [Authoritative REF structural model](model/README.md)
 - [Active managed vocabulary experiment roadmap](plans/managed-vocabulary-experiment-roadmap.md)
 - [Experimental resource catalog](portfolio/resource-catalog-v0.json)
-- [Completed controlled-resource package inventory](portfolio/completed-controlled-resource-packages-v1.json)
+- [Non-authorizing atlas and sibling-publication index](portfolio/atlas-index-v0.json)
+- [Completed resource package inventory](portfolio/completed-resource-packages-v2.json)
 - [Deferred standards composition and graph extensibility plan](plans/standards-composition-and-graph-extensibility-plan.md)
 - [Implemented vocabulary management and lookup separation baseline](plans/vocabulary-management-lookup-separation-plan.md)
 - [Completed vocabulary gap closure plan](plans/vocabulary-gap-closure-plan.md)
@@ -47,7 +48,10 @@ release process only when a result enters the promotion lane.
 The former SpicyRegs profile portfolio is retained as dated research evidence.
 The current experimental catalog records RefSpec-owned resource facts and
 distinguishes verified repository-contained distributions from evidence-only
-and planning entries. It does not define search policy.
+and planning entries. The separately identified atlas index classifies every
+registry source by semantic ring and records subject-atlas participation
+plans. Both artifacts are evidence for planning; neither defines product
+permissions or search policy.
 
 The vocabulary gap closure and management-separation plans record completed
 local baselines. The early implementation plan and broad editor's draft remain

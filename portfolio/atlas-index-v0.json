@@ -1,0 +1,2578 @@
+{
+  "experimental": true,
+  "format": "refspec-atlas-index/experimental-v0",
+  "implementationModules": [
+    "refspec.registry.adapters.concept_domain_bridge",
+    "refspec.registry.adapters.crs_zyte",
+    "refspec.registry.adapters.elsst_acquisition",
+    "refspec.registry.adapters.elsst_import_coverage",
+    "refspec.registry.adapters.icpsr_zyte",
+    "refspec.registry.infrastructure.artifact_serialization",
+    "refspec.registry.infrastructure.controlled_identifier",
+    "refspec.registry.infrastructure.identifier_validation",
+    "refspec.registry.infrastructure.managed_vocabulary_bundle",
+    "refspec.registry.infrastructure.pinned_acquisition",
+    "refspec.registry.infrastructure.semantic_foundation",
+    "refspec.registry.infrastructure.source_concept_release",
+    "refspec.registry.infrastructure.source_controlled_resource",
+    "refspec.registry.infrastructure.source_identity",
+    "refspec.registry.infrastructure.zyte_transport",
+    "refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release",
+    "refspec.registry.managed_releases.icpsr_managed_release",
+    "refspec.registry.packages.crs_source_concept_releases",
+    "refspec.registry.packages.crs_source_packages",
+    "refspec.registry.packages.federal_register_topics_package",
+    "refspec.registry.packages.lda_controlled_list_resources"
+  ],
+  "indexDigest": "sha256:507c0e64a386993529e132a5cc5682e14a451f6f6e7471ebd44db1f6067cc946",
+  "indexId": "urn:ref:atlas-index:507c0e64a386993529e132a5cc5682e14a451f6f6e7471ebd44db1f6067cc946",
+  "nonAuthorizing": true,
+  "recordedAt": "2026-08-04T10:18:54Z",
+  "resourceCatalogDigest": "sha256:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
+  "resourceCatalogId": "urn:ref:resource-catalog:307cbe7b20708966d0f41e3ce35d4ea38673c9d7e47ccd8264940bba680bc4ab",
+  "rows": [
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_agrovoc_thesaurus.py",
+          "sha256": "sha256:01f1d6924f25d5fe3a1be63720468d2c7fcc2129157742f339261d1889ecd880"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/agrovoc_thesaurus.py",
+          "sha256": "sha256:ac2534ab7f259a91d958baf1c7cd4c91e01b15bb353828246b758a96b716a24f"
+        }
+      ],
+      "release": null,
+      "resourceId": "agrovoc",
+      "rowDigest": "sha256:6917bd0125a7b0d064c77bd2e81cc6e9d85939e2d1b727b489840b721710fcc6",
+      "rowId": "urn:ref:atlas-index-row:6917bd0125a7b0d064c77bd2e81cc6e9d85939e2d1b727b489840b721710fcc6",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.agrovoc_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_billstatus_codes.py",
+          "sha256": "sha256:fb33da956fc4b05111e53c8773115113b44a984028b3b0f5b557f34ab956ec1c"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/billstatus_codes.py",
+          "sha256": "sha256:654f17c4da1f8ccbb81f3ed45bb90a049cb16421e2320b03c0415a3422daa606"
+        }
+      ],
+      "release": null,
+      "resourceId": "congress-billstatus-native-controls",
+      "rowDigest": "sha256:2ac71a5e4343e4c13a653c638d5465c4960517c255bdc391a99b41945d80784a",
+      "rowId": "urn:ref:atlas-index-row:2ac71a5e4343e4c13a653c638d5465c4960517c255bdc391a99b41945d80784a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.billstatus_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py",
+          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py",
+          "sha256": "sha256:19a92842081f76d73ac7af210560079453aba04c39b5a7613b55af6e45004397"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-cost-estimate-feed",
+      "rowDigest": "sha256:a9842c4ff01755b628b6a817d9c3bb1c0cad11d954c109fb6fb3574818abfd83",
+      "rowId": "urn:ref:atlas-index-row:a9842c4ff01755b628b6a817d9c3bb1c0cad11d954c109fb6fb3574818abfd83",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py",
+          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py",
+          "sha256": "sha256:19a92842081f76d73ac7af210560079453aba04c39b5a7613b55af6e45004397"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-cost-estimate-feed",
+      "rowDigest": "sha256:58636f6f26b4483d9e992bf8d7bea7933a95bb2b4756207517499bcee09e0648",
+      "rowId": "urn:ref:atlas-index-row:58636f6f26b4483d9e992bf8d7bea7933a95bb2b4756207517499bcee09e0648",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py",
+          "sha256": "sha256:6d0a2ad061509afb3b5fe17e80235a5907df87e9acb1b9acfe5ed9ef4e1e6f0b"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py",
+          "sha256": "sha256:323770da07fac61374221d401c49e53644bc1a0b91b3a80abc43ac7d69b4cacb"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-acs-geography-identifiers",
+      "rowDigest": "sha256:35ae00f33b71ad1c08d4fafc2036d0228547055bee701d0b3d4d88e64ffb608e",
+      "rowId": "urn:ref:atlas-index-row:35ae00f33b71ad1c08d4fafc2036d0228547055bee701d0b3d4d88e64ffb608e",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py",
+          "sha256": "sha256:6d0a2ad061509afb3b5fe17e80235a5907df87e9acb1b9acfe5ed9ef4e1e6f0b"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py",
+          "sha256": "sha256:323770da07fac61374221d401c49e53644bc1a0b91b3a80abc43ac7d69b4cacb"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-tiger-geoid-structure",
+      "rowDigest": "sha256:40408df0e802d43844c61ebbb725d2619bb9cd239cd94473d9e62f53538e6b3d",
+      "rowId": "urn:ref:atlas-index-row:40408df0e802d43844c61ebbb725d2619bb9cd239cd94473d9e62f53538e6b3d",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_geo_codes.py",
+          "sha256": "sha256:6d0a2ad061509afb3b5fe17e80235a5907df87e9acb1b9acfe5ed9ef4e1e6f0b"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_geo_codes.py",
+          "sha256": "sha256:323770da07fac61374221d401c49e53644bc1a0b91b3a80abc43ac7d69b4cacb"
+        }
+      ],
+      "release": null,
+      "resourceId": "usgs-gnis-identifiers",
+      "rowDigest": "sha256:61da211d32bcae55ab08e8d467ec6d8189fc5e84685a4b0d43d82126fe6ec722",
+      "rowId": "urn:ref:atlas-index-row:61da211d32bcae55ab08e8d467ec6d8189fc5e84685a4b0d43d82126fe6ec722",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.census_geo_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py",
+          "sha256": "sha256:1b3749dd2fcd16dc799b8844e5b0b9def2213f80d076e15a50cdfd8bcd2da83f"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py",
+          "sha256": "sha256:b30fe86451e240700ec7e05ce3dd29c2d23f2fd469981b0fa8e49c3a7f1a20ae"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-aspep-data-flags",
+      "rowDigest": "sha256:04d784bfab7c27e5717ef89c8b5d33adedd707cfbabf78862a7d9712192dc512",
+      "rowId": "urn:ref:atlas-index-row:04d784bfab7c27e5717ef89c8b5d33adedd707cfbabf78862a7d9712192dc512",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py",
+          "sha256": "sha256:1b3749dd2fcd16dc799b8844e5b0b9def2213f80d076e15a50cdfd8bcd2da83f"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py",
+          "sha256": "sha256:b30fe86451e240700ec7e05ce3dd29c2d23f2fd469981b0fa8e49c3a7f1a20ae"
+        }
+      ],
+      "release": null,
+      "resourceId": "census-aspep-function-item-codes",
+      "rowDigest": "sha256:451279da5cf779a82ea372ae17cb029bccf1885822aee7711c3a7d03cbb90547",
+      "rowId": "urn:ref:atlas-index-row:451279da5cf779a82ea372ae17cb029bccf1885822aee7711c3a7d03cbb90547",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_census_gov_finance_codes.py",
+          "sha256": "sha256:1b3749dd2fcd16dc799b8844e5b0b9def2213f80d076e15a50cdfd8bcd2da83f"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/census_gov_finance_codes.py",
+          "sha256": "sha256:b30fe86451e240700ec7e05ce3dd29c2d23f2fd469981b0fa8e49c3a7f1a20ae"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasbo-state-expenditure-program-areas",
+      "rowDigest": "sha256:c90724b5830996d9d426320346fc06fcd0f50b84f6b69ea3e66ac28dafa8da6b",
+      "rowId": "urn:ref:atlas-index-row:c90724b5830996d9d426320346fc06fcd0f50b84f6b69ea3e66ac28dafa8da6b",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.census_gov_finance_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cfr_list_of_subjects.py",
+          "sha256": "sha256:a08a69412758a12d4624b3903838c671dd215ec8d7980c7409dd963956cb2b85"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cfr_list_of_subjects.py",
+          "sha256": "sha256:665207a8af4f54239867fd600c432b0a967e00f6317cdcbd933f90f1b47e8a5f"
+        }
+      ],
+      "release": null,
+      "resourceId": "cfr-list-of-subjects",
+      "rowDigest": "sha256:41ae7563a122bf4104c49bbe754197dcd8b8a4b4c392ad405ad7f8ff9af17578",
+      "rowId": "urn:ref:atlas-index-row:41ae7563a122bf4104c49bbe754197dcd8b8a4b4c392ad405ad7f8ff9af17578",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.cfr_list_of_subjects"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_courtlistener_codes.py",
+          "sha256": "sha256:3d37aba6927248f98c0839c42acffc343a97abdf6a45483058ae9d50910484f7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/courtlistener_codes.py",
+          "sha256": "sha256:072036ac18eae036e3f3768a013507cbfa8daf8eeaf51814f4e12bb66d004ffa"
+        }
+      ],
+      "release": null,
+      "resourceId": "courtlistener-jurisdictions",
+      "rowDigest": "sha256:f79445aee8428997687adef76b7af7954dbb7f4301db5ec5bea1cf62e02424a8",
+      "rowId": "urn:ref:atlas-index-row:f79445aee8428997687adef76b7af7954dbb7f4301db5ec5bea1cf62e02424a8",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.courtlistener_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "entityResolution",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py",
+          "sha256": "sha256:3bcc45d87c3ce2fa5e5129edd1600477180aaeb16d24ccddd575a3adf089e6b5"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+          "sha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py",
+          "sha256": "sha256:0bb355dfa48bbcf137df42e8374b30a413c381537d9e762656a05b027a903db7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
+          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "evidenceSha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e",
+        "manifestDigest": "sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd",
+        "releaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
+      },
+      "resourceId": "crs-legislative-subject-terms",
+      "rowDigest": "sha256:474069ae86f2fdf57622c31f3cbd263193729ce9e7f5c8979f299210d9f12dd6",
+      "rowId": "urn:ref:atlas-index-row:474069ae86f2fdf57622c31f3cbd263193729ce9e7f5c8979f299210d9f12dd6",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "navigation",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py",
+          "sha256": "sha256:3bcc45d87c3ce2fa5e5129edd1600477180aaeb16d24ccddd575a3adf089e6b5"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+          "sha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py",
+          "sha256": "sha256:0bb355dfa48bbcf137df42e8374b30a413c381537d9e762656a05b027a903db7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
+          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "evidenceSha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e",
+        "manifestDigest": "sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7",
+        "releaseId": "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
+      },
+      "resourceId": "crs-legislative-subject-terms",
+      "rowDigest": "sha256:441848ab09e343f254829618b06351d13127eb684dcabc821eba1718a05fcf23",
+      "rowId": "urn:ref:atlas-index-row:441848ab09e343f254829618b06351d13127eb684dcabc821eba1718a05fcf23",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "navigation",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_legislative_resources.py",
+          "sha256": "sha256:3bcc45d87c3ce2fa5e5129edd1600477180aaeb16d24ccddd575a3adf089e6b5"
+        },
+        {
+          "kind": "sourceConceptReleaseValidation",
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+          "sha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_legislative_resources.py",
+          "sha256": "sha256:0bb355dfa48bbcf137df42e8374b30a413c381537d9e762656a05b027a903db7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
+          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+        "evidenceSha256": "sha256:4e5e822c98fbebe6a1596d9e03cf0851c239523ee121f87305506c2c3aba6d9e",
+        "manifestDigest": "sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8",
+        "releaseId": "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
+      },
+      "resourceId": "crs-policy-areas",
+      "rowDigest": "sha256:08be4a020dad533bfef83b14b3b0e097099750371e56e883f75c128ec4370223",
+      "rowId": "urn:ref:atlas-index-row:08be4a020dad533bfef83b14b3b0e097099750371e56e883f75c128ec4370223",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.crs_legislative_resources"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_product_topics.py",
+          "sha256": "sha256:49b7316ac5b680662d5aba1cde99071009b7c154ddb145197eda1727f59b17eb"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_product_topics.py",
+          "sha256": "sha256:0f81c30c64fcfd6492156b4890a397bb70b85c71a2b8defe1aeafa986111dde7"
+        }
+      ],
+      "release": null,
+      "resourceId": "crs-native-controls",
+      "rowDigest": "sha256:f55a69ff47f5a075486806420e967a50abb9437f773beb9cab6e821773d2fc57",
+      "rowId": "urn:ref:atlas-index-row:f55a69ff47f5a075486806420e967a50abb9437f773beb9cab6e821773d2fc57",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.crs_product_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_crs_product_topics.py",
+          "sha256": "sha256:49b7316ac5b680662d5aba1cde99071009b7c154ddb145197eda1727f59b17eb"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/crs_product_topics.py",
+          "sha256": "sha256:0f81c30c64fcfd6492156b4890a397bb70b85c71a2b8defe1aeafa986111dde7"
+        }
+      ],
+      "release": null,
+      "resourceId": "crs-native-controls",
+      "rowDigest": "sha256:961183e12c4072b3b36f1bacdf555b925af8f71646a78af4f5ec27a351549aae",
+      "rowId": "urn:ref:atlas-index-row:961183e12c4072b3b36f1bacdf555b925af8f71646a78af4f5ec27a351549aae",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.crs_product_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "deferred",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_doe_osti_thesaurus.py",
+          "sha256": "sha256:abdeb2e388a0c4a5120a6906df4e366d90bea1bce588ce7727bb32186c664b2c"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/doe_osti_thesaurus.py",
+          "sha256": "sha256:bfa066d5b153c4d3807ebcc4e84d846195d99723fdbb01778b0d54146976a0ba"
+        }
+      ],
+      "release": null,
+      "resourceId": "doe-osti-semantic-thesaurus-2020",
+      "rowDigest": "sha256:0ecd1ce5fd9be6691087a985670ead9b5dafa66844754c239b94f0e8ca91c4ff",
+      "rowId": "urn:ref:atlas-index-row:0ecd1ce5fd9be6691087a985670ead9b5dafa66844754c239b94f0e8ca91c4ff",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.doe_osti_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/elsst-r6-only-atlas-2026-08-02/evidence.json",
+          "sha256": "sha256:8f120c7c65c324ae10b9c313f8d9ecba70b41c4856692f4ecc2631851f9d7225"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_elsst.py",
+          "sha256": "sha256:f3469ed8b2d4f0c5769644cb7ff84a225247f94d1cc6a4dafb53c2c0136fae5a"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/elsst.py",
+          "sha256": "sha256:519bd2f9b3663265916c92c1e6b94b4980ca40099697ce43f2cefbf078e1a8f1"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/elsst-r6-only-atlas-2026-08-02/evidence.json",
+        "evidenceSha256": "sha256:8f120c7c65c324ae10b9c313f8d9ecba70b41c4856692f4ecc2631851f9d7225",
+        "manifestDigest": "sha256:e20928a6cb68494dfac8b8c16d6aa3db1147f2145d99c31bd01287eeced9761f",
+        "releaseId": "urn:ref:elsst:publication:development:f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552"
+      },
+      "resourceId": "elsst",
+      "rowDigest": "sha256:3119ba40de3982afc51ec365cd31314ce9584a81aa35f92ec3b8331cee30c7cf",
+      "rowId": "urn:ref:atlas-index-row:3119ba40de3982afc51ec365cd31314ce9584a81aa35f92ec3b8331cee30c7cf",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.elsst"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "deferred",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_epa_enterprise_vocabulary.py",
+          "sha256": "sha256:a1a3271cf5755f6dc994353b5e0578a0016682cb972bed4c0dd14b6672984a9c"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/epa_enterprise_vocabulary.py",
+          "sha256": "sha256:3fb8c8a6a1f932112a0d79735dec2af6143024a447f28f9f0f8ca806f931f065"
+        }
+      ],
+      "release": null,
+      "resourceId": "epa-enterprise-vocabulary",
+      "rowDigest": "sha256:fef9f92d903271abf6d7404230675d45bb25c0f8756842cefdeeeb8d703dc6ac",
+      "rowId": "urn:ref:atlas-index-row:fef9f92d903271abf6d7404230675d45bb25c0f8756842cefdeeeb8d703dc6ac",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.epa_enterprise_vocabulary"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_epa_srs_substances.py",
+          "sha256": "sha256:5daf222ab7931bdc0fd9abec85b06e8174f6d604f2e383500baf61f6bc697a4a"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/epa_srs_substances.py",
+          "sha256": "sha256:9556d96b1ccfda33056c0d597b926302943bb7439b16898d2ec012ca80567071"
+        }
+      ],
+      "release": null,
+      "resourceId": "epa-substance-identifiers",
+      "rowDigest": "sha256:9e97e08d19368116bd93f838a1cee2331f4e3754cdb02f1d2b9b702e965d3571",
+      "rowId": "urn:ref:atlas-index-row:9e97e08d19368116bd93f838a1cee2331f4e3754cdb02f1d2b9b702e965d3571",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.epa_srs_substances"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_thesaurus.py",
+          "sha256": "sha256:af2b60ea7aa7109a9778cde9b24378cdf6508c2565b2fd8d981c437be6bd76b9"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_thesaurus.py",
+          "sha256": "sha256:0f11e8c4b3b8fe25305abeabc972ebdd5adc6e012a4ad9338e2e4863ecc0651b"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc",
+      "rowDigest": "sha256:ad12ba2cf8f5cc6984894a454672f505f94c8dd4ac232c410bb448202b158cb4",
+      "rowId": "urn:ref:atlas-index-row:ad12ba2cf8f5cc6984894a454672f505f94c8dd4ac232c410bb448202b158cb4",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.eurovoc_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fac_dictionary.py",
+          "sha256": "sha256:68b38148eb1e5be3757581599dea77af3d32d076d5db66ba6d8a6da175f8b9b6"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fac_dictionary.py",
+          "sha256": "sha256:d7bf0019d3201c667fa9238d0718b175effd87357bfb43f33aa3bf6cb879f67b"
+        }
+      ],
+      "release": null,
+      "resourceId": "fac-api-dictionary",
+      "rowDigest": "sha256:6c80b5b64b105d2098834b353929642dac9f3c6c81bf992e58b0aadae393947a",
+      "rowId": "urn:ref:atlas-index-row:6c80b5b64b105d2098834b353929642dac9f3c6c81bf992e58b0aadae393947a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.fac_dictionary"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fast_topical.py",
+          "sha256": "sha256:1ac2183b0a3029fb6610317e3cf7661a9cea0a67105a26600608b757cc586d62"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fast_topical.py",
+          "sha256": "sha256:dfd6ec1b4e32b3452b00af65ca8fbbdd924b617f9ac0dc506881cb0a3815fb51"
+        }
+      ],
+      "release": null,
+      "resourceId": "fast-topical",
+      "rowDigest": "sha256:ba5734bef62ff480860bf48e44b526e0d8b4d438f0b0e329076903d8f27857f7",
+      "rowId": "urn:ref:atlas-index-row:ba5734bef62ff480860bf48e44b526e0d8b4d438f0b0e329076903d8f27857f7",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.fast_topical"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py",
+          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py",
+          "sha256": "sha256:022a4663ee1f104d89e9311c03a2abacdbb6b5ad47a9ca456b24e7902da1d771"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "rowDigest": "sha256:97d73d33d5fe3381f310417ec9970653435297ee8cb4de4b1af622d10c197165",
+      "rowId": "urn:ref:atlas-index-row:97d73d33d5fe3381f310417ec9970653435297ee8cb4de4b1af622d10c197165",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py",
+          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py",
+          "sha256": "sha256:022a4663ee1f104d89e9311c03a2abacdbb6b5ad47a9ca456b24e7902da1d771"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "rowDigest": "sha256:43dbb5185e1c16f3583591fb4cfb119c2336b1a29886d943a546a66572ecd3f0",
+      "rowId": "urn:ref:atlas-index-row:43dbb5185e1c16f3583591fb4cfb119c2336b1a29886d943a546a66572ecd3f0",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fcc_ecfs_codes.py",
+          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fcc_ecfs_codes.py",
+          "sha256": "sha256:022a4663ee1f104d89e9311c03a2abacdbb6b5ad47a9ca456b24e7902da1d771"
+        }
+      ],
+      "release": null,
+      "resourceId": "fcc-ecfs-native-controls",
+      "rowDigest": "sha256:22c3b113d95b600cff791760d44ecfc2804bc1e849f94f5a046b1e54f68b50da",
+      "rowId": "urn:ref:atlas-index-row:22c3b113d95b600cff791760d44ecfc2804bc1e849f94f5a046b1e54f68b50da",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.fcc_ecfs_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_fec_committee_codes.py",
+          "sha256": "sha256:86c899d294b2c8609c68b3017873f161037e23f8368e4e0104e23fedbabda08e"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/fec_committee_codes.py",
+          "sha256": "sha256:0dd4a79c9e96d10f89f3f0c2345ec66abeaa7072f8d0afd754e2cd413296a017"
+        }
+      ],
+      "release": null,
+      "resourceId": "fec-native-controls",
+      "rowDigest": "sha256:8b88a9f3af476db6e77e61a5f5c023c091521e67ae34324c479bdf71b3cb6d06",
+      "rowId": "urn:ref:atlas-index-row:8b88a9f3af476db6e77e61a5f5c023c091521e67ae34324c479bdf71b3cb6d06",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.fec_committee_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_hierarchy_orgs.py",
+          "sha256": "sha256:a649bd3e29b6e587fd57ae4243c04a5f7fddf3324e71b9e2f4745b4f60371ac2"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_hierarchy_orgs.py",
+          "sha256": "sha256:60b50f34a5e5fb09e008428868224c4447a5481c5e0f1aab4fdbf63bd81d03b3"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-hierarchy",
+      "rowDigest": "sha256:afb9058f7f244c59041f76493c972371d8fee12c4e1f274a7be82e4c8dc12e7d",
+      "rowId": "urn:ref:atlas-index-row:afb9058f7f244c59041f76493c972371d8fee12c4e1f274a7be82e4c8dc12e7d",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.federal_hierarchy_orgs"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
+      "atlasParticipation": "core",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
+          "sha256": "sha256:32537e555d688dcd2760f00ff057e71e8cc73975e608c53a71b4d07aa7d27837"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_thesaurus_2025.py",
+          "sha256": "sha256:18b3dadb1d54799ce068890b43134b710412192cd77e08c9b8a79b5d4c68b8cc"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_thesaurus_2025.py",
+          "sha256": "sha256:7a6ec0bb4e39cd8ab469587ee1e82c38741a6ccc2324ee75b9c9c1ae06ac02c7"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
+        "evidenceSha256": "sha256:32537e555d688dcd2760f00ff057e71e8cc73975e608c53a71b4d07aa7d27837",
+        "manifestDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
+        "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:managed-release:v1"
+      },
+      "resourceId": "federal-register-thesaurus-2025",
+      "rowDigest": "sha256:02731088e627655916ac684579c5f69e3602dff0343f4def21670da6d24b0c47",
+      "rowId": "urn:ref:atlas-index-row:02731088e627655916ac684579c5f69e3602dff0343f4def21670da6d24b0c47",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_topics_api.py",
+          "sha256": "sha256:c2076d8a40e2738dd230c168c41801cc23f0b3e282919aa2cea2f22a2fe50945"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_topics_api.py",
+          "sha256": "sha256:297229e777110727dcba1ef6da09d3575a19e55da9aa802ddc0cd21cbd6c4ac9"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-api-topics",
+      "rowDigest": "sha256:6547b290a1010fe1e61ecbfc7162617b1097e29f9088907865a08457e480ec45",
+      "rowId": "urn:ref:atlas-index-row:6547b290a1010fe1e61ecbfc7162617b1097e29f9088907865a08457e480ec45",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.federal_register_topics_api"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_ferc_elibrary_codes.py",
+          "sha256": "sha256:590622e550c61cb49e9add51603c73f7a9352adbe67f40f0c3609753b91851e4"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/ferc_elibrary_codes.py",
+          "sha256": "sha256:6829a86d368011be8bdef9ecef5e1635e26591bfce2b390045bd63168ee48a06"
+        }
+      ],
+      "release": null,
+      "resourceId": "ferc-elibrary-identifiers",
+      "rowDigest": "sha256:27cd8b0f339811ca6b957bd63c8596048ce035cfa22fac7ae5327a95918677d7",
+      "rowId": "urn:ref:atlas-index-row:27cd8b0f339811ca6b957bd63c8596048ce035cfa22fac7ae5327a95918677d7",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.ferc_elibrary_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_ferc_elibrary_codes.py",
+          "sha256": "sha256:590622e550c61cb49e9add51603c73f7a9352adbe67f40f0c3609753b91851e4"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/ferc_elibrary_codes.py",
+          "sha256": "sha256:6829a86d368011be8bdef9ecef5e1635e26591bfce2b390045bd63168ee48a06"
+        }
+      ],
+      "release": null,
+      "resourceId": "ferc-elibrary-native-controls",
+      "rowDigest": "sha256:652b096dbeb34a1be02af2ce28e65adabf40349ee27a9780d17844ba464f08e2",
+      "rowId": "urn:ref:atlas-index-row:652b096dbeb34a1be02af2ce28e65adabf40349ee27a9780d17844ba464f08e2",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.ferc_elibrary_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_cra_facets.py",
+          "sha256": "sha256:4ce4288c45c1241e06fbc2fc614fc4e2011bdc2cd0db2aaabd6ed514be16d7b2"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_cra_facets.py",
+          "sha256": "sha256:af3e7634aedc4db2c73fa5123a7853dbf760fb449318734adcdebcaa8d47e173"
+        }
+      ],
+      "release": null,
+      "resourceId": "gao-cra-database-facets",
+      "rowDigest": "sha256:8c6d7ca3f3647959a60de2b900e39e1d628602f43a387a112fff59bae0badbf5",
+      "rowId": "urn:ref:atlas-index-row:8c6d7ca3f3647959a60de2b900e39e1d628602f43a387a112fff59bae0badbf5",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.gao_cra_facets"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_topics.py",
+          "sha256": "sha256:e8d99363177013fd269283e6c0bfdaf9ee4c32bc645f0e6c56e7166a9871e254"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_topics.py",
+          "sha256": "sha256:5c374311d8a6bd9364708717a58c4232086bbbd07bf9f465750a85cfd7700f62"
+        }
+      ],
+      "release": null,
+      "resourceId": "gao-topics",
+      "rowDigest": "sha256:1625701d7a72b19f0af45ab49949543fa9a352cf7de88accaf4a0c4099b82775",
+      "rowId": "urn:ref:atlas-index-row:1625701d7a72b19f0af45ab49949543fa9a352cf7de88accaf4a0c4099b82775",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.gao_topics"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gcmd_science_keywords.py",
+          "sha256": "sha256:37cc98228c6214efb8e40eb3832982c3f4296a28630a534c47ea70fc1270c82a"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gcmd_science_keywords.py",
+          "sha256": "sha256:05cb3575f34b005e5a38f8e407f79c27f8a0c4d448f4e60659c297bca96e3eaa"
+        }
+      ],
+      "release": null,
+      "resourceId": "gcmd-science-keywords",
+      "rowDigest": "sha256:e842213c81ee001df4016c60bb1b030bcb9c6b614682a1efb2f67eac26703ec8",
+      "rowId": "urn:ref:atlas-index-row:e842213c81ee001df4016c60bb1b030bcb9c6b614682a1efb2f67eac26703ec8",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.gcmd_science_keywords"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gemet_thesaurus.py",
+          "sha256": "sha256:5f5a1be7fe443090770d256c5ff5e779ec656f4b26e27f03864e748dd2909171"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gemet_thesaurus.py",
+          "sha256": "sha256:26b08e6e41303761d259e0bc3b49c7f1a64a1db2ab52fb9fd308f96ba2f84abd"
+        }
+      ],
+      "release": null,
+      "resourceId": "gemet",
+      "rowDigest": "sha256:2b965bfe588eb6c3609c35a30d20cf1bfe734c2786f28e672d2d62f4ac532d21",
+      "rowId": "urn:ref:atlas-index-row:2b965bfe588eb6c3609c35a30d20cf1bfe734c2786f28e672d2d62f4ac532d21",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.gemet_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py",
+          "sha256": "sha256:fc508296d7326fe6e14dcf0c92ae42eb71c81bb4b01ae15010c5bd4a290e68aa"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py",
+          "sha256": "sha256:90c31897d4eb0e74667873b098f985cf072de4892031d8e01d11def4329a9e3c"
+        }
+      ],
+      "release": null,
+      "resourceId": "ecfr-cfr-structure",
+      "rowDigest": "sha256:0263ac53e8490ed2aedcb56f02e8eba09d6b3a180b0f8ea73c9e0c858835138c",
+      "rowId": "urn:ref:atlas-index-row:0263ac53e8490ed2aedcb56f02e8eba09d6b3a180b0f8ea73c9e0c858835138c",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py",
+          "sha256": "sha256:fc508296d7326fe6e14dcf0c92ae42eb71c81bb4b01ae15010c5bd4a290e68aa"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py",
+          "sha256": "sha256:90c31897d4eb0e74667873b098f985cf072de4892031d8e01d11def4329a9e3c"
+        }
+      ],
+      "release": null,
+      "resourceId": "govinfo-cfr-packages",
+      "rowDigest": "sha256:2c93b5b62d1828fe37153b5d52937f0eb368923fd1e16fef84a23f383b8d730b",
+      "rowId": "urn:ref:atlas-index-row:2c93b5b62d1828fe37153b5d52937f0eb368923fd1e16fef84a23f383b8d730b",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_govinfo_collections.py",
+          "sha256": "sha256:fc508296d7326fe6e14dcf0c92ae42eb71c81bb4b01ae15010c5bd4a290e68aa"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/govinfo_collections.py",
+          "sha256": "sha256:90c31897d4eb0e74667873b098f985cf072de4892031d8e01d11def4329a9e3c"
+        }
+      ],
+      "release": null,
+      "resourceId": "govinfo-collections",
+      "rowDigest": "sha256:6d3263042966f2913e3f00313a70383046b24e1bc5e2c29dcaa1076cbba5132d",
+      "rowId": "urn:ref:atlas-index-row:6d3263042966f2913e3f00313a70383046b24e1bc5e2c29dcaa1076cbba5132d",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.govinfo_collections"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:affected-population",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_grants_gov_codes.py",
+          "sha256": "sha256:0603695313acc1defae18b9bcbe508318d37cedf783bfa93cf6f30e215840a7d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/grants_gov_codes.py",
+          "sha256": "sha256:75b4718fdc03181ffaf2663a8db611aebce4406d16d11aea9ad5fbac5ee4cc91"
+        }
+      ],
+      "release": null,
+      "resourceId": "grants-gov-status-codes",
+      "rowDigest": "sha256:16d0c5c7f0fca44c993ad5960dbe29415abb11a9ff2914cf6ee62b371a79f873",
+      "rowId": "urn:ref:atlas-index-row:16d0c5c7f0fca44c993ad5960dbe29415abb11a9ff2914cf6ee62b371a79f873",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.grants_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_grants_gov_codes.py",
+          "sha256": "sha256:0603695313acc1defae18b9bcbe508318d37cedf783bfa93cf6f30e215840a7d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/grants_gov_codes.py",
+          "sha256": "sha256:75b4718fdc03181ffaf2663a8db611aebce4406d16d11aea9ad5fbac5ee4cc91"
+        }
+      ],
+      "release": null,
+      "resourceId": "grants-gov-status-codes",
+      "rowDigest": "sha256:c7e3b6040885de20c052496ce32585f2f38c357be4932cd9663595a5dc15bb52",
+      "rowId": "urn:ref:atlas-index-row:c7e3b6040885de20c052496ce32585f2f38c357be4932cd9663595a5dc15bb52",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.grants_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "managedReleaseValidation",
+          "path": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
+          "sha256": "sha256:4bbe2515316ec00610e7fd37ec13d16d10a77bf542483adcb956a90f78b2225b"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_icpsr_subject.py",
+          "sha256": "sha256:9a10d20152951965b14f46d62214281cff8c745830c69ff1e97160d1d1da5930"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/icpsr_subject.py",
+          "sha256": "sha256:035db15374070aa92398f21ef182da6050ab21dec81b1f4b4cf72596cb2c08d5"
+        }
+      ],
+      "release": {
+        "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
+        "evidenceSha256": "sha256:4bbe2515316ec00610e7fd37ec13d16d10a77bf542483adcb956a90f78b2225b",
+        "manifestDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
+        "releaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"
+      },
+      "resourceId": "icpsr-subject-thesaurus",
+      "rowDigest": "sha256:bc5c7f0cb21de665ee508c6c132019026e8cce645cfd95f6d9be5529a6e5dcde",
+      "rowId": "urn:ref:atlas-index-row:bc5c7f0cb21de665ee508c6c132019026e8cce645cfd95f6d9be5529a6e5dcde",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.icpsr_subject"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lcsh_topical.py",
+          "sha256": "sha256:b87f27478b8df532d08a009100552771ffe2dac8cc6e1c40edf03197b086aa1a"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lcsh_topical.py",
+          "sha256": "sha256:dc03ab77ec710575ebd4ef8a5bc1ebddf69932e1c0bd20042ec65f5358bf51cd"
+        }
+      ],
+      "release": null,
+      "resourceId": "lcsh-topical",
+      "rowDigest": "sha256:baf60474581cbf29fc8af72ba0f8913244b88da5a82332eeb1290f016999da26",
+      "rowId": "urn:ref:atlas-index-row:baf60474581cbf29fc8af72ba0f8913244b88da5a82332eeb1290f016999da26",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.lcsh_topical"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lda_controlled_codes.py",
+          "sha256": "sha256:b9ab54133134363246c6dbb56768d8d15b029fc9732ae207e1ff36ad020cb1d4"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lda_controlled_codes.py",
+          "sha256": "sha256:543f08ba3c3d8ef5ddde3ccf2ee373459a86bbd9cf11b7199eddcb038bb7361d"
+        }
+      ],
+      "release": null,
+      "resourceId": "lda-filing-types",
+      "rowDigest": "sha256:688e2fa82510de3bf4462ca15723b8114ef2d2f7ee8d30c8e0652787bb68fc0f",
+      "rowId": "urn:ref:atlas-index-row:688e2fa82510de3bf4462ca15723b8114ef2d2f7ee8d30c8e0652787bb68fc0f",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.lda_controlled_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
+        "candidateRanking",
+        "sourceAssignedEvidence"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_lda_controlled_codes.py",
+          "sha256": "sha256:b9ab54133134363246c6dbb56768d8d15b029fc9732ae207e1ff36ad020cb1d4"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/lda_controlled_codes.py",
+          "sha256": "sha256:543f08ba3c3d8ef5ddde3ccf2ee373459a86bbd9cf11b7199eddcb038bb7361d"
+        }
+      ],
+      "release": null,
+      "resourceId": "lda-general-issue-codes",
+      "rowDigest": "sha256:8f03f8aabe58e55a4257f5850b7569eb073ed3bc94e891645c238673209f1c11",
+      "rowId": "urn:ref:atlas-index-row:8f03f8aabe58e55a4257f5850b7569eb073ed3bc94e891645c238673209f1c11",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.lda_controlled_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_mesh_descriptors.py",
+          "sha256": "sha256:8328d493f4ae2bea677e9597afede72073271382ec6f36aa5e9505685a6389ac"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/mesh_descriptors.py",
+          "sha256": "sha256:441ade5b38c722ffae55efee3c39bf40be1d61e8838830645a386fb3c0cd8408"
+        }
+      ],
+      "release": null,
+      "resourceId": "mesh-descriptors",
+      "rowDigest": "sha256:0cbfe175427919e73b9a26aa49331702d72b1c939960b24df6ba9da9f2d45888",
+      "rowId": "urn:ref:atlas-index-row:0cbfe175427919e73b9a26aa49331702d72b1c939960b24df6ba9da9f2d45888",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.mesh_descriptors"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:industry-classification",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval",
+        "rankingSignal"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_naics_psc_codes.py",
+          "sha256": "sha256:22e9fb58f19151010c661163035832220858e5c5e0b97ea5ec8634fc49844a46"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/naics_psc_codes.py",
+          "sha256": "sha256:27195bef1592d6884c3a0a12547ef535c7c82551c136b17de6d601fd4ac3346f"
+        }
+      ],
+      "release": null,
+      "resourceId": "naics",
+      "rowDigest": "sha256:309e3679110949cfd1e31d868823de82f1e43d1c2231589c99ea145c5d55bfc5",
+      "rowId": "urn:ref:atlas-index-row:309e3679110949cfd1e31d868823de82f1e43d1c2231589c99ea145c5d55bfc5",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.naics_psc_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval",
+        "rankingSignal"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_naics_psc_codes.py",
+          "sha256": "sha256:22e9fb58f19151010c661163035832220858e5c5e0b97ea5ec8634fc49844a46"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/naics_psc_codes.py",
+          "sha256": "sha256:27195bef1592d6884c3a0a12547ef535c7c82551c136b17de6d601fd4ac3346f"
+        }
+      ],
+      "release": null,
+      "resourceId": "psc",
+      "rowDigest": "sha256:05c3b528a8adbdb27ef4344803abc178f2695b60d6c5b0f0d21f0f7cfc1d8708",
+      "rowId": "urn:ref:atlas-index-row:05c3b528a8adbdb27ef4344803abc178f2695b60d6c5b0f0d21f0f7cfc1d8708",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.naics_psc_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nalt_core.py",
+          "sha256": "sha256:c05cc9f1376c6296d146b2ac56f6c269f88316d4c96913f2e324161a3817fa54"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nalt_core.py",
+          "sha256": "sha256:272e3518fe2566102c6bd97f39b0d84be366c198a546200f29ee54bdaaabd891"
+        }
+      ],
+      "release": null,
+      "resourceId": "nalt-core",
+      "rowDigest": "sha256:ab0c0ebe7cd979b6790a3f4fa9bc7e60b93976d7bc4ae5657946fd72efe0974f",
+      "rowId": "urn:ref:atlas-index-row:ab0c0ebe7cd979b6790a3f4fa9bc7e60b93976d7bc4ae5657946fd72efe0974f",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.nalt_core"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "deterministicMetadata",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nasa_technology_taxonomy.py",
+          "sha256": "sha256:ddf3e19abf3952857ba134f839e63bac82fd4ba3d40ce5a7582acebdecb7eb39"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nasa_technology_taxonomy.py",
+          "sha256": "sha256:e1ff0e864e29b65750a447df12b46bdef8e13ee31c052b964da5055cf42d35cc"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasa-technology-taxonomy",
+      "rowDigest": "sha256:264d0c173768c338f9f6388fc2e58fe9eeb04ca44a1dfc3e38c7b4a54ca2e54c",
+      "rowId": "urn:ref:atlas-index-row:264d0c173768c338f9f6388fc2e58fe9eeb04ca44a1dfc3e38c7b4a54ca2e54c",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.nasa_technology_taxonomy"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
+      "atlasParticipation": "specialist",
+      "facet": "urn:ref:facet:specialist-subject",
+      "intendedUses": [
+        "candidateGeneration",
+        "mappingReference",
+        "searchExpansion"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nasa_thesaurus.py",
+          "sha256": "sha256:e6f389d9f056ae9ab780f8317326a01fb9c3b56a6ebb1f3f0ffe3d5c6be7d455"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nasa_thesaurus.py",
+          "sha256": "sha256:2a9df3d79118f603d7853ef96f89f67760f081f9fa4a3a436517832c5e5283c1"
+        }
+      ],
+      "release": null,
+      "resourceId": "nasa-thesaurus",
+      "rowDigest": "sha256:f9bbfe6f5e566afe89fb5c2479ef471ae5954e2ec6a54658f9ae8a1f1c918036",
+      "rowId": "urn:ref:atlas-index-row:f9bbfe6f5e566afe89fb5c2479ef471ae5954e2ec6a54658f9ae8a1f1c918036",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.nasa_thesaurus"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nature_of_suit_codes.py",
+          "sha256": "sha256:51e9a10c7841a8f062aa5ccaadf274e9d0d09d2a34cd80fbc9edeb0a6bae7065"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nature_of_suit_codes.py",
+          "sha256": "sha256:ef3378fa54c077591c6381f1668041779fa9e1c3cca2c15c7c7769d6e0ed94b2"
+        }
+      ],
+      "release": null,
+      "resourceId": "nature-of-suit",
+      "rowDigest": "sha256:05524d0b6f44c63841e00730ccf24c574e190d7cc5991e6ab688ea27f1cdfa03",
+      "rowId": "urn:ref:atlas-index-row:05524d0b6f44c63841e00730ccf24c574e190d7cc5991e6ab688ea27f1cdfa03",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.nature_of_suit_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py",
+          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py",
+          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+        }
+      ],
+      "release": null,
+      "resourceId": "cms-certification-number-authority",
+      "rowDigest": "sha256:37499a17642e2cef4e7ff1ce22e1d61d326bf32d4cd28b0a86c581776719ee6b",
+      "rowId": "urn:ref:atlas-index-row:37499a17642e2cef4e7ff1ce22e1d61d326bf32d4cd28b0a86c581776719ee6b",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py",
+          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py",
+          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+        }
+      ],
+      "release": null,
+      "resourceId": "nppes-data-dissemination-layout",
+      "rowDigest": "sha256:a341340227e01ac250924d624d3c8aabc9894f8c614939284352a3867f6a0d2e",
+      "rowId": "urn:ref:atlas-index-row:a341340227e01ac250924d624d3c8aabc9894f8c614939284352a3867f6a0d2e",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nppes_npi_identifiers.py",
+          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nppes_npi_identifiers.py",
+          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+        }
+      ],
+      "release": null,
+      "resourceId": "nppes-npi-authority",
+      "rowDigest": "sha256:6dcb6f7b8b6e18cf5b0f538663393a2c0849f818c1652b1e78a469e41caca4cf",
+      "rowId": "urn:ref:atlas-index-row:6dcb6f7b8b6e18cf5b0f538663393a2c0849f818c1652b1e78a469e41caca4cf",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.nppes_npi_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nrc_adams_codes.py",
+          "sha256": "sha256:ed84e882301786ab989b6335deaf6c6755c4540424d1f4e801b1f8573fbc525d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nrc_adams_codes.py",
+          "sha256": "sha256:68aed697b0aaf257ef03dc5b01a1d9f6ec660e85ee91fd2e29ab2801f5a2b2aa"
+        }
+      ],
+      "release": null,
+      "resourceId": "nrc-adams-identifiers",
+      "rowDigest": "sha256:bc5368a22cace93293a73425029ca6852087809c2c648c8b6e013979ba33103a",
+      "rowId": "urn:ref:atlas-index-row:bc5368a22cace93293a73425029ca6852087809c2c648c8b6e013979ba33103a",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.nrc_adams_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_nrc_adams_codes.py",
+          "sha256": "sha256:ed84e882301786ab989b6335deaf6c6755c4540424d1f4e801b1f8573fbc525d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/nrc_adams_codes.py",
+          "sha256": "sha256:68aed697b0aaf257ef03dc5b01a1d9f6ec660e85ee91fd2e29ab2801f5a2b2aa"
+        }
+      ],
+      "release": null,
+      "resourceId": "nrc-adams-native-controls",
+      "rowDigest": "sha256:61fa977191e900c2fc000c2c6cf7f099b85461372e7ac6428f01cf31f6800212",
+      "rowId": "urn:ref:atlas-index-row:61fa977191e900c2fc000c2c6cf7f099b85461372e7ac6428f01cf31f6800212",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.nrc_adams_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oira_review_codes.py",
+          "sha256": "sha256:780a26ce2fb7f797df8ba2c53975dd092a6a166632e7de4805ceb6bda847df61"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oira_review_codes.py",
+          "sha256": "sha256:c4936a76d95870a9f09f83792fc03e3d6a0a6082d93213da5e92c3872ac57541"
+        }
+      ],
+      "release": null,
+      "resourceId": "oira-review-native-controls",
+      "rowDigest": "sha256:dddee08492f090ca0b1a60dc8c46c1db9a81126985bb3a8504612029fa34255b",
+      "rowId": "urn:ref:atlas-index-row:dddee08492f090ca0b1a60dc8c46c1db9a81126985bb3a8504612029fa34255b",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.oira_review_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_omb_a11_budget_codes.py",
+          "sha256": "sha256:6cfd551ac47b98786c0f7d0cafbd27a6d758a48d5ce9c075772909f228461328"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/omb_a11_budget_codes.py",
+          "sha256": "sha256:48414070c85a502e7161f68d08ffc96d15d1e43f53fa7bb019b263fb7a33c489"
+        }
+      ],
+      "release": null,
+      "resourceId": "omb-a11-budget-codes",
+      "rowDigest": "sha256:98337a40e53a4a970833fabc94d1e3d7e7b45c6623465d4c19b9f597af3ab5e0",
+      "rowId": "urn:ref:atlas-index-row:98337a40e53a4a970833fabc94d1e3d7e7b45c6623465d4c19b9f597af3ab5e0",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.omb_a11_budget_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_opm_workforce_codes.py",
+          "sha256": "sha256:5f74e4210cc4479d98710fbb0be7b6dcfab9af19eed3315a042cede34de6e96d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/opm_workforce_codes.py",
+          "sha256": "sha256:66c44e07cdb7c3d0175381590b4d2634d9377be6272a8fdeb1bc4f5d5820bb0c"
+        }
+      ],
+      "release": null,
+      "resourceId": "opm-ehri-workforce-codes",
+      "rowDigest": "sha256:1833571dc7804f212b77722c922447df5c2fa411a386082fd8c16793be3d6788",
+      "rowId": "urn:ref:atlas-index-row:1833571dc7804f212b77722c922447df5c2fa411a386082fd8c16793be3d6788",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.opm_workforce_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_opm_workforce_codes.py",
+          "sha256": "sha256:5f74e4210cc4479d98710fbb0be7b6dcfab9af19eed3315a042cede34de6e96d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/opm_workforce_codes.py",
+          "sha256": "sha256:66c44e07cdb7c3d0175381590b4d2634d9377be6272a8fdeb1bc4f5d5820bb0c"
+        }
+      ],
+      "release": null,
+      "resourceId": "opm-plum-position-status-codes",
+      "rowDigest": "sha256:f0276e505af39bd00f9fdc5b9fa2946cfc9a8c540ba95c50f58805cd2e776c14",
+      "rowId": "urn:ref:atlas-index-row:f0276e505af39bd00f9fdc5b9fa2946cfc9a8c540ba95c50f58805cd2e776c14",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.opm_workforce_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_oversight_report_types.py",
+          "sha256": "sha256:3003595b5e613f00df4959d14e44c2133c6827ba1e43518b09743891836ee3bd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/oversight_report_types.py",
+          "sha256": "sha256:b707a800b83899c932468be5d553405ad3f7b72c2088b6dd1d9a3dd5b2fcec52"
+        }
+      ],
+      "release": null,
+      "resourceId": "oversight-report-types",
+      "rowDigest": "sha256:2484699e14e1a9d6eb947c7e548383a5babc5276f42a1f84763d869345794152",
+      "rowId": "urn:ref:atlas-index-row:2484699e14e1a9d6eb947c7e548383a5babc5276f42a1f84763d869345794152",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.oversight_report_types"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_pra_icr_codes.py",
+          "sha256": "sha256:26c6e1511862f7af6be89fa65ee1aced623377b0ab23b81ad67a74163a926069"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/pra_icr_codes.py",
+          "sha256": "sha256:00a5457fef82bcff5bc655f28530ea9c3deef1c6dd6d65a02bf1176cb0c03e46"
+        }
+      ],
+      "release": null,
+      "resourceId": "pra-icr-native-controls",
+      "rowDigest": "sha256:fca396d9730cd4896d33e9c429c8c50993e2cd113c2f2a7036911c7e50230e94",
+      "rowId": "urn:ref:atlas-index-row:fca396d9730cd4896d33e9c429c8c50993e2cd113c2f2a7036911c7e50230e94",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.pra_icr_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulations_gov_codes.py",
+          "sha256": "sha256:5062f58e59a4e05a4d031435781703aa47139fd44c4e13d0f6d29c7205ee6dfd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulations_gov_codes.py",
+          "sha256": "sha256:e860e968e02b10bd76558842526b63d71993ffc4346b5a9461653f219915cca9"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "rowDigest": "sha256:15bb49b21754b1d1f8e0a8c4550d7ef5a329508bd9058a881aeaeefa5f60a49a",
+      "rowId": "urn:ref:atlas-index-row:15bb49b21754b1d1f8e0a8c4550d7ef5a329508bd9058a881aeaeefa5f60a49a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulations_gov_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-native-controls",
+      "rowDigest": "sha256:7dec70f079870dd960897ce2c7a5d3d2d2569f652c847d3a9ce4b5100128a955",
+      "rowId": "urn:ref:atlas-index-row:7dec70f079870dd960897ce2c7a5d3d2d2569f652c847d3a9ce4b5100128a955",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-native-controls",
+      "rowDigest": "sha256:019cf671b2c2d9c4a0a5901dad999428cec77a3cf088cd3ae8e01b790085a38c",
+      "rowId": "urn:ref:atlas-index-row:019cf671b2c2d9c4a0a5901dad999428cec77a3cf088cd3ae8e01b790085a38c",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "rowDigest": "sha256:8bae37d4de776516a2b6d5b3710b39a4385fb44c33e18d8247f22aa16efec01a",
+      "rowId": "urn:ref:atlas-index-row:8bae37d4de776516a2b6d5b3710b39a4385fb44c33e18d8247f22aa16efec01a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "rowDigest": "sha256:e6d36296569a70e2716c3c821d84c25f0b5ed3df6abdc361b8eb7ebbcb7d2ae9",
+      "rowId": "urn:ref:atlas-index-row:e6d36296569a70e2716c3c821d84c25f0b5ed3df6abdc361b8eb7ebbcb7d2ae9",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "regulations-gov-native-controls",
+      "rowDigest": "sha256:1333574d3e985797aa600a62906634e8417734b9f50909160a01621356d0333e",
+      "rowId": "urn:ref:atlas-index-row:1333574d3e985797aa600a62906634e8417734b9f50909160a01621356d0333e",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-native-controls",
+      "rowDigest": "sha256:8eef4f074f72d6bd064b3a1085a14afe0017b163fc00681960721fc7c3993ae8",
+      "rowId": "urn:ref:atlas-index-row:8eef4f074f72d6bd064b3a1085a14afe0017b163fc00681960721fc7c3993ae8",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-native-controls",
+      "rowDigest": "sha256:418f8417fd56aedee769d7537f1196cac63ed4346ce4ff0f3ad2f67dec2560a2",
+      "rowId": "urn:ref:atlas-index-row:418f8417fd56aedee769d7537f1196cac63ed4346ce4ff0f3ad2f67dec2560a2",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_regulatory_native_controls.py",
+          "sha256": "sha256:19bd84324a511d7eb8f94298edfe75529dfc62993c30e47dbc5c76ffe7a0cbbd"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/regulatory_native_controls.py",
+          "sha256": "sha256:8fabd8f585ba308476394a84c4ca7505ca6e08e1ae473ce051c367e38a444253"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-native-controls",
+      "rowDigest": "sha256:95d098e74652b8ed9cdea7437bec939bfbbbf5016d32b5e4e8c43009fa1cb6c9",
+      "rowId": "urn:ref:atlas-index-row:95d098e74652b8ed9cdea7437bec939bfbbbf5016d32b5e4e8c43009fa1cb6c9",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.regulatory_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:affected-population",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_assistance_listing_codes.py",
+          "sha256": "sha256:8ec8f45fd4e9c45538ec711477f1ec460ee2f08b81c9c03b15c3c1238bf7da47"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_assistance_listing_codes.py",
+          "sha256": "sha256:e0b27826ee36ae17aa5941f81019c78a91177df5d524aa3ea2e48553acb7e9f9"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-assistance-listing-controls",
+      "rowDigest": "sha256:b1c4733ff6b16772cee243f2c57f8674212a251f65a757b1602f055209c9f36b",
+      "rowId": "urn:ref:atlas-index-row:b1c4733ff6b16772cee243f2c57f8674212a251f65a757b1602f055209c9f36b",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.sam_assistance_listing_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_assistance_listing_codes.py",
+          "sha256": "sha256:8ec8f45fd4e9c45538ec711477f1ec460ee2f08b81c9c03b15c3c1238bf7da47"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_assistance_listing_codes.py",
+          "sha256": "sha256:e0b27826ee36ae17aa5941f81019c78a91177df5d524aa3ea2e48553acb7e9f9"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-assistance-listing-controls",
+      "rowDigest": "sha256:7ef9d9d56b0c91138324502adc8ea8c0805853a91a4937c94d73c304d2c7fec8",
+      "rowId": "urn:ref:atlas-index-row:7ef9d9d56b0c91138324502adc8ea8c0805853a91a4937c94d73c304d2c7fec8",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.sam_assistance_listing_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_opportunities_codes.py",
+          "sha256": "sha256:dd428eedf984853e5dda494cbddd47e97ca70a5cb9ca2ec35798e0935ccf2cd7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_opportunities_codes.py",
+          "sha256": "sha256:e957c1ad1e443d438dc35ea6a4be3fd694132f0ed4d5bda786919ecba91e63de"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-opportunities-native-controls",
+      "rowDigest": "sha256:e83c04b7dbd5c16adac5f8f4347cf46b03676d2ab2c370313a831069d630d404",
+      "rowId": "urn:ref:atlas-index-row:e83c04b7dbd5c16adac5f8f4347cf46b03676d2ab2c370313a831069d630d404",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.sam_opportunities_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sam_opportunities_codes.py",
+          "sha256": "sha256:dd428eedf984853e5dda494cbddd47e97ca70a5cb9ca2ec35798e0935ccf2cd7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sam_opportunities_codes.py",
+          "sha256": "sha256:e957c1ad1e443d438dc35ea6a4be3fd694132f0ed4d5bda786919ecba91e63de"
+        }
+      ],
+      "release": null,
+      "resourceId": "sam-opportunities-native-controls",
+      "rowDigest": "sha256:751c69af7173255553b0ad7c7fc79d3f94c05d0c5f155d21d01d9aab4a772283",
+      "rowId": "urn:ref:atlas-index-row:751c69af7173255553b0ad7c7fc79d3f94c05d0c5f155d21d01d9aab4a772283",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.sam_opportunities_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_scotus_opinion_types.py",
+          "sha256": "sha256:7098a62576d5213a52f11ffaebbec2a3eb635323c392004a94350760c8e5d108"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/scotus_opinion_types.py",
+          "sha256": "sha256:0fe6cc995ce949963da57c33f6770763c6d45aecbeefe4836acb37a2079495c0"
+        }
+      ],
+      "release": null,
+      "resourceId": "scotus-opinion-and-package-types",
+      "rowDigest": "sha256:f63e7b7f18d7925c7ed2c1821a3d76f7ff6bb45c2970056a694ac933bcafeff9",
+      "rowId": "urn:ref:atlas-index-row:f63e7b7f18d7925c7ed2c1821a3d76f7ff6bb45c2970056a694ac933bcafeff9",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.scotus_opinion_types"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:genre",
+      "intendedUses": [
+        "deterministicMetadata",
+        "navigation"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_sec_series_categories.py",
+          "sha256": "sha256:ba041efd5db47b1b42392c168df17edc4d1a7da861580524f67ea715524730a7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/sec_series_categories.py",
+          "sha256": "sha256:446bf9001d965cf8e4edfa59d59acfc2ef0d1c5f65751f77cfdfe968757bf752"
+        }
+      ],
+      "release": null,
+      "resourceId": "sec-rules-regulations-categories",
+      "rowDigest": "sha256:7a232accfde5c9ca5d3a32b76efda28f60a9ba2b04c2ef0141f486dcf7542e5a",
+      "rowId": "urn:ref:atlas-index-row:7a232accfde5c9ca5d3a32b76efda28f60a9ba2b04c2ef0141f486dcf7542e5a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.sec_series_categories"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_treasury_tas_fast_book.py",
+          "sha256": "sha256:389443b966a75322bfe70f3331562ee4d9df7ba78515e57a8b9c86ea1aba36e6"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/treasury_tas_fast_book.py",
+          "sha256": "sha256:e91706a8de8223380bad94068e0a9fa0d6a07b0ea6051d2124f2854b5eee49b2"
+        }
+      ],
+      "release": null,
+      "resourceId": "treasury-account-symbol-structure",
+      "rowDigest": "sha256:773e8e2ca083722e8db7720027aab20f14430558ab5a271d57f5b3f00fdcf9c1",
+      "rowId": "urn:ref:atlas-index-row:773e8e2ca083722e8db7720027aab20f14430558ab5a271d57f5b3f00fdcf9c1",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.treasury_tas_fast_book"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_treasury_tas_fast_book.py",
+          "sha256": "sha256:389443b966a75322bfe70f3331562ee4d9df7ba78515e57a8b9c86ea1aba36e6"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/treasury_tas_fast_book.py",
+          "sha256": "sha256:e91706a8de8223380bad94068e0a9fa0d6a07b0ea6051d2124f2854b5eee49b2"
+        }
+      ],
+      "release": null,
+      "resourceId": "treasury-fast-book",
+      "rowDigest": "sha256:73ae47695ebd6b8d49cfa6b82a7823cac6429df8d7212dafbc629e2bfa2aaa81",
+      "rowId": "urn:ref:atlas-index-row:73ae47695ebd6b8d49cfa6b82a7823cac6429df8d7212dafbc629e2bfa2aaa81",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.treasury_tas_fast_book"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_uei_cage_identifiers.py",
+          "sha256": "sha256:4c898a3dc6c281cd3765ca5991b694e0bff06f5e0d885daebfce217d2783f26d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/uei_cage_identifiers.py",
+          "sha256": "sha256:186d80100aebca977badd77dff97e10036aed7d9df118e0ce266ead559c16e99"
+        }
+      ],
+      "release": null,
+      "resourceId": "cage-authority",
+      "rowDigest": "sha256:7977c1401642d92c92fc7172a83c2e7c3c8237d2f51f409b0b123a3ce1fcd146",
+      "rowId": "urn:ref:atlas-index-row:7977c1401642d92c92fc7172a83c2e7c3c8237d2f51f409b0b123a3ce1fcd146",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.uei_cage_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_uei_cage_identifiers.py",
+          "sha256": "sha256:4c898a3dc6c281cd3765ca5991b694e0bff06f5e0d885daebfce217d2783f26d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/uei_cage_identifiers.py",
+          "sha256": "sha256:186d80100aebca977badd77dff97e10036aed7d9df118e0ce266ead559c16e99"
+        }
+      ],
+      "release": null,
+      "resourceId": "uei-authority",
+      "rowDigest": "sha256:9b95f5f76f900b8d03b079915f8b56141e507daac0e774e5ddfedc7013e2de4f",
+      "rowId": "urn:ref:atlas-index-row:9b95f5f76f900b8d03b079915f8b56141e507daac0e774e5ddfedc7013e2de4f",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.uei_cage_identifiers"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:legal-location",
+      "intendedUses": [
+        "deterministicMetadata",
+        "legalIdentityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_unified_agenda_codes.py",
+          "sha256": "sha256:ea7e927d20f4939de760b1b600668b7e9b9e27bdcd45f7f38dd43ae72b3b3b58"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/unified_agenda_codes.py",
+          "sha256": "sha256:619d2c02e2e76a81eaf4248b5eadf24dfa02e79d97373f51b2e150eee20f87f8"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-legal-authority-citations",
+      "rowDigest": "sha256:56718df08a922230b2c1237d41a5cb822e77471d7eed7894935b5a71c884d096",
+      "rowId": "urn:ref:atlas-index-row:56718df08a922230b2c1237d41a5cb822e77471d7eed7894935b5a71c884d096",
+      "semanticRing": "legalIdentity",
+      "sourceModule": "refspec.registry.unified_agenda_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:administrative-process-stage",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_unified_agenda_codes.py",
+          "sha256": "sha256:ea7e927d20f4939de760b1b600668b7e9b9e27bdcd45f7f38dd43ae72b3b3b58"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/unified_agenda_codes.py",
+          "sha256": "sha256:619d2c02e2e76a81eaf4248b5eadf24dfa02e79d97373f51b2e150eee20f87f8"
+        }
+      ],
+      "release": null,
+      "resourceId": "unified-agenda-native-controls",
+      "rowDigest": "sha256:23e665427b92be4172431800f0ef640d19fbca742c209372fc1e7ebe80263b6e",
+      "rowId": "urn:ref:atlas-index-row:23e665427b92be4172431800f0ef640d19fbca742c209372fc1e7ebe80263b6e",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.unified_agenda_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "schemaInterpretation"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_usaspending_gsdm_codes.py",
+          "sha256": "sha256:726e6834f657b689db6721ce2c91f1de4495bcb9dc266e96890f8aeaa06dcde7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/usaspending_gsdm_codes.py",
+          "sha256": "sha256:55f97de90133e500862febe6c1c6e3a8c91e015a598d8cc9dc7883e3191ce672"
+        }
+      ],
+      "release": null,
+      "resourceId": "governmentwide-spending-data-model",
+      "rowDigest": "sha256:fd53bd2a2f4c57138340f19e22f8ed8cdd3948976780ff48c7e1984571ac8f80",
+      "rowId": "urn:ref:atlas-index-row:fd53bd2a2f4c57138340f19e22f8ed8cdd3948976780ff48c7e1984571ac8f80",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.usaspending_gsdm_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:code-list-value",
+      "intendedUses": [
+        "deterministicMetadata",
+        "facetedRetrieval"
+      ],
+      "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_usaspending_gsdm_codes.py",
+          "sha256": "sha256:726e6834f657b689db6721ce2c91f1de4495bcb9dc266e96890f8aeaa06dcde7"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/usaspending_gsdm_codes.py",
+          "sha256": "sha256:55f97de90133e500862febe6c1c6e3a8c91e015a598d8cc9dc7883e3191ce672"
+        }
+      ],
+      "release": null,
+      "resourceId": "usaspending-award-type-codes",
+      "rowDigest": "sha256:7b9c0fe64a0d884940db961f52f1fc91a1db90d5778accf0202a9677e4b1223a",
+      "rowId": "urn:ref:atlas-index-row:7b9c0fe64a0d884940db961f52f1fc91a1db90d5778accf0202a9677e4b1223a",
+      "semanticRing": "value",
+      "sourceModule": "refspec.registry.usaspending_gsdm_codes"
+    }
+  ],
+  "summary": {
+    "exactReleaseCount": 6,
+    "implementationModuleCount": 21,
+    "participationCounts": {
+      "bridge": 10,
+      "core": 1,
+      "specialist": 4
+    },
+    "rowCount": 87,
+    "semanticRingCounts": {
+      "entity": 16,
+      "legalIdentity": 7,
+      "subject": 24,
+      "value": 40
+    },
+    "sourceModuleCount": 54,
+    "statusCounts": {
+      "deferred": 2,
+      "notApplicable": 43,
+      "planned": 42,
+      "rejected": 0,
+      "superseded": 0,
+      "unassessed": 0
+    }
+  }
+}
