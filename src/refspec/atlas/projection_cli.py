@@ -1,10 +1,4 @@
-"""Cut one verified atlas distribution down to a named projection policy.
-
-Deliberately separate from :mod:`refspec.atlas.projection`: argument parsing
-does not decide which quads survive, and the projection's implementation pin
-covers only the modules that do. A CLI edit must not move a published
-projection identifier.
-"""
+"""Build one Atlas 2.0 ring or subject-module projection."""
 
 from __future__ import annotations
 
@@ -13,7 +7,14 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from .projection import CONSUMER_READ_CLOSURE_V1, build_atlas_projection
+from .model import VocabularyAtlasAsset
+from .projection import (
+    build_atlas_projection,
+    module_projection_policy,
+    ring_projection_policy,
+)
+
+_RINGS = ("subject", "entity", "value", "legalIdentity")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,46 +23,43 @@ def build_parser() -> argparse.ArgumentParser:
         "--atlas",
         type=Path,
         required=True,
-        help="directory holding the parent atlas.nq and atlas-manifest.json",
+        help="directory holding the canonical Atlas 2.0 three-file distribution",
     )
     parser.add_argument(
         "--atlas-manifest-digest",
         required=True,
-        help="exact sha256 of the parent atlas-manifest.json",
+        help="independently trusted sha256 digest of atlas-manifest.json",
+    )
+    selector = parser.add_mutually_exclusive_group(required=True)
+    selector.add_argument(
+        "--ring",
+        choices=_RINGS,
+        help="retain one complete semantic ring",
+    )
+    selector.add_argument(
+        "--subject-module",
+        metavar="DOTTED.MODULE",
+        help="retain one subject specialist module plus every subject-core release",
     )
     parser.add_argument(
-        "--atlas-output-digest",
+        "--output",
+        type=Path,
         required=True,
-        help="exact sha256 of the parent atlas.nq",
+        help="new directory for the two-file projection",
     )
-    parser.add_argument(
-        "--policy",
-        default=str(CONSUMER_READ_CLOSURE_V1["id"]),
-        help="projection policy id; only registered policies are accepted",
-    )
-    parser.add_argument(
-        "--policy-version",
-        default=str(CONSUMER_READ_CLOSURE_V1["version"]),
-        help="exact version of the named projection policy",
-    )
-    parser.add_argument("--output", type=Path, required=True)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    # The policy body is not taken from the command line: a keep rule supplied
-    # by an operator would be a policy this producer never implemented, and the
-    # registry check would refuse it anyway. The flags select a registered one.
-    policy = dict(CONSUMER_READ_CLOSURE_V1)
-    policy["id"] = args.policy
-    policy["version"] = args.policy_version
-    projection = build_atlas_projection(
+    policy = (
+        ring_projection_policy(args.ring) if args.ring is not None else module_projection_policy(args.subject_module)
+    )
+    parent = VocabularyAtlasAsset.open(
         args.atlas,
         expected_manifest_digest=args.atlas_manifest_digest,
-        expected_output_digest=args.atlas_output_digest,
-        policy=policy,
     )
+    projection = build_atlas_projection(parent, policy=policy)
     output = projection.write(args.output)
     print(
         json.dumps(
@@ -71,6 +69,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "manifestDigest": projection.manifest_digest,
                 "outputDigest": projection.output_digest,
                 "outputDirectory": str(output.resolve()),
+                "projectionPolicy": policy,
                 "byteLength": projection.manifest["output"]["byteLength"],
                 "counts": dict(projection.manifest["counts"]),
             },
