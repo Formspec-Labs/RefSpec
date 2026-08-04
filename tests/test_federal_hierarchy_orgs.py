@@ -127,9 +127,7 @@ def test_authenticated_public_pages_match_real_shape_count_and_boundary_samples(
 
 def test_real_sub_tier_page_preserves_rows_where_createddate_is_absent(tmp_path: Path) -> None:
     path = _real_path("REFSPEC_FH_ORGS_SUB_TIER_PATH", "fh-orgs-sub-tier-page.json")
-    sample = fh.parse_fh_orgs_sample(
-        _acquire(tmp_path, fh.FH_ORGS_SUB_TIER_PAGE_2026_08_03, path)
-    )
+    sample = fh.parse_fh_orgs_sample(_acquire(tmp_path, fh.FH_ORGS_SUB_TIER_PAGE_2026_08_03, path))
 
     assert {record.fhorgid for record in sample.records} >= {
         "100525192",
@@ -349,7 +347,9 @@ def test_children_of_resolves_only_within_the_pinned_sample(tmp_path: Path) -> N
     source_path = tmp_path / "two-level.json"
     source_path.write_bytes(two_level_payload)
 
-    two_level_sample = fh.parse_fh_orgs_sample(fh.acquire_fh_orgs_sample(pin, tmp_path / "store", source_path=source_path))
+    two_level_sample = fh.parse_fh_orgs_sample(
+        fh.acquire_fh_orgs_sample(pin, tmp_path / "store", source_path=source_path)
+    )
 
     children = two_level_sample.children_of("100006688")
     assert [child.fhorgid for child in children] == ["100006689"]
@@ -476,16 +476,18 @@ def test_package_builds_a_controlled_code_list_that_claims_no_concept_identity()
     source_path = _real_path("REFSPEC_FH_ORGS_DEFAULT_PATH", "fh-orgs-default-page.json")
     bundle = fh.build_federal_hierarchy_orgs_package(source_path)
 
+    assert bundle.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["resourceId"] == fh.FH_ORGS_RESOURCE_ID
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
-    assert bundle.resource_manifest["usageCeiling"] == "developmentOnly"
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in bundle.resource_manifest
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
+    assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
     assert bundle.resource_manifest["observationCount"] == 10
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
-    assert all(observation["eligibleUses"] == ["deterministicMetadata"] for observation in bundle.observations)
+    assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
     labels = [observation["labels"][0]["value"] for observation in bundle.observations]
     assert labels[0] == "400 YEARS OF AFRICAN AMERICAN HISTORY COMMISSION"
     assert labels[-1] == "ARCHITECTURAL AND TRANSPORTATION BARRIERS COMPLIANCE BOARD"
@@ -496,9 +498,7 @@ def test_package_builds_a_controlled_code_list_that_claims_no_concept_identity()
         "singleCgacPerRecordOnly",
     }
     assert bundle.coverage_report["reportStatus"] == "gap"
-    assert bundle.source_artifacts == {
-        fh.FH_ORGS_DEFAULT_PAGE_SOURCE.source_url: source_path.read_bytes()
-    }
+    assert bundle.source_artifacts == {fh.FH_ORGS_DEFAULT_PAGE_SOURCE.source_url: source_path.read_bytes()}
 
 
 def test_package_generation_is_byte_deterministic() -> None:
@@ -531,8 +531,8 @@ def test_package_source_path_must_be_a_regular_file(tmp_path: Path) -> None:
 
 
 def test_bundle_still_enforces_its_own_shared_invariants(tmp_path: Path) -> None:
-    # federal_hierarchy_orgs.py builds through the shared packaging module; a
-    # tampered candidate_use_authorized still fails there, not just here.
+    # federal_hierarchy_orgs.py builds through the shared packaging module;
+    # inconsistent coverage still fails there, not just here.
     source_path = _real_path("REFSPEC_FH_ORGS_DEFAULT_PATH", "fh-orgs-default-page.json")
     bundle = fh.build_federal_hierarchy_orgs_package(source_path)
     with pytest.raises(SourceControlledResourceError):
@@ -543,7 +543,6 @@ def test_bundle_still_enforces_its_own_shared_invariants(tmp_path: Path) -> None
             identity_status="publisherIdentifiersPreserved",
             uses=fh.FH_ORGS_PACKAGE_USES,
             captured_at=fh.FH_ORGS_DEFAULT_PAGE_2026_08_03.retrieved_at,
-            candidate_use_authorized=True,
             observations=bundle.observations,
             source_artifacts=bundle.source_artifacts,
             source_observed_count=0,

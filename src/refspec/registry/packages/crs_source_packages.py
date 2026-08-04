@@ -49,6 +49,7 @@ from refspec.registry.crs_legislative_resources import (
     parse_crs_field_value_page,
     sha256_digest,
 )
+from refspec.registry.infrastructure.artifact_serialization import plain_json
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceKind,
     ResourceUse,
@@ -74,7 +75,7 @@ CRS_REGISTRATION_EVENT = SourceRegistrationEvent(
     registration_id=CRS_REGISTRATION_ID,
     registered_at=CRS_COMPLETE_CAPTURED_AT,
 )
-CRS_PACKAGE_EVIDENCE_VERSION = "1.3"
+CRS_PACKAGE_EVIDENCE_VERSION = "2.0"
 
 CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID = f"crs-legislative-subject-terms-capture-{CRS_PACKAGE_DATE}"
 CRS_POLICY_AREAS_RESOURCE_ID = f"crs-policy-areas-capture-{CRS_PACKAGE_DATE}"
@@ -510,12 +511,14 @@ class CRSSourcePackages:
                 "logicalDigest": self.policy_areas.logical_digest,
             },
         }
-        payload = {
-            "format": "refspec-crs-source-ledger/v1",
-            "registrationEvent": self.legislative_subject_terms.resource_manifest["registrationEvent"],
-            "resources": resources,
-            "reconciliations": [report.as_dict() for report in self.reconciliations],
-        }
+        payload = plain_json(
+            {
+                "format": "refspec-crs-source-ledger/v1",
+                "registrationEvent": self.legislative_subject_terms.resource_manifest["registrationEvent"],
+                "resources": resources,
+                "reconciliations": [report.as_dict() for report in self.reconciliations],
+            }
+        )
         return {
             **payload,
             "logicalDigest": "sha256:" + hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest(),
@@ -829,7 +832,7 @@ def _observation(
             }
             for index, identifier in enumerate(term.identifiers)
         ],
-        "eligibleUses": list(eligible_uses),
+        "uses": list(eligible_uses),
         "conceptIdentityClaimed": False,
         "resourceName": term.resource_name,
         "category": term.category,
@@ -1051,7 +1054,6 @@ def _apply_identity_review(
         identity_status=manifest["identityStatus"],
         uses=manifest["uses"],
         captured_at=str(manifest["capturedAt"]),
-        candidate_use_authorized=bool(manifest["candidateUseAuthorized"]),
         observations=reviewed_observations,
         source_artifacts=current.source_artifacts,
         registration_event=manifest["registrationEvent"],
@@ -1103,7 +1105,6 @@ def _build_resource_package(
     resource_kind: ResourceKind,
     uses: tuple[ResourceUse, ...],
     captured_at: str,
-    candidate_use_authorized: bool,
 ) -> tuple[SourceControlledResourceBundle, int]:
     if scheme_capture.pin.scheme != resource.source_scheme:
         raise CRSSourceDriftError("CRS package scheme authority does not match its parsed resource")
@@ -1132,7 +1133,6 @@ def _build_resource_package(
             identity_status="captureLocalObservationsOnly",
             uses=uses,
             captured_at=captured_at,
-            candidate_use_authorized=candidate_use_authorized,
             observations=observations,
             source_artifacts=source_artifacts,
             registration_event=registration_event.as_dict(),
@@ -1177,7 +1177,6 @@ def build_crs_source_packages(
         resource_kind="sourceTermSnapshot",
         uses=("sourceAssignedEvidence", "searchExpansion"),
         captured_at=captured_at,
-        candidate_use_authorized=True,
     )
     policy_package, policy_auto_matches = _build_resource_package(
         policy_resource,
@@ -1190,7 +1189,6 @@ def build_crs_source_packages(
         resource_kind="navigationList",
         uses=("sourceAssignedEvidence", "navigation"),
         captured_at=captured_at,
-        candidate_use_authorized=False,
     )
     legislative_report = _reconciliation_report(
         resource_name="legislativeSubjectTerms",
@@ -1311,33 +1309,33 @@ def _package_evidence(
     for observation in package.observations:
         category = str(observation["category"])
         category_counts[category] = category_counts.get(category, 0) + 1
-    return {
-        "resourceId": package.resource_manifest["resourceId"],
-        "resourceKind": package.resource_manifest["resourceKind"],
-        "logicalDigest": package.logical_digest,
-        "observationCount": len(package.observations),
-        "observationSetDigest": package.coverage_report["observationSetDigest"],
-        "localRecordIdSetDigest": package.coverage_report["localRecordIdSetDigest"],
-        "localRecordContentSetDigest": package.coverage_report["localRecordContentSetDigest"],
-        "categoryCounts": category_counts,
-        "coverageStatus": package.coverage_report["reportStatus"],
-        "coverageGaps": [gap["code"] for gap in package.coverage_report["gaps"]],
-        "candidateUseAuthorized": package.resource_manifest["candidateUseAuthorized"],
-        "acceptedOutputUseAuthorized": package.resource_manifest["acceptedOutputUseAuthorized"],
-        "conceptIdentityClaimed": package.resource_manifest["conceptIdentityClaimed"],
-        "uses": package.resource_manifest["uses"],
-        "registrationEvent": package.resource_manifest["registrationEvent"],
-        "sourceScheme": package.resource_manifest["sourceScheme"],
-        "sourceArtifacts": _source_evidence(package),
-        "packageArtifacts": [
-            {
-                "path": path,
-                "sha256": _sha256(payload),
-                "byteLength": len(payload),
-            }
-            for path, payload in sorted(artifacts.items())
-        ],
-    }
+    return plain_json(
+        {
+            "resourceId": package.resource_manifest["resourceId"],
+            "resourceKind": package.resource_manifest["resourceKind"],
+            "logicalDigest": package.logical_digest,
+            "observationCount": len(package.observations),
+            "observationSetDigest": package.coverage_report["observationSetDigest"],
+            "localRecordIdSetDigest": package.coverage_report["localRecordIdSetDigest"],
+            "localRecordContentSetDigest": package.coverage_report["localRecordContentSetDigest"],
+            "categoryCounts": category_counts,
+            "coverageStatus": package.coverage_report["reportStatus"],
+            "coverageGaps": [gap["code"] for gap in package.coverage_report["gaps"]],
+            "conceptIdentityClaimed": package.resource_manifest["conceptIdentityClaimed"],
+            "uses": package.resource_manifest["uses"],
+            "registrationEvent": package.resource_manifest["registrationEvent"],
+            "sourceScheme": package.resource_manifest["sourceScheme"],
+            "sourceArtifacts": _source_evidence(package),
+            "packageArtifacts": [
+                {
+                    "path": path,
+                    "sha256": _sha256(payload),
+                    "byteLength": len(payload),
+                }
+                for path, payload in sorted(artifacts.items())
+            ],
+        }
+    )
 
 
 def crs_source_package_evidence(
@@ -1345,20 +1343,22 @@ def crs_source_package_evidence(
 ) -> dict[str, Any]:
     """Summarize the exact package identities and their source limitations."""
 
-    return {
-        "schemaVersion": CRS_PACKAGE_EVIDENCE_VERSION,
-        "evidenceKind": "crsSourceControlledResourcePackages",
-        "capturedAt": packages.legislative_subject_terms.resource_manifest["capturedAt"],
-        "registrationEvent": packages.legislative_subject_terms.resource_manifest["registrationEvent"],
-        "sourceLimitations": [
-            "The LoC lst and cgpa identifiers name the two source schemes, not individual terms.",
-            "Congress.gov did not expose stable publisher term identifiers or term IRIs.",
-            "Congress.gov did not publish the captured pages as a named, versioned vocabulary release.",
-            "RefSpec local record UUIDs identify registry records, not publisher concepts.",
-        ],
-        "resources": [_package_evidence(package) for package in packages.resources()],
-        "reconciliations": [report.as_dict() for report in packages.reconciliations],
-    }
+    return plain_json(
+        {
+            "schemaVersion": CRS_PACKAGE_EVIDENCE_VERSION,
+            "evidenceKind": "crsSourceControlledResourcePackages",
+            "capturedAt": packages.legislative_subject_terms.resource_manifest["capturedAt"],
+            "registrationEvent": packages.legislative_subject_terms.resource_manifest["registrationEvent"],
+            "sourceLimitations": [
+                "The LoC lst and cgpa identifiers name the two source schemes, not individual terms.",
+                "Congress.gov did not expose stable publisher term identifiers or term IRIs.",
+                "Congress.gov did not publish the captured pages as a named, versioned vocabulary release.",
+                "RefSpec local record UUIDs identify registry records, not publisher concepts.",
+            ],
+            "resources": [_package_evidence(package) for package in packages.resources()],
+            "reconciliations": [report.as_dict() for report in packages.reconciliations],
+        }
+    )
 
 
 def crs_source_package_evidence_bytes(

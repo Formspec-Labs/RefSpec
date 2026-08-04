@@ -571,7 +571,7 @@ def _observation(option: OversightReportTypeOption, parsed: ParsedOversightRepor
             {"value": option.label, "language": OVERSIGHT_LANGUAGE, "role": "preferred"},
         ],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
     }
 
@@ -586,7 +586,7 @@ def build_oversight_report_types_package(
 
     This never promotes the result into a concept scheme or a subject
     taxonomy: ``resource_kind`` stays ``controlledCodeList``, every
-    observation's ``eligibleUses`` stays limited to the declared deterministic
+    observation's ``uses`` stays limited to the declared deterministic
     uses, and ``conceptIdentityClaimed`` stays false throughout, matching the
     catalog decision that this source supplies deterministic genre metadata
     and that no public topic taxonomy exists for it.
@@ -608,7 +608,6 @@ def build_oversight_report_types_package(
         identity_status="publisherIdentifiersPreserved",
         uses=uses,
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={parsed.source_url: payload},
         source_observed_count=len(parsed.options),

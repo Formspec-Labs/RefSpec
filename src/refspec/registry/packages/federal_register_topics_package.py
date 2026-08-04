@@ -55,13 +55,8 @@ def _source_record_id(
         or len(digest) != 64
         or any(character not in "0123456789abcdef" for character in digest)
     ):
-        raise FederalRegisterTopicsError(
-            "topics capture identity must be a lowercase sha256 digest"
-        )
-    return (
-        "urn:ref:source-record:federal-register-topics:"
-        f"{digest}:{record.collection}:{record.source_ordinal}"
-    )
+        raise FederalRegisterTopicsError("topics capture identity must be a lowercase sha256 digest")
+    return f"urn:ref:source-record:federal-register-topics:{digest}:{record.collection}:{record.source_ordinal}"
 
 
 def _local_record_id(
@@ -124,7 +119,7 @@ def _observation(
         # FederalRegister.gov does not describe the mutable slug as a stable
         # publisher concept identifier.
         "identifiers": [],
-        "eligibleUses": ["sourceAssignedEvidence"],
+        "uses": ["sourceAssignedEvidence"],
         "conceptIdentityClaimed": False,
         "collection": record.collection,
         "sourceRecordDigest": record.source_record_digest,
@@ -149,17 +144,11 @@ def build_federal_register_topics_source_package(
     """
 
     capture_event = acquired.capture_event
-    package_observed_at = (
-        observed_at if observed_at is not None else capture_event.fetched_at
-    )
+    package_observed_at = observed_at if observed_at is not None else capture_event.fetched_at
     if registration_event.registered_at != package_observed_at:
-        raise FederalRegisterTopicsError(
-            "Federal Register topics registration event time must equal observed_at"
-        )
+        raise FederalRegisterTopicsError("Federal Register topics registration event time must equal observed_at")
     if capture_event.fetched_at != package_observed_at:
-        raise FederalRegisterTopicsError(
-            "Federal Register topics capture event time must equal observed_at"
-        )
+        raise FederalRegisterTopicsError("Federal Register topics capture event time must equal observed_at")
     if (
         registration_event == FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT
         and capture_event != FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT
@@ -191,7 +180,6 @@ def build_federal_register_topics_source_package(
         identity_status="captureLocalObservationsOnly",
         uses=("sourceAssignedEvidence",),
         captured_at=package_observed_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={acquired.source_url: source_payload},
         registration_event=registration_event.as_dict(),

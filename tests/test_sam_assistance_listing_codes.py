@@ -172,7 +172,9 @@ def test_validate_assistance_listing_record_accepts_a_current_spicy_regs_record(
             ]
         },
         "criteriaForApplying": {
-            "applicant": {"types": [{"code": "ET22010", "name": "U.S. State Government (including the District of Columbia)"}]},
+            "applicant": {
+                "types": [{"code": "ET22010", "name": "U.S. State Government (including the District of Columbia)"}]
+            },
             "beneficiary": {"types": [{"code": "ET59999", "name": "Other"}]},
         },
     }
@@ -314,7 +316,7 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
     reopened = SourceControlledResourceView.open(destination)
     assert reopened.resource_manifest["resourceKind"] == "controlledCodeList"
     assert reopened.resource_manifest["conceptIdentityClaimed"] is False
-    assert reopened.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in reopened.resource_manifest
     assert len(reopened.observations) == 17
     assert {obs["category"] for obs in reopened.observations} == {"financial", "nonFinancial"}
 

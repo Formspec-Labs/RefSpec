@@ -969,7 +969,7 @@ def _observation(
         "sourceOrdinal": source_ordinal,
         "labels": [{"value": label, "language": "en", "role": "preferred"}],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
         **extra,
     }
@@ -1138,7 +1138,6 @@ def build_census_geo_identifier_authority_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=gnis_pdf.pin.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts=source_artifacts,
         excluded_count=excluded,

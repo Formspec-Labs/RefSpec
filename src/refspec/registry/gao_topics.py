@@ -725,7 +725,7 @@ def _observation(parsed: ParsedGAOProductTopicsPage, assignment: GAOTopicAssignm
         # it documents no stable publisher code or IRI for the term, so this
         # module never mints one.
         "identifiers": [],
-        "eligibleUses": ["sourceAssignedEvidence"],
+        "uses": ["sourceAssignedEvidence"],
         "conceptIdentityClaimed": False,
         "productReportNumber": parsed.product_report_number,
         "productTitle": parsed.product_title,
@@ -740,8 +740,9 @@ def build_gao_product_topic_assignments_package(
     """Package one product page's actual Topics assignments as source evidence.
 
     This never promotes the result into a concept scheme: ``resource_kind``
-    stays ``sourceTermSnapshot``, ``candidate_use_authorized`` stays false, and
-    every observation's ``identifiers`` list stays empty.
+    stays ``sourceTermSnapshot`` and every observation's ``identifiers`` list
+    stays empty. Candidate authorization does not apply to this non-atlas
+    package.
     """
 
     payload = page.path.read_bytes()
@@ -760,9 +761,6 @@ def build_gao_product_topic_assignments_package(
         identity_status="captureLocalObservationsOnly",
         uses=("sourceAssignedEvidence",),
         captured_at=parsed.retrieved_at,
-        # These are raw per-product assignments, not a reviewed vocabulary;
-        # search-expansion or other candidate use remains unauthorized here.
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={parsed.source_url: payload},
         gaps=(_NO_STABLE_TOPIC_IDENTIFIER_GAP,),

@@ -1081,7 +1081,7 @@ def _observation(record: CBOCostEstimateRecord, assignment: CBOTopicAssignment) 
         # CBO's feed links a Topic to no stable code or navigational slug at
         # all; it is a free-text label only, so this module mints no identity.
         "identifiers": [],
-        "eligibleUses": ["sourceAssignedEvidence"],
+        "uses": ["sourceAssignedEvidence"],
         "conceptIdentityClaimed": False,
         "estimateTitle": record.title,
         "estimateLink": record.link,
@@ -1099,8 +1099,9 @@ def build_cbo_topic_evidence_package(
     """Package the feed's actual Topic assignments as source evidence.
 
     This never promotes the result into a concept scheme: ``resource_kind``
-    stays ``sourceTermSnapshot``, ``candidate_use_authorized`` stays false, and
-    every observation's ``identifiers`` list stays empty. Budget functions,
+    stays ``sourceTermSnapshot`` and every observation's ``identifiers`` list
+    stays empty. Candidate authorization does not apply to this non-atlas
+    package. Budget functions,
     mandate flags, and the PAYGO flag are deterministic fiscal facets that
     stay on :class:`CBOCostEstimateRecord` and are never packaged here.
     """
@@ -1127,9 +1128,6 @@ def build_cbo_topic_evidence_package(
         identity_status="captureLocalObservationsOnly",
         uses=("sourceAssignedEvidence",),
         captured_at=parsed.retrieved_at,
-        # The 27 browse topics are catalog-flagged as not a published
-        # semantic vocabulary; candidate use stays unauthorized here.
-        candidate_use_authorized=False,
         observations=tuple(observations),
         source_artifacts={parsed.source_url: payload},
         gaps=(_NO_STABLE_TOPIC_IDENTIFIER_GAP,),

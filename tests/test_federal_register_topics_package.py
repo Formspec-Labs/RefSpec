@@ -63,11 +63,9 @@ def test_packages_every_current_topic_as_source_evidence(
     package = build_federal_register_topics_source_package(_acquired(tmp_path))
 
     assert package.resource_manifest["resourceId"] == (FEDERAL_REGISTER_TOPICS_RESOURCE_ID)
-    assert package.resource_manifest["candidateUseAuthorized"] is False
+    assert "candidateUseAuthorized" not in package.resource_manifest
     assert package.resource_manifest["conceptIdentityClaimed"] is False
-    assert package.resource_manifest["registrationEvent"] == (
-        FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT.as_dict()
-    )
+    assert package.resource_manifest["registrationEvent"] == (FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT.as_dict())
     assert package.coverage_report["reportStatus"] == "pass"
     assert package.coverage_report["sourceObservedCount"] == 3
     assert package.coverage_report["packagedCount"] == 3
@@ -77,16 +75,10 @@ def test_packages_every_current_topic_as_source_evidence(
         "ad_hoc",
     }
     assert all(not row["identifiers"] for row in package.observations)
-    assert all(row["eligibleUses"] == ["sourceAssignedEvidence"] for row in package.observations)
+    assert all(row["uses"] == ("sourceAssignedEvidence",) for row in package.observations)
     assert all(row["localRecordId"].startswith("urn:uuid:") for row in package.observations)
-    assert all(
-        row["sourceFetchId"] == FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT.fetch_id
-        for row in package.observations
-    )
-    assert all(
-        row["sourceObservedAt"] == FEDERAL_REGISTER_TOPICS_CAPTURED_AT
-        for row in package.observations
-    )
+    assert all(row["sourceFetchId"] == FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT.fetch_id for row in package.observations)
+    assert all(row["sourceObservedAt"] == FEDERAL_REGISTER_TOPICS_CAPTURED_AT for row in package.observations)
     assert len({row["localRecordId"] for row in package.observations}) == 3
 
 
@@ -162,11 +154,5 @@ def test_package_fetch_fields_come_from_acquired_capture_event(
     acquired = _acquired(tmp_path)
     package = build_federal_register_topics_source_package(acquired)
 
-    assert all(
-        row["sourceFetchId"] == acquired.capture_event.fetch_id
-        for row in package.observations
-    )
-    assert all(
-        row["sourceObservedAt"] == acquired.capture_event.fetched_at
-        for row in package.observations
-    )
+    assert all(row["sourceFetchId"] == acquired.capture_event.fetch_id for row in package.observations)
+    assert all(row["sourceObservedAt"] == acquired.capture_event.fetched_at for row in package.observations)

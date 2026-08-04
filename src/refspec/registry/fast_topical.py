@@ -64,8 +64,7 @@ FAST_TOPICAL_BULK_NT_ZIP_SHA256 = "sha256:217826c90649895bfca71e81e2ed88919b2e06
 FAST_TOPICAL_BULK_NT_ZIP_BYTE_LENGTH = 55_099_212
 FAST_TOPICAL_BULK_NT_ZIP_RETRIEVED_AT = "2026-07-27"
 FAST_TOPICAL_BULK_NT_ZIP_ARCHIVE_URL = (
-    "https://web.archive.org/web/20250223102341id_/"
-    "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip"
+    "https://web.archive.org/web/20250223102341id_/https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip"
 )
 FAST_CHANGES_URL = "https://fast.oclc.org/fastChanges/"
 # NEW VERIFIED FINDING (2026-08-04): unlike the bulk-data host, OCLC's own
@@ -114,7 +113,7 @@ FAST_TOPICAL_BASE_ACTIVE_COUNT = 440_612
 FAST_TOPICAL_CURRENT_ACTIVE_COUNT = 441_127
 FAST_TOPICAL_RESOURCE_ID = "fast-topical-facet"
 
-ResourceUse = Literal["searchExpansion"]
+ResourceUse = Literal["searchExpansion", "mappingReference"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _HEADER = ("fast_id", "uri", "heading")
@@ -510,9 +509,7 @@ def _verify_native_source(path: Path, pin: FASTNativeSourcePin) -> tuple[str, in
             f"{pin.filename} byte length drift: expected {pin.expected_byte_length}, got {length}"
         )
     if digest != pin.expected_sha256:
-        raise FASTTopicalSourceDriftError(
-            f"{pin.filename} digest drift: expected {pin.expected_sha256}, got {digest}"
-        )
+        raise FASTTopicalSourceDriftError(f"{pin.filename} digest drift: expected {pin.expected_sha256}, got {digest}")
     return digest, length
 
 
@@ -635,11 +632,7 @@ def _native_row_from_marc(record: Any, numeric_id: str) -> FASTTopicalNativeRow:
     if len(topical) != 1:
         raise FASTTopicalSourceDriftError(f"FAST MARC topical record {numeric_id} must contain one 150")
     alternatives = tuple(
-        dict.fromkeys(
-            _render_marc_heading(field)
-            for field in record.fields
-            if field.tag in _MARC_ALT_TAGS
-        )
+        dict.fromkeys(_render_marc_heading(field) for field in record.fields if field.tag in _MARC_ALT_TAGS)
     )
     parents: list[str] = []
     for field in record.fields:
@@ -668,9 +661,7 @@ def _replacement_tombstone(record: Any, numeric_id: str, status: str) -> FASTTop
         and "fast" in field.get_subfields("2")
     ]
     replacement_ids = tuple(dict.fromkeys(link for field in replacement_fields for link in _marc_link_ids(field)))
-    note_ids = tuple(
-        dict.fromkeys(link for field in record.get_fields("682") for link in _marc_link_ids(field))
-    )
+    note_ids = tuple(dict.fromkeys(link for field in record.get_fields("682") for link in _marc_link_ids(field)))
     if status == "x" and (not replacement_ids or set(replacement_ids) != set(note_ids)):
         raise FASTTopicalSourceDriftError(
             f"FAST MARC replacement links disagree with 682 for {numeric_id}: {replacement_ids!r} vs {note_ids!r}"
@@ -678,8 +669,7 @@ def _replacement_tombstone(record: Any, numeric_id: str, status: str) -> FASTTop
     if status == "d" and (replacement_ids or note_ids):
         raise FASTTopicalSourceDriftError(f"obsolete FAST MARC record {numeric_id} unexpectedly names replacements")
     automatic = bool(replacement_fields) and all(
-        any(len(value) >= 2 and value[1] == "a" for value in field.get_subfields("w"))
-        for field in replacement_fields
+        any(len(value) >= 2 and value[1] == "a" for value in field.get_subfields("w")) for field in replacement_fields
     )
     return FASTTopicalTombstone(
         numeric_id=numeric_id,
@@ -696,9 +686,7 @@ def parse_fast_topical_native_snapshot(
     """Rebuild current FAST Topical state from OCLC's native base and deltas."""
 
     if len(change_paths) != len(FAST_TOPICAL_CHANGE_PINS):
-        raise FASTTopicalAcquisitionError(
-            f"expected {len(FAST_TOPICAL_CHANGE_PINS)} chronological FAST change files"
-        )
+        raise FASTTopicalAcquisitionError(f"expected {len(FAST_TOPICAL_CHANGE_PINS)} chronological FAST change files")
     base_digest, base_length = _verify_native_source(base_archive_path, FAST_TOPICAL_NATIVE_BASE_PIN)
     rows = _parse_native_base(Path(base_archive_path))
     base_active_count = len(rows)
@@ -919,7 +907,7 @@ def _observation(
         ],
         # Search expansion and mapping only: FAST never occupies a reserved
         # classifier output slot.
-        "eligibleUses": ["searchExpansion"],
+        "uses": ["searchExpansion", "mappingReference"],
         "conceptIdentityClaimed": False,
     }
 
@@ -963,10 +951,11 @@ def build_fast_topical_source_package(
 ) -> SourceControlledResourceBundle:
     """Package every parsed row as mapping-only source evidence.
 
-    Every observation is restricted to ``searchExpansion``: it is never
-    eligible as ``sourceAssignedEvidence`` and can never fill a classifier
-    output slot. The shared development-only usage ceiling forbids promoting
-    this package into a concept scheme or accepted output.
+    Every observation is restricted to ``searchExpansion`` and
+    ``mappingReference``: it is never eligible as ``sourceAssignedEvidence``
+    and can never fill a classifier output slot. The shared development-only
+    usage ceiling forbids promoting this package into a concept scheme or
+    accepted output.
     """
 
     if len(source_bytes) != parsed.source_byte_length or sha256_digest(source_bytes) != parsed.source_sha256:
@@ -980,9 +969,8 @@ def build_fast_topical_source_package(
         title="OCLC FAST Topical facet source observations",
         resource_kind="sourceTermSnapshot",
         identity_status="publisherIdentifiersPreserved",
-        uses=("searchExpansion",),
+        uses=("searchExpansion", "mappingReference"),
         captured_at=captured_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={_source_artifact_iri(parsed.source_sha256): source_bytes},
         source_observed_count=len(parsed.rows),

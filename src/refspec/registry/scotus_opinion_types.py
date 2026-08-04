@@ -685,7 +685,7 @@ def _observation(parsed: ParsedSCOTUSOpinionsPage, entry: SCOTUSOpinionOrPackage
         # supremecourt.gov documents no stable code or IRI for either facet
         # (see SCOTUS_OPINION_TYPE_GAPS), so this module mints none.
         "identifiers": [],
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
         "facet": entry.facet,
     }
@@ -724,7 +724,6 @@ def build_scotus_opinion_type_package(
         identity_status="captureLocalObservationsOnly",
         uses=("deterministicMetadata",),
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={parsed.source_url: payload},
         gaps=parsed.gaps,

@@ -377,7 +377,7 @@ def _descriptor_observation(
                 "sourceDigest": identifier.source_digest,
             }
         ],
-        "eligibleUses": ["sourceAssignedEvidence", "searchExpansion"],
+        "uses": ["sourceAssignedEvidence", "searchExpansion"],
         "conceptIdentityClaimed": False,
         # Extra, source-faithful fields beyond the shared observation shape.
         "treeNumbers": list(descriptor.tree_numbers),
@@ -418,7 +418,6 @@ def build_mesh_descriptor_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("sourceAssignedEvidence", "searchExpansion"),
         captured_at=captured_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={snapshot.source_url: source_payload},
         source_observed_count=len(snapshot.descriptors),
@@ -442,9 +441,7 @@ class MeshDescriptorPackageView:
         by_ui: dict[str, Mapping[str, Any]] = {}
         for observation in package.observations:
             matches = [
-                identifier
-                for identifier in observation["identifiers"]
-                if identifier["kind"] == MESH_DESCRIPTOR_UI_KIND
+                identifier for identifier in observation["identifiers"] if identifier["kind"] == MESH_DESCRIPTOR_UI_KIND
             ]
             if len(matches) != 1:
                 raise MeshDescriptorError("MeSH package observation lacks exactly one publisher DescriptorUI")

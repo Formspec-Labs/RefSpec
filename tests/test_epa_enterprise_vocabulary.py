@@ -408,7 +408,7 @@ def test_capture_manifest_is_deterministic_and_records_every_verification_gap() 
     assert "Defer pilot inclusion" in manifest["catalogRole"]
     assert manifest["sourceIsNativeSkosRdf"] is False
     assert manifest["conceptIdentityClaimed"] is False
-    assert manifest["candidateUseAuthorized"] is False
+    assert "candidateUseAuthorized" not in manifest
 
     gap_kinds = {gap["kind"] for gap in manifest["verificationGaps"]}
     assert gap_kinds == {gap.kind for gap in EPA_ENTERPRISE_VOCABULARY_VERIFICATION_GAPS}

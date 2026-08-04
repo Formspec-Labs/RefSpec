@@ -112,9 +112,7 @@ class GovInfoSourceSpec:
     def __post_init__(self) -> None:
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname not in _ALLOWED_HOSTS:
-            raise GovInfoAcquisitionError(
-                "source_url must be an official HTTPS api.govinfo.gov or www.ecfr.gov URL"
-            )
+            raise GovInfoAcquisitionError("source_url must be an official HTTPS api.govinfo.gov or www.ecfr.gov URL")
         if parsed.username is not None or parsed.password is not None:
             raise GovInfoAcquisitionError("source_url must not contain credentials")
         if not self.filename or Path(self.filename).name != self.filename:
@@ -522,7 +520,9 @@ def parse_govinfo_collections(acquired: AcquiredGovInfoSource) -> ParsedGovInfoC
         _require_text(name, f"GovInfo Collections record {ordinal} collectionName")
         if not isinstance(package_count, int) or isinstance(package_count, bool) or package_count < 0:
             raise GovInfoSourceDriftError(f"GovInfo Collections record {ordinal} packageCount must be non-negative")
-        if granule_count is not None and (not isinstance(granule_count, int) or isinstance(granule_count, bool) or granule_count < 0):
+        if granule_count is not None and (
+            not isinstance(granule_count, int) or isinstance(granule_count, bool) or granule_count < 0
+        ):
             raise GovInfoSourceDriftError(
                 f"GovInfo Collections record {ordinal} granuleCount must be non-negative or null"
             )
@@ -774,7 +774,9 @@ def parse_govinfo_cfr_package_summary(acquired: AcquiredGovInfoSource) -> GovInf
     _verify_payload(payload, acquired.pin, location="parsed GovInfo CFR package summary source")
     root = json.loads(payload)
     if not isinstance(root, Mapping) or set(root) != _PACKAGE_SUMMARY_FIELDS:
-        raise GovInfoSourceDriftError(f"GovInfo CFR package summary fields drifted: {sorted(root) if isinstance(root, Mapping) else root!r}")
+        raise GovInfoSourceDriftError(
+            f"GovInfo CFR package summary fields drifted: {sorted(root) if isinstance(root, Mapping) else root!r}"
+        )
 
     package_id = _require_text(root["packageId"], "packageId")
     if _GOVINFO_PACKAGE_ID.fullmatch(package_id) is None:
@@ -960,9 +962,13 @@ def parse_govinfo_cfr_package_fixity(
             f"{_premis_tag('storage')}/{_premis_tag('contentLocation')}/{_premis_tag('contentLocationValue')}"
         )
         if location_type_el is None or location_type_el.text != "URI":
-            raise GovInfoSourceDriftError(f"PREMIS file object {object_identifier_value} contentLocationType is not URI")
+            raise GovInfoSourceDriftError(
+                f"PREMIS file object {object_identifier_value} contentLocationType is not URI"
+            )
         if location_value_el is None or not (location_value_el.text or "").strip():
-            raise GovInfoSourceDriftError(f"PREMIS file object {object_identifier_value} is missing contentLocationValue")
+            raise GovInfoSourceDriftError(
+                f"PREMIS file object {object_identifier_value} is missing contentLocationValue"
+            )
         content_location_uri = location_value_el.text.strip().rsplit(" ", 1)[-1]  # type: ignore[union-attr]
         parsed_uri = urlsplit(content_location_uri)
         if parsed_uri.scheme != "https" or parsed_uri.hostname != "www.govinfo.gov":
@@ -1096,8 +1102,7 @@ def _collection_observation_id(*, source_path: str, identifiers: Sequence[Mappin
         "sourceArtifact": GOVINFO_COLLECTIONS.source_url,
         "sourcePath": source_path,
         "identifiers": [
-            {"value": item["value"], "kind": item["kind"], "authorityUri": item["authorityUri"]}
-            for item in identifiers
+            {"value": item["value"], "kind": item["kind"], "authorityUri": item["authorityUri"]} for item in identifiers
         ],
     }
     digest = hashlib.sha256(canonical_json(identity).encode("utf-8")).hexdigest()
@@ -1132,7 +1137,7 @@ def _collections_observations(
                     }
                 ],
                 "identifiers": list(identifiers),
-                "eligibleUses": ["deterministicMetadata"],
+                "uses": ["deterministicMetadata"],
                 "conceptIdentityClaimed": False,
             }
         )
@@ -1163,7 +1168,6 @@ def build_govinfo_collections_package(source_path: Path) -> SourceControlledReso
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=GOVINFO_COLLECTIONS_2026_08_03.retrieved_at,
-        candidate_use_authorized=True,
         observations=_collections_observations(resource),
         source_artifacts={GOVINFO_COLLECTIONS.source_url: payload},
         source_observed_count=EXPECTED_COLLECTIONS_COUNT,

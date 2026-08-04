@@ -66,15 +66,11 @@ def _real_pin_for(payload: bytes) -> cra.GAOCRAFacetSnapshotPin:
     )
 
 
-def _acquire_fedrules(
-    tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE
-) -> cra.AcquiredGAOFedRulesPage:
+def _acquire_fedrules(tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE) -> cra.AcquiredGAOFedRulesPage:
     return cra.acquire_gao_fedrules_page(cra.GAO_FEDRULES_167777, tmp_path, source_path=source_path)
 
 
-def _fedrules_parsed(
-    tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE
-) -> cra.ParsedGAOFedRulesPage:
+def _fedrules_parsed(tmp_path: Path, source_path: Path = FEDRULES_167777_FIXTURE) -> cra.ParsedGAOFedRulesPage:
     return cra.parse_gao_fedrules_page(_acquire_fedrules(tmp_path, source_path))
 
 
@@ -199,7 +195,7 @@ def test_parses_three_facets_with_labels_defaults_and_identifiers(
             value="major",
             kind="craPriorityFacetValue",
             authority_uri=cra.GAO_CRA_IDENTIFIER_AUTHORITY_URI,
-                source_uri=cra.GAO_CRA_OVERVIEW_URL,
+            source_uri=cra.GAO_CRA_OVERVIEW_URL,
             observed_at=cra.GAO_CRA_FACETS_2026_08_03_RETRIEVED_AT,
             effective_at=None,
             source_digest=cra.GAO_CRA_FACETS_2026_08_03_SHA256,
@@ -330,13 +326,9 @@ def test_validate_rule_submission_facets_accepts_known_codes_and_passthrough_dat
     assert validated.rule_type.publisher_label == "Major"
     assert validated.received_date == "2026-01-15"
     assert validated.effective_date == "2026-03-16"
+    assert all(assignment.use == "deterministicMetadata" for assignment in (validated.priority, validated.rule_type))
     assert all(
-        assignment.use == "deterministicMetadata"
-        for assignment in (validated.priority, validated.rule_type)
-    )
-    assert all(
-        assignment.is_general_subject_concept is False
-        for assignment in (validated.priority, validated.rule_type)
+        assignment.is_general_subject_concept is False for assignment in (validated.priority, validated.rule_type)
     )
 
 
@@ -430,15 +422,16 @@ def test_build_package_produces_a_controlled_code_list_never_a_concept_scheme(
 ) -> None:
     bundle = _package(tmp_path)
 
+    assert bundle.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
-    assert bundle.resource_manifest["usageCeiling"] == "developmentOnly"
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in bundle.resource_manifest
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["candidateUseAuthorized"] is False
-    assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
+    assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
     assert bundle.resource_manifest["observationCount"] == 6
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
-    assert all(observation["eligibleUses"] == ["deterministicMetadata"] for observation in bundle.observations)
+    assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
 
 
 def test_package_generation_is_byte_deterministic(tmp_path: Path) -> None:

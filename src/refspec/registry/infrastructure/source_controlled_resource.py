@@ -40,7 +40,7 @@ from refspec.registry.infrastructure.source_identity import (
     validate_uuid7_urn,
 )
 
-SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION = "1.0"
+SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION = "2.0"
 
 ResourceKind = Literal[
     "sourceTermSnapshot",
@@ -55,6 +55,7 @@ IdentityStatus = Literal[
 ResourceUse = Literal[
     "sourceAssignedEvidence",
     "searchExpansion",
+    "mappingReference",
     "navigation",
     "deterministicMetadata",
 ]
@@ -77,11 +78,31 @@ _RESOURCE_USES = frozenset(
     {
         "sourceAssignedEvidence",
         "searchExpansion",
+        "mappingReference",
         "navigation",
         "deterministicMetadata",
     }
 )
 _LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
+_FORBIDDEN_GOVERNANCE_FIELDS = frozenset(
+    {
+        "acceptedOutputAllowed",
+        "acceptedOutputUseAuthorized",
+        "admission",
+        "admissionReview",
+        "admitted",
+        "authorization",
+        "authorized",
+        "candidateLookupAllowed",
+        "candidateUseAuthorized",
+        "emissionAuthorized",
+        "outputProfile",
+        "permission",
+        "productPolicy",
+        "publisherConceptIri",
+        "usageCeiling",
+    }
+)
 # Kept local: vocabulary.require_language_tag uses a stricter BCP 47 grammar and
 # would change which observation labels SCR currently accepts.
 _LANGUAGE_TAG = re.compile(r"^(?:und|[A-Za-z]{2,8})(?:-[A-Za-z0-9]{1,8})*$")
@@ -154,6 +175,20 @@ def _require_datetime(value: object, label: str) -> str:
         raise SourceControlledResourceError(str(error)) from error
 
 
+def _forbid_governance_fields(value: Any, *, label: str) -> None:
+    if isinstance(value, Mapping):
+        forbidden = sorted(set(value) & _FORBIDDEN_GOVERNANCE_FIELDS)
+        if forbidden:
+            raise SourceControlledResourceError(
+                f"{label} contains unqualified identity or governance fields {forbidden!r}"
+            )
+        for key, child in value.items():
+            _forbid_governance_fields(child, label=f"{label}.{key}")
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, child in enumerate(value):
+            _forbid_governance_fields(child, label=f"{label}[{index}]")
+
+
 def _validate_source_scheme(
     value: object,
     *,
@@ -162,6 +197,7 @@ def _validate_source_scheme(
     label = "resource_manifest.sourceScheme"
     if not isinstance(value, Mapping):
         raise SourceControlledResourceError(f"{label} must be an object")
+    _forbid_governance_fields(value, label=label)
     required = {
         "id",
         "code",
@@ -171,7 +207,7 @@ def _validate_source_scheme(
         "sourceObservedAt",
     }
     if set(value) != required:
-        raise SourceControlledResourceError(f"{label} fields do not match package version 1.0")
+        raise SourceControlledResourceError(f"{label} fields do not match package version 2.0")
     _require_absolute_iri(value["id"], f"{label}.id")
     _require_text(value["code"], f"{label}.code")
     _require_text(value["label"], f"{label}.label")
@@ -278,6 +314,15 @@ def _artifact_descriptor(
     return descriptor
 
 
+def _resource_manifest_id(manifest: Mapping[str, Any]) -> str:
+    """Derive capture identity from every factual manifest field."""
+
+    payload = {key: value for key, value in _plain_json(manifest).items() if key != "id"}
+    resource_id = _require_text(payload.get("resourceId"), "resource_manifest.resourceId")
+    digest = _sha256(_canonical_bytes(payload)).removeprefix("sha256:")
+    return f"urn:ref:source-controlled-resource:v2:{resource_id}:{digest}"
+
+
 def _validate_identifier(
     value: object,
     *,
@@ -336,6 +381,7 @@ def _validate_observation(
     label = f"observations[{index}]"
     if not isinstance(value, Mapping):
         raise SourceControlledResourceError(f"{label} must be an object")
+    _forbid_governance_fields(value, label=label)
     required = {
         "id",
         "sourceArtifact",
@@ -343,7 +389,7 @@ def _validate_observation(
         "sourceOrdinal",
         "labels",
         "identifiers",
-        "eligibleUses",
+        "uses",
         "conceptIdentityClaimed",
     }
     if not required.issubset(value):
@@ -401,7 +447,7 @@ def _validate_observation(
     ]
     if len({_canonical_bytes(item) for item in identifier_rows}) != len(identifier_rows):
         raise SourceControlledResourceError(f"{label}.identifiers repeats an exact qualified identifier")
-    uses = value["eligibleUses"]
+    uses = value["uses"]
     if (
         not isinstance(uses, Sequence)
         or isinstance(uses, (str, bytes))
@@ -409,7 +455,7 @@ def _validate_observation(
         or len(set(uses)) != len(uses)
         or not set(uses).issubset(resource_uses)
     ):
-        raise SourceControlledResourceError(f"{label}.eligibleUses must be unique declared resource uses")
+        raise SourceControlledResourceError(f"{label}.uses must be unique declared resource uses")
     if value["conceptIdentityClaimed"] is not False:
         raise SourceControlledResourceError(f"{label}.conceptIdentityClaimed must be false")
     has_source_fetch_id = "sourceFetchId" in value
@@ -437,6 +483,7 @@ def _validate_observation(
     plain = _plain_json(value)
     plain["id"] = identifier
     plain["identifiers"] = identifier_rows
+    plain["uses"] = sorted(uses)
     return plain
 
 
@@ -454,6 +501,8 @@ class SourceControlledResourceBundle:
         coverage = _plain_json(self.coverage_report)
         if not isinstance(manifest, dict) or not isinstance(coverage, dict):
             raise SourceControlledResourceError("resource_manifest and coverage_report must be objects")
+        if manifest.get("schemaVersion") != SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION:
+            raise SourceControlledResourceError("resource_manifest.schemaVersion is unsupported")
         required_manifest = {
             "schemaVersion",
             "id",
@@ -461,20 +510,16 @@ class SourceControlledResourceBundle:
             "title",
             "resourceKind",
             "identityStatus",
-            "usageCeiling",
-            "candidateUseAuthorized",
-            "acceptedOutputUseAuthorized",
             "conceptIdentityClaimed",
             "capturedAt",
             "uses",
             "observationCount",
+            "observationSetDigest",
             "sourceArtifacts",
         }
         optional_manifest = {"registrationEvent", "sourceScheme"}
         if not required_manifest.issubset(manifest) or set(manifest) - required_manifest - optional_manifest:
-            raise SourceControlledResourceError("resource_manifest fields do not match package version 1.0")
-        if manifest["schemaVersion"] != SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION:
-            raise SourceControlledResourceError("resource_manifest.schemaVersion is unsupported")
+            raise SourceControlledResourceError("resource_manifest fields do not match package version 2.0")
         _require_absolute_iri(manifest["id"], "resource_manifest.id")
         _require_text(manifest["resourceId"], "resource_manifest.resourceId")
         _require_text(manifest["title"], "resource_manifest.title")
@@ -482,12 +527,6 @@ class SourceControlledResourceBundle:
             raise SourceControlledResourceError("resource_manifest.resourceKind is unsupported")
         if manifest["identityStatus"] not in _IDENTITY_STATUSES:
             raise SourceControlledResourceError("resource_manifest.identityStatus is unsupported")
-        if manifest["usageCeiling"] != "developmentOnly":
-            raise SourceControlledResourceError("source-controlled packages are developmentOnly")
-        if not isinstance(manifest["candidateUseAuthorized"], bool):
-            raise SourceControlledResourceError("resource_manifest.candidateUseAuthorized must be boolean")
-        if manifest["acceptedOutputUseAuthorized"] is not False:
-            raise SourceControlledResourceError("source-controlled packages cannot authorize accepted output")
         if manifest["conceptIdentityClaimed"] is not False:
             raise SourceControlledResourceError("source-controlled packages cannot claim concept identity")
         _require_datetime(manifest["capturedAt"], "resource_manifest.capturedAt")
@@ -500,6 +539,7 @@ class SourceControlledResourceBundle:
             or not set(uses).issubset(_RESOURCE_USES)
         ):
             raise SourceControlledResourceError("resource_manifest.uses must be unique supported uses")
+        manifest["uses"] = sorted(uses)
         if manifest["observationCount"] != len(self.observations):
             raise SourceControlledResourceError("resource_manifest.observationCount does not match observations")
         if not isinstance(self.source_artifacts, Mapping) or not self.source_artifacts:
@@ -552,7 +592,15 @@ class SourceControlledResourceBundle:
         observation_ids = [item["id"] for item in validated_observations]
         if len(observation_ids) != len(set(observation_ids)):
             raise SourceControlledResourceError("observations must have unique capture-local identifiers")
+        expected_observation_digest = _sha256(_canonical_jsonl(validated_observations))
+        if manifest["observationSetDigest"] != expected_observation_digest:
+            raise SourceControlledResourceError("resource_manifest.observationSetDigest is stale")
+        expected_manifest_id = _resource_manifest_id(manifest)
+        if manifest["id"] != expected_manifest_id:
+            raise SourceControlledResourceError("resource_manifest.id is stale")
         local_identity_digests = local_record_identity_digests(validated_observations)
+        if coverage.get("schemaVersion") != SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION:
+            raise SourceControlledResourceError("resource_manifest and coverage_report schemaVersion values disagree")
         expected_coverage = {
             "schemaVersion": SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION,
             "resourceManifest": manifest["id"],
@@ -567,7 +615,7 @@ class SourceControlledResourceBundle:
         }
         expected_coverage.update({key: coverage.get(key) for key in local_identity_digests})
         if coverage != expected_coverage:
-            raise SourceControlledResourceError("coverage_report fields do not match package version 1.0")
+            raise SourceControlledResourceError("coverage_report fields do not match package version 2.0")
         for field in (
             "sourceObservedCount",
             "parsedCount",
@@ -593,19 +641,33 @@ class SourceControlledResourceBundle:
             raise SourceControlledResourceError("coverage_report.reportStatus must be pass or gap")
         if coverage["reportStatus"] == "pass" and (coverage["excludedCount"] or coverage["failedCount"] or gaps):
             raise SourceControlledResourceError("a passing coverage report cannot hide exclusions, failures, or gaps")
-        expected_digest = _sha256(_canonical_jsonl(validated_observations))
-        if coverage["observationSetDigest"] != expected_digest:
+        if coverage["observationSetDigest"] != expected_observation_digest:
             raise SourceControlledResourceError("coverage_report.observationSetDigest is stale")
         for field, expected_value in local_identity_digests.items():
             if coverage[field] != expected_value:
                 raise SourceControlledResourceError(f"coverage_report.{field} is stale")
-        object.__setattr__(self, "resource_manifest", manifest)
-        object.__setattr__(self, "coverage_report", coverage)
-        object.__setattr__(self, "observations", validated_observations)
+        object.__setattr__(
+            self,
+            "resource_manifest",
+            cast(Mapping[str, Any], deep_freeze_json(manifest)),
+        )
+        object.__setattr__(
+            self,
+            "coverage_report",
+            cast(Mapping[str, Any], deep_freeze_json(coverage)),
+        )
+        object.__setattr__(
+            self,
+            "observations",
+            tuple(cast(Mapping[str, Any], deep_freeze_json(value)) for value in validated_observations),
+        )
         object.__setattr__(
             self,
             "source_artifacts",
-            {str(key): value for key, value in self.source_artifacts.items()},
+            cast(
+                Mapping[str, bytes],
+                deep_freeze_json({str(key): value for key, value in self.source_artifacts.items()}),
+            ),
         )
 
     def _logical_digest(self) -> str:
@@ -630,9 +692,7 @@ class SourceControlledResourceBundle:
         }
         for source_id, payload in sorted(self.source_artifacts.items()):
             artifacts[_source_artifact_path(source_id, payload)] = payload
-        source_id_by_path = {
-            item["path"]: item["id"] for item in self.resource_manifest["sourceArtifacts"]
-        }
+        source_id_by_path = {item["path"]: item["id"] for item in self.resource_manifest["sourceArtifacts"]}
         descriptors = [
             _artifact_descriptor(
                 path,
@@ -709,7 +769,6 @@ def build_source_controlled_resource_bundle(
     identity_status: IdentityStatus,
     uses: Sequence[ResourceUse],
     captured_at: str,
-    candidate_use_authorized: bool,
     observations: Sequence[Mapping[str, Any]],
     source_artifacts: Mapping[str, bytes],
     registration_event: Mapping[str, Any] | None = None,
@@ -731,7 +790,19 @@ def build_source_controlled_resource_bundle(
         }
         for source_id, payload in sorted(source_artifacts.items())
     ]
-    observation_rows = tuple(_plain_json(value) for value in observations)
+    normalized_uses = tuple(sorted(uses))
+    source_ids = frozenset(source_artifacts)
+    source_digests = {source_id: _sha256(payload) for source_id, payload in source_artifacts.items()}
+    observation_rows = tuple(
+        _validate_observation(
+            value,
+            index=index,
+            source_ids=source_ids,
+            source_digests=source_digests,
+            resource_uses=frozenset(normalized_uses),
+        )
+        for index, value in enumerate(observations)
+    )
     observed = (
         len(observation_rows) + excluded_count + failed_count
         if source_observed_count is None
@@ -739,30 +810,26 @@ def build_source_controlled_resource_bundle(
     )
     registration_event_row = None if registration_event is None else _plain_json(registration_event)
     source_scheme_row = None if source_scheme is None else _plain_json(source_scheme)
-    manifest_id = (
-        "urn:ref:source-controlled-resource:"
-        f"{resource_id}:{_sha256(_canonical_bytes(source_descriptors)).removeprefix('sha256:')}"
-    )
+    observation_set_digest = _sha256(_canonical_jsonl(observation_rows))
     manifest = {
         "schemaVersion": SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION,
-        "id": manifest_id,
         "resourceId": resource_id,
         "title": title,
         "resourceKind": resource_kind,
         "identityStatus": identity_status,
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": candidate_use_authorized,
-        "acceptedOutputUseAuthorized": False,
         "conceptIdentityClaimed": False,
         "capturedAt": captured_at,
-        "uses": list(uses),
+        "uses": list(normalized_uses),
         "observationCount": len(observation_rows),
+        "observationSetDigest": observation_set_digest,
         "sourceArtifacts": source_descriptors,
     }
     if registration_event_row is not None:
         manifest["registrationEvent"] = registration_event_row
     if source_scheme_row is not None:
         manifest["sourceScheme"] = source_scheme_row
+    manifest_id = _resource_manifest_id(manifest)
+    manifest["id"] = manifest_id
     coverage = {
         "schemaVersion": SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION,
         "resourceManifest": manifest_id,
@@ -772,7 +839,7 @@ def build_source_controlled_resource_bundle(
         "packagedCount": len(observation_rows),
         "excludedCount": excluded_count,
         "failedCount": failed_count,
-        "observationSetDigest": _sha256(_canonical_jsonl(observation_rows)),
+        "observationSetDigest": observation_set_digest,
         "gaps": [_plain_json(value) for value in gaps],
     }
     coverage.update(local_record_identity_digests(observation_rows))
@@ -873,15 +940,20 @@ class SourceControlledResourceView:
             resource_manifest = json.loads(loaded_payloads["resource-manifest.json"])
             coverage_report = json.loads(loaded_payloads["coverage-report.json"])
             observations = tuple(
-                json.loads(line)
-                for line in loaded_payloads["observations.jsonl"].decode("utf-8").splitlines()
-                if line
+                json.loads(line) for line in loaded_payloads["observations.jsonl"].decode("utf-8").splitlines() if line
             )
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise SourceControlledResourceError("resource package JSON is malformed") from error
+        if not isinstance(resource_manifest, Mapping) or not isinstance(coverage_report, Mapping):
+            raise SourceControlledResourceError("resource_manifest and coverage_report must be objects")
+        bundle_schema_version = bundle_manifest["schemaVersion"]
+        if (
+            resource_manifest.get("schemaVersion") != bundle_schema_version
+            or coverage_report.get("schemaVersion") != bundle_schema_version
+        ):
+            raise SourceControlledResourceError("bundle, resource, and coverage schemaVersion values disagree")
         source_artifacts = {
-            source_id: loaded_payloads[relative_path]
-            for source_id, relative_path in source_path_by_id.items()
+            source_id: loaded_payloads[relative_path] for source_id, relative_path in source_path_by_id.items()
         }
         rebuilt = SourceControlledResourceBundle(
             resource_manifest=resource_manifest,

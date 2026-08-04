@@ -85,9 +85,7 @@ def test_full_official_psc_workbook_shape_count_and_samples(tmp_path: Path) -> N
     resource = npc.parse_psc_codes(acquired)
 
     assert resource.source.source_url == npc.PSC_APRIL_2025_XLSX_URL
-    assert resource.source_sha256 == (
-        "sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4"
-    )
+    assert resource.source_sha256 == ("sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4")
     assert resource.source_byte_length == 462_762
     assert resource.edition == "April 2025"
     assert len(resource.codes) == 2_344
@@ -119,9 +117,7 @@ def test_real_psc_package_uses_workbook_without_constructed_fixture_gaps(tmp_pat
 
     assert bundle.resource_manifest["observationCount"] == 2_344
     assert bundle.coverage_report["sourceObservedCount"] == 2_344
-    assert {gap["kind"] for gap in bundle.coverage_report["gaps"]} == {
-        "deterministicFacetRole"
-    }
+    assert {gap["kind"] for gap in bundle.coverage_report["gaps"]} == {"deterministicFacetRole"}
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
@@ -388,7 +384,7 @@ def test_naics_duplicate_code_fails_closed(tmp_path: Path) -> None:
     # Two identical data rows under a crafted source whose expected_count
     # matches, so the duplicate check -- not the row-count check -- fires.
     payload = (
-        b'Seq. No.,2022 NAICS US Code,2022 NAICS US Title\n'
+        b"Seq. No.,2022 NAICS US Code,2022 NAICS US Title\n"
         b'1,11,"Agriculture, Forestry, Fishing and Hunting"\n'
         b'2,11,"Agriculture, Forestry, Fishing and Hunting"\n'
     )
@@ -430,11 +426,11 @@ def test_builds_two_distinct_controlled_code_list_packages(tmp_path: Path) -> No
     ):
         assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
         assert bundle.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
-        assert bundle.resource_manifest["usageCeiling"] == "developmentOnly"
-        assert bundle.resource_manifest["candidateUseAuthorized"] is True
-        assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+        assert "usageCeiling" not in bundle.resource_manifest
+        assert "candidateUseAuthorized" not in bundle.resource_manifest
+        assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
         assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-        assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
+        assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
         assert bundle.resource_manifest["observationCount"] == expected_count
         assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
         gap_kinds = {gap["kind"] for gap in bundle.coverage_report["gaps"]}

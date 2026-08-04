@@ -34,22 +34,16 @@ def test_builds_two_distinct_typed_development_resources() -> None:
         **issues.resource_manifest,
         "resourceId": "lda-general-issue-codes-2026-07-30",
         "resourceKind": "controlledCodeList",
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": True,
-        "acceptedOutputUseAuthorized": False,
         "conceptIdentityClaimed": False,
-        "uses": ["sourceAssignedEvidence"],
+        "uses": ("sourceAssignedEvidence",),
         "observationCount": 79,
     }
     assert filing_types.resource_manifest == {
         **filing_types.resource_manifest,
         "resourceId": "lda-filing-types-2026-07-30",
         "resourceKind": "controlledCodeList",
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": True,
-        "acceptedOutputUseAuthorized": False,
         "conceptIdentityClaimed": False,
-        "uses": ["deterministicMetadata"],
+        "uses": ("deterministicMetadata",),
         "observationCount": 50,
     }
     assert issues.resource_manifest["id"] != filing_types.resource_manifest["id"]
@@ -63,14 +57,14 @@ def test_preserves_exact_codes_labels_identifiers_and_source_pins() -> None:
 
     issue_by_code = {observation["identifiers"][0]["value"]: observation for observation in issues.observations}
     telecom = issue_by_code["TEC"]
-    assert telecom["labels"] == [
+    assert telecom["labels"] == (
         {
             "value": "Telecommunications",
             "language": "en",
             "role": "preferred",
-        }
-    ]
-    assert telecom["identifiers"] == [
+        },
+    )
+    assert telecom["identifiers"] == (
         {
             "value": "TEC",
             "kind": "generalIssueCode",
@@ -79,16 +73,16 @@ def test_preserves_exact_codes_labels_identifiers_and_source_pins() -> None:
             "sourcePath": "$[66].value",
             "observedAt": "2026-07-30T12:45:14Z",
             "sourceDigest": ("sha256:e1820ef17f3e63048ae50e526c2f56e507b2cf60d720fc227c76ee7c3610d5bf"),
-        }
-    ]
+        },
+    )
     assert telecom["sourceOrdinal"] == 66
     assert telecom["id"].startswith("urn:ref:source-observation:lda-general-issue-codes-2026-07-30:")
-    assert telecom["eligibleUses"] == ["sourceAssignedEvidence"]
+    assert telecom["uses"] == ("sourceAssignedEvidence",)
     assert telecom["conceptIdentityClaimed"] is False
 
     filing_by_code = {observation["identifiers"][0]["value"]: observation for observation in filing_types.observations}
     assert filing_by_code["Q1"]["labels"][0]["value"] == ("1st Quarter - Report")
-    assert filing_by_code["Q1"]["eligibleUses"] == ["deterministicMetadata"]
+    assert filing_by_code["Q1"]["uses"] == ("deterministicMetadata",)
     assert all(
         observation["conceptIdentityClaimed"] is False
         for observation in (*issues.observations, *filing_types.observations)
@@ -145,23 +139,20 @@ def test_tracked_packages_reopen_and_support_exact_code_lookup() -> None:
     assert filing_types.spec is LDA_FILING_TYPE_PACKAGE
     assert len(filing_types.observations_by_code) == 50
     assert filing_types.lookup_code("Q1")["labels"][0]["value"] == ("1st Quarter - Report")
-    assert filing_types.lookup_code("Q1")["eligibleUses"] == (
-        "deterministicMetadata",
-    )
+    assert filing_types.lookup_code("Q1")["uses"] == ("deterministicMetadata",)
 
 
-def test_lda_reader_rejects_a_self_consistent_unpinned_repackage(
+def test_lda_reader_rejects_a_self_consistent_changed_repackage(
     tmp_path: Path,
 ) -> None:
     original = build_lda_general_issue_code_package(ISSUES_FIXTURE)
     repackaged = build_source_controlled_resource_bundle(
         resource_id=LDA_GENERAL_ISSUE_CODE_PACKAGE.resource_id,
-        title=LDA_GENERAL_ISSUE_CODE_PACKAGE.title,
+        title=LDA_GENERAL_ISSUE_CODE_PACKAGE.title + " repackaged",
         resource_kind="controlledCodeList",
         identity_status="publisherIdentifiersPreserved",
         uses=LDA_GENERAL_ISSUE_CODE_PACKAGE.uses,
         captured_at=LDA_GENERAL_ISSUE_CODE_PACKAGE.pin.retrieved_at,
-        candidate_use_authorized=False,
         observations=original.observations,
         source_artifacts=original.source_artifacts,
         source_observed_count=79,

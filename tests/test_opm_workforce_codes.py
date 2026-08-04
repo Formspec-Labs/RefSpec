@@ -453,7 +453,7 @@ def test_package_build_is_byte_deterministic_and_carries_no_concept_identity(
     assert first.logical_digest == second.logical_digest
     assert first.resource_manifest["resourceKind"] == "controlledCodeList"
     assert first.resource_manifest["conceptIdentityClaimed"] is False
-    assert first.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in first.resource_manifest
     assert all(observation["conceptIdentityClaimed"] is False for observation in first.observations)
     assert first.logical_digest == opm.OPM_PLUM_POSITION_STATUS_CODE_PACKAGE.expected_logical_digest
 
@@ -471,7 +471,7 @@ def test_package_round_trips_through_write_and_open(tmp_path: Path) -> None:
     assert view.lookup_code("ZZ") is None
 
 
-def test_reader_rejects_a_repackage_that_drops_the_external_pin(tmp_path: Path) -> None:
+def test_reader_rejects_a_repackage_that_changes_factual_manifest_data(tmp_path: Path) -> None:
     original = opm.build_opm_controlled_list_package(opm.OPM_WORK_SCHEDULE_CODE_PACKAGE, WORK_SCHEDULE_FIXTURE)
     from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,
@@ -479,12 +479,11 @@ def test_reader_rejects_a_repackage_that_drops_the_external_pin(tmp_path: Path) 
 
     repackaged = build_source_controlled_resource_bundle(
         resource_id=opm.OPM_WORK_SCHEDULE_CODE_PACKAGE.resource_id,
-        title=opm.OPM_WORK_SCHEDULE_CODE_PACKAGE.title,
+        title=opm.OPM_WORK_SCHEDULE_CODE_PACKAGE.title + " repackaged",
         resource_kind="controlledCodeList",
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=opm.OPM_WORK_SCHEDULE_CODE_PACKAGE.pin.retrieved_at,
-        candidate_use_authorized=False,
         observations=original.observations,
         source_artifacts=original.source_artifacts,
         source_observed_count=5,

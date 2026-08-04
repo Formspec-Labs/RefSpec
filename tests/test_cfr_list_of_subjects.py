@@ -30,9 +30,7 @@ def _document_payload(**changes: object) -> bytes:
         "json_url": "https://www.federalregister.gov/api/v1/documents/2026-TEST.json",
         "html_url": "https://www.federalregister.gov/documents/2026/08/03/2026-TEST/example",
         "topics": ["Administrative practice and procedure"],
-        "cfr_references": [
-            {"chapter": None, "citation_url": None, "part": "52", "title": 40}
-        ],
+        "cfr_references": [{"chapter": None, "citation_url": None, "part": "52", "title": 40}],
     }
     value.update(changes)
     return canonical_json(value).encode("utf-8")
@@ -68,13 +66,9 @@ def test_real_ecfr_api_shapes_show_structure_and_requirement_not_assignments() -
     assert inspected.title_count == 50
     assert inspected.top_level_agency_count == 153
     assert inspected.total_agency_count == 316
-    assert inspected.responsible_agencies == (
-        "Administrative Committee of the Federal Register",
-    )
+    assert inspected.responsible_agencies == ("Administrative Committee of the Federal Register",)
     assert inspected.titles_source_byte_length == 8_033
-    assert inspected.titles_source_sha256 == (
-        "sha256:4a1eb3090dfc5a6b13a495d2ad7a5e92ab9c3816098566c637688cb94c871734"
-    )
+    assert inspected.titles_source_sha256 == ("sha256:4a1eb3090dfc5a6b13a495d2ad7a5e92ab9c3816098566c637688cb94c871734")
     assert inspected.agencies_source_byte_length == 98_197
     assert inspected.agencies_source_sha256 == (
         "sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e"
@@ -100,15 +94,11 @@ def test_real_current_document_shape_count_and_samples() -> None:
     )
 
     assert parsed.source_byte_length == 4_320
-    assert parsed.source_sha256 == (
-        "sha256:1983a61f00d6556abe1c6e37d6a605a022471f6fa4e010690b718d5330067c67"
-    )
+    assert parsed.source_sha256 == ("sha256:1983a61f00d6556abe1c6e37d6a605a022471f6fa4e010690b718d5330067c67")
     assert parsed.publication_date == "2026-07-31"
     assert parsed.document_type == "Rule"
     assert parsed.assignment_count == 12
-    assert parsed.cfr_references == (
-        cfr.CFRReference(title=40, part="52", chapter=None, citation_url=None),
-    )
+    assert parsed.cfr_references == (cfr.CFRReference(title=40, part="52", chapter=None, citation_url=None),)
     assert [item.official_label for item in parsed.terms[:3]] == [
         "Air pollution control",
         "Carbon monoxide",
@@ -129,9 +119,7 @@ def test_real_part_18_document_preserves_empty_topics_and_multiple_cfr_reference
     )
 
     assert parsed.source_byte_length == 2_928
-    assert parsed.source_sha256 == (
-        "sha256:da1d4e6af2e7e5680c382400034c900630048dc9f980b8b24de86c2cb88364e8"
-    )
+    assert parsed.source_sha256 == ("sha256:da1d4e6af2e7e5680c382400034c900630048dc9f980b8b24de86c2cb88364e8")
     assert parsed.assignment_count == 0
     assert [item.citation for item in parsed.cfr_references] == [
         "1 CFR Part 5",
@@ -152,11 +140,9 @@ def test_real_assignment_evidence_is_document_scoped_and_deterministic() -> None
     assert evidence["role"] == "sourceAssignedFilingEvidence"
     assert evidence["documentNumber"] == "2026-15493"
     assert evidence["termCount"] == 12
-    assert evidence["cfrReferences"] == [
-        {"title": 40, "part": "52", "chapter": None, "citationUrl": None}
-    ]
+    assert evidence["cfrReferences"] == [{"title": 40, "part": "52", "chapter": None, "citationUrl": None}]
     assert evidence["conceptIdentityClaimed"] is False
-    assert evidence["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in evidence
     assert "document-level arrays" in evidence["scopeNote"]
     assert encoded == canonical_json(evidence).encode("utf-8") + b"\n"
     assert json.loads(encoded) == evidence

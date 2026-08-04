@@ -120,12 +120,12 @@ def test_keeps_detailed_terms_and_broad_policy_areas_separate(
 
     assert detailed.resource_manifest["resourceId"] == (CRS_LEGISLATIVE_SUBJECT_TERMS_RESOURCE_ID)
     assert detailed.resource_manifest["resourceKind"] == "sourceTermSnapshot"
-    assert detailed.resource_manifest["candidateUseAuthorized"] is True
+    assert "candidateUseAuthorized" not in detailed.resource_manifest
     assert detailed.resource_manifest["registrationEvent"] == CRS_REGISTRATION_EVENT.as_dict()
-    assert detailed.resource_manifest["uses"] == [
-        "sourceAssignedEvidence",
+    assert detailed.resource_manifest["uses"] == (
         "searchExpansion",
-    ]
+        "sourceAssignedEvidence",
+    )
     assert detailed.resource_manifest["sourceScheme"] == {
         "id": "http://id.loc.gov/vocabulary/subjectSchemes/lst",
         "code": "lst",
@@ -143,11 +143,11 @@ def test_keeps_detailed_terms_and_broad_policy_areas_separate(
 
     assert policy.resource_manifest["resourceId"] == (CRS_POLICY_AREAS_RESOURCE_ID)
     assert policy.resource_manifest["resourceKind"] == "navigationList"
-    assert policy.resource_manifest["candidateUseAuthorized"] is False
-    assert policy.resource_manifest["uses"] == [
-        "sourceAssignedEvidence",
+    assert "candidateUseAuthorized" not in policy.resource_manifest
+    assert policy.resource_manifest["uses"] == (
         "navigation",
-    ]
+        "sourceAssignedEvidence",
+    )
     assert policy.resource_manifest["sourceScheme"] == {
         "id": "http://id.loc.gov/vocabulary/subjectSchemes/cgpa",
         "code": "cgpa",
@@ -175,9 +175,9 @@ def test_observations_are_searchable_but_never_claim_publisher_identity(
     )
 
     for package in packages.resources():
-        assert package.resource_manifest["usageCeiling"] == "developmentOnly"
+        assert "usageCeiling" not in package.resource_manifest
         assert package.resource_manifest["identityStatus"] == "captureLocalObservationsOnly"
-        assert package.resource_manifest["acceptedOutputUseAuthorized"] is False
+        assert "acceptedOutputUseAuthorized" not in package.resource_manifest
         assert package.resource_manifest["conceptIdentityClaimed"] is False
         assert package.coverage_report["reportStatus"] == "gap"
         assert package.coverage_report["excludedCount"] == 0
@@ -193,7 +193,7 @@ def test_observations_are_searchable_but_never_claim_publisher_identity(
             row["id"].startswith("urn:ref:crs-source-record:")
             and validate_uuid7_urn(row["localRecordId"]) == row["localRecordId"]
             and validate_uuid7(row["sourceFetchId"]) == row["sourceFetchId"]
-            and row["identifiers"] == []
+            and not row["identifiers"]
             and row["conceptIdentityClaimed"] is False
             and row["identityStatus"] == "publisherIdentifierAbsent"
             and row["publisherReleaseStatus"] == "namedReleaseAbsent"
@@ -354,7 +354,7 @@ def test_any_capture_independent_content_change_requires_review(tmp_path: Path) 
     changed_observations = (
         {
             **dict(detailed.observations[0]),
-            "eligibleUses": ["sourceAssignedEvidence"],
+            "uses": ["sourceAssignedEvidence"],
         },
         *detailed.observations[1:],
     )
@@ -367,7 +367,6 @@ def test_any_capture_independent_content_change_requires_review(tmp_path: Path) 
         identity_status=manifest["identityStatus"],
         uses=manifest["uses"],
         captured_at=str(manifest["capturedAt"]),
-        candidate_use_authorized=bool(manifest["candidateUseAuthorized"]),
         observations=changed_observations,
         source_artifacts=detailed.source_artifacts,
         registration_event=manifest["registrationEvent"],
@@ -390,7 +389,7 @@ def test_any_capture_independent_content_change_requires_review(tmp_path: Path) 
     report = second.reconciliations[0]
     assert report.status == "reviewRequired"
     assert report.requires_human_review is True
-    assert report.changed_records[0]["changedFields"] == ["eligibleUses"]
+    assert report.changed_records[0]["changedFields"] == ["uses"]
 
 
 def test_term_change_creates_a_review_queue_instead_of_guessing_identity(

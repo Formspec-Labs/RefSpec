@@ -186,9 +186,11 @@ def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) 
 
     bundle = cl.build_courtlistener_jurisdictions_package(acquired, parsed)
 
+    assert bundle.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
     assert bundle.resource_manifest["observationCount"] == 6

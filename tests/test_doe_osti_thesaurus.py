@@ -58,6 +58,7 @@ def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
     assert thesaurus.concepts[0].concept_iri == "https://www.osti.gov/thesaurus/10001"
     assert thesaurus.concepts[-1].concept_iri == "https://www.osti.gov/thesaurus/9999"
 
+
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "doe_osti_thesaurus" / "osti-semantic-thesaurus-2020-mini.rdf"
 FIXTURE_SOURCE_URL = "https://example.test/osti-semantic-thesaurus-2020-mini.rdf"
 
@@ -402,7 +403,7 @@ def test_capture_manifest_is_deterministic_and_records_every_verification_gap() 
     assert "Reject/defer canonical use" in manifest["catalogRole"]
     assert manifest["sourceIsNativeSkosRdf"] is True
     assert manifest["conceptIdentityClaimed"] is True
-    assert manifest["candidateUseAuthorized"] is False
+    assert "candidateUseAuthorized" not in manifest
 
     gap_kinds = {gap["kind"] for gap in manifest["verificationGaps"]}
     assert gap_kinds == {gap.kind for gap in DOE_OSTI_THESAURUS_VERIFICATION_GAPS}

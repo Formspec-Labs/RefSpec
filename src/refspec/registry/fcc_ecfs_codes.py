@@ -498,9 +498,7 @@ def _require_nonempty_text(value: object, label: str) -> str:
 def _parse_submission_type(value: object, *, context: str) -> tuple[str, str, str]:
     if not isinstance(value, Mapping):
         raise FCCECFSSourceDriftError(f"{context}.submissiontype must be an object")
-    if not _SUBMISSION_TYPE_REQUIRED_FIELDS.issubset(value) or not set(value).issubset(
-        _SUBMISSION_TYPE_ALLOWED_FIELDS
-    ):
+    if not _SUBMISSION_TYPE_REQUIRED_FIELDS.issubset(value) or not set(value).issubset(_SUBMISSION_TYPE_ALLOWED_FIELDS):
         raise FCCECFSSourceDriftError(f"{context}.submissiontype fields drifted: {sorted(value)}")
     type_id = _require_positive_int(value["id"], f"{context}.submissiontype.id")
     description = _require_nonempty_text(value["description"], f"{context}.submissiontype.description")
@@ -568,7 +566,9 @@ def _parse_filing_record(record: object, ordinal: int) -> tuple[str, object, obj
     extra_fields = set(record) - _FILING_RECORD_REQUIRED_FIELDS
     expected_extra = _FILING_RECORD_STANDARD_ONLY_FIELDS if express_comment == 0 else _FILING_RECORD_EXPRESS_ONLY_FIELDS
     if extra_fields != expected_extra:
-        raise FCCECFSSourceDriftError(f"filing[{ordinal}] fields drifted for express_comment={express_comment}: {sorted(extra_fields)}")
+        raise FCCECFSSourceDriftError(
+            f"filing[{ordinal}] fields drifted for express_comment={express_comment}: {sorted(extra_fields)}"
+        )
     id_submission = _require_nonempty_text(record["id_submission"], f"filing[{ordinal}].id_submission")
     proceedings = record["proceedings"]
     if not isinstance(proceedings, list) or not proceedings:
@@ -622,9 +622,7 @@ def parse_fcc_ecfs_snapshot(acquired: AcquiredFCCECFSSnapshot) -> ParsedFCCECFSS
     }
 
     for ordinal, record in enumerate(filing_list):
-        id_submission, raw_submission_type, raw_viewing_status, raw_proceedings = _parse_filing_record(
-            record, ordinal
-        )
+        id_submission, raw_submission_type, raw_viewing_status, raw_proceedings = _parse_filing_record(record, ordinal)
         context = f"filing[{ordinal}] ({id_submission})"
 
         abbreviation, description, type_id = _parse_submission_type(raw_submission_type, context=context)
@@ -833,7 +831,7 @@ FCC_ECFS_FILING_TYPE_PACKAGE = FCCECFSCodeListPackageSpec(
     known_gaps=_KNOWN_GAPS,
     expected_distinct_count=6,
     expected_raw_occurrence_count=25,
-    expected_logical_digest="sha256:e50e9040e8444451ea0abaa85ee0782dba1e03e3419c22073de58ed1d3b482c5",
+    expected_logical_digest="sha256:31e01e83211b153a5b964f088f3637bf312e24bd09303924ad6344954deece06",
 )
 FCC_ECFS_ACCESS_STATUS_PACKAGE = FCCECFSCodeListPackageSpec(
     resource_name="accessStatuses",
@@ -844,7 +842,7 @@ FCC_ECFS_ACCESS_STATUS_PACKAGE = FCCECFSCodeListPackageSpec(
     known_gaps=_KNOWN_GAPS,
     expected_distinct_count=1,
     expected_raw_occurrence_count=25,
-    expected_logical_digest="sha256:44bcfeb3af62fc7c80cc70aa8c41f6c49cc44db5a0828ceb1fde69858726081a",
+    expected_logical_digest="sha256:3c41e4fa7c12c242ea8918f87464a7fadc88b3e5c812ca3543ed2877d8bb794e",
 )
 FCC_ECFS_BUREAU_PACKAGE = FCCECFSCodeListPackageSpec(
     resource_name="bureaus",
@@ -855,7 +853,7 @@ FCC_ECFS_BUREAU_PACKAGE = FCCECFSCodeListPackageSpec(
     known_gaps=_KNOWN_GAPS,
     expected_distinct_count=5,
     expected_raw_occurrence_count=40,
-    expected_logical_digest="sha256:ce8bc18192277d008978adeff5fd0cfd207cd0e3c058377027e9cbe91f94d9df",
+    expected_logical_digest="sha256:b941e45c157f31f9b8cda9814f58dad7579aa3578f8547a28f95f5d70c6f55a7",
 )
 FCC_ECFS_PROCEEDING_PACKAGE = FCCECFSCodeListPackageSpec(
     resource_name="proceedings",
@@ -866,7 +864,7 @@ FCC_ECFS_PROCEEDING_PACKAGE = FCCECFSCodeListPackageSpec(
     known_gaps=_KNOWN_GAPS,
     expected_distinct_count=15,
     expected_raw_occurrence_count=40,
-    expected_logical_digest="sha256:1ddd7f44d51ad220a89b59bcecc164edf2597eb7dbfaa1e694fd2fd3b6b6b2ff",
+    expected_logical_digest="sha256:9324f611e4830052dd059c6ab61a11505cfb77162f6209df2fe5b2055c41dddb",
 )
 FCC_ECFS_CONTROLLED_LIST_PACKAGES = (
     FCC_ECFS_FILING_TYPE_PACKAGE,
@@ -968,7 +966,9 @@ def _observations(
         identifiers = tuple(
             _identifier_payload(identifier, source_path=code.source_path) for identifier in code.identifiers
         )
-        primary_matches = [identifier for identifier in identifiers if identifier["kind"] == spec.primary_identifier_kind]
+        primary_matches = [
+            identifier for identifier in identifiers if identifier["kind"] == spec.primary_identifier_kind
+        ]
         if len(primary_matches) != 1:
             raise FCCECFSPackageError(
                 f"{spec.resource_name} row {ordinal} must retain exactly one {spec.primary_identifier_kind}"
@@ -987,11 +987,34 @@ def _observations(
                     }
                 ],
                 "identifiers": list(identifiers),
-                "eligibleUses": list(spec.uses),
+                "uses": list(spec.uses),
                 "conceptIdentityClaimed": False,
             }
         )
     return tuple(result)
+
+
+def _build_fcc_ecfs_code_list_bundle(
+    spec: FCCECFSCodeListPackageSpec,
+    payload: bytes,
+) -> SourceControlledResourceBundle:
+    """Build the current package shape from exact publisher bytes."""
+
+    parsed = _parse_exact_source(spec.pin, payload)
+    excluded_count = spec.expected_raw_occurrence_count - spec.expected_distinct_count
+    return build_source_controlled_resource_bundle(
+        resource_id=spec.resource_id,
+        title=spec.title,
+        resource_kind="controlledCodeList",
+        identity_status="publisherIdentifiersPreserved",
+        uses=spec.uses,
+        captured_at=spec.pin.retrieved_at,
+        observations=_observations(spec, parsed),
+        source_artifacts={spec.pin.source.source_url: payload},
+        source_observed_count=spec.expected_raw_occurrence_count,
+        excluded_count=excluded_count,
+        gaps=spec.known_gaps,
+    )
 
 
 def build_fcc_ecfs_code_list_package(
@@ -1003,23 +1026,7 @@ def build_fcc_ecfs_code_list_package(
     path = Path(source_path)
     if path.is_symlink() or not path.is_file():
         raise FCCECFSPackageError(f"FCC ECFS controlled-list source is not a regular file: {path}")
-    payload = path.read_bytes()
-    parsed = _parse_exact_source(spec.pin, payload)
-    excluded_count = spec.expected_raw_occurrence_count - spec.expected_distinct_count
-    return build_source_controlled_resource_bundle(
-        resource_id=spec.resource_id,
-        title=spec.title,
-        resource_kind="controlledCodeList",
-        identity_status="publisherIdentifiersPreserved",
-        uses=spec.uses,
-        captured_at=spec.pin.retrieved_at,
-        candidate_use_authorized=True,
-        observations=_observations(spec, parsed),
-        source_artifacts={spec.pin.source.source_url: payload},
-        source_observed_count=spec.expected_raw_occurrence_count,
-        excluded_count=excluded_count,
-        gaps=spec.known_gaps,
-    )
+    return _build_fcc_ecfs_code_list_bundle(spec, path.read_bytes())
 
 
 def build_fcc_ecfs_filing_type_package(source_path: Path) -> SourceControlledResourceBundle:
@@ -1069,21 +1076,7 @@ class FCCECFSCodeListView:
         if len(source_bytes) != spec.pin.expected_byte_length or _sha256(source_bytes) != spec.pin.expected_sha256:
             raise FCCECFSPackageError(f"{resource_id} retained source differs from its dated pin")
 
-        excluded_count = spec.expected_raw_occurrence_count - spec.expected_distinct_count
-        rebuilt = build_source_controlled_resource_bundle(
-            resource_id=spec.resource_id,
-            title=spec.title,
-            resource_kind="controlledCodeList",
-            identity_status="publisherIdentifiersPreserved",
-            uses=spec.uses,
-            captured_at=spec.pin.retrieved_at,
-            candidate_use_authorized=True,
-            observations=_observations(spec, _parse_exact_source(spec.pin, source_bytes)),
-            source_artifacts={spec.pin.source.source_url: source_bytes},
-            source_observed_count=spec.expected_raw_occurrence_count,
-            excluded_count=excluded_count,
-            gaps=spec.known_gaps,
-        )
+        rebuilt = _build_fcc_ecfs_code_list_bundle(spec, source_bytes)
         if rebuilt.artifact_bytes() != {
             relative_path: (Path(path) / relative_path).read_bytes() for relative_path in rebuilt.artifact_bytes()
         }:

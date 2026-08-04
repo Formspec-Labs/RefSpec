@@ -479,9 +479,7 @@ def _parse_endpoint_list(text: str) -> tuple[FACEndpoint, ...]:
     items = _ENDPOINT_LIST_ITEM.findall(match.group(1))
     anchors = tuple(anchor for anchor, _label in items)
     if anchors != _ENDPOINT_ORDER:
-        raise FACSourceDriftError(
-            f"FAC dictionary endpoint list drift: expected {_ENDPOINT_ORDER}, parsed {anchors}"
-        )
+        raise FACSourceDriftError(f"FAC dictionary endpoint list drift: expected {_ENDPOINT_ORDER}, parsed {anchors}")
     return cast(tuple[FACEndpoint, ...], anchors)
 
 
@@ -522,7 +520,9 @@ def _parse_endpoint_fields(
             )
         legacy_census_field = None if census == "____" else census
         if not census:
-            raise FACSourceDriftError(f"FAC dictionary endpoint {endpoint!r} field {gsa_field!r} has an empty Census cell")
+            raise FACSourceDriftError(
+                f"FAC dictionary endpoint {endpoint!r} field {gsa_field!r} has an empty Census cell"
+            )
 
         field = FACFieldDefinition(
             endpoint=endpoint,
@@ -673,7 +673,7 @@ def _package_observations(
                     }
                 ],
                 "identifiers": [identifier_payload],
-                "eligibleUses": [field.use],
+                "uses": [field.use],
                 "conceptIdentityClaimed": False,
                 "gsaField": field.gsa_field,
                 "legacyCensusField": field.legacy_census_field,
@@ -703,7 +703,6 @@ def build_fac_dictionary_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=portfolio.retrieved_at,
-        candidate_use_authorized=True,
         observations=_package_observations(endpoint, fields, acquired),
         source_artifacts={acquired.pin.source.source_url: payload},
         source_observed_count=len(fields),

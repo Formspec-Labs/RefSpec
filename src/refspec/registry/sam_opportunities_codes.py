@@ -703,7 +703,7 @@ def _package_observations(
                     }
                 ],
                 "identifiers": [identifier_payload],
-                "eligibleUses": [code.use],
+                "uses": [code.use],
                 "conceptIdentityClaimed": False,
                 "retired": code.retired,
             }
@@ -735,7 +735,6 @@ def build_sam_opportunities_code_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=portfolio.retrieved_at,
-        candidate_use_authorized=True,
         observations=_package_observations(resource_name, codes, acquired),
         source_artifacts={acquired.pin.source.source_url: payload},
         source_observed_count=len(codes),

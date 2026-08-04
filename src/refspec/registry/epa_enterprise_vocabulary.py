@@ -646,9 +646,8 @@ def epa_enterprise_vocabulary_capture_manifest(
 
     ``kind`` follows this catalog's subject-module labeling for the source's
     role; ``sourceIsNativeSkosRdf`` stays false because the verified export is
-    not SKOS/RDF (see the "nativeFormat" gap). ``candidateUseAuthorized``
-    stays false: this module records verification gaps, it does not resolve
-    them, so no candidate or accepted-output use is authorized here.
+    not SKOS/RDF (see the "nativeFormat" gap). This module records
+    verification gaps; exact product policy governs use.
     """
 
     _validate_source_url(tier_browse_url)
@@ -668,7 +667,6 @@ def epa_enterprise_vocabulary_capture_manifest(
         "nativeFormat": EPA_NATIVE_FORMAT,
         "sourceIsNativeSkosRdf": False,
         "conceptIdentityClaimed": False,
-        "candidateUseAuthorized": False,
         "verificationGaps": [dataclasses.asdict(gap) for gap in EPA_ENTERPRISE_VOCABULARY_VERIFICATION_GAPS],
         "counts": dataclasses.asdict(export.counts),
     }

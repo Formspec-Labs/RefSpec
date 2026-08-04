@@ -33,18 +33,10 @@ ECFR_API_DOCUMENTATION_URL = "https://www.ecfr.gov/developers/documentation/api/
 ECFR_API_OPENAPI_URL = "https://www.ecfr.gov/developers/documentation/api/v1.json"
 ECFR_AGENCIES_URL = "https://www.ecfr.gov/api/admin/v1/agencies.json"
 ECFR_TITLES_URL = "https://www.ecfr.gov/api/versioner/v1/titles.json"
-ECFR_STRUCTURE_TITLE_1_2026_07_31_URL = (
-    "https://www.ecfr.gov/api/versioner/v1/structure/2026-07-31/title-1.json"
-)
-ECFR_FULL_TITLE_1_PART_18_2026_07_31_URL = (
-    "https://www.ecfr.gov/api/versioner/v1/full/2026-07-31/title-1.xml?part=18"
-)
-FEDERAL_REGISTER_DOCUMENT_2026_15493_URL = (
-    "https://www.federalregister.gov/api/v1/documents/2026-15493.json"
-)
-FEDERAL_REGISTER_DOCUMENT_96_32865_URL = (
-    "https://www.federalregister.gov/api/v1/documents/96-32865.json"
-)
+ECFR_STRUCTURE_TITLE_1_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/structure/2026-07-31/title-1.json"
+ECFR_FULL_TITLE_1_PART_18_2026_07_31_URL = "https://www.ecfr.gov/api/versioner/v1/full/2026-07-31/title-1.xml?part=18"
+FEDERAL_REGISTER_DOCUMENT_2026_15493_URL = "https://www.federalregister.gov/api/v1/documents/2026-15493.json"
+FEDERAL_REGISTER_DOCUMENT_96_32865_URL = "https://www.federalregister.gov/api/v1/documents/96-32865.json"
 ASSIGNMENT_EVIDENCE_VERSION = "2.0"
 CFR_LANGUAGE = "en"
 
@@ -146,9 +138,7 @@ def _flatten_agencies(value: Sequence[object]) -> tuple[Mapping[str, Any], ...]:
         children = item.get("children", [])
         references = item.get("cfr_references")
         if not isinstance(children, list) or not isinstance(references, list):
-            raise CFRSourceDriftError(
-                f"agencies[{ordinal}] children and cfr_references must be arrays"
-            )
+            raise CFRSourceDriftError(f"agencies[{ordinal}] children and cfr_references must be arrays")
         rows.append(item)
         rows.extend(_flatten_agencies(children))
     return tuple(rows)
@@ -200,9 +190,7 @@ def inspect_ecfr_part_sources(
         raise CFRSourceDriftError("eCFR structure response identifies a different title")
     paths = _find_structure_paths(structure, part=cfr_part)
     if len(paths) != 1:
-        raise CFRSourceDriftError(
-            f"eCFR structure must contain exactly one Part {cfr_part}; found {len(paths)}"
-        )
+        raise CFRSourceDriftError(f"eCFR structure must contain exactly one Part {cfr_part}; found {len(paths)}")
     path = paths[0]
     part = path[-1]
     chapters = tuple(item for item in path if item.get("type") == "chapter")
@@ -223,19 +211,14 @@ def inspect_ecfr_part_sources(
     if root.tag != "DIV5" or root.attrib.get("TYPE") != "PART" or root.attrib.get("N") != cfr_part:
         raise CFRSourceDriftError("eCFR full-text XML identifies a different part")
     normalized_text = " ".join("".join(root.itertext()).split())
-    requirement_present = (
-        "Federal Register Thesaurus" in normalized_text
-        and "list of index terms" in normalized_text
-    )
+    requirement_present = "Federal Register Thesaurus" in normalized_text and "list of index terms" in normalized_text
     if not requirement_present:
         raise CFRSourceDriftError("eCFR full text no longer contains the List of Subjects requirement")
 
     # The reviewed API has no subject-assignment element.  If one appears,
     # fail so the parser can be updated instead of silently reporting zero.
     subject_elements = [
-        element
-        for element in root.iter()
-        if element.tag.casefold() in {"subject", "subjects", "list-of-subjects"}
+        element for element in root.iter() if element.tag.casefold() in {"subject", "subjects", "list-of-subjects"}
     ]
     if subject_elements:
         raise CFRSourceDriftError("eCFR full text now exposes subject elements; review the source model")
@@ -245,11 +228,7 @@ def inspect_ecfr_part_sources(
     meta = titles_response.get("meta")
     if not isinstance(titles, list) or not isinstance(meta, Mapping):
         raise CFRSourceDriftError("eCFR titles response must contain titles and meta")
-    title_rows = [
-        item
-        for item in titles
-        if isinstance(item, Mapping) and item.get("number") == cfr_title
-    ]
+    title_rows = [item for item in titles if isinstance(item, Mapping) and item.get("number") == cfr_title]
     if len(title_rows) != 1:
         raise CFRSourceDriftError(f"eCFR titles response must contain Title {cfr_title} exactly once")
     title_row = title_rows[0]
@@ -411,10 +390,7 @@ def _parse_cfr_reference(value: object, ordinal: int) -> CFRReference:
 
 def _record_iri(document_number: str, source_sha256: str, ordinal: int) -> str:
     digest = source_sha256.removeprefix("sha256:")
-    return (
-        "urn:ref:federal-register-list-of-subjects-record:"
-        f"{digest}:{quote(document_number, safe='')}:{ordinal}"
-    )
+    return f"urn:ref:federal-register-list-of-subjects-record:{digest}:{quote(document_number, safe='')}:{ordinal}"
 
 
 def parse_federal_register_document_assignments(
@@ -442,9 +418,7 @@ def parse_federal_register_document_assignments(
     if _DOCUMENT_NUMBER.fullmatch(document_number) is None:
         raise CFRSourceDriftError("document_number has an unsupported shape")
     if expected_document_number is not None and document_number != expected_document_number:
-        raise CFRSourceDriftError(
-            f"expected document {expected_document_number!r}, got {document_number!r}"
-        )
+        raise CFRSourceDriftError(f"expected document {expected_document_number!r}, got {document_number!r}")
     publication_date = _required_text(value["publication_date"], "publication_date")
     if _ISO_DATE.fullmatch(publication_date) is None:
         raise CFRSourceDriftError("publication_date must be YYYY-MM-DD")
@@ -462,10 +436,7 @@ def parse_federal_register_document_assignments(
     raw_references = value["cfr_references"]
     if not isinstance(raw_references, list) or not raw_references:
         raise CFRSourceDriftError("cfr_references must be a non-empty array")
-    references = tuple(
-        _parse_cfr_reference(item, ordinal)
-        for ordinal, item in enumerate(raw_references)
-    )
+    references = tuple(_parse_cfr_reference(item, ordinal) for ordinal, item in enumerate(raw_references))
     if len({(item.title, item.part, item.chapter) for item in references}) != len(references):
         raise CFRSourceDriftError("cfr_references contains a duplicate")
 
@@ -545,7 +516,6 @@ def cfr_list_of_subjects_assignment_evidence(
             "assert a topic-to-part pairing when the document cites multiple CFR parts."
         ),
         "conceptIdentityClaimed": False,
-        "acceptedOutputUseAuthorized": False,
     }
 
 

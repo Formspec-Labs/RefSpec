@@ -180,13 +180,13 @@ def test_file_layout_bundle_packages_every_field_as_deterministic_metadata() -> 
     assert bundle.resource_manifest["resourceId"] == NPPES_FILE_LAYOUT_RESOURCE_ID
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
-    assert bundle.resource_manifest["candidateUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["observationCount"] == NPPES_EXPECTED_FIELD_COUNT
     assert len(bundle.observations) == NPPES_EXPECTED_FIELD_COUNT
     assert bundle.observations[0]["labels"][0]["value"] == "NPI"
     for observation in bundle.observations:
-        assert observation["eligibleUses"] == ["deterministicMetadata"]
+        assert observation["uses"] == ("deterministicMetadata",)
         assert observation["conceptIdentityClaimed"] is False
 
 
@@ -293,9 +293,7 @@ def test_parse_npi_sample_refuses_bulk_entity_data() -> None:
         row[npi_index] = base9 + npi_check_digit(base9)
         row[entity_type_index] = "1"
         rows.append(row)
-    payload = (
-        "\n".join(",".join(f'"{value}"' for value in row) for row in rows) + "\n"
-    ).encode("utf-8")
+    payload = ("\n".join(",".join(f'"{value}"' for value in row) for row in rows) + "\n").encode("utf-8")
 
     with pytest.raises(NppesIdentifierError, match="refusing bulk entity data"):
         parse_npi_sample(payload, columns)

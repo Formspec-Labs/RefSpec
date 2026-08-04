@@ -279,16 +279,16 @@ def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) 
     manifest = bundle.resource_manifest
     assert manifest["resourceKind"] == "controlledCodeList"
     assert manifest["identityStatus"] == "publisherIdentifiersPreserved"
-    assert manifest["usageCeiling"] == "developmentOnly"
-    assert manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in manifest
+    assert "acceptedOutputUseAuthorized" not in manifest
     assert manifest["conceptIdentityClaimed"] is False
-    assert manifest["candidateUseAuthorized"] is True
-    assert manifest["uses"] == ["deterministicMetadata"]
+    assert "candidateUseAuthorized" not in manifest
+    assert manifest["uses"] == ("deterministicMetadata",)
     assert manifest["observationCount"] == 10
 
     for observation in bundle.observations:
         assert observation["conceptIdentityClaimed"] is False
-        assert observation["eligibleUses"] == ["deterministicMetadata"]
+        assert observation["uses"] == ("deterministicMetadata",)
         assert len(observation["identifiers"]) == 1
         assert observation["identifiers"][0]["kind"] == "oversightReportTypeId"
 

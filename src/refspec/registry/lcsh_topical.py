@@ -58,7 +58,10 @@ _VARIANT_LABEL_FIELD = "madsrdf:variantLabel"
 
 LCSH_LCCN_IDENTIFIER_KIND = "publisherLccn"
 LCSH_CONCEPT_URI_IDENTIFIER_KIND = "publisherConceptUri"
-LCSH_TOPICAL_ELIGIBLE_USES: tuple[ResourceUse, ...] = ("searchExpansion",)
+LCSH_TOPICAL_ELIGIBLE_USES: tuple[ResourceUse, ...] = (
+    "searchExpansion",
+    "mappingReference",
+)
 
 # LCSH is mapping-only in RefSpec. Even when a caller points this reader at
 # the publisher's full bulk file, one call cannot turn it into a complete
@@ -295,9 +298,7 @@ def capture_lcsh_topical_subset(
     if max_records <= 0:
         raise LcshTopicalError("max_records must be positive when supplied")
     if max_records > MAX_TOPICAL_SUBSET_RECORDS:
-        raise LcshTopicalError(
-            f"max_records exceeds the mapping-only ceiling of {MAX_TOPICAL_SUBSET_RECORDS}"
-        )
+        raise LcshTopicalError(f"max_records exceeds the mapping-only ceiling of {MAX_TOPICAL_SUBSET_RECORDS}")
     records: list[LcshTopicalRecord] = []
     seen: set[str] = set()
     lines_scanned = 0
@@ -372,10 +373,9 @@ def build_lcsh_topical_snapshot(
 ) -> SourceControlledResourceBundle:
     """Package a bounded LCSH topical subset as mapping-only source evidence.
 
-    The catalog marks LCSH mapping only, so ``candidate_use_authorized`` is
-    always False here and no observation ever claims concept identity; the
-    publisher's LCCN and concept IRI are preserved as identifiers, not
-    promoted into a RefSpec concept scheme.
+    No observation claims concept identity. The publisher's LCCN and concept
+    IRI are preserved as identifiers; a separate source-concept release and
+    exact product policy govern their use.
     """
 
     if not records:
@@ -436,7 +436,7 @@ def build_lcsh_topical_snapshot(
                 "sourceOrdinal": record.line_number,
                 "labels": labels,
                 "identifiers": identifiers,
-                "eligibleUses": list(LCSH_TOPICAL_ELIGIBLE_USES),
+                "uses": list(LCSH_TOPICAL_ELIGIBLE_USES),
                 "conceptIdentityClaimed": False,
             }
         )
@@ -448,7 +448,6 @@ def build_lcsh_topical_snapshot(
         identity_status="publisherIdentifiersPreserved",
         uses=LCSH_TOPICAL_ELIGIBLE_USES,
         captured_at=captured_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts=source_artifacts,
         source_observed_count=source_observed_count,

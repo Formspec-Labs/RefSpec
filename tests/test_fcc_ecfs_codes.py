@@ -198,16 +198,15 @@ def test_builds_four_distinct_controlled_code_list_packages() -> None:
     bureaus = fcc.build_fcc_ecfs_bureau_package(FILINGS_FIXTURE)
     proceedings = fcc.build_fcc_ecfs_proceeding_package(FILINGS_FIXTURE)
 
+    assert filing_types.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in filing_types.resource_manifest
     assert filing_types.resource_manifest == {
         **filing_types.resource_manifest,
         "resourceId": "fcc-ecfs-filing-types-2026-08-03",
         "resourceKind": "controlledCodeList",
         "identityStatus": "publisherIdentifiersPreserved",
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": True,
-        "acceptedOutputUseAuthorized": False,
         "conceptIdentityClaimed": False,
-        "uses": ["deterministicMetadata"],
+        "uses": ("deterministicMetadata",),
         "observationCount": 6,
     }
     assert access_statuses.resource_manifest["observationCount"] == 1
@@ -290,12 +289,11 @@ def test_reader_rejects_a_self_consistent_unpinned_repackage(tmp_path: Path) -> 
     original = fcc.build_fcc_ecfs_access_status_package(FILINGS_FIXTURE)
     repackaged = build_source_controlled_resource_bundle(
         resource_id=fcc.FCC_ECFS_ACCESS_STATUS_PACKAGE.resource_id,
-        title=fcc.FCC_ECFS_ACCESS_STATUS_PACKAGE.title,
+        title=fcc.FCC_ECFS_ACCESS_STATUS_PACKAGE.title + " (repackaged)",
         resource_kind="controlledCodeList",
         identity_status="publisherIdentifiersPreserved",
         uses=fcc.FCC_ECFS_ACCESS_STATUS_PACKAGE.uses,
         captured_at=fcc.FCC_ECFS_ACCESS_STATUS_PACKAGE.pin.retrieved_at,
-        candidate_use_authorized=False,
         observations=original.observations,
         source_artifacts=original.source_artifacts,
         source_observed_count=25,

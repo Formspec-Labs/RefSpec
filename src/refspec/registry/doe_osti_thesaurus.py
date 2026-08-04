@@ -24,9 +24,8 @@ science -- to be imported "with the staleness recorded prominently in package
 metadata," in a mapping/research role, not as a governed current authority.
 This module captures a real, verified 2020 export and keeps every staleness
 and license verification gap explicit (``DOE_OSTI_THESAURUS_VERIFICATION_GAPS``)
-rather than resolving or hiding them; it authorizes no candidate or
-accepted-output use (``candidateUseAuthorized`` stays ``False`` in the capture
-manifest).
+rather than resolving or hiding them. The capture carries no permission
+fields; exact product policy governs use.
 
 Source shape (verified against the real 2020-09-30 distribution): a single
 ``<rdf:RDF>`` document holding one ``skos:ConceptScheme`` (IRI
@@ -815,9 +814,8 @@ def doe_osti_thesaurus_capture_manifest(
 
     ``sourceIsNativeSkosRdf`` and ``conceptIdentityClaimed`` stay true: this
     is a real SKOS/RDF export and its concept IRIs are the publisher's own.
-    ``candidateUseAuthorized`` stays false -- the catalog's "Reject/defer
-    canonical use" decision -- so this manifest records staleness, it does
-    not resolve it into an authorized use.
+    The catalog's "Reject/defer canonical use" decision remains policy, so
+    this manifest records staleness without carrying a permission field.
     """
 
     if not retrieved_at.strip():
@@ -837,7 +835,6 @@ def doe_osti_thesaurus_capture_manifest(
         "nativeFormat": "rdfXmlSkos",
         "sourceIsNativeSkosRdf": True,
         "conceptIdentityClaimed": True,
-        "candidateUseAuthorized": False,
         "role": "energyPhysicalScienceMappingResearch",
         "verificationGaps": [dataclasses.asdict(gap) for gap in DOE_OSTI_THESAURUS_VERIFICATION_GAPS],
         "counts": dataclasses.asdict(thesaurus.counts),

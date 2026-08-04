@@ -99,54 +99,57 @@ _DESC_COL_1 = 57
 _TITLE_COL_2 = 12
 _DESC_COL_2 = 53
 
-SYNTHETIC_SOURCE = "\n".join(
-    [
-        "Civil Nature of Suit Code Descriptions",
-        "(Rev. 03/24)",
-        "",
-        " Contract",
-        _header(_TITLE_COL_1, _DESC_COL_1),
-        _row("110", "Insurance", "Action alleging breach of insurance", _TITLE_COL_1, _DESC_COL_1),
-        _cont("contract, tort claim, or other cause.", _DESC_COL_1),
-        _row(
-            "150",
-            "Recovery of Overpayment & Enforcement",
-            "Action to recover debt owed to the",
-            _TITLE_COL_1,
-            _DESC_COL_1,
-        ),
-        # A title continuation ("Judgment") and a description continuation
-        # ("United States, including enforcement.") on the very same line.
-        " " * _TITLE_COL_1 + "Judgment".ljust(_DESC_COL_1 - _TITLE_COL_1) + "United States, including enforcement.",
-        "",
-        "",
-        " " * 70 + "Page 1 of 2",
-        "Civil Nature of Suit Code Descriptions",
-        "(Rev. 03/24)",
-        # Page-crossing continuation of 150's description; no blank line
-        # separates it from the revision line above.
-        _cont("Excludes overpayments arising from Medicare benefits.", 53),
-        "",
-        "",
-        " Prisoner Petitions",
-        " Habeas Corpus",
-        _header(_TITLE_COL_2, _DESC_COL_2),
-        _row(
-            "463",
-            "Alien Detainee",
-            "Immigration habeas petition under 28",
-            _TITLE_COL_2,
-            _DESC_COL_2,
-        ),
-        _cont("U.S.C. Section 2241.", _DESC_COL_2),
-        "",
-        "Note: The categories above are illustrative, not exhaustive.",
-        "     See the published table for the complete list.",
-        "",
-        "",
-        " " * 70 + "Page 2 of 2",
-    ]
-) + "\n"
+SYNTHETIC_SOURCE = (
+    "\n".join(
+        [
+            "Civil Nature of Suit Code Descriptions",
+            "(Rev. 03/24)",
+            "",
+            " Contract",
+            _header(_TITLE_COL_1, _DESC_COL_1),
+            _row("110", "Insurance", "Action alleging breach of insurance", _TITLE_COL_1, _DESC_COL_1),
+            _cont("contract, tort claim, or other cause.", _DESC_COL_1),
+            _row(
+                "150",
+                "Recovery of Overpayment & Enforcement",
+                "Action to recover debt owed to the",
+                _TITLE_COL_1,
+                _DESC_COL_1,
+            ),
+            # A title continuation ("Judgment") and a description continuation
+            # ("United States, including enforcement.") on the very same line.
+            " " * _TITLE_COL_1 + "Judgment".ljust(_DESC_COL_1 - _TITLE_COL_1) + "United States, including enforcement.",
+            "",
+            "",
+            " " * 70 + "Page 1 of 2",
+            "Civil Nature of Suit Code Descriptions",
+            "(Rev. 03/24)",
+            # Page-crossing continuation of 150's description; no blank line
+            # separates it from the revision line above.
+            _cont("Excludes overpayments arising from Medicare benefits.", 53),
+            "",
+            "",
+            " Prisoner Petitions",
+            " Habeas Corpus",
+            _header(_TITLE_COL_2, _DESC_COL_2),
+            _row(
+                "463",
+                "Alien Detainee",
+                "Immigration habeas petition under 28",
+                _TITLE_COL_2,
+                _DESC_COL_2,
+            ),
+            _cont("U.S.C. Section 2241.", _DESC_COL_2),
+            "",
+            "Note: The categories above are illustrative, not exhaustive.",
+            "     See the published table for the complete list.",
+            "",
+            "",
+            " " * 70 + "Page 2 of 2",
+        ]
+    )
+    + "\n"
+)
 
 
 def test_parser_preserves_pages_sections_entries_and_document_note() -> None:
@@ -195,8 +198,7 @@ def test_parser_preserves_pages_sections_entries_and_document_note() -> None:
 
     (note,) = parsed.document_notes
     assert note.text == (
-        "Note: The categories above are illustrative, not exhaustive. "
-        "See the published table for the complete list."
+        "Note: The categories above are illustrative, not exhaustive. See the published table for the complete list."
     )
 
 
@@ -311,11 +313,11 @@ def test_build_nature_of_suit_code_package_is_a_controlled_code_list_not_a_conce
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
-    assert bundle.resource_manifest["usageCeiling"] == "developmentOnly"
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
+    assert "usageCeiling" not in bundle.resource_manifest
     assert bundle.resource_manifest["observationCount"] == 3
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
-    assert all(observation["eligibleUses"] == ["deterministicMetadata"] for observation in bundle.observations)
+    assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
 
 
 def test_package_keeps_the_official_code_separate_from_any_minted_identifier() -> None:

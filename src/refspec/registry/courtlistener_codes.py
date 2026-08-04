@@ -693,7 +693,7 @@ def _observation(row: CourtListenerJurisdictionRow, parsed: ParsedCourtListenerJ
             }
         ],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
         "inUse": row.in_use,
         "startDate": row.start_date,
@@ -726,7 +726,6 @@ def build_courtlistener_jurisdictions_package(
         identity_status="publisherIdentifiersPreserved",
         uses=uses,
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={parsed.source_url: payload},
         source_observed_count=len(parsed.rows),

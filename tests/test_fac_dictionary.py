@@ -267,8 +267,8 @@ def test_conflicting_duplicate_field_row_fails_loudly(tmp_path: Path) -> None:
     # Corrupt the second (duplicate) fac_accepted_date row in the general
     # table so it disagrees with the first instead of repeating it exactly.
     changed = payload.replace(
-        b"<td>FACACCEPTEDDATE</td>\n<th scope=\"row\">fac_accepted_date</th>\n<td>DATE</td>",
-        b"<td>FACACCEPTEDDATE</td>\n<th scope=\"row\">fac_accepted_date</th>\n<td>TEXT</td>",
+        b'<td>FACACCEPTEDDATE</td>\n<th scope="row">fac_accepted_date</th>\n<td>DATE</td>',
+        b'<td>FACACCEPTEDDATE</td>\n<th scope="row">fac_accepted_date</th>\n<td>TEXT</td>',
         1,
     )
     assert changed != payload
@@ -299,9 +299,11 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
     bundle.write_to(destination)
 
     reopened = SourceControlledResourceView.open(destination)
+    assert reopened.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in reopened.resource_manifest
     assert reopened.resource_manifest["resourceKind"] == "controlledCodeList"
     assert reopened.resource_manifest["conceptIdentityClaimed"] is False
-    assert reopened.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in reopened.resource_manifest
     assert len(reopened.observations) == 15
 
     requirement_observations = [

@@ -52,7 +52,7 @@ _OBSERVATION_FIELDS = frozenset(
         "sourceOrdinal",
         "labels",
         "identifiers",
-        "eligibleUses",
+        "uses",
         "conceptIdentityClaimed",
     }
 )
@@ -133,7 +133,7 @@ LDA_GENERAL_ISSUE_CODE_PACKAGE = LDAControlledListPackageSpec(
     code_identifier_kind="generalIssueCode",
     uses=("sourceAssignedEvidence",),
     known_gaps=(_NO_PUBLISHER_RELEASE_GAP,),
-    expected_logical_digest="sha256:3f3ec1e17f5503be8767d6e51142521ceba314ba555907438f8487ca1dfc04df",
+    expected_logical_digest="sha256:8a1c3e4db6fcec803463dd96a6d5231022841c291315ff624827db798cfdf40a",
 )
 LDA_FILING_TYPE_PACKAGE = LDAControlledListPackageSpec(
     resource_name="filingTypes",
@@ -147,7 +147,7 @@ LDA_FILING_TYPE_PACKAGE = LDAControlledListPackageSpec(
         _NO_FILING_STATUS_LIST_GAP,
         _NO_FILING_PERIOD_LIST_GAP,
     ),
-    expected_logical_digest="sha256:27d784d14004228b024fa82962e91df7daadb4edaf3237125e420194dafd3588",
+    expected_logical_digest="sha256:6b05bd1ce95fcf2f62a9e627fb69233eb2fce48176bdd08011247c7384009ecc",
 )
 LDA_CONTROLLED_LIST_PACKAGES = (
     LDA_GENERAL_ISSUE_CODE_PACKAGE,
@@ -269,7 +269,7 @@ def _observations(
                     }
                 ],
                 "identifiers": list(identifiers),
-                "eligibleUses": list(spec.uses),
+                "uses": list(spec.uses),
                 "conceptIdentityClaimed": False,
             }
         )
@@ -294,7 +294,6 @@ def build_lda_controlled_list_package(
         identity_status="publisherIdentifiersPreserved",
         uses=spec.uses,
         captured_at=spec.pin.retrieved_at,
-        candidate_use_authorized=True,
         observations=_observations(spec, resource),
         source_artifacts={spec.pin.source.source_url: payload},
         source_observed_count=spec.pin.source.expected_count,
@@ -353,7 +352,6 @@ class LDAControlledListView:
             identity_status="publisherIdentifiersPreserved",
             uses=spec.uses,
             captured_at=spec.pin.retrieved_at,
-            candidate_use_authorized=True,
             observations=_observations(
                 spec,
                 _parse_exact_source(spec, source_bytes),

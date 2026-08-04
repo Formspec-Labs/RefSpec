@@ -910,9 +910,7 @@ class _CRARadioFacetFormParser(HTMLParser):
 
     def finish(self) -> None:
         if self._inputs:
-            raise GAOCRASourceDriftError(
-                f"CRA database facet radio(s) have no matching label: {sorted(self._inputs)}"
-            )
+            raise GAOCRASourceDriftError(f"CRA database facet radio(s) have no matching label: {sorted(self._inputs)}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1250,9 +1248,7 @@ def parse_gao_fedrules_page(page: AcquiredGAOFedRulesPage) -> ParsedGAOFedRulesP
         raise GAOCRASourceDriftError("gao.gov fedrules page canonical link does not match its acquired source_url")
 
     if _FEDRULES_ARTICLE_MARKER not in decoded:
-        raise GAOCRASourceDriftError(
-            "gao.gov fedrules page is missing its 'node--type-federal-rules' article anchor"
-        )
+        raise GAOCRASourceDriftError("gao.gov fedrules page is missing its 'node--type-federal-rules' article anchor")
 
     control_number = _extract_fedrules_field(
         decoded, field_class="field--name-field-control-number", expected_label="Control Number"
@@ -1266,9 +1262,7 @@ def parse_gao_fedrules_page(page: AcquiredGAOFedRulesPage) -> ParsedGAOFedRulesP
         )
 
     rule_type_raw = _extract_fedrules_field(decoded, field_class="field--name-field-type", expected_label="Type")
-    priority_raw = _extract_fedrules_field(
-        decoded, field_class="field--name-field-priority", expected_label="Priority"
-    )
+    priority_raw = _extract_fedrules_field(decoded, field_class="field--name-field-priority", expected_label="Priority")
 
     return ParsedGAOFedRulesPage(
         source_url=page.pin.source_url,
@@ -1405,7 +1399,7 @@ def _observation(parsed: ParsedGAOCRAFacets, code: GAOCRAFacetCode, ordinal: int
                 "sourceDigest": identifier.source_digest,
             }
         ],
-        "eligibleUses": [cast(PackageResourceUse, code.use)],
+        "uses": [cast(PackageResourceUse, code.use)],
         "conceptIdentityClaimed": False,
     }
 
@@ -1417,7 +1411,7 @@ def build_gao_cra_facets_package(
     """Package six real GAO search values as a controlled code list.
 
     This never promotes the result into a concept scheme: every observation's
-    ``eligibleUses`` stays ``deterministicMetadata``, ``conceptIdentityClaimed``
+    ``uses`` stays ``deterministicMetadata``, ``conceptIdentityClaimed``
     stays false. Package generation accepts only the verified Search Database
     of Rules capture; the historical hand-built select fixture is rejected.
     """
@@ -1430,9 +1424,7 @@ def build_gao_cra_facets_package(
     if parsed.source_url != page.pin.source_url:
         raise GAOCRASourceDriftError("parsed CRA database page source_url differs from its acquired pin")
     if page.sha256 != GAO_CRA_REAL_CAPTURE_2026_08_04_SHA256 or page.pin.source_url != GAO_CRA_DATABASE_URL:
-        raise GAOCRASourceDriftError(
-            "CRA facet packages require the verified GAO Search Database of Rules capture"
-        )
+        raise GAOCRASourceDriftError("CRA facet packages require the verified GAO Search Database of Rules capture")
     if set(parsed.facets) != set(_EXPECTED_FACET_NAMES):
         raise GAOCRASourceDriftError("CRA facet package must contain exactly the real priority and type facets")
 
@@ -1448,7 +1440,6 @@ def build_gao_cra_facets_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={parsed.source_url: payload},
         gaps=GAO_CRA_PACKAGE_GAPS,

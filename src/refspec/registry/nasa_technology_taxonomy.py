@@ -695,7 +695,6 @@ class NASATechnologyTaxonomyPackageSpec:
     root_index_pin: NASATaxonomySnapshotPin
     children_pin: NASATaxonomySnapshotPin
     uses: tuple[ResourceUse, ...]
-    candidate_use_authorized: bool
     known_gaps: tuple[str, ...]
     expected_logical_digest: str
 
@@ -715,10 +714,9 @@ NASA_TECHNOLOGY_TAXONOMY_PACKAGE_SPEC = NASATechnologyTaxonomyPackageSpec(
     title="NASA TechPort 2024 Technology Taxonomy, top-level areas (TX01-TX17), captured 2026-08-03",
     root_index_pin=NASA_TAXONOMY_ROOT_INDEX_2026_08_03,
     children_pin=NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03,
-    uses=("deterministicMetadata",),
-    candidate_use_authorized=True,
+    uses=("mappingReference", "deterministicMetadata"),
     known_gaps=NASA_TAXONOMY_PORTFOLIO_GAPS,
-    expected_logical_digest="sha256:538e90228f85732f03e816eca45a139f450644b26aa0362cdc2a919e541f9415",
+    expected_logical_digest="sha256:28d1e95113e6b90d5baae7dac2599dfa6ffa6fd90b25b67d3d0a229ed84ffcc5",
 )
 
 
@@ -798,7 +796,7 @@ def _observations(children: ParsedNASATaxonomyChildren) -> tuple[Mapping[str, An
                     }
                 ],
                 "identifiers": list(identifiers),
-                "eligibleUses": list(NASA_TECHNOLOGY_TAXONOMY_PACKAGE_SPEC.uses),
+                "uses": list(NASA_TECHNOLOGY_TAXONOMY_PACKAGE_SPEC.uses),
                 "conceptIdentityClaimed": False,
             }
         )
@@ -831,7 +829,6 @@ def build_nasa_technology_taxonomy_package(
         identity_status="publisherIdentifiersPreserved",
         uses=spec.uses,
         captured_at=spec.children_pin.retrieved_at,
-        candidate_use_authorized=spec.candidate_use_authorized,
         observations=_observations(children),
         source_artifacts={
             NASA_TAXONOMY_ROOT_INDEX.source_url: root_index_bytes,
@@ -881,7 +878,6 @@ class NASATechnologyTaxonomyView:
             identity_status="publisherIdentifiersPreserved",
             uses=spec.uses,
             captured_at=spec.children_pin.retrieved_at,
-            candidate_use_authorized=spec.candidate_use_authorized,
             observations=_observations(children),
             source_artifacts={
                 NASA_TAXONOMY_ROOT_INDEX.source_url: root_index_bytes,

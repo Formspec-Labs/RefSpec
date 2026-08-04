@@ -61,9 +61,7 @@ NAICS_HOSTS = frozenset({"www.census.gov", "census.gov"})
 PSC_HOSTS = frozenset({"www.acquisition.gov", "acquisition.gov"})
 NAICS_IDENTIFIER_AUTHORITY_URI = "https://www.census.gov/naics/"
 PSC_IDENTIFIER_AUTHORITY_URI = "https://www.acquisition.gov/psc-manual/all"
-PSC_APRIL_2025_XLSX_URL = (
-    "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx"
-)
+PSC_APRIL_2025_XLSX_URL = "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx"
 PSC_APRIL_2025_WAYBACK_URL = (
     "https://web.archive.org/web/20250422004751id_/"
     "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx"
@@ -557,9 +555,7 @@ def _parse_psc_xlsx(
         raise NaicsPscSourceDriftError("PSC XLSX workbook is unreadable") from error
     try:
         if workbook.sheetnames != ["PSC for 042025", "Category Managers"]:
-            raise NaicsPscSourceDriftError(
-                f"PSC XLSX worksheets drifted: {workbook.sheetnames}"
-            )
+            raise NaicsPscSourceDriftError(f"PSC XLSX worksheets drifted: {workbook.sheetnames}")
         worksheet = workbook["PSC for 042025"]
         worksheet.calculate_dimension(force=True)
         rows = list(worksheet.iter_rows(values_only=True))
@@ -568,8 +564,7 @@ def _parse_psc_xlsx(
         data_rows = rows[1:]
         if len(data_rows) != _PSC_XLSX_SOURCE_ROW_COUNT:
             raise NaicsPscSourceDriftError(
-                "PSC XLSX source row count drift: "
-                f"expected {_PSC_XLSX_SOURCE_ROW_COUNT}, got {len(data_rows)}"
+                f"PSC XLSX source row count drift: expected {_PSC_XLSX_SOURCE_ROW_COUNT}, got {len(data_rows)}"
             )
 
         codes: list[NaicsPscCode] = []
@@ -580,9 +575,7 @@ def _parse_psc_xlsx(
                 continue
             label = row[1]
             if not isinstance(label, str) or not label.strip() or label != label.strip():
-                raise NaicsPscSourceDriftError(
-                    f"PSC XLSX row {source_row} has a malformed publisher label"
-                )
+                raise NaicsPscSourceDriftError(f"PSC XLSX row {source_row} has a malformed publisher label")
             if code in seen_codes:
                 raise NaicsPscSourceDriftError(f"active PSC code {code!r} is duplicated")
             seen_codes.add(code)
@@ -590,9 +583,7 @@ def _parse_psc_xlsx(
             parent_category = row[8]
             raw_facet = level_one_category if level_one_category is not None else parent_category
             if not isinstance(raw_facet, str) or not raw_facet.strip():
-                raise NaicsPscSourceDriftError(
-                    f"PSC XLSX row {source_row} has no publisher category"
-                )
+                raise NaicsPscSourceDriftError(f"PSC XLSX row {source_row} has no publisher category")
             codes.append(
                 NaicsPscCode(
                     resource_name="pscCodes",
@@ -649,11 +640,7 @@ def parse_naics_codes(acquired: AcquiredNaicsPscSource) -> ParsedNaicsPscResourc
     if source.resource_name != "naicsCodes":
         raise NaicsPscSourceDriftError("acquired source was not pinned against a NAICS codes source")
     payload = _read_acquired_payload(acquired)
-    rows = (
-        _naics_xlsx_rows(payload)
-        if source.filename.endswith(".xlsx")
-        else _csv_rows(payload)
-    )
+    rows = _naics_xlsx_rows(payload) if source.filename.endswith(".xlsx") else _csv_rows(payload)
     if not rows:
         raise NaicsPscSourceDriftError("NAICS payload has no rows")
     expected_header = ["Seq. No.", f"{source.edition} NAICS US Code", f"{source.edition} NAICS US Title"]
@@ -730,7 +717,9 @@ def parse_psc_codes(acquired: AcquiredNaicsPscSource) -> ParsedNaicsPscResource:
         raise NaicsPscSourceDriftError(f"PSC header drifted: expected {expected_header}, got {rows[0]}")
     data_rows = rows[1:]
     if len(data_rows) != source.expected_count:
-        raise NaicsPscSourceDriftError(f"pscCodes count drift: expected {source.expected_count}, parsed {len(data_rows)}")
+        raise NaicsPscSourceDriftError(
+            f"pscCodes count drift: expected {source.expected_count}, parsed {len(data_rows)}"
+        )
 
     codes: list[NaicsPscCode] = []
     seen_codes: set[str] = set()
@@ -996,7 +985,7 @@ def _observation(
         "sourceOrdinal": ordinal,
         "labels": [{"value": code.publisher_label, "language": LANGUAGE, "role": "preferred"}],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
     }
 
@@ -1020,7 +1009,6 @@ def _build_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={parsed.source.source_url: payload},
         source_observed_count=parsed.source.expected_count,
@@ -1058,11 +1046,7 @@ def build_psc_code_package(
         title="Product and Service Code Manual, edition April 2025",
         acquired=acquired,
         parsed=parsed,
-        package_gaps=(
-            (_PSC_BINARY_MANUAL_GAP,)
-            if acquired.pin.source.filename.endswith(".csv")
-            else ()
-        ),
+        package_gaps=((_PSC_BINARY_MANUAL_GAP,) if acquired.pin.source.filename.endswith(".csv") else ()),
     )
 
 

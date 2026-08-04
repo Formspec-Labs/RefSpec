@@ -69,7 +69,7 @@ _CODE_PATTERNS: Mapping[FieldName, re.Pattern[str]] = {
     "meetingStatus": _MEETING_STATUS_CODE,
 }
 _LABELED_OPTION = re.compile(
-    r'<label\b[^>]*>\s*<input\b(?P<attrs>[^>]*)/>'
+    r"<label\b[^>]*>\s*<input\b(?P<attrs>[^>]*)/>"
     r'(?:<input\s+type="hidden"[^>]*/>)?'
     r"(?P<label>[^<]*)</label>",
     re.DOTALL,
@@ -228,7 +228,7 @@ OIRA_PORTFOLIO_GAPS = (
     ),
     (
         "The EO Advanced Search and EO 12866 Meeting Search forms label the same "
-        "six Stage of Rulemaking codes differently (\"Prerule\" vs \"Prerule Stage\"); "
+        'six Stage of Rulemaking codes differently ("Prerule" vs "Prerule Stage"); '
         "this module preserves each page's exact label text rather than merging them."
     ),
     (
@@ -602,9 +602,7 @@ def assemble_oira_control_portfolio(
     by_name = {parsed.field.field_name: parsed for parsed in fields}
     expected_names = {"reviewStatus", "ruleStage", "concludedAction", "meetingStatus"}
     if len(fields) != 4 or set(by_name) != expected_names:
-        raise OIRASourceDriftError(
-            "OIRA control portfolio requires exactly the four known review and meeting fields"
-        )
+        raise OIRASourceDriftError("OIRA control portfolio requires exactly the four known review and meeting fields")
     return OIRAControlPortfolio(
         review_status=by_name["reviewStatus"],
         rule_stage=by_name["ruleStage"],
@@ -709,8 +707,7 @@ def _observation_id(
         "sourceArtifact": source_artifact,
         "sourcePath": source_path,
         "identifiers": [
-            {"value": item["value"], "kind": item["kind"], "authorityUri": item["authorityUri"]}
-            for item in identifiers
+            {"value": item["value"], "kind": item["kind"], "authorityUri": item["authorityUri"]} for item in identifiers
         ],
     }
     digest = hashlib.sha256(canonical_json(identity).encode("utf-8")).hexdigest()
@@ -746,7 +743,7 @@ def _field_observations(resource_id: str, parsed: ParsedOIRAField) -> list[dict[
                     }
                 ],
                 "identifiers": identifiers,
-                "eligibleUses": ["deterministicMetadata"],
+                "uses": ["deterministicMetadata"],
                 "conceptIdentityClaimed": False,
             }
         )
@@ -786,7 +783,6 @@ def build_oira_review_and_meeting_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=review_status.pin.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts=source_artifacts,
         source_observed_count=len(observations) + excluded,

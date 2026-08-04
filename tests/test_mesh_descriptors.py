@@ -31,9 +31,7 @@ def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
     snapshot = mesh.parse_mesh_descriptor_file(Path(source_path_text), source_url=SOURCE_URL)
 
     assert snapshot.source_byte_length == 312_952_703
-    assert snapshot.source_sha256 == (
-        "sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba"
-    )
+    assert snapshot.source_sha256 == ("sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba")
     assert len(snapshot.descriptors) == 31_110
     assert Counter(descriptor.descriptor_class for descriptor in snapshot.descriptors) == {
         "1": 30_512,
@@ -121,7 +119,9 @@ def test_observed_at_is_threaded_into_every_identifier() -> None:
 
     assert snapshot.observed_at == observed_at
     assert all(
-        identifier.observed_at == observed_at for descriptor in snapshot.descriptors for identifier in descriptor.identifiers
+        identifier.observed_at == observed_at
+        for descriptor in snapshot.descriptors
+        for identifier in descriptor.identifiers
     )
 
 
@@ -199,11 +199,7 @@ def test_missing_permutation_flag_fails_closed() -> None:
 
 
 def test_empty_descriptor_record_set_is_rejected() -> None:
-    payload = (
-        b'<?xml version="1.0"?>\n'
-        b'<DescriptorRecordSet LanguageCode = "eng">\n'
-        b"</DescriptorRecordSet>\n"
-    )
+    payload = b'<?xml version="1.0"?>\n<DescriptorRecordSet LanguageCode = "eng">\n</DescriptorRecordSet>\n'
 
     with pytest.raises(mesh.MeshDescriptorError, match="no DescriptorRecord"):
         mesh.parse_mesh_descriptor_bytes(payload, source_url=SOURCE_URL)
@@ -271,8 +267,11 @@ def test_package_build_and_reopen_round_trip(tmp_path: Path) -> None:
 
     assert bundle.resource_manifest["resourceKind"] == "sourceTermSnapshot"
     assert bundle.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert bundle.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
+    assert bundle.resource_manifest["uses"] == ("searchExpansion", "sourceAssignedEvidence")
     assert bundle.resource_manifest["observationCount"] == 3
     assert bundle.coverage_report["reportStatus"] == "pass"
 
@@ -287,6 +286,7 @@ def test_package_build_and_reopen_round_trip(tmp_path: Path) -> None:
     assert calcimycin["treeNumbers"][0] == "D02.355.291.933.125"
     assert calcimycin["descriptorClass"] == "1"
     assert calcimycin["conceptIdentityClaimed"] is False
+    assert calcimycin["uses"] == ("searchExpansion", "sourceAssignedEvidence")
     assert view.lookup("D999999") is None
 
 

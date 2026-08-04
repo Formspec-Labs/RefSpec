@@ -225,11 +225,13 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
     bundle.write_to(destination)
 
     reopened = SourceControlledResourceView.open(destination)
+    assert reopened.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in reopened.resource_manifest
     assert reopened.resource_manifest["resourceKind"] == "controlledCodeList"
     assert reopened.resource_manifest["conceptIdentityClaimed"] is False
-    assert reopened.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in reopened.resource_manifest
     assert len(reopened.observations) == 17
-    assert all(obs["eligibleUses"] == ("deterministicMetadata",) for obs in reopened.observations)
+    assert all(obs["uses"] == ("deterministicMetadata",) for obs in reopened.observations)
 
 
 def test_package_rejects_an_unknown_resource_family(tmp_path: Path) -> None:

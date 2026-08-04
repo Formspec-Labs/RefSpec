@@ -27,7 +27,9 @@ def _payload(name: str = "scotus-opinions-2026-08-03.html") -> bytes:
     return (FIXTURES / name).read_bytes()
 
 
-def _pin(payload: bytes, *, source_url: str = scotus.SCOTUS_OPINIONS_SOURCE_URL) -> scotus.SCOTUSOpinionsPageSnapshotPin:
+def _pin(
+    payload: bytes, *, source_url: str = scotus.SCOTUS_OPINIONS_SOURCE_URL
+) -> scotus.SCOTUSOpinionsPageSnapshotPin:
     return scotus.SCOTUSOpinionsPageSnapshotPin(
         source_url=source_url,
         retrieved_at="2026-08-03T19:15:13Z",
@@ -316,17 +318,17 @@ def test_package_is_deterministic_metadata_only_and_never_a_concept_scheme(tmp_p
     manifest = bundle.resource_manifest
     assert manifest["resourceKind"] == "controlledCodeList"
     assert manifest["identityStatus"] == "captureLocalObservationsOnly"
-    assert manifest["usageCeiling"] == "developmentOnly"
-    assert manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in manifest
+    assert "acceptedOutputUseAuthorized" not in manifest
     assert manifest["conceptIdentityClaimed"] is False
-    assert manifest["candidateUseAuthorized"] is True
-    assert manifest["uses"] == ["deterministicMetadata"]
+    assert "candidateUseAuthorized" not in manifest
+    assert manifest["uses"] == ("deterministicMetadata",)
     assert manifest["observationCount"] == 7
 
     for observation in bundle.observations:
-        assert observation["identifiers"] == []
+        assert observation["identifiers"] == ()
         assert observation["conceptIdentityClaimed"] is False
-        assert observation["eligibleUses"] == ["deterministicMetadata"]
+        assert observation["uses"] == ("deterministicMetadata",)
 
     labels = [observation["labels"][0]["value"] for observation in bundle.observations]
     assert labels == [

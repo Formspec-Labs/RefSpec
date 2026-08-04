@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "evidenceType": "FederalRegisterTopicsSourceControlledResourcePackage",
+  "recordedAt": "2026-08-04T18:00:00Z",
+  "source": {
+    "id": "https://www.federalregister.gov/api/v1/topics.json",
+    "digest": "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b",
+    "byteLength": 920705,
+    "sourceRecordSetDigest": "sha256:053f4b4d503ff1aebcd3ff98f3316d4c9580081815579b5bcfd4285b4af6d3dc"
+  },
+  "package": {
+    "resourceId": "federal-register-api-topics",
+    "logicalDigest": "sha256:4a8da29052cf18ed20dc21ef75bd5800264c60865a0bbee914231e212f22ced4",
+    "observationSetDigest": "sha256:7237ebce166d64e2ee193ee94bb7be7b981c0fa15674cd853c1533e2674079b7",
+    "artifactCount": 5,
+    "conceptIdentityClaimed": false,
+    "uses": [
+      "sourceAssignedEvidence"
+    ]
+  },
+  "counts": {
+    "thesaurusObservations": 1044,
+    "adHocObservations": 6723,
+    "totalObservations": 7767,
+    "excludedObservations": 0,
+    "failedObservations": 0
+  },
+  "interpretation": "The capture package preserves every row from one exact mutable API response as source-assigned evidence. It claims no concept identity and carries no permission fields; a source-concept release and exact product policy govern identity and use."
+}

@@ -91,9 +91,7 @@ def test_current_official_page_matches_reviewed_shape() -> None:
     pin = sec.SEC_RULES_REGULATIONS_PIN_2026_08_03
     assert pin.source is sec.SEC_RULES_REGULATIONS_PAGE
     assert pin.expected_byte_length == 70_936
-    assert pin.expected_sha256 == (
-        "sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1"
-    )
+    assert pin.expected_sha256 == ("sha256:2f39c9d08f0dc55462e30fbda57315fd5159d47a4894dd113dc0bf226112c1b1")
 
 
 def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
@@ -260,9 +258,7 @@ def test_page_categories_preserve_two_collections_without_minting_ids(
     # are kept, proving the module never reconciles site navigation into one
     # taxonomy.
     staff_guidance_paths = {
-        category.target_path
-        for category in parsed.categories
-        if category.label == "Staff Guidance"
+        category.target_path for category in parsed.categories if category.label == "Staff Guidance"
     }
     assert staff_guidance_paths == {
         "/rules-regulations/staff-guidance",
@@ -289,9 +285,7 @@ def test_repeated_source_labels_remain_distinct_capture_records(tmp_path: Path) 
 
     parsed = sec.parse_sec_rules_regulations_page(page)
 
-    repeated = tuple(
-        category for category in parsed.side_navigation_categories if category.label == "Staff Guidance"
-    )
+    repeated = tuple(category for category in parsed.side_navigation_categories if category.label == "Staff Guidance")
     assert len(repeated) == 2
     assert repeated[0].record_iri != repeated[1].record_iri
     assert [category.source_ordinal for category in repeated] == [1, 3]
@@ -375,17 +369,17 @@ def test_package_is_a_controlled_code_list_that_never_authorizes_promotion(
 
     assert package.resource_manifest["resourceKind"] == "controlledCodeList"
     assert package.resource_manifest["identityStatus"] == "captureLocalObservationsOnly"
-    assert package.resource_manifest["candidateUseAuthorized"] is False
-    assert package.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "candidateUseAuthorized" not in package.resource_manifest
+    assert "acceptedOutputUseAuthorized" not in package.resource_manifest
     assert package.resource_manifest["conceptIdentityClaimed"] is False
-    assert package.resource_manifest["uses"] == ["navigation"]
+    assert package.resource_manifest["uses"] == ("navigation",)
     assert package.resource_manifest["observationCount"] == 5
     assert package.coverage_report["reportStatus"] == "gap"
     assert {gap["code"] for gap in package.coverage_report["gaps"]} == {
         "publisherCategoryIdentifiersAbsent",
         "navigationCollectionsNotReconciled",
     }
-    assert all(observation["identifiers"] == [] for observation in package.observations)
+    assert all(observation["identifiers"] == () for observation in package.observations)
     assert all(observation["conceptIdentityClaimed"] is False for observation in package.observations)
     collections = {observation["collection"] for observation in package.observations}
     assert collections == {"sideNavigation", "subpageCard"}

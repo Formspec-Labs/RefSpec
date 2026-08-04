@@ -998,7 +998,7 @@ def _observation(
         "sourceOrdinal": ordinal,
         "labels": [{"value": code.publisher_label, "language": LANGUAGE, "role": "preferred"}],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
     }
 
@@ -1023,7 +1023,6 @@ def _build_package(
         identity_status=identity_status,
         uses=("deterministicMetadata",),
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={parsed.source.source_url: payload},
         source_observed_count=parsed.source.expected_count,

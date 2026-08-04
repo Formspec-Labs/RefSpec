@@ -775,7 +775,7 @@ def _observation(category: SECCategoryObservation, page: AcquiredSECPage) -> dic
         # sec.gov exposes this page as Drupal menu content, not a published
         # code system; there is no publisher identifier to preserve here.
         "identifiers": [],
-        "eligibleUses": ["navigation"],
+        "uses": ["navigation"],
         "conceptIdentityClaimed": False,
         "collection": category.collection,
         "targetPath": category.target_path,
@@ -821,10 +821,9 @@ def build_sec_series_category_package(
 ) -> SourceControlledResourceBundle:
     """Package captured page categories as development-only controlled-code-list evidence.
 
-    The package never claims concept identity or a managed release: every
-    observation ships ``conceptIdentityClaimed=False`` and no identifiers, and
-    ``candidate_use_authorized`` stays ``False`` so downstream tooling cannot
-    silently promote sec.gov's own site navigation into a taxonomy.
+    The capture package never claims concept identity or a managed release:
+    every observation ships ``conceptIdentityClaimed=False`` and no
+    identifiers. Product policy decides whether and how to use the evidence.
     """
 
     if parsed.source_sha256 != page.sha256 or parsed.source_byte_length != page.byte_length:
@@ -838,7 +837,6 @@ def build_sec_series_category_package(
         identity_status="captureLocalObservationsOnly",
         uses=("navigation",),
         captured_at=parsed.retrieved_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={_source_artifact_iri(page): payload},
         source_observed_count=len(parsed.categories),

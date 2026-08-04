@@ -408,13 +408,14 @@ def test_builds_three_distinct_controlled_code_list_packages(tmp_path: Path) -> 
         (flags, 16, "publisherIdentifiersPreserved"),
         (chapters, 7, "captureLocalObservationsOnly"),
     ):
+        assert bundle.resource_manifest["schemaVersion"] == "2.0"
+        assert "candidateUseAuthorized" not in bundle.resource_manifest
         assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
         assert bundle.resource_manifest["identityStatus"] == expected_identity
-        assert bundle.resource_manifest["usageCeiling"] == "developmentOnly"
-        assert bundle.resource_manifest["candidateUseAuthorized"] is True
-        assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+        assert "usageCeiling" not in bundle.resource_manifest
+        assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
         assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-        assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
+        assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
         assert bundle.resource_manifest["observationCount"] == expected_count
         assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
         assert {gap["kind"] for gap in bundle.coverage_report["gaps"]} >= {"mappingOnlyRole"}

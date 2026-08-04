@@ -581,7 +581,7 @@ def _row_observation(
             }
         ],
         "identifiers": [identifier_payload],
-        "eligibleUses": ["sourceAssignedEvidence"],
+        "uses": ["mappingReference", "deterministicMetadata"],
         "conceptIdentityClaimed": False,
         # Descriptive hierarchy context only. This is not a SKOS broader
         # relationship and must not be read as one.
@@ -601,9 +601,8 @@ def build_gcmd_science_keywords_package(
 ) -> SourceControlledResourceBundle:
     """Build one exact, development-only Science Keywords source package.
 
-    ``candidate_use_authorized`` is always False: per catalog guidance, this
-    vocabulary is mapping/deterministic metadata only until a RefSpec
-    evaluation proves document-subject value.
+    The package records mapping and deterministic-metadata uses as facts.
+    Evaluation and exact product policy govern operational use.
     """
 
     path = Path(source_path)
@@ -623,9 +622,8 @@ def build_gcmd_science_keywords_package(
         title=GCMD_SCIENCE_KEYWORDS_TITLE,
         resource_kind="controlledCodeList",
         identity_status="publisherIdentifiersPreserved",
-        uses=("sourceAssignedEvidence",),
+        uses=("mappingReference", "deterministicMetadata"),
         captured_at=pin.retrieved_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={pin.source.source_url: payload},
         source_observed_count=pin.expected_row_count,

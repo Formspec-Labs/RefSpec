@@ -351,8 +351,10 @@ def test_package_covers_every_declared_identifier_family(tmp_path: Path) -> None
 def test_package_never_claims_concept_identity(tmp_path: Path) -> None:
     bundle = _package(tmp_path)
 
+    assert bundle.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert all(obs["conceptIdentityClaimed"] is False for obs in bundle.observations)
 
 

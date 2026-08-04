@@ -272,17 +272,15 @@ def test_builds_a_source_evidence_package_not_a_concept_scheme(tmp_path: Path) -
         "resourceId": gcmd.GCMD_SCIENCE_KEYWORDS_RESOURCE_ID,
         "resourceKind": "controlledCodeList",
         "identityStatus": "publisherIdentifiersPreserved",
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": False,
-        "acceptedOutputUseAuthorized": False,
+        "schemaVersion": "2.0",
         "conceptIdentityClaimed": False,
-        "uses": ["sourceAssignedEvidence"],
+        "uses": ("deterministicMetadata", "mappingReference"),
         "observationCount": 9,
     }
     by_uuid = {observation["identifiers"][0]["value"]: observation for observation in bundle.observations}
     aquaculture = by_uuid["8916dafb-5ad5-45c6-ab64-3500ea1e9577"]
-    assert aquaculture["labels"] == [{"value": "AQUACULTURE", "language": "en", "role": "preferred"}]
-    assert aquaculture["identifiers"] == [
+    assert aquaculture["labels"] == ({"value": "AQUACULTURE", "language": "en", "role": "preferred"},)
+    assert aquaculture["identifiers"] == (
         {
             "value": "8916dafb-5ad5-45c6-ab64-3500ea1e9577",
             "kind": "gcmdConceptUUID",
@@ -291,9 +289,9 @@ def test_builds_a_source_evidence_package_not_a_concept_scheme(tmp_path: Path) -
             "sourcePath": "csv:row[3].UUID",
             "observedAt": pin.retrieved_at,
             "sourceDigest": pin.expected_sha256,
-        }
-    ]
-    assert aquaculture["eligibleUses"] == ["sourceAssignedEvidence"]
+        },
+    )
+    assert aquaculture["uses"] == ("deterministicMetadata", "mappingReference")
     assert aquaculture["conceptIdentityClaimed"] is False
     assert aquaculture["category"] == "EARTH SCIENCE"
     assert aquaculture["topic"] == "AGRICULTURE"
@@ -330,7 +328,7 @@ def test_closed_package_round_trips_through_disk(tmp_path: Path) -> None:
     reopened = SourceControlledResourceView.open(written)
 
     assert reopened.logical_digest == bundle.logical_digest
-    assert reopened.resource_manifest["candidateUseAuthorized"] is False
+    assert "candidateUseAuthorized" not in reopened.resource_manifest
     assert len(reopened.observations) == 9
     assert reopened.source_artifact_bytes(pin.source.source_url) == MINI_CSV_FIXTURE.read_bytes()
 

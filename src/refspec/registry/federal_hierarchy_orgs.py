@@ -117,9 +117,7 @@ _REQUIRED_RECORD_FIELDS = frozenset(
         "links",
     }
 )
-_OPTIONAL_RECORD_FIELDS = frozenset(
-    {"oldfpdsofficecode", "createdby", "createddate", "updatedby", "lastupdateddate"}
-)
+_OPTIONAL_RECORD_FIELDS = frozenset({"oldfpdsofficecode", "createdby", "createddate", "updatedby", "lastupdateddate"})
 _ALLOWED_RECORD_FIELDS = _REQUIRED_RECORD_FIELDS | _OPTIONAL_RECORD_FIELDS
 _PARENT_HISTORY_FIELDS = frozenset(
     {"fhfullparentpathid", "fhfullparentpathname", "effectivedate", "codehierarchy", "actiontype"}
@@ -274,7 +272,9 @@ def sha256_digest(payload: bytes) -> str:
 def _validate_resolved_url(value: str) -> None:
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "api.sam.gov":
-        raise FederalHierarchyAcquisitionError("fetcher resolved_url must remain on the official HTTPS api.sam.gov host")
+        raise FederalHierarchyAcquisitionError(
+            "fetcher resolved_url must remain on the official HTTPS api.sam.gov host"
+        )
     if parsed.username is not None or parsed.password is not None:
         raise FederalHierarchyAcquisitionError("fetcher resolved_url must not contain credentials")
     if "api_key" in parse_qs(parsed.query, keep_blank_values=True):
@@ -289,7 +289,9 @@ def _verify_payload(payload: bytes, pin: FHOrgsSnapshotPin, *, location: str) ->
         )
     actual_sha256 = sha256_digest(payload)
     if actual_sha256 != pin.expected_sha256:
-        raise FederalHierarchySourceDriftError(f"{location} digest drift: expected {pin.expected_sha256}, got {actual_sha256}")
+        raise FederalHierarchySourceDriftError(
+            f"{location} digest drift: expected {pin.expected_sha256}, got {actual_sha256}"
+        )
     try:
         json.loads(payload)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -391,7 +393,9 @@ def acquire_fh_orgs_sample(
         )
 
     if fetcher is None:
-        raise FederalHierarchyAcquisitionError("FH orgs sample is not cached; provide source_path or an injected fetcher")
+        raise FederalHierarchyAcquisitionError(
+            "FH orgs sample is not cached; provide source_path or an injected fetcher"
+        )
     fetched = fetcher.fetch(pin.source.source_url, timeout_seconds=timeout_seconds)
     if fetched.status_code != 200:
         raise FederalHierarchyAcquisitionError(f"could not acquire {pin.source.source_url}: HTTP {fetched.status_code}")
@@ -541,7 +545,9 @@ def _require_parent_history(value: object, label: str) -> Mapping[str, Any]:
         raise FederalHierarchySourceDriftError(f"{label} must be a non-empty array")
     entry = value[0]
     if not isinstance(entry, Mapping) or set(entry) != _PARENT_HISTORY_FIELDS:
-        raise FederalHierarchySourceDriftError(f"{label}[0] fields drifted from the documented shape: {sorted(entry) if isinstance(entry, Mapping) else type(entry)}")
+        raise FederalHierarchySourceDriftError(
+            f"{label}[0] fields drifted from the documented shape: {sorted(entry) if isinstance(entry, Mapping) else type(entry)}"
+        )
     path_id = _require_str(entry["fhfullparentpathid"], f"{label}[0].fhfullparentpathid")
     if _FULL_PARENT_PATH_ID.fullmatch(path_id) is None:
         raise FederalHierarchySourceDriftError(f"{label}[0].fhfullparentpathid has a malformed shape: {path_id!r}")
@@ -588,7 +594,9 @@ def parse_fh_orgs_sample(acquired: AcquiredFHOrgsSource) -> ParsedFHOrgsSample:
         raise FederalHierarchySourceDriftError("FH orgs sample payload is not valid JSON") from error
     if not isinstance(root, Mapping) or set(root) != {"totalrecords", "orglist"}:
         shape = sorted(root) if isinstance(root, Mapping) else type(root).__name__
-        raise FederalHierarchySourceDriftError(f"FH orgs sample top-level fields drifted from the documented shape: {shape}")
+        raise FederalHierarchySourceDriftError(
+            f"FH orgs sample top-level fields drifted from the documented shape: {shape}"
+        )
 
     total_records = root["totalrecords"]
     if not isinstance(total_records, int) or isinstance(total_records, bool) or total_records < 0:
@@ -618,7 +626,9 @@ def parse_fh_orgs_sample(acquired: AcquiredFHOrgsSource) -> ParsedFHOrgsSample:
             raise FederalHierarchySourceDriftError(f"{label} must be an object")
         present = set(entry)
         if not _REQUIRED_RECORD_FIELDS.issubset(present) or not present.issubset(_ALLOWED_RECORD_FIELDS):
-            raise FederalHierarchySourceDriftError(f"{label} fields drifted from the documented shape: {sorted(present)}")
+            raise FederalHierarchySourceDriftError(
+                f"{label} fields drifted from the documented shape: {sorted(present)}"
+            )
 
         fhorgid = _require_org_id(entry["fhorgid"], f"{label}.fhorgid")
         fhorgname = _require_str(entry["fhorgname"], f"{label}.fhorgname")
@@ -640,7 +650,9 @@ def parse_fh_orgs_sample(acquired: AcquiredFHOrgsSource) -> ParsedFHOrgsSample:
         if old_office_code is not None and (
             not isinstance(old_office_code, str) or _FPDS_AGENCY_CODE.fullmatch(old_office_code) is None
         ):
-            raise FederalHierarchySourceDriftError(f"{label}.oldfpdsofficecode has a malformed shape: {old_office_code!r}")
+            raise FederalHierarchySourceDriftError(
+                f"{label}.oldfpdsofficecode has a malformed shape: {old_office_code!r}"
+            )
         cgac = _require_cgaclist(entry["cgaclist"], f"{label}.cgaclist")
         _require_name_history(entry["fhorgnamehistory"], f"{label}.fhorgnamehistory")
         parent_history = _require_parent_history(entry["fhorgparenthistory"], f"{label}.fhorgparenthistory")
@@ -765,9 +777,7 @@ def _identifier_payload(*, identifier: ControlledIdentifier, source_path: str) -
     return result
 
 
-def _observation_id(
-    *, source_artifact: str, source_path: str, identifiers: Sequence[Mapping[str, Any]]
-) -> str:
+def _observation_id(*, source_artifact: str, source_path: str, identifiers: Sequence[Mapping[str, Any]]) -> str:
     identity = {
         "resourceId": FH_ORGS_RESOURCE_ID,
         "sourceArtifact": source_artifact,
@@ -802,7 +812,7 @@ def _observations(sample: ParsedFHOrgsSample) -> tuple[Mapping[str, Any], ...]:
                 "sourceOrdinal": record.source_ordinal,
                 "labels": [{"value": record.fhorgname, "language": "en", "role": "preferred"}],
                 "identifiers": list(identifiers),
-                "eligibleUses": list(FH_ORGS_PACKAGE_USES),
+                "uses": list(FH_ORGS_PACKAGE_USES),
                 "conceptIdentityClaimed": False,
             }
         )
@@ -843,7 +853,6 @@ def build_federal_hierarchy_orgs_package(source_path: Path) -> SourceControlledR
         identity_status="publisherIdentifiersPreserved",
         uses=FH_ORGS_PACKAGE_USES,
         captured_at=pin.retrieved_at,
-        candidate_use_authorized=True,
         observations=_observations(sample),
         source_artifacts={pin.source.source_url: payload},
         gaps=FH_ORGS_KNOWN_GAPS,

@@ -284,7 +284,9 @@ def parse_nature_of_suit_code_descriptions(source: str | bytes) -> NatureOfSuitC
         title = " ".join(open_entry.title_lines)
         description = " ".join(open_entry.description_lines)
         if not title:
-            raise NatureOfSuitParseError(f"entry {open_entry.code!r} starting at line {open_entry.start_line} has no title")
+            raise NatureOfSuitParseError(
+                f"entry {open_entry.code!r} starting at line {open_entry.start_line} has no title"
+            )
         entries.append(
             NatureOfSuitEntry(
                 entry_id=f"nos-entry-{len(entries) + 1:04d}",
@@ -430,7 +432,12 @@ def parse_nature_of_suit_code_descriptions(source: str | bytes) -> NatureOfSuitC
             i += 1
             continue
 
-        if title_col is not None and desc_col is not None and indent in (title_col, desc_col) and open_entry is not None:
+        if (
+            title_col is not None
+            and desc_col is not None
+            and indent in (title_col, desc_col)
+            and open_entry is not None
+        ):
             title_part = raw[title_col:desc_col].strip()
             desc_part = raw[desc_col:].strip()
             if not title_part and not desc_part:
@@ -568,7 +575,7 @@ def _observation(
             }
         ],
         "identifiers": identifiers,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
         # Official JS-044 text only; never a platform-normalized value from a
         # different source (for example a docket platform's own category).
@@ -590,9 +597,8 @@ def build_nature_of_suit_code_package(
     This never promotes the result into a concept scheme: ``resource_kind``
     stays ``controlledCodeList``, ``identity_status`` stays
     ``publisherIdentifiersPreserved`` because the code itself is
-    publisher-assigned, and ``acceptedOutputUseAuthorized`` /
-    ``conceptIdentityClaimed`` stay False (enforced by
-    ``source_controlled_resource``, not repeated here).
+    publisher-assigned, and ``conceptIdentityClaimed`` stays false (enforced
+    by ``source_controlled_resource``). Exact product policy governs use.
     """
 
     if parsed.source_artifact_bytes is None:
@@ -607,7 +613,6 @@ def build_nature_of_suit_code_package(
         identity_status="publisherIdentifiersPreserved",
         uses=uses,
         captured_at=captured_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={source_uri: parsed.source_artifact_bytes},
         source_observed_count=len(parsed.entries),

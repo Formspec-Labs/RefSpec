@@ -268,23 +268,21 @@ def test_build_package_preserves_two_source_artifacts_and_identifiers(
         **package.resource_manifest,
         "resourceId": "nasa-technology-taxonomy-8817-top-level-2026-08-03",
         "resourceKind": "controlledCodeList",
-        "usageCeiling": "developmentOnly",
-        "candidateUseAuthorized": True,
-        "acceptedOutputUseAuthorized": False,
+        "schemaVersion": "2.0",
         "conceptIdentityClaimed": False,
-        "uses": ["deterministicMetadata"],
+        "uses": ("deterministicMetadata", "mappingReference"),
         "observationCount": 17,
     }
     by_code = {observation["identifiers"][0]["value"]: observation for observation in package.observations}
     tx01 = by_code["TX01"]
-    assert tx01["labels"] == [
+    assert tx01["labels"] == (
         {
             "value": "Propulsion Systems",
             "language": "en",
             "role": "preferred",
-        }
-    ]
-    assert tx01["identifiers"] == [
+        },
+    )
+    assert tx01["identifiers"] == (
         {
             "value": "TX01",
             "kind": "taxonomyNodeCode",
@@ -303,8 +301,8 @@ def test_build_package_preserves_two_source_artifacts_and_identifiers(
             "observedAt": "2026-08-03T19:03:22Z",
             "sourceDigest": ("sha256:4e0ed6f5edee5b7e80c8789e4c3ef39c337a1f27de4cddede431feb94d314932"),
         },
-    ]
-    assert tx01["eligibleUses"] == ["deterministicMetadata"]
+    )
+    assert tx01["uses"] == ("deterministicMetadata", "mappingReference")
     assert tx01["conceptIdentityClaimed"] is False
     assert set(package.source_artifacts) == {
         nasa.NASA_TAXONOMY_ROOT_INDEX.source_url,
@@ -346,7 +344,6 @@ def test_view_rejects_a_self_consistent_unpinned_repackage(tmp_path: Path) -> No
         identity_status="publisherIdentifiersPreserved",
         uses=nasa.NASA_TECHNOLOGY_TAXONOMY_PACKAGE_SPEC.uses,
         captured_at=nasa.NASA_TAXONOMY_ROOT_CHILDREN_2026_08_03.retrieved_at,
-        candidate_use_authorized=False,
         observations=original.observations,
         source_artifacts=original.source_artifacts,
         source_observed_count=17,

@@ -805,7 +805,7 @@ def _package_observations(
                     }
                 ],
                 "identifiers": [identifier_payload],
-                "eligibleUses": [code.use],
+                "uses": [code.use],
                 "conceptIdentityClaimed": False,
                 "description": code.description,
             }
@@ -831,7 +831,6 @@ def build_fec_committee_code_package(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=resource.retrieved_at,
-        candidate_use_authorized=True,
         observations=_package_observations(resource),
         source_artifacts={resource.source_url: payload},
         source_observed_count=len(resource.codes),

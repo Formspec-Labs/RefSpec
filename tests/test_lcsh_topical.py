@@ -308,10 +308,11 @@ def test_build_lcsh_topical_snapshot_produces_a_mapping_only_bundle(tmp_path: Pa
     manifest = bundle.resource_manifest
     assert manifest["resourceKind"] == "sourceTermSnapshot"
     assert manifest["identityStatus"] == "publisherIdentifiersPreserved"
-    assert manifest["candidateUseAuthorized"] is False
-    assert manifest["acceptedOutputUseAuthorized"] is False
+    assert manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in manifest
+    assert "acceptedOutputUseAuthorized" not in manifest
     assert manifest["conceptIdentityClaimed"] is False
-    assert manifest["uses"] == ["searchExpansion"]
+    assert manifest["uses"] == ("mappingReference", "searchExpansion")
     assert manifest["observationCount"] == 3
 
     coverage = bundle.coverage_report
@@ -330,6 +331,7 @@ def test_build_lcsh_topical_snapshot_produces_a_mapping_only_bundle(tmp_path: Pa
     by_iri = {_concept_uri(observation): observation for observation in bundle.observations}
     saki = by_iri[SAKI]
     assert saki["conceptIdentityClaimed"] is False
+    assert saki["uses"] == ("mappingReference", "searchExpansion")
     assert [label["role"] for label in saki["labels"]] == ["preferred", "alternate", "alternate"]
     assert {label["value"] for label in saki["labels"] if label["role"] == "alternate"} == {
         "Pale-headed saki",

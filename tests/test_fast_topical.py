@@ -396,17 +396,18 @@ def test_package_is_mapping_only_and_never_reserves_a_classifier_output_slot(
     assert package.resource_manifest["resourceId"] == fast.FAST_TOPICAL_RESOURCE_ID
     assert package.resource_manifest["resourceKind"] == "sourceTermSnapshot"
     assert package.resource_manifest["identityStatus"] == "publisherIdentifiersPreserved"
-    assert package.resource_manifest["usageCeiling"] == "developmentOnly"
-    assert package.resource_manifest["candidateUseAuthorized"] is True
-    assert package.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in package.resource_manifest
+    assert package.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in package.resource_manifest
+    assert "acceptedOutputUseAuthorized" not in package.resource_manifest
     assert package.resource_manifest["conceptIdentityClaimed"] is False
-    assert package.resource_manifest["uses"] == ["searchExpansion"]
+    assert package.resource_manifest["uses"] == ("mappingReference", "searchExpansion")
     assert package.coverage_report["packagedCount"] == FIXTURE_ROW_COUNT
     assert package.coverage_report["reportStatus"] == "gap"
 
     for observation in package.observations:
-        assert observation["eligibleUses"] == ["searchExpansion"]
-        assert "sourceAssignedEvidence" not in observation["eligibleUses"]
+        assert observation["uses"] == ("mappingReference", "searchExpansion")
+        assert "sourceAssignedEvidence" not in observation["uses"]
         assert observation["conceptIdentityClaimed"] is False
 
 
@@ -423,9 +424,9 @@ def test_package_preserves_publisher_identifiers_exactly(tmp_path: Path) -> None
     identifier_values = {identifier["value"] for identifier in first["identifiers"]}
     assert identifier_kinds == {"fastId", "fastUri"}
     assert identifier_values == {"fst00801013", "http://id.worldcat.org/fast/801013"}
-    assert first["labels"] == [
-        {"value": "Agricultural laborers--Wounds and injuries", "language": "en", "role": "preferred"}
-    ]
+    assert first["labels"] == (
+        {"value": "Agricultural laborers--Wounds and injuries", "language": "en", "role": "preferred"},
+    )
 
 
 def test_package_round_trips_exact_fast_source_bytes(tmp_path: Path) -> None:

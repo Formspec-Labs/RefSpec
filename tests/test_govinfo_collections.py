@@ -26,7 +26,9 @@ def _acquire(
 
 
 def _portfolio(tmp_path: Path) -> gc.GovInfoControlPortfolio:
-    collections = gc.parse_govinfo_collections(_acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE))
+    collections = gc.parse_govinfo_collections(
+        _acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE)
+    )
     titles = gc.parse_ecfr_cfr_titles(_acquire(tmp_path, gc.ECFR_CFR_TITLES_2026_08_03, TITLES_FIXTURE))
     summary = gc.parse_govinfo_cfr_package_summary(
         _acquire(tmp_path, gc.GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03, PACKAGE_SUMMARY_FIXTURE)
@@ -258,7 +260,9 @@ def test_unknown_collection_or_title_reference_fails_closed(tmp_path: Path) -> N
 def test_assembly_fails_closed_when_package_references_unknown_collection_or_title(
     tmp_path: Path,
 ) -> None:
-    collections = gc.parse_govinfo_collections(_acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE))
+    collections = gc.parse_govinfo_collections(
+        _acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE)
+    )
     titles = gc.parse_ecfr_cfr_titles(_acquire(tmp_path, gc.ECFR_CFR_TITLES_2026_08_03, TITLES_FIXTURE))
     summary = gc.parse_govinfo_cfr_package_summary(
         _acquire(tmp_path, gc.GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03, PACKAGE_SUMMARY_FIXTURE)
@@ -358,11 +362,9 @@ def test_parser_rejects_malformed_collection_code_and_fixity_digest(
     with pytest.raises(gc.GovInfoSourceDriftError, match="collection code"):
         gc.parse_govinfo_collections(acquired)
 
-    bad_fixity_xml = (
-        PACKAGE_PREMIS_FIXTURE.read_bytes().replace(
-            b"7321767f07828dc822e81e9806a33280cb2860d4281ac91f1bc79439b1cfcb33",
-            b"not-a-real-digest",
-        )
+    bad_fixity_xml = PACKAGE_PREMIS_FIXTURE.read_bytes().replace(
+        b"7321767f07828dc822e81e9806a33280cb2860d4281ac91f1bc79439b1cfcb33",
+        b"not-a-real-digest",
     )
     bad_fixity_source = replace(gc.GOVINFO_CFR_PACKAGE_PREMIS, filename="bad-fixity.xml")
     bad_fixity_pin = gc.GovInfoSnapshotPin(
@@ -385,6 +387,8 @@ def test_collection_codes_bundle_builds_a_deterministic_closed_package(
     bundle_two = gc.build_govinfo_collections_package(COLLECTIONS_FIXTURE)
 
     assert bundle_one.artifact_bytes() == bundle_two.artifact_bytes()
+    assert bundle_one.resource_manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in bundle_one.resource_manifest
     assert bundle_one.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle_one.resource_manifest["conceptIdentityClaimed"] is False
     assert bundle_one.resource_manifest["observationCount"] == 42

@@ -244,7 +244,9 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 def test_ambiguous_or_missing_anchor_fails_closed(tmp_path: Path) -> None:
     duplicated = ADVANCED_SEARCH_FIXTURE.read_bytes()
-    duplicated = duplicated + duplicated[duplicated.index(b'<label style="font-weight:100"><input id="eoStatusCode1"') :]
+    duplicated = (
+        duplicated + duplicated[duplicated.index(b'<label style="font-weight:100"><input id="eoStatusCode1"') :]
+    )
     duplicate_path = tmp_path / "duplicated.html"
     duplicate_path.write_bytes(duplicated)
 
@@ -306,9 +308,7 @@ def test_option_count_drift_fails_closed(tmp_path: Path) -> None:
 def test_build_oira_review_and_meeting_package_is_closed_and_reopens_cleanly(
     tmp_path: Path,
 ) -> None:
-    acquired = {
-        pin.field.field_name: _acquire(tmp_path / "acquire", pin) for pin in oira.OIRA_FIELD_PINS_2026_08_03
-    }
+    acquired = {pin.field.field_name: _acquire(tmp_path / "acquire", pin) for pin in oira.OIRA_FIELD_PINS_2026_08_03}
 
     bundle = oira.build_oira_review_and_meeting_package(
         review_status=acquired["reviewStatus"],
@@ -319,15 +319,15 @@ def test_build_oira_review_and_meeting_package_is_closed_and_reopens_cleanly(
 
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
-    assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
+    assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
     assert bundle.resource_manifest["observationCount"] == 20
     assert bundle.coverage_report["packagedCount"] == 20
     assert bundle.coverage_report["excludedCount"] == 2
     assert bundle.coverage_report["reportStatus"] == "gap"
     assert len({observation["id"] for observation in bundle.observations}) == 20
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
-    assert all(observation["eligibleUses"] == ["deterministicMetadata"] for observation in bundle.observations)
+    assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
 
     destination = tmp_path / "package"
     bundle.write_to(destination)

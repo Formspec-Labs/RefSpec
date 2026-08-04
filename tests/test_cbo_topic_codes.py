@@ -367,19 +367,20 @@ def test_package_is_source_evidence_only_and_never_a_concept_scheme(tmp_path: Pa
     bundle = cbo.build_cbo_topic_evidence_package(acquired, parsed)
 
     manifest = bundle.resource_manifest
+    assert manifest["schemaVersion"] == "2.0"
+    assert "candidateUseAuthorized" not in manifest
     assert manifest["resourceKind"] == "sourceTermSnapshot"
     assert manifest["identityStatus"] == "captureLocalObservationsOnly"
-    assert manifest["usageCeiling"] == "developmentOnly"
-    assert manifest["acceptedOutputUseAuthorized"] is False
+    assert "usageCeiling" not in manifest
+    assert "acceptedOutputUseAuthorized" not in manifest
     assert manifest["conceptIdentityClaimed"] is False
-    assert manifest["candidateUseAuthorized"] is False
-    assert manifest["uses"] == ["sourceAssignedEvidence"]
+    assert manifest["uses"] == ("sourceAssignedEvidence",)
     assert manifest["observationCount"] == 4
 
     for observation in bundle.observations:
-        assert observation["identifiers"] == []
+        assert observation["identifiers"] == ()
         assert observation["conceptIdentityClaimed"] is False
-        assert observation["eligibleUses"] == ["sourceAssignedEvidence"]
+        assert observation["uses"] == ("sourceAssignedEvidence",)
 
     labels = [observation["labels"][0]["value"] for observation in bundle.observations]
     assert labels == ["Health", "Native Americans", "Health", "Public Lands and Natural Resources"]

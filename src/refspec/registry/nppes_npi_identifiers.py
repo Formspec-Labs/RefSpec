@@ -239,7 +239,7 @@ def build_nppes_file_layout_bundle(
                     "sourceDigest": digest,
                 }
             ],
-            "eligibleUses": ["deterministicMetadata"],
+            "uses": ["deterministicMetadata"],
             "conceptIdentityClaimed": False,
         }
         for ordinal, column in enumerate(columns)
@@ -251,7 +251,6 @@ def build_nppes_file_layout_bundle(
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=observed_at,
-        candidate_use_authorized=False,
         observations=observations,
         source_artifacts={NPPES_FILEHEADER_SOURCE_ID: fileheader_payload},
     )

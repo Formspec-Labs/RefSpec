@@ -998,7 +998,7 @@ _OBSERVATION_FIELDS = frozenset(
         "sourceOrdinal",
         "labels",
         "identifiers",
-        "eligibleUses",
+        "uses",
         "conceptIdentityClaimed",
         "category",
     }
@@ -1060,7 +1060,7 @@ OPM_PAY_PLAN_CODE_PACKAGE = OPMControlledListPackageSpec(
     title="OPM Pay Plan Codes, captured 2026-08-03",
     pin=OPM_PAY_PLAN_CODES_2026_08_03,
     known_gaps=(_NO_STABLE_ENDPOINT_GAP, _UNVERIFIED_SAMPLE_GAP),
-    expected_logical_digest="sha256:d87ef3562356abec9527febf8ab3a2adceabec2460a89d0c966a24340ed0ba02",
+    expected_logical_digest="sha256:6f87f3c43253b1e4bd5710b52db5502e3566be278f88df1423ecd08d0ecb03c6",
 )
 OPM_WORK_SCHEDULE_CODE_PACKAGE = OPMControlledListPackageSpec(
     resource_name="workScheduleCodes",
@@ -1068,7 +1068,7 @@ OPM_WORK_SCHEDULE_CODE_PACKAGE = OPMControlledListPackageSpec(
     title="OPM Work Schedule Codes, captured 2026-08-03",
     pin=OPM_WORK_SCHEDULE_CODES_2026_08_03,
     known_gaps=(_NO_STABLE_ENDPOINT_GAP, _UNVERIFIED_SAMPLE_GAP),
-    expected_logical_digest="sha256:cc285a82d3168b6d5c8c53840b810bd058540c7ed9abea03d26f14367042aace",
+    expected_logical_digest="sha256:4f494567ad875e707d9d6fcad40b68a044c060fbcc3df73d6e35e0edaf7a7625",
 )
 OPM_APPOINTMENT_TYPE_CODE_PACKAGE = OPMControlledListPackageSpec(
     resource_name="appointmentTypeCodes",
@@ -1076,7 +1076,7 @@ OPM_APPOINTMENT_TYPE_CODE_PACKAGE = OPMControlledListPackageSpec(
     title="OPM Appointment Type Codes, captured 2026-08-03",
     pin=OPM_APPOINTMENT_TYPE_CODES_2026_08_03,
     known_gaps=(_NO_STABLE_ENDPOINT_GAP, _UNVERIFIED_SAMPLE_GAP),
-    expected_logical_digest="sha256:a8a6e08ef41db0ffea3ea0e1bf3bbd3c82ed67cfe361000bed80aaf1c7cabced",
+    expected_logical_digest="sha256:bf164a6e12e37da7a183c76da8bbbb49cd95aaaad42d2fe84a63d4abd31b5233",
 )
 OPM_OCCUPATIONAL_SERIES_CODE_PACKAGE = OPMControlledListPackageSpec(
     resource_name="occupationalSeriesCodes",
@@ -1084,7 +1084,7 @@ OPM_OCCUPATIONAL_SERIES_CODE_PACKAGE = OPMControlledListPackageSpec(
     title="OPM Occupational Series Codes, captured 2026-08-03",
     pin=OPM_OCCUPATIONAL_SERIES_CODES_2026_08_03,
     known_gaps=(_NO_STABLE_ENDPOINT_GAP, _UNVERIFIED_SAMPLE_GAP, _NOT_EXHAUSTIVE_SERIES_GAP),
-    expected_logical_digest="sha256:f6160eef14677444e4e90e935700b39d6b8d4365261fddd344687b297ee01a6c",
+    expected_logical_digest="sha256:342e489e28760277919743a7e7f29d5bc4363ff061e4be076f6ad992ecd3c269",
 )
 OPM_PLUM_POSITION_STATUS_CODE_PACKAGE = OPMControlledListPackageSpec(
     resource_name="plumPositionStatusCodes",
@@ -1092,7 +1092,7 @@ OPM_PLUM_POSITION_STATUS_CODE_PACKAGE = OPMControlledListPackageSpec(
     title="PLUM Position Appointment-Authority and Status Codes, captured 2026-08-03",
     pin=OPM_PLUM_POSITION_STATUS_CODES_2026_08_03,
     known_gaps=(_NO_STABLE_ENDPOINT_GAP, _UNVERIFIED_SAMPLE_GAP, _PLUM_RULES_GAP),
-    expected_logical_digest="sha256:7257f7c0751eff62a2624b8288b4123e746c06289d66efacc8111f8860a0a0c2",
+    expected_logical_digest="sha256:5c0bd5777351447e84be18719cf8fa1065d19c305aa8c930aa5a7dec55d792a7",
 )
 OPM_CONTROLLED_LIST_PACKAGES = (
     OPM_PAY_PLAN_CODE_PACKAGE,
@@ -1198,7 +1198,7 @@ def _observations(
                     }
                 ],
                 "identifiers": list(identifiers),
-                "eligibleUses": [cast(PackageResourceUse, "deterministicMetadata")],
+                "uses": [cast(PackageResourceUse, "deterministicMetadata")],
                 "conceptIdentityClaimed": False,
                 "category": code.category,
             }
@@ -1224,7 +1224,6 @@ def build_opm_controlled_list_package(
         identity_status="publisherIdentifiersPreserved",
         uses=(cast(PackageResourceUse, "deterministicMetadata"),),
         captured_at=spec.pin.retrieved_at,
-        candidate_use_authorized=True,
         observations=_observations(spec, resource),
         source_artifacts={spec.pin.source.source_url: payload},
         source_observed_count=spec.pin.source.expected_count,
@@ -1261,7 +1260,6 @@ class OPMControlledListView:
             identity_status="publisherIdentifiersPreserved",
             uses=(cast(PackageResourceUse, "deterministicMetadata"),),
             captured_at=spec.pin.retrieved_at,
-            candidate_use_authorized=True,
             observations=_observations(spec, _parse_exact_source(spec, source_bytes)),
             source_artifacts={spec.pin.source.source_url: source_bytes},
             source_observed_count=spec.pin.source.expected_count,

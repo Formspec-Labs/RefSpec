@@ -237,13 +237,13 @@ def test_build_pra_icr_controlled_value_package_produces_a_closed_deterministic_
     bundle = pra.build_pra_icr_controlled_value_package(SEARCH_PAGE_FIXTURE)
 
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"
-    assert bundle.resource_manifest["uses"] == ["deterministicMetadata"]
-    assert bundle.resource_manifest["acceptedOutputUseAuthorized"] is False
+    assert bundle.resource_manifest["uses"] == ("deterministicMetadata",)
+    assert "acceptedOutputUseAuthorized" not in bundle.resource_manifest
     assert bundle.resource_manifest["conceptIdentityClaimed"] is False
     assert bundle.resource_manifest["observationCount"] == 21
     assert len(bundle.observations) == 21
     assert all(observation["conceptIdentityClaimed"] is False for observation in bundle.observations)
-    assert all(observation["eligibleUses"] == ["deterministicMetadata"] for observation in bundle.observations)
+    assert all(observation["uses"] == ("deterministicMetadata",) for observation in bundle.observations)
 
     destination = tmp_path / "package"
     bundle.write_to(destination)

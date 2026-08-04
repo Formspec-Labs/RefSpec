@@ -740,7 +740,7 @@ def _observation_row(code: PRACode, *, ordinal: int) -> dict[str, Any]:
             }
         ],
         "identifiers": identifier_rows,
-        "eligibleUses": ["deterministicMetadata"],
+        "uses": ["deterministicMetadata"],
         "conceptIdentityClaimed": False,
     }
 
@@ -769,7 +769,6 @@ def build_pra_icr_controlled_value_package(source_path: Path) -> SourceControlle
         identity_status="publisherIdentifiersPreserved",
         uses=("deterministicMetadata",),
         captured_at=resource.retrieved_at,
-        candidate_use_authorized=True,
         observations=observations,
         source_artifacts={resource.source_url: payload},
         source_observed_count=len(observations),
