@@ -668,6 +668,39 @@ def test_a_result_the_provider_never_returned_is_not_receipted(
     assert rows[2]["candidateId"] not in receipted
     assert _sidecar(run_dir)["jobs"][0]["collection"]["missingCustomIds"] == [lost]
 
+    # ...and "not receipted" only means something if a later submit re-asks it.
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    jobs = _sidecar(run_dir)["jobs"]
+    assert len(jobs) == 2
+    assert [item["candidateId"] for item in jobs[1]["requests"]] == [rows[2]["candidateId"]]
+
+
+def test_an_expired_job_still_yields_the_answers_it_was_billed_for(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """OpenAI publishes an expired batch's finished requests, and bills them.
+
+    Treating expiry as "nothing to read" would throw those answers away and
+    then buy the identical slice a second time.
+    """
+
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    for job in server.jobs.values():
+        job["status"] = "expired"
+
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    receipts = _receipts(run_dir)
+    assert len(receipts) == 33
+    assert {receipt["outcome"] for receipt in receipts} == {"completed"}
+    assert _sidecar(run_dir)["jobs"][0]["state"] == "expired"
+
+    # Nothing left to re-ask, so nothing is bought again.
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert len(_sidecar(run_dir)["jobs"]) == 1
+
 
 def test_a_receipt_never_carries_the_credential(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
     server = FakeProviders()
@@ -701,6 +734,11 @@ def test_collecting_twice_appends_nothing_the_second_time(
     _run(monkeypatch, server, run_dir, "batch-status")
     _run(monkeypatch, server, run_dir, "batch-collect")
     first = (run_dir / RUNNER.RECEIPTS).read_text(encoding="utf-8")
+    downloads = sum(url.endswith("/content") for url in server.urls())
+
+    spent = _sidecar(run_dir)["totalBatchAssumedCostUsd"]
+    evidence = _sidecar(run_dir)["jobs"][0]["collection"]
+    assert spent > 0
 
     _run(monkeypatch, server, run_dir, "batch-collect")
     second = (run_dir / RUNNER.RECEIPTS).read_text(encoding="utf-8")
@@ -708,7 +746,14 @@ def test_collecting_twice_appends_nothing_the_second_time(
     assert second == first
     keys = [(receipt["candidate_id"], receipt["family"]) for receipt in _receipts(run_dir)]
     assert len(keys) == len(set(keys))
-    assert _sidecar(run_dir)["jobs"][0]["collection"]["receiptsAppended"] == 0
+    # A re-collect must not spend the receipted evidence it re-walks past.  A
+    # tracker that recorded nothing, written over the sidecar, would seal a run
+    # receipt claiming this batch cost nothing and found no echo mismatches.
+    assert _sidecar(run_dir)["totalBatchAssumedCostUsd"] == spent
+    assert _sidecar(run_dir)["jobs"][0]["collection"] == evidence
+    assert json.loads((run_dir / "spend.json").read_text(encoding="utf-8"))["totalBatchAssumedCostUsd"] == spent
+    # The finished job is not re-downloaded either.
+    assert sum(url.endswith("/content") for url in server.urls()) == downloads == 1
 
 
 def test_a_second_submit_never_re_asks_a_receipted_or_in_flight_candidate(
@@ -771,14 +816,142 @@ def test_submit_refuses_a_batch_whose_projection_exceeds_the_family_cap(
     assert all(not url.endswith("/batches") for url in server.urls())
 
 
-def test_the_projection_counts_what_earlier_jobs_already_committed() -> None:
+def test_a_job_created_before_a_later_failure_is_still_recorded(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """The worst thing a batch runner can do is forget it bought something.
+
+    A job exists at the provider for 24 uncancellable hours.  If the submit
+    that created it dies before the sidecar is written, the next submit cannot
+    see it and buys the identical slice again.
+    """
+
+    class FailsOnGemini(FakeProviders):
+        def _route(self, method, url, headers, body):  # type: ignore[no-untyped-def]
+            if url.endswith("/upload/v1beta/files"):
+                return 500, {}, b'{"error": "upload unavailable"}'
+            return super()._route(method, url, headers, body)
+
+    server = FailsOnGemini()
+    with pytest.raises(qbatch.BatchError):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai,gemini")
+
+    created = [url for url in server.urls() if url.endswith("/batches")]
+    assert created == ["https://api.openai.com/v1/batches"]
+    assert [job["family"] for job in _sidecar(run_dir)["jobs"]] == ["openai"]
+
+    # The recorded job holds its candidates, so the retry buys only gemini.
+    retry = FakeProviders()
+    _run(monkeypatch, retry, run_dir, "batch-submit", "--families", "openai,gemini")
+    assert [job["family"] for job in _sidecar(run_dir)["jobs"]] == ["openai", "gemini"]
+    assert len([url for url in retry.urls() if url.endswith("/batches")]) == 1
+
+
+def test_collect_polls_first_so_it_never_reports_success_on_stale_state(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """Job state lives in the sidecar; collect must refresh it, not trust it."""
+
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+
+    # No batch-status in between: the sidecar still says `pending`.
+    assert _sidecar(run_dir)["jobs"][0]["state"] == "pending"
+    assert _run(monkeypatch, server, run_dir, "batch-collect") == 0
+    assert len(_receipts(run_dir)) == 33
+
+
+def test_a_sidecar_naming_an_unknown_family_refuses_with_a_message(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json({"jobs": [{"family": "anthropic", "jobId": "batch_x", "requests": []}]}) + "\n",
+        encoding="utf-8",
+    )
+    server = FakeProviders()
+    with pytest.raises(SystemExit) as failure:
+        _run(monkeypatch, server, run_dir, "batch-status")
+    assert "anthropic" in str(failure.value)
+
+
+def test_submitting_one_family_keeps_the_others_model_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """Batch submits arrive one family at a time; the run receipt keeps both."""
+
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "gemini")
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    families = json.loads((run_dir / RUNNER.MODELS_RECEIPT).read_text(encoding="utf-8"))["families"]
+    assert {item["family"] for item in families} == {"gemini", "openai"}
+    assert {item["resolved_model_id"] for item in families} == {OPENAI_MODEL, GEMINI_MODEL}
+
+
+def test_the_total_cap_counts_what_earlier_submits_already_bought(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    """One family at a time must not walk past a ceiling both together hit."""
+
+    monkeypatch.setattr(qual, "TOTAL_SPEND_CAP_USD", 0.40)
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert _sidecar(run_dir)["jobs"][0]["projectedCostUsd"] > 0.20
+
+    with pytest.raises(SystemExit) as failure:
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "gemini")
+    assert "already committed" in str(failure.value)
+    assert len(_sidecar(run_dir)["jobs"]) == 1
+
+
+def test_the_cap_counts_live_projections_and_money_already_spent() -> None:
+    """A job releases its projection only when nothing was ever bought."""
+
     sidecar = {
         "jobs": [
+            # live: still its conservative projection
             {"family": "openai", "projectedCostUsd": 5.0, "requests": [], "state": "running"},
-            {"family": "openai", "projectedCostUsd": 9.0, "requests": [], "state": "expired"},
+            # dead with nothing to read: never ran, so nothing is owed
+            {"family": "openai", "projectedCostUsd": 9.0, "requests": [], "state": "failed"},
+            # collected: what it really cost, forever
+            {
+                "collectedAt": "2026-08-03T00:00:00Z",
+                "collection": {"assumedCostUsd": 0.25},
+                "family": "openai",
+                "projectedCostUsd": 9.0,
+                "requests": [],
+                "state": "succeeded",
+            },
+            # expired but holding answers the provider already billed for
+            {
+                "family": "gemini",
+                "outputFileId": "files/out-1",
+                "projectedCostUsd": 3.0,
+                "requests": [],
+                "state": "expired",
+            },
         ]
     }
-    assert qbatch.projected_by_family(sidecar) == {"openai": 5.0}
+    assert qbatch.committed_by_family(sidecar) == {"gemini": 3.0, "openai": 5.25}
+
+
+def test_a_job_holds_its_candidates_until_its_answers_are_in_hand() -> None:
+    def job(**overrides: Any) -> dict[str, Any]:
+        return {"family": "openai", "requests": [{"candidateId": "c"}], "state": "succeeded", **overrides}
+
+    assert qbatch.released(job()) is False
+    assert qbatch.released(job(state="failed")) is True
+    # Terminal, but the provider left a file: those answers were paid for.
+    assert qbatch.released(job(state="expired", outputFileId="file-out-1")) is False
+    assert qbatch.released(job(state="expired")) is True
+    # Collected: the receipt file holds what it answered, and what it lost
+    # goes back in the pool so a later submit can ask again.
+    assert qbatch.released(job(collectedAt="2026-08-03T00:00:00Z")) is True
 
 
 def test_batch_pricing_is_half_the_serial_pricing() -> None:

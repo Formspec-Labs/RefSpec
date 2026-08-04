@@ -674,10 +674,20 @@ def receipt_from_result(
 ) -> dict[str, Any]:
     """Turn one batch output line into the receipt the serial path would write.
 
-    Field for field.  The deviations are only those a batch makes true:
-    ``attempts`` is one and the two retry counters are zero because a batch
-    line is delivered once, and ``dropped_parameters`` is empty because there
-    is no 400 to correct against — the body went up unchanged.
+    Field for field on the ``completed`` path, which is the path ``bundle``
+    reads.  The deviations are only those a batch makes true:
+
+    * ``attempts`` is one and both retry counters are zero, because a batch
+      line is delivered once;
+    * ``dropped_parameters`` is empty, because there is no 400 to correct
+      against — the body went up unchanged;
+    * an error-file line yields ``provider_error`` with ``response_status:
+      None`` and an ``error_code``, a combination the serial path only ever
+      writes for ``transport_error``.  The provider genuinely returned no HTTP
+      status for that request, and its own error code is the most informative
+      thing there is to record; a reader tells the two apart by ``outcome``,
+      which is the field that carries the distinction.  Nothing downstream
+      reads either: ``reading_from_receipt`` yields nothing for both.
     """
 
     url = family.base_url.rstrip("/") + "/chat/completions"
@@ -827,24 +837,62 @@ def read_sidecar(sidecar_path: Path) -> dict[str, Any]:
 
 
 def write_sidecar(sidecar_path: Path, payload: Mapping[str, Any]) -> str:
+    """Replace the sidecar atomically.
+
+    It is the only record that a live batch exists, and it is rewritten after
+    every job is created, so a crash during the write must not be able to
+    leave a half-file where the job list used to be.
+    """
+
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     text = canonical_json(payload) + "\n"
-    sidecar_path.write_text(text, encoding="utf-8")
+    staging = sidecar_path.with_name(sidecar_path.name + ".partial")
+    staging.write_text(text, encoding="utf-8")
+    staging.replace(sidecar_path)
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def has_results(job: Mapping[str, Any]) -> bool:
+    """Whether the provider left this job any file to read.
+
+    Not the same question as "did it succeed".  OpenAI documents that an
+    *expired* batch still publishes whatever finished — "any responses to
+    completed requests are made available via the batch's output file. You will
+    be charged for tokens consumed from any completed requests" — so a job that
+    ran out of window is answers already paid for, not a job that never ran.
+    """
+
+    return bool(job.get("outputFileId") or job.get("errorFileId"))
+
+
+def released(job: Mapping[str, Any]) -> bool:
+    """Whether this job has stopped holding its candidates.
+
+    A job holds them until its answers are in hand, and lets go in exactly two
+    situations: it has been collected (whatever it answered is in the receipt
+    file, and whatever it lost is askable again), or it reached a terminal
+    state with nothing to read (it never ran, so nothing was bought).
+    """
+
+    if job.get("collectedAt"):
+        return True
+    if str(job.get("state")) not in {"failed", "cancelled", "expired"}:
+        return False
+    return not has_results(job)
 
 
 def in_flight_pairs(sidecar: Mapping[str, Any]) -> set[tuple[str, str]]:
     """Candidates a live job already bought, so a resubmit never buys twice.
 
-    A job that failed, was cancelled or expired releases its candidates: those
-    answers were never delivered, and re-asking them is the only way to get
-    them.  A succeeded job holds onto its candidates until ``batch-collect``
-    turns them into receipts, at which point the receipt file holds them.
+    A collected job holds nothing: the pairs it answered are held by
+    ``receipts.jsonl`` instead, and the ``custom_id``s the provider lost are
+    deliberately let go so a later ``batch-submit`` re-asks them.  That is the
+    only way a lost request ever gets asked again.
     """
 
     held: set[tuple[str, str]] = set()
     for job in sidecar.get("jobs", ()):
-        if str(job.get("state")) in {"failed", "cancelled", "expired"}:
+        if released(job):
             continue
         family = str(job.get("family"))
         for request in job.get("requests", ()):
@@ -852,14 +900,24 @@ def in_flight_pairs(sidecar: Mapping[str, Any]) -> set[tuple[str, str]]:
     return held
 
 
-def projected_by_family(sidecar: Mapping[str, Any]) -> dict[str, float]:
-    """What live jobs already committed, per family."""
+def committed_by_family(sidecar: Mapping[str, Any]) -> dict[str, float]:
+    """What earlier jobs already put on the bill, per family.
+
+    A collected job contributes what it actually spent; a live one contributes
+    its conservative projection; a job that reached a terminal state with
+    nothing to read contributes nothing, because nothing was bought.  Money
+    that has already left never stops counting against a cap.
+    """
 
     totals: dict[str, float] = {}
     for job in sidecar.get("jobs", ()):
-        if str(job.get("state")) in {"failed", "cancelled", "expired"}:
-            continue
         family = str(job.get("family"))
+        if job.get("collectedAt"):
+            collection = job.get("collection") or {}
+            totals[family] = totals.get(family, 0.0) + float(collection.get("assumedCostUsd") or 0.0)
+            continue
+        if released(job):
+            continue
         totals[family] = totals.get(family, 0.0) + float(job.get("projectedCostUsd") or 0.0)
     return totals
 
@@ -893,7 +951,7 @@ def submit(
     speaks = resolved_protocol(protocol)
     sidecar = read_sidecar(sidecar_path)
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
-    committed = projected_by_family(sidecar)
+    committed = committed_by_family(sidecar)
 
     planned: list[tuple[ValidatorFamily, list[CandidateRow], float]] = []
     for family in families:
@@ -912,12 +970,19 @@ def submit(
             )
         planned.append((family, pending, projection))
 
+    # The total counts what earlier submits already bought too.  Checking only
+    # this invocation would let N single-family submits walk past a ceiling one
+    # combined submit would have refused.
     total = sum(projection for _family, _pending, projection in planned)
-    if total > qual.TOTAL_SPEND_CAP_USD:
+    running = total + sum(committed.values())
+    if running > qual.TOTAL_SPEND_CAP_USD:
         raise BatchSpendCapReached(
-            f"projected ${total:.2f} across every family exceeds the "
-            f"${qual.TOTAL_SPEND_CAP_USD:.2f} total cap; shrink the slice"
+            f"projected ${total:.2f} which, with ${sum(committed.values()):.2f} already committed, "
+            f"exceeds the ${qual.TOTAL_SPEND_CAP_USD:.2f} total cap; shrink the slice"
         )
+
+    sidecar["batchPricingFactor"] = BATCH_PRICE_FACTOR
+    sidecar["protocol"] = SIDECAR_PROTOCOL
 
     submitted: list[dict[str, Any]] = []
     for family, pending, projection in planned:
@@ -981,9 +1046,14 @@ def submit(
         }
         sidecar.setdefault("jobs", []).append(record)
         submitted.append(record)
+        # Written per job, never once at the end.  A job that exists at the
+        # provider and not in the sidecar is 24 hours of uncancellable spend
+        # that the next submit cannot see, so it would buy the same slice
+        # again.  If the family after this one raises, this job is still on
+        # record.
+        sidecar["updatedAt"] = now()
+        write_sidecar(sidecar_path, sidecar)
 
-    sidecar["batchPricingFactor"] = BATCH_PRICE_FACTOR
-    sidecar["protocol"] = SIDECAR_PROTOCOL
     sidecar["updatedAt"] = now()
     write_sidecar(sidecar_path, sidecar)
     return {
@@ -1060,9 +1130,19 @@ def collect(
 ) -> dict[str, Any]:
     """Download finished jobs, receipt every answer, and never receipt twice.
 
-    Idempotent by the same key ``qualify`` resumes on: a ``(candidate_id,
-    family)`` already present in ``receipts.jsonl`` is skipped, so running this
-    twice against the same job appends nothing the second time.
+    Idempotent in both directions, which are two different claims:
+
+    * no ``(candidate_id, family)`` is receipted twice — the same key
+      ``qualify`` resumes on, re-read from the receipt file every run;
+    * a job already collected is not re-read, re-counted, or re-summarized.
+      Re-walking it would find every pair already receipted, spend nothing,
+      and then overwrite the job's recorded spend and outcomes with zeros —
+      turning "safe to run twice" into evidence destruction.
+
+    Any job with a result file is collected, whatever terminal state it
+    reached.  An expired batch publishes what it finished and bills for it, so
+    treating expiry as "nothing to read" would both discard paid-for answers
+    and let the same slice be bought again.
     """
 
     sidecar = read_sidecar(sidecar_path)
@@ -1077,10 +1157,16 @@ def collect(
         for job in sidecar.get("jobs", ()):
             family = families[str(job["family"])]
             provider = provider_for(family)
-            if str(job.get("state")) != "succeeded":
+            if job.get("collectedAt"):
+                summaries.append(
+                    {"family": family.name, "jobId": job["jobId"], "skipped": "collected", **_collected_row(job)}
+                )
+                continue
+            if not has_results(job):
                 summaries.append({"family": family.name, "jobId": job["jobId"], "skipped": str(job.get("state"))})
                 continue
             tracker = trackers.setdefault(family.name, qual.SpendTracker(batch_family(family)))
+            spent_before = tracker.assumed_cost_usd
             results, endpoints = _download_results(transport, provider, keys[family.name], job)
             by_custom_id = {str(item["customId"]): item for item in job.get("requests", ())}
             outcomes: dict[str, int] = {}
@@ -1134,6 +1220,9 @@ def collect(
             missing = sorted(set(by_custom_id) - seen)
             job["collectedAt"] = now()
             job["collection"] = {
+                # What this job really cost, so a later cap check counts money
+                # already gone instead of the projection it replaced.
+                "assumedCostUsd": round(tracker.assumed_cost_usd - spent_before, 6),
                 "downloadEndpoints": endpoints,
                 "duplicateSkips": duplicates,
                 "missingCustomIds": missing,
@@ -1153,7 +1242,7 @@ def collect(
                 }
             )
 
-    spend = [tracker.summary() for tracker in trackers.values()]
+    spend = merge_spend(sidecar.get("spendByFamily", ()), trackers.values())
     sidecar["spendByFamily"] = spend
     sidecar["totalBatchAssumedCostUsd"] = round(sum(item["assumed_cost_usd"] for item in spend), 6)
     sidecar["updatedAt"] = now()
@@ -1164,6 +1253,41 @@ def collect(
         "spendByFamily": spend,
         "totalBatchAssumedCostUsd": sidecar["totalBatchAssumedCostUsd"],
     }
+
+
+def _collected_row(job: Mapping[str, Any]) -> dict[str, Any]:
+    collection = job.get("collection") or {}
+    return {
+        "collectedAt": job.get("collectedAt"),
+        "receiptsAppended": collection.get("receiptsAppended"),
+        "taskIdEchoMismatches": collection.get("taskIdEchoMismatches"),
+    }
+
+
+def merge_spend(
+    existing: Iterable[Mapping[str, Any]],
+    trackers: Iterable[qual.SpendTracker],
+) -> list[dict[str, Any]]:
+    """Add this run's spend to what earlier collections already recorded.
+
+    Assignment would be wrong: a batch run collects across several
+    invocations, and the sidecar is the only record of what the earlier ones
+    cost.
+    """
+
+    merged: dict[str, dict[str, Any]] = {str(item["family"]): dict(item) for item in existing}
+    for tracker in trackers:
+        summary = tracker.summary()
+        current = merged.get(summary["family"])
+        if current is None:
+            merged[summary["family"]] = summary
+            continue
+        for key in ("calls", "failed_calls", "input_tokens", "output_tokens"):
+            current[key] = int(current.get(key, 0)) + int(summary[key])
+        current["assumed_cost_usd"] = round(float(current.get("assumed_cost_usd", 0.0)) + summary["assumed_cost_usd"], 6)
+        current["assumed_pricing_usd_per_mtok"] = summary["assumed_pricing_usd_per_mtok"]
+        current["spend_cap_usd"] = summary["spend_cap_usd"]
+    return [merged[name] for name in sorted(merged)]
 
 
 def _download_results(

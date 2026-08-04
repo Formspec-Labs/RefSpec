@@ -432,6 +432,12 @@ def _batch_sidecar_families(args: argparse.Namespace) -> dict[str, qual.Validato
 
     sidecar = qbatch.read_sidecar(Path(args.output) / qbatch.SIDECAR)
     names = sorted({str(job["family"]) for job in sidecar.get("jobs", ())})
+    unknown = [name for name in names if name not in qual.VALIDATOR_FAMILIES]
+    if unknown:
+        raise SystemExit(
+            f"{qbatch.SIDECAR} names {unknown} which are not validator families; "
+            "the sidecar was written against a different family configuration"
+        )
     return {name: qual.VALIDATOR_FAMILIES[name] for name in names}
 
 
@@ -452,7 +458,15 @@ def command_batch_submit(args: argparse.Namespace) -> int:
         model_receipts.append(receipt)
         resolved[family.name] = model_id
         print(f"{family.name}: {model_id} ({rule})", file=sys.stderr, flush=True)
-    _write_json(output / MODELS_RECEIPT, {"families": model_receipts})
+    # Merged, not replaced.  Submitting one family at a time is the normal
+    # batch shape, and a bare overwrite would drop the other family's model
+    # resolution out of the sealed run receipt.
+    if (output / MODELS_RECEIPT).exists():
+        submitted = {item["family"] for item in model_receipts}
+        model_receipts = [
+            item for item in _read_json(output / MODELS_RECEIPT)["families"] if item["family"] not in submitted
+        ] + model_receipts
+    _write_json(output / MODELS_RECEIPT, {"families": sorted(model_receipts, key=lambda item: str(item["family"]))})
 
     try:
         summary = qbatch.submit(
@@ -498,12 +512,18 @@ def command_batch_collect(args: argparse.Namespace) -> int:
     if not families:
         print(canonical_json({"jobs": [], "receiptsAppended": 0}))
         return 0
+    transport = qbatch.default_transport()
+    keys = _batch_keys(args, list(families.values()))
+    # Poll first.  Job state lives in the sidecar, so a collect that trusted a
+    # stale sidecar would find every job still `pending`, collect nothing, and
+    # exit zero as though there had been nothing to collect.
+    qbatch.poll(transport=transport, sidecar_path=output / qbatch.SIDECAR, families=families, keys=keys)
     summary = qbatch.collect(
-        transport=qbatch.default_transport(),
+        transport=transport,
         receipts_path=output / RECEIPTS,
         sidecar_path=output / qbatch.SIDECAR,
         families=families,
-        keys=_batch_keys(args, list(families.values())),
+        keys=keys,
         rows=_batch_rows(args, subset=False),
     )
     # Additive only.  `spend.json` belongs to `qualify`; the batch road adds its
