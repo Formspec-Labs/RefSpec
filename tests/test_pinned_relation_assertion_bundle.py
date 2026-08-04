@@ -313,3 +313,19 @@ def test_pinned_relation_bundle_reopens_trusted_machine_proof_sources(tmp_path: 
 
     with pytest.raises(RelationAssertionError, match="trusted test proof source digest differs"):
         pinned.verified_bundle()
+
+
+@pytest.mark.parametrize("semantic_ring", ([], {}))
+def test_relation_bundle_reports_malformed_ring_as_a_domain_error(
+    semantic_ring: object,
+) -> None:
+    with pytest.raises(
+        RelationAssertionError,
+        match="must be subject, entity, value, or legalIdentity",
+    ):
+        RelationAssertionBundle.create(
+            semantic_ring=semantic_ring,  # type: ignore[arg-type]
+            release_sources=(),
+            evidence_assertions=(),
+            mapping_assertions=(),
+        )

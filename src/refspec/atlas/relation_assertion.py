@@ -122,8 +122,10 @@ def _require_digest(value: object, label: str) -> str:
 
 
 def _require_ring(value: object, label: str) -> SemanticRing:
-    if value not in SEMANTIC_RINGS:
-        raise RelationAssertionError(f"{label} must be subject, entity, value, or legalIdentity")
+    if not isinstance(value, str) or value not in SEMANTIC_RINGS:
+        raise RelationAssertionError(
+            f"{label} must be subject, entity, value, or legalIdentity"
+        )
     return cast(SemanticRing, value)
 
 
@@ -182,8 +184,6 @@ def _bundle_snapshot(root: Path) -> dict[str, bytes]:
     ):
         raise RelationAssertionError("relation bundle changed while reading")
     return result
-
-
 
 
 @dataclass(frozen=True, slots=True)
