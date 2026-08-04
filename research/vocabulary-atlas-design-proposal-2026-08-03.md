@@ -39,12 +39,15 @@ As of the 2026-08-03 two-crosswalk build, the atlas held 233,999 quads, 730
 mapping candidates, 1,459 machine validations, and 240 qualified
 `searchOnly` mappings (121 FR×ELSST + 119 FR×ICPSR); a same-day
 three-crosswalk build added an experimental ELSST×ICPSR bridge (146
-qualified; 386 total). Counts in this document are dated snapshots of a
-moving artifact set, never a baseline — the authoritative identity and
-digests for any build live in its own manifest.
+qualified; 386 total); next-day v2 re-runs of all three pairs qualified
+564 typed mappings into a v2 bench build (§7). Counts in this document
+are dated snapshots of a moving artifact set, never a baseline — the
+authoritative identity and digests for any build live in its own
+manifest.
 
-The registry now contains 77 modules — roughly 54 source readers plus
-shared models, transports, and build tooling — spanning six groups:
+The registry now contains 72 substantive modules — 54 source readers plus
+adapters, shared infrastructure, managed-release builders, and packages —
+spanning six groups:
 subject thesauri (LCSH topical, FAST topical, MeSH
 descriptors, NALT Core, GEMET, EuroVoc, AGROVOC, NASA, DOE OSTI, EPA
 Enterprise Vocabulary), code lists (NAICS/PSC, nature-of-suit, FEC, FCC,
@@ -143,8 +146,9 @@ The only schemes whose concepts may be proposed as subject assignments.
 (`crs_legislative_resources` records both facts). CRS Legislative Subject
 Terms and Policy Areas enter as `sourceAssignedEvidence` on the records
 that carry them — like CFR List of Subjects literals, which resolve against
-the FR Thesaurus via `federal_register_vocabulary_policy`
-(`officialTerm` / `recognizedVariant` / `sourceLocalOpenTerm` /
+the FR Thesaurus via the Lists-of-Subjects policy
+(`policies/federal_register_lists_of_subjects`:
+`officialTerm` / `recognizedVariant` / `sourceLocalOpenTerm` /
 `unresolved`). Ring-0 growth routes through the concept-staging workflow
 (addendum B4; spec §12.4 concept proposals / `rkaf:LocalConcept`), which
 may mint RefSpec-governed concepts citing CRS terms as sources.
@@ -272,15 +276,18 @@ ring-1 activation needs it) and let the atlas index reconcile
 reader-declared uses against ring assignments, so a ring claim and a
 reader's own eligibility declaration can never silently disagree. The same
 reconciliation defines `candidate_use_authorized`, whose semantics are
-currently inconsistent across modules: LCSH hard-codes it `False` as the
-mapping-only marker, while `fast_topical`, `nasa_technology_taxonomy`, and
-`census_geo_codes` set `True`, and no shared model documents the flag. A
-ring-2 source declaring `True` (FAST topical today) is a reader/ring
-disagreement to resolve — never a grant. The target values follow the
-rings: every ring-2 reader carries `False`; ring-3 readers carry no
-candidate flag at all, because the concept does not apply outside the
-atlas; FAST flips to `False` when the enum extension lands. A reader's
-flag converges to its ring — never the reverse.
+inconsistent at scale: LCSH hard-codes `False` as the mapping-only marker
+while **more than twenty modules pass `True`** — ring-1
+`mesh_descriptors` and roughly eighteen ring-3 readers among them —
+because the shared builder makes the flag a required parameter and no
+shared model documents its meaning. A ring-2 or ring-3 source declaring
+`True` is a reader/ring disagreement to resolve — never a grant. Target
+values follow the rings: every ring-2 reader carries `False`; ring-3
+readers should carry no candidate flag at all, which requires making the
+parameter optional in the shared model (the concept does not apply
+outside the atlas) — until that change lands, ring-3 readers set
+`False`; FAST flips to `False` with the enum extension. A reader's flag
+converges to its ring — never the reverse.
 
 ## 4. Membership rule for oversized ring-2 sources: the mapping frontier
 
@@ -497,14 +504,23 @@ implementation pin, so every atlas id moved regardless. A v2 run receipt
 records its `protocol` and the eligibility policy
 `twoIndependentMachinesRelationAgreement`; v2 seals a different rubric
 and payload, so a v2 candidate is a different candidate, generated per
-protocol. **No v2 run has been purchased yet** — the three sealed runs
-are v1, every claim about what v2 will find is a hypothesis, and the
-execution plan is a ~$3 re-run of all three pairs on the same slices.
-Cross-version comparison uses `qualifiedAsSubstitutable` (`exactMatch` +
-`closeMatch` only): v2's `qualified` includes directional relations and
-is not comparable to v1's. Controls are redefined with the receipts
-saying so — the sibling distractor becomes a relation-discrimination
-probe whose floor is that no distractor earns `same`/`near_same`.
+protocol. All three pairs re-ran under v2 on 2026-08-04 through the
+batch path (~$1.28 total): FR×ELSST qualified 185/365 (29 `exactMatch`,
+81 `closeMatch`, 25 `broadMatch`, 50 `narrowMatch`, plus 29
+adjudicated-`related` annotations), FR×ICPSR 196/365, ELSST×ICPSR
+183/365 — a v2 bench build carries **564 typed `searchOnly` mappings**
+over 1,095 candidates and 2,190 validations. Cross-version comparison
+uses `qualifiedAsSubstitutable` (`exactMatch` + `closeMatch` only):
+v2's `qualified` includes directional relations and is not comparable
+to v1's. The redefined control floor — the sibling distractor is a
+relation-discrimination probe; no distractor may earn
+`same`/`near_same` — held in all three runs, with the receipts carrying
+the per-class `qualifiedAsSubstitutable` counter that operationalizes
+it. **One watch item the floor does not cover:** distractors now
+qualify directionally (~5 per run), and a random negative control
+earned a directional mapping in two of the three runs. That is evidence
+the directional bar needs its own scrutiny — alongside item 2's
+hierarchy arm — before directional mappings are treated as settled.
 Qualification also runs through provider batch APIs at roughly half
 price: request bodies and digests byte-identical to the serial path,
 collected receipts replicating serial fields exactly, spend caps enforced
@@ -630,9 +646,13 @@ ring. Proposed order of the next promotions:
    exist.
 
 Also folded into the ladder, because they block trust in what ships:
-resolve the ELSST schema-set-digest defect (a managed release currently
-pins a digest that moves underneath it — decide whether that pin belongs in
-release identity at all); re-cut the ICPSR release as a **complete release
+decide the ELSST schema-set-digest question — the defective pin's
+in-tree carrier (builder and test) was deleted in the registry
+restructure *without the decision being made*, the stored bundle now
+opens through the generic managed-release reader, and only the evidence
+record still carries the defect; rule on whether an
+`operationalSerializationProfile` digest ever belongs in release
+identity before any new builder repeats the pin; re-cut the ICPSR release as a **complete release
 whose declared scope is the verified subset** — the bundle already records
 `membershipCompleteForVerifiedSubset: true`, but the projection collapses
 it to partial membership, which the Rulespec profile bars from backing

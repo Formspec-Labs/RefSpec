@@ -210,12 +210,12 @@ of correctness") applied at the mapping layer.
 
 ## D. Registry compatibility check (2026-08-03)
 
-Every module in `src/refspec/registry/` (77 modules) is classified against
-the parent proposal's rings and sibling publications, with docstrings
-verified for the modules the proposal's tables do not name. Every module
-has exactly one home. One reader/ring reconciliation is open — the
-`candidate_use_authorized` flag (D2); no other module conflicts with the
-design.
+Every module in `src/refspec/registry/` (72 substantive modules) is
+classified against the parent proposal's rings and sibling publications,
+with docstrings verified for the modules the proposal's tables do not
+name. Every module has exactly one home. The one open reconciliation is
+broad — the `candidate_use_authorized` flag spans more than twenty
+modules (D2); no other conflict is known.
 
 **D1 — Positive finding: the readers already enforce the design.** The ring
 model codifies decisions the readers individually enforce in code:
@@ -235,12 +235,14 @@ enforces a literal outside the enum and LCSH declares `searchExpansion`
 only despite its hub role. Parent §3 requires the enum extension and makes
 the atlas index reconcile reader-declared uses against ring assignments.
 The same work defines `candidate_use_authorized`, which no shared model
-documents: LCSH hard-codes `False` as the mapping-only marker while
-`fast_topical`, `nasa_technology_taxonomy`, and `census_geo_codes` set
-`True` — a ring-2 source declaring `True` (FAST topical today) is a
-reader/ring disagreement to resolve, never a grant. `gemet_thesaurus` and
-`nasa_thesaurus` declare no machine-readable use at all and enter the same
-reconciliation. Owner: registry shared models, before any ring-2
+documents and the shared builder *requires*: more than twenty modules
+pass `True` — ring-1 `mesh_descriptors` and roughly eighteen ring-3
+readers among them — while nine pass `False`, LCSH's among them as the
+mapping-only marker. The ring-3 target (no flag at all) needs the
+parameter made optional in `source_controlled_resource`; until then,
+ring-2 and ring-3 readers converge to `False`. `gemet_thesaurus` and
+`nasa_thesaurus` declare no machine-readable use at all and enter the
+same reconciliation. Owner: registry shared models, before any ring-2
 promotion.
 
 **D3 — Source-assigned topic evidence is a named category (parent §3).**
@@ -257,19 +259,20 @@ spine, not the code ledgers; `census_gov_finance_codes` is a ledger
 crosswalk reference. The parent's ring tables remain illustrative; the
 atlas index is the exhaustive assignment of record.
 
-**D5 — Not sources.** Roughly two dozen modules are shared models,
-transports, acquisition, policy, managed-release builders, or development
-artifacts (`source_controlled_resource`, `managed_vocabulary_bundle`,
-`concept_domain_bridge`, `controlled_identifier`,
-`regulatory_native_controls`, `zyte_transport`, the `*_acquisition` and
-`*_zyte` modules, the `*_managed_release` builders,
-`federal_register_vocabulary_policy`,
-`federal_register_topics_reconciliation`,
-`federal_register_topics_package`, `federal_register_vertical_slice`,
-`crs_source_packages`, `lda_controlled_list_resources`,
-`elsst_import_coverage`, `elsst_rulespec_projection`, test helpers). They
-take no ring assignment and appear in the atlas index only as
-implementation, not as sources.
+**D5 — Not sources.** Eighteen non-reader modules are shared
+infrastructure, adapters, managed-release builders, or packages,
+organized as subpackages since the registry restructure:
+`infrastructure/` (the shared models — `source_controlled_resource`,
+`managed_vocabulary_bundle`, `concept_domain_bridge`,
+`controlled_identifier`, `regulatory_native_controls`, `zyte_transport`,
+and peers), `managed_releases/` (the ICPSR and FR Thesaurus 2025
+builders), `adapters/`, and `packages/`. The Lists-of-Subjects policy
+moved out of the registry to
+`policies/federal_register_lists_of_subjects`; the ELSST managed-release
+builder and its test were deleted outright (parent §9 carries the
+undecided digest question that deletion left behind). They take no ring
+assignment and appear in the atlas index only as implementation, not as
+sources.
 
 ## E. Corrections owed outside this document set
 
