@@ -1,479 +1,406 @@
-"""Protocol v2: relation-adjudicating validations, the agreement lattice, emission."""
+"""Protocol v2 agreement, refusal, and shared-foundation emission."""
 
 from __future__ import annotations
 
-import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-import test_vocabulary_atlas as tva
 
-from refspec.atlas import VocabularyAtlasError, build_vocabulary_atlas
+from refspec.atlas.concept_release import PinnedSourceConceptRelease
+from refspec.atlas.machine_evidence import (
+    PinnedCrosswalkMachineProof,
+    build_machine_evidence_from_crosswalk_proof,
+)
 from refspec.atlas.model import (
     CrosswalkArtifact,
     CrosswalkBundle,
     MachineValidation,
     MappingCandidate,
-    VocabularyAtlasAsset,
+    VocabularyAtlasError,
 )
-from refspec.atlas.projection import build_atlas_projection
 from refspec.atlas.qualification import VERDICT_OUTCOMES_V2
-from refspec.atlas.queries import VocabularyAtlasQueries
+from refspec.atlas.relation_assertion import RelationAssertionBundle
+from refspec.registry.infrastructure.artifact_serialization import sha256_digest
+from refspec.registry.infrastructure.semantic_foundation import (
+    SUBJECT_BROAD_MATCH,
+    SUBJECT_CLOSE_MATCH,
+    SUBJECT_EXACT_MATCH,
+    SUBJECT_NARROW_MATCH,
+    SUBJECT_RELATED_MATCH,
+    MappingAssertion,
+)
+from refspec.registry.infrastructure.source_concept_release import (
+    build_source_concept_release_bundle,
+)
+from refspec.registry.infrastructure.source_controlled_resource import (
+    build_source_controlled_resource_bundle,
+)
+from refspec.registry.infrastructure.source_identity import derive_uuid7
 
-_ADJUDICATED_RELATION = "https://refspec.org/ns/vocabulary-atlas/v1#adjudicatedRelation"
-_RELATED_MATCH = "http://www.w3.org/2004/02/skos/core#relatedMatch"
+ASSERTED_AT = "2026-08-04T20:00:00Z"
+_SOURCE_CONCEPT = "https://publisher.example/concepts/source"
+_SOURCE_RELEASE = "https://publisher.example/releases/source"
+_TARGET_CONCEPT = "https://publisher.example/concepts/target"
+_TARGET_RELEASE = "https://publisher.example/releases/target"
 
 
-def _v2_validation(
-    candidate: MappingCandidate,
-    request: CrosswalkArtifact,
-    response: CrosswalkArtifact,
-    *,
-    suffix: str,
-    verdict: str,
-) -> MachineValidation:
-    return MachineValidation.create(
-        candidate=candidate.reference(),
-        validator_kind="aiModel",
-        validator_actor=f"urn:test:atlas:validator:{suffix}",
-        independence_group=f"urn:test:atlas:group:{suffix}",
-        provider=f"urn:test:atlas:provider:{suffix}",
-        provider_model_id=f"provider-model-{suffix}",
-        sealed_input_digest=tva.INPUT_DIGEST,
-        request_artifact=request.reference(),
-        response_artifact=response.reference(),
-        deterministic_checks_passed=True,
-        outcome=VERDICT_OUTCOMES_V2[verdict],  # type: ignore[arg-type]
-        completed_at="2026-08-03T18:05:00Z",
-        verdict_relation=verdict,
+@dataclass(frozen=True, slots=True)
+class _CrosswalkCase:
+    bundle: CrosswalkBundle
+    candidate: MappingCandidate
+    request: CrosswalkArtifact
+    responses: tuple[CrosswalkArtifact, ...]
+    validations: tuple[MachineValidation, ...]
+
+
+def _crosswalk_case(
+    *verdicts: str,
+    source_concept: str = _SOURCE_CONCEPT,
+    source_release: str = _SOURCE_RELEASE,
+    target_concept: str = _TARGET_CONCEPT,
+    target_release: str = _TARGET_RELEASE,
+    shared_provider: bool = False,
+) -> _CrosswalkCase:
+    input_context = CrosswalkArtifact.create(
+        role="inputContext",
+        media_type="application/json",
+        content={
+            "sourceConcept": source_concept,
+            "targetConcept": target_concept,
+            "protocol": "refspec-atlas-machine-validation-v2",
+        },
     )
-
-
-def _v2_bundle(verdict_a: str, verdict_b: str) -> CrosswalkBundle:
-    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
-    return CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
+    evidence = CrosswalkArtifact.create(
+        role="evidence",
+        media_type="application/json",
+        content={"method": "sealed-test-comparison"},
+    )
+    candidate = MappingCandidate.create(
+        source_member=source_concept,
+        source_release=source_release,
+        target_member=target_concept,
+        target_release=target_release,
+        proposed_relation=SUBJECT_CLOSE_MATCH,
+        generator_kind="aiAgent",
+        generator_actor="urn:ref:test:generator",
+        generator_provider="urn:ref:test:generator-provider",
+        model_id="test-generator",
+        model_version="1",
+        prompt_template="urn:ref:test:prompt:v2",
+        input_context_digest=input_context.content_digest,
+        temperature="0",
+        evidence=(evidence.reference(),),
+        generated_at=ASSERTED_AT,
+        seed=7,
+    )
+    request = CrosswalkArtifact.create(
+        role="validationRequest",
+        media_type="application/json",
+        content={
+            "candidate": candidate.reference(),
+            "inputDigest": input_context.content_digest,
+            "protocol": "refspec-atlas-machine-validation-v2",
+        },
+    )
+    responses: list[CrosswalkArtifact] = []
+    validations: list[MachineValidation] = []
+    for index, verdict in enumerate(verdicts):
+        suffix = chr(ord("a") + index)
+        provider_suffix = "shared" if shared_provider else suffix
+        actor = f"urn:ref:test:validator:{suffix}"
+        provider = f"urn:ref:test:provider:{provider_suffix}"
+        provider_model_id = f"provider-model-{provider_suffix}"
+        outcome = VERDICT_OUTCOMES_V2[verdict]
+        response = CrosswalkArtifact.create(
+            role="validationResponse",
+            media_type="application/json",
+            content={
+                "candidate": candidate.reference(),
+                "inputDigest": input_context.content_digest,
+                "requestArtifact": request.reference(),
+                "validatorActor": actor,
+                "provider": provider,
+                "providerModelId": provider_model_id,
+                "deterministicChecksPassed": True,
+                "outcome": outcome,
+                "verdictRelation": verdict,
+            },
+        )
+        responses.append(response)
+        validations.append(
+            MachineValidation.create(
+                candidate=candidate.reference(),
+                validator_kind="aiModel",
+                validator_actor=actor,
+                independence_group=f"urn:ref:test:independence-group:{suffix}",
+                provider=provider,
+                provider_model_id=provider_model_id,
+                sealed_input_digest=input_context.content_digest,
+                request_artifact=request.reference(),
+                response_artifact=response.reference(),
+                deterministic_checks_passed=True,
+                outcome=outcome,  # type: ignore[arg-type]
+                completed_at=ASSERTED_AT,
+                verdict_relation=verdict,
+            )
+        )
+    bundle = CrosswalkBundle.create(
+        artifacts=(input_context, evidence, request, *responses),
         mapping_candidates=(candidate,),
-        machine_validations=(
-            _v2_validation(candidate, request, response_a, suffix="a", verdict=verdict_a),
-            _v2_validation(candidate, request, response_b, suffix="b", verdict=verdict_b),
-        ),
+        machine_validations=tuple(validations),
     )
-
-
-def _built_mappings(tmp_path: Path, bundle: CrosswalkBundle):
-    asset = build_vocabulary_atlas(
-        tva._two_releases(tmp_path),
-        rulespec_core=tva._core_release(tmp_path),
-        crosswalks=(bundle,),
+    return _CrosswalkCase(
+        bundle=bundle,
+        candidate=candidate,
+        request=request,
+        responses=tuple(responses),
+        validations=tuple(validations),
     )
-    return asset, VocabularyAtlasQueries(asset).search_only_mappings()
-
-
-def _file_digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _round_trip(tmp_path: Path, asset) -> VocabularyAtlasAsset:
-    """Write, reopen under full verification, and project for a consumer.
-
-    Building an atlas proves only that the writer will emit it. `open` is the
-    reader every consumer goes through, and the projection is what a consumer
-    actually receives, so a relation that cannot survive both was never
-    publishable.
-    """
-
-    directory = tmp_path / "published"
-    asset.write(directory)
-    manifest_digest = _file_digest(directory / "atlas-manifest.json")
-    output_digest = _file_digest(directory / "atlas.nq")
-    reopened = VocabularyAtlasAsset.open(
-        directory,
-        expected_manifest_digest=manifest_digest,
-        expected_output_digest=output_digest,
-    )
-    build_atlas_projection(
-        directory,
-        expected_manifest_digest=manifest_digest,
-        expected_output_digest=output_digest,
-    )
-    return reopened
 
 
 @pytest.mark.parametrize(
-    ("verdict_a", "verdict_b", "relation"),
+    ("verdicts", "relation"),
     [
-        ("same", "same", "http://www.w3.org/2004/02/skos/core#exactMatch"),
-        ("same", "near_same", "http://www.w3.org/2004/02/skos/core#closeMatch"),
-        ("near_same", "near_same", "http://www.w3.org/2004/02/skos/core#closeMatch"),
-        ("target_is_broader", "target_is_broader", "http://www.w3.org/2004/02/skos/core#broadMatch"),
-        ("target_is_narrower", "target_is_narrower", "http://www.w3.org/2004/02/skos/core#narrowMatch"),
+        (("same", "same"), SUBJECT_EXACT_MATCH),
+        (("same", "near_same"), SUBJECT_CLOSE_MATCH),
+        (("near_same", "near_same"), SUBJECT_CLOSE_MATCH),
+        (("target_is_broader", "target_is_broader"), SUBJECT_BROAD_MATCH),
+        (("target_is_narrower", "target_is_narrower"), SUBJECT_NARROW_MATCH),
     ],
 )
-def test_agreement_lattice_emits_the_weaker_claim(
-    tmp_path: Path, verdict_a: str, verdict_b: str, relation: str
+def test_agreement_lattice_adjudicates_the_weakest_safe_relation(
+    verdicts: tuple[str, str],
+    relation: str,
 ) -> None:
-    bundle = _v2_bundle(verdict_a, verdict_b)
-    assert bundle.to_dict()["schemaVersion"] == "2.0"
+    case = _crosswalk_case(*verdicts)
 
-    asset, mappings = _built_mappings(tmp_path, bundle)
+    qualified = case.bundle.qualified()
 
-    assert asset.manifest["counts"]["searchOnlyMappings"] == 1
-    assert [mapping.relation for mapping in mappings] == [relation]
-    # An emitted relation that cannot survive `open` and the consumer projection
-    # was never published, whatever the builder produced.
-    reopened = _round_trip(tmp_path, asset)
-    assert [item.relation for item in VocabularyAtlasQueries(reopened).search_only_mappings()] == [relation]
-    assert f"<{_ADJUDICATED_RELATION}> <{relation}>" in reopened.payload.decode("utf-8")
-    assert bundle.adjudicated_relations() == {next(iter(bundle.qualified())): relation}
-
-
-def test_the_adjudicated_relation_anchors_the_mapping_not_the_proposal(tmp_path: Path) -> None:
-    """`proposedRelation` is the hypothesis under test and never moves.
-
-    v1 could anchor a mapping to the proposal because the proposal *was* the
-    verdict. v2 answers a richer question, so anchoring to the proposal would
-    forbid every relation except the one hypothesis the candidate holds.
-    """
-
-    bundle = _v2_bundle("target_is_broader", "target_is_broader")
-    candidate = bundle.to_dict()["mappingCandidates"][0]
-    assert candidate["proposedRelation"] == "http://www.w3.org/2004/02/skos/core#closeMatch"
-
-    asset, mappings = _built_mappings(tmp_path, bundle)
-    _round_trip(tmp_path, asset)
-
-    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#broadMatch"]
-
-
-def test_adjudicated_related_records_the_relation_but_emits_no_mapping(tmp_path: Path) -> None:
-    bundle = _v2_bundle("related", "related")
-
-    asset, mappings = _built_mappings(tmp_path, bundle)
-    reopened = _round_trip(tmp_path, asset)
-
-    assert mappings == ()
-    assert asset.manifest["counts"]["searchOnlyMappings"] == 0
-    assert bundle.qualified() == {}
-    # Recorded as a relation like any other, so a reader of the analysis graph
-    # sees a typed refusal rather than a blank one.
-    assert f"<{_ADJUDICATED_RELATION}> <{_RELATED_MATCH}>" in reopened.payload.decode("utf-8")
-    assert set(bundle.adjudicated_relations().values()) == {_RELATED_MATCH}
-
-
-def test_adjudicated_related_is_analysis_only_and_does_not_reach_the_projection(
-    tmp_path: Path,
-) -> None:
-    """The typed refusal is bundle- and analysis-internal, by decision.
-
-    `CONSUMER_READ_CLOSURE_V1` roots its keep-set on qualified `searchOnly`
-    mappings, and an adjudicated-`related` candidate has none, so it is dropped.
-    This test states that limit rather than letting it be discovered later.
-    """
-
-    bundle = _v2_bundle("related", "related")
-    asset, _ = _built_mappings(tmp_path, bundle)
-    directory = tmp_path / "published"
-    asset.write(directory)
-
-    projection = build_atlas_projection(
-        directory,
-        expected_manifest_digest=_file_digest(directory / "atlas-manifest.json"),
-        expected_output_digest=_file_digest(directory / "atlas.nq"),
+    assert case.bundle.to_dict()["schemaVersion"] == "2.0"
+    assert tuple(row["id"] for row in qualified[case.candidate.identifier]) == tuple(
+        sorted(validation.identifier for validation in case.validations)
     )
-
-    assert _ADJUDICATED_RELATION not in projection.payload.decode("utf-8")
-    assert _ADJUDICATED_RELATION in asset.payload.decode("utf-8")
+    assert case.bundle.adjudicated_relations() == {case.candidate.identifier: relation}
 
 
-def test_direction_disagreement_is_a_refusal(tmp_path: Path) -> None:
-    bundle = _v2_bundle("near_same", "target_is_broader")
+def test_adjudication_is_not_anchored_to_the_candidate_proposal() -> None:
+    case = _crosswalk_case("target_is_broader", "target_is_broader")
 
-    asset, mappings = _built_mappings(tmp_path, bundle)
-    _round_trip(tmp_path, asset)
-
-    assert mappings == ()
-    assert asset.manifest["counts"]["searchOnlyMappings"] == 0
-    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
-    assert bundle.adjudicated_relations() == {}
+    assert case.candidate.to_dict()["proposedRelation"] == SUBJECT_CLOSE_MATCH
+    assert case.bundle.adjudicated_relations() == {case.candidate.identifier: SUBJECT_BROAD_MATCH}
 
 
-def test_a_third_machine_cannot_outvote_a_direction_disagreement(tmp_path: Path) -> None:
-    """The relation gate is universal over machines, not existential over pairs.
+def test_related_agreement_is_typed_but_not_qualified_for_mapping() -> None:
+    case = _crosswalk_case("related", "related")
 
-    Picking any compatible pair would let two agreeing machines carry a mapping
-    while a third machine on the record says the direction is unsafe — emitting
-    the relation would overrule it on the precise claim that relation makes.
-    """
-
-    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
-    response_c = tva._response(candidate, request, suffix="c")
-    bundle = CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b, response_c),
-        mapping_candidates=(candidate,),
-        machine_validations=(
-            _v2_validation(candidate, request, response_a, suffix="a", verdict="near_same"),
-            _v2_validation(candidate, request, response_b, suffix="b", verdict="target_is_broader"),
-            _v2_validation(candidate, request, response_c, suffix="c", verdict="near_same"),
-        ),
-    )
-
-    asset, mappings = _built_mappings(tmp_path, bundle)
-    _round_trip(tmp_path, asset)
-
-    assert mappings == ()
-    assert bundle.qualified() == {}
+    assert case.bundle.qualified() == {}
+    assert case.bundle.adjudicated_relations() == {case.candidate.identifier: SUBJECT_RELATED_MATCH}
 
 
-def test_three_agreeing_machines_still_emit_the_weakest_claim(tmp_path: Path) -> None:
-    """The emitted relation folds every verdict, not whichever pair sorts first."""
+def test_direction_disagreement_is_a_refusal() -> None:
+    case = _crosswalk_case("near_same", "target_is_broader")
 
-    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
-    response_c = tva._response(candidate, request, suffix="c")
-    bundle = CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b, response_c),
-        mapping_candidates=(candidate,),
-        machine_validations=(
-            _v2_validation(candidate, request, response_a, suffix="a", verdict="same"),
-            _v2_validation(candidate, request, response_b, suffix="b", verdict="same"),
-            _v2_validation(candidate, request, response_c, suffix="c", verdict="near_same"),
-        ),
-    )
-
-    _, mappings = _built_mappings(tmp_path, bundle)
-
-    # `same` twice would be exactMatch on its own; the third machine withheld
-    # identity, so the set qualifies at the weaker claim.
-    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#closeMatch"]
+    assert case.bundle.qualified() == {}
+    assert case.bundle.adjudicated_relations() == {}
 
 
-def _reverify(asset) -> None:
-    """Re-run the distribution checks a consumer runs, over a graph in hand."""
+def test_a_third_machine_cannot_outvote_direction_disagreement() -> None:
+    case = _crosswalk_case("near_same", "target_is_broader", "near_same")
 
-    from rdflib import Dataset
-
-    from refspec.atlas.model import _validate_query_graph_semantics
-
-    dataset = Dataset(default_union=False)
-    dataset.parse(data=asset.payload.decode("utf-8"), format="nquads")
-    graphs = {row["role"]: row["id"] for row in asset.manifest["graphs"]}
-    _validate_query_graph_semantics(
-        dataset,
-        release_graph_id=graphs["releaseFacts"],
-        analysis_graph_id=graphs["analysis"],
-    )
-    return dataset, graphs
+    assert case.bundle.qualified() == {}
+    assert case.bundle.adjudicated_relations() == {}
 
 
-def test_dropping_the_adjudication_does_not_escape_the_lattice(tmp_path: Path) -> None:
-    """The lattice must not be opt-in for the party with a motive to skip it.
+def test_three_agreeing_machines_retain_the_full_weakest_claim_set() -> None:
+    case = _crosswalk_case("same", "same", "near_same")
 
-    A producer that simply omits `atlas:adjudicatedRelation` would otherwise
-    fall back to the uniform proposal, so a pair two machines typed as
-    `broadMatch` could be published as `closeMatch` — the exact over-claim the
-    relation vocabulary exists to prevent. The refusal has to come from the
-    verdicts being present, not from the adjudication being volunteered.
-    """
+    qualified = case.bundle.qualified()[case.candidate.identifier]
 
-    from rdflib import URIRef
-
-    from refspec.atlas.model import ATLAS, _validate_query_graph_semantics
-
-    bundle = _v2_bundle("target_is_broader", "target_is_broader")
-    asset, _ = _built_mappings(tmp_path, bundle)
-    dataset, graphs = _reverify(asset)
-
-    analysis = dataset.graph(URIRef(graphs["analysis"]))
-    removed = list(analysis.triples((None, ATLAS.adjudicatedRelation, None)))
-    assert len(removed) == 1
-    for triple in removed:
-        analysis.remove(triple)
-
-    with pytest.raises(VocabularyAtlasError, match="omits the adjudicated relation"):
-        _validate_query_graph_semantics(
-            dataset,
-            release_graph_id=graphs["releaseFacts"],
-            analysis_graph_id=graphs["analysis"],
-        )
-
-
-def test_dropping_a_related_adjudication_does_not_hide_the_refusal(tmp_path: Path) -> None:
-    """Adjudicated-`related` is the claim with no mapping to audit it by.
-
-    Omitting it would turn a typed refusal back into a blank one while the
-    verdicts still say the pair is merely associated.
-    """
-
-    from rdflib import URIRef
-
-    from refspec.atlas.model import ATLAS, _validate_query_graph_semantics
-
-    bundle = _v2_bundle("related", "related")
-    asset, _ = _built_mappings(tmp_path, bundle)
-    dataset, graphs = _reverify(asset)
-
-    analysis = dataset.graph(URIRef(graphs["analysis"]))
-    for triple in list(analysis.triples((None, ATLAS.adjudicatedRelation, None))):
-        analysis.remove(triple)
-
-    with pytest.raises(VocabularyAtlasError, match="omits the adjudicated relation"):
-        _validate_query_graph_semantics(
-            dataset,
-            release_graph_id=graphs["releaseFacts"],
-            analysis_graph_id=graphs["analysis"],
-        )
-
-
-def _partially_supported_bundle(other_verdict: str) -> CrosswalkBundle:
-    """One machine supports with a relation; the other does not support at all."""
-
-    candidate, evidence, request, response_a, _ = tva._candidate_and_artifacts()
-    outcome = VERDICT_OUTCOMES_V2[other_verdict]
-    response_b = tva._response(candidate, request, suffix="b", outcome=outcome)
-    return CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
-        mapping_candidates=(candidate,),
-        machine_validations=(
-            _v2_validation(candidate, request, response_a, suffix="a", verdict="same"),
-            _v2_validation(candidate, request, response_b, suffix="b", verdict=other_verdict),
-        ),
-    )
+    assert {row["id"] for row in qualified} == {validation.identifier for validation in case.validations}
+    assert case.bundle.adjudicated_relations() == {case.candidate.identifier: SUBJECT_CLOSE_MATCH}
 
 
 @pytest.mark.parametrize("other_verdict", ["insufficient_evidence", "unrelated"])
-def test_a_lone_supporting_verdict_owes_no_adjudication(tmp_path: Path, other_verdict: str) -> None:
-    """One machine's relation is a claim, not an agreement.
+def test_one_supporting_machine_does_not_adjudicate(other_verdict: str) -> None:
+    case = _crosswalk_case("same", other_verdict)
 
-    Adjudication is owed exactly when the gate would emit one — an independent,
-    relation-compatible *pair*. A single support has no partner to agree with, so
-    there is nothing to adjudicate and nothing to state. Demanding one here would
-    refuse the ordinary shape where the second machine abstained or said no: 52
-    of the three real v2 runs' candidates look precisely like this.
-    """
-
-    bundle = _partially_supported_bundle(other_verdict)
-    asset, mappings = _built_mappings(tmp_path, bundle)
-
-    assert mappings == ()
-    assert bundle.qualified() == {}
-    assert bundle.adjudicated_relations() == {}
-    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
-    _round_trip(tmp_path, asset)
+    assert case.bundle.qualified() == {}
+    assert case.bundle.adjudicated_relations() == {}
 
 
-def test_a_supporting_pair_that_is_not_independent_owes_no_adjudication(tmp_path: Path) -> None:
-    """Two answers from one machine are one answer, so they adjudicate nothing."""
+def test_answers_from_one_provider_do_not_count_as_independent() -> None:
+    case = _crosswalk_case("same", "same", shared_provider=True)
 
-    candidate, evidence, request, _, _ = tva._candidate_and_artifacts()
-    shared = {
-        "provider": "urn:test:atlas:provider:shared",
-        "provider_model_id": "shared-provider-model",
-    }
-    response_a = tva._response(candidate, request, suffix="a", **shared)
-    response_b = tva._response(candidate, request, suffix="b", **shared)
-    bundle = CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
-        mapping_candidates=(candidate,),
-        machine_validations=(
-            MachineValidation.create(
-                candidate=candidate.reference(),
-                validator_kind="aiModel",
-                validator_actor="urn:test:atlas:validator:a",
-                independence_group="urn:test:atlas:group:a",
-                sealed_input_digest=tva.INPUT_DIGEST,
-                request_artifact=request.reference(),
-                response_artifact=response_a.reference(),
-                deterministic_checks_passed=True,
-                outcome="supports",
-                completed_at="2026-08-03T18:05:00Z",
-                verdict_relation="same",
-                **shared,
-            ),
-            MachineValidation.create(
-                candidate=candidate.reference(),
-                validator_kind="aiModel",
-                validator_actor="urn:test:atlas:validator:b",
-                independence_group="urn:test:atlas:group:b",
-                sealed_input_digest=tva.INPUT_DIGEST,
-                request_artifact=request.reference(),
-                response_artifact=response_b.reference(),
-                deterministic_checks_passed=True,
-                outcome="supports",
-                completed_at="2026-08-03T18:06:00Z",
-                verdict_relation="same",
-                **shared,
-            ),
-        ),
-    )
-
-    asset, mappings = _built_mappings(tmp_path, bundle)
-
-    assert mappings == ()
-    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
-    _round_trip(tmp_path, asset)
+    assert case.bundle.qualified() == {}
+    assert case.bundle.adjudicated_relations() == {}
 
 
-def test_a_v1_distribution_still_needs_no_adjudication(tmp_path: Path) -> None:
-    """The new refusal keys on the verdicts, so v1 is untouched by it."""
-
-    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
-    bundle = CrosswalkBundle.create(
-        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
-        mapping_candidates=(candidate,),
-        machine_validations=(
-            tva._validation(candidate, request, response_a, suffix="a"),
-            tva._validation(candidate, request, response_b, suffix="b"),
-        ),
-    )
-    asset, mappings = _built_mappings(tmp_path, bundle)
-
-    _reverify(asset)
-    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
-    assert [mapping.relation for mapping in mappings] == ["http://www.w3.org/2004/02/skos/core#closeMatch"]
-
-
-def test_bundle_refuses_mixed_protocols() -> None:
-    candidate, evidence, request, response_a, response_b = tva._candidate_and_artifacts()
-    with pytest.raises(VocabularyAtlasError, match="mixes v1 and v2"):
-        CrosswalkBundle.create(
-            artifacts=(tva._input_context(), evidence, request, response_a, response_b),
-            mapping_candidates=(candidate,),
-            machine_validations=(
-                _v2_validation(candidate, request, response_a, suffix="a", verdict="near_same"),
-                tva._validation(candidate, request, response_b, suffix="b"),
-            ),
-        )
-
-
-def test_v2_bundle_round_trips_through_write_and_open(tmp_path: Path) -> None:
-    bundle = _v2_bundle("same", "same")
-    path = bundle.write(tmp_path / "bundle.json")
+def test_v2_bundle_round_trips_through_exact_bytes(tmp_path: Path) -> None:
+    case = _crosswalk_case("same", "same")
+    path = case.bundle.write(tmp_path / "crosswalk-v2.json")
 
     reopened = CrosswalkBundle.open(
         path,
-        expected_file_digest=tva._file_digest(path),
-        expected_bundle_digest=bundle.digest,
+        expected_file_digest=sha256_digest(path.read_bytes()),
+        expected_bundle_digest=case.bundle.digest,
     )
 
-    assert reopened.to_dict() == bundle.to_dict()
-    assert reopened.to_dict()["schemaVersion"] == "2.0"
+    assert reopened.to_dict() == case.bundle.to_dict()
+    assert reopened.adjudicated_relations() == {case.candidate.identifier: SUBJECT_EXACT_MATCH}
 
 
-def test_outcome_must_match_verdict_relation() -> None:
-    candidate, _, request, response_a, _ = tva._candidate_and_artifacts()
+def test_outcome_must_match_the_v2_verdict_relation() -> None:
+    case = _crosswalk_case("near_same")
+    validation = case.validations[0].to_dict()
+
     with pytest.raises(VocabularyAtlasError, match="disagrees with its verdictRelation"):
         MachineValidation.create(
-            candidate=candidate.reference(),
+            candidate=validation["candidate"],
             validator_kind="aiModel",
-            validator_actor="urn:test:atlas:validator:a",
-            independence_group="urn:test:atlas:group:a",
-            provider="urn:test:atlas:provider:a",
-            provider_model_id="provider-model-a",
-            sealed_input_digest=tva.INPUT_DIGEST,
-            request_artifact=request.reference(),
-            response_artifact=response_a.reference(),
+            validator_actor=validation["validatorActor"],
+            independence_group=validation["independenceGroup"],
+            provider=validation["provider"],
+            provider_model_id=validation["providerModelId"],
+            sealed_input_digest=validation["sealedInputDigest"],
+            request_artifact=case.request.reference(),
+            response_artifact=case.responses[0].reference(),
             deterministic_checks_passed=True,
             outcome="rejects",
-            completed_at="2026-08-03T18:05:00Z",
+            completed_at=ASSERTED_AT,
             verdict_relation="near_same",
         )
+
+
+def _source_release(
+    tmp_path: Path,
+    name: str,
+) -> tuple[PinnedSourceConceptRelease, str, str]:
+    source_id = f"https://publisher.example/source/{name}.json"
+    scheme_id = f"https://publisher.example/schemes/{name}"
+    concept_id = f"https://publisher.example/concepts/{name}"
+    payload = (f'{{"id":"{concept_id}","label":"{name.title()}"}}\n').encode()
+    payload_digest = sha256_digest(payload)
+    observation = {
+        "id": f"urn:ref:test:source-observation:{name}",
+        "sourceArtifact": source_id,
+        "sourcePath": f"terms/{name}",
+        "sourceOrdinal": 0,
+        "labels": [{"value": name.title(), "language": "en", "role": "preferred"}],
+        "identifiers": [
+            {
+                "value": concept_id,
+                "kind": "publisherConceptIri",
+                "authorityUri": scheme_id,
+                "sourceUri": source_id,
+                "sourcePath": f"terms/{name}.id",
+                "observedAt": ASSERTED_AT,
+                "sourceDigest": payload_digest,
+            }
+        ],
+        "uses": ["mappingReference"],
+        "conceptIdentityClaimed": False,
+    }
+    source = build_source_controlled_resource_bundle(
+        resource_id=f"v2-shared-foundation-{name}",
+        title=f"{name.title()} shared-foundation source",
+        resource_kind="sourceTermSnapshot",
+        identity_status="publisherIdentifiersPreserved",
+        uses=("mappingReference",),
+        captured_at=ASSERTED_AT,
+        observations=(observation,),
+        source_artifacts={source_id: payload},
+        source_scheme={
+            "id": scheme_id,
+            "code": name,
+            "label": f"{name.title()} scheme",
+            "sourceArtifact": source_id,
+            "sourceFetchId": derive_uuid7(
+                ASSERTED_AT,
+                seed=f"v2-shared-foundation-fetch:{name}".encode(),
+            ),
+            "sourceObservedAt": ASSERTED_AT,
+        },
+    )
+    release = build_source_concept_release_bundle(
+        source,
+        semantic_ring="subject",
+        selected_observation_ids=(observation["id"],),
+        selection_policy={
+            "id": f"urn:ref:test:v2-shared-foundation-selection:{name}:v1",
+            "type": "explicitObservationSet",
+        },
+        rights_metadata=(
+            {
+                "type": "RightsMetadata",
+                "rightsStatus": "notStated",
+                "sourceArtifact": source_id,
+                "sourceDigest": payload_digest,
+            },
+        ),
+    )
+    root = release.write_to(tmp_path / f"source-release-{name}")
+    pinned = PinnedSourceConceptRelease.open(
+        root / "bundle-manifest.json",
+        expected_manifest_digest=release.manifest_digest,
+    )
+    return pinned, release.release_id, concept_id
+
+
+def test_adjudicated_relation_emits_through_the_shared_foundation(
+    tmp_path: Path,
+) -> None:
+    source, source_release, source_concept = _source_release(tmp_path, "source")
+    target, target_release, target_concept = _source_release(tmp_path, "target")
+    case = _crosswalk_case(
+        "target_is_broader",
+        "target_is_broader",
+        source_concept=source_concept,
+        source_release=source_release,
+        target_concept=target_concept,
+        target_release=target_release,
+    )
+    crosswalk_path = case.bundle.write(tmp_path / "crosswalk-machine-proof.json")
+    proof = PinnedCrosswalkMachineProof.qualified(
+        crosswalk_path,
+        expected_file_digest=sha256_digest(crosswalk_path.read_bytes()),
+        expected_bundle_digest=case.bundle.digest,
+        candidate_id=case.candidate.identifier,
+    )
+    evidence = build_machine_evidence_from_crosswalk_proof(
+        proof,
+        asserted_by="https://refspec.org/software/qualification-gate-v2",
+        asserted_at=ASSERTED_AT,
+    )
+    mapping = MappingAssertion(
+        semantic_ring="subject",
+        source_concept=source_concept,
+        target_concept=target_concept,
+        source_release=source_release,
+        target_release=target_release,
+        relation=SUBJECT_BROAD_MATCH,
+        evidence=(evidence.identifier,),
+        asserted_at=ASSERTED_AT,
+    )
+    relation_bundle = RelationAssertionBundle.create(
+        semantic_ring="subject",
+        release_sources=(source, target),
+        machine_proof_sources=(proof,),
+        evidence_assertions=(evidence,),
+        mapping_assertions=(mapping,),
+    )
+    root = relation_bundle.write_to(tmp_path / "relation-bundle")
+    reopened = RelationAssertionBundle.open(
+        root / "bundle-manifest.json",
+        expected_manifest_digest=relation_bundle.manifest_digest,
+        release_sources=(source, target),
+        machine_proof_sources=(proof,),
+    )
+
+    assert proof.pin()["relation"] == SUBJECT_BROAD_MATCH
+    assert evidence.relation == SUBJECT_BROAD_MATCH
+    assert evidence.candidate == case.candidate.identifier
+    assert reopened.mapping_assertions == (mapping,)
+    assert source_concept in source.member_ids()
+    assert target_concept in target.member_ids()
+    assert len({case.candidate.identifier, evidence.identifier, mapping.identifier}) == 3
