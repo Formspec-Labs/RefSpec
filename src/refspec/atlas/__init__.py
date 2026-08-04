@@ -67,6 +67,14 @@ from .model import (
     VocabularyAtlasError,
     build_vocabulary_atlas,
 )
+from .publication_decision import (
+    PUBLICATION_DECISION_TYPE,
+    PUBLICATION_DECISION_VERSION,
+    PublicationDecisionError,
+    VocabularyAtlasPublicationDecision,
+    build_vocabulary_atlas_publication_decision,
+    read_vocabulary_atlas_publication_decision,
+)
 from .queries import LabelCluster, SearchOnlyMapping, VocabularyAtlasQueries
 from .relation_assertion import (
     RELATION_ASSERTION_BUNDLE_MEDIA_TYPE,
@@ -132,6 +140,8 @@ __all__ = [
     "ICPSR_USED_FOR_PROPERTY_IRI",
     "ICPSR_USE_PROPERTY_IRI",
     "MANAGED_RELEASE_RING_ASSIGNMENT_VERSION",
+    "PUBLICATION_DECISION_TYPE",
+    "PUBLICATION_DECISION_VERSION",
     "RELATION_ASSERTION_BUNDLE_MEDIA_TYPE",
     "RELATION_ASSERTION_BUNDLE_VERSION",
     "RELATION_SSSOM_MAPPING_SET_NAMESPACE",
@@ -170,6 +180,7 @@ __all__ = [
     "PinnedSourceConceptRelease",
     "PinnedSourceConceptSubjectAtlasRelease",
     "PinnedVocabularyAtlasScope",
+    "PublicationDecisionError",
     "RelationAssertionBundle",
     "RelationAssertionError",
     "RelationMachineProofSource",
@@ -188,6 +199,7 @@ __all__ = [
     "VerifiedManagedReleaseSource",
     "VocabularyAtlasAsset",
     "VocabularyAtlasError",
+    "VocabularyAtlasPublicationDecision",
     "VocabularyAtlasQueries",
     "VocabularyAtlasScope",
     "admitted_subject_concept_ids",
@@ -195,10 +207,12 @@ __all__ = [
     "build_subject_admission_review",
     "build_subject_emission_policy",
     "build_vocabulary_atlas",
+    "build_vocabulary_atlas_publication_decision",
     "concept_release_member_ids",
     "concept_release_pin",
     "machine_evidence_class_for_proof_kind",
     "normalize_concept_release_pin",
+    "read_vocabulary_atlas_publication_decision",
     "register_trusted_relation_machine_proof_adapter",
     "registered_relation_machine_proof_adapters",
     "relation_sssom_text",
