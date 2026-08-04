@@ -757,10 +757,13 @@ inventoryOnly → evidenceOnly → verifiedDistribution → source concept relea
 
 The implemented artifacts cover evidence, verified distributions,
 source-concept releases, ring placement, shared relation bundles, and
-source-concept subject admission. Managed releases can participate in relation
-bundles, but managed-local curated subject admission remains unfinished;
-entity and legal-identity review designs remain unwritten. For subject
-emission, a pinned
+subject admission for both source-scoped concepts and RefSpec-authored
+`rkaf:LocalConcept` members of exact managed releases. One discriminated
+`subjectConceptRelease` pin preserves the original identity and release
+authority on both paths. Managed admission requires complete membership, a
+pinned subject-ring assignment, and rights metadata bound to the exact
+Rulespec graph; the release or a mapping alone admits nothing. Entity and
+legal-identity review designs remain unwritten. For subject emission, a pinned
 `SubjectEmissionPolicy` records eligibility and an active `OutputProfile` that
 names that exact policy grants permission; retrieval policy separately grants
 search use.

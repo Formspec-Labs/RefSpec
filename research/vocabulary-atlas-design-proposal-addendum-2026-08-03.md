@@ -153,17 +153,20 @@ existing source concept → named admission review
 
 source evidence → ConceptProposal → named authoring decision
 → rkaf:LocalConcept → complete managed release → mapping and adoption
-→ managed-local curated admission (unfinished)
+→ managed-local curated admission
 → deprecation / split / merge / replacement
 ```
 
 Concept staging therefore blocks only new RefSpec-authored identities. It
 does not block evaluation or admission of CRS or any other existing
-source-scoped concept. The implemented admission and emission path currently
-accepts source-concept releases only. A managed-release admission record for
-`rkaf:LocalConcept` identities, with the same exact-release and product-policy
-separation, remains unfinished; a managed release or mapping adoption alone
-does not place a local concept in the curated emit tier.
+source-scoped concept. The implemented admission and emission path accepts
+both exact source-concept releases and exact complete managed releases. The
+managed path requires a pinned subject-ring assignment, an actual
+`rkaf:LocalConcept` member, and rights metadata bound to the exact Rulespec
+graph. The named review, `SubjectEmissionPolicy`, and active `OutputProfile`
+continue to carry the same identity; none remints it. A managed release,
+mapping, or adoption without that named review does not place a local concept
+in the curated emit tier.
 
 ### B5. Ring-specific relation designs — owners: the entity, value, and legalIdentity rings
 
