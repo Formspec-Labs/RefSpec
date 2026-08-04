@@ -250,6 +250,18 @@ def test_atlas_decision_validates_the_verified_distribution_bytes(
     with pytest.raises(PublicationDecisionError, match="verified atlas or projection"):
         decision.validate_distribution(object())  # type: ignore[arg-type]
 
+    other_scope = _pinned_scope(tmp_path, name="verified-atlas-other-scope")
+    other_decision = build_vocabulary_atlas_publication_decision(
+        other_scope,
+        artifact_kind="atlas",
+        policies=_policies(),
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_verified_atlas_result(asset),
+    )
+    with pytest.raises(PublicationDecisionError, match="another exact atlas scope"):
+        other_decision.validate_distribution(asset)
+
 
 def test_projection_decision_validates_parent_scope_policy_and_result(
     tmp_path: Path,
