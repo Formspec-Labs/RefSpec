@@ -15,6 +15,7 @@ from .icpsr import (
     PinnedIcpsrSubjectAtlasRelease,
 )
 from .machine_evidence import (
+    CROSSWALK_MACHINE_PROOF_ADAPTER,
     CROSSWALK_MACHINE_PROOF_VERSION,
     CROSSWALK_V2_QUALIFICATION_POLICY,
     CrosswalkMachineProofError,
@@ -52,8 +53,14 @@ from .relation_assertion import (
     PinnedSourceConceptRelationRelease,
     RelationAssertionBundle,
     RelationAssertionError,
-    RelationMachineProofSource,
     RelationReleaseSource,
+)
+from .relation_proof import (
+    RelationMachineProofSource,
+    RelationMachineProofTrustError,
+    register_trusted_relation_machine_proof_adapter,
+    registered_relation_machine_proof_adapters,
+    trusted_relation_machine_proof_adapter_id,
 )
 from .relation_sssom import (
     RELATION_SSSOM_MAPPING_SET_NAMESPACE,
@@ -91,6 +98,7 @@ from .subject_emission import (
 
 __all__ = [
     "ATLAS",
+    "CROSSWALK_MACHINE_PROOF_ADAPTER",
     "CROSSWALK_MACHINE_PROOF_VERSION",
     "CROSSWALK_MEDIA_TYPE",
     "CROSSWALK_V2_QUALIFICATION_POLICY",
@@ -137,6 +145,7 @@ __all__ = [
     "RelationAssertionBundle",
     "RelationAssertionError",
     "RelationMachineProofSource",
+    "RelationMachineProofTrustError",
     "RelationReleaseSource",
     "RelationSssomDistribution",
     "RelationSssomError",
@@ -157,9 +166,12 @@ __all__ = [
     "build_subject_emission_policy",
     "build_vocabulary_atlas",
     "machine_evidence_class_for_proof_kind",
+    "register_trusted_relation_machine_proof_adapter",
+    "registered_relation_machine_proof_adapters",
     "relation_sssom_text",
     "resolve_subject_emission_policy",
     "source_concept_subject_atlas_view",
     "subject_emission_eligibility",
+    "trusted_relation_machine_proof_adapter_id",
     "validate_subject_admission_reviews",
 ]

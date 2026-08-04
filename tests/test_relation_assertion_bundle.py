@@ -14,6 +14,7 @@ import pytest
 
 import refspec.atlas as atlas_api
 from refspec.atlas.machine_evidence import (
+    CROSSWALK_MACHINE_PROOF_ADAPTER,
     PinnedCrosswalkMachineProof,
     build_machine_evidence_from_crosswalk_proof,
 )
@@ -27,6 +28,10 @@ from refspec.atlas.relation_assertion import (
     RelationAssertionError,
     RelationMachineProofSource,
 )
+from refspec.atlas.relation_proof import (
+    RelationMachineProofTrustError,
+    register_trusted_relation_machine_proof_adapter,
+)
 from refspec.atlas.relation_sssom import RelationSssomDistribution
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
 from refspec.registry.infrastructure.semantic_foundation import (
@@ -37,6 +42,7 @@ from refspec.registry.infrastructure.semantic_foundation import (
     VALUE_EXACT_CROSSWALK,
     EvidenceAssertion,
     MappingAssertion,
+    validate_machine_evidence_proof_pin,
 )
 from refspec.registry.infrastructure.source_concept_release import (
     build_source_concept_release_bundle,
@@ -95,7 +101,43 @@ def test_relation_bundle_is_a_public_atlas_foundation() -> None:
     assert atlas_api.PinnedSourceConceptRelationRelease is PinnedSourceConceptRelationRelease
     assert atlas_api.RelationMachineProofSource is RelationMachineProofSource
     assert atlas_api.RelationSssomDistribution is RelationSssomDistribution
+    assert (
+        atlas_api.registered_relation_machine_proof_adapters()[CROSSWALK_MACHINE_PROOF_ADAPTER]
+        is PinnedCrosswalkMachineProof
+    )
     assert callable(atlas_api.relation_sssom_text)
+
+
+def test_relation_proof_registry_rejects_duplicate_authorities() -> None:
+    adapter_id = "urn:ref:test:adapter:duplicate-authority:v1"
+
+    @register_trusted_relation_machine_proof_adapter(adapter_id)
+    class FirstAdapter:
+        def pin(self) -> dict[str, Any]:
+            return {}
+
+    class OtherAdapter:
+        def pin(self) -> dict[str, Any]:
+            return {}
+
+    with pytest.raises(RelationMachineProofTrustError, match="id is already registered"):
+        register_trusted_relation_machine_proof_adapter(adapter_id)(OtherAdapter)  # type: ignore[arg-type]
+
+    with pytest.raises(RelationMachineProofTrustError, match="class is already registered"):
+        register_trusted_relation_machine_proof_adapter(
+            "urn:ref:test:adapter:duplicate-class:v1"
+        )(FirstAdapter)  # type: ignore[arg-type]
+    with pytest.raises(RelationMachineProofTrustError, match="absolute IRI"):
+        register_trusted_relation_machine_proof_adapter("relative-adapter-id")
+    with pytest.raises(RelationMachineProofTrustError, match="class with pin"):
+        register_trusted_relation_machine_proof_adapter(
+            "urn:ref:test:adapter:missing-pin:v1"
+        )(type("MissingPinAdapter", (), {}))  # type: ignore[arg-type]
+
+    registered = atlas_api.registered_relation_machine_proof_adapters()
+    assert registered[adapter_id] is FirstAdapter
+    with pytest.raises(TypeError):
+        registered[adapter_id] = OtherAdapter  # type: ignore[index]
 
 
 def test_managed_ring_assignment_rejects_noncanonical_logical_set_order() -> None:
@@ -695,13 +737,130 @@ def test_machine_proof_adapter_must_expose_reopenable_source_bytes(tmp_path: Pat
         )
 
 
+def test_unregistered_adapter_cannot_turn_decoy_bytes_into_proof(tmp_path: Path) -> None:
+    source, target, _, mapping = _subject_facts(tmp_path)
+    qualified_proof, _ = _crosswalk_machine_proofs(tmp_path, mapping)
+    machine = build_machine_evidence_from_crosswalk_proof(
+        qualified_proof,
+        asserted_by="https://refspec.org/software/qualification-gate-v2",
+        asserted_at=ASSERTED_AT,
+    )
+    decoy_path = tmp_path / "decoy-proof-source.bin"
+    decoy_path.write_bytes(b"bytes with no relation-proof semantics\n")
+
+    class UnregisteredDecoyProof:
+        path = decoy_path
+
+        def pin(self) -> dict[str, Any]:
+            trusted_pin = qualified_proof.pin()
+            basis = {
+                key: value
+                for key, value in trusted_pin.items()
+                if key not in {"id", "contentDigest"}
+            }
+            decoy_digest = _file_digest(self.path)
+            basis["proofAdapter"] = "urn:ref:test:adapter:unregistered-decoy:v1"
+            basis["proofSource"] = {
+                "type": "DecoyBytes",
+                "id": "urn:ref:test:decoy-proof-source",
+                "contentDigest": decoy_digest,
+                "fileDigest": decoy_digest,
+            }
+            basis["proofDetails"] = {"method": "invented-facts-unrelated-to-decoy-bytes"}
+            content_digest = sha256_digest(canonical_json_bytes(basis))
+            return {
+                **basis,
+                "id": f"urn:ref:machine-evidence-proof:subject:{content_digest.removeprefix('sha256:')}",
+                "contentDigest": content_digest,
+            }
+
+    decoy = UnregisteredDecoyProof()
+    assert validate_machine_evidence_proof_pin(decoy.pin(), semantic_ring="subject") == decoy.pin()
+
+    with pytest.raises(RelationAssertionError, match="exact class is not registered"):
+        RelationAssertionBundle.create(
+            semantic_ring="subject",
+            release_sources=(source, target),
+            machine_proof_sources=(decoy,),
+            evidence_assertions=(machine,),
+            mapping_assertions=(replace(mapping, evidence=(machine.identifier,)),),
+        )
+
+
+def test_trusted_adapter_registration_does_not_extend_to_subclasses(tmp_path: Path) -> None:
+    source, target, _, mapping = _subject_facts(tmp_path)
+    qualified_proof, _ = _crosswalk_machine_proofs(tmp_path, mapping)
+    machine = build_machine_evidence_from_crosswalk_proof(
+        qualified_proof,
+        asserted_by="https://refspec.org/software/qualification-gate-v2",
+        asserted_at=ASSERTED_AT,
+    )
+
+    class UnregisteredCrosswalkSubclass(PinnedCrosswalkMachineProof):
+        pass
+
+    subclass_proof = UnregisteredCrosswalkSubclass(
+        path=qualified_proof.path,
+        file_digest=qualified_proof.file_digest,
+        bundle_digest=qualified_proof.bundle_digest,
+        proof_kind=qualified_proof.proof_kind,
+        candidate_id=qualified_proof.candidate_id,
+        validation_ids=qualified_proof.validation_ids,
+    )
+
+    with pytest.raises(RelationAssertionError, match="exact class is not registered"):
+        RelationAssertionBundle.create(
+            semantic_ring="subject",
+            release_sources=(source, target),
+            machine_proof_sources=(subclass_proof,),
+            evidence_assertions=(machine,),
+            mapping_assertions=(replace(mapping, evidence=(machine.identifier,)),),
+        )
+
+
+def test_registered_adapter_pin_must_name_its_registered_adapter(tmp_path: Path) -> None:
+    source, target, _, mapping = _subject_facts(tmp_path)
+    qualified_proof, _ = _crosswalk_machine_proofs(tmp_path, mapping)
+    machine = build_machine_evidence_from_crosswalk_proof(
+        qualified_proof,
+        asserted_by="https://refspec.org/software/qualification-gate-v2",
+        asserted_at=ASSERTED_AT,
+    )
+
+    @register_trusted_relation_machine_proof_adapter(
+        "urn:ref:test:adapter:intentionally-mismatched-crosswalk:v1"
+    )
+    class MismatchedCrosswalkAdapter(PinnedCrosswalkMachineProof):
+        pass
+
+    mismatched = MismatchedCrosswalkAdapter(
+        path=qualified_proof.path,
+        file_digest=qualified_proof.file_digest,
+        bundle_digest=qualified_proof.bundle_digest,
+        proof_kind=qualified_proof.proof_kind,
+        candidate_id=qualified_proof.candidate_id,
+        validation_ids=qualified_proof.validation_ids,
+    )
+
+    with pytest.raises(RelationAssertionError, match="proofAdapter differs"):
+        RelationAssertionBundle.create(
+            semantic_ring="subject",
+            release_sources=(source, target),
+            machine_proof_sources=(mismatched,),
+            evidence_assertions=(machine,),
+            mapping_assertions=(replace(mapping, evidence=(machine.identifier,)),),
+        )
+
+
 def test_relation_foundation_accepts_a_ring_scoped_machine_proof_adapter(tmp_path: Path) -> None:
     source, source_release, source_concept = _source_release(tmp_path, "entity-adapter-source", ring="entity")
     target, target_release, target_concept = _source_release(tmp_path, "entity-adapter-target", ring="entity")
     proof_path = tmp_path / "entity-proof-source.bin"
     proof_path.write_bytes(b"verified entity relation proof\n")
     expected_file_digest = _file_digest(proof_path)
+    adapter_id = "urn:ref:test:adapter:entity-identifier-agreement:v1"
 
+    @register_trusted_relation_machine_proof_adapter(adapter_id)
     class PinnedEntityProof:
         def __init__(self, path: Path) -> None:
             self.path = path
@@ -712,6 +871,7 @@ def test_relation_foundation_accepts_a_ring_scoped_machine_proof_adapter(tmp_pat
             basis = {
                 "type": "MachineEvidenceProof",
                 "schemaVersion": "1.0",
+                "proofAdapter": adapter_id,
                 "semanticRing": "entity",
                 "evidenceClass": "machineQualified",
                 "proofKind": "testEntityIdentifierAgreementV1",
@@ -796,12 +956,14 @@ def test_machine_proof_binds_value_ring_effective_context(tmp_path: Path) -> Non
     proof_path = tmp_path / "value-proof-source.bin"
     proof_path.write_bytes(b"verified value crosswalk proof\n")
     expected_file_digest = _file_digest(proof_path)
+    adapter_id = "urn:ref:test:adapter:value-edition-crosswalk:v1"
     proof_context = {
         "sourceEdition": "2017",
         "targetEdition": "2022",
         "effectiveFrom": "2024-01-01",
     }
 
+    @register_trusted_relation_machine_proof_adapter(adapter_id)
     class PinnedValueProof:
         def __init__(self, path: Path) -> None:
             self.path = path
@@ -812,6 +974,7 @@ def test_machine_proof_binds_value_ring_effective_context(tmp_path: Path) -> Non
             basis = {
                 "type": "MachineEvidenceProof",
                 "schemaVersion": "1.0",
+                "proofAdapter": adapter_id,
                 "semanticRing": "value",
                 "evidenceClass": "machineQualified",
                 "proofKind": "testValueEditionCrosswalkV1",

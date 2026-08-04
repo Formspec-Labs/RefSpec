@@ -166,6 +166,7 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/model.py",
     "atlas/queries.py",
     "atlas/relation_assertion.py",
+    "atlas/relation_proof.py",
     "atlas/relation_sssom.py",
     "atlas/source_concept.py",
     "atlas/subject_admission.py",

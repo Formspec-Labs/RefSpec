@@ -348,6 +348,7 @@ def validate_machine_evidence_proof_pin(
             "type",
             "schemaVersion",
             "contentDigest",
+            "proofAdapter",
             "semanticRing",
             "evidenceClass",
             "proofKind",
@@ -367,6 +368,7 @@ def validate_machine_evidence_proof_pin(
         raise SemanticFoundationError("machine_evidence_proof.type must be MachineEvidenceProof")
     if value.get("schemaVersion") != MACHINE_EVIDENCE_PROOF_VERSION:
         raise SemanticFoundationError("machine_evidence_proof schemaVersion is unsupported")
+    proof_adapter = _require_iri(value.get("proofAdapter"), "machine_evidence_proof.proofAdapter")
 
     ring = _require_ring(value.get("semanticRing"), "machine_evidence_proof.semanticRing")
     if semantic_ring is not None and ring != _require_ring(semantic_ring, "semantic_ring"):
@@ -474,6 +476,7 @@ def validate_machine_evidence_proof_pin(
     basis: dict[str, Any] = {
         "type": "MachineEvidenceProof",
         "schemaVersion": MACHINE_EVIDENCE_PROOF_VERSION,
+        "proofAdapter": proof_adapter,
         "semanticRing": ring,
         "evidenceClass": evidence_class,
         "proofKind": proof_kind,

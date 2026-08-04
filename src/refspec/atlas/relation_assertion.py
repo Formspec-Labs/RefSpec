@@ -21,7 +21,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, TypeAlias, cast, runtime_checkable
+from typing import Any, TypeAlias, cast
 
 from typing_extensions import Self
 
@@ -53,6 +53,12 @@ from refspec.registry.infrastructure.source_identity import (
     require_aware_datetime_text,
 )
 from refspec.release_graph import rulespec_graph_digest
+
+from .relation_proof import (
+    RelationMachineProofSource,
+    RelationMachineProofTrustError,
+    trusted_relation_machine_proof_adapter_id,
+)
 
 RELATION_ASSERTION_BUNDLE_VERSION = "1.0"
 RELATION_ASSERTION_BUNDLE_MEDIA_TYPE = "application/vnd.refspec.relation-assertion-bundle+json"
@@ -541,22 +547,6 @@ class PinnedManagedRelationRelease:
 RelationReleaseSource: TypeAlias = PinnedSourceConceptRelationRelease | PinnedManagedRelationRelease
 
 
-@runtime_checkable
-class RelationMachineProofSource(Protocol):
-    """Adapter that reopens exact proof bytes and returns a shared proof pin."""
-
-    @property
-    def path(self) -> Path:
-        """Return the exact regular file reopened by :meth:`pin`."""
-
-        ...
-
-    def pin(self) -> Mapping[str, Any]:
-        """Verify the source again and return one content-derived proof pin."""
-
-        ...
-
-
 @dataclass(frozen=True, slots=True)
 class _ResolvedRelease:
     pin: Mapping[str, Any]
@@ -629,6 +619,7 @@ def _resolve_machine_proofs(
                 f"machine_proof_sources[{index}] must implement the path-backed proof adapter interface"
             )
         try:
+            adapter_id = trusted_relation_machine_proof_adapter_id(source)
             requested_path = Path(source.path)
             if requested_path.is_symlink():
                 raise RelationAssertionError("machine proof source path must not be a symlink")
@@ -647,11 +638,13 @@ def _resolve_machine_proofs(
             )
             if proof_path.read_bytes() != proof_bytes or Path(source.path).resolve(strict=True) != proof_path:
                 raise RelationAssertionError("machine proof source changed while verifying")
-        except (OSError, SemanticFoundationError, TypeError, ValueError) as error:
+        except (OSError, RelationMachineProofTrustError, SemanticFoundationError, TypeError, ValueError) as error:
             raise RelationAssertionError(str(error)) from error
         proof_source = pin.get("proofSource")
         if not isinstance(proof_source, Mapping) or proof_source.get("fileDigest") != sha256_digest(proof_bytes):
             raise RelationAssertionError("machine proof pin fileDigest differs from its exact source bytes")
+        if pin.get("proofAdapter") != adapter_id:
+            raise RelationAssertionError("machine proof pin proofAdapter differs from its trusted executable adapter")
         identifier = _require_iri(pin.get("id"), f"machine_proof_sources[{index}].id")
         if identifier in identifiers:
             raise RelationAssertionError("machine_proof_sources repeats a proof id")

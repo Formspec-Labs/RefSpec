@@ -37,8 +37,10 @@ from refspec.registry.infrastructure.semantic_foundation import (
 )
 
 from .model import CrosswalkBundle, VocabularyAtlasError
+from .relation_proof import register_trusted_relation_machine_proof_adapter
 
 CROSSWALK_MACHINE_PROOF_VERSION = MACHINE_EVIDENCE_PROOF_VERSION
+CROSSWALK_MACHINE_PROOF_ADAPTER = "https://refspec.org/adapters/crosswalk-machine-proof/v1"
 CROSSWALK_V2_QUALIFICATION_POLICY = (
     "https://refspec.org/policies/two-independent-machines-relation-agreement-v2"
 )
@@ -128,6 +130,7 @@ class CrosswalkMachineProofFacts:
         result = {
             "type": "MachineEvidenceProof",
             "schemaVersion": CROSSWALK_MACHINE_PROOF_VERSION,
+            "proofAdapter": CROSSWALK_MACHINE_PROOF_ADAPTER,
             "semanticRing": "subject",
             "evidenceClass": machine_evidence_class_for_proof_kind(self.proof_kind),
             "proofKind": self.proof_kind,
@@ -174,6 +177,7 @@ class CrosswalkMachineProofFacts:
         )
 
 
+@register_trusted_relation_machine_proof_adapter(CROSSWALK_MACHINE_PROOF_ADAPTER)
 @dataclass(frozen=True, slots=True)
 class PinnedCrosswalkMachineProof:
     """One proof selection that is reproduced from exact path-backed bytes."""
