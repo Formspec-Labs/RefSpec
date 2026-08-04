@@ -11,6 +11,8 @@
 > identity. All four rings share one record foundation with ring-specific
 > relations. Identity is not admission: a named review may admit an existing
 > source identity, while staging creates only new RefSpec-authored concepts.
+> For subject emission, a pinned `SubjectEmissionPolicy` records eligibility,
+> and an active `OutputProfile` that names that exact policy grants permission.
 >
 > **Standing:** Rules and ownership are this document's durable content.
 > Counts and build references are dated snapshots of an artifact set in
@@ -48,7 +50,7 @@ cites the proposal as if these were established:
 | A3 | Hierarchy context in judge input improves mapping qualification | No literature either way; the pilot showed zero of 365 sealed inputs carried `broader` while the prompt asked a hierarchy question — and gate protocol v2 now emits *directional* verdicts on those same label-only inputs, so the stakes rose from experiment to prerequisite | Proposal §7.2: label-only vs ancestor-labels A/B on the same candidate slice decides it; until it runs, direction-typed emissions score as a separately validated class and stay out of frontier hierarchy context |
 
 If any of these experiments comes back negative, the affected structure
-(participation tiers, frontier context depth, judge input shape) is
+(participation classes, frontier context depth, judge input shape) is
 revisable without changing the atlas format itself.
 
 ## B. Synthesis demands assigned to other layers
@@ -114,10 +116,13 @@ source-scoped concept to the curated emit tier. The review binds the exact
 content-derived release and records the concept's definition or scope note,
 hierarchy anchor or explicit unresolved placement, facet, evidence, rights,
 reviewer, time, and intended product use. These facts enrich the existing
-identity and support an exact `OutputProfile`; they neither replace identity
-nor activate product use on their own. A new source capture produces a new
-release and requires a new admission decision, so a publisher rename cannot
-change the emit core silently.
+identity and support a pinned `SubjectEmissionPolicy`; they neither replace
+identity nor activate product use on their own. The policy records the eligible
+exact release, admission review, concept, and intended use. An active
+`OutputProfile` that names that exact policy supplies the separate permission
+grant.
+A new source capture produces a new release and requires a new admission
+decision, so a publisher rename cannot change the emit core silently.
 
 **Staging creates genuinely new RefSpec concepts.** Use a `ConceptProposal`
 when no source concept expresses the intended meaning or when RefSpec chooses
@@ -142,17 +147,23 @@ The research supports the following governance rules:
 The two paths are explicit:
 
 ```text
-existing source concept → named admission review → exact release admission
-→ OutputProfile permission
+existing source concept → named admission review
+→ curated-tier admission bound to the exact release
+→ pinned SubjectEmissionPolicy eligibility → active OutputProfile permission
 
 source evidence → ConceptProposal → named authoring decision
 → rkaf:LocalConcept → complete managed release → mapping and adoption
+→ managed-local curated admission (unfinished)
 → deprecation / split / merge / replacement
 ```
 
 Concept staging therefore blocks only new RefSpec-authored identities. It
 does not block evaluation or admission of CRS or any other existing
-source-scoped concept.
+source-scoped concept. The implemented admission and emission path currently
+accepts source-concept releases only. A managed-release admission record for
+`rkaf:LocalConcept` identities, with the same exact-release and product-policy
+separation, remains unfinished; a managed release or mapping adoption alone
+does not place a local concept in the curated emit tier.
 
 ### B5. Ring-specific relation designs — owners: the entity, value, and legalIdentity rings
 
@@ -161,14 +172,17 @@ classification and motivates typed outputs. The parent proposal places those
 outputs on one foundation: a shared concept-identity record shape, releases,
 provenance, rights, evidence classes, mapping-assertion structure, and
 lifecycle. Each ring still needs its own relation vocabulary and validation
-rules:
+rules. The foundation is fixed now rather than deferred until those ring
+designs exist: each design adds ring-scoped predicates, proof adapters, and
+checks without forking the shared record shapes.
 
-- **Entity spine — unwritten.** Agencies,
+- **Entity relation and proof layer — unwritten; shared foundation fixed.** Agencies,
   award entities, committees, providers, and substances as nodes with typed
-  identifier sets. Identity links reuse the parent's §6 evidence-profile
-  shapes with entity-specific predicates and merge checks
-  (publisher-asserted crosswalks, machine-suggested matches, and
-  human-reviewed merges). Name equality never merges entities. The source
+  identifier sets. Identity links reuse the parent's shared evidence-assertion
+  structure with entity-specific predicates and merge checks. They do not
+  reuse the subject-only Crosswalk v2 proof adapter; an entity proof adapter
+  must bind machine evidence to entity predicates before a suggested link
+  becomes an assertion. Name equality never merges entities. The source
   matrix's `T3-04` already anticipates it. Priority: immediately after B4,
   because every cross-document product feature (follow-the-company,
   follow-the-rule) runs through the spine or the legal identity graph.
@@ -195,9 +209,13 @@ ranking, mappings, and output keep it out of the subject candidate pool.
 
 Every physical ring partition inherits the shared foundation. Consumers use
 common artifact and document identifiers, role-qualified entity links, exact
-source and release provenance, as-of-time behavior, namespace and collision
-rules, and read-model identities derived from input digests. A consumer never
-invents joins or translates among competing identity models.
+source and release provenance, namespace and collision rules, and read-model
+identities derived from input digests. Exact release pins and publication
+decisions provide shared historical reconstruction. Effective-time fields and
+checks remain ring-specific: value and legal-identity relations carry their
+defined effective dates, subject mappings do not invent them, and the entity
+design must define the time semantics of successor and identity links. A
+consumer never invents joins or translates among competing identity models.
 
 ## C. Clarification against a predictable mis-citation
 
@@ -219,8 +237,8 @@ classified by semantic ring, with docstrings verified for modules the
 proposal's tables do not name. A source may contribute more than one row when
 its facets belong to different rings. Shared infrastructure receives no ring.
 
-**D1 — Existing readers preserve evidence but do not yet complete the
-foundation.** Several readers deliberately refuse to invent publisher
+**D1 — Existing readers preserve evidence; some source-concept releases remain
+implementation work.** Several readers deliberately refuse to invent publisher
 concepts: `gao_topics` captures actual assignments,
 `federal_register_topics_api` preserves source bytes, and
 `crs_product_topics` treats labels as edition-bound evidence. Those refusals
@@ -237,7 +255,9 @@ and subject participation in the atlas index. Remove
 `candidate_use_authorized` from the shared model, every reader, and generated
 packages. Do not retain a compatibility shape or replace true with false.
 `OutputProfile` and the pinned retrieval policy remain the only permission
-sources.
+sources. For subject emission, a pinned `SubjectEmissionPolicy` is a required
+eligibility input rather than another permission source; the `OutputProfile`
+must name that exact policy before granting use.
 
 **D3 — Source-assigned topic evidence is metadata, not a ring (parent §3).**
 GAO topics, CBO topic labels, CRS product topics, LDA issue codes, and SAM
@@ -246,8 +266,9 @@ subject-ring terms and carry source-scoped concepts (parent §3); the
 assignments are document-to-concept evidence records, not concepts or
 destinations. They flow through `sourceAssignedEvidence` observations to the
 pipeline. A named admission review may approve the existing subject identity
-for the curated emit tier; an exact `OutputProfile` authorizes emission. A
-mapping to another concept requires its own §6 evidence.
+for the curated emit tier. A pinned `SubjectEmissionPolicy` selects that exact
+review and release, and an active `OutputProfile` naming the policy authorizes
+emission. A mapping to another concept requires its own §6 evidence.
 
 **D4 — Placement decisions.** `courtlistener_codes` (court identity) and
 `census_geo_codes` (geography identifier grammar) sit in the entity ring and

@@ -11,7 +11,9 @@
 > into the non-subject rings. All four rings share one concept, release,
 > evidence, mapping-assertion, and lifecycle foundation, with ring-specific
 > predicates and safety rules. Useful source terms carry source-scoped
-> concept identity under §3. Product policy alone activates a use. This
+> concept identity under §3. For subject emission, a pinned
+> `SubjectEmissionPolicy` records eligibility and an active `OutputProfile`
+> that names that exact policy grants product permission. This
 > revision amends the synthesis's §5 planning classes, §11 CRS ruling, and
 > separate-publication boundary; the evidence machinery remains.
 >
@@ -153,8 +155,10 @@ exactly one ring — **subject**, **entity**, **value**, or **legalIdentity** �
 recorded in the portfolio index as a non-authorizing planning fact. A source
 may contribute separate concepts or releases to more than one ring. A ring
 identifies meaning; it never grants or withholds a use, and rings never become
-atlas permission fields. `OutputProfile` rows control enrichment, and the
-pinned retrieval policy controls search.
+atlas permission fields. For subject emission, a pinned
+`SubjectEmissionPolicy` records the eligible exact release, admission review,
+concept, and use; an active `OutputProfile` that names that exact policy grants
+enrichment permission. The pinned retrieval policy separately controls search.
 
 All four rings share one foundation: source-scoped concept identity,
 content-derived releases, exact membership, provenance, rights, evidence
@@ -166,13 +170,15 @@ their own predicates and checks.
 Three further rules complete the model:
 
 - **The subject ring is a two-tier atlas.** Its wide mapping tier contains
-  admitted source releases, bridges, decoys, and staged proposals. Its
+  pinned source releases, bridges, decoys, and staged proposals. Its
   curated emit tier contains only concepts admitted by named review against
   an exact release. The `core`, `specialist`, and `bridge` participation
   classes describe how a subject release may contribute; a subject source may
   have no participation class while it remains evidence-only. Participation
-  is planning metadata, not permission. An exact `OutputProfile` or retrieval
-  policy activates a use.
+  is planning metadata, not permission. For emission, a pinned
+  `SubjectEmissionPolicy` establishes eligibility and a matching active
+  `OutputProfile` grants permission; a retrieval policy separately activates
+  search use.
 - **Source identity is explicit and source-scoped.** Every useful enumerated
   source term has concept identity. Preserve a stable
   publisher concept IRI when one exists. Otherwise RefSpec mints an IRI from
@@ -184,8 +190,9 @@ Three further rules complete the model:
   neither impersonates the publisher nor creates an `rkaf:LocalConcept`.
 - **Identity, admission, and assignment are independent.** A named review may
   admit an existing source-scoped subject concept to the curated emit tier
-  without minting another concept; an exact product policy still activates
-  emission. Concept staging creates genuinely new
+  without minting another concept. A pinned `SubjectEmissionPolicy` must then
+  select that exact review and release, and a matching active `OutputProfile`
+  must grant emission. Concept staging creates genuinely new
   RefSpec-authored concepts, including deliberate consolidations or splits
   that cite source concepts. A document's use of a subject concept is
   `sourceAssignedEvidence`. Source assignment, provenance, rights, intended
@@ -195,7 +202,8 @@ Three further rules complete the model:
 ### Subject ring — core participation
 
 The default candidate pool for subject assignments in a named product
-configuration — activated only by a matching `OutputProfile` row.
+configuration. Product use still resolves through a pinned
+`SubjectEmissionPolicy` and a matching active `OutputProfile`.
 
 | Source | Reader | Basis |
 | --- | --- | --- |
@@ -215,10 +223,11 @@ against the FR Thesaurus through the Lists-of-Subjects policy
 `officialTerm` / `recognizedVariant` / `sourceLocalOpenTerm` /
 `unresolved`). A named admission review may approve an existing CRS subject
 identity for the curated emit tier after its definition, hierarchy placement,
-reviewer, and exact release pass the §10 gates. An exact `OutputProfile` activates
-emission. Concept staging applies only when RefSpec creates a genuinely new
-concept rather than admitting the source concept itself (addendum B4; spec
-§12.4).
+reviewer, and exact release pass the §10 gates. A pinned
+`SubjectEmissionPolicy` records eligibility for that exact review and release;
+a matching active `OutputProfile` grants emission permission. Concept staging
+applies only when RefSpec creates a genuinely new concept rather than admitting
+the source concept itself (addendum B4; spec §12.4).
 
 The CRS packages still need stable operational handles. Each source fetch
 records an RFC 9562 UUIDv7 `sourceFetchId` plus `sourceObservedAt`; the combined
@@ -231,7 +240,8 @@ packages, both sorted local-ID and record-content digests, and the
 reconciliation or human review. On refresh, a unique publisher identifier
 match wins; otherwise a unique exact scheme/category/label match carries the
 local ID forward. Any capture-independent content change writes a
-reconciliation report and stops release admission until human review;
+reconciliation report and blocks publication of the reconciled source-concept
+release until human review;
 similarity may suggest a match but never decides one. A source-byte change
 with identical parsed records is retained as a source-only change and does not
 create false term churn. Target core size stays in the low thousands,
@@ -253,7 +263,7 @@ concepts are candidate-eligible anywhere.
 
 ### Subject ring — bridge participation (searchOnly forever)
 
-Never candidate-authorized. The bridge tier is not a junk drawer of
+Never candidate-authorized. The bridge participation class is not a junk drawer of
 references: each
 vocabulary here bridges a different language community's **register** into
 the core. The Federal Register core speaks administrative supply-side
@@ -305,7 +315,7 @@ shared record foundation rather than creating separate identity systems:
 
 | Ring publication | Contents (readers) | Ring-specific semantics | Status |
 | --- | --- | --- | --- |
-| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets. Identity links reuse §6's evidence-profile shapes with entity-specific predicates and merge checks — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches, and human-reviewed merges. Name equality never merges entities. | Unwritten — needs its own proposal (matrix `T3-04` anticipates it) |
+| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets. Identity links use the shared evidence- and mapping-assertion shapes with entity-specific predicates and merge checks — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches bound by an entity proof adapter, and human-reviewed merges. Name equality never merges entities. | Ring-specific relation and proof design unwritten; the shared foundation is fixed here (matrix `T3-04` anticipates it) |
 | **Code ledgers** | NAICS/PSC, fiscal codes, filing types, genre and process values, all native controls, cross-state statistical crosswalks (`census_gov_finance_codes`) | Versioned value sets with effective dates; raw values preserved exactly; reviewed edition crosswalks only where needed (NAICS 2017→2022, nature-of-suit spelling canonicalization) | Essentially built (`source_controlled_resource`, `regulatory_native_controls`) |
 | **Legal identity graph** | CFR structure, statutes and Public Laws, RINs, docket and bill identifiers, citations | Deterministic parsed identity; typed edges (*cites*, *amends*, *authorizes*, *implements*) with point-in-time versions — the ELI analogue | Half-built (identifiers and citations exist as fields; the typed-edge model needs design) |
 
@@ -359,9 +369,11 @@ the build.
 Source packages carry no permission-shaped fields. Remove
 `candidate_use_authorized` rather than making it optional or assigning false
 outside the subject ring. A source capture reports what the publisher data is
-and how RefSpec can process it; an exact `OutputProfile` or retrieval policy
-decides whether a product may use it. This leaves one permission source per
-product action and one clean source-package shape.
+and how RefSpec can process it. For subject emission, a pinned
+`SubjectEmissionPolicy` records eligibility and an active `OutputProfile` that
+names that exact policy grants permission; the pinned retrieval policy
+separately grants search use. This leaves one permission source per product
+action and one clean source-package shape.
 
 ## 4. Membership rule for oversized bridge sources: the mapping frontier
 
@@ -418,7 +430,7 @@ through the reader for future frontier growth. Frontier releases are
 re-cut, not mutated: a new selection receipt yields a new release with its
 own pins.
 
-Label-cluster policy changes with the participation tiers: clusters are
+Label-cluster policy changes with the participation classes: clusters are
 computed only
 between core and specialist schemes and the frontier — never bridge ×
 bridge — and are
@@ -479,19 +491,37 @@ that limits what an exact product policy may select:
 
 | Class | Origin / basis | Ceiling | Example |
 | --- | --- | --- | --- |
-| `machineQualified` | `aiSuggested` / `statisticalInference`, two independent validators | `searchOnly` | current 121 FR×ELSST rows |
+| `machineQualified` | subject-only `CrosswalkBundle` v2 proof derived from one exact candidate, its selected sealed question, every supporting validation, and an independent-validator witness | `searchOnly` | current qualified subject mappings |
+| `machineReviewed` (candidate provenance, not mapping support) | one deterministic supporting `CrosswalkBundle` v2 validation and its verdict-derived relation | n/a until directly adopted | ICPSR interim reviews |
 | `publisherAsserted` | `rkaf:imported` / `rkaf:sourceExplicit`, pinned source bytes | `searchOnly` | FAST→LCSH derivation; MeSH↔LCSH published alignments |
-| `operatorAdopted` | single-machine review adopted by named operator | `localOperationalUse`, never atlas-qualified | ICPSR bridge v2 |
+| `operatorAdopted` | named operator directly adopts one `machineReviewed` fact; adoption chains are forbidden | `localOperationalUse`, never atlas-qualified | ICPSR bridge v2 |
 | `humanReviewed` | named reviewer, evidence reference | may support a policy choice beyond `searchOnly` after the named governance gates pass | zero rows today; fixtures required |
 | `ruleGenerated` (candidate provenance, not a mapping class) | deterministic generator, honest `generatorKind` | n/a | current lexical candidate generator |
 
-These classes are realized as **derived evidence profiles** — deterministic
-views over existing Rulespec origin/basis pairings (`rkaf:imported` +
-`rkaf:sourceExplicit` for publisher-asserted; deterministic
-extraction/derivation pairings for publisher-derived) — not as new origin
-literals. Operator adoption *annotates* a record without ever rewriting its
-machine origin, so a single-model review adopted by operator direction is
-expressible without mislabeling where the judgment came from.
+These classes are immutable `EvidenceAssertion` record shapes. Mapping
+publications still use the applicable Rulespec origin and basis values; the
+classes do not mint replacement mapping-origin literals. Operator adoption
+adds a separate record without rewriting machine provenance, so an operator
+can adopt a single-model review without mislabeling where the judgment came
+from.
+
+All rings use the shared content-derived `MachineEvidenceProof` pin shape and
+the `RelationMachineProofSource` adapter interface. The shared fields bind the
+ring, evidence class, candidate, validation receipts, endpoint concepts and
+releases, relation, complete ring-specific context such as value effective
+dates, qualification policy when applicable, and exact source digests;
+`proofKind` and `proofDetails` remain adapter-defined so adding a ring does not
+change the relation-bundle foundation.
+
+The current Crosswalk proof adapter is deliberately subject-only. A
+path-backed `PinnedCrosswalkMachineProof` reopens one exact `CrosswalkBundle`
+v2 and derives either a qualification fact or one supporting-review fact. Its
+content-derived pin travels with the relation bundle. `machineQualified`
+evidence repeats the exact candidate, oriented endpoints and releases,
+verdict-derived relation, and every supporting validation in the selected
+sealed-question group; bundle validation requires exact equality with the
+reopened proof. The proof pin itself carries the derived proof kind and
+qualification policy.
 
 **The gate owns the relation.** The candidate's `atlas:proposedRelation`
 stays uniformly `skos:closeMatch` — the hypothesis under test, never the
@@ -546,26 +576,22 @@ mappings (`broadMatch` ∘ `broadMatch`, or any chain through the hub)
 stays prohibited exactly as §5 prohibits untyped chains: chains may
 generate candidates, never assertions.
 
-**Evidence class is separate from proof version.** Each qualified mapping
-names its qualification policy and its proof status
-(`legacyIndependentValidations` for atlas 1.0 runs;
-`signedIndependentValidations` once attestations ship). A mapping
-qualified under 1.0 remains valid under 1.0's policy and never acquires
-1.1 proof status; a profile demanding signed proof excludes it without
-invalidating it. Profiles compose rather than supersede: one mapping may
-be machine-qualified, later human-reviewed, and locally adopted at once —
-states accumulate, and no profile erases another's history.
-
-Frozen 1.0 records remain historical evidence under their original format.
-Format 1.1 does not accept them as 1.1 inputs or add a compatibility shape;
-carrying an assertion forward requires a new explicit decision.
+**Proof kind is derived, never supplied.** The subject adapter derives
+`crosswalkV2IndependentValidations` for `machineQualified` evidence and
+`crosswalkV2SingleMachineReview` for a `machineReviewed` fact. Callers supply
+no `proofStatus`. No signed proof kind exists until RefSpec can reopen signed
+receipts and validate them against an independently pinned qualification-
+authority policy. Profiles still compose rather than supersede: a mapping may
+accumulate machine qualification and human review, while a separate direct
+adoption can authorize the reviewed candidate for local operational use.
 
 **The atlas preserves assertions, not one mapping truth per pair.**
 Contradictory relations between the same endpoints coexist as separate
-records, each with its own origin, evidence, policy, and lifecycle; no
-bundle overwrites an earlier assertion; adoption targets an assertion IRI,
-never an endpoint pair. A consumer may derive a "best mapping" view, but
-that view is disposable and retains links to every contributing assertion.
+records, each with its own origin, evidence, policy, and lifecycle; no bundle
+overwrites an earlier assertion. An adoption targets exactly one
+`machineReviewed` assertion IRI; it never targets an endpoint pair or another
+adoption. A consumer may derive a "best mapping" view, but that view is
+disposable and retains links to every contributing assertion.
 
 No evidence class authorizes emit-side use. `humanReviewed` is the only class
 that may satisfy a governance gate above the `searchOnly` ceiling; an exact
@@ -630,6 +656,8 @@ scale:
    receipt is evaluated against policy validity at its signing time. Two
    signatures then prove exactly this much: the receipts were issued by
    two separately trusted validator keys in distinct independence groups.
+   Until that verifier exists, the shared foundation accepts no signed proof
+   kind.
 2. **Hierarchy arm — upgraded from experiment to prerequisite.** Protocol
    v2 emits *directional* verdicts (`target_is_broader`,
    `target_is_narrower`) on sealed inputs that carry no hierarchy — the
@@ -671,18 +699,30 @@ policies include:
   their qualified mappings, for domain-scoped deployments.
 - `explorer` (exists via bounded publication view).
 
-SSSOM export continues per bundle with row-level `mapping_source`,
-edition-scoped prefixes, and no `confidence` column. Origin classes do
-**not** mint nonstandard `mapping_justification` values: justifications
-stay standard `semapv`. Candidate identity and mapping-assertion identity
-stay distinct: every exported qualified row's `see_also` resolves to
-exactly one mapping-assertion IRI, and the sidecar carries the candidate
-IRI, validation receipts, qualification policy, proof status, and use
-ceiling. Rejected and unqualified candidates never export as SSSOM mapping
-rows; they get a separate candidate-evidence representation. The SSSOM
-file and its sidecar publish as one digest-pinned distribution whose
-manifest states that SSSOM rows are interoperability projections — product
-use requires the sidecar and the product's own policy.
+SSSOM export is an interoperability surface for subject mappings and value
+crosswalks, not a universal serialization for all four rings. Entity identity
+links and legal-identity edges use their ring-specific distributions unless a
+later ring design defines a semantically valid SSSOM profile for them. Each
+eligible subject or value bundle exports with row-level `mapping_source`,
+edition-scoped prefixes, and no `confidence` column. Origin classes do **not**
+mint nonstandard `mapping_justification` values: justifications stay standard
+`semapv`.
+
+Candidate identity and mapping-assertion identity stay distinct: every
+exported closed mapping-assertion row's `see_also` resolves to exactly one
+content-derived mapping-assertion IRI. A raw rejected or otherwise unasserted
+candidate never exports as an SSSOM mapping row. A candidate that a named
+operator directly adopts may support a closed mapping assertion; that adopted
+assertion can export, while the sidecar preserves its `operatorAdopted` origin,
+underlying `machineReviewed` fact, and `localOperationalUse` ceiling. For a
+subject `machineQualified` row, the sidecar carries the candidate IRI, exact
+Crosswalk v2 proof pin, every supporting validation receipt in the selected
+sealed-question group, and use ceiling. The proof pin is the sole authority for
+the derived proof kind and qualification policy. Raw candidates use a separate
+candidate-evidence representation. The SSSOM file and its sidecar publish as
+one digest-pinned distribution whose manifest states that SSSOM rows are
+interoperability views and proof facts come from the pinned machine proof —
+product use requires the sidecar and the product's own policy.
 
 **Publication is a decision, not a configuration.** Every atlas build and
 projection cut is authorized by an immutable publication-decision record:
@@ -707,13 +747,19 @@ exists" to "in the atlas," aligned with the catalog's adoption gates:
 
 ```text
 inventoryOnly → evidenceOnly → verifiedDistribution → source concept release
-→ semantic ring → relation and participation review → product admission
+→ semantic ring → relation review
+→ subject participation and curated admission → product policy
 ```
 
-Each step has an existing artifact: readers produce evidence; acquisition
-modules pin verified distributions; a managed or source-concept builder
-packages the release; the atlas classifies it into one ring; ring-specific
-review records admission evidence. An exact product policy activates a use.
+The implemented artifacts cover evidence, verified distributions,
+source-concept releases, ring placement, shared relation bundles, and
+source-concept subject admission. Managed releases can participate in relation
+bundles, but managed-local curated subject admission remains unfinished;
+entity and legal-identity review designs remain unwritten. For subject
+emission, a pinned
+`SubjectEmissionPolicy` records eligibility and an active `OutputProfile` that
+names that exact policy grants permission; retrieval policy separately grants
+search use.
 Proposed order of the next work:
 
 1. **CRS Legislative Subject Terms + Policy Areas → source-scoped concept
