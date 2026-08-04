@@ -91,7 +91,11 @@ def test_the_corpus_marks_in_place_amendments_machine_readably() -> None:
     reading prose, which no reader does.
     """
 
-    assert _CORPUS["amendments"] == ["2026-08-02", "2026-08-02-hierarchy"]
+    assert _CORPUS["amendments"] == [
+        "2026-08-02",
+        "2026-08-02-hierarchy",
+        "2026-08-03-relation-adjudication",
+    ]
     assert _CORPUS["schemaVersion"] == "refspec-vocabulary-atlas-conformance-corpus/v1"
 
     readme = (_BINDING_ROOT / "README.md").read_text(encoding="utf-8")

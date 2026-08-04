@@ -92,10 +92,17 @@ WELL_KNOWN_PREFIXES: Mapping[str, str] = {
 #: ``confidence`` is deliberately absent.  Both spikes flagged a fabricated
 #: ``0.5`` default as an anti-pattern, and a bundle records verdicts, not
 #: scores, so there is no honest number to write.
+#: ``predicate_modifier`` is written only when a row actually carries one, so a
+#: v1 export — where nothing is ever modified — keeps the bytes it published
+#: before the column existed. SSSOM columns are optional; an always-empty one
+#: would move every historical digest to say nothing.
+OPTIONAL_COLUMNS = ("predicate_modifier",)
+
 COLUMNS = (
     "subject_id",
     "subject_label",
     "predicate_id",
+    "predicate_modifier",
     "object_id",
     "object_label",
     "mapping_justification",
@@ -249,6 +256,11 @@ def _rows(bundle: CrosswalkBundle, *, qualified_only: bool) -> list[dict[str, st
     # ``qualified`` verifies the bundle before it reads it, so a bundle that
     # does not close never reaches the table.
     qualified = frozenset(bundle.qualified())
+    # Under v1 the proposal and the verdict are the same claim, so the proposal
+    # is the honest predicate. Under v2 the judge answers a richer question, and
+    # writing the proposal would publish `closeMatch` for a pair two machines
+    # typed as `broadMatch` — a false predicate in an interoperability format.
+    adjudicated = bundle.adjudicated_relations()
     record = bundle.to_dict()
     artifacts = {str(item["id"]): item for item in record["artifacts"]}
     contexts = {
@@ -263,11 +275,20 @@ def _rows(bundle: CrosswalkBundle, *, qualified_only: bool) -> list[dict[str, st
         if qualified_only and identifier not in qualified:
             continue
         labels = _label_index(contexts.get(candidate["inputContextDigest"], {}))
+        relation = adjudicated.get(identifier, candidate["proposedRelation"])
         rows.append(
             {
                 "subject_id": candidate["sourceMember"],
                 "subject_label": labels.get(candidate["sourceMember"], ""),
-                "predicate_id": candidate["proposedRelation"],
+                "predicate_id": relation,
+                # Adjudicated-`related` is a relation two machines agreed on
+                # that the gate deliberately does not publish as a mapping.
+                # SSSOM's own way to say "asserted, not usable as a mapping" is
+                # the modifier, so the typed refusal survives the export instead
+                # of reading as an unreviewed guess.
+                "predicate_modifier": (
+                    "Not" if identifier not in qualified and identifier in adjudicated else ""
+                ),
                 "object_id": candidate["targetMember"],
                 "object_label": labels.get(candidate["targetMember"], ""),
                 "mapping_justification": (
@@ -352,10 +373,15 @@ def sssom_text(bundle: CrosswalkBundle, *, qualified_only: bool = True) -> str:
             + (" (qualified mappings)" if qualified_only else " (all candidates)")
         ),
     }
+    columns = tuple(
+        column
+        for column in COLUMNS
+        if column not in OPTIONAL_COLUMNS or any(row.get(column) for row in rendered)
+    )
     lines: Sequence[str] = [
         *_metadata_lines(metadata),
-        "\t".join(COLUMNS),
-        *("\t".join(row[column] for column in COLUMNS) for row in rendered),
+        "\t".join(columns),
+        *("\t".join(row[column] for column in columns) for row in rendered),
     ]
     return "\n".join(lines) + "\n"
 

@@ -170,7 +170,12 @@ def command_generate(args: argparse.Namespace) -> int:
     )
     rows: list[dict[str, Any]] = []
     for pair in pairs:
-        entry = qual.assemble_candidate(pair, generated_at=args.generated_at, readings=())
+        entry = qual.assemble_candidate(
+            pair,
+            generated_at=args.generated_at,
+            readings=(),
+            protocol=args.protocol,
+        )
         context = next(item for item in entry.artifacts if item.role == "inputContext")
         rows.append(
             {
@@ -191,6 +196,10 @@ def command_generate(args: argparse.Namespace) -> int:
             "generatedAt": args.generated_at,
             "generationPolicy": qual.CANDIDATE_GENERATION_POLICY,
             "limits": dict(sorted(limits.items())),
+            # The protocol is part of what a candidate *is*: it seals a
+            # different rubric and a different payload, so a catalog belongs to
+            # exactly one protocol and says which.
+            "protocol": args.protocol,
             "proposedRelation": qual.PROPOSED_RELATION,
             "seed": args.seed,
             "sourceManifestDigest": source["manifestDigest"],
@@ -316,6 +325,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         outcomes[str(record.get("outcome"))] += 1
         by_candidate.setdefault(str(record["candidate_id"]), []).append(record)
 
+    protocol = str(catalog.get("protocol") or "v1")
     entries: list[qual.AssembledCandidate] = []
     verdicts: Counter[str] = Counter()
     by_class: dict[str, Counter[str]] = {}
@@ -327,9 +337,19 @@ def command_bundle(args: argparse.Namespace) -> int:
             reading = qual.reading_from_receipt(receipt, family, str(receipt["model_id"]))
             if reading is None:
                 continue
+            if reading.protocol != protocol:
+                raise SystemExit(
+                    f"receipt for {row['candidateId']} speaks {reading.protocol}, "
+                    f"but the candidate catalog is {protocol}"
+                )
             readings.append(reading)
             verdicts[f"{family.name}:{reading.verdict}"] += 1
-        entry = qual.assemble_candidate(pair, generated_at=catalog["generatedAt"], readings=tuple(readings))
+        entry = qual.assemble_candidate(
+            pair,
+            generated_at=catalog["generatedAt"],
+            readings=tuple(readings),
+            protocol=protocol,
+        )
         if entry.candidate.identifier != row["candidateId"]:
             raise SystemExit(f"candidate identity moved for {row['candidateId']}; regenerate before bundling")
         entries.append(entry)
@@ -339,9 +359,23 @@ def command_bundle(args: argparse.Namespace) -> int:
 
     bundle = qual.crosswalk_bundle(entries)
     qualified = bundle.qualified()
+    # Two different measurements, kept apart on purpose. `qualified` means
+    # "earned a mapping", and under v2 that includes the directional relations,
+    # so it is NOT comparable to a v1 run's `qualified`. The distractor floor
+    # asks the narrower question v1's floor actually asked — did anything claim
+    # substitutability — and that one is comparable across protocols.
+    substitutable = {
+        "http://www.w3.org/2004/02/skos/core#exactMatch",
+        "http://www.w3.org/2004/02/skos/core#closeMatch",
+    }
+    relations = bundle.adjudicated_relations()
     for entry in entries:
-        if entry.candidate.identifier in qualified:
-            by_class[entry.pair.generation_class]["qualified"] += 1
+        if entry.candidate.identifier not in qualified:
+            continue
+        by_class[entry.pair.generation_class]["qualified"] += 1
+        relation = relations.get(entry.candidate.identifier)
+        if relation is None or relation in substitutable:
+            by_class[entry.pair.generation_class]["qualifiedAsSubstitutable"] += 1
 
     path = output / BUNDLE
     if path.exists() and args.replace:
@@ -367,9 +401,19 @@ def command_bundle(args: argparse.Namespace) -> int:
             "reproduce it byte-for-byte. Every call carries its own request and response digest, "
             "and the bundle it produced is pinned by digest instead."
         ),
-        "eligibilityPolicy": "twoIndependentMachinesSearchOnly",
+        # The admission rule this run actually applied. The atlas manifest's
+        # `mappingEligibility` stays "twoIndependentMachinesSearchOnly" because
+        # that field set is closed and changing it is a binding version bump;
+        # the run receipt is where the two rules are told apart.
+        "eligibilityPolicy": (
+            "twoIndependentMachinesRelationAgreement"
+            if protocol == "v2"
+            else "twoIndependentMachinesSearchOnly"
+        ),
         "generatedAt": catalog["generatedAt"],
+        "protocol": protocol,
         "qualifiedCandidates": len(qualified),
+        "relationsByPredicate": dict(sorted(Counter(relations.values()).items())),
         "sourceManifestDigest": catalog["sourceManifestDigest"],
         "targetManifestDigest": catalog["targetManifestDigest"],
         "totalCandidates": len(entries),
@@ -556,6 +600,12 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--generated-at", required=True, help="pinned candidate timestamp; part of candidate identity")
     generate.add_argument("--seed", default=qual.GENERATION_SEED)
     generate.add_argument("--limit", action="append", metavar="CLASS=N")
+    generate.add_argument(
+        "--protocol",
+        choices=("v1", "v2"),
+        default="v1",
+        help="validation protocol the slice is built for; it seals the rubric, so it fixes candidate identity",
+    )
     generate.set_defaults(handler=command_generate)
 
     qualify = subparsers.add_parser("qualify", help="ask each family about each candidate, once")

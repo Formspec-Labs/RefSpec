@@ -26,6 +26,7 @@ from refspec.atlas import (
 from refspec.atlas.sssom_export import (
     COLUMNS,
     MAPPING_SET_NAMESPACE,
+    OPTIONAL_COLUMNS,
     REVIEWED_JUSTIFICATION,
     UNREVIEWED_JUSTIFICATION,
     SssomExportError,
@@ -231,7 +232,9 @@ def test_table_is_a_metadata_header_a_column_row_and_mapping_rows(bundle: Crossw
     header, columns, rows = _split(sssom_text(bundle))
 
     assert header[0].startswith("# ")
-    assert columns == list(COLUMNS)
+    # Optional columns appear only when a row uses one, so a v1 export keeps the
+    # bytes it published before the column existed.
+    assert columns == [column for column in COLUMNS if column not in OPTIONAL_COLUMNS]
     assert len(rows) == 2
     assert sssom_text(bundle).endswith("\n")
 

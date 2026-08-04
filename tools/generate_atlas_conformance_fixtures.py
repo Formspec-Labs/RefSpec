@@ -54,7 +54,7 @@ CORPUS_PATH = FIXTURE_ROOT / "corpus.json"
 # Dated in-place amendments to binding 1.0, oldest first. Two landed on the
 # same day, so the later one carries a name as well: a bare date could not tell
 # a consumer which of the two a pinned corpus predates.
-AMENDMENTS = ("2026-08-02", "2026-08-02-hierarchy")
+AMENDMENTS = ("2026-08-02", "2026-08-02-hierarchy", "2026-08-03-relation-adjudication")
 
 SOURCE_PUBLICATION = "urn:ref:conformance:alpha-thesaurus:2026"
 TARGET_PUBLICATION = "urn:ref:conformance:beta-thesaurus:2026"
@@ -71,6 +71,41 @@ SOURCE_CONCEPTS = (
 TARGET_CONCEPTS = (
     ("urn:ref:conformance:beta:energy-policy", "energy POLICY "),
     ("urn:ref:conformance:beta:water-pollution-control", "Water pollution control"),
+)
+
+# The v2 distribution is built separately for the same reason as the hierarchy
+# one: the v1 qualification fixture must keep its published bytes, and a reader
+# needs one distribution that exercises every relation the lattice can emit.
+# One candidate per outcome, including the `related` agreement that deliberately
+# emits no mapping at all.
+V2_RELATIONS = (
+    ("same", "same", "exactMatch"),
+    # The lattice downgrade: one machine claimed identity, one refused it, and
+    # the pair qualifies at the weaker claim.
+    ("same", "near_same", "closeMatch"),
+    ("target_is_broader", "target_is_broader", "broadMatch"),
+    ("target_is_narrower", "target_is_narrower", "narrowMatch"),
+    # Agreed, typed, and deliberately not a mapping.
+    ("related", "related", None),
+    # A real disagreement about direction safety; neither relation may be
+    # emitted, because emitting either overrules a machine on its own claim.
+    ("near_same", "target_is_broader", None),
+)
+V2_SOURCE_CONCEPTS = (
+    ("urn:ref:conformance:alpha:energy-policy", "Energy policy"),
+    ("urn:ref:conformance:alpha:water-pollution", "Water pollution"),
+    ("urn:ref:conformance:alpha:fishery-policy", "Fishery policy"),
+    ("urn:ref:conformance:alpha:wind-power", "Wind power"),
+    ("urn:ref:conformance:alpha:terrorism", "Terrorism"),
+    ("urn:ref:conformance:alpha:drugs", "Drugs"),
+)
+V2_TARGET_CONCEPTS = (
+    ("urn:ref:conformance:beta:energy-policy", "energy POLICY "),
+    ("urn:ref:conformance:beta:water-pollution-control", "Water pollution control"),
+    ("urn:ref:conformance:beta:marine-resource-policy", "Marine resource policy"),
+    ("urn:ref:conformance:beta:offshore-wind-power", "Offshore wind power"),
+    ("urn:ref:conformance:beta:terrorists", "Terrorists"),
+    ("urn:ref:conformance:beta:controlled-drugs", "Controlled drugs"),
 )
 
 # The hierarchy distribution is built separately so the qualification fixture
@@ -368,6 +403,7 @@ def _validation(
     provider: str,
     provider_model_id: str,
     completed_at: str,
+    verdict_relation: str | None = None,
 ) -> MachineValidation:
     return MachineValidation.create(
         candidate=candidate.reference(),
@@ -382,6 +418,7 @@ def _validation(
         deterministic_checks_passed=True,
         outcome="supports",
         completed_at=completed_at,
+        verdict_relation=verdict_relation,
     )
 
 
@@ -504,6 +541,105 @@ def _qualified_bundle() -> CrosswalkBundle:
         mapping_candidates=tuple(candidates),
         machine_validations=tuple(validations),
     )
+
+
+def _v2_bundle() -> CrosswalkBundle:
+    """One candidate per lattice outcome, sealed at protocol v2.
+
+    A corpus that only carried v1 bundles could not tell a reader that
+    implements the agreement lattice from one that publishes whatever relation a
+    producer wrote down.
+    """
+
+    artifacts: list[CrosswalkArtifact] = []
+    candidates: list[MappingCandidate] = []
+    validations: list[MachineValidation] = []
+
+    for index, (first_verdict, second_verdict, _) in enumerate(V2_RELATIONS):
+        source_member, source_label = V2_SOURCE_CONCEPTS[index]
+        target_member, target_label = V2_TARGET_CONCEPTS[index]
+        context = _input_context(source_label, target_label)
+        evidence = CrosswalkArtifact.create(
+            role="evidence",
+            media_type="application/json",
+            content={
+                "method": "sealed-label-comparison",
+                "normalizedLabel": source_label.strip().casefold(),
+                "version": "1",
+            },
+        )
+        candidate = _candidate(
+            source_member=source_member,
+            target_member=target_member,
+            evidence=evidence,
+            input_digest=context.content_digest,
+            generated_at=f"2026-08-03T09:{index:02d}:00Z",
+        )
+        request = _request(candidate, context.content_digest)
+        artifacts.extend((context, evidence, request))
+        candidates.append(candidate)
+        for suffix, verdict in (("first", first_verdict), ("second", second_verdict)):
+            actor = f"urn:ref:conformance:validator:{suffix}"
+            provider = f"urn:ref:conformance:provider:{suffix}"
+            provider_model_id = f"provider-model-{suffix}"
+            response = _response(
+                candidate,
+                request,
+                input_digest=context.content_digest,
+                actor=actor,
+                provider=provider,
+                provider_model_id=provider_model_id,
+            )
+            artifacts.append(response)
+            validations.append(
+                _validation(
+                    candidate,
+                    request,
+                    response,
+                    input_digest=context.content_digest,
+                    actor=actor,
+                    group=f"urn:ref:conformance:independence-group:{suffix}",
+                    provider=provider,
+                    provider_model_id=provider_model_id,
+                    completed_at=f"2026-08-03T09:{index:02d}:30Z",
+                    verdict_relation=verdict,
+                )
+            )
+
+    return CrosswalkBundle.create(
+        artifacts=tuple(artifacts),
+        mapping_candidates=tuple(candidates),
+        machine_validations=tuple(validations),
+    )
+
+
+def _build_v2_distribution(work: Path) -> tuple[bytes, bytes]:
+    releases = (
+        _ConformanceReleaseSource(
+            _view(
+                publication=SOURCE_PUBLICATION,
+                release=SOURCE_RELEASE,
+                concepts=V2_SOURCE_CONCEPTS,
+                release_digest=_SOURCE_DIGEST,
+            ),
+            _SOURCE_DIGEST,
+        ),
+        _ConformanceReleaseSource(
+            _view(
+                publication=TARGET_PUBLICATION,
+                release=TARGET_RELEASE,
+                concepts=V2_TARGET_CONCEPTS,
+                release_digest=_TARGET_DIGEST,
+            ),
+            _TARGET_DIGEST,
+        ),
+    )
+    asset = build_vocabulary_atlas(
+        releases,
+        rulespec_core=_core_release(work),
+        crosswalks=(_v2_bundle(),),
+    )
+    return asset.payload, asset.manifest_bytes()
 
 
 def _build_valid_distribution(work: Path) -> tuple[bytes, bytes]:
@@ -687,6 +823,78 @@ def _share_provider_model(lines: list[str]) -> list[str]:
     return edited
 
 
+_ADJUDICATED = "<https://refspec.org/ns/vocabulary-atlas/v1#adjudicatedRelation>"
+_VERDICT_RELATION = "<https://refspec.org/ns/vocabulary-atlas/v1#verdictRelation>"
+_ASSERTS_PREDICATE = "<https://rulespec.org/ns/v1#assertsPredicate>"
+_SKOS = "http://www.w3.org/2004/02/skos/core#"
+
+
+def _replace_once(lines: list[str], marker: str, stated: str, forged: str) -> list[str]:
+    """Rewrite the first statement carrying ``marker`` and ``stated``."""
+
+    edited = list(lines)
+    for index, line in enumerate(edited):
+        if marker in line and stated in line:
+            edited[index] = line.replace(stated, forged)
+            return edited
+    raise VocabularyAtlasError(f"expected a statement carrying {marker} and {stated}")
+
+
+def _forge_mapping_relation(lines: list[str]) -> list[str]:
+    """Publish a predicate the candidate's adjudicated relation does not license."""
+
+    return _replace_once(
+        lines,
+        _ASSERTS_PREDICATE,
+        f"<{_SKOS}broadMatch>",
+        f"<{_SKOS}closeMatch>",
+    )
+
+
+def _forge_adjudicated_relation(lines: list[str]) -> list[str]:
+    """State an adjudication the sealed verdicts do not support."""
+
+    return _replace_once(
+        lines,
+        _ADJUDICATED,
+        f"<{_SKOS}narrowMatch>",
+        f"<{_SKOS}broadMatch>",
+    )
+
+
+def _forge_verdict_disagreement(lines: list[str]) -> list[str]:
+    """Turn one machine's verdict against its partner, leaving the mapping."""
+
+    return _replace_once(lines, _VERDICT_RELATION, '"target_is_narrower"', '"related"')
+
+
+def _promote_adjudicated_related(lines: list[str]) -> list[str]:
+    """Make the agreed-`related` candidate eligible without giving it a mapping.
+
+    The verdicts still say `related` and the adjudication still reads
+    `relatedMatch`, so this isolates one rule: an associative agreement is not a
+    licence to use the pair for search.
+    """
+
+    subject = next(
+        line.split(" ", 1)[0]
+        for line in lines
+        if _ADJUDICATED in line and f"<{_SKOS}relatedMatch>" in line
+    )
+    marker = f"{subject} <https://rulespec.org/ns/v1#usageEligibility>"
+    edited: list[str] = []
+    replaced = 0
+    for line in lines:
+        if line.startswith(marker):
+            edited.append(line.replace("#notEligible>", "#searchOnly>"))
+            replaced += 1
+            continue
+        edited.append(line)
+    if replaced != 1:
+        raise VocabularyAtlasError("expected one adjudicated-related eligibility to promote")
+    return edited
+
+
 def _substitute(lines: list[str], stated: str, forged: str) -> list[str]:
     edited = [line.replace(stated, forged) if line.startswith(stated) else line for line in lines]
     if sum(1 for line in edited if line.startswith(forged)) != 1:
@@ -818,6 +1026,44 @@ _CASES: tuple[dict[str, Any], ...] = (
         "id": "search-only-requires-distinct-provider-models",
         "valid": False,
     },
+    {
+        "base": "v2",
+        "directory": "valid/relation-adjudication",
+        "id": "adjudicated-relations-are-accepted",
+        "valid": True,
+    },
+    {
+        "base": "v2",
+        "directory": "invalid/mapping-relation-not-adjudicated",
+        "errorContains": "searchOnly mapping differs from its candidate",
+        "forge": _forge_mapping_relation,
+        "id": "mapping-relation-matches-the-adjudicated-relation",
+        "valid": False,
+    },
+    {
+        "base": "v2",
+        "directory": "invalid/adjudication-without-verdicts",
+        "errorContains": "does not follow from its verdicts",
+        "forge": _forge_adjudicated_relation,
+        "id": "adjudicated-relation-follows-from-its-verdicts",
+        "valid": False,
+    },
+    {
+        "base": "v2",
+        "directory": "invalid/disagreeing-verdict-relations",
+        "errorContains": "disagree about the relation",
+        "forge": _forge_verdict_disagreement,
+        "id": "qualifying-verdicts-must-agree-on-one-relation",
+        "valid": False,
+    },
+    {
+        "base": "v2",
+        "directory": "invalid/promoted-adjudicated-related",
+        "errorContains": "adjudicated related candidate must not be eligible",
+        "forge": _promote_adjudicated_related,
+        "id": "adjudicated-related-must-not-become-substitutable",
+        "valid": False,
+    },
 )
 
 
@@ -826,6 +1072,7 @@ def _generate() -> dict[str, tuple[bytes, bytes]]:
         bases = {
             "qualified": _build_valid_distribution(Path(raw) / "qualified"),
             "hierarchy": _build_hierarchy_distribution(Path(raw) / "hierarchy"),
+            "v2": _build_v2_distribution(Path(raw) / "v2"),
         }
     generated: dict[str, tuple[bytes, bytes]] = {}
     for case in _CASES:

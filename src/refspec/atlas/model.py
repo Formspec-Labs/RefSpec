@@ -78,30 +78,40 @@ _V2_VERDICT_OUTCOMES: Mapping[str, str] = MappingProxyType(
 )
 _V2_VERDICTS = frozenset(_V2_VERDICT_OUTCOMES)
 _CROSSWALK_SCHEMA_V2 = "2.0"
-#: Adjudicated-``related``: recorded on the candidate, but no mapping emitted.
-_RELATED_SENTINEL = "related"
+#: Adjudicated-``related`` is a relation like any other — it is recorded on the
+#: candidate as ``skos:relatedMatch`` — but it is the one agreed relation that
+#: emits no ``ConceptMapping``.  Promoting associative links to consumable
+#: mappings is a separate decision for a consumer that actually wants them.
+_RELATED_MATCH = "http://www.w3.org/2004/02/skos/core#relatedMatch"
+#: v1 validations carry no verdict relation at all; their agreement is the v1
+#: yes/no and emission uses the candidate's proposed relation exactly as before.
+_PROPOSED_TAG = "proposed"
 
 
-def _agreed_relation(first: str, second: str) -> str | None:
-    """The v2 agreement lattice: two compatible verdicts, emitted at the weaker.
+def _agreed_relation_for(verdicts: frozenset[str]) -> str | None:
+    """The v2 agreement lattice, folded over *every* supporting verdict.
 
-    ``same``+``near_same`` agree that substitution is symmetric and disagree
-    only about identity, so the pair qualifies at ``closeMatch``.  Every other
-    cross-relation combination is a real disagreement about the claim itself
-    and yields nothing.
+    The rule is universal, not existential: every supporting validation on one
+    question must be relation-compatible with every other, and the mapping is
+    emitted at the weakest claim any of them made.  ``same``+``near_same`` agree
+    that substitution is symmetric and disagree only about identity, so that set
+    qualifies at ``closeMatch``.  Every other mixture is a real disagreement
+    about the claim itself — emitting either relation would overrule a machine
+    on the precise thing that relation asserts — and yields nothing.
     """
 
-    pair = {first, second}
-    if pair == {"same"}:
+    if not verdicts:
+        return None
+    if verdicts == {"same"}:
         return "http://www.w3.org/2004/02/skos/core#exactMatch"
-    if pair <= {"same", "near_same"}:
+    if verdicts <= {"same", "near_same"}:
         return "http://www.w3.org/2004/02/skos/core#closeMatch"
-    if pair == {"target_is_broader"}:
+    if verdicts == {"target_is_broader"}:
         return "http://www.w3.org/2004/02/skos/core#broadMatch"
-    if pair == {"target_is_narrower"}:
+    if verdicts == {"target_is_narrower"}:
         return "http://www.w3.org/2004/02/skos/core#narrowMatch"
-    if pair == {"related"}:
-        return _RELATED_SENTINEL
+    if verdicts == {"related"}:
+        return _RELATED_MATCH
     return None
 _ARTIFACT_ROLES = frozenset(
     {"evidence", "inputContext", "validationRequest", "validationResponse"}
@@ -1060,6 +1070,24 @@ class CrosswalkBundle:
         validations = {item["id"]: item for item in record["machineValidations"]}
         return _qualified_candidates(candidates, validations)
 
+    def adjudicated_relations(self) -> dict[str, str]:
+        """Every candidate's agreed relation IRI, adjudicated-``related`` included.
+
+        Read through the same lattice the atlas builder uses, so a report that
+        counts relations can never drift from the gate that emitted them. v1
+        candidates are absent: their agreement carries no relation of its own.
+        """
+
+        self.verify()
+        record = self.to_dict()
+        candidates = {item["id"]: item for item in record["mappingCandidates"]}
+        validations = {item["id"]: item for item in record["machineValidations"]}
+        return {
+            candidate_id: relation
+            for candidate_id, (_, relation) in _independent_agreements(candidates, validations).items()
+            if relation != _PROPOSED_TAG
+        }
+
 
 def _unique_records(values: Sequence[Any], label: str) -> dict[str, dict[str, Any]]:
     result: dict[str, dict[str, Any]] = {}
@@ -1176,28 +1204,37 @@ def _validate_crosswalk_closure(
         _resolve_reference(record["candidate"], candidates, "feedback candidate")
 
 
-def _agreement_relation_tag(first: Mapping[str, Any], second: Mapping[str, Any]) -> str | None:
-    """The relation an independent supporting pair agrees on, or None.
+def _agreement_relation_tag(values: Sequence[Mapping[str, Any]]) -> str | None:
+    """The relation every supporting validation on one question agrees on.
 
     v1 validations carry no ``verdictRelation``; their agreement is the v1
     yes/no, tagged ``proposed`` so emission uses the candidate's proposed
-    relation exactly as before.
+    relation exactly as before.  A mixture of v1 and v2 validations cannot be
+    adjudicated at all — the bundle already refuses to seal one, and this is the
+    same refusal stated where the rule is applied.
     """
 
-    left = first.get("verdictRelation")
-    right = second.get("verdictRelation")
-    if left is None and right is None:
-        return "proposed"
-    if left is None or right is None:
+    relations = [value.get("verdictRelation") for value in values]
+    if not relations:
         return None
-    return _agreed_relation(str(left), str(right))
+    if all(relation is None for relation in relations):
+        return _PROPOSED_TAG
+    if any(relation is None for relation in relations):
+        return None
+    return _agreed_relation_for(frozenset(str(relation) for relation in relations))
 
 
 def _independent_agreements(
     candidates: Mapping[str, Mapping[str, Any]],
     validations: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, tuple[tuple[dict[str, Any], ...], str]]:
-    """Every candidate with an independent, relation-compatible supporting pair."""
+    """Every candidate whose supporting validations agree on one relation.
+
+    Two gates, in order.  The relation gate is universal — *every* supporting
+    validation asked the same question must be compatible with every other, so a
+    third machine can never outvote a direction disagreement.  The independence
+    gate then requires two of them to be genuinely different machines.
+    """
 
     by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in validations.values():
@@ -1218,13 +1255,16 @@ def _independent_agreements(
             grouped[key].append(validation)
         for key in sorted(grouped):
             values = sorted(grouped[key], key=lambda item: item["id"])
-            found = next(
+            relation = _agreement_relation_tag(values)
+            if relation is None:
+                # These machines did not answer one question with one relation.
+                # A different sealed question may still have agreement.
+                continue
+            pair = next(
                 (
-                    (pair, relation)
+                    pair
                     for pair in itertools.combinations(values, 2)
-                    for relation in (_agreement_relation_tag(pair[0], pair[1]),)
-                    if relation is not None
-                    and pair[0]["validatorActor"] != pair[1]["validatorActor"]
+                    if pair[0]["validatorActor"] != pair[1]["validatorActor"]
                     and pair[0]["independenceGroup"] != pair[1]["independenceGroup"]
                     and pair[0]["provider"] != pair[1]["provider"]
                     and pair[0]["providerModelId"] != pair[1]["providerModelId"]
@@ -1232,8 +1272,8 @@ def _independent_agreements(
                 ),
                 None,
             )
-            if found is not None:
-                agreements[candidate_id] = (cast(tuple[dict[str, Any], ...], found[0]), found[1])
+            if pair is not None:
+                agreements[candidate_id] = (cast(tuple[dict[str, Any], ...], pair), relation)
                 break
     return agreements
 
@@ -1247,7 +1287,7 @@ def _qualified_candidates(
     return {
         candidate_id: pair
         for candidate_id, (pair, relation) in _independent_agreements(candidates, validations).items()
-        if relation != _RELATED_SENTINEL
+        if relation != _RELATED_MATCH
     }
 
 
@@ -1645,7 +1685,7 @@ def _build_dataset(
         qualified = {
             candidate_id: pair
             for candidate_id, (pair, relation) in agreements.items()
-            if relation != _RELATED_SENTINEL
+            if relation != _RELATED_MATCH
         }
         for artifact in bundle["artifacts"]:
             node = URIRef(artifact["id"])
@@ -1737,11 +1777,17 @@ def _build_dataset(
             candidate_count += 1
 
             agreement = agreements.get(candidate_id)
-            if agreement is not None and agreement[1] == _RELATED_SENTINEL:
-                # Two independent machines agreed the pair is associated but
-                # not substitutable.  The typed refusal is stated so it never
-                # reads as noise, and no mapping is emitted.
-                analysis.add((node, ATLAS.adjudicatedRelation, RdfLiteral(_RELATED_SENTINEL)))
+            # The adjudicated relation is the candidate's own fact under v2, and
+            # it is what anchors the mapping's predicate.  `proposedRelation` is
+            # the hypothesis the judge was tested against and stays untouched;
+            # under v1 there is no adjudicated relation and the proposal is
+            # still the anchor, exactly as before.
+            if agreement is not None and agreement[1] != _PROPOSED_TAG:
+                analysis.add((node, ATLAS.adjudicatedRelation, URIRef(agreement[1])))
+            if agreement is not None and agreement[1] == _RELATED_MATCH:
+                # Independent machines agreed the pair is associated but not
+                # substitutable.  The relation is stated on the candidate so the
+                # refusal is typed rather than blank, and no mapping is emitted.
                 analysis.add((node, RKAF.usageEligibility, RKAF.notEligible))
                 continue
             selected = qualified.get(candidate_id)
@@ -1750,7 +1796,7 @@ def _build_dataset(
                 continue
             relation_iri = (
                 agreement[1]
-                if agreement is not None and agreement[1] != "proposed"
+                if agreement is not None and agreement[1] != _PROPOSED_TAG
                 else str(candidate["proposedRelation"])
             )
             analysis.add((node, RKAF.usageEligibility, RKAF.searchOnly))
@@ -1834,6 +1880,17 @@ def _build_dataset(
                 )
             )
             analysis.add((node, ATLAS.outcome, RdfLiteral(validation["outcome"])))
+            if "verdictRelation" in validation:
+                # Published so the agreement lattice is checkable from the atlas
+                # bytes alone.  Without it a reader can see *that* a relation was
+                # adjudicated but never that it follows from the verdicts.
+                analysis.add(
+                    (
+                        node,
+                        ATLAS.verdictRelation,
+                        RdfLiteral(validation["verdictRelation"]),
+                    )
+                )
             analysis.add(
                 (
                     node,
@@ -2061,6 +2118,64 @@ def _validate_projected_artifact(graph: Graph, artifact: URIRef, *, role: str) -
     )
 
 
+def _verify_adjudicated_relation(graph: Graph, *, candidate: URIRef, anchor: URIRef) -> None:
+    """The agreement lattice, re-derived from the published verdicts.
+
+    Checking only that a mapping matches its candidate's adjudicated relation
+    would accept a distribution whose adjudication contradicts the very verdicts
+    it cites. The rule is universal: every supporting validation that answered
+    this candidate's sealed question must be relation-compatible with every
+    other, and the adjudicated relation is the weakest claim any of them made.
+    """
+
+    input_digest = str(_one_literal(graph, candidate, ATLAS.inputContextDigest, "mapping input digest"))
+    relations: set[str] = set()
+    requests: set[URIRef] = set()
+    carriers = 0
+    supporters = 0
+    for validation in graph.subjects(ATLAS.validates, candidate):
+        if not isinstance(validation, URIRef):
+            raise VocabularyAtlasError("machine validation must be an IRI")
+        if (validation, RDF.type, ATLAS.MachineValidation) not in graph:
+            raise VocabularyAtlasError("machine validation is untyped")
+        sealed = _one_literal(graph, validation, ATLAS.sealedInputDigest, "machine sealed input digest")
+        if str(sealed) != input_digest:
+            continue
+        if str(_one_literal(graph, validation, ATLAS.outcome, "machine validation outcome")) != "supports":
+            continue
+        deterministic = _one_literal(
+            graph,
+            validation,
+            ATLAS.deterministicChecksPassed,
+            "machine deterministic check",
+        )
+        if deterministic.toPython() is not True:
+            continue
+        supporters += 1
+        requests.add(_one_resource(graph, validation, ATLAS.requestArtifact, "machine request artifact"))
+        stated = tuple(graph.objects(validation, ATLAS.verdictRelation))
+        if len(stated) > 1:
+            raise VocabularyAtlasError("machine validation verdictRelation must have exactly one value")
+        if stated:
+            carriers += 1
+            relations.add(str(stated[0]))
+    if carriers != supporters:
+        raise VocabularyAtlasError("machine validations mix adjudicated and unadjudicated verdicts")
+    if not relations:
+        raise VocabularyAtlasError("mapping candidate states an adjudicated relation with no verdicts")
+    if len(requests) != 1:
+        # Machines that answered different requests are answers to different
+        # questions, and folding them would invent an agreement.
+        raise VocabularyAtlasError("adjudicated validations answered different requests")
+    if any(relation not in _V2_VERDICTS for relation in relations):
+        raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
+    agreed = _agreed_relation_for(relations)
+    if agreed is None:
+        raise VocabularyAtlasError("qualifying validations disagree about the relation")
+    if agreed != str(anchor):
+        raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
+
+
 def _reference_release_digest(graph: Graph, release: URIRef) -> str:
     if (release, RDF.type, RKAF.ReferenceResourceRelease) not in graph:
         raise VocabularyAtlasError("searchOnly mapping release is not a ReferenceResourceRelease")
@@ -2096,6 +2211,38 @@ def _validate_query_graph_semantics(
             raise VocabularyAtlasError("atlas analysis membership is absent from authoritative release facts")
 
     _label_cluster_nodes(analysis)
+
+    # Every adjudication is checked here, on the candidate that states it,
+    # whether or not it went on to earn a mapping. Checking only the ones that
+    # qualified would leave adjudicated-`related` — the single agreed relation
+    # that emits no mapping — unverifiable, and that is exactly the claim a
+    # producer would have the most reason to overstate.
+    #
+    # Mapping subjects are collected without cardinality checks on purpose: the
+    # mapping loop below owns those, and preempting them here would change which
+    # refusal a forged distribution gets.
+    qualified_candidates = {
+        value
+        for mapping in _search_only_mapping_nodes(analysis)
+        for value in analysis.objects(mapping, ATLAS.qualifiedFrom)
+    }
+    for candidate in sorted(analysis.subjects(RDF.type, ATLAS.MappingCandidate), key=str):
+        if not isinstance(candidate, URIRef):
+            raise VocabularyAtlasError("mapping candidate must be an IRI")
+        stated = tuple(analysis.objects(candidate, ATLAS.adjudicatedRelation))
+        if not stated:
+            continue
+        if len(stated) > 1 or not isinstance(stated[0], URIRef):
+            raise VocabularyAtlasError("mapping candidate adjudicated relation must have exactly one IRI")
+        if str(stated[0]) not in _MAPPING_RELATIONS:
+            raise VocabularyAtlasError("mapping candidate adjudicated relation is unsupported")
+        _verify_adjudicated_relation(analysis, candidate=candidate, anchor=stated[0])
+        if str(stated[0]) != _RELATED_MATCH:
+            continue
+        if candidate in qualified_candidates:
+            raise VocabularyAtlasError("adjudicated related must not qualify a searchOnly mapping")
+        if _one_resource(analysis, candidate, RKAF.usageEligibility, "candidate eligibility") != RKAF.notEligible:
+            raise VocabularyAtlasError("adjudicated related candidate must not be eligible")
 
     for mapping in _search_only_mapping_nodes(analysis):
         validations = _search_only_mapping_validations(analysis, mapping)
@@ -2139,9 +2286,23 @@ def _validate_query_graph_semantics(
             raise VocabularyAtlasError("searchOnly mapping candidate is missing")
         if _one_resource(analysis, candidate, RKAF.usageEligibility, "candidate eligibility") != RKAF.searchOnly:
             raise VocabularyAtlasError("searchOnly mapping candidate is not searchOnly")
+        # The relation anchor. Under v1 the candidate's proposal *is* the
+        # adjudicated answer, so the proposal anchors the mapping. Under v2 the
+        # judge answers a richer question than the one proposed, so the
+        # adjudicated relation anchors it and the proposal stays the untouched
+        # record of what was tested. Anchoring v2 to the proposal would forbid
+        # every relation except the one hypothesis it holds.
+        adjudicated = tuple(analysis.objects(candidate, ATLAS.adjudicatedRelation))
+        if len(adjudicated) > 1:
+            raise VocabularyAtlasError("mapping candidate adjudicated relation must have exactly one IRI")
+        if adjudicated and not isinstance(adjudicated[0], URIRef):
+            raise VocabularyAtlasError("mapping candidate adjudicated relation must be an IRI")
+        if adjudicated and str(adjudicated[0]) not in _MAPPING_RELATIONS:
+            raise VocabularyAtlasError("mapping candidate adjudicated relation is unsupported")
+        anchor = adjudicated[0] if adjudicated else None
+        proposed = _one_resource(analysis, candidate, ATLAS.proposedRelation, "mapping candidate proposal")
         expected_candidate_values = (
             (ATLAS.sourceMember, source),
-            (ATLAS.proposedRelation, relation),
             (ATLAS.targetMember, target),
             (ATLAS.sourceRelease, source_release),
             (ATLAS.targetRelease, target_release),
@@ -2150,6 +2311,8 @@ def _validate_query_graph_semantics(
             _one_resource(analysis, candidate, predicate, "mapping candidate endpoint") != expected
             for predicate, expected in expected_candidate_values
         ):
+            raise VocabularyAtlasError("searchOnly mapping differs from its candidate")
+        if (anchor if anchor is not None else proposed) != relation:
             raise VocabularyAtlasError("searchOnly mapping differs from its candidate")
         _require_digest(
             str(_one_literal(analysis, candidate, ATLAS.candidateDigest, "mapping candidate digest")),
@@ -2187,6 +2350,7 @@ def _validate_query_graph_semantics(
             _validate_projected_artifact(analysis, artifact, role="evidence")
 
         independence: list[tuple[URIRef, URIRef, URIRef, str, URIRef]] = []
+        requests: set[URIRef] = set()
         for validation in validations:
             if (validation, RDF.type, ATLAS.MachineValidation) not in analysis:
                 raise VocabularyAtlasError("searchOnly mapping validation is missing")
@@ -2232,10 +2396,15 @@ def _validate_query_graph_semantics(
             response = _one_resource(analysis, validation, ATLAS.responseArtifact, "machine response artifact")
             _validate_projected_artifact(analysis, request, role="validationRequest")
             _validate_projected_artifact(analysis, response, role="validationResponse")
+            requests.add(request)
             independence.append((actor, group, provider, provider_model_id, response))
         first, second = independence
         if any(left == right for left, right in zip(first, second, strict=True)):
             raise VocabularyAtlasError("searchOnly mapping validations are not independent")
+        if len(requests) != 1:
+            # Two machines that answered different requests are two answers to
+            # two questions, not a corroboration.
+            raise VocabularyAtlasError("searchOnly mapping validations answered different requests")
         expected_mapping = _stable_iri(
             "search-only-mapping",
             str(candidate),

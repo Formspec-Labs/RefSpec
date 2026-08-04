@@ -131,6 +131,10 @@ RANDOM_CONTROL_ATTEMPT_CEILING = 200_000
 
 MODEL_INPUT_PROTOCOL = "refspec-atlas-crosswalk-model-input-v1"
 VALIDATION_REQUEST_PROTOCOL = "refspec-atlas-machine-validation-v1"
+#: v2 asks a different question with a different rubric, so it seals a different
+#: input.  Naming it here — and sealing the v2 rubric bytes — is what keeps the
+#: inputContext artifact the honest record of what the judge actually saw.
+MODEL_INPUT_PROTOCOL_V2 = "refspec-atlas-crosswalk-model-input-v2"
 EVIDENCE_METHOD_VERSION = "1"
 
 GENERATOR_ACTOR = "urn:ref:actor:atlas-crosswalk-candidate-generator"
@@ -684,39 +688,54 @@ def task_id(pair: CandidatePair) -> str:
     return "task-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
 
 
-def model_input_payload(pair: CandidatePair) -> dict[str, Any]:
+def model_input_payload(pair: CandidatePair, *, protocol: str = "v1") -> dict[str, Any]:
     """Everything the machine sees about one pair.
 
     Note what is absent: the generation class, the evidence that proposed the
     pair, and any hint of which side the generator expects to win.  The judge
     reads two concepts.
+
+    ``proposedRelation`` is v1's question restated — "is *this* relation safe?" —
+    so v1 shows it and the verdict answers it.  v2 asks which of seven relations
+    holds, and the same field would be a standing ``closeMatch`` prior on the one
+    axis v2 exists to measure, so v2 does not show it.  It stays on the sealed
+    candidate either way, as the record of the hypothesis under test.
     """
 
-    return {
-        "proposedRelation": PROPOSED_RELATION,
+    payload: dict[str, Any] = {
         "source": _concept_payload(pair.source),
         "target": _concept_payload(pair.target),
         "taskId": task_id(pair),
     }
+    if protocol != "v2":
+        payload["proposedRelation"] = PROPOSED_RELATION
+    return payload
 
 
 def model_input_texts(pair: CandidatePair, *, protocol: str = "v1") -> tuple[str, str]:
     """Return the exact ``(system, user)`` strings sent to every family."""
 
     system = instructions_text_v2() if protocol == "v2" else instructions_text()
-    return system, canonical_json(model_input_payload(pair))
+    return system, canonical_json(model_input_payload(pair, protocol=protocol))
 
 
-def input_context_artifact(pair: CandidatePair) -> CrosswalkArtifact:
-    """Seal the model-input bytes so the bundle's closure check can resolve them."""
+def input_context_artifact(pair: CandidatePair, *, protocol: str = "v1") -> CrosswalkArtifact:
+    """Seal the model-input bytes so the bundle's closure check can resolve them.
 
+    These are the bytes the binding calls "the exact model input", so they must
+    be the protocol's own rubric and payload.  Sealing v1 text for a v2 run would
+    make every v2 bundle's provenance false in the one field a reader consults to
+    learn what the judge was asked.
+    """
+
+    system, _ = model_input_texts(pair, protocol=protocol)
     return CrosswalkArtifact.create(
         role="inputContext",
         media_type="application/json",
         content={
-            "instructions": instructions_text(),
-            "payload": model_input_payload(pair),
-            "protocol": MODEL_INPUT_PROTOCOL,
+            "instructions": system,
+            "payload": model_input_payload(pair, protocol=protocol),
+            "protocol": MODEL_INPUT_PROTOCOL_V2 if protocol == "v2" else MODEL_INPUT_PROTOCOL,
         },
     )
 
@@ -735,7 +754,12 @@ def evidence_artifact(pair: CandidatePair) -> CrosswalkArtifact:
     )
 
 
-def validation_request_artifact(candidate: MappingCandidate, input_digest: str) -> CrosswalkArtifact:
+def validation_request_artifact(
+    candidate: MappingCandidate,
+    input_digest: str,
+    *,
+    protocol: str = "v1",
+) -> CrosswalkArtifact:
     """One request per candidate, shared by both families.
 
     The gate groups a candidate's validations by ``(sealed input, request)``
@@ -749,7 +773,7 @@ def validation_request_artifact(candidate: MappingCandidate, input_digest: str) 
         content={
             "candidate": candidate.reference(),
             "inputDigest": input_digest,
-            "protocol": VALIDATION_REQUEST_PROTOCOL,
+            "protocol": PROTOCOL_V2 if protocol == "v2" else VALIDATION_REQUEST_PROTOCOL,
         },
     )
 
@@ -1332,19 +1356,32 @@ def assemble_candidate(
     *,
     generated_at: str,
     readings: Sequence[ValidationReading],
+    protocol: str | None = None,
 ) -> AssembledCandidate:
     """Seal one candidate and whichever machine answers came back.
 
     At most one reading per family: k is 1 and the two families ARE the
     redundancy, so a second answer from one family is the same machine asked
     twice and must never look like corroboration.
+
+    The protocol is read off the readings unless it is given, because the
+    receipts are what actually record which question was bought.  A candidate's
+    identity moves with it: v2 seals a different rubric and a different payload,
+    so a v2 candidate is a different candidate, not the same one relabelled.
     """
 
     groups = [reading.family.independence_group for reading in readings]
     if len(set(groups)) != len(groups):
         raise QualificationError("a candidate takes at most one validation per independence group")
+    protocols = {reading.protocol for reading in readings}
+    if len(protocols) > 1:
+        raise QualificationError("a candidate takes one protocol across its validations")
+    if protocol is None:
+        protocol = protocols.pop() if protocols else "v1"
+    elif protocols and protocols != {protocol}:
+        raise QualificationError("candidate protocol disagrees with its readings")
 
-    context = input_context_artifact(pair)
+    context = input_context_artifact(pair, protocol=protocol)
     evidence = evidence_artifact(pair)
     candidate = MappingCandidate.create(
         source_member=pair.source.member,
@@ -1363,7 +1400,7 @@ def assemble_candidate(
         evidence=(evidence.reference(),),
         generated_at=generated_at,
     )
-    request = validation_request_artifact(candidate, context.content_digest)
+    request = validation_request_artifact(candidate, context.content_digest, protocol=protocol)
     artifacts: list[CrosswalkArtifact] = [context, evidence, request]
     validations: list[MachineValidation] = []
     for reading in readings:
@@ -1531,6 +1568,7 @@ __all__ = [
     "INSTRUCTIONS",
     "INSTRUCTIONS_V2",
     "MODEL_INPUT_PROTOCOL",
+    "MODEL_INPUT_PROTOCOL_V2",
     "OPENAI_FAMILY",
     "PROPOSED_RELATION",
     "PROTOCOL_V2",

@@ -72,7 +72,10 @@ graph:
 - exactly one source, relation, target, source release, target release, and
   qualifying candidate, plus exactly one eligibility value equal to
   `rkaf:searchOnly`;
-- the mapping endpoints and relation exactly match that candidate;
+- the mapping endpoints exactly match that candidate, and the mapping relation
+  exactly matches the candidate's `atlas:adjudicatedRelation` when it states one
+  and its `atlas:proposedRelation` otherwise (see the relation-adjudication
+  amendment below);
 - both endpoints belong to the claimed releases and occur in release facts;
 - the relation is a supported SKOS mapping relation;
 - origin is `rkaf:aiSuggested`, epistemic basis is
@@ -236,6 +239,65 @@ acyclicity — and **not** by finding a matching `concept_relations` row. The
 release graph is the authority; a resource-valued broader statement the graph
 makes is admitted whether or not a normalized row also covers it. The rows are
 consulted only for the repair in (2).
+
+### Amendment 2026-08-03-relation-adjudication: the adjudicated relation
+
+Machine-readable marker: `fixtures/corpus.json` carries
+`"2026-08-03-relation-adjudication"` in `amendments`. Every generated case
+digest changed here, because the rule below changes what the analysis graph
+carries and the implementation pin moves with it.
+
+Until this amendment a machine validation answered one question — is
+`skos:closeMatch` safe in both directions — so the candidate's
+`atlas:proposedRelation` was both the hypothesis under test and the adjudicated
+answer, and anchoring a mapping to it was exact. A validation may now instead
+answer *which* relation holds. Two facts are new, both optional:
+
+- `atlas:verdictRelation` on an `atlas:MachineValidation`, a literal drawn from
+  `same`, `near_same`, `target_is_broader`, `target_is_narrower`, `related`,
+  `unrelated`, `insufficient_evidence`; and
+- `atlas:adjudicatedRelation` on an `atlas:MappingCandidate`, one IRI drawn from
+  the supported SKOS mapping relations.
+
+Where they appear, a consumer MUST additionally verify:
+
+- every supporting machine validation of one candidate either carries
+  `atlas:verdictRelation` or none does — a distribution may not mix the two;
+- all such validations resolve the same `atlas:requestArtifact`, and their
+  distinct verdicts agree under the lattice: `{same}` adjudicates
+  `skos:exactMatch`; any subset of `{same, near_same}` adjudicates
+  `skos:closeMatch`; `{target_is_broader}` adjudicates `skos:broadMatch`;
+  `{target_is_narrower}` adjudicates `skos:narrowMatch`; `{related}` adjudicates
+  `skos:relatedMatch`; every other set is a disagreement and adjudicates
+  nothing;
+- the candidate's `atlas:adjudicatedRelation` equals that adjudicated relation;
+  and
+- a candidate adjudicated `skos:relatedMatch` carries `rkaf:notEligible` and
+  qualifies no `rkaf:ConceptMapping`. Two machines agreeing that a pair is
+  associated is not a licence to substitute one for the other in search, so the
+  relation is stated and the mapping withheld.
+
+The lattice is universal, not existential: it folds *every* supporting verdict
+on one question, so a third machine can never outvote a direction disagreement,
+and a set that mixes `near_same` with a directional verdict qualifies nothing.
+The mapping is emitted at the weakest claim any machine made, which is why
+`same` together with `near_same` yields `closeMatch` — one machine declined to
+claim identity, and `skos:exactMatch` is the only mapping relation whose
+transitivity a consumer may rely on.
+
+`atlas:proposedRelation` keeps its meaning unchanged and stays on every
+candidate: it is the hypothesis the judge was tested against, held uniform so a
+generator's per-class expectation never reaches the judge. It is no longer the
+mapping's anchor when an adjudicated relation is present. The amendment is
+compatible in the direction that matters: a distribution carrying neither new
+fact is read exactly as before, and every previously valid distribution stays
+valid, because none of them adjudicated a relation.
+
+The manifest's `policies.mappingEligibility` deliberately stays
+`twoIndependentMachinesSearchOnly`. That field set is closed on both sides and
+changing a value is a binding version bump, not an in-place amendment; the two
+admission rules are told apart by the presence of these facts, and a producer's
+own run receipt records which protocol it ran.
 
 ## Conformance corpus
 
