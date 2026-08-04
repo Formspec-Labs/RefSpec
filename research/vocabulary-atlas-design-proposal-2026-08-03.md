@@ -506,12 +506,16 @@ can adopt a single-model review without mislabeling where the judgment came
 from.
 
 All rings use the shared content-derived `MachineEvidenceProof` pin shape and
-the `RelationMachineProofSource` adapter interface. The shared fields bind the
+the `RelationMachineProofSource` adapter interface. RefSpec code must register
+an exact adapter class as trusted executable authority; input data cannot
+register an adapter, and subclasses do not inherit trust. Each proof pin names
+its registered `proofAdapter`, and the bundle independently matches the pin's
+file digest to the adapter's reopened source bytes. The shared fields bind the
 ring, evidence class, candidate, validation receipts, endpoint concepts and
 releases, relation, complete ring-specific context such as value effective
-dates, qualification policy when applicable, and exact source digests;
-`proofKind` and `proofDetails` remain adapter-defined so adding a ring does not
-change the relation-bundle foundation.
+dates, qualification policy when applicable, and exact source digests.
+`proofKind` and `proofDetails` remain adapter-defined so adding a ring registers
+new executable proof logic without changing the relation-bundle record shape.
 
 The current Crosswalk proof adapter is deliberately subject-only. A
 path-backed `PinnedCrosswalkMachineProof` reopens one exact `CrosswalkBundle`

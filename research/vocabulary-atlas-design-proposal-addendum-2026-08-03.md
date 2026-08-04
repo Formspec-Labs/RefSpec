@@ -173,8 +173,14 @@ outputs on one foundation: a shared concept-identity record shape, releases,
 provenance, rights, evidence classes, mapping-assertion structure, and
 lifecycle. Each ring still needs its own relation vocabulary and validation
 rules. The foundation is fixed now rather than deferred until those ring
-designs exist: each design adds ring-scoped predicates, proof adapters, and
-checks without forking the shared record shapes.
+designs exist: each design adds ring-scoped predicates, explicitly registered
+trusted proof adapters, and checks without forking the shared record shapes.
+
+Every proof adapter is an explicit executable trust decision. RefSpec code
+registers the exact adapter class; its content-derived pin names the same
+`proofAdapter`; captured data cannot register one; and a subclass does not
+inherit authority. The shared shape therefore supports new ring-specific
+proofs without treating any path-backed object as a trusted interpreter.
 
 - **Entity relation and proof layer — unwritten; shared foundation fixed.** Agencies,
   award entities, committees, providers, and substances as nodes with typed
