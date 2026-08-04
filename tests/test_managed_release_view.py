@@ -215,7 +215,31 @@ def _candidate_expressions(
     )
 
 
-def build_bundle(root: Path) -> Path:
+def build_bundle(
+    root: Path,
+    *,
+    local_eligibility_concept: bool = False,
+) -> Path:
+    eligibility_member = {
+        "@id": ELIGIBILITY_MEMBER_ID,
+        "@type": (
+            "rkaf:LocalConcept"
+            if local_eligibility_concept
+            else "rkaf:RegisteredConcept"
+        ),
+        "skos:prefLabel": {"en": "Eligibility policy"},
+        "skos:inScheme": SCHEME_ID,
+        "rkaf:conceptScope": "policy/eligibility",
+    }
+    if local_eligibility_concept:
+        eligibility_member["rkaf:definedInScope"] = (
+            "urn:ref:test:scope:subject-atlas"
+        )
+    else:
+        eligibility_member["rkaf:managedByRegistry"] = (
+            "urn:test:registry:subjects"
+        )
+        eligibility_member["rkaf:registeredAt"] = "2026-07-29T12:00:00Z"
     graph = {
         "@context": {
             "rkaf": "https://rulespec.org/ns/v1#",
@@ -260,15 +284,7 @@ def build_bundle(root: Path) -> Path:
                 "rkaf:conceptScope": "policy/water",
                 "rkaf:registeredAt": "2026-07-29T12:00:00Z",
             },
-            {
-                "@id": ELIGIBILITY_MEMBER_ID,
-                "@type": "rkaf:RegisteredConcept",
-                "skos:prefLabel": {"en": "Eligibility policy"},
-                "skos:inScheme": SCHEME_ID,
-                "rkaf:managedByRegistry": "urn:test:registry:subjects",
-                "rkaf:conceptScope": "policy/eligibility",
-                "rkaf:registeredAt": "2026-07-29T12:00:00Z",
-            },
+            eligibility_member,
             {
                 "@id": DISTRIBUTION_ID,
                 "@type": "rkaf:Artifact",

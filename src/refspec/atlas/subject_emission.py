@@ -1,7 +1,7 @@
 """Resolve subject eligibility and a product-profile grant without re-minting.
 
-Admission remains a factual editorial record.  A SubjectEmissionPolicy pins
-the exact source release, exact admission reviews, and eligible uses.  It does
+Admission remains a factual editorial record. A SubjectEmissionPolicy pins
+the exact subject concept release, admission reviews, and eligible uses. It does
 not grant use.  OutputProfile supplies the separate candidate/output-use grant
 for that exact policy.  Resolution requires both records.  This module does
 not prove the later configuration, evaluation, and deployment chain required
@@ -28,20 +28,22 @@ from refspec.registry.infrastructure.artifact_serialization import (
     sha256_digest,
 )
 from refspec.registry.infrastructure.identifier_validation import absolute_uri_issue
-from refspec.registry.infrastructure.source_concept_release import (
-    SourceConceptReleaseBundle,
-    SourceConceptReleaseView,
-)
 from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
     require_aware_datetime_text,
 )
 from refspec.vocabulary import OutputProfile, ReferenceRuntimeError
 
+from .concept_release import (
+    ConceptReleaseError,
+    SubjectConceptRelease,
+    concept_release_pin,
+    normalize_concept_release_pin,
+    require_subject_concept_release,
+)
+
 SUBJECT_EMISSION_POLICY_VERSION = "1.0"
 SUBJECT_EMISSION_POLICY_TYPE = "urn:ref:type:SubjectEmissionPolicy"
-
-SourceConceptRelease = SourceConceptReleaseBundle | SourceConceptReleaseView
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _POLICY_BASIS_FIELDS = frozenset(
@@ -51,7 +53,7 @@ _POLICY_BASIS_FIELDS = frozenset(
         "version",
         "recordedAt",
         "recordedBy",
-        "sourceConceptRelease",
+        "subjectConceptRelease",
         "eligibility",
     }
 )
@@ -127,47 +129,31 @@ def _require_exact_fields(
         )
 
 
-def _require_subject_release(release: SourceConceptRelease) -> None:
-    if not isinstance(release, (SourceConceptReleaseBundle, SourceConceptReleaseView)):
-        raise SubjectEmissionError("subject emission requires a verified source-concept release")
-    if release.semantic_ring != "subject":
-        raise SubjectEmissionError("subject emission rejects non-subject releases")
+def _require_subject_release(release: SubjectConceptRelease) -> None:
+    try:
+        require_subject_concept_release(release)
+    except ConceptReleaseError as error:
+        raise SubjectEmissionError(str(error)) from error
 
 
-def _release_pin(release: SourceConceptRelease) -> dict[str, str]:
+def _release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
     _require_subject_release(release)
-    return {
-        "id": _require_iri(release.release_id, "source release id"),
-        "releaseDigest": _require_digest(release.release_digest, "source release digest"),
-        "logicalDigest": _require_digest(release.logical_digest, "source release logical digest"),
-        "manifestDigest": _require_digest(release.manifest_digest, "source release manifest digest"),
-    }
+    try:
+        return concept_release_pin(release)
+    except ConceptReleaseError as error:
+        raise SubjectEmissionError(str(error)) from error
 
 
-def _normalized_release_pin(value: object) -> dict[str, str]:
-    if not isinstance(value, Mapping):
-        raise SubjectEmissionError("sourceConceptRelease must be an object")
-    row = cast(dict[str, Any], _plain(value))
-    _require_exact_fields(
-        row,
-        {"id", "releaseDigest", "logicalDigest", "manifestDigest"},
-        "sourceConceptRelease",
-    )
-    return {
-        "id": _require_iri(row.get("id"), "sourceConceptRelease.id"),
-        "releaseDigest": _require_digest(
-            row.get("releaseDigest"),
-            "sourceConceptRelease.releaseDigest",
-        ),
-        "logicalDigest": _require_digest(
-            row.get("logicalDigest"),
-            "sourceConceptRelease.logicalDigest",
-        ),
-        "manifestDigest": _require_digest(
-            row.get("manifestDigest"),
-            "sourceConceptRelease.manifestDigest",
-        ),
-    }
+def _normalized_release_pin(value: object) -> dict[str, Any]:
+    try:
+        pin = normalize_concept_release_pin(value)
+    except ConceptReleaseError as error:
+        raise SubjectEmissionError(str(error)) from error
+    if pin["semanticRing"] != "subject":
+        raise SubjectEmissionError(
+            "subject emission policy rejects a non-subject release pin"
+        )
+    return pin
 
 
 def _normalized_review_reference(value: object, label: str) -> dict[str, str]:
@@ -259,7 +245,9 @@ def _normalized_policy_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         "version": _require_text(row.get("version"), "version"),
         "recordedAt": _require_datetime(row.get("recordedAt"), "recordedAt"),
         "recordedBy": _require_iri(row.get("recordedBy"), "recordedBy"),
-        "sourceConceptRelease": _normalized_release_pin(row.get("sourceConceptRelease")),
+        "subjectConceptRelease": _normalized_release_pin(
+            row.get("subjectConceptRelease")
+        ),
         "eligibility": list(_normalized_eligibility(row.get("eligibility"))),
     }
 
@@ -329,12 +317,12 @@ class SubjectEmissionPolicy:
 
     def validate_for_release(
         self,
-        release: SourceConceptRelease,
+        release: SubjectConceptRelease,
         reviews: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
     ) -> tuple[SubjectAdmissionReview, ...]:
         """Resolve every policy row to one admitted review on the exact release."""
 
-        if _plain(self.record["sourceConceptRelease"]) != _release_pin(release):
+        if _plain(self.record["subjectConceptRelease"]) != _release_pin(release):
             raise SubjectEmissionError("subject emission policy names another exact release")
         try:
             validated = validate_subject_admission_reviews(release, reviews)
@@ -392,7 +380,7 @@ def subject_emission_eligibility(
 
 
 def build_subject_emission_policy(
-    release: SourceConceptRelease,
+    release: SubjectConceptRelease,
     reviews: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
     *,
     version: str,
@@ -408,7 +396,7 @@ def build_subject_emission_policy(
         "version": version,
         "recordedAt": recorded_at,
         "recordedBy": recorded_by,
-        "sourceConceptRelease": _release_pin(release),
+        "subjectConceptRelease": _release_pin(release),
         "eligibility": list(eligibility),
     }
     basis = _normalized_policy_basis(raw_basis)
@@ -432,7 +420,7 @@ class SubjectEmissionPolicyResolution:
     facet: str
     assignment_role: str
     intended_product_use: str
-    source_concept_release: Mapping[str, str]
+    subject_concept_release: Mapping[str, Any]
     admission_review: Mapping[str, str]
     emission_policy: Mapping[str, str]
     output_profile: Mapping[str, str]
@@ -452,7 +440,7 @@ class SubjectEmissionPolicyResolution:
             raise SubjectEmissionError(
                 "subject emission policy resolution must be productPolicyAuthorized"
             )
-        source_release = _normalized_release_pin(self.source_concept_release)
+        subject_release = _normalized_release_pin(self.subject_concept_release)
         admission_review = _normalized_review_reference(
             self.admission_review,
             "admission_review",
@@ -501,7 +489,7 @@ class SubjectEmissionPolicyResolution:
         ):
             raise SubjectEmissionError("subject emission policy output grant is inconsistent")
         for field, value in (
-            ("source_concept_release", source_release),
+            ("subject_concept_release", subject_release),
             ("admission_review", admission_review),
             ("emission_policy", emission_policy),
             ("output_profile", output_profile),
@@ -519,7 +507,7 @@ def resolve_subject_emission_policy(
     *,
     output_profile: OutputProfile,
     policy: SubjectEmissionPolicy,
-    release: SourceConceptRelease,
+    release: SubjectConceptRelease,
     admission_reviews: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
     subject_concept: str,
     facet: str,
@@ -590,8 +578,8 @@ def resolve_subject_emission_policy(
         facet=review.facet,
         assignment_role=selector["assignmentRole"],
         intended_product_use=selector["intendedProductUse"],
-        source_concept_release=cast(
-            Mapping[str, str],
+        subject_concept_release=cast(
+            Mapping[str, Any],
             deep_freeze_json(_release_pin(release)),
         ),
         admission_review=cast(

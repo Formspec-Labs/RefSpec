@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import sys
 from collections.abc import Mapping
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 from refspec import binding
+from refspec.atlas.concept_release import (
+    ManagedReleaseRingAssignment,
+    PinnedManagedConceptRelease,
+    PinnedManagedReleaseRingAssignment,
+    SubjectConceptRelease,
+)
 from refspec.atlas.subject_admission import (
     SUBJECT_ADMISSION_ADMIT,
     SUBJECT_ADMISSION_REJECT,
@@ -50,6 +59,19 @@ NORMAL_ACCEPTANCE_POLICY = {
     "version": "2026-08-04",
     "digest": "sha256:" + "c" * 64,
 }
+
+_FIXTURE_SPEC = importlib.util.spec_from_file_location(
+    "refspec_test_subject_admission_managed_release_fixture",
+    Path(__file__).with_name("test_managed_release_view.py"),
+)
+assert _FIXTURE_SPEC is not None and _FIXTURE_SPEC.loader is not None
+_FIXTURE_MODULE = importlib.util.module_from_spec(_FIXTURE_SPEC)
+sys.modules[_FIXTURE_SPEC.name] = _FIXTURE_MODULE
+_FIXTURE_SPEC.loader.exec_module(_FIXTURE_MODULE)
+build_managed_bundle = _FIXTURE_MODULE.build_bundle
+MANAGED_RELEASE_ID = _FIXTURE_MODULE.RELEASE_ID
+MANAGED_LOCAL_CONCEPT_ID = _FIXTURE_MODULE.ELIGIBILITY_MEMBER_ID
+MANAGED_REGISTERED_CONCEPT_ID = _FIXTURE_MODULE.MEMBER_ID
 
 
 def _release(
@@ -114,6 +136,59 @@ def _release(
     )
 
 
+def _file_digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _managed_release(
+    tmp_path: Path,
+    *,
+    local_eligibility_concept: bool = True,
+    ring: str = "subject",
+    name: str = "managed-subject",
+) -> PinnedManagedConceptRelease:
+    manifest = build_managed_bundle(
+        tmp_path / name,
+        local_eligibility_concept=local_eligibility_concept,
+    )
+    assignment = ManagedReleaseRingAssignment(
+        managed_manifest_digest=_file_digest(manifest),
+        release_id=MANAGED_RELEASE_ID,
+        semantic_ring=ring,  # type: ignore[arg-type]
+        assigned_by="https://refspec.org/actors/portfolio-reviewer-1",
+        assigned_at=REVIEWED_AT,
+        evidence=("urn:ref:test:atlas-index:managed-subject-release",),
+    )
+    assignment_path = assignment.write_to(tmp_path / f"{name}-ring.json")
+    pinned_assignment = PinnedManagedReleaseRingAssignment.open(
+        assignment_path,
+        expected_file_digest=_file_digest(assignment_path),
+    )
+    return PinnedManagedConceptRelease.open(
+        manifest,
+        expected_manifest_digest=_file_digest(manifest),
+        release_id=MANAGED_RELEASE_ID,
+        ring_assignment=pinned_assignment,
+    )
+
+
+def _managed_rights(
+    release: PinnedManagedConceptRelease,
+    *,
+    digest: str | None = None,
+) -> tuple[dict[str, str], ...]:
+    graph = release.pin()["rulespecGraph"]
+    assert isinstance(graph, Mapping)
+    return (
+        {
+            "type": "RightsMetadata",
+            "rightsStatus": "notStated",
+            "sourceArtifact": str(graph["id"]),
+            "sourceDigest": str(graph["digest"] if digest is None else digest),
+        },
+    )
+
+
 def _review_evidence(
     decision_iri: str,
     *,
@@ -131,16 +206,21 @@ def _review_evidence(
 
 
 def _review(
-    release: SourceConceptReleaseBundle,
+    release: SubjectConceptRelease,
     *,
     decision: str = "admit",
     reviewer: str = REVIEWER,
     hierarchy_placement: Mapping[str, str] | None = None,
+    subject_concept: str | None = None,
+    rights_metadata: tuple[Mapping[str, Any], ...] | None = None,
 ) -> SubjectAdmissionReview:
     decision_iri = SUBJECT_ADMISSION_ADMIT if decision == "admit" else SUBJECT_ADMISSION_REJECT
+    if subject_concept is None:
+        assert isinstance(release, SourceConceptReleaseBundle)
+        subject_concept = str(release.concepts[0]["id"])
     return build_subject_admission_review(
         release,
-        subject_concept=str(release.concepts[0]["id"]),
+        subject_concept=subject_concept,
         decision=decision,  # type: ignore[arg-type]
         definition_or_scope_note="Government oversight exercised by a legislature.",
         hierarchy_placement=(
@@ -157,6 +237,7 @@ def _review(
         reviewer=reviewer,
         reviewed_at=REVIEWED_AT,
         intended_product_uses=(PRODUCT_USE,),
+        rights_metadata=rights_metadata,
     )
 
 
@@ -169,7 +250,7 @@ def _mapping_keys(value: object) -> set[str]:
 
 
 def _emission_policy(
-    release: SourceConceptReleaseBundle,
+    release: SubjectConceptRelease,
     review: SubjectAdmissionReview,
 ) -> SubjectEmissionPolicy:
     return build_subject_emission_policy(
@@ -255,6 +336,10 @@ def test_admission_preserves_the_exact_source_identity_and_is_content_derived() 
     assert admitted_subject_concept_ids(release, (first,)) == (first.subject_concept,)
     assert SubjectAdmissionReview.from_record(first.as_record()) == first
     assert first.record["rightsMetadata"] == release.rights_metadata
+    assert first.record["subjectConceptRelease"]["releaseKind"] == (
+        "sourceConceptRelease"
+    )
+    assert "sourceConceptRelease" not in first.record
     assert "LocalConcept" not in str(first.as_record())
     assert not _mapping_keys(first.as_record()) & {
         "authorization",
@@ -262,6 +347,102 @@ def test_admission_preserves_the_exact_source_identity_and_is_content_derived() 
         "permission",
         "productPolicy",
     }
+
+
+def test_managed_local_identity_is_admitted_and_emitted_without_reminting(
+    tmp_path: Path,
+) -> None:
+    release = _managed_release(tmp_path)
+    rights = _managed_rights(release)
+    review = _review(
+        release,
+        subject_concept=MANAGED_LOCAL_CONCEPT_ID,
+        rights_metadata=rights,
+    )
+    policy = _emission_policy(release, review)
+    output_profile = _output_profile(policy)
+
+    authorization = resolve_subject_emission_policy(
+        output_profile=output_profile,
+        policy=policy,
+        release=release,
+        admission_reviews=(review,),
+        subject_concept=MANAGED_LOCAL_CONCEPT_ID,
+        facet=FACET,
+        assignment_role=ASSIGNMENT_ROLE,
+        intended_product_use=PRODUCT_USE,
+        resource_route="document",
+    )
+
+    assert review.subject_concept == MANAGED_LOCAL_CONCEPT_ID
+    assert admitted_subject_concept_ids(release, (review,)) == (
+        MANAGED_LOCAL_CONCEPT_ID,
+    )
+    assert policy.record["subjectConceptRelease"]["releaseKind"] == (
+        "managedReferenceRelease"
+    )
+    assert authorization.subject_concept == MANAGED_LOCAL_CONCEPT_ID
+    assert authorization.subject_concept_release == release.pin()
+    assert authorization.admission_review == review.reference
+    assert "sourceConceptRelease" not in review.record
+    assert "sourceConceptRelease" not in policy.record
+
+
+def test_managed_admission_requires_local_type_subject_ring_and_exact_rights(
+    tmp_path: Path,
+) -> None:
+    registered = _managed_release(
+        tmp_path,
+        local_eligibility_concept=False,
+        name="managed-registered",
+    )
+    with pytest.raises(SubjectAdmissionError, match="rkaf:LocalConcept"):
+        _review(
+            registered,
+            subject_concept=MANAGED_REGISTERED_CONCEPT_ID,
+            rights_metadata=_managed_rights(registered),
+        )
+
+    entity = _managed_release(tmp_path, ring="entity", name="managed-entity")
+    with pytest.raises(SubjectAdmissionError, match="non-subject"):
+        _review(
+            entity,
+            subject_concept=MANAGED_LOCAL_CONCEPT_ID,
+            rights_metadata=_managed_rights(entity),
+        )
+
+    subject = _managed_release(tmp_path, name="managed-wrong-rights")
+    with pytest.raises(SubjectAdmissionError, match="exact Rulespec graph"):
+        _review(
+            subject,
+            subject_concept=MANAGED_LOCAL_CONCEPT_ID,
+            rights_metadata=_managed_rights(
+                subject,
+                digest="sha256:" + "0" * 64,
+            ),
+        )
+    with pytest.raises(SubjectAdmissionError, match="explicit release-bound rights"):
+        _review(
+            subject,
+            subject_concept=MANAGED_LOCAL_CONCEPT_ID,
+        )
+
+
+def test_managed_release_alone_never_admits_or_authorizes_a_local_concept(
+    tmp_path: Path,
+) -> None:
+    release = _managed_release(tmp_path)
+
+    assert admitted_subject_concept_ids(release, ()) == ()
+    with pytest.raises(SubjectEmissionError, match="eligibility must be a non-empty"):
+        build_subject_emission_policy(
+            release,
+            (),
+            version="2026-08-04",
+            recorded_at=REVIEWED_AT,
+            recorded_by=REVIEWER,
+            eligibility=(),
+        )
 
 
 def test_rejection_is_a_final_review_but_not_curated_tier_membership() -> None:

@@ -21,13 +21,12 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypeAlias, cast
+from typing import Any, cast
 
 from typing_extensions import Self
 
 from refspec import binding
 from refspec.immutable import deep_freeze_json
-from refspec.managed_release import ManagedReleaseError, ManagedReleaseView
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     plain_json,
@@ -44,16 +43,17 @@ from refspec.registry.infrastructure.semantic_foundation import (
     validate_evidence_assertions,
     validate_machine_evidence_proof_pin,
 )
-from refspec.registry.infrastructure.source_concept_release import (
-    SourceConceptReleaseError,
-    SourceConceptReleaseView,
-)
 from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
     require_aware_datetime_text,
 )
-from refspec.release_graph import rulespec_graph_digest
 
+from .concept_release import (
+    ConceptReleaseError,
+    ConceptReleaseSource,
+    PinnedManagedConceptRelease,
+    PinnedSourceConceptRelease,
+)
 from .relation_proof import (
     RelationMachineProofSource,
     RelationMachineProofTrustError,
@@ -62,7 +62,6 @@ from .relation_proof import (
 
 RELATION_ASSERTION_BUNDLE_VERSION = "1.0"
 RELATION_ASSERTION_BUNDLE_MEDIA_TYPE = "application/vnd.refspec.relation-assertion-bundle+json"
-MANAGED_RELATION_RING_ASSIGNMENT_VERSION = "1.0"
 
 _ASSERTIONS_PATH = "relation-assertions.json"
 _BUNDLE_MANIFEST_PATH = "bundle-manifest.json"
@@ -185,366 +184,6 @@ def _bundle_snapshot(root: Path) -> dict[str, bytes]:
     return result
 
 
-def _managed_declared_release_digest(view: ManagedReleaseView, release_id: str) -> str:
-    """Read the release's declared digest from the verified Rulespec graph.
-
-    ``ManagedReleaseView`` validates this digest against every indexed
-    expression's release reference.  The relation pin also seals the complete
-    graph digest and managed-bundle manifest, so the publisher-shaped JSON-LD
-    need not be reinterpreted through a second context here.
-    """
-
-    nodes = view.rulespec_graph.get("@graph")
-    if not isinstance(nodes, Sequence) or isinstance(nodes, (str, bytes)):
-        raise RelationAssertionError("managed Rulespec graph has no @graph array")
-    releases = [value for value in nodes if isinstance(value, Mapping) and value.get("@id") == release_id]
-    if len(releases) != 1:
-        raise RelationAssertionError("managed Rulespec graph does not name the selected release exactly once")
-    return _require_digest(
-        releases[0].get("rkaf:referenceReleaseDigest"),
-        "managed reference release digest",
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class ManagedRelationRingAssignment:
-    """A named planning fact that classifies one exact managed release.
-
-    Managed-release bytes predate the four-ring model and do not state a
-    semantic ring.  Relation code therefore refuses a caller-provided string.
-    This content-derived record makes the classification explicit, reviewable,
-    and pinned to the exact managed manifest.  It remains metadata, not use
-    permission.
-    """
-
-    managed_manifest_digest: str
-    release_id: str
-    semantic_ring: SemanticRing
-    assigned_by: str
-    assigned_at: str
-    evidence: tuple[str, ...]
-
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "managed_manifest_digest",
-            _require_digest(self.managed_manifest_digest, "ring assignment managedManifestDigest"),
-        )
-        object.__setattr__(self, "release_id", _require_iri(self.release_id, "ring assignment releaseId"))
-        object.__setattr__(
-            self,
-            "semantic_ring",
-            _require_ring(self.semantic_ring, "ring assignment semanticRing"),
-        )
-        object.__setattr__(
-            self,
-            "assigned_by",
-            _require_iri(self.assigned_by, "ring assignment assignedBy"),
-        )
-        object.__setattr__(
-            self,
-            "assigned_at",
-            _require_datetime(self.assigned_at, "ring assignment assignedAt"),
-        )
-        object.__setattr__(
-            self,
-            "evidence",
-            _require_unique_iris(self.evidence, "ring assignment evidence"),
-        )
-
-    def _basis(self) -> dict[str, Any]:
-        return {
-            "type": "ManagedRelationRingAssignment",
-            "schemaVersion": MANAGED_RELATION_RING_ASSIGNMENT_VERSION,
-            "managedManifestDigest": self.managed_manifest_digest,
-            "releaseId": self.release_id,
-            "semanticRing": self.semantic_ring,
-            "assignedBy": self.assigned_by,
-            "assignedAt": self.assigned_at,
-            "evidence": list(self.evidence),
-        }
-
-    @property
-    def content_digest(self) -> str:
-        return sha256_digest(_canonical_bytes(self._basis()))
-
-    @property
-    def identifier(self) -> str:
-        return "urn:ref:managed-relation-ring-assignment:" + self.content_digest.removeprefix("sha256:")
-
-    def as_record(self) -> dict[str, Any]:
-        return {
-            **self._basis(),
-            "id": self.identifier,
-            "contentDigest": self.content_digest,
-        }
-
-    @classmethod
-    def from_record(cls, value: Mapping[str, Any]) -> Self:
-        if not isinstance(value, Mapping):
-            raise RelationAssertionError("managed relation ring assignment must be an object")
-        _require_exact_fields(
-            value,
-            {
-                "id",
-                "type",
-                "schemaVersion",
-                "contentDigest",
-                "managedManifestDigest",
-                "releaseId",
-                "semanticRing",
-                "assignedBy",
-                "assignedAt",
-                "evidence",
-            },
-            "managed relation ring assignment",
-        )
-        if (
-            value.get("type") != "ManagedRelationRingAssignment"
-            or value.get("schemaVersion") != MANAGED_RELATION_RING_ASSIGNMENT_VERSION
-        ):
-            raise RelationAssertionError("managed relation ring assignment version is unsupported")
-        assignment = cls(
-            managed_manifest_digest=cast(str, value.get("managedManifestDigest")),
-            release_id=cast(str, value.get("releaseId")),
-            semantic_ring=_require_ring(value.get("semanticRing"), "ring assignment semanticRing"),
-            assigned_by=cast(str, value.get("assignedBy")),
-            assigned_at=cast(str, value.get("assignedAt")),
-            evidence=cast(tuple[str, ...], value.get("evidence")),
-        )
-        if value.get("id") != assignment.identifier or value.get("contentDigest") != assignment.content_digest:
-            raise RelationAssertionError("managed relation ring assignment content identity is stale")
-        if assignment.as_record() != dict(value):
-            raise RelationAssertionError("managed relation ring assignment does not reproduce canonically")
-        return assignment
-
-    def artifact_bytes(self) -> bytes:
-        return _canonical_bytes(self.as_record())
-
-    def write_to(self, path: Path | str) -> Path:
-        destination = Path(path)
-        if destination.exists() or destination.is_symlink():
-            raise RelationAssertionError(f"ring assignment destination already exists: {destination}")
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        descriptor, temporary_name = tempfile.mkstemp(
-            prefix=f".{destination.name}-",
-            dir=destination.parent,
-        )
-        temporary = Path(temporary_name)
-        try:
-            with os.fdopen(descriptor, "wb") as stream:
-                stream.write(self.artifact_bytes())
-            os.replace(temporary, destination)
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-        return destination
-
-
-@dataclass(frozen=True, slots=True)
-class PinnedManagedRelationRingAssignment:
-    """One exact, reopened managed-release ring classification."""
-
-    path: Path
-    file_digest: str
-    assignment: ManagedRelationRingAssignment
-
-    @classmethod
-    def open(
-        cls,
-        path: Path | str,
-        *,
-        expected_file_digest: str,
-    ) -> Self:
-        digest = _require_digest(expected_file_digest, "ring assignment file digest")
-        candidate = Path(path)
-        if candidate.is_symlink():
-            raise RelationAssertionError("ring assignment must not be a symlink")
-        try:
-            resolved = candidate.resolve(strict=True)
-        except FileNotFoundError as error:
-            raise RelationAssertionError("ring assignment does not exist") from error
-        if not resolved.is_file():
-            raise RelationAssertionError("ring assignment must be a regular file")
-        payload = resolved.read_bytes()
-        if sha256_digest(payload) != digest:
-            raise RelationAssertionError("ring assignment file digest differs")
-        record = _read_json(payload, "managed relation ring assignment")
-        if not isinstance(record, Mapping) or _canonical_bytes(record) != payload:
-            raise RelationAssertionError("managed relation ring assignment bytes are not canonical")
-        assignment = ManagedRelationRingAssignment.from_record(record)
-        if resolved.read_bytes() != payload:
-            raise RelationAssertionError("managed relation ring assignment changed while opening")
-        return cls(path=resolved, file_digest=digest, assignment=assignment)
-
-    def verified_assignment(self) -> ManagedRelationRingAssignment:
-        return self.open(
-            self.path,
-            expected_file_digest=self.file_digest,
-        ).assignment
-
-    def pin(self) -> dict[str, str]:
-        assignment = self.verified_assignment()
-        return {
-            "id": assignment.identifier,
-            "contentDigest": assignment.content_digest,
-            "fileDigest": self.file_digest,
-        }
-
-
-@dataclass(frozen=True, slots=True)
-class PinnedSourceConceptRelationRelease:
-    """One exact source-concept release used by relation assertions."""
-
-    manifest_path: Path
-    manifest_digest: str
-    release_id: str
-    semantic_ring: SemanticRing
-
-    @classmethod
-    def open(
-        cls,
-        manifest_path: Path | str,
-        *,
-        expected_manifest_digest: str,
-    ) -> Self:
-        digest = _require_digest(expected_manifest_digest, "source-concept manifest digest")
-        try:
-            view = SourceConceptReleaseView.open(
-                manifest_path,
-                expected_manifest_digest=digest,
-            )
-        except SourceConceptReleaseError as error:
-            raise RelationAssertionError(str(error)) from error
-        return cls(
-            manifest_path=(view.path / _BUNDLE_MANIFEST_PATH).resolve(strict=True),
-            manifest_digest=digest,
-            release_id=view.release_id,
-            semantic_ring=view.semantic_ring,
-        )
-
-    def verified_view(self) -> SourceConceptReleaseView:
-        """Reopen the package so changes after selection fail closed."""
-
-        try:
-            view = SourceConceptReleaseView.open(
-                self.manifest_path,
-                expected_manifest_digest=self.manifest_digest,
-            )
-        except SourceConceptReleaseError as error:
-            raise RelationAssertionError(str(error)) from error
-        if view.release_id != self.release_id or view.semantic_ring != self.semantic_ring:
-            raise RelationAssertionError("source-concept release identity or semantic ring changed")
-        return view
-
-    def pin(self) -> dict[str, str]:
-        view = self.verified_view()
-        return {
-            "releaseKind": "sourceConceptRelease",
-            "semanticRing": view.semantic_ring,
-            "releaseId": view.release_id,
-            "manifestDigest": self.manifest_digest,
-            "releaseDigest": view.release_digest,
-            "logicalDigest": view.logical_digest,
-        }
-
-    def member_ids(self) -> frozenset[str]:
-        view = self.verified_view()
-        return frozenset(
-            _require_iri(row.get("id"), f"source-concept release member[{index}]")
-            for index, row in enumerate(view.concepts)
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class PinnedManagedRelationRelease:
-    """One exact complete-membership release inside a managed bundle."""
-
-    manifest_path: Path
-    manifest_digest: str
-    release_id: str
-    ring_assignment: PinnedManagedRelationRingAssignment
-
-    @classmethod
-    def open(
-        cls,
-        manifest_path: Path | str,
-        *,
-        expected_manifest_digest: str,
-        release_id: str,
-        ring_assignment: PinnedManagedRelationRingAssignment,
-    ) -> Self:
-        digest = _require_digest(expected_manifest_digest, "managed release manifest digest")
-        selected_release = _require_iri(release_id, "managed relation release id")
-        if not isinstance(ring_assignment, PinnedManagedRelationRingAssignment):
-            raise RelationAssertionError("managed relation release requires a pinned ring assignment")
-        assignment = ring_assignment.verified_assignment()
-        if assignment.managed_manifest_digest != digest or assignment.release_id != selected_release:
-            raise RelationAssertionError("managed relation ring assignment names another exact release")
-        try:
-            view = ManagedReleaseView.open(
-                manifest_path,
-                expected_manifest_digest=digest,
-            )
-        except ManagedReleaseError as error:
-            raise RelationAssertionError(str(error)) from error
-        members = tuple(view.iter_members(release_iri=selected_release))
-        if not members:
-            raise RelationAssertionError(
-                "managed relation release is not an exact complete-membership release in the bundle"
-            )
-        requested = Path(manifest_path)
-        candidate = requested / _BUNDLE_MANIFEST_PATH if requested.is_dir() else requested
-        return cls(
-            manifest_path=candidate.resolve(strict=True),
-            manifest_digest=digest,
-            release_id=selected_release,
-            ring_assignment=ring_assignment,
-        )
-
-    @property
-    def semantic_ring(self) -> SemanticRing:
-        return self.ring_assignment.verified_assignment().semantic_ring
-
-    def verified_view(self) -> ManagedReleaseView:
-        """Reopen the package and reselect the same complete release."""
-
-        try:
-            view = ManagedReleaseView.open(
-                self.manifest_path,
-                expected_manifest_digest=self.manifest_digest,
-            )
-        except ManagedReleaseError as error:
-            raise RelationAssertionError(str(error)) from error
-        assignment = self.ring_assignment.verified_assignment()
-        if assignment.managed_manifest_digest != self.manifest_digest or assignment.release_id != self.release_id:
-            raise RelationAssertionError("managed relation ring assignment names another exact release")
-        if not tuple(view.iter_members(release_iri=self.release_id)):
-            raise RelationAssertionError("managed relation release is no longer present or complete")
-        return view
-
-    def pin(self) -> dict[str, Any]:
-        view = self.verified_view()
-        return {
-            "releaseKind": "managedReferenceRelease",
-            "semanticRing": self.semantic_ring,
-            "releaseId": self.release_id,
-            "manifestDigest": self.manifest_digest,
-            "managedBundleReleaseId": view.release_id,
-            "ringAssignment": self.ring_assignment.pin(),
-            "rulespecGraph": {
-                "id": view.rulespec_graph_id,
-                "digest": rulespec_graph_digest(_plain(view.rulespec_graph)),
-            },
-            "declaredReleaseDigest": _managed_declared_release_digest(view, self.release_id),
-        }
-
-    def member_ids(self) -> frozenset[str]:
-        view = self.verified_view()
-        return frozenset(member.member_iri for member in view.iter_members(release_iri=self.release_id))
-
-
-RelationReleaseSource: TypeAlias = PinnedSourceConceptRelationRelease | PinnedManagedRelationRelease
 
 
 @dataclass(frozen=True, slots=True)
@@ -554,25 +193,35 @@ class _ResolvedRelease:
 
 
 def _resolve_releases(
-    values: Sequence[RelationReleaseSource],
+    values: Sequence[ConceptReleaseSource],
     *,
     semantic_ring: SemanticRing,
-) -> tuple[tuple[RelationReleaseSource, ...], tuple[_ResolvedRelease, ...]]:
+) -> tuple[tuple[ConceptReleaseSource, ...], tuple[_ResolvedRelease, ...]]:
     if not isinstance(values, Sequence) or isinstance(values, (str, bytes)) or not values:
         raise RelationAssertionError("release_sources must be a non-empty array of verified release pins")
-    sources: list[RelationReleaseSource] = []
+    sources: list[ConceptReleaseSource] = []
     resolved: list[_ResolvedRelease] = []
     identifiers: set[str] = set()
     for index, source in enumerate(values):
-        if not isinstance(source, (PinnedSourceConceptRelationRelease, PinnedManagedRelationRelease)):
-            raise RelationAssertionError(f"release_sources[{index}] must be a path-backed verified relation release")
-        if source.semantic_ring != semantic_ring:
-            raise RelationAssertionError("relation release semanticRing differs from the bundle")
-        pin = source.pin()
+        if not isinstance(
+            source,
+            (PinnedSourceConceptRelease, PinnedManagedConceptRelease),
+        ):
+            raise RelationAssertionError(
+                f"release_sources[{index}] must be a path-backed verified concept release"
+            )
+        try:
+            if source.semantic_ring != semantic_ring:
+                raise RelationAssertionError(
+                    "relation release semanticRing differs from the bundle"
+                )
+            pin = source.pin()
+            members = source.member_ids()
+        except ConceptReleaseError as error:
+            raise RelationAssertionError(str(error)) from error
         release_id = _require_iri(pin.get("releaseId"), f"release_sources[{index}].releaseId")
         if release_id in identifiers:
             raise RelationAssertionError("release_sources repeats a releaseId")
-        members = source.member_ids()
         if not members:
             raise RelationAssertionError("relation release has no exact members")
         identifiers.add(release_id)
@@ -741,7 +390,7 @@ class RelationAssertionBundle:
     machine_proof_pins: tuple[Mapping[str, Any], ...]
     evidence_assertions: tuple[EvidenceAssertion, ...]
     mapping_assertions: tuple[MappingAssertion, ...]
-    _release_sources: tuple[RelationReleaseSource, ...] = field(repr=False)
+    _release_sources: tuple[ConceptReleaseSource, ...] = field(repr=False)
     _machine_proof_sources: tuple[RelationMachineProofSource, ...] = field(repr=False)
     _path: Path | None = field(default=None, repr=False, compare=False)
 
@@ -821,7 +470,7 @@ class RelationAssertionBundle:
         cls,
         *,
         semantic_ring: SemanticRing,
-        release_sources: Sequence[RelationReleaseSource],
+        release_sources: Sequence[ConceptReleaseSource],
         machine_proof_sources: Sequence[RelationMachineProofSource] = (),
         evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
         mapping_assertions: Sequence[MappingAssertion | Mapping[str, Any]],
@@ -940,7 +589,7 @@ class RelationAssertionBundle:
         manifest_path: Path | str,
         *,
         expected_manifest_digest: str,
-        release_sources: Sequence[RelationReleaseSource],
+        release_sources: Sequence[ConceptReleaseSource],
         machine_proof_sources: Sequence[RelationMachineProofSource] = (),
     ) -> Self:
         """Open exact bundle bytes and prove their endpoint releases again."""
@@ -1054,15 +703,9 @@ class RelationAssertionBundle:
 
 
 __all__ = [
-    "MANAGED_RELATION_RING_ASSIGNMENT_VERSION",
     "RELATION_ASSERTION_BUNDLE_MEDIA_TYPE",
     "RELATION_ASSERTION_BUNDLE_VERSION",
-    "ManagedRelationRingAssignment",
-    "PinnedManagedRelationRelease",
-    "PinnedManagedRelationRingAssignment",
-    "PinnedSourceConceptRelationRelease",
     "RelationAssertionBundle",
     "RelationAssertionError",
     "RelationMachineProofSource",
-    "RelationReleaseSource",
 ]

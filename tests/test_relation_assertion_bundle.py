@@ -13,6 +13,13 @@ from typing import Any
 import pytest
 
 import refspec.atlas as atlas_api
+from refspec.atlas.concept_release import (
+    ConceptReleaseError,
+    ManagedReleaseRingAssignment,
+    PinnedManagedConceptRelease,
+    PinnedManagedReleaseRingAssignment,
+    PinnedSourceConceptRelease,
+)
 from refspec.atlas.machine_evidence import (
     CROSSWALK_MACHINE_PROOF_ADAPTER,
     PinnedCrosswalkMachineProof,
@@ -20,10 +27,6 @@ from refspec.atlas.machine_evidence import (
 )
 from refspec.atlas.model import CrosswalkArtifact, CrosswalkBundle, MachineValidation, MappingCandidate
 from refspec.atlas.relation_assertion import (
-    ManagedRelationRingAssignment,
-    PinnedManagedRelationRelease,
-    PinnedManagedRelationRingAssignment,
-    PinnedSourceConceptRelationRelease,
     RelationAssertionBundle,
     RelationAssertionError,
     RelationMachineProofSource,
@@ -78,8 +81,8 @@ def _managed_ring_assignment(
     release_id: str = MANAGED_RELEASE_ID,
     ring: str = "subject",
     name: str = "managed-ring-assignment",
-) -> PinnedManagedRelationRingAssignment:
-    assignment = ManagedRelationRingAssignment(
+) -> PinnedManagedReleaseRingAssignment:
+    assignment = ManagedReleaseRingAssignment(
         managed_manifest_digest=_file_digest(manifest),
         release_id=release_id,
         semantic_ring=ring,  # type: ignore[arg-type]
@@ -88,7 +91,7 @@ def _managed_ring_assignment(
         evidence=("urn:ref:test:atlas-index:managed-release-row",),
     )
     path = assignment.write_to(tmp_path / f"{name}.json")
-    return PinnedManagedRelationRingAssignment.open(
+    return PinnedManagedReleaseRingAssignment.open(
         path,
         expected_file_digest=_file_digest(path),
     )
@@ -96,9 +99,9 @@ def _managed_ring_assignment(
 
 def test_relation_bundle_is_a_public_atlas_foundation() -> None:
     assert atlas_api.RelationAssertionBundle is RelationAssertionBundle
-    assert atlas_api.PinnedManagedRelationRelease is PinnedManagedRelationRelease
-    assert atlas_api.PinnedManagedRelationRingAssignment is PinnedManagedRelationRingAssignment
-    assert atlas_api.PinnedSourceConceptRelationRelease is PinnedSourceConceptRelationRelease
+    assert atlas_api.PinnedManagedConceptRelease is PinnedManagedConceptRelease
+    assert atlas_api.PinnedManagedReleaseRingAssignment is PinnedManagedReleaseRingAssignment
+    assert atlas_api.PinnedSourceConceptRelease is PinnedSourceConceptRelease
     assert atlas_api.RelationMachineProofSource is RelationMachineProofSource
     assert atlas_api.RelationSssomDistribution is RelationSssomDistribution
     assert (
@@ -141,7 +144,7 @@ def test_relation_proof_registry_rejects_duplicate_authorities() -> None:
 
 
 def test_managed_ring_assignment_rejects_noncanonical_logical_set_order() -> None:
-    assignment = ManagedRelationRingAssignment(
+    assignment = ManagedReleaseRingAssignment(
         managed_manifest_digest="sha256:" + "a" * 64,
         release_id="urn:ref:test:managed-release",
         semantic_ring="subject",
@@ -155,8 +158,8 @@ def test_managed_ring_assignment_rejects_noncanonical_logical_set_order() -> Non
     record = assignment.as_record()
     record["evidence"] = list(reversed(record["evidence"]))
 
-    with pytest.raises(RelationAssertionError, match="does not reproduce canonically"):
-        ManagedRelationRingAssignment.from_record(record)
+    with pytest.raises(ConceptReleaseError, match="does not reproduce canonically"):
+        ManagedReleaseRingAssignment.from_record(record)
 
 
 def _source_release(
@@ -164,7 +167,7 @@ def _source_release(
     name: str,
     *,
     ring: str = "subject",
-) -> tuple[PinnedSourceConceptRelationRelease, str, str]:
+) -> tuple[PinnedSourceConceptRelease, str, str]:
     source_id = f"https://publisher.example/source/{name}.json"
     scheme_id = f"https://publisher.example/schemes/{name}"
     local_record_id = "urn:uuid:" + derive_uuid7(
@@ -222,7 +225,7 @@ def _source_release(
         ),
     )
     root = release.write_to(tmp_path / f"source-release-{ring}-{name}")
-    pinned = PinnedSourceConceptRelationRelease.open(
+    pinned = PinnedSourceConceptRelease.open(
         root / "bundle-manifest.json",
         expected_manifest_digest=release.manifest_digest,
     )
@@ -272,8 +275,8 @@ def _mapping(
 def _subject_facts(
     tmp_path: Path,
 ) -> tuple[
-    PinnedSourceConceptRelationRelease,
-    PinnedSourceConceptRelationRelease,
+    PinnedSourceConceptRelease,
+    PinnedSourceConceptRelease,
     EvidenceAssertion,
     MappingAssertion,
 ]:
@@ -466,7 +469,7 @@ def test_source_to_managed_relation_uses_the_exact_complete_release(
 ) -> None:
     manifest = build_managed_bundle(tmp_path / "managed")
     ring_assignment = _managed_ring_assignment(tmp_path, manifest)
-    managed = PinnedManagedRelationRelease.open(
+    managed = PinnedManagedConceptRelease.open(
         manifest,
         expected_manifest_digest=_file_digest(manifest),
         release_id=MANAGED_RELEASE_ID,
@@ -1237,8 +1240,8 @@ def test_managed_pin_rejects_a_nonexistent_complete_release(tmp_path: Path) -> N
         release_id=missing_release,
     )
 
-    with pytest.raises(RelationAssertionError, match="not an exact complete-membership release"):
-        PinnedManagedRelationRelease.open(
+    with pytest.raises(ConceptReleaseError, match="not an exact complete-membership release"):
+        PinnedManagedConceptRelease.open(
             manifest,
             expected_manifest_digest=_file_digest(manifest),
             release_id=missing_release,
@@ -1249,7 +1252,7 @@ def test_managed_pin_rejects_a_nonexistent_complete_release(tmp_path: Path) -> N
 def test_managed_release_ring_comes_only_from_a_pinned_assignment(tmp_path: Path) -> None:
     manifest = build_managed_bundle(tmp_path / "managed-ring-proof")
     subject_assignment = _managed_ring_assignment(tmp_path, manifest)
-    pinned = PinnedManagedRelationRelease.open(
+    pinned = PinnedManagedConceptRelease.open(
         manifest,
         expected_manifest_digest=_file_digest(manifest),
         release_id=MANAGED_RELEASE_ID,
@@ -1265,8 +1268,8 @@ def test_managed_release_ring_comes_only_from_a_pinned_assignment(tmp_path: Path
         release_id="urn:ref:test:release:another",
         name="wrong-release-ring-assignment",
     )
-    with pytest.raises(RelationAssertionError, match="names another exact release"):
-        PinnedManagedRelationRelease.open(
+    with pytest.raises(ConceptReleaseError, match="names another exact release"):
+        PinnedManagedConceptRelease.open(
             manifest,
             expected_manifest_digest=_file_digest(manifest),
             release_id=MANAGED_RELEASE_ID,
@@ -1274,7 +1277,7 @@ def test_managed_release_ring_comes_only_from_a_pinned_assignment(tmp_path: Path
         )
 
     with pytest.raises(TypeError, match="semantic_ring"):
-        PinnedManagedRelationRelease.open(
+        PinnedManagedConceptRelease.open(
             manifest,
             expected_manifest_digest=_file_digest(manifest),
             release_id=MANAGED_RELEASE_ID,

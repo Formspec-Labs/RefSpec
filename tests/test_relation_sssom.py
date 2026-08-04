@@ -12,9 +12,9 @@ from typing import Any
 
 import pytest
 
+from refspec.atlas.concept_release import PinnedSourceConceptRelease
 from refspec.atlas.machine_evidence import build_machine_evidence_from_crosswalk_proof
 from refspec.atlas.relation_assertion import (
-    PinnedSourceConceptRelationRelease,
     RelationAssertionBundle,
 )
 from refspec.atlas.relation_sssom import (
@@ -62,7 +62,7 @@ def _source_release(
     name: str,
     *,
     ring: str = "subject",
-) -> tuple[PinnedSourceConceptRelationRelease, str, str]:
+) -> tuple[PinnedSourceConceptRelease, str, str]:
     source_id = f"https://publisher.example/source/{name}.json"
     source_payload = (f'{{"terms":["{name}"]}}\n').encode()
     observation = {
@@ -116,7 +116,7 @@ def _source_release(
     )
     root = release.write_to(tmp_path / f"source-release-{ring}-{name}")
     return (
-        PinnedSourceConceptRelationRelease.open(
+        PinnedSourceConceptRelease.open(
             root / "bundle-manifest.json",
             expected_manifest_digest=release.manifest_digest,
         ),

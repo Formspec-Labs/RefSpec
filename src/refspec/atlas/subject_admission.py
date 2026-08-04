@@ -1,11 +1,10 @@
-"""Named admission reviews for existing source-scoped subject concepts.
+"""Named admission reviews for existing subject concept identities.
 
-A source-concept release supplies identity and the wide subject mapping tier.
-This module records the separate editorial decision that places one existing
-identity in the curated emit tier.  The review pins the exact release and its
-rights facts; it never creates a second concept and never grants product use.
-An exact product profile may later grant use, while accepted assignment still
-requires the evaluated configuration and deployment chain.
+A source or managed release supplies identity and the wide subject mapping
+tier. This module records the separate editorial decision that places one
+existing identity in the curated emit tier. Managed admission accepts only an
+actual ``rkaf:LocalConcept`` in an exact complete release. The review pins the
+release and its rights facts; it never creates a second concept or grants use.
 """
 
 from __future__ import annotations
@@ -30,13 +29,20 @@ from refspec.registry.infrastructure.semantic_foundation import (
     validate_evidence_assertions,
     validate_rights_metadata_records,
 )
-from refspec.registry.infrastructure.source_concept_release import (
-    SourceConceptReleaseBundle,
-    SourceConceptReleaseView,
-)
 from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
     require_aware_datetime_text,
+)
+
+from .concept_release import (
+    ConceptReleaseError,
+    SubjectConceptRelease,
+    concept_release_member_ids,
+    concept_release_pin,
+    normalize_concept_release_pin,
+    require_admissible_subject_concept,
+    require_subject_concept_release,
+    subject_release_rights_metadata,
 )
 
 SUBJECT_ADMISSION_REVIEW_VERSION = "1.0"
@@ -44,7 +50,6 @@ SUBJECT_ADMISSION_ADMIT = "urn:ref:decision:subject-admission:admit"
 SUBJECT_ADMISSION_REJECT = "urn:ref:decision:subject-admission:reject"
 
 AdmissionDecision = Literal["admit", "reject"]
-SourceConceptRelease = SourceConceptReleaseBundle | SourceConceptReleaseView
 
 _DECISION_IRIS: Mapping[AdmissionDecision, str] = {
     "admit": SUBJECT_ADMISSION_ADMIT,
@@ -58,7 +63,7 @@ _REVIEW_BASIS_FIELDS = frozenset(
         "schemaVersion",
         "decision",
         "subjectConcept",
-        "sourceConceptRelease",
+        "subjectConceptRelease",
         "definitionOrScopeNote",
         "hierarchyPlacement",
         "facet",
@@ -140,27 +145,46 @@ def _require_unique_iris(value: object, label: str) -> tuple[str, ...]:
     return tuple(sorted(result))
 
 
-def _release_pin(release: SourceConceptRelease) -> dict[str, str]:
-    return {
-        "id": _require_iri(release.release_id, "source release id"),
-        "releaseDigest": _require_digest(release.release_digest, "source release digest"),
-        "logicalDigest": _require_digest(release.logical_digest, "source release logical digest"),
-        "manifestDigest": _require_digest(release.manifest_digest, "source release manifest digest"),
-    }
+def _release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
+    try:
+        require_subject_concept_release(release)
+        return concept_release_pin(release)
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
 
 
-def _require_subject_release(release: SourceConceptRelease) -> None:
-    if not isinstance(release, (SourceConceptReleaseBundle, SourceConceptReleaseView)):
-        raise SubjectAdmissionError("subject admission requires a verified source-concept release")
-    if release.semantic_ring != "subject":
-        raise SubjectAdmissionError("subject admission rejects non-subject releases")
+def _require_subject_release(release: SubjectConceptRelease) -> None:
+    try:
+        require_subject_concept_release(release)
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
 
 
-def _concept_ids(release: SourceConceptRelease) -> frozenset[str]:
-    return frozenset(
-        _require_iri(concept.get("id"), f"source release concept[{index}].id")
-        for index, concept in enumerate(release.concepts)
-    )
+def _concept_ids(release: SubjectConceptRelease) -> frozenset[str]:
+    try:
+        return concept_release_member_ids(release)
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
+
+
+def _require_admissible_concept(
+    release: SubjectConceptRelease,
+    concept_iri: str,
+) -> str:
+    try:
+        return require_admissible_subject_concept(release, concept_iri)
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
+
+
+def _release_rights(
+    release: SubjectConceptRelease,
+    supplied: Sequence[RightsMetadata | Mapping[str, Any]] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    try:
+        return subject_release_rights_metadata(release, supplied)
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
 
 
 def _hierarchy_placement(value: object, *, subject_concept: str) -> dict[str, str]:
@@ -242,29 +266,16 @@ def _normalized_review_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         raise SubjectAdmissionError("subject admission review decision must be admit or reject")
     decision = cast(AdmissionDecision, decision)
     subject_concept = _require_iri(row.get("subjectConcept"), "subjectConcept")
-    release_pin = row.get("sourceConceptRelease")
-    if not isinstance(release_pin, Mapping):
-        raise SubjectAdmissionError("sourceConceptRelease must be an object")
-    _require_exact_fields(
-        release_pin,
-        {"id", "releaseDigest", "logicalDigest", "manifestDigest"},
-        "sourceConceptRelease",
-    )
-    normalized_pin = {
-        "id": _require_iri(release_pin.get("id"), "sourceConceptRelease.id"),
-        "releaseDigest": _require_digest(
-            release_pin.get("releaseDigest"),
-            "sourceConceptRelease.releaseDigest",
-        ),
-        "logicalDigest": _require_digest(
-            release_pin.get("logicalDigest"),
-            "sourceConceptRelease.logicalDigest",
-        ),
-        "manifestDigest": _require_digest(
-            release_pin.get("manifestDigest"),
-            "sourceConceptRelease.manifestDigest",
-        ),
-    }
+    try:
+        normalized_pin = normalize_concept_release_pin(
+            row.get("subjectConceptRelease")
+        )
+    except ConceptReleaseError as error:
+        raise SubjectAdmissionError(str(error)) from error
+    if normalized_pin["semanticRing"] != "subject":
+        raise SubjectAdmissionError(
+            "subject admission review rejects a non-subject release pin"
+        )
     reviewer = _require_iri(row.get("reviewer"), "reviewer")
     reviewed_at = _require_datetime(row.get("reviewedAt"), "reviewedAt")
     return {
@@ -272,7 +283,7 @@ def _normalized_review_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         "schemaVersion": SUBJECT_ADMISSION_REVIEW_VERSION,
         "decision": decision,
         "subjectConcept": subject_concept,
-        "sourceConceptRelease": normalized_pin,
+        "subjectConceptRelease": normalized_pin,
         "definitionOrScopeNote": _require_text(
             row.get("definitionOrScopeNote"),
             "definitionOrScopeNote",
@@ -370,26 +381,23 @@ class SubjectAdmissionReview:
     def as_record(self) -> dict[str, Any]:
         return cast(dict[str, Any], _plain(self.record))
 
-    def validate_for_release(self, release: SourceConceptRelease) -> None:
+    def validate_for_release(self, release: SubjectConceptRelease) -> None:
         """Require the exact release, existing identity, and sealed rights facts."""
 
         _require_subject_release(release)
-        if _plain(self.record["sourceConceptRelease"]) != _release_pin(release):
+        if _plain(self.record["subjectConceptRelease"]) != _release_pin(release):
             raise SubjectAdmissionError("subject admission review names another exact release")
-        if self.subject_concept not in _concept_ids(release):
-            raise SubjectAdmissionError("subject admission review concept is outside the exact release")
-        release_rights = [
-            item.as_record()
-            for item in validate_rights_metadata_records(
-                cast(Sequence[Mapping[str, Any]], release.rights_metadata)
-            )
-        ]
-        if _plain(self.record["rightsMetadata"]) != release_rights:
+        _require_admissible_concept(release, self.subject_concept)
+        release_rights = _release_rights(
+            release,
+            cast(Sequence[Mapping[str, Any]], self.record["rightsMetadata"]),
+        )
+        if _plain(self.record["rightsMetadata"]) != list(release_rights):
             raise SubjectAdmissionError("subject admission review rights differ from the exact release")
 
 
 def build_subject_admission_review(
-    release: SourceConceptRelease,
+    release: SubjectConceptRelease,
     *,
     subject_concept: str,
     decision: AdmissionDecision,
@@ -400,15 +408,14 @@ def build_subject_admission_review(
     reviewer: str,
     reviewed_at: str,
     intended_product_uses: Sequence[str],
+    rights_metadata: Sequence[RightsMetadata | Mapping[str, Any]] | None = None,
 ) -> SubjectAdmissionReview:
     """Review an existing identity without re-minting it or granting use."""
 
     _require_subject_release(release)
     if decision not in _DECISION_IRIS:
         raise SubjectAdmissionError("decision must be admit or reject")
-    concept = _require_iri(subject_concept, "subject_concept")
-    if concept not in _concept_ids(release):
-        raise SubjectAdmissionError("subject_concept is outside the exact release")
+    concept = _require_admissible_concept(release, subject_concept)
     reviewer_iri = _require_iri(reviewer, "reviewer")
     review_time = _require_datetime(reviewed_at, "reviewed_at")
     raw_basis = {
@@ -416,7 +423,7 @@ def build_subject_admission_review(
         "schemaVersion": SUBJECT_ADMISSION_REVIEW_VERSION,
         "decision": decision,
         "subjectConcept": concept,
-        "sourceConceptRelease": _release_pin(release),
+        "subjectConceptRelease": _release_pin(release),
         "definitionOrScopeNote": definition_or_scope_note,
         "hierarchyPlacement": dict(hierarchy_placement),
         "facet": facet,
@@ -424,7 +431,7 @@ def build_subject_admission_review(
             value.as_record() if isinstance(value, EvidenceAssertion) else dict(value)
             for value in evidence_assertions
         ],
-        "rightsMetadata": _plain(release.rights_metadata),
+        "rightsMetadata": list(_release_rights(release, rights_metadata)),
         "reviewer": reviewer_iri,
         "reviewedAt": review_time,
         "intendedProductUses": list(intended_product_uses),
@@ -441,7 +448,7 @@ def build_subject_admission_review(
 
 
 def validate_subject_admission_reviews(
-    release: SourceConceptRelease,
+    release: SubjectConceptRelease,
     values: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
 ) -> tuple[SubjectAdmissionReview, ...]:
     """Validate one final review per release member; product use stays separate."""
@@ -470,7 +477,7 @@ def validate_subject_admission_reviews(
 
 
 def admitted_subject_concept_ids(
-    release: SourceConceptRelease,
+    release: SubjectConceptRelease,
     reviews: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
 ) -> tuple[str, ...]:
     """Return the curated-tier identities; this result grants no product use."""
