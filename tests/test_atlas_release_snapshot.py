@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import sys
 from collections.abc import Mapping
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
+import refspec.atlas as atlas_api
 from refspec.atlas.atlas_scope import AtlasScopeRelease
 from refspec.atlas.concept_release import (
     ManagedReleaseRingAssignment,
@@ -59,6 +61,21 @@ MANAGED_MEMBER_IDS = frozenset(
         cast(str, _FIXTURE_MODULE.ELIGIBILITY_MEMBER_ID),
     }
 )
+MANAGED_SCHEME_ID = cast(str, _FIXTURE_MODULE.SCHEME_ID)
+MANAGED_DISTRIBUTION_IDS = frozenset(
+    {
+        cast(str, _FIXTURE_MODULE.DISTRIBUTION_ID),
+        cast(str, _FIXTURE_MODULE.SECOND_DISTRIBUTION_ID),
+    }
+)
+MANAGED_LIFECYCLE_ID = cast(str, _FIXTURE_MODULE.LIFECYCLE_EVENT_ID)
+MANAGED_EXCLUDED_IDS = frozenset(
+    {
+        cast(str, _FIXTURE_MODULE.CONFORMANCE_RESULT_ID),
+        cast(str, _FIXTURE_MODULE.IMPORT_ACTIVITY_ID),
+        cast(str, _FIXTURE_MODULE.MAPPING_ID),
+    }
+)
 
 
 def _file_digest(path: Path) -> str:
@@ -71,6 +88,8 @@ def _source_scope_release(
     *,
     ring: SemanticRing = "subject",
     concept_count: int = 2,
+    capture_count: int | None = None,
+    selected_observation_indexes: tuple[int, ...] | None = None,
     reconciliation: bool = False,
 ) -> tuple[
     AtlasScopeRelease,
@@ -80,7 +99,13 @@ def _source_scope_release(
     source_id = f"https://publisher.example/source/{ring}/{name}.json"
     scheme_id = f"https://publisher.example/schemes/{ring}/{name}"
     observations: list[dict[str, Any]] = []
-    for index in range(concept_count):
+    observation_count = concept_count if capture_count is None else capture_count
+    selected_indexes = (
+        tuple(range(concept_count)) if selected_observation_indexes is None else selected_observation_indexes
+    )
+    if len(selected_indexes) != concept_count:
+        raise ValueError("selected_observation_indexes must contain concept_count indexes")
+    for index in range(observation_count):
         observations.append(
             {
                 "id": f"urn:ref:test:atlas-snapshot-observation:{ring}:{name}:{index:02d}",
@@ -104,7 +129,7 @@ def _source_scope_release(
                 ),
             }
         )
-    payload = (f'{{"name":"{name}","count":{concept_count}}}\n').encode()
+    payload = (f'{{"name":"{name}","count":{observation_count}}}\n').encode()
     source = build_source_controlled_resource_bundle(
         resource_id=f"atlas-snapshot-{ring}-{name}",
         title=f"{name.title()} atlas snapshot source",
@@ -137,7 +162,7 @@ def _source_scope_release(
     release = build_source_concept_release_bundle(
         source,
         semantic_ring=ring,
-        selected_observation_ids=tuple(value["id"] for value in observations),
+        selected_observation_ids=tuple(observations[index]["id"] for index in selected_indexes),
         selection_policy={
             "id": f"urn:ref:test:atlas-snapshot-selection:{ring}:{name}:v1",
             "type": "explicitObservationSet",
@@ -222,13 +247,20 @@ def test_source_snapshot_copies_complete_logical_release_and_is_immutable(
     assert first.record["schemaVersion"] == ATLAS_RELEASE_SNAPSHOT_VERSION
     assert first.release_pin == pinned.pin()
     assert first.release_id == release.release_id
+    assert atlas_api.ATLAS_RELEASE_SNAPSHOT_TYPE == ATLAS_RELEASE_SNAPSHOT_TYPE
+    assert atlas_api.ATLAS_RELEASE_SNAPSHOT_VERSION == ATLAS_RELEASE_SNAPSHOT_VERSION
+    assert atlas_api.AtlasReleaseSnapshot is AtlasReleaseSnapshot
+    assert atlas_api.AtlasReleaseSnapshotError is AtlasReleaseSnapshotError
     assert first.semantic_ring == "subject"
     assert first.member_ids == {cast(str, concept["id"]) for concept in release.concepts}
     assert first.concept_records == tuple(release.concepts)
+    assert first.as_record()["releaseBundleManifest"] == json.loads(release.artifact_bytes()["bundle-manifest.json"])
     assert first.record["releaseManifest"] == release.release_manifest
     assert first.record["sourceResourceManifest"] == (release.source_bundle.resource_manifest)
     assert first.record["sourceCoverageReport"] == (release.source_bundle.coverage_report)
-    assert first.record["sourceObservations"] == release.source_bundle.observations
+    assert first.record["sourceObservations"] == tuple(
+        sorted(release.source_bundle.observations, key=lambda value: cast(str, value["id"]))
+    )
     assert "reconciliationRecord" not in first.record
     assert first.identifier.startswith("urn:ref:atlas-release-snapshot:")
     assert first.content_digest.startswith("sha256:")
@@ -272,6 +304,56 @@ def test_source_snapshot_omits_absent_reconciliation_but_preserves_exact_nulls(
     assert AtlasReleaseSnapshot.from_record(snapshot.as_record()).as_record() == (snapshot.as_record())
 
 
+def test_source_snapshots_share_capture_pins_without_cross_ring_observation_leakage(
+    tmp_path: Path,
+) -> None:
+    subject_scope, subject_release, _ = _source_scope_release(
+        tmp_path,
+        "mixed-capture",
+        ring="subject",
+        concept_count=2,
+        capture_count=4,
+        selected_observation_indexes=(0, 1),
+    )
+    capture = subject_release.source_bundle
+    entity_release = build_source_concept_release_bundle(
+        capture,
+        semantic_ring="entity",
+        selected_observation_ids=tuple(cast(str, capture.observations[index]["id"]) for index in (2, 3)),
+        selection_policy={
+            "id": "urn:ref:test:atlas-snapshot-selection:entity:mixed-capture:v1",
+            "type": "explicitObservationSet",
+        },
+        rights_metadata=subject_release.rights_metadata,
+    )
+    entity_root = entity_release.write_to(tmp_path / "source-release-entity-mixed-capture")
+    entity_pin = PinnedSourceConceptRelease.open(
+        entity_root,
+        expected_manifest_digest=entity_release.manifest_digest,
+    )
+
+    subject_snapshot = AtlasReleaseSnapshot.create(subject_scope)
+    entity_snapshot = AtlasReleaseSnapshot.create(AtlasScopeRelease(entity_pin))
+    subject_observations = {cast(str, value["id"]) for value in subject_snapshot.record["sourceObservations"]}
+    entity_observations = {cast(str, value["id"]) for value in entity_snapshot.record["sourceObservations"]}
+
+    assert len(capture.observations) == 4
+    assert len(subject_observations) == len(entity_observations) == 2
+    assert subject_observations.isdisjoint(entity_observations)
+    assert subject_observations | entity_observations == {cast(str, value["id"]) for value in capture.observations}
+    assert (
+        subject_snapshot.record["releaseManifest"]["sourceCapture"]
+        == entity_snapshot.record["releaseManifest"]["sourceCapture"]
+    )
+    assert subject_snapshot.record["sourceResourceManifest"] == (entity_snapshot.record["sourceResourceManifest"])
+    assert subject_snapshot.record["sourceCoverageReport"] == (entity_snapshot.record["sourceCoverageReport"])
+
+    leaked = subject_snapshot.as_record()
+    leaked["sourceObservations"].append(plain_json(capture.observations[2]))
+    with pytest.raises(AtlasReleaseSnapshotError, match="observations must exactly"):
+        AtlasReleaseSnapshot.from_record(_reseal(leaked))
+
+
 def test_source_snapshot_rejects_noncanonical_incomplete_or_authorizing_records(
     tmp_path: Path,
 ) -> None:
@@ -285,7 +367,7 @@ def test_source_snapshot_rejects_noncanonical_incomplete_or_authorizing_records(
 
     incomplete = snapshot.as_record()
     incomplete["concepts"] = incomplete["concepts"][:-1]
-    with pytest.raises(AtlasReleaseSnapshotError, match="conceptCount"):
+    with pytest.raises(AtlasReleaseSnapshotError, match="observations must exactly"):
         AtlasReleaseSnapshot.from_record(_reseal(incomplete))
 
     authorizing = snapshot.as_record()
@@ -324,7 +406,7 @@ def test_source_snapshot_verifies_against_one_exact_scope_release(
         snapshot.verify_against(first_scope)
 
 
-def test_managed_snapshot_copies_graph_assignment_and_exact_selected_members(
+def test_managed_snapshot_copies_only_selected_release_semantic_closure(
     tmp_path: Path,
 ) -> None:
     scope_release, pinned, _ = _managed_scope_release(tmp_path)
@@ -338,8 +420,82 @@ def test_managed_snapshot_copies_graph_assignment_and_exact_selected_members(
     assert snapshot.member_ids == MANAGED_MEMBER_IDS
     assert tuple(record["@id"] for record in snapshot.concept_records) == tuple(sorted(MANAGED_MEMBER_IDS))
     assert snapshot.as_record()["ringAssignment"] == (pinned.ring_assignment.verified_assignment().as_record())
-    assert snapshot.as_record()["rulespecGraph"] == (plain_json(pinned.verified_view().rulespec_graph))
-    assert len(snapshot.record["rulespecGraph"]["@graph"]) > len(snapshot.concept_records)
+    full_graph = plain_json(pinned.verified_view().rulespec_graph)
+    selected_graph = snapshot.record["selectedReleaseGraph"]
+    selected_ids = {cast(str, record["@id"]) for record in selected_graph["@graph"]}
+    assert selected_ids == {
+        MANAGED_RELEASE_ID,
+        MANAGED_SCHEME_ID,
+        MANAGED_LIFECYCLE_ID,
+        *MANAGED_MEMBER_IDS,
+        *MANAGED_DISTRIBUTION_IDS,
+    }
+    assert selected_ids.isdisjoint(MANAGED_EXCLUDED_IDS)
+    assert len(selected_graph["@graph"]) < len(full_graph["@graph"])
+    assert snapshot.release_pin["rulespecGraph"]["digest"] == rulespec_graph_digest(full_graph)
+    snapshot.verify_against(scope_release)
+
+
+def test_managed_snapshot_excludes_an_unselected_release_and_accepts_jsonld_id_references(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scope_release, pinned, _ = _managed_scope_release(tmp_path)
+    view = pinned.verified_view()
+    full_graph = plain_json(view.rulespec_graph)
+    selected_release = next(record for record in full_graph["@graph"] if record["@id"] == MANAGED_RELEASE_ID)
+    selected_release["prov:hadMember"] = [{"@id": identifier} for identifier in sorted(MANAGED_MEMBER_IDS)]
+    selected_release["dcterms:isVersionOf"] = {"@id": MANAGED_SCHEME_ID}
+    selected_release["dcat:distribution"] = [{"@id": identifier} for identifier in sorted(MANAGED_DISTRIBUTION_IDS)]
+
+    other_scheme = "urn:ref:test:entity-scheme"
+    other_release = "urn:ref:test:entity-release"
+    other_member = "urn:ref:test:entity-member"
+    other_distribution = "urn:ref:test:entity-distribution"
+    full_graph["@graph"].extend(
+        [
+            {
+                "@id": other_scheme,
+                "@type": "rkaf:ConceptScheme",
+                "skos:prefLabel": {"en": "Unselected entities"},
+            },
+            {
+                "@id": other_release,
+                "@type": "rkaf:ReferenceResourceRelease",
+                "dcterms:isVersionOf": {"@id": other_scheme},
+                "rkaf:membershipMode": "rkaf:completeMembership",
+                "prov:hadMember": [{"@id": other_member}],
+                "dcat:distribution": {"@id": other_distribution},
+                "rkaf:referenceReleaseDigest": "sha256:" + "c" * 64,
+            },
+            {
+                "@id": other_member,
+                "@type": "rkaf:RegisteredConcept",
+                "skos:prefLabel": {"en": "Unselected entity"},
+                "skos:inScheme": {"@id": other_scheme},
+            },
+            {
+                "@id": other_distribution,
+                "@type": "rkaf:Artifact",
+                "rkaf:hasContentDigest": "sha256:" + "d" * 64,
+            },
+        ]
+    )
+    modified_view = replace(view, _rulespec_graph=full_graph)
+    monkeypatch.setattr(
+        PinnedManagedConceptRelease,
+        "verified_view",
+        lambda _self: modified_view,
+    )
+
+    snapshot = AtlasReleaseSnapshot.create(scope_release)
+    selected_graph = snapshot.record["selectedReleaseGraph"]
+    selected_ids = {cast(str, record["@id"]) for record in selected_graph["@graph"]}
+
+    assert snapshot.member_ids == MANAGED_MEMBER_IDS
+    assert selected_ids.isdisjoint({other_scheme, other_release, other_member, other_distribution})
+    retained_release = next(record for record in selected_graph["@graph"] if record["@id"] == MANAGED_RELEASE_ID)
+    assert retained_release["prov:hadMember"] == tuple({"@id": identifier} for identifier in sorted(MANAGED_MEMBER_IDS))
     snapshot.verify_against(scope_release)
 
 
@@ -359,14 +515,29 @@ def test_managed_snapshot_rejects_member_graph_and_ring_inconsistency(
     with pytest.raises(AtlasReleaseSnapshotError, match="canonical identifier order"):
         AtlasReleaseSnapshot.from_record(_reseal(reordered))
 
+    missing_scheme = snapshot.as_record()
+    missing_scheme["selectedReleaseGraph"]["@graph"] = [
+        record for record in missing_scheme["selectedReleaseGraph"]["@graph"] if record["@id"] != MANAGED_SCHEME_ID
+    ]
+    with pytest.raises(AtlasReleaseSnapshotError, match="lacks .* records"):
+        AtlasReleaseSnapshot.from_record(_reseal(missing_scheme))
+
     graph_tamper = snapshot.as_record()
-    graph_tamper["rulespecGraph"]["@graph"][0]["test:changed"] = True
-    with pytest.raises(AtlasReleaseSnapshotError, match="graph digest differs"):
+    graph_tamper["selectedReleaseGraph"]["@graph"].append(
+        {
+            "@id": "urn:ref:test:unrelated-managed-record",
+            "@type": "rkaf:Artifact",
+        }
+    )
+    with pytest.raises(AtlasReleaseSnapshotError, match="outside the selected release closure"):
         AtlasReleaseSnapshot.from_record(_reseal(graph_tamper))
 
     authorizing = snapshot.as_record()
-    authorizing["rulespecGraph"]["@graph"][0]["authorized"] = True
-    authorizing["releasePin"]["rulespecGraph"]["digest"] = rulespec_graph_digest(authorizing["rulespecGraph"])
+    member_id = cast(str, authorizing["members"][0]["@id"])
+    authorizing["members"][0]["authorized"] = True
+    next(record for record in authorizing["selectedReleaseGraph"]["@graph"] if record["@id"] == member_id)[
+        "authorized"
+    ] = True
     with pytest.raises(AtlasReleaseSnapshotError, match="admission or permission"):
         AtlasReleaseSnapshot.from_record(_reseal(authorizing))
 

@@ -10,6 +10,7 @@ by an atlas scope.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
@@ -40,12 +41,6 @@ from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
     source_scoped_concept_iri,
 )
-from refspec.registry.infrastructure.source_controlled_resource import (
-    SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION,
-    SourceControlledResourceError,
-    local_record_identity_digests,
-)
-from refspec.release_graph import rulespec_graph_digest
 
 from .atlas_scope import AtlasScopeRelease
 from .concept_release import (
@@ -65,6 +60,7 @@ _COMMON_BASIS_FIELDS = {
     "releasePin",
 }
 _SOURCE_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
+    "releaseBundleManifest",
     "releaseManifest",
     "concepts",
     "rightsMetadata",
@@ -75,7 +71,7 @@ _SOURCE_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
 }
 _MANAGED_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
     "ringAssignment",
-    "rulespecGraph",
+    "selectedReleaseGraph",
     "members",
 }
 _IDENTITY_FIELDS = {"id", "contentDigest"}
@@ -98,6 +94,14 @@ _SOURCE_MANIFEST_FIELDS = {
     "lifecycleSetDigest",
     "id",
     "releaseDigest",
+}
+_SOURCE_BUNDLE_MANIFEST_FIELDS = {
+    "schemaVersion",
+    "packageKind",
+    "releaseId",
+    "releaseDigest",
+    "logicalDigest",
+    "artifacts",
 }
 _SOURCE_RESOURCE_REQUIRED_FIELDS = {
     "schemaVersion",
@@ -125,6 +129,10 @@ _SOURCE_COVERAGE_BASE_FIELDS = {
     "failedCount",
     "observationSetDigest",
     "gaps",
+}
+_SOURCE_COVERAGE_OPTIONAL_FIELDS = {
+    "localRecordIdSetDigest",
+    "localRecordContentSetDigest",
 }
 _SOURCE_CONCEPT_FIELDS = {
     "id",
@@ -175,6 +183,44 @@ _COMPLETE_MEMBERSHIP = frozenset(
     {
         "rkaf:completeMembership",
         "https://rulespec.org/ns/v1#completeMembership",
+    }
+)
+_LIFECYCLE_TYPES = frozenset(
+    {
+        "rkaf:LifecycleEvent",
+        "https://rulespec.org/ns/v1#LifecycleEvent",
+    }
+)
+_RIGHTS_TYPES = frozenset(
+    {
+        "dcterms:LicenseDocument",
+        "http://purl.org/dc/terms/LicenseDocument",
+        "rkaf:RightsMetadata",
+        "rkaf:RightsStatement",
+        "https://rulespec.org/ns/v1#RightsMetadata",
+        "https://rulespec.org/ns/v1#RightsStatement",
+    }
+)
+_DIRECT_CLOSURE_PREDICATES = frozenset(
+    {
+        "dcat:accessRights",
+        "dcat:distribution",
+        "dcterms:accessRights",
+        "dcterms:isVersionOf",
+        "dcterms:license",
+        "dcterms:rights",
+        "rkaf:lifecycleEvent",
+        "rkaf:rightsMetadata",
+        "skos:inScheme",
+        "http://purl.org/dc/terms/accessRights",
+        "http://purl.org/dc/terms/isVersionOf",
+        "http://purl.org/dc/terms/license",
+        "http://purl.org/dc/terms/rights",
+        "http://www.w3.org/2004/02/skos/core#inScheme",
+        "https://rulespec.org/ns/v1#lifecycleEvent",
+        "https://rulespec.org/ns/v1#rightsMetadata",
+        "https://www.w3.org/ns/dcat#accessRights",
+        "https://www.w3.org/ns/dcat#distribution",
     }
 )
 
@@ -228,6 +274,12 @@ def _require_ring(value: object, label: str) -> SemanticRing:
     if not isinstance(value, str) or value not in SEMANTIC_RINGS:
         raise AtlasReleaseSnapshotError(f"{label} must be subject, entity, value, or legalIdentity")
     return cast(SemanticRing, value)
+
+
+def _require_digest(value: object, label: str) -> str:
+    if not is_sha256_digest(value):
+        raise AtlasReleaseSnapshotError(f"{label} must be a SHA-256 digest")
+    return cast(str, value)
 
 
 def _validate_nullable_json(value: Any, path: str) -> None:
@@ -345,134 +397,84 @@ def _release_logical_digest(
     return sha256_digest(_canonical_bytes(basis))
 
 
-def _payload_descriptor(
-    path: str,
-    payload: bytes,
+def _validate_source_bundle_manifest(
+    value: object,
     *,
-    role: str,
-    source_id: str | None = None,
-) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "path": path,
-        "role": role,
-        "sha256": sha256_digest(payload),
-        "byteLength": len(payload),
-    }
-    if source_id is not None:
-        result["sourceId"] = source_id
-    return result
-
-
-def _source_release_manifest_digest(
-    *,
-    release_manifest: Mapping[str, Any],
-    concepts: Sequence[Mapping[str, Any]],
-    rights: Sequence[Mapping[str, Any]],
-    lifecycle: Sequence[Mapping[str, Any]],
-    source_manifest: Mapping[str, Any],
-    source_coverage: Mapping[str, Any],
-    observations: Sequence[Mapping[str, Any]],
-    source_artifacts: Mapping[str, Mapping[str, Any]],
-    reconciliation: Mapping[str, Any] | None,
-    logical_digest: str,
-) -> str:
-    """Rebuild both package manifests from logical facts and byte descriptors."""
-
-    source_payloads = {
-        "resource-manifest.json": _canonical_bytes(source_manifest),
-        "coverage-report.json": _canonical_bytes(source_coverage),
-        "observations.jsonl": _canonical_jsonl(observations),
-    }
-    nested_descriptors = [
-        _payload_descriptor(
-            path,
-            payload,
-            role=(
-                "resourceManifest"
-                if path == "resource-manifest.json"
-                else "coverageReport"
-                if path == "coverage-report.json"
-                else "observations"
-            ),
-        )
-        for path, payload in sorted(source_payloads.items())
-    ]
-    for source_id, descriptor in source_artifacts.items():
-        path = cast(str, descriptor["path"])
-        nested_descriptors.append(
-            {
-                "path": path,
-                "role": "sourceArtifact",
-                "sha256": descriptor["sha256"],
-                "byteLength": descriptor["byteLength"],
-                "sourceId": source_id,
-            }
-        )
-    nested_descriptors.sort(key=lambda value: cast(str, value["path"]))
-    source_bundle_manifest = _canonical_bytes(
-        {
-            "schemaVersion": SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION,
-            "packageKind": "sourceControlledResource",
-            "resourceManifest": source_manifest["id"],
-            "logicalDigest": _source_resource_logical_digest(
-                source_manifest,
-                source_coverage,
-            ),
-            "artifacts": nested_descriptors,
-        }
+    release_pin: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Mapping[str, Any]]]:
+    manifest = _require_mapping(
+        value,
+        "atlas release snapshot releaseBundleManifest",
     )
+    _require_exact_fields(
+        manifest,
+        _SOURCE_BUNDLE_MANIFEST_FIELDS,
+        "atlas release snapshot releaseBundleManifest",
+    )
+    if (
+        manifest.get("schemaVersion") != SOURCE_CONCEPT_RELEASE_VERSION
+        or manifest.get("packageKind") != "sourceConceptRelease"
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot source bundle manifest version is unsupported")
+    if sha256_digest(_canonical_bytes(manifest)) != release_pin.get("manifestDigest"):
+        raise AtlasReleaseSnapshotError("atlas release snapshot source release manifestDigest is stale")
+    if (
+        manifest.get("releaseId") != release_pin.get("releaseId")
+        or manifest.get("releaseDigest") != release_pin.get("releaseDigest")
+        or manifest.get("logicalDigest") != release_pin.get("logicalDigest")
+    ):
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot source bundle manifest differs from the exact release pin"
+        )
 
-    release_payloads: dict[str, bytes] = {
-        "release-manifest.json": _canonical_bytes(release_manifest),
-        "concepts.jsonl": _canonical_jsonl(concepts),
-        "rights.jsonl": _canonical_jsonl(rights),
-        "lifecycle.jsonl": _canonical_jsonl(lifecycle),
-        "source/bundle-manifest.json": source_bundle_manifest,
-        "source/resource-manifest.json": source_payloads["resource-manifest.json"],
-        "source/coverage-report.json": source_payloads["coverage-report.json"],
-        "source/observations.jsonl": source_payloads["observations.jsonl"],
-    }
-    if reconciliation is not None:
-        release_payloads["reconciliation.json"] = _canonical_bytes(reconciliation)
-    outer_descriptors = [
-        _payload_descriptor(
-            path,
-            payload,
-            role=(
-                "releaseManifest"
-                if path == "release-manifest.json"
-                else "concepts"
-                if path == "concepts.jsonl"
-                else "rights"
-                if path == "rights.jsonl"
-                else "lifecycle"
-                if path == "lifecycle.jsonl"
-                else "reconciliation"
-                if path == "reconciliation.json"
-                else "sourceCaptureArtifact"
-            ),
+    raw_artifacts = manifest.get("artifacts")
+    if not isinstance(raw_artifacts, Sequence) or isinstance(
+        raw_artifacts,
+        (str, bytes),
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot releaseBundleManifest.artifacts must be an array")
+    artifacts: dict[str, Mapping[str, Any]] = {}
+    for index, raw in enumerate(raw_artifacts):
+        label = f"atlas release snapshot releaseBundleManifest.artifacts[{index}]"
+        descriptor = _require_mapping(raw, label)
+        _require_exact_fields(
+            descriptor,
+            {"path", "role", "sha256", "byteLength"},
+            label,
         )
-        for path, payload in release_payloads.items()
-    ]
-    for descriptor in source_artifacts.values():
-        outer_descriptors.append(
-            {
-                "path": "source/" + cast(str, descriptor["path"]),
-                "role": "sourceCaptureArtifact",
-                "sha256": descriptor["sha256"],
-                "byteLength": descriptor["byteLength"],
-            }
+        path = _require_text(descriptor.get("path"), f"{label}.path")
+        if path.startswith("/") or any(part in {"", ".", ".."} for part in path.split("/")):
+            raise AtlasReleaseSnapshotError(f"{label}.path must be a safe relative path")
+        _require_text(descriptor.get("role"), f"{label}.role")
+        _require_digest(descriptor.get("sha256"), f"{label}.sha256")
+        byte_length = descriptor.get("byteLength")
+        if not isinstance(byte_length, int) or isinstance(byte_length, bool) or byte_length < 0:
+            raise AtlasReleaseSnapshotError(f"{label}.byteLength must be a nonnegative integer")
+        if path in artifacts:
+            raise AtlasReleaseSnapshotError("atlas release snapshot releaseBundleManifest repeats an artifact path")
+        artifacts[path] = descriptor
+    if tuple(artifacts) != tuple(sorted(artifacts)):
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot releaseBundleManifest artifacts are not in canonical path order"
         )
-    outer_descriptors.sort(key=lambda value: cast(str, value["path"]))
-    bundle_manifest = {
-        "schemaVersion": SOURCE_CONCEPT_RELEASE_VERSION,
-        "packageKind": "sourceConceptRelease",
-        "releaseId": release_manifest["id"],
-        "releaseDigest": release_manifest["releaseDigest"],
-        "logicalDigest": logical_digest,
-        "artifacts": outer_descriptors,
-    }
-    return sha256_digest(_canonical_bytes(bundle_manifest))
+    return manifest, artifacts
+
+
+def _require_embedded_artifact(
+    artifacts: Mapping[str, Mapping[str, Any]],
+    *,
+    path: str,
+    role: str,
+    payload: bytes,
+) -> None:
+    descriptor = artifacts.get(path)
+    if (
+        descriptor is None
+        or descriptor.get("role") != role
+        or descriptor.get("sha256") != sha256_digest(payload)
+        or descriptor.get("byteLength") != len(payload)
+    ):
+        raise AtlasReleaseSnapshotError(f"atlas release snapshot embedded {path} differs from its bundle descriptor")
 
 
 def _validate_source_concept(
@@ -545,6 +547,10 @@ def _validate_source_basis(
         expected_fields.add("reconciliationRecord")
     _require_exact_fields(row, expected_fields, "atlas release snapshot")
 
+    _, bundle_artifacts = _validate_source_bundle_manifest(
+        row.get("releaseBundleManifest"),
+        release_pin=release_pin,
+    )
     release_manifest = _require_mapping(
         row.get("releaseManifest"),
         "atlas release snapshot releaseManifest",
@@ -591,8 +597,9 @@ def _validate_source_basis(
         label="atlas release snapshot sourceObservations",
         identity_field="id",
         allow_empty=False,
-        require_identifier_order=False,
+        require_identifier_order=True,
     )
+
     source_manifest = _require_mapping(
         row.get("sourceResourceManifest"),
         "atlas release snapshot sourceResourceManifest",
@@ -605,15 +612,18 @@ def _validate_source_basis(
         row.get("sourceCoverageReport"),
         "atlas release snapshot sourceCoverageReport",
     )
-    try:
-        local_digests = local_record_identity_digests(observations)
-    except SourceControlledResourceError as error:
-        raise AtlasReleaseSnapshotError(str(error)) from error
-    _require_exact_fields(
-        source_coverage,
-        _SOURCE_COVERAGE_BASE_FIELDS | set(local_digests),
-        "atlas release snapshot sourceCoverageReport",
-    )
+    if not _SOURCE_COVERAGE_BASE_FIELDS.issubset(source_coverage) or (
+        set(source_coverage) - _SOURCE_COVERAGE_BASE_FIELDS - _SOURCE_COVERAGE_OPTIONAL_FIELDS
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot sourceCoverageReport fields differ")
+    local_digest_fields = set(source_coverage) & _SOURCE_COVERAGE_OPTIONAL_FIELDS
+    if local_digest_fields not in (set(), _SOURCE_COVERAGE_OPTIONAL_FIELDS):
+        raise AtlasReleaseSnapshotError("atlas release snapshot sourceCoverageReport local-record pins are incomplete")
+    for field in local_digest_fields:
+        _require_digest(
+            source_coverage.get(field),
+            f"atlas release snapshot sourceCoverageReport.{field}",
+        )
 
     source_manifest_id = _require_iri(
         source_manifest.get("id"),
@@ -629,19 +639,21 @@ def _validate_source_basis(
     ).removeprefix("sha256:")
     if source_manifest_id != expected_manifest_id:
         raise AtlasReleaseSnapshotError("atlas release snapshot sourceResourceManifest.id is stale")
-
-    observation_digest = sha256_digest(_canonical_jsonl(observations))
+    full_observation_digest = _require_digest(
+        source_manifest.get("observationSetDigest"),
+        "atlas release snapshot sourceResourceManifest.observationSetDigest",
+    )
+    observation_count = source_manifest.get("observationCount")
+    packaged_count = source_coverage.get("packagedCount")
     if (
-        source_manifest.get("observationCount") != len(observations)
-        or source_manifest.get("observationSetDigest") != observation_digest
+        not isinstance(observation_count, int)
+        or isinstance(observation_count, bool)
+        or observation_count < len(observations)
+        or packaged_count != observation_count
         or source_coverage.get("resourceManifest") != source_manifest_id
-        or source_coverage.get("packagedCount") != len(observations)
-        or source_coverage.get("observationSetDigest") != observation_digest
+        or source_coverage.get("observationSetDigest") != full_observation_digest
     ):
-        raise AtlasReleaseSnapshotError("atlas release snapshot source observation coverage is stale")
-    for field, expected in local_digests.items():
-        if source_coverage.get(field) != expected:
-            raise AtlasReleaseSnapshotError(f"atlas release snapshot sourceCoverageReport.{field} is stale")
+        raise AtlasReleaseSnapshotError("atlas release snapshot full source-capture metadata is inconsistent")
 
     source_artifacts_value = source_manifest.get("sourceArtifacts")
     if not isinstance(source_artifacts_value, Sequence) or isinstance(
@@ -653,37 +665,52 @@ def _validate_source_basis(
         )
     source_artifacts: dict[str, Mapping[str, Any]] = {}
     for index, value in enumerate(source_artifacts_value):
-        descriptor = _require_mapping(
-            value,
-            f"atlas release snapshot sourceArtifacts[{index}]",
-        )
+        label = f"atlas release snapshot sourceArtifacts[{index}]"
+        descriptor = _require_mapping(value, label)
         _require_exact_fields(
             descriptor,
             {"id", "path", "sha256", "byteLength"},
-            f"atlas release snapshot sourceArtifacts[{index}]",
+            label,
         )
-        source_id = _require_iri(
-            descriptor.get("id"),
-            f"atlas release snapshot sourceArtifacts[{index}].id",
-        )
-        if source_id in source_artifacts:
-            raise AtlasReleaseSnapshotError("atlas release snapshot sourceArtifacts repeats an id")
-        _require_text(
-            descriptor.get("path"),
-            f"atlas release snapshot sourceArtifacts[{index}].path",
-        )
-        if not is_sha256_digest(descriptor.get("sha256")):
-            raise AtlasReleaseSnapshotError(
-                f"atlas release snapshot sourceArtifacts[{index}].sha256 must be a SHA-256 digest"
-            )
+        source_id = _require_iri(descriptor.get("id"), f"{label}.id")
+        path = _require_text(descriptor.get("path"), f"{label}.path")
+        digest = _require_digest(descriptor.get("sha256"), f"{label}.sha256")
         byte_length = descriptor.get("byteLength")
         if not isinstance(byte_length, int) or isinstance(byte_length, bool) or byte_length <= 0:
-            raise AtlasReleaseSnapshotError(
-                f"atlas release snapshot sourceArtifacts[{index}].byteLength must be a positive integer"
-            )
+            raise AtlasReleaseSnapshotError(f"{label}.byteLength must be a positive integer")
+        if source_id in source_artifacts:
+            raise AtlasReleaseSnapshotError("atlas release snapshot sourceArtifacts repeats an id")
         source_artifacts[source_id] = descriptor
+        outer_descriptor = bundle_artifacts.get(f"source/{path}")
+        if (
+            outer_descriptor is None
+            or outer_descriptor.get("role") != "sourceCaptureArtifact"
+            or outer_descriptor.get("sha256") != digest
+            or outer_descriptor.get("byteLength") != byte_length
+        ):
+            raise AtlasReleaseSnapshotError(f"{label} differs from its exact source-capture bundle pin")
     if tuple(source_artifacts) != tuple(sorted(source_artifacts)):
         raise AtlasReleaseSnapshotError("atlas release snapshot sourceArtifacts is not in canonical identifier order")
+
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="source/resource-manifest.json",
+        role="sourceCaptureArtifact",
+        payload=_canonical_bytes(source_manifest),
+    )
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="source/coverage-report.json",
+        role="sourceCaptureArtifact",
+        payload=_canonical_bytes(source_coverage),
+    )
+    observations_descriptor = bundle_artifacts.get("source/observations.jsonl")
+    if (
+        observations_descriptor is None
+        or observations_descriptor.get("role") != "sourceCaptureArtifact"
+        or observations_descriptor.get("sha256") != full_observation_digest
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot full observation-set pin is stale")
 
     observation_by_id = {cast(str, value["id"]): value for value in observations}
     source_scheme_value = release_manifest.get("sourceScheme")
@@ -707,20 +734,34 @@ def _validate_source_basis(
             observations=observation_by_id,
         )
         selected_observations.append(cast(str, concept["sourceObservation"]))
-    if len(set(selected_observations)) != len(selected_observations):
-        raise AtlasReleaseSnapshotError("atlas release snapshot concepts repeat a source observation")
+    if len(set(selected_observations)) != len(selected_observations) or set(selected_observations) != set(
+        observation_by_id
+    ):
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot observations must exactly equal those cited by selected concepts"
+        )
 
     normalized_rights: list[dict[str, Any]] = []
+    selected_source_artifacts = {
+        _require_iri(
+            observation.get("sourceArtifact"),
+            f"atlas release snapshot sourceObservations[{index}].sourceArtifact",
+        )
+        for index, observation in enumerate(observations)
+    }
     for index, rights_row in enumerate(rights):
         try:
             normalized = RightsMetadata.from_record(rights_row).as_record()
         except SemanticFoundationError as error:
             raise AtlasReleaseSnapshotError(str(error)) from error
-        source_id = cast(str, normalized["sourceArtifact"])
-        descriptor = source_artifacts.get(source_id)
-        if descriptor is None or descriptor.get("sha256") != normalized["sourceDigest"]:
+        descriptor = source_artifacts.get(cast(str, normalized["sourceArtifact"]))
+        if (
+            normalized["sourceArtifact"] not in selected_source_artifacts
+            or descriptor is None
+            or descriptor.get("sha256") != normalized["sourceDigest"]
+        ):
             raise AtlasReleaseSnapshotError(
-                f"atlas release snapshot rightsMetadata[{index}] is outside the exact source capture"
+                f"atlas release snapshot rightsMetadata[{index}] is outside the selected observation closure"
             )
         normalized_rights.append(normalized)
     if tuple(normalized_rights) != rights:
@@ -752,6 +793,31 @@ def _validate_source_basis(
     for field, expected in set_checks:
         if release_manifest.get(field) != expected:
             raise AtlasReleaseSnapshotError(f"atlas release snapshot releaseManifest.{field} is stale")
+
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="release-manifest.json",
+        role="releaseManifest",
+        payload=_canonical_bytes(release_manifest),
+    )
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="concepts.jsonl",
+        role="concepts",
+        payload=_canonical_jsonl(concepts),
+    )
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="rights.jsonl",
+        role="rights",
+        payload=_canonical_jsonl(rights),
+    )
+    _require_embedded_artifact(
+        bundle_artifacts,
+        path="lifecycle.jsonl",
+        role="lifecycle",
+        payload=_canonical_jsonl(lifecycle),
+    )
 
     release_basis = {key: value for key, value in release_manifest.items() if key not in {"id", "releaseDigest"}}
     release_digest = sha256_digest(_canonical_bytes(release_basis))
@@ -789,16 +855,32 @@ def _validate_source_basis(
         expected_capture_fields,
         "atlas release snapshot releaseManifest.sourceCapture",
     )
+    if (
+        _require_iri(
+            source_capture.get("resourceManifest"),
+            "atlas release snapshot releaseManifest.sourceCapture.resourceManifest",
+        )
+        != source_manifest_id
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot source capture names another resource manifest")
+    declared_source_logical_digest = _require_digest(
+        source_capture.get("logicalDigest"),
+        "atlas release snapshot releaseManifest.sourceCapture.logicalDigest",
+    )
     source_logical_digest = _source_resource_logical_digest(
         source_manifest,
         source_coverage,
     )
+    if declared_source_logical_digest != source_logical_digest:
+        raise AtlasReleaseSnapshotError("atlas release snapshot source capture logicalDigest is stale")
     if (
-        source_capture.get("resourceManifest") != source_manifest_id
-        or source_capture.get("logicalDigest") != source_logical_digest
-        or source_capture.get("observationSetDigest") != observation_digest
+        _require_digest(
+            source_capture.get("observationSetDigest"),
+            "atlas release snapshot releaseManifest.sourceCapture.observationSetDigest",
+        )
+        != full_observation_digest
     ):
-        raise AtlasReleaseSnapshotError("atlas release snapshot source capture pin is stale")
+        raise AtlasReleaseSnapshotError("atlas release snapshot source capture observationSetDigest is stale")
     if reconciliation is not None:
         _validate_nullable_json(reconciliation, "$.reconciliationRecord")
         if (
@@ -811,6 +893,14 @@ def _validate_source_basis(
         reconciliation_digest = sha256_digest(_canonical_bytes(reconciliation))
         if source_capture.get("reconciliationDigest") != reconciliation_digest:
             raise AtlasReleaseSnapshotError("atlas release snapshot reconciliation digest is stale")
+        _require_embedded_artifact(
+            bundle_artifacts,
+            path="reconciliation.json",
+            role="reconciliation",
+            payload=_canonical_bytes(reconciliation),
+        )
+    elif "reconciliation.json" in bundle_artifacts:
+        raise AtlasReleaseSnapshotError("atlas release snapshot bundle describes an omitted reconciliation record")
 
     release_logical_digest = _release_logical_digest(
         release_manifest,
@@ -819,19 +909,6 @@ def _validate_source_basis(
     )
     if release_pin.get("logicalDigest") != release_logical_digest:
         raise AtlasReleaseSnapshotError("atlas release snapshot source release logicalDigest is stale")
-    if release_pin.get("manifestDigest") != _source_release_manifest_digest(
-        release_manifest=release_manifest,
-        concepts=concepts,
-        rights=rights,
-        lifecycle=lifecycle,
-        source_manifest=source_manifest,
-        source_coverage=source_coverage,
-        observations=observations,
-        source_artifacts=source_artifacts,
-        reconciliation=reconciliation,
-        logical_digest=release_logical_digest,
-    ):
-        raise AtlasReleaseSnapshotError("atlas release snapshot source release manifestDigest is stale")
     return {key: _plain(value) for key, value in row.items() if key not in _IDENTITY_FIELDS}
 
 
@@ -847,9 +924,111 @@ def _record_types(record: Mapping[str, Any]) -> frozenset[str]:
 def _iri_values(value: object) -> tuple[str, ...]:
     if isinstance(value, str):
         return (value,)
+    if isinstance(value, Mapping):
+        identifier = value.get("@id")
+        return (identifier,) if isinstance(identifier, str) else ()
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        return tuple(item for item in value if isinstance(item, str))
+        return tuple(identifier for item in value for identifier in _iri_values(item))
     return ()
+
+
+def _record_references(record: Mapping[str, Any]) -> frozenset[str]:
+    return frozenset(
+        identifier for key, value in record.items() if key not in {"@id", "@type"} for identifier in _iri_values(value)
+    )
+
+
+def _managed_graph_nodes(
+    value: object,
+    *,
+    label: str,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    graph = _require_mapping(value, label)
+    _require_exact_fields(graph, {"@context", "@graph"}, label)
+    raw_nodes = graph.get("@graph")
+    if not isinstance(raw_nodes, Sequence) or isinstance(raw_nodes, (str, bytes)):
+        raise AtlasReleaseSnapshotError(f"{label}.@graph must be an array")
+    nodes: dict[str, dict[str, Any]] = {}
+    for index, raw_node in enumerate(raw_nodes):
+        node = _require_mapping(raw_node, f"{label}.@graph[{index}]")
+        identifier = _require_iri(
+            node.get("@id"),
+            f"{label}.@graph[{index}].@id",
+        )
+        if identifier in nodes:
+            raise AtlasReleaseSnapshotError(f"{label} repeats an identifier")
+        nodes[identifier] = node
+    return graph, nodes
+
+
+def _selected_managed_graph(
+    value: object,
+    *,
+    release_id: str,
+) -> tuple[dict[str, Any], tuple[str, ...]]:
+    """Copy one release's semantic closure, leaving the wider graph behind."""
+
+    graph, nodes = _managed_graph_nodes(
+        value,
+        label="atlas release snapshot selectedReleaseGraph",
+    )
+    release_node = nodes.get(release_id)
+    if (
+        release_node is None
+        or not (_record_types(release_node) & _RELEASE_TYPES)
+        or release_node.get("rkaf:membershipMode") not in _COMPLETE_MEMBERSHIP
+    ):
+        raise AtlasReleaseSnapshotError("atlas release snapshot selected graph lacks the selected complete release")
+    member_ids = _iri_values(release_node.get("prov:hadMember"))
+    if not member_ids or len(set(member_ids)) != len(member_ids):
+        raise AtlasReleaseSnapshotError("atlas release snapshot selected release membership is empty or repeated")
+    missing_members = sorted(set(member_ids) - set(nodes))
+    if missing_members:
+        raise AtlasReleaseSnapshotError(
+            f"atlas release snapshot selected graph lacks release members {missing_members!r}"
+        )
+
+    selected = {release_id, *member_ids}
+    required_local_predicates = {
+        "dcat:distribution",
+        "dcterms:isVersionOf",
+        "skos:inScheme",
+        "http://purl.org/dc/terms/isVersionOf",
+        "http://www.w3.org/2004/02/skos/core#inScheme",
+        "https://www.w3.org/ns/dcat#distribution",
+    }
+    for identifier in tuple(selected):
+        record = nodes[identifier]
+        for predicate in required_local_predicates:
+            referenced = _iri_values(record.get(predicate))
+            missing = sorted(set(referenced) - set(nodes))
+            if missing:
+                raise AtlasReleaseSnapshotError(
+                    f"atlas release snapshot selected graph lacks {predicate} records {missing!r}"
+                )
+
+    while True:
+        prior = set(selected)
+        for identifier in tuple(selected):
+            record = nodes[identifier]
+            for predicate in _DIRECT_CLOSURE_PREDICATES:
+                selected.update(reference for reference in _iri_values(record.get(predicate)) if reference in nodes)
+        anchors = selected | {release_id, *member_ids}
+        for identifier, record in nodes.items():
+            types = _record_types(record)
+            if types & (_LIFECYCLE_TYPES | _RIGHTS_TYPES) and _record_references(record) & anchors:
+                selected.add(identifier)
+        if selected == prior:
+            break
+
+    selected_nodes = sorted(
+        (_plain(nodes[identifier]) for identifier in selected),
+        key=lambda record: cast(str, record["@id"]),
+    )
+    return {
+        "@context": _plain(graph["@context"]),
+        "@graph": selected_nodes,
+    }, member_ids
 
 
 def _validate_managed_basis(
@@ -884,53 +1063,31 @@ def _validate_managed_basis(
     ):
         raise AtlasReleaseSnapshotError("atlas release snapshot ring assignment differs from the exact release pin")
 
-    graph = _require_mapping(
-        row.get("rulespecGraph"),
-        "atlas release snapshot rulespecGraph",
-    )
-    if "@id" in graph:
-        raise AtlasReleaseSnapshotError("atlas release snapshot rulespecGraph must remain a default graph")
-    try:
-        graph_digest = rulespec_graph_digest(graph)
-    except (TypeError, ValueError) as error:
-        raise AtlasReleaseSnapshotError(str(error)) from error
-    graph_pin = cast(Mapping[str, Any], release_pin["rulespecGraph"])
-    if graph_digest != graph_pin.get("digest"):
-        raise AtlasReleaseSnapshotError("atlas release snapshot Rulespec graph digest differs from release pin")
-    raw_nodes = graph.get("@graph")
-    if not isinstance(raw_nodes, Sequence) or isinstance(raw_nodes, (str, bytes)):
-        raise AtlasReleaseSnapshotError("atlas release snapshot rulespecGraph.@graph must be an array")
-    nodes: dict[str, dict[str, Any]] = {}
-    for index, value in enumerate(raw_nodes):
-        node = _require_mapping(
-            value,
-            f"atlas release snapshot rulespecGraph.@graph[{index}]",
-        )
-        identifier = _require_iri(
-            node.get("@id"),
-            f"atlas release snapshot rulespecGraph.@graph[{index}].@id",
-        )
-        if identifier in nodes:
-            raise AtlasReleaseSnapshotError("atlas release snapshot Rulespec graph repeats an identifier")
-        nodes[identifier] = node
-
     release_id = _require_iri(
         release_pin.get("releaseId"),
         "atlas release snapshot releasePin.releaseId",
     )
+    graph, expected_member_ids = _selected_managed_graph(
+        row.get("selectedReleaseGraph"),
+        release_id=release_id,
+    )
+    supplied_graph = _require_mapping(
+        row.get("selectedReleaseGraph"),
+        "atlas release snapshot selectedReleaseGraph",
+    )
+    if graph != supplied_graph:
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot selectedReleaseGraph contains records outside the selected release closure or is not canonical"
+        )
+    _, nodes = _managed_graph_nodes(
+        graph,
+        label="atlas release snapshot selectedReleaseGraph",
+    )
     release_node = nodes.get(release_id)
-    if (
-        release_node is None
-        or not (_record_types(release_node) & _RELEASE_TYPES)
-        or release_node.get("rkaf:membershipMode") not in _COMPLETE_MEMBERSHIP
-    ):
-        raise AtlasReleaseSnapshotError("atlas release snapshot Rulespec graph lacks the selected complete release")
-    expected_member_ids = _iri_values(release_node.get("prov:hadMember"))
-    if not expected_member_ids or len(set(expected_member_ids)) != len(expected_member_ids):
-        raise AtlasReleaseSnapshotError("atlas release snapshot selected release membership is empty or repeated")
+    assert release_node is not None
     if release_node.get("rkaf:referenceReleaseDigest") != release_pin.get("declaredReleaseDigest"):
         raise AtlasReleaseSnapshotError(
-            "atlas release snapshot declared release digest differs from the Rulespec graph"
+            "atlas release snapshot declared release digest differs from the selected release record"
         )
 
     members = _require_rows(
@@ -948,7 +1105,7 @@ def _validate_managed_basis(
         member_id = actual_member_ids[index]
         if nodes.get(member_id) != member:
             raise AtlasReleaseSnapshotError(
-                f"atlas release snapshot members[{index}] differs from the full Rulespec graph"
+                f"atlas release snapshot members[{index}] differs from the selected release graph"
             )
         schemes = _iri_values(member.get("skos:inScheme"))
         if len(schemes) != 1:
@@ -1023,10 +1180,16 @@ class AtlasReleaseSnapshot:
             release_pin = source.pin()
             if isinstance(source, PinnedSourceConceptRelease):
                 view = source.verified_view()
+                bundle_manifest = json.loads(view.bundle.artifact_bytes()["bundle-manifest.json"].decode("utf-8"))
+                observations_by_id = {
+                    cast(str, observation["id"]): observation for observation in view.source_bundle.observations
+                }
+                selected_observation_ids = {cast(str, concept["sourceObservation"]) for concept in view.concepts}
                 basis: dict[str, Any] = {
                     "type": ATLAS_RELEASE_SNAPSHOT_TYPE,
                     "schemaVersion": ATLAS_RELEASE_SNAPSHOT_VERSION,
                     "releasePin": release_pin,
+                    "releaseBundleManifest": bundle_manifest,
                     "releaseManifest": _plain(view.release_manifest),
                     "concepts": sorted(
                         (_plain(value) for value in view.concepts),
@@ -1042,22 +1205,26 @@ class AtlasReleaseSnapshot:
                     ),
                     "sourceResourceManifest": _plain(view.source_bundle.resource_manifest),
                     "sourceCoverageReport": _plain(view.source_bundle.coverage_report),
-                    # The source package's JSONL order is part of its exact
-                    # observationSetDigest. It is already canonical for that
-                    # capture and must not be rewritten by the atlas.
-                    "sourceObservations": [_plain(value) for value in view.source_bundle.observations],
+                    "sourceObservations": sorted(
+                        (_plain(observations_by_id[identifier]) for identifier in selected_observation_ids),
+                        key=lambda value: cast(str, value["id"]),
+                    ),
                 }
                 if view.reconciliation_record is not None:
                     basis["reconciliationRecord"] = _plain(view.reconciliation_record)
             elif isinstance(source, PinnedManagedConceptRelease):
                 view = source.verified_view()
                 assignment = source.ring_assignment.verified_assignment()
+                selected_graph, _ = _selected_managed_graph(
+                    view.rulespec_graph,
+                    release_id=source.release_id,
+                )
                 basis = {
                     "type": ATLAS_RELEASE_SNAPSHOT_TYPE,
                     "schemaVersion": ATLAS_RELEASE_SNAPSHOT_VERSION,
                     "releasePin": release_pin,
                     "ringAssignment": assignment.as_record(),
-                    "rulespecGraph": _plain(view.rulespec_graph),
+                    "selectedReleaseGraph": selected_graph,
                     "members": sorted(
                         (_plain(member.record) for member in view.iter_members(release_iri=source.release_id)),
                         key=lambda value: cast(str, value["@id"]),

@@ -98,6 +98,12 @@ from .relation_sssom import (
     RelationSssomError,
     relation_sssom_text,
 )
+from .release_snapshot import (
+    ATLAS_RELEASE_SNAPSHOT_TYPE,
+    ATLAS_RELEASE_SNAPSHOT_VERSION,
+    AtlasReleaseSnapshot,
+    AtlasReleaseSnapshotError,
+)
 from .source_concept import (
     PinnedSourceConceptSubjectAtlasRelease,
     SourceConceptSubjectAtlasView,
@@ -126,6 +132,8 @@ from .subject_emission import (
 
 __all__ = [
     "ATLAS",
+    "ATLAS_RELEASE_SNAPSHOT_TYPE",
+    "ATLAS_RELEASE_SNAPSHOT_VERSION",
     "ATLAS_SCOPE_TYPE",
     "ATLAS_SCOPE_VERSION",
     "CROSSWALK_MACHINE_PROOF_ADAPTER",
@@ -154,6 +162,8 @@ __all__ = [
     "SUBJECT_EMISSION_POLICY_TYPE",
     "SUBJECT_EMISSION_POLICY_VERSION",
     "AtlasReleaseFactsView",
+    "AtlasReleaseSnapshot",
+    "AtlasReleaseSnapshotError",
     "AtlasScopeError",
     "AtlasScopeRelease",
     "ConceptReleaseError",
