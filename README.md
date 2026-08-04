@@ -171,12 +171,9 @@ place until its consumers move to Core or Rulespec Extrapolator. Updating or
 removing that pin without migrating those consumers would hide a real
 compatibility break.
 
-Ordinary tests do not run that retired combined proof against the current
-split Rulespec checkout. They skip it with the exact required revision in the
-reason. Maintainers can still run the historical proof by setting
-`RULESPEC_DIR` to a clean checkout at the pinned evidence revision. The current
-`test-cross-repository` target verifies the Core and static-atlas file seam;
-`test-legacy-rulespec-combined` is the explicit historical gate.
+Ordinary tests do not read a sibling Rulespec checkout or run the retired
+combined proof. They validate dependency-manifest mutations against local test
+inputs. Current source readers and ELSST do not export data to Rulespec.
 
 ## Executable package
 
@@ -190,26 +187,14 @@ requirement-to-test manifest, so a wheel-installed `refspec-validate` can run
 the same no-argument conformance suite without a source checkout.
 
 Run `make test` from this repository to check generated artifacts, all valid
-and invalid REF fixtures, and the Python package. Run
-`make test-cross-repository` to check the current Rulespec Core and static-atlas
-file seam. Use `make test-legacy-rulespec-combined` only with the exact clean
-historical Rulespec checkout named above.
+and invalid REF fixtures, and the Python package. The gate is standalone and
+does not read a sibling Rulespec checkout.
 
 The [Federal Register vocabulary policy](docs/federal-register-vocabulary-policy.md)
 packages the exact April 1, 2025 thesaurus as the default candidate vocabulary
-for Federal Register documents. The checked source extract, crosswalk, and
-ordinary tests are offline. Optional gates rebuild them from the exact pinned
-PDF.
-
-`make test-real-vocabulary` remains a separate, explicitly networked
-historical regression. It downloads the pinned November 16, 1995 source,
-rejects any SHA-256 mismatch, exercises the former development selection path,
-and proves its rollback. **That edition is not being pursued**
-([REF-012](docs/decisions.md#ref-012-do-not-pursue-the-1995-federal-register-thesaurus-edition)):
-it is not candidate-authorized in the active portfolio and no artifact needs
-it. The gate stays as a regression over code already written, not as an
-integration in progress.
-
-The command removes the temporary source bytes on exit. The default
+for Federal Register documents. The checked source extract and ordinary tests
+are offline. The real-data audit rebuilds them from the exact pinned 2025 PDF.
+The superseded 1995 reader, crosswalk, and historical gate have been removed.
 `make test` remains offline. Git contains the deterministic semantic extract
-and crosswalk; the native PDF remains in the managed release output.
+for the current thesaurus; the native PDF remains in the managed release
+output.

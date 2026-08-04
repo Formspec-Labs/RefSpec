@@ -64,6 +64,15 @@ These numbers identify one local artifact, not a moving “current atlas.” Fut
 reports must name the atlas identifier and both file digests before quoting
 counts. They supersede the unpinned opening counts in the draft proposal.
 
+The registry-wide [source audit](evidence/registry-real-data-audit-2026-08-03/summary.json)
+also states its limit directly. It inventories 77 modules and its direct run
+passed 1,263 tests with 42 skips and no failures or errors. Ten reader rows
+have independently pinned publisher bytes, 52 remain blocked on source
+evidence, and 15 are support or otherwise not applicable. The separate
+publisher-data acceptance gate therefore remains red; the normal suite checks
+that this failure inventory is current instead of treating local files as
+publisher proof.
+
 Atlas 1.0 already supports multiple crosswalk bundles, deterministic
 reproduction, bounded hierarchy, SSSOM export, a static explorer, and a
 separate projection kind. The latest explorer code also shows lifecycle
@@ -167,8 +176,8 @@ authorization continues to use the exact product policy.
 | Federal Register Thesaurus 2025 | `atlas` / `core` | Keep the existing complete managed release. Exact product use still requires a matching `OutputProfile` row. |
 | ELSST R6 | `atlas` / `bridge` | Keep the current release and 121 qualified mappings. Measure query expansion before deepening the bridge. |
 | ICPSR | `atlas` / `bridge`, development-only | Keep the release marker and 119 qualified mappings. Do not treat the separate operator-adopted bridge as machine-qualified. |
-| CRS Legislative Subject Terms | `sourceAssignedEvidence` | Keep the exact publisher labels as evidence. Congress.gov supplies no stable term identity or named vocabulary release, so these values do not enter the core yet. |
-| CRS Policy Areas | `sourceAssignedEvidence` / navigation | Keep as broad navigation and publisher evidence, not subject concepts. |
+| CRS Legislative Subject Terms | `sourceAssignedEvidence` | Register the LoC scheme `http://id.loc.gov/vocabulary/subjectSchemes/lst` and keep the exact publisher labels as evidence. The scheme ID does not identify terms; Congress.gov supplies no stable term IDs or versioned release, so the values stay out of the core. |
+| CRS Policy Areas | `sourceAssignedEvidence` / navigation | Register the LoC scheme `http://id.loc.gov/vocabulary/subjectSchemes/cgpa`. Keep the labels as broad navigation and publisher evidence; the scheme ID does not turn the 32 rows into subject concepts. |
 | LCSH topical | planned `atlas` / `bridge` | Admit only a frontier release built by the two-pass process in §8. The current source-observation package is not that release. |
 | FAST topical | planned `atlas` / `bridge` | Require an exact RDF acquisition and the predicate-conversion rule in §10 before promotion. |
 | MeSH descriptors, NALT Core, GEMET, NASA Thesaurus | planned `atlas` / `specialist` | Pilot separately after source, license, freshness, identity, and holdout gates pass. |
@@ -286,10 +295,54 @@ deterministic conversion, endpoint releases, and verification.
 
 ## 11. CRS and local core growth
 
-Congress.gov's Legislative Subject Terms and Policy Areas remain valuable
-publisher evidence. Their pages do not supply stable concept identifiers or a
-named, versioned vocabulary release. RefSpec therefore keeps them out of
-`releaseFacts` and does not mint publisher identity on Congress's behalf.
+The Library of Congress Linked Data Service gives both CRS resources stable
+scheme identities: `lst` identifies Legislative Subject Terms, and `cgpa`
+identifies Congress.gov Policy Areas. RefSpec records each ID as the resource's
+`sourceScheme` and pins the exact LoC authority record in the matching source
+package.
+
+These IDs close the resource-level naming gap, not the term-level identity gap.
+The Congress.gov pages and API still identify the 1,043 Legislative Subject
+Terms and 32 Policy Areas by name and publish no versioned release. RefSpec
+therefore excludes the rows from `releaseFacts` and does not mint publisher term
+identity on Congress's behalf.
+
+RefSpec does assign its own operational identities so the source can be tracked
+without pretending Congress issued term IDs:
+
+1. Every source acquisition records `sourceFetchId`, an RFC 9562 UUIDv7, and
+   its explicit `sourceObservedAt` date-time. Each Congress.gov page and each
+   LoC authority record has its own event. The UUID time and date-time agree.
+2. The combined package records a separate UUIDv7 `registrationEvent`; package
+   assembly never pretends to be a source fetch.
+3. Every first-seen row receives a UUIDv7 `localRecordId`. This identifies the
+   RefSpec registry record only. It is neither a publisher identifier nor an
+   `rkaf:LocalConcept`.
+4. Every package saves `localRecordIdSetDigest`, the SHA-256 digest of the
+   sorted local IDs, and `localRecordContentSetDigest`, the digest of those IDs
+   with every capture-independent observation field. Reconciliation compares
+   the same fields, so a changed content digest cannot be called unchanged.
+   The observation and exact-source digests still seal the full capture.
+5. A refresh first matches publisher identifiers when they exist. Otherwise it
+   carries an ID forward only for a unique exact match on source scheme,
+   category, and official label. A raw-page change that leaves parsed record
+   content unchanged is recorded as `sourceOnlyChange` and needs no identity
+   decision.
+6. Any added, removed, renamed, split, merged, definition-changed, or other
+   capture-independent content change creates
+   a digest-pinned reconciliation report. Similar labels and unchanged
+   definitions may appear as review suggestions, never automatic identity
+   decisions. Promotion stops until a named human records the local-continuity
+   decisions or confirms that the additions and removals are real. The review
+   binds the exact proposed-change digest and records reviewer, time, reason,
+   and any current-observation-to-prior-record links.
+
+Each capture is written to a new immutable ledger directory containing both
+complete source packages, the reconciliation reports, and any human review.
+The next refresh reopens that verified ledger as its predecessor. Human review
+may carry a RefSpec `localRecordId` forward; it still cannot turn that ID into
+a CRS or LoC term identifier. This gives products stable local handles and
+explicit change history without weakening the source-identity rule.
 
 If repeated product gaps justify a legislative extension, an authorized local
 vocabulary publisher may create `rkaf:LocalConcept` records, review them under
@@ -409,8 +462,10 @@ they do not weaken the gate.
 6. Acquire and parse FAST RDF, apply the named conversion rule, and measure the
    incremental value beyond LCSH and ordinary lexical search.
 7. Pilot specialist releases one at a time under exact `OutputProfile` rows.
-8. Design concept staging before publishing any project-governed extension to
-   the core. Keep CRS as source evidence until then.
+8. Operate the CRS UUIDv7 capture and reconciliation ledger. Resolve any
+   `reviewRequired` refresh before using the new snapshot, then design concept
+   staging before publishing any project-governed extension to the core. Keep
+   CRS as source evidence until then.
 9. Design the entity spine and legal identity edges separately. Reuse the same
    pin, receipt, provenance, and non-name-equality principles without forcing
    them into the atlas.

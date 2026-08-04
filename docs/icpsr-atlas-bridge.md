@@ -7,7 +7,7 @@ refuses to carry, and what the resulting bytes cost.
 ## The gap was a missing bridge, not missing data
 
 ICPSR's reader has been production-grade since 2026-07-30:
-[`src/refspec/registry/icpsr_managed_release.py`](../src/refspec/registry/icpsr_managed_release.py),
+[`src/refspec/registry/managed_releases/icpsr_managed_release.py`](../src/refspec/registry/managed_releases/icpsr_managed_release.py),
 686 lines, 25 tests, sealed, digest-verified, `PARSER_VERSION =
 "refspec-icpsr-managed-release-v1"`. What it emits is its own shape —
 `MANAGED_RELEASE_VERSION = "icpsr-uri-verified-development-v1"`, self-marked
@@ -15,10 +15,10 @@ ICPSR's reader has been production-grade since 2026-07-30:
 `bundleVersion: "1.0"`. The two share no manifest field, so every ICPSR concept
 was refused at the door.
 
-ELSST reached the atlas through `registry/elsst_rulespec_projection.py` plus
-`registry/elsst_managed_release.py`, which together build the full 1.0 bundle.
-ICPSR never got either. But the 1.0 bundle was never the requirement: the atlas
-consumes `VerifiedManagedReleaseSource`, and
+ELSST remains an independent source reader. RefSpec does not convert it into a
+Rulespec release or publish it through the atlas. ICPSR uses a separate adapter
+because its verified source package is an atlas input. The 1.0 bundle was never
+the requirement: the atlas consumes `VerifiedManagedReleaseSource`, and
 [`atlas/federal_register.py`](../src/refspec/atlas/federal_register.py) already
 satisfies it from a package that declares its own manifest type and never
 builds a 1.0 bundle at all. That adapter, not ELSST's 3,000 lines, is the
@@ -336,7 +336,7 @@ product decision. This document does not propose one.
 
 The nine generator-built conformance fixtures under
 `bindings/atlas/1.0/fixtures/` changed digests, because `atlas/icpsr.py`,
-`registry/icpsr_managed_release.py`, and `registry/icpsr_subject.py` joined
+`registry/managed_releases/icpsr_managed_release.py`, and `registry/icpsr_subject.py` joined
 `_IMPLEMENTATION_SOURCE_PATHS` — for the same reason the Federal Register
 modules are already there. A specialized producer computes the closed release
 digest locally, so a reader whose bytes could change without changing the atlas

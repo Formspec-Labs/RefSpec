@@ -129,24 +129,9 @@ From the RefSpec repository root:
 make test-json-binding
 ```
 
-To check every named upstream fixture and run the complete Rulespec gate
-against a sibling working tree:
-
-```sh
-make test-rulespec-working-tree
-```
-
-That command proves the current trees agree, but it does not create or imply
-an immutable dependency pin. A release candidate must use:
-
-```sh
-make test-cross-repository
-```
-
-The release gate also requires an exact vocabulary-closure version, committed
-Rulespec revision, and recomputed constraint digest in the application
-profile. It rejects a dirty Rulespec checkout or a missing, stale, or
-placeholder pin.
+The package tests use RefSpec's checked-in Rulespec dependency record. They do
+not read a sibling Rulespec checkout. Run `make test` for the complete
+standalone gate.
 
 The command uses `uv` with the exact dependency versions in
 `requirements.txt`. To validate linked standalone records:
