@@ -53,7 +53,7 @@ SOURCE_AVAILABILITY_STATES = {
 }
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
-_ATLAS_DISTRIBUTION_KIND = "refspec-vocabulary-atlas-nquads-1.0"
+_ATLAS_DISTRIBUTION_KIND = "refspec-vocabulary-atlas-nquads-2.0"
 _SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND = "refspec-source-concept-release-1.0"
 _SOURCE_CONTROLLED_RESOURCE_DISTRIBUTION_KIND = "refspec-source-controlled-resource-2.0"
 
@@ -257,14 +257,18 @@ def _verify_atlas_distribution(
     )
     manifest_relative = manifest_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
     output_file = manifest_file.parent / "atlas.nq"
+    scope_file = manifest_file.parent / "atlas-scope.json"
     try:
         output_relative = output_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
+        scope_relative = scope_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
     except (FileNotFoundError, ValueError) as error:
-        raise ResourceCatalogError(f"{location} must contain atlas.nq inside the repository") from error
-    expected_paths = {manifest_relative, output_relative}
+        raise ResourceCatalogError(
+            f"{location} must contain atlas-manifest.json, atlas.nq, and atlas-scope.json inside the repository"
+        ) from error
+    expected_paths = {manifest_relative, output_relative, scope_relative}
     if package_paths != expected_paths:
         raise ResourceCatalogError(
-            f"{location} directory is not a closed two-file atlas package; "
+            f"{location} directory is not a closed three-file Atlas 2.0 package; "
             f"missing={sorted(expected_paths - package_paths)}, extra={sorted(package_paths - expected_paths)}"
         )
     _require_complete_file_inventory(
@@ -276,7 +280,6 @@ def _verify_atlas_distribution(
         VocabularyAtlasAsset.open(
             manifest_file.parent,
             expected_manifest_digest=inventory_digests[manifest_relative],
-            expected_output_digest=inventory_digests[output_relative],
         )
     except (KeyError, VocabularyAtlasError) as error:
         raise ResourceCatalogError(f"{location} is not a valid closed vocabulary atlas: {error}") from error
