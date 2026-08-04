@@ -481,6 +481,7 @@ def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
         "Publication-Target",
     }
     assert {concept["semanticRing"] for concept in model["concepts"]} == {"subject"}
+    assert model["nativeRelations"] == []
     assert len(model["mappingAssertions"]) == 1
     mapping = model["mappingAssertions"][0]
     assert mapping["semanticRing"] == "subject"
@@ -488,8 +489,10 @@ def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
     assert mapping["evidenceClasses"] == ["humanReviewed"]
     assert model["summary"] == {
         "shownConceptCount": 2,
+        "shownNativeRelationCount": 0,
         "shownMappingAssertionCount": 1,
         "availableConceptCount": 2,
+        "availableNativeRelationCount": 0,
         "availableMappingAssertionCount": 1,
         "truncated": False,
     }
@@ -504,13 +507,50 @@ def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
     assert bounded["summary"]["truncated"] is True
 
 
+def test_explorer_preserves_native_relations_separately_from_mappings(
+    tmp_path: Path,
+) -> None:
+    source, _assignment = model_fixtures._SCOPE_FIXTURE._managed_release(tmp_path)
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixtures._pinned_scope(
+        tmp_path,
+        name="explorer-native-relations",
+        releases=(release,),
+        specs=(
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "explorer-native-relations",
+                participation="bridge",
+            ),
+        ),
+    )
+
+    model = build_explorer_model(
+        build_vocabulary_atlas(scope),
+        max_concepts=2,
+    )
+
+    assert model["schemaVersion"] == "2.1"
+    assert model["mappingAssertions"] == []
+    assert len(model["nativeRelations"]) == 1
+    relation = model["nativeRelations"][0]
+    assert relation["predicate"] == ("http://www.w3.org/2004/02/skos/core#broader")
+    assert relation["predicateLabel"] == "broader"
+    assert relation["releaseId"] == source.release_id
+    assert {
+        relation["subjectViewId"],
+        relation["objectViewId"],
+    } <= {concept["viewId"] for concept in model["concepts"]}
+    assert render_atlas_explorer(model).startswith("<!doctype html>")
+
+
 def test_renderer_fails_closed_on_non_2_0_view_fields(tmp_path: Path) -> None:
     _, asset, _ = _canonical_fixture(tmp_path, name="closed-explorer-shape")
     model = build_explorer_model(asset)
 
     old_collections = dict(model)
     old_collections["releases"] = old_collections.pop("conceptReleases")
-    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas 2.0"):
+    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas explorer 2.1"):
         render_atlas_explorer(old_collections)
 
     unknown_counts = json.loads(json.dumps(model))

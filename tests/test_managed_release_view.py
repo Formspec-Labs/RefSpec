@@ -11,11 +11,14 @@ from types import MappingProxyType
 import pyarrow.parquet as pq
 import pytest
 
+import refspec.managed_release as managed_release_module
 import refspec.release_graph as release_graph_module
 from refspec import (
     ManagedReleaseAuthorizationError,
     ManagedReleaseError,
+    ManagedReleaseGraphFactsView,
     ManagedReleaseView,
+    binding,
     canonical_text_digest,
     indexed_expression_id,
     seal_payload,
@@ -47,17 +50,10 @@ SECOND_DISTRIBUTION_ID = "urn:rkaf:fixture:distribution:digest-vector-turtle"
 LIFECYCLE_EVENT_ID = "urn:rkaf:fixture:lifecycle:income-deprecation"
 MAPPING_ID = "urn:rkaf:fixture:mapping:income-eligibility"
 CORPUS_ID = "urn:test:expression-corpus:subjects:v1"
-EXPRESSION_ID = (
-    "urn:ref:indexed-expression:"
-    "ba926eb760fec851d37bbec4a2fb60d9423b2554e3d89b5f432f334bc75e4f9b"
-)
-ELIGIBILITY_EXPRESSION_ID = (
-    "urn:ref:indexed-expression:"
-    "3dc5a10f9dd6bbd77e235b1ac702b1375b59c0479c2df08f641f17d64b67c732"
-)
+EXPRESSION_ID = "urn:ref:indexed-expression:ba926eb760fec851d37bbec4a2fb60d9423b2554e3d89b5f432f334bc75e4f9b"
+ELIGIBILITY_EXPRESSION_ID = "urn:ref:indexed-expression:3dc5a10f9dd6bbd77e235b1ac702b1375b59c0479c2df08f641f17d64b67c732"
 CORPUS_DIGEST = (
-    "sha256:"
-    "246435c660ddaf3902741c347c6301f425c2aeae002dc764fc7c2e8ddd33f18d"
+    "sha256:246435c660ddaf3902741c347c6301f425c2aeae002dc764fc7c2e8ddd33f18d"
 )
 IMPORT_ID = "urn:test:import:subjects:v1"
 IMPORT_ACTIVITY_ID = "urn:test:activity:import"
@@ -69,7 +65,9 @@ DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
 GENERAL_SUBJECT_FACET_IRI = "urn:ref:facet:general-subject"
 ASSIGNMENT_PRIMARY_IRI = "https://rulespec.org/ns/v1#assignmentPrimary"
-RELEASE_DIGEST = "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431"
+RELEASE_DIGEST = (
+    "sha256:999bb800008a7d517d4f0269304358d79a10925f21d13ea9376b0eee1feda431"
+)
 _TABLE_COLUMNS_FOR_TEST = {
     "concept_labels": CONCEPT_LABEL_COLUMNS,
     "concept_relations": CONCEPT_RELATION_COLUMNS,
@@ -98,6 +96,13 @@ def _manifest_digest(path: Path) -> str:
 
 def _open_view(path: Path) -> ManagedReleaseView:
     return ManagedReleaseView.open(
+        path,
+        expected_manifest_digest=_manifest_digest(path),
+    )
+
+
+def _open_graph_facts(path: Path) -> ManagedReleaseGraphFactsView:
+    return ManagedReleaseGraphFactsView.open(
         path,
         expected_manifest_digest=_manifest_digest(path),
     )
@@ -219,7 +224,13 @@ def build_bundle(
     root: Path,
     *,
     local_eligibility_concept: bool = False,
+    release_members: list[str] | None = None,
 ) -> Path:
+    exact_release_members = (
+        [MEMBER_ID, ELIGIBILITY_MEMBER_ID]
+        if release_members is None
+        else release_members
+    )
     eligibility_member = {
         "@id": ELIGIBILITY_MEMBER_ID,
         "@type": (
@@ -232,13 +243,9 @@ def build_bundle(
         "rkaf:conceptScope": "policy/eligibility",
     }
     if local_eligibility_concept:
-        eligibility_member["rkaf:definedInScope"] = (
-            "urn:ref:test:scope:subject-atlas"
-        )
+        eligibility_member["rkaf:definedInScope"] = "urn:ref:test:scope:subject-atlas"
     else:
-        eligibility_member["rkaf:managedByRegistry"] = (
-            "urn:test:registry:subjects"
-        )
+        eligibility_member["rkaf:managedByRegistry"] = "urn:test:registry:subjects"
         eligibility_member["rkaf:registeredAt"] = "2026-07-29T12:00:00Z"
     graph = {
         "@context": {
@@ -253,7 +260,9 @@ def build_bundle(
                 "@id": SCHEME_ID,
                 "@type": "rkaf:ConceptScheme",
                 "skos:prefLabel": {"en": "Policy topics"},
-                "skos:definition": {"en": "A governed scheme for policy subject concepts."},
+                "skos:definition": {
+                    "en": "A governed scheme for policy subject concepts."
+                },
                 "skos:hasTopConcept": [ELIGIBILITY_MEMBER_ID],
                 "rkaf:schemeFacet": "urn:rkaf:facet:topic",
                 "rkaf:managedByRegistry": "urn:test:registry:subjects",
@@ -265,7 +274,7 @@ def build_bundle(
                 "dcat:version": "2026.07.28",
                 "dcterms:type": "skos:ConceptScheme",
                 "rkaf:membershipMode": "rkaf:completeMembership",
-                "prov:hadMember": [MEMBER_ID, ELIGIBILITY_MEMBER_ID],
+                "prov:hadMember": exact_release_members,
                 "dcat:distribution": [
                     DISTRIBUTION_ID,
                     SECOND_DISTRIBUTION_ID,
@@ -355,7 +364,9 @@ def build_bundle(
             {
                 "identity": dependency_manifest["validator"]["identity"],
                 "sourceRevision": dependency_manifest["validator"]["sourceRevision"],
-                "selfCertificationSha256": dependency_manifest["validator"]["selfCertificationSha256"],
+                "selfCertificationSha256": dependency_manifest["validator"][
+                    "selfCertificationSha256"
+                ],
                 "generatedArtifacts": dependency_manifest["generatedArtifacts"],
             }
         ),
@@ -378,7 +389,8 @@ def build_bundle(
     gate_pin = {
         "id": RELEASE_GRAPH_GATE_COMPONENT_ID,
         "revision": RELEASE_GRAPH_GATE_VERSION,
-        "digest": "sha256:" + hashlib.sha256(Path(release_graph_module.__file__).read_bytes()).hexdigest(),
+        "digest": "sha256:"
+        + hashlib.sha256(Path(release_graph_module.__file__).read_bytes()).hexdigest(),
     }
 
     receipt = seal_payload(
@@ -443,7 +455,9 @@ def build_bundle(
                 "digest": DIGEST_A,
             },
             "captures": [],
-            "externalReferences": ["https://example.test/vocabularies/subjects/2026.07.28"],
+            "externalReferences": [
+                "https://example.test/vocabularies/subjects/2026.07.28"
+            ],
             "referenceResourceRelease": {
                 "id": RELEASE_ID,
                 "version": "2026.07.28",
@@ -512,7 +526,9 @@ def build_bundle(
                 "contractRevision": dependency_manifest["contractRevision"],
                 "evidenceRevision": dependency_manifest["evidenceRevision"],
                 "constraintDigest": dependency_manifest["constraintDigest"],
-                "conformanceCorpusDigest": dependency_manifest["conformanceCorpusDigest"],
+                "conformanceCorpusDigest": dependency_manifest[
+                    "conformanceCorpusDigest"
+                ],
                 "adoptedProfiles": ["urn:rulespec:profile:refspec"],
                 "validator": validator_pin,
                 "conformanceResult": {
@@ -687,7 +703,9 @@ def build_bundle(
                 "release_iri": RELEASE_ID,
                 "import_snapshot_id": IMPORT_ID,
                 "distribution_artifact_id": DISTRIBUTION_ID,
-                "source_property_iri": ("http://www.w3.org/2004/02/skos/core#prefLabel"),
+                "source_property_iri": (
+                    "http://www.w3.org/2004/02/skos/core#prefLabel"
+                ),
                 "label_role": "preferred",
                 "original_literal": "Poultry slaughter inspection",
                 "language_tag": "en",
@@ -702,7 +720,9 @@ def build_bundle(
                 "release_iri": RELEASE_ID,
                 "import_snapshot_id": IMPORT_ID,
                 "distribution_artifact_id": SECOND_DISTRIBUTION_ID,
-                "source_property_iri": ("http://www.w3.org/2004/02/skos/core#prefLabel"),
+                "source_property_iri": (
+                    "http://www.w3.org/2004/02/skos/core#prefLabel"
+                ),
                 "label_role": "preferred",
                 "original_literal": "Eligibility policy",
                 "language_tag": "en",
@@ -814,7 +834,11 @@ def _set_source_status(
         rows=rows,
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == "concept_labels")
+    descriptor = next(
+        value
+        for value in manifest["normalizedTables"]
+        if value["name"] == "concept_labels"
+    )
     descriptor.update(_descriptor(table_path, manifest_path.parent))
     _write_json(manifest_path, manifest)
 
@@ -832,7 +856,9 @@ def _replace_normalized_table(
         rows=rows,
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == table_name)
+    descriptor = next(
+        value for value in manifest["normalizedTables"] if value["name"] == table_name
+    )
     descriptor.update(_descriptor(table_path, manifest_path.parent))
     _write_json(manifest_path, manifest)
 
@@ -844,8 +870,7 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
     assert view.rulespec_graph_id == GRAPH_ID
     assert view.rulespec_graph["@graph"]
     assert {
-        candidate.member_iri
-        for candidate in view.iter_members(release_iri=RELEASE_ID)
+        candidate.member_iri for candidate in view.iter_members(release_iri=RELEASE_ID)
     } == {
         MEMBER_ID,
         ELIGIBILITY_MEMBER_ID,
@@ -857,14 +882,19 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
     expression = next(iter(view.iter_expressions(member_iri=MEMBER_ID)))
     assert expression.expression_id == EXPRESSION_ID
     assert expression.indexed_text == "poultry slaughter inspection"
-    assert expression.semantic_property_iri == "http://www.w3.org/2004/02/skos/core#prefLabel"
+    assert (
+        expression.semantic_property_iri
+        == "http://www.w3.org/2004/02/skos/core#prefLabel"
+    )
     assert expression.source_property_or_path == "source/records/0/prefLabel"
     assert expression.record["sourcePath"] == "source/records/0/prefLabel"
     assert expression.label_role == "preferred"
     assert expression.source_status == "current"
     relation = next(iter(view.iter_relations(subject_member_iri=MEMBER_ID)))
     assert relation.object_member_iri == ELIGIBILITY_MEMBER_ID
-    participant = next(iter(view.iter_lifecycle_participants(event_iri=LIFECYCLE_EVENT_ID)))
+    participant = next(
+        iter(view.iter_lifecycle_participants(event_iri=LIFECYCLE_EVENT_ID))
+    )
     assert participant.member_iri == MEMBER_ID
     assert participant.participant_role == "predecessor"
     mapping = next(iter(view.iter_concept_mappings(source_member_iri=MEMBER_ID)))
@@ -895,7 +925,238 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
 
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     corpus_path.write_text("tampered after open\n", encoding="utf-8")
-    assert next(iter(view.iter_expressions())).indexed_text == ("poultry slaughter inspection")
+    assert next(iter(view.iter_expressions())).indexed_text == (
+        "poultry slaughter inspection"
+    )
+
+
+def test_graph_facts_view_matches_full_graph_and_members(tmp_path: Path) -> None:
+    manifest_path = build_bundle(tmp_path)
+
+    full = _open_view(manifest_path)
+    facts = _open_graph_facts(manifest_path)
+
+    assert facts.release_id == full.release_id == PUBLICATION_ID
+    assert facts.rulespec_graph_id == full.rulespec_graph_id == GRAPH_ID
+    assert facts.rulespec_graph == full.rulespec_graph
+    assert (
+        facts.release_graph_validation_receipt["rulespecGraph"]["digest"]
+        == full.release_graph_validation_receipt["rulespecGraph"]["digest"]
+    )
+    assert {member.member_iri: member.record for member in facts.iter_members()} == {
+        member.member_iri: member.record for member in full.iter_members()
+    }
+    assert facts.release_graph_validation_receipt == (
+        full.release_graph_validation_receipt
+    )
+    assert facts.eligibility_scope == "graphFactsOnly"
+    assert not hasattr(facts, "iter_expressions")
+    assert not hasattr(facts, "source_artifact_bytes")
+    assert not hasattr(facts, "require_candidate_use")
+
+
+def test_graph_facts_never_constructs_expression_validator(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+
+    def forbidden_validator() -> None:
+        raise AssertionError("graph-facts reader parsed the expression corpus")
+
+    monkeypatch.setattr(
+        binding,
+        "IndexedExpressionCorpusValidator",
+        forbidden_validator,
+    )
+
+    assert _open_graph_facts(manifest_path).release_id == PUBLICATION_ID
+
+
+def test_graph_facts_rejects_corpus_byte_corruption_and_next_open_mutation(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    facts = _open_graph_facts(manifest_path)
+    corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
+
+    corpus_path.write_bytes(corpus_path.read_bytes() + b" ")
+
+    assert facts.lookup_member(MEMBER_ID) is not None
+    with pytest.raises(ManagedReleaseError, match="digest mismatch"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_accepts_hash_consistent_semantic_corpus_corruption_only(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
+    records = [
+        json.loads(line)
+        for line in corpus_path.read_text(encoding="utf-8").splitlines()
+    ]
+    records[0] = seal_payload(
+        {
+            **records[0],
+            "originalLiteral": "Changed without changing expression identity",
+        }
+    )
+    corpus_path.write_text(
+        "".join(
+            json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n"
+            for record in records
+        ),
+        encoding="utf-8",
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["indexedExpressionCorpus"].update(_descriptor(corpus_path, tmp_path))
+    _write_json(manifest_path, manifest)
+
+    assert _open_graph_facts(manifest_path).lookup_member(MEMBER_ID) is not None
+    with pytest.raises(
+        ManagedReleaseError,
+        match="id does not bind its exact identity",
+    ):
+        _open_view(manifest_path)
+
+
+def test_graph_facts_rejects_incomplete_release(tmp_path: Path) -> None:
+    manifest_path = build_bundle(tmp_path, release_members=[])
+
+    with pytest.raises(
+        ManagedReleaseError,
+        match="no exact complete-membership release members",
+    ):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_rejects_graph_corruption_after_outer_repin(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    graph_path = tmp_path / "rulespec" / "release.jsonld"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["@graph"][0]["skos:definition"]["en"] = "Changed graph facts"
+    _write_json(graph_path, graph)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rulespecGraph"] = _descriptor(graph_path, tmp_path)
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(ManagedReleaseError, match="exact Rulespec graph digest"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_rejects_dependency_corruption_after_outer_repin(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    dependency_path = tmp_path / "rulespec" / "rulespec-dependency.json"
+    dependency = json.loads(dependency_path.read_text(encoding="utf-8"))
+    dependency["localSubstitute"] = True
+    _write_json(dependency_path, dependency)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rulespecDependencyManifest"] = _descriptor(
+        dependency_path,
+        tmp_path,
+    )
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(ManagedReleaseError, match="exact RefSpec-embedded"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_rejects_receipt_corruption_after_outer_repin(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    receipt_path = tmp_path / "validation" / "combined-receipt.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["gateImplementation"]["digest"] = "sha256:" + "0" * 64
+    receipt = seal_payload(receipt)
+    _write_json(receipt_path, receipt)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["combinedValidationReceipt"] = _descriptor(
+        receipt_path,
+        tmp_path,
+    )
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(ManagedReleaseError, match="installed RefSpec"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_rejects_repeated_artifact_path(tmp_path: Path) -> None:
+    manifest_path = build_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["normalizedTables"][1].update(
+        {
+            "path": manifest["normalizedTables"][0]["path"],
+            "sha256": manifest["normalizedTables"][0]["sha256"],
+        }
+    )
+    _write_json(manifest_path, manifest)
+
+    with pytest.raises(ManagedReleaseError, match="duplicates another"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_facts_rejects_missing_or_symlinked_artifact(
+    tmp_path: Path,
+) -> None:
+    manifest_path = build_bundle(tmp_path)
+    label_path = tmp_path / "tables" / "concept_labels.parquet"
+    saved_path = tmp_path / "tables" / "saved-concept-labels.parquet"
+    label_path.replace(saved_path)
+
+    with pytest.raises(ManagedReleaseError, match="missing"):
+        _open_graph_facts(manifest_path)
+
+    label_path.symlink_to(saved_path)
+    with pytest.raises(ManagedReleaseError, match="symlink"):
+        _open_graph_facts(manifest_path)
+
+
+def test_graph_property_targets_are_indexed_once_per_node(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    original = managed_release_module._iri_values
+
+    def counted(value: object) -> tuple[str, ...]:
+        nonlocal calls
+        calls += 1
+        return original(value)
+
+    monkeypatch.setattr(managed_release_module, "_iri_values", counted)
+    nodes = {
+        "urn:test:a": {
+            "@id": "urn:test:a",
+            "skos:prefLabel": {"en": ["Alpha", "Alpha"]},
+            "skos:broader": ["urn:test:b", "urn:test:b"],
+        },
+        "urn:test:b": {
+            "@id": "urn:test:b",
+            "skos:prefLabel": {"en": "Beta"},
+            "rkaf:predecessorConceptRelease": "urn:test:release",
+        },
+    }
+
+    index = managed_release_module._index_graph_property_targets(nodes)
+
+    assert calls == 2 * 7
+    assert (
+        "urn:test:a",
+        "skos:prefLabel",
+        "en",
+        "Alpha",
+    ) in index.language_literals
+    assert index.iri_targets[("urn:test:a", "skos:broader")] == {
+        "urn:test:b"
+    }
+    assert index.iri_sequences[
+        ("urn:test:b", "rkaf:predecessorConceptRelease")
+    ] == ("urn:test:release",)
 
 
 def test_candidate_use_requires_selected_profile(tmp_path: Path) -> None:
@@ -944,15 +1205,12 @@ def test_candidate_use_rejects_deployment_rights_that_differ_from_import(
     deployment = next(
         record
         for record in view._records_by_id.values()
-        if record.get("type")
-        == "urn:ref:type:RegistryDeploymentDecision"
+        if record.get("type") == "urn:ref:type:RegistryDeploymentDecision"
     )
     changed_deployment = dict(deployment)
     changed_deployment[field] = value
     records = dict(view._records_by_id)
-    records[str(deployment["id"])] = MappingProxyType(
-        changed_deployment
-    )
+    records[str(deployment["id"])] = MappingProxyType(changed_deployment)
     changed_view = replace(
         view,
         _records_by_id=MappingProxyType(records),
@@ -1002,7 +1260,9 @@ def test_source_status_excludes_only_from_candidate_iteration(
     assert raw[0].label_role == "preferred"
     assert raw[0].source_status == source_status
     assert view.lookup_member(ELIGIBILITY_MEMBER_ID) is not None
-    assert ELIGIBILITY_MEMBER_ID not in {expression.member_iri for expression in candidates}
+    assert ELIGIBILITY_MEMBER_ID not in {
+        expression.member_iri for expression in candidates
+    }
 
 
 def test_single_opaque_source_status_does_not_create_lifecycle_meaning(
@@ -1018,7 +1278,11 @@ def test_single_opaque_source_status_does_not_create_lifecycle_meaning(
 
     candidates = tuple(_candidate_expressions(view))
 
-    eligibility = next(expression for expression in candidates if expression.member_iri == ELIGIBILITY_MEMBER_ID)
+    eligibility = next(
+        expression
+        for expression in candidates
+        if expression.member_iri == ELIGIBILITY_MEMBER_ID
+    )
     assert eligibility.source_status == "publisher-status-7"
 
 
@@ -1058,7 +1322,9 @@ def test_candidate_iteration_uses_exact_permission_release_and_import(
         ),
     )
 
-    candidate_ids = {expression.expression_id for expression in _candidate_expressions(extended_view)}
+    candidate_ids = {
+        expression.expression_id for expression in _candidate_expressions(extended_view)
+    }
 
     assert ELIGIBILITY_EXPRESSION_ID in candidate_ids
     assert "urn:test:indexed-expression:other-release" not in candidate_ids
@@ -1083,8 +1349,12 @@ def test_mixed_source_statuses_fail_closed_for_one_concept(
         ),
     )
 
-    assert len(tuple(mixed_view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))) == 2
-    assert ELIGIBILITY_MEMBER_ID not in {expression.member_iri for expression in _candidate_expressions(mixed_view)}
+    assert (
+        len(tuple(mixed_view.iter_expressions(member_iri=ELIGIBILITY_MEMBER_ID))) == 2
+    )
+    assert ELIGIBILITY_MEMBER_ID not in {
+        expression.member_iri for expression in _candidate_expressions(mixed_view)
+    }
 
 
 def test_indexed_expression_identity_includes_semantic_property() -> None:
@@ -1168,9 +1438,7 @@ def test_expression_corpus_identity_tamper_fails_after_file_repin(
         encoding="utf-8",
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["indexedExpressionCorpus"].update(
-        _descriptor(corpus_path, tmp_path)
-    )
+    manifest["indexedExpressionCorpus"].update(_descriptor(corpus_path, tmp_path))
     _write_json(manifest_path, manifest)
 
     with pytest.raises(
@@ -1191,9 +1459,7 @@ def test_expression_corpus_file_order_does_not_change_logical_identity(
         encoding="utf-8",
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["indexedExpressionCorpus"].update(
-        _descriptor(corpus_path, tmp_path)
-    )
+    manifest["indexedExpressionCorpus"].update(_descriptor(corpus_path, tmp_path))
     _write_json(manifest_path, manifest)
 
     view = _open_view(manifest_path)
@@ -1234,7 +1500,9 @@ def test_bundle_rejects_normalized_rows_that_do_not_round_trip_to_graph(
         rows=rows,
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    descriptor = next(value for value in manifest["normalizedTables"] if value["name"] == table_name)
+    descriptor = next(
+        value for value in manifest["normalizedTables"] if value["name"] == table_name
+    )
     descriptor.update(_descriptor(table_path, tmp_path))
     _write_json(manifest_path, manifest)
 
@@ -1440,7 +1708,9 @@ def test_bundle_rejects_expression_and_lookup_identity_conflation(
 ) -> None:
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["lookupIndexManifest"] = dict(manifest["indexedExpressionCorpus"]["expressionCorpusSnapshot"])
+    manifest["lookupIndexManifest"] = dict(
+        manifest["indexedExpressionCorpus"]["expressionCorpusSnapshot"]
+    )
     _write_json(manifest_path, manifest)
 
     with pytest.raises(ManagedReleaseError, match="conflates"):
@@ -1574,7 +1844,11 @@ def test_bundle_rejects_uncovered_authorization_evaluation(
             "minimumUsageEligibility": "rkaf:localOperationalUse",
             "effectiveUsageEligibility": "rkaf:localOperationalUse",
             "outputDigest": canonical_value_digest(
-                {"byScope": {"urn:test:environment:production": ("rkaf:localOperationalUse")}}
+                {
+                    "byScope": {
+                        "urn:test:environment:production": ("rkaf:localOperationalUse")
+                    }
+                }
             ),
             "runtime": receipt["rulespecBehaviorRuntime"],
             "result": "pass",

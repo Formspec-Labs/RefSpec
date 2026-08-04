@@ -696,6 +696,28 @@ class VocabularyAtlasScope:
         object.__setattr__(self, "_relation_bundles", relations)
 
     @classmethod
+    def _from_verified_components(
+        cls,
+        *,
+        record: Mapping[str, Any],
+        atlas_index: PinnedAtlasIndex,
+        releases: tuple[AtlasScopeRelease, ...],
+        relation_bundles: tuple[PinnedRelationAssertionBundle, ...],
+    ) -> Self:
+        """Construct from components verified together in one create call."""
+
+        instance = object.__new__(cls)
+        object.__setattr__(
+            instance,
+            "record",
+            cast(Mapping[str, Any], deep_freeze_json(record)),
+        )
+        object.__setattr__(instance, "_atlas_index", atlas_index)
+        object.__setattr__(instance, "_releases", releases)
+        object.__setattr__(instance, "_relation_bundles", relation_bundles)
+        return instance
+
+    @classmethod
     def create(
         cls,
         *,
@@ -727,7 +749,7 @@ class VocabularyAtlasScope:
             relation_rows=relation_rows,
         )
         content_digest = sha256_digest(_canonical_bytes(basis))
-        return cls(
+        return cls._from_verified_components(
             record={
                 **basis,
                 "id": (
@@ -736,9 +758,9 @@ class VocabularyAtlasScope:
                 ),
                 "contentDigest": content_digest,
             },
-            _atlas_index=atlas_index,
-            _releases=normalized_releases,
-            _relation_bundles=normalized_relations,
+            atlas_index=atlas_index,
+            releases=normalized_releases,
+            relation_bundles=normalized_relations,
         )
 
     @classmethod

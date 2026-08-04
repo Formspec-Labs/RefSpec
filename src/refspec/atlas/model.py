@@ -41,6 +41,8 @@ from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json
 
 FORMAT_ID = "refspec-vocabulary-atlas-nquads-2.0"
+_MANAGED_SNAPSHOT_REFERENCE_TYPE = "ManagedAtlasReleaseSnapshotReference"
+_MANAGED_SNAPSHOT_REFERENCE_VERSION = "1.0"
 SCHEMA_VERSION = "2.0"
 ATLAS_FILE = "atlas.nq"
 MANIFEST_FILE = "atlas-manifest.json"
@@ -1203,6 +1205,7 @@ from .relation_assertion import (
     RelationAssertionError,
 )
 from .release_snapshot import (
+    ATLAS_RELEASE_SNAPSHOT_TYPE,
     AtlasReleaseSnapshot,
     AtlasReleaseSnapshotError,
 )
@@ -1282,6 +1285,14 @@ _RECORD_PREDICATES = frozenset(
         ATLAS.inRelationBundle,
     }
 )
+_IRI_OBJECT_PREDICATES = _RECORD_PREDICATES - {
+    ATLAS.canonicalJson,
+    ATLAS.recordDigest,
+}
+_MAX_ATLAS_NQUADS_BYTES = 512 * 1024 * 1024
+_MAX_ATLAS_NQUAD_LINE_BYTES = 64 * 1024 * 1024
+_NQUADS_IRI_FORBIDDEN = frozenset('<>"{}|^`\\')
+_RDF_JSON_DATATYPE_TOKEN = f"^^<{RDF.JSON}>".encode("ascii")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1304,6 +1315,41 @@ class _CanonicalAtlasRecord:
         return "urn:ref:vocabulary-atlas-record:" + self.digest.removeprefix("sha256:")
 
 
+@dataclass(frozen=True, slots=True)
+class _VerifiedDecodedRecord:
+    """One canonical JSON record normalized, hashed, and frozen by the decoder."""
+
+    record: Mapping[str, Any]
+    digest: str
+
+    @property
+    def identifier(self) -> str:
+        return "urn:ref:vocabulary-atlas-record:" + self.digest.removeprefix("sha256:")
+
+
+@dataclass(frozen=True, slots=True)
+class _DecodedAtlasDataset:
+    """One immutable, operation-local decode of canonical Atlas N-Quads.
+
+    The closed line parser never creates or caches a mutable rdflib ``Dataset``.
+    Consumers reuse these frozen records and counts for their current
+    operation only.
+    """
+
+    records: tuple[_CanonicalAtlasRecord, ...]
+    graph_quad_counts: tuple[tuple[str, int], ...]
+
+    def graph_quad_count(self, graph_id: str) -> int:
+        for candidate, count in self.graph_quad_counts:
+            if candidate == graph_id:
+                return count
+        raise VocabularyAtlasError("decoded atlas has no such named graph")
+
+    @property
+    def quad_count(self) -> int:
+        return sum(count for _, count in self.graph_quad_counts)
+
+
 class _CanonicalRecordSet:
     """Deduplicate only byte-identical records and merge exact containment."""
 
@@ -1318,44 +1364,93 @@ class _CanonicalRecordSet:
         in_release: str | None = None,
         in_relation_bundle: str | None = None,
     ) -> None:
-        if role not in _ROLE_COUNT_FIELD:
-            raise VocabularyAtlasError(f"unsupported canonical record role {role!r}")
-        if in_release is not None and in_relation_bundle is not None:
-            raise VocabularyAtlasError("one atlas record cannot cross container kinds")
-        expected_container = _CHILD_ROLE_CONTAINMENT.get(role)
-        actual_container = (
-            "release" if in_release is not None else "relationBundle" if in_relation_bundle is not None else None
+        release_containers, relation_containers = self._validated_containment(
+            role=role,
+            releases=(() if in_release is None else (in_release,)),
+            relation_bundles=(
+                ()
+                if in_relation_bundle is None
+                else (in_relation_bundle,)
+            ),
         )
-        if expected_container != actual_container:
-            raise VocabularyAtlasError(f"atlas {role} record containment differs from its role")
         plain = cast(Mapping[str, Any], _plain(value))
         record = _CanonicalAtlasRecord(
             record=cast(Mapping[str, Any], _freeze(plain)),
             role=role,
-            release_containers=(
-                frozenset({_require_iri(in_release, "atlas release container")})
-                if in_release is not None
-                else frozenset()
+            release_containers=release_containers,
+            relation_containers=relation_containers,
+        )
+        self._merge(record, identifier=record.identifier)
+
+    def add_decoded(
+        self,
+        value: _VerifiedDecodedRecord,
+        *,
+        role: str,
+        releases: Sequence[str] = (),
+        relation_bundles: Sequence[str] = (),
+    ) -> None:
+        """Merge one already-verified record with all of its containment.
+
+        The canonical JSON parser has already normalized, hashed, and frozen
+        ``value``.  Keeping containment bulk here prevents one size-S record
+        referenced by C containers from repeating that O(S) work C times.
+        """
+
+        release_containers, relation_containers = self._validated_containment(
+            role=role,
+            releases=releases,
+            relation_bundles=relation_bundles,
+        )
+        self._merge(
+            _CanonicalAtlasRecord(
+                record=value.record,
+                role=role,
+                release_containers=release_containers,
+                relation_containers=relation_containers,
             ),
-            relation_containers=(
-                frozenset(
-                    {
-                        _require_iri(
-                            in_relation_bundle,
-                            "atlas relation-bundle container",
-                        )
-                    }
-                )
-                if in_relation_bundle is not None
-                else frozenset()
+            identifier=value.identifier,
+        )
+
+    @staticmethod
+    def _validated_containment(
+        *,
+        role: str,
+        releases: Sequence[str],
+        relation_bundles: Sequence[str],
+    ) -> tuple[frozenset[str], frozenset[str]]:
+        if role not in _ROLE_COUNT_FIELD:
+            raise VocabularyAtlasError(f"unsupported canonical record role {role!r}")
+        if releases and relation_bundles:
+            raise VocabularyAtlasError("one atlas record cannot cross container kinds")
+        expected_container = _CHILD_ROLE_CONTAINMENT.get(role)
+        actual_container = (
+            "release" if releases else "relationBundle" if relation_bundles else None
+        )
+        if expected_container != actual_container:
+            raise VocabularyAtlasError(f"atlas {role} record containment differs from its role")
+        return (
+            frozenset(
+                _require_iri(value, "atlas release container")
+                for value in releases
+            ),
+            frozenset(
+                _require_iri(value, "atlas relation-bundle container")
+                for value in relation_bundles
             ),
         )
-        identifier = record.identifier
+
+    def _merge(
+        self,
+        record: _CanonicalAtlasRecord,
+        *,
+        identifier: str,
+    ) -> None:
         current = self._records.get(identifier)
         if current is None:
             self._records[identifier] = record
             return
-        if current.record != record.record or current.role != role:
+        if current.record != record.record or current.role != record.role:
             raise VocabularyAtlasError("one canonical atlas record digest has conflicting content or roles")
         self._records[identifier] = _CanonicalAtlasRecord(
             record=current.record,
@@ -1431,6 +1526,30 @@ def _snapshot_release_records(
 ) -> tuple[Mapping[str, Any], ...]:
     """Return non-concept native records carried by one release snapshot."""
 
+    if snapshot.release_pin["releaseKind"] == "managedReferenceRelease":
+        graph = _as_mapping(
+            snapshot.record.get("selectedReleaseGraph"),
+            "managed atlas release snapshot selectedReleaseGraph",
+        )
+        raw_nodes = graph.get("@graph")
+        if not isinstance(raw_nodes, Sequence) or isinstance(
+            raw_nodes,
+            (str, bytes),
+        ):
+            raise VocabularyAtlasError("managed atlas release snapshot selectedReleaseGraph.@graph must be an array")
+        rows = [
+            _as_mapping(
+                snapshot.record.get("ringAssignment"),
+                "managed atlas release snapshot ringAssignment",
+            )
+        ]
+        for value in raw_nodes:
+            if not isinstance(value, Mapping):
+                raise VocabularyAtlasError("managed atlas release snapshot graph contains a non-record value")
+            if value.get("@id") not in snapshot.member_ids:
+                rows.append(value)
+        return tuple(rows)
+
     excluded = {
         "type",
         "schemaVersion",
@@ -1439,6 +1558,7 @@ def _snapshot_release_records(
         "releasePin",
         "concepts",
         "members",
+        "memberIds",
     }
     rows: list[Mapping[str, Any]] = []
     for key, value in snapshot.record.items():
@@ -1454,6 +1574,236 @@ def _snapshot_release_records(
             continue
         raise VocabularyAtlasError(f"atlas release snapshot {key} is not a native record or record array")
     return tuple(rows)
+
+
+def _managed_snapshot_reference(
+    snapshot: AtlasReleaseSnapshot,
+) -> dict[str, Any]:
+    """Replace one embedded managed graph copy with exact record references."""
+
+    if snapshot.release_pin["releaseKind"] != "managedReferenceRelease":
+        raise VocabularyAtlasError("managed snapshot reference requires a managed release")
+    selected_graph = _as_mapping(
+        snapshot.record.get("selectedReleaseGraph"),
+        "managed atlas release snapshot selectedReleaseGraph",
+    )
+    graph_rows = _as_sequence(
+        selected_graph.get("@graph"),
+        "managed atlas release snapshot selectedReleaseGraph.@graph",
+    )
+    member_ids = snapshot.member_ids
+    record_refs: list[dict[str, str]] = []
+    for index, value in enumerate(graph_rows):
+        row = _as_mapping(
+            value,
+            f"managed atlas release snapshot selectedReleaseGraph.@graph[{index}]",
+        )
+        native_id = _native_record_id(row)
+        if native_id is None:
+            raise VocabularyAtlasError("managed selected graph record lacks one native identity")
+        record_refs.append(
+            {
+                "nativeId": native_id,
+                "recordId": _atlas_record_identifier(row),
+                "role": "concept" if native_id in member_ids else "releaseRecord",
+            }
+        )
+    record_refs.sort(key=lambda value: value["nativeId"])
+    ring_assignment = _as_mapping(
+        snapshot.record.get("ringAssignment"),
+        "managed atlas release snapshot ringAssignment",
+    )
+    return {
+        "type": _MANAGED_SNAPSHOT_REFERENCE_TYPE,
+        "schemaVersion": _MANAGED_SNAPSHOT_REFERENCE_VERSION,
+        "snapshot": {
+            "id": snapshot.identifier,
+            "contentDigest": snapshot.content_digest,
+            "schemaVersion": cast(str, snapshot.record["schemaVersion"]),
+        },
+        "releasePin": _plain(snapshot.release_pin),
+        "ringAssignmentRecord": _atlas_record_identifier(ring_assignment),
+        "selectedGraphContext": _plain(selected_graph.get("@context")),
+        "memberIds": sorted(member_ids),
+        "selectedGraphRecords": record_refs,
+    }
+
+
+def _embedded_snapshot_record(snapshot: AtlasReleaseSnapshot) -> Mapping[str, Any]:
+    if snapshot.release_pin["releaseKind"] == "managedReferenceRelease":
+        return _managed_snapshot_reference(snapshot)
+    return snapshot.as_record()
+
+
+def _managed_snapshot_from_reference(
+    reference: Mapping[str, Any],
+    *,
+    records_by_id: Mapping[str, _CanonicalAtlasRecord],
+) -> AtlasReleaseSnapshot:
+    expected_fields = {
+        "type",
+        "schemaVersion",
+        "snapshot",
+        "releasePin",
+        "ringAssignmentRecord",
+        "selectedGraphContext",
+        "memberIds",
+        "selectedGraphRecords",
+    }
+    if set(reference) != expected_fields:
+        raise VocabularyAtlasError("managed atlas snapshot reference fields differ")
+    if (
+        reference.get("type") != _MANAGED_SNAPSHOT_REFERENCE_TYPE
+        or reference.get("schemaVersion") != _MANAGED_SNAPSHOT_REFERENCE_VERSION
+    ):
+        raise VocabularyAtlasError("managed atlas snapshot reference version is unsupported")
+    snapshot_pin = _as_mapping(
+        reference.get("snapshot"),
+        "managed atlas snapshot reference snapshot",
+    )
+    if set(snapshot_pin) != {"id", "contentDigest", "schemaVersion"}:
+        raise VocabularyAtlasError("managed atlas snapshot reference snapshot fields differ")
+    snapshot_id = _require_iri(
+        snapshot_pin.get("id"),
+        "managed atlas snapshot reference snapshot id",
+    )
+    snapshot_digest = _require_digest(
+        snapshot_pin.get("contentDigest"),
+        "managed atlas snapshot reference snapshot digest",
+    )
+    snapshot_schema = _require_text(
+        snapshot_pin.get("schemaVersion"),
+        "managed atlas snapshot reference snapshot schemaVersion",
+    )
+    if snapshot_schema != "1.1":
+        raise VocabularyAtlasError("managed atlas snapshot references require snapshot schema 1.1")
+    release_pin = _as_mapping(
+        reference.get("releasePin"),
+        "managed atlas snapshot reference releasePin",
+    )
+    release_id = _require_iri(
+        release_pin.get("releaseId"),
+        "managed atlas snapshot reference releasePin.releaseId",
+    )
+    if release_pin.get("releaseKind") != "managedReferenceRelease":
+        raise VocabularyAtlasError("managed atlas snapshot reference release kind differs")
+    member_values = _as_sequence(
+        reference.get("memberIds"),
+        "managed atlas snapshot reference memberIds",
+    )
+    member_ids = tuple(
+        _require_iri(
+            value,
+            f"managed atlas snapshot reference memberIds[{index}]",
+        )
+        for index, value in enumerate(member_values)
+    )
+    if not member_ids or member_ids != tuple(sorted(set(member_ids))):
+        raise VocabularyAtlasError("managed atlas snapshot reference memberIds are not canonical")
+    graph_ref_values = _as_sequence(
+        reference.get("selectedGraphRecords"),
+        "managed atlas snapshot reference selectedGraphRecords",
+    )
+    graph_nodes: list[Mapping[str, Any]] = []
+    graph_ref_rows: list[dict[str, str]] = []
+    for index, raw in enumerate(graph_ref_values):
+        row = _as_mapping(
+            raw,
+            f"managed atlas snapshot reference selectedGraphRecords[{index}]",
+        )
+        if set(row) != {"nativeId", "recordId", "role"}:
+            raise VocabularyAtlasError("managed atlas snapshot graph reference fields differ")
+        native_id = _require_iri(
+            row.get("nativeId"),
+            "managed atlas snapshot graph nativeId",
+        )
+        record_id = _require_iri(
+            row.get("recordId"),
+            "managed atlas snapshot graph recordId",
+        )
+        role = row.get("role")
+        expected_role = "concept" if native_id in member_ids else "releaseRecord"
+        record = records_by_id.get(record_id)
+        if (
+            role != expected_role
+            or record is None
+            or record.role != expected_role
+            or release_id not in record.release_containers
+            or record.identifier != record_id
+            or _native_record_id(record.record) != native_id
+        ):
+            raise VocabularyAtlasError("managed atlas snapshot graph reference does not resolve exactly")
+        graph_nodes.append(record.record)
+        graph_ref_rows.append(
+            {
+                "nativeId": native_id,
+                "recordId": record_id,
+                "role": cast(str, role),
+            }
+        )
+    if graph_ref_rows != sorted(
+        graph_ref_rows,
+        key=lambda value: value["nativeId"],
+    ) or len({row["nativeId"] for row in graph_ref_rows}) != len(graph_ref_rows):
+        raise VocabularyAtlasError("managed atlas snapshot graph references are not canonical")
+    ring_record_id = _require_iri(
+        reference.get("ringAssignmentRecord"),
+        "managed atlas snapshot reference ringAssignmentRecord",
+    )
+    ring_record = records_by_id.get(ring_record_id)
+    if (
+        ring_record is None
+        or ring_record.role != "releaseRecord"
+        or release_id not in ring_record.release_containers
+        or ring_record.identifier != ring_record_id
+    ):
+        raise VocabularyAtlasError("managed atlas snapshot ring assignment reference does not resolve exactly")
+    reconstructed = {
+        "type": ATLAS_RELEASE_SNAPSHOT_TYPE,
+        "schemaVersion": snapshot_schema,
+        "releasePin": _plain(release_pin),
+        "ringAssignment": _plain(ring_record.record),
+        "selectedReleaseGraph": {
+            "@context": _plain(reference.get("selectedGraphContext")),
+            "@graph": sorted(
+                (_plain(value) for value in graph_nodes),
+                key=lambda value: cast(str, value["@id"]),
+            ),
+        },
+        "memberIds": list(member_ids),
+        "id": snapshot_id,
+        "contentDigest": snapshot_digest,
+    }
+    try:
+        snapshot = AtlasReleaseSnapshot.from_record(reconstructed)
+    except AtlasReleaseSnapshotError as error:
+        raise VocabularyAtlasError(str(error)) from error
+    if _managed_snapshot_reference(snapshot) != _plain(reference):
+        raise VocabularyAtlasError("managed atlas snapshot reference does not reproduce exactly")
+    return snapshot
+
+
+def _snapshots_from_records(
+    records: Sequence[_CanonicalAtlasRecord],
+) -> tuple[AtlasReleaseSnapshot, ...]:
+    records_by_id = {record.identifier: record for record in records}
+    snapshots: list[AtlasReleaseSnapshot] = []
+    for record in records:
+        if record.role != "conceptRelease":
+            continue
+        if record.record.get("type") == _MANAGED_SNAPSHOT_REFERENCE_TYPE:
+            snapshots.append(
+                _managed_snapshot_from_reference(
+                    record.record,
+                    records_by_id=records_by_id,
+                )
+            )
+        else:
+            try:
+                snapshots.append(AtlasReleaseSnapshot.from_record(record.record))
+            except AtlasReleaseSnapshotError as error:
+                raise VocabularyAtlasError(str(error)) from error
+    return tuple(snapshots)
 
 
 def _resolved_index_rows(
@@ -1568,7 +1918,7 @@ def _scope_record_set(resolved: _ResolvedAtlasScope) -> _CanonicalRecordSet:
     records = _CanonicalRecordSet()
     concept_rings: dict[str, SemanticRing] = {}
     for snapshot in resolved.snapshots:
-        records.add(snapshot.as_record(), role="conceptRelease")
+        records.add(_embedded_snapshot_record(snapshot), role="conceptRelease")
         for concept in snapshot.concept_records:
             identity = _concept_identity(concept)
             previous = concept_rings.setdefault(identity, snapshot.semantic_ring)
@@ -1651,6 +2001,10 @@ def _record_dataset(
             graph.add((node, ATLAS.inRelationBundle, URIRef(bundle)))
         counts[_ROLE_COUNT_FIELD[record.role]] += 1
     payload = _canonical_nquads(dataset)
+    # Keep the producer inside the same explicit size and line-shape limits as
+    # the file-only verifier so it cannot emit an asset that cannot be opened.
+    for _ in _iter_bounded_canonical_nquad_lines(payload):
+        pass
     graph_counts = {
         "releaseFacts": len(release_graph),
         "crossRelease": len(cross_graph),
@@ -1700,6 +2054,9 @@ def _ring_summaries(
     relations: Sequence[EmbeddedRelationAssertionBundle],
 ) -> list[dict[str, Any]]:
     release_rings = {snapshot.release_id: snapshot.semantic_ring for snapshot in snapshots}
+    snapshot_rings = {
+        _atlas_record_identifier(_embedded_snapshot_record(snapshot)): snapshot.semantic_ring for snapshot in snapshots
+    }
     bundle_rings = {bundle.identifier: bundle.semantic_ring for bundle in relations}
     values: dict[SemanticRing, dict[str, set[str]]] = {
         ring: {
@@ -1712,8 +2069,11 @@ def _ring_summaries(
     }
     for record in records:
         if record.role == "conceptRelease":
-            snapshot = AtlasReleaseSnapshot.from_record(record.record)
-            values[snapshot.semantic_ring]["release"].add(record.identifier)
+            try:
+                ring = snapshot_rings[record.identifier]
+            except KeyError as error:
+                raise VocabularyAtlasError("atlas concept release does not resolve to a verified snapshot") from error
+            values[ring]["release"].add(record.identifier)
         elif record.role == "concept":
             rings = {release_rings[value] for value in record.release_containers}
             if len(rings) != 1:
@@ -1866,7 +2226,11 @@ def _validate_implementation_v2(candidate: object) -> Mapping[str, Any]:
     return row
 
 
-def _parse_canonical_record(value: str) -> Mapping[str, Any]:
+def _parse_canonical_record(
+    value: str,
+    *,
+    expected_digest: str,
+) -> _VerifiedDecodedRecord:
     try:
         decoded = json.loads(
             value,
@@ -1877,9 +2241,16 @@ def _parse_canonical_record(value: str) -> Mapping[str, Any]:
         raise VocabularyAtlasError("atlas canonicalJson is not valid canonical REF JSON") from error
     if not isinstance(decoded, Mapping):
         raise VocabularyAtlasError("atlas canonicalJson record must be an object")
-    if _atlas_record_bytes(decoded) != value.encode("utf-8"):
+    canonical_bytes = value.encode("utf-8")
+    if _atlas_record_bytes(decoded) != canonical_bytes:
         raise VocabularyAtlasError("atlas canonicalJson bytes are not canonical")
-    return cast(Mapping[str, Any], decoded)
+    digest = _digest_bytes(canonical_bytes)
+    if digest != expected_digest:
+        raise VocabularyAtlasError("atlas recordDigest differs from canonicalJson")
+    return _VerifiedDecodedRecord(
+        record=cast(Mapping[str, Any], _freeze(decoded)),
+        digest=digest,
+    )
 
 
 def _one_object(values: Mapping[URIRef, Sequence[Any]], predicate: URIRef, label: str) -> Any:
@@ -1889,40 +2260,194 @@ def _one_object(values: Mapping[URIRef, Sequence[Any]], predicate: URIRef, label
     return found[0]
 
 
-def _decode_record_dataset(
+def _canonical_nquad_literal(value: str) -> bytes:
+    """Serialize the literal form used by rdflib's N-Quads writer."""
+
+    escaped = value.replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"').replace("\r", "\\r")
+    return f'"{escaped}"'.encode()
+
+
+def _parse_canonical_nquad_literal(token: bytes, *, label: str) -> str:
+    try:
+        value = json.loads(
+            token.decode("utf-8"),
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise VocabularyAtlasError(f"atlas {label} literal is invalid") from error
+    if not isinstance(value, str):
+        raise VocabularyAtlasError(f"atlas {label} must be a string literal")
+    try:
+        canonical = _canonical_nquad_literal(value)
+    except UnicodeEncodeError as error:
+        raise VocabularyAtlasError(f"atlas {label} literal is not valid UTF-8") from error
+    if canonical != token:
+        raise VocabularyAtlasError(f"atlas {label} literal is not canonical")
+    return value
+
+
+def _parse_canonical_nquad_iri(token: bytes, *, label: str) -> str:
+    if len(token) < 3 or not token.startswith(b"<") or not token.endswith(b">"):
+        raise VocabularyAtlasError(f"atlas {label} must be an N-Quads IRI")
+    try:
+        value = token[1:-1].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise VocabularyAtlasError(f"atlas {label} is not valid UTF-8") from error
+    if any(ord(character) <= 0x20 or character in _NQUADS_IRI_FORBIDDEN for character in value):
+        raise VocabularyAtlasError(f"atlas {label} contains an invalid N-Quads IRI character")
+    return _require_iri(value, f"atlas {label}")
+
+
+def _take_canonical_nquad_iri(
+    line: bytes,
+    start: int,
+    *,
+    label: str,
+) -> tuple[str, int]:
+    if start >= len(line) or line[start] != ord("<"):
+        raise VocabularyAtlasError(f"atlas {label} must start with an N-Quads IRI")
+    end = line.find(b">", start + 1)
+    if end < 0:
+        raise VocabularyAtlasError(f"atlas {label} N-Quads IRI is unterminated")
+    return (
+        _parse_canonical_nquad_iri(
+            line[start : end + 1],
+            label=label,
+        ),
+        end + 1,
+    )
+
+
+def _parse_canonical_atlas_nquad(
+    line: bytes,
+) -> tuple[URIRef, URIRef, URIRef | RdfLiteral, URIRef]:
+    subject, position = _take_canonical_nquad_iri(
+        line,
+        0,
+        label="N-Quads subject",
+    )
+    if line[position : position + 1] != b" ":
+        raise VocabularyAtlasError("atlas N-Quads subject separator differs")
+    predicate_value, position = _take_canonical_nquad_iri(
+        line,
+        position + 1,
+        label="N-Quads predicate",
+    )
+    predicate = URIRef(predicate_value)
+    if predicate not in _RECORD_PREDICATES:
+        raise VocabularyAtlasError("atlas exact record index has an extra predicate")
+    if line[position : position + 1] != b" ":
+        raise VocabularyAtlasError("atlas N-Quads predicate separator differs")
+    object_start = position + 1
+
+    if not line.endswith(b" ."):
+        raise VocabularyAtlasError("atlas N-Quads line terminator differs")
+    graph_separator = line.rfind(b" <", object_start, len(line) - 2)
+    if graph_separator < object_start:
+        raise VocabularyAtlasError("atlas N-Quads named graph is missing")
+    graph = _parse_canonical_nquad_iri(
+        line[graph_separator + 1 : -2],
+        label="N-Quads named graph",
+    )
+    object_token = line[object_start:graph_separator]
+
+    if predicate in _IRI_OBJECT_PREDICATES:
+        object_value = _parse_canonical_nquad_iri(
+            object_token,
+            label="N-Quads object",
+        )
+        object_: URIRef | RdfLiteral = URIRef(object_value)
+        canonical_object = f"<{object_value}>".encode()
+    elif predicate == ATLAS.recordDigest:
+        literal = _parse_canonical_nquad_literal(
+            object_token,
+            label="recordDigest",
+        )
+        object_ = RdfLiteral(literal)
+        canonical_object = _canonical_nquad_literal(literal)
+    else:
+        if not object_token.endswith(_RDF_JSON_DATATYPE_TOKEN):
+            raise VocabularyAtlasError("atlas canonicalJson datatype differs")
+        literal_token = object_token[: -len(_RDF_JSON_DATATYPE_TOKEN)]
+        literal = _parse_canonical_nquad_literal(
+            literal_token,
+            label="canonicalJson",
+        )
+        object_ = RdfLiteral(literal, datatype=RDF.JSON)
+        canonical_object = _canonical_nquad_literal(literal) + _RDF_JSON_DATATYPE_TOKEN
+
+    canonical_line = b" ".join(
+        (
+            f"<{subject}>".encode(),
+            f"<{predicate_value}>".encode(),
+            canonical_object,
+            f"<{graph}>".encode(),
+            b".",
+        )
+    )
+    if canonical_line != line:
+        raise VocabularyAtlasError("atlas N-Quads line is not canonical")
+    return URIRef(subject), predicate, object_, URIRef(graph)
+
+
+def _iter_bounded_canonical_nquad_lines(payload: bytes) -> Iterable[bytes]:
+    if len(payload) > _MAX_ATLAS_NQUADS_BYTES:
+        raise VocabularyAtlasError("atlas N-Quads exceeds the verifier byte limit")
+    if payload and not payload.endswith(b"\n"):
+        raise VocabularyAtlasError("atlas canonical N-Quads must end with one newline")
+
+    previous: bytes | None = None
+    start = 0
+    while start < len(payload):
+        end = payload.find(b"\n", start)
+        if end < 0:  # guarded by the final-newline check
+            raise VocabularyAtlasError("atlas canonical N-Quads line is unterminated")
+        line_length = end - start
+        if line_length == 0:
+            raise VocabularyAtlasError("atlas canonical N-Quads contains an empty line")
+        if line_length > _MAX_ATLAS_NQUAD_LINE_BYTES:
+            raise VocabularyAtlasError("atlas N-Quads line exceeds the verifier byte limit")
+        line = payload[start:end]
+        if previous is not None and previous >= line:
+            raise VocabularyAtlasError("atlas canonical N-Quads lines are not unique and ordered")
+        yield line
+        previous = line
+        start = end + 1
+
+
+def _iter_canonical_atlas_nquads(
+    payload: bytes,
+) -> Iterable[tuple[URIRef, URIRef, URIRef | RdfLiteral, URIRef]]:
+    for line in _iter_bounded_canonical_nquad_lines(payload):
+        yield _parse_canonical_atlas_nquad(line)
+
+
+def _decode_atlas_dataset(
     payload: bytes,
     *,
     asset_id: str,
-) -> tuple[_CanonicalAtlasRecord, ...]:
-    try:
-        text = payload.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise VocabularyAtlasError("atlas N-Quads is not valid UTF-8") from error
-    dataset = Dataset(default_union=False)
-    try:
-        dataset.parse(data=text, format="nquads")
-    except Exception as error:  # rdflib exposes parser-specific subclasses
-        raise VocabularyAtlasError("atlas output is not valid N-Quads") from error
-    if any(
-        isinstance(term, BNode)
-        for subject, predicate, object_, context in dataset.quads((None, None, None, None))
-        for term in (subject, predicate, object_, context)
-    ):
-        raise VocabularyAtlasError("atlas output contains a blank node")
-    if _canonical_nquads(dataset) != payload:
-        raise VocabularyAtlasError("atlas N-Quads bytes are not canonical")
+) -> _DecodedAtlasDataset:
+    """Decode the bounded closed Atlas format without container-amplified work.
+
+    Line scanning, grouping, and containment attachment are linear in encoded
+    quads and bytes. Canonical REF JSON verification still sorts each object's
+    keys, and final records retain deterministic identifier sorting; the exact
+    bound is therefore O(P + sum(K_i log K_i) + R log R), not a claim of pure
+    O(P), where P is payload size, K_i an object key count, and R the number of
+    records.
+    """
 
     graph_roles = {
         asset_id + ":release-facts": _RELEASE_GRAPH_ROLES,
         asset_id + ":cross-release": _CROSS_RELEASE_GRAPH_ROLES,
     }
+    graph_quad_counts = dict.fromkeys(graph_roles, 0)
     grouped: dict[tuple[str, URIRef], dict[URIRef, list[Any]]] = defaultdict(lambda: defaultdict(list))
-    for subject, predicate, object_, context in dataset.quads((None, None, None, None)):
+    for subject, predicate, object_, context in _iter_canonical_atlas_nquads(payload):
         graph_id = str(context)
         if graph_id not in graph_roles:
             raise VocabularyAtlasError("atlas N-Quads named graphs differ")
-        if not isinstance(subject, URIRef) or not isinstance(predicate, URIRef):
-            raise VocabularyAtlasError("atlas exact index requires IRI subjects and predicates")
+        graph_quad_counts[graph_id] += 1
         grouped[(graph_id, subject)][predicate].append(object_)
 
     records = _CanonicalRecordSet()
@@ -1949,14 +2474,15 @@ def _decode_record_dataset(
         json_value = _one_object(values, ATLAS.canonicalJson, "canonicalJson")
         if not isinstance(json_value, RdfLiteral) or json_value.datatype != RDF.JSON:
             raise VocabularyAtlasError("atlas canonicalJson must be an rdf:JSON literal")
-        record = _parse_canonical_record(str(json_value))
-        if _digest_bytes(_atlas_record_bytes(record)) != digest:
-            raise VocabularyAtlasError("atlas recordDigest differs from canonicalJson")
-        if str(node) != "urn:ref:vocabulary-atlas-record:" + digest.removeprefix("sha256:"):
+        record = _parse_canonical_record(
+            str(json_value),
+            expected_digest=digest,
+        )
+        if str(node) != record.identifier:
             raise VocabularyAtlasError("atlas record IRI differs from recordDigest")
 
         record_ids = tuple(values.get(ATLAS.recordId, ()))
-        expected_record_id = _native_record_id(record)
+        expected_record_id = _native_record_id(record.record)
         if expected_record_id is None:
             if record_ids:
                 raise VocabularyAtlasError("atlas recordId is not derived from native id")
@@ -1974,18 +2500,31 @@ def _decode_record_dataset(
             raise VocabularyAtlasError("atlas relation child containment differs")
         if expected is None and (release_containers or relation_containers):
             raise VocabularyAtlasError("atlas top-level record points to itself or a container")
-        for value in release_containers:
-            records.add(record, role=role, in_release=str(value))
-        for value in relation_containers:
-            records.add(record, role=role, in_relation_bundle=str(value))
-        if not release_containers and not relation_containers:
-            records.add(record, role=role)
+        records.add_decoded(
+            record,
+            role=role,
+            releases=tuple(str(value) for value in release_containers),
+            relation_bundles=tuple(str(value) for value in relation_containers),
+        )
 
-    result = records.values()
-    rebuilt, _ = _record_dataset(result, asset_id=asset_id)
-    if rebuilt != payload:
-        raise VocabularyAtlasError("atlas derived exact-equality index is incomplete")
-    return result
+    # Canonical byte equality above covers order, duplicates, and RDF lexical
+    # form.  The closed predicate and record checks consume every parsed quad,
+    # so rebuilding the same dataset would add a second O(n log n)
+    # canonicalization without strengthening the trust-boundary validation.
+    return _DecodedAtlasDataset(
+        records=records.values(),
+        graph_quad_counts=tuple(graph_quad_counts.items()),
+    )
+
+
+def _decode_record_dataset(
+    payload: bytes,
+    *,
+    asset_id: str,
+) -> tuple[_CanonicalAtlasRecord, ...]:
+    """Decode records for internal callers that do not need dataset counts."""
+
+    return _decode_atlas_dataset(payload, asset_id=asset_id).records
 
 
 def _record_ids_for_container(
@@ -2012,8 +2551,7 @@ def _validate_embedded_scope_records(
     tuple[AtlasReleaseSnapshot, ...],
     tuple[EmbeddedRelationAssertionBundle, ...],
 ]:
-    release_records = [record for record in records if record.role == "conceptRelease"]
-    snapshots = tuple(AtlasReleaseSnapshot.from_record(record.record) for record in release_records)
+    snapshots = _snapshots_from_records(records)
     snapshots_by_release = {snapshot.release_id: snapshot for snapshot in snapshots}
     if len(snapshots_by_release) != len(snapshots):
         raise VocabularyAtlasError("atlas repeats a concept release")
@@ -2215,7 +2753,8 @@ def _validate_manifest_v2(
         raise VocabularyAtlasError("atlas output byteLength differs")
     _require_v2_count(output.get("quadCount"), "atlas output quadCount", positive=True)
 
-    records = _decode_record_dataset(payload, asset_id=asset_id)
+    decoded = _decode_atlas_dataset(payload, asset_id=asset_id)
+    records = decoded.records
     observed_role_counts = {
         count_field: sum(record.role == role for record in records) for role, count_field in _ROLE_COUNT_FIELD.items()
     }
@@ -2231,13 +2770,10 @@ def _validate_manifest_v2(
     if dict(counts) != observed_role_counts:
         raise VocabularyAtlasError("atlas record counts differ")
 
-    dataset = Dataset(default_union=False)
-    dataset.parse(data=payload.decode("utf-8"), format="nquads")
-    graph_counts = {role: len(dataset.graph(URIRef(identifier))) for role, identifier, _ in expected_graphs}
-    for position, (role, _, _) in enumerate(expected_graphs):
-        if cast(Mapping[str, Any], graph_rows[position]).get("quadCount") != graph_counts[role]:
+    for position, (_, graph_id, _) in enumerate(expected_graphs):
+        if cast(Mapping[str, Any], graph_rows[position]).get("quadCount") != decoded.graph_quad_count(graph_id):
             raise VocabularyAtlasError("atlas graph quadCount differs")
-    if output.get("quadCount") != sum(graph_counts.values()):
+    if output.get("quadCount") != decoded.quad_count:
         raise VocabularyAtlasError("atlas output quadCount differs")
 
     snapshots, relations = _validate_embedded_scope_records(

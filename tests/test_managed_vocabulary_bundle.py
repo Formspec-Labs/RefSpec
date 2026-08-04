@@ -9,9 +9,14 @@ import pyarrow.parquet as pq
 import pytest
 
 import refspec.registry.infrastructure.managed_vocabulary_bundle as bundle_module
+from refspec import binding
 from refspec.registry import (
     ManagedVocabularyBundle,
     ManagedVocabularyBundleError,
+)
+from refspec.registry.infrastructure.managed_vocabulary_bundle import (
+    managed_ref_record_artifact_path,
+    reseal_linked_ref_records,
 )
 from refspec.storage import canonical_json
 from refspec.vocabulary import (
@@ -207,3 +212,84 @@ def test_bundle_rejects_duplicate_records_and_stale_record_digests() -> None:
         match="is stale",
     ):
         replace(bundle, ref_records=(stale,))
+
+
+def test_managed_ref_record_artifact_path_matches_bundle_layout() -> None:
+    bundle = _bundle()
+
+    assert managed_ref_record_artifact_path(
+        bundle.ref_records[0]
+    ) in bundle.artifact_bytes()
+
+
+def test_reseal_linked_ref_records_propagates_digest_changes_in_dependency_order() -> None:
+    source = _record(
+        "urn:ref:type:RunReceipt",
+        "urn:test:record:source",
+        "before",
+    )
+    middle = seal_payload(
+        {
+            "type": "urn:ref:type:RunReceipt",
+            "id": "urn:test:record:middle",
+            "version": "1.0",
+            "input": {
+                "id": source["id"],
+                "digest": source["canonicalPayloadDigest"],
+            },
+        }
+    )
+    terminal = seal_payload(
+        {
+            "type": "urn:ref:type:RunReceipt",
+            "id": "urn:test:record:terminal",
+            "version": "1.0",
+            "input": {
+                "id": middle["id"],
+                "digest": middle["canonicalPayloadDigest"],
+            },
+        }
+    )
+    source["marker"] = "after"
+
+    resealed = reseal_linked_ref_records((terminal, source, middle))
+    by_id = {record["id"]: record for record in resealed}
+
+    assert by_id[middle["id"]]["input"]["digest"] == (
+        by_id[source["id"]]["canonicalPayloadDigest"]
+    )
+    assert by_id[terminal["id"]]["input"]["digest"] == (
+        by_id[middle["id"]]["canonicalPayloadDigest"]
+    )
+    assert all(
+        record["canonicalPayloadDigest"]
+        == binding.canonical_payload_digest(record)
+        for record in resealed
+    )
+
+
+def test_reseal_linked_ref_records_rejects_digest_cycles() -> None:
+    first = _record(
+        "urn:ref:type:RunReceipt",
+        "urn:test:record:first",
+        "first",
+    )
+    second = _record(
+        "urn:ref:type:RunReceipt",
+        "urn:test:record:second",
+        "second",
+    )
+    first["input"] = {
+        "id": second["id"],
+        "digest": second["canonicalPayloadDigest"],
+    }
+    second["input"] = {
+        "id": first["id"],
+        "digest": first["canonicalPayloadDigest"],
+    }
+
+    with pytest.raises(
+        ManagedVocabularyBundleError,
+        match="digest cycle",
+    ):
+        reseal_linked_ref_records((first, second))

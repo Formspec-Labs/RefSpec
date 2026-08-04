@@ -33,6 +33,7 @@ from refspec.atlas.relation_assertion import (
     RelationAssertionBundle,
 )
 from refspec.atlas_index import PinnedAtlasIndex, build_atlas_index
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -783,6 +784,68 @@ def test_scope_kind_is_closed_and_changes_content_identity(tmp_path: Path) -> No
                 atlas_index=atlas_index,
                 releases=(release,),
             )
+
+
+def test_scope_create_validates_each_managed_release_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    managed_source, _ = _managed_release(tmp_path)
+    release = AtlasScopeRelease(managed_source)
+    atlas_index, _, _ = _pinned_index(
+        tmp_path,
+        "single-managed-validation",
+        (_IndexSpec(release, "managed", participation="specialist"),),
+    )
+    original_pin = PinnedManagedConceptRelease.pin
+    original_open = ManagedReleaseGraphFactsView.open.__func__
+    calls = 0
+    graph_fact_opens = 0
+
+    def counted_pin(source: PinnedManagedConceptRelease) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return original_pin(source)
+
+    def counted_open(
+        cls: type[ManagedReleaseGraphFactsView],
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        nonlocal graph_fact_opens
+        graph_fact_opens += 1
+        return original_open(
+            cls,
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+
+    monkeypatch.setattr(PinnedManagedConceptRelease, "pin", counted_pin)
+    monkeypatch.setattr(
+        ManagedReleaseGraphFactsView,
+        "open",
+        classmethod(counted_open),
+    )
+
+    scope = VocabularyAtlasScope.create(
+        scope_name=SCOPE_NAME,
+        scope_kind="bench",
+        atlas_index=atlas_index,
+        releases=(release,),
+    )
+
+    assert calls == 1
+    assert graph_fact_opens == 1
+    calls = 0
+    graph_fact_opens = 0
+    VocabularyAtlasScope.from_record(
+        scope.as_record(),
+        atlas_index=atlas_index,
+        releases=(release,),
+    )
+    assert calls == 1
+    assert graph_fact_opens == 1
 
 
 def test_evidence_only_subject_has_no_caller_supplied_participation(

@@ -11,6 +11,7 @@ by an atlas scope.
 from __future__ import annotations
 
 import json
+from collections import deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
@@ -39,6 +40,7 @@ from refspec.registry.infrastructure.source_concept_release import (
     SOURCE_CONCEPT_ISSUER_IRI,
     SOURCE_CONCEPT_RELEASE_VERSION,
     SourceConceptReleaseError,
+    SourceConceptReleaseView,
     source_scoped_concept_iri,
 )
 
@@ -49,10 +51,12 @@ from .concept_release import (
     PinnedManagedConceptRelease,
     PinnedSourceConceptRelease,
     normalize_concept_release_pin,
+    verified_concept_release_facts,
 )
 
 ATLAS_RELEASE_SNAPSHOT_TYPE = "AtlasReleaseSnapshot"
-ATLAS_RELEASE_SNAPSHOT_VERSION = "1.0"
+ATLAS_RELEASE_SNAPSHOT_VERSION = "1.1"
+_SUPPORTED_SNAPSHOT_VERSIONS = frozenset({"1.0", ATLAS_RELEASE_SNAPSHOT_VERSION})
 
 _COMMON_BASIS_FIELDS = {
     "type",
@@ -69,10 +73,15 @@ _SOURCE_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
     "sourceCoverageReport",
     "sourceObservations",
 }
-_MANAGED_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
+_MANAGED_BASIS_FIELDS_V1 = _COMMON_BASIS_FIELDS | {
     "ringAssignment",
     "selectedReleaseGraph",
     "members",
+}
+_MANAGED_BASIS_FIELDS = _COMMON_BASIS_FIELDS | {
+    "ringAssignment",
+    "selectedReleaseGraph",
+    "memberIds",
 }
 _IDENTITY_FIELDS = {"id", "contentDigest"}
 _SOURCE_MANIFEST_FIELDS = {
@@ -989,17 +998,20 @@ def _selected_managed_graph(
         )
 
     selected = {release_id, *member_ids}
-    required_local_predicates = {
+    release_local_predicates = {
         "dcat:distribution",
-        "dcterms:isVersionOf",
-        "skos:inScheme",
-        "http://purl.org/dc/terms/isVersionOf",
-        "http://www.w3.org/2004/02/skos/core#inScheme",
         "https://www.w3.org/ns/dcat#distribution",
     }
-    for identifier in tuple(selected):
+    member_local_predicates = {
+        "skos:inScheme",
+        "http://www.w3.org/2004/02/skos/core#inScheme",
+    }
+    for identifier, predicates in (
+        (release_id, release_local_predicates),
+        *((member_id, member_local_predicates) for member_id in member_ids),
+    ):
         record = nodes[identifier]
-        for predicate in required_local_predicates:
+        for predicate in predicates:
             referenced = _iri_values(record.get(predicate))
             missing = sorted(set(referenced) - set(nodes))
             if missing:
@@ -1007,19 +1019,25 @@ def _selected_managed_graph(
                     f"atlas release snapshot selected graph lacks {predicate} records {missing!r}"
                 )
 
-    while True:
-        prior = set(selected)
-        for identifier in tuple(selected):
-            record = nodes[identifier]
-            for predicate in _DIRECT_CLOSURE_PREDICATES:
-                selected.update(reference for reference in _iri_values(record.get(predicate)) if reference in nodes)
-        anchors = selected | {release_id, *member_ids}
-        for identifier, record in nodes.items():
-            types = _record_types(record)
-            if types & (_LIFECYCLE_TYPES | _RIGHTS_TYPES) and _record_references(record) & anchors:
-                selected.add(identifier)
-        if selected == prior:
-            break
+    adjacency: dict[str, list[str]] = {identifier: [] for identifier in nodes}
+    for identifier, record in nodes.items():
+        for predicate in _DIRECT_CLOSURE_PREDICATES:
+            adjacency[identifier].extend(
+                reference for reference in _iri_values(record.get(predicate)) if reference in nodes
+            )
+        if _record_types(record) & (_LIFECYCLE_TYPES | _RIGHTS_TYPES):
+            for reference in _record_references(record):
+                if reference in nodes:
+                    adjacency[reference].append(identifier)
+
+    pending = deque(selected)
+    while pending:
+        identifier = pending.popleft()
+        for adjacent in adjacency[identifier]:
+            if adjacent in selected:
+                continue
+            selected.add(adjacent)
+            pending.append(adjacent)
 
     selected_nodes = sorted(
         (_plain(nodes[identifier]) for identifier in selected),
@@ -1035,9 +1053,15 @@ def _validate_managed_basis(
     row: Mapping[str, Any],
     release_pin: Mapping[str, Any],
 ) -> dict[str, Any]:
+    schema_version = row.get("schemaVersion")
     _require_exact_fields(
         row,
-        _MANAGED_BASIS_FIELDS | _IDENTITY_FIELDS,
+        (
+            _MANAGED_BASIS_FIELDS_V1
+            if schema_version == "1.0"
+            else _MANAGED_BASIS_FIELDS
+        )
+        | _IDENTITY_FIELDS,
         "atlas release snapshot",
     )
     assignment_row = _require_mapping(
@@ -1090,20 +1114,43 @@ def _validate_managed_basis(
             "atlas release snapshot declared release digest differs from the selected release record"
         )
 
-    members = _require_rows(
-        row.get("members"),
-        label="atlas release snapshot members",
-        identity_field="@id",
-        allow_empty=False,
-    )
-    actual_member_ids = tuple(cast(str, value["@id"]) for value in members)
+    members: tuple[dict[str, Any], ...] = ()
+    if schema_version == "1.0":
+        members = _require_rows(
+            row.get("members"),
+            label="atlas release snapshot members",
+            identity_field="@id",
+            allow_empty=False,
+        )
+        actual_member_ids = tuple(cast(str, value["@id"]) for value in members)
+    else:
+        member_values = row.get("memberIds")
+        if (
+            not isinstance(member_values, Sequence)
+            or isinstance(member_values, (str, bytes))
+            or not member_values
+        ):
+            raise AtlasReleaseSnapshotError(
+                "atlas release snapshot memberIds must be a non-empty IRI array"
+            )
+        actual_member_ids = tuple(
+            _require_iri(
+                value,
+                f"atlas release snapshot memberIds[{index}]",
+            )
+            for index, value in enumerate(member_values)
+        )
+        if actual_member_ids != tuple(sorted(set(actual_member_ids))):
+            raise AtlasReleaseSnapshotError(
+                "atlas release snapshot memberIds must use canonical identifier order"
+            )
     if set(actual_member_ids) != set(expected_member_ids):
         raise AtlasReleaseSnapshotError(
-            "atlas release snapshot members do not exactly equal complete release membership"
+            "atlas release snapshot member references do not exactly equal complete release membership"
         )
-    for index, member in enumerate(members):
-        member_id = actual_member_ids[index]
-        if nodes.get(member_id) != member:
+    for index, member_id in enumerate(actual_member_ids):
+        member = nodes[member_id]
+        if schema_version == "1.0" and nodes.get(member_id) != members[index]:
             raise AtlasReleaseSnapshotError(
                 f"atlas release snapshot members[{index}] differs from the selected release graph"
             )
@@ -1117,7 +1164,10 @@ def _validate_managed_basis(
 
 def _normalize_record(value: Mapping[str, Any]) -> dict[str, Any]:
     row = _require_mapping(value, "atlas release snapshot")
-    if row.get("type") != ATLAS_RELEASE_SNAPSHOT_TYPE or row.get("schemaVersion") != ATLAS_RELEASE_SNAPSHOT_VERSION:
+    if (
+        row.get("type") != ATLAS_RELEASE_SNAPSHOT_TYPE
+        or row.get("schemaVersion") not in _SUPPORTED_SNAPSHOT_VERSIONS
+    ):
         raise AtlasReleaseSnapshotError("atlas release snapshot version is unsupported")
     release_pin = _release_pin(row.get("releasePin"))
     if release_pin.get("releaseKind") == "sourceConceptRelease":
@@ -1177,9 +1227,14 @@ class AtlasReleaseSnapshot:
             raise AtlasReleaseSnapshotError("atlas release snapshot requires one AtlasScopeRelease")
         source = scope_release.source
         try:
-            release_pin = source.pin()
             if isinstance(source, PinnedSourceConceptRelease):
-                view = source.verified_view()
+                facts = verified_concept_release_facts(source)
+                release_pin = _plain(facts.pin)
+                if not isinstance(facts.view, SourceConceptReleaseView):
+                    raise AtlasReleaseSnapshotError(
+                        "source concept release verification returned the wrong view kind"
+                    )
+                view = facts.view
                 bundle_manifest = json.loads(view.bundle.artifact_bytes()["bundle-manifest.json"].decode("utf-8"))
                 observations_by_id = {
                     cast(str, observation["id"]): observation for observation in view.source_bundle.observations
@@ -1213,7 +1268,7 @@ class AtlasReleaseSnapshot:
                 if view.reconciliation_record is not None:
                     basis["reconciliationRecord"] = _plain(view.reconciliation_record)
             elif isinstance(source, PinnedManagedConceptRelease):
-                view = source.verified_view()
+                view, release_pin = source.verified_view_and_pin()
                 assignment = source.ring_assignment.verified_assignment()
                 selected_graph, _ = _selected_managed_graph(
                     view.rulespec_graph,
@@ -1225,9 +1280,11 @@ class AtlasReleaseSnapshot:
                     "releasePin": release_pin,
                     "ringAssignment": assignment.as_record(),
                     "selectedReleaseGraph": selected_graph,
-                    "members": sorted(
-                        (_plain(member.record) for member in view.iter_members(release_iri=source.release_id)),
-                        key=lambda value: cast(str, value["@id"]),
+                    "memberIds": sorted(
+                        member.member_iri
+                        for member in view.iter_members(
+                            release_iri=source.release_id
+                        )
                     ),
                 }
             else:  # AtlasScopeRelease closes this union; retain a hard boundary.
@@ -1276,7 +1333,18 @@ class AtlasReleaseSnapshot:
 
     @property
     def member_ids(self) -> frozenset[str]:
-        field = "concepts" if self.release_pin["releaseKind"] == "sourceConceptRelease" else "members"
+        if self.release_pin["releaseKind"] != "sourceConceptRelease":
+            member_ids = self.record.get("memberIds")
+            if isinstance(member_ids, Sequence) and not isinstance(
+                member_ids,
+                (str, bytes),
+            ):
+                return frozenset(cast(Sequence[str], member_ids))
+        field = (
+            "concepts"
+            if self.release_pin["releaseKind"] == "sourceConceptRelease"
+            else "members"
+        )
         return frozenset(
             cast(str, record["id" if field == "concepts" else "@id"])
             for record in cast(Sequence[Mapping[str, Any]], self.record[field])
@@ -1284,8 +1352,23 @@ class AtlasReleaseSnapshot:
 
     @property
     def concept_records(self) -> tuple[Mapping[str, Any], ...]:
-        field = "concepts" if self.release_pin["releaseKind"] == "sourceConceptRelease" else "members"
-        return cast(tuple[Mapping[str, Any], ...], self.record[field])
+        if self.release_pin["releaseKind"] == "sourceConceptRelease":
+            return cast(
+                tuple[Mapping[str, Any], ...],
+                self.record["concepts"],
+            )
+        if "members" in self.record:  # Snapshot 1.0 compatibility.
+            return cast(
+                tuple[Mapping[str, Any], ...],
+                self.record["members"],
+            )
+        graph = cast(Mapping[str, Any], self.record["selectedReleaseGraph"])
+        member_ids = self.member_ids
+        return tuple(
+            record
+            for record in cast(Sequence[Mapping[str, Any]], graph["@graph"])
+            if record.get("@id") in member_ids
+        )
 
 
 __all__ = [

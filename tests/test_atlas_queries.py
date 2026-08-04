@@ -88,6 +88,7 @@ def test_queries_expose_four_ring_releases_concepts_and_index_classifications(
 
 def test_stable_identity_keeps_release_versions_and_labels_separate(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     releases: list[AtlasScopeRelease] = []
     for version, label in (("v1", "Shared label"), ("v2", "Renamed label")):
@@ -138,7 +139,10 @@ def test_stable_identity_keeps_release_versions_and_labels_separate(
     }
     renamed = queries.search_labels("renamed", semantic_ring="subject")
     assert [(value.label.value, value.concept.release_id) for value in renamed] == [
-        ("Renamed label", next(key for key, values in labels_by_release.items() if "Renamed label" in values))
+        (
+            "Renamed label",
+            next(key for key, values in labels_by_release.items() if "Renamed label" in values),
+        )
     ]
     with pytest.raises(VocabularyAtlasError, match="different semantic ring"):
         queries.search_labels(
@@ -146,6 +150,65 @@ def test_stable_identity_keeps_release_versions_and_labels_separate(
             semantic_ring="entity",
             release_id=history[0].release_id,
         )
+
+    selected = history[0]
+
+    def unexpected_scan(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("exact concept lookup must not scan all concepts")
+
+    monkeypatch.setattr(VocabularyAtlasQueries, "concepts", unexpected_scan)
+    assert (
+        queries.concept(
+            selected.concept_id,
+            release_id=selected.release_id,
+        )
+        == selected
+    )
+
+
+def test_native_relation_query_preserves_managed_release_skos_facts(
+    tmp_path: Path,
+) -> None:
+    source, _assignment = model_fixture._SCOPE_FIXTURE._managed_release(tmp_path)
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-native-relations",
+        releases=(release,),
+        specs=(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "query-native-relations",
+                participation="bridge",
+            ),
+        ),
+    )
+    queries = VocabularyAtlasQueries(build_vocabulary_atlas(scope))
+    fixture = model_fixture._SCOPE_FIXTURE._FIXTURE_MODULE
+    subject_id = cast(str, fixture.MEMBER_ID)
+    object_id = cast(str, fixture.ELIGIBILITY_MEMBER_ID)
+
+    relations = queries.native_relations()
+
+    assert len(relations) == 1
+    relation = relations[0]
+    assert relation.subject_concept == subject_id
+    assert relation.predicate_iri == ("http://www.w3.org/2004/02/skos/core#broader")
+    assert relation.object_concept == object_id
+    assert relation.release_id == source.release_id
+    assert relation.semantic_ring == "subject"
+    assert (
+        relation.source_record_id
+        == queries.concept(
+            subject_id,
+            release_id=source.release_id,
+        ).record_id
+    )
+    assert relation.relation_id.startswith("urn:ref:vocabulary-atlas-native-relation:")
+    assert queries.native_relations(concept_id=object_id) == relations
+    assert queries.native_relations(predicate_iri="http://www.w3.org/2004/02/skos/core#related") == ()
+    with pytest.raises(VocabularyAtlasError, match="predicate"):
+        queries.native_relations(predicate_iri="urn:test:unsupported")
 
 
 def test_mapping_query_resolves_typed_evidence_and_machine_proof_closure(

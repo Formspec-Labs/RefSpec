@@ -47,6 +47,135 @@ class ManagedVocabularyBundleError(ValueError):
     """A managed vocabulary bundle cannot be serialized safely."""
 
 
+def _linked_record_ids(
+    value: Any,
+    known_ids: frozenset[str],
+) -> frozenset[str]:
+    """Return exact local REF-record references nested in one JSON value."""
+
+    result: set[str] = set()
+    if isinstance(value, Mapping):
+        identifier = value.get("id")
+        digest = value.get("digest")
+        if (
+            isinstance(identifier, str)
+            and identifier in known_ids
+            and isinstance(digest, str)
+        ):
+            result.add(identifier)
+        for child in value.values():
+            result.update(_linked_record_ids(child, known_ids))
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for child in value:
+            result.update(_linked_record_ids(child, known_ids))
+    return frozenset(result)
+
+
+def _replace_linked_record_digests(
+    value: Any,
+    sealed_by_id: Mapping[str, Mapping[str, Any]],
+) -> Any:
+    """Copy one JSON value and refresh references to sealed local records."""
+
+    if isinstance(value, Mapping):
+        result = {
+            str(key): _replace_linked_record_digests(child, sealed_by_id)
+            for key, child in value.items()
+        }
+        identifier = result.get("id")
+        if (
+            isinstance(identifier, str)
+            and identifier in sealed_by_id
+            and "digest" in result
+        ):
+            target = sealed_by_id[identifier]
+            result["digest"] = target[binding.digest_field(dict(target))]
+        return result
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return [
+            _replace_linked_record_digests(child, sealed_by_id)
+            for child in value
+        ]
+    return value
+
+
+def reseal_linked_ref_records(
+    records: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Refresh a closed acyclic set of linked REF records.
+
+    Schema evolution can change one immutable record's digest and therefore
+    every record that carries an exact reference to it. This helper performs
+    that mechanical propagation in dependency order. It changes only local
+    ``{id, digest}`` references and each record's canonical digest; callers
+    remain responsible for the semantic edit and final binding validation.
+    """
+
+    plain_records = tuple(_plain_json(record) for record in records)
+    records_by_id: dict[str, dict[str, Any]] = {}
+    for index, record in enumerate(plain_records):
+        identifier = record.get("id")
+        if not isinstance(identifier, str) or not identifier:
+            raise ManagedVocabularyBundleError(
+                f"records[{index}].id must be non-empty text"
+            )
+        if identifier in records_by_id:
+            raise ManagedVocabularyBundleError(
+                f"records repeats identifier {identifier!r}"
+            )
+        record_type = record.get("type")
+        if not isinstance(record_type, str) or not record_type:
+            raise ManagedVocabularyBundleError(
+                f"records[{index}].type must be non-empty text"
+            )
+        records_by_id[identifier] = record
+
+    known_ids = frozenset(records_by_id)
+    local_references = {
+        identifier: _linked_record_ids(record, known_ids)
+        for identifier, record in records_by_id.items()
+    }
+    self_references = {
+        identifier
+        for identifier, dependencies in local_references.items()
+        if identifier in dependencies
+    }
+    if self_references:
+        raise ManagedVocabularyBundleError(
+            "linked REF records contain a digest cycle: "
+            + ", ".join(sorted(self_references))
+        )
+    dependencies = {
+        identifier: values - {identifier}
+        for identifier, values in local_references.items()
+    }
+
+    sealed_by_id: dict[str, dict[str, Any]] = {}
+    remaining = set(records_by_id)
+    while remaining:
+        ready = sorted(
+            identifier
+            for identifier in remaining
+            if dependencies[identifier] <= sealed_by_id.keys()
+        )
+        if not ready:
+            raise ManagedVocabularyBundleError(
+                "linked REF records contain a digest cycle: "
+                + ", ".join(sorted(remaining))
+            )
+        for identifier in ready:
+            record = _replace_linked_record_digests(
+                records_by_id[identifier],
+                sealed_by_id,
+            )
+            digest_field = binding.digest_field(record)
+            record[digest_field] = binding.canonical_payload_digest(record)
+            sealed_by_id[identifier] = record
+            remaining.remove(identifier)
+
+    return tuple(sealed_by_id[record["id"]] for record in plain_records)
+
+
 # Local aliases preserve monkeypatch surfaces and call-site names.
 _plain_json = plain_json
 _canonical_json_bytes = canonical_json_bytes
@@ -101,6 +230,22 @@ def _record_artifact_path(
     ).encode("utf-8")
     fingerprint = hashlib.sha256(identity).hexdigest()
     return f"records/{slug}-{fingerprint}.json"
+
+
+def managed_ref_record_artifact_path(
+    record: Mapping[str, Any],
+) -> str:
+    """Return the deterministic bundle path for one sealed REF record."""
+
+    _plain, record_type, identifier, digest = _validated_record_identity(
+        record,
+        label="record",
+    )
+    return _record_artifact_path(
+        record_type,
+        identifier,
+        digest,
+    )
 
 
 def _parquet_bytes(

@@ -54,6 +54,7 @@ from .concept_release import (
     PinnedManagedConceptRelease,
     PinnedSourceConceptRelease,
     normalize_concept_release_pin,
+    verified_concept_release_facts,
 )
 from .relation_proof import (
     RelationMachineProofSource,
@@ -213,12 +214,13 @@ def _resolve_releases(
                 f"release_sources[{index}] must be a path-backed verified concept release"
             )
         try:
-            if source.semantic_ring != semantic_ring:
+            facts = verified_concept_release_facts(source)
+            if facts.semantic_ring != semantic_ring:
                 raise RelationAssertionError(
                     "relation release semanticRing differs from the bundle"
                 )
-            pin = source.pin()
-            members = source.member_ids()
+            pin = _plain(facts.pin)
+            members = facts.member_ids
         except ConceptReleaseError as error:
             raise RelationAssertionError(str(error)) from error
         release_id = _require_iri(pin.get("releaseId"), f"release_sources[{index}].releaseId")
@@ -575,6 +577,86 @@ class EmbeddedRelationAssertionBundle:
         return cast(dict[str, Any], _plain(self.record))
 
 
+def _validated_relation_values(
+    *,
+    ring: SemanticRing,
+    resolved_releases: Sequence[_ResolvedRelease],
+    proof_pins: Sequence[Mapping[str, Any]],
+    evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
+    mapping_assertions: Sequence[MappingAssertion | Mapping[str, Any]],
+) -> tuple[tuple[EvidenceAssertion, ...], tuple[MappingAssertion, ...]]:
+    """Validate relation contents against already verified release facts."""
+
+    try:
+        evidence = validate_evidence_assertions(
+            evidence_assertions,
+            semantic_ring=ring,
+        )
+        mappings = _validate_mapping_assertions_with_machine_evidence(
+            mapping_assertions,
+            evidence_assertions=evidence,
+            semantic_ring=ring,
+        )
+    except SemanticFoundationError as error:
+        raise RelationAssertionError(str(error)) from error
+    if not mappings:
+        raise RelationAssertionError(
+            "relation bundle must contain at least one mapping assertion"
+        )
+    _validate_machine_evidence_proofs(evidence, proof_pins, mappings)
+    evidence_by_id = {value.identifier: value for value in evidence}
+    used = _required_evidence_ids(mappings, evidence_by_id)
+    unused = sorted(set(evidence_by_id) - used)
+    if unused:
+        raise RelationAssertionError(
+            f"relation bundle contains unreferenced evidence {unused!r}"
+        )
+    evidence_ids = set(evidence_by_id)
+    mapping_ids = {value.identifier for value in mappings}
+    candidate_ids = {
+        cast(str, value.candidate)
+        for value in evidence
+        if value.evidence_class in {"machineQualified", "machineReviewed"}
+    }
+    if evidence_ids & mapping_ids:
+        raise RelationAssertionError(
+            "evidence and mapping assertions must have distinct identities"
+        )
+    if candidate_ids & (evidence_ids | mapping_ids):
+        raise RelationAssertionError(
+            "candidate identity must remain distinct from evidence and mapping assertions"
+        )
+    releases = {
+        cast(str, value.pin["releaseId"]): value
+        for value in resolved_releases
+    }
+    for mapping in mappings:
+        source = releases.get(mapping.source_release)
+        target = releases.get(mapping.target_release)
+        if source is None or target is None:
+            raise RelationAssertionError(
+                "mapping assertion names a release outside the exact release pins"
+            )
+        if mapping.source_concept not in source.members:
+            raise RelationAssertionError(
+                "mapping sourceConcept is not a member of sourceRelease"
+            )
+        if mapping.target_concept not in target.members:
+            raise RelationAssertionError(
+                "mapping targetConcept is not a member of targetRelease"
+            )
+    required_release_ids = {
+        identifier
+        for mapping in mappings
+        for identifier in (mapping.source_release, mapping.target_release)
+    }
+    if set(releases) != required_release_ids:
+        raise RelationAssertionError(
+            "release pins do not equal the exact mapping endpoint release closure"
+        )
+    return evidence, mappings
+
+
 @dataclass(frozen=True, slots=True)
 class RelationAssertionBundle:
     """One content-derived, release-closed set of typed relation assertions."""
@@ -604,51 +686,13 @@ class RelationAssertionBundle:
         )
         if supplied_proof_pins != expected_proof_pins:
             raise RelationAssertionError("relation bundle machine proof pins differ from their verified sources")
-        try:
-            evidence = validate_evidence_assertions(self.evidence_assertions, semantic_ring=ring)
-            mappings = _validate_mapping_assertions_with_machine_evidence(
-                self.mapping_assertions,
-                evidence_assertions=evidence,
-                semantic_ring=ring,
-            )
-        except SemanticFoundationError as error:
-            raise RelationAssertionError(str(error)) from error
-        if not mappings:
-            raise RelationAssertionError("relation bundle must contain at least one mapping assertion")
-        _validate_machine_evidence_proofs(evidence, expected_proof_pins, mappings)
-        evidence_by_id = {value.identifier: value for value in evidence}
-        used = _required_evidence_ids(mappings, evidence_by_id)
-        unused = sorted(set(evidence_by_id) - used)
-        if unused:
-            raise RelationAssertionError(f"relation bundle contains unreferenced evidence {unused!r}")
-        evidence_ids = set(evidence_by_id)
-        mapping_ids = {value.identifier for value in mappings}
-        candidate_ids = {
-            cast(str, value.candidate)
-            for value in evidence
-            if value.evidence_class in {"machineQualified", "machineReviewed"}
-        }
-        if evidence_ids & mapping_ids:
-            raise RelationAssertionError("evidence and mapping assertions must have distinct identities")
-        if candidate_ids & (evidence_ids | mapping_ids):
-            raise RelationAssertionError("candidate identity must remain distinct from evidence and mapping assertions")
-        releases = {cast(str, value.pin["releaseId"]): value for value in resolved}
-        for mapping in mappings:
-            source = releases.get(mapping.source_release)
-            target = releases.get(mapping.target_release)
-            if source is None or target is None:
-                raise RelationAssertionError("mapping assertion names a release outside the exact release pins")
-            if mapping.source_concept not in source.members:
-                raise RelationAssertionError("mapping sourceConcept is not a member of sourceRelease")
-            if mapping.target_concept not in target.members:
-                raise RelationAssertionError("mapping targetConcept is not a member of targetRelease")
-        required_release_ids = {
-            identifier
-            for mapping in mappings
-            for identifier in (mapping.source_release, mapping.target_release)
-        }
-        if set(releases) != required_release_ids:
-            raise RelationAssertionError("release pins do not equal the exact mapping endpoint release closure")
+        evidence, mappings = _validated_relation_values(
+            ring=ring,
+            resolved_releases=resolved,
+            proof_pins=expected_proof_pins,
+            evidence_assertions=self.evidence_assertions,
+            mapping_assertions=self.mapping_assertions,
+        )
         object.__setattr__(self, "semantic_ring", ring)
         object.__setattr__(self, "release_pins", expected_pins)
         object.__setattr__(self, "machine_proof_pins", expected_proof_pins)
@@ -658,6 +702,36 @@ class RelationAssertionBundle:
         object.__setattr__(self, "_machine_proof_sources", proof_sources)
         if self._path is not None:
             object.__setattr__(self, "_path", self._path.resolve(strict=True))
+
+    @classmethod
+    def _from_verified_components(
+        cls,
+        *,
+        semantic_ring: SemanticRing,
+        release_pins: tuple[Mapping[str, Any], ...],
+        machine_proof_pins: tuple[Mapping[str, Any], ...],
+        evidence_assertions: tuple[EvidenceAssertion, ...],
+        mapping_assertions: tuple[MappingAssertion, ...],
+        release_sources: tuple[ConceptReleaseSource, ...],
+        machine_proof_sources: tuple[RelationMachineProofSource, ...],
+        path: Path | None = None,
+    ) -> Self:
+        """Construct only after the caller completes the shared validation."""
+
+        instance = object.__new__(cls)
+        object.__setattr__(instance, "semantic_ring", semantic_ring)
+        object.__setattr__(instance, "release_pins", release_pins)
+        object.__setattr__(instance, "machine_proof_pins", machine_proof_pins)
+        object.__setattr__(instance, "evidence_assertions", evidence_assertions)
+        object.__setattr__(instance, "mapping_assertions", mapping_assertions)
+        object.__setattr__(instance, "_release_sources", release_sources)
+        object.__setattr__(instance, "_machine_proof_sources", machine_proof_sources)
+        object.__setattr__(
+            instance,
+            "_path",
+            path.resolve(strict=True) if path is not None else None,
+        )
+        return instance
 
     @classmethod
     def create(
@@ -672,23 +746,21 @@ class RelationAssertionBundle:
         ring = _require_ring(semantic_ring, "relation bundle semanticRing")
         sources, resolved = _resolve_releases(release_sources, semantic_ring=ring)
         proof_sources, proof_pins = _resolve_machine_proofs(machine_proof_sources, semantic_ring=ring)
-        try:
-            evidence = validate_evidence_assertions(evidence_assertions, semantic_ring=ring)
-            mappings = _validate_mapping_assertions_with_machine_evidence(
-                mapping_assertions,
-                evidence_assertions=evidence,
-                semantic_ring=ring,
-            )
-        except SemanticFoundationError as error:
-            raise RelationAssertionError(str(error)) from error
-        return cls(
+        evidence, mappings = _validated_relation_values(
+            ring=ring,
+            resolved_releases=resolved,
+            proof_pins=proof_pins,
+            evidence_assertions=evidence_assertions,
+            mapping_assertions=mapping_assertions,
+        )
+        return cls._from_verified_components(
             semantic_ring=ring,
             release_pins=tuple(value.pin for value in resolved),
             machine_proof_pins=proof_pins,
             evidence_assertions=evidence,
             mapping_assertions=mappings,
-            _release_sources=sources,
-            _machine_proof_sources=proof_sources,
+            release_sources=sources,
+            machine_proof_sources=proof_sources,
         )
 
     @property
@@ -877,15 +949,15 @@ class RelationAssertionBundle:
             raise RelationAssertionError("relation assertion machine proof pins differ from verified sources")
         if rebuilt.as_record() != dict(record):
             raise RelationAssertionError("relation assertion content identity is stale or incorrect")
-        result = cls(
+        result = cls._from_verified_components(
             semantic_ring=rebuilt.semantic_ring,
             release_pins=rebuilt.release_pins,
             machine_proof_pins=rebuilt.machine_proof_pins,
             evidence_assertions=rebuilt.evidence_assertions,
             mapping_assertions=rebuilt.mapping_assertions,
-            _release_sources=rebuilt._release_sources,
-            _machine_proof_sources=rebuilt._machine_proof_sources,
-            _path=root,
+            release_sources=rebuilt._release_sources,
+            machine_proof_sources=rebuilt._machine_proof_sources,
+            path=root,
         )
         try:
             final_snapshot = _bundle_snapshot(root)

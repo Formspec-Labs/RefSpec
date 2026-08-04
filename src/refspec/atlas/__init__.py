@@ -18,12 +18,14 @@ from .concept_release import (
     PinnedManagedReleaseRingAssignment,
     PinnedSourceConceptRelease,
     SubjectConceptRelease,
+    VerifiedConceptReleaseFacts,
     concept_release_member_ids,
     concept_release_pin,
     normalize_concept_release_pin,
     require_admissible_subject_concept,
     require_subject_concept_release,
     subject_release_rights_metadata,
+    verified_concept_release_facts,
 )
 from .concept_staging import (
     CONCEPT_AUTHORING_TRANSITION_TYPE,
@@ -88,6 +90,7 @@ from .queries import (
     LabelRole,
     MachineProofView,
     MappingAssertionView,
+    NativeConceptRelation,
     VocabularyAtlasDistribution,
     VocabularyAtlasQueries,
 )
@@ -196,6 +199,7 @@ __all__ = [
     "ManagedReleaseRingAssignment",
     "MappingAssertionView",
     "MappingCandidate",
+    "NativeConceptRelation",
     "PinnedCrosswalkMachineProof",
     "PinnedManagedConceptRelease",
     "PinnedManagedReleaseRingAssignment",
@@ -216,6 +220,7 @@ __all__ = [
     "SubjectEmissionPolicy",
     "SubjectEmissionPolicyResolution",
     "SubjectParticipation",
+    "VerifiedConceptReleaseFacts",
     "VocabularyAtlasAsset",
     "VocabularyAtlasDistribution",
     "VocabularyAtlasError",
@@ -250,4 +255,5 @@ __all__ = [
     "subject_release_rights_metadata",
     "trusted_relation_machine_proof_adapter_id",
     "validate_subject_admission_reviews",
+    "verified_concept_release_facts",
 ]

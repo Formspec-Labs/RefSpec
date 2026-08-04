@@ -13,6 +13,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from rdflib import Dataset, Literal, URIRef
 
+import refspec.atlas.model as atlas_model
 from refspec.atlas.atlas_scope import (
     AtlasScopeRelease,
     PinnedVocabularyAtlasScope,
@@ -303,12 +304,43 @@ def test_managed_jsonld_member_identity_is_indexed_from_at_id(
 
     asset = build_vocabulary_atlas(pinned)
     members = _records(asset, role="concept")
+    release_rows = _records(asset, role="releaseRecord")
+    snapshot_reference = _records(asset, role="conceptRelease")[0][1]
+    decoded = atlas_model._decode_record_dataset(
+        asset.payload,
+        asset_id=cast(str, asset.manifest["id"]),
+    )
+    snapshot = atlas_model._snapshots_from_records(decoded)[0].as_record()
     text = asset.payload.decode("utf-8")
 
     assert members
+    assert snapshot_reference["type"] == (
+        "ManagedAtlasReleaseSnapshotReference"
+    )
+    assert "selectedReleaseGraph" not in snapshot_reference
+    assert '"selectedReleaseGraph"' not in text
+    assert "members" not in snapshot
+    assert snapshot["memberIds"] == sorted(snapshot["memberIds"])
+    assert all("@graph" not in row for _, row, _ in release_rows)
+    native_ids = {row["@id"] for row in snapshot["selectedReleaseGraph"]["@graph"]}
+    stored_native_ids = [row["@id"] for _, row, _ in (*members, *release_rows) if "@id" in row]
+    assert set(stored_native_ids) == native_ids
+    assert len(stored_native_ids) == len(set(stored_native_ids))
+    assert {
+        row["recordId"] for row in snapshot_reference["selectedGraphRecords"]
+    } == {
+        str(node) for node, row, _ in (*members, *release_rows) if "@id" in row
+    }
     for _, member, _ in members:
         member_id = member["@id"]
         assert f"{ATLAS.recordId.n3()} <{member_id}>" in text
+
+    output = asset.write(tmp_path / "managed-reference-atlas")
+    reopened = VocabularyAtlasAsset.open(
+        output,
+        expected_manifest_digest=asset.manifest_digest,
+    )
+    assert reopened.payload == asset.payload
 
 
 def test_value_relation_context_round_trips_and_distribution_reproduces(
@@ -442,6 +474,281 @@ def test_three_file_distribution_fails_closed_on_output_scope_and_file_set_tampe
             directory,
             expected_manifest_digest=asset.manifest_digest,
         )
+
+
+def test_asset_open_uses_one_closed_decode_without_rdflib_parsing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, source, _ = _SCOPE_FIXTURE._source_release(tmp_path, "decode-once")
+    release = AtlasScopeRelease(source)
+    pinned, _ = _pinned_scope(
+        tmp_path,
+        name="decode-once",
+        releases=(release,),
+        specs=(_SCOPE_FIXTURE._IndexSpec(release, "decode-once"),),
+    )
+    asset = build_vocabulary_atlas(pinned)
+    directory = asset.write(tmp_path / "decode-once-atlas")
+
+    calls = {"decode": 0}
+    original_decode = atlas_model._decode_atlas_dataset
+
+    def counted_decode(payload: bytes, *, asset_id: str):
+        calls["decode"] += 1
+        return original_decode(payload, asset_id=asset_id)
+
+    def unexpected_rdflib_path(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("closed Atlas decode must not invoke rdflib parsing or canonicalization")
+
+    monkeypatch.setattr(atlas_model, "_decode_atlas_dataset", counted_decode)
+    monkeypatch.setattr(Dataset, "parse", unexpected_rdflib_path)
+    monkeypatch.setattr(atlas_model, "_canonical_nquads", unexpected_rdflib_path)
+
+    VocabularyAtlasAsset.open(
+        directory,
+        expected_manifest_digest=asset.manifest_digest,
+    )
+
+    assert calls == {"decode": 1}
+
+
+def test_closed_nquads_decode_matches_rdflib_for_generated_unicode() -> None:
+    records = atlas_model._CanonicalRecordSet()
+    release_id = "https://example.test/releases/référence"
+    concept_id = "https://example.test/concepts/社会"
+    release_record = {
+        "id": release_id,
+        "title": 'Référence "sociale" \\ ligne\nsuivante',
+    }
+    concept_record = {
+        "id": concept_id,
+        "skos:prefLabel": {"@language": "fr", "@value": "Société ☃"},
+    }
+    records.add(release_record, role="conceptRelease")
+    records.add(concept_record, role="concept", in_release=release_id)
+    asset_id = "urn:ref:test:closed-nquads-unicode"
+    payload, expected_counts = atlas_model._record_dataset(
+        records.values(),
+        asset_id=asset_id,
+    )
+
+    decoded = atlas_model._decode_atlas_dataset(payload, asset_id=asset_id)
+    reference = Dataset(default_union=False)
+    reference.parse(data=payload.decode("utf-8"), format="nquads")
+
+    assert decoded.quad_count == sum(1 for _ in reference.quads((None, None, None, None)))
+    assert decoded.graph_quad_count(asset_id + ":release-facts") == expected_counts["releaseFacts"]
+    assert decoded.graph_quad_count(asset_id + ":cross-release") == expected_counts["crossRelease"]
+    assert [record.record for record in decoded.records] == [record.record for record in records.values()]
+
+
+def test_closed_nquads_decode_normalizes_one_shared_record_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record_id = "urn:ref:test:shared-large-record"
+    release_ids = tuple(
+        f"urn:ref:test:shared-large-record:release:{index:03d}"
+        for index in range(128)
+    )
+    record_value = {
+        "id": record_id,
+        "label": "shared across many release containers",
+        "payload": "x" * 256_000,
+    }
+    source_record = atlas_model._CanonicalAtlasRecord(
+        record=cast(
+            Any,
+            atlas_model._freeze(atlas_model._plain(record_value)),
+        ),
+        role="concept",
+        release_containers=frozenset(release_ids),
+    )
+    asset_id = "urn:ref:test:shared-large-record-atlas"
+    payload, _ = atlas_model._record_dataset(
+        (source_record,),
+        asset_id=asset_id,
+    )
+
+    calls = {"normalize": 0, "hash": 0, "freeze": 0}
+    original_plain = atlas_model._plain
+    original_digest = atlas_model._digest_bytes
+    original_freeze = atlas_model._freeze
+
+    def counted_plain(value: Any) -> Any:
+        if isinstance(value, dict) and value.get("id") == record_id:
+            calls["normalize"] += 1
+        return original_plain(value)
+
+    def counted_digest(value: bytes) -> str:
+        calls["hash"] += 1
+        return original_digest(value)
+
+    def counted_freeze(value: Any) -> Any:
+        if isinstance(value, dict) and value.get("id") == record_id:
+            calls["freeze"] += 1
+        return original_freeze(value)
+
+    monkeypatch.setattr(atlas_model, "_plain", counted_plain)
+    monkeypatch.setattr(atlas_model, "_digest_bytes", counted_digest)
+    monkeypatch.setattr(atlas_model, "_freeze", counted_freeze)
+
+    decoded = atlas_model._decode_atlas_dataset(payload, asset_id=asset_id)
+
+    assert len(decoded.records) == 1
+    assert decoded.records[0].record == source_record.record
+    assert decoded.records[0].release_containers == frozenset(release_ids)
+    assert decoded.records[0].relation_containers == frozenset()
+    assert calls == {"normalize": 1, "hash": 1, "freeze": 1}
+
+
+def test_decoded_record_bulk_insertion_preserves_exact_merge_rules() -> None:
+    record_value = {
+        "id": "urn:ref:test:decoded-bulk-merge",
+        "label": "one canonical record",
+    }
+    record_bytes = atlas_model._atlas_record_bytes(record_value)
+    verified = atlas_model._parse_canonical_record(
+        record_bytes.decode("utf-8"),
+        expected_digest=atlas_model._digest_bytes(record_bytes),
+    )
+    release_ids = tuple(
+        f"urn:ref:test:decoded-bulk-merge:release:{index}"
+        for index in range(3)
+    )
+    records = atlas_model._CanonicalRecordSet()
+
+    records.add_decoded(
+        verified,
+        role="concept",
+        releases=release_ids[:2],
+    )
+    records.add_decoded(
+        verified,
+        role="concept",
+        releases=release_ids[1:],
+    )
+
+    assert len(records.values()) == 1
+    assert records.values()[0].release_containers == frozenset(release_ids)
+    with pytest.raises(VocabularyAtlasError, match="conflicting content or roles"):
+        records.add_decoded(
+            verified,
+            role="releaseRecord",
+            releases=release_ids[:1],
+        )
+    with pytest.raises(VocabularyAtlasError, match="cannot cross container kinds"):
+        records.add_decoded(
+            verified,
+            role="concept",
+            releases=release_ids[:1],
+            relation_bundles=("urn:ref:test:decoded-bulk-merge:bundle",),
+        )
+
+
+def test_closed_nquads_decode_rejects_non_generated_shapes_without_rdflib(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = atlas_model._CanonicalRecordSet()
+    records.add(
+        {"id": "urn:ref:test:closed-parser", "label": "Canonical"},
+        role="conceptRelease",
+    )
+    asset_id = "urn:ref:test:closed-parser-atlas"
+    payload, _ = atlas_model._record_dataset(records.values(), asset_id=asset_id)
+    lines = payload.splitlines()
+
+    def line_index(predicate: bytes) -> int:
+        return next(index for index, line in enumerate(lines) if predicate in line)
+
+    digest_index = line_index(b"#recordDigest>")
+    digest_line = lines[digest_index]
+    canonical_index = line_index(b"#canonicalJson>")
+    canonical_line = lines[canonical_index]
+    first_line = lines[0]
+    subject_end = first_line.index(b"> ")
+
+    language_lines = list(lines)
+    language_lines[digest_index] = digest_line.replace(b'" <', b'"@en <', 1)
+    datatype_lines = list(lines)
+    datatype_lines[digest_index] = digest_line.replace(b'" <', b'"^^<urn:test:type> <', 1)
+    graph_lines = [
+        line.replace(b"<urn:ref:test:closed-parser-atlas:release-facts> .", b"<urn:test:other> .") for line in lines
+    ]
+    blank_node_lines = list(lines)
+    blank_node_lines[0] = b"_:record" + first_line[subject_end + 1 :]
+    extra_predicate_lines = list(lines)
+    predicate_start = first_line.index(b" <") + 1
+    predicate_end = first_line.index(b"> ", predicate_start) + 1
+    extra_predicate_lines[0] = first_line[:predicate_start] + b"<urn:test:extraPredicate>" + first_line[predicate_end:]
+    literal_start = canonical_line.index(b'> "') + 3
+    noncanonical_literal_lines = list(lines)
+    noncanonical_literal_lines[canonical_index] = (
+        canonical_line[:literal_start] + b"\\u007b" + canonical_line[literal_start + 1 :]
+    )
+
+    def canonical_payload(values: list[bytes]) -> bytes:
+        return b"\n".join(sorted(values)) + b"\n"
+
+    corruptions = (
+        (canonical_payload(language_lines), "recordDigest literal"),
+        (canonical_payload(datatype_lines), "recordDigest literal"),
+        (canonical_payload(graph_lines), "named graphs differ"),
+        (canonical_payload(blank_node_lines), "subject"),
+        (canonical_payload(extra_predicate_lines), "extra predicate"),
+        (canonical_payload(noncanonical_literal_lines), "literal is not canonical"),
+        (b"\n".join((*lines, lines[-1])) + b"\n", "not unique and ordered"),
+        (b"\n".join((lines[1], lines[0], *lines[2:])) + b"\n", "not unique and ordered"),
+    )
+
+    def unexpected_rdflib_path(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("closed Atlas decode must reject corruption without rdflib")
+
+    monkeypatch.setattr(Dataset, "parse", unexpected_rdflib_path)
+    monkeypatch.setattr(atlas_model, "_canonical_nquads", unexpected_rdflib_path)
+
+    for corrupted, message in corruptions:
+        with pytest.raises(VocabularyAtlasError, match=message):
+            atlas_model._decode_atlas_dataset(corrupted, asset_id=asset_id)
+
+
+def test_closed_nquads_long_line_has_bounded_linear_failure_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = atlas_model._CanonicalRecordSet()
+    records.add(
+        {"id": "urn:ref:test:long-record", "value": "λ" * 1_000_000},
+        role="conceptRelease",
+    )
+    asset_id = "urn:ref:test:long-record-atlas"
+    payload, _ = atlas_model._record_dataset(records.values(), asset_id=asset_id)
+    datatype_marker = atlas_model._RDF_JSON_DATATYPE_TOKEN
+    marker_position = payload.index(datatype_marker)
+    malformed = payload[: marker_position - 1] + b"\\" + payload[marker_position - 1 :]
+    original_canonical_nquads = atlas_model._canonical_nquads
+
+    def unexpected_rdflib_path(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("long-line validation must not fall back to rdflib")
+
+    monkeypatch.setattr(Dataset, "parse", unexpected_rdflib_path)
+    monkeypatch.setattr(atlas_model, "_canonical_nquads", unexpected_rdflib_path)
+
+    with pytest.raises(VocabularyAtlasError, match="canonicalJson literal is invalid"):
+        atlas_model._decode_atlas_dataset(malformed, asset_id=asset_id)
+
+    original_max_bytes = atlas_model._MAX_ATLAS_NQUADS_BYTES
+    monkeypatch.setattr(atlas_model, "_MAX_ATLAS_NQUADS_BYTES", len(payload) - 1)
+    with pytest.raises(VocabularyAtlasError, match="exceeds the verifier byte limit"):
+        atlas_model._decode_atlas_dataset(payload, asset_id=asset_id)
+    monkeypatch.setattr(atlas_model, "_MAX_ATLAS_NQUADS_BYTES", original_max_bytes)
+
+    longest_line = max(len(line) for line in payload.splitlines())
+    monkeypatch.setattr(atlas_model, "_MAX_ATLAS_NQUAD_LINE_BYTES", longest_line - 1)
+    with pytest.raises(VocabularyAtlasError, match="line exceeds the verifier byte limit"):
+        atlas_model._decode_atlas_dataset(payload, asset_id=asset_id)
+    monkeypatch.setattr(atlas_model, "_canonical_nquads", original_canonical_nquads)
+    with pytest.raises(VocabularyAtlasError, match="line exceeds the verifier byte limit"):
+        atlas_model._record_dataset(records.values(), asset_id=asset_id)
 
 
 def test_public_builder_rejects_loose_release_inputs(tmp_path: Path) -> None:

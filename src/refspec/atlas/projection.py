@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from rdflib import Dataset, URIRef
 from typing_extensions import Self
 
 from refspec import binding
@@ -39,9 +38,10 @@ from refspec.atlas.model import (
     _canonical_bytes,
     _CanonicalAtlasRecord,
     _CanonicalRecordSet,
-    _decode_record_dataset,
+    _decode_atlas_dataset,
     _digest_bytes,
     _digest_value,
+    _embedded_snapshot_record,
     _freeze,
     _load_json_object,
     _manifest_digest,
@@ -50,16 +50,14 @@ from refspec.atlas.model import (
     _record_dataset,
     _ring_summaries,
     _snapshot_release_records,
+    _snapshots_from_records,
     _validate_implementation_v2,
 )
 from refspec.atlas.relation_assertion import (
     EmbeddedRelationAssertionBundle,
     RelationAssertionError,
 )
-from refspec.atlas.release_snapshot import (
-    AtlasReleaseSnapshot,
-    AtlasReleaseSnapshotError,
-)
+from refspec.atlas.release_snapshot import AtlasReleaseSnapshot
 
 FORMAT_ID = "refspec-vocabulary-atlas-projection-nquads-2.0"
 SCHEMA_VERSION = "2.0"
@@ -310,12 +308,7 @@ def _projection_record_view(
 ) -> _ProjectionRecordView:
     """Verify the selected-record and relation closure without the parent."""
 
-    try:
-        snapshots = tuple(
-            AtlasReleaseSnapshot.from_record(record.record) for record in records if record.role == "conceptRelease"
-        )
-    except AtlasReleaseSnapshotError as error:
-        raise VocabularyAtlasError(str(error)) from error
+    snapshots = _snapshots_from_records(records)
     if not snapshots:
         raise VocabularyAtlasError("atlas projection contains no concept release")
     snapshots_by_release = {snapshot.release_id: snapshot for snapshot in snapshots}
@@ -450,7 +443,8 @@ def _project_records(
     release_ids = _selected_release_ids(view, policy)
     relation_ids = _selected_relation_ids(view, release_ids=release_ids)
     snapshot_release = {
-        _atlas_record_identifier(snapshot.as_record()): snapshot.release_id for snapshot in view.snapshots
+        _atlas_record_identifier(_embedded_snapshot_record(snapshot)): snapshot.release_id
+        for snapshot in view.snapshots
     }
     relation_bundle = {_atlas_record_identifier(relation.record): relation.identifier for relation in view.relations}
 
@@ -680,7 +674,8 @@ class VocabularyAtlasProjection:
             positive=True,
         )
 
-        records = _decode_record_dataset(payload, asset_id=asset_id)
+        decoded = _decode_atlas_dataset(payload, asset_id=asset_id)
+        records = decoded.records
         view = _projection_record_view(records)
         actual_release_ids = frozenset(snapshot.release_id for snapshot in view.snapshots)
         if _selected_release_ids(view, policy) != actual_release_ids:
@@ -705,13 +700,10 @@ class VocabularyAtlasProjection:
         if dict(counts) != observed_counts:
             raise VocabularyAtlasError("atlas projection record counts differ")
 
-        dataset = Dataset(default_union=False)
-        dataset.parse(data=payload.decode("utf-8"), format="nquads")
-        graph_counts = {role: len(dataset.graph(URIRef(graph_id))) for role, graph_id, _ in expected_graphs}
-        for position, (role, _, _) in enumerate(expected_graphs):
-            if cast(Mapping[str, Any], graph_rows[position]).get("quadCount") != graph_counts[role]:
+        for position, (_, graph_id, _) in enumerate(expected_graphs):
+            if cast(Mapping[str, Any], graph_rows[position]).get("quadCount") != decoded.graph_quad_count(graph_id):
                 raise VocabularyAtlasError("atlas projection graph quadCount differs")
-        if output.get("quadCount") != sum(graph_counts.values()):
+        if output.get("quadCount") != decoded.quad_count:
             raise VocabularyAtlasError("atlas projection output quadCount differs")
         if manifest.get("rings") != _ring_summaries(
             records,
@@ -762,7 +754,10 @@ def build_atlas_projection(
     parent._require_verified()
     registered = _registered_policy(policy)
     parent_id = _require_iri(parent.manifest.get("id"), "atlas parent id")
-    records = _decode_record_dataset(parent.payload, asset_id=parent_id)
+    records = _decode_atlas_dataset(
+        parent.payload,
+        asset_id=parent_id,
+    ).records
     parent_view = _projection_record_view(records)
     projected_records = _project_records(
         records,

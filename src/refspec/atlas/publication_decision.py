@@ -634,12 +634,16 @@ def _scope_facts(
         raise PublicationDecisionError("publication decision requires a path-backed exact atlas scope")
     try:
         verified = scope.verified_scope()
-        scope_pin = scope.pin()
     except AtlasScopeError as error:
         raise PublicationDecisionError(str(error)) from error
     record = verified.as_record()
     return (
-        scope_pin,
+        {
+            "role": "VocabularyAtlasScope",
+            "id": verified.identifier,
+            "contentDigest": verified.content_digest,
+            "fileDigest": scope.file_digest,
+        },
         cast(dict[str, str], _plain(record["atlasIndex"])),
         {"name": verified.scope_name, "kind": verified.scope_kind},
     )

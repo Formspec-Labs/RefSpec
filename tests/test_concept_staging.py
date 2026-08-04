@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 import refspec.atlas as atlas_api
+import refspec.atlas.concept_staging as concept_staging_module
 from refspec import binding, seal_payload
 from refspec.atlas.concept_release import (
     ManagedReleaseRingAssignment,
@@ -29,6 +30,7 @@ from refspec.atlas.concept_staging import (
     build_concept_authoring_transition,
     read_concept_authoring_transition,
 )
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.release_graph import rulespec_graph_digest
 
 _FIXTURE_SPEC = importlib.util.spec_from_file_location(
@@ -245,10 +247,34 @@ def _build(
 
 def test_transition_seals_the_full_checklist_over_real_rulespec_authority(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     release = _managed_release(tmp_path)
     proposal = _proposal()
+    original_open = ManagedReleaseGraphFactsView.open.__func__
+    graph_fact_opens = 0
+
+    def counted_open(
+        cls: type[ManagedReleaseGraphFactsView],
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        nonlocal graph_fact_opens
+        graph_fact_opens += 1
+        return original_open(
+            cls,
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+
+    monkeypatch.setattr(
+        ManagedReleaseGraphFactsView,
+        "open",
+        classmethod(counted_open),
+    )
     transition = _build(release, proposal=proposal)
+    assert graph_fact_opens == 1
     record = transition.as_record()
 
     assert record["type"] == CONCEPT_AUTHORING_TRANSITION_TYPE
@@ -265,12 +291,14 @@ def test_transition_seals_the_full_checklist_over_real_rulespec_authority(
     assert record["checklist"]["definition"] == {"en": ["A governed subject describing eligibility requirements."]}
     assert "decision" not in record
     assert "reviewer" not in record
+    graph_fact_opens = 0
     transition.validate_context(
         proposal=proposal,
         authored_release=release,
         source_concepts=(),
         rights_assessment=_rights(),
     )
+    assert graph_fact_opens == 1
 
     path = transition.write_to(tmp_path / "transition.json")
     reopened = read_concept_authoring_transition(path)
@@ -280,6 +308,46 @@ def test_transition_seals_the_full_checklist_over_real_rulespec_authority(
         transition.record["authoredConcept"] = "urn:test:changed"  # type: ignore[index]
     with pytest.raises(FrozenInstanceError):
         transition.record = {}  # type: ignore[misc]
+
+
+def test_source_context_opens_one_repeated_managed_release_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = _managed_release(tmp_path)
+    source = ConceptAuthoringSource(release, AUTHORED_CONCEPT)
+    original_open = ManagedReleaseGraphFactsView.open.__func__
+    graph_fact_opens = 0
+
+    def counted_open(
+        cls: type[ManagedReleaseGraphFactsView],
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        nonlocal graph_fact_opens
+        graph_fact_opens += 1
+        return original_open(
+            cls,
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+
+    monkeypatch.setattr(
+        ManagedReleaseGraphFactsView,
+        "open",
+        classmethod(counted_open),
+    )
+
+    with pytest.raises(ConceptStagingError, match="repeat a concept identity"):
+        concept_staging_module._source_context(
+            (source, source),
+            authored_concept="urn:ref:test:another-authored-concept",
+            authoring_kind="consolidation",
+            facts_by_release={},
+        )
+
+    assert graph_fact_opens == 1
 
 
 def test_accepted_proposal_never_authorizes_automated_minting(tmp_path: Path) -> None:

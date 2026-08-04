@@ -69,11 +69,11 @@ COMPRESSED_ATLAS = "atlas.nq.gz"
 ATLAS_MANIFEST = MANIFEST_FILE
 ATLAS_SCOPE = SCOPE_FILE
 PUBLICATION_DECISION = "publication-decision.json"
-PUBLICATION_SCHEMA_VERSION = "2.0"
+PUBLICATION_SCHEMA_VERSION = "2.1"
 
 _PUBLICATION_TYPE = "urn:ref:type:VocabularyAtlasPublicationManifest"
 _PUBLICATION_ID_PREFIX = "urn:ref:vocabulary-atlas-publication:"
-_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/2.0"
+_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/2.1"
 _DEFAULT_MAX_CONCEPTS = 640
 _DEFAULT_MAX_MAPPING_ASSERTIONS = 240
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -114,8 +114,10 @@ _SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappi
 _SUMMARY_FIELDS = frozenset(
     {
         "shownConceptCount",
+        "shownNativeRelationCount",
         "shownMappingAssertionCount",
         "availableConceptCount",
+        "availableNativeRelationCount",
         "availableMappingAssertionCount",
         "truncated",
     }
@@ -225,7 +227,9 @@ def _gzip_bytes(payload: bytes) -> bytes:
 
 def _iri_tail(value: str) -> str:
     parsed = urlparse(value)
-    if parsed.scheme in {"http", "https"}:
+    if parsed.fragment:
+        tail = parsed.fragment
+    elif parsed.scheme in {"http", "https"}:
         tail = parsed.path.rstrip("/").rsplit("/", 1)[-1] or parsed.netloc
     else:
         tail = value.rstrip(":/").rsplit(":", 1)[-1].rsplit("/", 1)[-1]
@@ -317,6 +321,16 @@ def _verified_distribution(distribution: VocabularyAtlasDistribution) -> None:
         raise AtlasPublicationError(str(error)) from error
 
 
+def _fits_concept_budget(
+    selected: Mapping[tuple[str, str], ConceptVersion],
+    endpoints: tuple[tuple[str, str], tuple[str, str]],
+    *,
+    max_concepts: int,
+) -> bool:
+    new_endpoint_count = sum(key not in selected for key in set(endpoints))
+    return len(selected) + new_endpoint_count <= max_concepts
+
+
 def _distribution_descriptor(
     distribution: VocabularyAtlasDistribution,
 ) -> dict[str, Any]:
@@ -386,6 +400,7 @@ def build_explorer_model(
     concept_by_key = {(value.release_id, value.concept_id): value for value in concepts}
     repeated_ids = Counter(value.concept_id for value in concepts)
     mappings = queries.mapping_assertions()
+    native_relations = queries.native_relations()
     selected: dict[tuple[str, str], ConceptVersion] = {}
     selected_assertions = []
 
@@ -398,8 +413,11 @@ def build_explorer_model(
         endpoints = (concept_by_key.get(source_key), concept_by_key.get(target_key))
         if any(endpoint is None for endpoint in endpoints):
             raise AtlasPublicationError("atlas mapping endpoint is absent from the verified concept records")
-        required = set(selected) | {source_key, target_key}
-        if len(required) > max_concepts:
+        if not _fits_concept_budget(
+            selected,
+            (source_key, target_key),
+            max_concepts=max_concepts,
+        ):
             continue
         selected[source_key] = cast(ConceptVersion, endpoints[0])
         selected[target_key] = cast(ConceptVersion, endpoints[1])
@@ -413,6 +431,23 @@ def build_explorer_model(
             key = (representative.release_id, representative.concept_id)
             selected.setdefault(key, representative)
             representative_keys.add(key)
+    for relation in native_relations:
+        subject_key = (relation.release_id, relation.subject_concept)
+        object_key = (relation.release_id, relation.object_concept)
+        endpoints = (
+            concept_by_key.get(subject_key),
+            concept_by_key.get(object_key),
+        )
+        if any(endpoint is None for endpoint in endpoints):
+            raise AtlasPublicationError("atlas native relation endpoint is absent from the verified concept records")
+        if not _fits_concept_budget(
+            selected,
+            (subject_key, object_key),
+            max_concepts=max_concepts,
+        ):
+            continue
+        selected[subject_key] = cast(ConceptVersion, endpoints[0])
+        selected[object_key] = cast(ConceptVersion, endpoints[1])
     for version in concepts:
         if len(selected) >= max_concepts:
             break
@@ -425,6 +460,20 @@ def build_explorer_model(
         for key in (
             (view.assertion.source_release, view.assertion.source_concept),
             (view.assertion.target_release, view.assertion.target_concept),
+        )
+    }
+    selected_native_relations = tuple(
+        relation
+        for relation in native_relations
+        if (relation.release_id, relation.subject_concept) in selected
+        and (relation.release_id, relation.object_concept) in selected
+    )
+    native_relation_endpoint_keys = {
+        key
+        for relation in selected_native_relations
+        for key in (
+            (relation.release_id, relation.subject_concept),
+            (relation.release_id, relation.object_concept),
         )
     }
     concept_rows: list[dict[str, Any]] = []
@@ -440,6 +489,8 @@ def build_explorer_model(
         selection_reasons: list[str] = []
         if key in mapping_endpoint_keys:
             selection_reasons.append("mappingEndpoint")
+        if key in native_relation_endpoint_keys:
+            selection_reasons.append("nativeRelationEndpoint")
         if key in representative_keys:
             selection_reasons.append("releaseRepresentative")
         concept_row: dict[str, Any] = {
@@ -470,6 +521,23 @@ def build_explorer_model(
         if scope_note is not None:
             concept_row["scopeNote"] = scope_note
         concept_rows.append(concept_row)
+
+    native_relation_rows = [
+        {
+            "id": relation.relation_id,
+            "subjectViewId": view_id_by_key[(relation.release_id, relation.subject_concept)],
+            "objectViewId": view_id_by_key[(relation.release_id, relation.object_concept)],
+            "subjectConcept": relation.subject_concept,
+            "objectConcept": relation.object_concept,
+            "releaseId": relation.release_id,
+            "semanticRing": relation.semantic_ring,
+            "predicate": relation.predicate_iri,
+            "predicateLabel": _relation_label(relation.predicate_iri),
+            "sourceRecordId": relation.source_record_id,
+            "sourceRecordDigest": relation.source_record_digest,
+        }
+        for relation in selected_native_relations
+    ]
 
     mapping_rows: list[dict[str, Any]] = []
     for view in selected_assertions:
@@ -520,10 +588,16 @@ def build_explorer_model(
     quad_count = _require_count(output.get("quadCount"), "verified atlas output.quadCount", positive=True)
     summary = {
         "shownConceptCount": len(concept_rows),
+        "shownNativeRelationCount": len(native_relation_rows),
         "shownMappingAssertionCount": len(mapping_rows),
         "availableConceptCount": len(concepts),
+        "availableNativeRelationCount": len(native_relations),
         "availableMappingAssertionCount": len(mappings),
-        "truncated": len(concept_rows) < len(concepts) or len(mapping_rows) < len(mappings),
+        "truncated": (
+            len(concept_rows) < len(concepts)
+            or len(native_relation_rows) < len(native_relations)
+            or len(mapping_rows) < len(mappings)
+        ),
     }
     atlas_row: dict[str, Any] = {
         "kind": "atlas" if isinstance(distribution, VocabularyAtlasAsset) else "projection",
@@ -547,6 +621,7 @@ def build_explorer_model(
         "summary": summary,
         "conceptReleases": release_rows,
         "concepts": concept_rows,
+        "nativeRelations": native_relation_rows,
         "mappingAssertions": mapping_rows,
     }
 

@@ -97,20 +97,15 @@ _TABLE_COLUMNS = {
 }
 _TABLE_REQUIRED_TEXT_COLUMNS = {
     "concept_labels": tuple(
-        field
-        for field in CONCEPT_LABEL_COLUMNS
-        if field != "migration_only"
+        field for field in CONCEPT_LABEL_COLUMNS if field != "migration_only"
     ),
     "concept_relations": tuple(
-        field
-        for field in CONCEPT_RELATION_COLUMNS
-        if field != "migration_only"
+        field for field in CONCEPT_RELATION_COLUMNS if field != "migration_only"
     ),
     "concept_event_participants": tuple(
         field
         for field in CONCEPT_EVENT_PARTICIPANT_COLUMNS
-        if field
-        not in {"complete_membership", "ordinal", "migration_only"}
+        if field not in {"complete_membership", "ordinal", "migration_only"}
     ),
 }
 _PUBLICATION_TYPE = "urn:ref:type:PublicationReleaseManifest"
@@ -163,9 +158,7 @@ _NATIVE_IDENTITY_PROPERTIES = {
     ),
     "dcterms:isReplacedBy": "http://purl.org/dc/terms/isReplacedBy",
     "dct:isReplacedBy": "http://purl.org/dc/terms/isReplacedBy",
-    "http://purl.org/dc/terms/isReplacedBy": (
-        "http://purl.org/dc/terms/isReplacedBy"
-    ),
+    "http://purl.org/dc/terms/isReplacedBy": ("http://purl.org/dc/terms/isReplacedBy"),
     "dcterms:replaces": "http://purl.org/dc/terms/replaces",
     "dct:replaces": "http://purl.org/dc/terms/replaces",
     "http://purl.org/dc/terms/replaces": "http://purl.org/dc/terms/replaces",
@@ -191,9 +184,7 @@ _RELATION_PROPERTIES = {
     "http://www.w3.org/2004/02/skos/core#narrower": "skos:narrower",
     "http://www.w3.org/2004/02/skos/core#related": "skos:related",
 }
-_ELSST_NATIVE_SKOS_IMPORT_POLICY = (
-    "urn:ref:policy:elsst-native-skos-lossless:v1"
-)
+_ELSST_NATIVE_SKOS_IMPORT_POLICY = "urn:ref:policy:elsst-native-skos-lossless:v1"
 
 
 class ManagedReleaseError(ValueError):
@@ -313,7 +304,9 @@ def _json_from_bytes(payload: bytes, label: str) -> Any:
             parse_constant=binding.reject_nonfinite_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
-        raise ManagedReleaseError(f"{label} is not canonical UTF-8 JSON: {error}") from error
+        raise ManagedReleaseError(
+            f"{label} is not canonical UTF-8 JSON: {error}"
+        ) from error
 
 
 def _require_digest(value: object, label: str) -> str:
@@ -385,8 +378,7 @@ def _source_artifact_descriptor(
         "byteLength",
     }:
         raise ManagedReleaseError(
-            f"{label} must name one relative path, immutable SHA-256 digest, "
-            "and byte length"
+            f"{label} must name one relative path, immutable SHA-256 digest, and byte length"
         )
     byte_length = value.get("byteLength")
     if (
@@ -394,9 +386,7 @@ def _source_artifact_descriptor(
         or isinstance(byte_length, bool)
         or byte_length <= 0
     ):
-        raise ManagedReleaseError(
-            f"{label}.byteLength must be a positive integer"
-        )
+        raise ManagedReleaseError(f"{label}.byteLength must be a positive integer")
     return (
         _safe_relative_path(value.get("path"), label),
         _require_digest(value.get("sha256"), f"{label}.sha256"),
@@ -459,9 +449,7 @@ def _verified_artifact_path(
 
     relative, expected = _artifact_descriptor(descriptor, label)
     if relative in seen_paths:
-        raise ManagedReleaseError(
-            f"{label}.path duplicates another bundle artifact"
-        )
+        raise ManagedReleaseError(f"{label}.path duplicates another bundle artifact")
     seen_paths.add(relative)
     resolved = _resolved_artifact_path(root, relative, label)
     digest = hashlib.sha256()
@@ -497,10 +485,38 @@ def _read_verified_source_artifact(
     )
     if len(payload) != byte_length:
         raise ManagedReleaseError(
-            f"{label} byte length mismatch: expected {byte_length}, "
-            f"got {len(payload)}"
+            f"{label} byte length mismatch: expected {byte_length}, got {len(payload)}"
         )
     return payload
+
+
+def _verified_source_artifact_facts(
+    root: Path,
+    descriptor: object,
+    label: str,
+    seen_paths: set[PurePosixPath],
+) -> tuple[str, int]:
+    """Stream-verify source bytes without retaining them in memory."""
+
+    relative, expected, byte_length = _source_artifact_descriptor(
+        descriptor,
+        label,
+    )
+    path = _verified_artifact_path(
+        root,
+        {
+            "path": str(relative),
+            "sha256": expected,
+        },
+        label,
+        seen_paths,
+    )
+    actual_length = path.stat().st_size
+    if actual_length != byte_length:
+        raise ManagedReleaseError(
+            f"{label} byte length mismatch: expected {byte_length}, got {actual_length}"
+        )
+    return expected, byte_length
 
 
 def _record_digest_reference(
@@ -532,9 +548,7 @@ def _require_binding_valid(
         ) from error
     if diagnostics:
         rendered = "; ".join(diagnostic.render() for diagnostic in diagnostics)
-        raise ManagedReleaseError(
-            f"{label} fails REF JSON Binding 1.0: {rendered}"
-        )
+        raise ManagedReleaseError(f"{label} fails REF JSON Binding 1.0: {rendered}")
 
 
 def _dependency_validator_pin(
@@ -553,17 +567,11 @@ def _dependency_validator_pin(
         raise ManagedReleaseError(
             "rulespecDependencyManifest.validator.identity is required"
         )
-    if (
-        not isinstance(revision, str)
-        or not _GIT_REVISION.fullmatch(revision)
-    ):
+    if not isinstance(revision, str) or not _GIT_REVISION.fullmatch(revision):
         raise ManagedReleaseError(
             "rulespecDependencyManifest.validator.sourceRevision is invalid"
         )
-    if (
-        not isinstance(certification, str)
-        or not _RAW_SHA256.fullmatch(certification)
-    ):
+    if not isinstance(certification, str) or not _RAW_SHA256.fullmatch(certification):
         raise ManagedReleaseError(
             "rulespecDependencyManifest validator certification digest is invalid"
         )
@@ -636,15 +644,12 @@ def _installed_release_graph_gate_pin() -> dict[str, str]:
     return {
         "id": RELEASE_GRAPH_GATE_COMPONENT_ID,
         "revision": RELEASE_GRAPH_GATE_VERSION,
-        "digest": "sha256:"
-        + hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        "digest": "sha256:" + hashlib.sha256(source_path.read_bytes()).hexdigest(),
     }
 
 
 def _behavior_test_identifier(governance_record_id: str) -> str:
-    suffix = hashlib.sha256(
-        governance_record_id.encode("utf-8")
-    ).hexdigest()
+    suffix = hashlib.sha256(governance_record_id.encode("utf-8")).hexdigest()
     return f"urn:ref:behavior-test:governance-authorization:{suffix}"
 
 
@@ -662,8 +667,7 @@ def _governance_authorization_requirements(
             evaluation_time = record.get("effectiveAt")
         elif (
             record_type == _RECONCILIATION_TYPE
-            and record.get("outcome")
-            in _RESOLVED_RECONCILIATION_OUTCOMES
+            and record.get("outcome") in _RESOLVED_RECONCILIATION_OUTCOMES
         ):
             scope_source = record.get("precedencePolicy")
             evaluation_time = record.get("recordedAt")
@@ -671,18 +675,13 @@ def _governance_authorization_requirements(
             continue
         identifier = record.get("id")
         digest = record.get(binding.digest_field(dict(record)))
-        scope = (
-            scope_source.get("id")
-            if isinstance(scope_source, Mapping)
-            else None
-        )
+        scope = scope_source.get("id") if isinstance(scope_source, Mapping) else None
         if not all(
             isinstance(value, str) and value
             for value in (identifier, digest, scope, evaluation_time)
         ):
             raise ManagedReleaseError(
-                "authorizing REF record lacks an exact identifier, digest, "
-                "scope, or evaluation time"
+                "authorizing REF record lacks an exact identifier, digest, scope, or evaluation time"
             )
         reference = (cast(str, identifier), cast(str, digest))
         requirements[reference] = (
@@ -711,14 +710,12 @@ def _require_authorization_evaluation_coverage(
     for index, value in enumerate(values):
         if not isinstance(value, Mapping):
             raise ManagedReleaseError(
-                "combinedValidationReceipt.authorizationEvaluations"
-                f"[{index}] must be an object"
+                f"combinedValidationReceipt.authorizationEvaluations[{index}] must be an object"
             )
         governance_reference = _reference_key(
             _require_digest_reference(
                 value.get("governanceRecord"),
-                "combinedValidationReceipt.authorizationEvaluations"
-                f"[{index}].governanceRecord",
+                f"combinedValidationReceipt.authorizationEvaluations[{index}].governanceRecord",
             )
         )
         if governance_reference in evaluations:
@@ -739,52 +736,43 @@ def _require_authorization_evaluation_coverage(
         evaluation = evaluations[reference]
         if evaluation.get("inputGraph") != dict(graph_reference):
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation does not bind the "
-                "exact Rulespec graph"
+                f"{record_type} authorization evaluation does not bind the exact Rulespec graph"
             )
         if evaluation.get("runtime") != dict(expected_runtime):
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation does not bind the "
-                "exact embedded Rulespec L4 runtime"
+                f"{record_type} authorization evaluation does not bind the exact embedded Rulespec L4 runtime"
             )
         if (
-            evaluation.get("behaviorContract")
-            != "rkaf:UsageEligibilityReducer"
-            or evaluation.get("minimumUsageEligibility")
-            != "rkaf:localOperationalUse"
+            evaluation.get("behaviorContract") != "rkaf:UsageEligibilityReducer"
+            or evaluation.get("minimumUsageEligibility") != "rkaf:localOperationalUse"
             or evaluation.get("result") != "pass"
         ):
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation is not a passing "
-                "gate-owned usage-eligibility evaluation"
+                f"{record_type} authorization evaluation is not a passing gate-owned usage-eligibility evaluation"
             )
         if (
             evaluation.get("evaluationScope") != scope
             or evaluation.get("evaluationTime") != evaluation_time
         ):
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation does not bind its "
-                "derived scope and evaluation time"
+                f"{record_type} authorization evaluation does not bind its derived scope and evaluation time"
             )
         subject = evaluation.get("subjectAssertion")
         if subject not in graph_identifiers:
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation subject is not "
-                "defined in the exact Rulespec graph"
+                f"{record_type} authorization evaluation subject is not defined in the exact Rulespec graph"
             )
         effective_level = evaluation.get("effectiveUsageEligibility")
         if effective_level not in _AUTHORIZED_USAGE_LEVELS:
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation is below the "
-                "required local-operational-use level"
+                f"{record_type} authorization evaluation is below the required local-operational-use level"
             )
         expected_output_digest = canonical_value_digest(
             {"byScope": {scope: effective_level}}
         )
         if evaluation.get("outputDigest") != expected_output_digest:
             raise ManagedReleaseError(
-                f"{record_type} authorization evaluation output digest does "
-                "not match its exact effective result"
+                f"{record_type} authorization evaluation output digest does not match its exact effective result"
             )
         behavior_test = _require_digest_reference(
             evaluation.get("behaviorTest"),
@@ -797,7 +785,9 @@ def _require_authorization_evaluation_coverage(
             )
 
 
-def _iter_nested_references(value: Any, *, top_level: bool = False) -> Iterator[dict[str, Any]]:
+def _iter_nested_references(
+    value: Any, *, top_level: bool = False
+) -> Iterator[dict[str, Any]]:
     if isinstance(value, dict):
         if not top_level and {"id", "digest"}.issubset(value):
             yield value
@@ -833,19 +823,14 @@ def _resolve_import_snapshot(
             f"{label} is not an exact RegistryImportSnapshot reference"
         )
     identifier = reference.get("id")
-    record = (
-        records_by_id.get(identifier)
-        if isinstance(identifier, str)
-        else None
-    )
+    record = records_by_id.get(identifier) if isinstance(identifier, str) else None
     if (
         record is None
         or record.get("type") != _IMPORT_SNAPSHOT_TYPE
         or not binding.references_record(dict(reference), dict(record))
     ):
         raise ManagedReleaseError(
-            f"{label} does not resolve to an exact packaged "
-            "RegistryImportSnapshot"
+            f"{label} does not resolve to an exact packaged RegistryImportSnapshot"
         )
     return record
 
@@ -860,9 +845,7 @@ def _require_import_lineage(
 ) -> None:
     record = records_by_id.get(import_snapshot_id)
     if record is None or record.get("type") != _IMPORT_SNAPSHOT_TYPE:
-        raise ManagedReleaseError(
-            f"{label} import snapshot is absent from the bundle"
-        )
+        raise ManagedReleaseError(f"{label} import snapshot is absent from the bundle")
     release = record.get("referenceResourceRelease")
     distributions = record.get("distributionArtifacts")
     if (
@@ -871,11 +854,7 @@ def _require_import_lineage(
         or not isinstance(distributions, Sequence)
         or isinstance(distributions, (str, bytes))
         or distribution_artifact_id
-        not in {
-            item.get("id")
-            for item in distributions
-            if isinstance(item, Mapping)
-        }
+        not in {item.get("id") for item in distributions if isinstance(item, Mapping)}
     ):
         raise ManagedReleaseError(
             f"{label} import, release, and distribution lineage disagree"
@@ -919,18 +898,66 @@ def _iri_values(value: object) -> tuple[str, ...]:
     return tuple(result)
 
 
-def _language_values(value: object, language_tag: str) -> tuple[str, ...]:
-    if not isinstance(value, Mapping):
-        return ()
-    selected = value.get(language_tag)
-    if isinstance(selected, str):
-        return (selected,)
-    if isinstance(selected, Sequence) and not isinstance(
-        selected,
-        (str, bytes),
-    ):
-        return tuple(item for item in selected if isinstance(item, str))
-    return ()
+@dataclass(frozen=True, slots=True)
+class _GraphPropertyIndex:
+    """Operation-scoped exact graph values used by normalized-table checks."""
+
+    language_literals: frozenset[tuple[str, str, str, str]]
+    iri_targets: Mapping[tuple[str, str], frozenset[str]]
+    iri_sequences: Mapping[tuple[str, str], tuple[str, ...]]
+
+
+def _index_graph_property_targets(
+    nodes: Mapping[str, Mapping[str, Any]],
+) -> _GraphPropertyIndex:
+    """Index each relevant graph property once for constant-time row checks."""
+
+    language_literals: set[tuple[str, str, str, str]] = set()
+    iri_targets: dict[tuple[str, str], frozenset[str]] = {}
+    iri_sequences: dict[tuple[str, str], tuple[str, ...]] = {}
+    label_properties = frozenset(_LABEL_PROPERTIES.values())
+    iri_properties = frozenset(
+        {
+            *_RELATION_PROPERTIES.values(),
+            "rkaf:predecessorConcepts",
+            "rkaf:predecessorConceptRelease",
+            "rkaf:successorConcepts",
+            "rkaf:successorConceptRelease",
+        }
+    )
+    for identifier, node in nodes.items():
+        for property_name in label_properties:
+            raw = node.get(property_name)
+            if not isinstance(raw, Mapping):
+                continue
+            for language, values in raw.items():
+                if not isinstance(language, str):
+                    continue
+                if isinstance(values, str):
+                    literals = (values,)
+                elif isinstance(values, Sequence) and not isinstance(
+                    values,
+                    (str, bytes),
+                ):
+                    literals = tuple(
+                        value for value in values if isinstance(value, str)
+                    )
+                else:
+                    literals = ()
+                language_literals.update(
+                    (identifier, property_name, language, literal)
+                    for literal in literals
+                )
+        for property_name in iri_properties:
+            values = _iri_values(node.get(property_name))
+            key = (identifier, property_name)
+            iri_sequences[key] = values
+            iri_targets[key] = frozenset(values)
+    return _GraphPropertyIndex(
+        language_literals=frozenset(language_literals),
+        iri_targets=MappingProxyType(iri_targets),
+        iri_sequences=MappingProxyType(iri_sequences),
+    )
 
 
 def _rulespec_nodes(graph: Any) -> dict[str, dict[str, Any]]:
@@ -942,12 +969,16 @@ def _rulespec_nodes(graph: Any) -> dict[str, dict[str, Any]]:
     nodes: dict[str, dict[str, Any]] = {}
     for index, node in enumerate(raw):
         if not isinstance(node, dict):
-            raise ManagedReleaseError(f"rulespecGraph.@graph[{index}] must be an object")
+            raise ManagedReleaseError(
+                f"rulespecGraph.@graph[{index}] must be an object"
+            )
         identifier = node.get("@id")
         if not isinstance(identifier, str) or not identifier:
             raise ManagedReleaseError(f"rulespecGraph.@graph[{index}] has no @id")
         if identifier in nodes:
-            raise ManagedReleaseError(f"rulespecGraph repeats identifier {identifier!r}")
+            raise ManagedReleaseError(
+                f"rulespecGraph repeats identifier {identifier!r}"
+            )
         nodes[identifier] = node
     return nodes
 
@@ -990,6 +1021,213 @@ def _release_membership(
 
 
 @dataclass(frozen=True, slots=True)
+class _ExpressionCorpusDescriptor:
+    """Validated facts that bind one indexed-expression corpus artifact."""
+
+    path: Path
+    record_count: int
+    identity_digest: str
+    snapshot: Mapping[str, str]
+
+
+def _verified_expression_corpus_descriptor(
+    *,
+    root: Path,
+    manifest: Mapping[str, Any],
+    publication: Mapping[str, Any],
+    seen_paths: set[PurePosixPath],
+) -> _ExpressionCorpusDescriptor:
+    """Validate the corpus description and stream-verify its exact bytes."""
+
+    corpus_descriptor = manifest.get("indexedExpressionCorpus")
+    if not isinstance(corpus_descriptor, dict) or set(corpus_descriptor) != {
+        "path",
+        "sha256",
+        "expressionCorpusSnapshot",
+        "recordCount",
+        "schemaVersion",
+        "canonicalIdentityDigest",
+    }:
+        raise ManagedReleaseError(
+            "indexedExpressionCorpus must bind its artifact, snapshot, "
+            "record count, schema version, and canonical identity digest"
+        )
+    corpus_record_count = corpus_descriptor.get("recordCount")
+    if (
+        not isinstance(corpus_record_count, int)
+        or isinstance(corpus_record_count, bool)
+        or corpus_record_count <= 0
+    ):
+        raise ManagedReleaseError(
+            "indexedExpressionCorpus.recordCount must be a positive integer"
+        )
+    if corpus_descriptor.get("schemaVersion") != "ref-indexed-expression-corpus-1.0":
+        raise ManagedReleaseError(
+            "indexedExpressionCorpus.schemaVersion is unsupported"
+        )
+    corpus_identity_digest = _require_digest(
+        corpus_descriptor.get("canonicalIdentityDigest"),
+        "indexedExpressionCorpus.canonicalIdentityDigest",
+    )
+    corpus_snapshot = _require_digest_reference(
+        corpus_descriptor.get("expressionCorpusSnapshot"),
+        "indexedExpressionCorpus.expressionCorpusSnapshot",
+    )
+    if corpus_identity_digest != corpus_snapshot["digest"]:
+        raise ManagedReleaseError(
+            "indexedExpressionCorpus canonical identity digest does not match its logical snapshot digest"
+        )
+    publication_snapshot = _require_digest_reference(
+        publication.get("expressionCorpusSnapshot"),
+        "PublicationReleaseManifest.expressionCorpusSnapshot",
+    )
+    if corpus_snapshot != publication_snapshot:
+        raise ManagedReleaseError(
+            "indexed expression corpus snapshot does not match PublicationReleaseManifest"
+        )
+    lookup_identity = manifest.get("lookupIndexManifest")
+    if lookup_identity is not None:
+        lookup_reference = _require_digest_reference(
+            lookup_identity,
+            "lookupIndexManifest",
+        )
+        if lookup_reference["id"] == corpus_snapshot["id"]:
+            raise ManagedReleaseError(
+                "bundle conflates expressionCorpusSnapshot with lookupIndexManifest"
+            )
+        raise ManagedReleaseError(
+            "physical lookupIndexManifest belongs to a consumer configuration, not a managed-release bundle"
+        )
+    corpus_path = _verified_artifact_path(
+        root,
+        {
+            "path": corpus_descriptor.get("path"),
+            "sha256": corpus_descriptor.get("sha256"),
+        },
+        "indexedExpressionCorpus",
+        seen_paths,
+    )
+    return _ExpressionCorpusDescriptor(
+        path=corpus_path,
+        record_count=corpus_record_count,
+        identity_digest=corpus_identity_digest,
+        snapshot=MappingProxyType(corpus_snapshot),
+    )
+
+
+def _validate_combined_receipt(
+    *,
+    combined_receipt: object,
+    graph_reference: Mapping[str, str],
+    dependency_digest: str,
+    publication_id: str,
+    publication_digest: str,
+    actual_operational_refs: set[tuple[str, str]],
+    expected_validator: Mapping[str, str],
+    expected_behavior_runtime: Mapping[str, str],
+    expected_gate: Mapping[str, str],
+    graph_identifiers: set[str],
+    ref_records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate the one receipt shared by full and graph-facts readers."""
+
+    if (
+        not isinstance(combined_receipt, dict)
+        or combined_receipt.get("type") != _COMBINED_RECEIPT_TYPE
+    ):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt must contain one ReleaseGraphValidationReceipt"
+        )
+    _require_binding_valid(
+        [combined_receipt],
+        "combined validation receipt",
+    )
+    if combined_receipt.get("operationalState") != "passed":
+        raise ManagedReleaseError(
+            "ReleaseGraphValidationReceipt operationalState must be passed"
+        )
+    if combined_receipt.get("rulespecGraph") != graph_reference:
+        raise ManagedReleaseError(
+            "combinedValidationReceipt does not bind the exact Rulespec graph"
+        )
+    if combined_receipt.get("rulespecDependencyManifest") != {
+        "id": DEPENDENCY_MANIFEST_ID,
+        "digest": dependency_digest,
+    }:
+        raise ManagedReleaseError(
+            "combinedValidationReceipt does not bind the embedded Rulespec dependency manifest"
+        )
+    receipt_record_values = combined_receipt.get("refRecordDigests")
+    if not isinstance(receipt_record_values, list):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt.refRecordDigests must be an array"
+        )
+    receipt_record_refs = {
+        _reference_key(
+            _require_digest_reference(
+                value,
+                f"combinedValidationReceipt.refRecordDigests[{index}]",
+            )
+        )
+        for index, value in enumerate(receipt_record_values)
+    }
+    if len(receipt_record_refs) != len(receipt_record_values):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt.refRecordDigests repeats a reference"
+        )
+    exact_ref_records = {
+        (publication_id, publication_digest),
+        *actual_operational_refs,
+    }
+    if receipt_record_refs != exact_ref_records:
+        raise ManagedReleaseError(
+            "combinedValidationReceipt.refRecordDigests does not exactly "
+            "cover the publication and operational REF records"
+        )
+    if combined_receipt.get("rulespecValidator") != dict(expected_validator):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt Rulespec validator identity or revision does not match the dependency manifest"
+        )
+    if combined_receipt.get("rulespecBehaviorRuntime") != dict(
+        expected_behavior_runtime
+    ):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt Rulespec behavior runtime does not match the exact embedded dependency"
+        )
+    if combined_receipt.get("gateImplementation") != dict(expected_gate):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt gate implementation does not match the installed RefSpec release-graph gate"
+        )
+    if combined_receipt.get("verdicts") != {
+        "refBinding": "pass",
+        "rulespecConformance": "pass",
+        "rulespecBehavior": "pass",
+        "crossBoundary": "pass",
+    }:
+        raise ManagedReleaseError(
+            "combinedValidationReceipt must carry four exact pass verdicts"
+        )
+    covered_values = combined_receipt.get("coveredRulespecIdentifiers")
+    if (
+        not isinstance(covered_values, list)
+        or any(not isinstance(value, str) for value in covered_values)
+        or len(covered_values) != len(set(covered_values))
+        or set(covered_values) != graph_identifiers
+    ):
+        raise ManagedReleaseError(
+            "combinedValidationReceipt covered Rulespec identifiers do not exactly match the graph"
+        )
+    _require_authorization_evaluation_coverage(
+        receipt=combined_receipt,
+        records=ref_records,
+        graph_reference=graph_reference,
+        graph_identifiers=graph_identifiers,
+        expected_runtime=expected_behavior_runtime,
+    )
+    return combined_receipt
+
+
+@dataclass(frozen=True, slots=True)
 class ManagedReleaseMember:
     """One exact member of a complete Rulespec release."""
 
@@ -997,6 +1235,84 @@ class ManagedReleaseMember:
     release_iri: str
     scheme_iri: str
     record: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class ManagedReleaseGraphFactsView:
+    """Verified graph facts from a managed bundle, without corpus eligibility.
+
+    This view validates the externally pinned bundle manifest, every declared
+    artifact digest, the complete Rulespec graph and membership, linked REF
+    records, embedded dependency, and combined gate receipt.  It deliberately
+    stream-hashes but does not parse the indexed-expression corpus or normalized
+    tables.  Callers that need expressions, table rows, source bytes, or
+    candidate-use authorization must use :class:`ManagedReleaseView`.
+    """
+
+    _release_id: str
+    _rulespec_graph_id: str
+    _rulespec_graph: Mapping[str, Any]
+    _expression_corpus_snapshot: Mapping[str, str]
+    _members: Mapping[str, ManagedReleaseMember]
+    _release_graph_validation_receipt: Mapping[str, Any]
+
+    eligibility_scope = "graphFactsOnly"
+
+    @classmethod
+    def open(
+        cls,
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        """Open one fresh verification boundary over exact bundle bytes."""
+
+        view = ManagedReleaseView.open(
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+            _graph_facts_only=True,
+        )
+        if not isinstance(view, cls):  # pragma: no cover - internal invariant
+            raise ManagedReleaseError(
+                "managed graph-facts reader returned the wrong view kind"
+            )
+        return view
+
+    @property
+    def release_id(self) -> str:
+        """Return the verified PublicationReleaseManifest identifier."""
+
+        return self._release_id
+
+    @property
+    def rulespec_graph_id(self) -> str:
+        return self._rulespec_graph_id
+
+    @property
+    def rulespec_graph(self) -> Mapping[str, Any]:
+        return self._rulespec_graph
+
+    @property
+    def expression_corpus_snapshot(self) -> Mapping[str, str]:
+        """Return descriptor linkage only, not corpus semantic eligibility."""
+
+        return self._expression_corpus_snapshot
+
+    @property
+    def release_graph_validation_receipt(self) -> Mapping[str, Any]:
+        return self._release_graph_validation_receipt
+
+    def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
+        return self._members.get(member_iri)
+
+    def iter_members(
+        self,
+        *,
+        release_iri: str | None = None,
+    ) -> Iterator[ManagedReleaseMember]:
+        for member in self._members.values():
+            if release_iri is None or member.release_iri == release_iri:
+                yield member
 
 
 @dataclass(frozen=True, slots=True)
@@ -1131,7 +1447,8 @@ class ManagedReleaseView:
         manifest_path: Path | str,
         *,
         expected_manifest_digest: str,
-    ) -> ManagedReleaseView:
+        _graph_facts_only: bool = False,
+    ) -> ManagedReleaseView | ManagedReleaseGraphFactsView:
         """Verify and open the exact externally selected bundle manifest."""
 
         expected_manifest_digest = _require_digest(
@@ -1148,13 +1465,10 @@ class ManagedReleaseView:
         if not manifest_file.is_file():
             raise ManagedReleaseError("bundle manifest must be a regular file")
         manifest_bytes = manifest_file.read_bytes()
-        actual_manifest_digest = (
-            "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
-        )
+        actual_manifest_digest = "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
         if actual_manifest_digest != expected_manifest_digest:
             raise ManagedReleaseError(
-                "bundle manifest digest mismatch: expected "
-                f"{expected_manifest_digest}, got {actual_manifest_digest}"
+                f"bundle manifest digest mismatch: expected {expected_manifest_digest}, got {actual_manifest_digest}"
             )
         manifest = _json_from_bytes(
             manifest_bytes,
@@ -1190,29 +1504,32 @@ class ManagedReleaseView:
         raw_source_artifacts = manifest.get("sourceArtifacts", {})
         if not isinstance(raw_source_artifacts, dict):
             raise ManagedReleaseError(
-                "sourceArtifacts must map distribution artifact IRIs to "
-                "verified byte descriptors"
+                "sourceArtifacts must map distribution artifact IRIs to verified byte descriptors"
             )
         source_artifacts: dict[str, bytes] = {}
-        for artifact_iri, descriptor in sorted(
-            raw_source_artifacts.items()
-        ):
+        source_artifact_facts: dict[str, tuple[str, int]] = {}
+        for artifact_iri, descriptor in sorted(raw_source_artifacts.items()):
             if (
                 not isinstance(artifact_iri, str)
                 or _ABSOLUTE_IRI.fullmatch(artifact_iri) is None
             ):
                 raise ManagedReleaseError(
-                    "sourceArtifacts keys must be absolute distribution "
-                    "artifact IRIs"
+                    "sourceArtifacts keys must be absolute distribution artifact IRIs"
                 )
-            source_artifacts[artifact_iri] = (
-                _read_verified_source_artifact(
+            if _graph_facts_only:
+                source_artifact_facts[artifact_iri] = _verified_source_artifact_facts(
                     root,
                     descriptor,
                     f"sourceArtifacts[{artifact_iri!r}]",
                     seen_paths,
                 )
-            )
+            else:
+                source_artifacts[artifact_iri] = _read_verified_source_artifact(
+                    root,
+                    descriptor,
+                    f"sourceArtifacts[{artifact_iri!r}]",
+                    seen_paths,
+                )
         publication_bytes = _read_verified_artifact(
             root,
             manifest["publicationReleaseManifest"],
@@ -1223,7 +1540,10 @@ class ManagedReleaseView:
             publication_bytes,
             "publicationReleaseManifest",
         )
-        if not isinstance(publication, dict) or publication.get("type") != _PUBLICATION_TYPE:
+        if (
+            not isinstance(publication, dict)
+            or publication.get("type") != _PUBLICATION_TYPE
+        ):
             raise ManagedReleaseError(
                 "publicationReleaseManifest artifact must contain one PublicationReleaseManifest"
             )
@@ -1231,9 +1551,10 @@ class ManagedReleaseView:
             publication,
             "publicationReleaseManifest",
         )
-        if publication.get("releaseState") != "complete" or publication.get(
-            "consumerEligible"
-        ) is not True:
+        if (
+            publication.get("releaseState") != "complete"
+            or publication.get("consumerEligible") is not True
+        ):
             raise ManagedReleaseError(
                 "publication release is not complete and consumer eligible"
             )
@@ -1261,9 +1582,7 @@ class ManagedReleaseView:
             "publication and linked REF records",
         )
 
-        records_by_id: dict[str, dict[str, Any]] = {
-            publication_id: publication
-        }
+        records_by_id: dict[str, dict[str, Any]] = {publication_id: publication}
         actual_operational_refs: set[tuple[str, str]] = set()
         for index, record in enumerate(ref_records):
             identifier, digest = _record_digest_reference(
@@ -1289,37 +1608,38 @@ class ManagedReleaseView:
             storage_reference = record.get("storageReference")
             if not isinstance(storage_reference, str):
                 raise ManagedReleaseError(
-                    f"Capture {record.get('id')!r} lacks an exact "
-                    "storageReference"
+                    f"Capture {record.get('id')!r} lacks an exact storageReference"
                 )
             storage_reference_list.append(storage_reference)
         storage_references = set(storage_reference_list)
         if len(storage_references) != len(storage_reference_list):
             raise ManagedReleaseError(
-                "multiple successful exact-byte Captures resolve the same "
-                "source artifact"
+                "multiple successful exact-byte Captures resolve the same source artifact"
             )
-        if storage_references != set(source_artifacts):
+        packaged_source_ids = (
+            set(source_artifact_facts) if _graph_facts_only else set(source_artifacts)
+        )
+        if storage_references != packaged_source_ids:
             raise ManagedReleaseError(
-                "sourceArtifacts keys must exactly equal successful "
-                "exact-byte Capture.storageReference values"
+                "sourceArtifacts keys must exactly equal successful exact-byte Capture.storageReference values"
             )
         for record in required_source_captures:
             storage_reference = cast(
                 str,
                 record["storageReference"],
             )
-            payload = source_artifacts[storage_reference]
-            actual_digest = (
-                "sha256:" + hashlib.sha256(payload).hexdigest()
-            )
+            if _graph_facts_only:
+                actual_digest, actual_length = source_artifact_facts[storage_reference]
+            else:
+                payload = source_artifacts[storage_reference]
+                actual_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+                actual_length = len(payload)
             if (
                 record.get("byteDigest") != actual_digest
-                or record.get("byteLength") != len(payload)
+                or record.get("byteLength") != actual_length
             ):
                 raise ManagedReleaseError(
-                    f"Capture {record.get('id')!r} does not match its "
-                    "exact packaged source artifact bytes"
+                    f"Capture {record.get('id')!r} does not match its exact packaged source artifact bytes"
                 )
 
         declared_operational = publication.get("refOperationalRecords")
@@ -1342,8 +1662,7 @@ class ManagedReleaseView:
             )
         if declared_operational_refs != actual_operational_refs:
             raise ManagedReleaseError(
-                "linked REF records do not exactly match "
-                "PublicationReleaseManifest.refOperationalRecords"
+                "linked REF records do not exactly match PublicationReleaseManifest.refOperationalRecords"
             )
 
         for owner in (publication, *ref_records):
@@ -1355,16 +1674,13 @@ class ManagedReleaseView:
                 expected = target.get(binding.digest_field(target))
                 if reference.get("digest") != expected:
                     raise ManagedReleaseError(
-                        f"{owner_id} carries a digest-mismatched REF reference "
-                        f"to {reference.get('id')!r}"
+                        f"{owner_id} carries a digest-mismatched REF reference to {reference.get('id')!r}"
                     )
-                if (
-                    "version" in reference
-                    and reference.get("version") != target.get("version")
+                if "version" in reference and reference.get("version") != target.get(
+                    "version"
                 ):
                     raise ManagedReleaseError(
-                        f"{owner_id} carries a version-mismatched REF reference "
-                        f"to {reference.get('id')!r}"
+                        f"{owner_id} carries a version-mismatched REF reference to {reference.get('id')!r}"
                     )
             for reference in _iter_named_values(
                 owner,
@@ -1382,14 +1698,12 @@ class ManagedReleaseView:
         )
         if _reference_key(run_receipt) not in actual_operational_refs:
             raise ManagedReleaseError(
-                "PublicationReleaseManifest.runReceipt does not resolve "
-                "to one linked REF record"
+                "PublicationReleaseManifest.runReceipt does not resolve to one linked REF record"
             )
         run_receipt_record = records_by_id[run_receipt["id"]]
         if run_receipt_record.get("type") != "urn:ref:type:RunReceipt":
             raise ManagedReleaseError(
-                "PublicationReleaseManifest.runReceipt must resolve to a "
-                "RunReceipt"
+                "PublicationReleaseManifest.runReceipt must resolve to a RunReceipt"
             )
 
         dependency_bytes = _read_verified_artifact(
@@ -1406,16 +1720,13 @@ class ManagedReleaseView:
             raise ManagedReleaseError(
                 "rulespecDependencyManifest must contain one JSON object"
             )
-        dependency_digest = (
-            "sha256:" + hashlib.sha256(dependency_bytes).hexdigest()
-        )
+        dependency_digest = "sha256:" + hashlib.sha256(dependency_bytes).hexdigest()
         if (
             dependency_digest != RULESPEC_DEPENDENCY_SHA256
             or dependency_bytes != RULESPEC_DEPENDENCY_BYTES
         ):
             raise ManagedReleaseError(
-                "rulespecDependencyManifest is not the exact RefSpec-embedded "
-                "Rulespec dependency"
+                "rulespecDependencyManifest is not the exact RefSpec-embedded Rulespec dependency"
             )
         declared_dependency = cast(
             Mapping[str, Any],
@@ -1429,9 +1740,7 @@ class ManagedReleaseView:
             "conformanceCorpusDigest": dependency_manifest.get(
                 "conformanceCorpusDigest"
             ),
-            "releaseAvailability": dependency_manifest.get(
-                "releaseAvailability"
-            ),
+            "releaseAvailability": dependency_manifest.get("releaseAvailability"),
         }
         for field_name, expected in expected_dependency_fields.items():
             if declared_dependency.get(field_name) != expected:
@@ -1440,9 +1749,7 @@ class ManagedReleaseView:
                     f"{field_name} does not match the embedded dependency "
                     "manifest"
                 )
-        expected_validator = _dependency_validator_pin(
-            dependency_manifest
-        )
+        expected_validator = _dependency_validator_pin(dependency_manifest)
         expected_behavior_runtime = _dependency_behavior_runtime_pin(
             dependency_manifest
         )
@@ -1475,27 +1782,21 @@ class ManagedReleaseView:
             "PublicationReleaseManifest.rulespecReleaseGraph",
         )
         graph_id = manifest.get("rulespecGraphId")
-        if (
-            not isinstance(graph_id, str)
-            or not _ABSOLUTE_IRI.fullmatch(graph_id)
-        ):
+        if not isinstance(graph_id, str) or not _ABSOLUTE_IRI.fullmatch(graph_id):
             raise ManagedReleaseError(
                 "rulespecGraphId must be an external absolute graph identifier"
             )
         if graph_reference["id"] != graph_id:
             raise ManagedReleaseError(
-                "external rulespecGraphId does not match "
-                "PublicationReleaseManifest.rulespecReleaseGraph"
+                "external rulespecGraphId does not match PublicationReleaseManifest.rulespecReleaseGraph"
             )
         if not isinstance(graph, dict) or "@id" in graph:
             raise ManagedReleaseError(
-                "rulespecGraph must remain a default-graph JSON-LD document "
-                "without a top-level @id"
+                "rulespecGraph must remain a default-graph JSON-LD document without a top-level @id"
             )
         if rulespec_graph_digest(graph) != graph_reference["digest"]:
             raise ManagedReleaseError(
-                "exact Rulespec graph digest does not match "
-                "PublicationReleaseManifest.rulespecReleaseGraph"
+                "exact Rulespec graph digest does not match PublicationReleaseManifest.rulespecReleaseGraph"
             )
         graph_identifiers = defined_rulespec_identifiers(graph)
         if not graph_identifiers:
@@ -1507,6 +1808,7 @@ class ManagedReleaseView:
         if not isinstance(raw_tables, list):
             raise ManagedReleaseError("normalizedTables must be an array")
         table_bytes: dict[str, bytes] = {}
+        table_names: set[str] = set()
         for index, descriptor in enumerate(raw_tables):
             if not isinstance(descriptor, dict) or set(descriptor) != {
                 "name",
@@ -1517,22 +1819,87 @@ class ManagedReleaseView:
                     f"normalizedTables[{index}] must name one table, path, and digest"
                 )
             name = descriptor.get("name")
-            if name not in _TABLE_COLUMNS or name in table_bytes:
+            if name not in _TABLE_COLUMNS or name in table_names:
                 raise ManagedReleaseError(
                     f"normalizedTables[{index}].name is unknown or repeated"
                 )
-            table_bytes[str(name)] = _read_verified_artifact(
-                root,
-                {
-                    "path": descriptor.get("path"),
-                    "sha256": descriptor.get("sha256"),
-                },
-                f"normalizedTables[{index}]",
-                seen_paths,
-            )
-        if set(table_bytes) != set(_TABLE_COLUMNS):
+            table_names.add(str(name))
+            artifact_descriptor = {
+                "path": descriptor.get("path"),
+                "sha256": descriptor.get("sha256"),
+            }
+            if _graph_facts_only:
+                _verified_artifact_path(
+                    root,
+                    artifact_descriptor,
+                    f"normalizedTables[{index}]",
+                    seen_paths,
+                )
+            else:
+                table_bytes[str(name)] = _read_verified_artifact(
+                    root,
+                    artifact_descriptor,
+                    f"normalizedTables[{index}]",
+                    seen_paths,
+                )
+        if table_names != set(_TABLE_COLUMNS):
             raise ManagedReleaseError(
                 "normalizedTables must contain the three exact RefSpec tables"
+            )
+
+        if _graph_facts_only:
+            corpus = _verified_expression_corpus_descriptor(
+                root=root,
+                manifest=manifest,
+                publication=publication,
+                seen_paths=seen_paths,
+            )
+            validated_receipt = _validate_combined_receipt(
+                combined_receipt=combined_receipt,
+                graph_reference=graph_reference,
+                dependency_digest=dependency_digest,
+                publication_id=publication_id,
+                publication_digest=publication_digest,
+                actual_operational_refs=actual_operational_refs,
+                expected_validator=expected_validator,
+                expected_behavior_runtime=expected_behavior_runtime,
+                expected_gate=expected_gate,
+                graph_identifiers=set(graph_identifiers),
+                ref_records=ref_records,
+            )
+            frozen_graph = cast(
+                Mapping[str, Any],
+                _freeze(graph),
+            )
+            frozen_nodes = {
+                cast(str, node["@id"]): cast(Mapping[str, Any], node)
+                for node in cast(
+                    Sequence[Mapping[str, Any]],
+                    frozen_graph["@graph"],
+                )
+            }
+            members = {
+                member: ManagedReleaseMember(
+                    member_iri=member,
+                    release_iri=release,
+                    scheme_iri=member_scheme[member],
+                    record=frozen_nodes[member],
+                )
+                for member, release in member_release.items()
+            }
+            return ManagedReleaseGraphFactsView(
+                _release_id=publication_id,
+                _rulespec_graph_id=graph_id,
+                _rulespec_graph=frozen_graph,
+                _expression_corpus_snapshot=cast(
+                    Mapping[str, str],
+                    _freeze(corpus.snapshot),
+                ),
+                _members=MappingProxyType(members),
+                _release_graph_validation_receipt=cast(
+                    Mapping[str, Any],
+                    _freeze(validated_receipt),
+                ),
             )
         tables: dict[str, tuple[Mapping[str, Any], ...]] = {}
         for name, payload in table_bytes.items():
@@ -1547,25 +1914,19 @@ class ManagedReleaseView:
                 raise ManagedReleaseError(
                     f"normalized table {name!r} columns do not match RefSpec"
                 )
-            if any(
-                not pa.types.is_string(field.type)
-                for field in table.schema
-            ):
+            if any(not pa.types.is_string(field.type) for field in table.schema):
                 raise ManagedReleaseError(
-                    f"normalized table {name!r} must use the RefSpec "
-                    "all-string physical schema"
+                    f"normalized table {name!r} must use the RefSpec all-string physical schema"
                 )
             tables[name] = tuple(
-                cast(Mapping[str, Any], _freeze(row))
-                for row in table.to_pylist()
+                cast(Mapping[str, Any], _freeze(row)) for row in table.to_pylist()
             )
             for row_index, row in enumerate(tables[name]):
                 for field in _TABLE_REQUIRED_TEXT_COLUMNS[name]:
                     value = row.get(field)
                     if not isinstance(value, str) or not value:
                         raise ManagedReleaseError(
-                            f"normalized table {name}[{row_index}].{field} "
-                            "must be non-empty text"
+                            f"normalized table {name}[{row_index}].{field} must be non-empty text"
                         )
 
         try:
@@ -1756,9 +2117,7 @@ class ManagedReleaseView:
             for row in normalized_participants
         ]
         if len(label_ids) != len(set(label_ids)):
-            raise ManagedReleaseError(
-                "concept_labels repeats a label row identifier"
-            )
+            raise ManagedReleaseError("concept_labels repeats a label row identifier")
         if len(relation_ids) != len(set(relation_ids)):
             raise ManagedReleaseError(
                 "concept_relations repeats a relation row identifier"
@@ -1777,93 +2136,24 @@ class ManagedReleaseView:
                 row,
             )
 
-        corpus_descriptor = manifest.get("indexedExpressionCorpus")
-        if not isinstance(corpus_descriptor, dict) or set(
-            corpus_descriptor
-        ) != {
-            "path",
-            "sha256",
-            "expressionCorpusSnapshot",
-            "recordCount",
-            "schemaVersion",
-            "canonicalIdentityDigest",
-        }:
-            raise ManagedReleaseError(
-                "indexedExpressionCorpus must bind its artifact, snapshot, "
-                "record count, schema version, and canonical identity digest"
-            )
-        corpus_record_count = corpus_descriptor.get("recordCount")
-        if (
-            not isinstance(corpus_record_count, int)
-            or isinstance(corpus_record_count, bool)
-            or corpus_record_count <= 0
-        ):
-            raise ManagedReleaseError(
-                "indexedExpressionCorpus.recordCount must be a positive integer"
-            )
-        if (
-            corpus_descriptor.get("schemaVersion")
-            != "ref-indexed-expression-corpus-1.0"
-        ):
-            raise ManagedReleaseError(
-                "indexedExpressionCorpus.schemaVersion is unsupported"
-            )
-        corpus_identity_digest = _require_digest(
-            corpus_descriptor.get("canonicalIdentityDigest"),
-            "indexedExpressionCorpus.canonicalIdentityDigest",
+        corpus = _verified_expression_corpus_descriptor(
+            root=root,
+            manifest=manifest,
+            publication=publication,
+            seen_paths=seen_paths,
         )
-        corpus_snapshot = _require_digest_reference(
-            corpus_descriptor.get("expressionCorpusSnapshot"),
-            "indexedExpressionCorpus.expressionCorpusSnapshot",
-        )
-        if corpus_identity_digest != corpus_snapshot["digest"]:
-            raise ManagedReleaseError(
-                "indexedExpressionCorpus canonical identity digest does not "
-                "match its logical snapshot digest"
-            )
-        publication_snapshot = _require_digest_reference(
-            publication.get("expressionCorpusSnapshot"),
-            "PublicationReleaseManifest.expressionCorpusSnapshot",
-        )
-        if corpus_snapshot != publication_snapshot:
-            raise ManagedReleaseError(
-                "indexed expression corpus snapshot does not match "
-                "PublicationReleaseManifest"
-            )
-        lookup_identity = manifest.get("lookupIndexManifest")
-        if lookup_identity is not None:
-            lookup_reference = _require_digest_reference(
-                lookup_identity,
-                "lookupIndexManifest",
-            )
-            if lookup_reference["id"] == corpus_snapshot["id"]:
-                raise ManagedReleaseError(
-                    "bundle conflates expressionCorpusSnapshot with "
-                    "lookupIndexManifest"
-                )
-            raise ManagedReleaseError(
-                "physical lookupIndexManifest belongs to a consumer "
-                "configuration, not a managed-release bundle"
-            )
-        corpus_path = _verified_artifact_path(
-            root,
-            {
-                "path": corpus_descriptor.get("path"),
-                "sha256": corpus_descriptor.get("sha256"),
-            },
-            "indexedExpressionCorpus",
-            seen_paths,
-        )
+        corpus_path = corpus.path
+        corpus_record_count = corpus.record_count
+        corpus_identity_digest = corpus.identity_digest
+        corpus_snapshot = dict(corpus.snapshot)
+        publication_snapshot = dict(corpus.snapshot)
         expressions: list[ManagedReleaseExpression] = []
         expression_records_by_id: dict[str, Mapping[str, Any]] = {}
         try:
-            expression_validator = (
-                binding.IndexedExpressionCorpusValidator()
-            )
+            expression_validator = binding.IndexedExpressionCorpusValidator()
         except (OSError, TypeError, ValueError) as error:
             raise ManagedReleaseError(
-                "indexed expression corpus validator could not be loaded: "
-                f"{error}"
+                f"indexed expression corpus validator could not be loaded: {error}"
             ) from error
         expression_diagnostics: list[binding.Diagnostic] = []
         with corpus_path.open("rb") as corpus_stream:
@@ -1873,21 +2163,15 @@ class ManagedReleaseView:
             ):
                 if not raw_line.strip():
                     raise ManagedReleaseError(
-                        "indexedExpressionCorpus line "
-                        f"{line_number} is empty"
+                        f"indexedExpressionCorpus line {line_number} is empty"
                     )
                 value = _json_from_bytes(
                     raw_line,
                     f"indexedExpressionCorpus line {line_number}",
                 )
-                if (
-                    not isinstance(value, dict)
-                    or value.get("type") != _EXPRESSION_TYPE
-                ):
+                if not isinstance(value, dict) or value.get("type") != _EXPRESSION_TYPE:
                     raise ManagedReleaseError(
-                        "indexedExpressionCorpus line "
-                        f"{line_number} is not an "
-                        "IndexedVocabularyExpression"
+                        f"indexedExpressionCorpus line {line_number} is not an IndexedVocabularyExpression"
                     )
                 expression_id, _ = _record_digest_reference(
                     value,
@@ -1895,8 +2179,7 @@ class ManagedReleaseView:
                 )
                 if expression_id in expression_records_by_id:
                     raise ManagedReleaseError(
-                        "indexedExpressionCorpus repeats "
-                        f"{expression_id!r}"
+                        f"indexedExpressionCorpus repeats {expression_id!r}"
                     )
                 expression_snapshot = _require_digest_reference(
                     value.get("expressionCorpusSnapshot"),
@@ -1904,17 +2187,12 @@ class ManagedReleaseView:
                 )
                 if expression_snapshot != corpus_snapshot:
                     raise ManagedReleaseError(
-                        f"{expression_id} belongs to a different "
-                        "expression corpus"
+                        f"{expression_id} belongs to a different expression corpus"
                     )
                 member = value.get("member")
-                if (
-                    not isinstance(member, str)
-                    or member not in member_release
-                ):
+                if not isinstance(member, str) or member not in member_release:
                     raise ManagedReleaseError(
-                        f"{expression_id} does not identify an exact "
-                        "release member"
+                        f"{expression_id} does not identify an exact release member"
                     )
                 release = value.get("referenceResourceRelease")
                 if (
@@ -1925,36 +2203,25 @@ class ManagedReleaseView:
                         f"{expression_id} release does not contain its member"
                     )
                 release_node = nodes[member_release[member]]
-                if (
-                    release.get("version")
-                    != release_node.get("dcat:version")
-                    or release.get("digest")
-                    != release_node.get(
-                        "rkaf:referenceReleaseDigest"
-                    )
+                if release.get("version") != release_node.get(
+                    "dcat:version"
+                ) or release.get("digest") != release_node.get(
+                    "rkaf:referenceReleaseDigest"
                 ):
                     raise ManagedReleaseError(
-                        f"{expression_id} release version or digest does "
-                        "not match the exact Rulespec release"
+                        f"{expression_id} release version or digest does not match the exact Rulespec release"
                     )
                 if value.get("scheme") != member_scheme[member]:
                     raise ManagedReleaseError(
-                        f"{expression_id} scheme does not match its exact "
-                        "member"
+                        f"{expression_id} scheme does not match its exact member"
                     )
-                import_reference = value.get(
-                    "registryImportSnapshot"
-                )
+                import_reference = value.get("registryImportSnapshot")
                 _resolve_import_snapshot(
                     import_reference,
                     records_by_id=records_by_id,
-                    label=(
-                        f"{expression_id}.registryImportSnapshot"
-                    ),
+                    label=(f"{expression_id}.registryImportSnapshot"),
                 )
-                distribution_reference = value.get(
-                    "distributionArtifact"
-                )
+                distribution_reference = value.get("distributionArtifact")
                 if (
                     not isinstance(import_reference, Mapping)
                     or not isinstance(
@@ -1971,15 +2238,12 @@ class ManagedReleaseView:
                     )
                 ):
                     raise ManagedReleaseError(
-                        f"{expression_id} import or distribution reference "
-                        "is invalid"
+                        f"{expression_id} import or distribution reference is invalid"
                     )
                 _require_import_lineage(
                     import_snapshot_id=str(import_reference["id"]),
                     release_iri=member_release[member],
-                    distribution_artifact_id=str(
-                        distribution_reference["id"]
-                    ),
+                    distribution_artifact_id=str(distribution_reference["id"]),
                     records_by_id=records_by_id,
                     label=expression_id,
                 )
@@ -1989,16 +2253,11 @@ class ManagedReleaseView:
                     raise ManagedReleaseError(
                         f"{expression_id}.indexedText is required"
                     )
-                if value.get(
-                    "indexedTextDigest"
-                ) != binding.text_digest(indexed_text):
+                if value.get("indexedTextDigest") != binding.text_digest(indexed_text):
                     raise ManagedReleaseError(
                         f"{expression_id}.indexedTextDigest does not match"
                     )
-                if (
-                    not isinstance(original_literal, str)
-                    or not original_literal
-                ):
+                if not isinstance(original_literal, str) or not original_literal:
                     raise ManagedReleaseError(
                         f"{expression_id}.originalLiteral is required"
                     )
@@ -2011,21 +2270,14 @@ class ManagedReleaseView:
                         f"{expression_id} has no source property or path"
                     )
                 semantic_property = value.get("semanticProperty")
-                if (
-                    not isinstance(semantic_property, str)
-                    or not semantic_property
-                ):
+                if not isinstance(semantic_property, str) or not semantic_property:
                     raise ManagedReleaseError(
                         f"{expression_id}.semanticProperty is required"
                     )
                 language = value.get("language")
                 if language is not None and not isinstance(language, str):
-                    raise ManagedReleaseError(
-                        f"{expression_id}.language is invalid"
-                    )
-                normalized_label = (
-                    normalized_label_by_expression_id.get(expression_id)
-                )
+                    raise ManagedReleaseError(f"{expression_id}.language is invalid")
+                normalized_label = normalized_label_by_expression_id.get(expression_id)
                 frozen_record = cast(
                     Mapping[str, Any],
                     _freeze(value),
@@ -2033,9 +2285,7 @@ class ManagedReleaseView:
                 expression_diagnostics.extend(
                     expression_validator.validate_record(value)
                 )
-                expression_records_by_id[
-                    expression_id
-                ] = frozen_record
+                expression_records_by_id[expression_id] = frozen_record
                 expressions.append(
                     ManagedReleaseExpression(
                         expression_id=expression_id,
@@ -2061,21 +2311,14 @@ class ManagedReleaseView:
 
         if len(expression_records_by_id) != corpus_record_count:
             raise ManagedReleaseError(
-                "indexedExpressionCorpus.recordCount does not match the "
-                f"{len(expression_records_by_id)} parsed records"
+                f"indexedExpressionCorpus.recordCount does not match the {len(expression_records_by_id)} parsed records"
             )
         try:
-            actual_corpus_identity_digest = (
-                indexed_expression_id_set_digest(
-                    expression_records_by_id
-                )
+            actual_corpus_identity_digest = indexed_expression_id_set_digest(
+                expression_records_by_id
             )
-            for expression_id, record in (
-                expression_records_by_id.items()
-            ):
-                identity = indexed_expression_identity_from_record(
-                    record
-                )
+            for expression_id, record in expression_records_by_id.items():
+                identity = indexed_expression_identity_from_record(record)
                 expected_id = (
                     "urn:ref:indexed-expression:"
                     + hashlib.sha256(
@@ -2090,125 +2333,35 @@ class ManagedReleaseView:
                     )
         except (OSError, ReferenceRuntimeError, TypeError, ValueError) as error:
             raise ManagedReleaseError(
-                "indexed expression corpus could not be validated: "
-                f"{error}"
+                f"indexed expression corpus could not be validated: {error}"
             ) from error
         if expression_diagnostics:
             rendered = "; ".join(
-                diagnostic.render()
-                for diagnostic in expression_diagnostics
+                diagnostic.render() for diagnostic in expression_diagnostics
             )
             raise ManagedReleaseError(
-                "indexed expression corpus fails REF JSON Binding 1.0: "
-                f"{rendered}"
+                f"indexed expression corpus fails REF JSON Binding 1.0: {rendered}"
             )
         if actual_corpus_identity_digest != corpus_identity_digest:
             raise ManagedReleaseError(
-                "indexedExpressionCorpus canonical identity digest does not "
-                "match its records"
+                "indexedExpressionCorpus canonical identity digest does not match its records"
             )
 
-        if (
-            not isinstance(combined_receipt, dict)
-            or combined_receipt.get("type") != _COMBINED_RECEIPT_TYPE
-        ):
-            raise ManagedReleaseError(
-                "combinedValidationReceipt must contain one "
-                "ReleaseGraphValidationReceipt"
-            )
-        _require_binding_valid(
-            [combined_receipt],
-            "combined validation receipt",
-        )
-        if combined_receipt.get("operationalState") != "passed":
-            raise ManagedReleaseError(
-                "ReleaseGraphValidationReceipt operationalState must be passed"
-            )
-        if combined_receipt.get("rulespecGraph") != graph_reference:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt does not bind the exact Rulespec graph"
-            )
-        if combined_receipt.get("rulespecDependencyManifest") != {
-            "id": DEPENDENCY_MANIFEST_ID,
-            "digest": dependency_digest,
-        }:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt does not bind the embedded "
-                "Rulespec dependency manifest"
-            )
-        receipt_record_values = combined_receipt.get("refRecordDigests")
-        if not isinstance(receipt_record_values, list):
-            raise ManagedReleaseError(
-                "combinedValidationReceipt.refRecordDigests must be an array"
-            )
-        receipt_record_refs = {
-            _reference_key(
-                _require_digest_reference(
-                    value,
-                    f"combinedValidationReceipt.refRecordDigests[{index}]",
-                )
-            )
-            for index, value in enumerate(receipt_record_values)
-        }
-        if len(receipt_record_refs) != len(receipt_record_values):
-            raise ManagedReleaseError(
-                "combinedValidationReceipt.refRecordDigests repeats a reference"
-            )
-        exact_ref_records = {
-            (publication_id, publication_digest),
-            *actual_operational_refs,
-        }
-        if receipt_record_refs != exact_ref_records:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt.refRecordDigests does not exactly "
-                "cover the publication and operational REF records"
-            )
-        if combined_receipt.get("rulespecValidator") != expected_validator:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt Rulespec validator identity or "
-                "revision does not match the dependency manifest"
-            )
-        if (
-            combined_receipt.get("rulespecBehaviorRuntime")
-            != expected_behavior_runtime
-        ):
-            raise ManagedReleaseError(
-                "combinedValidationReceipt Rulespec behavior runtime does not "
-                "match the exact embedded dependency"
-            )
-        if combined_receipt.get("gateImplementation") != expected_gate:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt gate implementation does not match "
-                "the installed RefSpec release-graph gate"
-            )
-        if combined_receipt.get("verdicts") != {
-            "refBinding": "pass",
-            "rulespecConformance": "pass",
-            "rulespecBehavior": "pass",
-            "crossBoundary": "pass",
-        }:
-            raise ManagedReleaseError(
-                "combinedValidationReceipt must carry four exact pass verdicts"
-            )
-        covered_values = combined_receipt.get("coveredRulespecIdentifiers")
-        if (
-            not isinstance(covered_values, list)
-            or any(not isinstance(value, str) for value in covered_values)
-            or len(covered_values) != len(set(covered_values))
-            or set(covered_values) != set(graph_identifiers)
-        ):
-            raise ManagedReleaseError(
-                "combinedValidationReceipt covered Rulespec identifiers do "
-                "not exactly match the graph"
-            )
-        _require_authorization_evaluation_coverage(
-            receipt=combined_receipt,
-            records=ref_records,
+        combined_receipt = _validate_combined_receipt(
+            combined_receipt=combined_receipt,
             graph_reference=graph_reference,
+            dependency_digest=dependency_digest,
+            publication_id=publication_id,
+            publication_digest=publication_digest,
+            actual_operational_refs=actual_operational_refs,
+            expected_validator=expected_validator,
+            expected_behavior_runtime=expected_behavior_runtime,
+            expected_gate=expected_gate,
             graph_identifiers=set(graph_identifiers),
-            expected_runtime=expected_behavior_runtime,
+            ref_records=ref_records,
         )
 
+        graph_property_index = _index_graph_property_targets(nodes)
         referenced_label_expressions: set[str] = set()
         for index, row in enumerate(normalized_labels):
             if row.concept_iri not in member_release:
@@ -2220,21 +2373,16 @@ class ManagedReleaseView:
                 or row.scheme_iri != member_scheme[row.concept_iri]
             ):
                 raise ManagedReleaseError(
-                    f"concept_labels[{index}] release or scheme does not "
-                    "match the exact member"
+                    f"concept_labels[{index}] release or scheme does not match the exact member"
                 )
-            property_name = _LABEL_PROPERTIES.get(
-                row.source_property_iri
-            )
+            property_name = _LABEL_PROPERTIES.get(row.source_property_iri)
             if property_name is None:
                 raise ManagedReleaseError(
-                    f"concept_labels[{index}] source property cannot be "
-                    "matched to the exact Rulespec graph"
+                    f"concept_labels[{index}] source property cannot be matched to the exact Rulespec graph"
                 )
             if row.label_role != _LABEL_ROLES[row.source_property_iri]:
                 raise ManagedReleaseError(
-                    f"concept_labels[{index}] label role disagrees with its "
-                    "exact SKOS property"
+                    f"concept_labels[{index}] label role disagrees with its exact SKOS property"
                 )
             _require_import_lineage(
                 import_snapshot_id=row.import_snapshot_id,
@@ -2243,17 +2391,16 @@ class ManagedReleaseView:
                 records_by_id=records_by_id,
                 label=f"concept_labels[{index}]",
             )
-            if row.original_literal not in _language_values(
-                nodes[row.concept_iri].get(property_name),
+            if (
+                row.concept_iri,
+                property_name,
                 row.language_tag,
-            ):
+                row.original_literal,
+            ) not in graph_property_index.language_literals:
                 raise ManagedReleaseError(
-                    f"concept_labels[{index}] does not round-trip to the "
-                    "exact Rulespec member graph"
+                    f"concept_labels[{index}] does not round-trip to the exact Rulespec member graph"
                 )
-            expression_record = expression_records_by_id.get(
-                row.expression_id
-            )
+            expression_record = expression_records_by_id.get(row.expression_id)
             if expression_record is None:
                 raise ManagedReleaseError(
                     f"concept_labels[{index}] references a missing indexed expression"
@@ -2263,31 +2410,22 @@ class ManagedReleaseView:
                     f"concept_labels[{index}] reuses an indexed expression"
                 )
             referenced_label_expressions.add(row.expression_id)
-            import_snapshot = expression_record.get(
-                "registryImportSnapshot"
-            )
-            distribution = expression_record.get(
-                "distributionArtifact"
-            )
-            expression_semantic_property = expression_record.get(
-                "semanticProperty"
-            )
+            import_snapshot = expression_record.get("registryImportSnapshot")
+            distribution = expression_record.get("distributionArtifact")
+            expression_semantic_property = expression_record.get("semanticProperty")
             if (
                 expression_record.get("member") != row.concept_iri
                 or expression_record.get("scheme") != row.scheme_iri
                 or expression_semantic_property != row.source_property_iri
-                or expression_record.get("originalLiteral")
-                != row.original_literal
+                or expression_record.get("originalLiteral") != row.original_literal
                 or expression_record.get("language") != row.language_tag
                 or not isinstance(import_snapshot, Mapping)
                 or import_snapshot.get("id") != row.import_snapshot_id
                 or not isinstance(distribution, Mapping)
-                or distribution.get("id")
-                != row.distribution_artifact_id
+                or distribution.get("id") != row.distribution_artifact_id
             ):
                 raise ManagedReleaseError(
-                    f"concept_labels[{index}] does not match its exact "
-                    "indexed expression"
+                    f"concept_labels[{index}] does not match its exact indexed expression"
                 )
         for index, row in enumerate(normalized_relations):
             _require_import_lineage(
@@ -2307,45 +2445,38 @@ class ManagedReleaseView:
                     )
             if (
                 member_release[row.subject_concept_iri] != row.release_iri
-                or member_release[row.object_concept_iri]
-                != row.release_iri
+                or member_release[row.object_concept_iri] != row.release_iri
             ):
                 raise ManagedReleaseError(
-                    f"concept_relations[{index}] release does not contain "
-                    "both endpoints"
+                    f"concept_relations[{index}] release does not contain both endpoints"
                 )
             if (
-                member_scheme[row.subject_concept_iri]
-                != row.subject_scheme_iri
-                or member_scheme[row.object_concept_iri]
-                != row.object_scheme_iri
+                member_scheme[row.subject_concept_iri] != row.subject_scheme_iri
+                or member_scheme[row.object_concept_iri] != row.object_scheme_iri
             ):
                 raise ManagedReleaseError(
-                    f"concept_relations[{index}] scheme fields do not match "
-                    "the exact member graph"
+                    f"concept_relations[{index}] scheme fields do not match the exact member graph"
                 )
             property_name = _RELATION_PROPERTIES.get(row.predicate_iri)
             if property_name is None:
                 raise ManagedReleaseError(
-                    f"concept_relations[{index}] predicate cannot be matched "
-                    "to the exact Rulespec graph"
+                    f"concept_relations[{index}] predicate cannot be matched to the exact Rulespec graph"
                 )
-            if row.object_concept_iri not in _iri_values(
-                nodes[row.subject_concept_iri].get(property_name)
+            if (
+                row.object_concept_iri
+                not in graph_property_index.iri_targets[
+                    (row.subject_concept_iri, property_name)
+                ]
             ):
                 raise ManagedReleaseError(
-                    f"concept_relations[{index}] does not round-trip to the "
-                    "exact Rulespec member graph"
+                    f"concept_relations[{index}] does not round-trip to the exact Rulespec member graph"
                 )
 
         for index, row in enumerate(normalized_participants):
             event = nodes.get(row.event_id)
-            if event is None or not (
-                _node_types(event) & _LIFECYCLE_TYPES
-            ):
+            if event is None or not (_node_types(event) & _LIFECYCLE_TYPES):
                 raise ManagedReleaseError(
-                    f"concept_event_participants[{index}] event is absent "
-                    "from the exact Rulespec graph"
+                    f"concept_event_participants[{index}] event is absent from the exact Rulespec graph"
                 )
             if (
                 row.concept_iri not in member_release
@@ -2353,16 +2484,12 @@ class ManagedReleaseView:
                 or row.complete_membership is not True
             ):
                 raise ManagedReleaseError(
-                    f"concept_event_participants[{index}] does not identify "
-                    "one exact complete-release member"
+                    f"concept_event_participants[{index}] does not identify one exact complete-release member"
                 )
             member_types = _node_types(nodes[row.concept_iri])
-            if not (
-                member_types & _type_spellings(row.concept_type_iri)
-            ):
+            if not (member_types & _type_spellings(row.concept_type_iri)):
                 raise ManagedReleaseError(
-                    f"concept_event_participants[{index}] concept type does "
-                    "not match the exact member graph"
+                    f"concept_event_participants[{index}] concept type does not match the exact member graph"
                 )
             operation = re.split(
                 r"[:/#]",
@@ -2370,8 +2497,7 @@ class ManagedReleaseView:
             )[-1]
             if operation != row.operation:
                 raise ManagedReleaseError(
-                    f"concept_event_participants[{index}] operation does not "
-                    "match its Rulespec event"
+                    f"concept_event_participants[{index}] operation does not match its Rulespec event"
                 )
             if row.participant_role == "predecessor":
                 concept_property = "rkaf:predecessorConcepts"
@@ -2384,15 +2510,15 @@ class ManagedReleaseView:
                     f"concept_event_participants[{index}] participant role "
                     "cannot be matched to the exact Rulespec graph"
                 )
-            if (
-                row.concept_iri
-                not in _iri_values(event.get(concept_property))
-                or _iri_values(event.get(release_property))
-                != (row.release_iri,)
+            if row.concept_iri not in graph_property_index.iri_targets[
+                (row.event_id, concept_property)
+            ] or graph_property_index.iri_sequences[
+                (row.event_id, release_property)
+            ] != (
+                row.release_iri,
             ):
                 raise ManagedReleaseError(
-                    f"concept_event_participants[{index}] does not round-trip "
-                    "to its exact Rulespec event"
+                    f"concept_event_participants[{index}] does not round-trip to its exact Rulespec event"
                 )
 
         managed_relations = tuple(
@@ -2440,36 +2566,26 @@ class ManagedReleaseView:
                     "rkaf:targetConceptRelease",
                 )
             }
-            if any(
-                len(values) != 1 for values in exact_values.values()
-            ):
+            if any(len(values) != 1 for values in exact_values.values()):
                 raise ManagedReleaseError(
-                    f"ConceptMapping {mapping_iri!r} has an incomplete "
-                    "endpoint or relation"
+                    f"ConceptMapping {mapping_iri!r} has an incomplete endpoint or relation"
                 )
             source_member = exact_values["rkaf:assertsSubject"][0]
             target_member = exact_values["rkaf:assertsObject"][0]
-            source_release = exact_values[
-                "rkaf:sourceConceptRelease"
-            ][0]
-            target_release = exact_values[
-                "rkaf:targetConceptRelease"
-            ][0]
+            source_release = exact_values["rkaf:sourceConceptRelease"][0]
+            target_release = exact_values["rkaf:targetConceptRelease"][0]
             if (
                 member_release.get(source_member) != source_release
                 or member_release.get(target_member) != target_release
             ):
                 raise ManagedReleaseError(
-                    f"ConceptMapping {mapping_iri!r} endpoint releases do "
-                    "not match exact complete membership"
+                    f"ConceptMapping {mapping_iri!r} endpoint releases do not match exact complete membership"
                 )
             managed_mappings.append(
                 ManagedReleaseConceptMapping(
                     mapping_iri=mapping_iri,
                     source_member_iri=source_member,
-                    relation_iri=exact_values[
-                        "rkaf:assertsPredicate"
-                    ][0],
+                    relation_iri=exact_values["rkaf:assertsPredicate"][0],
                     target_member_iri=target_member,
                     source_release_iri=source_release,
                     target_release_iri=target_release,
@@ -2506,9 +2622,7 @@ class ManagedReleaseView:
                 Mapping[str, Any],
                 _freeze(combined_receipt),
             ),
-            _source_artifacts=MappingProxyType(
-                dict(source_artifacts)
-            ),
+            _source_artifacts=MappingProxyType(dict(source_artifacts)),
             _records_by_id=MappingProxyType(
                 {
                     identifier: cast(
@@ -2556,8 +2670,7 @@ class ManagedReleaseView:
             return self._source_artifacts[source_artifact_iri]
         except KeyError as error:
             raise ManagedReleaseError(
-                "managed release has no packaged source artifact "
-                f"{source_artifact_iri!r}"
+                f"managed release has no packaged source artifact {source_artifact_iri!r}"
             ) from error
 
     def require_candidate_use(
@@ -2578,10 +2691,7 @@ class ManagedReleaseView:
             (facet_iri, "facet_iri"),
             (assignment_role_iri, "assignment_role_iri"),
         ):
-            if (
-                not isinstance(value, str)
-                or not _ABSOLUTE_IRI.fullmatch(value)
-            ):
+            if not isinstance(value, str) or not _ABSOLUTE_IRI.fullmatch(value):
                 raise ManagedReleaseAuthorizationError(
                     f"{label} must be an absolute IRI"
                 )
@@ -2593,14 +2703,12 @@ class ManagedReleaseView:
         selected = [
             record
             for record in self._records_by_id.values()
-            if record.get("type")
-            == "urn:ref:type:RegistryDeploymentDecision"
+            if record.get("type") == "urn:ref:type:RegistryDeploymentDecision"
             and record.get("selectionState") == "selected"
         ]
         if len(selected) != 1:
             raise ManagedReleaseAuthorizationError(
-                "candidate use requires exactly one selected "
-                "RegistryDeploymentDecision in the managed release"
+                "candidate use requires exactly one selected RegistryDeploymentDecision in the managed release"
             )
         deployment = selected[0]
 
@@ -2629,8 +2737,7 @@ class ManagedReleaseView:
                 )
             ):
                 raise ManagedReleaseAuthorizationError(
-                    f"{label} does not resolve to the exact selected "
-                    f"{record_type}"
+                    f"{label} does not resolve to the exact selected {record_type}"
                 )
             return record
 
@@ -2651,15 +2758,18 @@ class ManagedReleaseView:
         )
 
         facets = enrichment_profile.get("facets")
-        facet_rows = [
-            row
-            for row in facets
-            if isinstance(row, Mapping) and row.get("iri") == facet_iri
-        ] if isinstance(facets, Sequence) else []
+        facet_rows = (
+            [
+                row
+                for row in facets
+                if isinstance(row, Mapping) and row.get("iri") == facet_iri
+            ]
+            if isinstance(facets, Sequence)
+            else []
+        )
         if len(facet_rows) != 1:
             raise ManagedReleaseAuthorizationError(
-                f"facet {facet_iri!r} is not defined exactly once by the "
-                "selected EnrichmentProfile"
+                f"facet {facet_iri!r} is not defined exactly once by the selected EnrichmentProfile"
             )
         facet = facet_rows[0]
         if assignment_role_iri not in facet.get(
@@ -2667,16 +2777,14 @@ class ManagedReleaseView:
             (),
         ):
             raise ManagedReleaseAuthorizationError(
-                f"assignment role {assignment_role_iri!r} is incompatible "
-                f"with facet {facet_iri!r}"
+                f"assignment role {assignment_role_iri!r} is incompatible with facet {facet_iri!r}"
             )
         if resource_route not in facet.get(
             "compatibleResourceRoutes",
             (),
         ):
             raise ManagedReleaseAuthorizationError(
-                f"resource route {resource_route!r} is incompatible with "
-                f"facet {facet_iri!r}"
+                f"resource route {resource_route!r} is incompatible with facet {facet_iri!r}"
             )
 
         release_reference = deployment.get("referenceResourceRelease")
@@ -2686,33 +2794,32 @@ class ManagedReleaseView:
             label="RegistryDeploymentDecision.registryImportSnapshot",
             record_type=_IMPORT_SNAPSHOT_TYPE,
         )
-        if (
-            deployment.get("rightsAssessment")
-            != import_snapshot.get("rightsAssessment")
-            or deployment.get("adoptedPolicyRefs")
-            != import_snapshot.get("adoptedPolicyRefs")
+        if deployment.get("rightsAssessment") != import_snapshot.get(
+            "rightsAssessment"
+        ) or deployment.get("adoptedPolicyRefs") != import_snapshot.get(
+            "adoptedPolicyRefs"
         ):
             raise ManagedReleaseAuthorizationError(
-                "selected deployment rights and adopted policies differ "
-                "from its exact import snapshot"
+                "selected deployment rights and adopted policies differ from its exact import snapshot"
             )
-        if (
-            import_snapshot.get("referenceResourceRelease")
-            != release_reference
-        ):
+        if import_snapshot.get("referenceResourceRelease") != release_reference:
             raise ManagedReleaseAuthorizationError(
                 "selected import snapshot does not pin the deployment release"
             )
         permissions = output_profile.get("releasePermissions")
-        matches = [
-            row
-            for row in permissions
-            if isinstance(row, Mapping)
-            and row.get("facet") == facet_iri
-            and row.get("assignmentRole") == assignment_role_iri
-            and row.get("referenceResourceRelease") == release_reference
-            and row.get("registryImportSnapshot") == import_reference
-        ] if isinstance(permissions, Sequence) else []
+        matches = (
+            [
+                row
+                for row in permissions
+                if isinstance(row, Mapping)
+                and row.get("facet") == facet_iri
+                and row.get("assignmentRole") == assignment_role_iri
+                and row.get("referenceResourceRelease") == release_reference
+                and row.get("registryImportSnapshot") == import_reference
+            ]
+            if isinstance(permissions, Sequence)
+            else []
+        )
         if len(matches) != 1 or matches[0].get("candidateUse") is not True:
             raise ManagedReleaseAuthorizationError(
                 "candidate authorization must match exactly one complete "
@@ -2723,12 +2830,9 @@ class ManagedReleaseView:
 
         if (
             coverage_report.get("reportStatus") != "pass"
-            or coverage_report.get("outputProfile")
-            != deployment.get("outputProfile")
-            or coverage_report.get("referenceResourceRelease")
-            != release_reference
-            or coverage_report.get("registryImportSnapshot")
-            != import_reference
+            or coverage_report.get("outputProfile") != deployment.get("outputProfile")
+            or coverage_report.get("referenceResourceRelease") != release_reference
+            or coverage_report.get("registryImportSnapshot") != import_reference
         ):
             raise ManagedReleaseAuthorizationError(
                 "candidate authorization requires the selected passing "
@@ -2745,11 +2849,15 @@ class ManagedReleaseView:
                 "candidate permission has invalid requiredImportFeatures"
             )
         feature_rows = coverage_report.get("features")
-        covered = {
-            row.get("feature"): row
-            for row in feature_rows
-            if isinstance(row, Mapping)
-        } if isinstance(feature_rows, Sequence) else {}
+        covered = (
+            {
+                row.get("feature"): row
+                for row in feature_rows
+                if isinstance(row, Mapping)
+            }
+            if isinstance(feature_rows, Sequence)
+            else {}
+        )
         missing_or_failed = [
             feature
             for feature in required
@@ -2761,8 +2869,7 @@ class ManagedReleaseView:
         ]
         if missing_or_failed:
             raise ManagedReleaseAuthorizationError(
-                "candidate permission lacks passing exact import coverage for "
-                f"{sorted(missing_or_failed)!r}"
+                f"candidate permission lacks passing exact import coverage for {sorted(missing_or_failed)!r}"
             )
 
         return ManagedReleaseCandidatePermission(
@@ -2822,17 +2929,13 @@ class ManagedReleaseView:
         for member in self._members.values():
             if member_iri is not None and member.member_iri != member_iri:
                 continue
-            for source_property, exact_predicate_iri in (
-                _NATIVE_IDENTITY_PROPERTIES.items()
-            ):
-                if (
-                    predicate_iri is not None
-                    and exact_predicate_iri != predicate_iri
-                ):
+            for (
+                source_property,
+                exact_predicate_iri,
+            ) in _NATIVE_IDENTITY_PROPERTIES.items():
+                if predicate_iri is not None and exact_predicate_iri != predicate_iri:
                     continue
-                for object_iri in _iri_values(
-                    member.record.get(source_property)
-                ):
+                for object_iri in _iri_values(member.record.get(source_property)):
                     triple = (
                         member.member_iri,
                         exact_predicate_iri,
@@ -2893,30 +2996,20 @@ class ManagedReleaseView:
             assignment_role_iri=assignment_role_iri,
             resource_route=resource_route,
         )
-        permission_expressions: list[
-            tuple[ManagedReleaseExpression, str]
-        ] = []
+        permission_expressions: list[tuple[ManagedReleaseExpression, str]] = []
         for expression in self._expressions:
-            release_reference = expression.record.get(
-                "referenceResourceRelease"
-            )
-            import_reference = expression.record.get(
-                "registryImportSnapshot"
-            )
+            release_reference = expression.record.get("referenceResourceRelease")
+            import_reference = expression.record.get("registryImportSnapshot")
             if (
                 not isinstance(release_reference, Mapping)
                 or not isinstance(import_reference, Mapping)
-                or release_reference
-                != permission.reference_resource_release
-                or import_reference
-                != permission.registry_import_snapshot
+                or release_reference != permission.reference_resource_release
+                or import_reference != permission.registry_import_snapshot
             ):
                 continue
             release_iri = release_reference.get("id")
             if isinstance(release_iri, str):
-                permission_expressions.append(
-                    (expression, release_iri)
-                )
+                permission_expressions.append((expression, release_iri))
         statuses_by_member_release: dict[tuple[str, str], set[str]] = {}
         for expression, release_iri in permission_expressions:
             if expression.source_status is None:
@@ -2927,13 +3020,10 @@ class ManagedReleaseView:
             ).add(expression.source_status.strip().casefold())
         excluded_member_releases = {
             candidate_member_release
-            for candidate_member_release, statuses
-            in statuses_by_member_release.items()
+            for candidate_member_release, statuses in statuses_by_member_release.items()
             if (
                 len(statuses) != 1
-                or not statuses.isdisjoint(
-                    CANDIDATE_EXCLUDED_SOURCE_STATUSES
-                )
+                or not statuses.isdisjoint(CANDIDATE_EXCLUDED_SOURCE_STATUSES)
             )
         }
         excluded_member_releases.update(
@@ -2941,8 +3031,7 @@ class ManagedReleaseView:
             for participant in self._lifecycle_participants
             if (
                 participant.participant_role == "predecessor"
-                and participant.operation
-                in _CURRENT_ASSIGNMENT_RETIRING_OPERATIONS
+                and participant.operation in _CURRENT_ASSIGNMENT_RETIRING_OPERATIONS
             )
         )
         import_snapshot_record = self._records_by_id.get(
@@ -2956,47 +3045,36 @@ class ManagedReleaseView:
         if (
             isinstance(adopted_policy_refs, Sequence)
             and not isinstance(adopted_policy_refs, (str, bytes))
-            and _ELSST_NATIVE_SKOS_IMPORT_POLICY
-            in adopted_policy_refs
+            and _ELSST_NATIVE_SKOS_IMPORT_POLICY in adopted_policy_refs
         ):
-            selected_release_iri = (
-                permission.reference_resource_release.get("id")
-            )
+            selected_release_iri = permission.reference_resource_release.get("id")
             for member in self._members.values():
                 if member.release_iri != selected_release_iri:
                     continue
                 native_status = member.record.get(
                     "owl:deprecated",
-                    member.record.get(
-                        "http://www.w3.org/2002/07/owl#deprecated"
-                    ),
+                    member.record.get("http://www.w3.org/2002/07/owl#deprecated"),
                 )
                 status_values = (
                     (native_status,)
                     if isinstance(native_status, str)
-                    else tuple(native_status)
-                    if isinstance(native_status, Sequence)
-                    and not isinstance(native_status, (str, bytes))
-                    else ()
+                    else (
+                        tuple(native_status)
+                        if isinstance(native_status, Sequence)
+                        and not isinstance(native_status, (str, bytes))
+                        else ()
+                    )
                 )
-                if any(
-                    value in {"true", "1"}
-                    for value in status_values
-                ):
+                if any(value in {"true", "1"} for value in status_values):
                     excluded_member_releases.add(
                         (member.member_iri, member.release_iri)
                     )
         for expression, release_iri in permission_expressions:
             if (
-                (
-                    expression.member_iri,
-                    release_iri,
-                )
-                not in excluded_member_releases
-                and (
-                    member_iri is None
-                    or expression.member_iri == member_iri
-                )
+                expression.member_iri,
+                release_iri,
+            ) not in excluded_member_releases and (
+                member_iri is None or expression.member_iri == member_iri
             ):
                 yield expression
 
@@ -3022,10 +3100,7 @@ class ManagedReleaseView:
         """Iterate immutable participants, optionally for one exact event."""
 
         for participant in self._lifecycle_participants:
-            if (
-                event_iri is None
-                or participant.event_iri == event_iri
-            ):
+            if event_iri is None or participant.event_iri == event_iri:
                 yield participant
 
     def iter_concept_mappings(

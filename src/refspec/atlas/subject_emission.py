@@ -19,7 +19,7 @@ from refspec import binding
 from refspec.atlas.subject_admission import (
     SubjectAdmissionError,
     SubjectAdmissionReview,
-    validate_subject_admission_reviews,
+    _validate_subject_admission_reviews_with_facts,
 )
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
@@ -37,9 +37,9 @@ from refspec.vocabulary import OutputProfile, ReferenceRuntimeError
 from .concept_release import (
     ConceptReleaseError,
     SubjectConceptRelease,
-    concept_release_pin,
+    VerifiedConceptReleaseFacts,
     normalize_concept_release_pin,
-    require_subject_concept_release,
+    verified_concept_release_facts,
 )
 
 SUBJECT_EMISSION_POLICY_VERSION = "1.0"
@@ -129,19 +129,19 @@ def _require_exact_fields(
         )
 
 
-def _require_subject_release(release: SubjectConceptRelease) -> None:
+def _verified_release_facts(
+    release: SubjectConceptRelease,
+) -> VerifiedConceptReleaseFacts:
     try:
-        require_subject_concept_release(release)
+        facts = verified_concept_release_facts(release)
+        facts.require_subject()
     except ConceptReleaseError as error:
         raise SubjectEmissionError(str(error)) from error
+    return facts
 
 
-def _release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
-    _require_subject_release(release)
-    try:
-        return concept_release_pin(release)
-    except ConceptReleaseError as error:
-        raise SubjectEmissionError(str(error)) from error
+def _release_pin(facts: VerifiedConceptReleaseFacts) -> dict[str, Any]:
+    return cast(dict[str, Any], _plain(facts.pin))
 
 
 def _normalized_release_pin(value: object) -> dict[str, Any]:
@@ -322,10 +322,25 @@ class SubjectEmissionPolicy:
     ) -> tuple[SubjectAdmissionReview, ...]:
         """Resolve every policy row to one admitted review on the exact release."""
 
-        if _plain(self.record["subjectConceptRelease"]) != _release_pin(release):
+        return self._validate_for_facts(
+            _verified_release_facts(release),
+            reviews,
+        )
+
+    def _validate_for_facts(
+        self,
+        facts: VerifiedConceptReleaseFacts,
+        reviews: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
+    ) -> tuple[SubjectAdmissionReview, ...]:
+        """Resolve policy rows from one operation-scoped release view."""
+
+        if _plain(self.record["subjectConceptRelease"]) != _release_pin(facts):
             raise SubjectEmissionError("subject emission policy names another exact release")
         try:
-            validated = validate_subject_admission_reviews(release, reviews)
+            validated = _validate_subject_admission_reviews_with_facts(
+                facts,
+                reviews,
+            )
         except SubjectAdmissionError as error:
             raise SubjectEmissionError(str(error)) from error
         reviews_by_id = {review.identifier: review for review in validated}
@@ -390,13 +405,14 @@ def build_subject_emission_policy(
 ) -> SubjectEmissionPolicy:
     """Build eligibility that still requires an OutputProfile use grant."""
 
+    facts = _verified_release_facts(release)
     raw_basis = {
         "type": SUBJECT_EMISSION_POLICY_TYPE,
         "schemaVersion": SUBJECT_EMISSION_POLICY_VERSION,
         "version": version,
         "recordedAt": recorded_at,
         "recordedBy": recorded_by,
-        "subjectConceptRelease": _release_pin(release),
+        "subjectConceptRelease": _release_pin(facts),
         "eligibility": list(eligibility),
     }
     basis = _normalized_policy_basis(raw_basis)
@@ -408,7 +424,7 @@ def build_subject_emission_policy(
             "contentDigest": content_digest,
         }
     )
-    policy.validate_for_release(release, reviews)
+    policy._validate_for_facts(facts, reviews)
     return policy
 
 
@@ -579,7 +595,8 @@ def resolve_subject_emission_policy(
     except ReferenceRuntimeError as error:
         raise SubjectEmissionError(str(error)) from error
 
-    validated_reviews = policy.validate_for_release(release, admission_reviews)
+    facts = _verified_release_facts(release)
+    validated_reviews = policy._validate_for_facts(facts, admission_reviews)
     reviews_by_id = {review.identifier: review for review in validated_reviews}
     selector = {
         "subjectConcept": _require_iri(subject_concept, "subject_concept"),
@@ -620,7 +637,7 @@ def resolve_subject_emission_policy(
         intended_product_use=selector["intendedProductUse"],
         subject_concept_release=cast(
             Mapping[str, Any],
-            deep_freeze_json(_release_pin(release)),
+            deep_freeze_json(_release_pin(facts)),
         ),
         admission_review=cast(
             Mapping[str, str],

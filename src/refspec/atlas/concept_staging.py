@@ -28,6 +28,7 @@ from typing_extensions import Self
 
 from refspec import binding
 from refspec.immutable import deep_freeze_json
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     plain_json,
@@ -39,10 +40,9 @@ from .concept_release import (
     ConceptReleaseError,
     PinnedManagedConceptRelease,
     SubjectConceptRelease,
-    concept_release_pin,
+    VerifiedConceptReleaseFacts,
     normalize_concept_release_pin,
-    require_admissible_subject_concept,
-    require_subject_concept_release,
+    verified_concept_release_facts,
 )
 
 CONCEPT_AUTHORING_TRANSITION_TYPE = "ConceptAuthoringTransition"
@@ -623,24 +623,49 @@ def _validate_placement_in_graph(
         )
 
 
+def _verified_release_facts(
+    release: SubjectConceptRelease,
+    facts_by_release: dict[int, VerifiedConceptReleaseFacts],
+) -> VerifiedConceptReleaseFacts:
+    """Reuse one fresh verification for repeated rows in this operation."""
+
+    key = id(release)
+    facts = facts_by_release.get(key)
+    if facts is not None:
+        if facts.release is not release:
+            raise ConceptStagingError("concept release verification cache collided")
+        return facts
+    try:
+        facts = verified_concept_release_facts(release)
+    except ConceptReleaseError as error:
+        raise ConceptStagingError(str(error)) from error
+    facts_by_release[key] = facts
+    return facts
+
+
 def _output_context(
     release: PinnedManagedConceptRelease,
     *,
     authored_concept: str,
     authoring_attestation: str,
     placement: Mapping[str, str],
+    facts_by_release: dict[int, VerifiedConceptReleaseFacts],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if not isinstance(release, PinnedManagedConceptRelease):
         raise ConceptStagingError(
             "concept authoring requires an exact managed concept release"
-        )
+    )
     try:
-        require_subject_concept_release(release)
-        concept_id = require_admissible_subject_concept(release, authored_concept)
-        release_pin = concept_release_pin(release)
-        view = release.verified_view()
+        facts = _verified_release_facts(release, facts_by_release)
+        concept_id = facts.require_admissible_subject_concept(authored_concept)
+        release_pin = cast(dict[str, Any], _plain(facts.pin))
+        view = facts.view
     except ConceptReleaseError as error:
         raise ConceptStagingError(str(error)) from error
+    if not isinstance(view, ManagedReleaseGraphFactsView):
+        raise ConceptStagingError(
+            "managed concept release verification returned the wrong view kind"
+        )
     graph = cast(Mapping[str, Any], view.rulespec_graph)
     nodes = _graph_nodes(graph)
     concept = nodes.get(concept_id)
@@ -709,19 +734,23 @@ def _source_context(
     *,
     authored_concept: str,
     authoring_kind: AuthoringKind,
+    facts_by_release: dict[int, VerifiedConceptReleaseFacts],
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for index, source in enumerate(values):
         if not isinstance(source, ConceptAuthoringSource):
             raise ConceptStagingError(
                 f"concept authoring source[{index}] must be ConceptAuthoringSource"
-            )
+        )
         try:
-            concept_id = require_admissible_subject_concept(
+            facts = _verified_release_facts(
                 source.release,
-                source.concept_id,
+                facts_by_release,
             )
-            release_pin = concept_release_pin(source.release)
+            concept_id = facts.require_admissible_subject_concept(
+                source.concept_id
+            )
+            release_pin = cast(dict[str, Any], _plain(facts.pin))
         except ConceptReleaseError as error:
             raise ConceptStagingError(str(error)) from error
         if concept_id == authored_concept:
@@ -804,6 +833,25 @@ class ConceptAuthoringTransition:
     ) -> None:
         """Reopen every exact input and require the same completed transition."""
 
+        self._validate_context_with_facts(
+            proposal=proposal,
+            authored_release=authored_release,
+            source_concepts=source_concepts,
+            rights_assessment=rights_assessment,
+            facts_by_release={},
+        )
+
+    def _validate_context_with_facts(
+        self,
+        *,
+        proposal: Mapping[str, Any],
+        authored_release: PinnedManagedConceptRelease,
+        source_concepts: Sequence[ConceptAuthoringSource],
+        rights_assessment: Mapping[str, Any],
+        facts_by_release: dict[int, VerifiedConceptReleaseFacts],
+    ) -> None:
+        """Validate using the caller's operation-scoped release facts."""
+
         record = self.as_record()
         proposal_ref, evidence = _proposal_context(proposal)
         rights_ref = _rights_context(rights_assessment)
@@ -812,6 +860,7 @@ class ConceptAuthoringTransition:
             source_concepts,
             authored_concept=self.authored_concept,
             authoring_kind=authoring_kind,
+            facts_by_release=facts_by_release,
         )
         checklist = cast(dict[str, Any], record["checklist"])
         output_pin, authored_text = _output_context(
@@ -822,6 +871,7 @@ class ConceptAuthoringTransition:
                 record["authoringAttestation"]["id"],
             ),
             placement=cast(Mapping[str, str], checklist["placement"]),
+            facts_by_release=facts_by_release,
         )
         if record["proposal"] != proposal_ref:
             raise ConceptStagingError("concept authoring transition names another proposal")
@@ -873,10 +923,12 @@ def build_concept_authoring_transition(
     proposal_ref, evidence = _proposal_context(proposal)
     rights_ref = _rights_context(rights_assessment)
     normalized_placement = _normalize_placement(placement)
+    facts_by_release: dict[int, VerifiedConceptReleaseFacts] = {}
     sources = _source_context(
         source_concepts,
         authored_concept=concept_id,
         authoring_kind=authoring_kind,
+        facts_by_release=facts_by_release,
     )
     output_pin, authored_text = _output_context(
         authored_release,
@@ -886,6 +938,7 @@ def build_concept_authoring_transition(
             "authoring_attestation",
         ),
         placement=normalized_placement,
+        facts_by_release=facts_by_release,
     )
     basis = _normalize_basis(
         {
@@ -920,11 +973,12 @@ def build_concept_authoring_transition(
             "recordDigest": record_digest,
         }
     )
-    transition.validate_context(
+    transition._validate_context_with_facts(
         proposal=proposal,
         authored_release=authored_release,
         source_concepts=source_concepts,
         rights_assessment=rights_assessment,
+        facts_by_release=facts_by_release,
     )
     return transition
 

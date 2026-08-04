@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
+from refspec import binding
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import plain_json
 from refspec.registry.infrastructure.semantic_foundation import (
@@ -26,7 +27,8 @@ from .atlas_scope import SubjectParticipation
 from .model import (
     VocabularyAtlasAsset,
     VocabularyAtlasError,
-    _decode_record_dataset,
+    _decode_atlas_dataset,
+    _snapshots_from_records,
 )
 from .projection import VocabularyAtlasProjection
 from .release_snapshot import AtlasReleaseSnapshot
@@ -69,6 +71,33 @@ _SKOS_LABEL_FIELDS: tuple[tuple[str, LabelRole], ...] = (
     ("skos:hiddenLabel", "hidden"),
     ("http://www.w3.org/2004/02/skos/core#hiddenLabel", "hidden"),
 )
+_SKOS_NATIVE_RELATION_FIELDS: tuple[tuple[str, str], ...] = (
+    (
+        "skos:broader",
+        "http://www.w3.org/2004/02/skos/core#broader",
+    ),
+    (
+        "http://www.w3.org/2004/02/skos/core#broader",
+        "http://www.w3.org/2004/02/skos/core#broader",
+    ),
+    (
+        "skos:narrower",
+        "http://www.w3.org/2004/02/skos/core#narrower",
+    ),
+    (
+        "http://www.w3.org/2004/02/skos/core#narrower",
+        "http://www.w3.org/2004/02/skos/core#narrower",
+    ),
+    (
+        "skos:related",
+        "http://www.w3.org/2004/02/skos/core#related",
+    ),
+    (
+        "http://www.w3.org/2004/02/skos/core#related",
+        "http://www.w3.org/2004/02/skos/core#related",
+    ),
+)
+_SKOS_NATIVE_RELATION_PREDICATES = frozenset(predicate for _field, predicate in _SKOS_NATIVE_RELATION_FIELDS)
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +123,54 @@ class ConceptVersion:
     record_id: str
     record_digest: str
     record: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class NativeConceptRelation:
+    """One source-native SKOS assertion inside one exact concept release."""
+
+    subject_concept: str
+    predicate_iri: str
+    object_concept: str
+    release_id: str
+    semantic_ring: SemanticRing
+    source_record_id: str
+    source_record_digest: str
+
+    @property
+    def relation_id(self) -> str:
+        return native_concept_relation_id(
+            subject_concept=self.subject_concept,
+            predicate_iri=self.predicate_iri,
+            object_concept=self.object_concept,
+            release_id=self.release_id,
+            source_record_id=self.source_record_id,
+            source_record_digest=self.source_record_digest,
+        )
+
+
+def native_concept_relation_id(
+    *,
+    subject_concept: str,
+    predicate_iri: str,
+    object_concept: str,
+    release_id: str,
+    source_record_id: str,
+    source_record_digest: str,
+) -> str:
+    """Derive the stable view identity for one exact native assertion."""
+
+    digest = binding.canonical_sha256(
+        {
+            "subjectConcept": subject_concept,
+            "predicate": predicate_iri,
+            "objectConcept": object_concept,
+            "releaseId": release_id,
+            "sourceRecordId": source_record_id,
+            "sourceRecordDigest": source_record_digest,
+        }
+    )
+    return "urn:ref:vocabulary-atlas-native-relation:" + digest.removeprefix("sha256:")
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,6 +317,33 @@ def _language_values(value: object) -> tuple[tuple[str, str | None], ...]:
     return ()
 
 
+def _native_relation_targets(
+    value: object,
+    *,
+    label: str,
+) -> tuple[str, ...]:
+    if isinstance(value, str):
+        targets = (value,)
+    elif isinstance(value, Mapping) and isinstance(value.get("@id"), str):
+        targets = (cast(str, value["@id"]),)
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        targets = tuple(
+            target
+            for index, child in enumerate(value)
+            for target in _native_relation_targets(
+                child,
+                label=f"{label}[{index}]",
+            )
+        )
+    else:
+        raise VocabularyAtlasError(f"{label} must contain one or more concept IRIs")
+    if any(not target.strip() for target in targets):
+        raise VocabularyAtlasError(f"{label} must contain non-empty concept IRIs")
+    if len(targets) != len(set(targets)):
+        raise VocabularyAtlasError(f"{label} repeats a concept IRI")
+    return targets
+
+
 class VocabularyAtlasQueries:
     """Consumer queries over one verified canonical asset or derived projection."""
 
@@ -253,7 +357,7 @@ class VocabularyAtlasQueries:
         asset_id = asset.manifest.get("id")
         if not isinstance(asset_id, str):
             raise VocabularyAtlasError("verified atlas manifest has no asset id")
-        decoded = _decode_record_dataset(asset.payload, asset_id=asset_id)
+        decoded = _decode_atlas_dataset(asset.payload, asset_id=asset_id).records
         self._records = tuple(
             CanonicalAtlasRecord(
                 record_id=value.identifier,
@@ -270,9 +374,7 @@ class VocabularyAtlasQueries:
             role: tuple(value for value in self._records if value.role == role) for role in _RECORD_ROLES
         }
 
-        self._snapshots = tuple(
-            AtlasReleaseSnapshot.from_record(value.record) for value in self._records_by_role["conceptRelease"]
-        )
+        self._snapshots = _snapshots_from_records(decoded)
         self._snapshots = tuple(
             sorted(
                 self._snapshots,
@@ -284,6 +386,8 @@ class VocabularyAtlasQueries:
         )
         self._release_rings = {value.release_id: value.semantic_ring for value in self._snapshots}
         self._concepts = self._build_concepts()
+        self._concept_by_key = self._build_concept_index()
+        self._native_relations = self._build_native_relations()
         self._classifications = self._build_classifications()
         self._release_records_by_native_id = {
             (release_id, value.native_id): value
@@ -325,6 +429,71 @@ class VocabularyAtlasQueries:
                 ),
             )
         )
+
+    def _build_native_relations(
+        self,
+    ) -> tuple[NativeConceptRelation, ...]:
+        concepts_by_key = {(value.release_id, value.concept_id): value for value in self._concepts}
+        relations: dict[
+            tuple[str, str, str, str],
+            NativeConceptRelation,
+        ] = {}
+        for concept in self._concepts:
+            for field, predicate in _SKOS_NATIVE_RELATION_FIELDS:
+                raw_targets = concept.record.get(field)
+                if raw_targets is None:
+                    continue
+                for target in _native_relation_targets(
+                    raw_targets,
+                    label=(f"concept {concept.concept_id!r} native relation {field}"),
+                ):
+                    target_concept = concepts_by_key.get((concept.release_id, target))
+                    if target_concept is None:
+                        raise VocabularyAtlasError(
+                            "source-native relation endpoint is outside its exact concept release"
+                        )
+                    if target_concept.semantic_ring != concept.semantic_ring:
+                        raise VocabularyAtlasError("source-native relation crosses semantic rings")
+                    key = (
+                        concept.release_id,
+                        concept.concept_id,
+                        predicate,
+                        target,
+                    )
+                    if key in relations:
+                        raise VocabularyAtlasError("source-native relation is asserted more than once")
+                    relations[key] = NativeConceptRelation(
+                        subject_concept=concept.concept_id,
+                        predicate_iri=predicate,
+                        object_concept=target,
+                        release_id=concept.release_id,
+                        semantic_ring=concept.semantic_ring,
+                        source_record_id=concept.record_id,
+                        source_record_digest=concept.record_digest,
+                    )
+        return tuple(
+            relations[key]
+            for key in sorted(
+                relations,
+                key=lambda value: (
+                    _RING_ORDER[relations[value].semantic_ring],
+                    *value,
+                ),
+            )
+        )
+
+    def _build_concept_index(
+        self,
+    ) -> Mapping[tuple[str, str], ConceptVersion]:
+        result: dict[tuple[str, str], ConceptVersion] = {}
+        for value in self._concepts:
+            key = (value.release_id, value.concept_id)
+            if key in result:
+                raise VocabularyAtlasError(
+                    "atlas repeats a concept version inside one release"
+                )
+            result[key] = value
+        return result
 
     def _build_classifications(self) -> tuple[AtlasIndexClassification, ...]:
         values: list[AtlasIndexClassification] = []
@@ -524,16 +693,40 @@ class VocabularyAtlasQueries:
             and (concept_id is None or value.concept_id == concept_id)
         )
 
+    def native_relations(
+        self,
+        *,
+        release_id: str | None = None,
+        predicate_iri: str | None = None,
+        concept_id: str | None = None,
+    ) -> tuple[NativeConceptRelation, ...]:
+        """Return exact source-native SKOS assertions without inference.
+
+        ``concept_id`` selects assertions where the concept is either the
+        subject or object. Broader/narrower inverses and symmetric related
+        assertions remain separate when the source release states both.
+        """
+
+        if predicate_iri is not None and predicate_iri not in _SKOS_NATIVE_RELATION_PREDICATES:
+            raise VocabularyAtlasError("source-native relation predicate is unsupported")
+        return tuple(
+            value
+            for value in self._native_relations
+            if (release_id is None or value.release_id == release_id)
+            and (predicate_iri is None or value.predicate_iri == predicate_iri)
+            and (concept_id is None or concept_id in {value.subject_concept, value.object_concept})
+        )
+
     def concept_history(self, concept_id: str) -> tuple[ConceptVersion, ...]:
         """Return every release-scoped record for one stable concept identity."""
 
         return self.concepts(concept_id=concept_id)
 
     def concept(self, concept_id: str, *, release_id: str) -> ConceptVersion:
-        matches = self.concepts(concept_id=concept_id, release_id=release_id)
-        if len(matches) != 1:
+        match = self._concept_by_key.get((release_id, concept_id))
+        if match is None:
             raise VocabularyAtlasError("atlas contains no unique concept version for that release")
-        return matches[0]
+        return match
 
     def index_classifications(
         self,
@@ -731,6 +924,8 @@ __all__ = [
     "LabelRole",
     "MachineProofView",
     "MappingAssertionView",
+    "NativeConceptRelation",
     "VocabularyAtlasDistribution",
     "VocabularyAtlasQueries",
+    "native_concept_relation_id",
 ]

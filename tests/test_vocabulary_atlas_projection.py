@@ -12,6 +12,8 @@ import test_relation_assertion_bundle as relation_fixtures
 from jsonschema import Draft202012Validator
 from rdflib import Dataset, URIRef
 
+import refspec.atlas.model as atlas_model
+import refspec.atlas.projection as atlas_projection
 from refspec import binding
 from refspec.atlas.atlas_scope import AtlasScopeRelease
 from refspec.atlas.machine_evidence import (
@@ -25,9 +27,11 @@ from refspec.atlas.model import (
     _CanonicalRecordSet,
     _decode_record_dataset,
     _digest_bytes,
+    _embedded_snapshot_record,
     _plain,
     _record_dataset,
     _snapshot_release_records,
+    _snapshots_from_records,
 )
 from refspec.atlas.projection import (
     MANIFEST_TYPE,
@@ -96,7 +100,7 @@ def _add_release(
     source_module: str,
     participation: str | None,
 ) -> None:
-    records.add(snapshot.as_record(), role="conceptRelease")
+    records.add(_embedded_snapshot_record(snapshot), role="conceptRelease")
     for concept in snapshot.concept_records:
         records.add(concept, role="concept", in_release=snapshot.release_id)
     for row in _snapshot_release_records(snapshot):
@@ -294,9 +298,8 @@ def _records(projection: VocabularyAtlasProjection):
 
 def _release_ids(projection: VocabularyAtlasProjection) -> set[str]:
     return {
-        AtlasReleaseSnapshot.from_record(record.record).release_id
-        for record in _records(projection)
-        if record.role == "conceptRelease"
+        snapshot.release_id
+        for snapshot in _snapshots_from_records(_records(projection))
     }
 
 
@@ -461,6 +464,39 @@ def test_projection_round_trips_and_reproduces_from_verified_parent_alone(
     assert opened.manifest == reproduced.manifest == projection.manifest
     assert opened.manifest["type"] == MANIFEST_TYPE
     assert distribution_kind(written) == "vocabularyAtlasProjection"
+
+
+def test_projection_open_uses_one_closed_decode_without_rdflib_parsing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    parent, _ = _parent(tmp_path)
+    projection = build_atlas_projection(
+        parent,
+        policy=ring_projection_policy("subject"),
+    )
+    written = projection.write(tmp_path / "decode-once-projection")
+
+    calls = {"decode": 0}
+    original_decode = atlas_projection._decode_atlas_dataset
+
+    def counted_decode(payload: bytes, *, asset_id: str):
+        calls["decode"] += 1
+        return original_decode(payload, asset_id=asset_id)
+
+    def unexpected_rdflib_path(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("closed Atlas decode must not invoke rdflib parsing or canonicalization")
+
+    monkeypatch.setattr(atlas_projection, "_decode_atlas_dataset", counted_decode)
+    monkeypatch.setattr(Dataset, "parse", unexpected_rdflib_path)
+    monkeypatch.setattr(atlas_model, "_canonical_nquads", unexpected_rdflib_path)
+
+    VocabularyAtlasProjection.open(
+        written,
+        expected_manifest_digest=projection.manifest_digest,
+    )
+
+    assert calls == {"decode": 1}
 
 
 @pytest.mark.parametrize(

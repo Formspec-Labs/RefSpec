@@ -37,12 +37,9 @@ from refspec.registry.infrastructure.source_identity import (
 from .concept_release import (
     ConceptReleaseError,
     SubjectConceptRelease,
-    concept_release_member_ids,
-    concept_release_pin,
+    VerifiedConceptReleaseFacts,
     normalize_concept_release_pin,
-    require_admissible_subject_concept,
-    require_subject_concept_release,
-    subject_release_rights_metadata,
+    verified_concept_release_facts,
 )
 
 SUBJECT_ADMISSION_REVIEW_VERSION = "1.0"
@@ -145,44 +142,37 @@ def _require_unique_iris(value: object, label: str) -> tuple[str, ...]:
     return tuple(sorted(result))
 
 
-def _release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
+def _verified_release_facts(
+    release: SubjectConceptRelease,
+) -> VerifiedConceptReleaseFacts:
     try:
-        require_subject_concept_release(release)
-        return concept_release_pin(release)
+        facts = verified_concept_release_facts(release)
+        facts.require_subject()
     except ConceptReleaseError as error:
         raise SubjectAdmissionError(str(error)) from error
+    return facts
 
 
-def _require_subject_release(release: SubjectConceptRelease) -> None:
-    try:
-        require_subject_concept_release(release)
-    except ConceptReleaseError as error:
-        raise SubjectAdmissionError(str(error)) from error
-
-
-def _concept_ids(release: SubjectConceptRelease) -> frozenset[str]:
-    try:
-        return concept_release_member_ids(release)
-    except ConceptReleaseError as error:
-        raise SubjectAdmissionError(str(error)) from error
+def _release_pin(facts: VerifiedConceptReleaseFacts) -> dict[str, Any]:
+    return cast(dict[str, Any], _plain(facts.pin))
 
 
 def _require_admissible_concept(
-    release: SubjectConceptRelease,
+    facts: VerifiedConceptReleaseFacts,
     concept_iri: str,
 ) -> str:
     try:
-        return require_admissible_subject_concept(release, concept_iri)
+        return facts.require_admissible_subject_concept(concept_iri)
     except ConceptReleaseError as error:
         raise SubjectAdmissionError(str(error)) from error
 
 
 def _release_rights(
-    release: SubjectConceptRelease,
+    facts: VerifiedConceptReleaseFacts,
     supplied: Sequence[RightsMetadata | Mapping[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], ...]:
     try:
-        return subject_release_rights_metadata(release, supplied)
+        return facts.rights_metadata(supplied)
     except ConceptReleaseError as error:
         raise SubjectAdmissionError(str(error)) from error
 
@@ -384,12 +374,19 @@ class SubjectAdmissionReview:
     def validate_for_release(self, release: SubjectConceptRelease) -> None:
         """Require the exact release, existing identity, and sealed rights facts."""
 
-        _require_subject_release(release)
-        if _plain(self.record["subjectConceptRelease"]) != _release_pin(release):
+        self._validate_for_facts(_verified_release_facts(release))
+
+    def _validate_for_facts(
+        self,
+        facts: VerifiedConceptReleaseFacts,
+    ) -> None:
+        """Validate against facts already opened for this operation."""
+
+        if _plain(self.record["subjectConceptRelease"]) != _release_pin(facts):
             raise SubjectAdmissionError("subject admission review names another exact release")
-        _require_admissible_concept(release, self.subject_concept)
+        _require_admissible_concept(facts, self.subject_concept)
         release_rights = _release_rights(
-            release,
+            facts,
             cast(Sequence[Mapping[str, Any]], self.record["rightsMetadata"]),
         )
         if _plain(self.record["rightsMetadata"]) != list(release_rights):
@@ -412,10 +409,10 @@ def build_subject_admission_review(
 ) -> SubjectAdmissionReview:
     """Review an existing identity without re-minting it or granting use."""
 
-    _require_subject_release(release)
+    facts = _verified_release_facts(release)
     if decision not in _DECISION_IRIS:
         raise SubjectAdmissionError("decision must be admit or reject")
-    concept = _require_admissible_concept(release, subject_concept)
+    concept = _require_admissible_concept(facts, subject_concept)
     reviewer_iri = _require_iri(reviewer, "reviewer")
     review_time = _require_datetime(reviewed_at, "reviewed_at")
     raw_basis = {
@@ -423,7 +420,7 @@ def build_subject_admission_review(
         "schemaVersion": SUBJECT_ADMISSION_REVIEW_VERSION,
         "decision": decision,
         "subjectConcept": concept,
-        "subjectConceptRelease": _release_pin(release),
+        "subjectConceptRelease": _release_pin(facts),
         "definitionOrScopeNote": definition_or_scope_note,
         "hierarchyPlacement": dict(hierarchy_placement),
         "facet": facet,
@@ -431,7 +428,7 @@ def build_subject_admission_review(
             value.as_record() if isinstance(value, EvidenceAssertion) else dict(value)
             for value in evidence_assertions
         ],
-        "rightsMetadata": list(_release_rights(release, rights_metadata)),
+        "rightsMetadata": list(_release_rights(facts, rights_metadata)),
         "reviewer": reviewer_iri,
         "reviewedAt": review_time,
         "intendedProductUses": list(intended_product_uses),
@@ -453,7 +450,18 @@ def validate_subject_admission_reviews(
 ) -> tuple[SubjectAdmissionReview, ...]:
     """Validate one final review per release member; product use stays separate."""
 
-    _require_subject_release(release)
+    return _validate_subject_admission_reviews_with_facts(
+        _verified_release_facts(release),
+        values,
+    )
+
+
+def _validate_subject_admission_reviews_with_facts(
+    facts: VerifiedConceptReleaseFacts,
+    values: Sequence[SubjectAdmissionReview | Mapping[str, Any]],
+) -> tuple[SubjectAdmissionReview, ...]:
+    """Validate several reviews from one operation-scoped release view."""
+
     result: list[SubjectAdmissionReview] = []
     concepts: set[str] = set()
     identifiers: set[str] = set()
@@ -463,7 +471,7 @@ def validate_subject_admission_reviews(
             if isinstance(value, SubjectAdmissionReview)
             else SubjectAdmissionReview.from_record(value)
         )
-        review.validate_for_release(release)
+        review._validate_for_facts(facts)
         if review.identifier in identifiers:
             raise SubjectAdmissionError("subject admission reviews repeat an id")
         if review.subject_concept in concepts:

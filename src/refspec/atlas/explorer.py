@@ -14,8 +14,10 @@ from refspec.registry.infrastructure.semantic_foundation import (
     validate_ring_relation,
 )
 
+from .queries import native_concept_relation_id
+
 EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
-EXPLORER_SCHEMA_VERSION = "2.0"
+EXPLORER_SCHEMA_VERSION = "2.1"
 
 _MODEL_FIELDS = frozenset(
     {
@@ -27,6 +29,7 @@ _MODEL_FIELDS = frozenset(
         "summary",
         "conceptReleases",
         "concepts",
+        "nativeRelations",
         "mappingAssertions",
     }
 )
@@ -47,8 +50,10 @@ _SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappi
 _SUMMARY_FIELDS = frozenset(
     {
         "shownConceptCount",
+        "shownNativeRelationCount",
         "shownMappingAssertionCount",
         "availableConceptCount",
+        "availableNativeRelationCount",
         "availableMappingAssertionCount",
         "truncated",
     }
@@ -88,8 +93,34 @@ _MAPPING_FIELDS = frozenset(
         "machineProofs",
     }
 )
+_NATIVE_RELATION_FIELDS = frozenset(
+    {
+        "id",
+        "subjectViewId",
+        "objectViewId",
+        "subjectConcept",
+        "objectConcept",
+        "releaseId",
+        "semanticRing",
+        "predicate",
+        "predicateLabel",
+        "sourceRecordId",
+        "sourceRecordDigest",
+    }
+)
 _RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
-_SELECTION_REASONS = frozenset({"mappingEndpoint", "releaseRepresentative"})
+_SELECTION_REASONS = frozenset(
+    {
+        "mappingEndpoint",
+        "nativeRelationEndpoint",
+        "releaseRepresentative",
+    }
+)
+_NATIVE_RELATION_LABELS = {
+    "http://www.w3.org/2004/02/skos/core#broader": "broader",
+    "http://www.w3.org/2004/02/skos/core#narrower": "narrower",
+    "http://www.w3.org/2004/02/skos/core#related": "related",
+}
 _EVIDENCE_CLASSES = frozenset(
     {
         "machineQualified",
@@ -127,7 +158,7 @@ def _exact_fields(
 ) -> None:
     actual = set(value)
     if not expected <= actual or not actual <= expected | optional:
-        raise AtlasExplorerError(f"{label} fields differ from Atlas 2.0")
+        raise AtlasExplorerError(f"{label} fields differ from Atlas explorer {EXPLORER_SCHEMA_VERSION}")
 
 
 def _text(value: object, label: str) -> str:
@@ -160,7 +191,7 @@ def _text_array(value: object, label: str) -> tuple[str, ...]:
 def _validate_model(model: Mapping[str, Any]) -> None:
     _exact_fields(model, _MODEL_FIELDS, "atlas explorer")
     if model.get("type") != EXPLORER_TYPE or model.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
-        raise AtlasExplorerError("atlas explorer type or schemaVersion differs from 2.0")
+        raise AtlasExplorerError("atlas explorer type or schemaVersion differs from " + EXPLORER_SCHEMA_VERSION)
     _text(model.get("title"), "atlas explorer title")
 
     atlas = _mapping(model.get("atlas"), "atlas explorer atlas")
@@ -185,7 +216,7 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     selection = _mapping(model.get("selectionPolicy"), "atlas explorer selectionPolicy")
     _exact_fields(selection, _SELECTION_FIELDS, "atlas explorer selectionPolicy")
     if selection.get("type") != "boundedExplorerView" or selection.get("version") != EXPLORER_SCHEMA_VERSION:
-        raise AtlasExplorerError("atlas explorer selectionPolicy differs from 2.0")
+        raise AtlasExplorerError("atlas explorer selectionPolicy differs from " + EXPLORER_SCHEMA_VERSION)
     _text(selection.get("id"), "atlas explorer selectionPolicy.id")
     max_concepts = _count(
         selection.get("maxConcepts"),
@@ -204,6 +235,10 @@ def _validate_model(model: Mapping[str, Any]) -> None:
         summary.get("shownMappingAssertionCount"),
         "atlas explorer summary.shownMappingAssertionCount",
     )
+    shown_native_relations = _count(
+        summary.get("shownNativeRelationCount"),
+        "atlas explorer summary.shownNativeRelationCount",
+    )
     available_concepts = _count(
         summary.get("availableConceptCount"),
         "atlas explorer summary.availableConceptCount",
@@ -211,6 +246,10 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     available_mappings = _count(
         summary.get("availableMappingAssertionCount"),
         "atlas explorer summary.availableMappingAssertionCount",
+    )
+    available_native_relations = _count(
+        summary.get("availableNativeRelationCount"),
+        "atlas explorer summary.availableNativeRelationCount",
     )
     if not isinstance(summary.get("truncated"), bool):
         raise AtlasExplorerError("atlas explorer summary.truncated must be boolean")
@@ -265,6 +304,59 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     if any(release_by_id[key]["shownConceptCount"] != value for key, value in shown_by_release.items()):
         raise AtlasExplorerError("atlas explorer release shown counts differ from its concepts")
 
+    native_relations = _sequence(
+        model.get("nativeRelations"),
+        "atlas explorer nativeRelations",
+    )
+    native_relation_ids: set[str] = set()
+    for index, raw in enumerate(native_relations):
+        label = f"atlas explorer nativeRelations[{index}]"
+        row = _mapping(raw, label)
+        _exact_fields(row, _NATIVE_RELATION_FIELDS, label)
+        relation_id = _text(row.get("id"), f"{label}.id")
+        if relation_id in native_relation_ids:
+            raise AtlasExplorerError("atlas explorer repeats a native relation")
+        subject = concept_by_view_id.get(_text(row.get("subjectViewId"), f"{label}.subjectViewId"))
+        object_concept = concept_by_view_id.get(_text(row.get("objectViewId"), f"{label}.objectViewId"))
+        if subject is None or object_concept is None:
+            raise AtlasExplorerError("atlas explorer native relation has an unavailable endpoint")
+        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
+        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        if (
+            subject["releaseId"] != release_id
+            or object_concept["releaseId"] != release_id
+            or subject["semanticRing"] != ring
+            or object_concept["semanticRing"] != ring
+            or subject["conceptId"] != row.get("subjectConcept")
+            or object_concept["conceptId"] != row.get("objectConcept")
+        ):
+            raise AtlasExplorerError("atlas explorer native relation differs from its exact release endpoints")
+        predicate = _text(row.get("predicate"), f"{label}.predicate")
+        expected_label = _NATIVE_RELATION_LABELS.get(predicate)
+        if expected_label is None or row.get("predicateLabel") != expected_label:
+            raise AtlasExplorerError("atlas explorer native relation predicate is unsupported")
+        source_record_id = _text(
+            row.get("sourceRecordId"),
+            f"{label}.sourceRecordId",
+        )
+        source_record_digest = _text(
+            row.get("sourceRecordDigest"),
+            f"{label}.sourceRecordDigest",
+        )
+        if source_record_id != subject["recordId"] or source_record_digest != subject["recordDigest"]:
+            raise AtlasExplorerError("atlas explorer native relation does not bind its source concept record")
+        expected_id = native_concept_relation_id(
+            subject_concept=cast(str, row["subjectConcept"]),
+            predicate_iri=predicate,
+            object_concept=cast(str, row["objectConcept"]),
+            release_id=release_id,
+            source_record_id=source_record_id,
+            source_record_digest=source_record_digest,
+        )
+        if relation_id != expected_id:
+            raise AtlasExplorerError("atlas explorer native relation id differs from its facts")
+        native_relation_ids.add(relation_id)
+
     mappings = _sequence(model.get("mappingAssertions"), "atlas explorer mappingAssertions")
     mapping_ids: set[str] = set()
     for index, raw in enumerate(mappings):
@@ -316,15 +408,21 @@ def _validate_model(model: Mapping[str, Any]) -> None:
 
     if (
         shown_concepts != len(concepts)
+        or shown_native_relations != len(native_relations)
         or shown_mappings != len(mappings)
         or shown_concepts > available_concepts
+        or shown_native_relations > available_native_relations
         or shown_mappings > available_mappings
         or shown_concepts > max_concepts
         or shown_mappings > max_mappings
         or available_mappings != counts["mappingAssertions"]
     ):
         raise AtlasExplorerError("atlas explorer summary or selection bounds differ from its records")
-    expected_truncated = shown_concepts < available_concepts or shown_mappings < available_mappings
+    expected_truncated = (
+        shown_concepts < available_concepts
+        or shown_native_relations < available_native_relations
+        or shown_mappings < available_mappings
+    )
     if summary["truncated"] is not expected_truncated:
         raise AtlasExplorerError("atlas explorer summary.truncated differs from its records")
 
@@ -738,7 +836,7 @@ _HTML = r"""<!doctype html>
       <div class="metrics" aria-label="Atlas totals">
         <div class="metric"><b id="metric-releases">—</b><span>releases</span></div>
         <div class="metric"><b id="metric-quads">—</b><span>quads</span></div>
-        <div class="metric"><b id="metric-mappings">—</b><span>mappings</span></div>
+        <div class="metric"><b id="metric-native">—</b><span>native relations</span></div>
       </div>
     </header>
 
@@ -758,9 +856,14 @@ _HTML = r"""<!doctype html>
           <div class="filter-list" id="release-filters"></div>
         </section>
         <section class="control-section">
+          <h3>Source-native relations</h3>
+          <div class="filter-list" id="native-filters"></div>
+          <p class="hint">Solid lines preserve relations stated inside an exact source release. Paired inverse assertions share one drawn line but remain separate facts.</p>
+        </section>
+        <section class="control-section">
           <h3>Mapping assertions by ring</h3>
           <div class="filter-list" id="ring-filters"></div>
-          <p class="hint">Every shown line is a typed Atlas 2.0 mapping assertion. Labels never create a line.</p>
+          <p class="hint">Dashed lines are typed cross-release mapping assertions. Labels never create a line.</p>
         </section>
         <section class="control-section">
           <h3>View boundary</h3>
@@ -770,7 +873,7 @@ _HTML = r"""<!doctype html>
 
       <section class="stage" id="stage" aria-label="Vocabulary graph">
         <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
-        <p id="graph-description" class="legend-note">Drag to pan. Scroll or use the controls to zoom. Select a concept for its source identity and typed mappings.</p>
+        <p id="graph-description" class="legend-note">Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings.</p>
         <div class="graph-tools" aria-label="Graph view controls">
           <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
           <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
@@ -784,7 +887,7 @@ _HTML = r"""<!doctype html>
         <h2>Concept inspector</h2>
         <div class="empty-state" id="empty-inspector">
           <strong>Select a concept</strong>
-          Search by label, or choose a point in the graph to inspect its source identity and typed mapping assertions.
+          Search by label, or choose a point in the graph to inspect its source identity and exact relationships.
         </div>
         <div class="inspector-content" id="inspector-content" hidden>
           <p class="node-kicker" id="node-role"></p>
@@ -794,7 +897,8 @@ _HTML = r"""<!doctype html>
             <dt>Source concept identity</dt>
             <dd><a class="iri" id="node-iri"></a><button class="copy-button" type="button" id="copy-iri">Copy IRI</button></dd>
             <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
-            <dt>Shown mapping assertions</dt><dd id="node-link-count"></dd>
+            <dt>Shown native relations</dt><dd id="node-native-count"></dd>
+            <dt>Shown mapping assertions</dt><dd id="node-mapping-count"></dd>
           </dl>
           <section class="control-section" id="node-notes" hidden>
             <h3>Source notes</h3>
@@ -802,7 +906,7 @@ _HTML = r"""<!doctype html>
             <p class="hint" id="node-scope-note" hidden></p>
           </section>
           <section class="control-section">
-            <h3>Mapping assertions in this view</h3>
+            <h3>Relationships in this view</h3>
             <div class="connections" id="connections"></div>
           </section>
         </div>
@@ -843,22 +947,41 @@ _HTML = r"""<!doctype html>
     const search = document.getElementById("search");
     const resultBox = document.getElementById("search-results");
     const releaseFilters = document.getElementById("release-filters");
+    const nativeFilters = document.getElementById("native-filters");
     const ringFilters = document.getElementById("ring-filters");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
     const ringOrder = ["subject", "entity", "value", "legalIdentity"];
     const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
     const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
+    const nativePredicateOrder = [
+      "http://www.w3.org/2004/02/skos/core#broader",
+      "http://www.w3.org/2004/02/skos/core#narrower",
+      "http://www.w3.org/2004/02/skos/core#related"
+    ];
     const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
     const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
     const adjacency = new Map(data.concepts.map(concept => [concept.viewId, []]));
     data.mappingAssertions.forEach(mapping => {
-      adjacency.get(mapping.sourceViewId).push({ mapping, other: mapping.targetViewId });
-      adjacency.get(mapping.targetViewId).push({ mapping, other: mapping.sourceViewId });
+      adjacency.get(mapping.sourceViewId).push({ kind: "mapping", edge: mapping, other: mapping.targetViewId });
+      adjacency.get(mapping.targetViewId).push({ kind: "mapping", edge: mapping, other: mapping.sourceViewId });
+    });
+    data.nativeRelations.forEach(relation => {
+      adjacency.get(relation.subjectViewId).push({ kind: "native", edge: relation, other: relation.objectViewId, direction: "outgoing" });
+      adjacency.get(relation.objectViewId).push({ kind: "native", edge: relation, other: relation.subjectViewId, direction: "incoming" });
+    });
+    const nativeDisplayGroups = new Map();
+    data.nativeRelations.forEach(relation => {
+      const endpoints = [relation.subjectViewId, relation.objectViewId].sort();
+      const family = relation.predicateLabel === "related" ? "related" : "hierarchy";
+      const key = `${relation.releaseId}\u001f${family}\u001f${endpoints[0]}\u001f${endpoints[1]}`;
+      if (!nativeDisplayGroups.has(key)) nativeDisplayGroups.set(key, []);
+      nativeDisplayGroups.get(key).push(relation);
     });
 
     const state = {
       activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
+      activeNativePredicates: new Set(nativePredicateOrder),
       activeRings: new Set(ringOrder),
       selected: null,
       hover: null,
@@ -886,8 +1009,14 @@ _HTML = r"""<!doctype html>
       const target = conceptByViewId.get(mapping.targetViewId);
       return state.activeRings.has(mapping.semanticRing) && isConceptVisible(source) && isConceptVisible(target);
     }
+    function isNativeRelationVisible(relation) {
+      const subject = conceptByViewId.get(relation.subjectViewId);
+      const object = conceptByViewId.get(relation.objectViewId);
+      return state.activeNativePredicates.has(relation.predicate) && isConceptVisible(subject) && isConceptVisible(object);
+    }
     function conceptRadius(concept) {
       if (concept.selectionReasons.includes("mappingEndpoint")) return 5.2;
+      if (concept.selectionReasons.includes("nativeRelationEndpoint")) return 4.4;
       return 3.4;
     }
 
@@ -962,6 +1091,24 @@ _HTML = r"""<!doctype html>
       ctx.globalAlpha = 1;
     }
 
+    function drawNativeRelations(relations, highlighted) {
+      const visible = relations.filter(isNativeRelationVisible);
+      if (!visible.length) return;
+      const relation = visible[0];
+      const source = conceptByViewId.get(relation.subjectViewId);
+      const target = conceptByViewId.get(relation.objectViewId);
+      const release = releaseById.get(relation.releaseId);
+      ctx.beginPath();
+      ctx.moveTo(source.x, source.y);
+      ctx.lineTo(target.x, target.y);
+      ctx.strokeStyle = release ? release.color : ringColors[relation.semanticRing];
+      ctx.globalAlpha = highlighted ? .92 : .34;
+      ctx.lineWidth = (highlighted ? 2.2 : 1.15) / state.view.k;
+      ctx.setLineDash([]);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     function drawLabel(concept, radius) {
       const release = releaseById.get(concept.releaseId);
       ctx.font = `${11 / state.view.k}px ui-sans-serif, system-ui, sans-serif`;
@@ -982,6 +1129,11 @@ _HTML = r"""<!doctype html>
         state.dpr * state.view.k, 0, 0, state.dpr * state.view.k,
         state.dpr * state.view.x, state.dpr * state.view.y
       );
+
+      nativeDisplayGroups.forEach(relations => {
+        const highlighted = state.selected && relations.some(relation => relation.subjectViewId === state.selected || relation.objectViewId === state.selected);
+        drawNativeRelations(relations, highlighted);
+      });
 
       data.mappingAssertions.forEach(mapping => {
         if (!isMappingVisible(mapping)) return;
@@ -1082,6 +1234,8 @@ _HTML = r"""<!doctype html>
     function roleLabel(concept) {
       const role = concept.selectionReasons.includes("mappingEndpoint")
         ? "Mapping assertion endpoint"
+        : concept.selectionReasons.includes("nativeRelationEndpoint")
+          ? "Source-native relation endpoint"
         : concept.selectionReasons.includes("releaseRepresentative")
           ? "Concept release sample"
           : "Concept";
@@ -1106,7 +1260,9 @@ _HTML = r"""<!doctype html>
       inspector.classList.toggle("open", Boolean(concept));
       if (!concept) return;
       const release = releaseById.get(concept.releaseId);
-      const links = adjacency.get(concept.viewId).filter(item => isMappingVisible(item.mapping));
+      const links = adjacency.get(concept.viewId).filter(item => item.kind === "mapping" ? isMappingVisible(item.edge) : isNativeRelationVisible(item.edge));
+      const nativeLinks = links.filter(item => item.kind === "native");
+      const mappingLinks = links.filter(item => item.kind === "mapping");
       document.getElementById("node-role").textContent = roleLabel(concept);
       document.getElementById("node-title").textContent = concept.label;
       document.getElementById("node-release").textContent = release.label;
@@ -1121,7 +1277,8 @@ _HTML = r"""<!doctype html>
         iri.removeAttribute("href");
         iri.removeAttribute("target");
       }
-      document.getElementById("node-link-count").textContent = formatNumber(links.length);
+      document.getElementById("node-native-count").textContent = formatNumber(nativeLinks.length);
+      document.getElementById("node-mapping-count").textContent = formatNumber(mappingLinks.length);
       const notation = document.getElementById("notation-value");
       document.getElementById("notation-term").hidden = notation.hidden = !concept.notation;
       notation.textContent = concept.notation || "";
@@ -1135,18 +1292,23 @@ _HTML = r"""<!doctype html>
       const container = document.getElementById("connections");
       container.replaceChildren();
       links
-        .sort((a, b) => a.mapping.semanticRing.localeCompare(b.mapping.semanticRing) || a.mapping.relation.localeCompare(b.mapping.relation) || conceptByViewId.get(a.other).label.localeCompare(conceptByViewId.get(b.other).label))
+        .sort((a, b) => a.kind.localeCompare(b.kind) || (a.edge.predicate || a.edge.relation).localeCompare(b.edge.predicate || b.edge.relation) || conceptByViewId.get(a.other).label.localeCompare(conceptByViewId.get(b.other).label))
         .forEach(item => {
           const other = conceptByViewId.get(item.other);
           const button = document.createElement("button");
           button.type = "button";
           button.className = "connection";
-          button.style.setProperty("--connection-color", ringColors[item.mapping.semanticRing]);
+          const edgeColor = item.kind === "native" ? release.color : ringColors[item.edge.semanticRing];
+          button.style.setProperty("--connection-color", edgeColor);
           const name = document.createElement("b");
           name.textContent = other.label;
           const relation = document.createElement("small");
-          const evidence = item.mapping.evidenceClasses.join(", ") || "typed evidence";
-          relation.textContent = `${item.mapping.relationLabel} · ${ringLabels[item.mapping.semanticRing]} · ${evidence} · ${releaseById.get(other.releaseId).label}`;
+          if (item.kind === "native") {
+            relation.textContent = `${item.edge.predicateLabel} · source-native ${item.direction} assertion · ${releaseById.get(other.releaseId).label}`;
+          } else {
+            const evidence = item.edge.evidenceClasses.join(", ") || "typed evidence";
+            relation.textContent = `${item.edge.relationLabel} · ${ringLabels[item.edge.semanticRing]} mapping · ${evidence} · ${releaseById.get(other.releaseId).label}`;
+          }
           button.append(name, relation);
           button.addEventListener("click", () => selectConcept(other, true));
           container.append(button);
@@ -1207,6 +1369,33 @@ _HTML = r"""<!doctype html>
           fitView();
         });
       });
+      nativePredicateOrder.forEach(predicate => {
+        const rows = data.nativeRelations.filter(relation => relation.predicate === predicate);
+        const label = document.createElement("label");
+        label.className = "filter";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = true;
+        input.dataset.nativePredicate = predicate;
+        const key = document.createElement("span");
+        key.className = "edge-key";
+        key.style.setProperty("--edge-color", "#9ba8a2");
+        const text = document.createElement("span");
+        const name = document.createElement("span");
+        name.className = "label";
+        name.textContent = rows[0] ? rows[0].predicateLabel : predicate.split("#").pop();
+        const count = document.createElement("small");
+        count.textContent = `${formatNumber(rows.length)} shown`;
+        text.append(name, count);
+        label.append(input, key, text);
+        nativeFilters.append(label);
+        input.addEventListener("change", () => {
+          if (input.checked) state.activeNativePredicates.add(predicate);
+          else state.activeNativePredicates.delete(predicate);
+          renderInspector();
+          draw();
+        });
+      });
       const countByRing = new Map(ringOrder.map(ring => [ring, data.mappingAssertions.filter(mapping => mapping.semanticRing === ring).length]));
       ringOrder.forEach(ring => {
         const label = document.createElement("label");
@@ -1240,9 +1429,9 @@ _HTML = r"""<!doctype html>
       document.getElementById("short-id").textContent = shortId(data.atlas.assetId);
       document.getElementById("metric-releases").textContent = formatNumber(data.atlas.counts.conceptReleases);
       document.getElementById("metric-quads").textContent = formatNumber(data.atlas.quadCount);
-      document.getElementById("metric-mappings").textContent = formatNumber(data.atlas.counts.mappingAssertions);
-      document.getElementById("selection-note").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts and ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions are shown. The complete distribution remains in the download.`;
-      document.getElementById("view-count").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts · ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions`;
+      document.getElementById("metric-native").textContent = formatNumber(data.summary.availableNativeRelationCount);
+      document.getElementById("selection-note").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts, ${formatNumber(data.summary.shownNativeRelationCount)} source-native assertions, and ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions are shown. The sealed atlas contains ${formatNumber(data.summary.availableNativeRelationCount)} source-native assertions in total.`;
+      document.getElementById("view-count").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts · ${formatNumber(data.summary.shownNativeRelationCount)} native assertions · ${formatNumber(data.summary.shownMappingAssertionCount)} mappings`;
       document.getElementById("pin-id").textContent = data.atlas.assetId;
       document.getElementById("pin-manifest").textContent = data.atlas.manifestDigest;
       document.getElementById("pin-output").textContent = data.atlas.distributionDigest;

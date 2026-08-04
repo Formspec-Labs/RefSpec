@@ -22,7 +22,11 @@ from typing import Any, TypeAlias, cast
 from typing_extensions import Self
 
 from refspec import binding
-from refspec.managed_release import ManagedReleaseError, ManagedReleaseView
+from refspec.immutable import deep_freeze_json
+from refspec.managed_release import (
+    ManagedReleaseError,
+    ManagedReleaseGraphFactsView,
+)
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     plain_json,
@@ -115,15 +119,10 @@ def _require_datetime(value: object, label: str) -> str:
 
 
 def _require_unique_iris(value: object, label: str) -> tuple[str, ...]:
-    if (
-        not isinstance(value, Sequence)
-        or isinstance(value, (str, bytes))
-        or not value
-    ):
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
         raise ConceptReleaseError(f"{label} must be a non-empty IRI array")
     result = tuple(
-        _require_iri(item, f"{label}[{index}]")
-        for index, item in enumerate(value)
+        _require_iri(item, f"{label}[{index}]") for index, item in enumerate(value)
     )
     if len(set(result)) != len(result):
         raise ConceptReleaseError(f"{label} must contain unique IRIs")
@@ -138,8 +137,7 @@ def _require_exact_fields(
     actual = set(value)
     if actual != expected:
         raise ConceptReleaseError(
-            f"{label} fields differ; missing={sorted(expected - actual)}, "
-            f"extra={sorted(actual - expected)}"
+            f"{label} fields differ; missing={sorted(expected - actual)}, extra={sorted(actual - expected)}"
         )
 
 
@@ -157,7 +155,7 @@ def _read_json(payload: bytes, label: str) -> Any:
 
 
 def _managed_declared_release_digest(
-    view: ManagedReleaseView,
+    view: ManagedReleaseGraphFactsView,
     release_id: str,
 ) -> str:
     """Read one selected release's declared digest from the verified graph."""
@@ -289,8 +287,7 @@ class ManagedReleaseRingAssignment:
         )
         if (
             value.get("type") != "ManagedReleaseRingAssignment"
-            or value.get("schemaVersion")
-            != MANAGED_RELEASE_RING_ASSIGNMENT_VERSION
+            or value.get("schemaVersion") != MANAGED_RELEASE_RING_ASSIGNMENT_VERSION
         ):
             raise ConceptReleaseError(
                 "managed release ring assignment version is unsupported"
@@ -504,7 +501,7 @@ class PinnedManagedConceptRelease:
                 "managed release ring assignment names another exact release"
             )
         try:
-            view = ManagedReleaseView.open(
+            view = ManagedReleaseGraphFactsView.open(
                 manifest_path,
                 expected_manifest_digest=digest,
             )
@@ -512,14 +509,11 @@ class PinnedManagedConceptRelease:
             raise ConceptReleaseError(str(error)) from error
         if not tuple(view.iter_members(release_iri=selected_release)):
             raise ConceptReleaseError(
-                "managed concept release is not an exact complete-membership "
-                "release in the bundle"
+                "managed concept release is not an exact complete-membership release in the bundle"
             )
         requested = Path(manifest_path)
         candidate = (
-            requested / _BUNDLE_MANIFEST_PATH
-            if requested.is_dir()
-            else requested
+            requested / _BUNDLE_MANIFEST_PATH if requested.is_dir() else requested
         )
         return cls(
             manifest_path=candidate.resolve(strict=True),
@@ -532,11 +526,27 @@ class PinnedManagedConceptRelease:
     def semantic_ring(self) -> SemanticRing:
         return self.ring_assignment.verified_assignment().semantic_ring
 
-    def verified_view(self) -> ManagedReleaseView:
+    def verified_view(self) -> ManagedReleaseGraphFactsView:
         """Reopen the package and reselect the same complete release."""
 
+        view, _ = self._open_verified_view_and_assignment()
+        return view
+
+    def verified_view_and_pin(
+        self,
+    ) -> tuple[ManagedReleaseGraphFactsView, dict[str, Any]]:
+        """Reopen once and derive the exact pin from that same verified view."""
+
+        view, assignment = self._open_verified_view_and_assignment()
+        return view, self._pin_from_verified_view(view, assignment)
+
+    def _open_verified_view_and_assignment(
+        self,
+    ) -> tuple[ManagedReleaseGraphFactsView, ManagedReleaseRingAssignment]:
+        """Open and validate one release without deriving unused pin fields."""
+
         try:
-            view = ManagedReleaseView.open(
+            view = ManagedReleaseGraphFactsView.open(
                 self.manifest_path,
                 expected_manifest_digest=self.manifest_digest,
             )
@@ -554,17 +564,26 @@ class PinnedManagedConceptRelease:
             raise ConceptReleaseError(
                 "managed concept release is no longer present or complete"
             )
-        return view
+        return view, assignment
 
-    def pin(self) -> dict[str, Any]:
-        view = self.verified_view()
+    def _pin_from_verified_view(
+        self,
+        view: ManagedReleaseGraphFactsView,
+        assignment: ManagedReleaseRingAssignment,
+    ) -> dict[str, Any]:
+        """Derive one pin without reopening an already verified release."""
+
         return {
             "releaseKind": "managedReferenceRelease",
-            "semanticRing": self.semantic_ring,
+            "semanticRing": assignment.semantic_ring,
             "releaseId": self.release_id,
             "manifestDigest": self.manifest_digest,
             "managedBundleReleaseId": view.release_id,
-            "ringAssignment": self.ring_assignment.pin(),
+            "ringAssignment": {
+                "id": assignment.identifier,
+                "contentDigest": assignment.content_digest,
+                "fileDigest": self.ring_assignment.file_digest,
+            },
             "rulespecGraph": {
                 "id": view.rulespec_graph_id,
                 "digest": rulespec_graph_digest(_plain(view.rulespec_graph)),
@@ -574,6 +593,10 @@ class PinnedManagedConceptRelease:
                 self.release_id,
             ),
         }
+
+    def pin(self) -> dict[str, Any]:
+        _, pin = self.verified_view_and_pin()
+        return pin
 
     def member_ids(self) -> frozenset[str]:
         view = self.verified_view()
@@ -639,14 +662,144 @@ def _source_member_ids(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class VerifiedConceptReleaseFacts:
+    """One operation-scoped release verification shared by its consumers.
+
+    Composed Atlas workflows use this value so pin, membership, graph, and
+    subject-admission checks all derive from the same freshly opened bytes.
+    Holding this value does not cache verification across operations; callers
+    create a new value at every explicit trust boundary.
+    """
+
+    release: SubjectConceptRelease
+    view: SourceConceptReleaseBundle | SourceConceptReleaseView | ManagedReleaseGraphFactsView
+    pin: Mapping[str, Any]
+    member_ids: frozenset[str]
+
+    @property
+    def semantic_ring(self) -> SemanticRing:
+        return _require_ring(self.pin.get("semanticRing"), "concept release semanticRing")
+
+    def require_subject(self) -> None:
+        if self.semantic_ring != "subject":
+            raise ConceptReleaseError("subject use rejects non-subject releases")
+
+    def require_admissible_subject_concept(self, concept_iri: str) -> str:
+        """Check subject membership and managed-local authorship without reopening."""
+
+        self.require_subject()
+        concept = _require_iri(concept_iri, "subject concept")
+        if concept not in self.member_ids:
+            raise ConceptReleaseError("subject concept is outside the exact release")
+        if isinstance(self.release, PinnedManagedConceptRelease):
+            if not isinstance(self.view, ManagedReleaseGraphFactsView):
+                raise ConceptReleaseError("managed release verification returned the wrong view kind")
+            member = self.view.lookup_member(concept)
+            if member is None or member.release_iri != self.release.release_id:
+                raise ConceptReleaseError(
+                    "managed subject concept is outside the exact release"
+                )
+            if not (_record_types(member.record) & _LOCAL_CONCEPT_TYPES):
+                raise ConceptReleaseError(
+                    "managed subject admission requires an rkaf:LocalConcept member"
+                )
+        return concept
+
+    def rights_metadata(
+        self,
+        supplied: Sequence[RightsMetadata | Mapping[str, Any]] | None = None,
+    ) -> tuple[dict[str, Any], ...]:
+        """Resolve exact rights facts from this same verification boundary."""
+
+        self.require_subject()
+        graph: Mapping[str, str] | None
+        if isinstance(self.release, PinnedManagedConceptRelease):
+            if supplied is None:
+                raise ConceptReleaseError(
+                    "managed subject admission requires explicit release-bound rights metadata"
+                )
+            values = supplied
+            graph = cast(Mapping[str, str], self.pin["rulespecGraph"])
+        else:
+            if not isinstance(
+                self.view,
+                (SourceConceptReleaseBundle, SourceConceptReleaseView),
+            ):
+                raise ConceptReleaseError("source release verification returned the wrong view kind")
+            values = cast(
+                Sequence[RightsMetadata | Mapping[str, Any]],
+                self.view.rights_metadata,
+            )
+            graph = None
+        try:
+            normalized = tuple(
+                item.as_record()
+                for item in validate_rights_metadata_records(values)
+            )
+        except SemanticFoundationError as error:
+            raise ConceptReleaseError(str(error)) from error
+        if not normalized:
+            raise ConceptReleaseError(
+                "subject release rights metadata must not be empty"
+            )
+        if graph is not None and any(
+            row["sourceArtifact"] != graph["id"]
+            or row["sourceDigest"] != graph["digest"]
+            for row in normalized
+        ):
+            raise ConceptReleaseError(
+                "managed subject rights metadata must name the exact Rulespec graph and digest"
+            )
+        if graph is None and supplied is not None:
+            try:
+                supplied_normalized = tuple(
+                    item.as_record()
+                    for item in validate_rights_metadata_records(supplied)
+                )
+            except SemanticFoundationError as error:
+                raise ConceptReleaseError(str(error)) from error
+            if supplied_normalized != normalized:
+                raise ConceptReleaseError(
+                    "source subject rights metadata differs from the exact release"
+                )
+        return normalized
+
+
+def verified_concept_release_facts(
+    release: SubjectConceptRelease,
+) -> VerifiedConceptReleaseFacts:
+    """Freshly verify one release once for a composed consumer operation."""
+
+    if isinstance(release, SourceConceptReleaseBundle):
+        view: SourceConceptReleaseBundle | SourceConceptReleaseView | ManagedReleaseGraphFactsView = release
+        pin: dict[str, Any] = _source_release_pin(release)
+        members = _source_member_ids(release)
+    elif isinstance(release, PinnedSourceConceptRelease):
+        view = release.verified_view()
+        pin = _source_release_pin(view)
+        members = _source_member_ids(view)
+    elif isinstance(release, PinnedManagedConceptRelease):
+        view, assignment = release._open_verified_view_and_assignment()
+        pin = release._pin_from_verified_view(view, assignment)
+        members = frozenset(
+            member.member_iri
+            for member in view.iter_members(release_iri=release.release_id)
+        )
+    else:
+        raise ConceptReleaseError("concept release must be an exact supported release")
+    return VerifiedConceptReleaseFacts(
+        release=release,
+        view=view,
+        pin=cast(Mapping[str, Any], deep_freeze_json(pin)),
+        member_ids=members,
+    )
+
+
 def concept_release_pin(release: SubjectConceptRelease) -> dict[str, Any]:
     """Return one discriminated exact-release pin for any supported release."""
 
-    if isinstance(release, SourceConceptReleaseBundle):
-        return _source_release_pin(release)
-    if isinstance(release, (PinnedSourceConceptRelease, PinnedManagedConceptRelease)):
-        return release.pin()
-    raise ConceptReleaseError("concept release must be an exact supported release")
+    return cast(dict[str, Any], _plain(verified_concept_release_facts(release).pin))
 
 
 def concept_release_member_ids(
@@ -654,19 +807,13 @@ def concept_release_member_ids(
 ) -> frozenset[str]:
     """Return the exact identifiers selected by one release."""
 
-    if isinstance(release, SourceConceptReleaseBundle):
-        return _source_member_ids(release)
-    if isinstance(release, (PinnedSourceConceptRelease, PinnedManagedConceptRelease)):
-        return release.member_ids()
-    raise ConceptReleaseError("concept release must be an exact supported release")
+    return verified_concept_release_facts(release).member_ids
 
 
 def require_subject_concept_release(release: SubjectConceptRelease) -> None:
     """Require a supported exact release classified in the subject ring."""
 
-    pin = concept_release_pin(release)
-    if pin["semanticRing"] != "subject":
-        raise ConceptReleaseError("subject use rejects non-subject releases")
+    verified_concept_release_facts(release).require_subject()
 
 
 def require_admissible_subject_concept(
@@ -675,13 +822,9 @@ def require_admissible_subject_concept(
 ) -> str:
     """Require exact membership and managed-local authorship when applicable."""
 
-    require_subject_concept_release(release)
-    concept = _require_iri(concept_iri, "subject concept")
-    if concept not in concept_release_member_ids(release):
-        raise ConceptReleaseError("subject concept is outside the exact release")
-    if isinstance(release, PinnedManagedConceptRelease):
-        release.require_local_concept(concept)
-    return concept
+    return verified_concept_release_facts(
+        release
+    ).require_admissible_subject_concept(concept_iri)
 
 
 def _normalized_reference(
@@ -796,8 +939,7 @@ def normalize_concept_release_pin(value: object) -> dict[str, Any]:
             ),
         }
     raise ConceptReleaseError(
-        "subjectConceptRelease.releaseKind must be sourceConceptRelease or "
-        "managedReferenceRelease"
+        "subjectConceptRelease.releaseKind must be sourceConceptRelease or managedReferenceRelease"
     )
 
 
@@ -813,57 +955,7 @@ def subject_release_rights_metadata(
     digest in the managed release pin.
     """
 
-    require_subject_concept_release(release)
-    if isinstance(release, PinnedManagedConceptRelease):
-        if supplied is None:
-            raise ConceptReleaseError(
-                "managed subject admission requires explicit release-bound rights metadata"
-            )
-        values = supplied
-        pin = release.pin()
-        graph = cast(Mapping[str, str], pin["rulespecGraph"])
-    else:
-        source = (
-            release.verified_view()
-            if isinstance(release, PinnedSourceConceptRelease)
-            else release
-        )
-        values = cast(
-            Sequence[RightsMetadata | Mapping[str, Any]],
-            source.rights_metadata,
-        )
-        graph = None
-    try:
-        normalized = tuple(
-            item.as_record()
-            for item in validate_rights_metadata_records(values)
-        )
-    except SemanticFoundationError as error:
-        raise ConceptReleaseError(str(error)) from error
-    if not normalized:
-        raise ConceptReleaseError("subject release rights metadata must not be empty")
-    if graph is not None and any(
-        row["sourceArtifact"] != graph["id"]
-        or row["sourceDigest"] != graph["digest"]
-        for row in normalized
-    ):
-        raise ConceptReleaseError(
-            "managed subject rights metadata must name the exact Rulespec graph "
-            "and digest"
-        )
-    if graph is None and supplied is not None:
-        try:
-            supplied_normalized = tuple(
-                item.as_record()
-                for item in validate_rights_metadata_records(supplied)
-            )
-        except SemanticFoundationError as error:
-            raise ConceptReleaseError(str(error)) from error
-        if supplied_normalized != normalized:
-            raise ConceptReleaseError(
-                "source subject rights metadata differs from the exact release"
-            )
-    return normalized
+    return verified_concept_release_facts(release).rights_metadata(supplied)
 
 
 __all__ = [
@@ -875,10 +967,12 @@ __all__ = [
     "PinnedManagedReleaseRingAssignment",
     "PinnedSourceConceptRelease",
     "SubjectConceptRelease",
+    "VerifiedConceptReleaseFacts",
     "concept_release_member_ids",
     "concept_release_pin",
     "normalize_concept_release_pin",
     "require_admissible_subject_concept",
     "require_subject_concept_release",
     "subject_release_rights_metadata",
+    "verified_concept_release_facts",
 ]

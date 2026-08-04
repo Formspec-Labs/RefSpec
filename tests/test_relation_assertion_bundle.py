@@ -37,6 +37,7 @@ from refspec.atlas.relation_proof import (
     register_trusted_relation_machine_proof_adapter,
 )
 from refspec.atlas.relation_sssom import RelationSssomDistribution
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
 from refspec.registry.infrastructure.semantic_foundation import (
     ENTITY_RELATED,
@@ -517,6 +518,7 @@ def test_embedded_relation_record_requires_exact_membership_and_order(
 
 def test_source_to_managed_relation_uses_the_exact_complete_release(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     manifest = build_managed_bundle(tmp_path / "managed")
     ring_assignment = _managed_ring_assignment(tmp_path, manifest)
@@ -535,6 +537,28 @@ def test_source_to_managed_relation_uses_the_exact_complete_release(
         target_release=source_release,
         evidence=(evidence.identifier,),
     )
+    original_open = ManagedReleaseGraphFactsView.open.__func__
+    graph_fact_opens = 0
+
+    def counted_open(
+        cls: type[ManagedReleaseGraphFactsView],
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        nonlocal graph_fact_opens
+        graph_fact_opens += 1
+        return original_open(
+            cls,
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+
+    monkeypatch.setattr(
+        ManagedReleaseGraphFactsView,
+        "open",
+        classmethod(counted_open),
+    )
 
     bundle = RelationAssertionBundle.create(
         semantic_ring="subject",
@@ -543,11 +567,21 @@ def test_source_to_managed_relation_uses_the_exact_complete_release(
         mapping_assertions=(mapping,),
     )
 
+    assert graph_fact_opens == 1
     managed_pin = next(row for row in bundle.release_pins if row["releaseId"] == MANAGED_RELEASE_ID)
     assert managed_pin["releaseKind"] == "managedReferenceRelease"
     assert managed_pin["rulespecGraph"]["digest"].startswith("sha256:")
     assert managed_pin["declaredReleaseDigest"].startswith("sha256:")
     assert managed_pin["ringAssignment"] == ring_assignment.pin()
+    root = bundle.write_to(tmp_path / "managed-source-relation")
+    graph_fact_opens = 0
+    reopened = RelationAssertionBundle.open(
+        root / "bundle-manifest.json",
+        expected_manifest_digest=bundle.manifest_digest,
+        release_sources=(managed, source),
+    )
+    assert reopened.as_record() == bundle.as_record()
+    assert graph_fact_opens == 1
     assert MANAGED_MEMBER_ID in managed.member_ids()
 
 
@@ -1244,17 +1278,25 @@ def test_open_rechecks_the_file_set_after_constructing_the_result(
         mapping_assertions=(mapping,),
     )
     root = bundle.write_to(tmp_path / "file-set-mutation-during-relation-open")
-    original_post_init = RelationAssertionBundle.__post_init__
+    original_constructor = RelationAssertionBundle._from_verified_components.__func__
     construction_count = 0
 
-    def add_file_during_final_construction(value: RelationAssertionBundle) -> None:
+    def add_file_during_final_construction(
+        cls: type[RelationAssertionBundle],
+        **values: Any,
+    ) -> RelationAssertionBundle:
         nonlocal construction_count
         construction_count += 1
-        original_post_init(value)
+        result = original_constructor(cls, **values)
         if construction_count == 2:
             (root / "late-added.txt").write_text("unexpected", encoding="utf-8")
+        return result
 
-    monkeypatch.setattr(RelationAssertionBundle, "__post_init__", add_file_during_final_construction)
+    monkeypatch.setattr(
+        RelationAssertionBundle,
+        "_from_verified_components",
+        classmethod(add_file_during_final_construction),
+    )
 
     with pytest.raises(RelationAssertionError, match="changed while opening"):
         RelationAssertionBundle.open(

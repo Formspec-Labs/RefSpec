@@ -36,6 +36,7 @@ from refspec.atlas.subject_emission import (
     resolve_subject_emission_policy,
     subject_emission_eligibility,
 )
+from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.semantic_foundation import EvidenceAssertion
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseBundle,
@@ -352,15 +353,42 @@ def test_admission_preserves_the_exact_source_identity_and_is_content_derived() 
 
 def test_managed_local_identity_is_admitted_and_emitted_without_reminting(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     release = _managed_release(tmp_path)
     rights = _managed_rights(release)
+    original_open = ManagedReleaseGraphFactsView.open.__func__
+    graph_fact_opens = 0
+
+    def counted_open(
+        cls: type[ManagedReleaseGraphFactsView],
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+    ) -> ManagedReleaseGraphFactsView:
+        nonlocal graph_fact_opens
+        graph_fact_opens += 1
+        return original_open(
+            cls,
+            manifest_path,
+            expected_manifest_digest=expected_manifest_digest,
+        )
+
+    monkeypatch.setattr(
+        ManagedReleaseGraphFactsView,
+        "open",
+        classmethod(counted_open),
+    )
     review = _review(
         release,
         subject_concept=MANAGED_LOCAL_CONCEPT_ID,
         rights_metadata=rights,
     )
+    assert graph_fact_opens == 1
+    graph_fact_opens = 0
     policy = _emission_policy(release, review)
+    assert graph_fact_opens == 1
+    graph_fact_opens = 0
     output_profile = _output_profile(policy)
 
     authorization = resolve_subject_emission_policy(
@@ -374,11 +402,14 @@ def test_managed_local_identity_is_admitted_and_emitted_without_reminting(
         intended_product_use=PRODUCT_USE,
         resource_route="document",
     )
+    assert graph_fact_opens == 1
 
     assert review.subject_concept == MANAGED_LOCAL_CONCEPT_ID
+    graph_fact_opens = 0
     assert admitted_subject_concept_ids(release, (review,)) == (
         MANAGED_LOCAL_CONCEPT_ID,
     )
+    assert graph_fact_opens == 1
     assert policy.record["subjectConceptRelease"]["releaseKind"] == (
         "managedReferenceRelease"
     )
