@@ -702,9 +702,86 @@ class RelationAssertionBundle:
         return result
 
 
+@dataclass(frozen=True, slots=True)
+class PinnedRelationAssertionBundle:
+    """One exact path-backed relation bundle prepared as an atlas input."""
+
+    manifest_path: Path
+    manifest_digest: str
+    bundle_id: str
+    semantic_ring: SemanticRing
+    content_digest: str
+    _release_sources: tuple[ConceptReleaseSource, ...] = field(repr=False)
+    _machine_proof_sources: tuple[RelationMachineProofSource, ...] = field(repr=False)
+
+    @classmethod
+    def open(
+        cls,
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+        release_sources: Sequence[ConceptReleaseSource],
+        machine_proof_sources: Sequence[RelationMachineProofSource] = (),
+    ) -> Self:
+        """Open exact bundle bytes and retain every source needed to reopen them."""
+
+        digest = _require_digest(
+            expected_manifest_digest,
+            "relation bundle manifest digest",
+        )
+        bundle = RelationAssertionBundle.open(
+            manifest_path,
+            expected_manifest_digest=digest,
+            release_sources=release_sources,
+            machine_proof_sources=machine_proof_sources,
+        )
+        if bundle._path is None:
+            raise RelationAssertionError("pinned relation bundle must be path-backed")
+        return cls(
+            manifest_path=(bundle._path / _BUNDLE_MANIFEST_PATH).resolve(strict=True),
+            manifest_digest=digest,
+            bundle_id=bundle.identifier,
+            semantic_ring=bundle.semantic_ring,
+            content_digest=bundle.content_digest,
+            _release_sources=bundle._release_sources,
+            _machine_proof_sources=bundle._machine_proof_sources,
+        )
+
+    def verified_bundle(self) -> RelationAssertionBundle:
+        """Reopen the bundle and all exact release and proof inputs."""
+
+        bundle = RelationAssertionBundle.open(
+            self.manifest_path,
+            expected_manifest_digest=self.manifest_digest,
+            release_sources=self._release_sources,
+            machine_proof_sources=self._machine_proof_sources,
+        )
+        if (
+            bundle.identifier != self.bundle_id
+            or bundle.semantic_ring != self.semantic_ring
+            or bundle.content_digest != self.content_digest
+            or bundle.manifest_digest != self.manifest_digest
+        ):
+            raise RelationAssertionError("relation bundle identity, semantic ring, or content digest changed")
+        return bundle
+
+    def pin(self) -> dict[str, str]:
+        """Return the closed content-derived input pin for an atlas scope."""
+
+        bundle = self.verified_bundle()
+        return {
+            "role": "RelationAssertionBundle",
+            "id": bundle.identifier,
+            "semanticRing": bundle.semantic_ring,
+            "contentDigest": bundle.content_digest,
+            "manifestDigest": self.manifest_digest,
+        }
+
+
 __all__ = [
     "RELATION_ASSERTION_BUNDLE_MEDIA_TYPE",
     "RELATION_ASSERTION_BUNDLE_VERSION",
+    "PinnedRelationAssertionBundle",
     "RelationAssertionBundle",
     "RelationAssertionError",
     "RelationMachineProofSource",

@@ -1,5 +1,14 @@
 """Static vocabulary atlas publication and verification."""
 
+from .atlas_scope import (
+    ATLAS_SCOPE_TYPE,
+    ATLAS_SCOPE_VERSION,
+    AtlasScopeError,
+    AtlasScopeRelease,
+    PinnedVocabularyAtlasScope,
+    SubjectParticipation,
+    VocabularyAtlasScope,
+)
 from .concept_release import (
     MANAGED_RELEASE_RING_ASSIGNMENT_VERSION,
     ConceptReleaseError,
@@ -62,6 +71,7 @@ from .queries import LabelCluster, SearchOnlyMapping, VocabularyAtlasQueries
 from .relation_assertion import (
     RELATION_ASSERTION_BUNDLE_MEDIA_TYPE,
     RELATION_ASSERTION_BUNDLE_VERSION,
+    PinnedRelationAssertionBundle,
     RelationAssertionBundle,
     RelationAssertionError,
 )
@@ -108,6 +118,8 @@ from .subject_emission import (
 
 __all__ = [
     "ATLAS",
+    "ATLAS_SCOPE_TYPE",
+    "ATLAS_SCOPE_VERSION",
     "CROSSWALK_MACHINE_PROOF_ADAPTER",
     "CROSSWALK_MACHINE_PROOF_VERSION",
     "CROSSWALK_MEDIA_TYPE",
@@ -132,6 +144,8 @@ __all__ = [
     "SUBJECT_EMISSION_POLICY_TYPE",
     "SUBJECT_EMISSION_POLICY_VERSION",
     "AtlasReleaseFactsView",
+    "AtlasScopeError",
+    "AtlasScopeRelease",
     "ConceptReleaseError",
     "ConceptReleaseSource",
     "CrosswalkArtifact",
@@ -151,9 +165,11 @@ __all__ = [
     "PinnedManagedConceptRelease",
     "PinnedManagedRelease",
     "PinnedManagedReleaseRingAssignment",
+    "PinnedRelationAssertionBundle",
     "PinnedRulespecCoreRelease",
     "PinnedSourceConceptRelease",
     "PinnedSourceConceptSubjectAtlasRelease",
+    "PinnedVocabularyAtlasScope",
     "RelationAssertionBundle",
     "RelationAssertionError",
     "RelationMachineProofSource",
@@ -168,10 +184,12 @@ __all__ = [
     "SubjectEmissionError",
     "SubjectEmissionPolicy",
     "SubjectEmissionPolicyResolution",
+    "SubjectParticipation",
     "VerifiedManagedReleaseSource",
     "VocabularyAtlasAsset",
     "VocabularyAtlasError",
     "VocabularyAtlasQueries",
+    "VocabularyAtlasScope",
     "admitted_subject_concept_ids",
     "build_machine_evidence_from_crosswalk_proof",
     "build_subject_admission_review",
