@@ -29,6 +29,10 @@ def test_registry_exposes_managed_vocabulary_source_of_truth_interfaces() -> Non
 def test_registry_exposes_completed_resource_package_readers() -> None:
     assert registry.SEMANTIC_RINGS == {"subject", "entity", "value", "legalIdentity"}
     assert registry.RING_RELATIONS.keys() == registry.SEMANTIC_RINGS
+    assert "EVIDENCE_PROOF_STATUSES" not in registry.__all__
+    assert registry.EVIDENCE_USE_CEILINGS["machineQualified"] == "searchOnly"
+    assert registry.EVIDENCE_USE_CEILINGS["machineReviewed"] == "notApplicable"
+    assert registry.MACHINE_EVIDENCE_PROOF_VERSION == "1.0"
     assert registry.EvidenceAssertion is not None
     assert registry.MappingAssertion is not None
     assert registry.RightsMetadata is not None
@@ -44,6 +48,7 @@ def test_registry_exposes_completed_resource_package_readers() -> None:
     assert callable(registry.build_source_concept_release_bundle)
     assert callable(registry.validate_evidence_assertions)
     assert callable(registry.validate_mapping_assertions)
+    assert callable(registry.validate_machine_evidence_proof_pin)
     assert callable(registry.validate_rights_metadata_records)
     assert callable(registry.build_lda_general_issue_code_package)
     assert callable(registry.build_lda_filing_type_package)

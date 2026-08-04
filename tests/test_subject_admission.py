@@ -62,8 +62,7 @@ def _release(
         "sourceArtifact": SOURCE_ID,
         "sourcePath": "subjects/0",
         "sourceOrdinal": 0,
-        "localRecordId": "urn:uuid:"
-        + derive_uuid7(CAPTURED_AT, seed=b"subject-admission-test-concept"),
+        "localRecordId": "urn:uuid:" + derive_uuid7(CAPTURED_AT, seed=b"subject-admission-test-concept"),
         "labels": [
             {
                 "value": "Congressional oversight",
@@ -121,7 +120,6 @@ def _review_evidence(
     reviewer: str = REVIEWER,
 ) -> EvidenceAssertion:
     return EvidenceAssertion(
-        identifier=f"urn:ref:test:subject-admission-evidence:{decision_iri.rsplit(':', 1)[-1]}",
         semantic_ring="subject",
         evidence_class="humanReviewed",
         basis="editorialReview",
@@ -139,9 +137,7 @@ def _review(
     reviewer: str = REVIEWER,
     hierarchy_placement: Mapping[str, str] | None = None,
 ) -> SubjectAdmissionReview:
-    decision_iri = (
-        SUBJECT_ADMISSION_ADMIT if decision == "admit" else SUBJECT_ADMISSION_REJECT
-    )
+    decision_iri = SUBJECT_ADMISSION_ADMIT if decision == "admit" else SUBJECT_ADMISSION_REJECT
     return build_subject_admission_review(
         release,
         subject_concept=str(release.concepts[0]["id"]),
@@ -166,9 +162,7 @@ def _review(
 
 def _mapping_keys(value: object) -> set[str]:
     if isinstance(value, Mapping):
-        return set(value) | {
-            key for child in value.values() for key in _mapping_keys(child)
-        }
+        return set(value) | {key for child in value.values() for key in _mapping_keys(child)}
     if isinstance(value, (list, tuple)):
         return {key for child in value for key in _mapping_keys(child)}
     return set()
@@ -224,9 +218,7 @@ def _output_profile(
     permission = {
         "facet": FACET,
         "assignmentRole": ASSIGNMENT_ROLE,
-        "subjectEmissionPolicy": dict(
-            policy.reference if permission_policy is None else permission_policy
-        ),
+        "subjectEmissionPolicy": dict(policy.reference if permission_policy is None else permission_policy),
         "intendedProductUse": PRODUCT_USE,
         "candidateUse": candidate_use,
         "acceptedOutputUse": accepted_output_use,

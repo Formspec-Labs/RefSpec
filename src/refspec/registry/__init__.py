@@ -54,9 +54,17 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ELSST_PUBLISHER": ("refspec.registry.adapters.elsst_acquisition", "ELSST_PUBLISHER"),
     "ELSST_R6": ("refspec.registry.adapters.elsst_acquisition", "ELSST_R6"),
     "ELSST_RELEASES": ("refspec.registry.adapters.elsst_acquisition", "ELSST_RELEASES"),
+    "EVIDENCE_USE_CEILINGS": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "EVIDENCE_USE_CEILINGS",
+    ),
     "EvidenceAssertion": (
         "refspec.registry.infrastructure.semantic_foundation",
         "EvidenceAssertion",
+    ),
+    "EvidenceUseCeiling": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "EvidenceUseCeiling",
     ),
     "ElsstAcquisitionError": ("refspec.registry.adapters.elsst_acquisition", "ElsstAcquisitionError"),
     "ElsstConcept": ("refspec.registry.elsst", "ElsstConcept"),
@@ -178,6 +186,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     ),
     "ListsOfSubjectsResolution": ("refspec.policies.federal_register_lists_of_subjects", "ListsOfSubjectsResolution"),
     "ManagedReleaseViewLike": ("refspec.registry.adapters.concept_domain_bridge", "ManagedReleaseViewLike"),
+    "MACHINE_EVIDENCE_PROOF_VERSION": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "MACHINE_EVIDENCE_PROOF_VERSION",
+    ),
     "MappingAssertion": (
         "refspec.registry.infrastructure.semantic_foundation",
         "MappingAssertion",
@@ -333,6 +345,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "validate_evidence_assertions": (
         "refspec.registry.infrastructure.semantic_foundation",
         "validate_evidence_assertions",
+    ),
+    "validate_machine_evidence_proof_pin": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_machine_evidence_proof_pin",
     ),
     "validate_mapping_assertions": (
         "refspec.registry.infrastructure.semantic_foundation",

@@ -95,6 +95,7 @@ def test_the_corpus_marks_in_place_amendments_machine_readably() -> None:
         "2026-08-02",
         "2026-08-02-hierarchy",
         "2026-08-03-relation-adjudication",
+        "2026-08-04-complete-machine-support",
     ]
     assert _CORPUS["schemaVersion"] == "refspec-vocabulary-atlas-conformance-corpus/v1"
 

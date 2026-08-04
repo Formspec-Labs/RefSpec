@@ -2,8 +2,9 @@
 """Generate or verify the non-vacuous atlas conformance distributions.
 
 Every other fixture in `bindings/atlas/1.0/fixtures` carries zero mapping
-candidates, so the qualification path — two independent machines, a resolvable
-sealed input, one `searchOnly` mapping — had no conforming example a reader
+candidate facts, so the qualification path — an independent machine pair, a
+complete same-question support set, a resolvable sealed input, and one
+`searchOnly` mapping — had no conforming example a reader
 could accept. This builds that example from the producer, then derives the
 invalid distributions from it by the smallest possible byte edit, so each
 refusal is isolated to exactly one forged fact.
@@ -55,7 +56,13 @@ CORPUS_PATH = FIXTURE_ROOT / "corpus.json"
 # Dated in-place amendments to binding 1.0, oldest first. Two landed on the
 # same day, so the later one carries a name as well: a bare date could not tell
 # a consumer which of the two a pinned corpus predates.
-AMENDMENTS = ("2026-08-02", "2026-08-02-hierarchy", "2026-08-03-relation-adjudication")
+AMENDMENTS = (
+    "2026-08-02",
+    "2026-08-02-hierarchy",
+    "2026-08-03-relation-adjudication",
+    "2026-08-04-complete-machine-support",
+)
+RETIRED_DIRECTORIES = ("invalid/three-machine-validations",)
 
 SOURCE_PUBLICATION = "urn:ref:conformance:alpha-thesaurus:2026"
 TARGET_PUBLICATION = "urn:ref:conformance:beta-thesaurus:2026"
@@ -448,8 +455,11 @@ def _validation(
     )
 
 
-def _qualified_bundle() -> CrosswalkBundle:
+def _qualified_bundle(*, support_count: int = 2) -> CrosswalkBundle:
     """One candidate that qualifies and one that must not."""
+
+    if support_count not in {2, 3}:
+        raise VocabularyAtlasError("conformance support_count must be two or three")
 
     artifacts: list[CrosswalkArtifact] = []
     candidates: list[MappingCandidate] = []
@@ -519,6 +529,30 @@ def _qualified_bundle() -> CrosswalkBundle:
         )
     )
     artifacts.extend((context, evidence, request, first, second))
+    if support_count == 3:
+        third = _response(
+            candidate,
+            request,
+            input_digest=context.content_digest,
+            actor="urn:ref:conformance:validator:third",
+            provider="urn:ref:conformance:provider:third",
+            provider_model_id="provider-model-third",
+            reason="A third independent review confirms that the same sealed question is safely substitutable.",
+        )
+        validations.append(
+            _validation(
+                candidate,
+                request,
+                third,
+                input_digest=context.content_digest,
+                actor="urn:ref:conformance:validator:third",
+                group="urn:ref:conformance:independence-group:third",
+                provider="urn:ref:conformance:provider:third",
+                provider_model_id="provider-model-third",
+                completed_at="2026-08-02T09:07:00Z",
+            )
+        )
+        artifacts.append(third)
     candidates.append(candidate)
 
     # Near miss: one machine only, so the gate must leave it ineligible.
@@ -700,6 +734,35 @@ def _build_valid_distribution(work: Path) -> tuple[bytes, bytes]:
         releases,
         rulespec_core=_core_release(work),
         crosswalks=(_qualified_bundle(),),
+    )
+    return asset.payload, asset.manifest_bytes()
+
+
+def _build_three_support_distribution(work: Path) -> tuple[bytes, bytes]:
+    releases = (
+        _ConformanceReleaseSource(
+            _view(
+                publication=SOURCE_PUBLICATION,
+                release=SOURCE_RELEASE,
+                concepts=SOURCE_CONCEPTS,
+                release_digest=_SOURCE_DIGEST,
+            ),
+            _SOURCE_DIGEST,
+        ),
+        _ConformanceReleaseSource(
+            _view(
+                publication=TARGET_PUBLICATION,
+                release=TARGET_RELEASE,
+                concepts=TARGET_CONCEPTS,
+                release_digest=_TARGET_DIGEST,
+            ),
+            _TARGET_DIGEST,
+        ),
+    )
+    asset = build_vocabulary_atlas(
+        releases,
+        rulespec_core=_core_release(work),
+        crosswalks=(_qualified_bundle(support_count=3),),
     )
     return asset.payload, asset.manifest_bytes()
 
@@ -1012,6 +1075,12 @@ _CASES: tuple[dict[str, Any], ...] = (
         "valid": True,
     },
     {
+        "base": "three-supports",
+        "directory": "valid/qualified-three-machine-support",
+        "id": "qualified-mapping-retains-complete-machine-support",
+        "valid": True,
+    },
+    {
         "base": "hierarchy",
         "directory": "valid/hierarchy",
         "id": "intra-scheme-hierarchy-is-accepted",
@@ -1139,6 +1208,7 @@ def _generate() -> dict[str, tuple[bytes, bytes]]:
     with tempfile.TemporaryDirectory() as raw:
         bases = {
             "qualified": _build_valid_distribution(Path(raw) / "qualified"),
+            "three-supports": _build_three_support_distribution(Path(raw) / "three-supports"),
             "hierarchy": _build_hierarchy_distribution(Path(raw) / "hierarchy"),
             "v2": _build_v2_distribution(Path(raw) / "v2"),
         }
@@ -1173,7 +1243,11 @@ def _corpus(generated: Mapping[str, tuple[bytes, bytes]]) -> dict[str, Any]:
     # 1.0 needs to tell the two apart without reading prose.
     corpus["amendments"] = sorted({*corpus.get("amendments", []), *AMENDMENTS})
     owned = {case["directory"]: case for case in _CASES}
-    cases = [case for case in corpus["cases"] if case["directory"] not in owned]
+    cases = [
+        case
+        for case in corpus["cases"]
+        if case["directory"] not in owned and case["directory"] not in RETIRED_DIRECTORIES
+    ]
     cases.extend(
         _corpus_entry(case, generated[directory])
         for directory, case in owned.items()
@@ -1200,6 +1274,10 @@ def main() -> int:
         corpus_text = _render_corpus(_corpus(generated))
 
         if arguments.write:
+            for directory in RETIRED_DIRECTORIES:
+                retired = FIXTURE_ROOT / directory
+                if retired.exists():
+                    shutil.rmtree(retired)
             for directory, (payload, manifest_bytes) in generated.items():
                 target = FIXTURE_ROOT / directory
                 if target.exists():
@@ -1211,6 +1289,9 @@ def main() -> int:
             print(f"wrote {len(generated)} distributions and the corpus")
             return 0
 
+        for directory in RETIRED_DIRECTORIES:
+            if (FIXTURE_ROOT / directory).exists():
+                raise VocabularyAtlasError(f"retired fixture directory still exists: {directory}")
         for directory, (payload, manifest_bytes) in generated.items():
             target = FIXTURE_ROOT / directory
             if (target / "atlas.nq").read_bytes() != payload:

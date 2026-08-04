@@ -463,6 +463,20 @@ def _qualified_bundle(
     )
 
 
+def _qualified_bundle_with_three_supports() -> CrosswalkBundle:
+    candidate, evidence, request, _, _ = _candidate_and_artifacts()
+    responses = tuple(_response(candidate, request, suffix=suffix) for suffix in ("a", "b", "c"))
+    validations = tuple(
+        _validation(candidate, request, response, suffix=suffix)
+        for suffix, response in zip(("a", "b", "c"), responses, strict=True)
+    )
+    return CrosswalkBundle.create(
+        artifacts=(_input_context(), evidence, request, *responses),
+        mapping_candidates=(candidate,),
+        machine_validations=validations,
+    )
+
+
 def test_exact_inputs_build_deterministic_blank_node_free_asset(tmp_path: Path) -> None:
     release = _real_release(tmp_path)
     core = _core_release(tmp_path)
@@ -671,6 +685,19 @@ def test_two_independent_machines_qualify_search_without_human_review(
     assert mappings[0].target_member == TARGET_MEMBER
     assert len(mappings[0].validation_ids) == 2
     assert asset.manifest["counts"]["feedback"] == 0
+
+
+def test_qualified_mapping_retains_all_three_same_question_supports(tmp_path: Path) -> None:
+    asset = build_vocabulary_atlas(
+        _two_releases(tmp_path),
+        rulespec_core=_core_release(tmp_path),
+        crosswalks=(_qualified_bundle_with_three_supports(),),
+    )
+
+    mappings = VocabularyAtlasQueries(asset).search_only_mappings()
+
+    assert len(mappings) == 1
+    assert len(mappings[0].validation_ids) == 3
 
 
 def test_shared_machine_provider_cannot_qualify_search(tmp_path: Path) -> None:
@@ -1230,7 +1257,7 @@ def test_file_only_open_rejects_forged_machine_proof_despite_resealed_counts(
     manifest["canonicalPayloadDigest"] = binding.canonical_payload_digest(manifest)
     manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
 
-    with pytest.raises(VocabularyAtlasError, match="mapping source"):
+    with pytest.raises(VocabularyAtlasError, match="mapping validation is missing"):
         VocabularyAtlasAsset.open(
             output,
             expected_manifest_digest=_file_digest(manifest_path),
@@ -1259,10 +1286,10 @@ def test_queries_refuse_a_concept_mapping_that_is_not_search_only(
         queries.search_only_mappings()
 
 
-def test_queries_refuse_a_search_only_mapping_with_three_machine_validations(
+def test_queries_refuse_an_unclosed_third_machine_validation(
     tmp_path: Path,
 ) -> None:
-    """Two independent machines is an exact count, not a floor."""
+    """Every cited validation must be a complete verified support record."""
 
     asset = build_vocabulary_atlas(
         _two_releases(tmp_path),
@@ -1276,7 +1303,7 @@ def test_queries_refuse_a_search_only_mapping_with_three_machine_validations(
         (mapping, ATLAS.qualifiedBy, URIRef("urn:test:atlas:validation:third"))
     )
 
-    with pytest.raises(VocabularyAtlasError, match="exactly two machine validations"):
+    with pytest.raises(VocabularyAtlasError, match="validation is missing"):
         queries.search_only_mappings()
 
 

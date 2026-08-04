@@ -263,11 +263,11 @@ answer *which* relation holds. Two facts are new, both optional:
   the supported SKOS mapping relations.
 
 This amendment also states one rule that is **not** new to v2 and applies to
-every `searchOnly` mapping: the two qualifying validations MUST resolve the same
+every `searchOnly` mapping: the qualifying validations MUST resolve the same
 `atlas:requestArtifact` (added to the proof list above). It was always implied by
-"two answers to one question" and is now written down, so a reader that
-previously accepted a mapping whose two validations answered different requests
-now refuses it. No distribution this binding has published is affected.
+"multiple answers to one question" and is now written down, so a reader that
+previously accepted a mapping whose validations answered different requests now
+refuses it. No distribution this binding has published is affected.
 
 A consumer MUST verify, for **every** mapping candidate:
 
@@ -310,6 +310,23 @@ compatible in the direction that matters: a distribution carrying neither new
 fact is read exactly as before, and every previously valid distribution stays
 valid, because none of them adjudicated a relation.
 
+### Amendment 2026-08-04-complete-machine-support: retain the whole proof set
+
+Machine-readable marker: `fixtures/corpus.json` carries
+`"2026-08-04-complete-machine-support"` in `amendments`.
+
+Qualification requires at least one independent pair, not exactly two
+validations. The relation gate already folds every deterministic supporting
+validation that answered the selected sealed question. A mapping MUST therefore
+cite that complete support set through `atlas:qualifiedBy`; publishing only the
+first independent pair would discard evidence that helped determine the
+relation. The reader MUST reject missing, extra, untyped, or differently
+questioned validation references.
+
+`valid/qualified-three-machine-support` proves the widening rule with three
+same-question supports. The former invalid fixture that rejected a third
+validation has been retired.
+
 ### `atlas:reason` is an unverified convenience copy
 
 An `atlas:MachineValidation` MAY carry `atlas:reason`, a literal holding the free
@@ -348,7 +365,10 @@ first candidate is qualified by two independent machines, and the second stays
 distributions derived from it — `invalid/missing-input-context`,
 `invalid/tampered-input-context`, and `invalid/same-provider-model` — each
 forge exactly one fact of that proof, so a reader that accepts any of them has
-a locatable defect.
+not implemented the binding and has a locatable defect.
+`valid/qualified-three-machine-support` adds a third deterministic support to
+the qualifying question and requires the mapping to retain all three validation
+IRIs.
 
 The same guard applies to hierarchy: four refusals prove nothing about a reader
 that rejects every hierarchy. `valid/hierarchy` is the case that must pass. It
@@ -437,6 +457,25 @@ it cannot read makes "what was dropped" unanswerable.
 the hierarchy amendment above and only under it: an edge is projected from the
 broader direction alone and a source stating both must have them agree, so the
 surviving half is the whole fact.
+
+## Sibling publication: relation-assertion SSSOM 1.0
+
+The `relationAssertionSssomDistribution` package kind publishes a verified
+relation-assertion bundle as `mappings.sssom.tsv`, `mapping-evidence.jsonl`, and
+a manifest that seals both files to the exact bundle. This is a separate
+publication from the N-Quads binding above. Its current scope is **subject and
+value relations only**.
+
+The publisher MUST refuse entity and `legalIdentity` bundles. Entity identity
+links need merge-safe identity semantics, and legal-identity edges need their
+own point-in-time edge profile; flattening either into the current SSSOM mapping
+shape would discard meaning. The shared relation-assertion foundation still
+accepts all four rings. This restriction applies only to the SSSOM publication.
+
+For an accepted subject or value bundle, SSSOM rows are interoperability data,
+not use permission. The evidence sidecar retains exact release pins, typed
+evidence, mapping-assertion identity, machine-proof facts, and value-ring time
+context. Product use still requires that sidecar and an exact product policy.
 
 ## Complete Federal Register example
 

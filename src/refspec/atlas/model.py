@@ -162,8 +162,11 @@ _IMPLEMENTATION_SOURCE_PATHS = (
     "atlas/__init__.py",
     "atlas/federal_register.py",
     "atlas/icpsr.py",
+    "atlas/machine_evidence.py",
     "atlas/model.py",
     "atlas/queries.py",
+    "atlas/relation_assertion.py",
+    "atlas/relation_sssom.py",
     "atlas/source_concept.py",
     "atlas/subject_admission.py",
     "atlas/subject_emission.py",
@@ -1078,6 +1081,13 @@ class CrosswalkBundle:
         )
 
     def qualified(self) -> dict[str, tuple[dict[str, Any], ...]]:
+        """Return every supporting validation in each qualifying question.
+
+        The returned validation set is the complete same-question set whose
+        unanimous relation determined qualification, not only the first pair
+        that demonstrated machine independence.
+        """
+
         self.verify()
         record = self.to_dict()
         candidates = {item["id"]: item for item in record["mappingCandidates"]}
@@ -1272,7 +1282,7 @@ def _independent_agreements(
                 # These machines did not answer one question with one relation.
                 # A different sealed question may still have agreement.
                 continue
-            pair = next(
+            independent_witness = next(
                 (
                     pair
                     for pair in itertools.combinations(values, 2)
@@ -1284,8 +1294,11 @@ def _independent_agreements(
                 ),
                 None,
             )
-            if pair is not None:
-                agreements[candidate_id] = (cast(tuple[dict[str, Any], ...], pair), relation)
+            if independent_witness is not None:
+                # Every value above affected the unanimous relation gate.  Keep
+                # the full set in the proof; the witness pair establishes only
+                # that the set contains two independent machines.
+                agreements[candidate_id] = (tuple(values), relation)
                 break
     return agreements
 
@@ -1297,8 +1310,8 @@ def _qualified_candidates(
     """Candidates that earn a mapping: adjudicated-``related`` is excluded."""
 
     return {
-        candidate_id: pair
-        for candidate_id, (pair, relation) in _independent_agreements(candidates, validations).items()
+        candidate_id: supporting
+        for candidate_id, (supporting, relation) in _independent_agreements(candidates, validations).items()
         if relation != _RELATED_MATCH
     }
 
@@ -2017,13 +2030,15 @@ def _search_only_mapping_nodes(analysis: Graph) -> tuple[URIRef, ...]:
     return tuple(nodes)
 
 
-def _search_only_mapping_validations(analysis: Graph, mapping: URIRef) -> tuple[URIRef, URIRef]:
-    """Return the exactly two machine validations that qualify one mapping."""
+def _search_only_mapping_validations(analysis: Graph, mapping: URIRef) -> tuple[URIRef, ...]:
+    """Return the complete supporting set that qualifies one mapping."""
 
     validations = tuple(sorted(set(analysis.objects(mapping, ATLAS.qualifiedBy)), key=str))
-    if len(validations) != 2 or any(not isinstance(value, URIRef) for value in validations):
-        raise VocabularyAtlasError("searchOnly mapping needs exactly two machine validations")
-    return cast(tuple[URIRef, URIRef], validations)
+    if len(validations) < 2 or any(not isinstance(value, URIRef) for value in validations):
+        raise VocabularyAtlasError("searchOnly mapping needs at least two machine validations")
+    if any((value, RDF.type, ATLAS.MachineValidation) not in analysis for value in validations):
+        raise VocabularyAtlasError("searchOnly mapping validation is missing")
+    return cast(tuple[URIRef, ...], validations)
 
 
 def _label_cluster_nodes(analysis: Graph) -> tuple[URIRef, ...]:
@@ -2494,13 +2509,35 @@ def _validate_query_graph_semantics(
             _validate_projected_artifact(analysis, response, role="validationResponse")
             requests.add(request)
             independence.append((actor, group, provider, provider_model_id, response))
-        first, second = independence
-        if any(left == right for left, right in zip(first, second, strict=True)):
+        if not any(
+            all(left != right for left, right in zip(first, second, strict=True))
+            for first, second in itertools.combinations(independence, 2)
+        ):
             raise VocabularyAtlasError("searchOnly mapping validations are not independent")
         if len(requests) != 1:
             # Two machines that answered different requests are two answers to
             # two questions, not a corroboration.
             raise VocabularyAtlasError("searchOnly mapping validations answered different requests")
+        selected_request = next(iter(requests))
+        complete_support = {
+            validation
+            for validation in analysis.subjects(ATLAS.validates, candidate)
+            if isinstance(validation, URIRef)
+            and str(_one_literal(analysis, validation, ATLAS.sealedInputDigest, "machine sealed input digest"))
+            == input_digest
+            and str(_one_literal(analysis, validation, ATLAS.outcome, "machine validation outcome")) == "supports"
+            and _one_literal(
+                analysis,
+                validation,
+                ATLAS.deterministicChecksPassed,
+                "machine deterministic check",
+            ).toPython()
+            is True
+            and _one_resource(analysis, validation, ATLAS.requestArtifact, "machine request artifact")
+            == selected_request
+        }
+        if set(validations) != complete_support:
+            raise VocabularyAtlasError("searchOnly mapping does not cite its complete supporting validation set")
         expected_mapping = _stable_iri(
             "search-only-mapping",
             str(candidate),
