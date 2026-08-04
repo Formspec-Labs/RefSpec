@@ -17,23 +17,23 @@
       "resourceId": "federal-register-thesaurus-2025"
     },
     {
-      "distributionKind": "refspec-source-controlled-resource-1.0",
+      "distributionKind": "refspec-source-controlled-resource-2.0",
       "files": [
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/bundle-manifest.json",
-          "sha256": "sha256:8874d5a5744d3217d62059cdc5162df2fe371061eb505e74a68b2d160397bf41"
+          "sha256": "sha256:9c0851bbe7c555da4402a8908727cc6faa10cbf03333e39f5a5cece13c1ee6aa"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/coverage-report.json",
-          "sha256": "sha256:77e57a72f89ef2b67ef73d603a80ddd04a7cac33b7c875afce89c9ce504b475e"
+          "sha256": "sha256:ca2a0767b88ded4b8a176081b19cb96e66af53837484b1414d32f1bdd9e49b40"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/observations.jsonl",
-          "sha256": "sha256:13f621ddf8b41c24e8c126a72b008e341158411ce39f7b9d083c41c701a91b38"
+          "sha256": "sha256:2315bd12c2a35077734a45b282130a920daba99ef144eb2d637ea10ad5b9d020"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/resource-manifest.json",
-          "sha256": "sha256:81a0319e220fb0846b2e815dcba4fe72f8589b50ff6a6d50c880f65b6095f2a4"
+          "sha256": "sha256:20801eb89cf0f67eee90128973b1ab20a1fbef8a150076e926bd830e53a59c2c"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/filing-types/sources/source-0ed0d737263a49b62c2aa98744c8be6f2b35b787032f7cd1b34a1b55b5deef0d.bin",
@@ -45,23 +45,23 @@
       "resourceId": "lda-native-controls"
     },
     {
-      "distributionKind": "refspec-source-controlled-resource-1.0",
+      "distributionKind": "refspec-source-controlled-resource-2.0",
       "files": [
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
-          "sha256": "sha256:be21135816424ca76316f24f1df76546a4524e618696251537dea1d85a8cb66a"
+          "sha256": "sha256:dcc80cedfb3427bba197964497af9aec8dc6cf7b1942f5df046fc01f1f8d6e61"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/coverage-report.json",
-          "sha256": "sha256:c6bcfa64676a7903923220e87daaf7e389e3a770ca5054dc47ff434da897778b"
+          "sha256": "sha256:9f9b8dd3778f0d22c118d5957c313c15c332733960032fe60cf6d6eb6ed7e6aa"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/observations.jsonl",
-          "sha256": "sha256:ebcbe7ec87c29d31c97563f290e18d87a4021dc068ae5263604d9c855f22ae6e"
+          "sha256": "sha256:fb128d0004154b1fec1204ec1494f8dde4da54fbe658b3245acb9c5c7af02416"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/resource-manifest.json",
-          "sha256": "sha256:da046570ac8372227552ea5cd0f0c876f474b6c92b3fd9e433f238b938713e11"
+          "sha256": "sha256:8c8bd5f9c09be66a36c016df732634e7eb90902f6db3c33dda1ece523920edd6"
         },
         {
           "path": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/sources/source-477db45b9921f293cc474269df8cd7a8db40f0f996c27872c4bca733ae8ee995.bin",
@@ -71,6 +71,190 @@
       "manifestPath": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes/bundle-manifest.json",
       "packageResourceId": "lda-general-issue-codes",
       "resourceId": "lda-native-controls"
+    },
+    {
+      "distributionKind": "refspec-source-concept-release-1.0",
+      "files": [
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/bundle-manifest.json",
+          "sha256": "sha256:f20d688f08134a8b6b1c9a6e202e84c5e051e2786c743df66708be27b55b12e7"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/concepts.jsonl",
+          "sha256": "sha256:5c88f31656d1f79d4201afc56fc33d363ce2364c0088da6107736251851a2657"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/lifecycle.jsonl",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/reconciliation.json",
+          "sha256": "sha256:80f19c3ec58dcef270bea7075f6abc757a371b539d4afd1c1cc02a4ae1193625"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/release-manifest.json",
+          "sha256": "sha256:d3bf804a9c1b43d78d1d476c96663336c464fbf36aa77f2f6a1349acc6c17c13"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/rights.jsonl",
+          "sha256": "sha256:6b75d98b460ef532b4abc0412e6d0999da0db0e6b1ef06d503d81c44dcfda4f8"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/bundle-manifest.json",
+          "sha256": "sha256:3efd4c93321ba7aafbde253c068c90cb9a20895becef575ec0fc5f6824461eff"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/coverage-report.json",
+          "sha256": "sha256:738741d3e9085a7f5c0f832aa4e19d83e9bdc55890d80f250420939d964e04ab"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/observations.jsonl",
+          "sha256": "sha256:4e8148715f30de83c1129b904313cd653b180eb0dea03f2c0b9a5adf217990f4"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/resource-manifest.json",
+          "sha256": "sha256:f2038de440d490ac9cb8453c7746de49561c604a95b317a8a2971c29933ff493"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/sources/source-0990ab9df06e6671688a0d4ba9c052fad7bcafa7340f722aeda101c80f096ab7.bin",
+          "sha256": "sha256:f4765c3cf7ab685e1cc05ba0f0b71ae288a5433bda29a801be3ca62a25be36f3"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/sources/source-126aeae469f0c4c7e253cb747c363f49fd478eaab8ab2e125fa349c7544e5d3f.bin",
+          "sha256": "sha256:8b4964a8cea53d63bce0a029bac38a2bc260059883120bc36e1759a4b5e844d1"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/sources/source-3ce7b849bb0b2c8fb6c4a7071b7771e34f8dbafb28571440b1beeb5a5dc47a7d.bin",
+          "sha256": "sha256:fa870ff36352c3482a68aad4d9cff69bd8ff98294a7dd21b1e36f0a534b2b880"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/source/sources/source-eec678a7cc7d835f330dd245cf04d2b909247784cdb7ec7e32b7a8a428bda0c8.bin",
+          "sha256": "sha256:7dfefc6e8b17b3a86a9c9009453e792453eef01b099177ef29f4dc172d19d3d0"
+        }
+      ],
+      "manifestPath": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-subjects/bundle-manifest.json",
+      "packageResourceId": "crs-legislative-subject-source-concepts",
+      "resourceId": "crs-legislative-subject-terms"
+    },
+    {
+      "distributionKind": "refspec-source-concept-release-1.0",
+      "files": [
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/bundle-manifest.json",
+          "sha256": "sha256:aa80aaf0495a5e74a5194374cac05075fe8bcc0f0046261853293521544959fd"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/concepts.jsonl",
+          "sha256": "sha256:60d81363d96f67b82d67766dff31877631f0f91d88b52391c1e77a8c938cd3fb"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/lifecycle.jsonl",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/reconciliation.json",
+          "sha256": "sha256:80f19c3ec58dcef270bea7075f6abc757a371b539d4afd1c1cc02a4ae1193625"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/release-manifest.json",
+          "sha256": "sha256:e02067416a5de2fd97d38584a46e18d5579af19960aa5ba7578bdce67547d05d"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/rights.jsonl",
+          "sha256": "sha256:6489216d696f41bb43927e8edd643e86bd9d9c22e5a66f36fc1305f4de8059e6"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/bundle-manifest.json",
+          "sha256": "sha256:3efd4c93321ba7aafbde253c068c90cb9a20895becef575ec0fc5f6824461eff"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/coverage-report.json",
+          "sha256": "sha256:738741d3e9085a7f5c0f832aa4e19d83e9bdc55890d80f250420939d964e04ab"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/observations.jsonl",
+          "sha256": "sha256:4e8148715f30de83c1129b904313cd653b180eb0dea03f2c0b9a5adf217990f4"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/resource-manifest.json",
+          "sha256": "sha256:f2038de440d490ac9cb8453c7746de49561c604a95b317a8a2971c29933ff493"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/sources/source-0990ab9df06e6671688a0d4ba9c052fad7bcafa7340f722aeda101c80f096ab7.bin",
+          "sha256": "sha256:f4765c3cf7ab685e1cc05ba0f0b71ae288a5433bda29a801be3ca62a25be36f3"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/sources/source-126aeae469f0c4c7e253cb747c363f49fd478eaab8ab2e125fa349c7544e5d3f.bin",
+          "sha256": "sha256:8b4964a8cea53d63bce0a029bac38a2bc260059883120bc36e1759a4b5e844d1"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/sources/source-3ce7b849bb0b2c8fb6c4a7071b7771e34f8dbafb28571440b1beeb5a5dc47a7d.bin",
+          "sha256": "sha256:fa870ff36352c3482a68aad4d9cff69bd8ff98294a7dd21b1e36f0a534b2b880"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/source/sources/source-eec678a7cc7d835f330dd245cf04d2b909247784cdb7ec7e32b7a8a428bda0c8.bin",
+          "sha256": "sha256:7dfefc6e8b17b3a86a9c9009453e792453eef01b099177ef29f4dc172d19d3d0"
+        }
+      ],
+      "manifestPath": "research/evidence/crs-source-concept-releases-2026-08-04/legislative-entities/bundle-manifest.json",
+      "packageResourceId": "crs-legislative-entity-source-concepts",
+      "resourceId": "crs-legislative-subject-terms"
+    },
+    {
+      "distributionKind": "refspec-source-concept-release-1.0",
+      "files": [
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/bundle-manifest.json",
+          "sha256": "sha256:b5966cb93cc1a28cc87ea914538f9c2f3da0b44fb37f66385170b56954dabeb8"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/concepts.jsonl",
+          "sha256": "sha256:7e60735d18855ba252263da36d6fe7f43d5ba2a96c0651513fb0176bc6520151"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/lifecycle.jsonl",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/reconciliation.json",
+          "sha256": "sha256:645bb7b3fb9333e518af1985ff2de8e24e62eafd3d8795be29a8367801911ba1"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/release-manifest.json",
+          "sha256": "sha256:8b994f764b16f21b944c74f2ffdd7ec00dbaf7b5df857dbfd3295f68b339d099"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/rights.jsonl",
+          "sha256": "sha256:e8edc57fb971ad3bbba08fdd48c51f49df66c6ec34840dba6c17bbabb6de2adf"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/bundle-manifest.json",
+          "sha256": "sha256:9f55a7ccd78d1d7225e71cba42a9a24a54074ba9eb5b40b9f39d9900bcb22cef"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/coverage-report.json",
+          "sha256": "sha256:5642aa216a64a44108194ad8351238aa3803edf5e6ee27e4baf8d7e9c61b3504"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/observations.jsonl",
+          "sha256": "sha256:870c99ee58b0c7aec21abf2d97fbd1ae987f2070184fbabad94a2ba929e0f6b8"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/resource-manifest.json",
+          "sha256": "sha256:1a3d22908040ab37bc24b54d249bc785fb753a250fe56a17022785fc08fb94d8"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/sources/source-4ea4a47e05eafa7452d26bf0b9c96df06526922d4e2f73b83467518b1baf6c23.bin",
+          "sha256": "sha256:3b91e326475799c99ed24b6bf7eb692efb0196812b9c9af99606f0b41ac03286"
+        },
+        {
+          "path": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/source/sources/source-77d1028fb1fe4616416e699aa0ac419423dd1ca91ff257ec653b1002c8dca28c.bin",
+          "sha256": "sha256:16d806e4a07df391de776d0bd5fade9d0bce89fe33b564036c94e0749df91326"
+        }
+      ],
+      "manifestPath": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/bundle-manifest.json",
+      "packageResourceId": "crs-policy-area-source-concepts",
+      "resourceId": "crs-policy-areas"
     }
   ],
   "format": "refspec-portable-resource-distributions/experimental-v0"

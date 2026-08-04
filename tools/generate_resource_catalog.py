@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 INVENTORY = ROOT / "portfolio" / "resource-inventory-v0.json"
-COMPLETED = ROOT / "portfolio" / "completed-controlled-resource-packages-v1.json"
+COMPLETED = ROOT / "portfolio" / "completed-resource-packages-v2.json"
 DISTRIBUTIONS = ROOT / "portfolio" / "portable-resource-distributions-v0.json"
 OUTPUT = ROOT / "portfolio" / "resource-catalog-v0.json"
 

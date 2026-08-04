@@ -81,11 +81,12 @@ registry.
   distinguishes 14 non-subject controls and retains source values that cannot
   be normalized safely.
 - **Completed-resource packaging complete:** the closed
-  [package inventory](../portfolio/completed-controlled-resource-packages-v1.json)
-  records eight resources and nine release or snapshot datasets. Three are
-  managed concept resources and five are typed source-controlled resources.
-  Every package is development-only, has an exact digest and verified reader,
-  and denies accepted-output authority.
+  [package inventory](../portfolio/completed-resource-packages-v2.json)
+  records 12 resources and 13 release or snapshot datasets. Four are managed
+  concept resources, five are typed source-controlled resources, and three are
+  source-concept releases. Every package is development-only, has an exact
+  digest and verified reader, records intended use as metadata, and grants no
+  product permission.
 - **Batch 2 URI-verified release complete:** the
   official ICPSR XML contains 3,765 records, while the current public term
   index contains 3,805 identities. Exactly 3,760 join; five XML records are
@@ -96,10 +97,11 @@ registry.
 - **Batch 3 legislative and lobbying packages complete:** the exact Congress
   captures contain 1,043 Legislative Subject Terms and 32 Policy Areas.
   Congress does not publish stable term identifiers or a named release, so
-  these remain separate source-term and navigation packages with
-  capture-specific observation IRIs. The LDA packages retain all 79 General
-  Issue Codes as source-assigned evidence and all 50 Filing Types as
-  deterministic metadata.
+  the source packages retain capture-specific observation IRIs. Content-derived
+  releases now preserve 565 subjects, 478 named entities, and 32 policy areas
+  as source-scoped concepts derived from their UUIDv7 local record IDs. The LDA
+  packages retain all 79 General Issue Codes as source-assigned evidence and
+  all 50 Filing Types as deterministic metadata.
 - **Current Federal Register thesaurus and Topics packages complete:** the
   April 1, 2025 publication supplies 705 managed concepts and is the
   source-native default for Federal Register documents. All 7,767 API Topic
@@ -110,11 +112,11 @@ registry.
   entity/classification, judicial/FCC, specialist vocabularies, and the final
   atlas remain planned.
 
-Large native ICPSR, Congress, Federal Register, and ELSST artifacts remain in
-the content-addressed experiment output rather than Git. Git contains the
-import and package logic, exact source-derived test fixtures, source pins,
-package evidence, and the small LDA controlled-list bundles needed for
-ordinary offline verification.
+Large native ICPSR, Federal Register, and ELSST artifacts remain in the
+content-addressed experiment output rather than Git. Git contains the import
+and package logic, exact source-derived test fixtures, source pins, the closed
+CRS source-concept releases, package evidence, and the small LDA
+controlled-list bundles needed for ordinary offline verification.
 
 ## Boundaries
 

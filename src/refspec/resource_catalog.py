@@ -15,7 +15,16 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from refspec.atlas.model import VocabularyAtlasAsset, VocabularyAtlasError
 from refspec.binding import canonical_sha256
+from refspec.registry.infrastructure.source_concept_release import (
+    SourceConceptReleaseError,
+    SourceConceptReleaseView,
+)
+from refspec.registry.infrastructure.source_controlled_resource import (
+    SourceControlledResourceError,
+    SourceControlledResourceView,
+)
 
 CATALOG_INPUT_FORMAT = "refspec-resource-catalog-input/experimental-v0"
 DISTRIBUTION_INPUT_FORMAT = "refspec-portable-resource-distributions/experimental-v0"
@@ -44,6 +53,9 @@ SOURCE_AVAILABILITY_STATES = {
 }
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+_ATLAS_DISTRIBUTION_KIND = "refspec-vocabulary-atlas-nquads-1.0"
+_SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND = "refspec-source-concept-release-1.0"
+_SOURCE_CONTROLLED_RESOURCE_DISTRIBUTION_KIND = "refspec-source-controlled-resource-2.0"
 
 
 class ResourceCatalogError(ValueError):
@@ -122,6 +134,154 @@ def _file_digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _repository_relative_file_set(
+    package_root: Path,
+    *,
+    repository_root: Path,
+    location: str,
+) -> set[str]:
+    """Return every regular package file and reject paths outside the repository."""
+
+    try:
+        repository = repository_root.resolve(strict=True)
+        root = package_root.resolve(strict=True)
+        root.relative_to(repository)
+    except (FileNotFoundError, ValueError) as error:
+        raise ResourceCatalogError(f"{location} package root must remain inside the repository") from error
+    if package_root.is_symlink() or not root.is_dir():
+        raise ResourceCatalogError(f"{location} package root must be a regular directory")
+
+    result: set[str] = set()
+    for item in root.rglob("*"):
+        if item.is_symlink():
+            raise ResourceCatalogError(f"{location} package contains a symlink: {item.relative_to(root)}")
+        if item.is_file():
+            result.add(item.relative_to(repository).as_posix())
+    if not result:
+        raise ResourceCatalogError(f"{location} package contains no files")
+    return result
+
+
+def _require_complete_file_inventory(
+    inventory_paths: set[str],
+    package_paths: set[str],
+    *,
+    location: str,
+) -> None:
+    if inventory_paths != package_paths:
+        raise ResourceCatalogError(
+            f"{location} file inventory differs from the closed package; "
+            f"missing={sorted(package_paths - inventory_paths)}, extra={sorted(inventory_paths - package_paths)}"
+        )
+
+
+def _verify_source_controlled_resource_distribution(
+    *,
+    manifest_file: Path,
+    inventory_paths: set[str],
+    completed_row: Mapping[str, Any],
+    repository_root: Path,
+    location: str,
+) -> None:
+    if manifest_file.name != "bundle-manifest.json":
+        raise ResourceCatalogError(f"{location} must name bundle-manifest.json")
+    if completed_row.get("packageClass") != "sourceControlledResource":
+        raise ResourceCatalogError(f"{location} completed evidence must describe a sourceControlledResource")
+    try:
+        view = SourceControlledResourceView.open(manifest_file.parent)
+    except SourceControlledResourceError as error:
+        raise ResourceCatalogError(f"{location} is not a valid closed source-controlled resource: {error}") from error
+    package_paths = _repository_relative_file_set(
+        manifest_file.parent,
+        repository_root=repository_root,
+        location=location,
+    )
+    _require_complete_file_inventory(
+        inventory_paths,
+        package_paths,
+        location=location,
+    )
+    if view.logical_digest != completed_row.get("packageDigest"):
+        raise ResourceCatalogError(f"{location} logical digest differs from completed evidence")
+
+
+def _verify_source_concept_release_distribution(
+    *,
+    manifest_file: Path,
+    inventory_paths: set[str],
+    inventory_digests: Mapping[str, str],
+    completed_row: Mapping[str, Any],
+    repository_root: Path,
+    location: str,
+) -> None:
+    if manifest_file.name != "bundle-manifest.json":
+        raise ResourceCatalogError(f"{location} must name bundle-manifest.json")
+    if completed_row.get("packageClass") != "sourceConceptRelease":
+        raise ResourceCatalogError(f"{location} completed evidence must describe a sourceConceptRelease")
+    package_paths = _repository_relative_file_set(
+        manifest_file.parent,
+        repository_root=repository_root,
+        location=location,
+    )
+    manifest_relative = manifest_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
+    try:
+        view = SourceConceptReleaseView.open(
+            manifest_file,
+            expected_manifest_digest=inventory_digests[manifest_relative],
+        )
+    except (KeyError, SourceConceptReleaseError) as error:
+        raise ResourceCatalogError(f"{location} is not a valid closed source-concept release: {error}") from error
+    _require_complete_file_inventory(
+        inventory_paths,
+        package_paths,
+        location=location,
+    )
+    if view.logical_digest != completed_row.get("packageDigest"):
+        raise ResourceCatalogError(f"{location} logical digest differs from completed evidence")
+
+
+def _verify_atlas_distribution(
+    *,
+    manifest_file: Path,
+    inventory_paths: set[str],
+    inventory_digests: Mapping[str, str],
+    repository_root: Path,
+    location: str,
+) -> None:
+    if manifest_file.name != "atlas-manifest.json":
+        raise ResourceCatalogError(f"{location} must name atlas-manifest.json")
+    package_paths = _repository_relative_file_set(
+        manifest_file.parent,
+        repository_root=repository_root,
+        location=location,
+    )
+    manifest_relative = manifest_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
+    output_file = manifest_file.parent / "atlas.nq"
+    try:
+        output_relative = output_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
+    except (FileNotFoundError, ValueError) as error:
+        raise ResourceCatalogError(f"{location} must contain atlas.nq inside the repository") from error
+    expected_paths = {manifest_relative, output_relative}
+    if package_paths != expected_paths:
+        raise ResourceCatalogError(
+            f"{location} directory is not a closed two-file atlas package; "
+            f"missing={sorted(expected_paths - package_paths)}, extra={sorted(package_paths - expected_paths)}"
+        )
+    _require_complete_file_inventory(
+        inventory_paths,
+        expected_paths,
+        location=location,
+    )
+    try:
+        VocabularyAtlasAsset.open(
+            manifest_file.parent,
+            expected_manifest_digest=inventory_digests[manifest_relative],
+            expected_output_digest=inventory_digests[output_relative],
+        )
+    except (KeyError, VocabularyAtlasError) as error:
+        raise ResourceCatalogError(f"{location} is not a valid closed vocabulary atlas: {error}") from error
+
+
 def _validate_inventory(value: Mapping[str, Any]) -> list[dict[str, Any]]:
     _require_keys(value, {"format", "recordedAt", "resources"}, "resource inventory")
     if value["format"] != CATALOG_INPUT_FORMAT:
@@ -162,37 +322,100 @@ def _validate_inventory(value: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 def _validate_completed_inventory(value: Mapping[str, Any], repository_root: Path) -> dict[str, dict[str, Any]]:
     _require_keys(value, {"recordedAt", "resources", "schemaVersion", "summary"}, "completed inventory")
-    if value["schemaVersion"] != "1.0":
+    if value["schemaVersion"] != "2.0":
         raise ResourceCatalogError(f"unsupported completed inventory version {value['schemaVersion']!r}")
+    _string(value["recordedAt"], "completed inventory recordedAt")
     resources = value["resources"]
     if not isinstance(resources, list):
         raise ResourceCatalogError("completed inventory resources must be a list")
 
+    summary = value["summary"]
+    summary_keys = {
+        "managedConceptResourceCount",
+        "recordOrObservationCount",
+        "releaseOrSnapshotCount",
+        "resourceCount",
+        "sourceConceptReleaseCount",
+        "sourceControlledResourceCount",
+    }
+    if not isinstance(summary, Mapping):
+        raise ResourceCatalogError("completed inventory summary must be an object")
+    _require_keys(summary, summary_keys, "completed inventory summary")
+    if any(
+        not isinstance(summary[key], int) or isinstance(summary[key], bool) or summary[key] < 0 for key in summary_keys
+    ):
+        raise ResourceCatalogError("completed inventory summary counts must be non-negative integers")
+
     result: dict[str, dict[str, Any]] = {}
+    expected_row_keys = {
+        "evidencePath",
+        "identityStatus",
+        "intendedUses",
+        "packageClass",
+        "packageDigest",
+        "recordOrObservationCount",
+        "releaseOrSnapshotCount",
+        "resourceId",
+        "title",
+    }
     for index, raw in enumerate(resources):
         if not isinstance(raw, Mapping):
             raise ResourceCatalogError(f"completed resources[{index}] must be an object")
+        _require_keys(raw, expected_row_keys, f"completed resources[{index}]")
         resource_id = _string(raw.get("resourceId"), f"completed resources[{index}].resourceId")
         if resource_id in result:
             raise ResourceCatalogError(f"completed inventory repeats {resource_id!r}")
         evidence_path = _relative_path(raw.get("evidencePath"), f"completed {resource_id}.evidencePath")
         _repository_file(repository_root, evidence_path.as_posix(), f"completed {resource_id}.evidencePath")
+        package_class = _string(raw.get("packageClass"), f"completed {resource_id}.packageClass")
+        if package_class not in {
+            "managedConceptRelease",
+            "sourceConceptRelease",
+            "sourceControlledResource",
+        }:
+            raise ResourceCatalogError(f"completed {resource_id}.packageClass is unsupported")
+        intended_uses = raw.get("intendedUses")
+        if (
+            not isinstance(intended_uses, Sequence)
+            or isinstance(intended_uses, (str, bytes))
+            or not intended_uses
+            or len(set(intended_uses)) != len(intended_uses)
+        ):
+            raise ResourceCatalogError(f"completed {resource_id}.intendedUses must be a non-empty unique list")
+        normalized_uses = sorted(
+            _string(item, f"completed {resource_id}.intendedUses[{use_index}]")
+            for use_index, item in enumerate(intended_uses)
+        )
+        for count_field in ("recordOrObservationCount", "releaseOrSnapshotCount"):
+            count = raw.get(count_field)
+            if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+                raise ResourceCatalogError(f"completed {resource_id}.{count_field} must be a positive integer")
         result[resource_id] = {
-            "acceptedOutputUseAuthorized": raw.get("acceptedOutputUseAuthorized"),
-            "candidateUseAuthorized": raw.get("candidateUseAuthorized"),
             "evidencePath": evidence_path.as_posix(),
             "identityStatus": _string(raw.get("identityStatus"), f"completed {resource_id}.identityStatus"),
-            "packageClass": _string(raw.get("packageClass"), f"completed {resource_id}.packageClass"),
+            "intendedUses": normalized_uses,
+            "packageClass": package_class,
             "packageDigest": _digest(raw.get("packageDigest"), f"completed {resource_id}.packageDigest"),
         }
-        if not isinstance(result[resource_id]["candidateUseAuthorized"], bool) or not isinstance(
-            result[resource_id]["acceptedOutputUseAuthorized"], bool
-        ):
-            raise ResourceCatalogError(f"completed {resource_id} authorization fields must be booleans")
+
+    expected_summary = {
+        "managedConceptResourceCount": sum(row["packageClass"] == "managedConceptRelease" for row in resources),
+        "recordOrObservationCount": sum(row["recordOrObservationCount"] for row in resources),
+        "releaseOrSnapshotCount": sum(row["releaseOrSnapshotCount"] for row in resources),
+        "resourceCount": len(resources),
+        "sourceConceptReleaseCount": sum(row["packageClass"] == "sourceConceptRelease" for row in resources),
+        "sourceControlledResourceCount": sum(row["packageClass"] == "sourceControlledResource" for row in resources),
+    }
+    if dict(summary) != expected_summary:
+        raise ResourceCatalogError("completed inventory summary is stale")
     return result
 
 
-def _validate_distributions(value: Mapping[str, Any], repository_root: Path) -> dict[str, list[dict[str, Any]]]:
+def _validate_distributions(
+    value: Mapping[str, Any],
+    repository_root: Path,
+    completed: Mapping[str, Mapping[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
     _require_keys(value, {"distributions", "format"}, "portable distribution inventory")
     if value["format"] != DISTRIBUTION_INPUT_FORMAT:
         raise ResourceCatalogError(f"unsupported distribution inventory format {value['format']!r}")
@@ -215,6 +438,9 @@ def _validate_distributions(value: Mapping[str, Any], repository_root: Path) -> 
         if package_resource_id in seen_packages:
             raise ResourceCatalogError(f"portable distributions repeat package {package_resource_id!r}")
         seen_packages.add(package_resource_id)
+        completed_row = completed.get(package_resource_id)
+        if completed_row is None:
+            raise ResourceCatalogError(f"portable distributions lack completed evidence: {[package_resource_id]!r}")
         manifest_path = _relative_path(raw["manifestPath"], f"distribution {resource_id}.manifestPath")
         manifest_file = _repository_file(
             repository_root, manifest_path.as_posix(), f"distribution {resource_id}.manifestPath"
@@ -224,6 +450,7 @@ def _validate_distributions(value: Mapping[str, Any], repository_root: Path) -> 
             raise ResourceCatalogError(f"distribution {resource_id}.files must be non-empty")
         checked_files: list[dict[str, Any]] = []
         seen_paths: set[str] = set()
+        checked_digests: dict[str, str] = {}
         for file_index, file_row in enumerate(files):
             if not isinstance(file_row, Mapping):
                 raise ResourceCatalogError(f"distribution {resource_id}.files[{file_index}] must be an object")
@@ -243,10 +470,40 @@ def _validate_distributions(value: Mapping[str, Any], repository_root: Path) -> 
                     f"distribution {resource_id} digest mismatch for {path}: expected {expected_digest}, got {actual_digest}"
                 )
             checked_files.append({"path": path.as_posix(), "sha256": expected_digest})
+            checked_digests[path.as_posix()] = expected_digest
         if manifest_path.as_posix() not in seen_paths:
             raise ResourceCatalogError(f"distribution {resource_id} files do not include its manifest")
+        distribution_kind = _string(raw["distributionKind"], f"distribution {resource_id}.distributionKind")
+        location = f"distribution {resource_id}/{package_resource_id}"
+        if distribution_kind == _SOURCE_CONTROLLED_RESOURCE_DISTRIBUTION_KIND:
+            _verify_source_controlled_resource_distribution(
+                manifest_file=manifest_file,
+                inventory_paths=seen_paths,
+                completed_row=completed_row,
+                repository_root=repository_root,
+                location=location,
+            )
+        elif distribution_kind == _SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND:
+            _verify_source_concept_release_distribution(
+                manifest_file=manifest_file,
+                inventory_paths=seen_paths,
+                inventory_digests=checked_digests,
+                completed_row=completed_row,
+                repository_root=repository_root,
+                location=location,
+            )
+        elif distribution_kind == _ATLAS_DISTRIBUTION_KIND:
+            _verify_atlas_distribution(
+                manifest_file=manifest_file,
+                inventory_paths=seen_paths,
+                inventory_digests=checked_digests,
+                repository_root=repository_root,
+                location=location,
+            )
+        else:
+            raise ResourceCatalogError(f"distribution {resource_id}.distributionKind is unsupported")
         distribution = {
-            "distributionKind": _string(raw["distributionKind"], f"distribution {resource_id}.distributionKind"),
+            "distributionKind": distribution_kind,
             "files": sorted(checked_files, key=lambda row: row["path"]),
             "manifestDigest": _file_digest(manifest_file),
             "manifestPath": manifest_path.as_posix(),
@@ -269,7 +526,7 @@ def build_resource_catalog(
 
     resources = _validate_inventory(inventory)
     completed = _validate_completed_inventory(completed_inventory, repository_root)
-    distributions = _validate_distributions(distribution_inventory, repository_root)
+    distributions = _validate_distributions(distribution_inventory, repository_root, completed)
     resource_ids = {row["resourceId"] for row in resources}
     if unknown := set(distributions) - resource_ids:
         raise ResourceCatalogError(f"portable inventory names unknown resources: {sorted(unknown)}")

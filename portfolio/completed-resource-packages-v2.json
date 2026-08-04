@@ -1,14 +1,13 @@
 {
-  "schemaVersion": "1.0",
-  "recordedAt": "2026-07-30T18:00:00Z",
+  "schemaVersion": "2.0",
+  "recordedAt": "2026-08-04T18:00:00Z",
   "summary": {
-    "resourceCount": 9,
-    "releaseOrSnapshotCount": 10,
+    "resourceCount": 12,
+    "releaseOrSnapshotCount": 13,
     "managedConceptResourceCount": 4,
+    "sourceConceptReleaseCount": 3,
     "sourceControlledResourceCount": 5,
-    "candidateLookupResourceCount": 6,
-    "acceptedOutputResourceCount": 0,
-    "recordOrObservationCount": 20970
+    "recordOrObservationCount": 22045
   },
   "resources": [
     {
@@ -17,16 +16,13 @@
       "packageClass": "managedConceptRelease",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 629,
-      "candidateUseAuthorized": false,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "historicalLookup",
         "regressionTesting",
         "vocabularyChangeAnalysis"
       ],
       "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
       "packageDigest": "sha256:96352a29a6ebadc0221af604eebebb2fffb0069ff4367181fd4640671215df70",
-      "packageLocation": "output/refspec-vocabulary-portfolio/federal-register-thesaurus-1995/managed-release",
       "evidencePath": "research/evidence/federal-register-thesaurus-managed-release-2026-07-30/evidence.json"
     },
     {
@@ -35,16 +31,13 @@
       "packageClass": "managedConceptRelease",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 705,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "federalRegisterDefaultSubjectCandidate",
         "mappingReference",
         "searchExpansion"
       ],
       "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
       "packageDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
-      "packageLocation": "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/managed-release",
       "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json"
     },
     {
@@ -53,15 +46,12 @@
       "packageClass": "managedConceptRelease",
       "releaseOrSnapshotCount": 2,
       "recordOrObservationCount": 6905,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "mappingReference",
         "searchExpansion"
       ],
       "identityStatus": "publisherConceptIdentitiesPreserved",
       "packageDigest": "sha256:8dd408effe1d57109460a01a9c6620107b4662cbb95eed829ef905f3bfe8b71e",
-      "packageLocation": "output/elsst-r5-r6-final-gate/test_opt_in_full_r5_r6_managed0",
       "evidencePath": "research/evidence/elsst-r5-r6-managed-release-2026-07-29/evidence.json"
     },
     {
@@ -70,15 +60,12 @@
       "packageClass": "sourceControlledResource",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 7767,
-      "candidateUseAuthorized": false,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "sourceAssignedEvidence"
       ],
       "identityStatus": "captureLocalObservationsOnly",
-      "packageDigest": "sha256:bfdd445ccccb96f173db658a32a0a043b6c77c25021af6089ce6877298ccaf27",
-      "packageLocation": "output/refspec-vocabulary-portfolio/federal-register-topics/2026-07-29/source-package",
-      "evidencePath": "research/evidence/federal-register-topics-source-package-2026-07-29/evidence.json"
+      "packageDigest": "sha256:4a8da29052cf18ed20dc21ef75bd5800264c60865a0bbee914231e212f22ced4",
+      "evidencePath": "research/evidence/federal-register-topics-source-package-2026-08-04/evidence.json"
     },
     {
       "resourceId": "icpsr-subject-thesaurus",
@@ -86,15 +73,12 @@
       "packageClass": "managedConceptRelease",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 3760,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "mappingReference",
         "searchExpansion"
       ],
       "identityStatus": "publisherConceptIdentitiesPreservedForVerifiedSubset",
       "packageDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
-      "packageLocation": "output/refspec-vocabulary-portfolio/icpsr/2026-07-30/managed-release",
       "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json"
     },
     {
@@ -103,16 +87,13 @@
       "packageClass": "sourceControlledResource",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 1043,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "sourceAssignedEvidence",
         "searchExpansion"
       ],
       "identityStatus": "captureLocalObservationsOnly",
-      "packageDigest": "sha256:a880ea10a8ef968028c7d1a464369344374d460e5a3cab7bb95751893556b194",
-      "packageLocation": "output/refspec-vocabulary-portfolio/crs/2026-07-30/packages/crs-legislative-subject-terms-capture-2026-07-30",
-      "evidencePath": "research/evidence/crs-source-packages-2026-07-30/package-evidence.json"
+      "packageDigest": "sha256:dd1cb881ecb0cb8ea82a6bbc97a37a9951649ac88c5ad2e11a61bba35e80a76c",
+      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json"
     },
     {
       "resourceId": "crs-policy-areas",
@@ -120,15 +101,54 @@
       "packageClass": "sourceControlledResource",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 32,
-      "candidateUseAuthorized": false,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "navigation"
       ],
       "identityStatus": "captureLocalObservationsOnly",
-      "packageDigest": "sha256:d1d55330ffd7dfae66c7179131097f7e9e9733b559d26a8472bc6fb21c57b81b",
-      "packageLocation": "output/refspec-vocabulary-portfolio/crs/2026-07-30/packages/crs-policy-areas-capture-2026-07-30",
-      "evidencePath": "research/evidence/crs-source-packages-2026-07-30/package-evidence.json"
+      "packageDigest": "sha256:8fb92868bcc9ceaf240bfbfd62594e9b50a8d50c0896d14ced70b9ff1337c60f",
+      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json"
+    },
+    {
+      "resourceId": "crs-legislative-subject-source-concepts",
+      "title": "CRS Legislative Subject Terms source-concept release",
+      "packageClass": "sourceConceptRelease",
+      "releaseOrSnapshotCount": 1,
+      "recordOrObservationCount": 565,
+      "intendedUses": [
+        "sourceAssignedEvidence",
+        "searchExpansion"
+      ],
+      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "packageDigest": "sha256:39c876bd1b7b577c09248a47ba63fdba68543ebd18185c5f71e99871217a577b",
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+    },
+    {
+      "resourceId": "crs-legislative-entity-source-concepts",
+      "title": "CRS Legislative Entities source-concept release",
+      "packageClass": "sourceConceptRelease",
+      "releaseOrSnapshotCount": 1,
+      "recordOrObservationCount": 478,
+      "intendedUses": [
+        "sourceAssignedEvidence",
+        "searchExpansion"
+      ],
+      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "packageDigest": "sha256:8437a64121d1608055bfe18df643f67e2f082170e3870b4f5f7e688ec873be7f",
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+    },
+    {
+      "resourceId": "crs-policy-area-source-concepts",
+      "title": "CRS Policy Areas source-concept release",
+      "packageClass": "sourceConceptRelease",
+      "releaseOrSnapshotCount": 1,
+      "recordOrObservationCount": 32,
+      "intendedUses": [
+        "navigation",
+        "sourceAssignedEvidence"
+      ],
+      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "packageDigest": "sha256:11eadd5a0c435f016e2e3230b625fcc4b5bce99090638daa635fb9995c6b9bf4",
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
     },
     {
       "resourceId": "lda-general-issue-codes",
@@ -136,14 +156,11 @@
       "packageClass": "sourceControlledResource",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 79,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "sourceAssignedEvidence"
       ],
       "identityStatus": "publisherIdentifiersPreserved",
-      "packageDigest": "sha256:3f3ec1e17f5503be8767d6e51142521ceba314ba555907438f8487ca1dfc04df",
-      "packageLocation": "research/evidence/lda-controlled-lists-2026-07-30/general-issue-codes",
+      "packageDigest": "sha256:8a1c3e4db6fcec803463dd96a6d5231022841c291315ff624827db798cfdf40a",
       "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md"
     },
     {
@@ -152,14 +169,11 @@
       "packageClass": "sourceControlledResource",
       "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 50,
-      "candidateUseAuthorized": true,
-      "acceptedOutputUseAuthorized": false,
-      "productUse": [
+      "intendedUses": [
         "deterministicMetadata"
       ],
       "identityStatus": "publisherIdentifiersPreserved",
-      "packageDigest": "sha256:27d784d14004228b024fa82962e91df7daadb4edaf3237125e420194dafd3588",
-      "packageLocation": "research/evidence/lda-controlled-lists-2026-07-30/filing-types",
+      "packageDigest": "sha256:6b05bd1ce95fcf2f62a9e627fb69233eb2fce48176bdd08011247c7384009ecc",
       "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md"
     }
   ]
