@@ -78,12 +78,6 @@ _V2_VERDICT_OUTCOMES: Mapping[str, str] = MappingProxyType(
 )
 _V2_VERDICTS = frozenset(_V2_VERDICT_OUTCOMES)
 _CROSSWALK_SCHEMA_V2 = "2.0"
-#: Ceiling on the free text projected from a sealed response, mirroring
-#: ``qualification.MAX_SEALED_REASON_CHARACTERS`` without importing it (that
-#: module reads this one).  The producer already bounds what it seals; this
-#: bounds what a *foreign* bundle can put into a published atlas, so one verbose
-#: response cannot inflate the distribution every consumer downloads.
-_MAX_PROJECTED_REASON_CHARACTERS = 400
 #: Adjudicated-``related`` is a relation like any other — it is recorded on the
 #: candidate as ``skos:relatedMatch`` — but it is the one agreed relation that
 #: emits no ``ConceptMapping``.  Promoting associative links to consumable
@@ -2170,7 +2164,7 @@ def _sealed_reason(
     reason = content.get("reason")
     if not isinstance(reason, str):
         return ""
-    return reason.strip()[:_MAX_PROJECTED_REASON_CHARACTERS]
+    return reason.strip()
 
 
 def _verify_adjudicated_relation(

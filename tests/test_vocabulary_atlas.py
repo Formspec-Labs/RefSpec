@@ -938,13 +938,8 @@ def test_the_machine_reason_is_projected_and_survives_write_and_open(tmp_path: P
         assert reason in payload
 
 
-def test_a_projected_reason_is_bounded_against_a_foreign_bundle(tmp_path: Path) -> None:
-    """The producer bounds what it seals; the atlas bounds what it republishes.
-
-    A bundle RefSpec did not produce can carry any length of free text. Copying
-    it verbatim would let one verbose response inflate the distribution every
-    consumer downloads.
-    """
+def test_a_projected_reason_from_a_foreign_bundle_is_not_truncated(tmp_path: Path) -> None:
+    """The atlas preserves the complete reason sealed by another producer."""
 
     candidate, evidence, request, _, _ = _candidate_and_artifacts()
     response_a = _response(candidate, request, suffix="a", reason="x" * 5000)
@@ -965,8 +960,7 @@ def test_a_projected_reason_is_bounded_against_a_foreign_bundle(tmp_path: Path) 
     )
 
     payload = asset.payload.decode("utf-8")
-    assert "x" * 400 in payload
-    assert "x" * 401 not in payload
+    assert "x" * 5000 in payload
     assert "short and sufficient" in payload
 
 
