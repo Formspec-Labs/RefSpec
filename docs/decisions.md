@@ -348,3 +348,42 @@ atlas's qualified `searchOnly` mappings, which no ICPSR crosswalk has produced y
 
 The 1995 reader, its vertical slice, and its networked gate stay in the tree as historical
 regressions. They are not an integration in progress.
+
+### REF-013: Govern atlas growth through a non-authorizing portfolio index
+
+- **Date:** 2026-08-04
+- **Status:** Accepted for the unreleased implementation
+
+RefSpec adopts the placement and growth rules in the
+[Vocabulary Atlas Final Synthesis](../research/vocabulary-atlas-final-synthesis-2026-08-03.md).
+The atlas remains a static publication of exact managed-release facts and qualified mapping
+evidence. It does not become a combined registry, a live database, or a second source of
+product permissions.
+
+The resource catalog gains a separately identified atlas index. Each source row records a
+non-authorizing `publicationTarget`: `atlas`, `entitySpine`, `codeLedger`,
+`legalIdentityGraph`, or `sourceAssignedEvidence`. Rows targeting the atlas may also record
+an `atlasParticipation` planning class: `core`, `specialist`, or `bridge`. A source may have
+more than one row when distinct facets have different destinations or roles. Shared models,
+transports, acquisition helpers, policies, and development artifacts receive no source row.
+
+Every row names the exact resource, facet, assignment role, intended uses, planning status,
+and readiness evidence. An atlas row may identify a planned class before a managed release
+exists, but it cannot claim release readiness or enter a build until it names a conforming,
+complete release. Index versions are immutable and content-addressed. Later evaluations
+append or supersede rows; they never erase failed or deferred history.
+
+The index informs publication planning and build-drift checks only. It does not add fields to
+an atlas manifest, authorize an enrichment candidate or accepted output, enable a mapping,
+or activate search expansion. RefSpec `OutputProfile` rows remain the sole enrichment
+permission source. SpicySearch's pinned retrieval policy remains the sole search-expansion
+permission source. Reader-declared uses remain source evidence and fail-closed parser guards;
+they do not become a third permission system.
+
+Large bridge vocabularies enter only through a reproducible two-pass frontier build. The
+selection pass pins the full observed source, exact comparison releases, algorithm, parameters,
+coverage, and per-concept reasons. The release pass publishes complete membership for exactly
+that selected scope before mapping candidates are regenerated and qualified. Code lists,
+identifier authorities, entity registries, legal identifiers, and publisher-assigned topics
+remain in their separate publication targets and never enter atlas `releaseFacts` or
+`analysis` merely because they share labels with subject concepts.
