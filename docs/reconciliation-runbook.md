@@ -152,13 +152,11 @@ rm -rf /Users/mikewolfd/Work/RefSpec
 2. **Cut spicy-regs to published artifacts.** 18 `spicy-regs` files import the RefSpec package
    directly. The boundary decision (REF-001, REF-006) is that consumers read digest-pinned
    published files. Migrating those imports to file readers is a separate, test-covered change.
-3. **Vendor the atlas example into SpicySearch.**
-   `spicysearch/tests/test_refspec_atlas_cross_repository.py` resolves
-   `REFSPEC_CHECKOUT`, defaulting to `../spicy-regs/RefSpec`, and reads
-   `bindings/atlas/1.0/examples/federal-register-thesaurus-2025/`. That is a filesystem
-   dependency on a sibling checkout. Vendor the example plus its digests into SpicySearch's
-   fixtures (it already pins them in `fixtures/releases/vocabulary-atlas-pin.json`) so the
-   test is hermetic.
+3. **Give SpicySearch a published Atlas 2.0 fixture.** Its cross-repository test
+   must open a self-contained canonical or ring-view distribution plus an
+   independently stored manifest digest. It must not resolve a RefSpec sibling
+   checkout. Publish or vendor those exact files in SpicySearch and keep the
+   fixture pin beside the consumer test.
 4. **Retire the legacy Rulespec combined gate.** `profiles/rulespec-dependency.json` still pins
    evidence revision `2c66a85`; Rulespec is at `320ed37`. Migrating the last consumers to
    `RulespecCoreRelease` and Rulespec Extrapolator lets that manifest be removed.

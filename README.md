@@ -11,7 +11,7 @@ permission beyond rights supplied by applicable law.
 
 ## Documents
 
-- [Vocabulary Atlas Distribution 1.0 — normative consumer contract](bindings/atlas/1.0/README.md)
+- [Vocabulary Atlas Distribution 2.0 — normative consumer format](bindings/atlas/2.0/README.md)
 - [Publish and inspect a vocabulary atlas](docs/atlas-publication.md)
 - [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
 - [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
@@ -99,19 +99,18 @@ file that records those paths and choices explicitly.
 
 `refspec-build-vocabulary-atlas-projection` cuts a verified atlas down to a
 named policy's keep rule and publishes the result as a **separate distribution
-kind**, `refspec-vocabulary-atlas-projection-nquads-1.0`
+kind**, `refspec-vocabulary-atlas-projection-nquads-2.0`
 ([REF-011](docs/decisions.md#ref-011-publish-a-consumer-shaped-projection-as-its-own-distribution-kind)).
-A projection names its parent's asset id and both of its digests in
-`derivedFrom`, carries the keep rule and its version in `projectionPolicy`, and
-derives its own identifier from all three, so it can never be confused with the
-generation it came from. It reproduces from that parent and that policy rather
-than from managed releases:
+A projection pins its parent's atlas identifier, manifest digest, and N-Quads
+digest in `derivedFrom`. Its registered policy selects either one complete ring
+or one subject specialist module plus every subject-core release. It reproduces
+from that verified parent and policy rather than from source releases:
 
 ```sh
 uv run refspec-build-vocabulary-atlas-projection \
   --atlas build/vocabulary-atlas \
   --atlas-manifest-digest sha256:<manifest digest> \
-  --atlas-output-digest sha256:<n-quads digest> \
+  --ring subject \
   --output build/vocabulary-atlas-projection
 ```
 
@@ -121,52 +120,35 @@ N-Quads files. Producers may call `reproduce_from_scope` with
 the exact `PinnedVocabularyAtlasScope` to reopen every source and rebuild all
 three files byte for byte.
 
-`refspec-publish-vocabulary-atlas` verifies those same two pins and produces a
-static publication directory with a deterministic gzip download, reusable
-bounded graph data, an offline explorer, and a manifest that pins every
-payload. It neither acquires source files nor changes atlas semantics:
+`refspec-publish-vocabulary-atlas` verifies a canonical atlas or projection and
+its immutable `VocabularyAtlasPublicationDecision`. It produces a static
+directory with a deterministic gzip download, bounded explorer data, an
+offline explorer, and a manifest that pins every payload. It neither acquires
+source files nor changes atlas semantics:
 
 ```sh
 uv run refspec-publish-vocabulary-atlas \
-  --atlas build/vocabulary-atlas \
-  --atlas-manifest-digest sha256:<manifest digest> \
-  --atlas-output-digest sha256:<n-quads digest> \
+  --distribution build/vocabulary-atlas \
+  --distribution-manifest-digest sha256:<manifest digest> \
+  --decision decisions/atlas-publication-decision.json \
+  --decision-file-digest sha256:<decision file digest> \
   --output build/vocabulary-atlas-publication
 ```
 
 See [Publish and inspect a vocabulary atlas](docs/atlas-publication.md) for the
-real Federal Register, ELSST, and ICPSR MVP command and its exact pins.
-
-The broad REF pipeline APIs and specification sections remain compatibility
-surfaces while consumers migrate. They do not define the scope for new RefSpec
-features. See the
-[current boundary and API disposition](docs/product-boundary-and-api-disposition.md).
+canonical and projection publication paths and their exact checks.
 
 The dated research snapshots used to develop the editor's draft are archived
 under [`research/`](research/README.md). They are nonnormative except where the
 specification explicitly identifies a portfolio baseline.
 
-## Current dependency state
+## Dependency boundary
 
-New managed-release and atlas work pins the separate
-[`RulespecCoreRelease`](profiles/rulespec-core-dependency.json) introduced at
-Rulespec revision `320ed37f0df13a9609490a2b43389c6be57242cc`. The checked
-artifact has status `fixture`, so RefSpec makes no production conformance
-claim.
-
-The broad compatibility implementation still targets the older combined
-Rulespec `0.2.0-pre.9` candidate. Its tested contract revision is
-`0eb94257b70783688b55220e7a84dcc61bbd7507`; its evidence revision is
-`2c66a85daab30a4869db08d21cea13cfc865b3a0`; and its constraint digest is
-`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
-The legacy [dependency manifest](profiles/rulespec-dependency.json) remains in
-place until its consumers move to Core or Rulespec Extrapolator. Updating or
-removing that pin without migrating those consumers would hide a real
-compatibility break.
-
-Ordinary tests do not read a sibling Rulespec checkout or run the retired
-combined proof. They validate dependency-manifest mutations against local test
-inputs. Current source readers and ELSST do not export data to Rulespec.
+RefSpec builds and verifies releases from pinned files. The checked
+[`RulespecCoreRelease`](profiles/rulespec-core-dependency.json) is a fixture,
+so it supports tests rather than a production conformance claim. Ordinary
+tests are standalone: they do not read a sibling Rulespec checkout, a sibling
+source tree, or a mutable external database.
 
 ## Executable package
 

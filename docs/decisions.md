@@ -160,7 +160,12 @@ SpicySearch repository and is referenced here without being edited by this decis
 ### REF-009: Carry a development-only marker into the atlas rather than refuse it
 
 - **Date:** 2026-08-02
-- **Status:** Accepted
+- **Status:** Superseded for Atlas publication by the shared Atlas 2.0 release foundation
+
+The source fact remains useful to the private qualification reader, but Atlas
+2.0 no longer has an ICPSR-specific publication adapter. It snapshots exact
+source or managed concept releases through the same four-ring record foundation.
+The text below records the Atlas 1 decision that led to preserving the marker.
 
 The ICPSR subject thesaurus release declares `operationalState: developmentOnly`,
 because the public term-URI index and the pinned `subject.xml` snapshot are two source
@@ -247,7 +252,13 @@ length two, so nothing already built moves.
 ### REF-011: Publish a consumer-shaped projection as its own distribution kind
 
 - **Date:** 2026-08-02
-- **Status:** Accepted
+- **Status:** Superseded in format version; sibling-distribution principle retained
+
+Atlas 2.0 implements the durable part of this decision with
+`refspec-vocabulary-atlas-projection-nquads-2.0`: a projection remains a
+separate, content-derived distribution that pins one canonical parent and one
+registered ring or subject-module selector. The Atlas 1 details below remain
+decision lineage, not current format instructions.
 
 A **projection** — a subset of one generated atlas chosen by a named policy — is published
 as `refspec-vocabulary-atlas-projection-nquads-1.0`, a sibling kind alongside

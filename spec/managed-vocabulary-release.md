@@ -13,8 +13,8 @@
 > it does not describe the implemented release model.**
 >
 > **The implemented model is `ManagedVocabularyBundle` plus `VocabularyAtlasAsset`.** The
-> normative consumer contract is the
-> [Vocabulary Atlas Distribution 1.0 binding](../bindings/atlas/1.0/README.md). The
+> active consumer format is the
+> [Vocabulary Atlas Distribution 2.0 binding](../bindings/atlas/2.0/README.md). The
 > implementation is [`src/refspec/atlas/`](../src/refspec/atlas) and
 > [`src/refspec/managed_release.py`](../src/refspec/managed_release.py).
 >
@@ -245,9 +245,9 @@ similarity, or graph proximity cannot mint a concept, mapping, or resolution.
 
 > **Historical — retired shape.** `AgentValidationReceipt` and `BaselineValidationReceipt`
 > have no implementation. The implemented qualification record is the pair of independent
-> atlas `MachineValidation` records required before a `searchOnly` mapping may be exposed;
-> its normative rules are the "`searchOnly` proof" section of the
-> [atlas binding](../bindings/atlas/1.0/README.md). This section is the recorded reasoning
+> atlas `MachineValidation` records that can support a typed machine-proof adapter;
+> the active distribution rules are in the
+> [Atlas 2.0 binding](../bindings/atlas/2.0/README.md). This section is the recorded reasoning
 > for REF-005: machine-first qualification with no human approval gate.
 
 An `AgentValidationReceipt` records one immutable validator attempt. It pins
@@ -276,12 +276,11 @@ record.
 
 ## 7. Vocabulary atlas static asset
 
-> **Implemented, with one substitution.** This section survived reconciliation and is
-> implemented as `VocabularyAtlasAsset`. Its inputs are verified managed bundles, not
-> `VocabularyRelease` objects, and the published identifier is
-> `urn:ref:vocabulary-atlas:<generation hex>`, not the identifier in section 3. The normative
-> file rules are the [Vocabulary Atlas Distribution 1.0 binding](../bindings/atlas/1.0/README.md);
-> where this section and that binding disagree, the binding governs.
+> **Implemented by Atlas 2.0.** `VocabularyAtlasAsset` consumes one exact
+> `PinnedVocabularyAtlasScope` over source or managed concept releases and typed relation
+> bundles. The active three-file rules are the
+> [Vocabulary Atlas Distribution 2.0 binding](../bindings/atlas/2.0/README.md); where this
+> historical section and that binding disagree, the binding governs.
 
 A `VocabularyAtlasAsset` is a separate immutable publication from each input
 `VocabularyRelease`. It is a crosswalk and deterministic lookup representation;
@@ -347,8 +346,8 @@ does not match the canonical asset.
 > **Partly historical.** The default-candidate decision (REF-004) holds and is implemented.
 > The last paragraph is not: the five-concept conformance fixture and its two agent receipts
 > belong to the retired standalone line. This repository packages the complete 705-concept
-> April 1, 2025 release and publishes it through the atlas example under
-> [`bindings/atlas/1.0/examples/federal-register-thesaurus-2025/`](../bindings/atlas/1.0/examples/federal-register-thesaurus-2025).
+> April 1, 2025 release. A canonical Atlas 2.0 publication selects it through an exact scope;
+> the repository does not treat a checked Atlas output as a source-catalog input.
 
 The April 1, 2025 Federal Register Thesaurus is the default candidate
 vocabulary for the `federal-register-document-v1` profile. It is not RefSpec's
@@ -396,9 +395,9 @@ A validator MUST reject a release when any of these conditions occurs:
 > producer command is also retired. In this repository run `make test` and
 > `make test-cross-repository`; Atlas 2.0 construction is programmatic through
 > `build_vocabulary_atlas(pinned_scope)` until a pinned build-input file records the paths
-> and trusted readers needed to reopen its inputs. The
-> checked conformance publications live under
-> [`bindings/atlas/1.0/`](../bindings/atlas/1.0/README.md), not under `release-records/`.
+> and trusted readers needed to reopen its inputs. Atlas 2.0 schemas live under
+> [`bindings/atlas/2.0/`](../bindings/atlas/2.0/); generated source and index checks run through
+> `make check-generated`.
 
 Install the locked development environment, run the focused tests, and build
 both canonical conformance publications:
