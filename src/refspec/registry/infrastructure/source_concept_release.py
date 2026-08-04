@@ -452,9 +452,7 @@ def _validated_frontier_receipt(
     receipt_record = receipt.as_record()
     receipt_capture = cast(Mapping[str, Any], receipt_record["sourceCapture"])
     if receipt_capture.get("distributionCoverage") != "complete":
-        raise SourceConceptReleaseError(
-            "a policyFrontier receipt must report complete publisher-distribution coverage"
-        )
+        raise SourceConceptReleaseError("a policyFrontier receipt must report complete publisher-distribution coverage")
     for field, actual in _receipt_source_capture_facts(source).items():
         if receipt_capture.get(field) != actual:
             raise SourceConceptReleaseError(

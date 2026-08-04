@@ -32,6 +32,10 @@ from .federal_register import (
     FederalRegisterThesaurus2025AtlasView,
     PinnedFederalRegisterThesaurus2025AtlasRelease,
 )
+from .frontier_release import (
+    FrontierReleaseError,
+    cut_subject_frontier_release,
+)
 from .icpsr import (
     ICPSR_MANAGED_RELEASE_MANIFEST_TYPE,
     ICPSR_USE_PROPERTY_IRI,
@@ -199,6 +203,7 @@ __all__ = [
     "CrosswalkMachineProofFacts",
     "EvidenceAssertionView",
     "FederalRegisterThesaurus2025AtlasView",
+    "FrontierReleaseError",
     "IcpsrSubjectAtlasView",
     "LabelMatch",
     "LabelMatchMode",
@@ -252,6 +257,7 @@ __all__ = [
     "build_vocabulary_atlas_publication_decision",
     "concept_release_member_ids",
     "concept_release_pin",
+    "cut_subject_frontier_release",
     "machine_evidence_class_for_proof_kind",
     "module_projection_policy",
     "normalize_concept_release_pin",
