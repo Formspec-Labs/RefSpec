@@ -2,7 +2,18 @@
 
 # Vocabulary Atlas Design Proposal — from three sources to the full registry
 
-> **Status:** Proposed design; not adopted
+> **Status:** Revised proposed design; not adopted
+>
+> **Revision (2026-08-04):** The ring model is restated. Rings name
+> semantic kinds — subject, entity, value, and legalIdentity — never
+> eligibility. The former ring 0/1/2 become subject-ring participation
+> classes (`core`, `specialist`, and `bridge`); the former ring 3 dissolves
+> into the non-subject rings. All four rings share one concept, release,
+> evidence, mapping-assertion, and lifecycle foundation, with ring-specific
+> predicates and safety rules. Useful source terms carry source-scoped
+> concept identity under §3. Product policy alone activates a use. This
+> revision amends the synthesis's §5 planning classes, §11 CRS ruling, and
+> separate-publication boundary; the evidence machinery remains.
 >
 > **Standing:** Rules and structure are this document's durable content.
 > Counts and build references are dated snapshots of an artifact set in
@@ -12,8 +23,10 @@
 >
 > **Date:** 2026-08-03
 >
-> **Decision synthesis:** [Vocabulary Atlas Final Synthesis](vocabulary-atlas-final-synthesis-2026-08-03.md)
-> resolves the review findings and supersedes this draft for decision-making.
+> **Prior synthesis:** [Vocabulary Atlas Final Synthesis](vocabulary-atlas-final-synthesis-2026-08-03.md)
+> resolves the original review findings. This revision supersedes its planning
+> classes, CRS identity ruling, and separate-publication boundary; its
+> verified evidence and unaffected decisions remain useful.
 >
 > **Builds on:** [Atlas binding 1.0](../bindings/atlas/1.0/README.md) ·
 > [Source Vocabulary Catalog](source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) ·
@@ -60,9 +73,10 @@ Unified Agenda, OIRA, PRA, oversight report types, SCOTUS opinion types).
 Extending the current atlas naively — one adapter per reader, everything
 becomes release facts — fails four ways:
 
-1. **Kind mixing.** Code lists, identifiers, and entity registries are not
-   concept schemes. Putting NAICS codes or NPI prefixes into `releaseFacts`
-   repeats the fused-registry category error the catalog already rejects.
+1. **Semantic collapse.** Code values, entities, legal identities, and
+   subjects need different predicates and output rules. Treating them as one
+   untyped subject scheme makes a subject match look like entity identity and
+   lets label equality erase distinctions the source made.
 2. **Scale.** In the superseded two-edition build, label clusters were 69%
    of atlas bytes with no consumer reading them; the R6-only edition
    restriction cut the artifact 82.9%, and current builds hold ~1,500
@@ -84,18 +98,21 @@ becomes release facts — fails four ways:
    likely; the vendored consumer refuses new manifest fields; projection
    conformance fixtures do not exist.
 
-This proposal keeps the atlas exactly what it is — a publication format, not
-a second vocabulary model — and adds the structure needed to absorb the
-registry: a ring model for membership, a frontier rule for oversized mapping
-references, typed mapping-evidence classes, a hub-and-spoke qualification
-plan, and an explicit ladder from registry reader to atlas member.
+This proposal keeps the atlas a reproducible publication rather than a live
+database. It expands the publication model to absorb the registry through
+four semantic rings, a two-tier subject atlas, source-scoped concept identity,
+ring-specific relations, a frontier rule for oversized mapping references,
+typed mapping evidence, a hub-and-spoke qualification plan, and an explicit
+ladder from registry reader to atlas member.
 
 ## 2. Design principles (inherited, then new)
 
 Unchanged from atlas 1.0 and the catalog:
 
-- The atlas is a publication format. No concept identity is minted; concepts
-  stay in exactly one source release.
+- The atlas is a publication format. Concept identity is never minted
+  silently: a source-scoped concept exists only under a named minting rule
+  with a pinned capture (§3), publisher identity is never fabricated, and
+  every membership claim names one exact release.
 - Two named graphs with policies checked by exact equality.
 - Equal labels are discovery hints (`atlas:LabelCluster`), never mappings.
 - Human feedback is append-only and non-authorizing; machine agreement is
@@ -112,12 +129,16 @@ New, motivated by the external-research synthesis and the registry's growth:
   adoption — never of the graph that holds it. Atlas 1.0 framed the
   analysis graph as replaceable machine analysis; this reinterpretation is
   the change that admits §6's evidence classes.
-- **Map wide, emit narrow.** The atlas may hold a wide mapping space, but
-  candidate authorization for tagging is a per-release property that most
-  releases never get.
-- **Resource kinds do not mix.** Only subject-bearing concept schemes enter
-  `releaseFacts`. Code lists, identifiers, entities, and controls are
-  published in sibling artifacts and joined by identifier, never by concept.
+- **Map wide, emit narrow.** The subject ring holds a wide mapping tier and
+  a curated emit tier. Identity and mapping access do not authorize emitted
+  subject assignments.
+- **One foundation, four meanings.** Every concept belongs to exactly one
+  semantic ring — subject, entity, value, or legalIdentity. All rings use the
+  same source identity, release membership, provenance, evidence,
+  mapping-assertion, and lifecycle shapes. Each ring defines its own relation
+  vocabulary and checks: a subject `skos:exactMatch` never asserts identity,
+  an entity link never follows from name equality, and a value crosswalk
+  records edition and effective time. Product policy activates each use.
 - **Bounded subsets are first-class.** A release fact set may be a declared,
   coverage-accounted subset of an oversized source (the LCSH reader already
   works this way). Selection policy is part of release identity.
@@ -127,48 +148,97 @@ New, motivated by the external-research synthesis and the registry's growth:
 
 ## 3. The ring model
 
-Every registry source gets exactly one ring assignment, recorded in the
-portfolio index as a non-authorizing planning label. Rings never become
-atlas manifest fields; the manifest stays eligibility-bearing only through
-the policies consumers already check. Rings determine what a release's
-facts may authorize — they are eligibility tiers, not storage tiers.
+Rings are semantic kinds, not eligibility tiers. Each concept belongs to
+exactly one ring — **subject**, **entity**, **value**, or **legalIdentity** —
+recorded in the portfolio index as a non-authorizing planning fact. A source
+may contribute separate concepts or releases to more than one ring. A ring
+identifies meaning; it never grants or withholds a use, and rings never become
+atlas permission fields. `OutputProfile` rows control enrichment, and the
+pinned retrieval policy controls search.
 
-### Ring 0 — emit core (candidate-authorized)
+All four rings share one foundation: source-scoped concept identity,
+content-derived releases, exact membership, provenance, rights, evidence
+classes, mapping assertions, and lifecycle records. They do not share an
+undifferentiated relation vocabulary or candidate pool. Subject mappings,
+entity identity links, value-set crosswalks, and legal-identity edges retain
+their own predicates and checks.
 
-The only schemes whose concepts may be proposed as subject assignments.
+Three further rules complete the model:
+
+- **The subject ring is a two-tier atlas.** Its wide mapping tier contains
+  admitted source releases, bridges, decoys, and staged proposals. Its
+  curated emit tier contains only concepts admitted by named review against
+  an exact release. The `core`, `specialist`, and `bridge` participation
+  classes describe how a subject release may contribute; a subject source may
+  have no participation class while it remains evidence-only. Participation
+  is planning metadata, not permission. An exact `OutputProfile` or retrieval
+  policy activates a use.
+- **Source identity is explicit and source-scoped.** Every useful enumerated
+  source term has concept identity. Preserve a stable
+  publisher concept IRI when one exists. Otherwise RefSpec mints an IRI from
+  the source namespace and a durable source record key, such as a reconciled
+  UUIDv7 `localRecordId`; it never mints identity from label equality. Each
+  release names the exact source capture and minting rule. Renames, splits,
+  and merges become reviewed lifecycle events. A RefSpec-issued source
+  identity names RefSpec as issuer and the publisher scheme as source; it
+  neither impersonates the publisher nor creates an `rkaf:LocalConcept`.
+- **Identity, admission, and assignment are independent.** A named review may
+  admit an existing source-scoped subject concept to the curated emit tier
+  without minting another concept; an exact product policy still activates
+  emission. Concept staging creates genuinely new
+  RefSpec-authored concepts, including deliberate consolidations or splits
+  that cite source concepts. A document's use of a subject concept is
+  `sourceAssignedEvidence`. Source assignment, provenance, rights, intended
+  use, admission, and publication status are metadata — not rings or
+  destinations.
+
+### Subject ring — core participation
+
+The default candidate pool for subject assignments in a named product
+configuration — activated only by a matching `OutputProfile` row.
 
 | Source | Reader | Basis |
 | --- | --- | --- |
 | Federal Register Thesaurus 2025 | `federal_register_thesaurus_2025*` (managed release, in atlas) | Purpose-built for the corpus; 1 CFR 18.20 |
 
-**CRS does not enter ring 0.** Congress.gov identifies CRS terms only by
-`name`; publisher identifiers are absent, so a managed release is blocked
-(`crs_legislative_resources` records both facts). CRS Legislative Subject
-Terms and Policy Areas enter as `sourceAssignedEvidence` on the records
-that carry them — like CFR List of Subjects literals, which resolve against
-the FR Thesaurus via the Lists-of-Subjects policy
+**CRS enters the shared foundation immediately as source-scoped concepts.**
+Congress.gov identifies CRS terms only by `name`; publisher identifiers are
+absent, so RefSpec does not claim publisher-issued term identity
+(`crs_legislative_resources` records both facts). Topical Legislative Subject
+Terms and Policy Areas enter the subject ring. The Legislative Subject Terms
+source also contains `geographicEntity` and `organizationName` records; those
+enter the entity ring instead of competing with subjects. Every term receives
+one source-scoped identity under the §3 rule. A document's use of one is
+`sourceAssignedEvidence` — like CFR List of Subjects literals, which resolve
+against the FR Thesaurus through the Lists-of-Subjects policy
 (`policies/federal_register_lists_of_subjects`:
 `officialTerm` / `recognizedVariant` / `sourceLocalOpenTerm` /
-`unresolved`). Ring-0 growth routes through the concept-staging workflow
-(addendum B4; spec §12.4 concept proposals / `rkaf:LocalConcept`), which
-may mint RefSpec-governed concepts citing CRS terms as sources.
+`unresolved`). A named admission review may approve an existing CRS subject
+identity for the curated emit tier after its definition, hierarchy placement,
+reviewer, and exact release pass the §10 gates. An exact `OutputProfile` activates
+emission. Concept staging applies only when RefSpec creates a genuinely new
+concept rather than admitting the source concept itself (addendum B4; spec
+§12.4).
 
 The CRS packages still need stable operational handles. Each source fetch
 records an RFC 9562 UUIDv7 `sourceFetchId` plus `sourceObservedAt`; the combined
 package records a separate UUIDv7 `registrationEvent`. Every first-seen row gets
-a UUIDv7 `localRecordId`. These are RefSpec record identities, not CRS term
-identities. Each immutable ledger directory saves both complete packages, both
-sorted local-ID and record-content digests, and the reconciliation or human
-review. On refresh, a unique publisher identifier match wins; otherwise a
-unique exact scheme/category/label match carries the local ID forward. Any
-capture-independent content change writes a reconciliation report and stops
-promotion for human review; similarity may suggest a match but never decides
-one. A source-byte change with identical parsed records is retained as a
-source-only change and does not create false term churn. Target core size stays
-in the low thousands, consistent with the EuroVoc anchor and the architecture
-proposal's 1,000–3,000 starting range.
+a UUIDv7 `localRecordId`, and the row's source-scoped concept IRI derives
+from it — never from a label. These are RefSpec-scoped identities, not CRS
+term identities: the concept record names RefSpec as issuing authority and
+the LoC scheme as source. Each immutable ledger directory saves both complete
+packages, both sorted local-ID and record-content digests, and the
+reconciliation or human review. On refresh, a unique publisher identifier
+match wins; otherwise a unique exact scheme/category/label match carries the
+local ID forward. Any capture-independent content change writes a
+reconciliation report and stops release admission until human review;
+similarity may suggest a match but never decides one. A source-byte change
+with identical parsed records is retained as a source-only change and does not
+create false term churn. Target core size stays in the low thousands,
+consistent with the EuroVoc anchor and the architecture proposal's
+1,000–3,000 starting range.
 
-### Ring 1 — specialist modules (conditionally candidate-eligible)
+### Subject ring — specialist participation (conditionally candidate-eligible)
 
 Activated per document from evidence, never as a hard filter. Each module
 needs its own adoption gate (catalog §Adoption gates) and holdout before its
@@ -181,15 +251,16 @@ concepts are candidate-eligible anywhere.
 | GEMET | `gemet_thesaurus` | Pilot with strong abstention |
 | NASA Thesaurus | `nasa_thesaurus` | Candidate after freshness check |
 
-### Ring 2 — register bridges (searchOnly forever)
+### Subject ring — bridge participation (searchOnly forever)
 
-Never candidate-authorized. Ring 2 is not a junk drawer of references: each
+Never candidate-authorized. The bridge tier is not a junk drawer of
+references: each
 vocabulary here bridges a different language community's **register** into
 the core. The Federal Register core speaks administrative supply-side
 language ("Incorporation by reference"); users and researchers speak other
 registers ("food insecurity", "recidivism"). A qualified `searchOnly`
 mapping lets a query phrased in one register reach documents indexed in
-another — connect and expand, never tag. Ring-2 releases also absorb
+another — connect and expand, never tag. Bridge releases also absorb
 off-domain matches (decoys) and carry crosswalks. Eligible uses are exactly
 what their readers already declare (`searchExpansion`, `mappingReference`).
 
@@ -204,102 +275,105 @@ what their readers already declare (`searchExpansion`, `mappingReference`).
 | DOE OSTI, EPA Enterprise Vocabulary | `doe_osti_thesaurus`, `epa_enterprise_vocabulary` | Deferred until release/license verified |
 | GCMD Science Keywords, NASA Technology Taxonomy | `gcmd_science_keywords`, `nasa_technology_taxonomy` | Mapping/deterministic only per catalog |
 
-### Ring 3 — outside the atlas, inside the constellation
+### Entity, value, and legalIdentity rings
 
-Code lists, identifier authorities, entity registries, navigation lists, and
-native controls never enter `releaseFacts` or `analysis`. This covers
-roughly half the registry: NAICS/PSC, TAS/FAST Book, OMB A-11, GSDM,
-BILLSTATUS, LDA, FEC, FCC ECFS, FERC, NRC ADAMS, SEC series, nature-of-suit,
-SCOTUS opinion types, oversight report types, CBO/GAO/CRS product topics,
-Grants.gov, SAM, Census, OPM, NPPES NPI, UEI/CAGE, EPA SRS, federal
-hierarchy orgs, Regulations.gov / Unified Agenda / OIRA / PRA controls.
+The three non-subject rings share the atlas foundation and keep ring-specific
+semantics:
 
-"Outside the atlas" is not "outside the product." Ring-3 sources feed three
-**sibling reference publications**, each with its own identity semantics and
-trust model, published under the same pin-and-receipt discipline the atlas
-proved out:
+- **Entity** holds organizations, people, places, substances, and other
+  identifiable things. Entity links require identifiers or reviewed evidence;
+  name equality never merges nodes.
+- **Value** holds code lists, classifications, statuses, genres, actions, and
+  native controls. Crosswalks name the source edition, target edition, and
+  effective time.
+- **LegalIdentity** holds legal instruments, structures, citations, dockets,
+  RINs, and related identifiers. Its edges use legal predicates such as
+  *cites*, *amends*, *authorizes*, and *implements* with point-in-time scope.
 
-| Sibling publication | Contents (readers) | Identity semantics | Status |
+These rings cover roughly half the registry: NAICS/PSC, TAS/FAST Book, OMB
+A-11, GSDM, BILLSTATUS, FEC, FCC ECFS, FERC, NRC ADAMS, SEC series,
+nature-of-suit, SCOTUS opinion types, oversight report types, Grants.gov and
+SAM controls, Census, OPM, NPPES NPI, UEI/CAGE, EPA SRS, federal hierarchy
+organizations, Regulations.gov, Unified Agenda, OIRA, and PRA controls.
+Publisher topic labels such as CBO, GAO, CRS product topics, LDA issue codes,
+and Grants.gov funding categories belong to the subject ring even when their
+document assignments arrive through the same source package as value data.
+
+Physical ring publications and projections remain useful for scale,
+independent verification, and consumer-specific reads. They implement one
+shared record foundation rather than creating separate identity systems:
+
+| Ring publication | Contents (readers) | Ring-specific semantics | Status |
 | --- | --- | --- | --- |
-| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets; identity links are evidence-classed exactly as §6 classes mappings — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches, human-reviewed merges. Never merge on name equality. | Unwritten — needs its own proposal (matrix `T3-04` anticipates it) |
+| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets. Identity links reuse §6's evidence-profile shapes with entity-specific predicates and merge checks — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches, and human-reviewed merges. Name equality never merges entities. | Unwritten — needs its own proposal (matrix `T3-04` anticipates it) |
 | **Code ledgers** | NAICS/PSC, fiscal codes, filing types, genre and process values, all native controls, cross-state statistical crosswalks (`census_gov_finance_codes`) | Versioned value sets with effective dates; raw values preserved exactly; reviewed edition crosswalks only where needed (NAICS 2017→2022, nature-of-suit spelling canonicalization) | Essentially built (`source_controlled_resource`, `regulatory_native_controls`) |
 | **Legal identity graph** | CFR structure, statutes and Public Laws, RINs, docket and bill identifiers, citations | Deterministic parsed identity; typed edges (*cites*, *amends*, *authorizes*, *implements*) with point-in-time versions — the ELI analogue | Half-built (identifiers and citations exist as fields; the typed-edge model needs design) |
 
-A fourth category rides alongside the ledgers but deserves its own name:
+A fourth category rides alongside the ledgers but is metadata, not a ring:
 **source-assigned topic evidence** — GAO topic assignments, CBO topic
 labels, CRS product topics, LDA issue codes, SAM mission/subject fields.
-These are per-document topical evidence from the publisher, not schemes and
-not codes. They are captured as `sourceAssignedEvidence` observations
+The labels are subject-ring terms and carry source-scoped concepts
+(§3); the per-document assignments are captured as
+`sourceAssignedEvidence` observations
 (already in the bundle model), consumed by the pipeline, and — unlike codes
-— may later earn small reviewed maps into ring-0 concepts through §6's
+— may later earn small reviewed maps into core concepts through §6's
 evidence classes, letting a publisher's own assignment corroborate a
 core-subject tag.
 
-Documents compose all four publications at query time — subjects from the
-atlas, entities by role from the spine, legal location from the identity
-graph, facets from the ledgers — and the product graph is assembled from
-these layers, never stored as one monolith. The separation is load-bearing:
-each layer's trust model differs (two-validator semantic judgment vs pinned
-publisher record vs deterministic parse), and one shared trust model would
-either over-burden the cheap facts or under-protect the risky ones.
+The atlas identifies one four-ring scope from exact ring releases.
+Consumers may read a ring projection or compose several rings without
+inventing identity, provenance, evidence, or lifecycle rules. Trust remains a
+property of each record's origin, basis, attestation, and adoption; it does
+not require a separate foundation for each ring.
 
-One boundary clarified here because it is easy to misread: the decoy
-function for entity labels (DNB's lesson — entities missing from the mapping
-space cause forced-choice snapping onto wrong subjects) is served by the
-**pipeline's mapping index**, which may union the atlas frontier with
-entity-spine labels at retrieval time. Entities still never enter the
-atlas's release facts. Absorb-in-one-space / emit-on-another-facet is a
-pipeline composition, not an atlas membership rule.
+One boundary clarified here because it is easy to misread: DNB's lesson —
+entities missing from consideration can force a classifier to snap onto a
+wrong subject — does not justify a mixed mapping pool. The pipeline searches
+ring-scoped indexes in parallel. A strong entity result may supply abstention
+evidence against a subject result, but it never becomes a subject candidate or
+mapping assertion. The shared foundation makes the records comparable without
+collapsing their relation vocabularies.
 
 A one-page **atlas index** (an extension of `portfolio/resource-catalog`)
-names every registry source, its ring, its publication target (atlas ·
-entity spine · code ledger · legal identity graph · source-assigned
-evidence), and its promotion status, so "the atlas" never silently comes
-to mean "everything." The ring
-tables in this section are illustrative; the index is the exhaustive
-assignment of record. Index versions are immutable: a failed experiment
+names every registry source, its semantic ring, its subject participation
+class where one applies, its intended uses, and its promotion status. The
+index prevents "the atlas" from silently meaning "everything." Publication
+destination is derivable from ring and participation, and source assignment
+is an intended use, never a destination. The ring tables in this section are
+illustrative; the index is the exhaustive assignment of record. Index
+versions are immutable: a failed experiment
 produces a new version marking the row `deferred` or `rejected` with the
 evaluation attached — history is never deleted. Row status draws from a
 closed, machine-validated vocabulary (`planned`, `deferred`, `rejected`,
-`superseded`, `unassessed`, `notApplicable`), and every ring value is a
-statement of intent — only a product policy activates a use.
+`superseded`, `unassessed`, `notApplicable`). The ring is a semantic fact;
+participation and status are planning facts. Only a product policy activates
+a use.
 
-**Ring semantics must be expressible in reader code.** The registry's
-readers already enforce their catalog decisions individually
-(`eurovoc_thesaurus` refuses any use but mapping-reference; `lcsh_topical`
-hard-codes `candidate_use_authorized=False`; `gao_topics` refuses to
-reconstruct a scheme from navigation), but the shared `ResourceUse`
-vocabulary lacks a `mappingReference` value — EuroVoc enforces a literal
-outside the enum, and LCSH declares `searchExpansion` only despite its hub
-role. Extend the enum (`mappingReference`, and `candidateGeneration` if
-ring-1 activation needs it) and let the atlas index reconcile
-reader-declared uses against ring assignments, so a ring claim and a
-reader's own eligibility declaration can never silently disagree. The same
-reconciliation defines `candidate_use_authorized`, whose semantics are
-inconsistent at scale: LCSH hard-codes `False` as the mapping-only marker
-while **more than twenty modules pass `True`** — ring-1
-`mesh_descriptors` and roughly eighteen ring-3 readers among them —
-because the shared builder makes the flag a required parameter and no
-shared model documents its meaning. A ring-2 or ring-3 source declaring
-`True` is a reader/ring disagreement to resolve — never a grant. Target
-values follow the rings: every ring-2 reader carries `False`; ring-3
-readers should carry no candidate flag at all, which requires making the
-parameter optional in the shared model (the concept does not apply
-outside the atlas) — until that change lands, ring-3 readers set
-`False`; FAST flips to `False` with the enum extension. A reader's flag
-converges to its ring — never the reverse.
+**Ring semantics must be checkable against reader evidence.** Extend the
+shared `ResourceUse` vocabulary with factual uses such as
+`mappingReference`, `candidateGeneration`, and `deterministicMetadata`.
+The atlas index reconciles each reader's declared facet and intended uses
+against its semantic ring and subject participation class. A mismatch fails
+the build.
 
-## 4. Membership rule for oversized ring-2 sources: the mapping frontier
+Source packages carry no permission-shaped fields. Remove
+`candidate_use_authorized` rather than making it optional or assigning false
+outside the subject ring. A source capture reports what the publisher data is
+and how RefSpec can process it; an exact `OutputProfile` or retrieval policy
+decides whether a product may use it. This leaves one permission source per
+product action and one clean source-package shape.
+
+## 4. Membership rule for oversized bridge sources: the mapping frontier
 
 Full ingestion of LCSH or FAST is prohibited by scale and pointless by use.
-Instead, a ring-2 release entering the atlas is a **frontier subset** whose
+Instead, a bridge release entering the atlas is a **frontier subset** whose
 selection policy is declared in the release and whose coverage is accounted
 (`source_observed_count` and `excluded_count` exist today in the
 source-capture bundle model; the frontier compiler carries the same
 accounting into the managed-release layer, where it does not yet exist).
-A ring-2 concept belongs to the frontier when it:
+A bridge concept belongs to the frontier when it:
 
-1. matches a selection predicate against ring-0/1 concepts (lexical and
+1. matches a selection predicate against core and specialist concepts (lexical and
    label-based, the same predicate families that generate candidates);
 2. is an endpoint of a publisher-asserted mapping (§6); or
 3. lies within a declared small number of `skos:broader` steps of (1) or
@@ -344,8 +418,10 @@ through the reader for future frontier growth. Frontier releases are
 re-cut, not mutated: a new selection receipt yields a new release with its
 own pins.
 
-Label-cluster policy changes with the rings: clusters are computed only
-between ring-0/1 schemes and the frontier — never ring-2 × ring-2 — and are
+Label-cluster policy changes with the participation tiers: clusters are
+computed only
+between core and specialist schemes and the frontier — never bridge ×
+bridge — and are
 dropped from the default consumer projection (in the superseded two-edition
 build, clusters were 69% of bytes with nothing reading them; the
 `consumer-read-closure` projection already excludes them).
@@ -354,14 +430,15 @@ build, clusters were 69% of bytes with nothing reading them; the
 
 Qualification runs are scheduled on two spokes only:
 
-- **Emit spoke:** every ring-1 and ring-2 release × the ring-0 core. This is
+- **Emit spoke:** every specialist and bridge release × the core. This is
   the only crosswalk the tagging product consumes.
-- **Hub spoke (optional, staged):** ring-1/2 releases × the LCSH frontier.
+- **Hub spoke (optional, staged):** specialist and bridge releases × the
+  LCSH frontier.
   LCSH is the de facto hub of the library vocabulary world — FAST is derived
   from it and published LCSH↔MeSH alignments exist — so one hub spoke buys
   transitive discovery without O(N²) direct pairs.
 
-The product's emit spoke never requires ring-2 × ring-2 qualification, and
+The product's emit spoke never requires bridge × bridge qualification, and
 none is scheduled for it — but experiments may run any pair, and at pilot
 economics ($1.01 and ~730 calls per 365-candidate pair) cheap ones should:
 the first bridge-to-bridge run (ELSST×ICPSR, 146 qualified) is exactly that
@@ -397,15 +474,15 @@ validators, `searchOnly`). Two real cases already overflow this:
   candidate generator itself is declared `aiModel` for lack of an honest
   value.
 
-Format 1.1 therefore adds explicit origin classes, each with its own
-eligibility ceiling:
+Format 1.1 therefore adds explicit origin classes, each with a safety ceiling
+that limits what an exact product policy may select:
 
 | Class | Origin / basis | Ceiling | Example |
 | --- | --- | --- | --- |
 | `machineQualified` | `aiSuggested` / `statisticalInference`, two independent validators | `searchOnly` | current 121 FR×ELSST rows |
 | `publisherAsserted` | `rkaf:imported` / `rkaf:sourceExplicit`, pinned source bytes | `searchOnly` | FAST→LCSH derivation; MeSH↔LCSH published alignments |
 | `operatorAdopted` | single-machine review adopted by named operator | `localOperationalUse`, never atlas-qualified | ICPSR bridge v2 |
-| `humanReviewed` | named reviewer, evidence reference | may exceed `searchOnly` per governance | zero rows today; fixtures required |
+| `humanReviewed` | named reviewer, evidence reference | may support a policy choice beyond `searchOnly` after the named governance gates pass | zero rows today; fixtures required |
 | `ruleGenerated` (candidate provenance, not a mapping class) | deterministic generator, honest `generatorKind` | n/a | current lexical candidate generator |
 
 These classes are realized as **derived evidence profiles** — deterministic
@@ -422,7 +499,7 @@ answer. Gate protocol v2's direction-pinned verdicts (`same` →
 `skos:exactMatch`, `near_same` → `skos:closeMatch`, `target_is_broader` →
 `skos:broadMatch`, `target_is_narrower` → `skos:narrowMatch`, `related` →
 `skos:relatedMatch`) make a qualified mapping a joint
-relation-plus-eligibility judgment. The agreement rule folds the **set**
+relation-plus-safety judgment. The agreement rule folds the **set**
 of verdicts from every supporting validation — universal, not
 existential, which is what keeps a third machine deterministic — and
 emits at the weakest claim any machine made: `{same}` → `exactMatch`;
@@ -479,6 +556,10 @@ invalidating it. Profiles compose rather than supersede: one mapping may
 be machine-qualified, later human-reviewed, and locally adopted at once —
 states accumulate, and no profile erases another's history.
 
+Frozen 1.0 records remain historical evidence under their original format.
+Format 1.1 does not accept them as 1.1 inputs or add a compatibility shape;
+carrying an assertion forward requires a new explicit decision.
+
 **The atlas preserves assertions, not one mapping truth per pair.**
 Contradictory relations between the same endpoints coexist as separate
 records, each with its own origin, evidence, policy, and lifecycle; no
@@ -486,8 +567,9 @@ bundle overwrites an earlier assertion; adoption targets an assertion IRI,
 never an endpoint pair. A consumer may derive a "best mapping" view, but
 that view is disposable and retains links to every contributing assertion.
 
-No class other than `humanReviewed` ever authorizes emit-side use; that
-boundary is the ring model restated at the mapping layer.
+No evidence class authorizes emit-side use. `humanReviewed` is the only class
+that may satisfy a governance gate above the `searchOnly` ceiling; an exact
+product policy still activates the use.
 
 ## 7. Qualification — protocol v2 baseline, format 1.1 ahead
 
@@ -570,15 +652,22 @@ scale:
 
 ## 8. Topology and distribution: one canonical atlas, many projections
 
-One canonical atlas per build scope (rings 0–2 frontier), because qualified
-mappings require both endpoints in the same atlas's release facts and a
-constellation of mini-atlases would fragment identity and closure. Consumers
-never vendor the canonical atlas: the distribution measurement showed the
-full artifact strictly dominated by its projection (4.5–5× bytes for zero
-additional reads, and slower to open). Named projection policies:
+One canonical atlas scope names the exact concept releases and relation
+artifacts used across all four rings. The durable bytes may be partitioned by
+ring, but every partition uses the shared identity, release, evidence,
+mapping-assertion, and lifecycle shapes from §3. Ring-specific validators
+enforce predicate semantics. Subject mapping artifacts still require both
+endpoints in complete subject releases; entity, value, and legalIdentity
+relations apply their own closure rules.
+
+Consumers receive only the projections they need. The distribution
+measurement showed that the full subject artifact cost 4.5–5× the bytes for
+zero additional consumer reads and opened more slowly. Named projection
+policies include:
 
 - `consumer-read-closure` (exists) — the tagging consumer's contract.
-- `module:<ring-1-source>` (new) — one specialist module + ring-0 core +
+- `ring:<semantic-ring>` (new) — one complete ring-specific read view.
+- `module:<specialist-source>` (new) — one specialist module + the core +
   their qualified mappings, for domain-scoped deployments.
 - `explorer` (exists via bounded publication view).
 
@@ -606,7 +695,7 @@ profile), search traversal (the retrieval policy).
 
 **Bench and product scopes are named, never implied.** Every build to date
 is bench material. The first product-scoped canonical atlas contains the
-ring-0 core plus whatever has passed the §9 ladder — today, nothing else.
+curated core plus whatever has passed the §9 ladder — today, nothing else.
 ELSST and ICPSR enter a product scope through the same gates as any
 promotion; membership in bench builds grandfathers nothing, and "in the
 atlas" without a scope qualifier means the bench.
@@ -617,30 +706,36 @@ The portfolio catalog's statuses become the single ladder from "reader
 exists" to "in the atlas," aligned with the catalog's adoption gates:
 
 ```text
-inventoryOnly → evidenceOnly → verifiedDistribution → managed release / frontier capture → ring assignment in atlas
+inventoryOnly → evidenceOnly → verifiedDistribution → source concept release
+→ semantic ring → relation and participation review → product admission
 ```
 
 Each step has an existing artifact: readers produce evidence; acquisition
-modules pin verified distributions; `managed_vocabulary_bundle` or a
-frontier capture packages the release; the atlas build consumes it under its
-ring. Proposed order of the next promotions:
+modules pin verified distributions; a managed or source-concept builder
+packages the release; the atlas classifies it into one ring; ring-specific
+review records admission evidence. An exact product policy activates a use.
+Proposed order of the next work:
 
-1. **CRS Legislative Subject Terms + Policy Areas → `sourceAssignedEvidence`
-   packages.** Publisher identifiers are absent and a managed release is
-   blocked, so CRS assignments flow as evidence on the records that carry
-   them. Operate the UUIDv7 capture ledger and resolve any changed-capture
-   reconciliation before use; ring-0 growth still goes through concept staging
-   (addendum B4).
-2. **MeSH descriptors → ring 1 pilot** (largest, best-governed specialist
+1. **CRS Legislative Subject Terms + Policy Areas → source-scoped concept
+   releases by semantic kind.** Publisher identifiers are absent. RefSpec
+   mints identities from the UUIDv7 capture ledger (§3): topical subjects and
+   Policy Areas enter subject releases; geographic and organization terms
+   enter an entity release. CRS assignments flow as evidence on the records
+   that carry them.
+   Operate the ledger and resolve any changed-capture reconciliation
+   before use. A named review may admit the existing CRS subject identities
+   to the curated emit tier. Concept staging applies only when RefSpec authors
+   a new concept (addendum B4).
+2. **MeSH descriptors → specialist pilot** (largest, best-governed specialist
    module; activation evidence is plentiful in health-related sources).
-3. **LCSH topical frontier → ring 2 hub**, compiled with the §4 two-pass
-   build against the ring-0 core plus MeSH.
-4. **FAST topical → ring 2** via `publisherAsserted` derivation edges to the
+3. **LCSH topical frontier → bridge hub**, compiled with the §4 two-pass
+   build against the core plus MeSH.
+4. **FAST topical → bridge** via `publisherAsserted` derivation edges to the
    LCSH frontier — the cheapest crosswalk in the whole plan; no model calls.
    Prerequisite: the current `fast_topical` reader consumes CSV without
    `sameAs` capture, while the derivation edges live in FAST's per-term RDF
    (`schema:sameAs` → LCSH); the reader must ingest that form first.
-5. **GEMET, NALT Core, NASA, EuroVoc → rings 1/2** as their license and
+5. **GEMET, NALT Core, NASA, EuroVoc → specialist/bridge** as their license and
    freshness gates clear.
 6. **DOE OSTI, EPA EV** stay deferred per catalog until verifiable releases
    exist.
@@ -672,9 +767,10 @@ A change at any link invalidates everything downstream. Qualification is
 rerun or explicitly carried forward, never silently inherited, and a
 changed atlas requires a new publication decision before any redeployment.
 
-## 10. Evaluation gates before any ring change matters
+## 10. Evaluation gates before participation or product admission
 
-Ring assignments authorize nothing by themselves. Before a ring-1 module's
+Ring and participation assignments authorize nothing by themselves. Before
+a specialist module's
 concepts become candidate-eligible in the tagging product, and before the
 frontier's decoy value is claimed:
 
@@ -691,7 +787,7 @@ frontier's decoy value is claimed:
   wrong-concept emissions on off-domain text against a frontier-less
   control. No published system has run this ablation; it is one of the
   synthesis's verified gaps, so the result is worth recording either way;
-- for ring-2 register bridges specifically: the native metric is
+- for bridge vocabularies specifically: the native metric is
   query-side, not tagging-side — document recall on public-register
   queries with mapped expansion on vs off. Label-equality mappings expand
   little that a lexical index lacks, so report the differing-surface-form
@@ -731,15 +827,14 @@ tests:
 - Any live database as the artifact of record (Oxigraph/Ladybug remain
   disposable read models behind their unmet adoption gates).
 - Vocabulary induction (per the synthesis: unstable, lexically disjoint;
-  revisit only after measured recurring gaps in the ring-0 core).
-- The sibling reference publications' internals (§3 ring 3): the entity
-  spine and the legal identity graph's typed-edge model each need their own
-  proposal; the atlas only promises never to absorb them, and the addendum
-  (B5) records their owners and priority.
+  revisit only after measured recurring gaps in the curated core).
+- The detailed entity-link, value-crosswalk, and legal-edge vocabularies.
+  Each needs its own ring-specific design, but every design must use §3's
+  shared foundation rather than establish another identity system.
 
 ## 12. Open questions
 
-1. Should the hub spoke (×LCSH) run at all before two or three ring-1
+1. Should the hub spoke (×LCSH) run at all before two or three specialist
    modules are in and the emit spoke is proven? Deferring it costs nothing
    today.
 2. Frontier hierarchy-context depth (§4 rule 3): 1 step or 2? Decide with

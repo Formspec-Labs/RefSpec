@@ -2,7 +2,15 @@
 
 # Addendum — what the atlas design proposal does not cover
 
-> **Status:** Companion record to a proposed design; not adopted
+> **Status:** Companion record to a revised proposed design; not adopted
+>
+> **Revision (2026-08-04):** Restated with the parent proposal: rings name
+> semantic kinds (subject, entity, value, and legalIdentity); the former
+> ring 0/1/2 are subject-ring participation classes (`core`, `specialist`,
+> and `bridge`); and useful source terms carry source-scoped concept
+> identity. All four rings share one record foundation with ring-specific
+> relations. Identity is not admission: a named review may admit an existing
+> source identity, while staging creates only new RefSpec-authored concepts.
 >
 > **Standing:** Rules and ownership are this document's durable content.
 > Counts and build references are dated snapshots of an artifact set in
@@ -11,22 +19,20 @@
 >
 > **Date:** 2026-08-03
 >
-> **Decision synthesis:** [Vocabulary Atlas Final Synthesis](vocabulary-atlas-final-synthesis-2026-08-03.md)
-> resolves the review findings and supersedes the parent draft for decision-making.
+> **Prior synthesis:** [Vocabulary Atlas Final Synthesis](vocabulary-atlas-final-synthesis-2026-08-03.md)
+> resolves the original review findings. The parent revision supersedes its
+> planning classes, CRS identity ruling, and separate-publication boundary;
+> its verified evidence and unaffected decisions remain useful.
 >
 > **Parent proposal:** [Vocabulary Atlas Design Proposal](vocabulary-atlas-design-proposal-2026-08-03.md)
 >
 > **Evidence base:** [External research synthesis](large-label-space-tagging-external-research-synthesis-2026-08-03.md)
 
-This addendum bounds the parent proposal: the commitments that are
-experiments rather than established results (§A), the demands the atlas
-leaves to other layers, each with a named owner (§B), one clarification
-that prevents a predictable mis-citation (§C), the registry-wide source
-accounting (§D), and corrections owed to artifacts outside this document
-set (§E). Items here are scope boundaries and
-successor work, not defects in the parent proposal — but each needs an
-owner, and three need their own design documents (B4's concept staging;
-B5's entity spine and legal-identity edge model).
+This addendum bounds the parent proposal: the commitments that remain
+experiments (§A), the work assigned to consuming or ring-specific layers
+(§B), one clarification that prevents a predictable mis-citation (§C), the
+registry-wide target-state accounting (§D), and corrections owed outside
+this document set (§E). Each open design has a named owner.
 
 ## A. Commitments that exceed the evidence
 
@@ -37,21 +43,20 @@ cites the proposal as if these were established:
 
 | # | Commitment | Evidence status | Instrument in the proposal |
 | --- | --- | --- | --- |
-| A1 | Ring/facet separation improves tagging (typed pools, separate eligibility per ring) | Synthesis §14 gap 7: no facet-separated retrieval experiment exists; motivation only (GND benchmark's own admission, MeSH/EPA structural precedent) | Proposal §10: ring assignments authorize nothing until a per-source-family holdout passes |
+| A1 | Ring/facet separation improves tagging (ring-scoped candidate pools and subject participation policies) | Synthesis §14 gap 7: no facet-separated retrieval experiment exists; motivation only (GND benchmark's own admission, MeSH/EPA structural precedent) | Proposal §10: participation assignments authorize nothing; a per-source-family holdout supplies evidence for an exact product policy |
 | A2 | The mapping frontier's decoy value (keeping off-domain vocabulary in the index reduces wrong-concept emissions) | Synthesis §14 gap 1: the deletion ablation has never been published; CoRECT and DNB-AI support the two halves separately, not the combination | Proposal §10: frontier ablation against a frontier-less control; result recorded either way |
 | A3 | Hierarchy context in judge input improves mapping qualification | No literature either way; the pilot showed zero of 365 sealed inputs carried `broader` while the prompt asked a hierarchy question — and gate protocol v2 now emits *directional* verdicts on those same label-only inputs, so the stakes rose from experiment to prerequisite | Proposal §7.2: label-only vs ancestor-labels A/B on the same candidate slice decides it; until it runs, direction-typed emissions score as a separately validated class and stay out of frontier hierarchy context |
 
 If any of these experiments comes back negative, the affected structure
-(rings as eligibility tiers, frontier context depth, judge input shape) is
+(participation tiers, frontier context depth, judge input shape) is
 revisable without changing the atlas format itself.
 
 ## B. Synthesis demands assigned to other layers
 
 The atlas is a publication format. Five things the synthesis establishes as
-necessary belong to the consuming pipeline, to vocabulary governance, or to
-sibling reference publications, and their absence from the parent proposal
-is scope, not omission. Each entry names the owner so the demand does not
-fall between documents.
+necessary belong to the consuming pipeline, vocabulary governance, or a
+ring-specific relation design. Each entry names the owner so the demand does
+not fall between documents.
 
 ### B1. Retrieval engineering — owner: SpicySearch pipeline
 
@@ -72,7 +77,7 @@ can supply:
   can fix;
 - LLM candidate reranking last, if at all (+0.009 F1@5 measured).
 
-What the atlas contributes to this layer: variant labels as synonym rings,
+What the atlas contributes to this layer: variant-label sets,
 qualified `searchOnly` mappings, bounded hierarchy — inputs, not the engine.
 
 ### B2. Soft metadata priors — owner: SpicySearch scoring
@@ -98,73 +103,74 @@ Proposed Rules supply the bootstrap set, the evaluation gold, and the
 prior-estimation data at zero cost. None of this touches the atlas; all of
 it consumes atlas outputs.
 
-### B4. The concept-level staging tier — owner: **a successor proposal that does not yet exist**
+### B4. Subject admission and local concept staging — owner: vocabulary governance
 
-This is the one genuine hole the alignment check found. Synthesis §11 and
-§13.7 establish the governance machinery every long-lived vocabulary runs,
-and the parent proposal's promotion ladder covers *resources* (reader →
-release → ring) but not *concepts*. The emit core needs its own two-tier
-machinery:
+The subject ring needs two governance paths because admitting an existing
+source concept and authoring a new RefSpec concept are different decisions.
+Both use named review, but only the second creates identity.
 
-- an unbounded staging tier for source-grounded phrases that map to no
-  registered concept, every staged entry **anchored** to a registered
-  concept (MeSH's Heading-Mapped-To pattern) so nothing floats free —
-  and every anchor **typed** (`narrowerThan`, `broaderThan`, `relatedTo`,
-  facet-located, or explicitly unresolved), never equivalence by default:
-  the anchor places a proposal, it does not merge one;
-- promotion as a named-human editorial decision informed by usage evidence,
-  run as periodic campaigns (MeSH promotes ~100–500/year; EuroVoc gates on
-  a definition, a home in the hierarchy, and reviewer consensus — no
-  frequency threshold anywhere in either system);
-- growth by splitting: ~44% of MeSH's additions over 15 years refined
-  concepts already covered, so concept identity and history must support a
-  concept splitting into narrower children without breaking past
-  assignments;
-- the expensive steps (embedding, crosswalk qualification, translation-
-  equivalents) gated behind promotion, not candidacy;
-- candidate tooling: EuroVoc runs this workflow in VocBench (open source),
-  which is the obvious pilot vehicle;
-- evaluation hooks: staged-concept emergence is itself the "measured
-  recurring gaps" signal that the architecture proposal requires before any
-  vocabulary induction is considered.
+**Admission preserves source identity.** A named review may admit an existing
+source-scoped concept to the curated emit tier. The review binds the exact
+content-derived release and records the concept's definition or scope note,
+hierarchy anchor or explicit unresolved placement, facet, evidence, rights,
+reviewer, time, and intended product use. These facts enrich the existing
+identity and support an exact `OutputProfile`; they neither replace identity
+nor activate product use on their own. A new source capture produces a new
+release and requires a new admission decision, so a publisher rename cannot
+change the emit core silently.
 
-The design covers the complete concept lifecycle, in order:
+**Staging creates genuinely new RefSpec concepts.** Use a `ConceptProposal`
+when no source concept expresses the intended meaning or when RefSpec chooses
+to consolidate, split, or otherwise author a meaning distinct from its source
+concepts. Every proposal cites its sources and has a typed placement
+(`narrowerThan`, `broaderThan`, `relatedTo`, facet-located, or explicitly
+unresolved). Label similarity never supplies identity or equivalence.
+
+The research supports the following governance rules:
+
+- promotion is a named-human editorial decision informed by usage evidence;
+  MeSH promotes roughly 100–500 records a year, and EuroVoc requires a
+  definition, hierarchy placement, and reviewer consensus;
+- growth often happens by splitting; roughly 44% of MeSH additions over 15
+  years refined concepts already covered, so lifecycle history must preserve
+  earlier assignments;
+- expensive translation and crosswalk work follows creation of the new
+  concept rather than proposal intake;
+- staged-concept recurrence measures gaps that may justify local authoring;
+  frequency informs review but never triggers it automatically.
+
+The two paths are explicit:
 
 ```text
-source-grounded phrase → staged candidate → reviewed proposal
-→ named promotion decision → LocalConcept / registered concept
-→ complete managed-release membership → mapping and adoption
+existing source concept → named admission review → exact release admission
+→ OutputProfile permission
+
+source evidence → ConceptProposal → named authoring decision
+→ rkaf:LocalConcept → complete managed release → mapping and adoption
 → deprecation / split / merge / replacement
 ```
 
-The promotion decision precedes the concept: a `ConceptProposal` enters
-staging first, and only a named, authorized promotion decision creates the
-governed concept, which then publishes through a new complete managed
-release after its definition, hierarchy, evidence, rights, and attestation
-gates pass.
+Concept staging therefore blocks only new RefSpec-authored identities. It
+does not block evaluation or admission of CRS or any other existing
+source-scoped concept.
 
-Until that proposal exists, the atlas's ring-0 core has no governed path for
-growth, and the pipeline's abstention/open-result facet has no destination
-for what it catches. This is the successor document to write first: with CRS held to
-`sourceAssignedEvidence` (parent §3), concept staging is the **only**
-ring-0 growth path, so every core extension waits on this design.
+### B5. Ring-specific relation designs — owners: the entity, value, and legalIdentity rings
 
-### B5. The sibling reference publications — owners: two successor proposals plus one existing layer
+Synthesis §1, §9, and §13.2 distinguishes entity identity from subject
+classification and motivates typed outputs. The parent proposal places those
+outputs on one foundation: a shared concept-identity record shape, releases,
+provenance, rights, evidence classes, mapping-assertion structure, and
+lifecycle. Each ring still needs its own relation vocabulary and validation
+rules:
 
-Synthesis §1, §9, and §13.2: entity registries and classification spaces are
-different objects; entity identity is not a subject; typed facets are
-separate outputs with separate registries. The parent proposal's ring 3
-(§3) now names the three sibling publications that carry this demand; their
-internals remain undesigned or partially designed:
-
-- **Entity spine — unwritten; the successor proposal after B4.** Agencies,
+- **Entity spine — unwritten.** Agencies,
   award entities, committees, providers, and substances as nodes with typed
-  identifier sets; identity links evidence-classed exactly as the parent's
-  §6 classes mappings (publisher-asserted crosswalks vs machine-suggested
-  matches vs human-reviewed merges), with "never merge on name equality" as
-  the identity twin of "never map on label equality." The source matrix's
-  `T3-04` already anticipates it. Priority: immediately after B4, because
-  every cross-document product feature (follow-the-company,
+  identifier sets. Identity links reuse the parent's §6 evidence-profile
+  shapes with entity-specific predicates and merge checks
+  (publisher-asserted crosswalks, machine-suggested matches, and
+  human-reviewed merges). Name equality never merges entities. The source
+  matrix's `T3-04` already anticipates it. Priority: immediately after B4,
+  because every cross-document product feature (follow-the-company,
   follow-the-rule) runs through the spine or the legal identity graph.
 - **Legal identity graph — half-built; needs an edge-model design.** CFR
   structure, statutes, RINs, docket and bill identifiers exist as parsed
@@ -172,28 +178,26 @@ internals remain undesigned or partially designed:
   with point-in-time versions — the ELI analogue — do not.
 - **Code ledgers — essentially built.** `source_controlled_resource` and
   `regulatory_native_controls` already publish versioned value sets with
-  preserved raw values. For identifier-poor sources, the shared package model
-  now also supports UUIDv7 source-fetch and package-registration events, UUIDv7
-  local record IDs, and separate membership and record-content digests. CRS
-  proves the refresh rule: identifier-first or exact-label matches preserve
-  local IDs, any capture-independent content change creates a reconciliation
-  report, and the immutable ledger retains the packages and human review.
-  Remaining work is reviewed
+  preserved raw values. Remaining work is reviewed
   edition crosswalks (NAICS 2017→2022) as they become product-relevant.
 
-One composition rule recorded here because it crosses B3 and the parent's
-§3: the decoy function for entity labels (DNB's forced-choice snapping
-lesson) is served by the pipeline's mapping index unioning the atlas
-frontier with entity-spine labels at retrieval time. Entities never enter
-the atlas's release facts; absorb-in-one-space / emit-on-another-facet is
-pipeline composition, owned by B3's layer.
+The shared package model also supports identifier-poor sources in any ring:
+UUIDv7 source-fetch and package-registration events, UUIDv7 local record IDs,
+and separate membership and record-content digests. CRS demonstrates the
+cross-ring refresh rule: identifier-first or exact-label matches preserve
+local IDs, any capture-independent content change creates a reconciliation
+report, and the immutable ledger retains the packages and human review.
 
-The sibling publications also share one small **composition contract**, so
-the consumer never invents join semantics: common artifact and document
-identifiers, role-qualified entity links, source and release provenance,
-as-of-time behavior, namespace and collision rules, and read-model
-identities derived from input digests — the provenance path a result
-explanation follows when it references records across publications.
+One composition rule crosses B3 and the parent's §3. The pipeline may search
+subject and entity indexes in parallel. A strong entity result may supply
+abstention evidence against a forced-choice subject error, but ring-scoped
+ranking, mappings, and output keep it out of the subject candidate pool.
+
+Every physical ring partition inherits the shared foundation. Consumers use
+common artifact and document identifiers, role-qualified entity links, exact
+source and release provenance, as-of-time behavior, namespace and collision
+rules, and read-model identities derived from input digests. A consumer never
+invents joins or translates among competing identity models.
 
 ## C. Clarification against a predictable mis-citation
 
@@ -208,56 +212,50 @@ demoted to candidate generation only — mappings are never materialized
 across the hub, which is synthesis §13.5 ("nearest neighbor is not evidence
 of correctness") applied at the mapping layer.
 
-## D. Registry compatibility check (2026-08-03)
+## D. Registry target-state check (2026-08-04)
 
 Every module in `src/refspec/registry/` (72 substantive modules) is
-classified against the parent proposal's rings and sibling publications,
-with docstrings verified for the modules the proposal's tables do not
-name. Every module has exactly one home. The one open reconciliation is
-broad — the `candidate_use_authorized` flag spans more than twenty
-modules (D2); no other conflict is known.
+classified by semantic ring, with docstrings verified for modules the
+proposal's tables do not name. A source may contribute more than one row when
+its facets belong to different rings. Shared infrastructure receives no ring.
 
-**D1 — Positive finding: the readers already enforce the design.** The ring
-model codifies decisions the readers individually enforce in code:
-`eurovoc_thesaurus` refuses any accepted use except mapping-reference;
-`lcsh_topical` hard-codes `candidate_use_authorized=False`; `gao_topics`
-captures only actual assignments and refuses to reconstruct a scheme from
-navigation; `federal_register_topics_api` preserves byte identity but mints
-no concept identifiers; `census_geo_codes` captures identifier grammar and
-refuses bulk entity rows; `crs_product_topics` treats topic labels as
-edition-bound evidence, not stable concepts. Nothing in the registry mints
-concepts from ring-3 material. Compatibility is by construction, not by
-accident.
+**D1 — Existing readers preserve evidence but do not yet complete the
+foundation.** Several readers deliberately refuse to invent publisher
+concepts: `gao_topics` captures actual assignments,
+`federal_register_topics_api` preserves source bytes, and
+`crs_product_topics` treats labels as edition-bound evidence. Those refusals
+remain correct. The target state adds an explicit source-concept release over
+the verified capture, preserving publisher identifiers where available and
+minting a named RefSpec source identity otherwise. The current absence of
+that release is implementation work, not evidence that the source lacks
+concept identity.
 
-**D2 — The eligible-use vocabulary must be extended (parent §3).**
-`source_controlled_resource.ResourceUse` lacks `mappingReference`; EuroVoc
-enforces a literal outside the enum and LCSH declares `searchExpansion`
-only despite its hub role. Parent §3 requires the enum extension and makes
-the atlas index reconcile reader-declared uses against ring assignments.
-The same work defines `candidate_use_authorized`, which no shared model
-documents and the shared builder *requires*: more than twenty modules
-pass `True` — ring-1 `mesh_descriptors` and roughly eighteen ring-3
-readers among them — while nine pass `False`, LCSH's among them as the
-mapping-only marker. The ring-3 target (no flag at all) needs the
-parameter made optional in `source_controlled_resource`; until then,
-ring-2 and ring-3 readers converge to `False`. `gemet_thesaurus` and
-`nasa_thesaurus` declare no machine-readable use at all and enter the
-same reconciliation. Owner: registry shared models, before any ring-2
-promotion.
+**D2 — Intended use is evidence, not permission.** Extend
+`source_controlled_resource.ResourceUse` with factual uses such as
+`mappingReference`, then reconcile reader-declared uses against semantic ring
+and subject participation in the atlas index. Remove
+`candidate_use_authorized` from the shared model, every reader, and generated
+packages. Do not retain a compatibility shape or replace true with false.
+`OutputProfile` and the pinned retrieval policy remain the only permission
+sources.
 
-**D3 — Source-assigned topic evidence is a named category (parent §3).**
+**D3 — Source-assigned topic evidence is metadata, not a ring (parent §3).**
 GAO topics, CBO topic labels, CRS product topics, LDA issue codes, and SAM
-mission/subject fields are per-document publisher evidence — not schemes,
-not codes. They stay out of the atlas, flow through
-`sourceAssignedEvidence` observations to the pipeline, and may later earn
-small reviewed maps into ring-0 concepts through the parent's §6 evidence
-classes.
+mission/subject fields are per-document publisher evidence. The labels are
+subject-ring terms and carry source-scoped concepts (parent §3); the
+assignments are document-to-concept evidence records, not concepts or
+destinations. They flow through `sourceAssignedEvidence` observations to the
+pipeline. A named admission review may approve the existing subject identity
+for the curated emit tier; an exact `OutputProfile` authorizes emission. A
+mapping to another concept requires its own §6 evidence.
 
 **D4 — Placement decisions.** `courtlistener_codes` (court identity) and
-`census_geo_codes` (geography identifier grammar) belong to the entity
-spine, not the code ledgers; `census_gov_finance_codes` is a ledger
-crosswalk reference. The parent's ring tables remain illustrative; the
-atlas index is the exhaustive assignment of record.
+`census_geo_codes` (geography identifier grammar) sit in the entity ring and
+belong to the entity partition, not the value partition;
+`census_gov_finance_codes` is a
+value-ring crosswalk reference. These physical placements all implement the
+shared foundation. The parent's tables remain illustrative; the atlas index
+is the exhaustive assignment of record.
 
 **D5 — Not sources.** Eighteen non-reader modules are shared
 infrastructure, adapters, managed-release builders, or packages,
