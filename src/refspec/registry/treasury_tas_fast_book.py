@@ -10,15 +10,12 @@ on its "Description of Contents" page. Neither page publishes a machine
 readable code list or a stable release identifier; each instead carries only
 a "Last Updated" date, which this module treats as that page's edition.
 
-This module captures the two pages' exact bytes, extracts their documented
-component names, fund groups, and edition dates, and validates a TAS
-component record or a FAST Book account-title record against that captured
-structure. It does not fetch or ingest the FAST Book's PDF row content: the
-FAST Book itself is a formatted document, not a code list, and the source
-catalog forbids ingesting bulk entity rows here. It never mints a concept
-identity for an account title; every identifier it builds is a RefSpec-local,
-capture-anchored encoding of the publisher's own component fields, not a
-Treasury-published display string.
+This module captures those two pages and Treasury's official Part II and III
+Excel workbook.  It parses every published workbook account row while
+retaining Treasury's own TAS string as the account identifier.  Part I remains
+a formatted PDF and is outside the workbook reader.  It never mints concept
+identity for an account title: the rows are fiscal account metadata and the
+identifier is Treasury's published value.
 
 fiscal.treasury.gov pages embed per-request Akamai/Boomerang analytics
 tokens (request IDs, timestamps) directly in the page body, so two live
@@ -42,9 +39,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from html.parser import HTMLParser
+from io import BytesIO
 from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
+
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
@@ -66,6 +67,33 @@ _SP_PATTERN = re.compile(r"^\d{2}$")
 _POA_PATTERN = re.compile(r"^\d{4}$")
 _AVAILABILITY_TYPE_PATTERN = re.compile(r"^[A-Z]$")
 _DEFAULT_SUB_ACCOUNT = "000"
+_PUBLISHED_TAS_PATTERN = re.compile(r"^(?P<aid>\d{3})(?:X| )(?P<main>\d{4}(?:\.\d{3})?) ?$")
+_FAST_BOOK_WORKBOOK_HEADERS: Mapping[str, tuple[str, ...]] = {
+    "Part II": (
+        "AID",
+        "Main",
+        "X-YEAR",
+        "TAS",
+        "Agency",
+        "Title",
+        "Legislation",
+        "Fund Type",
+        "Independent Agencies",
+        "Last update",
+    ),
+    "Part III": (
+        "AID",
+        "Main",
+        "X-YEAR",
+        "TAS",
+        "Agency",
+        "Title",
+        "Fund Type",
+        "Independent Agencies",
+        "Last update",
+    ),
+}
+_FAST_BOOK_WORKBOOK_SHEETS = ("Intro Part II", "Part II", "Intro Part III", "Part III", "Changes")
 
 # Treasury's own "Component TAS-BETC" flyer (a Bureau of the Fiscal Service
 # document distributed by GPO) states the component sizes in order -- SP (2),
@@ -109,10 +137,9 @@ TREASURY_TAS_FAST_BOOK_GAPS = (
         "convention this module started from. The flyer is reference-only provenance, not parsed at runtime."
     ),
     (
-        "The FAST Book is distributed as formatted PDF parts (Part I, Part II and "
-        "III), not a machine-readable code list; RefSpec does not fetch or ingest "
-        "FAST Book row-level agency/account-title bulk data and captures only the "
-        "Description of Contents page's documented fund-group structure and edition."
+        "The official FAST Book publishes Part II and III account rows as an Excel "
+        "workbook, which RefSpec pins and parses in full. Part I receipt accounts remain "
+        "a formatted PDF and are not included in the workbook account collection."
     ),
     (
         "fiscal.treasury.gov pages embed per-request Akamai/Boomerang analytics "
@@ -227,6 +254,58 @@ FAST_BOOK_DESCRIPTION_2026_08_03 = TreasuryPageSnapshotPin(
     retrieved_at="2026-08-03T19:17:43Z",
     expected_sha256="sha256:91525d80cc4bd6e8ab08075ad630b484b0f691c08516a36151589ddbd57c2a36",
     expected_byte_length=110_043,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class FASTBookWorkbookPin:
+    """Exact identity and reviewed edition of an official TFX workbook."""
+
+    source_url: str
+    filename: str
+    retrieved_at: str
+    edition: str
+    expected_sha256: str
+    expected_byte_length: int
+    expected_modified_at: str
+    expected_part_ii_rows: int
+    expected_part_iii_rows: int
+    expected_change_rows: int
+
+    def __post_init__(self) -> None:
+        parsed = urlsplit(self.source_url)
+        if parsed.scheme != "https" or parsed.hostname != "tfx.treasury.gov":
+            raise TreasuryAcquisitionError("FAST Book workbook must use official HTTPS tfx.treasury.gov")
+        if parsed.username is not None or parsed.password is not None:
+            raise TreasuryAcquisitionError("FAST Book workbook URL must not contain credentials")
+        if not self.filename.endswith(".xlsx") or Path(self.filename).name != self.filename:
+            raise TreasuryAcquisitionError("FAST Book workbook filename must be one .xlsx path component")
+        if _DIGEST.fullmatch(self.expected_sha256) is None:
+            raise TreasuryAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
+        if self.expected_byte_length <= 0:
+            raise TreasuryAcquisitionError("expected_byte_length must be positive")
+        if re.fullmatch(r"\d{4}-\d{2}", self.edition) is None:
+            raise TreasuryAcquisitionError("FAST Book workbook edition must be YYYY-MM")
+        try:
+            datetime.fromisoformat(self.expected_modified_at)
+        except ValueError as error:
+            raise TreasuryAcquisitionError("expected_modified_at must be an ISO 8601 timestamp") from error
+        if min(self.expected_part_ii_rows, self.expected_part_iii_rows, self.expected_change_rows) <= 0:
+            raise TreasuryAcquisitionError("FAST Book expected workbook row counts must be positive")
+
+
+FAST_BOOK_PART_II_III_SOURCE_URL = "https://tfx.treasury.gov/media/60111/download?inline="
+FAST_BOOK_PART_II_III_2026_07_31 = FASTBookWorkbookPin(
+    source_url=FAST_BOOK_PART_II_III_SOURCE_URL,
+    filename="fast-book-part-ii-iii-2026-07-31.xlsx",
+    retrieved_at="2026-08-04T04:36:30Z",
+    edition="2026-07",
+    expected_sha256="sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461",
+    expected_byte_length=420_508,
+    expected_modified_at="2026-07-30T19:11:58",
+    expected_part_ii_rows=3_442,
+    expected_part_iii_rows=140,
+    expected_change_rows=1_159,
 )
 
 
@@ -521,6 +600,322 @@ def parse_fast_book_description_page(page: AcquiredTreasuryPage) -> ParsedFASTBo
 
 
 # ---------------------------------------------------------------------------
+# FAST Book Part II and III official workbook
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class FASTBookPublishedAccount:
+    """One account row exactly identified by Treasury's published TAS value."""
+
+    part: Literal["II", "III"]
+    treasury_account_symbol: str
+    agency_identifier: str
+    main_account: str
+    agency_name: str
+    account_title: str
+    legislation: str | None
+    fund_type: str
+    independent_agency_identifier: str | None
+    last_updated: str | None
+
+    def __post_init__(self) -> None:
+        match = _PUBLISHED_TAS_PATTERN.fullmatch(self.treasury_account_symbol)
+        if match is None:
+            raise FASTBookRecordError(f"published TAS has an unexpected shape: {self.treasury_account_symbol!r}")
+        if self.part not in {"II", "III"}:
+            raise FASTBookRecordError("published FAST Book part must be II or III")
+        if self.agency_identifier != match.group("aid"):
+            raise FASTBookRecordError("agency_identifier must match the published TAS")
+        if self.main_account != match.group("main"):
+            raise FASTBookRecordError("main_account must match the published TAS")
+        for name, value in (
+            ("agency_name", self.agency_name),
+            ("account_title", self.account_title),
+            ("fund_type", self.fund_type),
+        ):
+            if not value or value != value.strip():
+                raise FASTBookRecordError(f"{name} must be non-empty normalized text")
+        if self.legislation is not None and (not self.legislation or self.legislation != self.legislation.strip()):
+            raise FASTBookRecordError("legislation must be normalized text or null")
+        if (
+            self.independent_agency_identifier is not None
+            and _AID_PATTERN.fullmatch(self.independent_agency_identifier) is None
+        ):
+            raise FASTBookRecordError("independent_agency_identifier must be exactly 3 digits or null")
+        if self.last_updated is not None:
+            try:
+                date.fromisoformat(self.last_updated)
+            except ValueError as error:
+                raise FASTBookRecordError("last_updated must be an ISO 8601 date or null") from error
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedFASTBookWorkbook:
+    """All official Part II and III account rows from one exact workbook."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    retrieved_at: str
+    edition: str
+    workbook_modified_at: str
+    part_ii_row_count: int
+    part_iii_row_count: int
+    change_row_count: int
+    accounts: tuple[FASTBookPublishedAccount, ...]
+    publisher_anomalies: tuple[str, ...]
+
+
+def _normalized_workbook_text(value: object, *, sheet: str, row_number: int, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise TreasurySourceDriftError(f"{sheet} row {row_number} {field} must be non-empty text")
+    return value.strip()
+
+
+def _optional_workbook_text(value: object, *, sheet: str, row_number: int, field: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise TreasurySourceDriftError(f"{sheet} row {row_number} {field} must be text or empty")
+    return value.strip()
+
+
+def _independent_agency_identifier(value: object, *, sheet: str, row_number: int) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, int) and 0 <= value <= 999:
+        return f"{value:03d}"
+    if isinstance(value, str) and value.strip().isdigit() and len(value.strip()) <= 3:
+        return value.strip().zfill(3)
+    raise TreasurySourceDriftError(f"{sheet} row {row_number} Independent Agencies has an unexpected value")
+
+
+def _workbook_date(value: object, *, sheet: str, row_number: int) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    raise TreasurySourceDriftError(f"{sheet} row {row_number} Last update is not an Excel date")
+
+
+def _workbook_main(value: object) -> str | None:
+    if isinstance(value, int) and 0 <= value <= 9999:
+        return f"{value:04d}"
+    if isinstance(value, float) and 0 <= value < 10_000:
+        return f"{value:08.3f}"
+    return None
+
+
+def _parse_published_account_row(
+    row: tuple[object, ...],
+    *,
+    part: Literal["II", "III"],
+    sheet: str,
+    row_number: int,
+    anomalies: list[str],
+) -> FASTBookPublishedAccount:
+    tas_value = _normalized_workbook_text(row[3], sheet=sheet, row_number=row_number, field="TAS")
+    tas_match = _PUBLISHED_TAS_PATTERN.fullmatch(tas_value)
+    if tas_match is None:
+        raise TreasurySourceDriftError(f"{sheet} row {row_number} TAS has an unexpected shape: {tas_value!r}")
+
+    published_aid = row[0]
+    normalized_aid = (
+        f"{published_aid:03d}"
+        if isinstance(published_aid, int) and 0 <= published_aid <= 999
+        else str(published_aid).strip().zfill(3)
+    )
+    if normalized_aid != tas_match.group("aid"):
+        anomalies.append(
+            f"{sheet} row {row_number}: AID cell {published_aid!r} does not match TAS {tas_value!r}; TAS retained"
+        )
+
+    workbook_main = _workbook_main(row[1])
+    tas_main = tas_match.group("main")
+    comparable_tas_main = tas_main if workbook_main is not None and "." in workbook_main else tas_main.partition(".")[0]
+    if workbook_main != comparable_tas_main:
+        anomalies.append(
+            f"{sheet} row {row_number}: Main cell {row[1]!r} does not match TAS {tas_value!r}; TAS retained"
+        )
+
+    duration_cell = row[2]
+    duration_value = " " if duration_cell is None else str(duration_cell).strip() or " "
+    if duration_value != tas_value[3]:
+        anomalies.append(
+            f"{sheet} row {row_number}: X-YEAR cell {duration_cell!r} does not match TAS {tas_value!r}; TAS retained"
+        )
+
+    if part == "II":
+        legislation = _optional_workbook_text(row[6], sheet=sheet, row_number=row_number, field="Legislation")
+        fund_type_cell, independent_cell, update_cell = row[7], row[8], row[9]
+    else:
+        legislation = None
+        fund_type_cell, independent_cell, update_cell = row[6], row[7], row[8]
+
+    last_updated = _workbook_date(update_cell, sheet=sheet, row_number=row_number)
+    if last_updated is None:
+        anomalies.append(f"{sheet} row {row_number}: Last update is empty in the publisher workbook")
+
+    return FASTBookPublishedAccount(
+        part=part,
+        treasury_account_symbol=tas_value,
+        agency_identifier=tas_match.group("aid"),
+        main_account=tas_match.group("main"),
+        agency_name=_normalized_workbook_text(row[4], sheet=sheet, row_number=row_number, field="Agency"),
+        account_title=_normalized_workbook_text(row[5], sheet=sheet, row_number=row_number, field="Title"),
+        legislation=legislation,
+        fund_type=_normalized_workbook_text(
+            fund_type_cell,
+            sheet=sheet,
+            row_number=row_number,
+            field="Fund Type",
+        ),
+        independent_agency_identifier=_independent_agency_identifier(
+            independent_cell,
+            sheet=sheet,
+            row_number=row_number,
+        ),
+        last_updated=last_updated,
+    )
+
+
+def parse_fast_book_workbook(
+    source_path: Path,
+    *,
+    pin: FASTBookWorkbookPin,
+) -> ParsedFASTBookWorkbook:
+    """Parse every Part II and III row from one exact official workbook.
+
+    The workbook's published ``TAS`` column is authoritative.  The separate
+    convenience columns have a small number of known publisher defects; those
+    are reported in ``publisher_anomalies`` and never used to rewrite the TAS.
+    """
+
+    path = Path(source_path)
+    if path.is_symlink() or not path.is_file():
+        raise TreasuryAcquisitionError(f"FAST Book workbook is not a regular file: {path}")
+    payload = path.read_bytes()
+    if len(payload) != pin.expected_byte_length:
+        raise TreasurySourceDriftError(
+            f"FAST Book workbook byte length drift: expected {pin.expected_byte_length}, got {len(payload)}"
+        )
+    digest = sha256_digest(payload)
+    if digest != pin.expected_sha256:
+        raise TreasurySourceDriftError(
+            f"FAST Book workbook digest drift: expected {pin.expected_sha256}, got {digest}"
+        )
+    if not payload.startswith(b"PK"):
+        raise TreasurySourceDriftError("FAST Book workbook is not an XLSX ZIP document")
+
+    try:
+        workbook = load_workbook(BytesIO(payload), read_only=True, data_only=True)
+    except (InvalidFileException, OSError, ValueError) as error:
+        raise TreasurySourceDriftError("FAST Book workbook is not readable XLSX") from error
+
+    if tuple(workbook.sheetnames) != _FAST_BOOK_WORKBOOK_SHEETS:
+        raise TreasurySourceDriftError(
+            f"FAST Book workbook sheets drifted: expected {_FAST_BOOK_WORKBOOK_SHEETS!r}, "
+            f"got {tuple(workbook.sheetnames)!r}"
+        )
+    modified = workbook.properties.modified
+    if modified is None or modified.isoformat() != pin.expected_modified_at:
+        actual_modified = None if modified is None else modified.isoformat()
+        raise TreasurySourceDriftError(
+            f"FAST Book workbook modified timestamp drifted: expected {pin.expected_modified_at}, "
+            f"got {actual_modified}"
+        )
+    if not pin.expected_modified_at.startswith(pin.edition):
+        raise TreasurySourceDriftError("FAST Book pin edition does not match the workbook modified month")
+
+    accounts: list[FASTBookPublishedAccount] = []
+    anomalies: list[str] = []
+    part_counts: dict[str, int] = {}
+    seen_tas: dict[str, tuple[str, int]] = {}
+    for sheet, part in (("Part II", "II"), ("Part III", "III")):
+        worksheet = workbook[sheet]
+        header = tuple(cell.value for cell in next(worksheet.iter_rows(min_row=2, max_row=2)))
+        if header != _FAST_BOOK_WORKBOOK_HEADERS[sheet]:
+            raise TreasurySourceDriftError(
+                f"{sheet} headers drifted: expected {_FAST_BOOK_WORKBOOK_HEADERS[sheet]!r}, got {header!r}"
+            )
+        count = 0
+        for row_number, cells in enumerate(worksheet.iter_rows(min_row=3, values_only=True), start=3):
+            row = tuple(cells)
+            if not any(value is not None for value in row):
+                continue
+            account = _parse_published_account_row(
+                row,
+                part=cast(Literal["II", "III"], part),
+                sheet=sheet,
+                row_number=row_number,
+                anomalies=anomalies,
+            )
+            previous = seen_tas.get(account.treasury_account_symbol)
+            if previous is not None:
+                anomalies.append(
+                    f"{sheet} row {row_number}: TAS {account.treasury_account_symbol!r} duplicates "
+                    f"{previous[0]} row {previous[1]}; both publisher rows retained"
+                )
+            else:
+                seen_tas[account.treasury_account_symbol] = (sheet, row_number)
+            accounts.append(account)
+            count += 1
+        part_counts[part] = count
+
+    changes = workbook["Changes"]
+    change_header = tuple(cell.value for cell in next(changes.iter_rows(min_row=1, max_row=1)))
+    expected_change_header = (*_FAST_BOOK_WORKBOOK_HEADERS["Part II"], "Action", "Comments")
+    if change_header != expected_change_header:
+        raise TreasurySourceDriftError("FAST Book Changes headers drifted")
+    change_count = sum(
+        1 for row in changes.iter_rows(min_row=2, values_only=True) if any(value is not None for value in row)
+    )
+
+    actual_counts = (part_counts["II"], part_counts["III"], change_count)
+    expected_counts = (pin.expected_part_ii_rows, pin.expected_part_iii_rows, pin.expected_change_rows)
+    if actual_counts != expected_counts:
+        raise TreasurySourceDriftError(
+            f"FAST Book workbook row counts drifted: expected {expected_counts!r}, got {actual_counts!r}"
+        )
+
+    return ParsedFASTBookWorkbook(
+        source_url=pin.source_url,
+        source_sha256=digest,
+        source_byte_length=len(payload),
+        retrieved_at=pin.retrieved_at,
+        edition=pin.edition,
+        workbook_modified_at=pin.expected_modified_at,
+        part_ii_row_count=part_counts["II"],
+        part_iii_row_count=part_counts["III"],
+        change_row_count=change_count,
+        accounts=tuple(accounts),
+        publisher_anomalies=tuple(anomalies),
+    )
+
+
+def published_fast_book_identifier(
+    record: FASTBookPublishedAccount,
+    *,
+    observed_at: str | None,
+    source_digest: str | None,
+) -> ControlledIdentifier:
+    """Return Treasury's exact published TAS as a source-anchored identifier."""
+
+    return ControlledIdentifier(
+        value=record.treasury_account_symbol,
+        kind="treasuryAccountSymbol",
+        authority_uri=TREASURY_IDENTIFIER_AUTHORITY_URI,
+        source_uri=FAST_BOOK_PART_II_III_SOURCE_URL,
+        observed_at=observed_at,
+        effective_at=record.last_updated,
+        source_digest=source_digest,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Treasury Account Symbol component identifier shape
 # ---------------------------------------------------------------------------
 
@@ -804,6 +1199,8 @@ def assemble_treasury_tas_fast_book_edition(
 __all__ = [
     "FAST_BOOK_DESCRIPTION_2026_08_03",
     "FAST_BOOK_DESCRIPTION_SOURCE",
+    "FAST_BOOK_PART_II_III_2026_07_31",
+    "FAST_BOOK_PART_II_III_SOURCE_URL",
     "PART_FUND_GROUPS",
     "TAS_COMPONENT_FORMAT_2026_08_03",
     "TAS_COMPONENT_FORMAT_SOURCE",
@@ -814,10 +1211,13 @@ __all__ = [
     "AcquisitionMode",
     "FASTBookAccountRecord",
     "FASTBookPart",
+    "FASTBookPublishedAccount",
     "FASTBookRecordError",
+    "FASTBookWorkbookPin",
     "FetchedTreasuryPage",
     "FundGroup",
     "ParsedFASTBookDescription",
+    "ParsedFASTBookWorkbook",
     "ParsedTASComponentFormat",
     "TASComponentError",
     "TASComponents",
@@ -832,9 +1232,11 @@ __all__ = [
     "assemble_treasury_tas_fast_book_edition",
     "fast_book_identifier",
     "parse_fast_book_description_page",
+    "parse_fast_book_workbook",
     "parse_tas_canonical_value",
     "parse_tas_component_page",
     "parse_tas_components",
+    "published_fast_book_identifier",
     "sha256_digest",
     "tas_identifier",
     "validate_fast_book_account_record",

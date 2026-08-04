@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
 
 import pytest
+from openpyxl import load_workbook
 
 from refspec.registry import treasury_tas_fast_book as tas
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
@@ -12,6 +14,7 @@ from refspec.registry.infrastructure.controlled_identifier import ControlledIden
 FIXTURES = Path(__file__).parent / "fixtures" / "treasury_tas_fast_book"
 TAS_PAGE_FIXTURE = FIXTURES / "treasury-account-symbol-reporting-2026-08-03.html"
 FAST_BOOK_PAGE_FIXTURE = FIXTURES / "fast-book-description-of-contents-2026-08-03.html"
+FAST_BOOK_WORKBOOK_FIXTURE = FIXTURES / "fast-book-part-ii-iii-2026-07-31.xlsx"
 SIZE_AUTHORITY_FIXTURE = FIXTURES / "component-tas-betc-flyer.pdf"
 
 
@@ -35,6 +38,149 @@ def test_live_snapshot_pins_match_exact_official_html_bytes() -> None:
     )
     assert tas.TAS_COMPONENT_FORMAT_2026_08_03.expected_sha256 == tas.sha256_digest(tas_page)
     assert tas.FAST_BOOK_DESCRIPTION_2026_08_03.expected_sha256 == tas.sha256_digest(fast_book_page)
+
+
+def test_official_fast_book_workbook_parses_all_part_ii_and_iii_rows() -> None:
+    payload = FAST_BOOK_WORKBOOK_FIXTURE.read_bytes()
+
+    assert len(payload) == 420_508
+    assert tas.sha256_digest(payload) == "sha256:0e40902a2e4bfee7439fbe24d90fd9ff39fad859b4ba432725256866b06cb461"
+    assert tas.FAST_BOOK_PART_II_III_2026_07_31.expected_sha256 == tas.sha256_digest(payload)
+
+    parsed = tas.parse_fast_book_workbook(
+        FAST_BOOK_WORKBOOK_FIXTURE,
+        pin=tas.FAST_BOOK_PART_II_III_2026_07_31,
+    )
+
+    assert parsed.edition == "2026-07"
+    assert parsed.part_ii_row_count == 3_442
+    assert parsed.part_iii_row_count == 140
+    assert parsed.change_row_count == 1_159
+    assert len(parsed.accounts) == 3_582
+    assert len({row.treasury_account_symbol for row in parsed.accounts}) == 3_581
+    assert parsed.source_url == "https://tfx.treasury.gov/media/60111/download?inline="
+    assert parsed.source_sha256 == tas.FAST_BOOK_PART_II_III_2026_07_31.expected_sha256
+    assert parsed.source_byte_length == 420_508
+    assert parsed.workbook_modified_at == "2026-07-30T19:11:58"
+    assert Counter(row.fund_type for row in parsed.accounts if row.part == "II") == {
+        "General Funds": 2_133,
+        "Revolving Funds": 377,
+        "Special Funds": 376,
+        "Trust Funds": 299,
+        "Deposit Funds": 246,
+        "Consolidated Working Funds": 6,
+        "Management Funds": 5,
+    }
+    assert Counter(row.fund_type for row in parsed.accounts if row.part == "III") == {
+        "Program Accounts (not requiring appropriation)": 58,
+        "Control Accounts": 41,
+        "Holding Accounts": 39,
+        "Suspense Accounts": 2,
+    }
+    assert parsed.accounts[0] == tas.FASTBookPublishedAccount(
+        part="II",
+        treasury_account_symbol="000 0100",
+        agency_identifier="000",
+        main_account="0100",
+        agency_name="Congress - Senate",
+        account_title="Compensation of Members and Related Administrative Expenses, Senate",
+        legislation=None,
+        fund_type="General Funds",
+        independent_agency_identifier=None,
+        last_updated="2022-10-26",
+    )
+    assert parsed.accounts[-1] == tas.FASTBookPublishedAccount(
+        part="III",
+        treasury_account_symbol="275X7860.308",
+        agency_identifier="275",
+        main_account="7860.308",
+        agency_name="DEPARTMENT OF THE TREASURY",
+        account_title=(
+            "Japan, United States Friendship Trust Fund, "
+            "Japan-United States Friendship Commission, Japan"
+        ),
+        legislation=None,
+        fund_type="Program Accounts (not requiring appropriation)",
+        independent_agency_identifier="095",
+        last_updated="2024-10-21",
+    )
+
+    july_2026 = next(row for row in parsed.accounts if row.treasury_account_symbol == "077 0500")
+    assert july_2026.account_title == (
+        "Equity Investment Account, United States International Development Finance Corporation"
+    )
+    assert july_2026.last_updated == "2026-07-01"
+
+
+def test_fast_book_workbook_reports_publisher_cell_defects_without_rewriting_tas() -> None:
+    parsed = tas.parse_fast_book_workbook(
+        FAST_BOOK_WORKBOOK_FIXTURE,
+        pin=tas.FAST_BOOK_PART_II_III_2026_07_31,
+    )
+
+    assert len(parsed.publisher_anomalies) == 6
+    assert any("row 911" in item and "X-YEAR" in item for item in parsed.publisher_anomalies)
+    assert any("row 1221" in item and "Main cell 'X'" in item for item in parsed.publisher_anomalies)
+    assert any("row 1221" in item and "X-YEAR cell 1022" in item for item in parsed.publisher_anomalies)
+    assert any("row 687" in item and "Last update is empty" in item for item in parsed.publisher_anomalies)
+    assert any("row 1305" in item and "Last update is empty" in item for item in parsed.publisher_anomalies)
+    assert any("row 3190" in item and "duplicates Part II row 3185" in item for item in parsed.publisher_anomalies)
+
+    shifted = next(row for row in parsed.accounts if row.treasury_account_symbol == "019X1022")
+    assert shifted.agency_identifier == "019"
+    assert shifted.main_account == "1022"
+    assert shifted.account_title == "International Narcotics Control and Law Enforcement, State"
+
+    identifier = tas.published_fast_book_identifier(
+        shifted,
+        observed_at=tas.FAST_BOOK_PART_II_III_2026_07_31.retrieved_at,
+        source_digest=parsed.source_sha256,
+    )
+    assert identifier == ControlledIdentifier(
+        value="019X1022",
+        kind="treasuryAccountSymbol",
+        authority_uri=tas.TREASURY_IDENTIFIER_AUTHORITY_URI,
+        source_uri=tas.FAST_BOOK_PART_II_III_SOURCE_URL,
+        observed_at="2026-08-04T04:36:30Z",
+        effective_at="2025-02-27",
+        source_digest=tas.FAST_BOOK_PART_II_III_2026_07_31.expected_sha256,
+    )
+
+
+def test_fast_book_workbook_digest_and_headers_fail_closed(tmp_path: Path) -> None:
+    changed_bytes = bytearray(FAST_BOOK_WORKBOOK_FIXTURE.read_bytes())
+    changed_bytes[-1] ^= 1
+    changed_path = tmp_path / "changed.xlsx"
+    changed_path.write_bytes(changed_bytes)
+
+    with pytest.raises(tas.TreasurySourceDriftError, match="digest drift"):
+        tas.parse_fast_book_workbook(
+            changed_path,
+            pin=tas.FAST_BOOK_PART_II_III_2026_07_31,
+        )
+
+    workbook = load_workbook(FAST_BOOK_WORKBOOK_FIXTURE)
+    workbook["Part II"]["A2"] = "Agency Identifier"
+    header_changed_path = tmp_path / "header-changed.xlsx"
+    workbook.save(header_changed_path)
+    saved = load_workbook(header_changed_path, read_only=True, data_only=True)
+    assert saved.properties.modified is not None
+    header_changed_payload = header_changed_path.read_bytes()
+    header_changed_pin = tas.FASTBookWorkbookPin(
+        source_url=tas.FAST_BOOK_PART_II_III_SOURCE_URL,
+        filename="header-changed.xlsx",
+        retrieved_at="2026-08-04T04:36:30Z",
+        edition=saved.properties.modified.strftime("%Y-%m"),
+        expected_sha256=tas.sha256_digest(header_changed_payload),
+        expected_byte_length=len(header_changed_payload),
+        expected_modified_at=saved.properties.modified.isoformat(),
+        expected_part_ii_rows=3_442,
+        expected_part_iii_rows=140,
+        expected_change_rows=1_159,
+    )
+
+    with pytest.raises(tas.TreasurySourceDriftError, match="Part II headers drifted"):
+        tas.parse_fast_book_workbook(header_changed_path, pin=header_changed_pin)
 
 
 def test_component_size_authority_flyer_matches_its_reference_pin() -> None:
@@ -160,7 +306,8 @@ def test_fast_book_page_parses_documented_part_fund_groups_and_edition(
         "II": ("general", "revolving", "special", "deposit", "trust"),
         "III": ("foreignCurrency",),
     }
-    assert any("bulk" in gap or "row-level" in gap for gap in parsed.gaps)
+    assert any("Part II and III" in gap and "parses in full" in gap for gap in parsed.gaps)
+    assert any("Part I" in gap and "not included" in gap for gap in parsed.gaps)
 
 
 def test_digest_or_marker_drift_never_becomes_a_parsed_page(tmp_path: Path) -> None:
@@ -435,4 +582,5 @@ def test_edition_combines_both_pages_and_never_claims_a_universal_page_hash(
     assert edition.tas_component_format_edition == "2026-03-25"
     assert edition.fast_book_description_edition == "2026-04-29"
     assert any("Akamai" in gap or "analytics" in gap for gap in edition.gaps)
-    assert any("bulk" in gap or "row-level" in gap for gap in edition.gaps)
+    assert any("Part II and III" in gap and "parses in full" in gap for gap in edition.gaps)
+    assert any("Part I" in gap and "not included" in gap for gap in edition.gaps)
