@@ -55,6 +55,7 @@ IdentityStatus = Literal[
 ResourceUse = Literal[
     "sourceAssignedEvidence",
     "searchExpansion",
+    "candidateGeneration",
     "mappingReference",
     "navigation",
     "deterministicMetadata",
@@ -78,6 +79,7 @@ _RESOURCE_USES = frozenset(
     {
         "sourceAssignedEvidence",
         "searchExpansion",
+        "candidateGeneration",
         "mappingReference",
         "navigation",
         "deterministicMetadata",

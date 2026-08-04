@@ -257,6 +257,28 @@ def test_mapping_reference_is_a_supported_resource_use(tmp_path: Path) -> None:
     assert opened.resource_manifest["uses"] == ("mappingReference",)
 
 
+def test_candidate_generation_is_factual_resource_metadata(tmp_path: Path) -> None:
+    observation = {**_observation(), "uses": ["candidateGeneration"]}
+    package = build_source_controlled_resource_bundle(
+        resource_id="example-candidate-generation",
+        title="Example candidate-generation source",
+        resource_kind="sourceTermSnapshot",
+        identity_status="publisherIdentifiersPreserved",
+        uses=("candidateGeneration",),
+        captured_at="2026-07-30T12:00:00Z",
+        observations=(observation,),
+        source_artifacts={SOURCE_ID: SOURCE_BYTES},
+    )
+
+    assert package.resource_manifest["uses"] == ("candidateGeneration",)
+    assert package.observations[0]["uses"] == ("candidateGeneration",)
+    opened = SourceControlledResourceView.open(
+        package.write_to(tmp_path / "candidate-generation")
+    )
+    assert opened.resource_manifest["uses"] == ("candidateGeneration",)
+    assert "candidateUseAuthorized" not in str(opened.resource_manifest)
+
+
 def test_package_rejects_cross_artifact_schema_versions(tmp_path: Path) -> None:
     package = _bundle()
     coverage = dict(package.coverage_report)
