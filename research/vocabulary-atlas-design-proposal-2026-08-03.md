@@ -60,9 +60,9 @@ are dated snapshots of a moving artifact set, never a baseline — the
 authoritative identity and digests for any build live in its own
 manifest.
 
-The registry now contains 72 substantive modules — 54 source readers plus
-adapters, shared infrastructure, managed-release builders, and packages —
-spanning six groups:
+The registry now contains 75 substantive modules — 54 source modules plus
+21 adapters, shared infrastructure modules, managed-release builders, and
+packages — spanning six groups:
 subject thesauri (LCSH topical, FAST topical, MeSH
 descriptors, NALT Core, GEMET, EuroVoc, AGROVOC, NASA, DOE OSTI, EPA
 Enterprise Vocabulary), code lists (NAICS/PSC, nature-of-suit, FEC, FCC,

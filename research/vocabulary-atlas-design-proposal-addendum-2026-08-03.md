@@ -241,7 +241,8 @@ of correctness") applied at the mapping layer.
 
 ## D. Registry target-state check (2026-08-04)
 
-Every module in `src/refspec/registry/` (72 substantive modules) is
+Every module in `src/refspec/registry/` (75 substantive modules: 54 source
+modules and 21 implementation modules) is
 classified by semantic ring, with docstrings verified for modules the
 proposal's tables do not name. A source may contribute more than one row when
 its facets belong to different rings. Shared infrastructure receives no ring.
