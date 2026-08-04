@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from refspec.atlas import qualification as qual
+from refspec.atlas import qualification_batch as qbatch
 from refspec.atlas.cli import open_release
 from refspec.storage import canonical_json
 
@@ -276,6 +277,7 @@ def command_qualify(args: argparse.Namespace) -> int:
                     candidate_id=row["candidateId"],
                     input_digest=row["inputDigest"],
                     tracker=trackers[family.name],
+                    protocol=getattr(args, "protocol", "v1"),
                 )
             except qual.SpendCapReached as error:
                 stopped[family.name] = str(error)
@@ -392,6 +394,129 @@ def command_bundle(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# batch-submit / batch-status / batch-collect
+#
+# The same question, bought asynchronously at half price.  These three stages
+# stand beside `qualify`, never in front of it: they append rows to the same
+# `receipts.jsonl`, carrying the same fields, so `bundle` and the resume set
+# cannot tell which road a row came down.  Everything a batch adds -- job ids,
+# provider endpoints, submit and completion times, counts -- goes to the
+# `batch-jobs.json` sidecar instead of into a receipt.
+# ---------------------------------------------------------------------------
+
+
+def _batch_rows(args: argparse.Namespace, *, subset: bool) -> list[qbatch.CandidateRow]:
+    """Candidate rows for a batch stage, sliced the way `qualify` slices them."""
+
+    catalog = _read_json(Path(args.output) / CANDIDATES)
+    rows = catalog["candidates"]
+    if subset and getattr(args, "max_candidates", None) is not None:
+        rows = qual.stratified_subset(rows, args.max_candidates)
+    return [
+        qbatch.CandidateRow(
+            candidate_id=str(row["candidateId"]),
+            pair=_pair_from_dict(row),
+            input_digest=str(row["inputDigest"]),
+        )
+        for row in rows
+    ]
+
+
+def _batch_keys(args: argparse.Namespace, families: Sequence[qual.ValidatorFamily]) -> dict[str, str]:
+    return {family.name: qual.load_env_value(args.env, family.api_key_env) for family in families}
+
+
+def _batch_sidecar_families(args: argparse.Namespace) -> dict[str, qual.ValidatorFamily]:
+    """Every family the sidecar already names; a poll invents no new work."""
+
+    sidecar = qbatch.read_sidecar(Path(args.output) / qbatch.SIDECAR)
+    names = sorted({str(job["family"]) for job in sidecar.get("jobs", ())})
+    return {name: qual.VALIDATOR_FAMILIES[name] for name in names}
+
+
+def command_batch_submit(args: argparse.Namespace) -> int:
+    output = Path(args.output)
+    families = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
+    transport = qbatch.default_transport()
+    plain = qbatch.PlainTransport(transport)
+    keys = _batch_keys(args, families)
+
+    resolved: dict[str, str] = {}
+    model_receipts: list[dict[str, Any]] = []
+    for family in families:
+        model_ids, receipt = qual.list_models(plain, family, keys[family.name])
+        model_id, rule = qual.resolve_validator_model(family, model_ids)
+        receipt["resolved_model_id"] = model_id
+        receipt["resolution_rule"] = rule
+        model_receipts.append(receipt)
+        resolved[family.name] = model_id
+        print(f"{family.name}: {model_id} ({rule})", file=sys.stderr, flush=True)
+    _write_json(output / MODELS_RECEIPT, {"families": model_receipts})
+
+    try:
+        summary = qbatch.submit(
+            transport=transport,
+            receipts_path=output / RECEIPTS,
+            sidecar_path=output / qbatch.SIDECAR,
+            families=families,
+            keys=keys,
+            models=resolved,
+            rows=_batch_rows(args, subset=True),
+            caps=args.cap,
+            protocol=args.protocol,
+        )
+    except qbatch.BatchSpendCapReached as error:
+        # Refused before anything was bought.  A batch cannot be stopped once
+        # submitted, so this is the only place the cap can still say no.
+        raise SystemExit(str(error)) from error
+    print(canonical_json(summary))
+    return 0
+
+
+def command_batch_status(args: argparse.Namespace) -> int:
+    output = Path(args.output)
+    families = _batch_sidecar_families(args)
+    if not families:
+        print(canonical_json({"jobs": []}))
+        return 0
+    summary = qbatch.poll(
+        transport=qbatch.default_transport(),
+        sidecar_path=output / qbatch.SIDECAR,
+        families=families,
+        keys=_batch_keys(args, list(families.values())),
+    )
+    for job in summary["jobs"]:
+        print(f"{job['family']} {job['jobId']}: {job['state']} ({job['providerStatus']})", file=sys.stderr, flush=True)
+    print(canonical_json(summary))
+    return 0
+
+
+def command_batch_collect(args: argparse.Namespace) -> int:
+    output = Path(args.output)
+    families = _batch_sidecar_families(args)
+    if not families:
+        print(canonical_json({"jobs": [], "receiptsAppended": 0}))
+        return 0
+    summary = qbatch.collect(
+        transport=qbatch.default_transport(),
+        receipts_path=output / RECEIPTS,
+        sidecar_path=output / qbatch.SIDECAR,
+        families=families,
+        keys=_batch_keys(args, list(families.values())),
+        rows=_batch_rows(args, subset=False),
+    )
+    # Additive only.  `spend.json` belongs to `qualify`; the batch road adds its
+    # own keys beside whatever the serial road wrote and never rewrites them.
+    spend_path = output / "spend.json"
+    spend = _read_json(spend_path) if spend_path.exists() else {}
+    spend["batchSpendByFamily"] = summary["spendByFamily"]
+    spend["totalBatchAssumedCostUsd"] = summary["totalBatchAssumedCostUsd"]
+    _write_json(spend_path, spend)
+    print(canonical_json(summary))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_atlas_qualification")
     parser.add_argument("--output", type=Path, required=True, help="run directory; every stage reads and writes here")
@@ -417,6 +542,12 @@ def build_parser() -> argparse.ArgumentParser:
     qualify.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     qualify.add_argument("--families", default="gemini,openai")
     qualify.add_argument(
+        "--protocol",
+        choices=("v1", "v2"),
+        default="v1",
+        help="validation protocol; v2 adjudicates the relation instead of a closeMatch yes/no",
+    )
+    qualify.add_argument(
         "--max-candidates",
         type=int,
         default=None,
@@ -434,6 +565,44 @@ def build_parser() -> argparse.ArgumentParser:
     bundle = subparsers.add_parser("bundle", help="seal one digest-pinned crosswalk bundle")
     bundle.add_argument("--replace", action="store_true", help="delete an existing bundle file first")
     bundle.set_defaults(handler=command_bundle)
+
+    batch_submit = subparsers.add_parser(
+        "batch-submit",
+        help="buy the same questions asynchronously at half price; refuses at the cap before uploading",
+    )
+    batch_submit.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
+    batch_submit.add_argument("--families", default="gemini,openai")
+    batch_submit.add_argument(
+        "--protocol",
+        choices=("v1", "v2"),
+        default=None,
+        help="validation protocol; defaults to whatever the serial path defaults to",
+    )
+    batch_submit.add_argument(
+        "--max-candidates",
+        type=int,
+        default=None,
+        help="batch a stratified subset spread across every generation class, not the first N",
+    )
+    batch_submit.add_argument(
+        "--cap",
+        action=_CapAction,
+        default={},
+        metavar="FAMILY=USD",
+        help="override one family's hard spend cap",
+    )
+    batch_submit.set_defaults(handler=command_batch_submit)
+
+    batch_status = subparsers.add_parser("batch-status", help="poll every submitted batch job and print its state")
+    batch_status.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
+    batch_status.set_defaults(handler=command_batch_status)
+
+    batch_collect = subparsers.add_parser(
+        "batch-collect",
+        help="download finished batches and append their receipts; safe to run twice",
+    )
+    batch_collect.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
+    batch_collect.set_defaults(handler=command_batch_collect)
     return parser
 
 
