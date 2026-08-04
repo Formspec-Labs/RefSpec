@@ -329,6 +329,95 @@ def test_dropping_a_related_adjudication_does_not_hide_the_refusal(tmp_path: Pat
         )
 
 
+def _partially_supported_bundle(other_verdict: str) -> CrosswalkBundle:
+    """One machine supports with a relation; the other does not support at all."""
+
+    candidate, evidence, request, response_a, _ = tva._candidate_and_artifacts()
+    outcome = VERDICT_OUTCOMES_V2[other_verdict]
+    response_b = tva._response(candidate, request, suffix="b", outcome=outcome)
+    return CrosswalkBundle.create(
+        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            _v2_validation(candidate, request, response_a, suffix="a", verdict="same"),
+            _v2_validation(candidate, request, response_b, suffix="b", verdict=other_verdict),
+        ),
+    )
+
+
+@pytest.mark.parametrize("other_verdict", ["insufficient_evidence", "unrelated"])
+def test_a_lone_supporting_verdict_owes_no_adjudication(tmp_path: Path, other_verdict: str) -> None:
+    """One machine's relation is a claim, not an agreement.
+
+    Adjudication is owed exactly when the gate would emit one — an independent,
+    relation-compatible *pair*. A single support has no partner to agree with, so
+    there is nothing to adjudicate and nothing to state. Demanding one here would
+    refuse the ordinary shape where the second machine abstained or said no: 52
+    of the three real v2 runs' candidates look precisely like this.
+    """
+
+    bundle = _partially_supported_bundle(other_verdict)
+    asset, mappings = _built_mappings(tmp_path, bundle)
+
+    assert mappings == ()
+    assert bundle.qualified() == {}
+    assert bundle.adjudicated_relations() == {}
+    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
+    _round_trip(tmp_path, asset)
+
+
+def test_a_supporting_pair_that_is_not_independent_owes_no_adjudication(tmp_path: Path) -> None:
+    """Two answers from one machine are one answer, so they adjudicate nothing."""
+
+    candidate, evidence, request, _, _ = tva._candidate_and_artifacts()
+    shared = {
+        "provider": "urn:test:atlas:provider:shared",
+        "provider_model_id": "shared-provider-model",
+    }
+    response_a = tva._response(candidate, request, suffix="a", **shared)
+    response_b = tva._response(candidate, request, suffix="b", **shared)
+    bundle = CrosswalkBundle.create(
+        artifacts=(tva._input_context(), evidence, request, response_a, response_b),
+        mapping_candidates=(candidate,),
+        machine_validations=(
+            MachineValidation.create(
+                candidate=candidate.reference(),
+                validator_kind="aiModel",
+                validator_actor="urn:test:atlas:validator:a",
+                independence_group="urn:test:atlas:group:a",
+                sealed_input_digest=tva.INPUT_DIGEST,
+                request_artifact=request.reference(),
+                response_artifact=response_a.reference(),
+                deterministic_checks_passed=True,
+                outcome="supports",
+                completed_at="2026-08-03T18:05:00Z",
+                verdict_relation="same",
+                **shared,
+            ),
+            MachineValidation.create(
+                candidate=candidate.reference(),
+                validator_kind="aiModel",
+                validator_actor="urn:test:atlas:validator:b",
+                independence_group="urn:test:atlas:group:b",
+                sealed_input_digest=tva.INPUT_DIGEST,
+                request_artifact=request.reference(),
+                response_artifact=response_b.reference(),
+                deterministic_checks_passed=True,
+                outcome="supports",
+                completed_at="2026-08-03T18:06:00Z",
+                verdict_relation="same",
+                **shared,
+            ),
+        ),
+    )
+
+    asset, mappings = _built_mappings(tmp_path, bundle)
+
+    assert mappings == ()
+    assert _ADJUDICATED_RELATION not in asset.payload.decode("utf-8")
+    _round_trip(tmp_path, asset)
+
+
 def test_a_v1_distribution_still_needs_no_adjudication(tmp_path: Path) -> None:
     """The new refusal keys on the verdicts, so v1 is untouched by it."""
 

@@ -39,6 +39,7 @@ from refspec.atlas import (
     VocabularyAtlasError,
     build_vocabulary_atlas,
 )
+from refspec.atlas.qualification import VERDICT_OUTCOMES_V2
 from refspec.managed_release import (
     ManagedReleaseExpression,
     ManagedReleaseMember,
@@ -90,6 +91,11 @@ V2_RELATIONS = (
     # A real disagreement about direction safety; neither relation may be
     # emitted, because emitting either overrules a machine on its own claim.
     ("near_same", "target_is_broader", None),
+    # One machine supports with a relation, the other abstains. There is no pair
+    # to agree, so nothing is adjudicated and the candidate states no adjudicated
+    # relation — the ordinary shape a reader must accept, and the one a reader
+    # that derived "owed" from a lone verdict would wrongly refuse.
+    ("same", "insufficient_evidence", None),
 )
 #: One sealed reason per verdict, so every relation the corpus emits carries the
 #: prose a reader would need to judge it.
@@ -99,6 +105,7 @@ V2_VERDICT_REASONS = {
     "target_is_broader": "The target is the wider field; the source is one topic inside it.",
     "target_is_narrower": "The source is the wider concept; the target names one specific case of it.",
     "related": "An actor and the activity named by the other concept: associated, but neither contains the other.",
+    "insufficient_evidence": "The supplied labels and notes do not say which of these two senses the target intends.",
 }
 V2_SOURCE_CONCEPTS = (
     ("urn:ref:conformance:alpha:energy-policy", "Energy policy"),
@@ -107,6 +114,7 @@ V2_SOURCE_CONCEPTS = (
     ("urn:ref:conformance:alpha:wind-power", "Wind power"),
     ("urn:ref:conformance:alpha:terrorism", "Terrorism"),
     ("urn:ref:conformance:alpha:drugs", "Drugs"),
+    ("urn:ref:conformance:alpha:mercury", "Mercury"),
 )
 V2_TARGET_CONCEPTS = (
     ("urn:ref:conformance:beta:energy-policy", "energy POLICY "),
@@ -115,6 +123,7 @@ V2_TARGET_CONCEPTS = (
     ("urn:ref:conformance:beta:offshore-wind-power", "Offshore wind power"),
     ("urn:ref:conformance:beta:terrorists", "Terrorists"),
     ("urn:ref:conformance:beta:controlled-drugs", "Controlled drugs"),
+    ("urn:ref:conformance:beta:mercury", "Mercury"),
 )
 
 # The hierarchy distribution is built separately so the qualification fixture
@@ -385,12 +394,13 @@ def _response(
     provider: str,
     provider_model_id: str,
     reason: str = "",
+    outcome: str = "supports",
 ) -> CrosswalkArtifact:
     content: dict[str, Any] = {
         "candidate": candidate.reference(),
         "deterministicChecksPassed": True,
         "inputDigest": input_digest,
-        "outcome": "supports",
+        "outcome": outcome,
         "provider": provider,
         "providerModelId": provider_model_id,
         "requestArtifact": request.reference(),
@@ -419,6 +429,7 @@ def _validation(
     provider_model_id: str,
     completed_at: str,
     verdict_relation: str | None = None,
+    outcome: str = "supports",
 ) -> MachineValidation:
     return MachineValidation.create(
         candidate=candidate.reference(),
@@ -431,7 +442,7 @@ def _validation(
         request_artifact=request.reference(),
         response_artifact=response.reference(),
         deterministic_checks_passed=True,
-        outcome="supports",
+        outcome=outcome,  # type: ignore[arg-type]
         completed_at=completed_at,
         verdict_relation=verdict_relation,
     )
@@ -600,6 +611,7 @@ def _v2_bundle() -> CrosswalkBundle:
             actor = f"urn:ref:conformance:validator:{suffix}"
             provider = f"urn:ref:conformance:provider:{suffix}"
             provider_model_id = f"provider-model-{suffix}"
+            outcome = VERDICT_OUTCOMES_V2[verdict]
             response = _response(
                 candidate,
                 request,
@@ -608,6 +620,7 @@ def _v2_bundle() -> CrosswalkBundle:
                 provider=provider,
                 provider_model_id=provider_model_id,
                 reason=V2_VERDICT_REASONS[verdict],
+                outcome=outcome,
             )
             artifacts.append(response)
             validations.append(
@@ -622,6 +635,7 @@ def _v2_bundle() -> CrosswalkBundle:
                     provider_model_id=provider_model_id,
                     completed_at=f"2026-08-03T09:{index:02d}:30Z",
                     verdict_relation=verdict,
+                    outcome=outcome,
                 )
             )
 

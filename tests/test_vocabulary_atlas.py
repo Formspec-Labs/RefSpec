@@ -356,6 +356,7 @@ def _response(
     provider: str | None = None,
     provider_model_id: str | None = None,
     reason: str | None = None,
+    outcome: str = "supports",
 ) -> CrosswalkArtifact:
     # ``reason`` is omitted unless a test asks for it: adding it unconditionally
     # would move every artifact digest, and with it every candidate identity
@@ -368,7 +369,7 @@ def _response(
         "provider": provider or f"urn:test:atlas:provider:{suffix}",
         "providerModelId": provider_model_id or f"provider-model-{suffix}",
         "deterministicChecksPassed": True,
-        "outcome": "supports",
+        "outcome": outcome,
     }
     if reason is not None:
         content["reason"] = reason

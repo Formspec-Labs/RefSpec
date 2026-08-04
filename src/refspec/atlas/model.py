@@ -2177,8 +2177,7 @@ def _verify_adjudicated_relation(
     """
 
     input_digest = str(_one_literal(graph, candidate, ATLAS.inputContextDigest, "mapping input digest"))
-    relations: set[str] = set()
-    requests: set[URIRef] = set()
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     carriers = 0
     supporters = 0
     for validation in graph.subjects(ATLAS.validates, candidate):
@@ -2200,31 +2199,62 @@ def _verify_adjudicated_relation(
         if deterministic.toPython() is not True:
             continue
         supporters += 1
-        requests.add(_one_resource(graph, validation, ATLAS.requestArtifact, "machine request artifact"))
         stated = tuple(graph.objects(validation, ATLAS.verdictRelation))
         if len(stated) > 1:
             raise VocabularyAtlasError("machine validation verdictRelation must have exactly one value")
         if stated:
             carriers += 1
-            relations.add(str(stated[0]))
+        request = _one_resource(graph, validation, ATLAS.requestArtifact, "machine request artifact")
+        grouped[str(request)].append(
+            {
+                "id": str(validation),
+                "verdictRelation": str(stated[0]) if stated else None,
+                # The five identity fields the gate requires to differ. Read
+                # here so the graph applies the same independence predicate the
+                # writer applied to the sealed records.
+                "identity": (
+                    str(_one_resource(graph, validation, ATLAS.validatorActor, "machine validator actor")),
+                    str(_one_resource(graph, validation, ATLAS.independenceGroup, "machine independence group")),
+                    str(_one_resource(graph, validation, ATLAS.provider, "machine provider")),
+                    str(_one_literal(graph, validation, ATLAS.providerModelId, "machine provider model id")),
+                    str(_one_resource(graph, validation, ATLAS.responseArtifact, "machine response artifact")),
+                ),
+            }
+        )
     if carriers not in (0, supporters):
         raise VocabularyAtlasError("machine validations mix adjudicated and unadjudicated verdicts")
-    if not relations:
-        # No verdict relations at all is the v1 shape, which states no
-        # adjudication and needs none. Claiming one anyway is unsupported.
+    if carriers == 0:
+        # The v1 shape states no adjudication and needs none.
         if anchor is not None:
             raise VocabularyAtlasError("mapping candidate states an adjudicated relation with no verdicts")
         return
-    if len(requests) != 1:
-        # Machines that answered different requests are answers to different
-        # questions, and folding them would invent an agreement.
-        raise VocabularyAtlasError("adjudicated validations answered different requests")
-    if any(relation not in _V2_VERDICTS for relation in relations):
-        raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
-    agreed = _agreed_relation_for(relations)
+    for values in grouped.values():
+        for value in values:
+            if value["verdictRelation"] not in _V2_VERDICTS:
+                raise VocabularyAtlasError("machine validation verdictRelation is unsupported")
+
+    # Mirror the writer exactly: an adjudication is owed precisely when the gate
+    # would have emitted one, which needs BOTH a relation every supporting
+    # validation on one question agrees with AND an independent pair among them.
+    # Deriving "the verdicts state a relation" from anything wider — a lone
+    # support, or a pair from one machine — refuses the ordinary shape where the
+    # second machine abstained or answered no.
+    agreed: str | None = None
+    for key in sorted(grouped):
+        values = sorted(grouped[key], key=lambda item: str(item["id"]))
+        relation = _agreed_relation_for(frozenset(str(value["verdictRelation"]) for value in values))
+        if relation is None:
+            continue
+        if any(
+            all(left != right for left, right in zip(first["identity"], second["identity"], strict=True))
+            for first, second in itertools.combinations(values, 2)
+        ):
+            agreed = relation
+            break
+
     if agreed is None:
-        # A real disagreement adjudicates nothing, so nothing is owed — but
-        # nothing may be claimed either, and no mapping may rest on it.
+        # Nothing was adjudicated, so nothing is owed — but nothing may be
+        # claimed either, and no mapping may rest on it.
         if anchor is not None:
             raise VocabularyAtlasError("mapping candidate adjudicated relation does not follow from its verdicts")
         if has_mapping:
