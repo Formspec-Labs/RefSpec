@@ -12,10 +12,17 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, cast
 
-from refspec.binding import CORE_FACETS, canonical_sha256
+from refspec.binding import (
+    CORE_FACETS,
+    canonical_sha256,
+    reject_duplicate_keys,
+    reject_nonfinite_constant,
+)
+from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
     SourceConceptReleaseView,
@@ -498,6 +505,122 @@ def validate_atlas_index(
         raise AtlasIndexError("checked atlas index differs from deterministic generation")
 
 
+@dataclass(frozen=True, slots=True)
+class PinnedAtlasIndex:
+    """One exact, deterministically regenerated, non-authorizing index."""
+
+    path: Path
+    file_digest: str
+    index_id: str
+    index_digest: str
+    _index: Mapping[str, Any]
+    _index_input: Mapping[str, Any]
+    _resource_catalog: Mapping[str, Any]
+    _repository_root: Path
+    _registry_root: Path | None
+
+    @classmethod
+    def open(
+        cls,
+        path: Path | str,
+        *,
+        expected_file_digest: str,
+        index_input: Mapping[str, Any],
+        resource_catalog: Mapping[str, Any],
+        repository_root: Path,
+        registry_root: Path | None = None,
+    ) -> "PinnedAtlasIndex":
+        """Open exact bytes and reproduce the index from its planning inputs."""
+
+        digest = _digest(expected_file_digest, "atlas index file digest")
+        candidate = Path(path)
+        if candidate.is_symlink():
+            raise AtlasIndexError("atlas index must not be a symlink")
+        try:
+            resolved = candidate.resolve(strict=True)
+        except FileNotFoundError as error:
+            raise AtlasIndexError("atlas index does not exist") from error
+        if not resolved.is_file():
+            raise AtlasIndexError("atlas index must be a regular file")
+        payload = resolved.read_bytes()
+        if _file_digest(resolved) != digest:
+            raise AtlasIndexError("atlas index file digest differs")
+        try:
+            value = json.loads(
+                payload.decode("utf-8"),
+                object_pairs_hook=reject_duplicate_keys,
+                parse_constant=reject_nonfinite_constant,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+            raise AtlasIndexError("atlas index must be valid UTF-8 JSON") from error
+        if not isinstance(value, Mapping):
+            raise AtlasIndexError("atlas index must be an object")
+        validate_atlas_index(
+            value,
+            index_input,
+            resource_catalog,
+            repository_root=repository_root,
+            registry_root=registry_root,
+        )
+        if resolved.read_bytes() != payload:
+            raise AtlasIndexError("atlas index changed while opening")
+        index_id = _string(value.get("indexId"), "atlas index indexId")
+        index_digest = _digest(
+            value.get("indexDigest"),
+            "atlas index indexDigest",
+        )
+        return cls(
+            path=resolved,
+            file_digest=digest,
+            index_id=index_id,
+            index_digest=index_digest,
+            _index=cast(Mapping[str, Any], deep_freeze_json(value)),
+            _index_input=cast(
+                Mapping[str, Any],
+                deep_freeze_json(index_input),
+            ),
+            _resource_catalog=cast(
+                Mapping[str, Any],
+                deep_freeze_json(resource_catalog),
+            ),
+            _repository_root=repository_root.resolve(strict=True),
+            _registry_root=(
+                None
+                if registry_root is None
+                else registry_root.resolve(strict=True)
+            ),
+        )
+
+    def verified_index(self) -> Mapping[str, Any]:
+        """Reopen the file and re-run deterministic validation."""
+
+        reopened = self.open(
+            self.path,
+            expected_file_digest=self.file_digest,
+            index_input=self._index_input,
+            resource_catalog=self._resource_catalog,
+            repository_root=self._repository_root,
+            registry_root=self._registry_root,
+        )
+        if (
+            reopened.index_id != self.index_id
+            or reopened.index_digest != self.index_digest
+        ):
+            raise AtlasIndexError("atlas index identity or content digest changed")
+        return reopened._index
+
+    def pin(self) -> dict[str, str]:
+        """Return the exact structural input pin; this grants no use."""
+
+        self.verified_index()
+        return {
+            "role": "AtlasIndex",
+            "id": self.index_id,
+            "indexDigest": self.index_digest,
+            "fileDigest": self.file_digest,
+        }
+
+
 def atlas_index_rows(index: Mapping[str, Any], *, semantic_ring: str | None = None) -> tuple[Mapping[str, Any], ...]:
     """Return planning rows, optionally filtered by semantic ring; never authorize use."""
 
@@ -519,6 +642,7 @@ __all__ = [
     "ATLAS_INDEX_FORMAT",
     "ATLAS_INDEX_INPUT_FORMAT",
     "AtlasIndexError",
+    "PinnedAtlasIndex",
     "atlas_index_rows",
     "build_atlas_index",
     "validate_atlas_index",

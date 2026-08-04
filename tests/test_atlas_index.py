@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import pytest
 
 from refspec.atlas_index import (
     AtlasIndexError,
+    PinnedAtlasIndex,
     atlas_index_rows,
     build_atlas_index,
     validate_atlas_index,
@@ -105,6 +107,65 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         },
     }
     assert len(atlas_index_rows(index, semantic_ring="subject")) == 24
+
+
+def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(
+    tmp_path: Path,
+) -> None:
+    index_input, catalog = _fixture(tmp_path)
+    index = build_atlas_index(index_input, catalog, repository_root=tmp_path)
+    path = tmp_path / "atlas-index.json"
+    path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+    file_digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+    pinned = PinnedAtlasIndex.open(
+        path,
+        expected_file_digest=file_digest,
+        index_input=index_input,
+        resource_catalog=catalog,
+        repository_root=tmp_path,
+    )
+
+    reopened = pinned.verified_index()
+    assert reopened["indexId"] == index["indexId"]
+    assert reopened["indexDigest"] == index["indexDigest"]
+    assert tuple(row["rowId"] for row in reopened["rows"]) == tuple(
+        row["rowId"] for row in index["rows"]
+    )
+    assert pinned.pin() == {
+        "role": "AtlasIndex",
+        "id": index["indexId"],
+        "indexDigest": index["indexDigest"],
+        "fileDigest": file_digest,
+    }
+    assert str(tmp_path) not in str(pinned.pin())
+
+
+def test_pinned_atlas_index_rejects_file_and_evidence_drift(
+    tmp_path: Path,
+) -> None:
+    index_input, catalog = _fixture(tmp_path)
+    index = build_atlas_index(index_input, catalog, repository_root=tmp_path)
+    path = tmp_path / "atlas-index.json"
+    path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+    pinned = PinnedAtlasIndex.open(
+        path,
+        expected_file_digest=(
+            "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        ),
+        index_input=index_input,
+        resource_catalog=catalog,
+        repository_root=tmp_path,
+    )
+
+    path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(AtlasIndexError, match="file digest differs"):
+        pinned.verified_index()
+
+    path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+    _write(tmp_path / "evidence/alpha.json", '{"changed":true}\n')
+    with pytest.raises(AtlasIndexError, match="checked atlas index differs"):
+        pinned.verified_index()
 
 
 def test_generation_is_order_independent_and_preserves_one_resource_across_rings(
