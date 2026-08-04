@@ -129,12 +129,12 @@ EDIT_DISTANCE_LIMIT = 2
 #: Hard ceiling on the seeded search for random controls.
 RANDOM_CONTROL_ATTEMPT_CEILING = 200_000
 
-MODEL_INPUT_PROTOCOL = "refspec-atlas-crosswalk-model-input-v1"
-VALIDATION_REQUEST_PROTOCOL = "refspec-atlas-machine-validation-v1"
-#: v2 asks a different question with a different rubric, so it seals a different
-#: input.  Naming it here — and sealing the v2 rubric bytes — is what keeps the
-#: inputContext artifact the honest record of what the judge actually saw.
-MODEL_INPUT_PROTOCOL_V2 = "refspec-atlas-crosswalk-model-input-v2"
+#: Qualification has one protocol.  A second name or an implicit fallback here
+#: would let candidate generation and provider execution ask different
+#: questions while producing superficially valid receipts.
+PROTOCOL = "v2"
+MODEL_INPUT_PROTOCOL = "refspec-atlas-crosswalk-model-input-v2"
+VALIDATION_REQUEST_PROTOCOL = "refspec-atlas-machine-validation-v2"
 EVIDENCE_METHOD_VERSION = "1"
 
 GENERATOR_ACTOR = "urn:ref:actor:atlas-crosswalk-candidate-generator"
@@ -143,24 +143,12 @@ GENERATOR_MODEL_ID = "refspec-atlas-crosswalk-candidate-generator"
 GENERATOR_MODEL_VERSION = "1"
 PROMPT_TEMPLATE_IRI = "urn:ref:atlas-crosswalk:prompt:search-expansion:v1"
 
-VERDICTS = ("same_or_near_same", "related_but_distinct", "unrelated", "insufficient_evidence")
-
-#: How a machine's verdict becomes the format's outcome.  Only the first
-#: qualifies anything; the gate additionally requires two independent machines.
-VERDICT_OUTCOMES: Mapping[str, str] = {
-    "same_or_near_same": "supports",
-    "related_but_distinct": "rejects",
-    "unrelated": "rejects",
-    "insufficient_evidence": "abstains",
-}
-
-#: Protocol v2: the judge adjudicates the relation, not a yes/no.  Direction is
+#: The judge adjudicates the relation, not a yes/no.  Direction is
 #: pinned in English — mapping predicates are asserted source -> target, so
 #: ``target_is_broader`` emits ``skos:broadMatch``.  The five relation verdicts
 #: are all "supports"; the gate then additionally requires the two machines'
 #: relations to be compatible (see the agreement lattice in ``model``).
-PROTOCOL_V2 = "refspec-atlas-machine-validation-v2"
-VERDICTS_V2 = (
+VERDICTS = (
     "same",
     "near_same",
     "target_is_broader",
@@ -169,7 +157,7 @@ VERDICTS_V2 = (
     "unrelated",
     "insufficient_evidence",
 )
-VERDICT_OUTCOMES_V2: Mapping[str, str] = {
+VERDICT_OUTCOMES: Mapping[str, str] = {
     "same": "supports",
     "near_same": "supports",
     "target_is_broader": "supports",
@@ -178,59 +166,7 @@ VERDICT_OUTCOMES_V2: Mapping[str, str] = {
     "unrelated": "rejects",
     "insufficient_evidence": "abstains",
 }
-#: The two protocols share no relation-verdict strings, and the two verdicts
-#: they do share ("unrelated", "insufficient_evidence") agree on outcome, so
-#: one merged lookup serves readings from either protocol.
-ALL_VERDICT_OUTCOMES: Mapping[str, str] = {**VERDICT_OUTCOMES, **VERDICT_OUTCOMES_V2}
-
 INSTRUCTIONS = """\
-You judge whether two controlled-vocabulary concepts, each published by a \
-different thesaurus, denote the same or near-same concept.
-
-The decision has exactly one purpose: SEARCH EXPANSION over a document \
-collection. Each concept is used to index documents. Answer for this question \
-and no other:
-
-  If a person searches for the SOURCE concept, should the results also include \
-documents that were indexed under the TARGET concept, and the reverse?
-
-Verdicts:
-  same_or_near_same    - the two concepts denote the same thing, or denote \
-things so close that documents indexed under either belong in the other's \
-results. Answer this only when the substitution is safe in BOTH directions.
-  related_but_distinct - the concepts are genuinely related (broader, \
-narrower, a part, a neighbouring topic) but denote different things, so \
-substituting one for the other would return documents about something else.
-  unrelated            - the concepts denote different things and are not \
-usefully related.
-  insufficient_evidence - the supplied labels do not let you decide.
-
-Rules:
-  - Judge the concepts, not the strings. Identical labels can name different \
-things in two thesauri, and different labels can name the same thing.
-  - A concept that is strictly broader or strictly narrower than the other is \
-related_but_distinct, not same_or_near_same.
-  - Do not guess. insufficient_evidence is a real answer.
-  - Echo task_id back exactly as given.
-
-Return exactly one JSON object and nothing else. No prose, no explanation \
-outside the object, no Markdown code fences. It must match this JSON Schema:
-
-{schema}
-"""
-
-RESPONSE_SCHEMA: Mapping[str, Any] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["task_id", "verdict", "reason"],
-    "properties": {
-        "task_id": {"type": "string"},
-        "verdict": {"type": "string", "enum": list(VERDICTS)},
-        "reason": {"type": "string"},
-    },
-}
-
-INSTRUCTIONS_V2 = """\
 You judge the relation between two controlled-vocabulary concepts, each \
 published by a different thesaurus.
 
@@ -266,13 +202,13 @@ outside the object, no Markdown code fences. It must match this JSON Schema:
 {schema}
 """
 
-RESPONSE_SCHEMA_V2: Mapping[str, Any] = {
+RESPONSE_SCHEMA: Mapping[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": ["task_id", "verdict", "reason"],
     "properties": {
         "task_id": {"type": "string"},
-        "verdict": {"type": "string", "enum": list(VERDICTS_V2)},
+        "verdict": {"type": "string", "enum": list(VERDICTS)},
         "reason": {"type": "string"},
     },
 }
@@ -290,10 +226,26 @@ def instructions_text() -> str:
     return INSTRUCTIONS.replace("{schema}", canonical_json(dict(RESPONSE_SCHEMA)))
 
 
-def instructions_text_v2() -> str:
-    """The exact system text for protocol v2; same local-validator guarantee."""
+def require_protocol_v2(protocol: str) -> str:
+    """Refuse qualification data produced for any other verdict protocol."""
 
-    return INSTRUCTIONS_V2.replace("{schema}", canonical_json(dict(RESPONSE_SCHEMA_V2)))
+    if protocol != PROTOCOL:
+        raise QualificationError(
+            f"unsupported qualification protocol {protocol!r}; this greenfield implementation supports only {PROTOCOL!r}"
+        )
+    return protocol
+
+
+# Descriptive aliases retained for callers that named the adopted protocol
+# explicitly.  They refer to the only supported shapes; they are not a second
+# compatibility path.
+PROTOCOL_V2 = VALIDATION_REQUEST_PROTOCOL
+MODEL_INPUT_PROTOCOL_V2 = MODEL_INPUT_PROTOCOL
+VERDICTS_V2 = VERDICTS
+VERDICT_OUTCOMES_V2 = VERDICT_OUTCOMES
+RESPONSE_SCHEMA_V2 = RESPONSE_SCHEMA
+INSTRUCTIONS_V2 = INSTRUCTIONS
+instructions_text_v2 = instructions_text
 
 
 # ---------------------------------------------------------------------------
@@ -682,44 +634,39 @@ def task_id(pair: CandidatePair) -> str:
     return "task-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
 
 
-def model_input_payload(pair: CandidatePair, *, protocol: str = "v1") -> dict[str, Any]:
+def model_input_payload(pair: CandidatePair, *, protocol: str = PROTOCOL) -> dict[str, Any]:
     """Everything the machine sees about one pair.
 
     Note what is absent: the generation class, the evidence that proposed the
     pair, and any hint of which side the generator expects to win.  The judge
     reads two concepts.
 
-    ``proposedRelation`` is v1's question restated — "is *this* relation safe?" —
-    so v1 shows it and the verdict answers it.  v2 asks which of seven relations
-    holds, and the same field would be a standing ``closeMatch`` prior on the one
-    axis v2 exists to measure, so v2 does not show it.  It stays on the sealed
-    candidate either way, as the record of the hypothesis under test.
+    ``proposedRelation`` stays off the input.  The adopted protocol asks which
+    relation holds, so showing the generator's ``closeMatch`` hypothesis would
+    bias the one axis the qualification is meant to measure.  The sealed
+    candidate still records that hypothesis.
     """
 
-    payload: dict[str, Any] = {
+    require_protocol_v2(protocol)
+    return {
         "source": _concept_payload(pair.source),
         "target": _concept_payload(pair.target),
         "taskId": task_id(pair),
     }
-    if protocol != "v2":
-        payload["proposedRelation"] = PROPOSED_RELATION
-    return payload
 
 
-def model_input_texts(pair: CandidatePair, *, protocol: str = "v1") -> tuple[str, str]:
+def model_input_texts(pair: CandidatePair, *, protocol: str = PROTOCOL) -> tuple[str, str]:
     """Return the exact ``(system, user)`` strings sent to every family."""
 
-    system = instructions_text_v2() if protocol == "v2" else instructions_text()
-    return system, canonical_json(model_input_payload(pair, protocol=protocol))
+    require_protocol_v2(protocol)
+    return instructions_text(), canonical_json(model_input_payload(pair, protocol=protocol))
 
 
-def input_context_artifact(pair: CandidatePair, *, protocol: str = "v1") -> CrosswalkArtifact:
+def input_context_artifact(pair: CandidatePair, *, protocol: str = PROTOCOL) -> CrosswalkArtifact:
     """Seal the model-input bytes so the bundle's closure check can resolve them.
 
-    These are the bytes the binding calls "the exact model input", so they must
-    be the protocol's own rubric and payload.  Sealing v1 text for a v2 run would
-    make every v2 bundle's provenance false in the one field a reader consults to
-    learn what the judge was asked.
+    These are the bytes the binding calls "the exact model input".  The
+    protocol value is checked before any bytes are sealed.
     """
 
     system, _ = model_input_texts(pair, protocol=protocol)
@@ -729,7 +676,7 @@ def input_context_artifact(pair: CandidatePair, *, protocol: str = "v1") -> Cros
         content={
             "instructions": system,
             "payload": model_input_payload(pair, protocol=protocol),
-            "protocol": MODEL_INPUT_PROTOCOL_V2 if protocol == "v2" else MODEL_INPUT_PROTOCOL,
+            "protocol": MODEL_INPUT_PROTOCOL,
         },
     )
 
@@ -752,7 +699,7 @@ def validation_request_artifact(
     candidate: MappingCandidate,
     input_digest: str,
     *,
-    protocol: str = "v1",
+    protocol: str = PROTOCOL,
 ) -> CrosswalkArtifact:
     """One request per candidate, shared by both families.
 
@@ -761,13 +708,14 @@ def validation_request_artifact(
     different requests are two answers to two questions, not a corroboration.
     """
 
+    require_protocol_v2(protocol)
     return CrosswalkArtifact.create(
         role="validationRequest",
         media_type="application/json",
         content={
             "candidate": candidate.reference(),
             "inputDigest": input_digest,
-            "protocol": PROTOCOL_V2 if protocol == "v2" else VALIDATION_REQUEST_PROTOCOL,
+            "protocol": VALIDATION_REQUEST_PROTOCOL,
         },
     )
 
@@ -1084,7 +1032,8 @@ def _request_body(
     return body
 
 
-def _parse_answer(content: str, *, protocol: str = "v1") -> dict[str, Any] | None:
+def _parse_answer(content: str, *, protocol: str = PROTOCOL) -> dict[str, Any] | None:
+    require_protocol_v2(protocol)
     text = content.strip()
     if text.startswith("```"):
         text = re.sub(r"^```[A-Za-z]*\n?", "", text)
@@ -1095,13 +1044,11 @@ def _parse_answer(content: str, *, protocol: str = "v1") -> dict[str, Any] | Non
         return None
     if not isinstance(parsed, dict):
         return None
-    schema = RESPONSE_SCHEMA_V2 if protocol == "v2" else RESPONSE_SCHEMA
-    verdicts = VERDICTS_V2 if protocol == "v2" else VERDICTS
-    if Draft202012Validator(dict(schema)).is_valid(parsed):
+    if Draft202012Validator(dict(RESPONSE_SCHEMA)).is_valid(parsed):
         return parsed
     # A verdict the enum admits is still a usable machine answer; whatever else
     # is wrong with the object is what deterministicChecksPassed records.
-    if isinstance(parsed.get("verdict"), str) and parsed["verdict"] in verdicts:
+    if isinstance(parsed.get("verdict"), str) and parsed["verdict"] in VERDICTS:
         return parsed
     return None
 
@@ -1117,7 +1064,7 @@ def validate_candidate(
     input_digest: str,
     tracker: SpendTracker,
     retry_sleep: Callable[[float], None] = time.sleep,
-    protocol: str = "v1",
+    protocol: str = PROTOCOL,
 ) -> dict[str, Any]:
     """Ask one family about one candidate, once, and receipt whatever happens.
 
@@ -1132,6 +1079,7 @@ def validate_candidate(
     An answer is never asked for again because the first one disagreed.
     """
 
+    require_protocol_v2(protocol)
     system_text, user_text = model_input_texts(pair, protocol=protocol)
     body = _request_body(family, model_id, system_text, user_text)
     estimated_input = _estimate_tokens(system_text) + _estimate_tokens(user_text)
@@ -1271,11 +1219,11 @@ class ValidationReading:
     response_sha256: str
     reason: str = ""
     endpoint_host: str = ""
-    protocol: str = "v1"
+    protocol: str = PROTOCOL
 
     @property
     def outcome(self) -> str:
-        return ALL_VERDICT_OUTCOMES[self.verdict]
+        return VERDICT_OUTCOMES[self.verdict]
 
 
 def endpoint_host(url: str) -> str:
@@ -1309,13 +1257,12 @@ def reading_from_receipt(
     answer = receipt.get("answer")
     if not isinstance(answer, Mapping):
         return None
-    protocol = str(receipt.get("protocol") or "v1")
+    protocol = str(receipt.get("protocol") or "")
+    require_protocol_v2(protocol)
     verdict = str(answer.get("verdict", ""))
-    allowed = VERDICTS_V2 if protocol == "v2" else VERDICTS
-    if verdict not in allowed:
+    if verdict not in VERDICTS:
         return None
-    schema = RESPONSE_SCHEMA_V2 if protocol == "v2" else RESPONSE_SCHEMA
-    schema_valid = Draft202012Validator(dict(schema)).is_valid(dict(answer))
+    schema_valid = Draft202012Validator(dict(RESPONSE_SCHEMA)).is_valid(dict(answer))
     deterministic = schema_valid and str(answer.get("task_id")) == str(receipt.get("task_id"))
     return ValidationReading(
         family=family,
@@ -1350,7 +1297,7 @@ def assemble_candidate(
     *,
     generated_at: str,
     readings: Sequence[ValidationReading],
-    protocol: str | None = None,
+    protocol: str = PROTOCOL,
 ) -> AssembledCandidate:
     """Seal one candidate and whichever machine answers came back.
 
@@ -1358,21 +1305,16 @@ def assemble_candidate(
     redundancy, so a second answer from one family is the same machine asked
     twice and must never look like corroboration.
 
-    The protocol is read off the readings unless it is given, because the
-    receipts are what actually record which question was bought.  A candidate's
-    identity moves with it: v2 seals a different rubric and a different payload,
-    so a v2 candidate is a different candidate, not the same one relabelled.
+    The adopted protocol seals the candidate's rubric and payload.  Supplying a
+    different value is an error rather than a compatibility request.
     """
 
     groups = [reading.family.independence_group for reading in readings]
     if len(set(groups)) != len(groups):
         raise QualificationError("a candidate takes at most one validation per independence group")
-    protocols = {reading.protocol for reading in readings}
-    if len(protocols) > 1:
-        raise QualificationError("a candidate takes one protocol across its validations")
-    if protocol is None:
-        protocol = protocols.pop() if protocols else "v1"
-    elif protocols and protocols != {protocol}:
+    require_protocol_v2(protocol)
+    protocols = {require_protocol_v2(reading.protocol) for reading in readings}
+    if protocols and protocols != {protocol}:
         raise QualificationError("candidate protocol disagrees with its readings")
 
     context = input_context_artifact(pair, protocol=protocol)
@@ -1436,7 +1378,7 @@ def assemble_candidate(
                 deterministic_checks_passed=reading.deterministic_checks_passed,
                 outcome=reading.outcome,  # type: ignore[arg-type]
                 completed_at=reading.completed_at,
-                verdict_relation=reading.verdict if reading.protocol == "v2" else None,
+                verdict_relation=reading.verdict,
             )
         )
         artifacts.append(response)
@@ -1552,7 +1494,6 @@ def normalize_for_report(value: str) -> str:
 
 
 __all__ = [
-    "ALL_VERDICT_OUTCOMES",
     "CANDIDATE_GENERATION_POLICY",
     "DEFAULT_CLASS_LIMITS",
     "EDIT_DISTANCE_LIMIT",
@@ -1565,10 +1506,12 @@ __all__ = [
     "MODEL_INPUT_PROTOCOL_V2",
     "OPENAI_FAMILY",
     "PROPOSED_RELATION",
+    "PROTOCOL",
     "PROTOCOL_V2",
     "RESPONSE_SCHEMA",
     "RESPONSE_SCHEMA_V2",
     "TOTAL_SPEND_CAP_USD",
+    "VALIDATION_REQUEST_PROTOCOL",
     "VALIDATOR_FAMILIES",
     "VERDICTS",
     "VERDICTS_V2",
@@ -1592,12 +1535,14 @@ __all__ = [
     "evidence_artifact",
     "generate_candidate_pairs",
     "input_context_artifact",
+    "instructions_text",
     "list_models",
     "load_env_value",
     "model_input_payload",
     "model_input_texts",
     "normalized_tokens",
     "reading_from_receipt",
+    "require_protocol_v2",
     "resolve_validator_model",
     "scrubbed_headers",
     "stratified_subset",

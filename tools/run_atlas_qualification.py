@@ -174,7 +174,7 @@ def command_generate(args: argparse.Namespace) -> int:
             pair,
             generated_at=args.generated_at,
             readings=(),
-            protocol=args.protocol,
+            protocol=qual.PROTOCOL,
         )
         context = next(item for item in entry.artifacts if item.role == "inputContext")
         rows.append(
@@ -199,7 +199,7 @@ def command_generate(args: argparse.Namespace) -> int:
             # The protocol is part of what a candidate *is*: it seals a
             # different rubric and a different payload, so a catalog belongs to
             # exactly one protocol and says which.
-            "protocol": args.protocol,
+            "protocol": qual.PROTOCOL,
             "proposedRelation": qual.PROPOSED_RELATION,
             "seed": args.seed,
             "sourceManifestDigest": source["manifestDigest"],
@@ -224,6 +224,7 @@ def _projected_cost(family: qual.ValidatorFamily, calls: int) -> float:
 def command_qualify(args: argparse.Namespace) -> int:
     output = Path(args.output)
     catalog = _read_json(output / CANDIDATES)
+    protocol = qbatch.run_protocol(catalog)
     rows = catalog["candidates"]
     if args.max_candidates is not None:
         # Spread, never a head slice: candidates.json is written in class order,
@@ -286,7 +287,7 @@ def command_qualify(args: argparse.Namespace) -> int:
                     candidate_id=row["candidateId"],
                     input_digest=row["inputDigest"],
                     tracker=trackers[family.name],
-                    protocol=getattr(args, "protocol", "v1"),
+                    protocol=protocol,
                 )
             except qual.SpendCapReached as error:
                 stopped[family.name] = str(error)
@@ -325,7 +326,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         outcomes[str(record.get("outcome"))] += 1
         by_candidate.setdefault(str(record["candidate_id"]), []).append(record)
 
-    protocol = str(catalog.get("protocol") or "v1")
+    protocol = qbatch.run_protocol(catalog)
     entries: list[qual.AssembledCandidate] = []
     verdicts: Counter[str] = Counter()
     by_class: dict[str, Counter[str]] = {}
@@ -360,10 +361,8 @@ def command_bundle(args: argparse.Namespace) -> int:
     bundle = qual.crosswalk_bundle(entries)
     qualified = bundle.qualified()
     # Two different measurements, kept apart on purpose. `qualified` means
-    # "earned a mapping", and under v2 that includes the directional relations,
-    # so it is NOT comparable to a v1 run's `qualified`. The distractor floor
-    # asks the narrower question v1's floor actually asked — did anything claim
-    # substitutability — and that one is comparable across protocols.
+    # "earned a mapping" and includes directional relations. The distractor
+    # floor asks the narrower question: did anything claim substitutability?
     substitutable = {
         "http://www.w3.org/2004/02/skos/core#exactMatch",
         "http://www.w3.org/2004/02/skos/core#closeMatch",
@@ -401,15 +400,8 @@ def command_bundle(args: argparse.Namespace) -> int:
             "reproduce it byte-for-byte. Every call carries its own request and response digest, "
             "and the bundle it produced is pinned by digest instead."
         ),
-        # The admission rule this run actually applied. The atlas manifest's
-        # `mappingEligibility` stays "twoIndependentMachinesSearchOnly" because
-        # that field set is closed and changing it is a binding version bump;
-        # the run receipt is where the two rules are told apart.
-        "eligibilityPolicy": (
-            "twoIndependentMachinesRelationAgreement"
-            if protocol == "v2"
-            else "twoIndependentMachinesSearchOnly"
-        ),
+        # The admission rule this run actually applied.
+        "eligibilityPolicy": "twoIndependentMachinesRelationAgreement",
         "generatedAt": catalog["generatedAt"],
         "protocol": protocol,
         "qualifiedCandidates": len(qualified),
@@ -476,7 +468,7 @@ def _batch_protocol(args: argparse.Namespace) -> str:
     """
 
     catalog = _read_json(Path(args.output) / CANDIDATES)
-    return qbatch.run_protocol(catalog, requested=getattr(args, "protocol", None))
+    return qbatch.run_protocol(catalog)
 
 
 def _batch_keys(args: argparse.Namespace, families: Sequence[qual.ValidatorFamily]) -> dict[str, str]:
@@ -633,23 +625,11 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--generated-at", required=True, help="pinned candidate timestamp; part of candidate identity")
     generate.add_argument("--seed", default=qual.GENERATION_SEED)
     generate.add_argument("--limit", action="append", metavar="CLASS=N")
-    generate.add_argument(
-        "--protocol",
-        choices=("v1", "v2"),
-        default="v1",
-        help="validation protocol the slice is built for; it seals the rubric, so it fixes candidate identity",
-    )
     generate.set_defaults(handler=command_generate)
 
     qualify = subparsers.add_parser("qualify", help="ask each family about each candidate, once")
     qualify.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     qualify.add_argument("--families", default="gemini,openai")
-    qualify.add_argument(
-        "--protocol",
-        choices=("v1", "v2"),
-        default="v1",
-        help="validation protocol; v2 adjudicates the relation instead of a closeMatch yes/no",
-    )
     qualify.add_argument(
         "--max-candidates",
         type=int,
@@ -675,12 +655,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     batch_submit.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     batch_submit.add_argument("--families", default="gemini,openai")
-    batch_submit.add_argument(
-        "--protocol",
-        choices=("v1", "v2"),
-        default=None,
-        help="validation protocol; defaults to whatever the serial path defaults to",
-    )
     batch_submit.add_argument(
         "--max-candidates",
         type=int,

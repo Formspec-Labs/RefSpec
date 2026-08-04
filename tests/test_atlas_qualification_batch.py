@@ -104,7 +104,7 @@ def run_dir(tmp_path: Path) -> Path:
                 "generatedAt": GENERATED_AT,
                 "generationPolicy": qual.CANDIDATE_GENERATION_POLICY,
                 "proposedRelation": qual.PROPOSED_RELATION,
-                "protocol": "v1",
+                "protocol": qual.PROTOCOL,
                 "sourceManifestDigest": "sha256:" + "0" * 64,
                 "targetManifestDigest": "sha256:" + "1" * 64,
                 "total": len(rows),
@@ -136,7 +136,7 @@ class FakeProviders:
     def __init__(
         self,
         *,
-        verdict: str = "same_or_near_same",
+        verdict: str = "near_same",
         wrong_task_id_for: frozenset[str] = frozenset(),
         error_for: frozenset[str] = frozenset(),
         omit: frozenset[str] = frozenset(),
@@ -352,11 +352,11 @@ def test_a_batch_line_carries_the_serial_request_body_and_digest() -> None:
     entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
     context = next(item for item in entry.artifacts if item.role == "inputContext")
     row = qbatch.CandidateRow(entry.candidate.identifier, pair, context.content_digest)
-    protocol = qbatch.run_protocol({"protocol": "v1"})
+    protocol = qbatch.run_protocol({"protocol": qual.PROTOCOL})
 
     request = qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol=protocol)
 
-    system_text, user_text = qual.model_input_texts(pair, **qbatch._protocol_kwargs(qual.model_input_texts, protocol))
+    system_text, user_text = qual.model_input_texts(pair, protocol=protocol)
     expected = qual._request_body(qual.OPENAI_FAMILY, OPENAI_MODEL, system_text, user_text)
     assert request.body == expected
     assert request.request_sha256 == qual._sha256_text(canonical_json(expected))
@@ -489,7 +489,7 @@ class _SerialStub:
         body: bytes | None,
         timeout: float,
     ) -> tuple[int, bytes]:
-        answer = {"reason": "the labels denote the same concept", "task_id": self.task_id, "verdict": "same_or_near_same"}
+        answer = {"reason": "the labels denote the same concept", "task_id": self.task_id, "verdict": "near_same"}
         return 200, _json(
             {
                 "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(answer)}}],
@@ -602,53 +602,52 @@ def test_an_answer_that_does_not_echo_the_task_id_fails_the_deterministic_check(
     assert _sidecar(run_dir)["jobs"][0]["collection"]["taskIdEchoMismatches"] == 1
 
 
-def _regenerate_as_v2(run_dir: Path) -> None:
-    """Rewrite the run's candidates the way `generate --protocol v2` would."""
-
-    catalog = json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))
-    catalog["protocol"] = "v2"
-    (run_dir / RUNNER.CANDIDATES).write_text(canonical_json(catalog) + "\n", encoding="utf-8")
-
-
-def test_a_v2_run_is_never_submitted_under_the_v1_rubric(
+def test_a_run_is_submitted_under_the_only_supported_rubric(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
 ) -> None:
-    """The live defect: a v2 run bought six batch jobs asking the v1 rubric.
+    """The catalog, upload, job, and receipts all carry the adopted rubric.
 
-    The protocol was defaulted off a library signature instead of read from
-    the run's own ``candidates.json``, so `batch-submit` with no flag silently
-    asked the wrong question — and a batch cannot be recalled once bought.
-    The run's candidates are now the only source of its rubric.
+    A prior implementation defaulted provider execution independently of the
+    candidates and bought a batch that asked a different question.
     """
 
-    verdicts = getattr(qual, "VERDICTS_V2", None)
-    if not verdicts:
-        pytest.skip("the serial path offers only one verdict protocol")
-
-    _regenerate_as_v2(run_dir)
-    server = FakeProviders(verdict=verdicts[0])
-    # No --protocol flag, exactly as the live run was invoked.
+    server = FakeProviders(verdict=qual.VERDICTS[0])
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
 
     job = _sidecar(run_dir)["jobs"][0]
-    assert job["protocol"] == "v2"
+    assert job["protocol"] == qual.PROTOCOL
     uploaded = server.files[job["inputFileId"]].decode("utf-8")
     assert "target_is_broader" in uploaded
 
 
-def test_a_flag_contradicting_the_candidates_is_refused(
+@pytest.mark.parametrize("command", ["qualify", "batch-submit"])
+def test_a_non_v2_candidate_catalog_is_refused_before_provider_calls(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
+    command: str,
 ) -> None:
-    if not getattr(qual, "VERDICTS_V2", None):
-        pytest.skip("the serial path offers only one verdict protocol")
-    _regenerate_as_v2(run_dir)
+    catalog = json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))
+    catalog["protocol"] = "v1"
+    (run_dir / RUNNER.CANDIDATES).write_text(canonical_json(catalog) + "\n", encoding="utf-8")
     server = FakeProviders()
     with pytest.raises(qbatch.BatchError) as failure:
-        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai", "--protocol", "v1")
-    assert "contradicts candidates.json" in str(failure.value)
+        _run(monkeypatch, server, run_dir, command, "--families", "openai")
+    assert "supports only 'v2'" in str(failure.value)
+    assert server.calls == []
     assert not (run_dir / qbatch.SIDECAR).exists()
+
+
+def test_cli_has_no_protocol_override() -> None:
+    parser = RUNNER.build_parser()
+    parsed = parser.parse_args(
+        ["--output", "run", "generate", "--generated-at", GENERATED_AT]
+    )
+    assert not hasattr(parsed, "protocol")
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            ["--output", "run", "generate", "--generated-at", GENERATED_AT, "--protocol", "v1"]
+        )
 
 
 def test_candidates_without_a_protocol_are_refused(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
@@ -666,48 +665,37 @@ def test_candidates_without_a_protocol_are_refused(monkeypatch: pytest.MonkeyPat
 def test_a_payload_that_does_not_carry_the_rubric_is_never_uploaded(run_dir: Path) -> None:
     """The last gate before money: read the bytes, not the intention."""
 
-    if not getattr(qual, "VERDICTS_V2", None):
-        pytest.skip("the serial path offers only one verdict protocol")
     rows = [
         qbatch.CandidateRow(str(row["candidateId"]), RUNNER._pair_from_dict(row), str(row["inputDigest"]))
         for row in json.loads((run_dir / RUNNER.CANDIDATES).read_text(encoding="utf-8"))["candidates"]
     ]
-    v1_bytes = qbatch.input_jsonl(
-        [qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol="v1") for row in rows]
-    )
-    # v1 bytes claimed to be a v2 batch: exactly the live defect, caught.
-    with pytest.raises(qbatch.BatchError) as failure:
-        qbatch.assert_payload_speaks(v1_bytes, "v2", rows=rows)
-    assert "refusing to upload" in str(failure.value)
-    assert "target_is_broader" not in v1_bytes.decode("utf-8")
+    with pytest.raises(qual.QualificationError, match="supports only 'v2'"):
+        qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, rows[0], protocol="v1")
 
-    v2_bytes = qbatch.input_jsonl(
-        [qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol="v2") for row in rows]
+    payload = qbatch.input_jsonl(
+        [qbatch.build_request(qual.OPENAI_FAMILY, OPENAI_MODEL, row, protocol=qual.PROTOCOL) for row in rows]
     )
-    # The token the coordinator asked to see in the bytes before any upload.
-    assert "target_is_broader" in qbatch.distinguishing_verdicts("v2")
-    assert "target_is_broader" in v2_bytes.decode("utf-8")
-    qbatch.assert_payload_speaks(v2_bytes, "v2", rows=rows)
-    qbatch.assert_payload_speaks(v1_bytes, "v1", rows=rows)
+    assert "target_is_broader" in qbatch.distinguishing_verdicts(qual.PROTOCOL)
+    assert "target_is_broader" in payload.decode("utf-8")
+    qbatch.assert_payload_speaks(payload, qual.PROTOCOL, rows=rows)
 
     # Losing the vocabulary anywhere in the payload is refused too.  The
     # instructions carry the schema, so this trips the first gate rather than
     # the second; both refuse, which is the property that matters.
-    hollowed = v2_bytes.decode("utf-8").replace("target_is_broader", "REDACTED").encode("utf-8")
+    hollowed = payload.decode("utf-8").replace("target_is_broader", "REDACTED").encode("utf-8")
     with pytest.raises(qbatch.BatchError):
-        qbatch.assert_payload_speaks(hollowed, "v2", rows=rows)
+        qbatch.assert_payload_speaks(hollowed, qual.PROTOCOL, rows=rows)
 
 
 def test_collect_refuses_answers_to_the_other_rubric(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
     """A polluted sidecar must never reach receipts.jsonl."""
 
-    if not getattr(qual, "VERDICTS_V2", None):
-        pytest.skip("the serial path offers only one verdict protocol")
     server = FakeProviders()
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
     server.complete_jobs()
-    # The run is regenerated as v2 after a v1 batch was already bought.
-    _regenerate_as_v2(run_dir)
+    sidecar = _sidecar(run_dir)
+    sidecar["jobs"][0]["protocol"] = "v1"
+    (run_dir / qbatch.SIDECAR).write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
     with pytest.raises(qbatch.BatchError) as failure:
         _run(monkeypatch, server, run_dir, "batch-collect")
     assert "asked protocol 'v1' but this run is 'v2'" in str(failure.value)
@@ -745,25 +733,19 @@ def test_the_verdict_protocol_is_referenced_never_restated(
     rather than owning a copy of it.
     """
 
-    verdicts = getattr(qual, "VERDICTS_V2", None)
-    if not verdicts:
-        pytest.skip("the serial path offers only one verdict protocol")
-
-    _regenerate_as_v2(run_dir)
-    server = FakeProviders(verdict=verdicts[0])
+    server = FakeProviders(verdict=qual.VERDICTS[0])
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
     server.complete_jobs()
     _run(monkeypatch, server, run_dir, "batch-status")
     _run(monkeypatch, server, run_dir, "batch-collect")
 
-    assert _sidecar(run_dir)["jobs"][0]["protocol"] == "v2"
+    assert _sidecar(run_dir)["jobs"][0]["protocol"] == qual.PROTOCOL
     uploaded = server.files[_sidecar(run_dir)["jobs"][0]["inputFileId"]].decode("utf-8")
     system = json.loads(uploaded.splitlines()[0])["body"]["messages"][0]["content"]
-    assert system == qual.model_input_texts(_pairs()[0], protocol="v2")[0]
-    assert system != qual.model_input_texts(_pairs()[0], protocol="v1")[0]
+    assert system == qual.model_input_texts(_pairs()[0])[0]
 
     for receipt in _receipts(run_dir):
-        assert receipt["protocol"] == "v2"
+        assert receipt["protocol"] == qual.PROTOCOL
         assert receipt["outcome"] == "completed"
         reading = qual.reading_from_receipt(receipt, qual.OPENAI_FAMILY, OPENAI_MODEL)
         assert reading is not None and reading.deterministic_checks_passed

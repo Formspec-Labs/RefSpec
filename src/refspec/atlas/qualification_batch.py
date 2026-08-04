@@ -70,7 +70,6 @@ from __future__ import annotations
 
 import datetime as _dt
 import hashlib
-import inspect
 import json
 import urllib.error
 import urllib.request
@@ -270,7 +269,7 @@ def custom_id(family: ValidatorFamily, candidate_id: str) -> str:
     return f"{family.name}-{digest}"
 
 
-def run_protocol(catalog: Mapping[str, Any], *, requested: str | None = None) -> str:
+def run_protocol(catalog: Mapping[str, Any]) -> str:
     """The verdict protocol *this run* speaks, taken from its own candidates.
 
     Single-sourced from ``candidates.json`` on purpose.  Defaulting it from
@@ -286,45 +285,31 @@ def run_protocol(catalog: Mapping[str, Any], *, requested: str | None = None) ->
     recorded = catalog.get("protocol")
     if not recorded:
         raise BatchError(
-            "candidates.json records no protocol; regenerate the run with "
-            "`generate --protocol ...` so the rubric is pinned by the candidates themselves"
+            "candidates.json records no protocol; regenerate the run so its v2 rubric is pinned by the candidates"
         )
     speaks = str(recorded)
-    if requested is not None and requested != speaks:
-        raise BatchError(
-            f"--protocol {requested!r} contradicts candidates.json, which records {speaks!r}; "
-            "the candidates are the run's protocol, so drop the flag or regenerate the run"
-        )
+    try:
+        qual.require_protocol_v2(speaks)
+    except qual.QualificationError as error:
+        raise BatchError(str(error)) from error
     return speaks
 
 
 def protocol_verdicts(protocol: str) -> tuple[str, ...]:
-    """The verdict vocabulary one protocol admits, referenced not restated."""
+    """The verdict vocabulary the adopted protocol admits."""
 
-    if protocol == "v2":
-        return tuple(getattr(qual, "VERDICTS_V2", qual.VERDICTS))
+    qual.require_protocol_v2(protocol)
     return tuple(qual.VERDICTS)
 
 
 def distinguishing_verdicts(protocol: str) -> tuple[str, ...]:
-    """Verdicts this protocol admits and the other one does not.
+    """Verdicts whose presence proves the upload carries the full v2 rubric.
 
-    These are the tokens whose presence in a request body proves which rubric
-    the bytes actually carry.  Derived from the vocabularies rather than
-    written down, so a protocol change cannot leave the check asserting a
-    string nobody sends any more.
+    Derived from the canonical vocabulary rather than restated, so a protocol
+    change cannot leave this gate asserting a string nobody sends any more.
     """
 
-    other = "v1" if protocol == "v2" else "v2"
-    return tuple(sorted(set(protocol_verdicts(protocol)) - set(protocol_verdicts(other))))
-
-
-def _protocol_kwargs(function: Callable[..., Any], protocol: str) -> dict[str, str]:
-    """Pass ``protocol=`` only to a callee that takes it."""
-
-    if "protocol" in inspect.signature(function).parameters:
-        return {"protocol": protocol}
-    return {}
+    return tuple(sorted(protocol_verdicts(protocol)))
 
 
 # ---------------------------------------------------------------------------
@@ -376,9 +361,8 @@ def build_request(
     same thing in a batch receipt as in a serial one.
     """
 
-    system_text, user_text = qual.model_input_texts(
-        row.pair, **_protocol_kwargs(qual.model_input_texts, protocol)
-    )
+    qual.require_protocol_v2(protocol)
+    system_text, user_text = qual.model_input_texts(row.pair, protocol=protocol)
     body = qual._request_body(family, model_id, system_text, user_text)
     return BatchRequest(
         candidate_id=row.candidate_id,
@@ -405,10 +389,11 @@ def assert_payload_speaks(payload: bytes, protocol: str, *, rows: Sequence[Candi
     and it reads the bytes.
     """
 
+    qual.require_protocol_v2(protocol)
     if not rows:
         return
     text = payload.decode("utf-8")
-    system, _user = qual.model_input_texts(rows[0].pair, **_protocol_kwargs(qual.model_input_texts, protocol))
+    system, _user = qual.model_input_texts(rows[0].pair, protocol=protocol)
     # The system text appears JSON-escaped inside each line, so it is compared
     # in the encoding it is actually written in.
     escaped = canonical_json(system)[1:-1]
@@ -784,6 +769,7 @@ def receipt_from_result(
       reads either: ``reading_from_receipt`` yields nothing for both.
     """
 
+    qual.require_protocol_v2(protocol)
     url = family.base_url.rstrip("/") + "/chat/completions"
     # The same header shape the serial path records, run through the same
     # scrubber.  The credential is never put in to begin with: the batch job
@@ -814,8 +800,7 @@ def receipt_from_result(
         "transport_retries": 0,
         "vendor": family.vendor,
     }
-    if _serial_receipt_carries_protocol():
-        receipt["protocol"] = protocol
+    receipt["protocol"] = protocol
 
     response = result.get("response") if isinstance(result.get("response"), Mapping) else None
     error = result.get("error")
@@ -868,7 +853,7 @@ def receipt_from_result(
             "usage": {"completion_tokens": output_tokens, "prompt_tokens": input_tokens},
         }
     )
-    answer = qual._parse_answer(content, **_protocol_kwargs(qual._parse_answer, protocol))
+    answer = qual._parse_answer(content, protocol=protocol)
     if answer is None:
         receipt.update({"answer_text": content[:1000], "outcome": "unusable_answer"})
         return receipt
@@ -883,10 +868,6 @@ def _error_code(error: Any) -> str:
             if isinstance(value, str) and value:
                 return value
     return "BatchResultError"
-
-
-def _serial_receipt_carries_protocol() -> bool:
-    return "protocol" in inspect.signature(qual.validate_candidate).parameters
 
 
 def echo_check_passed(receipt: Mapping[str, Any]) -> bool:
@@ -1042,7 +1023,7 @@ def submit(
     one has not finished spending yet.
     """
 
-    speaks = protocol
+    speaks = qual.require_protocol_v2(protocol)
     sidecar = read_sidecar(sidecar_path)
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
     committed = committed_by_family(sidecar)
@@ -1246,10 +1227,11 @@ def collect(
     receipt to tell them apart.
     """
 
+    protocol = qual.require_protocol_v2(protocol)
     sidecar = read_sidecar(sidecar_path)
     for job in sidecar.get("jobs", ()):
         asked = str(job.get("protocol") or "")
-        if asked and asked != protocol:
+        if asked != protocol:
             raise BatchError(
                 f"job {job.get('jobId')} ({job.get('family')}) asked protocol {asked!r} but this run is "
                 f"{protocol!r}; move its sidecar aside rather than collecting answers to another question"
@@ -1307,7 +1289,7 @@ def collect(
                 receipt = receipt_from_result(
                     family=family,
                     model_id=str(job["modelId"]),
-                    protocol=str(job.get("protocol") or protocol),
+                    protocol=str(job["protocol"]),
                     row=row,
                     request=request,
                     result=parsed,

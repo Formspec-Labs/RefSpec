@@ -188,9 +188,9 @@ def _pair(sources, targets) -> qual.CandidatePair:
 def _reading(
     family: qual.ValidatorFamily,
     *,
-    verdict: str = "same_or_near_same",
+    verdict: str = "near_same",
     deterministic: bool = True,
-    protocol: str = "v1",
+    protocol: str = qual.PROTOCOL,
 ) -> qual.ValidationReading:
     return qual.ValidationReading(
         family=family,
@@ -231,87 +231,48 @@ def test_the_model_input_never_names_the_generation_hypothesis(sources, targets)
                     assert f'"{value}"' not in user_text
 
 
-def test_the_v2_input_context_seals_the_v2_rubric(sources, targets) -> None:
-    """The sealed input is "the exact model input" for whichever protocol ran.
-
-    Sealing v1 text for a v2 run would make every v2 bundle's provenance false
-    in the one field a reader consults to learn what the judge was asked, and
-    nothing downstream could detect it.
-    """
+def test_the_input_context_seals_the_v2_rubric(sources, targets) -> None:
+    """The sealed input is the exact v2 model input."""
 
     pair = _pair(sources, targets)
-    context = qual.input_context_artifact(pair, protocol="v2")
+    context = qual.input_context_artifact(pair)
     content = context.to_dict()["content"]
 
-    assert content["protocol"] == qual.MODEL_INPUT_PROTOCOL_V2
-    assert content["instructions"] == qual.instructions_text_v2()
-    assert all(verdict in content["instructions"] for verdict in qual.VERDICTS_V2)
-    system_text, user_text = qual.model_input_texts(pair, protocol="v2")
+    assert content["protocol"] == qual.MODEL_INPUT_PROTOCOL
+    assert content["instructions"] == qual.instructions_text()
+    assert all(verdict in content["instructions"] for verdict in qual.VERDICTS)
+    system_text, user_text = qual.model_input_texts(pair)
     assert system_text == content["instructions"]
     assert json.loads(user_text) == content["payload"]
 
 
-def test_the_v2_model_input_withholds_the_close_match_prior(sources, targets) -> None:
-    """v1 asks "is closeMatch safe?", so it shows the relation it is asking about.
-
-    v2 asks which of seven relations holds. The same field would be a standing
-    prior on the one axis v2 exists to measure, so v2 withholds it — while the
-    sealed candidate still records the hypothesis under test.
-    """
+def test_the_model_input_withholds_the_close_match_prior(sources, targets) -> None:
+    """The relation question must not reveal the generator's hypothesis."""
 
     for pair in qual.generate_candidate_pairs(sources, targets):
-        _, v1_user = qual.model_input_texts(pair)
-        _, v2_user = qual.model_input_texts(pair, protocol="v2")
-        assert json.loads(v1_user)["proposedRelation"] == qual.PROPOSED_RELATION
-        assert "proposedRelation" not in json.loads(v2_user)
-        assert qual.PROPOSED_RELATION not in v2_user
-        assert qual.PROPOSED_RELATION not in json.dumps(
-            qual.input_context_artifact(pair, protocol="v2").to_dict()
-        )
+        _, user = qual.model_input_texts(pair)
+        assert "proposedRelation" not in json.loads(user)
+        assert qual.PROPOSED_RELATION not in user
+        assert qual.PROPOSED_RELATION not in json.dumps(qual.input_context_artifact(pair).to_dict())
 
 
-def test_the_protocol_moves_v2_candidate_identity(sources, targets) -> None:
-    """A v2 candidate is a different candidate, not the same one relabelled.
-
-    Identity flows from the sealed input digest, and v2 seals a different rubric
-    and a different payload. If the two collided, one run could be presented as
-    the other and the receipts would corroborate it.
-    """
-
+def test_non_v2_protocol_is_not_a_supported_api_path(sources, targets) -> None:
     pair = _pair(sources, targets)
-    v1 = qual.assemble_candidate(
-        pair,
-        generated_at=GENERATED_AT,
-        readings=(_reading(qual.GEMINI_FAMILY), _reading(qual.OPENAI_FAMILY)),
-    )
-    v2 = qual.assemble_candidate(
-        pair,
-        generated_at=GENERATED_AT,
-        readings=(
-            _reading(qual.GEMINI_FAMILY, verdict="near_same", protocol="v2"),
-            _reading(qual.OPENAI_FAMILY, verdict="near_same", protocol="v2"),
-        ),
-    )
-
-    assert v1.candidate.identifier != v2.candidate.identifier
-    assert v1.candidate.to_dict()["inputContextDigest"] != v2.candidate.to_dict()["inputContextDigest"]
-    # The hypothesis under test is still recorded on both, uniformly.
-    assert v1.candidate.to_dict()["proposedRelation"] == qual.PROPOSED_RELATION
-    assert v2.candidate.to_dict()["proposedRelation"] == qual.PROPOSED_RELATION
-    v2_request = next(item for item in v2.artifacts if item.role == "validationRequest")
-    assert v2_request.to_dict()["content"]["protocol"] == qual.PROTOCOL_V2
-    assert all(record.to_dict()["verdictRelation"] == "near_same" for record in v2.validations)
+    with pytest.raises(qual.QualificationError, match="supports only 'v2'"):
+        qual.model_input_texts(pair, protocol="v1")
+    with pytest.raises(qual.QualificationError, match="supports only 'v2'"):
+        qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=(), protocol="v1")
 
 
-def test_a_candidate_takes_one_protocol_across_its_validations(sources, targets) -> None:
+def test_a_candidate_refuses_a_non_v2_reading(sources, targets) -> None:
     pair = _pair(sources, targets)
-    with pytest.raises(qual.QualificationError, match="one protocol"):
+    with pytest.raises(qual.QualificationError, match="supports only 'v2'"):
         qual.assemble_candidate(
             pair,
             generated_at=GENERATED_AT,
             readings=(
-                _reading(qual.GEMINI_FAMILY),
-                _reading(qual.OPENAI_FAMILY, verdict="near_same", protocol="v2"),
+                _reading(qual.GEMINI_FAMILY, protocol="v1"),
+                _reading(qual.OPENAI_FAMILY),
             ),
         )
 
@@ -539,7 +500,7 @@ def _chat_reply(content: Mapping[str, Any], *, prompt: int = 500, completion: in
     return 200, json.dumps(payload).encode("utf-8")
 
 
-def _answer(pair: qual.CandidatePair, verdict: str = "same_or_near_same") -> dict[str, Any]:
+def _answer(pair: qual.CandidatePair, verdict: str = "near_same") -> dict[str, Any]:
     return {
         "task_id": qual.task_id(pair),
         "verdict": verdict,
