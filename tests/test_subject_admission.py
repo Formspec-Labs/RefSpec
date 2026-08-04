@@ -31,6 +31,7 @@ from refspec.atlas.subject_admission import (
 from refspec.atlas.subject_emission import (
     SubjectEmissionError,
     SubjectEmissionPolicy,
+    SubjectEmissionPolicyResolution,
     build_subject_emission_policy,
     resolve_subject_emission_policy,
     subject_emission_eligibility,
@@ -570,6 +571,40 @@ def test_exact_output_grant_resolves_the_existing_source_identity() -> None:
     assert "LocalConcept" not in str(authorization)
 
 
+def test_subject_emission_resolution_is_resolver_only() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+    authorization = resolve_subject_emission_policy(
+        output_profile=_output_profile(policy),
+        policy=policy,
+        release=release,
+        admission_reviews=(review,),
+        subject_concept=review.subject_concept,
+        facet=FACET,
+        assignment_role=ASSIGNMENT_ROLE,
+        intended_product_use=PRODUCT_USE,
+        resource_route="document",
+    )
+
+    with pytest.raises(SubjectEmissionError, match="only be created by resolve_subject_emission_policy"):
+        SubjectEmissionPolicyResolution(
+            subject_concept=authorization.subject_concept,
+            facet=authorization.facet,
+            assignment_role=authorization.assignment_role,
+            intended_product_use=authorization.intended_product_use,
+            subject_concept_release=authorization.subject_concept_release,
+            admission_review=authorization.admission_review,
+            emission_policy=authorization.emission_policy,
+            output_profile=authorization.output_profile,
+            eligibility=authorization.eligibility,
+            output_permission=authorization.output_permission,
+        )
+
+    with pytest.raises(SubjectEmissionError, match="only be created by resolve_subject_emission_policy"):
+        replace(authorization, output_permission=authorization.output_permission)
+
+
 def test_admission_policy_alone_never_grants_product_use() -> None:
     release = _release()
     review = _review(release)
@@ -812,7 +847,7 @@ def test_subject_emission_policy_and_authorization_are_deeply_immutable() -> Non
         policy.record["eligibility"][0]["subjectConcept"] = "urn:ref:changed"  # type: ignore[index]
     with pytest.raises(TypeError):
         authorization.output_permission["acceptedOutputUse"] = False  # type: ignore[index]
-    with pytest.raises(SubjectEmissionError, match="output grant is inconsistent"):
+    with pytest.raises(SubjectEmissionError, match="only be created by resolve_subject_emission_policy"):
         replace(
             authorization,
             output_permission={

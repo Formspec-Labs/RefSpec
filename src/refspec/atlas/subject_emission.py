@@ -412,9 +412,12 @@ def build_subject_emission_policy(
     return policy
 
 
-@dataclass(frozen=True, slots=True)
+_RESOLUTION_CONSTRUCTION_TOKEN = object()
+
+
+@dataclass(frozen=True, slots=True, init=False)
 class SubjectEmissionPolicyResolution:
-    """One exact policy/grant resolution, short of accepted assignment use."""
+    """Resolver-issued policy/grant result, short of accepted assignment use."""
 
     subject_concept: str
     facet: str
@@ -427,6 +430,43 @@ class SubjectEmissionPolicyResolution:
     eligibility: Mapping[str, Any]
     output_permission: Mapping[str, Any]
     resolution: str = "productPolicyAuthorized"
+
+    def __init__(
+        self,
+        *,
+        subject_concept: str,
+        facet: str,
+        assignment_role: str,
+        intended_product_use: str,
+        subject_concept_release: Mapping[str, Any],
+        admission_review: Mapping[str, str],
+        emission_policy: Mapping[str, str],
+        output_profile: Mapping[str, str],
+        eligibility: Mapping[str, Any],
+        output_permission: Mapping[str, Any],
+        resolution: str = "productPolicyAuthorized",
+        _construction_token: object | None = None,
+    ) -> None:
+        if _construction_token is not _RESOLUTION_CONSTRUCTION_TOKEN:
+            raise SubjectEmissionError(
+                "SubjectEmissionPolicyResolution can only be created by "
+                "resolve_subject_emission_policy()"
+            )
+        for field, value in (
+            ("subject_concept", subject_concept),
+            ("facet", facet),
+            ("assignment_role", assignment_role),
+            ("intended_product_use", intended_product_use),
+            ("subject_concept_release", subject_concept_release),
+            ("admission_review", admission_review),
+            ("emission_policy", emission_policy),
+            ("output_profile", output_profile),
+            ("eligibility", eligibility),
+            ("output_permission", output_permission),
+            ("resolution", resolution),
+        ):
+            object.__setattr__(self, field, value)
+        self.__post_init__()
 
     def __post_init__(self) -> None:
         subject_concept = _require_iri(self.subject_concept, "subject_concept")
@@ -602,6 +642,7 @@ def resolve_subject_emission_policy(
             Mapping[str, Any],
             deep_freeze_json(output_permission),
         ),
+        _construction_token=_RESOLUTION_CONSTRUCTION_TOKEN,
     )
 
 
