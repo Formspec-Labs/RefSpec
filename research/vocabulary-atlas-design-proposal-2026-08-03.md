@@ -2,7 +2,7 @@
 
 # Vocabulary Atlas Design Proposal — from three sources to the full registry
 
-> **Status:** Revised proposed design; not adopted
+> **Status:** Implemented Atlas 2.0 baseline; product adoption remains separate
 >
 > **Revision (2026-08-04):** The ring model is restated. Rings name
 > semantic kinds — subject, entity, value, and legalIdentity — never
@@ -17,6 +17,17 @@
 > revision amends the synthesis's §5 planning classes, §11 CRS ruling, and
 > separate-publication boundary; the evidence machinery remains.
 >
+> **Implementation (2026-08-04):** RefSpec now implements the shared four-ring
+> foundation, exact source and managed concept releases, caller-supplied pass-1
+> selection receipts, pass-2 frontier cutting, typed relation and proof bundles,
+> canonical three-file Atlas 2.0 distributions, ring and subject-module views,
+> generic queries, subject admission and emission eligibility, new-concept
+> authoring-transition receipts, immutable publication decisions, and static
+> publication. Atlas 1 runtime, fixtures, and compatibility paths are retired.
+> Product-scoped content selection, non-subject proof adapters and source-specific
+> relation generation, fuller entity and legal lifecycle semantics, and the §10
+> experiments remain open work rather than hidden implementation claims.
+>
 > **Standing:** Rules and structure are this document's durable content.
 > Counts and build references are dated snapshots of an artifact set in
 > motion; `output/` is a workbench, and decision ceremony binds at
@@ -30,7 +41,7 @@
 > classes, CRS identity ruling, and separate-publication boundary; its
 > verified evidence and unaffected decisions remain useful.
 >
-> **Builds on:** [Atlas binding 1.0](../bindings/atlas/1.0/README.md) ·
+> **Builds on:** [Atlas binding 2.0](../bindings/atlas/2.0/README.md) ·
 > [Source Vocabulary Catalog](source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) ·
 > [Source and Document Type Matrix](source-document-type-matrix-2026-07-28.md) ·
 > [Concept Tagging Architecture Proposal](concept-tagging-architecture-proposal-2026-07-28.md) ·
@@ -40,12 +51,13 @@
 >
 > **Addendum:** [What this proposal does not cover](vocabulary-atlas-design-proposal-addendum-2026-08-03.md) —
 > evidence-exceeding commitments, demands assigned to other layers, and the
-> successor proposals still to write (concept staging, entity spine, legal
-> identity edges).
+> remaining production ring work (entity spine and legal-identity edges).
+> New-concept staging now has an executable governance path.
 
 ## 1. The problem
 
-Atlas 1.0 works. It is a byte-reproducible two-file publication (manifest +
+Atlas 1.0 established that a byte-reproducible static publication could work;
+it is now historical evidence, not an active runtime. It was a two-file publication (manifest +
 blank-node-free N-Quads) with a hard authority split between copied release
 facts and replaceable machine analysis, a two-independent-machines gate for
 `searchOnly` mappings, projections, an SSSOM export, and a static explorer.
@@ -109,28 +121,29 @@ ladder from registry reader to atlas member.
 
 ## 2. Design principles (inherited, then new)
 
-Unchanged from atlas 1.0 and the catalog:
+Retained constraints, expressed by Atlas 2.0:
 
 - The atlas is a publication format. Concept identity is never minted
   silently: a source-scoped concept exists only under a named minting rule
   with a pinned capture (§3), publisher identity is never fabricated, and
   every membership claim names one exact release.
 - Two named graphs with policies checked by exact equality.
-- Equal labels are discovery hints (`atlas:LabelCluster`), never mappings.
-- Human feedback is append-only and non-authorizing; machine agreement is
-  not human review.
-- Deterministic bytes: no blank nodes, sorted lines, independent SHA-256
-  pins for manifest and quads.
+- Equal labels support explicit-ring discovery only. Atlas 2.0 stores no
+  durable label-cluster analysis, and label equality never creates identity or
+  a mapping.
+- Review is a typed evidence or governance record. It never rewrites source
+  identity, and machine agreement is not human review.
+- Deterministic bytes: no blank nodes, sorted lines, one independently trusted
+  manifest digest, and exact manifest pins for the scope and N-Quads files.
 
 New, motivated by the external-research synthesis and the registry's growth:
 
-- **Graphs partition by scope, not authority.** Release-local facts vs
-  cross-release records (candidates, mappings, validations, attestations,
-  discovery aids); authority and epistemic status are properties of each
-  cross-release record — carried by its origin, basis, attestation, and
-  adoption — never of the graph that holds it. Atlas 1.0 framed the
-  analysis graph as replaceable machine analysis; this reinterpretation is
-  the change that admits §6's evidence classes.
+- **Graphs partition records by scope, not authority.** `releaseFacts` carries
+  concept releases, concepts, and release records. `crossRelease` carries only
+  closed relation bundles, evidence assertions, mapping assertions, and machine
+  proofs. Raw candidates and validation receipts remain pinned proof inputs;
+  label discovery remains disposable. Evidence class and basis state how each
+  assertion arose. Neither graph grants product permission.
 - **Map wide, emit narrow.** The subject ring holds a wide mapping tier and
   a curated emit tier. Identity and mapping access do not authorize emitted
   subject assignments.
@@ -170,9 +183,12 @@ their own predicates and checks.
 Three further rules complete the model:
 
 - **The subject ring is a two-tier atlas.** Its wide mapping tier contains
-  pinned source releases, bridges, decoys, and staged proposals. Its
-  curated emit tier contains only concepts admitted by named review against
-  an exact release. The `core`, `specialist`, and `bridge` participation
+  pinned source and managed releases, bridges, decoys, and mapping assertions
+  over released concepts. Concept proposals and authoring-transition receipts
+  stay outside the canonical atlas; a new RefSpec concept enters only through
+  an exact complete managed release. The curated emit tier contains only
+  concepts admitted by named review against an exact release. The `core`,
+  `specialist`, and `bridge` participation
   classes describe how a subject release may contribute; a subject source may
   have no participation class while it remains evidence-only. Participation
   is planning metadata, not permission. For emission, a pinned
@@ -315,9 +331,9 @@ shared record foundation rather than creating separate identity systems:
 
 | Ring publication | Contents (readers) | Ring-specific semantics | Status |
 | --- | --- | --- | --- |
-| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets. Identity links use the shared evidence- and mapping-assertion shapes with entity-specific predicates and merge checks — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches bound by an entity proof adapter, and human-reviewed merges. Name equality never merges entities. | Ring-specific relation and proof design unwritten; the shared foundation is fixed here (matrix `T3-04` anticipates it) |
-| **Code ledgers** | NAICS/PSC, fiscal codes, filing types, genre and process values, all native controls, cross-state statistical crosswalks (`census_gov_finance_codes`) | Versioned value sets with effective dates; raw values preserved exactly; reviewed edition crosswalks only where needed (NAICS 2017→2022, nature-of-suit spelling canonicalization) | Essentially built (`source_controlled_resource`, `regulatory_native_controls`) |
-| **Legal identity graph** | CFR structure, statutes and Public Laws, RINs, docket and bill identifiers, citations | Deterministic parsed identity; typed edges (*cites*, *amends*, *authorizes*, *implements*) with point-in-time versions — the ELI analogue | Half-built (identifiers and citations exist as fields; the typed-edge model needs design) |
+| **Entity spine** | agencies (`federal_hierarchy_orgs`), award entities (`uei_cage_identifiers`), committees (`fec_committee_codes`), providers (`nppes_npi_identifiers`), substances (`epa_srs_substances`), courts (`courtlistener_codes`), geography identifier grammar (`census_geo_codes`) | Nodes carry typed identifier sets. Identity links use the shared evidence- and mapping-assertion shapes with entity-specific predicates and merge checks — publisher-asserted crosswalks (SAM's own UEI↔CAGE), machine-suggested matches bound by an entity proof adapter, and human-reviewed merges. Name equality never merges entities. | Initial predicates and safety checks implemented; production spine, lifecycle rules, source-specific link generation, and proof adapters remain open (matrix `T3-04` anticipates them) |
+| **Code ledgers** | NAICS/PSC, fiscal codes, filing types, genre and process values, all native controls, cross-state statistical crosswalks (`census_gov_finance_codes`) | Versioned value sets with effective dates; raw values preserved exactly; reviewed edition crosswalks only where needed (NAICS 2017→2022, nature-of-suit spelling canonicalization) | Ledgers, value predicates and context checks, and SSSOM interchange implemented; reviewed source-specific crosswalks remain content work |
+| **Legal identity graph** | CFR structure, statutes and Public Laws, RINs, docket and bill identifiers, citations | Deterministic parsed identity; typed edges (*cites*, *amends*, *authorizes*, *implements*) with point-in-time versions — the ELI analogue | Predicate and effective-date safety floor implemented; source-backed edge generation, lifecycle rules, and proof design remain open |
 
 A fourth category rides alongside the ledgers but is metadata, not a ring:
 **source-assigned topic evidence** — GAO topic assignments, CBO topic
@@ -333,8 +349,9 @@ core-subject tag.
 The atlas identifies one four-ring scope from exact ring releases.
 Consumers may read a ring projection or compose several rings without
 inventing identity, provenance, evidence, or lifecycle rules. Trust remains a
-property of each record's origin, basis, attestation, and adoption; it does
-not require a separate foundation for each ring.
+property of each record's evidence class, basis, asserted authority, proof
+references, and adoption links; it does not require a separate foundation for
+each ring.
 
 One boundary clarified here because it is easy to misread: DNB's lesson —
 entities missing from consideration can force a classifier to snap onto a
@@ -359,15 +376,15 @@ closed, machine-validated vocabulary (`planned`, `deferred`, `rejected`,
 participation and status are planning facts. Only a product policy activates
 a use.
 
-**Ring semantics must be checkable against reader evidence.** Extend the
-shared `ResourceUse` vocabulary with factual uses such as
-`mappingReference`, `candidateGeneration`, and `deterministicMetadata`.
-The atlas index reconciles each reader's declared facet and intended uses
-against its semantic ring and subject participation class. A mismatch fails
-the build.
+**Ring semantics are checkable against reader evidence.** The shared
+`ResourceUse` vocabulary now includes factual uses such as
+`mappingReference`, `candidateGeneration`, and `deterministicMetadata`. The
+atlas index records each reader's facet, intended uses, semantic ring, and
+subject participation class under closed vocabularies. Unsupported
+combinations and permission-shaped fields fail validation.
 
-Source packages carry no permission-shaped fields. Remove
-`candidate_use_authorized` rather than making it optional or assigning false
+Source packages carry no permission-shaped fields. Shared models reject
+`candidateUseAuthorized` rather than making it optional or assigning false
 outside the subject ring. A source capture reports what the publisher data is
 and how RefSpec can process it. For subject emission, a pinned
 `SubjectEmissionPolicy` records eligibility and an active `OutputProfile` that
@@ -381,8 +398,8 @@ Full ingestion of LCSH or FAST is prohibited by scale and pointless by use.
 Instead, a bridge release entering the atlas is a **frontier subset** whose
 selection policy is declared in the release and whose coverage is accounted
 (`source_observed_count` and `excluded_count` exist today in the
-source-capture bundle model; the frontier compiler carries the same
-accounting into the managed-release layer, where it does not yet exist).
+source-capture bundle model; the implemented pass-2 cutter carries the same
+facts into the source-concept release's sealed `scopeAccounting`).
 A bridge concept belongs to the frontier when it:
 
 1. matches a selection predicate against core and specialist concepts (lexical and
@@ -391,14 +408,18 @@ A bridge concept belongs to the frontier when it:
 3. lies within a declared small number of `skos:broader` steps of (1) or
    (2) — hierarchy context for judges and consumers, bounded and stated.
 
-**The build is two-pass.** An atlas candidate requires both endpoints in
-release facts, so candidate generation cannot itself select the release it
-presupposes. Pass 1 runs the selection predicates against the full source
-through its reader and emits a canonical **selection receipt** — predicates,
-versions, per-concept justification. Pass 2 cuts the complete frontier
-release from that receipt, seals it, and only then generates mapping
-candidates against the sealed release. The `lcsh_topical` reader's
-`max_records` bound is a development sampling tool, not a selection policy.
+**The build model is two-pass; RefSpec currently implements the pass-1 receipt
+boundary and the pass-2 cutter.** An atlas candidate requires both endpoints in
+release facts, so candidate generation cannot select the release it
+presupposes. Pass 1 remains caller-supplied: a source-specific selector runs
+the selection predicates against the full source and supplies the selected and
+unselected observations, hierarchy-edge dispositions, predicate versions, and
+per-concept justifications. `SelectionReceipt` validates and seals that closed
+accounting. Pass 2 cuts the complete frontier release from the receipt, seals
+it, and only then permits mapping-candidate generation against the release. A
+reusable pass-1 predicate compiler remains open content work. The
+`lcsh_topical` reader's `max_records` bound is a development sampling tool, not
+a selection policy.
 
 **Completeness is scoped, and the scope is declared.** Three levels are
 distinct and never conflated: *source coverage* (was the full publisher
@@ -412,11 +433,11 @@ the complete publisher vocabulary, a verified subset, or a policy-selected
 frontier. "Not in the release" never means "not in the source vocabulary."
 
 **Hierarchy at the frontier boundary is handled explicitly.** Cross-release
-broader edges are build-fatal, so when a selected concept's broader
-concept lies beyond the permitted depth, the compiler does one of three
-things: includes the broader concept, retains an explicitly external
-reference, or omits the edge and records the truncation in the selection
-receipt. A source-stated hierarchy edge never silently disappears.
+broader edges are build-fatal, so the caller-supplied pass-1 result handles a
+selected concept whose broader concept lies beyond the permitted depth in one
+of three ways: include the broader concept, retain an explicitly external
+reference, or omit the edge and record the truncation in the selection receipt.
+A source-stated hierarchy edge never silently disappears.
 
 **Negative knowledge is bounded.** Absence from a frontier is not evidence
 the source lacks the concept; absence from the candidate set is not
@@ -430,13 +451,10 @@ through the reader for future frontier growth. Frontier releases are
 re-cut, not mutated: a new selection receipt yields a new release with its
 own pins.
 
-Label-cluster policy changes with the participation classes: clusters are
-computed only
-between core and specialist schemes and the frontier — never bridge ×
-bridge — and are
-dropped from the default consumer projection (in the superseded two-edition
-build, clusters were 69% of bytes with nothing reading them; the
-`consumer-read-closure` projection already excludes them).
+Atlas 2.0 does not publish label clusters. `VocabularyAtlasQueries` performs
+label discovery only when the caller names a semantic ring. Any later search
+index may compute disposable label groupings from a selected ring or module,
+but those groupings remain discovery aids and never enter the canonical atlas.
 
 ## 5. Crosswalk topology: hub-and-spoke, not pairwise
 
@@ -459,51 +477,54 @@ binding constraint on scheduled scale-out is gate quality, not budget,
 which is why §7 precedes it.
 
 Transitive claims across the hub (`A→LCSH→B`) are never materialized as
-mappings; they may generate *candidates* for direct qualification, which is
-exactly the discovery-hint role label clusters already play. This
-prohibition covers typed relations: no relation algebra composes chains
-into assertions (`broadMatch` ∘ `broadMatch` is a candidate generator, not
-a `broadMatch`), and `adjudicatedRelation` annotations (§6) are the
-highest-quality hub hints precisely because they stay hints.
+mappings; they may generate disposable *candidates* for direct qualification.
+Ring-scoped label discovery and direct `skos:relatedMatch` assertions may also
+inform candidate generation, but neither a hint nor a chain becomes a mapping
+automatically. No relation algebra composes chains into assertions
+(`broadMatch` ∘ `broadMatch` is a candidate generator, not a `broadMatch`). A
+unanimous Crosswalk v2 `related` verdict may support an ordinary
+`skos:relatedMatch` assertion with closed evidence. A nonqualifying result
+remains only in its pinned Crosswalk source; it never becomes an atlas
+annotation.
 
 ## 6. Typed mapping-evidence classes
 
-The analysis graph currently admits one origin: machine-qualified
-(`rkaf:aiSuggested` + `rkaf:statisticalInference`, two independent
-validators, `searchOnly`). Two real cases already overflow this:
+Atlas 2.0 implements typed `EvidenceAssertion` classes on the shared four-ring
+foundation. Each assertion records how evidence arose and derives a safety
+ceiling; the class never grants product permission. Two real cases motivated
+the model:
 
 - The FR×ICPSR run completed the full two-family gate (730/730 calls, 119
   qualified; §1). During an interim operator pause at 96 calls, 122
   single-model-reviewed pairs were adopted into a development-only concept
-  bridge — which the bridge schema can only mislabel as
-  `humanAsserted`/`editorialAssertion`, since it has no slot for
-  machine review adopted by operator direction. The sealed run supersedes
-  the bridge's operational role: its target state is historical evidence,
-  its 122 adoption events retained as annotations on candidates that now
-  carry full two-machine adjudications.
+  bridge. That older bridge schema mislabeled their origin as
+  `humanAsserted`/`editorialAssertion` because it had no slot for machine review
+  adopted by operator direction. Atlas 2.0 represents the two facts separately
+  as `machineReviewed` and `operatorAdopted` evidence. The sealed run supersedes
+  the bridge's operational role; the bridge remains historical evidence.
 - FAST records carry their LCSH source headings — publisher-asserted
   derivation edges that need no model calls at all — and the deterministic
-  candidate generator itself is declared `aiModel` for lack of an honest
-  value.
+  Crosswalk candidate generator still declares `aiModel` for lack of an honest
+  candidate-generator class. §7 keeps that candidate-provenance correction
+  open.
 
-Format 1.1 therefore adds explicit origin classes, each with a safety ceiling
+Atlas 2.0 defines these evidence classes, each with a derived safety ceiling
 that limits what an exact product policy may select:
 
 | Class | Origin / basis | Ceiling | Example |
 | --- | --- | --- | --- |
 | `machineQualified` | subject-only `CrosswalkBundle` v2 proof derived from one exact candidate, its selected sealed question, every supporting validation, and an independent-validator witness | `searchOnly` | current qualified subject mappings |
 | `machineReviewed` (candidate provenance, not mapping support) | one deterministic supporting `CrosswalkBundle` v2 validation and its verdict-derived relation | n/a until directly adopted | ICPSR interim reviews |
-| `publisherAsserted` | `rkaf:imported` / `rkaf:sourceExplicit`, pinned source bytes | `searchOnly` | FAST→LCSH derivation; MeSH↔LCSH published alignments |
+| `publisherAsserted` | `sourceExplicit` or `publisherCrosswalk`, pinned source bytes | `searchOnly` | FAST→LCSH derivation; MeSH↔LCSH published alignments |
 | `operatorAdopted` | named operator directly adopts one `machineReviewed` fact; adoption chains are forbidden | `localOperationalUse`, never atlas-qualified | ICPSR bridge v2 |
 | `humanReviewed` | named reviewer, evidence reference | may support a policy choice beyond `searchOnly` after the named governance gates pass | zero rows today; fixtures required |
-| `ruleGenerated` (candidate provenance, not a mapping class) | deterministic generator, honest `generatorKind` | n/a | current lexical candidate generator |
+| `ruleGenerated` (candidate provenance, not mapping support) | deterministic generator and exact inputs | n/a | target evidence shape for a corrected lexical candidate generator |
 
-These classes are immutable `EvidenceAssertion` record shapes. Mapping
-publications still use the applicable Rulespec origin and basis values; the
-classes do not mint replacement mapping-origin literals. Operator adoption
-adds a separate record without rewriting machine provenance, so an operator
-can adopt a single-model review without mislabeling where the judgment came
-from.
+These classes are immutable `EvidenceAssertion` record shapes. A
+`MappingAssertion` cites their content-derived identifiers; it does not copy or
+replace their origin. Operator adoption adds a separate record without
+rewriting machine provenance, so an operator can adopt a single-model review
+without mislabeling where the judgment came from.
 
 All rings use the shared content-derived `MachineEvidenceProof` pin shape and
 the `RelationMachineProofSource` adapter interface. RefSpec code must register
@@ -550,22 +571,17 @@ measures. The motivating evidence: 752 of 2,190 v1 validations (34%) answered
 binary verdict discarded — read honestly, roughly 660 state a usable
 direction or association and the rest predict nothing.
 
-**The discovery ladder has three rungs, each with its own job.** Label
-clusters are lexical hints — never mappings. `atlas:adjudicatedRelation`
-annotations (sealed when two machines agree on `related` with no mapping
-emitted) are *semantically adjudicated* hints — typed associative
-knowledge below mapping status, and the preferred generator of hub-spoke
-candidates and frontier hierarchy context, since they carry two-machine
-judgment where clusters carry only string equality. Qualified mappings
-are assertions. Nothing on a lower rung ever silently becomes an upper
-rung. One visibility boundary holds today: adjudicated-`related`
-annotations are bundle- and analysis-internal — the consumer projection's
-keep-rule roots on qualified mappings and drops them, and the explorer
-draws every `notEligible` candidate alike. Producer-side discovery reads
-the full atlas and gets their value now; consumer visibility waits on a
-versioned `CONSUMER_READ_CLOSURE_V2`, a separate and deliberate decision.
+**Discovery and assertion remain separate.** Ring-scoped label search,
+source or publisher links, and candidate generators produce disposable hints
+or pinned proof inputs. Only a closed `MappingAssertion` supported by
+admissible `EvidenceAssertion` records enters `crossRelease`. A unanimous
+Crosswalk v2 `related` verdict may support `skos:relatedMatch`; rejected,
+abstained, or disagreeing candidates remain outside the atlas. Atlas 2.0
+defines no label-cluster record, `adjudicatedRelation` annotation, analysis
+graph, or consumer-read-closure policy. Ring and module views inherit closed
+assertions from their verified parent; products apply their own policy.
 
-**Machine `exactMatch` is not identity.** An adjudicated `exactMatch`
+**Machine `exactMatch` is not identity.** A machine-qualified `exactMatch`
 keeps its eligibility ceiling, never merges concepts, and asserts nothing
 beyond retrieval interchangeability. One designed exception: `same` is
 the only verdict that may ever feed a **future equivalence-clustering
@@ -601,27 +617,29 @@ No evidence class authorizes emit-side use. `humanReviewed` is the only class
 that may satisfy a governance gate above the `searchOnly` ceiling; an exact
 product policy still activates the use.
 
-## 7. Qualification — protocol v2 baseline, format 1.1 ahead
+## 7. Qualification — Crosswalk v2 only
 
-The gate's protocol baseline is **v2**, sealed under binding amendment
-`2026-08-03-relation-adjudication`: relation-adjudicating verdicts (§6),
-each bundle version-homogeneous at `schemaVersion` 2.0 — a bundle never
-mixes versions, a build may mix bundles — validations carrying
-`verdictRelation` cross-checked at create and open, and v1 bundles still
-openable and byte-stable. The manifest's eligibility policy string is
-unchanged because that field set is closed on both sides and a value
-change is a binding version bump (REF-009, REF-011) — not for asset
-stability, which this change never had: `atlas/model.py` sits inside the
-implementation pin, so every atlas id moved regardless. A v2 run receipt
-records its `protocol` and the eligibility policy
-`twoIndependentMachinesRelationAgreement`; v2 seals a different rubric
-and payload, so a v2 candidate is a different candidate, generated per
-protocol. All three pairs re-ran under v2 on 2026-08-04 through the
-batch path (~$1.28 total): FR×ELSST qualified 185/365 (29 `exactMatch`,
-81 `closeMatch`, 25 `broadMatch`, 50 `narrowMatch`, plus 29
-adjudicated-`related` annotations), FR×ICPSR 196/365, ELSST×ICPSR
-183/365 — a v2 bench build carries **564 typed `searchOnly` mappings**
-over 1,095 candidates and 2,190 validations. Cross-version comparison
+The runtime opens only Crosswalk **v2** bundles. Every bundle has exact
+`schemaVersion` 2.0, and every validation carries a `verdictRelation` that
+`CrosswalkBundle.create` and `.open` cross-check against its outcome. Atlas 1
+v1 bundles remain historical evidence; no compatibility path opens them. A
+selected machine-qualified proof pins the policy
+`https://refspec.org/policies/two-independent-machines-relation-agreement-v2`.
+The Atlas manifest has no eligibility-policy field: its fixed policies describe
+graph partition, record encoding and indexing, label equality, and the external
+product-permission boundary. A v2 run receipt records its protocol. The sealed
+rubric and payload are part of the evidence, so a v2 candidate differs from a
+candidate produced under another protocol.
+
+All three pairs re-ran under v2 on 2026-08-04 through the batch path (~$1.28
+total). FR×ELSST produced 185 mappings over 365 candidates (29 `exactMatch`, 81
+`closeMatch`, 25 `broadMatch`, and 50 `narrowMatch`) plus 29 unanimous
+`related` groups retained in the run evidence; the current proof adapter
+derives `skos:relatedMatch` when such a group is selected as qualifying, never
+an `adjudicatedRelation` annotation. FR×ICPSR produced 196 mappings, and
+ELSST×ICPSR produced 183. The dated bench evidence therefore carries **564
+typed `searchOnly` mappings** over 1,095 candidates and 2,190 validations.
+Cross-version comparison
 uses `qualifiedAsSubstitutable` (`exactMatch` + `closeMatch` only):
 v2's `qualified` includes directional relations and is not comparable
 to v1's. The redefined control floor — the sibling distractor is a
@@ -640,15 +658,16 @@ at submit (a batch cannot be stopped mid-flight), batch-only provenance
 in a sidecar, and missing results left unreceipted so resubmission
 re-asks.
 
-The items below are the **format 1.1** workstream — ordered prerequisites,
-drawn from the pilots' findings, before the emit spoke runs at registry
-scale:
+The items below are the remaining qualification workstream — ordered
+prerequisites drawn from the pilots' findings before the emit spoke runs at
+registry scale. Atlas 2.0 solves the distribution-shape items; it does not
+pretend to solve validator independence or the hierarchy experiment:
 
 1. **Provider binding.** `endpointHost` sealing is evidence, not
    enforcement; the executed attack (two cosmetic families, one endpoint)
    still qualifies a mapping. Bind the provider IRI to something the
-   producer cannot freely choose. This is a format change; do it in 1.1,
-   not after 30 sources are in. The mechanism: **signed validator
+   producer cannot freely choose. This requires a future Crosswalk schema
+   revision before 30 sources are in. The mechanism: **signed validator
    attestations** under an authority policy — keys bound to independence
    groups, one canonical signed receipt per validation. Provider API
    responses carry no signatures, so attestation binds the runner, not the
@@ -673,14 +692,13 @@ scale:
 3. **Honest candidate classes.** Add same-vocabulary distractors (currently
    inexpressible) and `ruleGenerated` provenance; keep negative-control
    classes mandatory in every run.
-4. **Un-truncate sealed reasons** (400-char loss already observed on 4/729).
-5. **Consumer/format lockstep.** The vendored reader refuses unknown
-   manifest count fields (`hierarchyEdges` made an atlas inadmissible; the
-   projection asset-id collision triggered the corruption message). Version
-   the manifest schema explicitly, teach the consumer the projection
-   manifest shape, and land the two missing conformance fixtures (a
-   projection dropping a consumer-read fact must refuse; one claiming an
-   unrelated parent must refuse) before any new fields ship.
+4. **Un-truncate sealed reasons — implemented.** Crosswalk v2 now preserves
+   complete sealed reasons and verifies them on reopen.
+5. **Consumer/format lockstep — implemented at the RefSpec file boundary.**
+   Atlas 2.0 has closed canonical and derived schemas, exact parent pins, and
+   tests that refuse incomplete relation closure or an unrelated parent.
+   Product integration must consume those published files; it does not revive
+   an Atlas 1 reader.
 
 ## 8. Topology and distribution: one canonical atlas, many projections
 
@@ -692,16 +710,19 @@ enforce predicate semantics. Subject mapping artifacts still require both
 endpoints in complete subject releases; entity, value, and legalIdentity
 relations apply their own closure rules.
 
-Consumers receive only the projections they need. The distribution
+Consumers receive only the views they need. The distribution
 measurement showed that the full subject artifact cost 4.5–5× the bytes for
-zero additional consumer reads and opened more slowly. Named projection
-policies include:
+zero additional consumer reads and opened more slowly. Atlas 2.0 registers two
+closed selector families:
 
-- `consumer-read-closure` (exists) — the tagging consumer's contract.
-- `ring:<semantic-ring>` (new) — one complete ring-specific read view.
-- `module:<specialist-source>` (new) — one specialist module + the core +
-  their qualified mappings, for domain-scoped deployments.
-- `explorer` (exists via bounded publication view).
+- `ring:<semantic-ring>` — one complete ring-specific view.
+- `module:<specialist-source>` — one specialist subject module plus all
+  subject-core releases and their closed relations.
+
+There is no Atlas 2.0 `consumer-read-closure` compatibility policy. Canonical
+cross-release records are already closed assertions, and product permission
+stays in separately pinned product policy. The static explorer is a bounded
+publication view, not another semantic selector.
 
 SSSOM export is an interoperability surface for subject mappings and value
 crosswalks, not a universal serialization for all four rings. Entity identity
@@ -728,14 +749,17 @@ one digest-pinned distribution whose manifest states that SSSOM rows are
 interoperability views and proof facts come from the pinned machine proof —
 product use requires the sidecar and the product's own policy.
 
-**Publication is a decision, not a configuration.** Every atlas build and
-projection cut is authorized by an immutable publication-decision record:
-the portfolio-index snapshot used for planning, exact release and
-crosswalk inputs, selection and qualification policies, intended scope,
-decision actor and time, any development-only or rights exceptions, the
-resulting atlas identity, and supersession history. Three control planes,
-one decision each: publication (this record), enrichment (the output
-profile), search traversal (the retrieval policy).
+**Publication is a decision; generation is non-authorizing.** Atlas builds and
+projection cuts are reproducible workbench results and require no publication
+decision. Publishing either result requires a downstream immutable
+publication-decision record. The record pins the exact generated result and
+its Atlas scope, thereby binding the planning-index snapshot and exact release
+and relation-bundle inputs. It also records selection, qualification, and — for
+a projection — projection policies; intended scope; decision actor and time;
+development-only or rights exceptions; and supersession history. Three control
+planes remain separate: the publication decision controls publication, the
+output profile controls enrichment, and the retrieval policy controls search
+traversal.
 
 **Bench and product scopes are named, never implied.** Every build to date
 is bench material. The first product-scoped canonical atlas contains the
@@ -756,27 +780,34 @@ inventoryOnly → evidenceOnly → verifiedDistribution → source concept relea
 ```
 
 The implemented artifacts cover evidence, verified distributions,
-source-concept releases, ring placement, shared relation bundles, and
+source-concept releases, ring placement, sealed frontier releases, shared
+relation bundles, and
 subject admission for both source-scoped concepts and RefSpec-authored
 `rkaf:LocalConcept` members of exact managed releases. One discriminated
 `subjectConceptRelease` pin preserves the original identity and release
 authority on both paths. Managed admission requires complete membership, a
 pinned subject-ring assignment, and rights metadata bound to the exact
-Rulespec graph; the release or a mapping alone admits nothing. Entity and
-legal-identity review designs remain unwritten. For subject emission, a pinned
+Rulespec graph; the release or a mapping alone admits nothing. Initial entity
+and legal predicates and context checks exist; source-specific review,
+lifecycle, and proof designs remain open. For subject emission, a pinned
 `SubjectEmissionPolicy` records eligibility and an active `OutputProfile` that
 names that exact policy grants permission; retrieval policy separately grants
-search use.
-Proposed order of the next work:
+search use. Canonical and derived Atlas 2.0 distributions, generic queries,
+new-concept authoring receipts, publication decisions, and file-only static
+publication are also implemented.
+
+Content and product work proceeds in this order:
 
 1. **CRS Legislative Subject Terms + Policy Areas → source-scoped concept
-   releases by semantic kind.** Publisher identifiers are absent. RefSpec
-   mints identities from the UUIDv7 capture ledger (§3): topical subjects and
+   releases by semantic kind — implemented as evidence releases.** Publisher
+   identifiers are absent. RefSpec mints identities from the UUIDv7 capture
+   ledger (§3): topical subjects and
    Policy Areas enter subject releases; geographic and organization terms
    enter an entity release. CRS assignments flow as evidence on the records
    that carry them.
-   Operate the ledger and resolve any changed-capture reconciliation
-   before use. A named review may admit the existing CRS subject identities
+   The checked 2026-08-04 evidence contains separate legislative-subject,
+   policy-area, and legislative-entity releases with immutable reconciliation.
+   A named review may admit the existing CRS subject identities
    to the curated emit tier. Concept staging applies only when RefSpec authors
    a new concept (addendum B4).
 2. **MeSH descriptors → specialist pilot** (largest, best-governed specialist
@@ -812,8 +843,9 @@ real rows on any path.
 Promotion obeys one invalidation chain, stated once:
 
 ```text
-source distribution → managed release → frontier → candidates →
-qualification → atlas identity → projections → evaluation → deployment
+source capture → concept release → frontier → candidates → qualification →
+relation assertion → canonical atlas → ring/module view → publication decision
+→ static publication → product activation
 ```
 
 A change at any link invalidates everything downstream. Qualification is
@@ -847,8 +879,8 @@ frontier's decoy value is claimed:
   mapping classes separately: that is where the bridging value
   concentrates, and it is the evidence that would justify deepening a
   bridge beyond the easy diagonal. Protocol v2's typed relations widen
-  that evidence class: hierarchical and associative adjudications
-  (`broadMatch`, `narrowMatch`, `adjudicatedRelation` annotations) are
+  that evidence class: hierarchical and associative mappings
+  (`broadMatch`, `narrowMatch`, and `relatedMatch`) are
   precisely the non-equality structure a register bridge exists to carry.
 
 Seven competency questions serve as standing cross-repository acceptance
@@ -881,9 +913,15 @@ tests:
   disposable read models behind their unmet adoption gates).
 - Vocabulary induction (per the synthesis: unstable, lexically disjoint;
   revisit only after measured recurring gaps in the curated core).
-- The detailed entity-link, value-crosswalk, and legal-edge vocabularies.
-  Each needs its own ring-specific design, but every design must use §3's
-  shared foundation rather than establish another identity system.
+- The production entity-link, value-crosswalk, and legal-edge designs. The
+  shared foundation already registers an initial closed predicate set and its
+  safety checks: entity identity, successor, and related links; value exact,
+  broad, narrow, and replacement crosswalks with edition and effective-date
+  context; and legal citation, amendment, authorization, and implementation
+  links with an effective date. Remaining ring designs must define
+  source-specific relation generation, trusted proof adapters, and fuller
+  merge, lifecycle, and time semantics without establishing another identity
+  system.
 
 ## 12. Open questions
 

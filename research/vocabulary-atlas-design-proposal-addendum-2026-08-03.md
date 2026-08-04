@@ -2,7 +2,7 @@
 
 # Addendum — what the atlas design proposal does not cover
 
-> **Status:** Companion record to a revised proposed design; not adopted
+> **Status:** Implemented Atlas 2.0 boundary record; product adoption remains separate
 >
 > **Revision (2026-08-04):** Restated with the parent proposal: rings name
 > semantic kinds (subject, entity, value, and legalIdentity); the former
@@ -13,6 +13,15 @@
 > source identity, while staging creates only new RefSpec-authored concepts.
 > For subject emission, a pinned `SubjectEmissionPolicy` records eligibility,
 > and an active `OutputProfile` that names that exact policy grants permission.
+>
+> **Implementation (2026-08-04):** The shared foundation, initial closed
+> non-subject predicates and time-context checks, subject admission and emission
+> path, authoring-transition receipt path, exact ring/module views, and
+> publication decision boundary are executable and tested. B1-B3 remain
+> consumer responsibilities. B5's production entity, value, and legalIdentity
+> models, source-specific relation generation, and proof adapters remain open.
+> The evidence gaps in §A remain experiments, not features claimed by the
+> implementation.
 >
 > **Standing:** Rules and ownership are this document's durable content.
 > Counts and build references are dated snapshots of an artifact set in
@@ -174,10 +183,16 @@ Synthesis §1, §9, and §13.2 distinguishes entity identity from subject
 classification and motivates typed outputs. The parent proposal places those
 outputs on one foundation: a shared concept-identity record shape, releases,
 provenance, rights, evidence classes, mapping-assertion structure, and
-lifecycle. Each ring still needs its own relation vocabulary and validation
-rules. The foundation is fixed now rather than deferred until those ring
-designs exist: each design adds ring-scoped predicates, explicitly registered
-trusted proof adapters, and checks without forking the shared record shapes.
+lifecycle. The foundation already registers an initial closed predicate set and
+validation floor for every ring. Entity relations are `sameIdentityAs`,
+`successorOf`, and `relatedEntity`; name equality cannot support identity.
+Value relations are `exactCrosswalk`, `broadCrosswalk`, `narrowCrosswalk`, and
+`replacedBy`, with source and target editions and effective dates. Legal
+relations are `cites`, `amends`, `authorizes`, and `implements`, with an
+`effectiveAt` date. The remaining designs add source-specific relation
+generation, richer merge and lifecycle semantics, explicitly registered trusted
+proof adapters, and ring-specific checks without forking the shared record
+shapes.
 
 Every proof adapter is an explicit executable trust decision. RefSpec code
 registers the exact adapter class; its content-derived pin names the same
@@ -185,24 +200,28 @@ registers the exact adapter class; its content-derived pin names the same
 inherit authority. The shared shape therefore supports new ring-specific
 proofs without treating any path-backed object as a trusted interpreter.
 
-- **Entity relation and proof layer — unwritten; shared foundation fixed.** Agencies,
-  award entities, committees, providers, and substances as nodes with typed
-  identifier sets. Identity links reuse the parent's shared evidence-assertion
-  structure with entity-specific predicates and merge checks. They do not
-  reuse the subject-only Crosswalk v2 proof adapter; an entity proof adapter
-  must bind machine evidence to entity predicates before a suggested link
-  becomes an assertion. Name equality never merges entities. The source
-  matrix's `T3-04` already anticipates it. Priority: immediately after B4,
-  because every cross-document product feature (follow-the-company,
-  follow-the-rule) runs through the spine or the legal identity graph.
-- **Legal identity graph — half-built; needs an edge-model design.** CFR
-  structure, statutes, RINs, docket and bill identifiers exist as parsed
-  fields; the typed edges (*cites*, *amends*, *authorizes*, *implements*)
-  with point-in-time versions — the ELI analogue — do not.
-- **Code ledgers — essentially built.** `source_controlled_resource` and
-  `regulatory_native_controls` already publish versioned value sets with
-  preserved raw values. Remaining work is reviewed
-  edition crosswalks (NAICS 2017→2022) as they become product-relevant.
+- **Entity spine and proof layer — safety floor implemented; production design
+  open.** The shared predicates and evidence checks prevent name equality from
+  merging entities. The production spine must model agencies, award entities,
+  committees, providers, and substances with typed identifier sets; define
+  merge, successor, and lifecycle rules; and register a trusted entity proof
+  adapter. It cannot reuse the subject-only Crosswalk v2 proof adapter. The
+  source matrix's `T3-04` already anticipates this work. Priority: immediately
+  after B4, because every cross-document product feature
+  (follow-the-company, follow-the-rule) runs through the spine or legal identity
+  graph.
+- **Legal identity graph — predicate floor implemented; source-backed edge
+  design open.** CFR structure, statutes, RINs, docket identifiers, and bill
+  identifiers exist as parsed fields. The next design must derive the existing
+  typed predicates (*cites*, *amends*, *authorizes*, and *implements*) from
+  exact sources and define point-in-time lifecycle and proof rules — the ELI
+  analogue.
+- **Code ledgers and value interchange — foundation implemented.**
+  `source_controlled_resource` and `regulatory_native_controls` publish
+  versioned value sets with preserved raw values. The shared value predicates,
+  edition/effective-date checks, and subject/value SSSOM distribution exist.
+  Remaining work is source-specific reviewed edition crosswalks (NAICS
+  2017→2022) as they become product-relevant.
 
 The shared package model also supports identifier-poor sources in any ring:
 UUIDv7 source-fetch and package-registration events, UUIDv7 local record IDs,
@@ -258,16 +277,16 @@ minting a named RefSpec source identity otherwise. The current absence of
 that release is implementation work, not evidence that the source lacks
 concept identity.
 
-**D2 — Intended use is evidence, not permission.** Extend
-`source_controlled_resource.ResourceUse` with factual uses such as
-`mappingReference`, then reconcile reader-declared uses against semantic ring
-and subject participation in the atlas index. Remove
-`candidate_use_authorized` from the shared model, every reader, and generated
-packages. Do not retain a compatibility shape or replace true with false.
-`OutputProfile` and the pinned retrieval policy remain the only permission
-sources. For subject emission, a pinned `SubjectEmissionPolicy` is a required
-eligibility input rather than another permission source; the `OutputProfile`
-must name that exact policy before granting use.
+**D2 — Intended use is evidence, not permission — implemented.** The factual
+use and permission-field split is complete. `source_controlled_resource.ResourceUse`
+includes uses such as `mappingReference`, and atlas-index rows record intended
+uses alongside semantic ring and subject participation. Shared models reject
+`candidateUseAuthorized` and other permission-shaped fields; no compatibility
+shape replaces true with false. `OutputProfile` and the pinned retrieval policy
+remain the only permission sources. For subject emission, a pinned
+`SubjectEmissionPolicy` is a required eligibility input rather than another
+permission source; the `OutputProfile` must name that exact policy before
+granting use.
 
 **D3 — Source-assigned topic evidence is metadata, not a ring (parent §3).**
 GAO topics, CBO topic labels, CRS product topics, LDA issue codes, and SAM
@@ -303,18 +322,12 @@ undecided digest question that deletion left behind). They take no ring
 assignment and appear in the atlas index only as implementation, not as
 sources.
 
-## E. Corrections owed outside this document set
+## E. Corrections outside this document set — completed
 
-Two artifacts contradict the pinned current build and must be corrected
-where they live:
-
-1. `output/atlas-qualification-fr-icpsr-2026-08-03/README.md` states "No
-   bundle was sealed" and that nothing in the run produced a qualified
-   `searchOnly` mapping. Both were true at the 96-call stop and are false
-   now: the run's own `qualification-receipt.json` and 730-line
-   `receipts.jsonl` record the completed two-family gate and 119 qualified
-   mappings. Append a dated completion note.
-2. `docs/atlas-publication.md` quotes the superseded 929,327-quad build.
-   The pinned current build is 233,999 quads / 240 `searchOnly` mappings;
-   per parent §1, atlas counts are cited with the atlas identifier named
-   first.
+The publication-guide contradiction is resolved: `docs/atlas-publication.md`
+now documents only canonical and derived Atlas 2.0 distributions, exact
+publication decisions, and native four-ring explorer data. The dated
+`output/atlas-qualification-fr-icpsr-2026-08-03/README.md` now preserves the
+96-call interruption account and appends its completion note: all 730 calls
+completed, the bundle was sealed, and 119 mappings qualified. No correction in
+this section remains open.
