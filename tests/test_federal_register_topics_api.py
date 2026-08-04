@@ -127,9 +127,12 @@ def test_capture_round_trips_exact_bytes_and_rejects_wrong_pins(
     acquired = capture_federal_register_topics(
         tmp_path / "store",
         source_path=source,
+        retrieved_at="2026-07-30T12:00:00Z",
     )
 
     assert acquired.path.read_bytes() == _payload()
+    assert acquired.capture_event.fetched_at == "2026-07-30T12:00:00Z"
+    assert acquired.capture_event.fetch_id
     reopened = open_federal_register_topics_capture(
         acquired.path,
         expected_sha256=acquired.source_sha256,

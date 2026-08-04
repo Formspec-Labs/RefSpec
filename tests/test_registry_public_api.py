@@ -45,7 +45,8 @@ def test_importing_source_controlled_resources_does_not_load_other_adapters() ->
             (
                 "import sys; import refspec.registry.infrastructure.source_controlled_resource; "
                 "unexpected=[name for name in sys.modules if "
-                "name.startswith(('refspec.registry.elsst', "
+                "name.startswith(('refspec.registry.adapters', "
+                "'refspec.registry.elsst', "
                 "'refspec.registry.federal_register', 'refspec.registry.icpsr'))]; "
                 "print(','.join(unexpected)); raise SystemExit(bool(unexpected))"
             ),

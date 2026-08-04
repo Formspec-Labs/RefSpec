@@ -1,11 +1,12 @@
 """Development package for one exact FederalRegister.gov topics response.
 
 FederalRegister.gov topics rows have labels and mutable slugs, but no stable
-publisher term identifiers.  This package therefore owns local UUIDv7 record
-identity the same way CRS source packages do: one persisted registration
-event, capture-scoped observation ids, and localRecordId values derived from
-that registration.  Later captures may carry a localRecordId forward only
-through explicit reconciliation.
+publisher term identifiers.  This package therefore mints RefSpec-owned
+UUIDv7 ``localRecordId`` values from a persisted registration event, while
+observation ``id`` values remain capture-scoped.  Those local ids are first
+registration ids for this sealed package; carrying them across later captures
+requires an explicit predecessor reconciliation step that this module does not
+perform.
 """
 
 from __future__ import annotations
@@ -105,7 +106,6 @@ def _observation(
     *,
     observed_at: str,
     local_record_id: str,
-    capture_event: SourceCaptureEvent,
 ) -> dict[str, Any]:
     observation_id = _source_record_id(acquired.source_sha256, record)
     return {
@@ -130,27 +130,42 @@ def _observation(
         "sourceRecordDigest": record.source_record_digest,
         "nativeRecord": record.native_payload(),
         "observedAt": observed_at,
-        "sourceFetchId": capture_event.fetch_id,
-        "sourceObservedAt": capture_event.fetched_at,
+        "sourceFetchId": acquired.capture_event.fetch_id,
+        "sourceObservedAt": acquired.capture_event.fetched_at,
     }
 
 
 def build_federal_register_topics_source_package(
     acquired: AcquiredFederalRegisterTopics,
     *,
-    observed_at: str,
+    observed_at: str | None = None,
     registration_event: SourceRegistrationEvent = FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT,
-    capture_event: SourceCaptureEvent = FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT,
 ) -> SourceControlledResourceBundle:
-    """Package every source row without claiming stable concept identity."""
+    """Package every source row without claiming stable concept identity.
 
-    if registration_event.registered_at != observed_at:
+    Fetch identity comes only from ``acquired.capture_event``. The default
+    registration event is allowed only when that capture event is the
+    designated package pin.
+    """
+
+    capture_event = acquired.capture_event
+    package_observed_at = (
+        observed_at if observed_at is not None else capture_event.fetched_at
+    )
+    if registration_event.registered_at != package_observed_at:
         raise FederalRegisterTopicsError(
             "Federal Register topics registration event time must equal observed_at"
         )
-    if capture_event.fetched_at != observed_at:
+    if capture_event.fetched_at != package_observed_at:
         raise FederalRegisterTopicsError(
             "Federal Register topics capture event time must equal observed_at"
+        )
+    if (
+        registration_event == FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT
+        and capture_event != FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT
+    ):
+        raise FederalRegisterTopicsError(
+            "default Federal Register topics registration requires the designated capture event"
         )
 
     source_payload = _verified_source_bytes(acquired)
@@ -161,13 +176,12 @@ def build_federal_register_topics_source_package(
             _observation(
                 acquired,
                 record,
-                observed_at=observed_at,
+                observed_at=package_observed_at,
                 local_record_id=_local_record_id(
                     record,
                     observation_id=observation_id,
                     registration_event=registration_event,
                 ),
-                capture_event=capture_event,
             )
         )
     return build_source_controlled_resource_bundle(
@@ -176,7 +190,7 @@ def build_federal_register_topics_source_package(
         resource_kind="sourceTermSnapshot",
         identity_status="captureLocalObservationsOnly",
         uses=("sourceAssignedEvidence",),
-        captured_at=observed_at,
+        captured_at=package_observed_at,
         candidate_use_authorized=False,
         observations=observations,
         source_artifacts={acquired.source_url: source_payload},
@@ -185,8 +199,8 @@ def build_federal_register_topics_source_package(
 
 
 __all__ = [
-    "FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT",
     "FEDERAL_REGISTER_TOPICS_CAPTURED_AT",
+    "FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT",
     "FEDERAL_REGISTER_TOPICS_FETCH_ID",
     "FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT",
     "FEDERAL_REGISTER_TOPICS_REGISTRATION_ID",

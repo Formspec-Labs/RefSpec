@@ -22,9 +22,14 @@ import urllib.request
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
+from refspec.registry.infrastructure.source_identity import (
+    SourceCaptureEvent,
+    SourceIdentityError,
+)
 from refspec.storage import canonical_json
 
 FEDERAL_REGISTER_TOPICS_API_URL = (
@@ -332,6 +337,30 @@ class AcquiredFederalRegisterTopics:
     byte_length: int
     acquisition_mode: Literal["local", "network"]
     snapshot: FederalRegisterTopicsSnapshot
+    capture_event: SourceCaptureEvent
+
+
+def _resolve_capture_event(
+    *,
+    retrieved_at: str | None,
+    fetch_event: SourceCaptureEvent | None,
+) -> SourceCaptureEvent:
+    try:
+        if fetch_event is not None:
+            if retrieved_at is not None and fetch_event.fetched_at != retrieved_at:
+                raise FederalRegisterTopicsError(
+                    "Federal Register topics fetch event time must equal retrieved_at"
+                )
+            return SourceCaptureEvent(
+                fetch_id=fetch_event.fetch_id,
+                fetched_at=fetch_event.fetched_at,
+            )
+        observed_at = retrieved_at or datetime.now(timezone.utc).isoformat(
+            timespec="seconds"
+        ).replace("+00:00", "Z")
+        return SourceCaptureEvent.generate(fetched_at=observed_at)
+    except SourceIdentityError as error:
+        raise FederalRegisterTopicsError(str(error)) from error
 
 
 def _publish_capture(
@@ -341,6 +370,7 @@ def _publish_capture(
     source_url: str,
     resolved_url: str | None,
     acquisition_mode: Literal["local", "network"],
+    capture_event: SourceCaptureEvent,
 ) -> AcquiredFederalRegisterTopics:
     snapshot = parse_federal_register_topics_api(payload)
     digest_hex = snapshot.source_sha256.removeprefix("sha256:")
@@ -387,6 +417,7 @@ def _publish_capture(
         byte_length=snapshot.source_byte_length,
         acquisition_mode=acquisition_mode,
         snapshot=snapshot,
+        capture_event=capture_event,
     )
 
 
@@ -396,13 +427,24 @@ def capture_federal_register_topics(
     source_path: Path | None = None,
     allow_network: bool = False,
     timeout_seconds: float = 60.0,
+    retrieved_at: str | None = None,
+    fetch_event: SourceCaptureEvent | None = None,
 ) -> AcquiredFederalRegisterTopics:
-    """Capture one mutable API response, locally unless network is explicit."""
+    """Capture one mutable API response, locally unless network is explicit.
+
+    Every capture records a :class:`SourceCaptureEvent`. Pass ``fetch_event``
+    when rebuilding a previously persisted acquisition; otherwise a new event
+    is minted and must be persisted by the caller.
+    """
 
     if timeout_seconds <= 0:
         raise FederalRegisterTopicsError(
             "timeout_seconds must be positive"
         )
+    capture_event = _resolve_capture_event(
+        retrieved_at=retrieved_at,
+        fetch_event=fetch_event,
+    )
     if source_path is not None:
         local_path = Path(source_path)
         if local_path.is_symlink() or not local_path.is_file():
@@ -415,6 +457,7 @@ def capture_federal_register_topics(
             source_url=FEDERAL_REGISTER_TOPICS_API_URL,
             resolved_url=None,
             acquisition_mode="local",
+            capture_event=capture_event,
         )
     if not allow_network:
         raise FederalRegisterTopicsError(
@@ -442,6 +485,7 @@ def capture_federal_register_topics(
             source_url=FEDERAL_REGISTER_TOPICS_API_URL,
             resolved_url=response.geturl(),
             acquisition_mode="network",
+            capture_event=capture_event,
         )
 
 
