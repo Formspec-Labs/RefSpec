@@ -12,6 +12,7 @@ import pytest
 
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.nppes_npi_identifiers import (
+    MAX_NPI_SAMPLE_ROWS,
     NPPES_CAPTURED_AT,
     NPPES_ENTITY_TYPE_CODES,
     NPPES_EXPECTED_FIELD_COUNT,
@@ -278,6 +279,25 @@ def test_parse_npi_sample_requires_at_least_one_data_row() -> None:
     payload = (header_line + "\n").encode("utf-8")
 
     with pytest.raises(NppesIdentifierError, match="at least one data row"):
+        parse_npi_sample(payload, columns)
+
+
+def test_parse_npi_sample_refuses_bulk_entity_data() -> None:
+    columns = parse_fileheader_columns(FILEHEADER_PAYLOAD)
+    rows = [list(columns)]
+    npi_index = columns.index("NPI")
+    entity_type_index = columns.index("Entity Type Code")
+    for ordinal in range(MAX_NPI_SAMPLE_ROWS + 1):
+        row = [""] * len(columns)
+        base9 = f"12345{ordinal:04d}"
+        row[npi_index] = base9 + npi_check_digit(base9)
+        row[entity_type_index] = "1"
+        rows.append(row)
+    payload = (
+        "\n".join(",".join(f'"{value}"' for value in row) for row in rows) + "\n"
+    ).encode("utf-8")
+
+    with pytest.raises(NppesIdentifierError, match="refusing bulk entity data"):
         parse_npi_sample(payload, columns)
 
 

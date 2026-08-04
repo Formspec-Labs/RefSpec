@@ -17,6 +17,7 @@ from refspec.registry.epa_srs_substances import (
     CAS_REGISTRY_AUTHORITY_URI,
     DTXCID_AUTHORITY_URI,
     DTXSID_AUTHORITY_URI,
+    MAX_SUBSTANCE_SAMPLE_SIZE,
     EpaSrsSubstanceError,
     SubstanceIdentifierRecord,
     SubstanceSample,
@@ -214,6 +215,7 @@ def test_parse_substance_sample_never_claims_concept_identity() -> None:
     sample = parse_substance_sample(_fixture_bytes())
 
     assert sample.native_payload()["conceptIdentityClaimed"] is False
+    assert sample.native_payload()["maxSampleSize"] == MAX_SUBSTANCE_SAMPLE_SIZE
 
 
 def test_substance_sample_identifiers_keep_dtxsid_and_dtxcid_distinct() -> None:
@@ -288,6 +290,17 @@ def test_parse_substance_sample_rejects_a_repeated_dtxsid() -> None:
 
     with pytest.raises(EpaSrsSubstanceError, match="DTXSID"):
         parse_substance_sample(_mutated_fixture(mutate))
+
+
+def test_substance_sample_refuses_bulk_entity_data() -> None:
+    record = parse_substance_sample(_fixture_bytes()).records[0]
+
+    with pytest.raises(EpaSrsSubstanceError, match="refusing bulk substance data"):
+        SubstanceSample(
+            captured_at="2026-08-03T00:00:00Z",
+            source_digest="sha256:" + "0" * 64,
+            records=tuple(record for _ in range(MAX_SUBSTANCE_SAMPLE_SIZE + 1)),
+        )
 
 
 @pytest.mark.parametrize(

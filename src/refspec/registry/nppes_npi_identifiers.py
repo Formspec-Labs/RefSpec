@@ -63,6 +63,10 @@ NPPES_FILEHEADER_SOURCE_ID = "urn:ref:nppes:source:npi-file-header-v2:2026-07-27
 # an Individual (NPI-1) record and 2 marks an Organization (NPI-2) record.
 NPPES_ENTITY_TYPE_CODES = frozenset({"1", "2"})
 
+# This reader validates identifier shape against a small publisher excerpt;
+# it is not a bulk NPPES entity-ingestion surface.
+MAX_NPI_SAMPLE_ROWS = 25
+
 _NPI_SHAPE = re.compile(r"^\d{10}$")
 _NPI_BASE_SHAPE = re.compile(r"^\d{9}$")
 # 45 CFR 162.406 fixes the NPI's card-issuer prefix at 80840 (80 = health
@@ -265,8 +269,8 @@ def parse_npi_sample(
     """Validate a small NPPES row excerpt against a pinned file layout.
 
     Returns one ``ControlledIdentifier`` per distinct NPI found. This is a
-    small pinned sample for shape validation, never a bulk entity capture:
-    callers are responsible for keeping the excerpt small.
+    small pinned sample for shape validation, never a bulk entity capture.
+    The row ceiling is enforced here rather than delegated to callers.
     """
 
     _require_bytes(payload, "NPI sample capture")
@@ -288,6 +292,11 @@ def parse_npi_sample(
         raise NppesIdentifierError("NPI sample header does not match the pinned file layout")
     if not data_rows:
         raise NppesIdentifierError("NPI sample capture must contain at least one data row")
+    if len(data_rows) > MAX_NPI_SAMPLE_ROWS:
+        raise NppesIdentifierError(
+            f"NPI sample carries {len(data_rows)} rows, exceeding "
+            f"MAX_NPI_SAMPLE_ROWS={MAX_NPI_SAMPLE_ROWS}; refusing bulk entity data"
+        )
     npi_index = header.index("NPI")
     entity_type_index = header.index("Entity Type Code")
     digest = _sha256(payload)
@@ -318,6 +327,7 @@ def parse_npi_sample(
 
 
 __all__ = [
+    "MAX_NPI_SAMPLE_ROWS",
     "NPPES_AUTHORITY_URL",
     "NPPES_CAPTURED_AT",
     "NPPES_ENTITY_TYPE_CODES",

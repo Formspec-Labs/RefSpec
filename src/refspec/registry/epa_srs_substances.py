@@ -50,6 +50,10 @@ from refspec.storage import canonical_json
 SUBSTANCE_CAPTURE_FORMAT = "urn:ref:registry:epa-srs-substance-identifier-capture:v1"
 PARSER_VERSION = "epa-srs-substances-identifier-shape-v1"
 
+# Entity-source captures are evidence for identifier shape, not an ingestion
+# surface for the several-hundred-thousand-row CompTox inventory.
+MAX_SUBSTANCE_SAMPLE_SIZE = 25
+
 # Catalog scope: the exact source URLs this module's identifier shapes and
 # pinned sample were scoped from (see module docstring).
 SRS_SOURCE_URI = "https://sor.epa.gov/sor_internet/registry/sysofreg/sorservices/sorServices.html"
@@ -249,7 +253,8 @@ def _parse_record(value: object, index: int) -> SubstanceIdentifierRecord:
 class SubstanceSample:
     """A small, closed, pinned sample of EPA SRS/CompTox substance identifier records.
 
-    Never a bulk extract: callers are expected to keep ``records`` small.
+    Never a bulk extract: ``MAX_SUBSTANCE_SAMPLE_SIZE`` is enforced at
+    runtime, including for directly constructed instances.
     ``conceptIdentityClaimed`` in the rendered payload is always False --
     a publisher-assigned identifier makes a record a candidate for entity
     normalization, never a minted Rulespec concept by itself.
@@ -265,6 +270,11 @@ class SubstanceSample:
             raise EpaSrsSubstanceError("sourceDigest must be a lowercase sha256:<64 hex> digest")
         if not self.records:
             raise EpaSrsSubstanceError("records must not be empty")
+        if len(self.records) > MAX_SUBSTANCE_SAMPLE_SIZE:
+            raise EpaSrsSubstanceError(
+                f"records exceeds MAX_SUBSTANCE_SAMPLE_SIZE={MAX_SUBSTANCE_SAMPLE_SIZE}; "
+                "refusing bulk substance data"
+            )
         dtxsids = [record.dtxsid for record in self.records]
         if len(dtxsids) != len(set(dtxsids)):
             raise EpaSrsSubstanceError("records repeats a DTXSID")
@@ -323,6 +333,7 @@ class SubstanceSample:
             "parserVersion": PARSER_VERSION,
             "capturedAt": self.captured_at,
             "sourceDigest": self.source_digest,
+            "maxSampleSize": MAX_SUBSTANCE_SAMPLE_SIZE,
             "conceptIdentityClaimed": False,
             "records": [record.native_payload() for record in self.records],
         }
@@ -417,6 +428,7 @@ __all__ = [
     "COMPTOX_SOURCE_URI",
     "DTXCID_AUTHORITY_URI",
     "DTXSID_AUTHORITY_URI",
+    "MAX_SUBSTANCE_SAMPLE_SIZE",
     "PARSER_VERSION",
     "SRS_SOURCE_URI",
     "SUBSTANCE_CAPTURE_FORMAT",

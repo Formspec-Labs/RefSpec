@@ -9,6 +9,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,7 @@ from refspec.registry.lcsh_topical import (
     LCSH_TOPICAL_MADS_NDJSON_URL,
     LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH,
     LCSH_TOPICAL_MINI_FIXTURE_SHA256,
+    MAX_TOPICAL_SUBSET_RECORDS,
     LcshTopicalError,
     LcshTopicalLabel,
     build_lcsh_topical_snapshot,
@@ -46,6 +48,16 @@ def _fixture_lines() -> list[bytes]:
     return FIXTURE_PATH.read_bytes().splitlines()
 
 
+@dataclass(frozen=True)
+class _PinnedNdjsonLines:
+    """Keep the whole-file pin attached while the reader streams its lines."""
+
+    payload: bytes
+
+    def __iter__(self):
+        return iter(self.payload.splitlines())
+
+
 def _line(index: int) -> bytes:
     return _fixture_lines()[index]
 
@@ -56,6 +68,11 @@ def test_pinned_real_mini_fixture_matches_its_captured_bytes() -> None:
     assert len(payload) == LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH
     assert ("sha256:" + hashlib.sha256(payload).hexdigest()) == LCSH_TOPICAL_MINI_FIXTURE_SHA256
     assert len(payload.splitlines()) == 6
+
+    capture = capture_lcsh_topical_subset(_PinnedNdjsonLines(payload), source_url=SOURCE_URL)
+    assert len(capture.records) == 3
+    assert capture.lines_scanned == 6
+    assert capture.excluded_count == 3
 
 
 def test_pinned_fixture_opener_rejects_tampered_bytes(tmp_path: Path) -> None:
@@ -230,6 +247,15 @@ def test_capture_is_bounded_and_stops_as_soon_as_max_records_is_reached() -> Non
 def test_capture_rejects_a_non_positive_max_records() -> None:
     with pytest.raises(LcshTopicalError, match="max_records"):
         capture_lcsh_topical_subset(_fixture_lines(), source_url=SOURCE_URL, max_records=0)
+
+
+def test_capture_refuses_a_bound_above_the_mapping_only_ceiling() -> None:
+    with pytest.raises(LcshTopicalError, match="mapping-only ceiling"):
+        capture_lcsh_topical_subset(
+            _fixture_lines(),
+            source_url=SOURCE_URL,
+            max_records=MAX_TOPICAL_SUBSET_RECORDS + 1,
+        )
 
 
 def test_capture_rejects_a_repeated_concept_iri_within_one_stream() -> None:

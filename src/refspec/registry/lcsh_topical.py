@@ -60,6 +60,11 @@ LCSH_LCCN_IDENTIFIER_KIND = "publisherLccn"
 LCSH_CONCEPT_URI_IDENTIFIER_KIND = "publisherConceptUri"
 LCSH_TOPICAL_ELIGIBLE_USES: tuple[ResourceUse, ...] = ("searchExpansion",)
 
+# LCSH is mapping-only in RefSpec. Even when a caller points this reader at
+# the publisher's full bulk file, one call cannot turn it into a complete
+# classifier pool by omitting ``max_records``.
+MAX_TOPICAL_SUBSET_RECORDS = 1_000
+
 # A real sample captured 2026-08-03 via a bounded byte-range read of the URL
 # above (never the whole 140+ MB distribution). These six lines are
 # byte-exact excerpts of that response: three madsrdf:Topic authority
@@ -280,19 +285,24 @@ def capture_lcsh_topical_subset(
 ) -> LcshTopicalSubsetCapture:
     """Stream an ndjson source once, retaining only topical headings.
 
-    Iteration stops as soon as ``max_records`` topical headings are
-    retained, so a bounded subset can be drawn from the full authority file
-    without reading it to completion; lines after the bound are never
-    fetched from ``lines``.
+    Iteration stops as soon as ``max_records`` topical headings are retained.
+    Omitting the argument applies ``MAX_TOPICAL_SUBSET_RECORDS``; callers
+    cannot disable the mapping-only ceiling by passing ``None``.
     """
 
-    if max_records is not None and max_records <= 0:
+    if max_records is None:
+        max_records = MAX_TOPICAL_SUBSET_RECORDS
+    if max_records <= 0:
         raise LcshTopicalError("max_records must be positive when supplied")
+    if max_records > MAX_TOPICAL_SUBSET_RECORDS:
+        raise LcshTopicalError(
+            f"max_records exceeds the mapping-only ceiling of {MAX_TOPICAL_SUBSET_RECORDS}"
+        )
     records: list[LcshTopicalRecord] = []
     seen: set[str] = set()
     lines_scanned = 0
     for line_number, line in enumerate(lines, start=1):
-        if max_records is not None and len(records) >= max_records:
+        if len(records) >= max_records:
             break
         lines_scanned = line_number
         record = parse_lcsh_topical_ndjson_line(line, source_url=source_url, line_number=line_number)
@@ -457,6 +467,7 @@ __all__ = [
     "LCSH_TOPICAL_MADS_NDJSON_URL",
     "LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH",
     "LCSH_TOPICAL_MINI_FIXTURE_SHA256",
+    "MAX_TOPICAL_SUBSET_RECORDS",
     "LcshTopicalError",
     "LcshTopicalLabel",
     "LcshTopicalRecord",
