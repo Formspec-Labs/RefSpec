@@ -412,6 +412,16 @@ def execution_receipt_failures(
     return tuple(failures)
 
 
+def _test_input_environment(test_inputs: Mapping[str, str] | None) -> dict[str, str]:
+    """Translate manifest input names into the opt-in test environment."""
+
+    return {
+        TEST_INPUT_ENVIRONMENT[name]: path
+        for name, path in ({} if test_inputs is None else test_inputs).items()
+        if name in TEST_INPUT_ENVIRONMENT
+    }
+
+
 def run_direct_tests(
     repository_root: Path,
     rows: Sequence[Mapping[str, Any]],
@@ -441,11 +451,7 @@ def run_direct_tests(
             check=False,
             env={
                 **os.environ,
-                **{
-                    TEST_INPUT_ENVIRONMENT[name]: path
-                    for name, path in ({} if test_inputs is None else test_inputs).items()
-                    if name in TEST_INPUT_ENVIRONMENT
-                },
+                **_test_input_environment(test_inputs),
             },
         )
         if not report_path.is_file():
@@ -481,7 +487,11 @@ def run_direct_tests(
     )
 
 
-def run_full_test_suite(repository_root: Path) -> dict[str, int | float]:
+def run_full_test_suite(
+    repository_root: Path,
+    *,
+    test_inputs: Mapping[str, str] | None = None,
+) -> dict[str, int | float]:
     """Run the complete suite without receipt instrumentation.
 
     Receipt collection belongs only on the focused registry qualification run.
@@ -501,6 +511,10 @@ def run_full_test_suite(repository_root: Path) -> dict[str, int | float]:
             ],
             cwd=repository_root,
             check=False,
+            env={
+                **os.environ,
+                **_test_input_environment(test_inputs),
+            },
         )
         if not report_path.is_file():
             raise RegistryAuditError("complete repository tests produced no JUnit report")
@@ -625,7 +639,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             details = "\n  - ".join(evidence_failures)
             raise RegistryAuditError(f"real-data gate failed:\n  - {details}")
         if args.run_all_tests:
-            full_suite_result = run_full_test_suite(repository_root)
+            full_suite_result = run_full_test_suite(repository_root, test_inputs=test_inputs)
             if args.output is not None:
                 args.output.write_text(render_summary(), encoding="utf-8")
         if args.output is None:

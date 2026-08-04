@@ -10,7 +10,7 @@
     "errors": 0,
     "failures": 0,
     "passed": 1289,
-    "seconds": 101.771,
+    "seconds": 96.477,
     "skipped": 0,
     "testFiles": 70,
     "tests": 1289
@@ -13862,7 +13862,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7949-a2d0-6d77aa33328d",
+                "fetch_id": "019fb304-0930-78f6-b597-0507e73103e8",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -29771,7 +29771,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7422-ad4d-441b61fae71e",
+                "fetch_id": "019fb2e5-4e00-7a5c-a7e9-5fa5b4427122",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -29848,7 +29848,7 @@
               "acquisition_mode": "local",
               "byte_length": 887,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7e9a-a33d-46fe91635169",
+                "fetch_id": "019fb2e5-4e00-7f17-a82b-d0a6d7bcd9f0",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -35786,7 +35786,7 @@
               "byte_length": 11807,
               "cache_hit": false,
               "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:838fa4d60bf282aa672e6bdf86fde5174439af7f8a38acfb515a9ed7cb3b4924",
+              "compressed_sha256": "sha256:55addef41ce4d7dc81cc48ef6e928695b1324ce1c2418852d624f1fde89e964c",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -35794,7 +35794,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 11807,
                 "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:838fa4d60bf282aa672e6bdf86fde5174439af7f8a38acfb515a9ed7cb3b4924",
+                "expected_compressed_sha256": "sha256:55addef41ce4d7dc81cc48ef6e928695b1324ce1c2418852d624f1fde89e964c",
                 "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -35846,7 +35846,7 @@
                 11807
               ],
               "digests": [
-                "sha256:838fa4d60bf282aa672e6bdf86fde5174439af7f8a38acfb515a9ed7cb3b4924",
+                "sha256:55addef41ce4d7dc81cc48ef6e928695b1324ce1c2418852d624f1fde89e964c",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -36206,7 +36206,7 @@
                 11807
               ],
               "digests": [
-                "sha256:838fa4d60bf282aa672e6bdf86fde5174439af7f8a38acfb515a9ed7cb3b4924",
+                "sha256:55addef41ce4d7dc81cc48ef6e928695b1324ce1c2418852d624f1fde89e964c",
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e"
               ],
               "paths": [],
@@ -53108,7 +53108,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7690-85d6-ae6ef7cfd860",
+              "fetch_id": "019fb2e5-4e00-7f17-a82b-d0a6d7bcd9f0",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -53165,7 +53165,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-71e3-88b9-4e5756765b9a"
+              "registration_id": "019fb80b-aa00-747f-9fea-c2ef29bf5bd2"
             },
             "shape": {
               "fields": {
@@ -86524,14 +86524,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:d5f399854661f5eba6c5339712d91c44acafe502abf2e4286c82643ded3700ea",
+            "sample": "sha256:f82aab8df7af4660f53a811c4e358958ae4ed9759ea2acc8964e99f2f1bab555",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364729
+                364730
               ],
               "digests": [
-                "sha256:d5f399854661f5eba6c5339712d91c44acafe502abf2e4286c82643ded3700ea"
+                "sha256:f82aab8df7af4660f53a811c4e358958ae4ed9759ea2acc8964e99f2f1bab555"
               ],
               "paths": [],
               "urls": []
@@ -89122,7 +89122,15 @@
     ]
   },
   "format": "refspec-registry-audit-summary/v1",
-  "fullSuiteExecution": null,
+  "fullSuiteExecution": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 1711,
+    "seconds": 142.322,
+    "skipped": 0,
+    "testFiles": 93,
+    "tests": 1711
+  },
   "moduleCount": 72,
   "modules": [
     {

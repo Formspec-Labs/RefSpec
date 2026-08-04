@@ -219,6 +219,15 @@ def test_materializer_rejects_local_bytes_that_drift_from_the_pin(tmp_path: Path
         audit.materialize_test_inputs(tmp_path, manifest)
 
 
+def test_full_suite_uses_the_same_manifest_input_environment_as_qualification() -> None:
+    assert audit._test_input_environment(
+        {
+            "ecfrTitles": "/repo/ecfr-titles.json",
+            "unrecognizedInput": "/repo/ignored.json",
+        }
+    ) == {"REFSPEC_ECFR_TITLES_PATH": "/repo/ecfr-titles.json"}
+
+
 def test_receipt_gate_requires_each_pin_and_parsed_counts_in_the_same_execution() -> None:
     pin = "sha256:" + "1" * 64
     manifest = _publisher_reader_manifest({"sha256": pin, "receiptRequired": True})
