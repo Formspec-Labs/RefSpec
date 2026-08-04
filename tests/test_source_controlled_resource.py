@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -65,6 +66,54 @@ def _bundle():
         observations=(_observation(),),
         source_artifacts={SOURCE_ID: SOURCE_BYTES},
     )
+
+
+def test_common_builder_preserves_a_complete_real_covered_projection(
+    tmp_path: Path,
+) -> None:
+    """Exercise the generic builder with its covered Federal Register package."""
+
+    source_path = os.environ.get("REFSPEC_FR_TOPICS_PATH")
+    if source_path is None:
+        pytest.skip("real Federal Register topics response is not configured")
+
+    from refspec.registry.federal_register_topics_api import (
+        FEDERAL_REGISTER_TOPICS_API_URL,
+        capture_federal_register_topics,
+    )
+    from refspec.registry.packages.federal_register_topics_package import (
+        FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT,
+        FEDERAL_REGISTER_TOPICS_CAPTURED_AT,
+        FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT,
+        FEDERAL_REGISTER_TOPICS_RESOURCE_ID,
+        build_federal_register_topics_source_package,
+    )
+
+    acquired = capture_federal_register_topics(
+        tmp_path / "capture",
+        source_path=Path(source_path),
+        retrieved_at=FEDERAL_REGISTER_TOPICS_CAPTURED_AT,
+        fetch_event=FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT,
+    )
+    covered_package = build_federal_register_topics_source_package(acquired)
+    source_bytes = Path(source_path).read_bytes()
+
+    rebuilt = build_source_controlled_resource_bundle(
+        resource_id=FEDERAL_REGISTER_TOPICS_RESOURCE_ID,
+        title="FederalRegister.gov Topics API source observations",
+        resource_kind="sourceTermSnapshot",
+        identity_status="captureLocalObservationsOnly",
+        uses=("sourceAssignedEvidence",),
+        captured_at=FEDERAL_REGISTER_TOPICS_CAPTURED_AT,
+        candidate_use_authorized=False,
+        observations=covered_package.observations,
+        source_artifacts={FEDERAL_REGISTER_TOPICS_API_URL: source_bytes},
+        registration_event=FEDERAL_REGISTER_TOPICS_REGISTRATION_EVENT.as_dict(),
+    )
+
+    assert rebuilt.logical_digest == covered_package.logical_digest
+    assert rebuilt.coverage_report["packagedCount"] == 7_767
+    assert rebuilt.source_artifacts[FEDERAL_REGISTER_TOPICS_API_URL] == source_bytes
 
 
 def test_package_round_trips_and_rechecks_exact_sources(tmp_path: Path) -> None:

@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import SKOS
 
+from refspec.registry.adapters.elsst_acquisition import ELSST_R6
 from refspec.registry.adapters.elsst_import_coverage import (
     ELSST_COVERAGE_FEATURES,
     ElsstImportCoverageError,
@@ -82,6 +85,25 @@ SOURCE = b"""\
     skos:prefLabel "Gamma"@en ;
     dcterms:replaces <urn:test:concept:b> .
 """
+
+
+def test_real_r6_bytes_are_censused_directly() -> None:
+    source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
+    if source_path is None:
+        pytest.skip("real ELSST R6 source is not configured")
+    source = Path(source_path).read_bytes()
+
+    census = census_raw_elsst_turtle(
+        source,
+        source_url=ELSST_R6.source_url,
+        release_iri=ELSST_R6.release_iri,
+        expected_sha256=ELSST_R6.expected_sha256,
+        expected_byte_length=ELSST_R6.expected_byte_length,
+    )
+
+    assert census.stage == "raw"
+    assert census.source_sha256 == ELSST_R6.expected_sha256
+    assert sum(feature.count for feature in census.features) > 100_000
 
 
 def _source_graph(

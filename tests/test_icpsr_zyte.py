@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import urllib.error
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -21,6 +23,40 @@ class _Response(io.BytesIO):
 
     def __exit__(self, *args: object) -> None:
         self.close()
+
+
+def test_icpsr_fetcher_preserves_pinned_publisher_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_path = os.environ.get("REFSPEC_ICPSR_INDEX_PAGE_A_PATH")
+    if source_path is None:
+        pytest.skip("real ICPSR publisher response is not configured")
+    target_url = "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001?letter=a"
+    body = Path(source_path).read_bytes()
+
+    def fake_urlopen(*args: object, **kwargs: object) -> _Response:
+        return _Response(
+            json.dumps(
+                {
+                    "url": target_url,
+                    "statusCode": 200,
+                    "httpResponseBody": base64.b64encode(body).decode(),
+                    "httpResponseHeaders": [
+                        {"name": "Content-Type", "value": "text/html; charset=utf-8"}
+                    ],
+                }
+            ).encode()
+        )
+
+    monkeypatch.setattr(zyte_transport.urllib.request, "urlopen", fake_urlopen)
+    fetched = icpsr_zyte.ZyteIcpsrPageFetcher(token="test-token")(
+        target_url,
+        timeout_seconds=5.0,
+        max_bytes=len(body) + 1,
+    )
+
+    assert fetched.body == body
+    assert fetched.resolved_url == target_url
 
 
 def test_zyte_fetcher_posts_expected_request_without_exposing_token(

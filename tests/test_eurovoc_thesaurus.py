@@ -34,7 +34,7 @@ from refspec.registry.eurovoc_thesaurus import (
 )
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "eurovoc_thesaurus" / "eurovoc-domains-sample-2026-08-03.ttl"
-FIXTURE_SOURCE_URL = "https://example.test/eurovoc-mini.ttl"
+FIXTURE_SOURCE_URL = EUROVOC_SAMPLE_2026_08_03.source_url
 
 CONCEPT_SEAT = "http://eurovoc.europa.eu/4157"
 CONCEPT_VACANT_SEAT = "http://eurovoc.europa.eu/4159"

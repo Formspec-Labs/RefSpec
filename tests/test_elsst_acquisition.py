@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import io
+import os
 from pathlib import Path
 
 import pytest
@@ -35,6 +36,37 @@ def test_pinned_release_metadata_records_exact_sources_and_non_gating_license() 
     assert acquisition.ELSST_R6.license_iri == "https://creativecommons.org/licenses/by-sa/4.0/"
     assert acquisition.ELSST_R6.attribution.startswith("Consortium of European Social Science Data Archives")
     assert not hasattr(acquisition.ELSST_R6, "use_authorized")
+
+
+def test_real_r6_source_is_verified_and_content_addressed(tmp_path: Path) -> None:
+    source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
+    if source_path is None:
+        pytest.skip("real ELSST R6 source is not configured")
+
+    acquired = acquisition.acquire_elsst_release(
+        acquisition.ELSST_R6,
+        tmp_path / "store",
+        source_path=Path(source_path),
+    )
+
+    assert acquired.sha256 == acquisition.ELSST_R6.expected_sha256
+    assert acquired.byte_length == acquisition.ELSST_R6.expected_byte_length
+    assert acquired.path.read_bytes() == Path(source_path).read_bytes()
+
+    direct = pinned_acquisition.acquire_pinned_source(
+        acquisition.ELSST_R6,
+        tmp_path / "infrastructure-store",
+        labels=pinned_acquisition.PinnedAcquisitionLabels(
+            source_label="ELSST audit source",
+            cached_location="cached ELSST audit source",
+            local_file_label="ELSST audit source file",
+            not_cached_message="ELSST audit source is not cached",
+            request_headers={"User-Agent": "RefSpec real-data audit/1"},
+        ),
+        source_path=Path(source_path),
+    )
+    assert direct.sha256 == acquisition.ELSST_R6.expected_sha256
+    assert direct.byte_length == acquisition.ELSST_R6.expected_byte_length
 
 
 def test_local_source_is_verified_then_cached_without_network(

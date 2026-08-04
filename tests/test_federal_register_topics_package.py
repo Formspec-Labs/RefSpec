@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,26 @@ def _acquired(tmp_path: Path):
         retrieved_at=FEDERAL_REGISTER_TOPICS_CAPTURED_AT,
         fetch_event=FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT,
     )
+
+
+def test_real_topics_response_builds_a_complete_source_package(
+    tmp_path: Path,
+) -> None:
+    source_path = os.environ.get("REFSPEC_FR_TOPICS_PATH")
+    if source_path is None:
+        pytest.skip("real Federal Register topics response is not configured")
+    acquired = capture_federal_register_topics(
+        tmp_path / "capture",
+        source_path=Path(source_path),
+        retrieved_at=FEDERAL_REGISTER_TOPICS_CAPTURED_AT,
+        fetch_event=FEDERAL_REGISTER_TOPICS_CAPTURE_EVENT,
+    )
+
+    package = build_federal_register_topics_source_package(acquired)
+
+    assert package.coverage_report["reportStatus"] == "pass"
+    assert package.coverage_report["sourceObservedCount"] > 1_000
+    assert package.coverage_report["packagedCount"] == package.coverage_report["sourceObservedCount"]
 
 
 def test_packages_every_current_topic_as_source_evidence(
