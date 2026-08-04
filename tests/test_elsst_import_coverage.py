@@ -10,13 +10,7 @@ import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import SKOS
 
-from refspec.registry.elsst import (
-    HIDDEN_LABEL_PREDICATE_IRI,
-    IDENTIFIER_PREDICATE_IRI,
-    ElsstVocabulary,
-    parse_elsst_turtle,
-)
-from refspec.registry.elsst_import_coverage import (
+from refspec.registry.adapters.elsst_import_coverage import (
     ELSST_COVERAGE_FEATURES,
     ElsstImportCoverageError,
     census_indexed_elsst,
@@ -24,6 +18,12 @@ from refspec.registry.elsst_import_coverage import (
     census_raw_elsst_turtle,
     require_complete_elsst_import_coverage,
     validate_elsst_import_coverage,
+)
+from refspec.registry.elsst import (
+    HIDDEN_LABEL_PREDICATE_IRI,
+    IDENTIFIER_PREDICATE_IRI,
+    ElsstVocabulary,
+    parse_elsst_turtle,
 )
 
 SOURCE_URL = "https://example.test/elsst-coverage.ttl"
@@ -391,6 +391,70 @@ def test_raw_census_requires_exact_bytes_not_parser_output() -> None:
             expected_sha256=parsed.source_sha256,
             expected_byte_length=parsed.source_bytes,
         )
+
+
+def test_raw_census_wraps_turtle_syntax_errors() -> None:
+    source = b"@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<urn:x> a skos:Concept ;\n  broken\n"
+    source_sha256 = "sha256:" + hashlib.sha256(source).hexdigest()
+
+    with pytest.raises(
+        ElsstImportCoverageError,
+        match="could not parse raw ELSST Turtle for census",
+    ):
+        census_raw_elsst_turtle(
+            source,
+            source_url=SOURCE_URL,
+            release_iri=RELEASE_IRI,
+            expected_sha256=source_sha256,
+            expected_byte_length=len(source),
+        )
+
+
+def test_raw_census_propagates_unexpected_parse_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("unexpected parser failure")
+
+    monkeypatch.setattr(
+        "refspec.registry.adapters.elsst_import_coverage._parse_raw_turtle",
+        boom,
+    )
+    source_sha256 = "sha256:" + hashlib.sha256(SOURCE).hexdigest()
+
+    with pytest.raises(RuntimeError, match="unexpected parser failure"):
+        census_raw_elsst_turtle(
+            SOURCE,
+            source_url=SOURCE_URL,
+            release_iri=RELEASE_IRI,
+            expected_sha256=source_sha256,
+            expected_byte_length=len(SOURCE),
+        )
+
+
+def test_raw_census_reraises_coverage_errors_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = ElsstImportCoverageError("covered RDF assertion subject must be an IRI")
+
+    def boom(*_args: object, **_kwargs: object) -> object:
+        raise original
+
+    monkeypatch.setattr(
+        "refspec.registry.adapters.elsst_import_coverage._parse_raw_turtle",
+        boom,
+    )
+    source_sha256 = "sha256:" + hashlib.sha256(SOURCE).hexdigest()
+
+    with pytest.raises(ElsstImportCoverageError, match="subject must be an IRI") as raised:
+        census_raw_elsst_turtle(
+            SOURCE,
+            source_url=SOURCE_URL,
+            release_iri=RELEASE_IRI,
+            expected_sha256=source_sha256,
+            expected_byte_length=len(SOURCE),
+        )
+    assert raised.value is original
 
 
 def test_boolean_status_lexical_form_survives_all_three_stages() -> None:

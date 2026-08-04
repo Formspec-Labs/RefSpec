@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import pra_icr_codes as pra
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "pra_icr_codes"
 SEARCH_PAGE_FIXTURE = FIXTURES / "pra-search-2026-08-03.html"

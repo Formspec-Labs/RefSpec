@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import grants_gov_codes as gg
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "grants_gov_codes"
 DOC_FIXTURE = FIXTURES / "grants-gov-status-codes-2026-08-03.html"

@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,

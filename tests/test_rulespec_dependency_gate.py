@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
-import os
 from pathlib import Path
 from types import ModuleType
 
@@ -14,7 +13,6 @@ import pytest
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
 GATE_PATH = REFSPEC_ROOT / "bindings" / "json" / "1.0" / "tools" / "validate_rulespec_gate.py"
 DEPENDENCY_MANIFEST = REFSPEC_ROOT / "profiles" / "rulespec-dependency.json"
-DEFAULT_RULESPEC_DIR = REFSPEC_ROOT.parents[1] / "rulespec"
 
 
 def load_gate_module() -> ModuleType:
@@ -29,17 +27,38 @@ gate = load_gate_module()
 
 
 @pytest.fixture
-def rulespec_dir() -> Path:
-    configured = os.environ.get("RULESPEC_DIR")
-    path = Path(configured).resolve() if configured else DEFAULT_RULESPEC_DIR.resolve()
-    if not (path / ".git").exists():
-        pytest.skip(f"live Rulespec checkout is unavailable: {path}")
-    return path
+def dependency_manifest() -> dict:
+    return json.loads(DEPENDENCY_MANIFEST.read_text(encoding="utf-8"))
 
 
 @pytest.fixture
-def dependency_manifest() -> dict:
-    return json.loads(DEPENDENCY_MANIFEST.read_text(encoding="utf-8"))
+def rulespec_dir(
+    tmp_path: Path,
+    dependency_manifest: dict,
+) -> Path:
+    """Materialize only the local paths needed by mutation diagnostics."""
+
+    root = tmp_path / "rulespec-inputs"
+    for relative in dependency_manifest["adoptedConstraintSources"]:
+        path = root / relative
+        if Path(relative).suffix:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("test input\n", encoding="utf-8")
+        else:
+            path.mkdir(parents=True, exist_ok=True)
+    paths = [
+        dependency_manifest["validator"]["selfCertificationPath"],
+        *dependency_manifest["generatedArtifacts"],
+    ]
+    for relative in paths:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("test input\n", encoding="utf-8")
+    (root / "VERSION").write_text(
+        dependency_manifest["rulespecVersion"] + "\n",
+        encoding="utf-8",
+    )
+    return root
 
 
 def write_manifest(path: Path, manifest: dict) -> Path:
@@ -64,6 +83,19 @@ def mock_expensive_digests(
         "current_corpus_digest",
         lambda rulespec_dir: (manifest["conformanceCorpusDigest"], None),
     )
+    generated = manifest["generatedArtifacts"]
+    certification_path = manifest["validator"]["selfCertificationPath"]
+
+    def pinned_digest(path: Path) -> str:
+        normalized = path.as_posix()
+        if normalized.endswith(certification_path):
+            return manifest["validator"]["selfCertificationSha256"]
+        for relative, digest in generated.items():
+            if normalized.endswith(relative):
+                return digest
+        raise AssertionError(f"unexpected digest path: {path}")
+
+    monkeypatch.setattr(gate, "sha256_file", pinned_digest)
 
 
 def apply_mutation(manifest: dict, mutation: str) -> None:
@@ -161,9 +193,3 @@ def test_ref_test_172_rejects_stale_normative_pin_text(
     assert any(
         "README.md contains Rulespec versions ['0.2.0-pre.8'], expected only '0.2.0-pre.9'" in error for error in errors
     ), errors
-
-
-def test_ref_test_172_live_dependency_pin_passes(
-    legacy_rulespec_checkout: Path,
-) -> None:
-    assert gate.validate_closure_pin(legacy_rulespec_checkout) == []

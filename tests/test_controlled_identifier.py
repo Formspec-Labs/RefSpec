@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     ControlledIdentifierError,
     distinct_identifiers,

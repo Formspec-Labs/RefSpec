@@ -46,7 +46,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 TREASURY_PUBLISHER = "Bureau of the Fiscal Service, U.S. Department of the Treasury"
 TREASURY_IDENTIFIER_AUTHORITY_URI = "https://fiscal.treasury.gov/accounting/"

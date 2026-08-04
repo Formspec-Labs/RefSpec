@@ -11,7 +11,8 @@ from typing import Any
 import pytest
 from typing_extensions import Self
 
-from refspec.registry import icpsr_zyte, zyte_transport
+from refspec.registry.adapters import icpsr_zyte
+from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
@@ -91,7 +92,7 @@ def test_zyte_provider_error_does_not_include_body_or_secret(
 ) -> None:
     secret = "do-not-print"
     provider_error = urllib.error.HTTPError(
-        icpsr_zyte.ZYTE_API_URL,
+        zyte_transport.ZYTE_API_URL,
         403,
         "provider says " + secret,
         {},

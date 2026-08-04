@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import govinfo_collections as gc
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "govinfo_collections"
 COLLECTIONS_FIXTURE = FIXTURES / "govinfo-collections-2026-08-03.json"

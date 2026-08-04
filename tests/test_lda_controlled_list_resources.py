@@ -6,17 +6,17 @@ from pathlib import Path
 
 import pytest
 
+from refspec.registry.infrastructure.source_controlled_resource import (
+    build_source_controlled_resource_bundle,
+)
 from refspec.registry.lda_controlled_codes import LDASourceDriftError
-from refspec.registry.lda_controlled_list_resources import (
+from refspec.registry.packages.lda_controlled_list_resources import (
     LDA_FILING_TYPE_PACKAGE,
     LDA_GENERAL_ISSUE_CODE_PACKAGE,
     LDAControlledListPackageError,
     LDAControlledListView,
     build_lda_filing_type_package,
     build_lda_general_issue_code_package,
-)
-from refspec.registry.source_controlled_resource import (
-    build_source_controlled_resource_bundle,
 )
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]

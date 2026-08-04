@@ -9,15 +9,11 @@ PLUM appointment-authority/incumbent-status codes. These are entity and
 observation metadata code sets, not a document-topic vocabulary: an
 occupational series or pay plan code never states what a document is about.
 
-Neither page exposes a stable per-resource JSON endpoint the way the LDA API
-does, and this module's network attempt during development was blocked before
-a live capture could be pinned (see the module-level gaps). Every code list
-below is therefore a small, documented-shape sample rather than a verified,
-exhaustive live capture: `expected_count` and the exact digest pin are
-intentionally strict, so acquiring a different (larger, real) capture later
-fails loudly instead of silently blending unverified rows into a passing
-package. The occupational series list is never treated as exhaustive; only
-its 4-digit shape is enforced against arbitrary input.
+The current real-data path parses OPM's complete three-sheet EHRI workbook
+export and PLUM all-data CSV. The older five-resource package definitions below
+remain small, documented-shape development samples for compatibility; they are
+not evidence for the real-data gate. Their strict counts and digests prevent a
+real export from being silently mistaken for one of those legacy samples.
 
 PLUM position data additionally carries statutory redaction, agency
 certification, and release-vintage rules: some incumbent identities may be
@@ -34,7 +30,9 @@ this module never opens a network connection.
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import os
 import re
@@ -46,11 +44,13 @@ from types import MappingProxyType
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from openpyxl import load_workbook
+
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse as PackageResourceUse,
 )
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     SourceControlledResourceView,
     build_source_controlled_resource_bundle,
@@ -60,7 +60,9 @@ from refspec.storage import canonical_json
 OPM_PUBLISHER = "U.S. Office of Personnel Management"
 OPM_IDENTIFIER_AUTHORITY_URI = "https://www.opm.gov/"
 OPM_WORKFORCE_DATA_URL = "https://data.opm.gov/explore-data/data/data-downloads"
+OPM_EHRI_DATA_STANDARDS_URL = "https://data.opm.gov/data-standards/ehri-data-standards"
 OPM_PLUM_DATA_URL = "https://www.opm.gov/about-us/open-government/plum-reporting/plum-data/"
+OPM_PLUM_ALL_DATA_URL = "https://escs.opm.gov/escs-net/api/pbpub/download-data"
 
 ResourceName = Literal[
     "payPlanCodes",
@@ -349,6 +351,197 @@ def sha256_digest(payload: bytes) -> str:
     """Return the canonical RefSpec SHA-256 spelling."""
 
     return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class OPMEHRIDataElement:
+    """One data-element row from OPM's official EHRI workbook."""
+
+    name: str
+    description: str
+    data_format: str
+    data_length: str
+    valid_values: str
+    current_values: str
+    past_values: str
+
+
+@dataclass(frozen=True, slots=True)
+class OPMEHRIValue:
+    """One current or past publisher value from OPM's official EHRI workbook."""
+
+    name: str
+    code: str
+    explanation: str
+    from_date: str
+    through_date: str
+
+
+@dataclass(frozen=True, slots=True)
+class OPMEHRIDataStandardsExport:
+    """The complete three-sheet EHRI data-standards export."""
+
+    source_sha256: str
+    source_byte_length: int
+    fields: tuple[OPMEHRIDataElement, ...]
+    current_values: tuple[OPMEHRIValue, ...]
+    past_values: tuple[OPMEHRIValue, ...]
+
+    def current_values_for(self, name: str) -> tuple[OPMEHRIValue, ...]:
+        """Return all current publisher values for one exact EHRI element name."""
+
+        return tuple(value for value in self.current_values if value.name == name)
+
+
+@dataclass(frozen=True, slots=True)
+class OPMPLUMRow:
+    """One exact row from OPM's PLUM all-data CSV."""
+
+    agency_name: str
+    organization_name: str
+    position_title: str
+    position_status: str
+    appointment_type: str
+    expiration_date: str
+    level_grade_pay: str
+    location: str
+    incumbent_first_name: str
+    incumbent_last_name: str
+    pay_plan: str
+    tenure: str
+    incumbent_begin_date: str
+    incumbent_vacate_date: str
+
+
+@dataclass(frozen=True, slots=True)
+class OPMPLUMAllDataExport:
+    """One complete official PLUM CSV capture and its observed code values."""
+
+    source_sha256: str
+    source_byte_length: int
+    records: tuple[OPMPLUMRow, ...]
+    appointment_types: tuple[str, ...]
+    position_statuses: tuple[str, ...]
+    pay_plans: tuple[str, ...]
+
+
+_EHRI_SHEETS = ("AllDataElements", "CurrentValues", "PastValues")
+_EHRI_ELEMENT_HEADER = (
+    "Name",
+    "Description",
+    "Data Format",
+    "Data Length",
+    "Valid Values",
+    "Current Values",
+    "Past Values",
+)
+_EHRI_VALUE_HEADER = ("Name", "Code", "Explanation", "From Date", "Through Date")
+_PLUM_HEADER = (
+    "AgencyName",
+    "OrganizationName",
+    "PositionTitle",
+    "PositionStatus",
+    "AppointmentTypeDescription",
+    "ExpirationDate",
+    "LevelGradePay",
+    "Location",
+    "IncumbentFirstName",
+    "IncumbentLastName",
+    "PaymentPlanDescription",
+    "Tenure",
+    "IncumbentBeginDate",
+    "IncumbentVacateDate",
+)
+
+
+def _cell_text(value: object) -> str:
+    return "" if value is None else str(value)
+
+
+def parse_opm_ehri_data_standards_xlsx(payload: bytes) -> OPMEHRIDataStandardsExport:
+    """Parse all fields and all current/past values from the official OPM workbook."""
+
+    if not payload:
+        raise OPMSourceDriftError("EHRI data-standards workbook is empty")
+    try:
+        workbook = load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
+    except Exception as error:
+        raise OPMSourceDriftError("EHRI data-standards source is not a readable XLSX workbook") from error
+    if tuple(workbook.sheetnames) != _EHRI_SHEETS:
+        raise OPMSourceDriftError(f"EHRI workbook sheets drifted: {workbook.sheetnames!r}")
+
+    element_sheet = workbook[_EHRI_SHEETS[0]]
+    element_rows = element_sheet.iter_rows(values_only=True)
+    if tuple(_cell_text(value) for value in next(element_rows)) != _EHRI_ELEMENT_HEADER:
+        raise OPMSourceDriftError("EHRI AllDataElements header drifted")
+    fields = tuple(
+        OPMEHRIDataElement(*(_cell_text(value) for value in row))
+        for row in element_rows
+        if any(value is not None and str(value) for value in row)
+    )
+
+    def values_from(sheet_name: str) -> tuple[OPMEHRIValue, ...]:
+        rows = workbook[sheet_name].iter_rows(values_only=True)
+        if tuple(_cell_text(value) for value in next(rows)) != _EHRI_VALUE_HEADER:
+            raise OPMSourceDriftError(f"EHRI {sheet_name} header drifted")
+        return tuple(
+            OPMEHRIValue(*(_cell_text(value) for value in row))
+            for row in rows
+            if any(value is not None and str(value) for value in row)
+        )
+
+    current_values = values_from("CurrentValues")
+    past_values = values_from("PastValues")
+    if not fields or not current_values or not past_values:
+        raise OPMSourceDriftError("EHRI workbook omitted a required non-empty data sheet")
+    return OPMEHRIDataStandardsExport(
+        source_sha256=sha256_digest(payload),
+        source_byte_length=len(payload),
+        fields=fields,
+        current_values=current_values,
+        past_values=past_values,
+    )
+
+
+def parse_opm_plum_all_data_csv(payload: bytes) -> OPMPLUMAllDataExport:
+    """Parse every exact row and observed code value from OPM's PLUM CSV export."""
+
+    try:
+        text = payload.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise OPMSourceDriftError("PLUM all-data source is not UTF-8 CSV") from error
+    reader = csv.DictReader(io.StringIO(text, newline=""))
+    if tuple(reader.fieldnames or ()) != _PLUM_HEADER:
+        raise OPMSourceDriftError(f"PLUM all-data header drifted: {reader.fieldnames!r}")
+    records = tuple(
+        OPMPLUMRow(
+            agency_name=row["AgencyName"],
+            organization_name=row["OrganizationName"],
+            position_title=row["PositionTitle"],
+            position_status=row["PositionStatus"],
+            appointment_type=row["AppointmentTypeDescription"],
+            expiration_date=row["ExpirationDate"],
+            level_grade_pay=row["LevelGradePay"],
+            location=row["Location"],
+            incumbent_first_name=row["IncumbentFirstName"],
+            incumbent_last_name=row["IncumbentLastName"],
+            pay_plan=row["PaymentPlanDescription"],
+            tenure=row["Tenure"],
+            incumbent_begin_date=row["IncumbentBeginDate"],
+            incumbent_vacate_date=row["IncumbentVacateDate"],
+        )
+        for row in reader
+    )
+    if not records:
+        raise OPMSourceDriftError("PLUM all-data CSV contains no records")
+    return OPMPLUMAllDataExport(
+        source_sha256=sha256_digest(payload),
+        source_byte_length=len(payload),
+        records=records,
+        appointment_types=tuple(sorted({row.appointment_type for row in records})),
+        position_statuses=tuple(sorted({row.position_status for row in records})),
+        pay_plans=tuple(sorted({row.pay_plan for row in records})),
+    )
 
 
 def _validate_resolved_url(value: str) -> None:
@@ -1107,6 +1300,7 @@ __all__ = [
     "OPM_APPOINTMENT_TYPE_CODE_PACKAGE",
     "OPM_CONTROLLED_LIST_PACKAGES",
     "OPM_CONTROLLED_LIST_PACKAGE_VERSION",
+    "OPM_EHRI_DATA_STANDARDS_URL",
     "OPM_IDENTIFIER_AUTHORITY_URI",
     "OPM_OCCUPATIONAL_SERIES_CODES",
     "OPM_OCCUPATIONAL_SERIES_CODES_2026_08_03",
@@ -1114,6 +1308,7 @@ __all__ = [
     "OPM_PAY_PLAN_CODES",
     "OPM_PAY_PLAN_CODES_2026_08_03",
     "OPM_PAY_PLAN_CODE_PACKAGE",
+    "OPM_PLUM_ALL_DATA_URL",
     "OPM_PLUM_DATA_URL",
     "OPM_PLUM_POSITION_STATUS_CODES",
     "OPM_PLUM_POSITION_STATUS_CODES_2026_08_03",
@@ -1134,8 +1329,13 @@ __all__ = [
     "OPMControlledListPackageError",
     "OPMControlledListPackageSpec",
     "OPMControlledListView",
+    "OPMEHRIDataElement",
+    "OPMEHRIDataStandardsExport",
+    "OPMEHRIValue",
     "OPMFetcher",
     "OPMFieldAssignment",
+    "OPMPLUMAllDataExport",
+    "OPMPLUMRow",
     "OPMResourceError",
     "OPMSnapshotPin",
     "OPMSourceDriftError",
@@ -1146,6 +1346,8 @@ __all__ = [
     "assemble_opm_control_portfolio",
     "build_opm_controlled_list_package",
     "parse_opm_constants",
+    "parse_opm_ehri_data_standards_xlsx",
+    "parse_opm_plum_all_data_csv",
     "sha256_digest",
     "validate_plum_position_codes",
     "validate_workforce_observation_codes",

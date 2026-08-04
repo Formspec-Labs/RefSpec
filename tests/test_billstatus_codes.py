@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import billstatus_codes as bs
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "billstatus_codes"
 USER_GUIDE_FIXTURE = FIXTURES / "billstatus-xml-user-guide-2026-08-03.md"

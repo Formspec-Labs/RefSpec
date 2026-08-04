@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import sam_opportunities_codes as sam
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sam_opportunities_codes"
 DOC_FIXTURE = FIXTURES / "sam-get-opportunities-public-api-2026-08-03.html"

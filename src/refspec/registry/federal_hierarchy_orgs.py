@@ -15,27 +15,26 @@ bulk organization dump. No general subject concept is minted from any field;
 ``fhorgname`` is retained only as the publisher's own organization label.
 
 Both live FH endpoints (``/v1/orgs`` and ``/v1/org/hierarchy``) require a
-registered ``api_key`` even for a GET request, so an anonymous import cannot
-obtain one authenticated live capture (a bare request returns 404/401
-without one). RefSpec instead pins two kinds of real, anonymously
-fetchable GSA bytes:
+registered ``api_key`` even for a GET request. RefSpec used a registered key
+to capture two exact public ``/v1/orgs`` response pages on 2026-08-03: the
+default Department/Independent Agency page and a page filtered to Sub-Tiers.
+The stored source URLs and response bytes contain no credential; the API's
+``api_key`` query parameter is supplied only by the acquisition transport.
+RefSpec pins three kinds of real GSA bytes:
 
 * the official OpenAPI parameter definitions (``fh-public.zip``, fetched
   2026-08-03), which prove the required ``api_key`` parameter and the
   documented request/filter fields -- the response schema in that file is
   declared only as ``type: object``, so it carries no field-level shape; and
-* a hand-assembled development sample built strictly from the exact
-  ``fhorgid``, code, and hierarchy values GSA itself publishes as *real*
-  (non-dummy) response examples in its own API documentation prose, not a
-  live authenticated capture. (The documentation's one full-field example is
-  explicitly labeled "dummy data" by the publisher and is not used here.)
+* an exact 10-record default page reporting 907 Department/Independent
+  Agency records in the live public service; and
+* an exact 10-record filtered page reporting 738 Sub-Tier records.
 
-Because the sample is constructed rather than fetched, acquisition accepts
-only a local exact capture or an injected fetcher matching that constructed
-shape; the parser is strict, so a real captured response that drifts from
-this shape -- an added field, an unfamiliar ``fhorgtype``/``status`` value,
-more than one CGAC per record -- fails loudly instead of being silently
-accepted. Importing this module never opens a network connection.
+Acquisition accepts a local exact capture or an injected fetcher. The parser
+is strict, so a response that drifts from the reviewed public shape -- an
+added field, an unfamiliar ``fhorgtype``/``status`` value, more than one CGAC
+per record, or more than 25 returned records -- fails loudly instead of being
+silently accepted. Importing this module never opens a network connection.
 """
 
 from __future__ import annotations
@@ -49,10 +48,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -109,7 +108,6 @@ _REQUIRED_RECORD_FIELDS = frozenset(
         "fhorgname",
         "fhorgtype",
         "status",
-        "createddate",
         "fhdeptindagencyorgid",
         "fhagencyorgname",
         "agencycode",
@@ -119,7 +117,9 @@ _REQUIRED_RECORD_FIELDS = frozenset(
         "links",
     }
 )
-_OPTIONAL_RECORD_FIELDS = frozenset({"oldfpdsofficecode", "createdby", "updatedby", "lastupdateddate"})
+_OPTIONAL_RECORD_FIELDS = frozenset(
+    {"oldfpdsofficecode", "createdby", "createddate", "updatedby", "lastupdateddate"}
+)
 _ALLOWED_RECORD_FIELDS = _REQUIRED_RECORD_FIELDS | _OPTIONAL_RECORD_FIELDS
 _PARENT_HISTORY_FIELDS = frozenset(
     {"fhfullparentpathid", "fhfullparentpathname", "effectivedate", "codehierarchy", "actiontype"}
@@ -158,6 +158,8 @@ class FHOrgsSampleSource:
             raise FederalHierarchyAcquisitionError("source_url must be an absolute HTTPS URL")
         if parsed.username is not None or parsed.password is not None:
             raise FederalHierarchyAcquisitionError("source_url must not contain credentials")
+        if "api_key" in parse_qs(parsed.query, keep_blank_values=True):
+            raise FederalHierarchyAcquisitionError("source_url must not contain an api_key credential")
         if not self.filename or Path(self.filename).name != self.filename:
             raise FederalHierarchyAcquisitionError("filename must be one plain path component")
         if not (0 < self.expected_count <= MAX_SAMPLE_ORG_COUNT):
@@ -170,6 +172,17 @@ FH_ORGS_SAMPLE_SOURCE = FHOrgsSampleSource(
     source_url=FH_ORGS_SEARCH_URL,
     filename="fh-orgs-sample.json",
     expected_count=3,
+)
+
+FH_ORGS_DEFAULT_PAGE_SOURCE = FHOrgsSampleSource(
+    source_url=FH_ORGS_SEARCH_URL,
+    filename="fh-orgs-default-page.json",
+    expected_count=10,
+)
+FH_ORGS_SUB_TIER_PAGE_SOURCE = FHOrgsSampleSource(
+    source_url=f"{FH_ORGS_SEARCH_URL}?fhorgtype=Sub-Tier",
+    filename="fh-orgs-sub-tier-page.json",
+    expected_count=10,
 )
 
 
@@ -201,6 +214,21 @@ FH_ORGS_SAMPLE_2026_08_03 = FHOrgsSnapshotPin(
     retrieved_at="2026-08-03T15:22:00Z",
     expected_sha256="sha256:1e6384c59493825d5ce2ca6949f516cf19b5a9ac834e9db4f417dc78ac4f24e4",
     expected_byte_length=3_623,
+)
+
+# Exact authenticated responses from the public API. The API credential is
+# absent from both the source URL and the preserved response bytes.
+FH_ORGS_DEFAULT_PAGE_2026_08_03 = FHOrgsSnapshotPin(
+    source=FH_ORGS_DEFAULT_PAGE_SOURCE,
+    retrieved_at="2026-08-03T22:19:03Z",
+    expected_sha256="sha256:582d409dd3743646dd6ec58acfa2bc8f346168f69b044cd6dd48e06f0c9cba49",
+    expected_byte_length=9_270,
+)
+FH_ORGS_SUB_TIER_PAGE_2026_08_03 = FHOrgsSnapshotPin(
+    source=FH_ORGS_SUB_TIER_PAGE_SOURCE,
+    retrieved_at="2026-08-03T22:19:12Z",
+    expected_sha256="sha256:601b9e7323cd4e6b1fbde3799533cbfb5c1f88d78039df84a24b6d60533eccd7",
+    expected_byte_length=9_476,
 )
 
 
@@ -249,6 +277,8 @@ def _validate_resolved_url(value: str) -> None:
         raise FederalHierarchyAcquisitionError("fetcher resolved_url must remain on the official HTTPS api.sam.gov host")
     if parsed.username is not None or parsed.password is not None:
         raise FederalHierarchyAcquisitionError("fetcher resolved_url must not contain credentials")
+    if "api_key" in parse_qs(parsed.query, keep_blank_values=True):
+        raise FederalHierarchyAcquisitionError("fetcher resolved_url must not retain an api_key credential")
 
 
 def _verify_payload(payload: bytes, pin: FHOrgsSnapshotPin, *, location: str) -> tuple[str, int]:
@@ -441,11 +471,10 @@ class ParsedFHOrgsSample:
 # sample and every built package rather than being silently dropped.
 FH_ORGS_KNOWN_GAPS: tuple[Mapping[str, str], ...] = (
     {
-        "kind": "authenticatedLiveCaptureUnavailable",
+        "kind": "samplePagesOnly",
         "reason": (
-            "The FH Public API requires a registered api_key even for GET requests; this sample was "
-            "assembled from GSA's own published documentation examples rather than a live authenticated "
-            "response, because RefSpec does not hold a SAM.gov account credential."
+            "The two authenticated public captures preserve 10 records from each reviewed hierarchy level, "
+            "not all 907 Department/Independent Agency or all 738 Sub-Tier records reported by the API."
         ),
     },
     {
@@ -599,7 +628,9 @@ def parse_fh_orgs_sample(acquired: AcquiredFHOrgsSource) -> ParsedFHOrgsSample:
         status = entry["status"]
         if status not in _STATUSES:
             raise FederalHierarchySourceDriftError(f"{label}.status is unsupported: {status!r}")
-        _require_str(entry["createddate"], f"{label}.createddate")
+        createddate = entry.get("createddate")
+        if createddate is not None:
+            _require_str(createddate, f"{label}.createddate")
         fhdeptindagencyorgid = _require_org_id(entry["fhdeptindagencyorgid"], f"{label}.fhdeptindagencyorgid")
         fhagencyorgname = _require_str(entry["fhagencyorgname"], f"{label}.fhagencyorgname")
         agencycode = _require_str(entry["agencycode"], f"{label}.agencycode")
@@ -734,10 +765,12 @@ def _identifier_payload(*, identifier: ControlledIdentifier, source_path: str) -
     return result
 
 
-def _observation_id(*, source_path: str, identifiers: Sequence[Mapping[str, Any]]) -> str:
+def _observation_id(
+    *, source_artifact: str, source_path: str, identifiers: Sequence[Mapping[str, Any]]
+) -> str:
     identity = {
         "resourceId": FH_ORGS_RESOURCE_ID,
-        "sourceArtifact": FH_ORGS_SAMPLE_SOURCE.source_url,
+        "sourceArtifact": source_artifact,
         "sourcePath": source_path,
         "identifiers": [
             {"value": identifier["value"], "kind": identifier["kind"], "authorityUri": identifier["authorityUri"]}
@@ -749,8 +782,6 @@ def _observation_id(*, source_path: str, identifiers: Sequence[Mapping[str, Any]
 
 
 def _observations(sample: ParsedFHOrgsSample) -> tuple[Mapping[str, Any], ...]:
-    if sample.source != FH_ORGS_SAMPLE_SOURCE:
-        raise FederalHierarchyOrgsError("parsed sample differs from the pinned package source")
     result: list[Mapping[str, Any]] = []
     for record in sample.records:
         source_path = f"$.orglist[{record.source_ordinal}]"
@@ -759,8 +790,12 @@ def _observations(sample: ParsedFHOrgsSample) -> tuple[Mapping[str, Any], ...]:
         )
         result.append(
             {
-                "id": _observation_id(source_path=source_path, identifiers=identifiers),
-                "sourceArtifact": FH_ORGS_SAMPLE_SOURCE.source_url,
+                "id": _observation_id(
+                    source_artifact=sample.source.source_url,
+                    source_path=source_path,
+                    identifiers=identifiers,
+                ),
+                "sourceArtifact": sample.source.source_url,
                 "sourcePath": source_path,
                 # This ordinal is a source locator only. Organization identity
                 # is preserved in identifiers and never derived from row order.
@@ -781,11 +816,25 @@ def build_federal_hierarchy_orgs_package(source_path: Path) -> SourceControlledR
     if path.is_symlink() or not path.is_file():
         raise FederalHierarchyOrgsError(f"FH orgs sample source is not a regular file: {path}")
     payload = path.read_bytes()
+    payload_identity = (sha256_digest(payload), len(payload))
+    known_pins = (FH_ORGS_DEFAULT_PAGE_2026_08_03, FH_ORGS_SUB_TIER_PAGE_2026_08_03)
+    pin = next(
+        (
+            candidate
+            for candidate in known_pins
+            if (candidate.expected_sha256, candidate.expected_byte_length) == payload_identity
+        ),
+        None,
+    )
+    if pin is None:
+        raise FederalHierarchySourceDriftError(
+            "FH orgs package input does not match either authenticated public page pin"
+        )
     with tempfile.TemporaryDirectory(prefix="refspec-fh-orgs-package-") as temporary:
         root = Path(temporary)
-        staged = root / FH_ORGS_SAMPLE_SOURCE.filename
+        staged = root / pin.source.filename
         staged.write_bytes(payload)
-        acquired = acquire_fh_orgs_sample(FH_ORGS_SAMPLE_2026_08_03, root / "store", source_path=staged)
+        acquired = acquire_fh_orgs_sample(pin, root / "store", source_path=staged)
         sample = parse_fh_orgs_sample(acquired)
     return build_source_controlled_resource_bundle(
         resource_id=FH_ORGS_RESOURCE_ID,
@@ -793,10 +842,10 @@ def build_federal_hierarchy_orgs_package(source_path: Path) -> SourceControlledR
         resource_kind="controlledCodeList",
         identity_status="publisherIdentifiersPreserved",
         uses=FH_ORGS_PACKAGE_USES,
-        captured_at=FH_ORGS_SAMPLE_2026_08_03.retrieved_at,
+        captured_at=pin.retrieved_at,
         candidate_use_authorized=True,
         observations=_observations(sample),
-        source_artifacts={FH_ORGS_SAMPLE_SOURCE.source_url: payload},
+        source_artifacts={pin.source.source_url: payload},
         gaps=FH_ORGS_KNOWN_GAPS,
     )
 
@@ -804,6 +853,8 @@ def build_federal_hierarchy_orgs_package(source_path: Path) -> SourceControlledR
 __all__ = [
     "FH_ORGS_API_BASE",
     "FH_ORGS_API_VERSION",
+    "FH_ORGS_DEFAULT_PAGE_2026_08_03",
+    "FH_ORGS_DEFAULT_PAGE_SOURCE",
     "FH_ORGS_DOC_URL",
     "FH_ORGS_HIERARCHY_URL",
     "FH_ORGS_IDENTIFIER_AUTHORITY_CGAC",
@@ -822,6 +873,8 @@ __all__ = [
     "FH_ORGS_SAMPLE_2026_08_03",
     "FH_ORGS_SAMPLE_SOURCE",
     "FH_ORGS_SEARCH_URL",
+    "FH_ORGS_SUB_TIER_PAGE_2026_08_03",
+    "FH_ORGS_SUB_TIER_PAGE_SOURCE",
     "MAX_SAMPLE_ORG_COUNT",
     "AcquiredFHOrgsSource",
     "AcquisitionMode",

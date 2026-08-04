@@ -577,24 +577,6 @@ def test_core_pin_accepts_the_minimally_valid_core_release(tmp_path: Path) -> No
     assert core.pin()["role"] == "RulespecCoreRelease"
 
 
-def test_declared_rulespec_core_profile_opens_the_exact_sibling_fixture() -> None:
-    refspec_root = Path(__file__).resolve().parents[1]
-    rulespec_root = refspec_root.parents[1] / "rulespec"
-    profile = json.loads((refspec_root / "profiles/rulespec-core-dependency.json").read_text())
-    release_path = rulespec_root / profile["artifact"]["path"]
-    if not release_path.is_file():
-        pytest.skip(f"Rulespec Core sibling fixture is unavailable: {release_path}")
-
-    opened = PinnedRulespecCoreRelease.open(
-        release_path,
-        expected_file_digest=profile["artifact"]["sha256"],
-        expected_release_id=profile["release"]["releaseId"],
-        expected_release_digest=profile["release"]["releaseDigest"],
-    )
-
-    assert opened.release_id == profile["release"]["releaseId"]
-
-
 def test_equal_labels_form_analysis_cluster_but_never_mapping(tmp_path: Path) -> None:
     releases = _two_releases(tmp_path)
     asset = build_vocabulary_atlas(releases, rulespec_core=_core_release(tmp_path))

@@ -18,7 +18,7 @@ from refspec.registry.regulatory_native_controls import (
     render_control_capture,
 )
 
-EVIDENCE_ROOT = ROOT / "research" / "evidence" / "regulatory-native-controls-2026-07-30"
+EVIDENCE_ROOT = ROOT / "research" / "evidence" / "regulatory-native-controls-2026-08-03"
 DEFAULT_PINS = EVIDENCE_ROOT / "source-pins.json"
 DEFAULT_CAPTURE = EVIDENCE_ROOT / "source-native-control-capture.json"
 
@@ -53,9 +53,14 @@ def main() -> int:
         if args.write:
             if generated is None:
                 raise RegulatoryNativeControlError("--write requires --source-directory")
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_bytes(generated)
-            print(f"wrote {args.output.relative_to(ROOT)} ({len(generated)} bytes)")
+            output_path = args.output.resolve()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(generated)
+            try:
+                display_path = output_path.relative_to(ROOT)
+            except ValueError:
+                display_path = output_path
+            print(f"wrote {display_path} ({len(generated)} bytes)")
             return 0
 
         payload = args.output.read_bytes()

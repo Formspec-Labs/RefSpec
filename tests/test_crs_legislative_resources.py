@@ -3,14 +3,63 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import crs_legislative_resources as crs
+from refspec.registry.infrastructure.source_identity import derive_uuid7
 
 FIXTURES = Path(__file__).parent / "fixtures"
+REFSPEC_ROOT = Path(__file__).resolve().parents[1]
+FULL_CAPTURE_SPECS = (
+    (
+        crs.CRS_LEGISLATIVE_SUBJECTS_PAGE,
+        "REFSPEC_CRS_LEGISLATIVE_SUBJECTS_PATH",
+        (
+            "output/refspec-vocabulary-portfolio/crs/2026-07-30/sha256/"
+            "8b4964a8cea53d63bce0a029bac38a2bc260059883120bc36e1759a4b5e844d1/"
+            "legislative-subject-terms.html"
+        ),
+        "sha256:8b4964a8cea53d63bce0a029bac38a2bc260059883120bc36e1759a4b5e844d1",
+        410_454,
+    ),
+    (
+        crs.CRS_LEGISLATIVE_GEOGRAPHIC_PAGE,
+        "REFSPEC_CRS_LEGISLATIVE_GEOGRAPHIC_PATH",
+        (
+            "output/refspec-vocabulary-portfolio/crs/2026-07-30/sha256/"
+            "7dfefc6e8b17b3a86a9c9009453e792453eef01b099177ef29f4dc172d19d3d0/"
+            "legislative-subject-geographic-entities.html"
+        ),
+        "sha256:7dfefc6e8b17b3a86a9c9009453e792453eef01b099177ef29f4dc172d19d3d0",
+        384_627,
+    ),
+    (
+        crs.CRS_LEGISLATIVE_ORGANIZATIONS_PAGE,
+        "REFSPEC_CRS_LEGISLATIVE_ORGANIZATIONS_PATH",
+        (
+            "output/refspec-vocabulary-portfolio/crs/2026-07-30/sha256/"
+            "fa870ff36352c3482a68aad4d9cff69bd8ff98294a7dd21b1e36f0a534b2b880/"
+            "legislative-subject-organization-names.html"
+        ),
+        "sha256:fa870ff36352c3482a68aad4d9cff69bd8ff98294a7dd21b1e36f0a534b2b880",
+        381_186,
+    ),
+    (
+        crs.CRS_POLICY_AREAS_PAGE,
+        "REFSPEC_CRS_POLICY_AREAS_PATH",
+        (
+            "output/refspec-vocabulary-portfolio/crs/2026-07-30/sha256/"
+            "16d806e4a07df391de776d0bd5fade9d0bce89fe33b564036c94e0749df91326/"
+            "policy-areas.html"
+        ),
+        "sha256:16d806e4a07df391de776d0bd5fade9d0bce89fe33b564036c94e0749df91326",
+        383_558,
+    ),
+)
 
 
 def _payload(name: str) -> bytes:
@@ -21,6 +70,10 @@ def _pin(source: crs.CRSPageSource, payload: bytes) -> crs.CRSPageSnapshotPin:
     return crs.CRSPageSnapshotPin(
         source=source,
         retrieved_at="2026-07-30T12:33:34Z",
+        fetch_id=derive_uuid7(
+            "2026-07-30T12:33:34Z",
+            seed=f"fixture-fetch:{source.term_category}".encode(),
+        ),
         expected_sha256=crs.sha256_digest(payload),
         expected_byte_length=len(payload),
     )
@@ -50,6 +103,32 @@ def test_current_official_pages_keep_the_two_resources_separate() -> None:
     assert {source.resource_name for source in crs.CRS_LEGISLATIVE_SUBJECT_TERM_PAGES} == {"legislativeSubjectTerms"}
     assert crs.CRS_POLICY_AREAS_PAGE.resource_name == "policyAreas"
     assert crs.CRS_POLICY_AREAS_PAGE.role == "navigation"
+    assert crs.crs_source_scheme("legislativeSubjectTerms") == crs.CRS_LEGISLATIVE_SUBJECT_TERMS_SCHEME
+    assert crs.crs_source_scheme("policyAreas") == crs.CRS_POLICY_AREAS_SCHEME
+
+
+def test_all_four_full_publisher_pages_parse_to_observed_current_counts(tmp_path: Path) -> None:
+    parsed = []
+    for source, environment_name, default_path, digest, byte_length in FULL_CAPTURE_SPECS:
+        path = Path(os.environ.get(environment_name, REFSPEC_ROOT / default_path))
+        if not path.is_file():
+            pytest.skip(f"full CRS publisher capture is unavailable: {path}")
+        pin = crs.CRSPageSnapshotPin(
+            source=source,
+            retrieved_at="2026-07-30T12:46:40Z",
+            fetch_id=derive_uuid7("2026-07-30T12:46:40Z", seed=source.source_url.encode()),
+            expected_sha256=digest,
+            expected_byte_length=byte_length,
+        )
+        acquired = crs.acquire_crs_page(pin, tmp_path / "full", source_path=path)
+        parsed.append(crs.parse_crs_field_value_page(acquired))
+
+    detailed = crs.assemble_crs_legislative_subject_terms(parsed[:3])
+    policy = crs.assemble_crs_policy_areas(parsed[3])
+
+    assert len(detailed.terms) == 1_043
+    assert [len(page.terms) for page in detailed.pages] == [565, 301, 177]
+    assert len(policy.terms) == 32
 
 
 def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
@@ -244,6 +323,9 @@ def test_legislative_pages_preserve_category_labels_without_minting_ids(
     resource = crs.assemble_crs_legislative_subject_terms(pages)
 
     assert resource.resource_name == "legislativeSubjectTerms"
+    assert resource.source_scheme == crs.CRS_LEGISLATIVE_SUBJECT_TERMS_SCHEME
+    assert resource.source_scheme.scheme_iri == "http://id.loc.gov/vocabulary/subjectSchemes/lst"
+    assert resource.source_scheme.code == "lst"
     assert resource.role == "selectableSubject"
     assert [term.official_label for term in resource.terms] == [
         "Administrative law and regulatory procedures",
@@ -312,6 +394,9 @@ def test_policy_areas_preserve_scope_notes_as_a_separate_navigation_resource(
     resource = crs.assemble_crs_policy_areas(page)
 
     assert resource.resource_name == "policyAreas"
+    assert resource.source_scheme == crs.CRS_POLICY_AREAS_SCHEME
+    assert resource.source_scheme.scheme_iri == "http://id.loc.gov/vocabulary/subjectSchemes/cgpa"
+    assert resource.source_scheme.code == "cgpa"
     assert resource.role == "navigation"
     assert [term.official_label for term in resource.terms] == [
         "Government Operations and Politics",

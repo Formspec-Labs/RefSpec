@@ -5,15 +5,23 @@ from pathlib import Path
 
 import pytest
 
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceError,
     SourceControlledResourceView,
     build_source_controlled_resource_bundle,
 )
+from refspec.registry.infrastructure.source_identity import SourceRegistrationEvent
 
 SOURCE_ID = "https://example.test/terms.json"
 SOURCE_BYTES = b'{"terms":[{"code":"A","label":"Alpha"}]}\n'
 SOURCE_DIGEST = "sha256:184a8d10ce7ae8b28286b733d1d2df1cec782f32c85d6b43931ecacdc67aee7d"
+SCHEME_SOURCE_ID = "https://example.test/schemes/example.json"
+SCHEME_SOURCE_BYTES = b'{"id":"https://example.test/schemes/example"}\n'
+REGISTRATION_EVENT = SourceRegistrationEvent(
+    registration_id="019fc9f2-c758-7b5c-9c19-f7fe5e2bf611",
+    registered_at="2026-08-03T23:25:59Z",
+)
+SCHEME_FETCH_ID = "019fc9f2-c758-728f-8dbb-232379d1c9a3"
 
 
 def _observation() -> dict[str, object]:
@@ -66,10 +74,7 @@ def test_package_round_trips_and_rechecks_exact_sources(tmp_path: Path) -> None:
 
     assert opened.logical_digest == package.logical_digest
     assert opened.observations[0]["id"] == package.observations[0]["id"]
-    assert (
-        opened.observations[0]["labels"][0]["value"]
-        == package.observations[0]["labels"][0]["value"]
-    )
+    assert opened.observations[0]["labels"][0]["value"] == package.observations[0]["labels"][0]["value"]
     assert opened.source_artifact_bytes(SOURCE_ID) == SOURCE_BYTES
     assert opened.coverage_report["reportStatus"] == "pass"
 
@@ -205,3 +210,169 @@ def test_package_records_explicit_coverage_gaps() -> None:
     assert package.coverage_report["reportStatus"] == "gap"
     assert package.coverage_report["sourceObservedCount"] == 2
     assert package.coverage_report["packagedCount"] == 1
+
+
+def test_package_preserves_an_optional_source_scheme_authority_record(
+    tmp_path: Path,
+) -> None:
+    package = build_source_controlled_resource_bundle(
+        resource_id="example-terms",
+        title="Example terms",
+        resource_kind="controlledCodeList",
+        identity_status="publisherIdentifiersPreserved",
+        uses=("sourceAssignedEvidence",),
+        captured_at="2026-08-03T23:25:59Z",
+        candidate_use_authorized=True,
+        observations=(_observation(),),
+        source_artifacts={
+            SOURCE_ID: SOURCE_BYTES,
+            SCHEME_SOURCE_ID: SCHEME_SOURCE_BYTES,
+        },
+        source_scheme={
+            "id": "https://example.test/schemes/example",
+            "code": "example",
+            "label": "Example scheme",
+            "sourceArtifact": SCHEME_SOURCE_ID,
+            "sourceFetchId": SCHEME_FETCH_ID,
+            "sourceObservedAt": "2026-08-03T23:25:59Z",
+        },
+    )
+
+    opened = SourceControlledResourceView.open(package.write_to(tmp_path / "scheme-package"))
+
+    assert opened.resource_manifest["sourceScheme"] == {
+        "id": "https://example.test/schemes/example",
+        "code": "example",
+        "label": "Example scheme",
+        "sourceArtifact": SCHEME_SOURCE_ID,
+        "sourceFetchId": SCHEME_FETCH_ID,
+        "sourceObservedAt": "2026-08-03T23:25:59Z",
+    }
+    assert opened.source_artifact_bytes(SCHEME_SOURCE_ID) == SCHEME_SOURCE_BYTES
+
+
+def test_package_rejects_a_source_scheme_without_its_authority_record() -> None:
+    with pytest.raises(SourceControlledResourceError, match="not in the package source set"):
+        build_source_controlled_resource_bundle(
+            resource_id="example-terms",
+            title="Example terms",
+            resource_kind="controlledCodeList",
+            identity_status="publisherIdentifiersPreserved",
+            uses=("sourceAssignedEvidence",),
+            captured_at="2026-08-03T23:25:59Z",
+            candidate_use_authorized=True,
+            observations=(_observation(),),
+            source_artifacts={SOURCE_ID: SOURCE_BYTES},
+            source_scheme={
+                "id": "https://example.test/schemes/example",
+                "code": "example",
+                "label": "Example scheme",
+                "sourceArtifact": SCHEME_SOURCE_ID,
+                "sourceFetchId": SCHEME_FETCH_ID,
+                "sourceObservedAt": "2026-08-03T23:25:59Z",
+            },
+        )
+
+
+def test_package_hashes_local_record_membership_and_capture_independent_content() -> None:
+    observation = {
+        **_observation(),
+        "localRecordId": REGISTRATION_EVENT.derived_record_urn(
+            purpose="example-local-record",
+            source_key="$.terms[0]",
+        ),
+    }
+    package = build_source_controlled_resource_bundle(
+        resource_id="example-terms",
+        title="Example terms",
+        resource_kind="controlledCodeList",
+        identity_status="publisherIdentifiersPreserved",
+        uses=("sourceAssignedEvidence",),
+        captured_at=REGISTRATION_EVENT.registered_at,
+        candidate_use_authorized=True,
+        observations=(observation,),
+        source_artifacts={SOURCE_ID: SOURCE_BYTES},
+        registration_event=REGISTRATION_EVENT.as_dict(),
+    )
+
+    assert package.resource_manifest["registrationEvent"] == REGISTRATION_EVENT.as_dict()
+    assert package.coverage_report["localRecordIdSetDigest"].startswith("sha256:")
+    assert package.coverage_report["localRecordContentSetDigest"].startswith("sha256:")
+
+    moved_observation = {
+        **observation,
+        "id": "urn:ref:source-record:example:another-capture:7",
+        "sourcePath": "$.terms[7]",
+        "sourceOrdinal": 7,
+        "identifiers": [
+            {
+                "value": "A",
+                "kind": "publisherCode",
+                "authorityUri": "https://example.test/terms",
+                "sourceUri": "https://example.test/another-capture.json",
+                "sourcePath": "$.values[7].code",
+                "observedAt": "2026-08-03T23:25:59Z",
+                "sourceDigest": SOURCE_DIGEST,
+            }
+        ],
+    }
+    moved = build_source_controlled_resource_bundle(
+        resource_id="example-terms",
+        title="Example terms",
+        resource_kind="controlledCodeList",
+        identity_status="publisherIdentifiersPreserved",
+        uses=("sourceAssignedEvidence",),
+        captured_at=REGISTRATION_EVENT.registered_at,
+        candidate_use_authorized=True,
+        observations=(moved_observation,),
+        source_artifacts={SOURCE_ID: SOURCE_BYTES},
+        registration_event=REGISTRATION_EVENT.as_dict(),
+    )
+
+    assert moved.coverage_report["observationSetDigest"] != package.coverage_report["observationSetDigest"]
+    assert moved.coverage_report["localRecordIdSetDigest"] == package.coverage_report["localRecordIdSetDigest"]
+    assert (
+        moved.coverage_report["localRecordContentSetDigest"] == package.coverage_report["localRecordContentSetDigest"]
+    )
+
+
+def test_package_rejects_partial_or_duplicate_local_record_ids() -> None:
+    local_id = REGISTRATION_EVENT.derived_record_urn(
+        purpose="example-local-record",
+        source_key="$.terms[0]",
+    )
+    first = {**_observation(), "localRecordId": local_id}
+    second = {
+        **_observation(),
+        "id": "urn:ref:source-record:example:c01e5feb:1",
+        "sourcePath": "$.terms[1]",
+        "sourceOrdinal": 1,
+    }
+
+    with pytest.raises(SourceControlledResourceError, match="every observation"):
+        build_source_controlled_resource_bundle(
+            resource_id="example-terms",
+            title="Example terms",
+            resource_kind="controlledCodeList",
+            identity_status="publisherIdentifiersPreserved",
+            uses=("sourceAssignedEvidence",),
+            captured_at=REGISTRATION_EVENT.registered_at,
+            candidate_use_authorized=True,
+            observations=(first, second),
+            source_artifacts={SOURCE_ID: SOURCE_BYTES},
+            registration_event=REGISTRATION_EVENT.as_dict(),
+        )
+
+    with pytest.raises(SourceControlledResourceError, match="unique localRecordId"):
+        build_source_controlled_resource_bundle(
+            resource_id="example-terms",
+            title="Example terms",
+            resource_kind="controlledCodeList",
+            identity_status="publisherIdentifiersPreserved",
+            uses=("sourceAssignedEvidence",),
+            captured_at=REGISTRATION_EVENT.registered_at,
+            candidate_use_authorized=True,
+            observations=(first, {**second, "localRecordId": local_id}),
+            source_artifacts={SOURCE_ID: SOURCE_BYTES},
+            registration_event=REGISTRATION_EVENT.as_dict(),
+        )

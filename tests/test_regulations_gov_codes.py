@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import regulations_gov_codes as rgov
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "regulations_gov_codes"
 OPENAPI_FIXTURE = FIXTURES / "regulations-gov-openapi-v4-2026-08-03.yaml"

@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import oira_review_codes as oira
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "oira_review_codes"
 ADVANCED_SEARCH_FIXTURE = FIXTURES / "eo-advanced-search-2026-08-03.html"

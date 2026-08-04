@@ -9,21 +9,21 @@ from pathlib import Path
 
 import pytest
 
-from refspec.registry.icpsr_managed_release import (
+from refspec.registry.icpsr_subject import (
+    build_icpsr_subject_index,
+    parse_icpsr_subject_xml,
+    write_icpsr_subject_index_capture,
+)
+from refspec.registry.managed_releases.icpsr_managed_release import (
     IcpsrManagedReleaseError,
     IcpsrManagedReleaseSources,
     IcpsrManagedReleaseView,
     build_icpsr_managed_release,
     open_icpsr_managed_release_sources,
 )
-from refspec.registry.icpsr_subject import (
-    build_icpsr_subject_index,
-    parse_icpsr_subject_xml,
-    write_icpsr_subject_index_capture,
-)
 
 FIXTURES = Path(__file__).parent / "fixtures"
-REAL_CAPTURE = Path(__file__).resolve().parents[2] / "output" / "refspec-vocabulary-portfolio" / "icpsr" / "2026-07-30"
+REAL_CAPTURE = Path(__file__).resolve().parents[1] / "output" / "refspec-vocabulary-portfolio" / "icpsr" / "2026-07-30"
 EVIDENCE = (
     Path(__file__).resolve().parents[1] / "research" / "evidence" / "icpsr-managed-release-2026-07-30" / "evidence.json"
 )

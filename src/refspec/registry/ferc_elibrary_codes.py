@@ -10,16 +10,12 @@ FERC -- they exist to interpret FERC filings, not to classify subject matter.
 RefSpec must not reuse a FERC docket prefix, sector, or security level to
 describe a record from another agency.
 
-An unauthenticated automated GET of the official page was attempted while
-building this module and returned HTTP 403 from the publisher's bot-mitigation
-service (a Cloudflare "challenge"), so no verified live capture exists yet.
-This module therefore packages a locally constructed reference fixture that is
-faithful to the page's documented table shape (headings, columns, and the
-accession-number paragraph) rather than an unverifiable live byte capture.
-Every snapshot pin carries an explicit ``provenance`` so a later verified
-capture can never be confused with this placeholder, and parsing is strict
-about the documented shape: a real capture that does not match it raises a
-source-drift error instead of silently being accepted.
+The current real-data path pins FERC's January 2025 class/type PDF, June 2025
+docket-prefix PDF, general-search help, and accessibility guide. The older
+single-page package below remains a constructed compatibility fixture; its
+explicit ``provenance`` prevents it from being confused with the official
+captures. Every real parser checks the exact publisher bytes, complete output
+count, structure, and boundary samples.
 
 Acquisition accepts a local exact capture or an injected fetcher. Importing
 this module never opens a network connection, and no scraping provider is
@@ -29,6 +25,8 @@ required for the current static HTML page.
 from __future__ import annotations
 
 import hashlib
+import html
+import io
 import os
 import re
 import tempfile
@@ -38,11 +36,29 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from pypdf import PdfReader
+
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FERC_PUBLISHER = "Federal Energy Regulatory Commission"
 FERC_IDENTIFIER_AUTHORITY_URI = "https://www.ferc.gov/"
 FERC_ELIBRARY_URL = "https://www.ferc.gov/media/elibrary-classtype-information"
+FERC_CLASS_TYPE_PDF_URL = (
+    "https://www.ferc.gov/sites/default/files/2025-06/"
+    "Document%20Class%20Types%20January%202025.pdf"
+)
+FERC_CLASS_TYPE_PDF_SHA256 = "sha256:af632c9c6adbf0e7919d17e018b3a65078d0746bd1ab69a8d9fa65043720d688"
+FERC_CLASS_TYPE_PDF_BYTE_LENGTH = 193_934
+FERC_CLASS_TYPE_PDF_ROW_COUNT = 235
+FERC_DOCKET_PREFIX_PDF_URL = "https://elibrary.ferc.gov/eLibrary/assets/docket-prefix.pdf"
+FERC_DOCKET_PREFIX_PDF_SHA256 = "sha256:c32efae9f51a70b6f955821d2fb3d3025995ef0e17e57bf2d32dfa16c2508dcb"
+FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH = 282_729
+FERC_GENERAL_SEARCH_HELP_URL = "https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm"
+FERC_GENERAL_SEARCH_HELP_SHA256 = "sha256:1f4b2883879602530c59095cc3d33fedbbf50a2d630e7bdf0226785259dd2b45"
+FERC_GENERAL_SEARCH_HELP_BYTE_LENGTH = 7_447
+FERC_ACCESSIBILITY_TIPS_URL = "https://elibrary.ferc.gov/eLibrary/assets/Accessibility_Tips.html"
+FERC_ACCESSIBILITY_TIPS_SHA256 = "sha256:c9219bd08b8712e35389ff26f079a21e16d2b5fea68aaebf561bb9b203010688"
+FERC_ACCESSIBILITY_TIPS_BYTE_LENGTH = 39_466
 
 # Evidence of the acquisition attempt made while building this module. The
 # publisher's edge network returned a bot-mitigation challenge rather than the
@@ -109,6 +125,226 @@ class FercSourceDriftError(FercResourceError):
 
 class FercAssignmentError(FercResourceError):
     """A record carries an unknown or malformed source-assigned FERC field."""
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedClassTypeRow:
+    """One publisher row retained from the January 2025 FERC PDF."""
+
+    category: Literal["Issuance", "Submittal"]
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedClassTypeCapture:
+    """Measured shape of FERC's complete January 2025 class/type PDF."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    page_count: int
+    rows: tuple[FercPublishedClassTypeRow, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedDocketPrefixRow:
+    """One active or discontinued docket-prefix row from FERC's current PDF."""
+
+    status: Literal["active", "discontinued"]
+    prefix: str
+    library: str
+    definition: str
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedDocketPrefixCapture:
+    """The complete June 2025 docket-prefix PDF."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    page_count: int
+    rows: tuple[FercPublishedDocketPrefixRow, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedSearchFieldsCapture:
+    """Sector and security-level values from FERC's official search help."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    sectors: tuple[str, ...]
+    security_levels: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FercPublishedReferenceFormatsCapture:
+    """Accession-number examples from FERC's official accessibility guide."""
+
+    source_url: str
+    source_sha256: str
+    source_byte_length: int
+    accession_formats: tuple[str, ...]
+
+
+def parse_ferc_class_type_pdf(payload: bytes) -> FercPublishedClassTypeCapture:
+    """Read every class/type table row from FERC's pinned January 2025 PDF."""
+
+    if not isinstance(payload, bytes) or not payload:
+        raise FercSourceDriftError("FERC class/type PDF must be non-empty bytes")
+    if len(payload) != FERC_CLASS_TYPE_PDF_BYTE_LENGTH or sha256_digest(payload) != FERC_CLASS_TYPE_PDF_SHA256:
+        raise FercSourceDriftError("FERC class/type PDF failed its exact byte pin")
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+    except Exception as error:
+        raise FercSourceDriftError("FERC class/type PDF is unreadable") from error
+    rows: list[FercPublishedClassTypeRow] = []
+    for page in reader.pages:
+        text = page.extract_text() or ""
+        for raw_line in text.splitlines():
+            line = " ".join(raw_line.split())
+            if line.startswith("Issuance "):
+                rows.append(FercPublishedClassTypeRow(category="Issuance", text=line))
+            elif line.startswith("Submittal "):
+                rows.append(FercPublishedClassTypeRow(category="Submittal", text=line))
+    if len(reader.pages) != 7 or len(rows) != FERC_CLASS_TYPE_PDF_ROW_COUNT:
+        raise FercSourceDriftError(
+            f"FERC class/type PDF shape drifted: pages={len(reader.pages)}, rows={len(rows)}"
+        )
+    return FercPublishedClassTypeCapture(
+        source_url=FERC_CLASS_TYPE_PDF_URL,
+        source_sha256=FERC_CLASS_TYPE_PDF_SHA256,
+        source_byte_length=len(payload),
+        page_count=len(reader.pages),
+        rows=tuple(rows),
+    )
+
+
+_DOCKET_LIBRARY = (
+    r"(?:Gen(?:, RM)?|E(?:, G, O, H, Gen|, G, H, O|, G, O| or G|, G)?|"
+    r"G(?:, O)?|H(?:, E, G, O)?|O)"
+)
+_DOCKET_ROW = re.compile(
+    r"(?P<prefix>[A-Z]{1,3}-?) (?P<library>"
+    + _DOCKET_LIBRARY
+    + r") (?P<definition>.+?)(?= [A-Z]{1,3}-? "
+    + _DOCKET_LIBRARY
+    + r" |$)"
+)
+
+
+def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCapture:
+    """Read every active and discontinued prefix from FERC's June 2025 PDF."""
+
+    if len(payload) != FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH or sha256_digest(payload) != FERC_DOCKET_PREFIX_PDF_SHA256:
+        raise FercSourceDriftError("FERC docket-prefix PDF failed its exact byte pin")
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+    except Exception as error:
+        raise FercSourceDriftError("FERC docket-prefix PDF is unreadable") from error
+    rows: list[FercPublishedDocketPrefixRow] = []
+    status: Literal["active", "discontinued"] | None = None
+    for page in reader.pages:
+        for raw_line in (page.extract_text() or "").splitlines():
+            line = " ".join(raw_line.split())
+            if "Table 1" in line or "Table 2" in line:
+                status = "active"
+                continue
+            if "Table 3" in line:
+                status = "discontinued"
+                continue
+            matches = tuple(_DOCKET_ROW.finditer(line))
+            if matches and status is not None:
+                rows.extend(
+                    FercPublishedDocketPrefixRow(
+                        status=status,
+                        prefix=match.group("prefix"),
+                        library=match.group("library"),
+                        definition=match.group("definition"),
+                    )
+                    for match in matches
+                )
+            elif (
+                rows
+                and status is not None
+                and line
+                and re.fullmatch(r"\d+ June 2025", line) is None
+                and line != "Prefix Library Definition"
+                and not line.startswith(("Federal Energy", "Docket Prefix List"))
+            ):
+                previous = rows[-1]
+                rows[-1] = FercPublishedDocketPrefixRow(
+                    status=previous.status,
+                    prefix=previous.prefix,
+                    library=previous.library,
+                    definition=f"{previous.definition} {line}",
+                )
+    if len(reader.pages) != 6 or len(rows) != 95:
+        raise FercSourceDriftError(f"FERC docket-prefix PDF shape drifted: pages={len(reader.pages)}, rows={len(rows)}")
+    return FercPublishedDocketPrefixCapture(
+        source_url=FERC_DOCKET_PREFIX_PDF_URL,
+        source_sha256=FERC_DOCKET_PREFIX_PDF_SHA256,
+        source_byte_length=len(payload),
+        page_count=len(reader.pages),
+        rows=tuple(rows),
+    )
+
+
+def _list_values_after_heading(source: str, heading: str) -> tuple[str, ...]:
+    match = re.search(
+        r"<li>" + re.escape(heading) + r"</li>\s*<ul[^>]*>(?P<items>.*?)</ul>",
+        source,
+        flags=re.DOTALL,
+    )
+    if match is None:
+        raise FercSourceDriftError(f"FERC help page omitted the {heading!r} list")
+    return tuple(
+        html.unescape(re.sub(r"<[^>]+>", "", item)).strip()
+        for item in re.findall(r"<li>(.*?)</li>", match.group("items"), flags=re.DOTALL)
+    )
+
+
+def parse_ferc_general_search_help(payload: bytes) -> FercPublishedSearchFieldsCapture:
+    """Read the exact sector and security options from FERC's search help page."""
+
+    if len(payload) != FERC_GENERAL_SEARCH_HELP_BYTE_LENGTH or sha256_digest(payload) != FERC_GENERAL_SEARCH_HELP_SHA256:
+        raise FercSourceDriftError("FERC general-search help failed its exact byte pin")
+    source = payload.decode("ascii")
+    sectors = _list_values_after_heading(source, "Industry Sector")
+    security_levels = _list_values_after_heading(source, "Security Level")
+    if len(sectors) != 6 or len(security_levels) != 4:
+        raise FercSourceDriftError("FERC general-search field counts drifted")
+    return FercPublishedSearchFieldsCapture(
+        source_url=FERC_GENERAL_SEARCH_HELP_URL,
+        source_sha256=FERC_GENERAL_SEARCH_HELP_SHA256,
+        source_byte_length=len(payload),
+        sectors=sectors,
+        security_levels=security_levels,
+    )
+
+
+def parse_ferc_accessibility_tips(payload: bytes) -> FercPublishedReferenceFormatsCapture:
+    """Read accession-number examples from FERC's official HTML guide."""
+
+    if len(payload) != FERC_ACCESSIBILITY_TIPS_BYTE_LENGTH or sha256_digest(payload) != FERC_ACCESSIBILITY_TIPS_SHA256:
+        raise FercSourceDriftError("FERC accessibility guide failed its exact byte pin")
+    source = payload.decode("utf-8")
+    match = re.search(
+        r"<td scope=\"row\">Accession</td>\s*<td>(?P<formats>[^<]+)</td>",
+        source,
+    )
+    if match is None:
+        raise FercSourceDriftError("FERC accessibility guide omitted Accession formats")
+    formats = tuple(part.strip() for part in match.group("formats").split(", or "))
+    if formats != ("19940824-0052", "19940824*"):
+        raise FercSourceDriftError(f"FERC accession formats drifted: {formats!r}")
+    return FercPublishedReferenceFormatsCapture(
+        source_url=FERC_ACCESSIBILITY_TIPS_URL,
+        source_sha256=FERC_ACCESSIBILITY_TIPS_SHA256,
+        source_byte_length=len(payload),
+        accession_formats=formats,
+    )
 
 
 def _table_pattern(heading: str, columns: tuple[str, ...]) -> re.Pattern[str]:

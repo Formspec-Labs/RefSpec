@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import replace
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from refspec.registry.regulatory_native_controls import (
     RegulatoryNativeControlError,
     SourcePinSet,
     capture_control_values,
+    capture_control_values_from_parquet,
     extract_identifier_observations,
     load_source_pins,
     parse_control_capture,
@@ -17,16 +19,34 @@ from refspec.registry.regulatory_native_controls import (
 )
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_ROOT = REFSPEC_ROOT / "research" / "evidence" / "regulatory-native-controls-2026-07-30"
+EVIDENCE_ROOT = REFSPEC_ROOT / "research" / "evidence" / "regulatory-native-controls-2026-08-03"
 SOURCE_PINS_PATH = EVIDENCE_ROOT / "source-pins.json"
 CAPTURE_PATH = EVIDENCE_ROOT / "source-native-control-capture.json"
 IDENTIFIER_FIXTURE_PATH = REFSPEC_ROOT / "tests" / "fixtures" / "regulatory-native-identifiers-mini.json"
-CAPTURE_SHA256 = "sha256:054444ea904b3c89cdf44eac6209f56b6a896aa59ed225bc616b2bce0b9f7ec9"
-CAPTURE_BYTE_LENGTH = 183372
+CAPTURE_SHA256 = "sha256:7bd204d3e2070a81cc1a52e232032ac673779f5c3fd434330bc383726dc7c25d"
+CAPTURE_BYTE_LENGTH = 183479
+PARQUET_ENVIRONMENT = {
+    "dockets": "REFSPEC_REGULATORY_NATIVE_DOCKETS_PATH",
+    "documents": "REFSPEC_REGULATORY_NATIVE_DOCUMENTS_PATH",
+    "federal_register": "REFSPEC_REGULATORY_NATIVE_FEDERAL_REGISTER_PATH",
+    "unified_agenda": "REFSPEC_REGULATORY_NATIVE_UNIFIED_AGENDA_PATH",
+}
 
 
 def _identifier_fixture() -> dict[str, object]:
     return json.loads(IDENTIFIER_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+def _current_parquet_paths() -> dict[str, Path]:
+    default_root = REFSPEC_ROOT / "output" / "registry-real-data-sources" / "regulatory-native-current"
+    paths = {
+        table: Path(os.environ.get(variable, default_root / f"{table}.parquet"))
+        for table, variable in PARQUET_ENVIRONMENT.items()
+    }
+    missing = [str(path) for path in paths.values() if not path.is_file()]
+    if missing:
+        pytest.skip(f"current regulatory-native Parquet captures are unavailable: {missing}")
+    return paths
 
 
 def test_current_capture_is_exact_and_keeps_controls_outside_subjects() -> None:
@@ -57,6 +77,13 @@ def test_current_capture_is_exact_and_keeps_controls_outside_subjects() -> None:
     )
 
 
+def test_current_capture_rebuilds_from_all_four_full_parquet_sources() -> None:
+    pins = load_source_pins(SOURCE_PINS_PATH)
+    rebuilt = capture_control_values_from_parquet(pins, _current_parquet_paths())
+
+    assert render_control_capture(rebuilt) == CAPTURE_PATH.read_bytes()
+
+
 def test_capture_records_current_type_process_and_agency_catalogs() -> None:
     capture = parse_control_capture(CAPTURE_PATH.read_bytes())
     controls = {control.spec.control_id: control for control in capture.controls}
@@ -85,8 +112,8 @@ def test_capture_records_current_type_process_and_agency_catalogs() -> None:
         "xlsx",
     }
     assert len(controls["federal-register-agency-slug"].values) == 399
-    assert controls["federal-register-agency-slug"].unresolved_value_count == 22177
-    assert len(controls["federal-register-unresolved-agency-name"].values) == 714
+    assert controls["federal-register-agency-slug"].unresolved_value_count == 22181
+    assert len(controls["federal-register-unresolved-agency-name"].values) == 715
 
 
 def test_capture_makes_current_published_schema_gaps_executable() -> None:

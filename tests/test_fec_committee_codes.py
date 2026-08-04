@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import fec_committee_codes as fec
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "fec_committee_codes"
 MASTER_FILE_FIXTURE = FIXTURES / "fec-committee-master-file-description-2026-08-03.html"

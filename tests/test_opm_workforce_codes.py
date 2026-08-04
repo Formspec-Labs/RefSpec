@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import opm_workforce_codes as opm
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "opm_workforce_codes"
 PAY_PLAN_FIXTURE = FIXTURES / "opm-pay-plan-codes.json"
@@ -16,6 +17,8 @@ WORK_SCHEDULE_FIXTURE = FIXTURES / "opm-work-schedule-codes.json"
 APPOINTMENT_TYPE_FIXTURE = FIXTURES / "opm-appointment-type-codes.json"
 OCCUPATIONAL_SERIES_FIXTURE = FIXTURES / "opm-occupational-series-codes.json"
 PLUM_FIXTURE = FIXTURES / "opm-plum-position-status-codes.json"
+EHRI_REAL_SOURCE_ENV = "REFSPEC_OPM_EHRI_DATA_STANDARDS_PATH"
+PLUM_REAL_SOURCE_ENV = "REFSPEC_OPM_PLUM_ALL_DATA_PATH"
 
 
 def _acquire(
@@ -53,6 +56,67 @@ def test_pinned_fixture_bytes_match_exact_digests() -> None:
         payload = fixture.read_bytes()
         assert len(payload) == pin.expected_byte_length
         assert opm.sha256_digest(payload) == pin.expected_sha256
+
+
+@pytest.mark.skipif(
+    not os.environ.get(EHRI_REAL_SOURCE_ENV),
+    reason=f"set {EHRI_REAL_SOURCE_ENV} to the pinned official EHRI XLSX export",
+)
+def test_official_ehri_export_shape_counts_and_samples() -> None:
+    payload = Path(os.environ[EHRI_REAL_SOURCE_ENV]).read_bytes()
+    export = opm.parse_opm_ehri_data_standards_xlsx(payload)
+
+    assert export.source_sha256 == "sha256:6978bd6d76158f029d468982737fcd68e6dd742c2aedaa9ab5dca151d2a84bfc"
+    assert export.source_byte_length == 1_154_183
+    assert len(export.fields) == 534
+    assert len(export.current_values) == 17_263
+    assert len(export.past_values) == 16_425
+    assert len(export.current_values_for("PAY PLAN")) == 343
+    assert len(export.current_values_for("WORK SCHEDULE")) == 10
+    assert len(export.current_values_for("APPOINTMENT TYPE CODE")) == 21
+    assert len(export.current_values_for("OCCUPATION")) == 814
+    assert export.current_values_for("PAY PLAN")[0] == opm.OPMEHRIValue(
+        name="PAY PLAN",
+        code="AA",
+        explanation="ADMINISTRATIVE APPEALS JUDGES",
+        from_date="2001-04-01",
+        through_date="PRESENT",
+    )
+    assert export.current_values_for("OCCUPATION")[-1].code == "9999"
+    assert export.current_values_for("OCCUPATION")[-1].explanation == "SECOND RADIO ELECTRONICS TECHNICIAN"
+
+
+@pytest.mark.skipif(
+    not os.environ.get(PLUM_REAL_SOURCE_ENV),
+    reason=f"set {PLUM_REAL_SOURCE_ENV} to the pinned official PLUM CSV export",
+)
+def test_official_plum_export_shape_counts_and_samples() -> None:
+    payload = Path(os.environ[PLUM_REAL_SOURCE_ENV]).read_bytes()
+    export = opm.parse_opm_plum_all_data_csv(payload)
+
+    assert export.source_sha256 == "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f"
+    assert export.source_byte_length == 2_737_270
+    assert len(export.records) == 15_777
+    assert export.appointment_types == (
+        "CA",
+        "CC",
+        "CG",
+        "DA",
+        "EA",
+        "EO",
+        "NA",
+        "PA",
+        "PAS",
+        "SC",
+        "TA",
+        "XS",
+    )
+    assert export.position_statuses == ("Filled", "Vacant")
+    assert len(export.pay_plans) == 14
+    assert export.records[0].agency_name == "ADMINISTRATIVE CONFERENCE OF THE UNITED STATES"
+    assert export.records[0].position_title == "CHAIRMAN"
+    assert export.records[-1].agency_name == "WOODROW WILSON INTERNATIONAL CENTER FOR SCHOLARS"
+    assert export.records[-1].position_title == "VICE CHAIR"
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
@@ -409,7 +473,7 @@ def test_package_round_trips_through_write_and_open(tmp_path: Path) -> None:
 
 def test_reader_rejects_a_repackage_that_drops_the_external_pin(tmp_path: Path) -> None:
     original = opm.build_opm_controlled_list_package(opm.OPM_WORK_SCHEDULE_CODE_PACKAGE, WORK_SCHEDULE_FIXTURE)
-    from refspec.registry.source_controlled_resource import (
+    from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,
     )
 

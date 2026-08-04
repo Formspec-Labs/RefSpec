@@ -28,10 +28,13 @@ silently.
 from __future__ import annotations
 
 import hashlib
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.nature_of_suit_codes import (
     NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL,
     NATURE_OF_SUIT_CODE_IDENTIFIER_KIND,
@@ -41,7 +44,6 @@ from refspec.registry.nature_of_suit_codes import (
     build_nature_of_suit_code_package,
     parse_nature_of_suit_code_descriptions,
 )
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "nature_of_suit_codes"
 REAL_FIXTURE_PATH = FIXTURE_DIR / "js_044_code_descriptions.layout.txt"
@@ -55,6 +57,25 @@ HISTORICAL_COUNTS = ImportCounts(
     entries=93,
     document_notes=1,
 )
+
+
+def test_real_publisher_pdf_reproduces_the_pinned_layout_text(tmp_path: Path) -> None:
+    source_path_text = os.environ.get("REFSPEC_NATURE_OF_SUIT_PDF_PATH")
+    if source_path_text is None:
+        pytest.skip("real U.S. Courts PDF is not configured")
+    extracted = tmp_path / "js_044_code_descriptions.layout.txt"
+    subprocess.run(
+        ["pdftotext", "-layout", source_path_text, str(extracted)],
+        check=True,
+        capture_output=True,
+    )
+    payload = extracted.read_bytes()
+
+    assert payload == REAL_FIXTURE_PATH.read_bytes()
+    parsed = parse_nature_of_suit_code_descriptions(payload)
+    assert parsed.counts == HISTORICAL_COUNTS
+    assert parsed.entries[0].code == "110"
+    assert parsed.entries[-1].code == "950"
 
 
 def _row(code: str, title_first: str, desc_first: str, title_col: int, desc_col: int) -> str:

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import fac_dictionary as fac
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "fac_dictionary"
 DOC_FIXTURE = FIXTURES / "fac-api-dictionary-2026-08-03.html"

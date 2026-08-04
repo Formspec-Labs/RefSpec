@@ -12,7 +12,7 @@ from rdflib import Dataset, Literal, URIRef
 from rdflib.namespace import PROV, RDF
 
 import refspec.atlas.model as atlas_model
-import refspec.registry.federal_register_thesaurus_2025_managed_release as managed_release_module
+import refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release as managed_release_module
 from refspec.atlas import (
     FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
     RKAF,
@@ -26,20 +26,14 @@ from refspec.managed_release import ManagedReleaseError
 from refspec.registry.federal_register_thesaurus_2025 import (
     load_packaged_federal_register_thesaurus_2025,
 )
-from refspec.registry.federal_register_thesaurus_2025_managed_release import (
+from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release import (
     build_federal_register_thesaurus_2025_managed_release,
-)
-from refspec.registry.federal_register_vocabulary_policy import (
-    load_federal_register_thesaurus_crosswalk,
 )
 from refspec.storage import canonical_json
 
 _EXAMPLE_MANIFEST_DIGEST = "sha256:956cab4f20477933ef015c2c87647ebb9cc40c4c68247a93b10dab8b113f60f1"
 _EXAMPLE_OUTPUT_DIGEST = "sha256:8e1eaf2265874863981fe9322e0a0e286c01c43e598b091736b556ea424e830a"
 _REFERENCE_RELEASE_DIGEST = "sha256:30742a82b3e268942aec713a02c5ae4264eadea36aa61b564ffc93eeecfd5fe6"
-_RESOURCE_ROOT = (
-    Path(__file__).parents[1] / "src" / "refspec" / "resources" / "federal_register_thesaurus" / "2025-04-01"
-)
 _EXAMPLE_ROOT = (
     Path(__file__).parents[1] / "bindings" / "atlas" / "1.0" / "examples" / "federal-register-thesaurus-2025"
 )
@@ -109,10 +103,8 @@ def _complete_package(
     monkeypatch.setattr(managed_release_module, "_sha256_bytes", fixture_sha256)
     checked = load_packaged_federal_register_thesaurus_2025()
     parsed = replace(checked, source_artifact_bytes=source_pdf)
-    crosswalk = load_federal_register_thesaurus_crosswalk((_RESOURCE_ROOT / "crosswalk-1995-to-2025.json").read_bytes())
     release = build_federal_register_thesaurus_2025_managed_release(
         parsed,
-        crosswalk,
         recorded_at="2026-07-31T00:00:00Z",
         recorded_by="urn:ref:actor:atlas-complete-package-test",
     )
@@ -285,10 +277,9 @@ def test_generation_identity_pins_specialized_code_and_rdflib_drift(
     required = {
         "refspec/atlas/federal_register.py",
         "refspec/immutable.py",
-        "refspec/registry/federal_register_thesaurus.py",
         "refspec/registry/federal_register_thesaurus_2025.py",
-        "refspec/registry/federal_register_thesaurus_2025_managed_release.py",
-        "refspec/registry/federal_register_vocabulary_policy.py",
+        "refspec/registry/managed_releases/federal_register_thesaurus_2025_managed_release.py",
+        "refspec/policies/federal_register_lists_of_subjects.py",
     }
     assert required <= set(modules)
     for relative in required:

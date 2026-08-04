@@ -27,20 +27,23 @@ is unnecessary here and is not duplicated.
 from __future__ import annotations
 
 import hashlib
-import os
 import re
-import tempfile
-import urllib.error
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
 from typing import Literal as LiteralType
 
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, OWL, RDF, SKOS, XSD
 from rdflib.term import Identifier
+
+from refspec.registry.infrastructure.pinned_acquisition import (
+    AcquiredPinnedSource,
+    PinnedAcquisitionError,
+    PinnedAcquisitionLabels,
+    acquire_pinned_source,
+    expected_digest_hex,
+)
 
 DC11 = Namespace("http://purl.org/dc/elements/1.1/")
 EUVOC = Namespace("http://publications.europa.eu/ontology/euvoc#")
@@ -504,10 +507,21 @@ class EuroVocAcquisitionError(ValueError):
 
 
 def _expected_hex(expected_sha256: str) -> str:
-    match = _DIGEST.fullmatch(expected_sha256)
-    if match is None:
-        raise EuroVocAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
-    return expected_sha256.removeprefix("sha256:")
+    try:
+        return expected_digest_hex(expected_sha256)
+    except PinnedAcquisitionError as error:
+        raise EuroVocAcquisitionError(str(error)) from error
+
+
+_EUROVOC_ACQUIRE_LABELS = PinnedAcquisitionLabels(
+    source_label="EuroVoc sample",
+    cached_location="cached EuroVoc sample",
+    local_file_label="local EuroVoc source",
+    not_cached_message=(
+        "EuroVoc sample is not cached; provide source_path or set allow_network=True explicitly"
+    ),
+    request_headers={"User-Agent": "RefSpec explicit EuroVoc source resolver/1.0"},
+)
 
 
 def _validate_source_url(source_url: str) -> None:
@@ -601,93 +615,18 @@ class AcquiredEuroVocSample:
     local_source_path: Path | None
 
 
-def _verify_payload(payload: bytes, source: EuroVocSampleSource, *, location: str) -> tuple[str, int]:
-    byte_length = len(payload)
-    if byte_length != source.expected_byte_length:
-        raise EuroVocAcquisitionError(
-            f"{location} byte length mismatch: expected {source.expected_byte_length}, got {byte_length}"
-        )
-    actual_sha256 = "sha256:" + hashlib.sha256(payload).hexdigest()
-    if actual_sha256 != source.expected_sha256:
-        raise EuroVocAcquisitionError(f"{location} digest mismatch: expected {source.expected_sha256}, got {actual_sha256}")
-    return actual_sha256, byte_length
-
-
-def _verify_existing(path: Path, source: EuroVocSampleSource) -> AcquiredEuroVocSample:
-    if path.is_symlink() or not path.is_file():
-        raise EuroVocAcquisitionError(f"content-addressed target is not a regular file: {path}")
-    actual_sha256, byte_length = _verify_payload(path.read_bytes(), source, location="cached EuroVoc sample")
+def _as_acquired_eurovoc(source: EuroVocSampleSource, acquired: AcquiredPinnedSource) -> AcquiredEuroVocSample:
     return AcquiredEuroVocSample(
         source=source,
-        path=path,
-        source_url=source.source_url,
-        resolved_url=None,
-        sha256=actual_sha256,
-        byte_length=byte_length,
-        cache_hit=True,
-        acquisition_mode="cache",
-        local_source_path=None,
+        path=acquired.path,
+        source_url=acquired.source_url,
+        resolved_url=acquired.resolved_url,
+        sha256=acquired.sha256,
+        byte_length=acquired.byte_length,
+        cache_hit=acquired.cache_hit,
+        acquisition_mode=acquired.acquisition_mode,
+        local_source_path=acquired.local_source_path,
     )
-
-
-def _publish_stream(
-    stream: BinaryIO,
-    source: EuroVocSampleSource,
-    final_path: Path,
-    *,
-    acquisition_mode: LiteralType["local", "network"],
-    resolved_url: str | None,
-    local_source_path: Path | None,
-) -> AcquiredEuroVocSample:
-    object_dir = final_path.parent
-    object_dir.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=".acquire-", suffix=".tmp", dir=object_dir)
-    temporary_path = Path(temporary_name)
-    digest = hashlib.sha256()
-    byte_length = 0
-    try:
-        with os.fdopen(descriptor, "wb") as output:
-            descriptor = -1
-            while True:
-                chunk = stream.read(64 * 1024)
-                if not chunk:
-                    break
-                byte_length += len(chunk)
-                if byte_length > source.expected_byte_length:
-                    raise EuroVocAcquisitionError(f"EuroVoc sample exceeds expected byte length {source.expected_byte_length}")
-                digest.update(chunk)
-                output.write(chunk)
-            output.flush()
-            os.fsync(output.fileno())
-
-        if byte_length != source.expected_byte_length:
-            raise EuroVocAcquisitionError(
-                f"EuroVoc sample byte length mismatch: expected {source.expected_byte_length}, got {byte_length}"
-            )
-        actual_sha256 = "sha256:" + digest.hexdigest()
-        if actual_sha256 != source.expected_sha256:
-            raise EuroVocAcquisitionError(f"EuroVoc sample digest mismatch: expected {source.expected_sha256}, got {actual_sha256}")
-
-        try:
-            os.link(temporary_path, final_path)
-        except FileExistsError:
-            return _verify_existing(final_path, source)
-
-        return AcquiredEuroVocSample(
-            source=source,
-            path=final_path,
-            source_url=source.source_url,
-            resolved_url=resolved_url,
-            sha256=actual_sha256,
-            byte_length=byte_length,
-            cache_hit=False,
-            acquisition_mode=acquisition_mode,
-            local_source_path=local_source_path,
-        )
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary_path.unlink(missing_ok=True)
 
 
 def acquire_eurovoc_sample(
@@ -706,49 +645,18 @@ def acquire_eurovoc_sample(
     pins.
     """
 
-    if timeout_seconds <= 0:
-        raise EuroVocAcquisitionError("timeout_seconds must be positive")
-
-    digest_hex = _expected_hex(source.expected_sha256)
-    final_path = Path(store_dir) / "sha256" / digest_hex / source.filename
-    if final_path.exists() or final_path.is_symlink():
-        return _verify_existing(final_path, source)
-
-    if source_path is not None:
-        local_path = Path(source_path)
-        if local_path.is_symlink() or not local_path.is_file():
-            raise EuroVocAcquisitionError(f"local EuroVoc source is not a regular file: {local_path}")
-        with local_path.open("rb") as opened:
-            return _publish_stream(
-                opened,
-                source,
-                final_path,
-                acquisition_mode="local",
-                resolved_url=None,
-                local_source_path=local_path.resolve(),
-            )
-
-    if not allow_network:
-        raise EuroVocAcquisitionError("EuroVoc sample is not cached; provide source_path or set allow_network=True explicitly")
-
-    request = urllib.request.Request(
-        source.source_url,
-        headers={"User-Agent": "RefSpec explicit EuroVoc source resolver/1.0"},
-        method="GET",
-    )
     try:
-        response = urllib.request.urlopen(request, timeout=timeout_seconds)
-    except (OSError, urllib.error.URLError) as error:
-        raise EuroVocAcquisitionError(f"could not acquire {source.source_url}: {error}") from error
-    with response:
-        return _publish_stream(
-            response,
+        acquired = acquire_pinned_source(
             source,
-            final_path,
-            acquisition_mode="network",
-            resolved_url=response.geturl(),
-            local_source_path=None,
+            store_dir,
+            labels=_EUROVOC_ACQUIRE_LABELS,
+            source_path=source_path,
+            allow_network=allow_network,
+            timeout_seconds=timeout_seconds,
         )
+    except PinnedAcquisitionError as error:
+        raise EuroVocAcquisitionError(str(error)) from error
+    return _as_acquired_eurovoc(source, acquired)
 
 
 def parse_acquired_eurovoc_sample(

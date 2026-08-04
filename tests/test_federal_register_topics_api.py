@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-from refspec.registry.federal_register_thesaurus import (
-    FederalRegisterThesaurus,
-    LabelExpression,
-    SourceLocator,
-)
 from refspec.registry.federal_register_topics_api import (
     FederalRegisterTopicsError,
     capture_federal_register_topics,
-    compare_historical_thesaurus_to_topics,
     open_federal_register_topics_capture,
     parse_federal_register_topics_api,
 )
@@ -64,55 +59,24 @@ def _payload() -> bytes:
     return json.dumps(value, separators=(",", ":")).encode("utf-8")
 
 
-def _historical() -> FederalRegisterThesaurus:
-    locator = SourceLocator(start_line=1, end_line=1, ordinal=1)
-    labels = (
-        LabelExpression(
-            label_id="label-1",
-            concept_id="concept-1",
-            role="preferred",
-            literal="Accounting",
-            language_tag="en",
-            source="heading",
-            source_entry_id="entry-1",
-            source_reference_id=None,
-            locator=locator,
-        ),
-        LabelExpression(
-            label_id="label-2",
-            concept_id="concept-1",
-            role="alternate",
-            literal="Shared slug B",
-            language_tag="en",
-            source="x",
-            source_entry_id="entry-1",
-            source_reference_id="reference-1",
-            locator=locator,
-        ),
-        LabelExpression(
-            label_id="label-3",
-            concept_id="concept-2",
-            role="preferred",
-            literal="Historical only",
-            language_tag="en",
-            source="heading",
-            source_entry_id="entry-2",
-            source_reference_id=None,
-            locator=locator,
-        ),
+def test_real_topics_response_shape_count_and_boundary_samples() -> None:
+    source_path_text = os.environ.get("REFSPEC_FR_TOPICS_PATH")
+    if source_path_text is None:
+        pytest.skip("real Federal Register topics response is not configured")
+    snapshot = parse_federal_register_topics_api(Path(source_path_text).read_bytes())
+
+    assert snapshot.source_sha256 == (
+        "sha256:aba80a4dcacbffc7c9ec29eb88ea385ec313510fc8331d0f69078d940d1da35b"
     )
-    return FederalRegisterThesaurus(
-        source_sha256="sha256:" + "1" * 64,
-        source_lines=1,
-        source_bytes=1,
-        entries=(),
-        concepts=(),
-        labels=labels,
-        category_notations=(),
-        scope_notes=(),
-        cross_references=(),
-        relations=(),
-        unresolved_references=(),
+    assert snapshot.counts == {"thesaurus": 1_044, "ad_hoc": 6_723, "total": 7_767}
+    assert (snapshot.thesaurus[0].name, snapshot.thesaurus[0].slug) == (
+        "Accountants",
+        "accountants",
+    )
+    assert (snapshot.thesaurus[-1].name, snapshot.thesaurus[-1].slug) == ("Zoning", "zoning")
+    assert (snapshot.ad_hoc[0].name, snapshot.ad_hoc[0].slug) == (
+        "1200 Sixth Avenue",
+        "sixth-avenue",
     )
 
 
@@ -203,19 +167,3 @@ def test_local_capture_rejects_symlink_input(tmp_path: Path) -> None:
             tmp_path / "store",
             source_path=linked,
         )
-
-
-def test_historical_comparison_records_differences_without_mapping() -> None:
-    comparison = compare_historical_thesaurus_to_topics(
-        _historical(),
-        parse_federal_register_topics_api(_payload()),
-    )
-
-    assert comparison.historical_preferred_count == 2
-    assert comparison.current_thesaurus_count == 3
-    assert comparison.current_ad_hoc_count == 1
-    assert comparison.preferred_label_overlap_count == 1
-    assert comparison.historical_any_label_overlap_count == 2
-    assert comparison.historical_preferred_only == ("historical only",)
-    assert comparison.current_slug_collision_groups == 1
-    assert comparison.canonical_digest.startswith("sha256:")

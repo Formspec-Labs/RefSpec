@@ -283,7 +283,7 @@ def test_source_drift_cannot_produce_a_new_package(tmp_path: Path) -> None:
 
 
 def test_reader_rejects_a_self_consistent_unpinned_repackage(tmp_path: Path) -> None:
-    from refspec.registry.source_controlled_resource import (
+    from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,
     )
 

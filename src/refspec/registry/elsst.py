@@ -26,7 +26,7 @@ from rdflib.plugins.parsers.notation3 import RDFSink, SinkParser
 from rdflib.term import Identifier
 
 if TYPE_CHECKING:
-    from refspec.registry.elsst_acquisition import AcquiredElsstSource
+    from refspec.registry.adapters.elsst_acquisition import AcquiredElsstSource
 
 PREF_LABEL_PREDICATE_IRI = str(SKOS.prefLabel)
 ALT_LABEL_PREDICATE_IRI = str(SKOS.altLabel)

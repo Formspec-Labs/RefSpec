@@ -55,7 +55,11 @@ from refspec.managed_release import (
     ManagedReleaseMember,
     ManagedReleaseRelation,
 )
-from refspec.registry.icpsr_managed_release import (
+from refspec.registry.icpsr_subject import (
+    ICPSR_SUBJECT_SCHEME_IRI,
+    ICPSR_SUBJECT_XML_URL,
+)
+from refspec.registry.managed_releases.icpsr_managed_release import (
     ALTERNATE_LABEL_IRI,
     MANAGED_RELEASE_VERSION,
     PARSER_VERSION,
@@ -63,10 +67,6 @@ from refspec.registry.icpsr_managed_release import (
     SCOPE_NOTE_IRI,
     IcpsrManagedReleaseError,
     IcpsrManagedReleaseView,
-)
-from refspec.registry.icpsr_subject import (
-    ICPSR_SUBJECT_SCHEME_IRI,
-    ICPSR_SUBJECT_XML_URL,
 )
 from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json

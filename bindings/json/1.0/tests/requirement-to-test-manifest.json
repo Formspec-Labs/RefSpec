@@ -10,7 +10,11 @@
         "fixtures/invalid/duplicate-json-key.json",
         "fixtures/invalid/missing-record-id.json"
       ],
-      "validatorChecks": ["closed records", "executable formats", "duplicate-key rejection"]
+      "validatorChecks": [
+        "closed records",
+        "executable formats",
+        "duplicate-key rejection"
+      ]
     },
     {
       "requirement": "REF-BIND-004",
@@ -22,7 +26,11 @@
         "fixtures/invalid/floating-point-json-number.json",
         "fixtures/invalid/null-field.json"
       ],
-      "validatorChecks": ["canonical JSON", "SHA-256 digest", "acyclic exact references"]
+      "validatorChecks": [
+        "canonical JSON",
+        "SHA-256 digest",
+        "acyclic exact references"
+      ]
     },
     {
       "requirement": "REF-BIND-009",
@@ -127,13 +135,21 @@
     },
     {
       "requirement": "REF-CORE-005",
-      "localFixtures": ["fixtures/invalid/duplicate-expression-id.json"],
-      "validatorChecks": ["durable record identifier uniqueness"]
+      "localFixtures": [
+        "fixtures/invalid/duplicate-expression-id.json"
+      ],
+      "validatorChecks": [
+        "durable record identifier uniqueness"
+      ]
     },
     {
       "requirement": "REF-ENR-PROFILE-001",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
-      "validatorChecks": ["exact twelve core facet IRIs"]
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
+      "validatorChecks": [
+        "exact twelve core facet IRIs"
+      ]
     },
     {
       "requirement": "REF-ENR-PROFILE-002",
@@ -141,12 +157,18 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/wrong-facet-permission.json"
       ],
-      "validatorChecks": ["one facet per permission and expectation"]
+      "validatorChecks": [
+        "one facet per permission and expectation"
+      ]
     },
     {
       "requirement": "REF-ENR-PROFILE-003",
-      "localFixtures": ["fixtures/invalid/wrong-facet-permission.json"],
-      "validatorChecks": ["facet, route, and role compatibility"]
+      "localFixtures": [
+        "fixtures/invalid/wrong-facet-permission.json"
+      ],
+      "validatorChecks": [
+        "facet, route, and role compatibility"
+      ]
     },
     {
       "requirement": "REF-ENR-PROFILE-004",
@@ -166,18 +188,30 @@
     },
     {
       "requirement": "REF-ENR-PROFILE-005",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
-      "validatorChecks": ["closed facet record has no OWL-disjointness field"]
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
+      "validatorChecks": [
+        "closed facet record has no OWL-disjointness field"
+      ]
     },
     {
       "requirement": "REF-ENR-PROFILE-006",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
-      "validatorChecks": ["extension facet shape is closed and complete"]
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
+      "validatorChecks": [
+        "extension facet shape is closed and complete"
+      ]
     },
     {
       "requirement": "REF-ENR-011",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
-      "validatorChecks": ["complete OutputProfile record and content digest"]
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
+      "validatorChecks": [
+        "complete OutputProfile record and content digest"
+      ]
     },
     {
       "requirement": "REF-ENR-013",
@@ -185,7 +219,9 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/deployment-output-profile-pin-mismatch.json"
       ],
-      "validatorChecks": ["immutable profile digest and deployment selection"]
+      "validatorChecks": [
+        "immutable profile digest and deployment selection"
+      ]
     },
     {
       "requirement": "REF-ENR-015",
@@ -193,7 +229,9 @@
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/enrichment-profile-missing-core-facet.json"
       ],
-      "validatorChecks": ["EnrichmentProfile schema and core facet closure"]
+      "validatorChecks": [
+        "EnrichmentProfile schema and core facet closure"
+      ]
     },
     {
       "requirement": "REF-ENR-016",
@@ -202,7 +240,9 @@
         "fixtures/invalid/accepted-without-candidate-use.json",
         "fixtures/invalid/open-label-default-language-missing.json"
       ],
-      "validatorChecks": ["complete permission-row fields and mode conditional"]
+      "validatorChecks": [
+        "complete permission-row fields and mode conditional"
+      ]
     },
     {
       "requirement": "REF-ENR-017",
@@ -213,7 +253,11 @@
         "fixtures/invalid/accepted-without-candidate-use.json",
         "fixtures/invalid/duplicate-permission-selector.json"
       ],
-      "validatorChecks": ["single-row match", "selector uniqueness", "candidate-use prerequisite"]
+      "validatorChecks": [
+        "single-row match",
+        "selector uniqueness",
+        "candidate-use prerequisite"
+      ]
     },
     {
       "requirement": "REF-ENR-018",
@@ -350,8 +394,12 @@
     },
     {
       "requirement": "REF-VOC-024",
-      "localFixtures": ["fixtures/invalid/unresolved-authorizes-union.json"],
-      "validatorChecks": ["unresolved reports cannot authorize synthesized unions"]
+      "localFixtures": [
+        "fixtures/invalid/unresolved-authorizes-union.json"
+      ],
+      "validatorChecks": [
+        "unresolved reports cannot authorize synthesized unions"
+      ]
     },
     {
       "requirement": "REF-VOC-032",
@@ -396,17 +444,15 @@
     },
     {
       "requirement": "REF-VOC-034",
-      "externalGate": "RefSpec ELSST source-native projection tests plus the pinned Rulespec JSON Schema and SHACL gates",
+      "externalGate": "RefSpec current ELSST source-reader tests plus generic managed-release type validation",
       "referenceRuntimeTests": [
-        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
-        "tests/test_elsst_rulespec_projection.py::test_fixture_projection_seals_both_releases_and_passes_pinned_rulespec",
-        "tests/test_elsst_rulespec_projection.py::test_projection_rejects_a_semantic_relation_outside_exact_release",
+        "tests/test_elsst.py::test_parser_preserves_source_derived_multilingual_labels_notes_identifiers_and_iris",
+        "tests/test_elsst.py::test_parser_keeps_hierarchy_lifecycle_and_version_identity_as_distinct_rows",
         "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
       ],
       "validatorChecks": [
-        "source-native SKOS concepts retain their absolute RDF types instead of being recast as project-authored concepts",
-        "observed replacement participants remain pinned to independently sealed complete R5 and R6 releases",
-        "date-only source literals and the pinned date-time materialization policy remain explicit",
+        "source-native SKOS concepts retain their absolute RDF types",
+        "current publisher bytes preserve multilingual labels, hierarchy, source status, and identity assertions",
         "a normalized lifecycle participant with a mismatched native concept type fails managed-release opening"
       ]
     },
@@ -433,7 +479,6 @@
       "requirement": "REF-VOC-036",
       "externalGate": "RefSpec source-native managed-release identity and history access tests",
       "referenceRuntimeTests": [
-        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
         "tests/test_managed_release_identity_links.py::test_identity_links_preserve_native_iris_and_resolve_packaged_releases",
         "tests/test_managed_release_identity_links.py::test_identity_link_filters_use_exact_subject_and_predicate_iris"
       ],
@@ -488,8 +533,12 @@
     },
     {
       "requirement": "REF-EVAL-013",
-      "localFixtures": ["fixtures/invalid/gold-drafting-not-blind.json"],
-      "validatorChecks": ["blind drafting and independent-review controls"]
+      "localFixtures": [
+        "fixtures/invalid/gold-drafting-not-blind.json"
+      ],
+      "validatorChecks": [
+        "blind drafting and independent-review controls"
+      ]
     },
     {
       "requirement": "REF-EVAL-014",
@@ -499,7 +548,11 @@
         "fixtures/invalid/not-represented-in-recall-denominator.json",
         "fixtures/invalid/nondefault-grade-without-policy.json"
       ],
-      "validatorChecks": ["directional grades", "default adequacy", "notRepresented routing"]
+      "validatorChecks": [
+        "directional grades",
+        "default adequacy",
+        "notRepresented routing"
+      ]
     },
     {
       "requirement": "REF-EVAL-015",
@@ -534,11 +587,15 @@
     },
     {
       "requirement": "REF-TEST-150",
-      "localFixtures": ["fixtures/invalid/permission-cross-row.json"],
+      "localFixtures": [
+        "fixtures/invalid/permission-cross-row.json"
+      ],
       "referenceRuntimeTests": [
         "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_permission_rows_reject_wrong_tuple_and_cross_row_assembly"
       ],
-      "validatorChecks": ["no cross-row tuple assembly"]
+      "validatorChecks": [
+        "no cross-row tuple assembly"
+      ]
     },
     {
       "requirement": "REF-TEST-151",
@@ -550,7 +607,9 @@
       "referenceRuntimeTests": [
         "Spicy Regs tests/test_accepted_output_real_boundary.py::test_real_elsst_candidate_only_permission_cannot_enter_accepted_output"
       ],
-      "validatorChecks": ["candidate-only cannot enter accepted output"]
+      "validatorChecks": [
+        "candidate-only cannot enter accepted output"
+      ]
     },
     {
       "requirement": "REF-TEST-152",
@@ -666,7 +725,9 @@
         "fixtures/invalid/not-represented-in-recall-denominator.json",
         "fixtures/invalid/nondefault-grade-without-policy.json"
       ],
-      "validatorChecks": ["directional grades and notRepresented denominator flags"]
+      "validatorChecks": [
+        "directional grades and notRepresented denominator flags"
+      ]
     },
     {
       "requirement": "REF-TEST-159",
@@ -724,7 +785,9 @@
     },
     {
       "requirement": "REF-TEST-163",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
       "externalRulespecPaths": [
         "fixtures/concept-vocabulary-text-multilingual-positive.jsonld",
         "fixtures/negatives/concept-notation-scalar-negative.jsonld",
@@ -772,7 +835,9 @@
     },
     {
       "requirement": "REF-TEST-167",
-      "localFixtures": ["fixtures/valid/vocabulary-closure.json"],
+      "localFixtures": [
+        "fixtures/valid/vocabulary-closure.json"
+      ],
       "externalRulespecPaths": [
         "tools/constraints_parity.py",
         "tools/ci_validate.py",
@@ -924,21 +989,17 @@
     },
     {
       "requirement": "REF-TEST-177",
-      "externalGate": "RefSpec ELSST R5/R6 source-native projection tests plus the pinned Rulespec JSON Schema and SHACL gates",
+      "externalGate": "RefSpec current ELSST source-reader tests against exact R6 publisher bytes",
       "referenceRuntimeTests": [
-        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
-        "tests/test_elsst_rulespec_projection.py::test_fixture_projection_seals_both_releases_and_passes_pinned_rulespec",
-        "tests/test_elsst_rulespec_projection.py::test_projection_rejects_a_semantic_relation_outside_exact_release",
-        "tests/test_elsst_rulespec_projection.py::test_opt_in_projection_fixtures_are_subsets_of_pinned_sources",
-        "tests/test_elsst_rulespec_projection.py::test_opt_in_full_r5_r6_projection_passes_rulespec",
-        "tests/test_managed_release_view.py::test_bundle_rejects_lifecycle_participant_concept_type_mismatch"
+        "tests/test_elsst.py::test_parser_preserves_source_derived_multilingual_labels_notes_identifiers_and_iris",
+        "tests/test_elsst.py::test_parser_keeps_hierarchy_lifecycle_and_version_identity_as_distinct_rows",
+        "tests/test_elsst.py::test_parser_rejects_lossy_or_ambiguous_skos_features",
+        "tests/test_elsst.py::test_opt_in_pinned_real_distribution_counts"
       ],
       "validatorChecks": [
-        "source-derived R5 and R6 fixtures preserve native SKOS types, multilingual labels, hierarchy, source status, identity, and replacement links",
-        "both complete-membership releases receive distinct digests and pass the pinned Rulespec gates",
-        "the observed replacement pins predecessor and successor participants to the exact compared releases",
-        "date-only literals and their explicit date-time materialization policy survive projection",
-        "opt-in regressions prove the fixtures are source subsets and the full pinned distributions pass"
+        "the exact R6 distribution preserves native SKOS types, multilingual labels, hierarchy, source status, and identity assertions",
+        "lossy or ambiguous source statements fail instead of being guessed",
+        "the real-data gate pins the current publisher byte count, digest, and parsed output counts"
       ]
     },
     {
@@ -976,17 +1037,12 @@
     },
     {
       "requirement": "REF-TEST-180",
-      "externalGate": "RefSpec exact-source acquisition, managed-bundle retention, and generated-identity tests",
+      "externalGate": "RefSpec exact-source acquisition and current Federal Register managed-release tests",
       "referenceRuntimeTests": [
         "tests/test_elsst_acquisition.py::test_local_source_is_verified_then_cached_without_network",
         "tests/test_elsst_acquisition.py::test_local_source_must_match_both_size_and_digest",
-        "tests/test_elsst_managed_release.py::test_managed_view_retrieves_exact_verified_turtle_bytes",
-        "tests/test_elsst_managed_release.py::test_managed_view_rejects_invalid_source_bytes",
-        "tests/test_elsst_managed_release.py::test_build_rejects_missing_or_tampered_acquired_source",
-        "tests/test_elsst_managed_release.py::test_build_rejects_canonical_release_iri_with_fixture_descriptor",
-        "tests/test_elsst_managed_release.py::test_build_identity_prevents_timestamp_and_governance_id_collisions",
-        "tests/test_federal_register_vertical_slice.py::test_vertical_slice_reverifies_retained_bytes_before_issuing_capture",
-        "tests/test_federal_register_vertical_slice.py::test_managed_release_rejects_missing_changed_symlinked_or_ambiguous_source_bytes"
+        "tests/test_federal_register_thesaurus_2025.py::test_exact_pdf_regenerates_checked_extract_when_available",
+        "tests/test_federal_register_thesaurus_2025.py::test_managed_release_view_deep_freezes_verified_records"
       ],
       "validatorChecks": [
         "successful exact-byte captures resolve and return byte-identical packaged source artifacts",
@@ -997,38 +1053,33 @@
     },
     {
       "requirement": "REF-TEST-181",
-      "externalGate": "RefSpec aggregate expression-corpus tests plus the opt-in complete ELSST R5/R6 managed-release gate",
+      "externalGate": "RefSpec aggregate expression-corpus tests",
       "referenceRuntimeTests": [
         "tests/test_managed_vocabulary_bundle.py::test_write_streams_expression_corpus_without_building_one_bytes_object",
         "tests/test_managed_release_view.py::test_expression_corpus_record_count_is_an_independent_pin",
         "tests/test_managed_release_view.py::test_expression_corpus_identity_tamper_fails_after_file_repin",
-        "tests/test_managed_release_view.py::test_expression_corpus_file_order_does_not_change_logical_identity",
-        "tests/test_elsst_managed_release.py::test_scale_evidence_matches_exact_sources_and_gate_budget",
-        "tests/test_elsst_managed_release.py::test_opt_in_full_r5_r6_managed_release_opens_and_selects_current_r6"
+        "tests/test_managed_release_view.py::test_expression_corpus_file_order_does_not_change_logical_identity"
       ],
       "validatorChecks": [
         "the aggregate descriptor binds file digest, logical corpus snapshot, record count, schema version, and canonical identity-set digest",
         "the release-graph receipt covers operational records without listing every expression",
         "opening streams and validates every expression, rejects duplicate identifiers, and recomputes count and logical identity",
-        "physical JSON Lines order does not change logical corpus identity",
-        "the complete-source gate records wall time and peak memory within its maintained limits"
+        "physical JSON Lines order does not change logical corpus identity"
       ]
     },
     {
       "requirement": "REF-TEST-182",
-      "externalGate": "RefSpec source-native ELSST status and current-candidate tests",
+      "externalGate": "RefSpec current ELSST source-status and generic candidate tests",
       "referenceRuntimeTests": [
-        "tests/test_elsst_managed_release.py::test_native_boolean_status_controls_candidates_without_label_synthesis",
-        "tests/test_elsst_managed_release.py::test_managed_view_preserves_multilingual_history_and_current_boundary",
-        "tests/test_elsst_rulespec_projection.py::test_source_native_projection_preserves_identity_and_derives_only_observed_transition",
+        "tests/test_elsst.py::test_parser_keeps_hierarchy_lifecycle_and_version_identity_as_distinct_rows",
+        "tests/test_elsst.py::test_opt_in_pinned_real_distribution_counts",
         "tests/test_managed_release_view.py::test_source_status_excludes_only_from_candidate_iteration"
       ],
       "validatorChecks": [
         "true and false owl:deprecated values retain their exact lexical form and xsd:boolean datatype",
-        "true deprecated members remain available as evidence but cannot enter current-assignment candidates",
-        "false values remain eligible when no independent exclusion applies",
+        "deprecated source members remain evidence and source status does not silently become a preferred label",
         "malformed or differently typed values fail rather than becoming synthesized status labels",
-        "only release-to-release transitions observed in the exact sources become lifecycle events"
+        "candidate selection applies source status independently from source parsing"
       ]
     },
     {
@@ -1040,11 +1091,9 @@
         "fixtures/invalid/registry-deployment-rights-mismatch.json",
         "fixtures/invalid/registry-deployment-policy-mismatch.json"
       ],
-      "externalGate": "RefSpec JSON Binding, managed-release reader, and source-derived deployment tests",
+      "externalGate": "RefSpec JSON Binding and generic managed-release deployment tests",
       "referenceRuntimeTests": [
-        "tests/test_managed_release_view.py::test_candidate_use_rejects_deployment_rights_that_differ_from_import",
-        "tests/test_federal_register_vertical_slice.py::test_local_selection_is_gate_authorized_and_rollback_is_separate",
-        "tests/test_elsst_managed_release.py::test_managed_bundle_packages_both_releases_and_only_selects_r6"
+        "tests/test_managed_release_view.py::test_candidate_use_rejects_deployment_rights_that_differ_from_import"
       ],
       "validatorChecks": [
         "deployment requires the exact applicable rights-assessment identifier and digest from the selected import",
@@ -1055,14 +1104,12 @@
     },
     {
       "requirement": "REF-TEST-184",
-      "externalGate": "RefSpec mutable-source capture-local identity and Federal Register reconciliation tests",
+      "externalGate": "RefSpec mutable-source capture-local identity and Federal Register source-package tests",
       "referenceRuntimeTests": [
         "tests/test_federal_register_topics_api.py::test_parser_preserves_source_rows_without_promoting_slugs_to_identity",
-        "tests/test_federal_register_topics_reconciliation.py::test_api_source_record_identity_excludes_name_and_slug",
-        "tests/test_federal_register_topics_reconciliation.py::test_same_name_and_empty_slug_remain_distinct_by_source_ordinal",
-        "tests/test_federal_register_topics_reconciliation.py::test_duplicate_collection_and_ordinal_fail_without_label_fallback",
-        "tests/test_federal_register_topics_reconciliation.py::test_unresolved_report_cannot_authorize_union_or_input_selection",
-        "tests/test_federal_register_topics_reconciliation.py::test_unresolved_report_cannot_authorize_selected_deployment"
+        "tests/test_federal_register_topics_api.py::test_capture_round_trips_exact_bytes_and_rejects_wrong_pins",
+        "tests/test_federal_register_topics_package.py::test_packages_every_current_topic_as_source_evidence",
+        "tests/test_federal_register_topics_package.py::test_package_rechecks_the_retained_source_before_build"
       ],
       "validatorChecks": [
         "capture-local source-observation identity excludes mutable or non-unique names, labels, and slugs",

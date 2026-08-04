@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import gao_topics as gao
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "gao_topics"
 

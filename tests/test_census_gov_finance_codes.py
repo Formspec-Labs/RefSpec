@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import census_gov_finance_codes as cgfc
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "census_gov_finance_codes"
 FUNCTION_FIXTURE = FIXTURES / "census-aspep-function-item-codes-2026-08-03.html"

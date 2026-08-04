@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import os
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,38 @@ def _fixture_bytes() -> bytes:
 
 def _parse(**kwargs: object) -> mesh.MeshDescriptorSnapshot:
     return mesh.parse_mesh_descriptor_bytes(_fixture_bytes(), source_url=SOURCE_URL, **kwargs)
+
+
+def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
+    source_path_text = os.environ.get("REFSPEC_MESH_DESCRIPTORS_PATH")
+    if source_path_text is None:
+        pytest.skip("real MeSH descriptor distribution is not configured")
+    snapshot = mesh.parse_mesh_descriptor_file(Path(source_path_text), source_url=SOURCE_URL)
+
+    assert snapshot.source_byte_length == 312_952_703
+    assert snapshot.source_sha256 == (
+        "sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba"
+    )
+    assert len(snapshot.descriptors) == 31_110
+    assert Counter(descriptor.descriptor_class for descriptor in snapshot.descriptors) == {
+        "1": 30_512,
+        "2": 194,
+        "3": 2,
+        "4": 402,
+    }
+    assert sum(len(descriptor.tree_numbers) for descriptor in snapshot.descriptors) == 65_360
+    assert sum(not descriptor.tree_numbers for descriptor in snapshot.descriptors) == 2
+    # NLM publishes 134,904 non-permuted Term elements. One per descriptor is
+    # the preferred heading, leaving these source-authored alternate labels.
+    assert sum(len(descriptor.entry_terms) for descriptor in snapshot.descriptors) == 103_794
+    assert (snapshot.descriptors[0].descriptor_ui, snapshot.descriptors[0].heading) == (
+        "D000001",
+        "Calcimycin",
+    )
+    assert (snapshot.descriptors[-1].descriptor_ui, snapshot.descriptors[-1].heading) == (
+        "D000099317",
+        "Hippo Kinases",
+    )
 
 
 def test_streaming_parser_extracts_the_descriptor_table_fields() -> None:
@@ -42,6 +76,8 @@ def test_streaming_parser_extracts_the_descriptor_table_fields() -> None:
     )
     assert "A-23187" in calcimycin.entry_terms
     assert "A23187" in calcimycin.entry_terms
+    assert "A 23187" not in calcimycin.entry_terms
+    assert "A23187, Antibiotic" not in calcimycin.entry_terms
     assert calcimycin.heading not in calcimycin.entry_terms
     assert calcimycin.concept_iri == "https://id.nlm.nih.gov/mesh/D000001"
 
@@ -52,7 +88,8 @@ def test_streaming_parser_extracts_the_descriptor_table_fields() -> None:
     abattoirs = by_ui["D000003"]
     assert abattoirs.heading == "Abattoirs"
     assert "Slaughterhouses" in abattoirs.entry_terms
-    assert "Slaughterhouse" in abattoirs.entry_terms
+    assert "Slaughter House" in abattoirs.entry_terms
+    assert "Slaughterhouse" not in abattoirs.entry_terms
     assert abattoirs.tree_numbers == ("J01.576.423.200.700.100", "J03.540.020")
 
 
@@ -140,6 +177,24 @@ def test_unsupported_descriptor_class_is_rejected() -> None:
     payload = _fixture_bytes().replace(b'DescriptorClass = "1"', b'DescriptorClass = "9"', 1)
 
     with pytest.raises(mesh.MeshDescriptorError, match="DescriptorClass"):
+        mesh.parse_mesh_descriptor_bytes(payload, source_url=SOURCE_URL)
+
+
+def test_dtd_valid_descriptor_classes_five_and_six_are_accepted() -> None:
+    for descriptor_class in ("5", "6"):
+        payload = _fixture_bytes().replace(
+            b'DescriptorClass = "1"',
+            f'DescriptorClass = "{descriptor_class}"'.encode(),
+            1,
+        )
+        snapshot = mesh.parse_mesh_descriptor_bytes(payload, source_url=SOURCE_URL)
+        assert snapshot.descriptors[0].descriptor_class == descriptor_class
+
+
+def test_missing_permutation_flag_fails_closed() -> None:
+    payload = _fixture_bytes().replace(b' IsPermutedTermYN="N"', b"", 1)
+
+    with pytest.raises(mesh.MeshDescriptorError, match="IsPermutedTermYN"):
         mesh.parse_mesh_descriptor_bytes(payload, source_url=SOURCE_URL)
 
 

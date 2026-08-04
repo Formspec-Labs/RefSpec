@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from typing_extensions import Self
 
-from refspec.registry import zyte_transport
+from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):

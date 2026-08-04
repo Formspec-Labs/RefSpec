@@ -8,11 +8,11 @@ under test must not either.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
 from refspec.registry.epa_srs_substances import (
     CAS_REGISTRY_AUTHORITY_URI,
     DTXCID_AUTHORITY_URI,
@@ -20,11 +20,13 @@ from refspec.registry.epa_srs_substances import (
     EpaSrsSubstanceError,
     SubstanceIdentifierRecord,
     SubstanceSample,
+    parse_comptox_detail_page,
     parse_substance_sample,
     validate_casrn,
     validate_dtxcid,
     validate_dtxsid,
 )
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "epa_srs_substances" / "substance_sample.json"
 
@@ -164,6 +166,31 @@ def test_parse_substance_sample_reads_the_pinned_fixture() -> None:
     assert third.dtxcid is None
     assert third.casrn is None
     assert third.tsca_inventory_status == "notListed"
+
+
+def test_real_comptox_detail_page_shape_count_and_sample() -> None:
+    source_path = os.environ.get("REFSPEC_COMPTOX_BPA_PAGE_PATH")
+    if source_path is None:
+        pytest.skip("normalized real CompTox detail page is not materialized")
+    payload = Path(source_path).read_bytes()
+
+    sample = parse_comptox_detail_page(
+        payload,
+        source_uri="https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+        captured_at="2026-08-03T20:00:00Z",
+    )
+
+    assert len(payload) == 334_109
+    assert sample.source_digest == "sha256:96166f421b896b79f0f0273b26908a5d0dbbcc6ab484e6b15fa41d71ca082803"
+    assert len(sample.records) == 1
+    assert sample.records[0].native_payload() == {
+        "dtxsid": "DTXSID7020182",
+        "dtxcid": "DTXCID30182",
+        "casrn": "80-05-7",
+        "preferredName": "Bisphenol A",
+        "tscaInventoryStatus": None,
+        "sourceUri": "https://comptox.epa.gov/dashboard/chemical/details/DTXSID7020182",
+    }
 
 
 def test_parse_substance_sample_pins_the_source_digest() -> None:

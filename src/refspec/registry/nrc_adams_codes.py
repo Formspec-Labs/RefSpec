@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 NRC_PUBLISHER = "U.S. Nuclear Regulatory Commission"
 NRC_ADAMS_IDENTIFIER_AUTHORITY_URI = "https://www.nrc.gov/reading-rm/adams"

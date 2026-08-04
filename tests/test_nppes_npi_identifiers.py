@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.nppes_npi_identifiers import (
     NPPES_CAPTURED_AT,
     NPPES_ENTITY_TYPE_CODES,
@@ -29,7 +30,6 @@ from refspec.registry.nppes_npi_identifiers import (
     validate_ccn,
     validate_npi,
 )
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "nppes_npi_identifiers"
 FILEHEADER_PAYLOAD = (FIXTURES / "npidata_pfile_fileheader_v2.csv").read_bytes()

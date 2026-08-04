@@ -4,12 +4,8 @@ import subprocess
 import sys
 
 from refspec import registry
-from refspec.registry import (
-    elsst_import_coverage,
-    elsst_managed_release,
-    federal_register_topics_api,
-    federal_register_topics_reconciliation,
-)
+from refspec.registry import federal_register_topics_api
+from refspec.registry.adapters import elsst_import_coverage
 
 
 def test_registry_exports_each_declared_public_name() -> None:
@@ -20,9 +16,7 @@ def test_registry_exports_each_declared_public_name() -> None:
 def test_registry_exposes_managed_vocabulary_source_of_truth_interfaces() -> None:
     modules = (
         elsst_import_coverage,
-        elsst_managed_release,
         federal_register_topics_api,
-        federal_register_topics_reconciliation,
     )
 
     for module in modules:
@@ -49,7 +43,7 @@ def test_importing_source_controlled_resources_does_not_load_other_adapters() ->
             sys.executable,
             "-c",
             (
-                "import sys; import refspec.registry.source_controlled_resource; "
+                "import sys; import refspec.registry.infrastructure.source_controlled_resource; "
                 "unexpected=[name for name in sys.modules if "
                 "name.startswith(('refspec.registry.elsst', "
                 "'refspec.registry.federal_register', 'refspec.registry.icpsr'))]; "

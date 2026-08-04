@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 RGOV_PUBLISHER = "General Services Administration (Regulations.gov API)"
 RGOV_IDENTIFIER_AUTHORITY_URI = "https://open.gsa.gov/api/regulationsgov/"

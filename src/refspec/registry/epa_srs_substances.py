@@ -44,7 +44,7 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier, distinct_identifiers
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, distinct_identifiers
 from refspec.storage import canonical_json
 
 SUBSTANCE_CAPTURE_FORMAT = "urn:ref:registry:epa-srs-substance-identifier-capture:v1"
@@ -75,6 +75,11 @@ _DTXSID = re.compile(r"^DTXSID\d{6,9}$")
 _DTXCID = re.compile(r"^DTXCID\d{4,9}$")
 _CASRN = re.compile(r"^\d{2,7}-\d{2}-\d$")
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+_COMPTOX_DETAIL_DTXSID = re.compile(r"/chemical/details/(DTXSID\d{6,9})")
+_COMPTOX_PAGE_DTXSID = re.compile(r"DTXSID\d{6,9}")
+_COMPTOX_PAGE_DTXCID = re.compile(r"DTXCID\d{4,9}")
+_COMPTOX_PAGE_CASRN = re.compile(r'casrn:"(\d{2,7}-\d{2}-\d)"')
+_COMPTOX_PAGE_PREFERRED_NAME = re.compile(r'preferredName:"([^"\\]+)"')
 
 # TSCA Inventory status values as EPA's own status field distinguishes them:
 # a substance can be actively on the inventory, formally inactive under the
@@ -360,6 +365,53 @@ def parse_substance_sample(payload: bytes) -> SubstanceSample:
     return SubstanceSample(captured_at=captured_at, source_digest=digest, records=records)
 
 
+def parse_comptox_detail_page(
+    payload: bytes,
+    *,
+    source_uri: str,
+    captured_at: str,
+) -> SubstanceSample:
+    """Parse one real CompTox detail page into a one-record measured sample."""
+
+    if not isinstance(payload, bytes) or not payload:
+        raise EpaSrsSubstanceError("CompTox detail page must be non-empty bytes")
+    source_uri = _require_https_uri(source_uri, "sourceUri")
+    source_match = _COMPTOX_DETAIL_DTXSID.search(source_uri)
+    if source_match is None or urlsplit(source_uri).hostname != "comptox.epa.gov":
+        raise EpaSrsSubstanceError("sourceUri must name an official CompTox chemical detail page")
+    captured_at = _require_datetime(captured_at, "capturedAt")
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise EpaSrsSubstanceError("CompTox detail page must be UTF-8 HTML") from error
+    if "<title>CompTox Chemicals Dashboard</title>" not in text:
+        raise EpaSrsSubstanceError("CompTox detail page title marker is missing")
+
+    dtxsids = sorted(set(_COMPTOX_PAGE_DTXSID.findall(text)))
+    dtxcids = sorted(set(_COMPTOX_PAGE_DTXCID.findall(text)))
+    casrns = sorted(set(_COMPTOX_PAGE_CASRN.findall(text)))
+    names = sorted(set(_COMPTOX_PAGE_PREFERRED_NAME.findall(text)))
+    if dtxsids != [source_match.group(1)]:
+        raise EpaSrsSubstanceError("CompTox detail page DTXSID does not match its source URI")
+    if len(dtxcids) != 1 or len(casrns) != 1 or len(names) != 1:
+        raise EpaSrsSubstanceError("CompTox detail page must expose one DTXCID, CASRN, and preferred name")
+
+    return SubstanceSample(
+        captured_at=captured_at,
+        source_digest=_sha256_bytes(payload),
+        records=(
+            SubstanceIdentifierRecord(
+                dtxsid=dtxsids[0],
+                dtxcid=dtxcids[0],
+                casrn=casrns[0],
+                preferred_name=names[0],
+                tsca_inventory_status=None,
+                source_uri=source_uri,
+            ),
+        ),
+    )
+
+
 __all__ = [
     "CAS_REGISTRY_AUTHORITY_URI",
     "COMPTOX_SOURCE_URI",
@@ -373,6 +425,7 @@ __all__ = [
     "EpaSrsSubstanceError",
     "SubstanceIdentifierRecord",
     "SubstanceSample",
+    "parse_comptox_detail_page",
     "parse_substance_sample",
     "validate_casrn",
     "validate_dtxcid",

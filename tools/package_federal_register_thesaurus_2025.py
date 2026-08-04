@@ -1,4 +1,4 @@
-"""Build the pinned 2025 Federal Register thesaurus package and crosswalk."""
+"""Build the pinned current Federal Register thesaurus package."""
 
 from __future__ import annotations
 
@@ -7,19 +7,12 @@ import hashlib
 import json
 from pathlib import Path
 
-from refspec.registry.federal_register_thesaurus import (
-    parse_federal_register_thesaurus,
-)
 from refspec.registry.federal_register_thesaurus_2025 import (
     federal_register_thesaurus_2025_extract_bytes,
     parse_federal_register_thesaurus_2025_pdf,
 )
-from refspec.registry.federal_register_thesaurus_2025_managed_release import (
+from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release import (
     build_federal_register_thesaurus_2025_managed_release,
-)
-from refspec.registry.federal_register_vocabulary_policy import (
-    build_federal_register_thesaurus_crosswalk,
-    federal_register_thesaurus_crosswalk_bytes,
 )
 from refspec.storage import canonical_json
 
@@ -38,7 +31,6 @@ def _sha256_bytes(value: bytes) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pdf", type=Path, required=True)
-    parser.add_argument("--historical-source", type=Path, required=True)
     parser.add_argument("--resource-dir", type=Path, required=True)
     parser.add_argument("--release-dir", type=Path, required=True)
     parser.add_argument("--evidence", type=Path, required=True)
@@ -55,25 +47,11 @@ def main() -> int:
     current = parse_federal_register_thesaurus_2025_pdf(
         args.pdf.read_bytes()
     )
-    historical = parse_federal_register_thesaurus(
-        args.historical_source.read_bytes(),
-        require_resolved=False,
-    )
-    crosswalk = build_federal_register_thesaurus_crosswalk(
-        historical,
-        current,
-    )
     extract_bytes = federal_register_thesaurus_2025_extract_bytes(current)
-    crosswalk_bytes = federal_register_thesaurus_crosswalk_bytes(crosswalk)
     _write_exact(args.resource_dir / "source-extract.json", extract_bytes)
-    _write_exact(
-        args.resource_dir / "crosswalk-1995-to-2025.json",
-        crosswalk_bytes,
-    )
 
     release = build_federal_register_thesaurus_2025_managed_release(
         current,
-        crosswalk,
         recorded_at=args.recorded_at,
         recorded_by=args.recorded_by,
     )
@@ -112,14 +90,12 @@ def main() -> int:
             "unresolvedVariantOccurrences": (
                 current.counts.unresolved_variant_occurrences
             ),
-            "crosswalk": crosswalk["counts"],
         },
         "boundaries": release.manifest["vocabularyBoundaries"],
         "interpretation": (
             "The April 1, 2025 publication is the default managed candidate "
             "vocabulary for Federal Register documents. Current API Topics "
-            "remain mutable source-assigned metadata. The 1995 release remains "
-            "available only for history, regression, and change analysis."
+            "remain mutable source-assigned metadata."
         ),
     }
     _write_exact(

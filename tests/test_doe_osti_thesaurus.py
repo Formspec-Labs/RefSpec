@@ -13,6 +13,7 @@ the repo or a small synthetic string built for one edge case.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,25 @@ from refspec.registry.doe_osti_thesaurus import (
     parse_doe_osti_thesaurus_file,
     parse_doe_osti_thesaurus_rdfxml,
 )
+
+
+def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
+    source_path_text = os.environ.get("REFSPEC_DOE_OSTI_THESAURUS_PATH")
+    if source_path_text is None:
+        pytest.skip("real DOE OSTI distribution is not configured")
+    release = DOE_OSTI_THESAURUS_V1_2020
+    thesaurus = parse_doe_osti_thesaurus_file(
+        Path(source_path_text),
+        source_url=release.source_url,
+        expected_sha256=release.expected_sha256,
+        expected_byte_length=release.expected_byte_length,
+    )
+
+    assert thesaurus.source_bytes == 18_087_998
+    assert thesaurus.triple_count == 247_184
+    assert len(thesaurus.concepts) == 23_626
+    assert thesaurus.concepts[0].concept_iri == "https://www.osti.gov/thesaurus/10001"
+    assert thesaurus.concepts[-1].concept_iri == "https://www.osti.gov/thesaurus/9999"
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "doe_osti_thesaurus" / "osti-semantic-thesaurus-2020-mini.rdf"
 FIXTURE_SOURCE_URL = "https://example.test/osti-semantic-thesaurus-2020-mini.rdf"

@@ -34,8 +34,8 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import cbo_topic_codes as cbo
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "cbo_topic_codes"
 FEED_FIXTURE = FIXTURES / "cbo-cost-estimates-mini.xml"

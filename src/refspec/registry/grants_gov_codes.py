@@ -36,12 +36,12 @@ from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     ControlledIdentifierError,
     validate_identifier_date,
 )
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
 )

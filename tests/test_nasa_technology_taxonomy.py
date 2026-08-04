@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import nasa_technology_taxonomy as nasa
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "nasa_technology_taxonomy"
 ROOTS_FIXTURE = FIXTURES / "techport-taxonomy-roots-2026-08-03.json"
@@ -334,7 +334,7 @@ def test_view_reopens_pinned_package_and_supports_code_lookup(tmp_path: Path) ->
 
 
 def test_view_rejects_a_self_consistent_unpinned_repackage(tmp_path: Path) -> None:
-    from refspec.registry.source_controlled_resource import (
+    from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,
     )
 

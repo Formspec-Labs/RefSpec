@@ -10,6 +10,7 @@ explicit refusal to mint concept identity or a topic vocabulary.
 from __future__ import annotations
 
 import hashlib
+import os
 from dataclasses import replace
 from pathlib import Path
 
@@ -35,6 +36,8 @@ def _pin(source: crs.CRSProductsPageSource, payload: bytes) -> crs.CRSProductsPa
 
 def _mini_source(**overrides: object) -> crs.CRSProductsPageSource:
     overrides.setdefault("expected_product_type_count", 3)
+    overrides.setdefault("topics_heading", "CRS Product Topics")
+    overrides.setdefault("topics_marker_phrase", "not published as a separate, versioned thesaurus")
     return replace(crs.CRS_PRODUCTS_PAGE, **overrides)  # type: ignore[arg-type]
 
 
@@ -57,8 +60,31 @@ def test_current_official_page_declares_expected_shape() -> None:
     assert source.expected_heading == "Congressional Research Service (CRS) Products"
     assert source.product_types_heading == "CRS Product Types"
     assert source.expected_product_type_count == 7
-    assert source.topics_heading == "CRS Product Topics"
-    assert source.topics_marker_phrase
+    assert source.topics_heading == "Searching CRS products"
+    assert source.topics_marker_phrase == "CRS Product Topic"
+
+
+def test_real_publisher_page_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    source_path_text = os.environ.get("REFSPEC_CRS_PRODUCTS_PATH")
+    if source_path_text is None:
+        pytest.skip("real Congress.gov CRS products page is not configured")
+    source_path = Path(source_path_text)
+    page = crs.acquire_crs_products_page(
+        crs.CRSProductsPageSnapshotPin(
+            source=crs.CRS_PRODUCTS_PAGE,
+            retrieved_at="2026-08-03T00:00:00Z",
+            expected_sha256="sha256:91c478b93fe4a3588c48bf065d999a5830111f63f9888001bd60cf748ba060cc",
+            expected_byte_length=371_848,
+        ),
+        tmp_path,
+        source_path=source_path,
+    )
+    parsed = crs.parse_crs_products_page(page)
+
+    assert len(parsed.product_types) == 7
+    assert parsed.product_types[0].official_label == "Reports"
+    assert parsed.product_types[-1].official_label == "Appropriations Status Table"
+    assert "filtered by CRS Product Topic" in parsed.topics_scope_note.text
 
 
 def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
@@ -206,7 +232,7 @@ def test_structure_or_count_change_fails_as_source_drift(tmp_path: Path) -> None
     source = _mini_source(expected_product_type_count=4)
     page = _acquire_fixture(tmp_path, source, "crs-products-mini.html")
 
-    with pytest.raises(crs.CRSProductSourceDriftError, match="Product Types count marker"):
+    with pytest.raises(crs.CRSProductSourceDriftError, match="definition list or two-column table"):
         crs.parse_crs_products_page(page)
 
 

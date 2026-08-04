@@ -1,22 +1,42 @@
 """Offline tests for SAM.gov UEI and DLA CAGE identifier-authority capture.
 
-No test opens a network connection. The single reproducible authority
-document pin is checked against a fixture copy of the real bytes fetched
-from ``https://sam.gov/entity-registration`` on 2026-08-03; the illustrative
-identifier sample is a hand-built fixture, never a registry export.
+No test opens a network connection. Tests cover both illustrative schema
+fixtures and an exact public SAM Entity Management API response.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import uei_cage_identifiers as uc
-from refspec.registry.controlled_identifier import ControlledIdentifier, ControlledIdentifierError
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, ControlledIdentifierError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "uei_cage_identifiers"
 SAM_DOC_FIXTURE = FIXTURES / "sam-gov-entity-registration-2026-08-03.html"
+REAL_DATA_DIR = Path("output/registry-real-data-sources")
+
+
+def _sam_entity_path() -> Path:
+    configured = os.environ.get("REFSPEC_SAM_ENTITY_PUBLIC_PATH")
+    path = Path(configured) if configured else REAL_DATA_DIR / "sam-entity-3m-public.json"
+    if not path.is_file():
+        pytest.skip("real publisher capture is unavailable: REFSPEC_SAM_ENTITY_PUBLIC_PATH")
+    return path
+
+
+def _repin(payload: bytes, *, expected_count: int = 1) -> uc.SamEntityApiPin:
+    return replace(
+        uc.SAM_ENTITY_3M_PUBLIC_PIN,
+        sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
+        byte_length=len(payload),
+        expected_count=expected_count,
+    )
 
 
 def _uei_identifier(value: str = "SGVKKZK4NX79") -> ControlledIdentifier:
@@ -172,6 +192,12 @@ def test_cage_record_accepts_a_well_formed_facility() -> None:
     assert record.identifier.value == "1A2B3"
     assert record.cage_status == "active"
     assert record.native_payload()["facilityName"] == "Example Facility A"
+
+
+def test_cage_record_can_record_that_dla_status_was_not_observed() -> None:
+    record = _cage_record(cage_status="notObserved")
+
+    assert record.cage_status == "notObserved"
 
 
 def test_cage_record_rejects_wrong_identifier_kind() -> None:
@@ -339,6 +365,69 @@ def test_parse_capture_rejects_non_json_bytes() -> None:
 def test_parse_capture_rejects_empty_bytes() -> None:
     with pytest.raises(uc.UeiCageIdentifierError, match="non-empty"):
         uc.parse_capture(b"")
+
+
+# --- exact public SAM Entity Management API response --------------------
+
+
+def test_real_public_entity_response_matches_pin_shape_count_and_sample() -> None:
+    payload = _sam_entity_path().read_bytes()
+
+    uc.verify_sam_entity_api_response(payload, uc.SAM_ENTITY_3M_PUBLIC_PIN)
+    assert len(payload) == uc.SAM_ENTITY_3M_PUBLIC_PIN.byte_length == 1_076
+    assert hashlib.sha256(payload).hexdigest() == uc.SAM_ENTITY_3M_PUBLIC_PIN.sha256.removeprefix("sha256:")
+    assert b"REPLACE_WITH_API_KEY" in payload
+    assert b"api_key=REPLACE_WITH_API_KEY" in payload
+
+    sample = uc.parse_sam_entity_public_response(payload)
+
+    assert sample.sample_provenance == "publisherApiResponse"
+    assert len(sample.ueis) == len(sample.cages) == 1
+    uei = sample.ueis[0]
+    cage = sample.cages[0]
+    assert uei.identifier.value == "YLQMY5SGNE55"
+    assert uei.legal_business_name == "3M COMPANY"
+    assert uei.registration_status == "active"
+    assert uei.access_classification == "public"
+    assert uei.immediate_parent_uei is None
+    assert uei.highest_level_owner_uei is None
+    assert cage.identifier.value == "76381"
+    assert cage.facility_name == "3M COMPANY"
+    assert cage.associated_uei == "YLQMY5SGNE55"
+    assert cage.cage_status == "notObserved"
+    assert cage.access_classification == "public"
+    assert uei.identifier.source_digest == cage.identifier.source_digest == uc.SAM_ENTITY_3M_PUBLIC_PIN.sha256
+    assert uei.identifier.source_uri == cage.identifier.source_uri == uc.SAM_ENTITY_3M_PUBLIC_SOURCE_URL
+
+
+def test_public_entity_parser_rejects_protected_or_unrequested_sections() -> None:
+    root = json.loads(_sam_entity_path().read_bytes())
+    root["entityData"][0]["coreData"] = {"entityHierarchyInformation": {}}
+    payload = json.dumps(root, separators=(",", ":")).encode("utf-8")
+
+    with pytest.raises(uc.UeiCageIdentifierError, match=r"entityData\[0\] fields changed"):
+        uc.parse_sam_entity_public_response(payload, _repin(payload))
+
+
+def test_public_entity_parser_rejects_a_self_link_containing_a_real_credential() -> None:
+    root = json.loads(_sam_entity_path().read_bytes())
+    root["links"]["selfLink"] = root["links"]["selfLink"].replace(
+        "REPLACE_WITH_API_KEY", "credential-must-not-survive"
+    )
+    payload = json.dumps(root, separators=(",", ":")).encode("utf-8")
+
+    with pytest.raises(uc.UeiCageIdentifierError, match="exposed an API credential"):
+        uc.parse_sam_entity_public_response(payload, _repin(payload))
+
+
+def test_public_entity_parser_refuses_a_bulk_response_even_when_digest_pinned() -> None:
+    root = json.loads(_sam_entity_path().read_bytes())
+    root["entityData"] = root["entityData"] * (uc.MAX_SAMPLE_SIZE + 1)
+    root["totalRecords"] = uc.MAX_SAMPLE_SIZE + 1
+    payload = json.dumps(root, separators=(",", ":")).encode("utf-8")
+
+    with pytest.raises(uc.UeiCageIdentifierError, match="refusing bulk entity data"):
+        uc.parse_sam_entity_public_response(payload, _repin(payload))
 
 
 # --- pinned authority document (source-faithful byte capture) ------------

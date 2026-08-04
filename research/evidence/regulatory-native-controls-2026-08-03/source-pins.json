@@ -1,0 +1,126 @@
+{
+  "capturedAt": "2026-08-04T02:35:32Z",
+  "format": "urn:ref:registry:regulatory-native-source-pins:v1",
+  "sources": [
+    {
+      "byteLength": 14347053,
+      "columns": [
+        "docket_id",
+        "agency_code",
+        "title",
+        "docket_type",
+        "modify_date",
+        "abstract",
+        "rin"
+      ],
+      "etag": "\"7eeeec4f91bfb333c4c221dade5bfbd6-2\"",
+      "lastModified": "Mon, 03 Aug 2026 14:30:41 GMT",
+      "profileIds": [
+        "regulations-docket-v2"
+      ],
+      "rowCount": 276326,
+      "sha256": "sha256:b14cd488b7898391cff448ac4de19f85936072dcb1aa105da32eea88e6fd7938",
+      "table": "dockets",
+      "uri": "https://r2.spicy-regs.dev/dockets.parquet"
+    },
+    {
+      "byteLength": 54865512,
+      "columns": [
+        "document_id",
+        "docket_id",
+        "agency_code",
+        "title",
+        "document_type",
+        "posted_date",
+        "modify_date",
+        "comment_start_date",
+        "comment_end_date",
+        "file_url",
+        "attachments_json",
+        "fr_doc_num",
+        "withdrawn",
+        "reason_withdrawn",
+        "additional_rins",
+        "text_content",
+        "text_extraction_status"
+      ],
+      "etag": "\"8faaa53955c26ddb3f5ed957cf599865-7\"",
+      "lastModified": "Tue, 04 Aug 2026 01:23:24 GMT",
+      "profileIds": [
+        "regulations-document-v2"
+      ],
+      "rowCount": 1990136,
+      "sha256": "sha256:bb42f79eacd0a1bfb19b7711f5d6859d288133acffa8f585ee468acdd5cb4975",
+      "table": "documents",
+      "uri": "https://r2.spicy-regs.dev/documents.parquet"
+    },
+    {
+      "byteLength": 122957045,
+      "columns": [
+        "document_number",
+        "title",
+        "abstract",
+        "document_type",
+        "publication_date",
+        "effective_on",
+        "comments_close_on",
+        "signing_date",
+        "agencies_json",
+        "agency_slugs",
+        "docket_ids_json",
+        "regulation_id_numbers_json",
+        "cfr_references_json",
+        "html_url",
+        "pdf_url",
+        "body_html_url",
+        "volume",
+        "start_page",
+        "end_page",
+        "subtype",
+        "executive_order_number",
+        "modify_date"
+      ],
+      "etag": "\"d88fd82c9326590699ace479d609815d-15\"",
+      "lastModified": "Mon, 03 Aug 2026 22:12:49 GMT",
+      "profileIds": [
+        "federal-register-document-v1"
+      ],
+      "rowCount": 800619,
+      "sha256": "sha256:702018767f73b914ef11696b47ff360e616acc2da4769f40b0d0d90f03c5ffea",
+      "table": "federal_register",
+      "uri": "https://r2.spicy-regs.dev/federal_register.parquet"
+    },
+    {
+      "byteLength": 1017503,
+      "columns": [
+        "rin",
+        "agency_code",
+        "agency_name",
+        "title",
+        "abstract",
+        "rin_status",
+        "rule_stage",
+        "priority_category",
+        "agenda_edition",
+        "major",
+        "publication_id",
+        "timetable_json",
+        "cfr_references_json",
+        "legal_authority_json",
+        "first_action_date",
+        "next_action_date",
+        "url"
+      ],
+      "etag": "\"70da846ac24f0a0ee9f1a21674d3a21e\"",
+      "lastModified": "Mon, 03 Aug 2026 20:58:06 GMT",
+      "profileIds": [
+        "unified-agenda-observation-v1"
+      ],
+      "rowCount": 3954,
+      "sha256": "sha256:e6862d5d6a5300f10c70eeaf321f1e82e1f5332f71069d07723cc584ee6a85ae",
+      "table": "unified_agenda",
+      "uri": "https://r2.spicy-regs.dev/unified_agenda.parquet"
+    }
+  ],
+  "spicyRegsRevision": "f1fcb8c9c8838071e9c45462799db788971baca4"
+}

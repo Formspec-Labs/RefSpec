@@ -16,25 +16,16 @@ Two independently governed publishers are pinned:
   2-digit level (for example ``31-33`` for Manufacturing) that this module
   preserves verbatim rather than splitting or renumbering.
 * Acquisition.gov publishes PSC as a numbered manual *edition* (for example
-  "April 2025"). The manual is distributed as an Excel workbook, PDF, and
-  Word document linked from ``https://www.acquisition.gov/psc-manual/all``,
-  not as a small pinned machine-readable code list; this module packages a
-  captured CSV rendering of one edition's code rows rather than parsing the
-  binary workbook itself.
+  "April 2025"). This module parses the publisher's Excel workbook and keeps
+  the current four-character rows. Retired versions remain in the pinned
+  source bytes and are excluded using their publisher-authored end dates.
 
-Acquisition honesty for this pass: a live fetch of
-``https://www.acquisition.gov/psc-manual/all`` during this session returned
-HTTP 200 and confirmed "PSC April 2025" as the current linked edition, but
-that page lists document download links, not a machine-readable code table.
-A live fetch of ``https://www.census.gov/naics/`` during this session
-returned HTTP 403 (bot-protected) and could not be browsed at all. Neither
-publisher's underlying code-list bytes were captured this session; the pins
-below are of a small fixture file constructed to match each publisher's
-documented column layout, not a verified live capture. A real acquisition
-pass must replace both pins with genuine captured bytes (and, for PSC,
-either ingest the actual XLSX workbook or locate an equivalent
-machine-readable rendering) before this module can claim
-``publisherIdentifiersPreserved`` bytes are official.
+Acquisition honesty for this pass: the official 2022 Census XLSX workbook is
+captured and parsed in full. Acquisition.gov was unavailable during the PSC
+capture. The Internet Archive's CDX index identified two April 2025 captures
+of the exact official workbook URL with the same archive digest; the April 22
+replay supplies the pinned publisher bytes. The original URL and replay URL
+remain distinct provenance fields in the audit manifest.
 
 Acquisition accepts a local exact capture or an injected fetcher. Importing
 this module never opens a network connection.
@@ -50,13 +41,16 @@ import re
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from openpyxl import load_workbook
+
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -67,6 +61,13 @@ NAICS_HOSTS = frozenset({"www.census.gov", "census.gov"})
 PSC_HOSTS = frozenset({"www.acquisition.gov", "acquisition.gov"})
 NAICS_IDENTIFIER_AUTHORITY_URI = "https://www.census.gov/naics/"
 PSC_IDENTIFIER_AUTHORITY_URI = "https://www.acquisition.gov/psc-manual/all"
+PSC_APRIL_2025_XLSX_URL = (
+    "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx"
+)
+PSC_APRIL_2025_WAYBACK_URL = (
+    "https://web.archive.org/web/20250422004751id_/"
+    "https://www.acquisition.gov/sites/default/files/manual/PSC%20April%202025.xlsx"
+)
 LANGUAGE = "en"
 
 ResourceName = Literal["naicsCodes", "pscCodes"]
@@ -150,6 +151,15 @@ NAICS_CODES_SOURCE = NaicsPscSource(
     expected_count=14,
     edition="2022",
 )
+NAICS_CODES_XLSX_SOURCE = NaicsPscSource(
+    resource_name="naicsCodes",
+    title="2022 NAICS US Structure",
+    source_url="https://www.census.gov/naics/2022NAICS/2-6%20digit_2022_Codes.xlsx",
+    hosts=NAICS_HOSTS,
+    filename="2-6-digit_2022_Codes.xlsx",
+    expected_count=2_125,
+    edition="2022",
+)
 PSC_CODES_SOURCE = NaicsPscSource(
     resource_name="pscCodes",
     title="Product and Service Code Manual",
@@ -157,6 +167,15 @@ PSC_CODES_SOURCE = NaicsPscSource(
     hosts=PSC_HOSTS,
     filename="psc-manual-april-2025.csv",
     expected_count=8,
+    edition="April 2025",
+)
+PSC_CODES_XLSX_SOURCE = NaicsPscSource(
+    resource_name="pscCodes",
+    title="Product and Service Code Manual",
+    source_url=PSC_APRIL_2025_XLSX_URL,
+    hosts=PSC_HOSTS,
+    filename="PSC-April-2025.xlsx",
+    expected_count=2_344,
     edition="April 2025",
 )
 
@@ -185,9 +204,7 @@ class NaicsPscSnapshotPin:
             raise NaicsPscAcquisitionError("retrieved_at must not be empty")
 
 
-# These pins are of a constructed fixture, not a verified live capture -- see
-# the module docstring's "Acquisition honesty" note. A real acquisition pass
-# must replace both with genuine captured bytes.
+# These two pins are constructed CSV fixtures retained for narrow parser tests.
 NAICS_CODES_2026_08_03 = NaicsPscSnapshotPin(
     source=NAICS_CODES_SOURCE,
     retrieved_at="2026-08-03T20:00:00Z",
@@ -199,6 +216,18 @@ PSC_CODES_2026_08_03 = NaicsPscSnapshotPin(
     retrieved_at="2026-08-03T20:00:00Z",
     expected_sha256="sha256:dd6c5307bb761b842152ed91d20be99943b890c38c4c1f92ae15cb60b3dc9ba5",
     expected_byte_length=545,
+)
+NAICS_CODES_2022_XLSX = NaicsPscSnapshotPin(
+    source=NAICS_CODES_XLSX_SOURCE,
+    retrieved_at="2026-08-03T20:00:00Z",
+    expected_sha256="sha256:be12ba41002803359f49181c9bf33a03fbd08578f4f4a4c0bbad7aadaaea0316",
+    expected_byte_length=82_460,
+)
+PSC_CODES_APRIL_2025_XLSX = NaicsPscSnapshotPin(
+    source=PSC_CODES_XLSX_SOURCE,
+    retrieved_at="2026-08-04T01:17:18Z",
+    expected_sha256="sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4",
+    expected_byte_length=462_762,
 )
 
 
@@ -252,10 +281,13 @@ def _verify_payload(payload: bytes, pin: NaicsPscSnapshotPin, *, location: str) 
     actual_sha256 = sha256_digest(payload)
     if actual_sha256 != pin.expected_sha256:
         raise NaicsPscSourceDriftError(f"{location} digest drift: expected {pin.expected_sha256}, got {actual_sha256}")
-    try:
-        payload.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise NaicsPscSourceDriftError(f"{location} is not valid UTF-8 text") from error
+    if pin.source.filename.endswith(".csv"):
+        try:
+            payload.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise NaicsPscSourceDriftError(f"{location} is not valid UTF-8 text") from error
+    elif not pin.source.filename.endswith(".xlsx") or not payload.startswith(b"PK"):
+        raise NaicsPscSourceDriftError(f"{location} is not the declared CSV or XLSX source")
     return actual_sha256, byte_length
 
 
@@ -274,7 +306,11 @@ def _verify_existing(path: Path, pin: NaicsPscSnapshotPin) -> AcquiredNaicsPscSo
         byte_length=byte_length,
         source_url=pin.source.source_url,
         resolved_url=None,
-        content_type="text/csv",
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            if pin.source.filename.endswith(".xlsx")
+            else "text/csv"
+        ),
         acquisition_mode="cache",
         cache_hit=True,
         local_source_path=None,
@@ -358,7 +394,11 @@ def acquire_naics_psc_source(
             local_path.read_bytes(),
             pin,
             final_path,
-            content_type="text/csv",
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                if pin.source.filename.endswith(".xlsx")
+                else "text/csv"
+            ),
             acquisition_mode="local",
             resolved_url=None,
             local_source_path=local_path.resolve(),
@@ -371,7 +411,12 @@ def acquire_naics_psc_source(
         raise NaicsPscAcquisitionError(f"could not acquire {pin.source.source_url}: HTTP {fetched.status_code}")
     _validate_resolved_url(fetched.resolved_url, pin.source.hosts)
     media_type = fetched.content_type.partition(";")[0].strip().lower()
-    if media_type not in {"text/csv", "application/csv", "text/plain"}:
+    if media_type not in {
+        "text/csv",
+        "application/csv",
+        "text/plain",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }:
         raise NaicsPscSourceDriftError(f"{pin.source.resource_name} content type drifted to {fetched.content_type!r}")
     return _publish_payload(
         fetched.body,
@@ -441,6 +486,150 @@ def _csv_rows(payload: bytes) -> list[list[str]]:
     return list(csv.reader(io.StringIO(decoded)))
 
 
+def _naics_xlsx_rows(payload: bytes) -> list[list[str]]:
+    """Read the publisher workbook's first three populated columns."""
+
+    try:
+        workbook = load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
+    except (OSError, ValueError) as error:
+        raise NaicsPscSourceDriftError("NAICS XLSX workbook is unreadable") from error
+    try:
+        if len(workbook.sheetnames) != 1:
+            raise NaicsPscSourceDriftError("NAICS XLSX workbook must contain exactly one worksheet")
+        rows: list[list[str]] = []
+        for raw_row in workbook.active.iter_rows(values_only=True):
+            values = raw_row[:3]
+            if all(value is None for value in values):
+                continue
+            if any(value is None for value in values):
+                raise NaicsPscSourceDriftError("NAICS XLSX populated row has a blank required cell")
+            rows.append([str(value).strip() for value in values])
+        return rows
+    finally:
+        workbook.close()
+
+
+_PSC_XLSX_HEADER = (
+    "PSC CODE",
+    "PRODUCT AND SERVICE CODE NAME",
+    "START DATE",
+    "END DATE",
+    "PRODUCT AND SERVICE CODE FULL NAME (DESCRIPTION)",
+    "PRODUCT AND SERVICE CODE INCLUDES",
+    "PRODUCT AND SERVICE CODE EXCLUDES",
+    "PRODUCT AND SERVICE CODE NOTES",
+    "Parent PSC Code",
+    "PSC Category: Service (S)/Product (P)",
+    "Level 1 Category Code",
+    "Level 1 Category",
+    "Level 2 Category Code",
+    "Level 2 Category",
+)
+_PSC_XLSX_SOURCE_ROW_COUNT = 6_108
+
+
+def _psc_code_cell(value: object) -> str:
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip() if value is not None else ""
+
+
+def _psc_date(value: object, label: str) -> str:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    raise NaicsPscSourceDriftError(f"{label} must be an Excel date")
+
+
+def _parse_psc_xlsx(
+    acquired: AcquiredNaicsPscSource,
+    payload: bytes,
+) -> ParsedNaicsPscResource:
+    source = acquired.pin.source
+    try:
+        workbook = load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
+    except (OSError, ValueError) as error:
+        raise NaicsPscSourceDriftError("PSC XLSX workbook is unreadable") from error
+    try:
+        if workbook.sheetnames != ["PSC for 042025", "Category Managers"]:
+            raise NaicsPscSourceDriftError(
+                f"PSC XLSX worksheets drifted: {workbook.sheetnames}"
+            )
+        worksheet = workbook["PSC for 042025"]
+        worksheet.calculate_dimension(force=True)
+        rows = list(worksheet.iter_rows(values_only=True))
+        if not rows or tuple(rows[0][:14]) != _PSC_XLSX_HEADER:
+            raise NaicsPscSourceDriftError("PSC XLSX header drifted")
+        data_rows = rows[1:]
+        if len(data_rows) != _PSC_XLSX_SOURCE_ROW_COUNT:
+            raise NaicsPscSourceDriftError(
+                "PSC XLSX source row count drift: "
+                f"expected {_PSC_XLSX_SOURCE_ROW_COUNT}, got {len(data_rows)}"
+            )
+
+        codes: list[NaicsPscCode] = []
+        seen_codes: set[str] = set()
+        for source_row, row in enumerate(data_rows, start=2):
+            code = _psc_code_cell(row[0])
+            if _PSC_CODE.fullmatch(code) is None or row[3] is not None:
+                continue
+            label = row[1]
+            if not isinstance(label, str) or not label.strip() or label != label.strip():
+                raise NaicsPscSourceDriftError(
+                    f"PSC XLSX row {source_row} has a malformed publisher label"
+                )
+            if code in seen_codes:
+                raise NaicsPscSourceDriftError(f"active PSC code {code!r} is duplicated")
+            seen_codes.add(code)
+            level_one_category = row[11]
+            parent_category = row[8]
+            raw_facet = level_one_category if level_one_category is not None else parent_category
+            if not isinstance(raw_facet, str) or not raw_facet.strip():
+                raise NaicsPscSourceDriftError(
+                    f"PSC XLSX row {source_row} has no publisher category"
+                )
+            codes.append(
+                NaicsPscCode(
+                    resource_name="pscCodes",
+                    use="deterministicMetadata",
+                    publisher_label=label,
+                    source_url=source.source_url,
+                    identifiers=(
+                        ControlledIdentifier(
+                            value=code,
+                            kind="pscCode",
+                            authority_uri=PSC_IDENTIFIER_AUTHORITY_URI,
+                            source_uri=source.source_url,
+                            observed_at=acquired.pin.retrieved_at,
+                            effective_at=_psc_date(row[2], f"PSC XLSX row {source_row} START DATE"),
+                            source_digest=acquired.sha256,
+                        ),
+                    ),
+                    facet=raw_facet.strip(),
+                )
+            )
+        if len(codes) != source.expected_count:
+            raise NaicsPscSourceDriftError(
+                f"pscCodes count drift: expected {source.expected_count}, parsed {len(codes)}"
+            )
+        return ParsedNaicsPscResource(
+            source=source,
+            retrieved_at=acquired.pin.retrieved_at,
+            source_sha256=acquired.sha256,
+            source_byte_length=acquired.byte_length,
+            edition=source.edition,
+            codes=tuple(codes),
+            gaps=NAICS_PSC_PORTFOLIO_GAPS,
+        )
+    finally:
+        workbook.close()
+
+
 def _naics_facet(code: str) -> str:
     if "-" in code:
         first, _, second = code.partition("-")
@@ -459,11 +648,17 @@ def parse_naics_codes(acquired: AcquiredNaicsPscSource) -> ParsedNaicsPscResourc
     source = acquired.pin.source
     if source.resource_name != "naicsCodes":
         raise NaicsPscSourceDriftError("acquired source was not pinned against a NAICS codes source")
-    rows = _csv_rows(_read_acquired_payload(acquired))
+    payload = _read_acquired_payload(acquired)
+    rows = (
+        _naics_xlsx_rows(payload)
+        if source.filename.endswith(".xlsx")
+        else _csv_rows(payload)
+    )
     if not rows:
         raise NaicsPscSourceDriftError("NAICS payload has no rows")
     expected_header = ["Seq. No.", f"{source.edition} NAICS US Code", f"{source.edition} NAICS US Title"]
-    if rows[0] != expected_header:
+    normalized_header = [" ".join(value.split()) for value in rows[0]]
+    if normalized_header != expected_header:
         raise NaicsPscSourceDriftError(f"NAICS header drifted: expected {expected_header}, got {rows[0]}")
     data_rows = rows[1:]
     if len(data_rows) != source.expected_count:
@@ -524,7 +719,10 @@ def parse_psc_codes(acquired: AcquiredNaicsPscSource) -> ParsedNaicsPscResource:
     source = acquired.pin.source
     if source.resource_name != "pscCodes":
         raise NaicsPscSourceDriftError("acquired source was not pinned against a PSC codes source")
-    rows = _csv_rows(_read_acquired_payload(acquired))
+    payload = _read_acquired_payload(acquired)
+    if source.filename.endswith(".xlsx"):
+        return _parse_psc_xlsx(acquired, payload)
+    rows = _csv_rows(payload)
     if not rows:
         raise NaicsPscSourceDriftError("PSC payload has no rows")
     expected_header = ["PSC Code", "PSC Name", "Category", "Manual Edition"]
@@ -598,20 +796,16 @@ NAICS_PSC_PORTFOLIO_GAPS = (
         "data as of this capture -- see NAICS_2027_STRUCTURE_PUBLISHED."
     ),
     (
-        "The PSC Manual is distributed as an Excel workbook, PDF, and Word "
-        "document linked from https://www.acquisition.gov/psc-manual/all, "
-        "not as a small pinned machine-readable code list; the edition "
-        "currently linked from that page is 'April 2025'. This module "
-        "packages a captured CSV rendering of that edition's code rows and "
-        "does not itself parse the binary workbook."
+        "The PSC Manual April 2025 workbook contains active and retired code "
+        "versions. This module imports the 2,344 current four-character rows "
+        "whose publisher-authored END DATE is blank; all 6,108 source rows "
+        "remain preserved in the pinned workbook bytes."
     ),
     (
-        "Neither publisher's code-list bytes were captured live this "
-        "session: https://www.census.gov/naics/ returned HTTP 403 "
-        "(bot-protected), and https://www.acquisition.gov/psc-manual/all "
-        "returned HTTP 200 but lists document download links, not a "
-        "machine-readable code table. The pins in this module are of a "
-        "constructed fixture, not a verified live capture."
+        "Acquisition.gov was unavailable during capture. The PSC workbook "
+        "was recovered from the Internet Archive's April 22, 2025 replay of "
+        "the exact official acquisition.gov XLSX URL; archive metadata and "
+        "the original URL are retained separately in the source manifest."
     ),
 )
 
@@ -745,10 +939,8 @@ _PSC_BINARY_MANUAL_GAP = MappingProxyType(
     {
         "kind": "pscManualBinaryFormat",
         "reason": (
-            "The PSC Manual is distributed as an Excel workbook, PDF, and "
-            "Word document, not a small pinned machine-readable code list; "
-            "this package captures a CSV rendering of the 'April 2025' "
-            "edition's rows rather than the binary workbook itself."
+            "The constructed PSC CSV fixture covers only a small parser "
+            "sample; use the pinned April 2025 XLSX source for real-data use."
         ),
     }
 )
@@ -832,7 +1024,11 @@ def _build_package(
         observations=observations,
         source_artifacts={parsed.source.source_url: payload},
         source_observed_count=parsed.source.expected_count,
-        gaps=(_DETERMINISTIC_FACET_ROLE_GAP, _UNVERIFIED_LIVE_CAPTURE_GAP, *package_gaps),
+        gaps=(
+            _DETERMINISTIC_FACET_ROLE_GAP,
+            *((_UNVERIFIED_LIVE_CAPTURE_GAP,) if acquired.pin.source.filename.endswith(".csv") else ()),
+            *package_gaps,
+        ),
     )
 
 
@@ -862,19 +1058,29 @@ def build_psc_code_package(
         title="Product and Service Code Manual, edition April 2025",
         acquired=acquired,
         parsed=parsed,
-        package_gaps=(_PSC_BINARY_MANUAL_GAP,),
+        package_gaps=(
+            (_PSC_BINARY_MANUAL_GAP,)
+            if acquired.pin.source.filename.endswith(".csv")
+            else ()
+        ),
     )
 
 
 __all__ = [
     "NAICS_2027_STRUCTURE_PUBLISHED",
+    "NAICS_CODES_2022_XLSX",
     "NAICS_CODES_2026_08_03",
     "NAICS_CODES_SOURCE",
+    "NAICS_CODES_XLSX_SOURCE",
     "NAICS_HOSTS",
     "NAICS_IDENTIFIER_AUTHORITY_URI",
     "NAICS_PSC_PORTFOLIO_GAPS",
+    "PSC_APRIL_2025_WAYBACK_URL",
+    "PSC_APRIL_2025_XLSX_URL",
     "PSC_CODES_2026_08_03",
+    "PSC_CODES_APRIL_2025_XLSX",
     "PSC_CODES_SOURCE",
+    "PSC_CODES_XLSX_SOURCE",
     "PSC_HOSTS",
     "PSC_IDENTIFIER_AUTHORITY_URI",
     "AcquiredNaicsPscSource",

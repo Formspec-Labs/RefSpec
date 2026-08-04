@@ -55,7 +55,7 @@ which supplied no stable identifier and required source-local ordinals.
 ``build_nature_of_suit_code_package`` therefore records each code as a
 ``publisherIdentifiersPreserved`` identifier and never mints a replacement.
 The capture-local observation id it does mint (via
-``refspec.registry.source_controlled_resource``) never claims concept
+``refspec.registry.infrastructure.source_controlled_resource``) never claims concept
 identity: ``conceptIdentityClaimed`` is always False, matching this source's
 catalog role of deterministic case-classification metadata, not a governed
 subject vocabulary. Downstream consumers must keep this official code
@@ -72,8 +72,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,

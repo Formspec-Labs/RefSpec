@@ -91,6 +91,15 @@ V2_RELATIONS = (
     # emitted, because emitting either overrules a machine on its own claim.
     ("near_same", "target_is_broader", None),
 )
+#: One sealed reason per verdict, so every relation the corpus emits carries the
+#: prose a reader would need to judge it.
+V2_VERDICT_REASONS = {
+    "same": "The two labels are house-style variants of one concept; treating them as one cannot mislead.",
+    "near_same": "Substitution is safe both ways for search, but the two are not plainly the same concept.",
+    "target_is_broader": "The target is the wider field; the source is one topic inside it.",
+    "target_is_narrower": "The source is the wider concept; the target names one specific case of it.",
+    "related": "An actor and the activity named by the other concept: associated, but neither contains the other.",
+}
 V2_SOURCE_CONCEPTS = (
     ("urn:ref:conformance:alpha:energy-policy", "Energy policy"),
     ("urn:ref:conformance:alpha:water-pollution", "Water pollution"),
@@ -375,20 +384,26 @@ def _response(
     actor: str,
     provider: str,
     provider_model_id: str,
+    reason: str = "",
 ) -> CrosswalkArtifact:
+    content: dict[str, Any] = {
+        "candidate": candidate.reference(),
+        "deterministicChecksPassed": True,
+        "inputDigest": input_digest,
+        "outcome": "supports",
+        "provider": provider,
+        "providerModelId": provider_model_id,
+        "requestArtifact": request.reference(),
+        "validatorActor": actor,
+    }
+    # A corpus whose responses said nothing could not tell a reader that
+    # projects the sealed reason from one that drops it.
+    if reason:
+        content["reason"] = reason
     return CrosswalkArtifact.create(
         role="validationResponse",
         media_type="application/json",
-        content={
-            "candidate": candidate.reference(),
-            "deterministicChecksPassed": True,
-            "inputDigest": input_digest,
-            "outcome": "supports",
-            "provider": provider,
-            "providerModelId": provider_model_id,
-            "requestArtifact": request.reference(),
-            "validatorActor": actor,
-        },
+        content=content,
     )
 
 
@@ -455,6 +470,7 @@ def _qualified_bundle() -> CrosswalkBundle:
         actor="urn:ref:conformance:validator:first",
         provider="urn:ref:conformance:provider:first",
         provider_model_id="provider-model-first",
+        reason="Both labels name the same policy area; substitution is safe in both directions.",
     )
     second = _response(
         candidate,
@@ -463,6 +479,7 @@ def _qualified_bundle() -> CrosswalkBundle:
         actor="urn:ref:conformance:validator:second",
         provider="urn:ref:conformance:provider:second",
         provider_model_id="provider-model-other",
+        reason="Agreed; the two concepts index the same documents under different house style.",
     )
     validations.extend(
         (
@@ -519,6 +536,7 @@ def _qualified_bundle() -> CrosswalkBundle:
         actor="urn:ref:conformance:validator:first",
         provider="urn:ref:conformance:provider:first",
         provider_model_id="provider-model-first",
+        reason="The target names control measures, not the pollution itself; the source is wider.",
     )
     validations.append(
         _validation(
@@ -589,6 +607,7 @@ def _v2_bundle() -> CrosswalkBundle:
                 actor=actor,
                 provider=provider,
                 provider_model_id=provider_model_id,
+                reason=V2_VERDICT_REASONS[verdict],
             )
             artifacts.append(response)
             validations.append(
@@ -862,10 +881,37 @@ def _forge_adjudicated_relation(lines: list[str]) -> list[str]:
     )
 
 
-def _forge_verdict_disagreement(lines: list[str]) -> list[str]:
-    """Turn one machine's verdict against its partner, leaving the mapping."""
+def _drop_adjudication(lines: list[str], relation: str) -> list[str]:
+    """Remove the adjudicated relation naming ``relation``, keeping all else."""
 
-    return _replace_once(lines, _VERDICT_RELATION, '"target_is_narrower"', '"related"')
+    kept = [line for line in lines if not (_ADJUDICATED in line and f"<{_SKOS}{relation}>" in line)]
+    if len(kept) != len(lines) - 1:
+        raise VocabularyAtlasError(f"expected exactly one {relation} adjudication to drop")
+    return kept
+
+
+def _unstate_adjudication(lines: list[str]) -> list[str]:
+    """Publish a mapping whose candidate never says what was adjudicated.
+
+    The verdicts still agree on ``target_is_broader``. Without the adjudication
+    the mapping would fall back to the uniform proposal, so a reader that only
+    checks a stated adjudication would accept ``broadMatch`` evidence published
+    as something else.
+    """
+
+    return _drop_adjudication(lines, "broadMatch")
+
+
+def _forge_verdict_disagreement(lines: list[str]) -> list[str]:
+    """Rest a mapping on verdicts that adjudicate nothing.
+
+    One machine's verdict is turned against its partner and the adjudication is
+    withdrawn, so the pair claims nothing while still carrying a mapping — the
+    shape a producer would reach for to keep a mapping the lattice refuses.
+    """
+
+    edited = _replace_once(lines, _VERDICT_RELATION, '"target_is_narrower"', '"related"')
+    return _drop_adjudication(edited, "narrowMatch")
 
 
 def _promote_adjudicated_related(lines: list[str]) -> list[str]:
@@ -1054,6 +1100,14 @@ _CASES: tuple[dict[str, Any], ...] = (
         "errorContains": "disagree about the relation",
         "forge": _forge_verdict_disagreement,
         "id": "qualifying-verdicts-must-agree-on-one-relation",
+        "valid": False,
+    },
+    {
+        "base": "v2",
+        "directory": "invalid/unstated-adjudication",
+        "errorContains": "omits the adjudicated relation its verdicts state",
+        "forge": _unstate_adjudication,
+        "id": "adjudication-is-owed-whenever-the-verdicts-state-one",
         "valid": False,
     },
     {

@@ -4,17 +4,16 @@ The catalog entry for this source is scoped to award-entity and facility
 identifier *schemes*, not entity data: capture identifier syntax, validity
 vocabulary, and registration/facility/parent distinctions, and record the
 public/controlled access distinction. It is explicit that no bulk entity
-data may be ingested. This module therefore never queries a live SAM.gov or
-DLA CAGE registry and never accepts more than ``MAX_SAMPLE_SIZE`` records of
-either kind -- that ceiling is enforced at runtime, not only documented.
+data may be ingested. This module therefore accepts only small, exact public
+SAM.gov API responses and never accepts more than ``MAX_SAMPLE_SIZE`` records
+of either kind -- that ceiling is enforced at runtime, not only documented.
 
 Every UEI and CAGE value handled here still carries a real
 ``ControlledIdentifier`` naming its publisher authority; this module mints
-no identifiers of its own. The small identifier sample this module can
-build and round-trip is always an illustrative, documented-format example
-(``sampleProvenance: "illustrativeFormatExample"``) rather than a capture of
-real registrants -- this project holds no license or authorization to
-redistribute SAM.gov or DLA entity records, bulk or otherwise.
+no identifiers of its own. Illustrative fixtures remain supported for schema
+tests, while ``parse_sam_entity_public_response`` builds a
+``publisherApiResponse`` sample only from exact, digest-pinned public API
+bytes. It rejects protected sections and bulk responses.
 
 Two source facts are worth recording plainly. First, the SAM.gov
 entity-registration page (https://sam.gov/entity-registration) is served
@@ -30,9 +29,11 @@ pinned as a stable byte capture. The documented CAGE format below is
 therefore recorded as an informational fact, citing ``DLA_CAGE_AUTHORITY_URI``,
 without a reproducible document pin.
 
-Acquisition of the one pinnable authority document accepts a local exact
-capture or an injected fetcher. Importing this module never opens a network
-connection.
+The pinned public Entity Management v4 response records one current entity's
+UEI, associated CAGE code, public label, and registration status. SAM.gov did
+not publish a DLA CAGE status in that response, so the CAGE association is
+honestly marked ``notObserved`` rather than copying the SAM registration
+status. Importing this module never opens a network connection.
 """
 
 from __future__ import annotations
@@ -44,9 +45,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     ControlledIdentifierError,
     validate_identifier_date,
@@ -54,6 +55,10 @@ from refspec.registry.controlled_identifier import (
 from refspec.storage import canonical_json
 
 SAM_UEI_AUTHORITY_URI = "https://sam.gov/entity-registration"
+SAM_ENTITY_API_URL = "https://api.sam.gov/entity-information/v4/entities"
+SAM_ENTITY_3M_PUBLIC_SOURCE_URL = (
+    f"{SAM_ENTITY_API_URL}?ueiSAM=YLQMY5SGNE55&includeSections=entityRegistration"
+)
 DLA_CAGE_AUTHORITY_URI = (
     "https://www.dla.mil/Working-With-DLA/Applications/Details/Article/2920893/"
     "cage-code-commercial-and-government-entity-code/"
@@ -79,7 +84,7 @@ _CAGE_PATTERN = re.compile(r"^[A-HJ-NP-Z0-9]{5}$")
 # than silently accepted, so undocumented source drift fails loudly instead
 # of being coerced into a known bucket.
 _REGISTRATION_STATUSES = frozenset({"active", "inactive"})
-_CAGE_STATUSES = frozenset({"active", "inactive"})
+_CAGE_STATUSES = frozenset({"active", "inactive", "notObserved"})
 # SAM.gov entities may be excluded from public search; DLA CAGE and SAM.gov
 # records may also carry Controlled Unclassified Information boundaries.
 # Public access to one field never authorizes protected entity data.
@@ -89,7 +94,9 @@ _ACCESS_CLASSIFICATIONS = frozenset(
 
 SAMPLE_CAPTURE_FORMAT = "urn:ref:registry:uei-cage-identifier-authority-sample:v1"
 PARSER_VERSION = "uei-cage-identifier-authority-sample-v1"
-_SAMPLE_PROVENANCE = "illustrativeFormatExample"
+_ILLUSTRATIVE_PROVENANCE = "illustrativeFormatExample"
+_PUBLISHER_API_PROVENANCE = "publisherApiResponse"
+_SAMPLE_PROVENANCES = frozenset({_ILLUSTRATIVE_PROVENANCE, _PUBLISHER_API_PROVENANCE})
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -241,19 +248,24 @@ class CageRecord:
 
 @dataclass(frozen=True, slots=True)
 class UeiCageAuthoritySample:
-    """A small, non-bulk illustrative sample of both identifier schemes.
+    """A small, non-bulk sample of both identifier schemes.
 
-    This is never a registry export: ``MAX_SAMPLE_SIZE`` caps each side, and
-    every record is a documented-format example, not a live SAM.gov or DLA
-    lookup (see ``_SAMPLE_PROVENANCE``).
+    This is never a registry export: ``MAX_SAMPLE_SIZE`` caps each side and
+    provenance distinguishes illustrative fixtures from exact public API
+    responses.
     """
 
     captured_at: str
     ueis: tuple[UeiRecord, ...]
     cages: tuple[CageRecord, ...]
+    sample_provenance: str = _ILLUSTRATIVE_PROVENANCE
 
     def __post_init__(self) -> None:
         validate_identifier_date(self.captured_at, "UeiCageAuthoritySample.captured_at")
+        if self.sample_provenance not in _SAMPLE_PROVENANCES:
+            raise UeiCageIdentifierError(
+                f"unsupported sample_provenance: {self.sample_provenance!r}"
+            )
         for label, records in (("ueis", self.ueis), ("cages", self.cages)):
             if len(records) > MAX_SAMPLE_SIZE:
                 raise UeiCageIdentifierError(
@@ -269,7 +281,7 @@ class UeiCageAuthoritySample:
             "format": SAMPLE_CAPTURE_FORMAT,
             "parserVersion": PARSER_VERSION,
             "capturedAt": self.captured_at,
-            "sampleProvenance": _SAMPLE_PROVENANCE,
+            "sampleProvenance": self.sample_provenance,
             "maxSampleSize": MAX_SAMPLE_SIZE,
             "ueis": [record.native_payload() for record in self.ueis],
             "cages": [record.native_payload() for record in self.cages],
@@ -381,10 +393,9 @@ def parse_capture(payload: bytes) -> UeiCageAuthoritySample:
         raise UeiCageIdentifierError("unknown capture format")
     if value["parserVersion"] != PARSER_VERSION:
         raise UeiCageIdentifierError("unknown capture parser version")
-    if value["sampleProvenance"] != _SAMPLE_PROVENANCE:
+    if value["sampleProvenance"] not in _SAMPLE_PROVENANCES:
         raise UeiCageIdentifierError(
-            "capture sampleProvenance must be illustrativeFormatExample; "
-            "this module never packages live registry data"
+            "capture sampleProvenance must identify an illustrative fixture or pinned public API response"
         )
     if value["maxSampleSize"] != MAX_SAMPLE_SIZE:
         raise UeiCageIdentifierError("capture maxSampleSize does not match this module's MAX_SAMPLE_SIZE ceiling")
@@ -398,7 +409,12 @@ def parse_capture(payload: bytes) -> UeiCageAuthoritySample:
         )
     ueis = tuple(_parse_uei_record(item, index) for index, item in enumerate(ueis_value))
     cages = tuple(_parse_cage_record(item, index) for index, item in enumerate(cages_value))
-    return UeiCageAuthoritySample(captured_at=value["capturedAt"], ueis=ueis, cages=cages)
+    return UeiCageAuthoritySample(
+        captured_at=value["capturedAt"],
+        ueis=ueis,
+        cages=cages,
+        sample_provenance=value["sampleProvenance"],
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -421,6 +437,257 @@ class AuthorityDocumentPin:
             raise UeiCageIdentifierError("AuthorityDocumentPin.byte_length must be positive")
         validate_identifier_date(self.retrieved_at, "AuthorityDocumentPin.retrieved_at")
         _require_text(self.content_type, "AuthorityDocumentPin.content_type")
+
+
+@dataclass(frozen=True, slots=True)
+class SamEntityApiPin:
+    """Exact identity and expected count of one public Entity API response."""
+
+    url: str
+    sha256: str
+    byte_length: int
+    retrieved_at: str
+    expected_count: int
+    content_type: str = "application/json"
+
+    def __post_init__(self) -> None:
+        parsed = urlsplit(self.url)
+        if parsed.scheme != "https" or parsed.hostname != "api.sam.gov":
+            raise UeiCageIdentifierError(
+                "SamEntityApiPin.url must use the official HTTPS api.sam.gov host"
+            )
+        if parsed.username is not None or parsed.password is not None:
+            raise UeiCageIdentifierError("SamEntityApiPin.url must not contain credentials")
+        if "api_key" in parse_qs(parsed.query):
+            raise UeiCageIdentifierError("SamEntityApiPin.url must not preserve an API credential")
+        if _SHA256.fullmatch(self.sha256) is None:
+            raise UeiCageIdentifierError(
+                "SamEntityApiPin.sha256 must be a lowercase sha256:<64 hex> digest"
+            )
+        if self.byte_length <= 0:
+            raise UeiCageIdentifierError("SamEntityApiPin.byte_length must be positive")
+        if not (0 < self.expected_count <= MAX_SAMPLE_SIZE):
+            raise UeiCageIdentifierError(
+                f"SamEntityApiPin.expected_count must be between 1 and {MAX_SAMPLE_SIZE}"
+            )
+        validate_identifier_date(self.retrieved_at, "SamEntityApiPin.retrieved_at")
+        if self.content_type != "application/json":
+            raise UeiCageIdentifierError("SamEntityApiPin.content_type must be application/json")
+
+
+SAM_ENTITY_3M_PUBLIC_PIN = SamEntityApiPin(
+    url=SAM_ENTITY_3M_PUBLIC_SOURCE_URL,
+    sha256="sha256:3d14996c9e6954af51a183f26168f9f835891f2ec5ef11e2dc6d3180ce6550a1",
+    byte_length=1_076,
+    retrieved_at="2026-08-03T22:19:50Z",
+    expected_count=1,
+)
+
+
+_SAM_ENTITY_ROOT_FIELDS = {"totalRecords", "entityData", "links"}
+_SAM_ENTITY_LINK_FIELDS = {"selfLink"}
+_SAM_ENTITY_REGISTRATION_FIELDS = {
+    "samRegistered",
+    "ueiSAM",
+    "entityEFTIndicator",
+    "cageCode",
+    "dodaac",
+    "legalBusinessName",
+    "dbaName",
+    "purposeOfRegistrationCode",
+    "purposeOfRegistrationDesc",
+    "registrationStatus",
+    "evsSource",
+    "registrationDate",
+    "lastUpdateDate",
+    "registrationExpirationDate",
+    "activationDate",
+    "ueiStatus",
+    "ueiExpirationDate",
+    "ueiCreationDate",
+    "publicDisplayFlag",
+    "exclusionStatusFlag",
+    "exclusionURL",
+    "dnbOpenData",
+}
+
+
+def verify_sam_entity_api_response(payload: bytes, pin: SamEntityApiPin) -> None:
+    """Refuse bytes that differ from one reviewed public Entity API response."""
+
+    if not isinstance(payload, bytes) or len(payload) != pin.byte_length or _sha256(payload) != pin.sha256:
+        raise UeiCageIdentifierError(
+            f"payload does not match the pinned SAM Entity API response at {pin.url}"
+        )
+
+
+def _require_nullable_text(value: object, label: str) -> str | None:
+    if value is None:
+        return None
+    return _require_text(value, label)
+
+
+def _validate_public_self_link(value: object) -> None:
+    self_link = _require_text(value, "links.selfLink")
+    parsed = urlsplit(self_link)
+    if parsed.scheme != "https" or parsed.hostname != "api.sam.gov":
+        raise UeiCageIdentifierError("links.selfLink must remain on the official HTTPS api.sam.gov host")
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    api_keys = query.get("api_key", [])
+    if api_keys and api_keys != ["REPLACE_WITH_API_KEY"]:
+        raise UeiCageIdentifierError("links.selfLink exposed an API credential")
+    if query.get("includeSections") != ["entityRegistration"]:
+        raise UeiCageIdentifierError(
+            "links.selfLink must limit the response to the public entityRegistration section"
+        )
+
+
+def parse_sam_entity_public_response(
+    payload: bytes,
+    pin: SamEntityApiPin = SAM_ENTITY_3M_PUBLIC_PIN,
+) -> UeiCageAuthoritySample:
+    """Build a small identifier sample from exact public SAM Entity API bytes.
+
+    Protected or additional entity sections fail closed. SAM registration
+    status is retained only on the UEI record and is never reinterpreted as
+    DLA CAGE status.
+    """
+
+    verify_sam_entity_api_response(payload, pin)
+    try:
+        root = json.loads(payload, object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise UeiCageIdentifierError("SAM Entity API response must be valid UTF-8 JSON") from error
+    if not isinstance(root, Mapping):
+        raise UeiCageIdentifierError("SAM Entity API response must contain one object")
+    _exact_keys(root, _SAM_ENTITY_ROOT_FIELDS, "SAM Entity API response")
+
+    total_records = root["totalRecords"]
+    entity_data = root["entityData"]
+    links = root["links"]
+    if not isinstance(total_records, int) or isinstance(total_records, bool) or total_records < 0:
+        raise UeiCageIdentifierError("totalRecords must be a non-negative integer")
+    if not isinstance(entity_data, list):
+        raise UeiCageIdentifierError("entityData must be an array")
+    if len(entity_data) > MAX_SAMPLE_SIZE:
+        raise UeiCageIdentifierError(
+            f"entityData exceeds MAX_SAMPLE_SIZE={MAX_SAMPLE_SIZE}; refusing bulk entity data"
+        )
+    if total_records != pin.expected_count or len(entity_data) != pin.expected_count:
+        raise UeiCageIdentifierError(
+            f"SAM Entity API count drift: expected {pin.expected_count}, "
+            f"reported {total_records}, returned {len(entity_data)}"
+        )
+    if not isinstance(links, Mapping):
+        raise UeiCageIdentifierError("links must be an object")
+    _exact_keys(links, _SAM_ENTITY_LINK_FIELDS, "links")
+    _validate_public_self_link(links["selfLink"])
+
+    ueis: list[UeiRecord] = []
+    cages: list[CageRecord] = []
+    for index, entity in enumerate(entity_data):
+        label = f"entityData[{index}]"
+        if not isinstance(entity, Mapping):
+            raise UeiCageIdentifierError(f"{label} must be an object")
+        _exact_keys(entity, {"entityRegistration"}, label)
+        registration = entity["entityRegistration"]
+        if not isinstance(registration, Mapping):
+            raise UeiCageIdentifierError(f"{label}.entityRegistration must be an object")
+        _exact_keys(registration, _SAM_ENTITY_REGISTRATION_FIELDS, f"{label}.entityRegistration")
+
+        if registration["samRegistered"] != "Yes":
+            raise UeiCageIdentifierError(f"{label}.entityRegistration.samRegistered must be 'Yes'")
+        if registration["publicDisplayFlag"] != "Y":
+            raise UeiCageIdentifierError(
+                f"{label}.entityRegistration is not approved for public display"
+            )
+        uei = validate_uei_syntax(
+            _require_text(registration["ueiSAM"], f"{label}.entityRegistration.ueiSAM")
+        )
+        cage = validate_cage_syntax(
+            _require_text(registration["cageCode"], f"{label}.entityRegistration.cageCode")
+        )
+        legal_name = _require_text(
+            registration["legalBusinessName"],
+            f"{label}.entityRegistration.legalBusinessName",
+        )
+        registration_status = _require_text(
+            registration["registrationStatus"],
+            f"{label}.entityRegistration.registrationStatus",
+        ).lower()
+        if registration_status not in _REGISTRATION_STATUSES:
+            raise UeiCageIdentifierError(
+                f"{label}.entityRegistration.registrationStatus is unsupported: {registration_status!r}"
+            )
+        if _require_text(registration["ueiStatus"], f"{label}.entityRegistration.ueiStatus").lower() not in {
+            "active",
+            "inactive",
+        }:
+            raise UeiCageIdentifierError(f"{label}.entityRegistration.ueiStatus is unsupported")
+        for field in (
+            "entityEFTIndicator",
+            "dodaac",
+            "dbaName",
+            "evsSource",
+            "ueiExpirationDate",
+            "exclusionURL",
+            "dnbOpenData",
+        ):
+            _require_nullable_text(registration[field], f"{label}.entityRegistration.{field}")
+        for field in (
+            "purposeOfRegistrationCode",
+            "purposeOfRegistrationDesc",
+            "registrationDate",
+            "lastUpdateDate",
+            "registrationExpirationDate",
+            "activationDate",
+            "ueiCreationDate",
+            "exclusionStatusFlag",
+        ):
+            _require_text(registration[field], f"{label}.entityRegistration.{field}")
+
+        ueis.append(
+            UeiRecord(
+                identifier=ControlledIdentifier(
+                    value=uei,
+                    kind=SAM_UEI_KIND,
+                    authority_uri=SAM_UEI_AUTHORITY_URI,
+                    source_uri=pin.url,
+                    observed_at=pin.retrieved_at,
+                    effective_at=None,
+                    source_digest=pin.sha256,
+                ),
+                legal_business_name=legal_name,
+                registration_status=registration_status,
+                access_classification="public",
+                immediate_parent_uei=None,
+                highest_level_owner_uei=None,
+            )
+        )
+        cages.append(
+            CageRecord(
+                identifier=ControlledIdentifier(
+                    value=cage,
+                    kind=DLA_CAGE_KIND,
+                    authority_uri=DLA_CAGE_AUTHORITY_URI,
+                    source_uri=pin.url,
+                    observed_at=pin.retrieved_at,
+                    effective_at=None,
+                    source_digest=pin.sha256,
+                ),
+                facility_name=legal_name,
+                cage_status="notObserved",
+                access_classification="public",
+                associated_uei=uei,
+            )
+        )
+
+    return UeiCageAuthoritySample(
+        captured_at=pin.retrieved_at,
+        ueis=tuple(ueis),
+        cages=tuple(cages),
+        sample_provenance=_PUBLISHER_API_PROVENANCE,
+    )
 
 
 # Real capture, retrieved directly from sam.gov on 2026-08-03 (HTTP 200,
@@ -500,6 +767,9 @@ __all__ = [
     "MAX_SAMPLE_SIZE",
     "PARSER_VERSION",
     "SAMPLE_CAPTURE_FORMAT",
+    "SAM_ENTITY_3M_PUBLIC_PIN",
+    "SAM_ENTITY_3M_PUBLIC_SOURCE_URL",
+    "SAM_ENTITY_API_URL",
     "SAM_UEI_AUTHORITY_URI",
     "SAM_UEI_DOCUMENTATION_PIN",
     "SAM_UEI_KIND",
@@ -507,13 +777,16 @@ __all__ = [
     "AuthorityDocumentPin",
     "CageRecord",
     "FetchedAuthorityDocument",
+    "SamEntityApiPin",
     "UeiCageAuthoritySample",
     "UeiCageIdentifierError",
     "UeiRecord",
     "acquire_authority_document",
     "parse_capture",
+    "parse_sam_entity_public_response",
     "render_capture",
     "validate_cage_syntax",
     "validate_uei_syntax",
     "verify_authority_document",
+    "verify_sam_entity_api_response",
 ]

@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Protocol
 from xml.etree import ElementTree
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     identifier_values,
     validate_identifier_date,

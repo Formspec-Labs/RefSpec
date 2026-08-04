@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import unified_agenda_codes as ua
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "unified_agenda_codes"
 SCHEMA_FIXTURE = FIXTURES / "reginfo-rin-data-ver10262011.xsd"

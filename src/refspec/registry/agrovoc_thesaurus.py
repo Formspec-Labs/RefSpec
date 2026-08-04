@@ -25,17 +25,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import os
 import re
-import tempfile
-import urllib.error
 import urllib.parse
-import urllib.request
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
 from typing import Literal as LiteralType
 
 from rdflib import BNode, Graph, Literal, URIRef
@@ -43,6 +38,14 @@ from rdflib.namespace import DCTERMS, OWL, RDF, SKOS
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.notation3 import RDFSink, SinkParser
 from rdflib.term import Identifier
+
+from refspec.registry.infrastructure.pinned_acquisition import (
+    AcquiredPinnedSource,
+    PinnedAcquisitionError,
+    PinnedAcquisitionLabels,
+    acquire_pinned_source,
+    expected_digest_hex,
+)
 
 PREF_LABEL_PREDICATE_IRI = str(SKOS.prefLabel)
 ALT_LABEL_PREDICATE_IRI = str(SKOS.altLabel)
@@ -655,10 +658,24 @@ def parse_agrovoc_file(
 
 
 def _expected_hex(expected_sha256: str) -> str:
-    match = _DIGEST.fullmatch(expected_sha256)
-    if match is None:
-        raise AgrovocAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
-    return expected_sha256.removeprefix("sha256:")
+    try:
+        return expected_digest_hex(expected_sha256)
+    except PinnedAcquisitionError as error:
+        raise AgrovocAcquisitionError(str(error)) from error
+
+
+_AGROVOC_ACQUIRE_LABELS = PinnedAcquisitionLabels(
+    source_label="AGROVOC source",
+    cached_location="cached AGROVOC source",
+    local_file_label="local AGROVOC source",
+    not_cached_message=(
+        "AGROVOC source is not cached; provide source_path or set allow_network=True explicitly"
+    ),
+    request_headers={
+        "User-Agent": "RefSpec explicit AGROVOC source resolver/1.0",
+        "Accept": "text/turtle",
+    },
+)
 
 
 def _validate_source_url(source_url: str) -> None:
@@ -753,112 +770,18 @@ class AcquiredAgrovocSample:
     local_source_path: Path | None
 
 
-def _verify_payload(
-    payload: bytes,
-    sample: AgrovocSampleSource,
-    *,
-    location: str,
-) -> tuple[str, int]:
-    byte_length = len(payload)
-    if byte_length != sample.expected_byte_length:
-        raise AgrovocAcquisitionError(
-            f"{location} byte length mismatch: expected {sample.expected_byte_length}, got {byte_length}"
-        )
-    actual_sha256 = "sha256:" + hashlib.sha256(payload).hexdigest()
-    if actual_sha256 != sample.expected_sha256:
-        raise AgrovocAcquisitionError(
-            f"{location} digest mismatch: expected {sample.expected_sha256}, got {actual_sha256}"
-        )
-    return actual_sha256, byte_length
-
-
-def _verify_existing(path: Path, sample: AgrovocSampleSource) -> AcquiredAgrovocSample:
-    if path.is_symlink() or not path.is_file():
-        raise AgrovocAcquisitionError(f"content-addressed target is not a regular file: {path}")
-    actual_sha256, byte_length = _verify_payload(
-        path.read_bytes(),
-        sample,
-        location="cached AGROVOC source",
-    )
+def _as_acquired_agrovoc(sample: AgrovocSampleSource, acquired: AcquiredPinnedSource) -> AcquiredAgrovocSample:
     return AcquiredAgrovocSample(
         sample=sample,
-        path=path,
-        source_url=sample.source_url,
-        resolved_url=None,
-        sha256=actual_sha256,
-        byte_length=byte_length,
-        cache_hit=True,
-        acquisition_mode="cache",
-        local_source_path=None,
+        path=acquired.path,
+        source_url=acquired.source_url,
+        resolved_url=acquired.resolved_url,
+        sha256=acquired.sha256,
+        byte_length=acquired.byte_length,
+        cache_hit=acquired.cache_hit,
+        acquisition_mode=acquired.acquisition_mode,
+        local_source_path=acquired.local_source_path,
     )
-
-
-def _publish_stream(
-    stream: BinaryIO,
-    sample: AgrovocSampleSource,
-    final_path: Path,
-    *,
-    acquisition_mode: LiteralType["local", "network"],
-    resolved_url: str | None,
-    local_source_path: Path | None,
-) -> AcquiredAgrovocSample:
-    object_dir = final_path.parent
-    object_dir.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".acquire-",
-        suffix=".tmp",
-        dir=object_dir,
-    )
-    temporary_path = Path(temporary_name)
-    digest = hashlib.sha256()
-    byte_length = 0
-    try:
-        with os.fdopen(descriptor, "wb") as output:
-            descriptor = -1
-            while True:
-                chunk = stream.read(64 * 1024)
-                if not chunk:
-                    break
-                byte_length += len(chunk)
-                if byte_length > sample.expected_byte_length:
-                    raise AgrovocAcquisitionError(
-                        f"AGROVOC source exceeds expected byte length {sample.expected_byte_length}"
-                    )
-                digest.update(chunk)
-                output.write(chunk)
-            output.flush()
-            os.fsync(output.fileno())
-
-        if byte_length != sample.expected_byte_length:
-            raise AgrovocAcquisitionError(
-                f"AGROVOC source byte length mismatch: expected {sample.expected_byte_length}, got {byte_length}"
-            )
-        actual_sha256 = "sha256:" + digest.hexdigest()
-        if actual_sha256 != sample.expected_sha256:
-            raise AgrovocAcquisitionError(
-                f"AGROVOC source digest mismatch: expected {sample.expected_sha256}, got {actual_sha256}"
-            )
-
-        try:
-            os.link(temporary_path, final_path)
-        except FileExistsError:
-            return _verify_existing(final_path, sample)
-
-        return AcquiredAgrovocSample(
-            sample=sample,
-            path=final_path,
-            source_url=sample.source_url,
-            resolved_url=resolved_url,
-            sha256=actual_sha256,
-            byte_length=byte_length,
-            cache_hit=False,
-            acquisition_mode=acquisition_mode,
-            local_source_path=local_source_path,
-        )
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary_path.unlink(missing_ok=True)
 
 
 def acquire_agrovoc_sample(
@@ -877,51 +800,18 @@ def acquire_agrovoc_sample(
     is subject to the sample's exact byte-length and digest pins.
     """
 
-    if timeout_seconds <= 0:
-        raise AgrovocAcquisitionError("timeout_seconds must be positive")
-
-    digest_hex = _expected_hex(sample.expected_sha256)
-    final_path = Path(store_dir) / "sha256" / digest_hex / sample.filename
-    if final_path.exists() or final_path.is_symlink():
-        return _verify_existing(final_path, sample)
-
-    if source_path is not None:
-        local_path = Path(source_path)
-        if local_path.is_symlink() or not local_path.is_file():
-            raise AgrovocAcquisitionError(f"local AGROVOC source is not a regular file: {local_path}")
-        with local_path.open("rb") as source:
-            return _publish_stream(
-                source,
-                sample,
-                final_path,
-                acquisition_mode="local",
-                resolved_url=None,
-                local_source_path=local_path.resolve(),
-            )
-
-    if not allow_network:
-        raise AgrovocAcquisitionError(
-            "AGROVOC source is not cached; provide source_path or set allow_network=True explicitly"
-        )
-
-    request = urllib.request.Request(
-        sample.source_url,
-        headers={"User-Agent": "RefSpec explicit AGROVOC source resolver/1.0", "Accept": "text/turtle"},
-        method="GET",
-    )
     try:
-        response = urllib.request.urlopen(request, timeout=timeout_seconds)
-    except (OSError, urllib.error.URLError) as error:
-        raise AgrovocAcquisitionError(f"could not acquire {sample.source_url}: {error}") from error
-    with response:
-        return _publish_stream(
-            response,
+        acquired = acquire_pinned_source(
             sample,
-            final_path,
-            acquisition_mode="network",
-            resolved_url=response.geturl(),
-            local_source_path=None,
+            store_dir,
+            labels=_AGROVOC_ACQUIRE_LABELS,
+            source_path=source_path,
+            allow_network=allow_network,
+            timeout_seconds=timeout_seconds,
         )
+    except PinnedAcquisitionError as error:
+        raise AgrovocAcquisitionError(str(error)) from error
+    return _as_acquired_agrovoc(sample, acquired)
 
 
 def parse_acquired_agrovoc_sample(acquired: AcquiredAgrovocSample) -> AgrovocMappingSource:

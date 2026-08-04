@@ -26,7 +26,7 @@ from urllib.parse import quote, urlparse
 
 import pyarrow.parquet as pq
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.storage import canonical_json
 
 SOURCE_PINS_FORMAT = "urn:ref:registry:regulatory-native-source-pins:v1"

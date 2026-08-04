@@ -51,12 +51,12 @@ from types import MappingProxyType
 from typing import IO, Any
 from xml.etree import ElementTree
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     identifier_values,
     validate_identifier_date,
 )
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     SourceControlledResourceView,
     build_source_controlled_resource_bundle,
@@ -82,10 +82,10 @@ _DESCRIPTOR_RECORD_SET_TAG = "DescriptorRecordSet"
 _SUPPLEMENTAL_RECORD_SET_TAG = "SupplementalRecordSet"
 _DESCRIPTOR_RECORD_TAG = "DescriptorRecord"
 _EXPECTED_LANGUAGE_CODE = "eng"
-# Known DescriptorClass values per the published DTD: 1 Topical, 2 Publication
-# Type, 3 Check Tag, 4 Geographic. All four are descriptors, not supplemental
-# concepts, so none is filtered out here.
-_KNOWN_DESCRIPTOR_CLASSES = frozenset({"1", "2", "3", "4"})
+# The official 2026 DTD permits DescriptorClass 1 through 6. The 2026
+# descriptor distribution actually uses 1 through 4; accepting the complete
+# DTD-valid set prevents a future valid publisher record from being rejected.
+_KNOWN_DESCRIPTOR_CLASSES = frozenset({"1", "2", "3", "4", "5", "6"})
 _DESCRIPTOR_UI = re.compile(r"^D\d{6,}$")
 _ENTITY_GUARD_WINDOW_BYTES = 8192
 
@@ -216,8 +216,18 @@ def _read_descriptor_record(elem: ElementTree.Element) -> tuple[str, str, str, t
     )
     entry_terms: list[str] = []
     seen = {heading}
-    for term in elem.findall("ConceptList/Concept/TermList/Term/String"):
-        text = _require_nonempty_text(term.text, f"DescriptorRecord {descriptor_ui} Term")
+    for term in elem.findall("ConceptList/Concept/TermList/Term"):
+        is_permuted = term.get("IsPermutedTermYN")
+        if is_permuted not in {"Y", "N"}:
+            raise MeshDescriptorError(
+                f"DescriptorRecord {descriptor_ui} Term has unsupported IsPermutedTermYN {is_permuted!r}"
+            )
+        if is_permuted == "Y":
+            # NLM generates these index permutations mechanically. The MeSH
+            # lookup API omits them from ordinary terms, so they are not
+            # source-authored alternate labels here.
+            continue
+        text = _require_nonempty_text(term.findtext("String"), f"DescriptorRecord {descriptor_ui} Term")
         if text not in seen:
             seen.add(text)
             entry_terms.append(text)

@@ -26,7 +26,7 @@ from refspec.registry.federal_register_thesaurus_2025 import (
     PREFERRED_LABEL_PROPERTY_IRI,
     RELATED_PROPERTY_IRI,
 )
-from refspec.registry.federal_register_thesaurus_2025_managed_release import (
+from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release import (
     FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION,
     FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID,
     FederalRegisterThesaurus2025ManagedReleaseError,

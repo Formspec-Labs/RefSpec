@@ -44,7 +44,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 OMB_PUBLISHER = "Office of Management and Budget"
 OMB_A11_IDENTIFIER_AUTHORITY_URI = "https://www.whitehouse.gov/omb/"

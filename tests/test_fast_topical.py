@@ -1,22 +1,23 @@
-"""OCLC FAST topical facet CSV capture, streaming parse, and mapping-only packaging tests.
+"""OCLC FAST native bulk/change validation plus legacy CSV compatibility tests.
 
 OCLC's official FAST download page names MARC, MARCXML, and RDF N-Triples bulk
 files for the Topical facet; it names no CSV artifact, and the bulk-data host
 (researchworks.oclc.org) returned a Cloudflare bot-block response to an
-automated request during development. These tests therefore exercise a
-constructed fixture, not a captured official byte stream, and never open a
-live network connection.
+automated request during development. The real-data tests use the exact
+archived publisher ZIP and four live OCLC MARC change files; no test opens a
+network connection.
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import fast_topical as fast
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-topical-mini.csv"
 LANDING_PAGE_FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-download-landing-2026-08-04.html"
@@ -82,17 +83,109 @@ def test_suggest_api_observed_daily_rate_limit_is_recorded_as_observed_not_polic
     assert fast.FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT == 10_000
 
 
-def test_gaps_document_the_bot_wall_free_per_term_channel_and_publisher_silence() -> None:
+def test_gaps_document_the_native_bulk_change_and_per_term_channels() -> None:
     joined = " ".join(fast.FAST_TOPICAL_GAPS)
     assert "id.worldcat.org" in joined
     assert "10,000" in joined
     assert "multi-week" in joined
-    assert "publisher silence" in joined
+    assert "FAST Changes" in joined
+    assert "441,127" in joined
     assert "2026-08-04" in joined
 
 
-FIXTURE_SHA256 = "sha256:4f1906f7475cc8818c8c702a12ad8fad6b4099d7207854d5324b40b92e940698"
-FIXTURE_BYTE_LENGTH = 447
+def _native_path(environment_name: str, fallback_name: str) -> Path:
+    configured = os.environ.get(environment_name)
+    path = (
+        Path(configured)
+        if configured
+        else Path(__file__).parents[1] / "output" / "registry-real-data-sources" / fallback_name
+    )
+    if not path.is_file():
+        pytest.skip(f"set {environment_name} to the exact pinned OCLC source")
+    return path
+
+
+@pytest.fixture(scope="module")
+def native_snapshot() -> fast.ParsedFASTTopicalNativeSnapshot:
+    return fast.parse_fast_topical_native_snapshot(
+        _native_path("REFSPEC_FAST_TOPICAL_NT_ZIP_PATH", "FASTTopical.nt.zip"),
+        (
+            _native_path("REFSPEC_FAST_CHANGES_2024_10_27_PATH", "FASTChanges2024-10-27.mrc"),
+            _native_path("REFSPEC_FAST_CHANGES_2024_12_04_PATH", "FASTChanges2024-12-04.mrc"),
+            _native_path("REFSPEC_FAST_CHANGES_2025_05_01_PATH", "FASTChanges2025-05-01.mrc"),
+            _native_path("REFSPEC_FAST_CHANGES_2026_02_13_PATH", "FASTChanges2026-02-13.mrc"),
+        ),
+    )
+
+
+def test_native_sources_rebuild_the_measured_current_topical_shape(
+    native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
+) -> None:
+    assert native_snapshot.base_sha256 == fast.FAST_TOPICAL_NATIVE_BASE_PIN.expected_sha256
+    assert native_snapshot.base_byte_length == fast.FAST_TOPICAL_NATIVE_BASE_PIN.expected_byte_length
+    assert native_snapshot.base_active_count == 440_612
+    assert len(native_snapshot.rows) == 441_127
+    assert native_snapshot.facet_migration_count == 33
+
+    assert [summary.all_facet_record_count for summary in native_snapshot.change_summaries] == [
+        3_276,
+        2_153,
+        4_350,
+        12_633,
+    ]
+    assert [summary.topical_status_counts for summary in native_snapshot.change_summaries] == [
+        {"c": 363, "n": 3},
+        {"c": 153, "n": 24},
+        {"c": 200, "d": 3, "n": 282, "x": 5},
+        {"c": 1_019, "n": 328, "x": 57},
+    ]
+    assert native_snapshot.topical_event_count == 2_437
+    assert native_snapshot.unique_changed_id_count == 2_056
+    assert native_snapshot.latest_change_status_counts == {"c": 1_527, "d": 3, "n": 464, "x": 62}
+
+
+def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(
+    native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
+) -> None:
+    by_id = native_snapshot.by_numeric_id()
+
+    assert by_id["801013"].heading == "Agricultural laborers--Wounds and injuries"
+    environmental = by_id["913324"]
+    assert environmental.legacy_fst_id == "fst00913324"
+    assert environmental.uri == "http://id.worldcat.org/fast/913324"
+    assert environmental.heading == "Environmental protection"
+    assert environmental.alt_labels == ("Protection of environment", "Environmental quality management")
+    assert environmental.broader_ids == ("913474",)
+    assert native_snapshot.rows[0].numeric_id == "435760"
+    assert native_snapshot.rows[0].heading == "Aparecida, Nossa Senhora"
+    assert native_snapshot.rows[-1].numeric_id == "2073609"
+    assert native_snapshot.rows[-1].heading == "New mothers--Mental health"
+
+
+def test_native_snapshot_preserves_replacement_and_obsolete_tombstones(
+    native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
+) -> None:
+    assert len(native_snapshot.tombstones) == 65
+    assert sum(row.status == "x" for row in native_snapshot.tombstones) == 62
+    assert sum(row.status == "d" for row in native_snapshot.tombstones) == 3
+    assert sum(len(row.replacement_ids) == 1 for row in native_snapshot.tombstones) == 59
+    assert sum(len(row.replacement_ids) == 2 for row in native_snapshot.tombstones) == 3
+    assert all(row.automatically_linked for row in native_snapshot.tombstones if row.status == "x")
+    assert all(not row.replacement_ids for row in native_snapshot.tombstones if row.status == "d")
+
+
+def test_native_parser_rejects_source_byte_drift(tmp_path: Path) -> None:
+    changed = tmp_path / "FASTTopical.nt.zip"
+    changed.write_bytes(b"not the OCLC archive")
+    with pytest.raises(fast.FASTTopicalSourceDriftError, match="byte length drift"):
+        fast.parse_fast_topical_native_snapshot(
+            changed,
+            tuple(Path("unused") for _ in fast.FAST_TOPICAL_CHANGE_PINS),
+        )
+
+
+FIXTURE_SHA256 = "sha256:799c9d51a2ec621790c30c93dba5327e156266460a5460c06531379737c89b64"
+FIXTURE_BYTE_LENGTH = 464
 FIXTURE_ROW_COUNT = 6
 
 
@@ -165,9 +258,9 @@ def test_streaming_parse_yields_every_row_in_source_order(tmp_path: Path) -> Non
     assert len(parsed.rows) == FIXTURE_ROW_COUNT
     assert parsed.rows[0].fast_id == "fst00801013"
     assert parsed.rows[0].uri == "http://id.worldcat.org/fast/801013"
-    assert parsed.rows[0].heading == "Environmental protection"
+    assert parsed.rows[0].heading == "Agricultural laborers--Wounds and injuries"
     assert parsed.rows[0].source_ordinal == 1
-    assert parsed.rows[-1].heading == "Environmental policy--United States"
+    assert parsed.rows[-1].heading == "Politics and government"
     assert parsed.source_sha256 == FIXTURE_SHA256
     assert parsed.documented_total_row_count == 440_599
 
@@ -330,7 +423,9 @@ def test_package_preserves_publisher_identifiers_exactly(tmp_path: Path) -> None
     identifier_values = {identifier["value"] for identifier in first["identifiers"]}
     assert identifier_kinds == {"fastId", "fastUri"}
     assert identifier_values == {"fst00801013", "http://id.worldcat.org/fast/801013"}
-    assert first["labels"] == [{"value": "Environmental protection", "language": "en", "role": "preferred"}]
+    assert first["labels"] == [
+        {"value": "Agricultural laborers--Wounds and injuries", "language": "en", "role": "preferred"}
+    ]
 
 
 def test_package_round_trips_exact_fast_source_bytes(tmp_path: Path) -> None:
@@ -358,6 +453,7 @@ def test_package_gaps_document_the_absent_official_csv_format(tmp_path: Path) ->
 
     gap_codes = {gap["code"] for gap in package.coverage_report["gaps"]}
     assert "fastNoOfficialCsvFormat" in gap_codes
+    assert "fastLegacyCsvCompatibilityView" in gap_codes
     assert "fastDevelopmentSampleNotFullExtract" in gap_codes
 
 

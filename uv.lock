@@ -1441,6 +1441,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pymarc"
+version = "5.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/77/f0e5774845a3c60b26da5dab344e391e9941eeb811a1685fb2ff01ae90c7/pymarc-5.4.0.tar.gz", hash = "sha256:b2016b1674d1956636c99b9bf95b31840c5cb8f22645672a660e66326371b2f3", size = 76224964 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/41/ed8ad9925859d66fe7135f64690ecb5c766e2969e9a52c23d1123df9eaf5/pymarc-5.4.0-py3-none-any.whl", hash = "sha256:10549ce513c191f77b081e5e505c02aca76f6b9f1164c47a326bb635b24a77eb", size = 161390 },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1683,7 +1692,9 @@ version = "0.1.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
+    { name = "openpyxl" },
     { name = "pyarrow" },
+    { name = "pymarc" },
     { name = "pypdf" },
     { name = "rdflib" },
     { name = "referencing" },
@@ -1700,7 +1711,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = ">=4.26,<5" },
+    { name = "openpyxl", specifier = ">=3.1,<4" },
     { name = "pyarrow", specifier = "==23.0.0" },
+    { name = "pymarc", specifier = ">=5.1,<6" },
     { name = "pypdf", specifier = ">=6,<7" },
     { name = "rdflib", specifier = ">=7.1,<8" },
     { name = "referencing", specifier = ">=0.37,<1" },

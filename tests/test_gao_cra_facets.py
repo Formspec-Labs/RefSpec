@@ -43,8 +43,8 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import gao_cra_facets as cra
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "gao_cra_facets"
 FACETS_FIXTURE = FIXTURES / "gao-cra-database-facets-2026-08-03.html"

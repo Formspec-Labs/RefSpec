@@ -2,18 +2,41 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import omb_a11_budget_codes as a11
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "omb_a11_budget_codes"
 FUNCTIONAL_FIXTURE = FIXTURES / "exhibit-79a-functional-classification-2025.txt"
 OBJECT_FIXTURE = FIXTURES / "exhibit-83a-object-classification-2025.txt"
 APPORTIONMENT_FIXTURE = FIXTURES / "section-120-13-apportionment-categories-2025.txt"
+
+
+def test_real_publisher_pdf_contains_the_reviewed_tables_and_section(tmp_path: Path) -> None:
+    source_path_text = os.environ.get("REFSPEC_OMB_A11_PDF_PATH")
+    if source_path_text is None:
+        pytest.skip("real OMB A-11 publisher PDF is not configured")
+    extracted = tmp_path / "a11.layout.txt"
+    subprocess.run(
+        ["pdftotext", "-layout", source_path_text, str(extracted)],
+        check=True,
+        capture_output=True,
+    )
+    text = extracted.read_text(encoding="utf-8")
+
+    assert "EXHIBIT 79A" in text
+    assert "EXHIBIT 83A" in text
+    assert "120.13 What is the format of the Application of Budgetary Resources" in text
+    portfolio = _portfolio(tmp_path)
+    assert len(portfolio.functional_classification.codes) == 98
+    assert len(portfolio.object_classification.codes) == 38
+    assert len(portfolio.apportionment_categories.codes) == 8
 
 
 def _acquire(

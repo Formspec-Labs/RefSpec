@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.lcsh_topical import (
     LCSH_CONCEPT_URI_IDENTIFIER_KIND,
     LCSH_LCCN_IDENTIFIER_KIND,
@@ -28,7 +29,6 @@ from refspec.registry.lcsh_topical import (
     open_pinned_lcsh_topical_mini_fixture,
     parse_lcsh_topical_ndjson_line,
 )
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "lcsh_topical" / "lcsh-topical-mini.ndjson"
 SOURCE_URL = LCSH_TOPICAL_MADS_NDJSON_URL

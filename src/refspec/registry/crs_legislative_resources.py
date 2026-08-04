@@ -6,12 +6,16 @@ names.  It publishes Policy Areas as a separate HTML table with scope notes.
 The Congress.gov API exposes assignments on individual bills, but its documented
 and observed payloads identify terms only by ``name``.
 
-This module therefore preserves exact page and API bytes, official labels,
-source categories, descriptions, and assignment update dates while explicitly
-recording the absence of publisher-issued term identifiers.  It does not mint
-concept identity from a label or list position.  A managed release remains
-blocked until an authoritative identifier source or a separately reviewed
-identity policy is available.
+The Library of Congress Linked Data Service separately identifies the two
+source schemes as ``lst`` and ``cgpa``.  This module preserves those scheme
+identities alongside exact page and API bytes, official labels, source
+categories, descriptions, and assignment update dates.  The scheme records do
+not identify individual terms, so this module still records the absence of
+publisher-issued term identifiers and never mints publisher or concept identity
+from a label or list position.  The package layer may assign RefSpec local
+record UUIDs and reconcile them across captures; those IDs identify registry
+records only.  A managed release remains blocked until authoritative term
+identifiers or a separately reviewed concept-identity policy are available.
 
 Live retrieval is provider-independent.  Callers inject a fetcher (for example,
 a Zyte-backed transport) or provide an already captured local file.  Importing
@@ -32,11 +36,12 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import quote, urlsplit
 
-from refspec.registry.controlled_identifier import (
+from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifier,
     distinct_identifiers,
     identifier_values,
 )
+from refspec.registry.infrastructure.source_identity import SourceCaptureEvent, SourceIdentityError
 
 CRS_PUBLISHER = "Congressional Research Service"
 CONGRESS_GOV_PUBLISHER = "Library of Congress"
@@ -85,6 +90,39 @@ class CRSSourceDriftError(CRSResourceError):
 
 class CRSIdentityError(CRSResourceError):
     """A managed release was requested without authoritative term identity."""
+
+
+@dataclass(frozen=True, slots=True)
+class CRSSourceScheme:
+    """Library of Congress identity for one CRS controlled resource."""
+
+    resource_name: ResourceName
+    scheme_iri: str
+    code: str
+    label: str
+    authority_record_url: str
+    publisher_page_url: str
+
+    def __post_init__(self) -> None:
+        scheme = urlsplit(self.scheme_iri)
+        if (
+            scheme.scheme != "http"
+            or scheme.hostname != "id.loc.gov"
+            or scheme.path != f"/vocabulary/subjectSchemes/{self.code}"
+        ):
+            raise CRSAcquisitionError("scheme_iri must be the canonical LoC subject-scheme IRI")
+        record = urlsplit(self.authority_record_url)
+        if (
+            record.scheme != "https"
+            or record.hostname != "id.loc.gov"
+            or record.path != f"/vocabulary/subjectSchemes/{self.code}.json"
+        ):
+            raise CRSAcquisitionError("authority_record_url must be the LoC JSON authority record")
+        publisher_page = urlsplit(self.publisher_page_url)
+        if publisher_page.scheme != "https" or publisher_page.hostname not in {"congress.gov", "www.congress.gov"}:
+            raise CRSAcquisitionError("publisher_page_url must be an official HTTPS Congress.gov URL")
+        if not self.code or not self.label:
+            raise CRSAcquisitionError("source-scheme code and label must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +202,34 @@ CRS_POLICY_AREAS_PAGE = CRSPageSource(
     category_label="Policy Area",
 )
 
+CRS_LEGISLATIVE_SUBJECT_TERMS_SCHEME = CRSSourceScheme(
+    resource_name="legislativeSubjectTerms",
+    scheme_iri="http://id.loc.gov/vocabulary/subjectSchemes/lst",
+    code="lst",
+    label="Legislative subject terms",
+    authority_record_url="https://id.loc.gov/vocabulary/subjectSchemes/lst.json",
+    publisher_page_url=CRS_LEGISLATIVE_SUBJECTS_PAGE.source_url,
+)
+CRS_POLICY_AREAS_SCHEME = CRSSourceScheme(
+    resource_name="policyAreas",
+    scheme_iri="http://id.loc.gov/vocabulary/subjectSchemes/cgpa",
+    code="cgpa",
+    label="Congress.gov Policy Areas",
+    authority_record_url="https://id.loc.gov/vocabulary/subjectSchemes/cgpa.json",
+    publisher_page_url=CRS_POLICY_AREAS_PAGE.source_url,
+)
+CRS_SOURCE_SCHEMES = (
+    CRS_LEGISLATIVE_SUBJECT_TERMS_SCHEME,
+    CRS_POLICY_AREAS_SCHEME,
+)
+_CRS_SOURCE_SCHEME_BY_RESOURCE = {scheme.resource_name: scheme for scheme in CRS_SOURCE_SCHEMES}
+
+
+def crs_source_scheme(resource_name: ResourceName) -> CRSSourceScheme:
+    """Return the reviewed LoC scheme identity for one CRS resource."""
+
+    return _CRS_SOURCE_SCHEME_BY_RESOURCE[resource_name]
+
 
 @dataclass(frozen=True, slots=True)
 class CRSPageSnapshotPin:
@@ -171,6 +237,7 @@ class CRSPageSnapshotPin:
 
     source: CRSPageSource
     retrieved_at: str
+    fetch_id: str
     expected_sha256: str
     expected_byte_length: int
 
@@ -179,8 +246,10 @@ class CRSPageSnapshotPin:
             raise CRSAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
             raise CRSAcquisitionError("expected_byte_length must be positive")
-        if not self.retrieved_at:
-            raise CRSAcquisitionError("retrieved_at must not be empty")
+        try:
+            SourceCaptureEvent(fetch_id=self.fetch_id, fetched_at=self.retrieved_at)
+        except SourceIdentityError as error:
+            raise CRSAcquisitionError(f"CRS page fetch event is invalid: {error}") from error
 
 
 @dataclass(frozen=True, slots=True)
@@ -303,6 +372,7 @@ class ParsedCRSResource:
     """A complete source-level view of one CRS controlled resource."""
 
     resource_name: ResourceName
+    source_scheme: CRSSourceScheme
     role: ResourceRole
     pages: tuple[ParsedCRSPage, ...]
     terms: tuple[CRSControlledTerm, ...]
@@ -562,6 +632,7 @@ def capture_initial_crs_page_snapshot(
     *,
     retrieved_at: str,
     fetcher: CRSPageFetcher,
+    fetch_event: SourceCaptureEvent | None = None,
     timeout_seconds: float = 60.0,
 ) -> AcquiredCRSPage:
     """Capture valid first-seen bytes and return the exact pin they establish.
@@ -576,6 +647,9 @@ def capture_initial_crs_page_snapshot(
         raise CRSAcquisitionError("timeout_seconds must be positive")
     if not retrieved_at.strip():
         raise CRSAcquisitionError("retrieved_at must not be empty")
+    event = SourceCaptureEvent.generate(fetched_at=retrieved_at) if fetch_event is None else fetch_event
+    if event.fetched_at != retrieved_at:
+        raise CRSAcquisitionError("CRS page fetch event time must equal retrieved_at")
     fetched = fetcher.fetch(
         source.source_url,
         timeout_seconds=timeout_seconds,
@@ -584,6 +658,7 @@ def capture_initial_crs_page_snapshot(
     pin = CRSPageSnapshotPin(
         source=source,
         retrieved_at=retrieved_at,
+        fetch_id=event.fetch_id,
         expected_sha256=sha256_digest(fetched.body),
         expected_byte_length=len(fetched.body),
     )
@@ -879,6 +954,7 @@ def assemble_crs_legislative_subject_terms(
     terms = tuple(term for page in ordered_pages for term in page.terms)
     return ParsedCRSResource(
         resource_name="legislativeSubjectTerms",
+        source_scheme=CRS_LEGISLATIVE_SUBJECT_TERMS_SCHEME,
         role="selectableSubject",
         pages=ordered_pages,
         terms=terms,
@@ -894,6 +970,7 @@ def assemble_crs_policy_areas(page: ParsedCRSPage) -> ParsedCRSResource:
     pages = (page,)
     return ParsedCRSResource(
         resource_name="policyAreas",
+        source_scheme=CRS_POLICY_AREAS_SCHEME,
         role="navigation",
         pages=pages,
         terms=page.terms,

@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import quote, urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 CRS_PUBLISHER = "Congressional Research Service"
 CONGRESS_GOV_PUBLISHER = "Library of Congress"
@@ -101,19 +101,17 @@ class CRSProductsPageSource:
             raise CRSProductAcquisitionError("topics_marker_phrase must not be empty")
 
 
-# The catalog guidance names these seven product types; the live page is not
-# reachable from this environment (Congress.gov returns a Cloudflare
-# challenge), so this count is sourced from documented guidance rather than a
-# confirmed byte capture.  The strict parser below fails loudly if a real
-# capture disagrees.
+# The live publisher page captured through Zyte on 2026-08-03 contains a
+# seven-row Product/Description table. It mentions CRS Product Topic as a
+# search/filter field, but does not publish an enumerable topic list.
 CRS_PRODUCTS_PAGE = CRSProductsPageSource(
     source_url="https://www.congress.gov/help/crs-products",
     filename="crs-products.html",
     expected_heading="Congressional Research Service (CRS) Products",
     product_types_heading="CRS Product Types",
     expected_product_type_count=7,
-    topics_heading="CRS Product Topics",
-    topics_marker_phrase="not published as a separate, versioned thesaurus",
+    topics_heading="Searching CRS products",
+    topics_marker_phrase="CRS Product Topic",
 )
 
 
@@ -456,13 +454,14 @@ def acquire_crs_products_page(
 
 
 class _ProductsPageParser(HTMLParser):
-    """Collect headings, paragraphs, and definition lists without site dependencies."""
+    """Collect headings, paragraphs, definition lists, and two-column tables."""
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.headings: list[str] = []
         self.paragraphs: list[tuple[str, str]] = []
         self.definition_lists: list[tuple[str, tuple[tuple[str, str], ...]]] = []
+        self.tables: list[tuple[str, tuple[tuple[str, str], ...]]] = []
         self._heading_tag: str | None = None
         self._heading_text: list[str] | None = None
         self._current_heading = ""
@@ -472,6 +471,10 @@ class _ProductsPageParser(HTMLParser):
         self._dt_text: list[str] | None = None
         self._dd_text: list[str] | None = None
         self._pending_term: str | None = None
+        self._table_rows: list[tuple[str, str]] | None = None
+        self._table_heading = ""
+        self._row_cells: list[str] | None = None
+        self._cell_text: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         del attrs
@@ -487,6 +490,13 @@ class _ProductsPageParser(HTMLParser):
             self._dt_text = []
         elif tag == "dd":
             self._dd_text = []
+        elif tag == "table":
+            self._table_rows = []
+            self._table_heading = self._current_heading
+        elif tag == "tr" and self._table_rows is not None:
+            self._row_cells = []
+        elif tag in {"th", "td"} and self._row_cells is not None:
+            self._cell_text = []
 
     def handle_data(self, data: str) -> None:
         if self._heading_text is not None:
@@ -497,6 +507,8 @@ class _ProductsPageParser(HTMLParser):
             self._dt_text.append(data)
         if self._dd_text is not None:
             self._dd_text.append(data)
+        if self._cell_text is not None:
+            self._cell_text.append(data)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == self._heading_tag and self._heading_text is not None:
@@ -525,6 +537,18 @@ class _ProductsPageParser(HTMLParser):
             heading = self._dl_heading_stack.pop()
             if pairs:
                 self.definition_lists.append((heading, pairs))
+        elif tag in {"th", "td"} and self._cell_text is not None:
+            if self._row_cells is not None:
+                self._row_cells.append(_normalize_text(self._cell_text))
+            self._cell_text = None
+        elif tag == "tr" and self._row_cells is not None:
+            if len(self._row_cells) == 2 and self._row_cells != ["Product", "Description"]:
+                self._table_rows.append((self._row_cells[0], self._row_cells[1]))
+            self._row_cells = None
+        elif tag == "table" and self._table_rows is not None:
+            if self._table_rows:
+                self.tables.append((self._table_heading, tuple(self._table_rows)))
+            self._table_rows = None
 
 
 def _normalize_text(chunks: Sequence[str]) -> str:
@@ -557,11 +581,19 @@ def parse_crs_products_page(page: AcquiredCRSProductsPage) -> ParsedCRSProductsP
     if not any(source.expected_heading in heading for heading in parser.headings):
         raise CRSProductSourceDriftError(f"missing expected heading {source.expected_heading!r}")
 
-    type_marker = f"{source.product_types_heading} ({source.expected_product_type_count})"
-    matching_lists = [pairs for heading, pairs in parser.definition_lists if heading == type_marker]
-    if not any(type_marker in heading for heading in parser.headings) or len(matching_lists) != 1:
-        raise CRSProductSourceDriftError(f"missing expected CRS Product Types count marker {type_marker!r}")
-    pairs = matching_lists[0]
+    matching_collections = [
+        pairs
+        for heading, pairs in (*parser.definition_lists, *parser.tables)
+        if heading in {
+            source.product_types_heading,
+            f"{source.product_types_heading} ({source.expected_product_type_count})",
+        }
+    ]
+    if len(matching_collections) != 1:
+        raise CRSProductSourceDriftError(
+            f"missing one {source.product_types_heading!r} definition list or two-column table"
+        )
+    pairs = matching_collections[0]
     if len(pairs) != source.expected_product_type_count:
         raise CRSProductSourceDriftError(
             f"CRS Product Types count drift: expected {source.expected_product_type_count}, parsed {len(pairs)}"

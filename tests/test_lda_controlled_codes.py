@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import lda_controlled_codes as lda
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ISSUES_FIXTURE = FIXTURES / "lda-general-issue-codes-2026-07-30.json"

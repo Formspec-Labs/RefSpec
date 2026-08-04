@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 LDA_PUBLISHER = "Clerk of the U.S. House of Representatives and Secretary of the U.S. Senate"
 LDA_IDENTIFIER_AUTHORITY_URI = "https://lda.gov/"

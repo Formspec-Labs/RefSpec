@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import scotus_opinion_types as scotus
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "scotus_opinion_types"
 REAL_FIXTURE = FIXTURES / "scotus-opinions-2026-08-03.html"

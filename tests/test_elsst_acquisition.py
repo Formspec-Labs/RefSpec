@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 from typing_extensions import Self
 
-from refspec.registry import elsst_acquisition as acquisition
+from refspec.registry.adapters import elsst_acquisition as acquisition
+from refspec.registry.infrastructure import pinned_acquisition
 
 
 def _release(payload: bytes) -> acquisition.ElsstReleaseSource:
@@ -26,11 +27,6 @@ def _release(payload: bytes) -> acquisition.ElsstReleaseSource:
 
 
 def test_pinned_release_metadata_records_exact_sources_and_non_gating_license() -> None:
-    assert acquisition.ELSST_R5.expected_byte_length == 19_167_985
-    assert (
-        acquisition.ELSST_R5.expected_sha256
-        == "sha256:d0d2514d7535309b82cc6966ee6e2b5794cf6f390896a5175f41dff4a02e03b7"
-    )
     assert acquisition.ELSST_R6.expected_byte_length == 19_915_491
     assert (
         acquisition.ELSST_R6.expected_sha256
@@ -55,7 +51,7 @@ def test_local_source_is_verified_then_cached_without_network(
         calls.append((args, kwargs))
         raise AssertionError("network access was not authorized")
 
-    monkeypatch.setattr(acquisition.urllib.request, "urlopen", fail_if_called)
+    monkeypatch.setattr(pinned_acquisition.urllib.request, "urlopen", fail_if_called)
     store = tmp_path / "store"
     acquired = acquisition.acquire_elsst_release(
         release,
@@ -89,7 +85,7 @@ def test_cache_miss_requires_explicit_local_or_network_choice(
         calls.append((args, kwargs))
         raise AssertionError("network access was not authorized")
 
-    monkeypatch.setattr(acquisition.urllib.request, "urlopen", fail_if_called)
+    monkeypatch.setattr(pinned_acquisition.urllib.request, "urlopen", fail_if_called)
     with pytest.raises(acquisition.ElsstAcquisitionError, match="allow_network=True"):
         acquisition.acquire_elsst_release(release, tmp_path)
     assert calls == []
@@ -118,7 +114,7 @@ def test_explicit_network_path_can_be_exercised_without_real_network(
         requests.append((request, timeout))
         return Response(payload)
 
-    monkeypatch.setattr(acquisition.urllib.request, "urlopen", open_local)
+    monkeypatch.setattr(pinned_acquisition.urllib.request, "urlopen", open_local)
     acquired = acquisition.acquire_elsst_release(
         release,
         tmp_path,
@@ -169,6 +165,6 @@ def test_module_import_has_no_network_side_effect(
         calls.append((args, kwargs))
         raise AssertionError("network access on module import")
 
-    monkeypatch.setattr(acquisition.urllib.request, "urlopen", fail_if_called)
+    monkeypatch.setattr(pinned_acquisition.urllib.request, "urlopen", fail_if_called)
     importlib.reload(acquisition)
     assert calls == []

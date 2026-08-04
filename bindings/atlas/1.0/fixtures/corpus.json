@@ -9,8 +9,8 @@
       "directory": "invalid/adjudication-without-verdicts",
       "errorContains": "does not follow from its verdicts",
       "id": "adjudicated-relation-follows-from-its-verdicts",
-      "manifestDigest": "sha256:9fa3a38c9babef4ad343b25ac411c632c568fbdc16a630838d2aeb9f9d5a60a5",
-      "outputDigest": "sha256:a1eb3f34b6a4f329b899715efb9b0fbb6803005f1a7a2c429655511397107b6f",
+      "manifestDigest": "sha256:409afedddf5c9ea8c93395ac19131a45a7584e1a0dae95c386705659839ea082",
+      "outputDigest": "sha256:cfdbc13d4e8a8203be13c8d03fdd3024ce56e4b79ec4076e7a25c1c82524e976",
       "valid": false
     },
     {
@@ -25,40 +25,40 @@
       "directory": "invalid/cross-scheme-broader",
       "errorContains": "hierarchy must stay inside one release",
       "id": "hierarchy-stays-inside-one-release",
-      "manifestDigest": "sha256:400789cf7962634a3d5cc2a97435d400aee68650bf178df30c0eebf22efeb57d",
-      "outputDigest": "sha256:dd911e87e95a75563c0675eb7c6caaaa9dbce4bda0fbd957bc7628f9f7d1cb77",
+      "manifestDigest": "sha256:49d728ccd67c2990c09a65a6a5b6482e3ecbc124305d99a3da626b2843956b73",
+      "outputDigest": "sha256:2cdd209bb89fbc62df757f91c70caff155a70f110c44e484644ebfaffe4d963d",
       "valid": false
     },
     {
       "directory": "invalid/cyclic-broader",
       "errorContains": "hierarchy contains a cycle",
       "id": "hierarchy-has-no-cycle",
-      "manifestDigest": "sha256:aef7e93f3cda6f6790067a108c828835ee56392f89803230edef9ebc217ac3dc",
-      "outputDigest": "sha256:b7ce2b2069c19c7edf08490c862c992b9b8995397e1c5c82c641797b50d18959",
+      "manifestDigest": "sha256:dfa4f51fc4fa619394ac04f46dab7ae5456515fcd634d1446b5bd7a09f0b2840",
+      "outputDigest": "sha256:abc8043003a437c0e90a0f8843f63c40936c130b753c69bfed292989514e50a8",
       "valid": false
     },
     {
       "directory": "invalid/dangling-broader",
       "errorContains": "hierarchy endpoint is not a release member",
       "id": "hierarchy-endpoints-are-release-members",
-      "manifestDigest": "sha256:b49f6e39640e3f3948cf6b25a16d9787babed403a9698e5a00cc8443a2ad4374",
-      "outputDigest": "sha256:dcc90e4d6abe4d2bb1fd73600d51e0caa6ddbc95ad1b1dd0d6a5ac306e0d289e",
+      "manifestDigest": "sha256:cf7724ade1a2ae3e42ac98573a1b4720d1fb688a360b40f872f5a2a069ea51b3",
+      "outputDigest": "sha256:968d56d9c7c9170b2d9fb1684df8da119f83f5ea07fff4fba8a0f857446f5255",
       "valid": false
     },
     {
       "directory": "invalid/disagreeing-narrower",
       "errorContains": "hierarchy directions disagree",
       "id": "hierarchy-directions-must-agree",
-      "manifestDigest": "sha256:b6387eee5ea5fa04a8b2fb50c5b4bf4a2fcf463d3e47a459f4f237ff46ba7f3b",
-      "outputDigest": "sha256:de4d63c5b008744a071dac0e7a355fd59d9e664acc07e024b503f2dda38c4691",
+      "manifestDigest": "sha256:bd7afb91676ee8b194d5f9a5fafca6b925c1b4ad7e0ef125793133e21cda0cda",
+      "outputDigest": "sha256:ef15e177a915316acd2cecc6192295d42e7984cd73192b599724a8739bd47d6f",
       "valid": false
     },
     {
       "directory": "invalid/disagreeing-verdict-relations",
       "errorContains": "disagree about the relation",
       "id": "qualifying-verdicts-must-agree-on-one-relation",
-      "manifestDigest": "sha256:854c666585114b8caa3bd8776204777537b39fa3fa9b8bc23e75ce7bcf8ba1c1",
-      "outputDigest": "sha256:c7b0c31c4b78dbf01b2d311a7239fba7fe562f1faab21c614b39f8d3fdcf642e",
+      "manifestDigest": "sha256:f6180517ef13aadb2716479a326f92b9ac18ad285e772f4b249fedd327b8dde1",
+      "outputDigest": "sha256:f6ffc30f193c5f12de361b053407b897ac7ccdcbe516cca16e09d5e35807be93",
       "valid": false
     },
     {
@@ -73,16 +73,16 @@
       "directory": "invalid/mapping-relation-not-adjudicated",
       "errorContains": "searchOnly mapping differs from its candidate",
       "id": "mapping-relation-matches-the-adjudicated-relation",
-      "manifestDigest": "sha256:baf135dca2392a0cd455918f5bbda7208b70d0c81286f7d5bd04ad11dfe05b4b",
-      "outputDigest": "sha256:f3342336cab3635b269c2ccaa982bd796c78fdcd3a4c545dec864f9583b096c2",
+      "manifestDigest": "sha256:44fc41237a8ccbd0501c3b1ef54140a4ca4c7cded165289aa3d9ce8b3c924e28",
+      "outputDigest": "sha256:afa0844b157dc2efd172755f8306d647af5f2d04e819e5c1d1bca023c980c007",
       "valid": false
     },
     {
       "directory": "invalid/missing-input-context",
       "errorContains": "mapping input context artifact must have exactly one IRI",
       "id": "search-only-input-context-must-resolve",
-      "manifestDigest": "sha256:21ff3aa95d7e5f5e309aa0f7adaa9e922126973bbf52f71c794f74d1e76103e6",
-      "outputDigest": "sha256:f09f638e6e6a58b9b2e4bcef3de9d6b8d032992f6a71b326be2981d62aaf9eea",
+      "manifestDigest": "sha256:516965cfde88bee297decefdbae133f9edc06d0d7ceab3df5514d50117c70450",
+      "outputDigest": "sha256:66829267699c183e3ac2e70522b1dce22ff4b9aeafc347243749d83be3c3e3b0",
       "valid": false
     },
     {
@@ -97,24 +97,24 @@
       "directory": "invalid/promoted-adjudicated-related",
       "errorContains": "adjudicated related candidate must not be eligible",
       "id": "adjudicated-related-must-not-become-substitutable",
-      "manifestDigest": "sha256:2b313b2354c117443389abb1e81ee11610b7523c3494b4d8b57d8945822ffb1b",
-      "outputDigest": "sha256:42831cc89cb5cd084ca66ad2b31e22c0e1d2153f9d85775b63961a0582ab64cb",
+      "manifestDigest": "sha256:31df398083b28fe4bc5334b37033186fb3f4f630380d3e55c354cd4939064be8",
+      "outputDigest": "sha256:2c0e69155c9d819787fde396a393ea403f641370951231df288340ac8dbf3256",
       "valid": false
     },
     {
       "directory": "invalid/same-provider-model",
       "errorContains": "validations are not independent",
       "id": "search-only-requires-distinct-provider-models",
-      "manifestDigest": "sha256:548a182e2edcb2f676288ab54798bb2bdf4a58f6c1eecf3d88828b48b2c4a123",
-      "outputDigest": "sha256:9ecbbfb7bf348907a4f7322a10cd3220493a2122363fa02ed3abf779cb2f212b",
+      "manifestDigest": "sha256:8cac160f3304b0220461f49ea27e48a5378bae96a73219b567d7cdf746758a3b",
+      "outputDigest": "sha256:c8292cf900777e7049c0092add3c96437afbdba7411be72642dad06917d0c9a4",
       "valid": false
     },
     {
       "directory": "invalid/tampered-input-context",
       "errorContains": "input context does not carry the sealed input digest",
       "id": "search-only-input-context-must-match-the-sealed-digest",
-      "manifestDigest": "sha256:9528ea56c3043beefe8290d5aeec607d37069ce05580ba00d0a1d0d1b16e9099",
-      "outputDigest": "sha256:7e5d6a5e2b60f5b3d09e28cce0a3b5999d41a459ac638c7f5536e4b5ee7f4c41",
+      "manifestDigest": "sha256:7feb97d444050f73be93ea4c0952ea7cf07987bc988446c988b1ab976ac78049",
+      "outputDigest": "sha256:90e22f309f9873d3ae44b039b23a29b999a671de30b377205da218d163a27669",
       "valid": false
     },
     {
@@ -129,8 +129,8 @@
       "directory": "invalid/unstated-adjudication",
       "errorContains": "omits the adjudicated relation its verdicts state",
       "id": "adjudication-is-owed-whenever-the-verdicts-state-one",
-      "manifestDigest": "sha256:59cc7f0a37ec8564273e7fc35c89914c4714f9af55f3861cf809ec4a275025f3",
-      "outputDigest": "sha256:a43983bb0f9d49e9401981dd5f688c46fd93f0a8f21372298bde175bb3d6e21e",
+      "manifestDigest": "sha256:983d3a9128830625cad6188c2846b325bd224be89b59ea63f7facce2dfdb7a2e",
+      "outputDigest": "sha256:b6331168690d92cb5a9b6803a8c06aa5ca1319ed03d8fef95bce07be1bdb63ca",
       "valid": false
     },
     {
@@ -144,8 +144,8 @@
     {
       "directory": "valid/hierarchy",
       "id": "intra-scheme-hierarchy-is-accepted",
-      "manifestDigest": "sha256:c9a16029fbe5f066d7e80aeedc4a7da641c4caf4e1487427fd7147fe2769b133",
-      "outputDigest": "sha256:af9a7935038b26e3b1a5184ac9ae322648258d838d9d59c9a1f71e6dd2c5f1b5",
+      "manifestDigest": "sha256:7e84a81adbeb58a2442a7919102acc9e604481b326cc8b0286a5f0bc4a123129",
+      "outputDigest": "sha256:7488bc63d7acaaf737c26834521ef377a4d2a5e7c80cbb1ed0bc3440bbf8b799",
       "valid": true
     },
     {
@@ -158,15 +158,15 @@
     {
       "directory": "valid/qualified-search-only",
       "id": "qualified-search-only-mapping-is-accepted",
-      "manifestDigest": "sha256:c52a6faa9ae48328246071acbc377d06a089ee058cb6958a608599bb7e14b525",
-      "outputDigest": "sha256:3ccb7bda6c90141a155a514b64ce86a9b2d88ca7a3a990c5b93c0bc1b26da3a4",
+      "manifestDigest": "sha256:acd7a345d93d30a54731834c8902f53033a7d86c2ab15c6e224616186bf3aa67",
+      "outputDigest": "sha256:00c90b775cc60f366e05047825998cde8d107935559e88fffbbc4d7b6a47e48f",
       "valid": true
     },
     {
       "directory": "valid/relation-adjudication",
       "id": "adjudicated-relations-are-accepted",
-      "manifestDigest": "sha256:d9c2d01c7bcf6a7ddd101c7b5c9cff8d3f883d5ac605422a5bf4d3e1c97f5d7e",
-      "outputDigest": "sha256:89e6c86a662d08d9cfda89904e876d05827823fb6a666be5cd113f56ee4c4298",
+      "manifestDigest": "sha256:670bc24eee0285aae021f6c67869c2957f973880b7822a4b38fb4a345f5614a7",
+      "outputDigest": "sha256:c1c61dfc02b9a4da0cc47f42527b32200ad0028f2dea7cd330200f1237acc49d",
       "valid": true
     }
   ],

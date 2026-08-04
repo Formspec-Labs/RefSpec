@@ -8,6 +8,11 @@ from pathlib import Path
 
 import pytest
 
+from refspec.registry.adapters.elsst_acquisition import (
+    ELSST_R6,
+    ElsstReleaseSource,
+    acquire_elsst_release,
+)
 from refspec.registry.elsst import (
     ADDITIONAL_CONTENT_NOTE_PREDICATE_IRI,
     ALT_LABEL_PREDICATE_IRI,
@@ -31,12 +36,6 @@ from refspec.registry.elsst import (
     parse_acquired_elsst_source,
     parse_elsst_file,
     parse_elsst_turtle,
-)
-from refspec.registry.elsst_acquisition import (
-    ELSST_R5,
-    ELSST_R6,
-    ElsstReleaseSource,
-    acquire_elsst_release,
 )
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "elsst-mini.ttl"
@@ -352,30 +351,6 @@ def test_verified_local_acquisition_parses_with_the_same_release_pin(tmp_path: P
 
 
 PINNED_REAL_COUNTS = {
-    "5": ElsstImportCounts(
-        source_bytes=19_167_985,
-        triples=236_925,
-        source_iris=10_331,
-        concepts=3_435,
-        concept_schemes=1,
-        preferred_labels=51_428,
-        alternate_labels=36_338,
-        hidden_labels=0,
-        notes=13_916,
-        notations=0,
-        broader_relations=3_361,
-        narrower_relations=3_361,
-        related_relations=5_640,
-        deprecated_assertions=34,
-        metadata_literals=56_986,
-        identifier_assertions=51_540,
-        issued_assertions=3_436,
-        modified_assertions=1_991,
-        is_replaced_by_relations=6,
-        replaces_relations=6,
-        is_version_of_relations=3_436,
-        prior_version_relations=3_423,
-    ),
     "6": ElsstImportCounts(
         source_bytes=19_915_491,
         triples=239_821,
@@ -405,10 +380,7 @@ PINNED_REAL_COUNTS = {
 
 @pytest.mark.parametrize(
     ("release", "path_environment"),
-    [
-        (ELSST_R5, "REFSPEC_ELSST_R5_PATH"),
-        (ELSST_R6, "REFSPEC_ELSST_R6_PATH"),
-    ],
+    [(ELSST_R6, "REFSPEC_ELSST_R6_PATH")],
 )
 def test_opt_in_pinned_real_distribution_counts(
     release: ElsstReleaseSource,
@@ -445,30 +417,3 @@ def test_opt_in_pinned_real_distribution_counts(
         "sv",
     }
     assert all(item.value.language_tag is not None for item in parsed.labels)
-
-
-def test_opt_in_real_r5_to_r6_identity_and_lifecycle_comparison() -> None:
-    r5_path = os.environ.get("REFSPEC_ELSST_R5_PATH")
-    r6_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
-    if r5_path is None or r6_path is None:
-        pytest.skip("set both REFSPEC_ELSST_R5_PATH and REFSPEC_ELSST_R6_PATH")
-
-    previous = parse_elsst_file(
-        Path(r5_path),
-        source_url=ELSST_R5.source_url,
-        expected_sha256=ELSST_R5.expected_sha256,
-        expected_byte_length=ELSST_R5.expected_byte_length,
-    )
-    current = parse_elsst_file(
-        Path(r6_path),
-        source_url=ELSST_R6.source_url,
-        expected_sha256=ELSST_R6.expected_sha256,
-        expected_byte_length=ELSST_R6.expected_byte_length,
-    )
-    comparison = compare_elsst_releases(previous, current)
-
-    assert len(comparison.retained_stable_identities) == 3_435
-    assert len(comparison.added_concept_iris) == 35
-    assert len(comparison.new_deprecated_concept_iris) == 3
-    assert len(comparison.replacement_pairs) == 9
-    assert RETIRED in comparison.new_deprecated_concept_iris

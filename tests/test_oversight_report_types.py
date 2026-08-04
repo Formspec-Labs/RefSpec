@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import oversight_report_types as oversight
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "oversight_report_types"
 REPORTS_FEDERAL_FIXTURE = FIXTURES / "oversight-reports-federal-2026-08-03.html"

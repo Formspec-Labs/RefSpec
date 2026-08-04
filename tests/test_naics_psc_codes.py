@@ -13,13 +13,14 @@ note for what was and was not confirmed live this session.
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import naics_psc_codes as npc
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "naics_psc_codes"
 NAICS_FIXTURE = FIXTURES / "naics-2022-us-structure-2026-08-03.csv"
@@ -54,6 +55,73 @@ def test_fixture_pins_match_exact_captured_bytes() -> None:
     assert npc.sha256_digest(naics) == ("sha256:a8e7fb37571ba8c2e7eb8281e2805f9f4a3ef77104fed3c3bd43e7be072c3539")
     assert len(psc) == 545
     assert npc.sha256_digest(psc) == ("sha256:dd6c5307bb761b842152ed91d20be99943b890c38c4c1f92ae15cb60b3dc9ba5")
+
+
+def test_full_official_naics_workbook_shape_count_and_samples(tmp_path: Path) -> None:
+    source_path = os.environ.get("REFSPEC_NAICS_2022_XLSX_PATH")
+    if source_path is None:
+        pytest.skip("full official Census NAICS workbook is not materialized")
+
+    acquired = _acquire(tmp_path, npc.NAICS_CODES_2022_XLSX, Path(source_path))
+    resource = npc.parse_naics_codes(acquired)
+
+    assert resource.source.source_url.endswith("2-6%20digit_2022_Codes.xlsx")
+    assert resource.source_sha256 == npc.NAICS_CODES_2022_XLSX.expected_sha256
+    assert resource.source_byte_length == 82_460
+    assert len(resource.codes) == 2_125
+    by_code = resource.by_code()
+    assert len(by_code) == 2_125
+    assert by_code["31-33"].publisher_label == "Manufacturing"
+    assert by_code["111110"].publisher_label == "Soybean Farming"
+    assert by_code["928120"].publisher_label == "International Affairs"
+
+
+def test_full_official_psc_workbook_shape_count_and_samples(tmp_path: Path) -> None:
+    source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
+    if source_path is None:
+        pytest.skip("full official PSC workbook is not materialized")
+
+    acquired = _acquire(tmp_path, npc.PSC_CODES_APRIL_2025_XLSX, Path(source_path))
+    resource = npc.parse_psc_codes(acquired)
+
+    assert resource.source.source_url == npc.PSC_APRIL_2025_XLSX_URL
+    assert resource.source_sha256 == (
+        "sha256:5ae8159d8dff645f24e5b397decc4914f7efebb25f7777cbea8e75ab7e8430f4"
+    )
+    assert resource.source_byte_length == 462_762
+    assert resource.edition == "April 2025"
+    assert len(resource.codes) == 2_344
+    by_code = resource.by_code()
+    assert len(by_code) == 2_344
+    assert by_code["1005"].publisher_label == "GUNS, THROUGH 30MM"
+    assert by_code["1005"].facet == "Weapons & Ammunition"
+    assert by_code["1005"].identifiers[0].effective_at == "2011-10-01"
+    assert by_code["AC12"].publisher_label == (
+        "NATIONAL DEFENSE R&D SERVICES; DEPARTMENT OF DEFENSE - MILITARY; APPLIED RESEARCH"
+    )
+    assert by_code["AC12"].facet == "Research and Development"
+    assert by_code["AC12"].identifiers[0].effective_at == "2020-10-30"
+    assert by_code["R425"].publisher_label == "SUPPORT- PROFESSIONAL: ENGINEERING/TECHNICAL"
+    assert by_code["R425"].facet == "Professional Services"
+    assert by_code["Z2QA"].facet == "Facilities & Construction"
+    assert "D302" not in by_code  # Publisher ended this code on 2020-10-29.
+    assert len({entry.facet for entry in resource.codes}) == 22
+
+
+def test_real_psc_package_uses_workbook_without_constructed_fixture_gaps(tmp_path: Path) -> None:
+    source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
+    if source_path is None:
+        pytest.skip("full official PSC workbook is not materialized")
+
+    acquired = _acquire(tmp_path, npc.PSC_CODES_APRIL_2025_XLSX, Path(source_path))
+    parsed = npc.parse_psc_codes(acquired)
+    bundle = npc.build_psc_code_package(acquired, parsed)
+
+    assert bundle.resource_manifest["observationCount"] == 2_344
+    assert bundle.coverage_report["sourceObservedCount"] == 2_344
+    assert {gap["kind"] for gap in bundle.coverage_report["gaps"]} == {
+        "deterministicFacetRole"
+    }
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
@@ -176,8 +244,8 @@ def test_portfolio_records_vintage_edition_and_capture_honesty_gaps(
     assert npc.NAICS_2027_STRUCTURE_PUBLISHED is False
     assert any("do not state a document's policy topic" in gap for gap in portfolio.gaps)
     assert any("2027" in gap and "five-year cycle" in gap for gap in portfolio.gaps)
-    assert any("Excel workbook" in gap and "April 2025" in gap for gap in portfolio.gaps)
-    assert any("HTTP 403" in gap for gap in portfolio.gaps)
+    assert any("2,344 current" in gap and "6,108 source rows" in gap for gap in portfolio.gaps)
+    assert any("Internet Archive" in gap and "acquisition.gov" in gap for gap in portfolio.gaps)
 
 
 def test_naics_psc_classification_validates_without_becoming_subjects(

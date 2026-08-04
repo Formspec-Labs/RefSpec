@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import census_geo_codes as geo
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "census_geo_codes"
 ACS_FIXTURE = FIXTURES / "acs-variables-2026-08-03.html"

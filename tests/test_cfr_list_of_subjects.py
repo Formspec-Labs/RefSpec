@@ -1,363 +1,275 @@
-"""CFR List of Subjects assignment-capture tests.
-
-Fixtures under tests/fixtures/cfr_list_of_subjects/ are constructed to match
-the documented shape of an eCFR current-part page (a PART heading, a "List of
-Subjects in {title} CFR Part {part}" box, and a "current as of" banner).  Live
-`curl` access to www.ecfr.gov during authoring returned a bot-management
-"Request Access" challenge page instead of the real page, so these bytes are
-not a captured live sample -- the parser is strict so a real capture that
-drifts from this shape fails loudly instead of silently.
-"""
+"""Real-source tests for Federal Register List of Subjects evidence."""
 
 from __future__ import annotations
 
-import hashlib
 import json
-from dataclasses import replace
+import os
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import cfr_list_of_subjects as cfr
-
-FIXTURES = Path(__file__).parent / "fixtures" / "cfr_list_of_subjects"
-
-
-def _payload(name: str) -> bytes:
-    return (FIXTURES / name).read_bytes()
+from refspec.storage import canonical_json
 
 
-def _pin(
-    source: cfr.CFRPartSource,
-    payload: bytes,
-    *,
-    as_of_date: str = "2026-07-30",
-    retrieved_at: str = "2026-07-30T13:15:00Z",
-) -> cfr.CFRPartSnapshotPin:
-    return cfr.CFRPartSnapshotPin(
-        source=source,
-        retrieved_at=retrieved_at,
-        as_of_date=as_of_date,
-        expected_sha256=cfr.sha256_digest(payload),
-        expected_byte_length=len(payload),
+def _required_real_path(environment_name: str) -> Path:
+    value = os.environ.get(environment_name)
+    if value is None:
+        pytest.skip(f"{environment_name} is materialized by the registry real-data gate")
+    path = Path(value)
+    assert path.is_file()
+    return path
+
+
+def _document_payload(**changes: object) -> bytes:
+    value: dict[str, object] = {
+        "document_number": "2026-TEST",
+        "publication_date": "2026-08-03",
+        "type": "Rule",
+        "title": "Reviewed source-shape test",
+        "json_url": "https://www.federalregister.gov/api/v1/documents/2026-TEST.json",
+        "html_url": "https://www.federalregister.gov/documents/2026/08/03/2026-TEST/example",
+        "topics": ["Administrative practice and procedure"],
+        "cfr_references": [
+            {"chapter": None, "citation_url": None, "part": "52", "title": 40}
+        ],
+    }
+    value.update(changes)
+    return canonical_json(value).encode("utf-8")
+
+
+def test_module_import_performs_no_network_access() -> None:
+    assert callable(cfr.inspect_ecfr_part_sources)
+    assert callable(cfr.parse_federal_register_document_assignments)
+
+
+def test_real_ecfr_api_shapes_show_structure_and_requirement_not_assignments() -> None:
+    structure_path = _required_real_path("REFSPEC_ECFR_TITLE_1_STRUCTURE_PATH")
+    full_text_path = _required_real_path("REFSPEC_ECFR_TITLE_1_PART_18_XML_PATH")
+    titles_path = _required_real_path("REFSPEC_ECFR_TITLES_PATH")
+    agencies_path = _required_real_path("REFSPEC_ECFR_AGENCIES_PATH")
+
+    inspected = cfr.inspect_ecfr_part_sources(
+        structure_path.read_bytes(),
+        full_text_path.read_bytes(),
+        titles_path.read_bytes(),
+        agencies_path.read_bytes(),
+        cfr_title=1,
+        cfr_part="18",
     )
 
+    assert inspected.part_label == "Part 18—Preparation and Transmittal of Documents Generally"
+    assert inspected.section_count == 16
+    assert inspected.chapter == "I"
+    assert inspected.catalog_date == "2026-07-31"
+    assert inspected.title_name == "General Provisions"
+    assert inspected.title_latest_issue_date == "2024-05-17"
+    assert inspected.title_up_to_date_as_of == "2026-07-31"
+    assert inspected.title_count == 50
+    assert inspected.top_level_agency_count == 153
+    assert inspected.total_agency_count == 316
+    assert inspected.responsible_agencies == (
+        "Administrative Committee of the Federal Register",
+    )
+    assert inspected.titles_source_byte_length == 8_033
+    assert inspected.titles_source_sha256 == (
+        "sha256:4a1eb3090dfc5a6b13a495d2ad7a5e92ab9c3816098566c637688cb94c871734"
+    )
+    assert inspected.agencies_source_byte_length == 98_197
+    assert inspected.agencies_source_sha256 == (
+        "sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e"
+    )
+    assert inspected.structure_source_byte_length == 94_089
+    assert inspected.structure_source_sha256 == (
+        "sha256:ac27352aff9ba6822ef2ec3081c5e55fd8bedc1b0a945bc8c53a0e4bda22b1c8"
+    )
+    assert inspected.full_text_source_byte_length == 15_270
+    assert inspected.full_text_source_sha256 == (
+        "sha256:32ec60511131ff9f3ac87d2bc6168b9b2dff1df5f177916e8df546f07ae86583"
+    )
+    assert inspected.list_requirement_present is True
+    assert inspected.published_subject_assignment_count == 0
+    assert inspected.assignment_source == "federalRegisterDocumentJson"
 
-def _acquire_fixture(
-    tmp_path: Path,
-    source: cfr.CFRPartSource,
-    fixture_name: str,
-    **pin_kwargs: str,
-) -> cfr.AcquiredCFRPage:
-    path = FIXTURES / fixture_name
-    return cfr.acquire_cfr_part_page(
-        _pin(source, path.read_bytes(), **pin_kwargs),
-        tmp_path,
-        source_path=path,
+
+def test_real_current_document_shape_count_and_samples() -> None:
+    source_path = _required_real_path("REFSPEC_FR_DOCUMENT_2026_15493_PATH")
+    parsed = cfr.parse_federal_register_document_assignments(
+        source_path.read_bytes(),
+        expected_document_number="2026-15493",
     )
 
-
-def test_source_constants_describe_title_and_part_provenance() -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    assert source.cfr_title == 1
-    assert source.cfr_part == "18"
-    assert source.part_citation == "1 CFR Part 18"
-    assert source.part_heading_marker == "PART 18"
-    assert source.list_of_subjects_heading == "List of Subjects in 1 CFR Part 18"
-    assert source.source_url == "https://www.ecfr.gov/current/title-1/chapter-I/subchapter-A/part-18"
-
-    other = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_40_52
-    assert other.cfr_title == 40
-    assert other.cfr_part == "52"
-    assert other.part_citation == "40 CFR Part 52"
-    assert other.list_of_subjects_heading == "List of Subjects in 40 CFR Part 52"
-
-
-def test_source_url_must_be_official_ecfr_host() -> None:
-    with pytest.raises(cfr.CFRAcquisitionError, match="official HTTPS eCFR"):
-        replace(
-            cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18,
-            source_url="https://not-ecfr.example.com/current/title-1/part-18",
-        )
-
-
-def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    payload = _payload("title-1-part-18.html")
-    pin = _pin(source, payload)
-
-    acquired = cfr.acquire_cfr_part_page(pin, tmp_path, source_path=FIXTURES / "title-1-part-18.html")
-    cached = cfr.acquire_cfr_part_page(pin, tmp_path)
-
-    digest_hex = pin.expected_sha256.removeprefix("sha256:")
-    assert acquired.path == tmp_path / "sha256" / digest_hex / source.filename
-    assert acquired.path.read_bytes() == payload
-    assert acquired.acquisition_mode == "local"
-    assert acquired.cache_hit is False
-    assert cached.sha256 == pin.expected_sha256
-    assert cached.acquisition_mode == "cache"
-    assert cached.cache_hit is True
-
-
-def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    payload = _payload("title-1-part-18.html")
-    calls: list[tuple[str, float]] = []
-
-    class Fetcher:
-        def fetch(self, source_url: str, *, timeout_seconds: float) -> cfr.FetchedCFRPage:
-            calls.append((source_url, timeout_seconds))
-            return cfr.FetchedCFRPage(
-                body=payload,
-                status_code=200,
-                content_type="text/html; charset=UTF-8",
-                resolved_url=source_url,
-            )
-
-    acquired = cfr.acquire_cfr_part_page(
-        _pin(source, payload),
-        tmp_path,
-        fetcher=Fetcher(),
-        timeout_seconds=17.0,
+    assert parsed.source_byte_length == 4_320
+    assert parsed.source_sha256 == (
+        "sha256:1983a61f00d6556abe1c6e37d6a605a022471f6fa4e010690b718d5330067c67"
     )
-
-    assert calls == [(source.source_url, 17.0)]
-    assert acquired.acquisition_mode == "fetcher"
-    assert acquired.content_type == "text/html; charset=UTF-8"
-
-
-def test_initial_capture_establishes_pin_before_strict_reopen(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    payload = _payload("title-1-part-18.html")
-
-    class Fetcher:
-        def fetch(self, source_url: str, *, timeout_seconds: float) -> cfr.FetchedCFRPage:
-            assert timeout_seconds == 17.0
-            return cfr.FetchedCFRPage(
-                body=payload,
-                status_code=200,
-                content_type="text/html; charset=UTF-8",
-                resolved_url=source_url,
-            )
-
-    captured = cfr.capture_initial_cfr_part_snapshot(
-        source,
-        tmp_path,
-        retrieved_at="2026-07-30T13:15:00Z",
-        as_of_date="2026-07-30",
-        fetcher=Fetcher(),
-        timeout_seconds=17.0,
+    assert parsed.publication_date == "2026-07-31"
+    assert parsed.document_type == "Rule"
+    assert parsed.assignment_count == 12
+    assert parsed.cfr_references == (
+        cfr.CFRReference(title=40, part="52", chapter=None, citation_url=None),
     )
-    reopened = cfr.acquire_cfr_part_page(captured.pin, tmp_path)
-
-    assert captured.sha256 == cfr.sha256_digest(payload)
-    assert captured.byte_length == len(payload)
-    assert captured.path.read_bytes() == payload
-    assert reopened.cache_hit is True
-    assert reopened.pin == captured.pin
-
-
-def test_challenge_page_never_publishes_source(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    expected_payload = _payload("title-1-part-18.html")
-    pin = _pin(source, expected_payload)
-
-    # Reproduces the real bot-management markers observed from a live
-    # `curl` request to www.ecfr.gov during authoring (redirected to a
-    # "Federal Register :: Request Access" unblock page).
-    challenge_body = (
-        b"<!doctype html><html><head><title>Federal Register :: Request Access</title></head>"
-        b"<body><button class='unblock-button' data-unblock-target='button'>Request Access</button>"
-        b"<h3>IP Access Help</h3></body></html>"
-    )
-
-    class ChallengeFetcher:
-        def fetch(self, source_url: str, *, timeout_seconds: float) -> cfr.FetchedCFRPage:
-            del timeout_seconds
-            return cfr.FetchedCFRPage(
-                body=challenge_body,
-                status_code=200,
-                content_type="text/html",
-                resolved_url=source_url,
-            )
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="challenge page"):
-        cfr.acquire_cfr_part_page(pin, tmp_path, fetcher=ChallengeFetcher())
-
-    expected_path = tmp_path / "sha256" / pin.expected_sha256.removeprefix("sha256:") / source.filename
-    assert not expected_path.exists()
-    assert not list(tmp_path.rglob(".acquire-*.tmp"))
-
-
-def test_digest_drift_never_publishes_source(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    expected_payload = _payload("title-1-part-18.html")
-    changed_payload = expected_payload.replace(b"Archives and records", b"Archives amd recoRds")
-    assert len(changed_payload) == len(expected_payload)
-    pin = _pin(source, expected_payload)
-
-    class ChangedFetcher:
-        def fetch(self, source_url: str, *, timeout_seconds: float) -> cfr.FetchedCFRPage:
-            del timeout_seconds
-            return cfr.FetchedCFRPage(
-                body=changed_payload,
-                status_code=200,
-                content_type="text/html",
-                resolved_url=source_url,
-            )
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="digest drift"):
-        cfr.acquire_cfr_part_page(pin, tmp_path, fetcher=ChangedFetcher())
-
-    expected_path = tmp_path / "sha256" / pin.expected_sha256.removeprefix("sha256:") / source.filename
-    assert not expected_path.exists()
-    assert not list(tmp_path.rglob(".acquire-*.tmp"))
-
-
-def test_parses_assignment_terms_without_minting_identity(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    page = _acquire_fixture(tmp_path, source, "title-1-part-18.html")
-
-    parsed = cfr.parse_cfr_list_of_subjects_page(page)
-
-    assert parsed.source.part_citation == "1 CFR Part 18"
-    assert parsed.as_of_date == "2026-07-30"
-    assert parsed.role == "candidateRankingEvidence"
-    assert [term.official_label for term in parsed.terms] == [
-        "Archives and records",
-        "Freedom of information",
-        "Reporting and recordkeeping requirements",
+    assert [item.official_label for item in parsed.terms[:3]] == [
+        "Air pollution control",
+        "Carbon monoxide",
+        "Environmental protection",
     ]
-    assert [term.source_ordinal for term in parsed.terms] == [1, 2, 3]
-    assert all(term.identity_status == "publisherIdentifierAbsent" for term in parsed.terms)
-    digest_hex = cfr.sha256_digest(_payload("title-1-part-18.html")).removeprefix("sha256:")
-    assert parsed.terms[0].record_iri == (f"urn:ref:cfr-list-of-subjects-record:{digest_hex}:title-1:part-18:1")
-    assert len({term.record_iri for term in parsed.terms}) == len(parsed.terms)
-    assert parsed.duplicate_label_evidence == ()
+    assert parsed.terms[-1].official_label == "Volatile organic compounds"
+    assert parsed.terms[-3].official_label == "Reporting and recordkeeping requirements"
+    assert [item.source_ordinal for item in parsed.terms] == list(range(1, 13))
+    assert all(item.identity_status == "publisherIdentifierAbsent" for item in parsed.terms)
+    assert len({item.record_iri for item in parsed.terms}) == 12
 
+
+def test_real_part_18_document_preserves_empty_topics_and_multiple_cfr_references() -> None:
+    source_path = _required_real_path("REFSPEC_FR_DOCUMENT_96_32865_PATH")
+    parsed = cfr.parse_federal_register_document_assignments(
+        source_path.read_bytes(),
+        expected_document_number="96-32865",
+    )
+
+    assert parsed.source_byte_length == 2_928
+    assert parsed.source_sha256 == (
+        "sha256:da1d4e6af2e7e5680c382400034c900630048dc9f980b8b24de86c2cb88364e8"
+    )
+    assert parsed.assignment_count == 0
+    assert [item.citation for item in parsed.cfr_references] == [
+        "1 CFR Part 5",
+        "1 CFR Part 11",
+        "1 CFR Part 18",
+    ]
+    assert parsed.readiness.source_term_count == 0
+
+
+def test_real_assignment_evidence_is_document_scoped_and_deterministic() -> None:
+    source_path = _required_real_path("REFSPEC_FR_DOCUMENT_2026_15493_PATH")
+    parsed = cfr.parse_federal_register_document_assignments(source_path.read_bytes())
+
+    evidence = cfr.cfr_list_of_subjects_assignment_evidence(parsed)
+    encoded = cfr.cfr_list_of_subjects_assignment_evidence_bytes(parsed)
+
+    assert evidence["evidenceKind"] == "federalRegisterDocumentListOfSubjects"
+    assert evidence["role"] == "sourceAssignedFilingEvidence"
+    assert evidence["documentNumber"] == "2026-15493"
+    assert evidence["termCount"] == 12
+    assert evidence["cfrReferences"] == [
+        {"title": 40, "part": "52", "chapter": None, "citationUrl": None}
+    ]
+    assert evidence["conceptIdentityClaimed"] is False
+    assert evidence["acceptedOutputUseAuthorized"] is False
+    assert "document-level arrays" in evidence["scopeNote"]
+    assert encoded == canonical_json(evidence).encode("utf-8") + b"\n"
+    assert json.loads(encoded) == evidence
+
+
+def test_multiple_cfr_references_do_not_multiply_document_topics() -> None:
+    payload = _document_payload(
+        topics=["Air pollution control", "Reporting and recordkeeping requirements"],
+        cfr_references=[
+            {"chapter": None, "citation_url": None, "part": 51, "title": 40},
+            {"chapter": None, "citation_url": None, "part": "52", "title": 40},
+        ],
+    )
+    parsed = cfr.parse_federal_register_document_assignments(payload)
+    evidence = cfr.cfr_list_of_subjects_assignment_evidence(parsed)
+
+    assert parsed.assignment_count == 2
+    assert len(parsed.cfr_references) == 2
+    assert evidence["termCount"] == 2
+
+
+def test_empty_topics_are_valid_source_evidence_not_invented_terms() -> None:
+    parsed = cfr.parse_federal_register_document_assignments(_document_payload(topics=[]))
+
+    assert parsed.terms == ()
+    assert parsed.assignment_count == 0
     assert parsed.readiness.ready is False
-    assert parsed.readiness.source_term_count == 3
-    with pytest.raises(cfr.CFRPromotionError, match="candidate-ranking"):
+
+
+def test_promotion_is_refused() -> None:
+    parsed = cfr.parse_federal_register_document_assignments(_document_payload())
+
+    with pytest.raises(cfr.CFRPromotionError, match="filing evidence"):
         parsed.readiness.require_ready()
 
 
-def test_repeated_source_labels_remain_distinct_capture_records(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    page = _acquire_fixture(tmp_path, source, "title-1-part-18-duplicate.html")
-
-    parsed = cfr.parse_cfr_list_of_subjects_page(page)
-
-    repeated = tuple(term for term in parsed.terms if term.official_label == "Archives and records")
-    assert len(repeated) == 2
-    assert repeated[0].record_iri != repeated[1].record_iri
-    assert [term.source_ordinal for term in repeated] == [1, 3]
-    assert parsed.duplicate_label_evidence == (
-        cfr.CFRDuplicateLabelEvidence(
-            official_label="Archives and records",
-            record_iris=(repeated[0].record_iri, repeated[1].record_iri),
-            source_ordinals=(1, 3),
-        ),
-    )
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"topics": "Air pollution control"}, "topics must be an array"),
+        ({"topics": ["Air pollution control", "Air pollution control"]}, "duplicate label"),
+        ({"cfr_references": []}, "non-empty array"),
+        ({"publication_date": "July 31, 2026"}, "YYYY-MM-DD"),
+        ({"json_url": "https://example.test/document.json"}, "official HTTPS host"),
+    ],
+)
+def test_document_source_shape_drift_fails_closed(changes: dict[str, object], message: str) -> None:
+    with pytest.raises(cfr.CFRSourceDriftError, match=message):
+        cfr.parse_federal_register_document_assignments(_document_payload(**changes))
 
 
-def test_wrong_list_of_subjects_heading_fails_as_source_drift(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    page = _acquire_fixture(tmp_path, source, "title-1-part-18-wrong-heading.html")
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="missing expected heading"):
-        cfr.parse_cfr_list_of_subjects_page(page)
-
-
-def test_list_of_subjects_heading_without_adjacent_list_fails_as_source_drift(
-    tmp_path: Path,
-) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    page = _acquire_fixture(tmp_path, source, "title-1-part-18-no-list.html")
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="immediately followed"):
-        cfr.parse_cfr_list_of_subjects_page(page)
-
-
-def test_missing_part_heading_marker_fails_as_source_drift(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    original = _payload("title-1-part-18.html")
-    mutated = original.replace(b"<h1>PART 18", b"<h1>XXXX 18")
-    assert len(mutated) == len(original)
-    pin = _pin(source, mutated)
-
-    acquired = cfr.acquire_cfr_part_page(pin, tmp_path, source_path=None, fetcher=_StaticFetcher(mutated))
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="part heading marker"):
-        cfr.parse_cfr_list_of_subjects_page(acquired)
-
-
-class _StaticFetcher:
-    def __init__(self, body: bytes) -> None:
-        self._body = body
-
-    def fetch(self, source_url: str, *, timeout_seconds: float) -> cfr.FetchedCFRPage:
-        del timeout_seconds
-        return cfr.FetchedCFRPage(
-            body=self._body,
-            status_code=200,
-            content_type="text/html",
-            resolved_url=source_url,
+def test_expected_document_number_mismatch_fails_closed() -> None:
+    with pytest.raises(cfr.CFRSourceDriftError, match="expected document"):
+        cfr.parse_federal_register_document_assignments(
+            _document_payload(),
+            expected_document_number="2026-OTHER",
         )
 
 
-def test_as_of_date_banner_mismatch_fails_as_source_drift(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    payload = _payload("title-1-part-18.html")
-    pin = _pin(source, payload, as_of_date="2026-08-01")
+def test_ecfr_source_shape_drift_fails_closed() -> None:
+    structure = canonical_json(
+        {
+            "type": "title",
+            "identifier": "1",
+            "children": [
+                {
+                    "type": "chapter",
+                    "identifier": "I",
+                    "children": [
+                        {
+                            "type": "part",
+                            "identifier": "18",
+                            "label": "Part 18—Example",
+                            "children": [{"type": "section", "identifier": "18.1"}],
+                        }
+                    ],
+                }
+            ],
+        }
+    ).encode("utf-8")
+    xml_without_requirement = b'<DIV5 TYPE="PART" N="18"><DIV8 N="18.1" /></DIV5>'
+    titles = canonical_json(
+        {
+            "titles": [
+                {
+                    "number": 1,
+                    "name": "General Provisions",
+                    "latest_issue_date": "2024-05-17",
+                    "up_to_date_as_of": "2026-07-31",
+                }
+            ],
+            "meta": {"date": "2026-07-31", "import_in_progress": False},
+        }
+    ).encode("utf-8")
+    agencies = canonical_json(
+        {
+            "agencies": [
+                {
+                    "name": "Administrative Committee of the Federal Register",
+                    "slug": "federal-register-administrative-committee",
+                    "children": [],
+                    "cfr_references": [{"title": 1, "chapter": "I"}],
+                }
+            ]
+        }
+    ).encode("utf-8")
 
-    acquired = cfr.acquire_cfr_part_page(pin, tmp_path, source_path=FIXTURES / "title-1-part-18.html")
-
-    with pytest.raises(cfr.CFRSourceDriftError, match="current as of"):
-        cfr.parse_cfr_list_of_subjects_page(acquired)
-
-
-def test_second_title_and_part_produce_distinct_record_iris(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_40_52
-    page = _acquire_fixture(tmp_path, source, "title-40-part-52.html")
-
-    parsed = cfr.parse_cfr_list_of_subjects_page(page)
-
-    assert parsed.source.part_citation == "40 CFR Part 52"
-    assert [term.official_label for term in parsed.terms] == [
-        "Environmental protection",
-        "Air pollution control",
-        "Incorporation by reference",
-        "Intergovernmental relations",
-        "Reporting and recordkeeping requirements",
-    ]
-    digest_hex = cfr.sha256_digest(_payload("title-40-part-52.html")).removeprefix("sha256:")
-    assert parsed.terms[0].record_iri == (f"urn:ref:cfr-list-of-subjects-record:{digest_hex}:title-40:part-52:1")
-    assert "title-1:part-18" not in parsed.terms[0].record_iri
-
-
-def test_assignment_evidence_is_deterministic_canonical_json(tmp_path: Path) -> None:
-    source = cfr.CFR_LIST_OF_SUBJECTS_SOURCE_1_18
-    page = _acquire_fixture(tmp_path, source, "title-1-part-18.html")
-    parsed = cfr.parse_cfr_list_of_subjects_page(page)
-
-    first = cfr.cfr_list_of_subjects_assignment_evidence_bytes(parsed)
-    second = cfr.cfr_list_of_subjects_assignment_evidence_bytes(parsed)
-
-    assert first == second
-    decoded = json.loads(first)
-    assert decoded["conceptIdentityClaimed"] is False
-    assert decoded["role"] == "candidateRankingEvidence"
-    assert decoded["titlePartCitation"] == "1 CFR Part 18"
-    assert decoded["termCount"] == 3
-    assert [row["label"] for row in decoded["terms"]] == [
-        "Archives and records",
-        "Freedom of information",
-        "Reporting and recordkeeping requirements",
-    ]
-    assert "conceptScheme" not in first.decode("utf-8")
-
-
-def test_fixture_digest_is_derived_from_exact_bytes() -> None:
-    payload = _payload("title-1-part-18.html")
-
-    assert cfr.sha256_digest(payload) == "sha256:" + hashlib.sha256(payload).hexdigest()
+    with pytest.raises(cfr.CFRSourceDriftError, match="List of Subjects requirement"):
+        cfr.inspect_ecfr_part_sources(
+            structure,
+            xml_without_requirement,
+            titles,
+            agencies,
+            cfr_title=1,
+            cfr_part="18",
+        )

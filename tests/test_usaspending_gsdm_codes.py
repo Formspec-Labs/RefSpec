@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import usaspending_gsdm_codes as usg
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "usaspending_gsdm_codes"
 AWARD_TYPES_FIXTURE = FIXTURES / "usaspending-award-types-2026-08-03.json"

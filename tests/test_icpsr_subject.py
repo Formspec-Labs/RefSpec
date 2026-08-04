@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,25 @@ from refspec.registry import icpsr_subject as icpsr
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ROBOTS = b"User-agent: *\nDisallow: /cgi-bin/\n"
+
+
+def test_real_commit_pinned_xml_shape_count_and_boundary_samples() -> None:
+    source_path_text = os.environ.get("REFSPEC_ICPSR_SUBJECT_XML_PATH")
+    if source_path_text is None:
+        pytest.skip("real ICPSR publisher repository capture is not configured")
+    snapshot = icpsr.parse_icpsr_subject_xml(Path(source_path_text).read_bytes())
+
+    assert snapshot.source_sha256 == icpsr.ICPSR_SUBJECT_XML_SHA256
+    assert snapshot.source_byte_length == icpsr.ICPSR_SUBJECT_XML_BYTE_LENGTH
+    assert len(snapshot.terms) == 3_765
+    assert (snapshot.terms[0].source_local_record_number, snapshot.terms[0].label) == (
+        "1",
+        "abandoned buildings",
+    )
+    assert (snapshot.terms[-1].source_local_record_number, snapshot.terms[-1].label) == (
+        "3765",
+        "zip code areas",
+    )
 
 
 def _fixture_pages() -> dict[str, bytes]:

@@ -9,7 +9,8 @@ import json
 import pytest
 from typing_extensions import Self
 
-from refspec.registry import crs_zyte, zyte_transport
+from refspec.registry.adapters import crs_zyte
+from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):

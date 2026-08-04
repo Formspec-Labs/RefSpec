@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import courtlistener_codes as cl
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceView,
 )
 
@@ -30,6 +31,34 @@ def _acquire(tmp_path: Path) -> cl.AcquiredCourtListenerJurisdictionsPage:
 
 def _parsed(tmp_path: Path) -> cl.ParsedCourtListenerJurisdictionsPage:
     return cl.parse_courtlistener_jurisdictions_page(_acquire(tmp_path))
+
+
+def test_real_publisher_table_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    source_path_text = os.environ.get("REFSPEC_COURTLISTENER_JURISDICTIONS_PATH")
+    if source_path_text is None:
+        pytest.skip("real CourtListener publisher capture is not configured")
+    pin = cl.CourtListenerJurisdictionsSnapshotPin(
+        source_url=cl.COURTLISTENER_JURISDICTIONS_URL,
+        retrieved_at="2026-08-03T00:00:00Z",
+        expected_sha256="sha256:883446028b029078c032bfe7c3545f9e109bb328c79ec486fbbbdbf35580b292",
+        expected_byte_length=3_156_029,
+    )
+    acquired = cl.acquire_courtlistener_jurisdictions_page(
+        pin,
+        tmp_path,
+        source_path=Path(source_path_text),
+    )
+    parsed = cl.parse_courtlistener_jurisdictions_page(acquired)
+
+    assert len(parsed.rows) == 3_359
+    assert (parsed.rows[0].name, parsed.rows[0].identifiers[0].value) == (
+        "Supreme Court of the United States",
+        "scotus",
+    )
+    assert (parsed.rows[-1].name, parsed.rows[-1].identifiers[0].value) == (
+        "White Earth Band of Chippewa Tribal Court",
+        "webchippewatr",
+    )
 
 
 def test_fixture_pin_matches_exact_bytes() -> None:

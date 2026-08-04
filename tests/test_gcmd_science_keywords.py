@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import gcmd_science_keywords as gcmd
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "gcmd_science_keywords"
 MINI_CSV_FIXTURE = FIXTURES / "gcmd-science-keywords-24.4-mini.csv"
@@ -36,6 +37,28 @@ def _acquire(tmp_path: Path, pin: gcmd.GCMDSnapshotPin, source_path: Path) -> gc
 def _parsed(tmp_path: Path) -> gcmd.ParsedGCMDScienceKeywords:
     pin = _mini_pin()
     return gcmd.parse_gcmd_science_keywords_csv(_acquire(tmp_path, pin, MINI_CSV_FIXTURE))
+
+
+def test_real_full_release_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    source_path_text = os.environ.get("REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH")
+    if source_path_text is None:
+        pytest.skip("real GCMD publisher distribution is not configured")
+    acquired = _acquire(
+        tmp_path,
+        gcmd.GCMD_SCIENCE_KEYWORDS_24_4,
+        Path(source_path_text),
+    )
+    parsed = gcmd.parse_gcmd_science_keywords_csv(acquired)
+
+    assert len(parsed.rows) == 3_774
+    assert (parsed.rows[0].preferred_label, parsed.rows[0].identifiers[0].value) == (
+        "EARTH SCIENCE",
+        "e9f67a66-e9fc-435c-b720-ae32a2c3d8f5",
+    )
+    assert (parsed.rows[-1].preferred_label, parsed.rows[-1].identifiers[0].value) == (
+        "WEB PROCESSING SERVICES",
+        "933bf0ab-11af-40df-a9d9-1b4a809edd87",
+    )
 
 
 def test_documented_live_pin_matches_the_exact_official_csv_bytes_observed() -> None:

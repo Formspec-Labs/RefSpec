@@ -25,21 +25,21 @@ from refspec.atlas.cli import main as atlas_main
 from refspec.atlas.icpsr import ICPSR_RELEASE_IRI_PREFIX
 from refspec.atlas.queries import VocabularyAtlasQueries
 from refspec.managed_release import ManagedReleaseError
-from refspec.registry.icpsr_managed_release import (
-    IcpsrManagedRelease,
-    IcpsrManagedReleaseSources,
-    build_icpsr_managed_release,
-    open_icpsr_managed_release_sources,
-)
 from refspec.registry.icpsr_subject import (
     ICPSR_SUBJECT_SCHEME_IRI,
     build_icpsr_subject_index,
     parse_icpsr_subject_xml,
 )
+from refspec.registry.managed_releases.icpsr_managed_release import (
+    IcpsrManagedRelease,
+    IcpsrManagedReleaseSources,
+    build_icpsr_managed_release,
+    open_icpsr_managed_release_sources,
+)
 from refspec.storage import canonical_json
 
 FIXTURES = Path(__file__).parent / "fixtures"
-REAL_CAPTURE = Path(__file__).resolve().parents[2] / "output" / "refspec-vocabulary-portfolio" / "icpsr" / "2026-07-30"
+REAL_CAPTURE = Path(__file__).resolve().parents[1] / "output" / "refspec-vocabulary-portfolio" / "icpsr" / "2026-07-30"
 ROBOTS = b"User-agent: *\nDisallow: /cgi-bin/\n"
 RECORDED_AT = "2026-07-30T16:00:00Z"
 RECORDED_BY = "urn:test:agent:icpsr-vocabulary-atlas"
@@ -380,8 +380,8 @@ def test_generation_identity_pins_the_icpsr_reader_and_its_drift(
     # leaving it out would let those change without changing the atlas id.
     required = {
         "refspec/atlas/icpsr.py",
-        "refspec/registry/controlled_identifier.py",
-        "refspec/registry/icpsr_managed_release.py",
+        "refspec/registry/infrastructure/controlled_identifier.py",
+        "refspec/registry/managed_releases/icpsr_managed_release.py",
         "refspec/registry/icpsr_subject.py",
     }
     assert required <= set(modules)

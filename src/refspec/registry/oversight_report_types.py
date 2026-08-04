@@ -43,8 +43,8 @@ from types import MappingProxyType
 from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
-from refspec.registry.source_controlled_resource import (
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,

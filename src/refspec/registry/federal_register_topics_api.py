@@ -17,7 +17,6 @@ import json
 import os
 import re
 import tempfile
-import unicodedata
 import urllib.error
 import urllib.request
 from collections import defaultdict
@@ -26,7 +25,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from refspec.registry.federal_register_thesaurus import FederalRegisterThesaurus
 from refspec.storage import canonical_json
 
 FEDERAL_REGISTER_TOPICS_API_URL = (
@@ -477,124 +475,16 @@ def open_federal_register_topics_capture(
     return parse_federal_register_topics_api(payload)
 
 
-def _normalized_label(value: str) -> str:
-    normalized = unicodedata.normalize("NFKC", value).casefold()
-    return " ".join(normalized.split())
-
-
-@dataclass(frozen=True, slots=True)
-class FederalRegisterTopicsComparison:
-    """Observed differences only; this record never asserts concept identity."""
-
-    historical_source_sha256: str
-    current_source_sha256: str
-    historical_preferred_count: int
-    current_thesaurus_count: int
-    current_ad_hoc_count: int
-    preferred_label_overlap_count: int
-    historical_preferred_only: tuple[str, ...]
-    current_preferred_only: tuple[str, ...]
-    historical_any_label_overlap_count: int
-    historical_relation_count: int
-    current_see_also_count: int
-    current_slug_collision_groups: int
-
-    @property
-    def canonical_digest(self) -> str:
-        return _sha256_bytes(
-            canonical_json(
-                {
-                    "historicalSourceSha256": self.historical_source_sha256,
-                    "currentSourceSha256": self.current_source_sha256,
-                    "historicalPreferredCount": (
-                        self.historical_preferred_count
-                    ),
-                    "currentThesaurusCount": self.current_thesaurus_count,
-                    "currentAdHocCount": self.current_ad_hoc_count,
-                    "preferredLabelOverlapCount": (
-                        self.preferred_label_overlap_count
-                    ),
-                    "historicalPreferredOnly": list(
-                        self.historical_preferred_only
-                    ),
-                    "currentPreferredOnly": list(
-                        self.current_preferred_only
-                    ),
-                    "historicalAnyLabelOverlapCount": (
-                        self.historical_any_label_overlap_count
-                    ),
-                    "historicalRelationCount": (
-                        self.historical_relation_count
-                    ),
-                    "currentSeeAlsoCount": self.current_see_also_count,
-                    "currentSlugCollisionGroups": (
-                        self.current_slug_collision_groups
-                    ),
-                    "identityInference": "none",
-                    "outcome": "unresolved",
-                }
-            ).encode("utf-8")
-        )
-
-
-def compare_historical_thesaurus_to_topics(
-    historical: FederalRegisterThesaurus,
-    current: FederalRegisterTopicsSnapshot,
-) -> FederalRegisterTopicsComparison:
-    """Compare exact source literals while making no cross-source mapping."""
-
-    historical_preferred = {
-        _normalized_label(item.literal)
-        for item in historical.labels
-        if item.role == "preferred"
-    }
-    historical_all_labels = {
-        _normalized_label(item.literal) for item in historical.labels
-    }
-    current_preferred = {
-        _normalized_label(item.name) for item in current.thesaurus
-    }
-    return FederalRegisterTopicsComparison(
-        historical_source_sha256=historical.source_sha256,
-        current_source_sha256=current.source_sha256,
-        historical_preferred_count=len(historical_preferred),
-        current_thesaurus_count=len(current.thesaurus),
-        current_ad_hoc_count=len(current.ad_hoc),
-        preferred_label_overlap_count=len(
-            historical_preferred & current_preferred
-        ),
-        historical_preferred_only=tuple(
-            sorted(historical_preferred - current_preferred)
-        ),
-        current_preferred_only=tuple(
-            sorted(current_preferred - historical_preferred)
-        ),
-        historical_any_label_overlap_count=len(
-            historical_all_labels & current_preferred
-        ),
-        historical_relation_count=len(historical.relations),
-        current_see_also_count=sum(
-            len(item.see_also) for item in current.thesaurus
-        ),
-        current_slug_collision_groups=sum(
-            collection == "thesaurus"
-            for collection, _slug in current.slug_collisions()
-        ),
-    )
-
-
 __all__ = [
     "FEDERAL_REGISTER_TOPICS_API_URL",
     "FEDERAL_REGISTER_TOPICS_PARSER_VERSION",
     "AcquiredFederalRegisterTopics",
     "FederalRegisterTopicLink",
     "FederalRegisterTopicRecord",
-    "FederalRegisterTopicsComparison",
     "FederalRegisterTopicsError",
     "FederalRegisterTopicsSnapshot",
     "TopicCollection",
     "capture_federal_register_topics",
-    "compare_historical_thesaurus_to_topics",
     "open_federal_register_topics_capture",
     "parse_federal_register_topics_api",
 ]

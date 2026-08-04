@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.storage import canonical_json
 
 USASPENDING_PUBLISHER = "U.S. Department of the Treasury, Bureau of the Fiscal Service (USAspending.gov)"

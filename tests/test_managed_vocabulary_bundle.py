@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-import refspec.registry.managed_vocabulary_bundle as bundle_module
+import refspec.registry.infrastructure.managed_vocabulary_bundle as bundle_module
 from refspec.registry import (
     ManagedVocabularyBundle,
     ManagedVocabularyBundleError,

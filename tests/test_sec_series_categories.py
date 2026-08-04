@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import sec_series_categories as sec
-from refspec.registry.source_controlled_resource import SourceControlledResourceView
+from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sec_series_categories"
 

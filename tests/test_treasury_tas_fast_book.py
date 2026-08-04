@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry import treasury_tas_fast_book as tas
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "treasury_tas_fast_book"
 TAS_PAGE_FIXTURE = FIXTURES / "treasury-account-symbol-reporting-2026-08-03.html"

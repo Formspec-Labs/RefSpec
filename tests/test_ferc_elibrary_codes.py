@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from refspec.registry import ferc_elibrary_codes as ferc
-from refspec.registry.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
 FIXTURES = Path(__file__).parent / "fixtures" / "ferc_elibrary_codes"
 PAGE_FIXTURE = FIXTURES / "ferc-elibrary-classtype-information-fixture.html"
@@ -34,6 +35,77 @@ def test_fixture_pin_matches_exact_constructed_reference_bytes() -> None:
     assert len(payload) == 2_202
     assert ferc.sha256_digest(payload) == ("sha256:265f506c80143ae9ec97bcac215f7f19eeb3b5620e699d8442b84ced892e2874")
     assert ferc.FERC_ELIBRARY_2026_08_03_FIXTURE.provenance == "constructedFixture"
+
+
+def test_full_official_class_type_pdf_shape_count_and_samples() -> None:
+    source_path = os.environ.get("REFSPEC_FERC_CLASS_TYPES_2025_PDF_PATH")
+    if source_path is None:
+        pytest.skip("full official FERC class/type PDF is not materialized")
+
+    capture = ferc.parse_ferc_class_type_pdf(Path(source_path).read_bytes())
+
+    assert capture.source_url == ferc.FERC_CLASS_TYPE_PDF_URL
+    assert capture.source_sha256 == ferc.FERC_CLASS_TYPE_PDF_SHA256
+    assert capture.source_byte_length == 193_934
+    assert capture.page_count == 7
+    assert len(capture.rows) == 235
+    assert sum(row.category == "Issuance" for row in capture.rows) == 54
+    assert sum(row.category == "Submittal" for row in capture.rows) == 181
+    assert capture.rows[0].text.endswith(
+        "ALJ Initial Decision/Certification of Initial Decision and Record"
+    )
+    assert capture.rows[-1].text.endswith("Form 552 ‐ Annual Report of Natural Gas Transactions")
+
+
+def test_full_official_docket_prefix_pdf_shape_count_and_samples() -> None:
+    source_path = os.environ.get("REFSPEC_FERC_DOCKET_PREFIX_2025_PDF_PATH")
+    if source_path is None:
+        pytest.skip("full official FERC docket-prefix PDF is not materialized")
+
+    capture = ferc.parse_ferc_docket_prefix_pdf(Path(source_path).read_bytes())
+
+    assert capture.source_url == ferc.FERC_DOCKET_PREFIX_PDF_URL
+    assert capture.source_sha256 == ferc.FERC_DOCKET_PREFIX_PDF_SHA256
+    assert capture.source_byte_length == 282_729
+    assert capture.page_count == 6
+    assert len(capture.rows) == 95
+    assert sum(row.status == "active" for row in capture.rows) == 77
+    assert sum(row.status == "discontinued" for row in capture.rows) == 18
+    assert capture.rows[0] == ferc.FercPublishedDocketPrefixRow(
+        status="active",
+        prefix="AC",
+        library="Gen",
+        definition="Requests for Approval by Chief Accountant",
+    )
+    assert capture.rows[-1].prefix == "TA"
+    assert capture.rows[-1].definition == "Annual Tracking Filings of Interstate Natural Gas Pipelines"
+
+
+def test_official_search_help_sector_security_shape_and_samples() -> None:
+    source_path = os.environ.get("REFSPEC_FERC_GENERAL_SEARCH_HELP_PATH")
+    if source_path is None:
+        pytest.skip("official FERC general-search help is not materialized")
+
+    capture = ferc.parse_ferc_general_search_help(Path(source_path).read_bytes())
+
+    assert capture.source_url == ferc.FERC_GENERAL_SEARCH_HELP_URL
+    assert capture.source_sha256 == ferc.FERC_GENERAL_SEARCH_HELP_SHA256
+    assert capture.source_byte_length == 7_447
+    assert capture.sectors == ("Electric", "Natural Gas", "Oil", "Rulemaking", "Hydro", "General")
+    assert capture.security_levels == ("CEII", "Protected", "Priviledged", "Public")
+
+
+def test_official_accessibility_help_accession_formats() -> None:
+    source_path = os.environ.get("REFSPEC_FERC_ACCESSIBILITY_TIPS_PATH")
+    if source_path is None:
+        pytest.skip("official FERC accessibility guide is not materialized")
+
+    capture = ferc.parse_ferc_accessibility_tips(Path(source_path).read_bytes())
+
+    assert capture.source_url == ferc.FERC_ACCESSIBILITY_TIPS_URL
+    assert capture.source_sha256 == ferc.FERC_ACCESSIBILITY_TIPS_SHA256
+    assert capture.source_byte_length == 39_466
+    assert capture.accession_formats == ("19940824-0052", "19940824*")
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
