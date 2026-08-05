@@ -21,6 +21,7 @@ from refspec.atlas.qualification_jobs import (
     VocabularyAtlasV1QualificationJobsError,
     prepare_vocabulary_atlas_v1_qualification_jobs,
     read_vocabulary_atlas_v1_qualification_jobs,
+    verify_prepared_vocabulary_atlas_v1_qualification_jobs,
 )
 from refspec.storage import canonical_json
 
@@ -42,20 +43,29 @@ def build_parser() -> argparse.ArgumentParser:
         dest="jobs",
         help="prepare one named job; repeat to prepare several (default: all six)",
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--check",
         action="store_true",
         help="verify the canonical manifest and all five source digests without writing outputs",
+    )
+    mode.add_argument(
+        "--verify-prepared",
+        action="store_true",
+        help="verify all six existing extraction records and production catalogs without writing outputs",
     )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.jobs and (args.check or args.verify_prepared):
+        parser.error("--job applies only when preparing catalogs")
     try:
         manifest = read_vocabulary_atlas_v1_qualification_jobs(args.manifest)
-        verified = manifest.verify_source_manifests(ROOT)
         if args.check:
+            verified = manifest.verify_source_manifests(ROOT)
             print(
                 canonical_json(
                     {
@@ -70,11 +80,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             )
             return 0
-        result = prepare_vocabulary_atlas_v1_qualification_jobs(
-            manifest,
-            repository_root=ROOT,
-            job_keys=args.jobs,
-        )
+        if args.verify_prepared:
+            result = verify_prepared_vocabulary_atlas_v1_qualification_jobs(
+                manifest,
+                repository_root=ROOT,
+            )
+        else:
+            result = prepare_vocabulary_atlas_v1_qualification_jobs(
+                manifest,
+                repository_root=ROOT,
+                job_keys=args.jobs,
+            )
     except VocabularyAtlasV1QualificationJobsError as error:
         print(str(error), file=sys.stderr)
         return 2

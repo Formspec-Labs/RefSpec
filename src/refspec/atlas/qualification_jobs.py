@@ -32,6 +32,7 @@ from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
     require_aware_datetime_text,
 )
+from refspec.storage import canonical_json
 
 VOCABULARY_ATLAS_V1_QUALIFICATION_JOBS_TYPE = "VocabularyAtlasV1ProductionQualificationJobs"
 VOCABULARY_ATLAS_V1_QUALIFICATION_JOBS_VERSION = "1.0"
@@ -438,15 +439,24 @@ def _output_path(root: Path, relative: str, *, label: str) -> Path:
     return candidate
 
 
-def _read_preparation_output(root: Path, relative: str, *, label: str) -> tuple[Path, Mapping[str, Any]]:
+def _read_preparation_output(
+    root: Path,
+    relative: str,
+    *,
+    label: str,
+) -> tuple[Path, bytes, Mapping[str, Any]]:
     path = _existing_file(root, relative, label=label)
     payload = path.read_bytes()
     value = _decode_json(payload, label)
     if not isinstance(value, Mapping):
         raise VocabularyAtlasV1QualificationJobsError(f"{label} must be an object")
+    if (canonical_json(value) + "\n").encode("utf-8") != payload:
+        raise VocabularyAtlasV1QualificationJobsError(
+            f"{label} must use canonical JSON bytes"
+        )
     if path.read_bytes() != payload:
         raise VocabularyAtlasV1QualificationJobsError(f"{label} changed while verifying")
-    return path, value
+    return path, payload, value
 
 
 def _verify_extracted_release(
@@ -457,7 +467,7 @@ def _verify_extracted_release(
     source: Mapping[str, str],
 ) -> None:
     filename = CONCEPTS_SOURCE if role == "source" else CONCEPTS_TARGET
-    _path, record = _read_preparation_output(
+    _path, _payload, record = _read_preparation_output(
         root,
         f"{output_relative}/{filename}",
         label=f"qualification job extracted {role}",
@@ -487,7 +497,7 @@ def _verify_candidate_catalog(
     source: Mapping[str, str],
     target: Mapping[str, str],
 ) -> Mapping[str, Any]:
-    path, record = _read_preparation_output(
+    _path, payload, record = _read_preparation_output(
         root,
         f"{job['outputPath']}/{CANDIDATES}",
         label=f"qualification job {job['key']} candidate catalog",
@@ -523,7 +533,7 @@ def _verify_candidate_catalog(
         )
     return {
         "path": f"{job['outputPath']}/{CANDIDATES}",
-        "fileDigest": sha256_digest(path.read_bytes()),
+        "fileDigest": sha256_digest(payload),
         "total": total,
     }
 
@@ -648,6 +658,61 @@ def _selected_jobs(
     return tuple(by_key[key] for key in requested)
 
 
+def verify_prepared_vocabulary_atlas_v1_qualification_jobs(
+    manifest: VocabularyAtlasV1QualificationJobs,
+    *,
+    repository_root: Path | str,
+) -> Mapping[str, Any]:
+    """Reopen all six prepared catalogs without writing or calling a provider."""
+
+    if not isinstance(manifest, VocabularyAtlasV1QualificationJobs):
+        raise VocabularyAtlasV1QualificationJobsError(
+            "prepared-catalog verification requires a verified job manifest"
+        )
+    root = _resolve_root(repository_root)
+    source_paths = manifest.verify_source_manifests(root)
+    sources = {source["key"]: source for source in manifest.sources}
+    catalogs: list[Mapping[str, Any]] = []
+    for job in manifest.jobs:
+        source = sources[job["sourceKey"]]
+        target = sources[job["targetKey"]]
+        _verify_extracted_release(
+            root,
+            output_relative=job["outputPath"],
+            role="source",
+            source=source,
+        )
+        _verify_extracted_release(
+            root,
+            output_relative=job["outputPath"],
+            role="target",
+            source=target,
+        )
+        catalogs.append(
+            _verify_candidate_catalog(
+                root,
+                manifest=manifest,
+                job=job,
+                source=source,
+                target=target,
+            )
+        )
+    return {
+        "type": "VocabularyAtlasV1PreparedQualificationVerification",
+        "schemaVersion": "1.0",
+        "qualificationJobs": {
+            "id": manifest.identifier,
+            "recordDigest": manifest.record_digest,
+            "fileDigest": manifest.file_digest,
+        },
+        "providerCalls": False,
+        "sourceCount": len(source_paths),
+        "jobCount": len(catalogs),
+        "candidateCatalogs": catalogs,
+        "aggregateTotal": sum(cast(int, catalog["total"]) for catalog in catalogs),
+    }
+
+
 def prepare_vocabulary_atlas_v1_qualification_jobs(
     manifest: VocabularyAtlasV1QualificationJobs,
     *,
@@ -770,4 +835,5 @@ __all__ = [
     "prepare_vocabulary_atlas_v1_qualification_jobs",
     "read_vocabulary_atlas_v1_qualification_jobs",
     "seal_vocabulary_atlas_v1_qualification_jobs",
+    "verify_prepared_vocabulary_atlas_v1_qualification_jobs",
 ]

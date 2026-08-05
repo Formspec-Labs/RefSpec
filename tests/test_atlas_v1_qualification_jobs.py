@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -22,12 +24,14 @@ from refspec.atlas.qualification_jobs import (
     prepare_vocabulary_atlas_v1_qualification_jobs,
     read_vocabulary_atlas_v1_qualification_jobs,
     seal_vocabulary_atlas_v1_qualification_jobs,
+    verify_prepared_vocabulary_atlas_v1_qualification_jobs,
 )
 from refspec.registry.infrastructure.artifact_serialization import plain_json, sha256_digest
 from refspec.storage import canonical_json
 
 ROOT = Path(__file__).resolve().parents[1]
 TRACKED_MANIFEST = ROOT / "portfolio/vocabulary-atlas-v1-production-qualification-jobs.json"
+PREPARATION_TOOL = ROOT / "tools/prepare_vocabulary_atlas_v1_qualification.py"
 GENERATED_AT = "2026-08-04T22:00:00Z"
 
 EXACT_SOURCE_PINS = {
@@ -312,6 +316,75 @@ def test_preparation_can_select_one_exact_job(tmp_path: Path) -> None:
     assert result["jobs"][0]["outputPath"] == f"output/qualification/{selected}"
     assert result["jobs"][0]["stages"] == ["extract", "generate"]
     assert result["jobs"][0]["candidateCatalog"]["total"] == 1
+
+
+def test_read_only_verification_reopens_all_six_prepared_catalogs(tmp_path: Path) -> None:
+    manifest = _fixture_manifest(tmp_path)
+    _fixture_runner(tmp_path)
+    prepare_vocabulary_atlas_v1_qualification_jobs(
+        manifest,
+        repository_root=tmp_path,
+        command_runner=_successful_runner([]),
+    )
+    output_root = tmp_path / "output"
+    before = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in output_root.rglob("*")
+        if path.is_file()
+    }
+
+    result = verify_prepared_vocabulary_atlas_v1_qualification_jobs(
+        manifest,
+        repository_root=tmp_path,
+    )
+
+    after = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in output_root.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
+    assert result["providerCalls"] is False
+    assert result["sourceCount"] == 5
+    assert result["jobCount"] == 6
+    assert result["aggregateTotal"] == 6
+    assert len(result["candidateCatalogs"]) == 6
+    assert all(set(row) == {"path", "fileDigest", "total"} for row in result["candidateCatalogs"])
+    assert all(row["total"] == 1 for row in result["candidateCatalogs"])
+
+
+def test_read_only_verification_refuses_a_tampered_candidate_catalog(tmp_path: Path) -> None:
+    manifest = _fixture_manifest(tmp_path)
+    _fixture_runner(tmp_path)
+    prepare_vocabulary_atlas_v1_qualification_jobs(
+        manifest,
+        repository_root=tmp_path,
+        command_runner=_successful_runner([]),
+    )
+    first = manifest.jobs[0]
+    catalog_path = tmp_path / first["outputPath"] / "candidates.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog["coverageMode"] = "pilotSlice"
+    catalog_path.write_text(canonical_json(catalog) + "\n", encoding="utf-8")
+
+    with pytest.raises(VocabularyAtlasV1QualificationJobsError, match="differs from its production plan"):
+        verify_prepared_vocabulary_atlas_v1_qualification_jobs(
+            manifest,
+            repository_root=tmp_path,
+        )
+
+
+def test_check_and_verify_prepared_cli_modes_are_mutually_exclusive() -> None:
+    completed = subprocess.run(
+        [sys.executable, str(PREPARATION_TOOL), "--check", "--verify-prepared"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert completed.returncode == 2
+    assert "not allowed with argument" in completed.stderr
 
 
 def test_preparation_verifies_all_source_pins_before_running_a_command(tmp_path: Path) -> None:
