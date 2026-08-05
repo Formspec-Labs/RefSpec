@@ -4,6 +4,25 @@
 
 > **Status:** Implemented Atlas 2.0 baseline; product adoption remains separate
 >
+> **Reconciled (2026-08-04):** The
+> [release definition and cross-vocabulary mapping plan](vocabulary-atlas-release-definition-and-cross-vocabulary-mapping-plan-2026-08-04.md)
+> is approved for implementation and governs v1 scope, build order, mapping
+> counts, and expansion priority. Where the two documents differed, that plan
+> wins and this one is amended: **publication is a third named scope** beside
+> bench and product (§8), so ELSST and ICPSR ship in published v1 without
+> product activation (§3); **`relatedMatch` is a fully typed emitted
+> assertion** at the `searchOnly` ceiling with no default traversal (§6); the
+> **564/582 mapping counts** are reconciled to one
+> arithmetic (§7); v1's **hierarchy-aware production runs** provide comparative
+> evidence but do not replace a controlled A/B (§7); **batch scoring** and a
+> **production candidate policy** join the qualification workstream (§7); the v1 pair schedule is a
+> stated exception to hub-and-spoke (§5); and the **content order is
+> federal-source-first**, not library-vocabulary-first (§9). Two limits this
+> document owns are carried *into* the release plan rather than dropped: the
+> unenforced validator independence of §7 item 1 and the undecided ELSST
+> schema-set-digest question of §9. Structure, rules, and evidence machinery are
+> unchanged.
+>
 > **Revision (2026-08-04):** The ring model is restated. Rings name
 > semantic kinds — subject, entity, value, and legalIdentity — never
 > eligibility. The former ring 0/1/2 become subject-ring participation
@@ -41,6 +60,11 @@
 > classes, CRS identity ruling, and separate-publication boundary; its
 > verified evidence and unaffected decisions remain useful.
 >
+> **Release plan:** [Release definition and cross-vocabulary mapping plan](vocabulary-atlas-release-definition-and-cross-vocabulary-mapping-plan-2026-08-04.md) —
+> what makes a build a citable release, the complete v1 scope, and the build
+> order. This proposal supplies the format and rules; that plan supplies the
+> scope and schedule.
+>
 > **Builds on:** [Atlas binding 2.0](../bindings/atlas/2.0/README.md) ·
 > [Source Vocabulary Catalog](source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) ·
 > [Source and Document Type Matrix](source-document-type-matrix-2026-07-28.md) ·
@@ -66,11 +90,12 @@ As of the 2026-08-03 two-crosswalk build, the atlas held 233,999 quads, 730
 mapping candidates, 1,459 machine validations, and 240 qualified
 `searchOnly` mappings (121 FR×ELSST + 119 FR×ICPSR); a same-day
 three-crosswalk build added an experimental ELSST×ICPSR bridge (146
-qualified; 386 total); next-day v2 re-runs of all three pairs qualified
-564 typed mappings into a v2 bench build (§7). Counts in this document
-are dated snapshots of a moving artifact set, never a baseline — the
-authoritative identity and digests for any build live in its own
-manifest.
+qualified; 386 total); next-day v2 re-runs of all three pairs agreed 651
+typed relations, of which 564 emitted mappings into a v2 bench build
+(§7). Counts in this document are dated snapshots of a moving artifact
+set, never a baseline — the authoritative identity and digests for any
+build live in its own manifest, and the release plan's §12 is the
+authority on which subset enters v1.
 
 The registry now contains 75 substantive modules — 54 source modules plus
 21 adapters, shared infrastructure modules, managed-release builders, and
@@ -296,8 +321,8 @@ what their readers already declare (`searchExpansion`, `mappingReference`).
 | FAST topical | `fast_topical` | Same register via LCSH derivation; publisher-asserted edges (§6) |
 | EuroVoc | `eurovoc_thesaurus` | International/EU policy register; reader today refuses any use but `mappingReference` — its search-expansion use waits on the §3 enum extension and index reconciliation |
 | AGROVOC | `agrovoc_thesaurus` | Multilingual agriculture register; crosswalk for NALT |
-| ELSST (R6) | `elsst_*` (in atlas builds) | European social-science register. Target state: **bench** — the format's proving vocabulary and the ELSST×ICPSR experiment substrate, not a product bridge; it enters a product scope only by passing the §9 ladder like any promotion |
-| ICPSR subject thesaurus | `icpsr_*` (in atlas builds) | US social-science research register — the public/research phrasing of policy topics; `developmentOnly` marker republished (REF-009). Target state: re-cut as a complete verified-subset release (§9), then a product-bridge candidate **if** the §10 query-side evaluation earns it; the 119 qualified mappings are bench evidence until then |
+| ELSST (R6) | `elsst_*` (in atlas builds) | European social-science register, and the format's proving vocabulary. Target state: **published v1 member** (release plan §11) — 3,470 concepts and 12,482 native relations enter the citable release as vocabulary facts. Publication is not product activation: it enters a *product* scope only by passing the §9 ladder like any promotion |
+| ICPSR subject thesaurus | `icpsr_*` (in atlas builds) | US social-science research register — the public/research phrasing of policy topics; `developmentOnly` marker republished (REF-009). Target state: **published v1 member**, re-cut as a complete verified-subset release (§9) — that re-cut and an affirmative rights disposition in the publication decision are v1 prerequisites, not follow-on work. A product-bridge candidate **if** the §10 query-side evaluation earns it; the qualified mappings are published evidence, not product permission, until then |
 | DOE OSTI, EPA Enterprise Vocabulary | `doe_osti_thesaurus`, `epa_enterprise_vocabulary` | Deferred until release/license verified |
 | GCMD Science Keywords, NASA Technology Taxonomy | `gcmd_science_keywords`, `nasa_technology_taxonomy` | Mapping/deterministic only per catalog |
 
@@ -361,13 +386,31 @@ evidence against a subject result, but it never becomes a subject candidate or
 mapping assertion. The shared foundation makes the records comparable without
 collapsing their relation vocabularies.
 
-A one-page **atlas index** (an extension of `portfolio/resource-catalog`)
+**Cross-ring label mapping stays prohibited; one typed cross-ring ontology link
+is defined.** An agency entity and a subject named after that agency remain
+different concepts, and no `skos:` predicate ever crosses a ring boundary. The
+single exception the release plan defines (its §5.1) is a
+legalIdentity→subject link — a CFR title, chapter, or part carrying
+`hasIndexedSubject` to a subject concept based on direct publisher evidence
+from the official CFR List of Subjects. It is not a `broadMatch`, does not make
+the CFR unit a subject, and authorizes no tagging or expansion by itself. Any further
+cross-ring link needs the same treatment before it exists: a named source that
+directly states the relation, a defined direction, and a defined proof.
+
+A one-page **atlas index** (`portfolio/atlas-index-v0.json`, an extension of
+`portfolio/resource-catalog`)
 names every registry source, its semantic ring, its subject participation
-class where one applies, its intended uses, and its promotion status. The
+class where one applies, its intended uses, and its promotion status. It
+carries 87 source/ring rows produced by 54 source modules over 72 distinct
+resource identifiers — subject 24, entity 16, value 40, legalIdentity 7 — plus
+21 implementation modules that take no ring. The **row**, not the resource, is
+the unit a build declares: a resource may appear in more than one ring, and
+more than once within a ring under different facets. The
 index prevents "the atlas" from silently meaning "everything." Publication
 destination is derivable from ring and participation, and source assignment
 is an intended use, never a destination. The ring tables in this section are
-illustrative; the index is the exhaustive assignment of record. Index
+illustrative; the index is the exhaustive assignment of record, and the
+release plan's §10 enumerates every row it declares. Index
 versions are immutable: a failed experiment
 produces a new version marking the row `deferred` or `rejected` with the
 evaluation attached — history is never deleted. Row status draws from a
@@ -468,13 +511,22 @@ Qualification runs are scheduled on two spokes only:
   from it and published LCSH↔MeSH alignments exist — so one hub spoke buys
   transitive discovery without O(N²) direct pairs.
 
-The product's emit spoke never requires bridge × bridge qualification, and
-none is scheduled for it — but experiments may run any pair, and at pilot
-economics ($1.01 and ~730 calls per 365-candidate pair) cheap ones should:
-the first bridge-to-bridge run (ELSST×ICPSR, 146 qualified) is exactly that
-kind of experiment, probing whether register bridges interconnect. The
+The product's emit spoke never requires bridge × bridge qualification. The
 binding constraint on scheduled scale-out is gate quality, not budget,
 which is why §7 precedes it.
+
+**Hub-and-spoke is a scale rule, and v1 is a bounded exception.** The topology
+exists to stop O(N²) growth: thirty sources would be 435 pairs. V1 names six
+releases, five in the subject ring, and schedules six selected subject pairs
+directly, including ELSST↔ICPSR and CRS Legislative Subject Terms↔CRS Policy
+Areas (release plan §11). Six runs are affordable and preserve those high-value
+direct comparisons, even though a Federal Register hub would require only four
+spokes. The first ELSST×ICPSR run has therefore graduated from experiment to a
+production pair. The scale rule binds from expansion onward: every specialist
+or bridge source added
+after v1 needs a **direct** spoke to the Federal Register core before a product
+expands through it (release plan §13.2), and the LCSH hub stays optional
+(§13.4).
 
 Transitive claims across the hub (`A→LCSH→B`) are never materialized as
 mappings; they may generate disposable *candidates* for direct qualification.
@@ -482,8 +534,8 @@ Ring-scoped label discovery and direct `skos:relatedMatch` assertions may also
 inform candidate generation, but neither a hint nor a chain becomes a mapping
 automatically. No relation algebra composes chains into assertions
 (`broadMatch` ∘ `broadMatch` is a candidate generator, not a `broadMatch`). A
-unanimous Crosswalk v2 `related` verdict may support an ordinary
-`skos:relatedMatch` assertion with closed evidence. A nonqualifying result
+unanimous non-control Crosswalk v2 `related` verdict supports an ordinary
+`skos:relatedMatch` assertion with closed evidence (§6). A nonqualifying result
 remains only in its pinned Crosswalk source; it never becomes an atlas
 annotation.
 
@@ -559,7 +611,8 @@ of verdicts from every supporting validation — universal, not
 existential, which is what keeps a third machine deterministic — and
 emits at the weakest claim any machine made: `{same}` → `exactMatch`;
 `{same, near_same}` or `{near_same}` → `closeMatch`; a single directional
-set → its directional predicate; any other set refuses, exactly as a v1
+set → its directional predicate; `{related}` → `relatedMatch`; any other set
+refuses, exactly as a v1
 disagreement. No other downgrades: `near_same` + `target_is_broader` is a
 real dispute about direction-safety, and downgrading it to `relatedMatch`
 would assert a third claim neither machine made. Blindness has two
@@ -574,9 +627,9 @@ direction or association and the rest predict nothing.
 **Discovery and assertion remain separate.** Ring-scoped label search,
 source or publisher links, and candidate generators produce disposable hints
 or pinned proof inputs. Only a closed `MappingAssertion` supported by
-admissible `EvidenceAssertion` records enters `crossRelease`. A unanimous
-Crosswalk v2 `related` verdict may support `skos:relatedMatch`; rejected,
-abstained, or disagreeing candidates remain outside the atlas. Atlas 2.0
+admissible `EvidenceAssertion` records enters `crossRelease`. Rejected,
+abstained, disagreeing, and control-arm candidates remain outside the
+atlas. Atlas 2.0
 defines no label-cluster record, `adjudicatedRelation` annotation, analysis
 graph, or consumer-read-closure policy. Ring and module views inherit closed
 assertions from their verified parent; products apply their own policy.
@@ -595,6 +648,16 @@ and no new eligibility vocabulary is minted. Relation composition across
 mappings (`broadMatch` ∘ `broadMatch`, or any chain through the hub)
 stays prohibited exactly as §5 prohibits untyped chains: chains may
 generate candidates, never assertions.
+
+**`relatedMatch` is a first-class emitted assertion.** A unanimous non-control
+`{related}` group emits a typed `skos:relatedMatch` `MappingAssertion` under the
+same `searchOnly` evidence ceiling as every other machine-qualified relation.
+It is filterable, inspectable, and downloadable like any assertion, and it
+grants **no default traversal** — associative links are exactly the class where
+control-arm candidates concentrate (§7), so a consumer that wants to traverse
+them opts in through its own retrieval policy. Nothing else about the ceiling
+or the lattice changes: `relatedMatch` is the weakest claim the lattice can
+emit, not a second-class annotation.
 
 **Proof kind is derived, never supplied.** The subject adapter derives
 `crosswalkV2IndependentValidations` for `machineQualified` evidence and
@@ -634,11 +697,28 @@ candidate produced under another protocol.
 All three pairs re-ran under v2 on 2026-08-04 through the batch path (~$1.28
 total). FR×ELSST produced 185 mappings over 365 candidates (29 `exactMatch`, 81
 `closeMatch`, 25 `broadMatch`, and 50 `narrowMatch`) plus 29 unanimous
-`related` groups retained in the run evidence; the current proof adapter
-derives `skos:relatedMatch` when such a group is selected as qualifying, never
-an `adjudicatedRelation` annotation. FR×ICPSR produced 196 mappings, and
+`related` groups, which that bench build held in run evidence rather than
+emitting. FR×ICPSR produced 196 mappings, and
 ELSST×ICPSR produced 183. The dated bench evidence therefore carries **564
 typed `searchOnly` mappings** over 1,095 candidates and 2,190 validations.
+
+**Two counts, one arithmetic.** This section and the release plan's §12 measure
+different subsets of the same three runs, and neither figure is a correction of
+the other:
+
+| Figure | Basis | Value |
+| --- | --- | ---: |
+| Agreed relations | every unanimous group, all five predicates, controls included | 651 |
+| — of which `related` | held in run evidence by that bench build, not emitted | 87 |
+| **Bench-emitted mappings (this §7)** | 651 − 87 `related`; **still contains 17 control-arm rows** | **564** |
+| — of which control-arm | 9 `broadMatch` + 8 `narrowMatch` | 17 |
+| **V1 assertion baseline (release plan §12)** | 651 − 69 control-arm rows, all five predicates | **582** |
+| Overlap of the two | non-control, non-`related` | 547 |
+
+The 564 figure is a build measurement and carries control-arm rows because the
+build emitted them; the 582 figure is the release baseline and carries none,
+because the release plan strips every control candidate to qualification
+evidence. A release never publishes the 564 set.
 Cross-version comparison
 uses `qualifiedAsSubstitutable` (`exactMatch` + `closeMatch` only):
 v2's `qualified` includes directional relations and is not comparable
@@ -646,11 +726,22 @@ to v1's. The redefined control floor — the sibling distractor is a
 relation-discrimination probe; no distractor may earn
 `same`/`near_same` — held in all three runs, with the receipts carrying
 the per-class `qualifiedAsSubstitutable` counter that operationalizes
-it. **One watch item the floor does not cover:** distractors now
+it. **Two watch items the floor does not cover.** First, distractors now
 qualify directionally (~5 per run), and a random negative control
-earned a directional mapping in two of the three runs. That is evidence
+earned a directional mapping in two of the three runs — 17 of the 211
+directional agreements, 8.1%. That is evidence
 the directional bar needs its own scrutiny — alongside item 2's
 hierarchy arm — before directional mappings are treated as settled.
+Second, and larger: **52 of the 87 `related` agreements are control-arm
+rows — 60% of the class.** A negative control or sibling distractor is
+genuinely "associated but neither equivalent nor hierarchically
+ordered," so `related` is where an honest judge parks a pair it cannot
+otherwise relate, and the class therefore measures discrimination far
+more weakly than any other. This is the evidential reason
+`relatedMatch` earns no default traversal (§6; release plan §5), not a
+stylistic preference — and the reason the release plan's §15 check 6
+requires the published assertion set to contain no control-arm candidate
+at all.
 Qualification also runs through provider batch APIs at roughly half
 price: request bodies and digests byte-identical to the serial path,
 collected receipts replicating serial fields exactly, spend caps enforced
@@ -660,8 +751,10 @@ re-asks.
 
 The items below are the remaining qualification workstream — ordered
 prerequisites drawn from the pilots' findings before the emit spoke runs at
-registry scale. Atlas 2.0 solves the distribution-shape items; it does not
-pretend to solve validator independence or the hierarchy experiment:
+registry scale. Atlas 2.0 solves the distribution-shape items, and v1
+instruments the hierarchy arm as a by-product of its own runs; validator
+independence remains evidenced rather than enforced, and this document does
+not pretend otherwise:
 
 1. **Provider binding.** `endpointHost` sealing is evidence, not
    enforcement; the executed attack (two cosmetic families, one endpoint)
@@ -680,18 +773,38 @@ pretend to solve validator independence or the hierarchy experiment:
    signatures then prove exactly this much: the receipts were issued by
    two separately trusted validator keys in distinct independence groups.
    Until that verifier exists, the shared foundation accepts no signed proof
-   kind.
-2. **Hierarchy arm — upgraded from experiment to prerequisite.** Protocol
-   v2 emits *directional* verdicts (`target_is_broader`,
+   kind. **V1 does not clear this item and does not claim to.** At six
+   releases the 30-source threshold is far off, so v1 ships with independence
+   groups pinned as *evidence* — provider, model identifier, endpoint, and
+   group per call — and no enforcement. No v1 acceptance check may be read as
+   proving validator independence.
+2. **Hierarchy-aware comparative evidence — produced by v1; controlled A/B
+   still open.** Protocol
+   v2 emitted *directional* verdicts (`target_is_broader`,
    `target_is_narrower`) on sealed inputs that carry no hierarchy — the
-   exact input insufficiency the pilot flagged. Until the A/B runs
-   (label-only input vs input carrying ancestor labels, never a stated
-   shared ancestor, same candidate slice), direction-typed emissions are
-   scored as a separately validated class in every evaluation and do not
-   feed the frontier's hierarchy-context rule.
-3. **Honest candidate classes.** Add same-vocabulary distractors (currently
-   inexpressible) and `ruleGenerated` provenance; keep negative-control
-   classes mandatory in every run.
+   exact input insufficiency the pilot flagged. The release plan addresses
+   that missing context in production: v1 re-runs FR↔ELSST, FR↔ICPSR, and
+   ELSST↔ICPSR with **balanced native parent-and-child context on both
+   sides**, never naming a shared parent or control class (release plan
+   §7.1), and **preserves both** the sealed label-only assertions and the new
+   hierarchy-aware ones rather than overwriting the disagreement (§11). That
+   comparison is useful evidence, but the production reruns also change
+   candidate coverage, introduce scoring, and use production catalogs. They do
+   not isolate hierarchy context. A causal claim still requires an
+   otherwise-identical paired run over the same candidate set. Until the
+   comparative evidence is measured and that controlled question is resolved,
+   direction-typed emissions remain a separately scored class in every
+   evaluation and do not feed the frontier's hierarchy-context rule (§12
+   question 2).
+3. **Honest candidate classes and production coverage.** Add same-vocabulary
+   distractors (currently inexpressible) and `ruleGenerated` provenance; keep
+   negative-control classes mandatory in every run. The 365-candidate pair
+   size was a pilot cap — `--max-candidates` over a stratified subset — and
+   never defined release coverage. Production runs qualify the **complete
+   candidate catalog** produced by the release's deterministic blocking
+   rules, and the receipt reports generated, scored, judged, abstained,
+   rejected, controlled, and admitted counts so no candidate disappears
+   silently (release plan §7.1, §15 check 5).
 4. **Un-truncate sealed reasons — implemented.** Crosswalk v2 now preserves
    complete sealed reasons and verifies them on reopen.
 5. **Consumer/format lockstep — implemented at the RefSpec file boundary.**
@@ -699,6 +812,14 @@ pretend to solve validator independence or the hierarchy experiment:
    tests that refuse incomplete relation closure or an unrelated parent.
    Product integration must consume those published files; it does not revive
    an Atlas 1 reader.
+6. **Batch scoring.** An LLM **scorer** sits between candidate generation and
+   blind judging, ranking semantic plausibility, evidence sufficiency, and
+   likely direction to prioritize judging and widen recall (release plan §7.1
+   stage 3). Scores are candidate provenance and prioritization only: a score
+   never proves a mapping, never reaches a judge, and never gates a candidate
+   that meets the sealed production floor. The scorer may expand promising
+   neighborhoods, so its effect on the candidate set is additive and shows up
+   in the run receipt's generated-versus-judged accounting.
 
 ## 8. Topology and distribution: one canonical atlas, many projections
 
@@ -761,12 +882,27 @@ planes remain separate: the publication decision controls publication, the
 output profile controls enrichment, and the retrieval policy controls search
 traversal.
 
-**Bench and product scopes are named, never implied.** Every build to date
-is bench material. The first product-scoped canonical atlas contains the
-curated core plus whatever has passed the §9 ladder — today, nothing else.
-ELSST and ICPSR enter a product scope through the same gates as any
-promotion; membership in bench builds grandfathers nothing, and "in the
-atlas" without a scope qualifier means the bench.
+**Three scopes are named, never implied: bench, published, and product.**
+Earlier drafts named only two and so had no home for a citable release that
+grants no product permission. The release plan supplies the missing one.
+
+| Scope | What it is | What it authorizes |
+| --- | --- | --- |
+| **Bench** | A reproducible workbench build in `output/`. Format proving, experiments, pilot runs. | Nothing. No publication decision, no consumer. |
+| **Published** | A citable Atlas release under the release plan's Part A lineage — declared membership, every input digest-pinned, content-derived identity, an immutable publication decision. `v1.0.0-rc1` is the current milestone. | Citation, download, and reuse of **vocabulary facts**. Not tagging, not query expansion. |
+| **Product** | An exact release selected by a pinned `SubjectEmissionPolicy` and a matching active `OutputProfile`, or by a pinned retrieval policy. | The specific product action the naming policy grants. |
+
+Publication is a scope boundary, not a permission grant. This is why ELSST R6
+and ICPSR ship as full v1 members (release plan §11) while the §3 tables still
+withhold them from any product bridge: the release publishes their concepts,
+native relations, and qualified mappings as facts a consumer may read, and
+changes nothing about what the tagging product may emit. Adding a release
+without changing product policy must leave tagging and search behavior
+unchanged — the release plan's §15 check 12 tests exactly that.
+
+Entry to a **product** scope still runs the §9 ladder in full; membership in a
+bench or published build grandfathers nothing. "In the atlas" without a scope
+qualifier now means the published release, not the bench.
 
 ## 9. The promotion ladder
 
@@ -796,7 +932,14 @@ search use. Canonical and derived Atlas 2.0 distributions, generic queries,
 new-concept authoring receipts, publication decisions, and file-only static
 publication are also implemented.
 
-Content and product work proceeds in this order:
+Content and product work proceeds in this order. **The order is
+federal-source-first.** Earlier drafts ran CRS → MeSH → LCSH → FAST, which
+sequenced the library vocabularies before the federal ones and made the LCSH
+frontier a prerequisite for FAST. The release plan reverses that: the Federal
+Register Thesaurus is the subject core for US regulatory search, so the next
+mappings connect other *publisher* language to that core before any library
+bridge deepens (release plan §13.1). LCSH is demoted from staged hub to
+optional discovery aid (§13.4).
 
 1. **CRS Legislative Subject Terms + Policy Areas → source-scoped concept
    releases by semantic kind — implemented as evidence releases.** Publisher
@@ -810,21 +953,38 @@ Content and product work proceeds in this order:
    A named review may admit the existing CRS subject identities
    to the curated emit tier. Concept staging applies only when RefSpec authors
    a new concept (addendum B4).
-2. **MeSH descriptors → specialist pilot** (largest, best-governed specialist
-   module; activation evidence is plentiful in health-related sources).
-3. **LCSH topical frontier → bridge hub**, compiled with the §4 two-pass
-   build against the core plus MeSH.
-4. **FAST topical → bridge** via `publisherAsserted` derivation edges to the
-   LCSH frontier — the cheapest crosswalk in the whole plan; no model calls.
-   Prerequisite: the current `fast_topical` reader consumes CSV without
-   `sameAs` capture, while the derivation edges live in FAST's per-term RDF
-   (`schema:sameAs` → LCSH); the reader must ingest that form first.
-5. **GEMET, NALT Core, NASA, EuroVoc → specialist/bridge** as their license and
-   freshness gates clear.
-6. **DOE OSTI, EPA EV** stay deferred per catalog until verifiable releases
+2. **Publish v1** — the six exact releases and the complete sealed assertion
+   set, per the release plan's §14 build order. Everything below follows the
+   release; none of it delays it.
+3. **Federal source normalization → the FR Thesaurus core.**
+   `federal-register-api-topics` and `cfr-list-of-subjects` first, by
+   deterministic publisher-supported resolution before any model call, then
+   `cbo-cost-estimate-feed`, `gao-topics`, `lda-general-issue-codes`, and the
+   `grants-gov-status-codes` subject facet by batch scoring and blind judging
+   (release plan §13.1). The FR Topics API capture is already sealed at 7,767
+   rows with 1,428 uniquely resolvable `see_also` links.
+4. **CFR legal-identity ↔ subject bridge** — a pinned CFR List of Subjects
+   release, a matching point-in-time eCFR legal-identity release, and the
+   typed `hasIndexedSubject` bundle of §3 and release plan §5.1.
+5. **MeSH descriptors → specialist pilot** (largest, best-governed specialist
+   module; activation evidence is plentiful in health-related sources), then
+   GEMET, NALT Core, NASA, and EuroVoc as their license and freshness gates
+   clear. Each needs a **direct** spoke to the FR core, not a hub path.
+6. **FAST topical → bridge** via `publisherAsserted` derivation edges to LCSH
+   — the cheapest crosswalk in the plan; no model calls. Prerequisite: the
+   current `fast_topical` reader consumes CSV without `sameAs` capture, while
+   the derivation edges live in FAST's per-term RDF (`schema:sameAs` → LCSH);
+   the reader must ingest that form first. This no longer waits on a built
+   LCSH frontier — the edges are publisher facts either way.
+7. **LCSH topical frontier → optional discovery hub**, compiled with the §4
+   two-pass build if and when candidate-generation cost justifies it. Hub
+   paths never become mappings.
+8. **DOE OSTI, EPA EV** stay deferred per catalog until verifiable releases
    exist.
 
-Also folded into the ladder, because they block trust in what ships:
+Also folded into the ladder, because they block trust in what ships — and
+because ELSST R6 and ICPSR are now **v1 members**, the first two are v1 release
+gates rather than background cleanup:
 decide the ELSST schema-set-digest question — the defective pin's
 in-tree carrier (builder and test) was deleted in the registry
 restructure *without the decision being made*, the stored bundle now
@@ -925,12 +1085,25 @@ tests:
 
 ## 12. Open questions
 
-1. Should the hub spoke (×LCSH) run at all before two or three specialist
-   modules are in and the emit spoke is proven? Deferring it costs nothing
-   today.
-2. Frontier hierarchy-context depth (§4 rule 3): 1 step or 2? Decide with
-   the §7 hierarchy-arm experiment rather than by taste.
-3. Does `publisherAsserted` evidence require its own two-machine
-   verification pass, or is pinned source bytes sufficient? (Proposed:
-   pinned bytes suffice for `searchOnly`; anything stronger goes through
-   `humanReviewed`.)
+1. ~~Should the hub spoke (×LCSH) run at all before two or three specialist
+   modules are in and the emit spoke is proven?~~ **Answered — no.** The
+   release plan makes LCSH an optional discovery hub after v1 (§13.4) and
+   requires a direct FR-core spoke per source regardless (§13.2). Deferring
+   it costs nothing, as expected.
+2. Frontier hierarchy-context depth (§4 rule 3): 1 step or 2? **Still open.**
+   The v1 hierarchy-aware runs use *bounded native parents and children* on
+   both sides (release plan §7.1) and preserve the label-only baseline
+   alongside them. Their results provide operational evidence, but changes to
+   candidate coverage, scoring, and catalogs prevent a causal comparison. Run
+   otherwise-identical paired arms over one candidate set before choosing the
+   context depth; do not decide by taste.
+3. ~~Does `publisherAsserted` evidence require its own two-machine
+   verification pass, or is pinned source bytes sufficient?~~ **Answered as
+   proposed.** Pinned bytes suffice for `searchOnly`; anything stronger goes
+   through `humanReviewed`. The release plan's §13.3 adopts this — publisher
+   crosswalks outrank machine-generated candidates, are preserved as
+   `publisherAsserted` with their exact source editions, and never overwrite
+   another assertion.
+4. **New.** Does an `operationalSerializationProfile` digest ever belong in
+   release identity? The ELSST question in §9 is now a v1 release gate and
+   must be ruled on before any new builder repeats the pin.

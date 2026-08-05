@@ -7,6 +7,14 @@
 release must satisfy, and what RefSpec publishes for people and systems to
 search, filter, download, and reuse.
 
+**Format and rules:**
+[Design proposal](vocabulary-atlas-design-proposal-2026-08-03.md) ·
+[Addendum](vocabulary-atlas-design-proposal-addendum-2026-08-03.md). Those
+documents define the ring model, evidence classes, proof-adapter trust, the
+frontier rule, and the promotion ladder; this one defines scope, schedule, and
+release lineage. Both were reconciled to this plan on 2026-08-04. Three limits
+they own and this plan inherits are recorded in §16.
+
 ## Decision
 
 RefSpec publishes versioned vocabulary atlases. Each publication includes only
@@ -492,17 +500,38 @@ geography records, `uei-authority`, `cage-authority`, `fec-native-controls`,
 
 ## 11. Our Atlas v1
 
-Atlas v1 replaces the isolated single-source builds. It publishes every concept
-and native relation from the six exact releases available today.
+Atlas v1 replaces the isolated single-source builds. It targets every concept
+and native relation from six named source releases whose current bytes are
+available today. ICPSR still needs a v1 re-cut, and the ELSST identity question
+must close before either becomes an exact v1 input.
 
 | Exact release | Ring | V1 contents |
 | --- | --- | --- |
-| Federal Register Thesaurus 2025 | subject | 705 concepts and 1,463 native associative relations. The governed regulatory subject core. |
+| Federal Register Thesaurus 2025 | subject | 705 concepts, 1,451 native concept-to-concept associative relations, and complete accounting for all 1,463 source `Related` references. The governed regulatory subject core. |
 | CRS Legislative Subject Terms | subject | 565 concepts. |
 | CRS Policy Areas | subject | 32 concepts. |
 | CRS legislative organizations and places | entity | 478 entities. |
 | ELSST R6 | subject | 3,470 concepts and 12,482 native `broader`, `narrower`, and `related` assertions. |
 | ICPSR Subject Thesaurus | subject | Complete verified subset and native relations, re-cut under the exact v1 release. |
+
+The Federal Register source's 1,463 `Related` references comprise 1,451
+resolved `skos:related` concept links, 11 suggested open-term patterns, and one
+unresolved target label. V1 retains the 1,451 typed native links and preserves
+the other 12 source records with their status and source location; no source
+fact disappears and no unresolved label is promoted into a concept link.
+
+Two of these six carry a release-identity question that must close before
+publication, not after:
+
+- **ICPSR** currently projects its verified subset as *partial* membership, and
+  the Rulespec profile bars partial membership from backing a `ConceptMapping`
+  endpoint pin. The bundle already records
+  `membershipCompleteForVerifiedSubset: true`; the re-cut makes the projection
+  agree. Its republished `developmentOnly` marker is a source fact that the
+  publication decision must dispose of explicitly under §4.3.
+- **ELSST R6** carries the undecided `operationalSerializationProfile`
+  schema-set-digest question (design proposal §9). Rule on whether that digest
+  belongs in release identity before v1 seals, because v1 pins this release.
 
 Current sealed evidence provides a **582-assertion non-control baseline**: 121
 `exactMatch`, 232 `closeMatch`, 75 `broadMatch`, 119 `narrowMatch`, and 35
@@ -709,7 +738,11 @@ store the document occurrence.
    controls. Add every distinct non-control assertion admitted by the new runs,
    retain every new control, rejection, abstention, and disagreement as
    evidence, and produce Atlas 2.0 relation bundles for the final set.
-4. **Build the combined Atlas.** Include the six exact releases, every native
+4. **Close the two release-identity questions and build the combined Atlas.**
+   Re-cut ICPSR so its projection states complete membership for its verified
+   subset, and rule on whether an `operationalSerializationProfile` digest
+   belongs in ELSST's release identity (§11). Then include the six exact
+   releases, every native
    relation, every lifecycle fact, and the complete sealed cross-vocabulary
    assertion set in one canonical Atlas 2.0 distribution.
 5. **Build complete access paths.** Generate the indexes and explorer defined in
@@ -734,7 +767,10 @@ Atlas v1 is ready for public use when the Part B checks pass and:
    unavailable, or deliberately excluded, with a reason where applicable.
 2. The six included releases are complete within their declared scopes.
 3. Native-relation counts match each included release, including all 12,482
-   ELSST R6 hierarchy and associative assertions.
+   ELSST R6 hierarchy and associative assertions. Federal Register acceptance
+   separately reports 1,451 native concept links, 11 suggested open-term
+   patterns, and one unresolved target, reconciling all 1,463 source `Related`
+   references.
 4. The Atlas contains the complete 582-assertion baseline—121 `exactMatch`,
    232 `closeMatch`, 75 `broadMatch`, 119 `narrowMatch`, and 35
    `relatedMatch`—plus every distinct non-control assertion admitted by the six
@@ -761,5 +797,44 @@ Atlas v1 is ready for public use when the Part B checks pass and:
     release's reviewed one-edit typo cases.
 11. The complete explorer, indexes, filters, hierarchy views, and evidence views
     reproduce from the canonical Atlas and planning index.
-12. Adding a release without changing product policy leaves tagging and search
-   behavior unchanged.
+12. Adding a release without changing product policy leaves downstream document
+    tagging and document-search behavior unchanged. The Atlas explorer and
+    indexes expose the newly published vocabulary facts.
+
+## 16. Limits this release does not clear
+
+A release is trustworthy partly because it states what it does not establish.
+Three limits carry forward from the design proposal and addendum. None blocks
+v1; each bounds what a consumer may conclude from it.
+
+**16.1 Validator independence is evidenced, not enforced.** Each machine proof
+pins provider, model identifier, endpoint, sealed input digest, and
+independence group. Sealing an `endpointHost` is a record, not a guarantee: a
+producer running two cosmetically distinct model families against one endpoint
+still qualifies a mapping. Binding the provider identity to something the
+producer cannot freely choose needs signed validator attestations under an
+independently pinned authority policy, and that needs a Crosswalk schema
+revision v1 does not attempt (design proposal §7 item 1). The threshold that
+forces the work is registry scale — roughly 30 sources — and v1 has six. **No
+check in §8 or §15 may be read as proving that two validators were
+independent.** They prove the run recorded which group each call belonged to.
+
+**16.2 Direction-typed relations remain a separately scored class.** V1's
+hierarchy-aware runs supply the balanced parent-and-child context whose absence
+the pilot flagged, and preserving both the label-only baseline and the new
+result makes comparison possible (§11). The production reruns also change
+candidate coverage, scoring, and catalogs, so they do not isolate hierarchy
+context; a causal claim requires an otherwise-identical paired run over one
+candidate set. Until that question is measured, `broadMatch` and `narrowMatch`
+remain their own evaluation class. Control-arm evidence supports the caution:
+17 of 211 directional agreements in the baseline runs were control candidates,
+or 8.1%.
+
+**16.3 `relatedMatch` is the weakest evidenced class in the Atlas.** 52 of the
+87 `related` agreements in the baseline runs were control-arm rows — 60% of the
+class — because a negative control or sibling distractor genuinely is
+"associated but neither equivalent nor hierarchically ordered." The class
+therefore discriminates far more weakly than any other. V1 publishes
+`relatedMatch` as a full typed assertion with complete evidence and grants it
+**no default traversal** (§5). A consumer that wants to traverse associative
+links opts in through its own retrieval policy and owns that choice.

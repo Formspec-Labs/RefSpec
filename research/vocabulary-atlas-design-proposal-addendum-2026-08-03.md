@@ -4,6 +4,16 @@
 
 > **Status:** Implemented Atlas 2.0 boundary record; product adoption remains separate
 >
+> **Reconciled (2026-08-04):** Restated with the parent proposal against the
+> approved
+> [release definition and cross-vocabulary mapping plan](vocabulary-atlas-release-definition-and-cross-vocabulary-mapping-plan-2026-08-04.md).
+> Three entries here changed: v1's hierarchy-aware production runs now provide
+> evidence for **A3**, but a controlled A/B remains open; **B5's
+> entity-spine priority** moves behind federal subject normalization, though
+> the CRS entity release ships in v1 regardless; and **D5's module count** is
+> corrected from eighteen to twenty-one. A1 and A2 remain unrun experiments,
+> and the §B ownership assignments are unchanged.
+>
 > **Revision (2026-08-04):** Restated with the parent proposal: rings name
 > semantic kinds (subject, entity, value, and legalIdentity); the former
 > ring 0/1/2 are subject-ring participation classes (`core`, `specialist`,
@@ -56,11 +66,22 @@ cites the proposal as if these were established:
 | --- | --- | --- | --- |
 | A1 | Ring/facet separation improves tagging (ring-scoped candidate pools and subject participation policies) | Synthesis §14 gap 7: no facet-separated retrieval experiment exists; motivation only (GND benchmark's own admission, MeSH/EPA structural precedent) | Proposal §10: participation assignments authorize nothing; a per-source-family holdout supplies evidence for an exact product policy |
 | A2 | The mapping frontier's decoy value (keeping off-domain vocabulary in the index reduces wrong-concept emissions) | Synthesis §14 gap 1: the deletion ablation has never been published; CoRECT and DNB-AI support the two halves separately, not the combination | Proposal §10: frontier ablation against a frontier-less control; result recorded either way |
-| A3 | Hierarchy context in judge input improves mapping qualification | No literature either way; the pilot showed zero of 365 sealed inputs carried `broader` while the prompt asked a hierarchy question — and gate protocol v2 now emits *directional* verdicts on those same label-only inputs, so the stakes rose from experiment to prerequisite | Proposal §7.2: label-only vs ancestor-labels A/B on the same candidate slice decides it; until it runs, direction-typed emissions score as a separately validated class and stay out of frontier hierarchy context |
+| A3 | Hierarchy context in judge input improves mapping qualification | No literature either way; the pilot showed zero of 365 sealed inputs carried `broader` while the prompt asked a hierarchy question — and gate protocol v2 emits *directional* verdicts on those same label-only inputs, so the stakes rose from experiment to prerequisite | **Comparative evidence is now built into v1.** Release plan §7.1 gives judges balanced native parents and children on both sides, never naming a shared parent or control class; §11 preserves both the label-only baseline and the hierarchy-aware production result. The reruns also change candidate coverage, scoring, and catalogs, so they do not isolate hierarchy context. A causal claim still needs an otherwise-identical paired run over the same candidate set. Until then, direction-typed emissions remain separately scored and stay out of frontier hierarchy context |
+
+A3 therefore does not block publication, but its improvement claim remains
+unproven. V1 produces comparative evidence; the controlled paired run remains
+open. A1 and A2 also remain unrun.
 
 If any of these experiments comes back negative, the affected structure
 (participation classes, frontier context depth, judge input shape) is
 revisable without changing the atlas format itself.
+
+One further commitment belongs in this table's spirit even though it is a
+gap rather than an experiment: **validator independence is evidenced, not
+enforced** (parent §7 item 1). V1 pins provider, model identifier, endpoint,
+and independence group per call and stops there. Signed validator attestations
+need a Crosswalk schema revision that v1 does not attempt, and no v1
+acceptance check should be read as proving independence.
 
 ## B. Synthesis demands assigned to other layers
 
@@ -206,10 +227,16 @@ proofs without treating any path-backed object as a trusted interpreter.
   committees, providers, and substances with typed identifier sets; define
   merge, successor, and lifecycle rules; and register a trusted entity proof
   adapter. It cannot reuse the subject-only Crosswalk v2 proof adapter. The
-  source matrix's `T3-04` already anticipates this work. Priority: immediately
-  after B4, because every cross-document product feature
+  source matrix's `T3-04` already anticipates this work. **Priority, revised:**
+  the entity *ring* is not deferred — the CRS legislative organizations and
+  places release (478 entities) ships as a v1 member (release plan §11) — but
+  cross-source entity **links** follow federal subject normalization and the
+  CFR bridge rather than preceding them (release plan §13.5). The reason is
+  ordering, not value: every cross-document product feature
   (follow-the-company, follow-the-rule) runs through the spine or legal identity
-  graph.
+  graph, and those features need the subject core connected first. Entity links
+  also gate on identifiers or reviewed source evidence, which arrive on their
+  own publisher schedule rather than on ours.
 - **Legal identity graph — predicate floor implemented; source-backed edge
   design open.** CFR structure, statutes, RINs, docket identifiers, and bill
   identifiers exist as parsed fields. The next design must derive the existing
@@ -307,8 +334,11 @@ value-ring crosswalk reference. These physical placements all implement the
 shared foundation. The parent's tables remain illustrative; the atlas index
 is the exhaustive assignment of record.
 
-**D5 — Not sources.** Eighteen non-reader modules are shared
-infrastructure, adapters, managed-release builders, or packages,
+**D5 — Not sources.** Twenty-one non-reader modules are shared
+infrastructure, adapters, managed-release builders, or packages —
+10 `infrastructure/`, 5 `adapters/`, 2 `managed_releases/`, and 4 `packages/`,
+matching `implementationModuleCount` in the atlas index and completing the
+54 + 21 = 75 substantive total of §D. They are
 organized as subpackages since the registry restructure:
 `infrastructure/` (the shared models — `source_controlled_resource`,
 `managed_vocabulary_bundle`, `concept_domain_bridge`,
