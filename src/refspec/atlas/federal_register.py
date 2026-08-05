@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,6 +56,11 @@ FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI = (
 )
 
 _EXPECTED_CONCEPT_COUNT = 705
+_EXPECTED_RELATED_REFERENCE_COUNT = 1_463
+_EXPECTED_RESOLVED_RELATED_COUNT = 1_451
+_EXPECTED_SUGGESTED_RELATED_COUNT = 11
+_EXPECTED_UNRESOLVED_RELATED_COUNT = 1
+_EXPECTED_OPEN_PATTERN_COUNT = 14
 _RKAF = "https://rulespec.org/ns/v1#"
 _RDF_TYPE = "@type"
 _SKOS = "http://www.w3.org/2004/02/skos/core#"
@@ -67,6 +72,8 @@ _VERSION_BASIS = "rkaf:versionBasis"
 _CONTENT_DERIVED = "rkaf:contentDerived"
 _ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
 _CONTENT_DIGEST = _RKAF + "hasContentDigest"
+_SOURCE_RELATION_RECORD = "rkaf:SourceRelationRecord"
+_SOURCE_RELATION_RECORDS = "rkaf:sourceRelationRecord"
 
 
 def _sha256_file(path: Path) -> str:
@@ -179,6 +186,13 @@ def _verified_package(
     release = _require_mapping(manifest.get("release"), "Federal Register release pin")
     counts = _require_mapping(manifest.get("counts"), "Federal Register release counts")
     coverage = view.coverage
+    relation_statuses = Counter(
+        _require_text(
+            row.get("resolutionStatus"),
+            "Federal Register relation resolution status",
+        )
+        for row in view.relations
+    )
     if (
         manifest.get("type") != "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
         or manifest.get("resourceId") != FEDERAL_REGISTER_THESAURUS_2025_RESOURCE_ID
@@ -190,7 +204,17 @@ def _verified_package(
         raise VocabularyAtlasError("Federal Register managed-release identity differs from the 2025 package")
     if (
         counts.get("concepts") != _EXPECTED_CONCEPT_COUNT
+        or counts.get("relations") != _EXPECTED_RELATED_REFERENCE_COUNT
+        or counts.get("suggestedOpenTermPatterns") != _EXPECTED_OPEN_PATTERN_COUNT
         or len(view.concepts) != _EXPECTED_CONCEPT_COUNT
+        or len(view.relations) != _EXPECTED_RELATED_REFERENCE_COUNT
+        or len(view.suggested_open_term_patterns) != _EXPECTED_OPEN_PATTERN_COUNT
+        or relation_statuses
+        != {
+            "resolved": _EXPECTED_RESOLVED_RELATED_COUNT,
+            "suggestedOpenTermPattern": _EXPECTED_SUGGESTED_RELATED_COUNT,
+            "unresolved": _EXPECTED_UNRESOLVED_RELATED_COUNT,
+        }
         or coverage.get("managedConceptCount") != _EXPECTED_CONCEPT_COUNT
         or coverage.get("candidateLookupAllowed") is not True
         or coverage.get("acceptedOutputAllowed") is not False
@@ -233,8 +257,68 @@ def _project_view(
         variants_by_concept[targets[0]][label] = row
 
     related_by_source: dict[str, set[str]] = defaultdict(set)
+    unresolved_relation_nodes: list[dict[str, Any]] = []
     for row in package.relations:
-        if row.get("resolutionStatus") != "resolved":
+        resolution_status = _require_text(
+            row.get("resolutionStatus"),
+            "Federal Register relation resolution status",
+        )
+        if resolution_status != "resolved":
+            if resolution_status not in {"suggestedOpenTermPattern", "unresolved"}:
+                raise VocabularyAtlasError(
+                    "Federal Register relation has an unsupported resolution status"
+                )
+            relation_id = _require_text(
+                row.get("relationId"),
+                "Federal Register source relation id",
+            )
+            source_concept_id = _require_text(
+                row.get("sourceConceptId"),
+                "Federal Register source relation concept id",
+            )
+            source_concept_iri = _require_text(
+                row.get("sourceConceptIri"),
+                "Federal Register source relation concept IRI",
+            )
+            if (
+                source_concept_id not in concept_by_id
+                or source_concept_iri not in concept_by_iri
+                or concept_by_id[source_concept_id] is not concept_by_iri[source_concept_iri]
+            ):
+                raise VocabularyAtlasError(
+                    "Federal Register source relation names another concept"
+                )
+            locator = _require_mapping(
+                row.get("sourceLocator"),
+                "Federal Register source relation locator",
+            )
+            if set(locator) != {"pdf_page", "printed_page", "source_ordinal"} or any(
+                isinstance(locator[field], bool) or not isinstance(locator[field], int)
+                for field in locator
+            ):
+                raise VocabularyAtlasError(
+                    "Federal Register source relation locator is incomplete"
+                )
+            unresolved_relation_nodes.append(
+                {
+                    "@id": (
+                        "urn:ref:federal-register-thesaurus:2025-04-01:"
+                        f"source-related-reference:{relation_id}"
+                    ),
+                    _RDF_TYPE: _SOURCE_RELATION_RECORD,
+                    "rkaf:sourceConcept": _iri(source_concept_iri),
+                    "rkaf:sourceConceptId": source_concept_id,
+                    "rkaf:sourceRawTargetLabel": _require_text(
+                        row.get("rawTargetLabel"),
+                        "Federal Register source relation target label",
+                    ),
+                    "rkaf:sourceRelationId": relation_id,
+                    "rkaf:sourceRelationStatus": resolution_status,
+                    "rkaf:sourcePdfPage": locator["pdf_page"],
+                    "rkaf:sourcePrintedPage": locator["printed_page"],
+                    "rkaf:sourceOrdinal": locator["source_ordinal"],
+                }
+            )
             continue
         source = _require_text(row.get("sourceConceptIri"), "Federal Register relation source")
         target = _require_text(row.get("targetConceptIri"), "Federal Register relation target")
@@ -339,6 +423,14 @@ def _project_view(
         "dcat:distribution": _iri(FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI),
         _VERSION_BASIS: _iri(_CONTENT_DERIVED),
     }
+    if unresolved_relation_nodes:
+        release_node[_SOURCE_RELATION_RECORDS] = [
+            _iri(cast(str, row["@id"]))
+            for row in sorted(
+                unresolved_relation_nodes,
+                key=lambda value: cast(str, value["@id"]),
+            )
+        ]
     graph: dict[str, Any] = {
         "@context": {
             "dcat": "http://www.w3.org/ns/dcat#",
@@ -363,6 +455,7 @@ def _project_view(
                 _CONTENT_DIGEST: FEDERAL_REGISTER_THESAURUS_2025_SHA256,
             },
             *concept_nodes,
+            *unresolved_relation_nodes,
             release_node,
         ]
     }

@@ -220,6 +220,7 @@ _DIRECT_CLOSURE_PREDICATES = frozenset(
         "dcterms:rights",
         "rkaf:lifecycleEvent",
         "rkaf:rightsMetadata",
+        "rkaf:sourceRelationRecord",
         "skos:inScheme",
         "http://purl.org/dc/terms/accessRights",
         "http://purl.org/dc/terms/isVersionOf",
@@ -228,6 +229,7 @@ _DIRECT_CLOSURE_PREDICATES = frozenset(
         "http://www.w3.org/2004/02/skos/core#inScheme",
         "https://rulespec.org/ns/v1#lifecycleEvent",
         "https://rulespec.org/ns/v1#rightsMetadata",
+        "https://rulespec.org/ns/v1#sourceRelationRecord",
         "https://www.w3.org/ns/dcat#accessRights",
         "https://www.w3.org/ns/dcat#distribution",
     }
