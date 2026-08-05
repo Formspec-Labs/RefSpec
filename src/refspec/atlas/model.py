@@ -20,6 +20,7 @@ import unicodedata
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from types import MappingProxyType
@@ -702,6 +703,19 @@ class CrosswalkBundle:
     """Closed protocol-v2 crosswalk input with machine validation."""
 
     _record: Mapping[str, Any]
+    _verified: bool = dataclass_field(default=False, init=False, repr=False, compare=False)
+    _qualified_cache: Mapping[str, tuple[Mapping[str, Any], ...]] | None = dataclass_field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    _adjudicated_cache: Mapping[str, str] | None = dataclass_field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     @classmethod
     def open(
@@ -793,6 +807,8 @@ class CrosswalkBundle:
         return target
 
     def verify(self) -> None:
+        if self._verified:
+            return
         record = self.to_dict()
         expected_fields = {
             "id",
@@ -820,6 +836,7 @@ class CrosswalkBundle:
             candidates=candidates,
             validations=validations,
         )
+        object.__setattr__(self, "_verified", True)
 
     def qualified(self) -> dict[str, tuple[dict[str, Any], ...]]:
         """Return every supporting validation in each qualifying question.
@@ -830,10 +847,23 @@ class CrosswalkBundle:
         """
 
         self.verify()
-        record = self.to_dict()
-        candidates = {item["id"]: item for item in record["mappingCandidates"]}
-        validations = {item["id"]: item for item in record["machineValidations"]}
-        return _qualified_candidates(candidates, validations)
+        if self._qualified_cache is None:
+            record = self.to_dict()
+            candidates = {item["id"]: item for item in record["mappingCandidates"]}
+            validations = {item["id"]: item for item in record["machineValidations"]}
+            cached = _qualified_candidates(candidates, validations)
+            object.__setattr__(
+                self,
+                "_qualified_cache",
+                cast(Mapping[str, tuple[Mapping[str, Any], ...]], _freeze(cached)),
+            )
+        return {
+            candidate_id: tuple(cast(dict[str, Any], _plain(row)) for row in rows)
+            for candidate_id, rows in cast(
+                Mapping[str, tuple[Mapping[str, Any], ...]],
+                self._qualified_cache,
+            ).items()
+        }
 
     def adjudicated_relations(self) -> dict[str, str]:
         """Every candidate's agreed relation IRI, adjudicated-``related`` included.
@@ -843,13 +873,23 @@ class CrosswalkBundle:
         """
 
         self.verify()
-        record = self.to_dict()
-        candidates = {item["id"]: item for item in record["mappingCandidates"]}
-        validations = {item["id"]: item for item in record["machineValidations"]}
-        return {
-            candidate_id: relation
-            for candidate_id, (_, relation) in _independent_agreements(candidates, validations).items()
-        }
+        if self._adjudicated_cache is None:
+            record = self.to_dict()
+            candidates = {item["id"]: item for item in record["mappingCandidates"]}
+            validations = {item["id"]: item for item in record["machineValidations"]}
+            cached = {
+                candidate_id: relation
+                for candidate_id, (_, relation) in _independent_agreements(
+                    candidates,
+                    validations,
+                ).items()
+            }
+            object.__setattr__(
+                self,
+                "_adjudicated_cache",
+                MappingProxyType(cached),
+            )
+        return dict(cast(Mapping[str, str], self._adjudicated_cache))
 
 
 def _unique_records(values: Sequence[Any], label: str) -> dict[str, dict[str, Any]]:

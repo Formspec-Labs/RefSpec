@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -64,6 +65,21 @@ _CONTROL_GENERATION_CLASSES = frozenset({"siblingDistractor", "randomNegativeCon
 
 class CrosswalkMachineProofError(ValueError):
     """A selected machine proof is absent, stale, or not closed."""
+
+
+@lru_cache(maxsize=16)
+def _open_verified_crosswalk_bundle(
+    path: str,
+    file_digest: str,
+    bundle_digest: str,
+) -> CrosswalkBundle:
+    """Reuse one immutable, already-closed bundle within this process."""
+
+    return CrosswalkBundle.open(
+        Path(path),
+        expected_file_digest=file_digest,
+        expected_bundle_digest=bundle_digest,
+    )
 
 
 def machine_evidence_class_for_proof_kind(value: object) -> MachineEvidenceClass:
@@ -360,12 +376,33 @@ class PinnedCrosswalkMachineProof:
 
     @staticmethod
     def _open_bundle(path: Path | str, file_digest: str, bundle_digest: str) -> CrosswalkBundle:
+        expected_file_digest = _require_digest(file_digest, "crosswalk file digest")
+        expected_bundle_digest = _require_digest(bundle_digest, "crosswalk bundle digest")
+        candidate = Path(path)
+        if candidate.is_symlink():
+            raise CrosswalkMachineProofError("crosswalk proof path must not be a symlink")
         try:
-            return CrosswalkBundle.open(
-                path,
-                expected_file_digest=_require_digest(file_digest, "crosswalk file digest"),
-                expected_bundle_digest=_require_digest(bundle_digest, "crosswalk bundle digest"),
+            resolved = candidate.resolve(strict=True)
+            if not resolved.is_file():
+                raise CrosswalkMachineProofError(
+                    "crosswalk proof path must be a regular file"
+                )
+            if sha256_digest(resolved.read_bytes()) != expected_file_digest:
+                raise CrosswalkMachineProofError("crosswalk file digest differs")
+            bundle = _open_verified_crosswalk_bundle(
+                str(resolved),
+                expected_file_digest,
+                expected_bundle_digest,
             )
+            if sha256_digest(resolved.read_bytes()) != expected_file_digest:
+                raise CrosswalkMachineProofError(
+                    "crosswalk proof changed while opening"
+                )
+            return bundle
+        except FileNotFoundError as error:
+            raise CrosswalkMachineProofError(
+                "crosswalk proof path does not exist"
+            ) from error
         except VocabularyAtlasError as error:
             raise CrosswalkMachineProofError(str(error)) from error
 
