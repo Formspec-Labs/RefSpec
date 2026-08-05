@@ -5,18 +5,19 @@ OpenAI Batch API end to end, and Gemini's split arrangement — OpenAI-shaped jo
 control, native File API for the bytes.  Nothing is uploaded and nothing is
 spent.
 
-The property that matters is that a batch receipt is indistinguishable from a
-serial one: the same field set, the same digests over the same request bytes,
-the same deterministic checks read back by the same ``reading_from_receipt``.
-So the central test asserts field-set equality against a receipt the serial
-path actually produced, rather than against a list copied out of it.
+Group size one is byte-for-byte the serial request and retains the same receipt
+field set.  Production groups record the actual shared request/response digests
+plus each extracted answer digest, then prove those richer receipts still pass
+the same per-candidate readers, bundle gate, resume key, and spend accounting.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
+import multiprocessing
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -235,6 +236,9 @@ class FakeProviders:
         wrong_task_id_for: frozenset[str] = frozenset(),
         error_for: frozenset[str] = frozenset(),
         omit: frozenset[str] = frozenset(),
+        omit_task_ids: frozenset[str] = frozenset(),
+        duplicate_task_ids: frozenset[str] = frozenset(),
+        malformed_task_ids: frozenset[str] = frozenset(),
     ) -> None:
         self.calls: list[dict[str, Any]] = []
         self.files: dict[str, bytes] = {}
@@ -244,6 +248,9 @@ class FakeProviders:
         self.wrong_task_id_for = wrong_task_id_for
         self.error_for = error_for
         self.omit = omit
+        self.omit_task_ids = omit_task_ids
+        self.duplicate_task_ids = duplicate_task_ids
+        self.malformed_task_ids = malformed_task_ids
         self._counter = 0
 
     # -- helpers ------------------------------------------------------------
@@ -291,17 +298,39 @@ class FakeProviders:
 
     def _output_line(self, token: str, body: Mapping[str, Any]) -> dict[str, Any]:
         payload = json.loads(body["messages"][1]["content"])
-        task_id = "task-not-the-one-asked-about" if token in self.wrong_task_id_for else payload["taskId"]
-        if "semantic_plausibility" in str(body["messages"][0]["content"]):
-            answer = {
+        scoring = "semantic_plausibility" in str(body["messages"][0]["content"])
+
+        def answer_for(task_id: str) -> dict[str, Any]:
+            if scoring:
+                return {
+                    "task_id": task_id,
+                    "semantic_plausibility": 91,
+                    "evidence_sufficiency": 84,
+                    "likely_relation": "near_same",
+                    "reason": "the supplied concept facts support close review",
+                }
+            return {
+                "reason": "the labels denote the same concept",
                 "task_id": task_id,
-                "semantic_plausibility": 91,
-                "evidence_sufficiency": 84,
-                "likely_relation": "near_same",
-                "reason": "the supplied concept facts support close review",
+                "verdict": self.verdict,
             }
+
+        if "rows" in payload:
+            answers: list[dict[str, Any]] = []
+            for row in payload["rows"]:
+                task_id = str(row["taskId"])
+                if task_id in self.omit_task_ids:
+                    continue
+                answer = answer_for(task_id)
+                if task_id in self.malformed_task_ids:
+                    answer.pop("semantic_plausibility" if scoring else "verdict")
+                answers.append(answer)
+                if task_id in self.duplicate_task_ids:
+                    answers.append(dict(answer))
+            answer: Mapping[str, Any] = {"answers": answers, "group_id": payload["group_id"]}
         else:
-            answer = {"reason": "the labels denote the same concept", "task_id": task_id, "verdict": self.verdict}
+            task_id = "task-not-the-one-asked-about" if token in self.wrong_task_id_for else payload["taskId"]
+            answer = answer_for(task_id)
         return {
             "custom_id": token,
             "error": None,
@@ -430,9 +459,93 @@ def _multipart_file(body: bytes) -> bytes:
     return body[start:end]
 
 
+class _ProcessSubmitTransport:
+    """Spawn-safe fake that reports provider creates through a shared queue."""
+
+    def __init__(self, label: str, events: Any) -> None:
+        self.label = label
+        self.events = events
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        headers: Mapping[str, str],
+        body: bytes | None,
+        timeout: float,
+    ) -> tuple[int, Mapping[str, str], bytes]:
+        del headers, timeout
+        if method == "POST" and url.endswith("/v1/files"):
+            return 200, {}, _json({"id": f"file-in-{self.label}"})
+        if method == "POST" and url.endswith("/v1/batches"):
+            request = json.loads((body or b"{}").decode("utf-8"))
+            self.events.put(("create", self.label, 1))
+            return 200, {}, _json(
+                {
+                    "completion_window": request["completion_window"],
+                    "endpoint": request["endpoint"],
+                    "id": f"batch-{self.label}",
+                    "input_file_id": request["input_file_id"],
+                    "request_counts": {"completed": 0, "failed": 0, "total": 0},
+                    "status": "validating",
+                }
+            )
+        raise AssertionError(f"unexpected process transport request: {method} {url}")
+
+
+def _concurrent_submit_worker(
+    *,
+    label: str,
+    run_root: str,
+    sidecar_name: str,
+    coordination_name: str,
+    receipts_name: str,
+    rows: list[qbatch.CandidateRow],
+    work_kind: qbatch.WorkKind,
+    events: Any,
+) -> None:
+    root = Path(run_root)
+    events.put(("started", label, 0))
+    try:
+        summary = qbatch.submit(
+            transport=_ProcessSubmitTransport(label, events),
+            receipts_path=root / receipts_name,
+            sidecar_path=root / sidecar_name,
+            families=(qual.OPENAI_FAMILY,),
+            keys={"openai": "offline-process-secret"},
+            models={"openai": OPENAI_MODEL},
+            rows=rows,
+            protocol=(qual.PROTOCOL if work_kind == "validation" else qual.SCORING_PROTOCOL),
+            work_kind=work_kind,
+            group_size=1,
+            coordination_sidecars=(root / coordination_name,),
+        )
+    except BaseException as error:  # noqa: BLE001 - child returns diagnostic to parent
+        events.put(("error", label, repr(error)))
+        return
+    events.put(("finished", label, len(summary["jobs"])))
+
+
+def _hold_process_submit_lock(
+    run_root: str,
+    ready: Any,
+    release: Any,
+) -> None:
+    root = Path(run_root)
+    with qbatch._run_submit_lock(
+        root / qbatch.SIDECAR,
+        (root / RUNNER.SCORING_BATCH_SIDECAR,),
+    ):
+        ready.set()
+        release.wait(timeout=20)
+
+
 def _run(monkeypatch: pytest.MonkeyPatch, server: FakeProviders, output: Path, *arguments: str) -> int:
     monkeypatch.setattr(qbatch, "default_transport", lambda: server)
-    return RUNNER.main(["--output", str(output), *arguments, "--env", str(output / "env")])
+    selected = list(arguments)
+    if selected and selected[0] in {"batch-submit", "score-batch-submit"} and "--group-size" not in selected:
+        selected.extend(("--group-size", "1"))
+    return RUNNER.main(["--output", str(output), *selected, "--env", str(output / "env")])
 
 
 def _receipts(output: Path) -> list[dict[str, Any]]:
@@ -451,6 +564,22 @@ def _scoring_receipts(output: Path) -> list[dict[str, Any]]:
 
 def _sidecar(output: Path) -> dict[str, Any]:
     return json.loads((output / qbatch.SIDECAR).read_text(encoding="utf-8"))
+
+
+def _batch_rows_from_run(output: Path, *, scoring: bool = False) -> list[qbatch.CandidateRow]:
+    catalog = json.loads((output / RUNNER.CANDIDATES).read_text(encoding="utf-8"))
+    return [
+        qbatch.CandidateRow(
+            candidate_id=str(row["candidateId"]),
+            pair=RUNNER._pair_from_dict(row),
+            input_digest=(
+                qual.scoring_input_digest(RUNNER._pair_from_dict(row))
+                if scoring
+                else str(row["inputDigest"])
+            ),
+        )
+        for row in catalog["candidates"]
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -507,6 +636,84 @@ def test_custom_ids_are_deterministic_and_family_scoped() -> None:
     assert first != qbatch.custom_id(qual.GEMINI_FAMILY, "urn:ref:candidate:one")
 
 
+def test_production_grouping_is_deterministic_bounded_and_explicit(run_dir: Path) -> None:
+    rows = _batch_rows_from_run(run_dir)
+    first = qbatch.deterministic_groups(rows, group_size=25)
+    second = qbatch.deterministic_groups(list(reversed(rows)), group_size=25)
+
+    assert [[row.candidate_id for row in group] for group in first] == [
+        [row.candidate_id for row in group] for group in second
+    ]
+    assert sum(len(group) for group in first) == len(rows)
+    assert max(map(len, first)) <= 25
+    assert all(qbatch._group_input_size(group, work_kind="validation")[0] <= qbatch.GROUP_INPUT_BYTE_LIMIT for group in first if len(group) > 1)
+    assert all(qbatch._group_input_size(group, work_kind="validation")[1] <= qbatch.GROUP_INPUT_TOKEN_LIMIT for group in first if len(group) > 1)
+
+    requests = qbatch.build_provider_requests(
+        qual.OPENAI_FAMILY,
+        OPENAI_MODEL,
+        rows,
+        protocol=qual.PROTOCOL,
+        group_size=25,
+    )
+    assert len(requests) < len(rows)
+    assert all(isinstance(request, qbatch.GroupedBatchRequest) for request in requests)
+    for request in requests:
+        assert request.request_sha256 == qual._sha256_text(canonical_json(request.body))
+        assert request.body[qual.OPENAI_FAMILY.max_output_tokens_field] == qbatch.grouped_output_allowance(
+            qual.OPENAI_FAMILY, len(request.rows)
+        )
+        assert len(request.custom_id) <= 64
+        assert request.group_id in request.body["messages"][1]["content"]
+
+    parser = RUNNER.build_parser()
+    parsed = parser.parse_args(["--output", "run", "batch-submit", "--env", "env"])
+    assert parsed.group_size == 25
+    recovery = parser.parse_args(
+        ["--output", "run", "batch-submit", "--env", "env", "--group-size", "1"]
+    )
+    assert recovery.group_size == 1
+
+
+def test_batch_plan_is_read_only_and_reports_exact_request_shape(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        qbatch,
+        "default_transport",
+        lambda: (_ for _ in ()).throw(AssertionError("planning must not open a provider transport")),
+    )
+    assert RUNNER.main(["--output", str(run_dir), "batch-plan", "--group-size", "25"]) == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["providerCalls"] is False
+    assert plan["candidateCount"] == len(_candidate_rows())
+    assert len(plan["jobs"]) == 3
+    assert {(job["workKind"], job["family"]) for job in plan["jobs"]} == {
+        ("scoring", "openai"),
+        ("validation", "gemini"),
+        ("validation", "openai"),
+    }
+    assert all(job["providerRequestCount"] < job["candidateCount"] for job in plan["jobs"])
+    assert all(job["inputFileBytes"] > 0 for job in plan["jobs"])
+    assert all(job["projectedInputTokens"] > 0 for job in plan["jobs"])
+    assert all(job["projectedOutputTokenAllowance"] > 0 for job in plan["jobs"])
+    assert plan["providerJobCount"] == sum(job["providerJobCount"] for job in plan["jobs"])
+    assert all(job["providerJobCount"] == len(job["shards"]) for job in plan["jobs"])
+    assert plan["totalProjectedCostUsd"] == pytest.approx(
+        sum(job["projectedCostUsd"] for job in plan["jobs"])
+    )
+
+    assert RUNNER.main(
+        ["--output", str(run_dir), "batch-plan", "--smoke-candidates", "7"]
+    ) == 0
+    smoke = json.loads(capsys.readouterr().out)
+    assert smoke["planningMode"] == "stratifiedSmoke"
+    assert smoke["candidateCount"] == 7
+    assert all(job["candidateCount"] == 7 for job in smoke["jobs"])
+
+
 # ---------------------------------------------------------------------------
 # a full round trip, per vendor
 # ---------------------------------------------------------------------------
@@ -539,6 +746,12 @@ def test_a_round_trip_appends_receipts_the_bundle_stage_can_read(
     job = _sidecar(run_dir)["jobs"][0]
     # The provider's epoch completion time, carried as the ISO-Z the format wants.
     assert job["completedAt"] == "2026-07-25T17:20:00Z"
+    assert job["completedAtSource"] == {
+        "kind": "providerStatus",
+        "statusArtifactDigest": job["statusArtifacts"][-1]["fileDigest"],
+        "statusArtifactFile": job["statusArtifacts"][-1]["file"],
+        "statusPollOrdinal": job["statusArtifacts"][-1]["pollOrdinal"],
+    }
     for receipt in receipts:
         reading = qual.reading_from_receipt(receipt, family, job["modelId"])
         assert reading is not None
@@ -548,14 +761,184 @@ def test_a_round_trip_appends_receipts_the_bundle_stage_can_read(
         assert receipt["started_at"] == job["submittedAt"]
 
 
+def test_grouped_blind_judging_fans_out_complete_per_candidate_receipts(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai,gemini",
+        "--group-size",
+        "25",
+    )
+    jobs = _sidecar(run_dir)["jobs"]
+    assert {job["candidateCount"] for job in jobs} == {len(_candidate_rows())}
+    assert all(job["providerRequestCount"] < job["candidateCount"] for job in jobs)
+    assert all(job["maxRequestGroupSize"] == 25 for job in jobs)
+    assert {request["groupId"] for request in jobs[0]["providerRequests"]} == {
+        request["groupId"] for request in jobs[1]["providerRequests"]
+    }
+
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    receipts = _receipts(run_dir)
+    assert len(receipts) == 2 * len(_candidate_rows())
+    assert {
+        (receipt["candidate_id"], receipt["family"])
+        for receipt in receipts
+    } == {
+        (str(row["candidateId"]), family)
+        for row in _candidate_rows()
+        for family in ("gemini", "openai")
+    }
+    for receipt in receipts:
+        family = qual.VALIDATOR_FAMILIES[str(receipt["family"])]
+        model = OPENAI_MODEL if family.name == "openai" else GEMINI_MODEL
+        reading = qual.reading_from_receipt(receipt, family, model)
+        assert reading is not None and reading.deterministic_checks_passed
+        assert receipt["batch_request_kind"] == "grouped"
+        assert receipt["request_sha256"] == receipt["group_request_sha256"]
+        assert receipt["response_sha256"] == receipt["group_response_sha256"]
+        assert receipt["answer_sha256"] == qual._sha256_text(canonical_json(receipt["answer"]))
+        assert receipt["item_input_sha256"].startswith("sha256:")
+        assert receipt["usage_scope"] == "sharedProviderRequest"
+    assert RUNNER.main(["--output", str(run_dir), "bundle"]) == 0
+    bundle = json.loads((run_dir / RUNNER.BUNDLE).read_text(encoding="utf-8"))
+    response_artifacts = [
+        artifact for artifact in bundle["artifacts"] if artifact["role"] == "validationResponse"
+    ]
+    assert len(response_artifacts) == len(receipts)
+    assert all(
+        artifact["content"]["providerRequest"]["protocol"]
+        == qual.GROUPED_PROVIDER_REQUEST_PROTOCOL
+        and artifact["content"]["providerRequest"]["kind"] == "grouped"
+        and artifact["content"]["providerRequest"]["itemInputSha256"].startswith("sha256:")
+        and artifact["content"]["providerRequest"]["answerSha256"].startswith("sha256:")
+        for artifact in response_artifacts
+    )
+    run_receipt = json.loads((run_dir / RUNNER.RUN_RECEIPT).read_text(encoding="utf-8"))
+    assert set(run_receipt["providerBatchEvidence"]) == {"judging"}
+    assert run_receipt["providerBatchEvidence"]["judging"]["fileDigest"].startswith("sha256:")
+
+
+def test_grouped_scoring_fans_out_verified_score_readings(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "score-batch-submit",
+        "--family",
+        "openai",
+        "--group-size",
+        "25",
+    )
+    sidecar = json.loads((run_dir / RUNNER.SCORING_BATCH_SIDECAR).read_text(encoding="utf-8"))
+    assert sidecar["jobs"][0]["providerRequestCount"] < sidecar["jobs"][0]["candidateCount"]
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "score-batch-collect")
+    receipts = _scoring_receipts(run_dir)
+    assert len(receipts) == len(_candidate_rows())
+    for receipt in receipts:
+        reading = qual.score_reading_from_receipt(receipt, qual.OPENAI_FAMILY, OPENAI_MODEL)
+        assert reading is not None and reading.deterministic_checks_passed
+        assert receipt["batch_request_kind"] == "grouped"
+        assert receipt["answer_sha256"] == qual._sha256_text(canonical_json(receipt["answer"]))
+
+
+def test_one_group_provider_failure_does_not_discard_other_groups(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai",
+        "--group-size",
+        "25",
+    )
+    job = _sidecar(run_dir)["jobs"][0]
+    failed_request = job["providerRequests"][0]
+    server.error_for = frozenset({str(failed_request["customId"])})
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    receipts = {receipt["candidate_id"]: receipt for receipt in _receipts(run_dir)}
+    failed_ids = set(failed_request["candidateIds"])
+    assert set(receipts) == {row["candidateId"] for row in _candidate_rows()} - failed_ids
+    assert {receipt["outcome"] for receipt in receipts.values()} == {"completed"}
+    collection = _sidecar(run_dir)["jobs"][0]["collection"]
+    assert collection["groupIssues"][0]["groupOutcome"] == "provider_error"
+    assert collection["lineIssues"]
+
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai",
+        "--group-size",
+        "25",
+    )
+    assert _sidecar(run_dir)["jobs"][-1]["candidateCount"] == len(failed_ids)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("itemInputSha256", "sha256:" + "0" * 64),
+        ("groupId", "group-not-the-requested-group"),
+        ("taskId", "task-not-the-requested-row"),
+    ],
+)
+def test_bundle_refuses_tampered_group_row_and_task_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    field: str,
+    replacement: str,
+) -> None:
+    server = FakeProviders()
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai,gemini",
+        "--group-size",
+        "25",
+    )
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    sidecar = _sidecar(run_dir)
+    sidecar["jobs"][0]["requests"][0][field] = replacement
+    (run_dir / qbatch.SIDECAR).write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="provider request lineage failed"):
+        RUNNER.main(["--output", str(run_dir), "bundle"])
+
+
 def test_the_bundle_stage_seals_batch_receipts_without_knowing_they_are_batched(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
 ) -> None:
     """The end the whole exercise is for: two machines, one sealed bundle.
 
-    ``bundle`` is untouched by this workstream, so if it qualifies candidates
-    off batch-collected receipts then the receipts really are the serial ones.
+    ``bundle`` is untouched by this workstream, so qualifying from collected
+    receipts proves the per-candidate decision semantics are unchanged.
     """
 
     server = FakeProviders()
@@ -573,7 +956,7 @@ def test_the_bundle_stage_seals_batch_receipts_without_knowing_they_are_batched(
     assert (run_dir / RUNNER.BUNDLE).exists()
 
 
-def test_a_batch_receipt_has_exactly_the_serial_receipt_fields(
+def test_a_singleton_batch_receipt_preserves_serial_semantics_and_adds_exact_lineage(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
 ) -> None:
@@ -598,11 +981,18 @@ def test_a_batch_receipt_has_exactly_the_serial_receipt_fields(
         tracker=qual.SpendTracker(qual.OPENAI_FAMILY),
     )
 
-    assert set(batched) == set(serial)
+    assert set(serial) <= set(batched)
+    assert batched["batch_execution_mode"] == "batch"
+    assert batched["batch_attempt_id"].startswith("attempt-")
+    assert batched["batch_shard_id"].startswith("shard-")
+    assert batched["batch_result_id"].startswith("batch_req_")
+    assert batched["batch_artifact_sha256"].startswith("sha256:")
+    assert batched["batch_result_line_sha256"].startswith("sha256:")
     assert batched["request_sha256"] == serial["request_sha256"]
     assert batched["request_url"] == serial["request_url"]
     assert batched["request_headers"] == serial["request_headers"]
-    assert batched["usage"] == serial["usage"]
+    assert batched["usage"]["prompt_tokens"] == serial["usage"]["prompt_tokens"]
+    assert batched["usage"]["completion_tokens"] == serial["usage"]["completion_tokens"]
     # Half price for the same tokens: the one number a batch is allowed to move.
     assert batched["assumed_cost_usd"] == pytest.approx(serial["assumed_cost_usd"] * qbatch.BATCH_PRICE_FACTOR)
 
@@ -659,7 +1049,7 @@ class _ScoringSerialStub:
         )
 
 
-def test_scoring_batch_and_serial_paths_produce_the_same_receipt_shape(
+def test_scoring_batch_and_serial_paths_preserve_the_same_reading_semantics(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
 ) -> None:
@@ -682,7 +1072,8 @@ def test_scoring_batch_and_serial_paths_produce_the_same_receipt_shape(
         tracker=qual.SpendTracker(qual.OPENAI_FAMILY),
     )
 
-    assert set(batched) == set(serial)
+    assert set(serial) <= set(batched)
+    assert batched["batch_execution_mode"] == "batch"
     assert batched["request_sha256"] == serial["request_sha256"]
     assert batched["kind"] == "crosswalk_scoring"
     reading = qual.score_reading_from_receipt(batched, qual.OPENAI_FAMILY, OPENAI_MODEL)
@@ -783,17 +1174,14 @@ def test_an_answer_that_does_not_echo_the_task_id_fails_the_deterministic_check(
     _run(monkeypatch, server, run_dir, "batch-collect")
 
     receipts = {receipt["candidate_id"]: receipt for receipt in _receipts(run_dir)}
-    bad = receipts[rows[0]["candidateId"]]
-    assert bad["outcome"] == "completed"
-    assert bad["answer"]["task_id"] != bad["task_id"]
-    reading = qual.reading_from_receipt(bad, qual.OPENAI_FAMILY, OPENAI_MODEL)
-    assert reading is not None and reading.deterministic_checks_passed is False
+    assert rows[0]["candidateId"] not in receipts
 
     good = next(receipt for key, receipt in receipts.items() if key != rows[0]["candidateId"])
     other = qual.reading_from_receipt(good, qual.OPENAI_FAMILY, OPENAI_MODEL)
     assert other is not None and other.deterministic_checks_passed is True
 
-    assert _sidecar(run_dir)["jobs"][0]["collection"]["taskIdEchoMismatches"] == 1
+    collection = _sidecar(run_dir)["jobs"][0]["collection"]
+    assert any(issue.get("outcome") == "completed" for issue in collection["lineIssues"])
 
 
 def test_a_run_is_submitted_under_the_only_supported_rubric(
@@ -925,10 +1313,22 @@ def test_cancelling_records_the_outcome_against_every_live_job(
     assert any(url.startswith("https://generativelanguage.googleapis.com/v1beta/batches/") for url in urls)
     assert any(url.endswith(":cancel") for url in urls)
 
-    for job in _sidecar(run_dir)["jobs"]:
-        assert job["state"] == "cancelled"
+    cancelling = _sidecar(run_dir)["jobs"]
+    for job in cancelling:
+        assert job["state"] == "cancelling"
         assert job["cancellation"]["accepted"] is True
         assert job["cancellation"]["requestedAt"].endswith("Z")
+        assert not qbatch.released(job)
+
+    creates = sum(url.endswith("/batches") for url in server.urls())
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai,gemini")
+    assert sum(url.endswith("/batches") for url in server.urls()) == creates
+
+    # Only provider-reported terminal status releases the held attempts.
+    _run(monkeypatch, server, run_dir, "batch-status")
+    for job in _sidecar(run_dir)["jobs"]:
+        assert job["state"] == "cancelled"
+        assert job["statusArtifacts"]
 
 
 def test_the_verdict_protocol_is_referenced_never_restated(
@@ -960,20 +1360,28 @@ def test_the_verdict_protocol_is_referenced_never_restated(
         assert reading is not None and reading.deterministic_checks_passed
 
 
-def test_an_unusable_answer_is_receipted_as_unusable(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
+def test_an_unusable_answer_stays_in_raw_evidence_and_remains_retryable(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
     server = FakeProviders(verdict="a verdict no enum admits")
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
     server.complete_jobs()
     _run(monkeypatch, server, run_dir, "batch-status")
     _run(monkeypatch, server, run_dir, "batch-collect")
 
-    receipts = _receipts(run_dir)
-    assert {receipt["outcome"] for receipt in receipts} == {"unusable_answer"}
-    assert all("answer_text" in receipt for receipt in receipts)
-    assert all(qual.reading_from_receipt(receipt, qual.OPENAI_FAMILY, OPENAI_MODEL) is None for receipt in receipts)
+    assert _receipts(run_dir) == []
+    collection = _sidecar(run_dir)["jobs"][0]["collection"]
+    assert collection["outcomes"] == {"unusable_answer": len(_candidate_rows())}
+    assert len(collection["lineIssues"]) == len(_candidate_rows())
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert _sidecar(run_dir)["jobs"][-1]["attemptOrdinal"] == 2
 
 
-def test_an_error_line_is_receipted_as_a_provider_error(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
+def test_an_error_line_stays_in_raw_evidence_and_remains_retryable(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
     rows = _candidate_rows()
     failed = qbatch.custom_id(qual.OPENAI_FAMILY, rows[1]["candidateId"])
     server = FakeProviders(error_for=frozenset({failed}))
@@ -983,11 +1391,10 @@ def test_an_error_line_is_receipted_as_a_provider_error(monkeypatch: pytest.Monk
     _run(monkeypatch, server, run_dir, "batch-collect")
 
     receipts = {receipt["candidate_id"]: receipt for receipt in _receipts(run_dir)}
-    broken = receipts[rows[1]["candidateId"]]
-    assert broken["outcome"] == "provider_error"
-    assert broken["error_code"] == "rate_limit_exceeded"
-    assert broken["response_sha256"].startswith("sha256:")
-    assert qual.reading_from_receipt(broken, qual.OPENAI_FAMILY, OPENAI_MODEL) is None
+    assert rows[1]["candidateId"] not in receipts
+    collection = _sidecar(run_dir)["jobs"][0]["collection"]
+    assert collection["outcomes"]["provider_error"] == 1
+    assert any(issue.get("candidateId") == rows[1]["candidateId"] for issue in collection["lineIssues"])
 
 
 def test_a_result_the_provider_never_returned_is_not_receipted(
@@ -1062,6 +1469,76 @@ def test_a_receipt_never_carries_the_credential(monkeypatch: pytest.MonkeyPatch,
 # ---------------------------------------------------------------------------
 # resume safety
 # ---------------------------------------------------------------------------
+
+
+def test_grouped_missing_duplicate_and_malformed_rows_recover_only_affected_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    rows = _batch_rows_from_run(run_dir)
+    missing_task = qual.task_id(rows[0].pair)
+    duplicate_task = qual.task_id(rows[1].pair)
+    malformed_task = qual.task_id(rows[2].pair)
+    server = FakeProviders(
+        omit_task_ids=frozenset({missing_task}),
+        duplicate_task_ids=frozenset({duplicate_task}),
+        malformed_task_ids=frozenset({malformed_task}),
+    )
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai",
+        "--group-size",
+        "25",
+    )
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    first_receipts = _receipts(run_dir)
+    assert len(first_receipts) == len(rows) - 3
+    assert {receipt["task_id"] for receipt in first_receipts}.isdisjoint(
+        {missing_task, duplicate_task, malformed_task}
+    )
+    issues = _sidecar(run_dir)["jobs"][0]["collection"]["groupIssues"]
+    assert any(missing_task in issue.get("missingTaskIds", ()) for issue in issues)
+    assert any(duplicate_task in issue.get("duplicateTaskIds", ()) for issue in issues)
+    assert any(malformed_task in issue.get("invalidTaskIds", ()) for issue in issues)
+
+    # Collection is idempotent, including its partial-recovery evidence.
+    before = (run_dir / RUNNER.RECEIPTS).read_bytes()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    assert (run_dir / RUNNER.RECEIPTS).read_bytes() == before
+
+    # A deliberate serial-shaped recovery asks only the two rows for which the
+    # grouped response supplied no unambiguous answer.
+    server.omit_task_ids = frozenset()
+    server.duplicate_task_ids = frozenset()
+    server.malformed_task_ids = frozenset()
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        "batch-submit",
+        "--families",
+        "openai",
+        "--group-size",
+        "1",
+    )
+    recovery = _sidecar(run_dir)["jobs"][1]
+    assert recovery["candidateCount"] == 3
+    assert recovery["providerRequestCount"] == 3
+    assert {item["taskId"] for item in recovery["requests"]} == {
+        missing_task,
+        duplicate_task,
+        malformed_task,
+    }
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    assert len(_receipts(run_dir)) == len(rows)
+    assert len({(receipt["candidate_id"], receipt["family"]) for receipt in _receipts(run_dir)}) == len(rows)
 
 
 def test_collecting_twice_appends_nothing_the_second_time(
@@ -1179,12 +1656,15 @@ def test_a_job_created_before_a_later_failure_is_still_recorded(
 
     created = [url for url in server.urls() if url.endswith("/batches")]
     assert created == ["https://api.openai.com/v1/batches"]
-    assert [job["family"] for job in _sidecar(run_dir)["jobs"]] == ["openai"]
+    assert [(job["family"], job["attemptState"]) for job in _sidecar(run_dir)["jobs"]] == [
+        ("openai", "submitted"),
+        ("gemini", "uploadFailed"),
+    ]
 
     # The recorded job holds its candidates, so the retry buys only gemini.
     retry = FakeProviders()
     _run(monkeypatch, retry, run_dir, "batch-submit", "--families", "openai,gemini")
-    assert [job["family"] for job in _sidecar(run_dir)["jobs"]] == ["openai", "gemini"]
+    assert [job["family"] for job in _sidecar(run_dir)["jobs"]] == ["openai", "gemini", "gemini"]
     assert len([url for url in retry.urls() if url.endswith("/batches")]) == 1
 
 
@@ -1238,10 +1718,10 @@ def test_the_total_cap_counts_what_earlier_submits_already_bought(
 ) -> None:
     """One family at a time must not walk past a ceiling both together hit."""
 
-    monkeypatch.setattr(qual, "TOTAL_SPEND_CAP_USD", 0.40)
+    monkeypatch.setattr(qual, "TOTAL_SPEND_CAP_USD", 0.65)
     server = FakeProviders()
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
-    assert _sidecar(run_dir)["jobs"][0]["projectedCostUsd"] > 0.20
+    assert _sidecar(run_dir)["jobs"][0]["projectedCostUsd"] > 0.50
 
     with pytest.raises(SystemExit) as failure:
         _run(monkeypatch, server, run_dir, "batch-submit", "--families", "gemini")
@@ -1405,6 +1885,31 @@ def test_batch_pricing_is_half_the_serial_pricing() -> None:
     assert qbatch.projected_batch_cost(qual.OPENAI_FAMILY, 1) == pytest.approx(serial / 2)
 
 
+def test_current_standard_price_assumptions_and_grouped_projection_are_explicit(
+    run_dir: Path,
+) -> None:
+    assert (
+        qual.OPENAI_FAMILY.assumed_input_usd_per_mtok,
+        qual.OPENAI_FAMILY.assumed_output_usd_per_mtok,
+    ) == (2.50, 15.00)
+    assert (
+        qual.GEMINI_FAMILY.assumed_input_usd_per_mtok,
+        qual.GEMINI_FAMILY.assumed_output_usd_per_mtok,
+    ) == (1.50, 7.50)
+
+    rows = _batch_rows_from_run(run_dir)
+    grouped = qbatch.build_provider_requests(
+        qual.OPENAI_FAMILY,
+        OPENAI_MODEL,
+        rows,
+        protocol=qual.PROTOCOL,
+        group_size=25,
+    )
+    assert qbatch.projected_request_cost(qual.OPENAI_FAMILY, grouped) < qbatch.projected_batch_cost(
+        qual.OPENAI_FAMILY, len(rows)
+    )
+
+
 def test_the_sidecar_records_the_assumed_batch_pricing(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:
     server = FakeProviders()
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai,gemini")
@@ -1532,3 +2037,743 @@ def test_the_module_documents_the_endpoints_it_was_written_against() -> None:
         "https://ai.google.dev/gemini-api/docs/openai",
     ):
         assert url in doc
+
+
+# ---------------------------------------------------------------------------
+# release-grade attempt, shard, raw-evidence, and usage exactness
+# ---------------------------------------------------------------------------
+
+
+def test_provider_job_shards_are_deterministic_complete_and_queue_safe() -> None:
+    base = _pairs()[0]
+    rows: list[qbatch.CandidateRow] = []
+    for index in range(100):
+        source = replace(
+            base.source,
+            member=f"urn:ref:test:large:{index}",
+            definition=("bounded provider-job evidence " * 1400) + str(index),
+        )
+        pair = replace(base, source=source)
+        rows.append(
+            qbatch.CandidateRow(
+                candidate_id=f"urn:ref:test:candidate:{index}",
+                pair=pair,
+                input_digest="sha256:" + f"{index:064x}"[-64:],
+            )
+        )
+
+    def plan(values: list[qbatch.CandidateRow]) -> tuple[qbatch.RequestShard, ...]:
+        requests = qbatch.build_provider_requests(
+            qual.OPENAI_FAMILY,
+            OPENAI_MODEL,
+            values,
+            protocol=qual.PROTOCOL,
+            group_size=1,
+        )
+        return qbatch.deterministic_request_shards(
+            qual.OPENAI_FAMILY,
+            OPENAI_MODEL,
+            requests,
+            protocol=qual.PROTOCOL,
+            work_kind="validation",
+        )
+
+    forward = plan(rows)
+    reversed_plan = plan(list(reversed(rows)))
+    assert [shard.shard_id for shard in forward] == [shard.shard_id for shard in reversed_plan]
+    assert len(forward) > 1
+    assert sum(shard.candidate_count for shard in forward) == len(rows)
+    assert len({request.custom_id for shard in forward for request in shard.requests}) == len(rows)
+    assert all(shard.projected_input_tokens <= qbatch.MAX_PROVIDER_JOB_INPUT_TOKENS for shard in forward)
+    assert all(len(shard.requests) <= qbatch.MAX_PROVIDER_REQUESTS_PER_JOB for shard in forward)
+    assert all(shard.input_bytes <= qbatch.OPENAI_MAX_INPUT_FILE_BYTES for shard in forward)
+
+
+@pytest.mark.parametrize(
+    ("family", "payload", "expected"),
+    [
+        (
+            qual.OPENAI_FAMILY,
+            {"usage": {"completion_tokens": 3, "prompt_tokens": 10, "total_tokens": 13}},
+            (10, 3, 13, "providerReported"),
+        ),
+        (
+            qual.GEMINI_FAMILY,
+            {"usage": {"completionTokens": 3, "promptTokens": 10, "totalTokens": 15}},
+            (10, 5, 15, "geminiCompatibleReported"),
+        ),
+        (
+            qual.GEMINI_FAMILY,
+            {
+                "usageMetadata": {
+                    "candidatesTokenCount": 2,
+                    "promptTokenCount": 10,
+                    "thoughtsTokenCount": 3,
+                    "totalTokenCount": 15,
+                }
+            },
+            (10, 5, 15, "nativeReported"),
+        ),
+        (
+            qual.OPENAI_FAMILY,
+            {"usage": {"input_tokens": 10, "output_tokens": 4, "total_tokens": 14}},
+            (10, 4, 14, "providerReported"),
+        ),
+        (qual.GEMINI_FAMILY, {}, (None, None, None, "missing")),
+    ],
+)
+def test_provider_usage_normalization_preserves_missing_and_gemini_reasoning(
+    family: qual.ValidatorFamily,
+    payload: Mapping[str, Any],
+    expected: tuple[int | None, int | None, int | None, str],
+) -> None:
+    usage = qbatch.normalize_provider_usage(payload, family)
+    assert (usage.input_tokens, usage.output_tokens, usage.total_tokens, usage.status) == expected
+
+
+def test_missing_usage_keeps_the_conservative_projection_committed(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class OmitsUsage(FakeProviders):
+        def _output_line(self, token: str, body: Mapping[str, Any]) -> dict[str, Any]:
+            line = super()._output_line(token, body)
+            del line["response"]["body"]["usage"]
+            return line
+
+    server = OmitsUsage()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "gemini")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    job = _sidecar(run_dir)["jobs"][0]
+    assert job["collection"]["usageStatus"] == "missing"
+    assert job["collection"]["exactCostUsd"] is None
+    assert job["collection"]["committedCostUsd"] == job["projectedCostUsd"]
+    assert qbatch.committed_by_family(_sidecar(run_dir)) == {
+        "gemini": job["projectedCostUsd"]
+    }
+
+
+def test_aggregate_usage_mismatch_blocks_collection_after_retaining_raw_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    for job in server.jobs.values():
+        job["usage"] = {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
+
+    with pytest.raises(qbatch.BatchError, match="aggregate usage differs"):
+        _run(monkeypatch, server, run_dir, "batch-collect")
+    job = _sidecar(run_dir)["jobs"][0]
+    assert job["resultArtifacts"]
+    assert _receipts(run_dir) == []
+
+
+def test_duplicate_custom_id_lines_are_evidenced_blocked_and_retryable(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    first_job = _sidecar(run_dir)["jobs"][0]
+    duplicated_candidate = str(first_job["requests"][0]["candidateId"])
+    server.complete_jobs()
+    output_id = next(iter(server.jobs.values()))["output_file_id"]
+    first_line = server.files[output_id].splitlines(keepends=True)[0]
+    server.files[output_id] = first_line + server.files[output_id]
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    assert duplicated_candidate not in {row["candidate_id"] for row in _receipts(run_dir)}
+    issues = _sidecar(run_dir)["jobs"][0]["collection"]["lineIssues"]
+    assert sum(issue["kind"] == "duplicateCustomId" for issue in issues) == 2
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert _sidecar(run_dir)["jobs"][-1]["candidateCount"] == 1
+
+
+def test_same_shape_retry_has_a_new_attempt_identity_and_exact_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    catalog_path = run_dir / RUNNER.CANDIDATES
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog["candidates"] = catalog["candidates"][:1]
+    catalog["total"] = 1
+    catalog_path.write_text(canonical_json(catalog) + "\n", encoding="utf-8")
+    candidate_id = str(catalog["candidates"][0]["candidateId"])
+    token = qbatch.custom_id(qual.OPENAI_FAMILY, candidate_id)
+    server = FakeProviders(omit=frozenset({token}))
+
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    assert _receipts(run_dir) == []
+    first = _sidecar(run_dir)["jobs"][0]
+
+    server.omit = frozenset()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    second = _sidecar(run_dir)["jobs"][1]
+    assert second["shardId"] == first["shardId"]
+    assert second["attemptId"] != first["attemptId"]
+    assert second["attemptOrdinal"] == 2
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    receipt = _receipts(run_dir)[0]
+    assert receipt["batch_attempt_id"] == second["attemptId"]
+    summary = qbatch.verify_provider_batch_evidence(
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=qual.VALIDATOR_FAMILIES,
+        rows=_batch_rows_from_run(run_dir),
+        receipts=_receipts(run_dir),
+        work_kind="validation",
+    )
+    assert summary["attempts"] == 2
+    assert summary["verifiedReceipts"] == 1
+
+
+def test_create_timeout_holds_the_intent_and_prevents_duplicate_purchase(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class LosesCreateResponse(FakeProviders):
+        def request(self, method, url, headers, body, timeout):  # type: ignore[no-untyped-def]
+            response = super().request(method, url, headers, body, timeout)
+            if method == "POST" and url.endswith("/batches"):
+                raise TimeoutError("create response was lost")
+            return response
+
+    server = LosesCreateResponse()
+    with pytest.raises(TimeoutError, match="response was lost"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptState"] == "uncertain"
+    assert attempt["state"] == "uncertain"
+    assert attempt["jobId"] is None
+    creates_before = sum(call["url"].endswith("/batches") for call in server.calls)
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates_before
+    assert len(_sidecar(run_dir)["jobs"]) == 1
+
+
+def test_exact_raw_result_bytes_are_pinned_and_tampering_blocks_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    artifact = _sidecar(run_dir)["jobs"][0]["resultArtifacts"][0]
+    artifact_path = run_dir / artifact["file"]
+    assert artifact_path.read_bytes() == next(
+        payload for file_id, payload in server.files.items() if file_id == artifact["providerFileId"]
+    )
+    artifact_path.write_bytes(artifact_path.read_bytes() + b" ")
+
+    with pytest.raises(SystemExit, match="provider request lineage failed"):
+        RUNNER.main(["--output", str(run_dir), "bundle"])
+
+
+def test_singleton_batch_receipt_requires_its_sidecar_at_bundle_time(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    (run_dir / qbatch.SIDECAR).rename(run_dir / "held-batch-sidecar.json")
+
+    with pytest.raises(SystemExit, match="batch judging receipts require their batch sidecar"):
+        RUNNER.main(["--output", str(run_dir), "bundle"])
+
+
+def test_recomputed_aggregate_spend_rejects_sidecar_tampering(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    sidecar_path = run_dir / qbatch.SIDECAR
+    sidecar = _sidecar(run_dir)
+    sidecar["totalBatchAssumedCostUsd"] += 1
+    sidecar_path.write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+
+    with pytest.raises(qbatch.BatchError, match="committed total"):
+        qbatch.verify_provider_batch_evidence(
+            sidecar_path=sidecar_path,
+            families=qual.VALIDATOR_FAMILIES,
+            rows=_batch_rows_from_run(run_dir),
+            receipts=_receipts(run_dir),
+            work_kind="validation",
+        )
+
+
+def test_provider_create_echo_mismatch_retains_pollable_untrusted_job_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class EchoesAnotherInput(FakeProviders):
+        def _route(self, method, url, headers, body):  # type: ignore[no-untyped-def]
+            status, response_headers, payload = super()._route(method, url, headers, body)
+            if method == "POST" and url.endswith("/batches"):
+                parsed = json.loads(payload)
+                parsed["input_file_id"] = "file-not-the-uploaded-shard"
+                payload = _json(parsed)
+            return status, response_headers, payload
+
+    server = EchoesAnotherInput()
+    with pytest.raises(qbatch.BatchError, match="echoed another input_file_id"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptState"] == "createMismatch"
+    assert attempt["state"] == "uncertain"
+    assert attempt["jobId"] in server.jobs
+    assert attempt["statusEndpoint"].endswith(attempt["jobId"])
+
+    creates = sum(call["url"].endswith("/batches") for call in server.calls)
+    _run(monkeypatch, server, run_dir, "batch-status")
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptState"] == "createMismatch"
+    assert attempt["state"] == "pending"
+    assert attempt["statusArtifacts"]
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates
+
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-cancel")
+    assert _sidecar(run_dir)["jobs"][0]["state"] == "cancelling"
+    with pytest.raises(qbatch.BatchError, match="untrusted create response"):
+        _run(monkeypatch, server, run_dir, "batch-collect")
+    assert _receipts(run_dir) == []
+
+
+def test_run_reopen_recomputes_raw_provider_evidence_beyond_the_sidecar_pin(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    assert RUNNER.main(["--output", str(run_dir), "bundle"]) == 0
+    run_path = run_dir / RUNNER.RUN_RECEIPT
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    assert qbatch.verify_run_provider_batch_evidence(run_path, run)["judging"][
+        "verifiedReceipts"
+    ] == len(_candidate_rows())
+
+    artifact = _sidecar(run_dir)["jobs"][0]["resultArtifacts"][0]
+    artifact_path = run_dir / artifact["file"]
+    artifact_path.write_bytes(artifact_path.read_bytes() + b" ")
+    with pytest.raises(qbatch.BatchError, match="artifact differs"):
+        qbatch.verify_run_provider_batch_evidence(run_path, run)
+
+
+def test_production_reopen_requires_every_receipt_to_be_raw_batch_backed() -> None:
+    receipt_rows = (
+        {"batch_execution_mode": "batch"},
+        {"batch_execution_mode": "serial"},
+    )
+    with pytest.raises(
+        qbatch.BatchError,
+        match="must all reproduce from retained raw batch results",
+    ):
+        qbatch._require_complete_production_batch_receipts(
+            {"coverageMode": qual.PRODUCTION_COVERAGE_MODE},
+            evidence_name="judging",
+            receipt_rows=receipt_rows,
+            verification={"verifiedReceipts": 1},
+        )
+
+    qbatch._require_complete_production_batch_receipts(
+        {"coverageMode": qual.PILOT_COVERAGE_MODE},
+        evidence_name="judging",
+        receipt_rows=receipt_rows,
+        verification={"verifiedReceipts": 1},
+    )
+
+
+def test_aggregate_usage_is_linked_to_exact_raw_status_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    for provider_job in server.jobs.values():
+        calls = int(provider_job["request_counts"]["total"])
+        provider_job["usage"] = {
+            "input_tokens": 500 * calls,
+            "output_tokens": 120 * calls,
+            "total_tokens": 620 * calls,
+        }
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    job = _sidecar(run_dir)["jobs"][0]
+    status_pin = job["statusArtifacts"][-1]
+    aggregate = job["aggregateUsage"]
+    assert aggregate["statusArtifactDigest"] == status_pin["fileDigest"]
+    assert aggregate["statusArtifactFile"] == status_pin["file"]
+    assert aggregate["statusPollOrdinal"] == status_pin["pollOrdinal"]
+    assert job["collection"]["usageStatus"] == "aggregateReported"
+    raw_status = run_dir / status_pin["file"]
+    assert raw_status.read_bytes() == _json(server.jobs[job["jobId"]])
+
+    assert RUNNER.main(["--output", str(run_dir), "bundle"]) == 0
+    run_path = run_dir / RUNNER.RUN_RECEIPT
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    assert qbatch.verify_run_provider_batch_evidence(run_path, run)["judging"][
+        "statusArtifacts"
+    ] == 1
+
+    raw_status.write_bytes(raw_status.read_bytes() + b" ")
+    with pytest.raises(qbatch.BatchError, match="artifact differs"):
+        qbatch.verify_run_provider_batch_evidence(run_path, run)
+
+
+def test_retained_status_controls_result_file_identity_not_sidecar_agreement(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+
+    sidecar_path = run_dir / qbatch.SIDECAR
+    sidecar = _sidecar(run_dir)
+    job = sidecar["jobs"][0]
+    fabricated_file_id = "file-fabricated-consistent-sidecar"
+    fabricated_endpoint = (
+        f"{qbatch.provider_for(qual.OPENAI_FAMILY).files_url}/"
+        f"{fabricated_file_id}/content"
+    )
+    job["outputFileId"] = fabricated_file_id
+    result_pin = next(
+        pin for pin in job["resultArtifacts"] if pin["role"] == "output"
+    )
+    result_pin["providerFileId"] = fabricated_file_id
+    result_pin["endpoint"] = fabricated_endpoint
+    job["collection"]["downloadEndpoints"] = [fabricated_endpoint]
+    sidecar_path.write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+
+    with pytest.raises(qbatch.BatchError, match="output file identity differs from retained status"):
+        qbatch.verify_provider_batch_evidence(
+            sidecar_path=sidecar_path,
+            families=qual.VALIDATOR_FAMILIES,
+            rows=_batch_rows_from_run(run_dir),
+            receipts=_receipts(run_dir),
+            work_kind="validation",
+        )
+
+
+def test_terminal_status_without_usage_replaces_older_pending_usage(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class ReturnsIncompleteResultUsage(FakeProviders):
+        def _output_line(self, token: str, body: Mapping[str, Any]) -> dict[str, Any]:
+            line = super()._output_line(token, body)
+            line["response"]["body"]["usage"] = {"prompt_tokens": 500}
+            return line
+
+    server = ReturnsIncompleteResultUsage()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    provider_job = next(iter(server.jobs.values()))
+    provider_job["usage"] = {
+        "input_tokens": 1,
+        "output_tokens": 1,
+        "total_tokens": 2,
+    }
+    _run(monkeypatch, server, run_dir, "batch-status")
+    pending = _sidecar(run_dir)["jobs"][0]
+    assert pending["aggregateUsage"]["statusPollOrdinal"] == 1
+
+    server.complete_jobs()
+    provider_job.pop("usage")
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    job = _sidecar(run_dir)["jobs"][0]
+    assert len(job["statusArtifacts"]) == 2
+    assert "aggregateUsage" not in job
+    assert job["collection"]["usageStatus"] == "missing"
+    assert job["collection"]["exactCostUsd"] is None
+    assert job["collection"]["committedCostUsd"] == job["projectedCostUsd"]
+
+    summary = qbatch.verify_provider_batch_evidence(
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=qual.VALIDATOR_FAMILIES,
+        rows=_batch_rows_from_run(run_dir),
+        receipts=_receipts(run_dir),
+        work_kind="validation",
+    )
+    assert summary["committedCostUsd"] == job["projectedCostUsd"]
+
+
+@pytest.mark.parametrize(
+    ("field", "fabricated", "message"),
+    (
+        (
+            "requestCounts",
+            {"completed": 99, "failed": 0, "total": 99},
+            "request counts differ from retained status",
+        ),
+        (
+            "completedAt",
+            "2026-08-05T11:59:00Z",
+            "completion time has no retained source",
+        ),
+    ),
+)
+def test_absent_status_fact_cannot_be_fabricated_in_the_sidecar(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    field: str,
+    fabricated: object,
+    message: str,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    provider_job = next(iter(server.jobs.values()))
+    provider_job.pop("request_counts")
+    provider_job.pop("completed_at")
+    families = {"openai": qual.OPENAI_FAMILY}
+    keys = {"openai": "OPENAI-SECRET-VALUE"}
+    qbatch.poll(
+        transport=server,
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=families,
+        keys=keys,
+    )
+
+    sidecar_path = run_dir / qbatch.SIDECAR
+    sidecar = _sidecar(run_dir)
+    job = sidecar["jobs"][0]
+    assert job["requestCounts"] == {}
+    assert job["completedAt"] is None
+    assert job["completedAtSource"] is None
+    job[field] = fabricated
+    sidecar_path.write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+
+    with pytest.raises(qbatch.BatchError, match=message):
+        qbatch.collect(
+            transport=server,
+            receipts_path=run_dir / RUNNER.RECEIPTS,
+            sidecar_path=sidecar_path,
+            families=families,
+            keys=keys,
+            rows=_batch_rows_from_run(run_dir),
+            protocol=qual.PROTOCOL,
+        )
+
+
+def test_synthesized_completion_is_checkpointed_before_receipt_append(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    for provider_job in server.jobs.values():
+        provider_job.pop("completed_at", None)
+    families = {"openai": qual.OPENAI_FAMILY}
+    keys = {"openai": "OPENAI-SECRET-VALUE"}
+    qbatch.poll(
+        transport=server,
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=families,
+        keys=keys,
+        now=lambda: "2026-08-05T10:00:00Z",
+    )
+
+    class InjectedCrash(RuntimeError):
+        pass
+
+    original_recompute = qbatch.recompute_sidecar_spend
+
+    def crash_after_receipts(_sidecar: Mapping[str, Any]) -> tuple[list[dict[str, Any]], float]:
+        raise InjectedCrash("after receipt append")
+
+    monkeypatch.setattr(qbatch, "recompute_sidecar_spend", crash_after_receipts)
+    with pytest.raises(InjectedCrash, match="after receipt append"):
+        qbatch.collect(
+            transport=server,
+            receipts_path=run_dir / RUNNER.RECEIPTS,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families=families,
+            keys=keys,
+            rows=_batch_rows_from_run(run_dir),
+            protocol=qual.PROTOCOL,
+            now=lambda: "2026-08-05T10:01:00Z",
+        )
+    first_receipts = (run_dir / RUNNER.RECEIPTS).read_bytes()
+    checkpoint = _sidecar(run_dir)["jobs"][0]
+    assert checkpoint["completedAt"] == "2026-08-05T10:01:00Z"
+    assert checkpoint["completedAtSource"] == {"kind": "collectionCheckpoint"}
+    assert checkpoint["collectedAt"] is None
+
+    monkeypatch.setattr(qbatch, "recompute_sidecar_spend", original_recompute)
+    summary = qbatch.collect(
+        transport=server,
+        receipts_path=run_dir / RUNNER.RECEIPTS,
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=families,
+        keys=keys,
+        rows=_batch_rows_from_run(run_dir),
+        protocol=qual.PROTOCOL,
+        now=lambda: "2026-08-05T10:02:00Z",
+    )
+    assert summary["receiptsAppended"] == 0
+    assert (run_dir / RUNNER.RECEIPTS).read_bytes() == first_receipts
+    assert all(
+        receipt["finished_at"] == "2026-08-05T10:01:00Z"
+        for receipt in _receipts(run_dir)
+    )
+
+
+def test_scoring_and_judging_share_one_active_shard_per_family_model(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    creates = sum(call["url"].endswith("/batches") for call in server.calls)
+
+    _run(monkeypatch, server, run_dir, "score-batch-submit", "--family", "openai")
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates
+    scoring_sidecar = json.loads(
+        (run_dir / RUNNER.SCORING_BATCH_SIDECAR).read_text(encoding="utf-8")
+    )
+    assert scoring_sidecar["plannedShards"]
+    assert scoring_sidecar["jobs"] == []
+
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    _run(monkeypatch, server, run_dir, "score-batch-submit", "--family", "openai")
+    scoring_sidecar = json.loads(
+        (run_dir / RUNNER.SCORING_BATCH_SIDECAR).read_text(encoding="utf-8")
+    )
+    assert len(scoring_sidecar["jobs"]) == 1
+
+
+def test_run_lock_prevents_concurrent_judging_and_scoring_provider_creates(
+    run_dir: Path,
+) -> None:
+    context = multiprocessing.get_context("spawn")
+    events = context.Queue()
+    judging_sidecar = run_dir / qbatch.SIDECAR
+    scoring_sidecar = run_dir / RUNNER.SCORING_BATCH_SIDECAR
+    judging_rows = _batch_rows_from_run(run_dir)
+    scoring_rows = [
+        qbatch.CandidateRow(
+            candidate_id=row.candidate_id,
+            pair=row.pair,
+            input_digest=qual.scoring_input_digest(row.pair),
+        )
+        for row in judging_rows
+    ]
+    workers = [
+        context.Process(
+            target=_concurrent_submit_worker,
+            kwargs={
+                "label": "judging",
+                "run_root": str(run_dir),
+                "sidecar_name": qbatch.SIDECAR,
+                "coordination_name": RUNNER.SCORING_BATCH_SIDECAR,
+                "receipts_name": RUNNER.RECEIPTS,
+                "rows": judging_rows,
+                "work_kind": "validation",
+                "events": events,
+            },
+        ),
+        context.Process(
+            target=_concurrent_submit_worker,
+            kwargs={
+                "label": "scoring",
+                "run_root": str(run_dir),
+                "sidecar_name": RUNNER.SCORING_BATCH_SIDECAR,
+                "coordination_name": qbatch.SIDECAR,
+                "receipts_name": RUNNER.SCORING_RECEIPTS,
+                "rows": scoring_rows,
+                "work_kind": "scoring",
+                "events": events,
+            },
+        ),
+    ]
+
+    # Queue both real processes behind the same kernel lock so contention does
+    # not depend on scheduler timing.
+    with qbatch._run_submit_lock(judging_sidecar, (scoring_sidecar,)):
+        for worker in workers:
+            worker.start()
+        started = [events.get(timeout=15) for _worker in workers]
+        assert {event[:2] for event in started} == {
+            ("started", "judging"),
+            ("started", "scoring"),
+        }
+
+    for worker in workers:
+        worker.join(timeout=20)
+        assert not worker.is_alive()
+        assert worker.exitcode == 0
+    completed = [events.get(timeout=10) for _ in range(3)]
+    assert not [event for event in completed if event[0] == "error"]
+    assert sum(int(event[2]) for event in completed if event[0] == "create") == 1
+    assert sorted(int(event[2]) for event in completed if event[0] == "finished") == [0, 1]
+
+    sidecars = [
+        json.loads(judging_sidecar.read_text(encoding="utf-8")),
+        json.loads(scoring_sidecar.read_text(encoding="utf-8")),
+    ]
+    jobs = [job for sidecar in sidecars for job in sidecar["jobs"]]
+    assert len(jobs) == 1
+    assert {(job["family"], job["modelId"]) for job in jobs} == {
+        ("openai", OPENAI_MODEL)
+    }
+
+
+def test_run_lock_times_out_with_retryable_error_and_refuses_symlinks(
+    run_dir: Path,
+) -> None:
+    context = multiprocessing.get_context("spawn")
+    ready = context.Event()
+    release = context.Event()
+    holder = context.Process(
+        target=_hold_process_submit_lock,
+        args=(str(run_dir), ready, release),
+    )
+    holder.start()
+    assert ready.wait(timeout=15)
+    with (
+        pytest.raises(qbatch.BatchSubmitBusy, match="retry after the active submit finishes"),
+        qbatch._run_submit_lock(
+            run_dir / qbatch.SIDECAR,
+            (run_dir / RUNNER.SCORING_BATCH_SIDECAR,),
+            timeout_seconds=0.01,
+        ),
+    ):
+        raise AssertionError("a held run lock must not be entered")
+    release.set()
+    holder.join(timeout=20)
+    assert holder.exitcode == 0
+
+    lock_path = run_dir / qbatch.SUBMIT_LOCK_FILE
+    lock_path.unlink()
+    target = run_dir / "not-the-submit-lock"
+    target.write_text("unsafe\n", encoding="utf-8")
+    lock_path.symlink_to(target.name)
+    with (
+        pytest.raises(qbatch.BatchError, match="unavailable or unsafe"),
+        qbatch._run_submit_lock(
+            run_dir / qbatch.SIDECAR,
+            (),
+            timeout_seconds=0,
+        ),
+    ):
+        raise AssertionError("a symlink lock must not be entered")

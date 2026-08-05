@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
 
+import refspec.atlas.model as atlas_model
 import refspec.atlas.v1_release as v1_module
 from refspec.atlas import qualification as qual
+from refspec.atlas import qualification_batch as qbatch
+from refspec.atlas import release_acceptance
 from refspec.atlas.concept_release import PinnedSourceConceptRelease
 from refspec.atlas.model import CrosswalkBundle
 from refspec.atlas.relation_assertion import RelationAssertionBundle
@@ -477,7 +481,7 @@ def _definition_fixture(
     development_statement = "This exact ICPSR fixture remains explicitly marked developmentOnly."
     basis = {
         "type": "VocabularyAtlasV1ReleaseDefinition",
-        "schemaVersion": "1.0",
+        "schemaVersion": "2.0",
         "releaseMode": "baselineEvidenceRc",
         "releaseName": "urn:ref:test:vocabulary-atlas:v1",
         "scopeName": "urn:ref:test:vocabulary-atlas:v1:baseline-scope",
@@ -492,6 +496,7 @@ def _definition_fixture(
             "resourceCatalogFileDigest": sha256_digest(catalog_path.read_bytes()),
             "repositoryRoot": ".",
         },
+        "reviewedSearchCorpus": {"status": "skippedPublicOnly"},
         "releases": release_rows,
         "relationBundles": [
             {
@@ -591,6 +596,11 @@ def _tiny_public_basis(
     basis = _definition_basis(sealed)
     basis["releaseMode"] = "publicV1"
     basis["scopeKind"] = "published"
+    basis["reviewedSearchCorpus"] = {
+        "status": "required",
+        "path": v1_module._PUBLIC_V1_EXPLORER_SEARCH_CORPUS_PATH,
+        "fileDigest": v1_module._PUBLIC_V1_EXPLORER_SEARCH_CORPUS_FILE_DIGEST,
+    }
     release_ids = {row["v1Role"]: row["releaseId"] for row in basis["releases"]}
     basis["productionQualificationRuns"] = [
         {
@@ -630,6 +640,9 @@ def test_definition_is_canonical_content_derived_and_exact(tmp_path: Path) -> No
     assert reopened.record_digest == sealed.record_digest
     assert len(reopened.record["releases"]) == 6
     assert reopened.record["scopeKind"] == "bench"
+    assert reopened.record["reviewedSearchCorpus"] == {
+        "status": "skippedPublicOnly"
+    }
 
     with pytest.raises(VocabularyAtlasV1ReleaseError, match="file digest differs"):
         read_vocabulary_atlas_v1_release_definition(
@@ -647,6 +660,122 @@ def test_definition_is_canonical_content_derived_and_exact(tmp_path: Path) -> No
             noncanonical_path,
             expected_file_digest=sha256_digest(noncanonical_path.read_bytes()),
         )
+
+
+def test_definition_and_build_result_dispatch_legacy_and_current_shapes(
+    tmp_path: Path,
+) -> None:
+    _definition_path, current = _definition_fixture(tmp_path)
+    legacy_basis = _definition_basis(current)
+    legacy_basis["schemaVersion"] = "1.0"
+    legacy_basis.pop("reviewedSearchCorpus")
+    legacy = VocabularyAtlasV1ReleaseDefinition.seal(legacy_basis)
+    legacy_path = legacy.write_to(tmp_path / "definitions/legacy-v1.json")
+    reopened = read_vocabulary_atlas_v1_release_definition(
+        legacy_path,
+        expected_file_digest=sha256_digest(legacy_path.read_bytes()),
+    )
+
+    assert reopened.record["schemaVersion"] == "1.0"
+    assert "reviewedSearchCorpus" not in reopened.record
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="fields differ"):
+        VocabularyAtlasV1ReleaseDefinition.seal(
+            {**legacy_basis, "reviewedSearchCorpus": {"status": "skippedPublicOnly"}}
+        )
+
+    legacy_public_basis = _tiny_public_basis(current)
+    legacy_public_basis["schemaVersion"] = "1.0"
+    legacy_public_basis.pop("reviewedSearchCorpus")
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="schemaVersion 1.0 is supported only for baselineEvidenceRc",
+    ):
+        VocabularyAtlasV1ReleaseDefinition.seal(legacy_public_basis)
+
+    legacy_public_digest = sha256_digest(canonical_json_bytes(legacy_public_basis))
+    legacy_public_path = _write(
+        tmp_path / "definitions/fabricated-public-v1-schema.json",
+        canonical_json_bytes(
+            {
+                **legacy_public_basis,
+                "id": (v1_module._DEFINITION_ID_PREFIX + legacy_public_digest.removeprefix("sha256:")),
+                "recordDigest": legacy_public_digest,
+            }
+        ),
+    )
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="schemaVersion 1.0 is supported only for baselineEvidenceRc",
+    ):
+        read_vocabulary_atlas_v1_release_definition(
+            legacy_public_path,
+            expected_file_digest=sha256_digest(legacy_public_path.read_bytes()),
+        )
+
+    current_result_basis = {
+        field: {}
+        for field in v1_module._BUILD_RESULT_BASIS_FIELDS
+    }
+    current_result_basis.update(
+        {
+            "type": "VocabularyAtlasV1BuildResult",
+            "schemaVersion": "2.0",
+            "releaseMode": "baselineEvidenceRc",
+            "releaseName": "urn:ref:test:vocabulary-atlas:v1",
+            "status": "baselineEvidenceOnly",
+        }
+    )
+    current_result = v1_module._seal_build_result(current_result_basis)
+    assert v1_module._validate_build_result(current_result)["schemaVersion"] == "2.0"
+
+    legacy_result_basis = {
+        field: value
+        for field, value in current_result_basis.items()
+        if field != "explorerAcceptance"
+    }
+    legacy_result_basis["schemaVersion"] = "1.0"
+    legacy_result = v1_module._seal_build_result(legacy_result_basis)
+    assert v1_module._validate_build_result(legacy_result)["schemaVersion"] == "1.0"
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="fields differ"):
+        v1_module._validate_build_result(
+            v1_module._seal_build_result(legacy_result_basis)
+            | {"explorerAcceptance": {}}
+        )
+
+
+def test_schema_1_baseline_definition_builds_and_reopens(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _definition_path, current = _definition_fixture(tmp_path)
+    root = _definition_path.parents[1]
+    legacy_basis = _definition_basis(current)
+    legacy_basis["schemaVersion"] = "1.0"
+    legacy_basis.pop("reviewedSearchCorpus")
+    legacy = _write_reopened_definition(
+        root,
+        legacy_basis,
+        "legacy-baseline-v1.json",
+    )
+    _patch_managed_release_openers(monkeypatch)
+
+    output = tmp_path / "legacy-baseline-release"
+    build = build_vocabulary_atlas_v1_release(
+        legacy,
+        artifact_root=root,
+        output_directory=output,
+    )
+    reopened = open_vocabulary_atlas_v1_build(
+        output,
+        artifact_root=root,
+        expected_result_file_digest=build.result_file_digest,
+    )
+
+    assert reopened.identifier == build.identifier
+    assert build.result["releaseMode"] == "baselineEvidenceRc"
+    assert build.result["explorerAcceptance"]["reviewedCorpus"] == {
+        "status": "legacySchemaAbsent"
+    }
 
 
 def test_build_requires_reopened_definition_and_rechecks_source_bytes(
@@ -674,6 +803,103 @@ def test_build_requires_reopened_definition_and_rechecks_source_bytes(
             output_directory=output,
         )
     assert not output.exists()
+
+
+def test_definition_requires_exact_reviewed_search_corpus_state(
+    tmp_path: Path,
+) -> None:
+    _definition_path, sealed = _definition_fixture(tmp_path)
+    missing = _definition_basis(sealed)
+    missing.pop("reviewedSearchCorpus")
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="fields differ"):
+        VocabularyAtlasV1ReleaseDefinition.seal(missing)
+
+    baseline_with_public_pin = _definition_basis(sealed)
+    baseline_with_public_pin["reviewedSearchCorpus"] = {
+        "status": "required",
+        "path": "research/search-corpus.json",
+        "fileDigest": "sha256:" + "0" * 64,
+    }
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="reviewedSearchCorpus fields differ",
+    ):
+        VocabularyAtlasV1ReleaseDefinition.seal(baseline_with_public_pin)
+
+    approved_public_pin = {
+        "status": "required",
+        "path": v1_module._PUBLIC_V1_EXPLORER_SEARCH_CORPUS_PATH,
+        "fileDigest": v1_module._PUBLIC_V1_EXPLORER_SEARCH_CORPUS_FILE_DIGEST,
+    }
+    assert v1_module._normalize_reviewed_search_corpus(
+        approved_public_pin,
+        release_mode="publicV1",
+    ) == approved_public_pin
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="fileDigest"):
+        v1_module._normalize_reviewed_search_corpus(
+            {**approved_public_pin, "fileDigest": "not-a-digest"},
+            release_mode="publicV1",
+        )
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="relative path"):
+        v1_module._normalize_reviewed_search_corpus(
+            {**approved_public_pin, "path": "../outside.json"},
+            release_mode="publicV1",
+        )
+
+
+def test_reviewed_search_corpus_is_reopened_from_its_definition_pin(
+    tmp_path: Path,
+) -> None:
+    path = _write(
+        tmp_path / "research/search-corpus.json",
+        canonical_json_bytes({"review": "first"}),
+    )
+    digest = sha256_digest(path.read_bytes())
+    definition = SimpleNamespace(
+        record={
+            "releaseMode": "publicV1",
+            "reviewedSearchCorpus": {
+                "status": "required",
+                "path": "research/search-corpus.json",
+                "fileDigest": digest,
+            },
+        }
+    )
+    corpus, descriptor = v1_module._open_reviewed_search_corpus(
+        definition,
+        tmp_path.resolve(),
+    )
+    assert corpus == {"review": "first"}
+    assert descriptor["fileDigest"] == digest
+
+    path.write_bytes(canonical_json_bytes({"review": "changed"}))
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="exact digest"):
+        v1_module._open_reviewed_search_corpus(
+            definition,
+            tmp_path.resolve(),
+        )
+
+
+def test_public_builder_checks_reject_a_nonpassed_explorer_gate() -> None:
+    definition = SimpleNamespace(record={"releaseMode": "publicV1"})
+    explorer_acceptance = SimpleNamespace(
+        record={"status": "measuredBaselineOnly"}
+    )
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="status differs from its release mode",
+    ):
+        v1_module._builder_acceptance_checks(
+            definition,
+            index=SimpleNamespace(),
+            scope=SimpleNamespace(),
+            atlas=SimpleNamespace(),
+            decision=SimpleNamespace(),
+            publication=SimpleNamespace(),
+            explorer_acceptance=explorer_acceptance,
+            qualification_runs=[],
+            federal_register_reconciliation={"counts": {}},
+        )
 
 
 def test_exact_json_decodes_the_digest_verified_payload(
@@ -817,6 +1043,332 @@ def test_build_refuses_incomplete_row_controls_and_nonproduction_job(
         )
 
 
+def test_v1_qualification_reopen_recomputes_provider_batch_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _definition_path, sealed = _definition_fixture(tmp_path)
+    root = _definition_path.parents[1]
+    _patch_managed_release_openers(monkeypatch)
+    assignment_directory = tmp_path / "batch-evidence-assignments"
+    assignment_directory.mkdir()
+    _scope_releases, release_sources, _labels = v1_module._open_releases(
+        sealed,
+        root,
+        assignment_directory,
+    )
+    descriptor = dict(cast(list[dict[str, Any]], sealed.record["baselineQualificationRuns"])[0])
+    run_path = root / cast(str, descriptor["runReceiptPath"])
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    run.pop("id")
+    run.pop("contentDigest")
+    run["providerBatchEvidence"] = {
+        "judging": {
+            "file": "judging-batch-sidecar.json",
+            "fileDigest": "sha256:" + "a" * 64,
+            "protocol": qbatch.SIDECAR_PROTOCOL,
+            "verification": {
+                "candidateRequests": 0,
+                "jobs": 0,
+                "providerRequests": 0,
+                "workKind": "validation",
+            },
+        }
+    }
+    sealed_run = qual.seal_qualification_run_receipt(run)
+    run_path.write_bytes(canonical_json_bytes(sealed_run))
+    descriptor["runReceiptFileDigest"] = sha256_digest(run_path.read_bytes())
+    descriptor["runReceiptContentDigest"] = sealed_run["contentDigest"]
+
+    def reject_batch_evidence(_path: Path, _run: Mapping[str, Any]) -> dict[str, Any]:
+        raise qbatch.BatchError("provider batch raw artifact changed")
+
+    monkeypatch.setattr(qbatch, "verify_run_provider_batch_evidence", reject_batch_evidence)
+    with pytest.raises(VocabularyAtlasV1ReleaseError, match="provider batch raw artifact changed"):
+        v1_module._verify_pair_qualification_run(
+            descriptor,
+            root=root,
+            releases=release_sources,
+            production=False,
+        )
+
+
+def test_public_v1_qualification_requires_both_batch_evidence_roads(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _definition_path, sealed = _definition_fixture(tmp_path)
+    root = _definition_path.parents[1]
+    _patch_managed_release_openers(monkeypatch)
+    assignment_directory = tmp_path / "production-batch-assignments"
+    assignment_directory.mkdir()
+    _scope_releases, release_sources, _labels = v1_module._open_releases(
+        sealed,
+        root,
+        assignment_directory,
+    )
+    baseline = cast(list[dict[str, Any]], sealed.record["baselineQualificationRuns"])[0]
+    job = cast(str, baseline["job"])
+    descriptor = _qualification_run(
+        root,
+        job=job,
+        source=release_sources[cast(str, baseline["sourceReleaseId"])],
+        target=release_sources[cast(str, baseline["targetReleaseId"])],
+        production=True,
+    )
+    run_path = root / descriptor["runReceiptPath"]
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    catalog = cast(dict[str, Any], run["candidateCatalog"])
+    monkeypatch.setattr(
+        v1_module,
+        "_PUBLIC_V1_PRODUCTION_CATALOGS",
+        {job: (0, catalog["fileDigest"])},
+    )
+
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="must pin judging and scoring provider batch evidence",
+    ):
+        v1_module._verify_pair_qualification_run(
+            descriptor,
+            root=root,
+            releases=release_sources,
+            production=True,
+        )
+
+
+def test_public_v1_qualification_reopen_rejects_control_relabel(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _definition_path, sealed = _definition_fixture(tmp_path)
+    root = _definition_path.parents[1]
+    _patch_managed_release_openers(monkeypatch)
+    assignment_directory = tmp_path / "production-lineage-assignments"
+    assignment_directory.mkdir()
+    _scope_releases, release_sources, _labels = v1_module._open_releases(
+        sealed,
+        root,
+        assignment_directory,
+    )
+    baseline = cast(
+        list[dict[str, Any]],
+        sealed.record["baselineQualificationRuns"],
+    )[0]
+    job = cast(str, baseline["job"])
+    descriptor = _qualification_run(
+        root,
+        job=job,
+        source=release_sources[cast(str, baseline["sourceReleaseId"])],
+        target=release_sources[cast(str, baseline["targetReleaseId"])],
+        production=True,
+    )
+    run_path = root / descriptor["runReceiptPath"]
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    candidate_id = "urn:ref:test:candidate:genuine"
+    catalog_path = run_path.parent / run["candidateCatalog"]["file"]
+    catalog = {
+        "candidates": [
+            {
+                "candidateId": candidate_id,
+                "generationClass": "normalizedLabelEquality",
+            }
+        ],
+        "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+        "generationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+    }
+    catalog_path.write_bytes(canonical_json_bytes(catalog))
+    catalog_digest = sha256_digest(catalog_path.read_bytes())
+    run["candidateCatalog"] = {
+        "file": catalog_path.name,
+        "fileDigest": catalog_digest,
+        "total": 1,
+    }
+    run["candidateAccounting"] = [
+        {
+            "candidateId": candidate_id,
+            "generationClass": "randomNegativeControl",
+            "control": True,
+            "disposition": "controlled",
+            "judgeReceipts": [],
+            "judged": False,
+            "scorerReceipts": [],
+            "scored": False,
+        }
+    ]
+    run["counts"] = {
+        **run["counts"],
+        "generated": 1,
+        "controlled": 1,
+    }
+    run["providerBatchEvidence"] = {"judging": {}, "scoring": {}}
+    run["contentDigest"] = "sha256:" + "9" * 64
+    descriptor["runReceiptContentDigest"] = run["contentDigest"]
+    monkeypatch.setattr(
+        qual,
+        "validate_qualification_run_receipt",
+        lambda _record: run,
+    )
+    monkeypatch.setattr(
+        qbatch,
+        "verify_run_provider_batch_evidence",
+        lambda _path, _run: {},
+    )
+    monkeypatch.setattr(
+        v1_module,
+        "_PUBLIC_V1_PRODUCTION_CATALOGS",
+        {job: (1, catalog_digest)},
+    )
+
+    class CandidateBundle:
+        identifier = run["bundle"]["id"]
+
+        @staticmethod
+        def to_dict() -> dict[str, Any]:
+            return {
+                "mappingCandidates": [
+                    {
+                        "id": candidate_id,
+                        "sourceRelease": descriptor["sourceReleaseId"],
+                        "targetRelease": descriptor["targetReleaseId"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        v1_module.CrosswalkBundle,
+        "open",
+        lambda *_args, **_kwargs: CandidateBundle(),
+    )
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="generation class differs from its exact catalog row",
+    ):
+        v1_module._verify_pair_qualification_run(
+            descriptor,
+            root=root,
+            releases=release_sources,
+            production=True,
+        )
+
+
+def test_public_v1_qualification_reopen_rejects_erased_admission(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _definition_path, sealed = _definition_fixture(tmp_path)
+    root = _definition_path.parents[1]
+    _patch_managed_release_openers(monkeypatch)
+    assignment_directory = tmp_path / "production-admission-assignments"
+    assignment_directory.mkdir()
+    _scope_releases, release_sources, _labels = v1_module._open_releases(
+        sealed,
+        root,
+        assignment_directory,
+    )
+    baseline = cast(
+        list[dict[str, Any]],
+        sealed.record["baselineQualificationRuns"],
+    )[0]
+    job = cast(str, baseline["job"])
+    descriptor = _qualification_run(
+        root,
+        job=job,
+        source=release_sources[cast(str, baseline["sourceReleaseId"])],
+        target=release_sources[cast(str, baseline["targetReleaseId"])],
+        production=True,
+    )
+    run_path = root / descriptor["runReceiptPath"]
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    candidate_id = "urn:ref:test:candidate:erased-admission"
+    catalog_path = run_path.parent / run["candidateCatalog"]["file"]
+    catalog = {
+        "candidates": [
+            {
+                "candidateId": candidate_id,
+                "generationClass": "normalizedLabelEquality",
+            }
+        ],
+        "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+        "generationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+    }
+    catalog_path.write_bytes(canonical_json_bytes(catalog))
+    catalog_digest = sha256_digest(catalog_path.read_bytes())
+    run["candidateCatalog"] = {
+        "file": catalog_path.name,
+        "fileDigest": catalog_digest,
+        "total": 1,
+    }
+    run["candidateAccounting"] = [
+        {
+            "candidateId": candidate_id,
+            "generationClass": "normalizedLabelEquality",
+            "control": False,
+            "disposition": "rejected",
+            "judgeReceipts": [],
+            "judged": False,
+            "scorerReceipts": [],
+            "scored": False,
+        }
+    ]
+    run["counts"] = {
+        **run["counts"],
+        "generated": 1,
+        "rejected": 1,
+    }
+    run["providerBatchEvidence"] = {"judging": {}, "scoring": {}}
+    monkeypatch.setattr(
+        qual,
+        "validate_qualification_run_receipt",
+        lambda _record: run,
+    )
+    monkeypatch.setattr(
+        qbatch,
+        "verify_run_provider_batch_evidence",
+        lambda _path, _run: {},
+    )
+    monkeypatch.setattr(
+        v1_module,
+        "_PUBLIC_V1_PRODUCTION_CATALOGS",
+        {job: (1, catalog_digest)},
+    )
+
+    class CandidateBundle:
+        identifier = run["bundle"]["id"]
+
+        @staticmethod
+        def to_dict() -> dict[str, Any]:
+            return {
+                "mappingCandidates": [
+                    {
+                        "id": candidate_id,
+                        "sourceRelease": descriptor["sourceReleaseId"],
+                        "targetRelease": descriptor["targetReleaseId"],
+                    }
+                ]
+            }
+
+        @staticmethod
+        def adjudicated_relations() -> dict[str, str]:
+            return {candidate_id: SUBJECT_EXACT_MATCH}
+
+    monkeypatch.setattr(
+        v1_module.CrosswalkBundle,
+        "open",
+        lambda *_args, **_kwargs: CandidateBundle(),
+    )
+    with pytest.raises(
+        VocabularyAtlasV1ReleaseError,
+        match="Crosswalk adjudications differ from run admissions",
+    ):
+        v1_module._verify_pair_qualification_run(
+            descriptor,
+            root=root,
+            releases=release_sources,
+            production=True,
+        )
+
+
 def test_baseline_rc_is_a_bench_preview_never_a_passed_public_v1(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -875,6 +1427,66 @@ def test_failed_post_placement_reopen_removes_the_new_output(
     assert not output.exists()
 
 
+def test_builder_uses_three_equivalent_atlas_generations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    definition_path, _sealed = _definition_fixture(tmp_path)
+    definition = read_vocabulary_atlas_v1_release_definition(
+        definition_path,
+        expected_file_digest=sha256_digest(definition_path.read_bytes()),
+    )
+    _patch_managed_release_openers(monkeypatch)
+
+    generation_roles: list[str] = []
+    generated_distributions: list[tuple[bytes, bytes, bytes]] = []
+    original_resolved_build = atlas_model._build_resolved_atlas_v2
+    original_producer_build = v1_module.build_vocabulary_atlas
+    original_acceptance_build = release_acceptance.build_vocabulary_atlas
+
+    def record_generation(resolved: Any) -> Any:
+        atlas = original_resolved_build(resolved)
+        generated_distributions.append(
+            (atlas.payload, atlas.scope_payload, atlas.manifest_bytes())
+        )
+        return atlas
+
+    def build_producer_atlas(scope: Any) -> Any:
+        generation_roles.append("producer")
+        return original_producer_build(scope)
+
+    def build_acceptance_atlas(scope: Any) -> Any:
+        generation_roles.append("acceptance")
+        return original_acceptance_build(scope)
+
+    monkeypatch.setattr(
+        atlas_model,
+        "_build_resolved_atlas_v2",
+        record_generation,
+    )
+    monkeypatch.setattr(
+        v1_module,
+        "build_vocabulary_atlas",
+        build_producer_atlas,
+    )
+    monkeypatch.setattr(
+        release_acceptance,
+        "build_vocabulary_atlas",
+        build_acceptance_atlas,
+    )
+
+    output = tmp_path / "three-generation-release"
+    build_vocabulary_atlas_v1_release(
+        definition,
+        artifact_root=definition_path.parents[1],
+        output_directory=output,
+    )
+
+    assert generation_roles == ["producer", "acceptance", "acceptance"]
+    assert len(generated_distributions) == 3
+    assert generated_distributions == [generated_distributions[0]] * 3
+
+
 def test_builder_dispatches_all_release_kinds_and_seals_baseline_preview(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -906,6 +1518,7 @@ def test_builder_dispatches_all_release_kinds_and_seals_baseline_preview(
     assert (output / "baseline-preview/publication-manifest.json").is_file()
     assert not (output / "public").exists()
     assert (output / "control/release-definition.json").read_bytes() == definition_path.read_bytes()
+    assert (output / "control/explorer-acceptance.json").is_file()
     assert (output / "control/release-acceptance.json").is_file()
     assert (output / "build-result.json").is_file()
     assert len(list((output / "control/ring-assignments").glob("*.json"))) == 3
@@ -922,10 +1535,24 @@ def test_builder_dispatches_all_release_kinds_and_seals_baseline_preview(
     assert [row["id"] for row in acceptance_record["checks"]] == [
         "urn:ref:check:vocabulary-atlas-v1:canonical-reproduction",
         "urn:ref:check:vocabulary-atlas-v1:definition-and-controls",
+        "urn:ref:check:vocabulary-atlas-v1:explorer-acceptance",
         "urn:ref:check:vocabulary-atlas-v1:federal-register-related-reconciliation",
         "urn:ref:check:vocabulary-atlas-v1:publication-reopen",
         "urn:ref:check:vocabulary-atlas-v1:qualification-accounting",
     ]
+    explorer_acceptance = json.loads(
+        (output / "control/explorer-acceptance.json").read_text(encoding="utf-8")
+    )
+    assert explorer_acceptance["status"] == "measuredBaselineOnly"
+    assert explorer_acceptance["search"]["status"] == "skippedPublicOnly"
+    assert build.result["explorerAcceptance"] == {
+        "id": explorer_acceptance["id"],
+        "recordDigest": explorer_acceptance["recordDigest"],
+        "fileDigest": sha256_digest(
+            (output / "control/explorer-acceptance.json").read_bytes()
+        ),
+        "reviewedCorpus": {"status": "skippedPublicOnly"},
+    }
     assert build.result["sourceReconciliations"][0]["counts"] == {
         "resolvedConceptLinks": 1_451,
         "sourceReferenceTotal": 1_463,

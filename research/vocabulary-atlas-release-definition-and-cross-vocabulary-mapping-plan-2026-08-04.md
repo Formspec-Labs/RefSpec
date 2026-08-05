@@ -15,17 +15,35 @@ frontier rule, and the promotion ladder; this one defines scope, schedule, and
 release lineage. Both were reconciled to this plan on 2026-08-04. Three limits
 they own and this plan inherits are recorded in §16.
 
-**Implementation checkpoint (2026-08-04):** RefSpec now implements the complete
+**Implementation checkpoint (2026-08-05):** RefSpec implements the complete
 production qualification path, exact six-release opening, Atlas 2.0 assembly,
-publication decisions for all 87 planning rows, complete static access paths,
-and content-derived release acceptance. The three historical qualification
-runs have been resealed as 582 non-control relation assertions while preserving
-their 69 agreed control rows in qualification evidence. Six complete production
-candidate catalogs are prepared and pinned: 12,313 candidates in total. The
-next release action is to score and judge those catalogs with the two recorded
-provider families, seal the admitted non-control results, and run the guarded
-public-v1 builder. The builder treats those six production run receipts as a
-required release input, including a run that admits zero mappings.
+mapping-assertion lifecycle and supersession, publication decisions for all 87
+planning rows, complete static access paths, executable explorer acceptance,
+and content-derived release acceptance. The canonical six-release baseline now
+accounts for 9,010 concepts, 32,684 native relations, and all 582 non-control
+mapping assertions while preserving the 69 agreed control rows in qualification
+evidence.
+
+Six complete production candidate catalogs are prepared and pinned: 12,313
+candidates in total. The production Batch API path groups up to 25 independent
+rows per provider request, bounds groups and jobs by bytes and conservative
+tokens, preserves exact raw provider evidence, and retries only missing or
+malformed rows. The exact no-provider plan uses 1,488 provider requests across
+27 queue-safe jobs with a $109.904650 conservative ceiling; one-row requests
+would use 36,939 requests across 50 jobs with a $504.307663 ceiling. Public v1
+requires both scoring and judging batch evidence for every production run and
+recomputes requests, results, receipts, usage, and spend during reopening. It
+then rebuilds the complete Crosswalk from those exact judge receipts and
+reproduces every admitted, controlled, abstained, rejected, and incomplete
+candidate disposition before accepting the run.
+
+The public-definition preparer is implemented and verified through the exact
+point where production receipts become required. The remaining release actions
+are to execute the six paid jobs within an explicitly approved spend cap, seal
+every admitted non-control result, prepare and verify the canonical public
+definition from those receipts, and run the guarded public-v1 builder. The
+builder treats all six production run receipts as required inputs, including a
+run that admits zero mappings.
 
 ## Decision
 

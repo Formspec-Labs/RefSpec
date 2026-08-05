@@ -59,12 +59,18 @@ from .concept_release import (
     PinnedManagedReleaseRingAssignment,
     PinnedSourceConceptRelease,
 )
+from .explorer_acceptance import (
+    VocabularyAtlasExplorerAcceptance,
+    build_vocabulary_atlas_explorer_acceptance,
+    read_vocabulary_atlas_explorer_acceptance,
+)
 from .federal_register import PinnedFederalRegisterManagedConceptRelease
 from .icpsr import PinnedIcpsrManagedConceptRelease
 from .machine_evidence import PinnedCrosswalkMachineProof
 from .model import CrosswalkBundle, VocabularyAtlasAsset, build_vocabulary_atlas
 from .publication import (
     EXPLORER_DATA,
+    EXPLORER_HTML,
     AtlasPublication,
     publish_vocabulary_atlas,
 )
@@ -82,9 +88,9 @@ from .release_acceptance import (
 )
 
 VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_TYPE = "VocabularyAtlasV1ReleaseDefinition"
-VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION = "1.0"
+VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION = "2.0"
 VOCABULARY_ATLAS_V1_BUILD_RESULT_TYPE = "VocabularyAtlasV1BuildResult"
-VOCABULARY_ATLAS_V1_BUILD_RESULT_VERSION = "1.0"
+VOCABULARY_ATLAS_V1_BUILD_RESULT_VERSION = "2.0"
 
 ReleaseKind = Literal[
     "sourceConceptRelease",
@@ -104,6 +110,12 @@ V1ReleaseRole = Literal[
 
 _DEFINITION_ID_PREFIX = "urn:ref:vocabulary-atlas-v1-release-definition:"
 _BUILD_RESULT_ID_PREFIX = "urn:ref:vocabulary-atlas-v1-build-result:"
+_PUBLIC_V1_EXPLORER_SEARCH_CORPUS_PATH = (
+    "research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json"
+)
+_PUBLIC_V1_EXPLORER_SEARCH_CORPUS_FILE_DIGEST = (
+    "sha256:1a3c007ea39ce3bbf2401c34bf2f49fed3d2b2294658e2b04c68a52454588c2d"
+)
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _KEY = re.compile(r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 _RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
@@ -274,6 +286,7 @@ _DEFINITION_BASIS_FIELDS = frozenset(
         "scopeKind",
         "title",
         "planningIndex",
+        "reviewedSearchCorpus",
         "releases",
         "relationBundles",
         "productionQualificationRuns",
@@ -283,6 +296,17 @@ _DEFINITION_BASIS_FIELDS = frozenset(
     }
 )
 _DEFINITION_RECORD_FIELDS = _DEFINITION_BASIS_FIELDS | {"id", "recordDigest"}
+_DEFINITION_V1_BASIS_FIELDS = _DEFINITION_BASIS_FIELDS - {
+    "reviewedSearchCorpus"
+}
+_DEFINITION_BASIS_FIELDS_BY_VERSION = {
+    "1.0": _DEFINITION_V1_BASIS_FIELDS,
+    "2.0": _DEFINITION_BASIS_FIELDS,
+}
+_PUBLIC_REVIEWED_SEARCH_CORPUS_FIELDS = frozenset(
+    {"status", "path", "fileDigest"}
+)
+_BASELINE_REVIEWED_SEARCH_CORPUS_FIELDS = frozenset({"status"})
 _PLANNING_INDEX_FIELDS = frozenset(
     {
         "path",
@@ -388,6 +412,7 @@ _BUILD_RESULT_BASIS_FIELDS = frozenset(
         "atlas",
         "publicationDecision",
         "publication",
+        "explorerAcceptance",
         "acceptance",
         "counts",
         "reproducibility",
@@ -399,6 +424,13 @@ _BUILD_RESULT_BASIS_FIELDS = frozenset(
 _BUILD_RESULT_RECORD_FIELDS = _BUILD_RESULT_BASIS_FIELDS | {
     "id",
     "recordDigest",
+}
+_BUILD_RESULT_V1_BASIS_FIELDS = _BUILD_RESULT_BASIS_FIELDS - {
+    "explorerAcceptance"
+}
+_BUILD_RESULT_BASIS_FIELDS_BY_VERSION = {
+    "1.0": _BUILD_RESULT_V1_BASIS_FIELDS,
+    "2.0": _BUILD_RESULT_BASIS_FIELDS,
 }
 
 
@@ -520,6 +552,35 @@ def _normalize_planning_index(value: object) -> dict[str, str]:
         ),
         "repositoryRoot": _require_relative_path(row.get("repositoryRoot"), f"{label}.repositoryRoot"),
     }
+
+
+def _normalize_reviewed_search_corpus(
+    value: object,
+    *,
+    release_mode: str,
+) -> dict[str, str]:
+    label = "v1 release definition reviewedSearchCorpus"
+    row = _require_mapping(value, label)
+    if release_mode == "publicV1":
+        _require_exact_fields(row, _PUBLIC_REVIEWED_SEARCH_CORPUS_FIELDS, label)
+        if row.get("status") != "required":
+            raise VocabularyAtlasV1ReleaseError(
+                f"{label}.status must be required for publicV1"
+            )
+        return {
+            "status": "required",
+            "path": _require_relative_path(row.get("path"), f"{label}.path"),
+            "fileDigest": _require_digest(
+                row.get("fileDigest"),
+                f"{label}.fileDigest",
+            ),
+        }
+    _require_exact_fields(row, _BASELINE_REVIEWED_SEARCH_CORPUS_FIELDS, label)
+    if row.get("status") != "skippedPublicOnly":
+        raise VocabularyAtlasV1ReleaseError(
+            f"{label}.status must be skippedPublicOnly for baselineEvidenceRc"
+        )
+    return {"status": "skippedPublicOnly"}
 
 
 def _normalize_ring_assignment(value: object, label: str) -> dict[str, Any]:
@@ -1021,6 +1082,7 @@ def _normalize_expected_counts(
 def _validate_public_v1_profile(
     *,
     planning_index: Mapping[str, str],
+    reviewed_search_corpus: Mapping[str, str] | None,
     releases: Sequence[Mapping[str, Any]],
     expected_counts: Mapping[str, Any],
     baseline_runs: Sequence[Mapping[str, Any]],
@@ -1029,6 +1091,14 @@ def _validate_public_v1_profile(
 
     if any(planning_index[field] != digest for field, digest in _PUBLIC_V1_PLANNING_INDEX_DIGESTS.items()):
         raise VocabularyAtlasV1ReleaseError("publicV1 requires the exact approved 87-row planning index and inputs")
+    if reviewed_search_corpus is not None and _plain(reviewed_search_corpus) != {
+        "status": "required",
+        "path": _PUBLIC_V1_EXPLORER_SEARCH_CORPUS_PATH,
+        "fileDigest": _PUBLIC_V1_EXPLORER_SEARCH_CORPUS_FILE_DIGEST,
+    }:
+        raise VocabularyAtlasV1ReleaseError(
+            "publicV1 requires the exact approved reviewed explorer search corpus"
+        )
     observed_pins = {
         cast(str, release["v1Role"]): (
             cast(str, release["releaseId"]),
@@ -1084,22 +1154,37 @@ def _validate_public_v1_profile(
 def _normalize_definition_basis(value: object) -> dict[str, Any]:
     label = "v1 release definition"
     row = _require_mapping(value, label)
-    _require_exact_fields(row, _DEFINITION_BASIS_FIELDS, label)
+    schema_version = row.get("schemaVersion")
+    expected_fields = _DEFINITION_BASIS_FIELDS_BY_VERSION.get(
+        cast(str, schema_version)
+    )
+    if expected_fields is None:
+        raise VocabularyAtlasV1ReleaseError(
+            f"{label}.schemaVersion must be one of "
+            f"{sorted(_DEFINITION_BASIS_FIELDS_BY_VERSION)}"
+        )
+    _require_exact_fields(row, expected_fields, label)
     if row.get("type") != VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_TYPE:
         raise VocabularyAtlasV1ReleaseError(f"{label}.type must be {VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_TYPE}")
-    if row.get("schemaVersion") != VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION:
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label}.schemaVersion must be {VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION}"
-        )
     releases = _normalize_releases(row.get("releases"))
     release_ids = frozenset(cast(str, release["releaseId"]) for release in releases)
     release_mode = row.get("releaseMode")
     if not isinstance(release_mode, str) or release_mode not in _RELEASE_MODES:
         raise VocabularyAtlasV1ReleaseError(f"{label}.releaseMode must be publicV1 or baselineEvidenceRc")
+    if schema_version == "1.0" and release_mode == "publicV1":
+        raise VocabularyAtlasV1ReleaseError(f"{label}.schemaVersion 1.0 is supported only for baselineEvidenceRc")
     expected_scope_kind = "published" if release_mode == "publicV1" else "bench"
     if row.get("scopeKind") != expected_scope_kind:
         raise VocabularyAtlasV1ReleaseError(f"{label}.scopeKind must be {expected_scope_kind} for {release_mode}")
     planning_index = _normalize_planning_index(row.get("planningIndex"))
+    reviewed_search_corpus = (
+        _normalize_reviewed_search_corpus(
+            row.get("reviewedSearchCorpus"),
+            release_mode=release_mode,
+        )
+        if schema_version == "2.0"
+        else None
+    )
     expected_counts = _normalize_expected_counts(row.get("expectedCounts"), release_ids=release_ids)
     production_runs = _normalize_pair_runs(
         row.get("productionQualificationRuns"),
@@ -1116,13 +1201,14 @@ def _normalize_definition_basis(value: object) -> dict[str, Any]:
     if release_mode == "publicV1":
         _validate_public_v1_profile(
             planning_index=planning_index,
+            reviewed_search_corpus=reviewed_search_corpus,
             releases=releases,
             expected_counts=expected_counts,
             baseline_runs=baseline_runs,
         )
-    return {
+    normalized = {
         "type": VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_TYPE,
-        "schemaVersion": VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION,
+        "schemaVersion": schema_version,
         "releaseMode": release_mode,
         "releaseName": _require_iri(row.get("releaseName"), f"{label}.releaseName"),
         "scopeName": _require_iri(row.get("scopeName"), f"{label}.scopeName"),
@@ -1136,6 +1222,9 @@ def _normalize_definition_basis(value: object) -> dict[str, Any]:
         "publication": _normalize_publication(row.get("publication"), releases=releases),
         "expectedCounts": expected_counts,
     }
+    if reviewed_search_corpus is not None:
+        normalized["reviewedSearchCorpus"] = reviewed_search_corpus
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -1148,8 +1237,21 @@ class VocabularyAtlasV1ReleaseDefinition:
 
     def __post_init__(self) -> None:
         row = _require_mapping(self.record, "v1 release definition")
-        _require_exact_fields(row, _DEFINITION_RECORD_FIELDS, "v1 release definition")
-        basis = _normalize_definition_basis({field: row[field] for field in _DEFINITION_BASIS_FIELDS})
+        basis_fields = _DEFINITION_BASIS_FIELDS_BY_VERSION.get(
+            cast(str, row.get("schemaVersion"))
+        )
+        if basis_fields is None:
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 release definition schemaVersion is unsupported"
+            )
+        _require_exact_fields(
+            row,
+            basis_fields | {"id", "recordDigest"},
+            "v1 release definition",
+        )
+        basis = _normalize_definition_basis(
+            {field: row[field] for field in basis_fields}
+        )
         digest = sha256_digest(_canonical_bytes(basis))
         expected = {
             **basis,
@@ -1271,6 +1373,33 @@ def _decode_json(payload: bytes, label: str) -> Any:
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
         raise VocabularyAtlasV1ReleaseError(f"{label} must be valid UTF-8 JSON") from error
+
+
+def _open_reviewed_search_corpus(
+    definition: VocabularyAtlasV1ReleaseDefinition,
+    root: Path,
+) -> tuple[Mapping[str, Any] | None, Mapping[str, str]]:
+    if definition.record.get("schemaVersion") == "1.0":
+        return None, {"status": "legacySchemaAbsent"}
+    descriptor = cast(
+        Mapping[str, str],
+        definition.record["reviewedSearchCorpus"],
+    )
+    if definition.record["releaseMode"] == "baselineEvidenceRc":
+        if _plain(descriptor) != {"status": "skippedPublicOnly"}:
+            raise VocabularyAtlasV1ReleaseError(
+                "baselineEvidenceRc must explicitly skip the public-only reviewed search corpus"
+            )
+        return None, descriptor
+    path = cast(str, descriptor["path"])
+    digest = cast(str, descriptor["fileDigest"])
+    corpus = _exact_json(
+        root,
+        path,
+        digest,
+        label="public v1 reviewed explorer search corpus",
+    )
+    return corpus, descriptor
 
 
 def _read_regular_file(path: Path, *, label: str) -> bytes:
@@ -1626,6 +1755,7 @@ def _verify_pair_qualification_run(
         PRODUCTION_COVERAGE_MODE,
         QualificationError,
         validate_qualification_run_receipt,
+        verify_candidate_accounting_catalog_lineage,
     )
 
     job = cast(str, descriptor["job"])
@@ -1736,6 +1866,18 @@ def _verify_pair_qualification_run(
     if not isinstance(catalog, Mapping) or (canonical_json(catalog) + "\n").encode("utf-8") != catalog_payload:
         raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} candidate catalog is not canonical")
 
+    provider_batch_evidence = run.get("providerBatchEvidence")
+    if (
+        production
+        and (
+            not isinstance(provider_batch_evidence, Mapping)
+            or set(provider_batch_evidence) != {"judging", "scoring"}
+        )
+    ):
+        raise VocabularyAtlasV1ReleaseError(
+            f"publicV1 qualification job {job} must pin judging and scoring provider batch evidence"
+        )
+
     receipt_row = _require_mapping(run.get("receiptLog"), f"v1 qualification job {job} judge receipt log")
     receipt_total = _require_count(receipt_row.get("total"), f"v1 qualification job {job} receiptLog.total")
     receipt_file = _run_support_file(
@@ -1781,6 +1923,14 @@ def _verify_pair_qualification_run(
             allow_legacy_epoch=uses_approved_baseline,
         )
 
+    if provider_batch_evidence is not None:
+        from .qualification_batch import BatchError, verify_run_provider_batch_evidence
+
+        try:
+            verify_run_provider_batch_evidence(run_path, run)
+        except BatchError as error:
+            raise VocabularyAtlasV1ReleaseError(str(error)) from error
+
     counts = _require_mapping(run.get("counts"), f"v1 qualification job {job} counts")
     if production and counts.get("generated") != expected_catalog_total:
         raise VocabularyAtlasV1ReleaseError(
@@ -1800,6 +1950,16 @@ def _verify_pair_qualification_run(
         catalog.get("candidates"),
         f"v1 qualification job {job} candidate catalog.candidates",
     )
+    if production:
+        try:
+            verify_candidate_accounting_catalog_lineage(
+                accounting,
+                catalog_candidates,
+            )
+        except QualificationError as error:
+            raise VocabularyAtlasV1ReleaseError(
+                f"v1 qualification job {job} candidate accounting differs from its exact catalog: {error}"
+            ) from error
     catalog_ids = [
         _require_iri(
             _require_mapping(
@@ -1839,6 +1999,26 @@ def _verify_pair_qualification_run(
         raise VocabularyAtlasV1ReleaseError(
             f"v1 qualification job {job} catalog, Crosswalk bundle, and accounting do not close"
         )
+    if production:
+        accounting_by_id = {
+            cast(str, row["candidateId"]): row
+            for row in accounting
+            if isinstance(row, Mapping)
+        }
+        accounted_admissions = {
+            candidate_id: cast(str, row["relation"])
+            for candidate_id, row in accounting_by_id.items()
+            if row.get("disposition") == "admitted"
+        }
+        expected_admissions = {
+            candidate_id: relation
+            for candidate_id, relation in bundle.adjudicated_relations().items()
+            if accounting_by_id[candidate_id].get("control") is False
+        }
+        if accounted_admissions != expected_admissions:
+            raise VocabularyAtlasV1ReleaseError(
+                f"v1 qualification job {job} Crosswalk adjudications differ from run admissions"
+            )
     admitted_candidates = sorted(
         (
             {
@@ -2177,8 +2357,15 @@ def _open_relation_bundles(
         )
         if bundle.semantic_ring != raw["semanticRing"]:
             raise VocabularyAtlasV1ReleaseError(f"v1 relation {key} semantic ring differs from its descriptor")
+        verified = bundle.verified_bundle()
+        if any(
+            mapping.lifecycle_status != "current" or mapping.supersedes
+            for mapping in verified.mapping_assertions
+        ):
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 mapping assertions require lifecycleStatus current and empty supersedes"
+            )
         if public_v1:
-            verified = bundle.verified_bundle()
             evidence_by_id = {evidence.identifier: evidence for evidence in verified.evidence_assertions}
             for mapping in verified.mapping_assertions:
                 _record_public_mapping_proof(
@@ -2319,6 +2506,7 @@ def _artifact_role(path: str) -> str:
         "atlas.nq": "vocabularyAtlasData",
         "publication-decision.json": "publicationDecision",
         "publication-manifest.json": "publicationManifest",
+        "explorer-acceptance.json": "explorerAcceptance",
         "release-acceptance.json": "releaseAcceptance",
     }.get(name, "publicationMember")
 
@@ -2344,9 +2532,17 @@ def _generated_artifacts(root: Path) -> list[dict[str, Any]]:
 
 
 def _seal_build_result(basis: Mapping[str, Any]) -> dict[str, Any]:
+    schema_version = basis.get("schemaVersion")
+    basis_fields = _BUILD_RESULT_BASIS_FIELDS_BY_VERSION.get(
+        cast(str, schema_version)
+    )
+    if basis_fields is None:
+        raise VocabularyAtlasV1ReleaseError(
+            "v1 build result basis schemaVersion is unsupported"
+        )
     _require_exact_fields(
         basis,
-        _BUILD_RESULT_BASIS_FIELDS,
+        basis_fields,
         "v1 build result basis",
     )
     digest = sha256_digest(_canonical_bytes(basis))
@@ -2359,18 +2555,27 @@ def _seal_build_result(basis: Mapping[str, Any]) -> dict[str, Any]:
 
 def _validate_build_result(value: object) -> dict[str, Any]:
     row = _require_mapping(value, "v1 build result")
-    _require_exact_fields(row, _BUILD_RESULT_RECORD_FIELDS, "v1 build result")
+    basis_fields = _BUILD_RESULT_BASIS_FIELDS_BY_VERSION.get(
+        cast(str, row.get("schemaVersion"))
+    )
+    if basis_fields is None:
+        raise VocabularyAtlasV1ReleaseError(
+            "v1 build result schemaVersion is unsupported"
+        )
+    _require_exact_fields(
+        row,
+        basis_fields | {"id", "recordDigest"},
+        "v1 build result",
+    )
     if row.get("type") != VOCABULARY_ATLAS_V1_BUILD_RESULT_TYPE:
         raise VocabularyAtlasV1ReleaseError("v1 build result type is unsupported")
-    if row.get("schemaVersion") != VOCABULARY_ATLAS_V1_BUILD_RESULT_VERSION:
-        raise VocabularyAtlasV1ReleaseError("v1 build result schemaVersion is unsupported")
     mode = row.get("releaseMode")
     if mode not in _RELEASE_MODES:
         raise VocabularyAtlasV1ReleaseError("v1 build result releaseMode is unsupported")
     expected_status = "passed" if mode == "publicV1" else "baselineEvidenceOnly"
     if row.get("status") != expected_status:
         raise VocabularyAtlasV1ReleaseError(f"v1 build result status must be {expected_status} for {mode}")
-    basis = {field: _plain(row[field]) for field in _BUILD_RESULT_BASIS_FIELDS}
+    basis = {field: _plain(row[field]) for field in basis_fields}
     expected = _seal_build_result(basis)
     if _plain(row) != expected:
         raise VocabularyAtlasV1ReleaseError("v1 build result identity or content digest differs")
@@ -2468,6 +2673,10 @@ def open_vocabulary_atlas_v1_build(
         raise VocabularyAtlasV1ReleaseError("v1 copied definition differs from the build result")
 
     root = _artifact_root(artifact_root)
+    reviewed_corpus, reviewed_corpus_descriptor = _open_reviewed_search_corpus(
+        definition,
+        root,
+    )
     source_reconciliations = [_federal_register_related_reconciliation(definition, root)]
     index = _open_planning_index(definition, root)
     scope_releases, release_sources, _release_labels = _open_releases(
@@ -2508,9 +2717,8 @@ def open_vocabulary_atlas_v1_build(
         raise VocabularyAtlasV1ReleaseError("v1 scope differs from its build-result pin")
 
     atlas_pin = _require_mapping(result.get("atlas"), "v1 build result atlas")
-    atlas = VocabularyAtlasAsset.reproduce_from_scope(
+    atlas = VocabularyAtlasAsset.open(
         output / "canonical",
-        scope=pinned_scope,
         expected_manifest_digest=_require_digest(
             atlas_pin.get("manifestDigest"),
             "v1 build result atlas.manifestDigest",
@@ -2568,6 +2776,10 @@ def open_vocabulary_atlas_v1_build(
     explorer = _decode_json(explorer_payload, "v1 publication explorer")
     if not isinstance(explorer, Mapping) or _canonical_bytes(explorer) != explorer_payload:
         raise VocabularyAtlasV1ReleaseError("v1 publication explorer bytes are not canonical")
+    explorer_html = _read_regular_file(
+        publication.directory / EXPLORER_HTML,
+        label="v1 publication explorer HTML",
+    )
 
     acceptance_pin = _require_mapping(result.get("acceptance"), "v1 build result acceptance")
     acceptance = read_vocabulary_atlas_release_acceptance(
@@ -2588,6 +2800,77 @@ def open_vocabulary_atlas_v1_build(
         publication_decision=decision,
         explorer=explorer,
     )
+    explorer_acceptance: VocabularyAtlasExplorerAcceptance | None = None
+    if result["schemaVersion"] == "2.0":
+        explorer_acceptance_pin = _require_mapping(
+            result.get("explorerAcceptance"),
+            "v1 build result explorerAcceptance",
+        )
+        explorer_acceptance = read_vocabulary_atlas_explorer_acceptance(
+            output / "control" / "explorer-acceptance.json",
+            expected_file_digest=_require_digest(
+                explorer_acceptance_pin.get("fileDigest"),
+                "v1 build result explorerAcceptance.fileDigest",
+            ),
+        )
+        if (
+            explorer_acceptance.identifier != explorer_acceptance_pin.get("id")
+            or explorer_acceptance.record_digest
+            != explorer_acceptance_pin.get("recordDigest")
+        ):
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 explorer acceptance differs from its build-result pin"
+            )
+        search_record = _require_mapping(
+            explorer_acceptance.record.get("search"),
+            "v1 explorer acceptance search",
+        )
+        expected_explorer_status = (
+            "passed"
+            if result["releaseMode"] == "publicV1"
+            else "measuredBaselineOnly"
+        )
+        expected_corpus_source = (
+            {
+                "path": reviewed_corpus_descriptor["path"],
+                "fileDigest": reviewed_corpus_descriptor["fileDigest"],
+            }
+            if result["releaseMode"] == "publicV1"
+            else None
+        )
+        if (
+            explorer_acceptance.record.get("status") != expected_explorer_status
+            or _plain(explorer_acceptance_pin.get("reviewedCorpus"))
+            != _plain(reviewed_corpus_descriptor)
+            or _plain(search_record.get("source")) != expected_corpus_source
+        ):
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 explorer acceptance status or reviewed-corpus pin differs from its release mode"
+            )
+        expected_explorer_acceptance = build_vocabulary_atlas_explorer_acceptance(
+            atlas,
+            explorer,
+            explorer_html=explorer_html,
+            release_mode=cast(ReleaseMode, result["releaseMode"]),
+            reviewed_corpus=reviewed_corpus,
+            reviewed_corpus_path=(
+                cast(str, reviewed_corpus_descriptor["path"])
+                if result["releaseMode"] == "publicV1"
+                else None
+            ),
+            reviewed_corpus_file_digest=(
+                cast(str, reviewed_corpus_descriptor["fileDigest"])
+                if result["releaseMode"] == "publicV1"
+                else None
+            ),
+        )
+        if (
+            explorer_acceptance.as_record()
+            != expected_explorer_acceptance.as_record()
+        ):
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 explorer acceptance differs from the externally reopened reviewed corpus"
+            )
     expected_checks = _builder_acceptance_checks(
         definition,
         index=index,
@@ -2595,6 +2878,7 @@ def open_vocabulary_atlas_v1_build(
         atlas=atlas,
         decision=decision,
         publication=publication,
+        explorer_acceptance=explorer_acceptance,
         qualification_runs=qualification_runs,
         federal_register_reconciliation=source_reconciliations[0],
     )
@@ -2620,6 +2904,7 @@ def _builder_acceptance_checks(
     atlas: VocabularyAtlasAsset,
     decision: VocabularyAtlasPublicationDecision,
     publication: AtlasPublication,
+    explorer_acceptance: VocabularyAtlasExplorerAcceptance | None,
     qualification_runs: Sequence[Mapping[str, Any]],
     federal_register_reconciliation: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
@@ -2634,7 +2919,50 @@ def _builder_acceptance_checks(
         federal_register_reconciliation.get("counts"),
         "v1 Federal Register Related-reference reconciliation counts",
     )
-    return [
+    explorer_check: dict[str, Any] | None = None
+    if explorer_acceptance is not None:
+        expected_explorer_status = (
+            "passed" if mode == "publicV1" else "measuredBaselineOnly"
+        )
+        if explorer_acceptance.record.get("status") != expected_explorer_status:
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 explorer acceptance status differs from its release mode"
+            )
+        explorer_search = _require_mapping(
+            explorer_acceptance.record.get("search"),
+            "v1 explorer acceptance search",
+        )
+        expected_search_source = None
+        if mode == "publicV1":
+            reviewed_corpus = _require_mapping(
+                definition.record.get("reviewedSearchCorpus"),
+                "v1 release definition reviewedSearchCorpus",
+            )
+            expected_search_source = {
+                "path": reviewed_corpus["path"],
+                "fileDigest": reviewed_corpus["fileDigest"],
+            }
+        expected_search_status = (
+            "passed" if mode == "publicV1" else "skippedPublicOnly"
+        )
+        if (
+            explorer_search.get("status") != expected_search_status
+            or _plain(explorer_search.get("source")) != expected_search_source
+        ):
+            raise VocabularyAtlasV1ReleaseError(
+                "v1 explorer acceptance does not use the definition-pinned reviewed corpus state"
+            )
+        explorer_check = {
+            "id": "urn:ref:check:vocabulary-atlas-v1:explorer-acceptance",
+            "statement": (
+                "Every explorer facet and assertion reconciles, and every reviewed ring-specific public search case meets its required rank."
+                if mode == "publicV1"
+                else "Every explorer facet and assertion reconciles; the public-only reviewed search corpus remains explicitly skipped for this bench preview."
+            ),
+            "status": "passed",
+            "evidence": [explorer_acceptance.identifier],
+        }
+    checks = [
         {
             "id": "urn:ref:check:vocabulary-atlas-v1:canonical-reproduction",
             "statement": "The canonical Atlas reproduced from its exact six-release scope.",
@@ -2681,6 +3009,9 @@ def _builder_acceptance_checks(
             "evidence": qualification_evidence,
         },
     ]
+    if explorer_check is not None:
+        checks.insert(2, explorer_check)
+    return checks
 
 
 def _build_in_staging(
@@ -2737,12 +3068,15 @@ def _build_in_staging(
 
     built_atlas = build_vocabulary_atlas(pinned_scope)
     canonical_directory = built_atlas.write(staging / "canonical")
-    atlas = VocabularyAtlasAsset.reproduce_from_scope(
+    atlas = VocabularyAtlasAsset.open(
         canonical_directory,
-        scope=pinned_scope,
         expected_manifest_digest=built_atlas.manifest_digest,
     )
-    if atlas.manifest_bytes() != built_atlas.manifest_bytes():
+    if (
+        atlas.payload != built_atlas.payload
+        or atlas.scope_payload != built_atlas.scope_payload
+        or atlas.manifest_bytes() != built_atlas.manifest_bytes()
+    ):
         raise VocabularyAtlasV1ReleaseError("reopened v1 Atlas differs from its deterministic build")
 
     publication_values = cast(Mapping[str, Any], definition.record["publication"])
@@ -2799,6 +3133,66 @@ def _build_in_staging(
     explorer = _decode_json(explorer_payload, "v1 publication explorer")
     if not isinstance(explorer, Mapping) or _canonical_bytes(explorer) != explorer_payload:
         raise VocabularyAtlasV1ReleaseError("v1 publication explorer bytes are not canonical")
+    explorer_html = _read_regular_file(
+        publication.directory / EXPLORER_HTML,
+        label="v1 publication explorer HTML",
+    )
+
+    reviewed_corpus, reviewed_corpus_descriptor = _open_reviewed_search_corpus(
+        definition,
+        root,
+    )
+    explorer_acceptance = build_vocabulary_atlas_explorer_acceptance(
+        atlas,
+        explorer,
+        explorer_html=explorer_html,
+        release_mode=cast(ReleaseMode, release_mode),
+        reviewed_corpus=reviewed_corpus,
+        reviewed_corpus_path=(
+            cast(str, reviewed_corpus_descriptor["path"])
+            if release_mode == "publicV1"
+            else None
+        ),
+        reviewed_corpus_file_digest=(
+            cast(str, reviewed_corpus_descriptor["fileDigest"])
+            if release_mode == "publicV1"
+            else None
+        ),
+    )
+    explorer_acceptance_path = explorer_acceptance.write_to(
+        staging / "control" / "explorer-acceptance.json"
+    )
+    explorer_acceptance_file_digest = sha256_digest(
+        explorer_acceptance.artifact_bytes()
+    )
+    reopened_explorer_acceptance = read_vocabulary_atlas_explorer_acceptance(
+        explorer_acceptance_path,
+        expected_file_digest=explorer_acceptance_file_digest,
+    )
+    expected_explorer_acceptance = build_vocabulary_atlas_explorer_acceptance(
+        atlas,
+        explorer,
+        explorer_html=explorer_html,
+        release_mode=cast(ReleaseMode, release_mode),
+        reviewed_corpus=reviewed_corpus,
+        reviewed_corpus_path=(
+            cast(str, reviewed_corpus_descriptor["path"])
+            if release_mode == "publicV1"
+            else None
+        ),
+        reviewed_corpus_file_digest=(
+            cast(str, reviewed_corpus_descriptor["fileDigest"])
+            if release_mode == "publicV1"
+            else None
+        ),
+    )
+    if (
+        reopened_explorer_acceptance.as_record()
+        != expected_explorer_acceptance.as_record()
+    ):
+        raise VocabularyAtlasV1ReleaseError(
+            "reopened v1 explorer acceptance differs from the definition-pinned reviewed corpus"
+        )
 
     acceptance = build_vocabulary_atlas_release_acceptance(
         atlas,
@@ -2813,6 +3207,7 @@ def _build_in_staging(
             atlas=atlas,
             decision=decision,
             publication=publication,
+            explorer_acceptance=reopened_explorer_acceptance,
             qualification_runs=qualification_runs,
             federal_register_reconciliation=source_reconciliations[0],
         ),
@@ -2824,13 +3219,10 @@ def _build_in_staging(
         acceptance_path,
         expected_file_digest=acceptance_file_digest,
     )
-    reopened_acceptance.validate_inputs(
-        atlas,
-        scope=pinned_scope,
-        planning_index=index,
-        publication_decision=decision,
-        explorer=explorer,
-    )
+    if reopened_acceptance.as_record() != acceptance.as_record():
+        raise VocabularyAtlasV1ReleaseError(
+            "reopened v1 acceptance differs from its deterministic build"
+        )
 
     if definition.file_digest is None:
         raise VocabularyAtlasV1ReleaseError("v1 build lost its independently reopened definition digest")
@@ -2863,6 +3255,12 @@ def _build_in_staging(
             "path": publication_path,
             "id": publication.manifest["id"],
             "manifestDigest": publication.manifest_digest,
+        },
+        "explorerAcceptance": {
+            "id": reopened_explorer_acceptance.identifier,
+            "recordDigest": reopened_explorer_acceptance.record_digest,
+            "fileDigest": explorer_acceptance_file_digest,
+            "reviewedCorpus": _plain(reviewed_corpus_descriptor),
         },
         "acceptance": {
             "id": reopened_acceptance.identifier,

@@ -8,6 +8,7 @@ allows — is proven without spending anything.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -18,6 +19,7 @@ import pytest
 from refspec.atlas import CrosswalkBundle, VocabularyAtlasError
 from refspec.atlas import qualification as qual
 from refspec.atlas.model import _IMPLEMENTATION_SOURCE_PATHS
+from refspec.storage import canonical_json
 
 GENERATED_AT = "2026-08-02T12:00:00Z"
 SOURCE_RELEASE = "urn:ref:test:alpha:reference-resource-release"
@@ -675,6 +677,176 @@ def test_abstention_is_recorded_and_does_not_qualify(sources, targets) -> None:
     bundle = _bundle((entry,))
     assert bundle.qualified() == {}
     assert {item["outcome"] for item in bundle.to_dict()["machineValidations"]} == {"abstains"}
+
+
+def test_production_reproduction_rejects_abstention_relabel(
+    sources,
+    targets,
+) -> None:
+    pair = _pair(sources, targets)
+    empty = qual.assemble_candidate(
+        pair,
+        generated_at=GENERATED_AT,
+        readings=(),
+    )
+    context = next(item for item in empty.artifacts if item.role == "inputContext")
+    receipts: list[Mapping[str, Any]] = []
+    for family, model_id in (
+        (qual.GEMINI_FAMILY, "models/gemini-3.6-flash"),
+        (qual.OPENAI_FAMILY, "gpt-5.6-terra"),
+    ):
+        receipts.append(
+            qual.validate_candidate(
+                _StubTransport(
+                    [_chat_reply(_answer(pair, verdict="insufficient_evidence"))]
+                ),
+                family,
+                "test-key",
+                model_id,
+                pair=pair,
+                candidate_id=empty.candidate.identifier,
+                input_digest=context.content_digest,
+                tracker=qual.SpendTracker(family),
+            )
+        )
+    readings = tuple(
+        reading
+        for receipt in receipts
+        if (
+            reading := qual.reading_from_receipt(
+                receipt,
+                qual.VALIDATOR_FAMILIES[str(receipt["family"])],
+                str(receipt["model_id"]),
+            )
+        )
+        is not None
+    )
+    entry = qual.assemble_candidate(
+        pair,
+        generated_at=GENERATED_AT,
+        readings=readings,
+    )
+    bundle = qual.crosswalk_bundle((entry,))
+
+    def concept_record(concept: qual.AtlasConcept) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "member": concept.member,
+            "prefLabel": concept.pref_label,
+            "release": concept.release,
+        }
+        if concept.alt_labels:
+            result["altLabels"] = list(concept.alt_labels)
+        if concept.broader:
+            result["broader"] = list(concept.broader)
+        if concept.definition:
+            result["definition"] = concept.definition
+        if concept.scope_note:
+            result["scopeNote"] = concept.scope_note
+        if concept.vocabulary:
+            result["vocabulary"] = concept.vocabulary
+        return result
+
+    catalog = {
+        "candidates": [
+            {
+                "candidateId": entry.candidate.identifier,
+                "evidence": dict(pair.evidence),
+                "generationClass": pair.generation_class,
+                "generationPolicy": pair.generation_policy,
+                "source": concept_record(pair.source),
+                "target": concept_record(pair.target),
+            }
+        ],
+        "generatedAt": GENERATED_AT,
+        "protocol": qual.PROTOCOL,
+    }
+    accounting = [
+        {
+            "candidateId": entry.candidate.identifier,
+            "generationClass": pair.generation_class,
+            "control": False,
+            "scored": False,
+            "scorerReceipts": [],
+            "judgeReceipts": sorted(
+                (
+                    {
+                        "family": str(receipt["family"]),
+                        "outcome": str(receipt["outcome"]),
+                        "receiptDigest": "sha256:"
+                        + hashlib.sha256(
+                            (canonical_json(dict(receipt)) + "\n").encode("utf-8")
+                        ).hexdigest(),
+                    }
+                    for receipt in receipts
+                ),
+                key=lambda pin: pin["family"],
+            ),
+            "judged": True,
+            "disposition": "abstained",
+        }
+    ]
+    qual.verify_production_qualification_reproduction(
+        catalog=catalog,
+        judge_receipts=receipts,
+        scorer_receipts=(),
+        bundle=bundle,
+        candidate_accounting=accounting,
+    )
+
+    with pytest.raises(
+        qual.QualificationError,
+        match="judged status does not reproduce from exact judge rows",
+    ):
+        qual.verify_production_qualification_reproduction(
+            catalog=catalog,
+            judge_receipts=receipts,
+            scorer_receipts=(),
+            bundle=bundle,
+            candidate_accounting=[{**accounting[0], "judged": False}],
+        )
+    with pytest.raises(
+        qual.QualificationError,
+        match="scored status does not reproduce from exact scorer rows",
+    ):
+        qual.verify_production_qualification_reproduction(
+            catalog=catalog,
+            judge_receipts=receipts,
+            scorer_receipts=(),
+            bundle=bundle,
+            candidate_accounting=[{**accounting[0], "scored": True}],
+        )
+
+    with pytest.raises(
+        qual.QualificationError,
+        match="disposition does not reproduce from exact judge receipts",
+    ):
+        qual.verify_production_qualification_reproduction(
+            catalog=catalog,
+            judge_receipts=receipts,
+            scorer_receipts=(),
+            bundle=bundle,
+            candidate_accounting=[{**accounting[0], "disposition": "rejected"}],
+        )
+
+    altered_entry = qual.assemble_candidate(
+        pair,
+        generated_at=GENERATED_AT,
+        readings=(
+            _reading(qual.GEMINI_FAMILY, verdict="unrelated"),
+            _reading(qual.OPENAI_FAMILY, verdict="unrelated"),
+        ),
+    )
+    with pytest.raises(
+        qual.QualificationError,
+        match="Crosswalk bundle does not reproduce from the exact catalog and judge receipts",
+    ):
+        qual.verify_production_qualification_reproduction(
+            catalog=catalog,
+            judge_receipts=receipts,
+            scorer_receipts=(),
+            bundle=qual.crosswalk_bundle((altered_entry,)),
+            candidate_accounting=accounting,
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -477,7 +477,12 @@ def test_seal_relations_emits_every_accounted_non_control_mapping(tmp_path: Path
     case.bundle.write(run_dir / RUNNER.BUNDLE)
     bundle_pin = case.bundle.pin()
     catalog = {
-        "candidates": [{"candidateId": case.candidate.identifier}],
+        "candidates": [
+            {
+                "candidateId": case.candidate.identifier,
+                "generationClass": "normalizedLabelEquality",
+            }
+        ],
         "total": 1,
     }
     catalog_path = run_dir / RUNNER.CANDIDATES

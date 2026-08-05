@@ -168,6 +168,8 @@ RANDOM_CONTROL_ATTEMPT_CEILING = 200_000
 PROTOCOL = "v2"
 MODEL_INPUT_PROTOCOL = "refspec-atlas-crosswalk-model-input-v2"
 VALIDATION_REQUEST_PROTOCOL = "refspec-atlas-machine-validation-v2"
+SINGLE_PROVIDER_REQUEST_PROTOCOL = "refspec-atlas-crosswalk-provider-request-single-v1"
+GROUPED_PROVIDER_REQUEST_PROTOCOL = "refspec-atlas-crosswalk-grouped-request-v1"
 EVIDENCE_METHOD_VERSION = "1"
 
 GENERATOR_ACTOR = "urn:ref:actor:atlas-crosswalk-candidate-generator"
@@ -367,6 +369,50 @@ class CandidatePair:
     @property
     def key(self) -> tuple[str, str]:
         return (self.source.member, self.target.member)
+
+
+def candidate_pair_from_catalog_row(payload: Mapping[str, Any]) -> CandidatePair:
+    """Reconstruct the exact candidate input represented by one catalog row."""
+
+    def context(value: Mapping[str, Any]) -> AtlasConceptContext:
+        return AtlasConceptContext(
+            member=str(value["member"]),
+            pref_label=str(value["prefLabel"]),
+            alt_labels=tuple(value.get("altLabels", ())),
+            definition=value.get("definition"),
+            scope_note=value.get("scopeNote"),
+        )
+
+    def concept(value: Mapping[str, Any]) -> AtlasConcept:
+        return AtlasConcept(
+            member=str(value["member"]),
+            release=str(value["release"]),
+            pref_label=str(value["prefLabel"]),
+            alt_labels=tuple(value.get("altLabels", ())),
+            definition=value.get("definition"),
+            scope_note=value.get("scopeNote"),
+            broader=tuple(value.get("broader", ())),
+            vocabulary=str(value.get("vocabulary", "")),
+            parents=tuple(context(item) for item in value.get("parents", ())),
+            children=tuple(context(item) for item in value.get("children", ())),
+        )
+
+    source = payload.get("source")
+    target = payload.get("target")
+    evidence = payload.get("evidence")
+    if not isinstance(source, Mapping) or not isinstance(target, Mapping):
+        raise QualificationError("candidate catalog row has invalid endpoint concepts")
+    if not isinstance(evidence, Mapping):
+        raise QualificationError("candidate catalog row has invalid generation evidence")
+    return CandidatePair(
+        source=concept(source),
+        target=concept(target),
+        generation_class=str(payload.get("generationClass") or ""),
+        evidence=dict(evidence),
+        generation_policy=str(
+            payload.get("generationPolicy") or CANDIDATE_GENERATION_POLICY
+        ),
+    )
 
 
 def normalized_tokens(value: str) -> tuple[str, ...]:
@@ -939,9 +985,11 @@ class ValidatorFamily:
         return f"urn:ref:provider:{self.vendor}"
 
 
-#: Prices are pinned assumptions, recorded in every receipt next to the exact
-#: token counts the provider reported.  The counts are the durable fact; the
-#: prices let a reader recompute the bill if a published price moves.
+#: Standard-list prices are pinned assumptions, recorded in every receipt next
+#: to the exact token counts the provider reported.  The provider Batch API's
+#: 50% factor is applied separately in ``qualification_batch``.  Counts are the
+#: durable fact; keeping these numbers explicit makes later price drift
+#: auditable instead of silently changing historical receipts.
 GEMINI_FAMILY = ValidatorFamily(
     name="gemini",
     vendor="google",
@@ -949,8 +997,8 @@ GEMINI_FAMILY = ValidatorFamily(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     api_key_env="GEMINI_API_KEY",
     requested_model="gemini-3.6-flash",
-    assumed_input_usd_per_mtok=0.50,
-    assumed_output_usd_per_mtok=3.00,
+    assumed_input_usd_per_mtok=1.50,
+    assumed_output_usd_per_mtok=7.50,
     spend_cap_usd=6.0,
     max_output_tokens_field="max_tokens",
     supports_temperature=True,
@@ -968,7 +1016,7 @@ OPENAI_FAMILY = ValidatorFamily(
     api_key_env="OPENAI_API_KEY",
     requested_model="gpt-5.6-terra",
     assumed_input_usd_per_mtok=2.50,
-    assumed_output_usd_per_mtok=10.00,
+    assumed_output_usd_per_mtok=15.00,
     spend_cap_usd=14.0,
     max_output_tokens_field="max_completion_tokens",
     supports_temperature=False,
@@ -1539,6 +1587,13 @@ class ValidationReading:
     reason: str = ""
     endpoint_host: str = ""
     protocol: str = PROTOCOL
+    provider_request_kind: str = "serialEquivalent"
+    provider_request_protocol: str = SINGLE_PROVIDER_REQUEST_PROTOCOL
+    request_sha256: str = ""
+    group_id: str = ""
+    item_input_sha256: str = ""
+    group_response_sha256: str = ""
+    answer_sha256: str = ""
 
     @property
     def outcome(self) -> str:
@@ -1560,6 +1615,13 @@ class ScoreReading:
     reason: str = ""
     endpoint_host: str = ""
     protocol: str = SCORING_PROTOCOL
+    provider_request_kind: str = "serialEquivalent"
+    provider_request_protocol: str = SINGLE_PROVIDER_REQUEST_PROTOCOL
+    request_sha256: str = ""
+    group_id: str = ""
+    item_input_sha256: str = ""
+    group_response_sha256: str = ""
+    answer_sha256: str = ""
 
 
 def endpoint_host(url: str) -> str:
@@ -1574,6 +1636,45 @@ def endpoint_host(url: str) -> str:
     """
 
     return (urlparse(url).hostname or "").lower()
+
+
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
+
+
+def _provider_lineage(receipt: Mapping[str, Any], answer: Mapping[str, Any]) -> tuple[bool, dict[str, str]]:
+    kind = str(receipt.get("batch_request_kind") or "serialEquivalent")
+    protocol = str(
+        receipt.get("provider_request_protocol")
+        or (
+            GROUPED_PROVIDER_REQUEST_PROTOCOL
+            if kind == "grouped"
+            else SINGLE_PROVIDER_REQUEST_PROTOCOL
+        )
+    )
+    lineage = {
+        "answer_sha256": str(receipt.get("answer_sha256") or ""),
+        "group_id": str(receipt.get("group_id") or ""),
+        "group_response_sha256": str(receipt.get("group_response_sha256") or ""),
+        "item_input_sha256": str(receipt.get("item_input_sha256") or ""),
+        "provider_request_kind": kind,
+        "provider_request_protocol": protocol,
+        "request_sha256": str(receipt.get("request_sha256") or ""),
+    }
+    valid = _is_sha256(lineage["request_sha256"])
+    if kind == "grouped":
+        valid = valid and (
+            protocol == GROUPED_PROVIDER_REQUEST_PROTOCOL
+            and bool(lineage["group_id"])
+            and _is_sha256(lineage["item_input_sha256"])
+            and _is_sha256(lineage["group_response_sha256"])
+            and lineage["group_response_sha256"] == str(receipt.get("response_sha256") or "")
+            and _is_sha256(lineage["answer_sha256"])
+            and lineage["answer_sha256"] == _sha256_text(canonical_json(dict(answer)))
+        )
+    elif kind != "serialEquivalent" or protocol != SINGLE_PROVIDER_REQUEST_PROTOCOL:
+        valid = False
+    return bool(valid), lineage
 
 
 def reading_from_receipt(
@@ -1599,7 +1700,12 @@ def reading_from_receipt(
     if verdict not in VERDICTS:
         return None
     schema_valid = Draft202012Validator(dict(RESPONSE_SCHEMA)).is_valid(dict(answer))
-    deterministic = schema_valid and str(answer.get("task_id")) == str(receipt.get("task_id"))
+    lineage_valid, lineage = _provider_lineage(receipt, answer)
+    deterministic = (
+        schema_valid
+        and str(answer.get("task_id")) == str(receipt.get("task_id"))
+        and lineage_valid
+    )
     return ValidationReading(
         family=family,
         provider_model_id=model_id,
@@ -1610,6 +1716,7 @@ def reading_from_receipt(
         reason=str(answer.get("reason", "")),
         endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
         protocol=protocol,
+        **lineage,
     )
 
 
@@ -1632,7 +1739,8 @@ def score_reading_from_receipt(
     schema_valid = Draft202012Validator(dict(SCORING_RESPONSE_SCHEMA)).is_valid(dict(answer))
     if not schema_valid:
         return None
-    deterministic = str(answer.get("task_id")) == str(receipt.get("task_id"))
+    lineage_valid, lineage = _provider_lineage(receipt, answer)
+    deterministic = str(answer.get("task_id")) == str(receipt.get("task_id")) and lineage_valid
     return ScoreReading(
         family=family,
         provider_model_id=model_id,
@@ -1644,6 +1752,7 @@ def score_reading_from_receipt(
         response_sha256=str(receipt.get("response_sha256") or ""),
         reason=str(answer.get("reason", "")),
         endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
+        **lineage,
     )
 
 
@@ -1710,6 +1819,21 @@ def assemble_candidate(
     artifacts: list[CrosswalkArtifact] = [context, evidence, request]
     validations: list[MachineValidation] = []
     for reading in readings:
+        provider_request: dict[str, Any] = {
+            "kind": reading.provider_request_kind,
+            "protocol": reading.provider_request_protocol,
+            "requestSha256": reading.request_sha256,
+            "responseSha256": reading.response_sha256,
+        }
+        if reading.provider_request_kind == "grouped":
+            provider_request.update(
+                {
+                    "answerSha256": reading.answer_sha256,
+                    "groupId": reading.group_id,
+                    "groupResponseSha256": reading.group_response_sha256,
+                    "itemInputSha256": reading.item_input_sha256,
+                }
+            )
         response = CrosswalkArtifact.create(
             role="validationResponse",
             media_type="application/json",
@@ -1727,6 +1851,11 @@ def assemble_candidate(
                 "outcome": reading.outcome,
                 "provider": reading.family.provider_iri,
                 "providerModelId": reading.provider_model_id,
+                # ``inputDigest`` is the candidate's sealed logical question.
+                # Grouped execution shows other independent rows to the model,
+                # so the complete provider request is pinned separately rather
+                # than calling this digest the whole prompt.
+                **({"providerRequest": provider_request} if reading.request_sha256 else {}),
                 "reason": reading.reason,
                 "requestArtifact": request.reference(),
                 "responseSha256": reading.response_sha256,
@@ -1864,6 +1993,263 @@ def _run_accounting_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     return counts
 
 
+def verify_candidate_accounting_catalog_lineage(
+    candidate_accounting: object,
+    catalog_candidates: object,
+) -> None:
+    """Tie every accounting classification to its exact candidate-catalog row."""
+
+    def indexed(
+        value: object,
+        *,
+        label: str,
+    ) -> dict[str, Mapping[str, Any]]:
+        if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+            raise QualificationError(f"{label} must be an array")
+        result: dict[str, Mapping[str, Any]] = {}
+        for index, raw in enumerate(value):
+            if not isinstance(raw, Mapping):
+                raise QualificationError(f"{label}[{index}] must be an object")
+            candidate_id = raw.get("candidateId")
+            generation_class = raw.get("generationClass")
+            if not isinstance(candidate_id, str) or not candidate_id:
+                raise QualificationError(f"{label}[{index}] has no candidateId")
+            if candidate_id in result:
+                raise QualificationError(f"{label} repeats a candidate")
+            if generation_class not in GENERATION_CLASSES:
+                raise QualificationError(f"{label}[{index}] has an unsupported generation class")
+            result[candidate_id] = raw
+        return result
+
+    accounting = indexed(candidate_accounting, label="candidate accounting")
+    catalog = indexed(catalog_candidates, label="candidate catalog")
+    if set(accounting) != set(catalog):
+        raise QualificationError("candidate accounting and its exact catalog name different candidates")
+    for candidate_id, row in accounting.items():
+        generation_class = catalog[candidate_id]["generationClass"]
+        if row.get("generationClass") != generation_class:
+            raise QualificationError("candidate accounting generation class differs from its exact catalog row")
+        expected_control = generation_class in CONTROL_GENERATION_CLASSES
+        if row.get("control") is not expected_control:
+            raise QualificationError("candidate accounting control status differs from its exact catalog row")
+        if (row.get("disposition") == "controlled") is not expected_control:
+            raise QualificationError("candidate accounting disposition differs from its exact catalog row")
+
+
+def verify_production_qualification_reproduction(
+    *,
+    catalog: Mapping[str, Any],
+    judge_receipts: Sequence[Mapping[str, Any]],
+    scorer_receipts: Sequence[Mapping[str, Any]],
+    bundle: CrosswalkBundle,
+    candidate_accounting: Sequence[Mapping[str, Any]],
+) -> None:
+    """Rebuild the Crosswalk and every disposition from exact provider receipts."""
+
+    raw_candidates = catalog.get("candidates")
+    generated_at = catalog.get("generatedAt")
+    protocol = catalog.get("protocol")
+    if not isinstance(raw_candidates, Sequence) or isinstance(
+        raw_candidates,
+        (str, bytes),
+    ):
+        raise QualificationError("candidate catalog candidates must be an array")
+    if not isinstance(generated_at, str) or not generated_at:
+        raise QualificationError("candidate catalog generatedAt is invalid")
+    if not isinstance(protocol, str):
+        raise QualificationError("candidate catalog protocol is invalid")
+    require_protocol_v2(protocol)
+
+    candidates: dict[str, Mapping[str, Any]] = {}
+    for index, raw in enumerate(raw_candidates):
+        if not isinstance(raw, Mapping):
+            raise QualificationError(
+                f"candidate catalog candidates[{index}] must be an object"
+            )
+        candidate_id = raw.get("candidateId")
+        if not isinstance(candidate_id, str) or not candidate_id:
+            raise QualificationError(
+                f"candidate catalog candidates[{index}] has no candidateId"
+            )
+        if candidate_id in candidates:
+            raise QualificationError("candidate catalog repeats a candidate")
+        candidates[candidate_id] = raw
+
+    receipt_keys: set[tuple[str, str]] = set()
+    readings_by_candidate: dict[str, list[ValidationReading]] = {
+        candidate_id: [] for candidate_id in candidates
+    }
+    judge_pins_by_candidate: dict[str, list[dict[str, Any]]] = {
+        candidate_id: [] for candidate_id in candidates
+    }
+    for index, receipt in enumerate(judge_receipts):
+        if not isinstance(receipt, Mapping):
+            raise QualificationError(f"judge receipt[{index}] must be an object")
+        candidate_id = receipt.get("candidate_id")
+        family_name = receipt.get("family")
+        if candidate_id not in candidates or family_name not in VALIDATOR_FAMILIES:
+            raise QualificationError(
+                "judge receipt names an unknown candidate or validator family"
+            )
+        key = (str(candidate_id), str(family_name))
+        if key in receipt_keys:
+            raise QualificationError("judge receipts repeat a candidate and family")
+        receipt_keys.add(key)
+        family = VALIDATOR_FAMILIES[str(family_name)]
+        reading = reading_from_receipt(
+            receipt,
+            family,
+            str(receipt.get("model_id") or ""),
+        )
+        if reading is not None:
+            readings_by_candidate[str(candidate_id)].append(reading)
+        judge_pins_by_candidate[str(candidate_id)].append(
+            {
+                "family": str(family_name),
+                "outcome": str(receipt.get("outcome")),
+                "receiptDigest": _sha256_text(
+                    canonical_json(dict(receipt)) + "\n"
+                ),
+            }
+        )
+
+    scorer_keys: set[tuple[str, str]] = set()
+    scores_by_candidate: dict[str, list[ScoreReading]] = {
+        candidate_id: [] for candidate_id in candidates
+    }
+    scorer_pins_by_candidate: dict[str, list[dict[str, Any]]] = {
+        candidate_id: [] for candidate_id in candidates
+    }
+    for index, receipt in enumerate(scorer_receipts):
+        if not isinstance(receipt, Mapping):
+            raise QualificationError(f"scorer receipt[{index}] must be an object")
+        candidate_id = receipt.get("candidate_id")
+        family_name = receipt.get("family")
+        if candidate_id not in candidates or family_name not in VALIDATOR_FAMILIES:
+            raise QualificationError(
+                "scorer receipt names an unknown candidate or validator family"
+            )
+        key = (str(candidate_id), str(family_name))
+        if key in scorer_keys:
+            raise QualificationError("scorer receipts repeat a candidate and family")
+        scorer_keys.add(key)
+        family = VALIDATOR_FAMILIES[str(family_name)]
+        reading = score_reading_from_receipt(
+            receipt,
+            family,
+            str(receipt.get("model_id") or ""),
+        )
+        if reading is not None:
+            scores_by_candidate[str(candidate_id)].append(reading)
+        scorer_pins_by_candidate[str(candidate_id)].append(
+            {
+                "family": str(family_name),
+                "modelId": str(receipt.get("model_id") or ""),
+                "endpoint": endpoint_host(str(receipt.get("request_url") or "")),
+                "outcome": str(receipt.get("outcome")),
+                "deterministicChecksPassed": bool(
+                    reading is not None and reading.deterministic_checks_passed
+                ),
+                "requestSha256": str(receipt.get("request_sha256") or ""),
+                "responseSha256": str(receipt.get("response_sha256") or ""),
+                "receiptDigest": _sha256_text(
+                    canonical_json(dict(receipt)) + "\n"
+                ),
+            }
+        )
+
+    entries: list[AssembledCandidate] = []
+    for candidate_id in sorted(candidates):
+        pair = candidate_pair_from_catalog_row(candidates[candidate_id])
+        readings = tuple(
+            sorted(
+                readings_by_candidate[candidate_id],
+                key=lambda reading: reading.family.name,
+            )
+        )
+        entry = assemble_candidate(
+            pair,
+            generated_at=generated_at,
+            readings=readings,
+            protocol=protocol,
+        )
+        if entry.candidate.identifier != candidate_id:
+            raise QualificationError(
+                "candidate catalog identity does not reproduce from its exact row"
+            )
+        entries.append(entry)
+
+    reproduced_bundle = crosswalk_bundle(entries)
+    if reproduced_bundle.to_dict() != bundle.to_dict():
+        raise QualificationError(
+            "Crosswalk bundle does not reproduce from the exact catalog and judge receipts"
+        )
+
+    verify_candidate_accounting_catalog_lineage(
+        candidate_accounting,
+        raw_candidates,
+    )
+    accounting = {
+        str(row["candidateId"]): row for row in candidate_accounting
+    }
+    relations = reproduced_bundle.adjudicated_relations()
+    for candidate_id, catalog_row in candidates.items():
+        generation_class = str(catalog_row["generationClass"])
+        readings = readings_by_candidate[candidate_id]
+        relation = relations.get(candidate_id)
+        if generation_class in CONTROL_GENERATION_CLASSES:
+            expected_disposition = "controlled"
+        elif relation is not None:
+            expected_disposition = "admitted"
+        elif len(readings) < len(VALIDATOR_FAMILIES):
+            expected_disposition = "incomplete"
+        elif any(reading.outcome == "abstains" for reading in readings):
+            expected_disposition = "abstained"
+        else:
+            expected_disposition = "rejected"
+        row = accounting[candidate_id]
+        expected_judge_pins = sorted(
+            judge_pins_by_candidate[candidate_id],
+            key=lambda pin: str(pin["family"]),
+        )
+        if row.get("judgeReceipts") != expected_judge_pins:
+            raise QualificationError(
+                "candidate accounting judge receipts do not reproduce from exact judge rows"
+            )
+        expected_judged = (
+            len(readings) == len(VALIDATOR_FAMILIES)
+            and all(reading.deterministic_checks_passed for reading in readings)
+        )
+        if row.get("judged") is not expected_judged:
+            raise QualificationError(
+                "candidate accounting judged status does not reproduce from exact judge rows"
+            )
+        expected_scorer_pins = sorted(
+            scorer_pins_by_candidate[candidate_id],
+            key=lambda pin: str(pin["family"]),
+        )
+        if row.get("scorerReceipts") != expected_scorer_pins:
+            raise QualificationError(
+                "candidate accounting scorer receipts do not reproduce from exact scorer rows"
+            )
+        expected_scored = any(
+            score.deterministic_checks_passed
+            for score in scores_by_candidate[candidate_id]
+        )
+        if row.get("scored") is not expected_scored:
+            raise QualificationError(
+                "candidate accounting scored status does not reproduce from exact scorer rows"
+            )
+        if row.get("disposition") != expected_disposition:
+            raise QualificationError(
+                "candidate accounting disposition does not reproduce from exact judge receipts"
+            )
+        if expected_disposition == "admitted" and row.get("relation") != relation:
+            raise QualificationError(
+                "candidate accounting relation does not reproduce from exact judge receipts"
+            )
+
+
 def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Seal complete candidate-level accounting with a content-derived identity."""
 
@@ -1894,6 +2280,32 @@ def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]
         raise QualificationError("scoring receipt-log total disagrees with candidate accounting")
     if expected_counts["scorerReceipts"] and not isinstance(scoring_log.get("fileDigest"), str):
         raise QualificationError("scoring receipt-log bytes must be pinned when scorer receipts exist")
+    provider_batch_evidence = basis.get("providerBatchEvidence")
+    if provider_batch_evidence is not None:
+        if not isinstance(provider_batch_evidence, Mapping) or not provider_batch_evidence:
+            raise QualificationError("provider batch evidence must be a nonempty object")
+        if set(provider_batch_evidence) - {"judging", "scoring"}:
+            raise QualificationError("provider batch evidence names an unsupported work kind")
+        for name, raw_pin in provider_batch_evidence.items():
+            if not isinstance(raw_pin, Mapping):
+                raise QualificationError(f"provider batch evidence {name} must be an object")
+            file_name = raw_pin.get("file")
+            verification = raw_pin.get("verification")
+            if (
+                not isinstance(file_name, str)
+                or Path(file_name).name != file_name
+                or not _is_sha256(raw_pin.get("fileDigest"))
+                or raw_pin.get("protocol") != "refspec-atlas-crosswalk-batch-v1"
+                or not isinstance(verification, Mapping)
+                or verification.get("workKind") != ("validation" if name == "judging" else "scoring")
+                or any(
+                    isinstance(verification.get(field), bool)
+                    or not isinstance(verification.get(field), int)
+                    or int(verification[field]) < 0
+                    for field in ("candidateRequests", "jobs", "providerRequests")
+                )
+            ):
+                raise QualificationError(f"provider batch evidence {name} is invalid")
     coverage_mode = basis.get("coverageMode")
     if coverage_mode not in {PILOT_COVERAGE_MODE, PRODUCTION_COVERAGE_MODE}:
         raise QualificationError("qualification run coverage mode is unsupported")
@@ -2169,6 +2581,7 @@ __all__ = [
     "ValidationReading",
     "ValidatorFamily",
     "assemble_candidate",
+    "candidate_pair_from_catalog_row",
     "concepts_from_source_release",
     "concepts_from_view",
     "crosswalk_bundle",
@@ -2199,4 +2612,6 @@ __all__ = [
     "validate_candidate",
     "validate_qualification_run_receipt",
     "validation_request_artifact",
+    "verify_candidate_accounting_catalog_lineage",
+    "verify_production_qualification_reproduction",
 ]

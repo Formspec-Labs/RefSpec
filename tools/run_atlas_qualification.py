@@ -249,13 +249,7 @@ def _concept_from_dict(payload: Mapping[str, Any]) -> qual.AtlasConcept:
 
 
 def _pair_from_dict(payload: Mapping[str, Any]) -> qual.CandidatePair:
-    return qual.CandidatePair(
-        source=_concept_from_dict(payload["source"]),
-        target=_concept_from_dict(payload["target"]),
-        generation_class=str(payload["generationClass"]),
-        evidence=dict(payload["evidence"]),
-        generation_policy=str(payload.get("generationPolicy", qual.CANDIDATE_GENERATION_POLICY)),
-    )
+    return qual.candidate_pair_from_catalog_row(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -636,6 +630,49 @@ def command_bundle(args: argparse.Namespace) -> int:
         raise SystemExit("scoring receipts repeat a candidate/family call")
 
     protocol = qbatch.run_protocol(catalog)
+    judge_candidate_rows = [
+        qbatch.CandidateRow(
+            candidate_id=str(row["candidateId"]),
+            pair=_pair_from_dict(row),
+            input_digest=str(row["inputDigest"]),
+        )
+        for row in catalog["candidates"]
+    ]
+    scoring_candidate_rows = [
+        qbatch.CandidateRow(
+            candidate_id=row.candidate_id,
+            pair=row.pair,
+            input_digest=qual.scoring_input_digest(row.pair),
+        )
+        for row in judge_candidate_rows
+    ]
+    provider_batch_evidence: dict[str, Any] = {}
+    for label, sidecar_name, work_kind, candidate_rows, receipts in (
+        ("judging", qbatch.SIDECAR, "validation", judge_candidate_rows, receipt_rows),
+        ("scoring", SCORING_BATCH_SIDECAR, "scoring", scoring_candidate_rows, scoring_rows),
+    ):
+        sidecar_path = output / sidecar_name
+        if not sidecar_path.exists():
+            if any(receipt.get("batch_execution_mode") == "batch" for receipt in receipts):
+                raise SystemExit(f"batch {label} receipts require their batch sidecar")
+            continue
+        try:
+            verification = qbatch.verify_provider_batch_evidence(
+                sidecar_path=sidecar_path,
+                families=qual.VALIDATOR_FAMILIES,
+                rows=candidate_rows,
+                receipts=receipts,
+                work_kind=work_kind,  # type: ignore[arg-type]
+            )
+        except qbatch.BatchError as error:
+            raise SystemExit(f"{label} provider request lineage failed: {error}") from error
+        provider_batch_evidence[label] = {
+            "file": sidecar_name,
+            "fileDigest": _file_digest(sidecar_path),
+            "protocol": qbatch.SIDECAR_PROTOCOL,
+            "verification": verification,
+        }
+
     entries: list[qual.AssembledCandidate] = []
     readings_by_candidate: dict[str, tuple[qual.ValidationReading, ...]] = {}
     verdicts: Counter[str] = Counter()
@@ -805,6 +842,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         "generatedAt": catalog["generatedAt"],
         "productionFloor": catalog.get("productionFloor"),
         "protocol": protocol,
+        **({"providerBatchEvidence": provider_batch_evidence} if provider_batch_evidence else {}),
         "qualifiedCandidates": len(qualified),
         "relationsByPredicate": dict(sorted(Counter(relations.values()).items())),
         "receiptLog": {
@@ -916,6 +954,15 @@ def command_seal_relations(args: argparse.Namespace) -> int:
     scoring_log = run["scoring"]["receiptLog"]
     if scoring_log.get("fileDigest") is not None:
         _verify_run_file_pin(output, scoring_log)
+    provider_batch_evidence = run.get("providerBatchEvidence")
+    if isinstance(provider_batch_evidence, Mapping):
+        for pin in provider_batch_evidence.values():
+            if isinstance(pin, Mapping):
+                _verify_run_file_pin(output, pin)
+        try:
+            qbatch.verify_run_provider_batch_evidence(run_path, run)
+        except qbatch.BatchError as error:
+            raise SystemExit(f"provider batch evidence failed to reopen: {error}") from error
 
     catalog = _read_json(catalog_path)
     bundle_pin = run["bundle"]
@@ -931,6 +978,14 @@ def command_seal_relations(args: argparse.Namespace) -> int:
         str(row["id"]): row for row in bundle_record["mappingCandidates"]
     }
     accounting = {str(row["candidateId"]): row for row in run["candidateAccounting"]}
+    if run["coverageMode"] == qual.PRODUCTION_COVERAGE_MODE:
+        try:
+            qual.verify_candidate_accounting_catalog_lineage(
+                run["candidateAccounting"],
+                catalog["candidates"],
+            )
+        except qual.QualificationError as error:
+            raise SystemExit(f"production candidate accounting differs from its exact catalog: {error}") from error
     catalog_ids = {str(row["candidateId"]) for row in catalog["candidates"]}
     if set(bundle_candidates) != set(accounting) or set(accounting) != catalog_ids:
         raise SystemExit("catalog, Crosswalk bundle, and run accounting do not name the same candidates")
@@ -959,8 +1014,25 @@ def command_seal_relations(args: argparse.Namespace) -> int:
             raise SystemExit("an adjudicated non-control candidate is missing or changed in run accounting")
     if set(admitted) != {candidate_id for candidate_id in relations if accounting[candidate_id]["control"] is False}:
         raise SystemExit("run accounting admits a candidate without an adjudicated bundle relation")
+    destination = output / args.relation_output
     if not admitted:
-        raise SystemExit("qualification run contains no admitted non-control relation")
+        if destination.exists() or destination.is_symlink():
+            raise SystemExit(
+                "zero-admission production run has stale relation output"
+            )
+        print(
+            canonical_json(
+                {
+                    "mappingAssertions": 0,
+                    "sourceRun": {
+                        "id": run["id"],
+                        "contentDigest": run["contentDigest"],
+                    },
+                    "status": "noAdmittedMappings",
+                }
+            )
+        )
+        return 0
 
     release_sources = (
         _open_relation_release(
@@ -1017,7 +1089,6 @@ def command_seal_relations(args: argparse.Namespace) -> int:
         evidence_assertions=tuple(evidence_assertions),
         mapping_assertions=tuple(mappings),
     )
-    destination = output / args.relation_output
     root = relation_bundle.write_to(destination)
     summary = {
         "id": relation_bundle.identifier,
@@ -1036,12 +1107,12 @@ def command_seal_relations(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # batch-submit / batch-status / batch-collect
 #
-# The same question, bought asynchronously at half price.  These three stages
-# stand beside `qualify`, never in front of it: they append rows to the same
-# `receipts.jsonl`, carrying the same fields, so `bundle` and the resume set
-# cannot tell which road a row came down.  Everything a batch adds -- job ids,
-# provider endpoints, submit and completion times, counts -- goes to the
-# `batch-jobs.json` sidecar instead of into a receipt.
+# Candidate decisions bought asynchronously at the recorded Batch API factor.
+# Production groups up to 25 rows per model request; `--group-size 1` keeps the
+# exact serial-shaped recovery road.  Both append per-candidate rows to the same
+# `receipts.jsonl`, so `bundle` and resume use the same candidate/family key.
+# Group membership, job ids, endpoints, times, and counts live in the sidecar;
+# grouped receipts add honest shared-request and extracted-answer digests.
 # ---------------------------------------------------------------------------
 
 
@@ -1096,6 +1167,67 @@ def _batch_sidecar_families(
     return {name: qual.VALIDATOR_FAMILIES[name] for name in names}
 
 
+def command_batch_plan(args: argparse.Namespace) -> int:
+    """Print the complete local request and spend plan without provider I/O."""
+
+    catalog = _read_json(Path(args.output) / CANDIDATES)
+    protocol = qbatch.run_protocol(catalog)
+    if args.smoke_candidates is not None:
+        selected = qual.stratified_subset(catalog["candidates"], args.smoke_candidates)
+        planning_catalog = {**catalog, "candidates": selected, "total": len(selected)}
+        judge_rows = list(
+            qbatch.candidate_rows_from_catalog(planning_catalog, work_kind="validation")
+        )
+        score_rows = list(
+            qbatch.candidate_rows_from_catalog(planning_catalog, work_kind="scoring")
+        )
+    else:
+        judge_rows = _batch_rows(args, subset=False)
+        score_rows = _scoring_candidate_rows(catalog)
+    try:
+        judges = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
+        scorer = qual.VALIDATOR_FAMILIES[args.scorer_family]
+    except KeyError as error:
+        raise SystemExit(f"unknown family {error.args[0]!r}") from error
+    jobs = [
+        qbatch.request_plan_summary(
+            scorer,
+            scorer.requested_model,
+            score_rows,
+            protocol=qual.SCORING_PROTOCOL,
+            work_kind="scoring",
+            group_size=args.group_size,
+        ),
+        *[
+            qbatch.request_plan_summary(
+                family,
+                family.requested_model,
+                judge_rows,
+                protocol=protocol,
+                work_kind="validation",
+                group_size=args.group_size,
+            )
+            for family in judges
+        ],
+    ]
+    print(
+        canonical_json(
+            {
+                "candidateCount": len(judge_rows),
+                "jobs": jobs,
+                "modelResolution": "notPerformed",
+                "planningMode": "stratifiedSmoke" if args.smoke_candidates is not None else "complete",
+                "protocol": protocol,
+                "providerCalls": False,
+                "providerJobCount": sum(int(job["providerJobCount"]) for job in jobs),
+                "requestGroupSizeLimit": args.group_size,
+                "totalProjectedCostUsd": round(sum(float(job["projectedCostUsd"]) for job in jobs), 6),
+            }
+        )
+    )
+    return 0
+
+
 def command_batch_submit(args: argparse.Namespace) -> int:
     output = Path(args.output)
     protocol = _batch_protocol(args)
@@ -1137,10 +1269,12 @@ def command_batch_submit(args: argparse.Namespace) -> int:
             caps=args.cap,
             total_cap_usd=args.total_cap,
             protocol=protocol,
+            group_size=args.group_size,
+            coordination_sidecars=(output / SCORING_BATCH_SIDECAR,),
         )
-    except qbatch.BatchSpendCapReached as error:
-        # Refused before anything was bought.  A batch cannot be stopped once
-        # submitted, so this is the only place the cap can still say no.
+    except (qbatch.BatchSpendCapReached, qbatch.BatchSubmitBusy) as error:
+        # Refused before anything was bought.  A submitted batch is already
+        # billable, so this is the only place the cap can still say no.
         raise SystemExit(str(error)) from error
     print(canonical_json(summary))
     return 0
@@ -1242,8 +1376,10 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
             total_cap_usd=args.total_cap,
             protocol=qual.SCORING_PROTOCOL,
             work_kind="scoring",
+            group_size=args.group_size,
+            coordination_sidecars=(output / qbatch.SIDECAR,),
         )
-    except qbatch.BatchSpendCapReached as error:
+    except (qbatch.BatchSpendCapReached, qbatch.BatchSubmitBusy) as error:
         raise SystemExit(str(error)) from error
     print(canonical_json(summary))
     return 0
@@ -1384,7 +1520,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     batch_submit = subparsers.add_parser(
         "batch-submit",
-        help="buy the same questions asynchronously at half price; refuses at the cap before uploading",
+        help="submit grouped judge requests through provider Batch APIs; refuses at the cap before uploading",
     )
     batch_submit.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     batch_submit.add_argument("--families", default="gemini,openai")
@@ -1402,6 +1538,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="override one family's hard spend cap",
     )
     batch_submit.add_argument(
+        "--group-size",
+        type=_request_group_size,
+        default=qbatch.DEFAULT_REQUEST_GROUP_SIZE,
+        metavar="N",
+        help="put up to N candidate rows in one request; use 1 for exact serial-shaped recovery",
+    )
+    batch_submit.add_argument(
         "--total-cap",
         type=_positive_finite_usd,
         default=qual.TOTAL_SPEND_CAP_USD,
@@ -1409,6 +1552,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="set the hard spend cap across all families for this batch submission",
     )
     batch_submit.set_defaults(handler=command_batch_submit)
+
+    batch_plan = subparsers.add_parser(
+        "batch-plan",
+        help="report grouped scoring and judging request counts and conservative cost without provider calls",
+    )
+    batch_plan.add_argument("--families", default="gemini,openai")
+    batch_plan.add_argument("--scorer-family", default="openai")
+    batch_plan.add_argument(
+        "--group-size",
+        type=_request_group_size,
+        default=qbatch.DEFAULT_REQUEST_GROUP_SIZE,
+        metavar="N",
+    )
+    batch_plan.add_argument(
+        "--smoke-candidates",
+        type=_positive_candidate_count,
+        default=None,
+        metavar="N",
+        help="plan a stratified N-candidate smoke without enabling a production execution subset",
+    )
+    batch_plan.set_defaults(handler=command_batch_plan)
 
     batch_status = subparsers.add_parser("batch-status", help="poll every submitted batch job and print its state")
     batch_status.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
@@ -1436,6 +1600,13 @@ def build_parser() -> argparse.ArgumentParser:
     score_batch_submit.add_argument("--family", default="openai")
     score_batch_submit.add_argument("--max-candidates", type=int, default=None)
     score_batch_submit.add_argument("--cap", action=_CapAction, default={}, metavar="FAMILY=USD")
+    score_batch_submit.add_argument(
+        "--group-size",
+        type=_request_group_size,
+        default=qbatch.DEFAULT_REQUEST_GROUP_SIZE,
+        metavar="N",
+        help="put up to N scorer rows in one request; use 1 for exact serial-shaped recovery",
+    )
     score_batch_submit.add_argument(
         "--total-cap",
         type=_positive_finite_usd,
@@ -1483,6 +1654,28 @@ def _positive_finite_usd(value: str) -> float:
     if not math.isfinite(cap) or cap <= 0:
         raise argparse.ArgumentTypeError("must be a positive finite USD value")
     return cap
+
+
+def _request_group_size(value: str) -> int:
+    try:
+        size = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be an integer") from error
+    if not 1 <= size <= qbatch.MAX_REQUEST_GROUP_SIZE:
+        raise argparse.ArgumentTypeError(
+            f"must be between 1 and {qbatch.MAX_REQUEST_GROUP_SIZE}"
+        )
+    return size
+
+
+def _positive_candidate_count(value: str) -> int:
+    try:
+        count = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be an integer") from error
+    if count < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return count
 
 
 def main(argv: Sequence[str] | None = None) -> int:

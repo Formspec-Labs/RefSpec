@@ -1,37 +1,32 @@
-"""Provider batch-API path for crosswalk qualification: submit, poll, collect.
+"""Provider Batch API path for crosswalk qualification: submit, poll, collect.
 
-The serial path in :mod:`refspec.atlas.qualification` asks one question per
-HTTPS round trip.  Both providers also sell the same question asynchronously at
-half price with a 24-hour turnaround, and a qualification slice is exactly the
-workload that shape suits: hundreds of independent, order-free questions whose
-answers are not needed until the ``bundle`` stage runs.
+The serial path in :mod:`refspec.atlas.qualification` asks one candidate per
+HTTPS round trip.  Production batch mode puts up to 25 independent candidates
+in a spreadsheet-shaped model request, then sends those requests through each
+provider's asynchronous Batch API at its recorded price factor.  ``--group-size
+1`` remains the exact serial-shaped recovery and A/B path.
 
-This module is a second *road to the same receipt*, never a second receipt
-format.  Every row it appends to ``receipts.jsonl`` carries the field set
-:func:`refspec.atlas.qualification.validate_candidate` writes, hashed over the
-same request-body bytes, checked by the same
-:func:`refspec.atlas.qualification._parse_answer`, and read back by the same
-:func:`refspec.atlas.qualification.reading_from_receipt` — so ``bundle`` and the
-resume-by-done-set logic cannot tell which road a row came down.  Everything
-that *is* batch-specific — job identifiers, provider endpoints, submit and
-completion timestamps, request counts, the halved pricing assumption — lives in
-a sidecar, ``batch-jobs.json``, and never in a receipt field.
+Both modes end in the same per-candidate decision semantics.  Every completed
+row is read by :func:`refspec.atlas.qualification.reading_from_receipt`, and
+``bundle`` plus the resume key still operate on ``(candidate_id, family)``.
+Grouped receipts honestly add the shared request and response digests and the
+canonical extracted-answer digest; they never label grouped bytes as the serial
+request.  Job identifiers, provider endpoints, submit and completion times,
+request counts, and exact group membership live in ``batch-jobs.json``.
 
 Three things a batch changes about the discipline, each handled here:
 
-* **A batch cannot be stopped mid-flight.**  The serial path checks its spend
-  cap before every single call and stops the family the moment realized spend
-  would cross it.  A submitted batch is already bought, so the cap is enforced
+* **A submitted batch is already billable.**  Cancellation is asynchronous and
+  can save only work the provider has not run.  The cap is therefore enforced
   once, at submit time, against a conservative projection over the whole batch
   — and against what earlier live jobs already projected.
 * **A batch answers out of band.**  ``started_at`` is when the job was
   submitted and ``finished_at`` is when the provider says it finished; both are
   facts the sidecar also records against the job identifier.
-* **A batch can lose a request.**  A ``custom_id`` absent from both the output
-  and the error file is receipted as nothing at all, so a later
-  ``batch-submit`` re-asks it.  A request the provider *answered* with an error
-  is receipted exactly as the serial path receipts a provider error, and is
-  therefore never asked twice.
+* **A batch can lose a request or one grouped answer.**  A missing
+  ``custom_id``, provider error, malformed answer, missing task id, or duplicated
+  task id stays in immutable raw evidence without becoming a candidate reading.
+  A later submit therefore recovers only the affected rows.
 
 Wire shapes, researched rather than remembered (2026-08-03):
 
@@ -69,12 +64,19 @@ free.
 from __future__ import annotations
 
 import datetime as _dt
+import fcntl
 import hashlib
 import json
 import math
+import os
+import re
+import stat
+import time
 import urllib.error
 import urllib.request
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections import Counter
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal, Protocol
@@ -83,15 +85,16 @@ from urllib.parse import urlparse
 from refspec.storage import canonical_json
 
 from . import qualification as qual
+from .model import CrosswalkBundle
 from .qualification import CandidatePair, ValidatorFamily
 
 # ---------------------------------------------------------------------------
 # pinned batch policy
 # ---------------------------------------------------------------------------
 
-#: The sidecar carrying every batch-specific fact.  A receipt never grows a
-#: field for it: ``bundle`` reads receipts, and a receipt that only a batch run
-#: could produce would make the two roads distinguishable downstream.
+#: The sidecar carrying every batch-specific fact. Candidate receipts retain
+#: exact attempt/job/result-line identity so public reopening can resolve them
+#: to this sidecar and the immutable provider bytes it pins.
 SIDECAR = "batch-jobs.json"
 
 SIDECAR_PROTOCOL = "refspec-atlas-crosswalk-batch-v1"
@@ -113,6 +116,51 @@ BATCH_PRICE_FACTOR = 0.5
 #: ``_projected_cost`` uses, so the two projections are comparable.
 PROJECTION_INPUT_TOKENS = 900
 
+#: Production uses spreadsheet-shaped requests so the rubric is paid for once
+#: per small group instead of once per candidate.  Twenty-five is deliberately
+#: modest: it amortizes the prompt while keeping a malformed answer's recovery
+#: slice reviewable by a person.
+DEFAULT_REQUEST_GROUP_SIZE = 25
+MAX_REQUEST_GROUP_SIZE = 25
+
+#: A row-count bound alone is not enough because definitions and hierarchy
+#: context vary in size.  Multi-row requests stop at both limits.  A single
+#: oversized row falls back to the exact serial-shaped request rather than
+#: becoming unaskable.
+GROUP_INPUT_BYTE_LIMIT = 240_000
+GROUP_INPUT_TOKEN_LIMIT = 60_000
+
+#: Grouped answers share one reasoning budget.  Four hundred tokens per row is
+#: an explicit ceiling for the small JSON object defined by the response schema
+#: plus model reasoning; the request still keeps the family's 2,000-token
+#: minimum for groups of five or fewer.
+GROUP_OUTPUT_TOKENS_PER_ROW = 400
+
+#: One provider job must fit the lowest paid queue tier with meaningful
+#: headroom.  The estimate is deliberately the same conservative body-byte
+#: estimate used for the spend plan, so a shard that passes locally never
+#: depends on an unverified account tier.
+MAX_PROVIDER_JOB_INPUT_TOKENS = 1_000_000
+MAX_PROVIDER_REQUESTS_PER_JOB = 50_000
+OPENAI_MAX_INPUT_FILE_BYTES = 200_000_000
+GEMINI_MAX_INPUT_FILE_BYTES = 2_000_000_000
+
+#: Exact provider output and error files are retained below the run directory
+#: by content digest.  The sidecar pins these paths; collection and every
+#: public reopen parse only the retained bytes.
+BATCH_EVIDENCE_DIRECTORY = "provider-batch-evidence"
+
+#: Judging and scoring sidecars share this advisory lock in their common run
+#: directory.  The kernel releases ``flock`` when a process exits, including a
+#: crash, while the stable inode prevents a third process from bypassing a
+#: waiter by racing an unlink/recreate cycle.
+SUBMIT_LOCK_FILE = ".provider-batch-submit.lock"
+DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS = 30.0
+SUBMIT_LOCK_POLL_SECONDS = 0.05
+
+GROUPED_REQUEST_PROTOCOL = qual.GROUPED_PROVIDER_REQUEST_PROTOCOL
+GROUPING_SEED = "refspec-atlas-crosswalk-grouping-2026-08-04"
+
 #: ``custom_id`` is bounded by the provider (64 characters at OpenAI) and a
 #: candidate identifier is longer than that, so the id is a digest of it —
 #: deterministic, so a resubmit of the same candidate produces the same token,
@@ -128,7 +176,7 @@ _OPENAI_STATES: Mapping[str, str] = {
     "validating": "pending",
     "in_progress": "running",
     "finalizing": "running",
-    "cancelling": "running",
+    "cancelling": "cancelling",
     "completed": "succeeded",
     "failed": "failed",
     "expired": "expired",
@@ -153,9 +201,13 @@ class BatchSpendCapReached(RuntimeError):
     """Submitting this batch would carry the projection past a hard cap.
 
     Raised *before* anything is bought.  There is no in-flight equivalent: a
-    submitted batch cannot be stopped, which is the whole reason the check
+    submitted batch cannot be un-bought, which is the whole reason the check
     moved to submit time.
     """
+
+
+class BatchSubmitBusy(BatchError):
+    """Another process is still deciding or creating a job for this run."""
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +316,21 @@ def projected_batch_cost(family: ValidatorFamily, calls: int) -> float:
     return tracker.cost(calls * PROJECTION_INPUT_TOKENS, calls * family.max_output_tokens)
 
 
+def projected_request_cost(family: ValidatorFamily, requests: Sequence[ProviderRequest]) -> float:
+    """Price the exact request shapes that would be uploaded.
+
+    JSON bytes divided by three is intentionally more conservative than the
+    serial runner's character-divided-by-four estimate.  Output uses the exact
+    allowance pinned in each body.  This makes a grouped cap smaller because
+    repeated rubrics and per-call output ceilings are genuinely absent, not
+    because the estimator pretends 25 rows are one row.
+    """
+
+    input_tokens = sum(estimated_request_input_tokens(request) for request in requests)
+    output_tokens = sum(int(request.body[family.max_output_tokens_field]) for request in requests)
+    return qual.SpendTracker(batch_family(family)).cost(input_tokens, output_tokens)
+
+
 def custom_id(family: ValidatorFamily, candidate_id: str) -> str:
     """The per-request token the provider echoes back beside its answer."""
 
@@ -336,6 +403,72 @@ class CandidateRow:
     input_digest: str
 
 
+def _context_from_catalog(payload: Mapping[str, Any]) -> qual.AtlasConceptContext:
+    return qual.AtlasConceptContext(
+        member=str(payload["member"]),
+        pref_label=str(payload["prefLabel"]),
+        alt_labels=tuple(str(value) for value in payload.get("altLabels", ())),
+        definition=payload.get("definition"),
+        scope_note=payload.get("scopeNote"),
+    )
+
+
+def _concept_from_catalog(payload: Mapping[str, Any]) -> qual.AtlasConcept:
+    return qual.AtlasConcept(
+        member=str(payload["member"]),
+        release=str(payload["release"]),
+        pref_label=str(payload["prefLabel"]),
+        alt_labels=tuple(str(value) for value in payload.get("altLabels", ())),
+        definition=payload.get("definition"),
+        scope_note=payload.get("scopeNote"),
+        broader=tuple(str(value) for value in payload.get("broader", ())),
+        vocabulary=str(payload.get("vocabulary", "")),
+        parents=tuple(_context_from_catalog(value) for value in payload.get("parents", ())),
+        children=tuple(_context_from_catalog(value) for value in payload.get("children", ())),
+    )
+
+
+def candidate_rows_from_catalog(
+    catalog: Mapping[str, Any],
+    *,
+    work_kind: WorkKind,
+) -> tuple[CandidateRow, ...]:
+    """Reopen the exact candidate rows used by batch request construction."""
+
+    rows: list[CandidateRow] = []
+    raw_rows = catalog.get("candidates")
+    if not isinstance(raw_rows, Sequence) or isinstance(raw_rows, (str, bytes)):
+        raise BatchError("candidate catalog has no candidate rows")
+    for index, raw in enumerate(raw_rows):
+        if not isinstance(raw, Mapping):
+            raise BatchError(f"candidate catalog row {index} is not an object")
+        try:
+            pair = qual.CandidatePair(
+                source=_concept_from_catalog(raw["source"]),
+                target=_concept_from_catalog(raw["target"]),
+                generation_class=str(raw["generationClass"]),
+                evidence=dict(raw["evidence"]),
+                generation_policy=str(
+                    raw.get("generationPolicy", qual.CANDIDATE_GENERATION_POLICY)
+                ),
+            )
+            input_digest = (
+                str(raw.get("scoringInputDigest") or qual.scoring_input_digest(pair))
+                if work_kind == "scoring"
+                else str(raw["inputDigest"])
+            )
+            rows.append(
+                CandidateRow(
+                    candidate_id=str(raw["candidateId"]),
+                    pair=pair,
+                    input_digest=input_digest,
+                )
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise BatchError(f"candidate catalog row {index} is incomplete") from error
+    return tuple(rows)
+
+
 @dataclass(frozen=True, slots=True)
 class BatchRequest:
     """One line of the input JSONL, plus the identity its receipt will carry."""
@@ -355,6 +488,811 @@ class BatchRequest:
                 "url": BATCH_REQUEST_URL,
             }
         )
+
+
+@dataclass(frozen=True, slots=True)
+class GroupedBatchRequest:
+    """One provider request carrying several independent candidate rows.
+
+    ``request_sha256`` hashes the grouped body actually uploaded.  It is never
+    described as the serial request digest.  Each candidate keeps its sealed
+    ``input_digest`` and exact row payload digest in the sidecar, while the
+    collector adds the grouped response digest and extracted-answer digest to
+    the per-candidate receipt.
+    """
+
+    group_id: str
+    rows: tuple[CandidateRow, ...]
+    custom_id: str
+    request_sha256: str
+    row_input_sha256: Mapping[str, str]
+    task_ids: Mapping[str, str]
+    body: Mapping[str, Any]
+
+    @property
+    def candidate_ids(self) -> tuple[str, ...]:
+        return tuple(row.candidate_id for row in self.rows)
+
+    def line(self) -> str:
+        return canonical_json(
+            {
+                "body": dict(self.body),
+                "custom_id": self.custom_id,
+                "method": "POST",
+                "url": BATCH_REQUEST_URL,
+            }
+        )
+
+
+ProviderRequest = BatchRequest | GroupedBatchRequest
+
+
+def _row_payload(row: CandidateRow, work_kind: WorkKind) -> Mapping[str, Any]:
+    if work_kind == "validation":
+        return qual.model_input_payload(row.pair)
+    return qual.scoring_input_payload(row.pair)
+
+
+def _group_schema(work_kind: WorkKind) -> Mapping[str, Any]:
+    answer_schema = qual.RESPONSE_SCHEMA if work_kind == "validation" else qual.SCORING_RESPONSE_SCHEMA
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["group_id", "answers"],
+        "properties": {
+            "group_id": {"type": "string"},
+            "answers": {"type": "array", "items": dict(answer_schema)},
+        },
+    }
+
+
+def grouped_instructions_text(work_kind: WorkKind) -> str:
+    """The canonical single-row rubric with one explicit multi-row wrapper.
+
+    The decision rules still come from :mod:`qualification`; this module owns
+    only the request wrapper.  The final paragraph explicitly replaces the
+    single-object response instruction, avoiding two competing output shapes.
+    """
+
+    single = qual.instructions_text() if work_kind == "validation" else qual.scoring_instructions_text()
+    marker = "Return exactly one JSON object and nothing else."
+    before, found, _after = single.partition(marker)
+    if not found:
+        raise BatchError("the canonical qualification instructions no longer expose their response boundary")
+    return (
+        before
+        + "For this grouped request, judge every row independently. Do not compare rows, infer a "
+        "generation pattern, or let one row affect another. Return exactly one JSON object and nothing "
+        "else. Echo group_id exactly, return exactly one answer for every supplied taskId, and echo each "
+        "task_id exactly. The object must match this JSON Schema:\n\n"
+        + canonical_json(_group_schema(work_kind))
+    )
+
+
+def group_id(rows: Sequence[CandidateRow], *, protocol: str, work_kind: WorkKind) -> str:
+    identity = {
+        "candidateIds": [row.candidate_id for row in rows],
+        "inputDigests": [row.input_digest for row in rows],
+        "protocol": protocol,
+        "requestProtocol": GROUPED_REQUEST_PROTOCOL,
+        "workKind": work_kind,
+    }
+    return "group-" + hashlib.sha256(canonical_json(identity).encode("utf-8")).hexdigest()[:32]
+
+
+def grouped_custom_id(family: ValidatorFamily, identifier: str) -> str:
+    digest = hashlib.sha256(identifier.encode("utf-8")).hexdigest()[:CUSTOM_ID_DIGEST_CHARACTERS]
+    return f"{family.name}-group-{digest}"
+
+
+def _group_user_payload(rows: Sequence[CandidateRow], *, identifier: str, work_kind: WorkKind) -> dict[str, Any]:
+    return {
+        "group_id": identifier,
+        "requestProtocol": GROUPED_REQUEST_PROTOCOL,
+        "rows": [dict(_row_payload(row, work_kind)) for row in rows],
+    }
+
+
+def _group_input_size(rows: Sequence[CandidateRow], *, work_kind: WorkKind) -> tuple[int, int]:
+    identifier = group_id(
+        rows,
+        protocol=qual.PROTOCOL if work_kind == "validation" else qual.SCORING_PROTOCOL,
+        work_kind=work_kind,
+    )
+    system = grouped_instructions_text(work_kind)
+    user = canonical_json(_group_user_payload(rows, identifier=identifier, work_kind=work_kind))
+    encoded = (system + user).encode("utf-8")
+    return len(encoded), qual._estimate_tokens(system) + qual._estimate_tokens(user)
+
+
+def deterministic_groups(
+    rows: Sequence[CandidateRow],
+    *,
+    group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
+    work_kind: WorkKind = "validation",
+) -> tuple[tuple[CandidateRow, ...], ...]:
+    """Hash-order rows, then pack them under exact row, byte, and token bounds.
+
+    Hash ordering mixes generation classes without revealing them to a model
+    and gives both judge families the same order in a normal complete submit.
+    Resume submits re-pack only the missing rows; every resulting group is
+    therefore a deterministic function of the work still needed.
+    """
+
+    if isinstance(group_size, bool) or not 1 <= group_size <= MAX_REQUEST_GROUP_SIZE:
+        raise ValueError(f"group size must be between 1 and {MAX_REQUEST_GROUP_SIZE}")
+    ordered = sorted(
+        rows,
+        key=lambda row: (
+            hashlib.sha256(
+                f"{GROUPING_SEED}|{work_kind}|{row.candidate_id}".encode()
+            ).hexdigest(),
+            row.candidate_id,
+        ),
+    )
+    if group_size == 1:
+        return tuple((row,) for row in ordered)
+    groups: list[tuple[CandidateRow, ...]] = []
+    active: list[CandidateRow] = []
+    for row in ordered:
+        proposed = [*active, row]
+        byte_count, token_count = _group_input_size(proposed, work_kind=work_kind)
+        if active and (
+            len(proposed) > group_size
+            or byte_count > GROUP_INPUT_BYTE_LIMIT
+            or token_count > GROUP_INPUT_TOKEN_LIMIT
+        ):
+            groups.append(tuple(active))
+            active = [row]
+        else:
+            active = proposed
+    if active:
+        groups.append(tuple(active))
+    return tuple(groups)
+
+
+def grouped_output_allowance(family: ValidatorFamily, row_count: int) -> int:
+    if row_count < 1:
+        raise ValueError("a grouped request needs at least one row")
+    return max(family.max_output_tokens, row_count * GROUP_OUTPUT_TOKENS_PER_ROW)
+
+
+def build_grouped_request(
+    family: ValidatorFamily,
+    model_id: str,
+    rows: Sequence[CandidateRow],
+    *,
+    protocol: str,
+    work_kind: WorkKind = "validation",
+) -> GroupedBatchRequest:
+    """Build one honest multi-row request and pin every level of its input."""
+
+    _require_work_protocol(protocol, work_kind)
+    if len(rows) < 2 or len(rows) > MAX_REQUEST_GROUP_SIZE:
+        raise ValueError(f"a grouped request needs 2 through {MAX_REQUEST_GROUP_SIZE} rows")
+    identifier = group_id(rows, protocol=protocol, work_kind=work_kind)
+    row_payloads = {row.candidate_id: dict(_row_payload(row, work_kind)) for row in rows}
+    user = canonical_json(
+        {
+            "group_id": identifier,
+            "requestProtocol": GROUPED_REQUEST_PROTOCOL,
+            "rows": [row_payloads[row.candidate_id] for row in rows],
+        }
+    )
+    body = qual._request_body(family, model_id, grouped_instructions_text(work_kind), user)
+    body[family.max_output_tokens_field] = grouped_output_allowance(family, len(rows))
+    return GroupedBatchRequest(
+        group_id=identifier,
+        rows=tuple(rows),
+        custom_id=grouped_custom_id(family, identifier),
+        request_sha256=qual._sha256_text(canonical_json(body)),
+        row_input_sha256={
+            candidate_id: qual._sha256_text(canonical_json(payload))
+            for candidate_id, payload in row_payloads.items()
+        },
+        task_ids={
+            row.candidate_id: (
+                qual.task_id(row.pair) if work_kind == "validation" else qual.scoring_task_id(row.pair)
+            )
+            for row in rows
+        },
+        body=body,
+    )
+
+
+def build_provider_requests(
+    family: ValidatorFamily,
+    model_id: str,
+    rows: Sequence[CandidateRow],
+    *,
+    protocol: str,
+    work_kind: WorkKind = "validation",
+    group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
+) -> tuple[ProviderRequest, ...]:
+    requests: list[ProviderRequest] = []
+    for grouped_rows in deterministic_groups(rows, group_size=group_size, work_kind=work_kind):
+        if len(grouped_rows) == 1:
+            requests.append(
+                build_request(family, model_id, grouped_rows[0], protocol=protocol, work_kind=work_kind)
+            )
+        else:
+            requests.append(
+                build_grouped_request(
+                    family,
+                    model_id,
+                    grouped_rows,
+                    protocol=protocol,
+                    work_kind=work_kind,
+                )
+            )
+    return tuple(requests)
+
+
+def estimated_request_input_tokens(request: ProviderRequest) -> int:
+    """Conservatively estimate one provider request's enqueued input tokens."""
+
+    return max(
+        PROJECTION_INPUT_TOKENS,
+        math.ceil(len(canonical_json(request.body).encode("utf-8")) / 3),
+    )
+
+
+def provider_input_file_limit(family: ValidatorFamily) -> int:
+    return GEMINI_MAX_INPUT_FILE_BYTES if family.vendor == "google" else OPENAI_MAX_INPUT_FILE_BYTES
+
+
+@dataclass(frozen=True, slots=True)
+class RequestShard:
+    """One deterministic provider job, bounded by queue and file limits."""
+
+    shard_id: str
+    requests: tuple[ProviderRequest, ...]
+    input_bytes: int
+    projected_input_tokens: int
+    projected_output_tokens: int
+
+    @property
+    def candidate_count(self) -> int:
+        return sum(
+            len(request.rows) if isinstance(request, GroupedBatchRequest) else 1
+            for request in self.requests
+        )
+
+
+def _request_shard(
+    family: ValidatorFamily,
+    model_id: str,
+    requests: Sequence[ProviderRequest],
+    *,
+    protocol: str,
+    work_kind: WorkKind,
+) -> RequestShard:
+    payload = input_jsonl(requests)
+    input_tokens = sum(estimated_request_input_tokens(request) for request in requests)
+    output_tokens = sum(
+        int(request.body[family.max_output_tokens_field]) for request in requests
+    )
+    identity = {
+        "family": family.name,
+        "inputFileSha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        "modelId": model_id,
+        "protocol": protocol,
+        "workKind": work_kind,
+    }
+    return RequestShard(
+        shard_id="shard-" + hashlib.sha256(canonical_json(identity).encode("utf-8")).hexdigest(),
+        requests=tuple(requests),
+        input_bytes=len(payload),
+        projected_input_tokens=input_tokens,
+        projected_output_tokens=output_tokens,
+    )
+
+
+def deterministic_request_shards(
+    family: ValidatorFamily,
+    model_id: str,
+    requests: Sequence[ProviderRequest],
+    *,
+    protocol: str,
+    work_kind: WorkKind,
+) -> tuple[RequestShard, ...]:
+    """Pack stable request order into queue-safe, resumable provider jobs."""
+
+    file_limit = provider_input_file_limit(family)
+    shards: list[RequestShard] = []
+    active: list[ProviderRequest] = []
+    active_bytes = 0
+    active_tokens = 0
+    for request in requests:
+        line_bytes = len((request.line() + "\n").encode("utf-8"))
+        request_tokens = estimated_request_input_tokens(request)
+        if (
+            line_bytes > file_limit
+            or request_tokens > MAX_PROVIDER_JOB_INPUT_TOKENS
+        ):
+            raise BatchError(
+                f"{family.name} request {request.custom_id} exceeds one provider-job limit"
+            )
+        if active and (
+            len(active) + 1 > MAX_PROVIDER_REQUESTS_PER_JOB
+            or active_bytes + line_bytes > file_limit
+            or active_tokens + request_tokens > MAX_PROVIDER_JOB_INPUT_TOKENS
+        ):
+            shards.append(
+                _request_shard(
+                    family,
+                    model_id,
+                    active,
+                    protocol=protocol,
+                    work_kind=work_kind,
+                )
+            )
+            active = []
+            active_bytes = 0
+            active_tokens = 0
+        active.append(request)
+        active_bytes += line_bytes
+        active_tokens += request_tokens
+    if active:
+        shards.append(
+            _request_shard(
+                family,
+                model_id,
+                active,
+                protocol=protocol,
+                work_kind=work_kind,
+            )
+        )
+    return tuple(shards)
+
+
+def _provider_request_plan(request: ProviderRequest) -> dict[str, Any]:
+    if isinstance(request, BatchRequest):
+        return {
+            "candidateCount": 1,
+            "candidateIds": [request.candidate_id],
+            "customId": request.custom_id,
+            "groupId": None,
+            "requestKind": "serialEquivalent",
+            "requestSha256": request.request_sha256,
+        }
+    return {
+        "candidateCount": len(request.rows),
+        "candidateIds": list(request.candidate_ids),
+        "customId": request.custom_id,
+        "groupId": request.group_id,
+        "requestKind": "grouped",
+        "requestSha256": request.request_sha256,
+    }
+
+
+def _candidate_request_plans(request: ProviderRequest) -> list[dict[str, Any]]:
+    if isinstance(request, BatchRequest):
+        return [
+            {
+                "candidateId": request.candidate_id,
+                "customId": request.custom_id,
+                "groupId": None,
+                "groupSize": 1,
+                "itemInputSha256": None,
+                "requestKind": "serialEquivalent",
+                "requestSha256": request.request_sha256,
+                "taskId": request.task_id,
+            }
+        ]
+    return [
+        {
+            "candidateId": row.candidate_id,
+            "customId": request.custom_id,
+            "groupId": request.group_id,
+            "groupSize": len(request.rows),
+            "itemInputSha256": request.row_input_sha256[row.candidate_id],
+            "requestKind": "grouped",
+            "requestSha256": request.request_sha256,
+            "taskId": request.task_ids[row.candidate_id],
+        }
+        for row in request.rows
+    ]
+
+
+def _planned_shard_record(
+    family: ValidatorFamily,
+    model_id: str,
+    shard: RequestShard,
+    *,
+    protocol: str,
+    work_kind: WorkKind,
+    group_size: int,
+) -> dict[str, Any]:
+    payload = input_jsonl(shard.requests)
+    return {
+        "candidateCount": shard.candidate_count,
+        "family": family.name,
+        "inputFileBytes": shard.input_bytes,
+        "inputFileSha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+        "maxRequestGroupSize": group_size,
+        "modelId": model_id,
+        "projectedCostUsd": round(projected_request_cost(family, shard.requests), 6),
+        "projectedInputTokens": shard.projected_input_tokens,
+        "projectedOutputTokenAllowance": shard.projected_output_tokens,
+        "protocol": protocol,
+        "providerRequestCount": len(shard.requests),
+        "providerRequests": [_provider_request_plan(request) for request in shard.requests],
+        "requests": [
+            item for request in shard.requests for item in _candidate_request_plans(request)
+        ],
+        "shardId": shard.shard_id,
+        "workKind": work_kind,
+    }
+
+
+def _rebuild_requests_from_record(
+    record: Mapping[str, Any],
+    *,
+    family: ValidatorFamily,
+    rows_by_id: Mapping[str, CandidateRow],
+) -> tuple[ProviderRequest, ...]:
+    protocol = str(record.get("protocol") or "")
+    work_kind = str(record.get("workKind") or "validation")
+    if work_kind not in {"validation", "scoring"}:
+        raise BatchError("provider batch plan has an invalid work kind")
+    typed_work_kind: WorkKind = work_kind  # type: ignore[assignment]
+    _require_work_protocol(protocol, typed_work_kind)
+    raw_plans = record.get("providerRequests")
+    if not isinstance(raw_plans, Sequence) or isinstance(raw_plans, (str, bytes)):
+        raise BatchError("provider batch plan has no provider requests")
+    rebuilt: list[ProviderRequest] = []
+    seen: set[str] = set()
+    for index, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            raise BatchError(f"provider request plan {index} is not an object")
+        candidate_ids = raw_plan.get("candidateIds")
+        if not isinstance(candidate_ids, Sequence) or isinstance(candidate_ids, (str, bytes)):
+            raise BatchError(f"provider request plan {index} has no candidate ids")
+        request_rows: list[CandidateRow] = []
+        for raw_candidate_id in candidate_ids:
+            candidate_id = str(raw_candidate_id)
+            if candidate_id in seen:
+                raise BatchError(f"provider batch plan repeats candidate {candidate_id}")
+            row = rows_by_id.get(candidate_id)
+            if row is None:
+                raise BatchError("provider batch plan names a candidate outside the catalog")
+            seen.add(candidate_id)
+            request_rows.append(row)
+        kind = str(raw_plan.get("requestKind") or "")
+        if kind == "serialEquivalent" and len(request_rows) == 1:
+            request: ProviderRequest = build_request(
+                family,
+                str(record["modelId"]),
+                request_rows[0],
+                protocol=protocol,
+                work_kind=typed_work_kind,
+            )
+        elif kind == "grouped" and len(request_rows) >= 2:
+            request = build_grouped_request(
+                family,
+                str(record["modelId"]),
+                request_rows,
+                protocol=protocol,
+                work_kind=typed_work_kind,
+            )
+        else:
+            raise BatchError("provider batch plan has an invalid request kind or group size")
+        if dict(raw_plan) != _provider_request_plan(request):
+            raise BatchError("provider request plan does not reproduce")
+        rebuilt.append(request)
+    return tuple(rebuilt)
+
+
+def request_plan_summary(
+    family: ValidatorFamily,
+    model_id: str,
+    rows: Sequence[CandidateRow],
+    *,
+    protocol: str,
+    work_kind: WorkKind = "validation",
+    group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
+) -> dict[str, Any]:
+    """Return the exact local request shape and conservative price projection."""
+
+    requests = build_provider_requests(
+        family,
+        model_id,
+        rows,
+        protocol=protocol,
+        work_kind=work_kind,
+        group_size=group_size,
+    )
+    group_sizes = [len(request.rows) if isinstance(request, GroupedBatchRequest) else 1 for request in requests]
+    input_bytes = len(input_jsonl(requests))
+    input_tokens = sum(estimated_request_input_tokens(request) for request in requests)
+    output_tokens = sum(int(request.body[family.max_output_tokens_field]) for request in requests)
+    shards = deterministic_request_shards(
+        family,
+        model_id,
+        requests,
+        protocol=protocol,
+        work_kind=work_kind,
+    )
+    return {
+        "candidateCount": len(rows),
+        "family": family.name,
+        "groupSizeDistribution": {
+            str(size): count for size, count in sorted(Counter(group_sizes).items())
+        },
+        "inputFileBytes": input_bytes,
+        "modelId": model_id,
+        "projectedInputTokens": input_tokens,
+        "projectedOutputTokenAllowance": output_tokens,
+        "projectedCostUsd": round(projected_request_cost(family, requests), 6),
+        "providerJobCount": len(shards),
+        "providerRequestCount": len(requests),
+        "requestGroupSizeLimit": group_size,
+        "shards": [
+            {
+                "candidateCount": shard.candidate_count,
+                "inputFileBytes": shard.input_bytes,
+                "projectedCostUsd": round(
+                    projected_request_cost(family, shard.requests), 6
+                ),
+                "projectedInputTokens": shard.projected_input_tokens,
+                "projectedOutputTokenAllowance": shard.projected_output_tokens,
+                "providerRequestCount": len(shard.requests),
+                "shardId": shard.shard_id,
+            }
+            for shard in shards
+        ],
+        "workKind": work_kind,
+    }
+
+
+def verify_sidecar_request_lineage(
+    sidecar: Mapping[str, Any],
+    *,
+    families: Mapping[str, ValidatorFamily],
+    rows: Sequence[CandidateRow],
+    work_kind: WorkKind,
+) -> dict[str, Any]:
+    """Rebuild every planned shard and immutable provider attempt."""
+
+    if sidecar.get("protocol") != SIDECAR_PROTOCOL:
+        raise BatchError("provider batch sidecar has the wrong protocol")
+    if sidecar.get("batchPricingFactor") != BATCH_PRICE_FACTOR:
+        raise BatchError("provider batch sidecar has the wrong pricing factor")
+    total_cap = sidecar.get("totalSpendCapUsd")
+    if isinstance(total_cap, bool) or not isinstance(total_cap, (int, float)) or not math.isfinite(float(total_cap)) or float(total_cap) <= 0:
+        raise BatchError("provider batch sidecar has an invalid total spend cap")
+    if sidecar.get("queuePolicy") != {
+        "accountTier": "notChecked",
+        "maxInputTokensPerJob": MAX_PROVIDER_JOB_INPUT_TOKENS,
+        "maxProviderRequestsPerJob": MAX_PROVIDER_REQUESTS_PER_JOB,
+        "oneActiveShardPerFamilyModel": True,
+    }:
+        raise BatchError("provider batch sidecar has an unsupported queue policy")
+    rows_by_id = {row.candidate_id: row for row in rows}
+    plans: dict[str, Mapping[str, Any]] = {}
+    verified_planned_candidates = 0
+    verified_planned_requests = 0
+    for raw_plan in sidecar.get("plannedShards", ()):
+        if not isinstance(raw_plan, Mapping):
+            raise BatchError("planned shard is not an object")
+        if str(raw_plan.get("workKind") or "") != work_kind:
+            raise BatchError("planned shard has the wrong work kind")
+        family_name = str(raw_plan.get("family") or "")
+        family = families.get(family_name)
+        if family is None:
+            raise BatchError(f"planned shard names unknown family {family_name!r}")
+        rebuilt = _rebuild_requests_from_record(
+            raw_plan,
+            family=family,
+            rows_by_id=rows_by_id,
+        )
+        candidate_plans = [
+            item for request in rebuilt for item in _candidate_request_plans(request)
+        ]
+        payload = input_jsonl(rebuilt)
+        rebuilt_shard = _request_shard(
+            family,
+            str(raw_plan["modelId"]),
+            rebuilt,
+            protocol=str(raw_plan["protocol"]),
+            work_kind=work_kind,
+        )
+        expected = _planned_shard_record(
+            family,
+            str(raw_plan["modelId"]),
+            rebuilt_shard,
+            protocol=str(raw_plan["protocol"]),
+            work_kind=work_kind,
+            group_size=int(raw_plan["maxRequestGroupSize"]),
+        )
+        actual = dict(raw_plan)
+        order = actual.pop("planOrder", None)
+        if isinstance(order, bool) or not isinstance(order, int) or order < 1:
+            raise BatchError("planned shard has no positive plan order")
+        if actual != expected:
+            raise BatchError(f"planned shard {raw_plan.get('shardId')} does not reproduce")
+        if (
+            rebuilt_shard.projected_input_tokens > MAX_PROVIDER_JOB_INPUT_TOKENS
+            or len(rebuilt) > MAX_PROVIDER_REQUESTS_PER_JOB
+            or len(payload) > provider_input_file_limit(family)
+        ):
+            raise BatchError(f"planned shard {raw_plan.get('shardId')} exceeds provider limits")
+        shard_id = str(raw_plan["shardId"])
+        if shard_id in plans:
+            raise BatchError(f"provider batch sidecar repeats planned shard {shard_id}")
+        plans[shard_id] = raw_plan
+        verified_planned_candidates += len(candidate_plans)
+        verified_planned_requests += len(rebuilt)
+
+    spend_caps = sidecar.get("spendCapsByFamily")
+    planned_families = {str(plan["family"]) for plan in plans.values()}
+    if not isinstance(spend_caps, Mapping) or set(spend_caps) != planned_families:
+        raise BatchError("provider batch sidecar family spend caps do not match its plans")
+    for family_name, value in spend_caps.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0:
+            raise BatchError(f"provider batch sidecar has an invalid {family_name} spend cap")
+
+    attempts: set[str] = set()
+    job_ids: set[str] = set()
+    verified_candidates = 0
+    verified_requests = 0
+    raw_artifacts = 0
+    result_lines = 0
+    status_artifacts = 0
+    active_by_family_model: Counter[tuple[str, str]] = Counter()
+    for job in sidecar.get("jobs", ()):
+        if not isinstance(job, Mapping):
+            raise BatchError("provider batch attempt is not an object")
+        if str(job.get("workKind") or "") != work_kind:
+            raise BatchError(f"job {job.get('jobId')} has the wrong work kind")
+        shard_id = str(job.get("shardId") or "")
+        plan = plans.get(shard_id)
+        if plan is None:
+            raise BatchError(f"job {job.get('jobId')} has no planned shard")
+        for key, value in plan.items():
+            if key == "planOrder":
+                continue
+            if job.get(key) != value:
+                raise BatchError(f"job {job.get('jobId')} differs from planned shard {shard_id}")
+        attempt_id = str(job.get("attemptId") or "")
+        ordinal = job.get("attemptOrdinal")
+        if isinstance(ordinal, bool) or not isinstance(ordinal, int) or ordinal < 1:
+            raise BatchError(f"job {job.get('jobId')} has no attempt ordinal")
+        expected_attempt = "attempt-" + hashlib.sha256(
+            f"{shard_id}|{ordinal}".encode()
+        ).hexdigest()
+        if attempt_id != expected_attempt or attempt_id in attempts:
+            raise BatchError(f"job {job.get('jobId')} has an invalid or duplicate attempt identity")
+        attempts.add(attempt_id)
+        family = families[str(job["family"])]
+        priced = batch_family(family)
+        provider = provider_for(family)
+        expected_display_name = (
+            f"refspec-atlas-crosswalk-{work_kind}-{family.name}-"
+            f"{shard_id[-12:]}-{int(job['providerRequestCount'])}-requests"
+        )
+        if (
+            job.get("batchPricingFactor") != BATCH_PRICE_FACTOR
+            or job.get("assumedPricingUsdPerMtok")
+            != {
+                "input": priced.assumed_input_usd_per_mtok,
+                "output": priced.assumed_output_usd_per_mtok,
+            }
+            or job.get("vendor") != family.vendor
+            or job.get("completionWindow") != COMPLETION_WINDOW
+            or job.get("createEndpoint") != provider.batches_url
+            or job.get("displayName") != expected_display_name
+            or job.get("spendCapUsd") != spend_caps[family.name]
+            or job.get("totalSpendCapUsd") != total_cap
+        ):
+            raise BatchError(f"job {job.get('jobId')} has inconsistent provider or spend facts")
+        job_id = str(job.get("jobId") or "")
+        attempt_state = str(job.get("attemptState") or "")
+        if job_id:
+            if job_id in job_ids:
+                raise BatchError(f"provider batch sidecar repeats job id {job_id}")
+            job_ids.add(job_id)
+            if (
+                attempt_state not in {"submitted", "createReceived", "createMismatch"}
+                or not job.get("inputFileId")
+                or not job.get("submittedAt")
+                or job.get("statusEndpoint") != provider.job_url(job_id)
+            ):
+                raise BatchError(f"job {job_id} has inconsistent submitted-attempt facts")
+            if attempt_state == "createMismatch" and not job.get("createResponseIssue"):
+                raise BatchError(f"job {job_id} has no create-response mismatch evidence")
+            if attempt_state != "submitted" and job.get("collectedAt"):
+                raise BatchError(f"job {job_id} trusted an unverified create response")
+        elif (
+            attempt_state not in {"intent", "creating", "uncertain", "uploadFailed"}
+            or str(job.get("state")) not in {"intent", "uncertain", "failed"}
+        ):
+            raise BatchError("provider batch attempt without a job id has an invalid state")
+        if (job.get("outputFileId") or job.get("errorFileId") or job.get("collectedAt")) and not job_id:
+            raise BatchError("provider batch result facts have no provider job identity")
+        if job.get("collectedAt") and not isinstance(job.get("collection"), Mapping):
+            raise BatchError(f"job {job_id} is collected without accounting")
+        input_file_id = job.get("inputFileId")
+        if input_file_id:
+            expected_upload = (
+                provider.upload_url
+                if isinstance(provider, GeminiBatchProvider)
+                else provider.files_url
+            )
+            if job.get("inputUploadEndpoint") != expected_upload:
+                raise BatchError(f"job {job_id} has an invalid upload endpoint")
+        elif job.get("inputUploadEndpoint") is not None:
+            raise BatchError(f"job {job_id} has an upload endpoint without a file")
+        if not released(job):
+            active_by_family_model[(str(job["family"]), str(job["modelId"]))] += 1
+        artifacts = job.get("resultArtifacts") or ()
+        if not isinstance(artifacts, Sequence) or isinstance(artifacts, (str, bytes)):
+            raise BatchError(f"job {job.get('jobId')} result artifacts are invalid")
+        raw_artifacts += len(artifacts)
+        status_pins = job.get("statusArtifacts") or ()
+        if not isinstance(status_pins, Sequence) or isinstance(status_pins, (str, bytes)):
+            raise BatchError(f"job {job.get('jobId')} status artifacts are invalid")
+        status_artifacts += len(status_pins)
+        result_lines += sum(
+            int(pin.get("lineCount") or 0) for pin in artifacts if isinstance(pin, Mapping)
+        )
+        verified_candidates += int(job["candidateCount"])
+        verified_requests += int(job["providerRequestCount"])
+    if any(count > 1 for count in active_by_family_model.values()):
+        raise BatchError("provider batch sidecar has more than one active shard for a family/model")
+    return {
+        "attempts": len(attempts),
+        "candidateRequests": verified_candidates,
+        "jobs": len(attempts),
+        "plannedCandidateRequests": verified_planned_candidates,
+        "plannedProviderRequests": verified_planned_requests,
+        "plannedShards": len(plans),
+        "providerRequests": verified_requests,
+        "rawArtifacts": raw_artifacts,
+        "resultLines": result_lines,
+        "statusArtifacts": status_artifacts,
+        "workKind": work_kind,
+    }
+
+
+def verify_receipt_request_lineage(
+    receipts: Sequence[Mapping[str, Any]],
+    *,
+    sidecar: Mapping[str, Any],
+    work_kind: WorkKind,
+) -> None:
+    """Require each batch receipt to name one exact attempt and request plan."""
+
+    jobs = {
+        str(job.get("attemptId")): job
+        for job in sidecar.get("jobs", ())
+        if isinstance(job, Mapping) and str(job.get("workKind") or "") == work_kind
+    }
+    for receipt in receipts:
+        if receipt.get("batch_execution_mode") != "batch":
+            continue
+        key = (str(receipt.get("candidate_id") or ""), str(receipt.get("family") or ""))
+        job = jobs.get(str(receipt.get("batch_attempt_id") or ""))
+        if (
+            job is None
+            or str(job.get("jobId") or "") != str(receipt.get("batch_job_id") or "")
+            or str(job.get("shardId") or "") != str(receipt.get("batch_shard_id") or "")
+        ):
+            raise BatchError(f"receipt for {key[0]} / {key[1]} has no exact batch attempt")
+        matches = [
+            plan
+            for plan in job.get("requests", ())
+            if str(plan.get("candidateId") or "") == key[0]
+            and str(plan.get("customId") or "") == str(receipt.get("batch_custom_id") or "")
+            and str(plan.get("requestSha256") or "") == str(receipt.get("request_sha256") or "")
+            and str(plan.get("taskId") or "") == str(receipt.get("task_id") or "")
+            and str(plan.get("groupId") or "") == str(receipt.get("group_id") or "")
+            and str(plan.get("itemInputSha256") or "")
+            == str(receipt.get("item_input_sha256") or "")
+        ]
+        if len(matches) != 1:
+            raise BatchError(f"receipt for {key[0]} / {key[1]} has no exact provider request")
 
 
 def build_request(
@@ -389,7 +1327,7 @@ def build_request(
     )
 
 
-def input_jsonl(requests: Sequence[BatchRequest]) -> bytes:
+def input_jsonl(requests: Sequence[ProviderRequest]) -> bytes:
     """The upload payload: one canonical JSON object per line."""
 
     return "".join(request.line() + "\n" for request in requests).encode("utf-8")
@@ -415,18 +1353,30 @@ def assert_payload_speaks(
     if not rows:
         return
     text = payload.decode("utf-8")
-    system, _user = (
+    single_system, _user = (
         qual.model_input_texts(rows[0].pair, protocol=protocol)
         if work_kind == "validation"
         else qual.scoring_input_texts(rows[0].pair)
     )
-    # The system text appears JSON-escaped inside each line, so it is compared
-    # in the encoding it is actually written in.
-    escaped = canonical_json(system)[1:-1]
-    if escaped not in text:
+    # System text appears JSON-escaped inside each line.  A payload may contain
+    # exact serial-shaped singleton recovery requests, grouped requests, or
+    # both when the byte/token bound leaves one large row on its own.
+    accepted_systems = (single_system, grouped_instructions_text(work_kind))
+    escaped_systems = tuple(canonical_json(value)[1:-1] for value in accepted_systems)
+    if not any(escaped in text for escaped in escaped_systems):
         raise BatchError(
             f"the batch payload does not carry the protocol {protocol!r} instructions; refusing to upload"
         )
+    for line in text.splitlines():
+        try:
+            request = json.loads(line)
+            system = request["body"]["messages"][0]["content"]
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
+            raise BatchError("the batch payload contains an unreadable request line") from error
+        if system not in accepted_systems:
+            raise BatchError(
+                f"a batch request does not carry the protocol {protocol!r} instructions; refusing to upload"
+            )
     expected_terms = (
         distinguishing_verdicts(protocol)
         if work_kind == "validation"
@@ -482,6 +1432,16 @@ class UploadedInput:
     endpoint: str
 
 
+@dataclass(frozen=True, slots=True)
+class RetrievedJob:
+    """One parsed status response plus the exact bytes that supplied it."""
+
+    endpoint: str
+    payload: dict[str, Any]
+    raw_bytes: bytes
+    response_status: int
+
+
 class BatchProvider:
     """One family's batch wiring.
 
@@ -534,15 +1494,21 @@ class BatchProvider:
         )
         return _decode_json(status, payload, f"{self.family.name} batch create")
 
-    def retrieve_job(self, transport: BatchHttpTransport, api_key: str, job_id: str) -> dict[str, Any]:
+    def retrieve_job(self, transport: BatchHttpTransport, api_key: str, job_id: str) -> RetrievedJob:
+        endpoint = self.job_url(job_id)
         status, _headers, payload = transport.request(
             "GET",
-            self.job_url(job_id),
+            endpoint,
             {"Authorization": f"Bearer {api_key}"},
             None,
             self.family.timeout_seconds,
         )
-        return _decode_json(status, payload, f"{self.family.name} batch retrieve")
+        return RetrievedJob(
+            endpoint=endpoint,
+            payload=_decode_json(status, payload, f"{self.family.name} batch retrieve"),
+            raw_bytes=payload,
+            response_status=status,
+        )
 
     def cancel_job(self, transport: BatchHttpTransport, api_key: str, job_id: str) -> dict[str, Any]:
         """Stop a job that should never have been bought.
@@ -723,6 +1689,154 @@ def provider_for(family: ValidatorFamily) -> BatchProvider:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True, slots=True)
+class NormalizedUsage:
+    """Provider token usage without treating an absent report as zero."""
+
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+    raw: Mapping[str, Any]
+    status: str
+
+    @property
+    def exact(self) -> bool:
+        return self.input_tokens is not None and self.output_tokens is not None
+
+    def record(self) -> dict[str, Any]:
+        return {
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "raw": dict(self.raw),
+            "status": self.status,
+            "total_tokens": self.total_tokens,
+        }
+
+
+def _token_count(value: Any) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    count = int(value)
+    return count if count >= 0 and count == value else None
+
+
+def normalize_provider_usage(
+    payload: Mapping[str, Any],
+    family: ValidatorFamily,
+) -> NormalizedUsage:
+    """Normalize documented and observed OpenAI/Gemini token fields.
+
+    Gemini reasoning tokens are billable output.  When the provider gives a
+    total, output is therefore ``total - prompt`` rather than only the visible
+    completion count.
+    """
+
+    raw: Mapping[str, Any] | None = None
+    status = "missing"
+    usage = payload.get("usage")
+    if isinstance(usage, Mapping):
+        raw = usage
+        if any(key in usage for key in ("prompt_tokens", "completion_tokens", "input_tokens", "output_tokens")):
+            status = "providerReported"
+            prompt = _token_count(usage.get("prompt_tokens"))
+            completion = _token_count(usage.get("completion_tokens"))
+            if prompt is None:
+                prompt = _token_count(usage.get("input_tokens"))
+            if completion is None:
+                completion = _token_count(usage.get("output_tokens"))
+            total = _token_count(usage.get("total_tokens"))
+        elif any(key in usage for key in ("promptTokens", "completionTokens", "totalTokens")):
+            status = "geminiCompatibleReported"
+            prompt = _token_count(usage.get("promptTokens"))
+            completion = _token_count(usage.get("completionTokens"))
+            total = _token_count(usage.get("totalTokens"))
+        else:
+            prompt = completion = total = None
+    else:
+        metadata = payload.get("usageMetadata")
+        if not isinstance(metadata, Mapping):
+            metadata = payload.get("usage_metadata")
+        if isinstance(metadata, Mapping):
+            raw = metadata
+            status = "nativeReported"
+            prompt = _token_count(
+                metadata.get("promptTokenCount", metadata.get("promptTokens"))
+            )
+            completion = _token_count(
+                metadata.get("candidatesTokenCount", metadata.get("completionTokens"))
+            )
+            thoughts = _token_count(metadata.get("thoughtsTokenCount"))
+            if completion is not None and thoughts is not None:
+                completion += thoughts
+            total = _token_count(
+                metadata.get("totalTokenCount", metadata.get("totalTokens"))
+            )
+        elif any(key in payload for key in ("input_tokens", "output_tokens", "total_tokens")):
+            raw = {
+                key: payload[key]
+                for key in ("input_tokens", "output_tokens", "total_tokens")
+                if key in payload
+            }
+            status = "providerReported"
+            prompt = _token_count(payload.get("input_tokens"))
+            completion = _token_count(payload.get("output_tokens"))
+            total = _token_count(payload.get("total_tokens"))
+        else:
+            prompt = completion = total = None
+
+    if family.vendor == "google" and prompt is not None and total is not None and total >= prompt:
+        completion = total - prompt
+    if total is None and prompt is not None and completion is not None:
+        total = prompt + completion
+    if prompt is None or completion is None:
+        return NormalizedUsage(None, None, total, dict(raw or {}), "missing")
+    return NormalizedUsage(prompt, completion, total, dict(raw or {}), status)
+
+
+def _record_usage(
+    tracker: qual.SpendTracker,
+    usage: NormalizedUsage,
+    *,
+    failed: bool = False,
+) -> float | None:
+    if not usage.exact:
+        return None
+    assert usage.input_tokens is not None and usage.output_tokens is not None
+    tracker.record(usage.input_tokens, usage.output_tokens, failed=failed)
+    return round(tracker.cost(usage.input_tokens, usage.output_tokens), 6)
+
+
+@dataclass(frozen=True, slots=True)
+class ResultLineEvidence:
+    """One exact retained JSONL line and its source identity."""
+
+    artifact: Mapping[str, Any]
+    line_ordinal: int
+    raw_bytes: bytes
+    raw_text: str
+    parsed: Mapping[str, Any] | None
+
+    @property
+    def line_digest(self) -> str:
+        return "sha256:" + hashlib.sha256(self.raw_bytes).hexdigest()
+
+    def receipt_identity(self, job: Mapping[str, Any]) -> dict[str, Any]:
+        result_id = str(self.parsed.get("id") or "") if self.parsed is not None else ""
+        custom = str(self.parsed.get("custom_id") or "") if self.parsed is not None else ""
+        return {
+            "batch_artifact_file": self.artifact["file"],
+            "batch_artifact_sha256": self.artifact["fileDigest"],
+            "batch_attempt_id": job["attemptId"],
+            "batch_custom_id": custom,
+            "batch_execution_mode": "batch",
+            "batch_job_id": job["jobId"],
+            "batch_result_id": result_id,
+            "batch_result_line": self.line_ordinal,
+            "batch_result_line_sha256": self.line_digest,
+            "batch_shard_id": job["shardId"],
+        }
+
+
 def _raw_value_slice(line: str, key: str, expected: Any) -> str | None:
     """The provider's own bytes for one nested JSON value, if recoverable.
 
@@ -769,6 +1883,51 @@ def _epoch_to_iso(value: Any) -> str | None:
     return text or None
 
 
+def _receipt_identity(
+    *,
+    family: ValidatorFamily,
+    model_id: str,
+    protocol: str,
+    row: CandidateRow,
+    task_id_value: str,
+    request_sha256: str,
+    started_at: str,
+    finished_at: str,
+    work_kind: WorkKind,
+    result_identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    url = family.base_url.rstrip("/") + "/chat/completions"
+    headers = {"Authorization": "", "Content-Type": "application/json"}
+    receipt: dict[str, Any] = {
+        "attempts": 1,
+        "candidate_id": row.candidate_id,
+        "declined_retries": 0,
+        "dropped_parameters": [],
+        "family": family.name,
+        "finished_at": finished_at,
+        "generation_class": row.pair.generation_class,
+        "input_digest": row.input_digest,
+        "kind": "crosswalk_validation" if work_kind == "validation" else "crosswalk_scoring",
+        "model_id": model_id,
+        "model_requested": family.requested_model,
+        "request_headers": qual.scrubbed_headers(headers),
+        "request_sha256": request_sha256,
+        "request_url": url,
+        "source_member": row.pair.source.member,
+        "started_at": started_at,
+        "structured_mode": "prompted",
+        "target_member": row.pair.target.member,
+        "task_id": task_id_value,
+        "transport_retries": 0,
+        "vendor": family.vendor,
+        "protocol": protocol,
+    }
+    receipt.update(result_identity)
+    if work_kind == "validation":
+        receipt["independence_group"] = family.independence_group
+    return receipt
+
+
 def receipt_from_result(
     *,
     family: ValidatorFamily,
@@ -781,6 +1940,7 @@ def receipt_from_result(
     started_at: str,
     finished_at: str,
     tracker: qual.SpendTracker,
+    result_identity: Mapping[str, Any],
     work_kind: WorkKind = "validation",
 ) -> dict[str, Any]:
     """Turn one batch output line into the receipt the serial path would write.
@@ -802,38 +1962,26 @@ def receipt_from_result(
     """
 
     _require_work_protocol(protocol, work_kind)
-    url = family.base_url.rstrip("/") + "/chat/completions"
-    # The same header shape the serial path records, run through the same
-    # scrubber.  The credential is never put in to begin with: the batch job
-    # carries the authorization, not the line, and a receipt records the
-    # request identity rather than the socket that delivered it.
-    headers = {"Authorization": "", "Content-Type": "application/json"}
-    receipt: dict[str, Any] = {
-        "attempts": 1,
-        "candidate_id": row.candidate_id,
-        "declined_retries": 0,
-        "dropped_parameters": [],
-        "family": family.name,
-        "finished_at": finished_at,
-        "generation_class": row.pair.generation_class,
-        "input_digest": row.input_digest,
-        "kind": "crosswalk_validation" if work_kind == "validation" else "crosswalk_scoring",
-        "model_id": model_id,
-        "model_requested": family.requested_model,
-        "request_headers": qual.scrubbed_headers(headers),
-        "request_sha256": request.request_sha256,
-        "request_url": url,
-        "source_member": row.pair.source.member,
-        "started_at": started_at,
-        "structured_mode": "prompted",
-        "target_member": row.pair.target.member,
-        "task_id": request.task_id,
-        "transport_retries": 0,
-        "vendor": family.vendor,
-    }
-    if work_kind == "validation":
-        receipt["independence_group"] = family.independence_group
-    receipt["protocol"] = protocol
+    receipt = _receipt_identity(
+        family=family,
+        model_id=model_id,
+        protocol=protocol,
+        row=row,
+        task_id_value=request.task_id,
+        request_sha256=request.request_sha256,
+        started_at=started_at,
+        finished_at=finished_at,
+        work_kind=work_kind,
+        result_identity=result_identity,
+    )
+    receipt.update(
+        {
+            "batch_request_kind": "serialEquivalent",
+            "group_id": None,
+            "item_input_sha256": None,
+            "provider_request_protocol": qual.SINGLE_PROVIDER_REQUEST_PROTOCOL,
+        }
+    )
 
     response = result.get("response") if isinstance(result.get("response"), Mapping) else None
     error = result.get("error")
@@ -850,7 +1998,6 @@ def receipt_from_result(
                 "response_status": None,
             }
         )
-        tracker.record(0, 0, failed=True)
         return receipt
 
     status = response.get("status_code")
@@ -866,24 +2013,30 @@ def receipt_from_result(
     if receipt["response_status"] != 200:
         receipt["outcome"] = "provider_error"
         receipt["response_bytes"] = body_text[:2000]
-        tracker.record(0, 0, failed=True)
+        if isinstance(body, Mapping):
+            _record_usage(tracker, normalize_provider_usage(body, family), failed=True)
         return receipt
     try:
         content = str(body["choices"][0]["message"]["content"])
-        usage = body.get("usage") if isinstance(body.get("usage"), Mapping) else {}
     except (KeyError, IndexError, TypeError) as failure:
         receipt.update({"error_code": type(failure).__name__, "outcome": "unparseable_response"})
-        tracker.record(0, 0, failed=True)
+        if isinstance(body, Mapping):
+            _record_usage(tracker, normalize_provider_usage(body, family), failed=True)
         return receipt
-    input_tokens = int((usage or {}).get("prompt_tokens") or 0)
-    output_tokens = int((usage or {}).get("completion_tokens") or 0)
-    tracker.record(input_tokens, output_tokens)
+    usage = normalize_provider_usage(body, family)
+    assumed_cost = _record_usage(tracker, usage)
     receipt.update(
         {
-            "assumed_cost_usd": round(tracker.cost(input_tokens, output_tokens), 6),
+            "assumed_cost_usd": assumed_cost,
             "finish_reason": (body["choices"][0] or {}).get("finish_reason"),
+            "provider_usage": dict(usage.raw),
             "response_model": body.get("model"),
-            "usage": {"completion_tokens": output_tokens, "prompt_tokens": input_tokens},
+            "usage": {
+                "completion_tokens": usage.output_tokens,
+                "prompt_tokens": usage.input_tokens,
+                "total_tokens": usage.total_tokens,
+            },
+            "usage_status": usage.status,
         }
     )
     answer = (
@@ -896,6 +2049,224 @@ def receipt_from_result(
         return receipt
     receipt.update({"answer": answer, "outcome": "completed"})
     return receipt
+
+
+def _group_receipts_from_result(
+    *,
+    family: ValidatorFamily,
+    model_id: str,
+    protocol: str,
+    planned_rows: Sequence[tuple[CandidateRow, Mapping[str, Any]]],
+    result: Mapping[str, Any],
+    raw_line: str,
+    started_at: str,
+    finished_at: str,
+    tracker: qual.SpendTracker,
+    work_kind: WorkKind,
+    result_identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Fan one grouped provider result into independently readable receipts.
+
+    A missing or duplicated task id is not receipted.  The provider did not
+    return one unambiguous answer for that candidate, so a later explicit
+    submit may recover just that row (including with ``--group-size 1``).
+    Answers that are present but fail the candidate schema are also omitted
+    from the receipt log.  Their exact provider bytes remain in batch evidence,
+    and a later explicit submit may recover only those affected candidates.
+    """
+
+    first_plan = planned_rows[0][1]
+    identifier = str(first_plan.get("groupId") or "")
+    request_sha256 = str(first_plan["requestSha256"])
+
+    def base(row: CandidateRow, plan: Mapping[str, Any]) -> dict[str, Any]:
+        receipt = _receipt_identity(
+            family=family,
+            model_id=model_id,
+            protocol=protocol,
+            row=row,
+            task_id_value=str(plan["taskId"]),
+            request_sha256=request_sha256,
+            started_at=started_at,
+            finished_at=finished_at,
+            work_kind=work_kind,
+            result_identity=result_identity,
+        )
+        receipt.update(
+            {
+                "batch_request_kind": "grouped",
+                "group_id": identifier,
+                "group_request_sha256": request_sha256,
+                "group_size": len(planned_rows),
+                "item_input_sha256": str(plan["itemInputSha256"]),
+                "provider_request_protocol": GROUPED_REQUEST_PROTOCOL,
+            }
+        )
+        return receipt
+
+    response = result.get("response") if isinstance(result.get("response"), Mapping) else None
+    error = result.get("error")
+    if response is None:
+        text = canonical_json(error) if error is not None else canonical_json(dict(result))
+        response_sha256 = qual._sha256_text(text)
+        receipts = []
+        for row, plan in planned_rows:
+            receipt = base(row, plan)
+            receipt.update(
+                {
+                    "error_code": _error_code(error),
+                    "group_response_sha256": response_sha256,
+                    "outcome": "provider_error",
+                    "response_bytes": text[:2000],
+                    "response_sha256": response_sha256,
+                    "response_status": None,
+                }
+            )
+            receipts.append(receipt)
+        return {"groupOutcome": "provider_error", "receipts": receipts}
+
+    status = response.get("status_code")
+    body = response.get("body")
+    raw_body = _raw_value_slice(raw_line, "body", body)
+    body_text = raw_body if raw_body is not None else canonical_json(body)
+    response_sha256 = qual._sha256_text(body_text)
+    if not isinstance(status, int) or status != 200:
+        receipts = []
+        for row, plan in planned_rows:
+            receipt = base(row, plan)
+            receipt.update(
+                {
+                    "group_response_sha256": response_sha256,
+                    "outcome": "provider_error",
+                    "response_bytes": body_text[:2000],
+                    "response_sha256": response_sha256,
+                    "response_status": int(status) if isinstance(status, int) else None,
+                }
+            )
+            receipts.append(receipt)
+        if isinstance(body, Mapping):
+            _record_usage(tracker, normalize_provider_usage(body, family), failed=True)
+        return {"groupOutcome": "provider_error", "receipts": receipts}
+
+    try:
+        content = str(body["choices"][0]["message"]["content"])
+    except (KeyError, IndexError, TypeError) as failure:
+        if isinstance(body, Mapping):
+            _record_usage(tracker, normalize_provider_usage(body, family), failed=True)
+        return {
+            "errorCode": type(failure).__name__,
+            "groupOutcome": "unparseable_response",
+            "groupResponseSha256": response_sha256,
+            "receipts": [],
+        }
+
+    usage = normalize_provider_usage(body, family)
+    group_cost = _record_usage(tracker, usage)
+    group_usage = {
+        "completion_tokens": usage.output_tokens,
+        "prompt_tokens": usage.input_tokens,
+        "total_tokens": usage.total_tokens,
+    }
+
+    answer_text = content.strip()
+    if answer_text.startswith("```"):
+        answer_text = re.sub(r"^```[A-Za-z]*\n?", "", answer_text)
+        answer_text = re.sub(r"\n?```$", "", answer_text.strip())
+    try:
+        wrapper = json.loads(answer_text)
+    except json.JSONDecodeError:
+        wrapper = None
+    if (
+        not isinstance(wrapper, Mapping)
+        or set(wrapper) != {"group_id", "answers"}
+        or str(wrapper.get("group_id") or "") != identifier
+    ):
+        return {
+            "groupOutcome": "unusable_group_answer",
+            "groupResponseSha256": response_sha256,
+            "groupUsage": group_usage,
+            "receipts": [],
+        }
+    raw_answers = wrapper.get("answers")
+    if not isinstance(raw_answers, list):
+        return {
+            "groupOutcome": "unusable_group_answer",
+            "groupResponseSha256": response_sha256,
+            "groupUsage": group_usage,
+            "receipts": [],
+        }
+
+    answers_by_task: dict[str, list[Mapping[str, Any]]] = {}
+    invalid_answer_count = 0
+    for raw_answer in raw_answers:
+        if not isinstance(raw_answer, Mapping):
+            invalid_answer_count += 1
+            continue
+        task = raw_answer.get("task_id")
+        if isinstance(task, str) and task:
+            answers_by_task.setdefault(task, []).append(raw_answer)
+        else:
+            invalid_answer_count += 1
+
+    expected_tasks = {str(plan["taskId"]) for _row, plan in planned_rows}
+    duplicate_task_ids = sorted(task for task, answers in answers_by_task.items() if len(answers) > 1)
+    missing_task_ids = sorted(expected_tasks - set(answers_by_task))
+    unexpected_task_ids = sorted(set(answers_by_task) - expected_tasks)
+    receipts: list[dict[str, Any]] = []
+    invalid_task_ids: list[str] = []
+    for row, plan in planned_rows:
+        expected = str(plan["taskId"])
+        answers = answers_by_task.get(expected, ())
+        if len(answers) != 1:
+            continue
+        raw_answer = dict(answers[0])
+        answer_canonical = canonical_json(raw_answer)
+        receipt = base(row, plan)
+        receipt.update(
+            {
+                "answer_sha256": qual._sha256_text(answer_canonical),
+                "assumed_group_cost_usd": group_cost,
+                "finish_reason": (body["choices"][0] or {}).get("finish_reason"),
+                "group_response_sha256": response_sha256,
+                "group_usage": group_usage,
+                "provider_usage": dict(usage.raw),
+                "response_model": body.get("model"),
+                "response_sha256": response_sha256,
+                "response_status": 200,
+                "usage_scope": "sharedProviderRequest",
+                "usage_status": usage.status,
+            }
+        )
+        parsed = (
+            qual._parse_answer(answer_canonical, protocol=protocol)
+            if work_kind == "validation"
+            else qual._parse_scoring_answer(answer_canonical)
+        )
+        if parsed is None:
+            invalid_task_ids.append(expected)
+            continue
+        receipt.update({"answer": parsed, "outcome": "completed"})
+        receipts.append(receipt)
+
+    has_issues = bool(
+        duplicate_task_ids
+        or invalid_answer_count
+        or invalid_task_ids
+        or missing_task_ids
+        or unexpected_task_ids
+        or len(raw_answers) != len(planned_rows)
+    )
+    return {
+        "duplicateTaskIds": duplicate_task_ids,
+        "groupOutcome": "partial" if has_issues else "completed",
+        "groupResponseSha256": response_sha256,
+        "groupUsage": group_usage,
+        "invalidAnswerCount": invalid_answer_count,
+        "invalidTaskIds": sorted(invalid_task_ids),
+        "missingTaskIds": missing_task_ids,
+        "receipts": receipts,
+        "unexpectedTaskIds": unexpected_task_ids,
+    }
 
 
 def _error_code(error: Any) -> str:
@@ -926,6 +2297,67 @@ def echo_check_passed(receipt: Mapping[str, Any]) -> bool:
 # ---------------------------------------------------------------------------
 
 
+@contextmanager
+def _run_submit_lock(
+    sidecar_path: Path,
+    coordination_sidecars: Sequence[Path],
+    *,
+    timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
+) -> Iterator[Path]:
+    """Serialize every submit decision and create call for one run directory."""
+
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(float(timeout_seconds))
+        or float(timeout_seconds) < 0
+    ):
+        raise ValueError("provider batch submit lock timeout must be finite and nonnegative")
+
+    roots = {
+        path.parent.resolve()
+        for path in (sidecar_path, *coordination_sidecars)
+    }
+    if len(roots) != 1:
+        raise BatchError("coordinated batch sidecars must share one run directory")
+    run_root = roots.pop()
+    run_root.mkdir(parents=True, exist_ok=True)
+    lock_path = run_root / SUBMIT_LOCK_FILE
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise BatchError("provider batch submit lock requires O_NOFOLLOW support")
+    flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW
+    try:
+        descriptor = os.open(lock_path, flags, 0o600)
+    except OSError as error:
+        raise BatchError("provider batch submit lock is unavailable or unsafe") from error
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise BatchError("provider batch submit lock is not a regular file")
+        deadline = time.monotonic() + float(timeout_seconds)
+        while True:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError as error:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise BatchSubmitBusy(
+                        f"provider batch submit is busy for {run_root}; "
+                        f"retry after the active submit finishes (waited {float(timeout_seconds):g}s)"
+                    ) from error
+                time.sleep(min(SUBMIT_LOCK_POLL_SECONDS, remaining))
+    except Exception:
+        os.close(descriptor)
+        raise
+    try:
+        yield lock_path
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
+
+
 def read_receipt_pairs(receipts_path: Path) -> set[tuple[str, str]]:
     """The resume key the serial runner uses: ``(candidate_id, family)``."""
 
@@ -942,9 +2374,15 @@ def read_receipt_pairs(receipts_path: Path) -> set[tuple[str, str]]:
 
 def read_sidecar(sidecar_path: Path) -> dict[str, Any]:
     if not sidecar_path.exists():
-        return {"batchPricingFactor": BATCH_PRICE_FACTOR, "jobs": [], "protocol": SIDECAR_PROTOCOL}
+        return {
+            "batchPricingFactor": BATCH_PRICE_FACTOR,
+            "jobs": [],
+            "plannedShards": [],
+            "protocol": SIDECAR_PROTOCOL,
+        }
     payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
     payload.setdefault("jobs", [])
+    payload.setdefault("plannedShards", [])
     return payload
 
 
@@ -962,6 +2400,179 @@ def write_sidecar(sidecar_path: Path, payload: Mapping[str, Any]) -> str:
     staging.write_text(text, encoding="utf-8")
     staging.replace(sidecar_path)
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _line_count(payload: bytes) -> int:
+    if not payload:
+        return 0
+    return payload.count(b"\n") + (0 if payload.endswith(b"\n") else 1)
+
+
+def _safe_run_relative_path(run_root: Path, relative: str) -> Path:
+    path = Path(relative)
+    if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
+        raise BatchError("provider batch evidence path is unsafe")
+    current = run_root
+    for part in path.parts:
+        current = current / part
+        if current.is_symlink():
+            raise BatchError("provider batch evidence path traverses a symlink")
+    return current
+
+
+def _retain_content_addressed_bytes(
+    sidecar_path: Path,
+    payload: bytes,
+    *,
+    suffix: str,
+) -> tuple[str, str]:
+    """Atomically retain immutable provider bytes and return path plus digest."""
+
+    digest_hex = hashlib.sha256(payload).hexdigest()
+    digest = "sha256:" + digest_hex
+    relative = f"{BATCH_EVIDENCE_DIRECTORY}/sha256-{digest_hex}{suffix}"
+    destination = _safe_run_relative_path(sidecar_path.parent, relative)
+    evidence_root = destination.parent
+    if evidence_root.exists() and (evidence_root.is_symlink() or not evidence_root.is_dir()):
+        raise BatchError("provider batch evidence directory is unsafe")
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        if destination.is_symlink() or not destination.is_file() or destination.read_bytes() != payload:
+            raise BatchError("content-addressed provider batch evidence differs from its digest")
+    else:
+        staging = evidence_root / f".{digest_hex}.{os.getpid()}.partial"
+        try:
+            with staging.open("xb") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            try:
+                os.link(staging, destination)
+            except FileExistsError:
+                if destination.is_symlink() or destination.read_bytes() != payload:
+                    raise BatchError("content-addressed provider evidence raced with different bytes")
+        finally:
+            if staging.exists():
+                staging.unlink()
+    return relative, digest
+
+
+def retain_result_artifact(
+    sidecar_path: Path,
+    payload: bytes,
+    *,
+    role: str,
+    provider_file_id: str,
+    endpoint: str,
+) -> dict[str, Any]:
+    """Atomically retain immutable provider result bytes under their digest."""
+
+    relative, digest = _retain_content_addressed_bytes(
+        sidecar_path,
+        payload,
+        suffix=".jsonl",
+    )
+    return {
+        "bytes": len(payload),
+        "endpoint": endpoint,
+        "file": relative,
+        "fileDigest": digest,
+        "lineCount": _line_count(payload),
+        "mediaType": "application/jsonl",
+        "providerFileId": provider_file_id,
+        "role": role,
+    }
+
+
+def retain_status_artifact(
+    sidecar_path: Path,
+    response: RetrievedJob,
+    *,
+    observed_at: str,
+    poll_ordinal: int,
+) -> dict[str, Any]:
+    """Retain one exact provider status response before trusting its usage."""
+
+    relative, digest = _retain_content_addressed_bytes(
+        sidecar_path,
+        response.raw_bytes,
+        suffix=".json",
+    )
+    return {
+        "bytes": len(response.raw_bytes),
+        "endpoint": response.endpoint,
+        "file": relative,
+        "fileDigest": digest,
+        "mediaType": "application/json",
+        "observedAt": observed_at,
+        "pollOrdinal": poll_ordinal,
+        "responseStatus": response.response_status,
+        "role": "status",
+    }
+
+
+def _read_pinned_provider_bytes(
+    run_root: Path,
+    pin: Mapping[str, Any],
+    *,
+    media_type: str,
+) -> bytes:
+    relative = pin.get("file")
+    if not isinstance(relative, str):
+        raise BatchError("provider batch artifact has no path")
+    path = _safe_run_relative_path(run_root, relative)
+    if not path.is_file() or path.is_symlink():
+        raise BatchError("provider batch artifact is missing or unsafe")
+    payload = path.read_bytes()
+    digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+    if (
+        pin.get("fileDigest") != digest
+        or pin.get("bytes") != len(payload)
+        or pin.get("mediaType") != media_type
+    ):
+        raise BatchError("provider batch artifact differs from its pin")
+    return payload
+
+
+def read_result_artifact(run_root: Path, pin: Mapping[str, Any]) -> bytes:
+    payload = _read_pinned_provider_bytes(
+        run_root,
+        pin,
+        media_type="application/jsonl",
+    )
+    if pin.get("lineCount") != _line_count(payload):
+        raise BatchError("provider batch result artifact differs from its pin")
+    return payload
+
+
+def result_lines_from_artifacts(
+    run_root: Path,
+    artifacts: Sequence[Mapping[str, Any]],
+) -> tuple[ResultLineEvidence, ...]:
+    lines: list[ResultLineEvidence] = []
+    for artifact in artifacts:
+        payload = read_result_artifact(run_root, artifact)
+        for ordinal, raw_bytes in enumerate(payload.splitlines(keepends=True), start=1):
+            content = raw_bytes[:-1] if raw_bytes.endswith(b"\n") else raw_bytes
+            if content.endswith(b"\r"):
+                content = content[:-1]
+            try:
+                text = content.decode("utf-8")
+                parsed_value = json.loads(text) if text.strip() else None
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                text = content.decode("utf-8", errors="replace")
+                parsed_value = None
+            parsed = parsed_value if isinstance(parsed_value, Mapping) else None
+            lines.append(
+                ResultLineEvidence(
+                    artifact=artifact,
+                    line_ordinal=ordinal,
+                    raw_bytes=raw_bytes,
+                    raw_text=text,
+                    parsed=parsed,
+                )
+            )
+    return tuple(lines)
 
 
 def has_results(job: Mapping[str, Any]) -> bool:
@@ -1026,7 +2637,15 @@ def committed_by_family(sidecar: Mapping[str, Any]) -> dict[str, float]:
         family = str(job.get("family"))
         if job.get("collectedAt"):
             collection = job.get("collection") or {}
-            totals[family] = totals.get(family, 0.0) + float(collection.get("assumedCostUsd") or 0.0)
+            committed = collection.get("committedCostUsd")
+            if committed is None:
+                legacy_actual = collection.get("assumedCostUsd")
+                committed = (
+                    float(legacy_actual)
+                    if legacy_actual is not None
+                    else float(job.get("projectedCostUsd") or 0.0)
+                )
+            totals[family] = totals.get(family, 0.0) + float(committed)
             continue
         if released(job):
             continue
@@ -1052,15 +2671,54 @@ def submit(
     total_cap_usd: float | None = None,
     protocol: str,
     work_kind: WorkKind = "validation",
+    group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
+    coordination_sidecars: Sequence[Path] = (),
+    lock_timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
-    """Build, price-check, upload and create one batch job per family.
+    """Serialize, plan, and create at most one active shard per family/model."""
 
-    The cap is checked before a single byte is uploaded, and it is checked
-    against this batch *plus* whatever live jobs already committed, because a
-    second submit against the same run directory spends real money the first
-    one has not finished spending yet.
-    """
+    with _run_submit_lock(
+        sidecar_path,
+        coordination_sidecars,
+        timeout_seconds=lock_timeout_seconds,
+    ):
+        return _submit_locked(
+            transport=transport,
+            receipts_path=receipts_path,
+            sidecar_path=sidecar_path,
+            families=families,
+            keys=keys,
+            models=models,
+            rows=rows,
+            caps=caps,
+            total_cap_usd=total_cap_usd,
+            protocol=protocol,
+            work_kind=work_kind,
+            group_size=group_size,
+            coordination_sidecars=coordination_sidecars,
+            now=now,
+        )
+
+
+def _submit_locked(
+    *,
+    transport: BatchHttpTransport,
+    receipts_path: Path,
+    sidecar_path: Path,
+    families: Sequence[ValidatorFamily],
+    keys: Mapping[str, str],
+    models: Mapping[str, str],
+    rows: Sequence[CandidateRow],
+    caps: Mapping[str, float] | None = None,
+    total_cap_usd: float | None = None,
+    protocol: str,
+    work_kind: WorkKind = "validation",
+    group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
+    coordination_sidecars: Sequence[Path] = (),
+    now: Callable[[], str] = qual._utcnow,
+) -> dict[str, Any]:
+    """Plan and create while the caller holds the run-wide submit lock."""
 
     effective_total_cap = (
         qual.TOTAL_SPEND_CAP_USD if total_cap_usd is None else float(total_cap_usd)
@@ -1070,34 +2728,145 @@ def submit(
 
     speaks = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
+    recorded_total_cap = sidecar.get("totalSpendCapUsd")
+    if (
+        recorded_total_cap is not None
+        and sidecar.get("jobs")
+        and float(recorded_total_cap) != effective_total_cap
+    ):
+        raise BatchError("batch total spend cap cannot change after the first submission intent")
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
     committed = committed_by_family(sidecar)
+    rows_by_id = {row.candidate_id: row for row in rows}
+    coordination_states = [read_sidecar(path) for path in coordination_sidecars if path.exists()]
+    for other in coordination_states:
+        if other.get("jobs") and other.get("totalSpendCapUsd") != effective_total_cap:
+            raise BatchError("coordinated batch sidecars must use one total spend cap")
+        for family_name, amount in committed_by_family(other).items():
+            committed[family_name] = committed.get(family_name, 0.0) + amount
+    externally_active = {
+        (str(job.get("family")), str(job.get("modelId")))
+        for other in coordination_states
+        for job in other.get("jobs", ())
+        if isinstance(job, Mapping) and not released(job)
+    }
 
-    planned: list[tuple[ValidatorFamily, list[CandidateRow], float]] = []
+    if isinstance(group_size, bool) or not 1 <= group_size <= MAX_REQUEST_GROUP_SIZE:
+        raise ValueError(f"group size must be between 1 and {MAX_REQUEST_GROUP_SIZE}")
+
+    planned: list[
+        tuple[ValidatorFamily, list[CandidateRow], tuple[ProviderRequest, ...], float]
+    ] = []
+    existing_plans = {
+        str(plan.get("shardId")): plan
+        for plan in sidecar.get("plannedShards", ())
+        if isinstance(plan, Mapping)
+    }
+    submitted_shards = {
+        str(job.get("shardId"))
+        for job in sidecar.get("jobs", ())
+        if isinstance(job, Mapping)
+    }
+    spend_caps = dict(sidecar.get("spendCapsByFamily") or {})
+    coordinated_caps = {
+        str(family_name): float(value)
+        for other in coordination_states
+        for family_name, value in (other.get("spendCapsByFamily") or {}).items()
+    }
     for family in families:
         pending = [row for row in rows if (row.candidate_id, family.name) not in excluded]
         if not pending:
-            planned.append((family, pending, 0.0))
+            planned.append((family, pending, (), 0.0))
             continue
-        projection = projected_batch_cost(family, len(pending))
+
+        pending_ids = {row.candidate_id for row in pending}
+        reserved_ids: set[str] = set()
+        reserved_requests: list[ProviderRequest] = []
+        for plan in sidecar.get("plannedShards", ()):
+            if (
+                not isinstance(plan, Mapping)
+                or str(plan.get("family")) != family.name
+                or str(plan.get("modelId")) != models[family.name]
+                or str(plan.get("protocol")) != speaks
+                or str(plan.get("workKind")) != work_kind
+                or str(plan.get("shardId")) in submitted_shards
+            ):
+                continue
+            plan_ids = {
+                str(item.get("candidateId"))
+                for item in plan.get("requests", ())
+                if isinstance(item, Mapping)
+            }
+            if plan_ids and plan_ids <= pending_ids and not (plan_ids & reserved_ids):
+                reserved_ids.update(plan_ids)
+                reserved_requests.extend(
+                    _rebuild_requests_from_record(
+                        plan,
+                        family=family,
+                        rows_by_id=rows_by_id,
+                    )
+                )
+
+        recovery_rows = [row for row in pending if row.candidate_id not in reserved_ids]
+        recovery_requests = build_provider_requests(
+            family,
+            models[family.name],
+            recovery_rows,
+            protocol=speaks,
+            work_kind=work_kind,
+            group_size=group_size,
+        )
+        recovery_shards = deterministic_request_shards(
+            family,
+            models[family.name],
+            recovery_requests,
+            protocol=speaks,
+            work_kind=work_kind,
+        )
+        for shard in recovery_shards:
+            record = _planned_shard_record(
+                family,
+                models[family.name],
+                shard,
+                protocol=speaks,
+                work_kind=work_kind,
+                group_size=group_size,
+            )
+            existing = existing_plans.get(shard.shard_id)
+            if existing is not None:
+                comparable = dict(existing)
+                comparable.pop("planOrder", None)
+                if comparable != record:
+                    raise BatchError(f"planned shard {shard.shard_id} changed identity")
+            if existing is None:
+                record["planOrder"] = len(sidecar.setdefault("plannedShards", [])) + 1
+                sidecar["plannedShards"].append(record)
+                existing_plans[shard.shard_id] = record
+        requests = (*reserved_requests, *recovery_requests)
+        projection = projected_request_cost(family, requests)
         cap = float(caps.get(family.name)) if caps and family.name in caps else family.spend_cap_usd
         if not math.isfinite(cap) or cap <= 0:
             raise ValueError(
                 f"{family.name} batch spend cap must be a positive finite USD value"
             )
+        if family.name in spend_caps and float(spend_caps[family.name]) != cap:
+            raise BatchError(f"{family.name} batch spend cap cannot change after planning")
+        if family.name in coordinated_caps and coordinated_caps[family.name] != cap:
+            raise BatchError(f"{family.name} coordinated batch sidecars must use one spend cap")
+        spend_caps[family.name] = cap
         already = committed.get(family.name, 0.0)
         if projection + already > cap:
             raise BatchSpendCapReached(
-                f"{family.name}: submitting {len(pending)} batch calls projects "
+                f"{family.name}: submitting {len(pending)} candidates in {len(requests)} batch requests projects "
                 f"${projection:.4f} which, with ${already:.4f} already in flight, "
                 f"exceeds the ${cap:.2f} cap; shrink the slice with --max-candidates"
             )
-        planned.append((family, pending, projection))
+        planned.append((family, pending, requests, projection))
 
     # The total counts what earlier submits already bought too.  Checking only
     # this invocation would let N single-family submits walk past a ceiling one
     # combined submit would have refused.
-    total = sum(projection for _family, _pending, projection in planned)
+    total = sum(projection for _family, _pending, _requests, projection in planned)
     running = total + sum(committed.values())
     if running > effective_total_cap:
         raise BatchSpendCapReached(
@@ -1108,80 +2877,211 @@ def submit(
     sidecar["batchPricingFactor"] = BATCH_PRICE_FACTOR
     sidecar["protocol"] = SIDECAR_PROTOCOL
     sidecar["totalSpendCapUsd"] = effective_total_cap
+    sidecar["spendCapsByFamily"] = dict(sorted(spend_caps.items()))
+    sidecar["queuePolicy"] = {
+        "accountTier": "notChecked",
+        "maxInputTokensPerJob": MAX_PROVIDER_JOB_INPUT_TOKENS,
+        "maxProviderRequestsPerJob": MAX_PROVIDER_REQUESTS_PER_JOB,
+        "oneActiveShardPerFamilyModel": True,
+    }
+    sidecar["updatedAt"] = now()
+    # All provider jobs are pinned before the first byte can leave the process.
+    write_sidecar(sidecar_path, sidecar)
 
     submitted: list[dict[str, Any]] = []
-    for family, pending, projection in planned:
+    pending_by_family = {
+        family.name: {row.candidate_id for row in pending}
+        for family, pending, _requests, _projection in planned
+    }
+    for family, pending, _requests, _projection in planned:
         if not pending:
             continue
         provider = provider_for(family)
         priced = batch_family(family)
         model_id = models[family.name]
-        requests = [
-            build_request(family, model_id, row, protocol=speaks, work_kind=work_kind)
-            for row in pending
+        active = [
+            job
+            for job in sidecar.get("jobs", ())
+            if isinstance(job, Mapping)
+            and str(job.get("family")) == family.name
+            and str(job.get("modelId")) == model_id
+            and not released(job)
         ]
-        payload = input_jsonl(requests)
-        assert_payload_speaks(payload, speaks, rows=pending, work_kind=work_kind)
-        display_name = f"refspec-atlas-crosswalk-{work_kind}-{family.name}-{len(requests)}"
-        uploaded = provider.upload_input(transport, keys[family.name], payload, display_name + ".jsonl")
-        job = provider.create_job(
-            transport,
-            keys[family.name],
-            uploaded.file_id,
-            metadata={"refspec": SIDECAR_PROTOCOL, "family": family.name, "workKind": work_kind},
+        if active or (family.name, model_id) in externally_active:
+            continue
+        eligible: list[Mapping[str, Any]] = []
+        for plan in sidecar.get("plannedShards", ()):
+            if (
+                not isinstance(plan, Mapping)
+                or str(plan.get("family")) != family.name
+                or str(plan.get("modelId")) != model_id
+                or str(plan.get("protocol")) != speaks
+                or str(plan.get("workKind")) != work_kind
+            ):
+                continue
+            plan_ids = {
+                str(item.get("candidateId"))
+                for item in plan.get("requests", ())
+                if isinstance(item, Mapping)
+            }
+            if plan_ids and plan_ids <= pending_by_family[family.name]:
+                eligible.append(plan)
+        if not eligible:
+            continue
+        shard_plan = min(eligible, key=lambda item: (int(item.get("planOrder") or 0), str(item["shardId"])))
+        requests = _rebuild_requests_from_record(
+            shard_plan,
+            family=family,
+            rows_by_id=rows_by_id,
         )
-        job_id = str(job.get("id") or job.get("name") or "")
-        if not job_id:
-            raise BatchError(f"{family.name} batch create returned no job id")
+        payload = input_jsonl(requests)
+        shard_rows = [
+            rows_by_id[str(item["candidateId"])]
+            for item in shard_plan["requests"]
+        ]
+        assert_payload_speaks(payload, speaks, rows=shard_rows, work_kind=work_kind)
+        prior_attempts = [
+            job
+            for job in sidecar.get("jobs", ())
+            if isinstance(job, Mapping) and job.get("shardId") == shard_plan["shardId"]
+        ]
+        attempt_ordinal = 1 + max(
+            (int(job.get("attemptOrdinal") or 0) for job in prior_attempts),
+            default=0,
+        )
+        attempt_id = "attempt-" + hashlib.sha256(
+            f"{shard_plan['shardId']}|{attempt_ordinal}".encode()
+        ).hexdigest()
+        display_name = (
+            f"refspec-atlas-crosswalk-{work_kind}-{family.name}-"
+            f"{str(shard_plan['shardId'])[-12:]}-{len(requests)}-requests"
+        )
         record = {
+            **dict(shard_plan),
             "assumedPricingUsdPerMtok": {
                 "input": priced.assumed_input_usd_per_mtok,
                 "output": priced.assumed_output_usd_per_mtok,
             },
+            "attemptId": attempt_id,
+            "attemptOrdinal": attempt_ordinal,
+            "attemptState": "intent",
             "batchPricingFactor": BATCH_PRICE_FACTOR,
-            "candidateCount": len(requests),
             "collectedAt": None,
             "completedAt": None,
+            "completedAtSource": None,
             "completionWindow": COMPLETION_WINDOW,
             "createEndpoint": provider.batches_url,
             "displayName": display_name,
             "errorFileId": None,
-            "family": family.name,
-            "inputFileBytes": len(payload),
-            "inputFileId": uploaded.file_id,
-            "inputFileSha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
-            "inputUploadEndpoint": uploaded.endpoint,
-            "jobId": job_id,
-            "modelId": model_id,
+            "inputFileId": None,
+            "inputUploadEndpoint": None,
+            "jobId": None,
             "outputFileId": None,
-            "projectedCostUsd": round(projection, 6),
-            "protocol": speaks,
-            "providerStatus": str(job.get("status") or ""),
-            "requestCounts": dict(job.get("request_counts") or {}),
-            "requests": [
-                {
-                    "candidateId": request.candidate_id,
-                    "customId": request.custom_id,
-                    "requestSha256": request.request_sha256,
-                    "taskId": request.task_id,
-                }
-                for request in requests
-            ],
+            "providerStatus": "",
+            "requestCounts": {},
+            "resultArtifacts": [],
+            "statusArtifacts": [],
             "spendCapUsd": float(caps.get(family.name)) if caps and family.name in caps else family.spend_cap_usd,
-            "state": provider.normalize_state(job),
-            "statusEndpoint": provider.job_url(job_id),
-            "submittedAt": now(),
+            "state": "intent",
+            "statusEndpoint": None,
+            "submittedAt": None,
             "totalSpendCapUsd": effective_total_cap,
             "vendor": family.vendor,
-            "workKind": work_kind,
         }
         sidecar.setdefault("jobs", []).append(record)
+        sidecar["updatedAt"] = now()
+        write_sidecar(sidecar_path, sidecar)
+
+        try:
+            uploaded = provider.upload_input(
+                transport,
+                keys[family.name],
+                payload,
+                display_name + ".jsonl",
+            )
+        except Exception:
+            record["attemptState"] = "uploadFailed"
+            record["state"] = "failed"
+            sidecar["updatedAt"] = now()
+            write_sidecar(sidecar_path, sidecar)
+            raise
+        record["attemptState"] = "creating"
+        record["inputFileId"] = uploaded.file_id
+        record["inputUploadEndpoint"] = uploaded.endpoint
+        sidecar["updatedAt"] = now()
+        write_sidecar(sidecar_path, sidecar)
+        create_metadata = {
+            "attemptId": attempt_id,
+            "family": family.name,
+            "refspec": SIDECAR_PROTOCOL,
+            "shardId": str(shard_plan["shardId"]),
+            "workKind": work_kind,
+        }
+        try:
+            job = provider.create_job(
+                transport,
+                keys[family.name],
+                uploaded.file_id,
+                metadata=create_metadata,
+            )
+        except Exception:
+            # A timeout or process loss during create cannot prove whether the
+            # provider accepted the job.  Holding this attempt is safer than
+            # buying the same shard again.
+            record["attemptState"] = "uncertain"
+            record["state"] = "uncertain"
+            sidecar["updatedAt"] = now()
+            write_sidecar(sidecar_path, sidecar)
+            raise
+        job_id = str(job.get("id") or job.get("name") or "")
+        if not job_id:
+            record["attemptState"] = "uncertain"
+            record["state"] = "uncertain"
+            sidecar["updatedAt"] = now()
+            write_sidecar(sidecar_path, sidecar)
+            raise BatchError(f"{family.name} batch create returned no job id")
+        submitted_at = now()
+        # The provider identity is durable before any echoed field is trusted.
+        # A crash here leaves a pollable, held, explicitly untrusted attempt.
+        record.update(
+            {
+                "attemptState": "createReceived",
+                "jobId": job_id,
+                "providerStatus": str(job.get("status") or ""),
+                "requestCounts": dict(job.get("request_counts") or {}),
+                "state": "uncertain",
+                "statusEndpoint": provider.job_url(job_id),
+                "submittedAt": submitted_at,
+            }
+        )
+        sidecar["updatedAt"] = submitted_at
+        write_sidecar(sidecar_path, sidecar)
+        try:
+            for field, expected in (
+                ("input_file_id", uploaded.file_id),
+                ("endpoint", BATCH_REQUEST_URL),
+                ("completion_window", COMPLETION_WINDOW),
+            ):
+                if field in job and job[field] != expected:
+                    raise BatchError(
+                        f"{family.name} batch create echoed another {field}"
+                    )
+            echoed_metadata = job.get("metadata")
+            if isinstance(echoed_metadata, Mapping) and any(
+                key in echoed_metadata and echoed_metadata[key] != value
+                for key, value in create_metadata.items()
+            ):
+                raise BatchError(f"{family.name} batch create echoed different metadata")
+        except BatchError as error:
+            record["attemptState"] = "createMismatch"
+            record["createResponseIssue"] = str(error)
+            record["state"] = "uncertain"
+            sidecar["updatedAt"] = now()
+            write_sidecar(sidecar_path, sidecar)
+            raise
+        record["attemptState"] = "submitted"
+        record["state"] = provider.normalize_state(job)
         submitted.append(record)
-        # Written per job, never once at the end.  A job that exists at the
-        # provider and not in the sidecar is 24 hours of uncancellable spend
-        # that the next submit cannot see, so it would buy the same slice
-        # again.  If the family after this one raises, this job is still on
-        # record.
         sidecar["updatedAt"] = now()
         write_sidecar(sidecar_path, sidecar)
 
@@ -1193,15 +3093,68 @@ def submit(
                 "candidateCount": record["candidateCount"],
                 "family": record["family"],
                 "jobId": record["jobId"],
+                "attemptId": record["attemptId"],
                 "projectedCostUsd": record["projectedCostUsd"],
+                "providerRequestCount": record["providerRequestCount"],
+                "shardId": record["shardId"],
                 "state": record["state"],
             }
             for record in submitted
         ],
         "protocol": speaks,
+        "providerJobCount": len(sidecar.get("plannedShards", ())),
         "totalSpendCapUsd": effective_total_cap,
         "totalProjectedCostUsd": round(total, 6),
     }
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderStatusFacts:
+    """Fields one provider status response can authoritatively supply."""
+
+    aggregate_usage: NormalizedUsage
+    completed_at: str | None
+    error_file_field: bool
+    error_file_id: str | None
+    output_file_field: bool
+    output_file_id: str | None
+    provider_status: str
+    request_counts: Mapping[str, Any] | None
+    state: str
+
+
+def _status_file_field(payload: Mapping[str, Any], field: str) -> tuple[bool, str | None]:
+    if field not in payload:
+        return False, None
+    value = payload.get(field)
+    if value is None:
+        return True, None
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise BatchError(f"provider batch status {field} is invalid")
+    return True, value
+
+
+def _provider_status_facts(
+    payload: Mapping[str, Any],
+    family: ValidatorFamily,
+) -> ProviderStatusFacts:
+    provider = provider_for(family)
+    raw_counts = payload.get("request_counts")
+    if raw_counts is not None and not isinstance(raw_counts, Mapping):
+        raise BatchError("provider batch status request_counts is invalid")
+    output_field, output_file_id = _status_file_field(payload, "output_file_id")
+    error_field, error_file_id = _status_file_field(payload, "error_file_id")
+    return ProviderStatusFacts(
+        aggregate_usage=normalize_provider_usage(payload, family),
+        completed_at=_epoch_to_iso(payload.get("completed_at")),
+        error_file_field=error_field,
+        error_file_id=error_file_id,
+        output_file_field=output_field,
+        output_file_id=output_file_id,
+        provider_status=str(payload.get("status") or ""),
+        request_counts=(dict(raw_counts) if isinstance(raw_counts, Mapping) else None),
+        state=provider.normalize_state(payload),
+    )
 
 
 def poll(
@@ -1219,19 +3172,49 @@ def poll(
     for job in sidecar.get("jobs", ()):
         family = families[str(job["family"])]
         provider = provider_for(family)
-        if str(job.get("state")) in TERMINAL_STATES and job.get("collectedAt"):
+        job_id = job.get("jobId")
+        if not job_id or str(job.get("state")) in TERMINAL_STATES:
             states.append(_job_state_row(job))
             continue
-        payload = provider.retrieve_job(transport, keys[family.name], str(job["jobId"]))
-        job["providerStatus"] = str(payload.get("status") or "")
-        job["state"] = provider.normalize_state(payload)
-        job["requestCounts"] = dict(payload.get("request_counts") or job.get("requestCounts") or {})
-        job["outputFileId"] = payload.get("output_file_id") or job.get("outputFileId")
-        job["errorFileId"] = payload.get("error_file_id") or job.get("errorFileId")
-        completed = _epoch_to_iso(payload.get("completed_at"))
-        if completed:
-            job["completedAt"] = completed
-        job["polledAt"] = now()
+        response = provider.retrieve_job(transport, keys[family.name], str(job_id))
+        payload = response.payload
+        polled_at = now()
+        status_artifacts = job.setdefault("statusArtifacts", [])
+        if not isinstance(status_artifacts, list):
+            raise BatchError(f"job {job_id} status artifacts are invalid")
+        status_pin = retain_status_artifact(
+            sidecar_path,
+            response,
+            observed_at=polled_at,
+            poll_ordinal=len(status_artifacts) + 1,
+        )
+        status_artifacts.append(status_pin)
+        facts = _provider_status_facts(payload, family)
+        job["providerStatus"] = facts.provider_status
+        job["state"] = facts.state
+        job["requestCounts"] = dict(facts.request_counts or {})
+        if facts.output_file_field:
+            job["outputFileId"] = facts.output_file_id
+        if facts.error_file_field:
+            job["errorFileId"] = facts.error_file_id
+        if facts.aggregate_usage.raw:
+            job["aggregateUsage"] = {
+                "statusArtifactDigest": status_pin["fileDigest"],
+                "statusArtifactFile": status_pin["file"],
+                "statusPollOrdinal": status_pin["pollOrdinal"],
+                "usage": facts.aggregate_usage.record(),
+            }
+        else:
+            job.pop("aggregateUsage", None)
+        if facts.completed_at:
+            job["completedAt"] = facts.completed_at
+            job["completedAtSource"] = {
+                "kind": "providerStatus",
+                "statusArtifactDigest": status_pin["fileDigest"],
+                "statusArtifactFile": status_pin["file"],
+                "statusPollOrdinal": status_pin["pollOrdinal"],
+            }
+        job["polledAt"] = polled_at
         states.append(_job_state_row(job))
     sidecar["updatedAt"] = now()
     write_sidecar(sidecar_path, sidecar)
@@ -1250,6 +3233,496 @@ def _job_state_row(job: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+@dataclass(frozen=True, slots=True)
+class VerifiedStatusEvidence:
+    """Job facts reproduced from the ordered retained status responses."""
+
+    aggregate_usage: NormalizedUsage
+    completed_at: str | None
+    error_file_id: str | None
+    output_file_id: str | None
+    provider_status: str | None
+    request_counts: Mapping[str, Any] | None
+    state: str | None
+
+    @property
+    def has_results(self) -> bool:
+        return bool(self.output_file_id or self.error_file_id)
+
+
+def _verified_status_evidence(
+    run_root: Path,
+    job: Mapping[str, Any],
+    family: ValidatorFamily,
+) -> VerifiedStatusEvidence:
+    """Reopen ordered status bytes and reproduce every authoritative job fact."""
+
+    raw_artifacts = job.get("statusArtifacts") or ()
+    if not isinstance(raw_artifacts, Sequence) or isinstance(raw_artifacts, (str, bytes)):
+        raise BatchError(f"job {job.get('jobId')} status artifacts are invalid")
+    provider = provider_for(family)
+    job_id = str(job.get("jobId") or "")
+    latest_pin: Mapping[str, Any] | None = None
+    latest_facts: ProviderStatusFacts | None = None
+    request_counts: Mapping[str, Any] | None = None
+    output_file_id: str | None = None
+    error_file_id: str | None = None
+    completed_at: str | None = None
+    completed_pin: Mapping[str, Any] | None = None
+    for expected_ordinal, raw_pin in enumerate(raw_artifacts, start=1):
+        if not isinstance(raw_pin, Mapping):
+            raise BatchError(f"job {job_id} has an invalid status artifact pin")
+        ordinal = raw_pin.get("pollOrdinal")
+        response_status = raw_pin.get("responseStatus")
+        observed_at = raw_pin.get("observedAt")
+        if (
+            raw_pin.get("role") != "status"
+            or raw_pin.get("endpoint") != provider.job_url(job_id)
+            or isinstance(ordinal, bool)
+            or ordinal != expected_ordinal
+            or isinstance(response_status, bool)
+            or not isinstance(response_status, int)
+            or not 200 <= response_status < 300
+            or not isinstance(observed_at, str)
+            or not observed_at
+            or observed_at != observed_at.strip()
+        ):
+            raise BatchError(f"job {job_id} status artifact identity is invalid")
+        payload = _read_pinned_provider_bytes(
+            run_root,
+            raw_pin,
+            media_type="application/json",
+        )
+        try:
+            parsed = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise BatchError(f"job {job_id} status artifact is not UTF-8 JSON") from error
+        if not isinstance(parsed, Mapping):
+            raise BatchError(f"job {job_id} status artifact is not an object")
+        echoed_job_id = str(parsed.get("id") or parsed.get("name") or "")
+        if echoed_job_id and echoed_job_id != job_id:
+            raise BatchError(f"job {job_id} status artifact names another provider job")
+        facts = _provider_status_facts(parsed, family)
+        latest_pin = raw_pin
+        latest_facts = facts
+        # Polling replaces request counts on every response.  An omitted
+        # field is therefore authoritative empty evidence, rather than an
+        # opening through which a sidecar can invent counts.
+        request_counts = dict(facts.request_counts or {})
+        if facts.output_file_field:
+            output_file_id = facts.output_file_id
+        if facts.error_file_field:
+            error_file_id = facts.error_file_id
+        if facts.completed_at is not None:
+            completed_at = facts.completed_at
+            completed_pin = raw_pin
+
+    if latest_facts is not None:
+        if job.get("providerStatus") != latest_facts.provider_status:
+            raise BatchError(f"job {job_id} provider status differs from retained status")
+        if job.get("state") != latest_facts.state:
+            raise BatchError(f"job {job_id} state differs from retained status")
+        if job.get("requestCounts") != request_counts:
+            raise BatchError(f"job {job_id} request counts differ from retained status")
+        if latest_pin is not None and job.get("polledAt") != latest_pin.get("observedAt"):
+            raise BatchError(f"job {job_id} poll time differs from retained status")
+    if job.get("outputFileId") != output_file_id:
+        raise BatchError(f"job {job_id} output file identity differs from retained status")
+    if job.get("errorFileId") != error_file_id:
+        raise BatchError(f"job {job_id} error file identity differs from retained status")
+    completed_source = job.get("completedAtSource")
+    if completed_at is not None:
+        expected_source = {
+            "kind": "providerStatus",
+            "statusArtifactDigest": completed_pin.get("fileDigest") if completed_pin else None,
+            "statusArtifactFile": completed_pin.get("file") if completed_pin else None,
+            "statusPollOrdinal": completed_pin.get("pollOrdinal") if completed_pin else None,
+        }
+        if job.get("completedAt") != completed_at:
+            raise BatchError(f"job {job_id} completion time differs from retained status")
+        if completed_source != expected_source:
+            raise BatchError(f"job {job_id} completion source differs from retained status")
+    elif job.get("completedAt") is None:
+        if completed_source is not None:
+            raise BatchError(f"job {job_id} has a completion source without a completion time")
+    elif completed_source != {"kind": "collectionCheckpoint"} or not (
+        (output_file_id or error_file_id) and job.get("resultArtifacts")
+    ):
+        raise BatchError(f"job {job_id} completion time has no retained source")
+
+    raw_aggregate = job.get("aggregateUsage")
+    latest_usage = (
+        latest_facts.aggregate_usage
+        if latest_facts is not None
+        else NormalizedUsage(None, None, None, {}, "missing")
+    )
+    if not latest_usage.raw:
+        if raw_aggregate is not None:
+            raise BatchError(f"job {job_id} aggregate usage is stale relative to its latest status")
+        aggregate_usage = NormalizedUsage(None, None, None, {}, "missing")
+    else:
+        if not isinstance(raw_aggregate, Mapping):
+            raise BatchError(f"job {job_id} latest status usage is not linked")
+        ordinal = raw_aggregate.get("statusPollOrdinal")
+        if (
+            isinstance(ordinal, bool)
+            or ordinal != len(raw_artifacts)
+            or latest_pin is None
+            or raw_aggregate.get("statusArtifactDigest") != latest_pin.get("fileDigest")
+            or raw_aggregate.get("statusArtifactFile") != latest_pin.get("file")
+        ):
+            raise BatchError(f"job {job_id} aggregate usage does not name its latest status artifact")
+        stored = raw_aggregate.get("usage")
+        if not isinstance(stored, Mapping) or dict(stored) != latest_usage.record():
+            raise BatchError(f"job {job_id} aggregate usage differs from its status artifact")
+        aggregate_usage = latest_usage
+    return VerifiedStatusEvidence(
+        aggregate_usage=aggregate_usage,
+        completed_at=completed_at,
+        error_file_id=error_file_id,
+        output_file_id=output_file_id,
+        provider_status=(latest_facts.provider_status if latest_facts is not None else None),
+        request_counts=request_counts,
+        state=(latest_facts.state if latest_facts is not None else None),
+    )
+
+
+def _result_download_endpoint(provider: BatchProvider, file_id: str) -> str:
+    if isinstance(provider, GeminiBatchProvider):
+        return provider.download_url(file_id)
+    if isinstance(provider, OpenAIBatchProvider):
+        return f"{provider.files_url}/{file_id}/content"
+    raise BatchError("provider batch result has no supported download endpoint")
+
+
+def _verified_result_artifact_roles(
+    job: Mapping[str, Any],
+    artifacts: object,
+    *,
+    provider: BatchProvider,
+    status_evidence: VerifiedStatusEvidence,
+) -> set[str]:
+    """Verify result pins against file identities recovered from raw status."""
+
+    if not isinstance(artifacts, Sequence) or isinstance(artifacts, (str, bytes)):
+        raise BatchError(f"job {job.get('jobId')} result artifacts are invalid")
+    roles: set[str] = set()
+    expected_ids = {
+        "error": status_evidence.error_file_id,
+        "output": status_evidence.output_file_id,
+    }
+    for pin in artifacts:
+        if not isinstance(pin, Mapping):
+            raise BatchError(f"job {job.get('jobId')} has an invalid result artifact pin")
+        role = str(pin.get("role") or "")
+        expected_file_id = expected_ids.get(role)
+        if (
+            role in roles
+            or not expected_file_id
+            or pin.get("providerFileId") != expected_file_id
+            or pin.get("endpoint")
+            != _result_download_endpoint(provider, expected_file_id)
+        ):
+            raise BatchError(f"job {job.get('jobId')} result artifact identity is invalid")
+        roles.add(role)
+    return roles
+
+
+def evaluate_retained_job_results(
+    job: Mapping[str, Any],
+    *,
+    family: ValidatorFamily,
+    rows_by_id: Mapping[str, CandidateRow],
+    result_lines: Sequence[ResultLineEvidence],
+    aggregate_usage: NormalizedUsage,
+    work_kind: WorkKind,
+) -> dict[str, Any]:
+    """Derive valid candidate receipts and complete line accounting from raw bytes."""
+
+    tracker = qual.SpendTracker(batch_family(family))
+    plans_by_custom: dict[str, list[Mapping[str, Any]]] = {}
+    for item in job.get("requests", ()):
+        if isinstance(item, Mapping):
+            plans_by_custom.setdefault(str(item.get("customId") or ""), []).append(item)
+
+    lines_by_custom: dict[str, list[ResultLineEvidence]] = {}
+    line_issues: list[dict[str, Any]] = []
+    outcomes: Counter[str] = Counter()
+    response_usage_lines = 0
+    missing_usage_lines = 0
+    for line in result_lines:
+        if line.parsed is None:
+            line_issues.append(
+                {
+                    "artifactDigest": line.artifact["fileDigest"],
+                    "kind": "malformedResultLine",
+                    "line": line.line_ordinal,
+                    "lineDigest": line.line_digest,
+                }
+            )
+            outcomes["malformed_result_line"] += 1
+            continue
+        token = str(line.parsed.get("custom_id") or "")
+        result_id = str(line.parsed.get("id") or "")
+        if not result_id:
+            line_issues.append(
+                {
+                    "artifactDigest": line.artifact["fileDigest"],
+                    "customId": token,
+                    "kind": "missingProviderResultId",
+                    "line": line.line_ordinal,
+                    "lineDigest": line.line_digest,
+                }
+            )
+            outcomes["missing_provider_result_id"] += 1
+            continue
+        if not token or token not in plans_by_custom:
+            line_issues.append(
+                {
+                    "artifactDigest": line.artifact["fileDigest"],
+                    "customId": token,
+                    "kind": "unmatchedCustomId",
+                    "line": line.line_ordinal,
+                    "lineDigest": line.line_digest,
+                }
+            )
+            outcomes["unmatched_custom_id"] += 1
+            continue
+        lines_by_custom.setdefault(token, []).append(line)
+
+    candidate_receipts: list[dict[str, Any]] = []
+    group_issues: list[dict[str, Any]] = []
+    for token, planned_items in plans_by_custom.items():
+        matched_lines = lines_by_custom.get(token, ())
+        if len(matched_lines) > 1:
+            for line in matched_lines:
+                line_issues.append(
+                    {
+                        "artifactDigest": line.artifact["fileDigest"],
+                        "customId": token,
+                        "kind": "duplicateCustomId",
+                        "line": line.line_ordinal,
+                        "lineDigest": line.line_digest,
+                    }
+                )
+            outcomes["duplicate_custom_id"] += len(matched_lines)
+            continue
+        if not matched_lines:
+            continue
+        line = matched_lines[0]
+        assert line.parsed is not None
+        response = line.parsed.get("response")
+        if isinstance(response, Mapping) and isinstance(response.get("body"), Mapping):
+            response_usage_lines += 1
+            if not normalize_provider_usage(response["body"], family).exact:
+                missing_usage_lines += 1
+        planned_rows: list[tuple[CandidateRow, Mapping[str, Any]]] = []
+        for planned in planned_items:
+            candidate_id = str(planned.get("candidateId") or "")
+            row = rows_by_id.get(candidate_id)
+            if row is None:
+                line_issues.append(
+                    {
+                        "candidateId": candidate_id,
+                        "customId": token,
+                        "kind": "unknownCandidate",
+                        "line": line.line_ordinal,
+                        "lineDigest": line.line_digest,
+                    }
+                )
+                outcomes["unknown_candidate"] += 1
+                continue
+            planned_rows.append((row, planned))
+        if len(planned_rows) != len(planned_items):
+            continue
+        identity = line.receipt_identity(job)
+        grouped = str(planned_rows[0][1].get("requestKind") or "") == "grouped"
+        if grouped:
+            collected = _group_receipts_from_result(
+                family=family,
+                model_id=str(job["modelId"]),
+                protocol=str(job["protocol"]),
+                planned_rows=planned_rows,
+                result=line.parsed,
+                raw_line=line.raw_text,
+                started_at=str(job.get("submittedAt") or ""),
+                finished_at=str(job.get("completedAt") or job.get("collectedAt") or ""),
+                tracker=tracker,
+                work_kind=work_kind,
+                result_identity=identity,
+            )
+            if collected.get("groupOutcome") != "completed":
+                issue = {
+                    key: collected[key]
+                    for key in (
+                        "duplicateTaskIds",
+                        "groupOutcome",
+                        "groupResponseSha256",
+                        "invalidAnswerCount",
+                        "invalidTaskIds",
+                        "missingTaskIds",
+                        "unexpectedTaskIds",
+                    )
+                    if collected.get(key)
+                }
+                issue.update(
+                    {
+                        "artifactDigest": line.artifact["fileDigest"],
+                        "customId": token,
+                        "groupId": planned_rows[0][1].get("groupId"),
+                        "line": line.line_ordinal,
+                        "lineDigest": line.line_digest,
+                    }
+                )
+                group_issues.append(issue)
+                outcomes[str(collected.get("groupOutcome") or "unusable_group_answer")] += 1
+            receipts = list(collected["receipts"])
+        else:
+            row, planned = planned_rows[0]
+            request = BatchRequest(
+                candidate_id=row.candidate_id,
+                custom_id=token,
+                task_id=str(planned["taskId"]),
+                request_sha256=str(planned["requestSha256"]),
+                body={},
+            )
+            receipts = [
+                receipt_from_result(
+                    family=family,
+                    model_id=str(job["modelId"]),
+                    protocol=str(job["protocol"]),
+                    row=row,
+                    request=request,
+                    result=line.parsed,
+                    raw_line=line.raw_text,
+                    started_at=str(job.get("submittedAt") or ""),
+                    finished_at=str(job.get("completedAt") or job.get("collectedAt") or ""),
+                    tracker=tracker,
+                    result_identity=identity,
+                    work_kind=work_kind,
+                )
+            ]
+        for receipt in receipts:
+            outcome = str(receipt.get("outcome") or "unusable_answer")
+            if outcome != "completed" or not echo_check_passed(receipt):
+                line_issues.append(
+                    {
+                        "candidateId": receipt.get("candidate_id"),
+                        "customId": token,
+                        "kind": "invalidCandidateReading",
+                        "line": line.line_ordinal,
+                        "lineDigest": line.line_digest,
+                        "outcome": outcome,
+                    }
+                )
+                outcomes["echo_mismatch" if outcome == "completed" else outcome] += 1
+                continue
+            candidate_receipts.append(receipt)
+            outcomes["completed"] += 1
+
+    missing_custom_ids = sorted(set(plans_by_custom) - set(lines_by_custom))
+    aggregate = aggregate_usage
+    line_summary = tracker.summary()
+    line_complete = (
+        not missing_custom_ids
+        and missing_usage_lines == 0
+        and response_usage_lines == len(plans_by_custom)
+    )
+    if aggregate.exact and line_complete:
+        assert aggregate.input_tokens is not None and aggregate.output_tokens is not None
+        if (
+            int(line_summary["input_tokens"]) != aggregate.input_tokens
+            or int(line_summary["output_tokens"]) != aggregate.output_tokens
+        ):
+            raise BatchError(f"job {job.get('jobId')} aggregate usage differs from its result lines")
+    if aggregate.exact:
+        exact_usage = aggregate
+        usage_status = "aggregateReported"
+    elif line_complete:
+        exact_usage = NormalizedUsage(
+            int(line_summary["input_tokens"]),
+            int(line_summary["output_tokens"]),
+            int(line_summary["input_tokens"]) + int(line_summary["output_tokens"]),
+            {},
+            "lineReported",
+        )
+        usage_status = "lineReported"
+    else:
+        exact_usage = NormalizedUsage(None, None, None, {}, "missing")
+        usage_status = "missing"
+    exact_cost = (
+        round(
+            tracker.cost(
+                int(exact_usage.input_tokens),
+                int(exact_usage.output_tokens),
+            ),
+            6,
+        )
+        if exact_usage.exact
+        else None
+    )
+    committed_cost = (
+        float(exact_cost)
+        if exact_cost is not None
+        else max(float(job.get("projectedCostUsd") or 0.0), float(line_summary["assumed_cost_usd"]))
+    )
+    return {
+        "committedCostUsd": round(committed_cost, 6),
+        "exactCostUsd": exact_cost,
+        "groupIssues": group_issues,
+        "lineIssues": line_issues,
+        "missingCustomIds": missing_custom_ids,
+        "outcomes": dict(sorted(outcomes.items())),
+        "receipts": candidate_receipts,
+        "resultLines": len(result_lines),
+        "usage": exact_usage.record(),
+        "usageStatus": usage_status,
+    }
+
+
+def recompute_sidecar_spend(sidecar: Mapping[str, Any]) -> tuple[list[dict[str, Any]], float]:
+    """Rebuild family spend from verified job collections, including unknown usage."""
+
+    spend_by_family: dict[str, dict[str, Any]] = {}
+    for job in sidecar.get("jobs", ()):
+        collection = job.get("collection") if isinstance(job, Mapping) else None
+        if not isinstance(collection, Mapping):
+            continue
+        family_name = str(job.get("family"))
+        item = spend_by_family.setdefault(
+            family_name,
+            {
+                "assumed_cost_usd": 0.0,
+                "committed_cost_usd": 0.0,
+                "family": family_name,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "usage_status": "reported",
+            },
+        )
+        item["committed_cost_usd"] += float(collection.get("committedCostUsd") or 0.0)
+        if collection.get("exactCostUsd") is None:
+            item["usage_status"] = "missing"
+            item["assumed_cost_usd"] += float(collection.get("committedCostUsd") or 0.0)
+            continue
+        item["assumed_cost_usd"] += float(collection["exactCostUsd"])
+        usage = collection.get("usage") if isinstance(collection.get("usage"), Mapping) else {}
+        input_tokens = _token_count(usage.get("input_tokens"))
+        output_tokens = _token_count(usage.get("output_tokens"))
+        if input_tokens is None or output_tokens is None:
+            raise BatchError("exact collection cost has incomplete normalized usage")
+        item["input_tokens"] += input_tokens
+        item["output_tokens"] += output_tokens
+    spend: list[dict[str, Any]] = []
+    for family_name in sorted(spend_by_family):
+        item = spend_by_family[family_name]
+        item["assumed_cost_usd"] = round(float(item["assumed_cost_usd"]), 6)
+        item["committed_cost_usd"] = round(float(item["committed_cost_usd"]), 6)
+        spend.append(item)
+    total = round(sum(float(item["committed_cost_usd"]) for item in spend), 6)
+    return spend, total
+
+
 def collect(
     *,
     transport: BatchHttpTransport,
@@ -1262,7 +3735,7 @@ def collect(
     work_kind: WorkKind = "validation",
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
-    """Download finished jobs, receipt every answer, and never receipt twice.
+    """Retain finished jobs and append only deterministic valid readings.
 
     Idempotent in both directions, which are two different claims:
 
@@ -1298,9 +3771,17 @@ def collect(
                 f"job {job.get('jobId')} ({job.get('family')}) asked protocol {asked!r} but this run is "
                 f"{protocol!r}; move its sidecar aside rather than collecting answers to another question"
             )
-    done = read_receipt_pairs(receipts_path)
+    existing_receipts: dict[tuple[str, str], Mapping[str, Any]] = {}
+    if receipts_path.exists():
+        for line in receipts_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            receipt = json.loads(line)
+            key = (str(receipt["candidate_id"]), str(receipt["family"]))
+            if key in existing_receipts:
+                raise BatchError("receipt log already repeats a candidate/family")
+            existing_receipts[key] = receipt
     rows_by_id = {row.candidate_id: row for row in rows}
-    trackers: dict[str, qual.SpendTracker] = {}
     summaries: list[dict[str, Any]] = []
     written: list[str] = []
 
@@ -1314,90 +3795,117 @@ def collect(
                     {"family": family.name, "jobId": job["jobId"], "skipped": "collected", **_collected_row(job)}
                 )
                 continue
-            if not has_results(job):
+            status_evidence = _verified_status_evidence(
+                sidecar_path.parent,
+                job,
+                family,
+            )
+            if not status_evidence.has_results:
                 summaries.append({"family": family.name, "jobId": job["jobId"], "skipped": str(job.get("state"))})
                 continue
-            tracker = trackers.setdefault(family.name, qual.SpendTracker(batch_family(family)))
-            spent_before = tracker.assumed_cost_usd
-            results, endpoints = _download_results(transport, provider, keys[family.name], job)
-            by_custom_id = {str(item["customId"]): item for item in job.get("requests", ())}
-            outcomes: dict[str, int] = {}
-            duplicates = 0
+            if job.get("attemptState") != "submitted":
+                raise BatchError(
+                    f"job {job.get('jobId')} has an untrusted create response and cannot be collected"
+                )
+            raw_artifacts = job.get("resultArtifacts") or ()
+            retained_roles = _verified_result_artifact_roles(
+                job,
+                raw_artifacts,
+                provider=provider,
+                status_evidence=status_evidence,
+            )
+            artifacts = list(raw_artifacts)
+            for role, file_id in (
+                ("output", status_evidence.output_file_id),
+                ("error", status_evidence.error_file_id),
+            ):
+                if not file_id or role in retained_roles:
+                    continue
+                payload, endpoint = provider.download_file(
+                    transport,
+                    keys[family.name],
+                    str(file_id),
+                )
+                artifact = retain_result_artifact(
+                    sidecar_path,
+                    payload,
+                    role=role,
+                    provider_file_id=str(file_id),
+                    endpoint=endpoint,
+                )
+                artifacts.append(artifact)
+                job["resultArtifacts"] = artifacts
+                sidecar["updatedAt"] = now()
+                # The pin is durable before parsing or appending a receipt.
+                write_sidecar(sidecar_path, sidecar)
+            collection_time = now()
+            if not job.get("completedAt"):
+                job["completedAt"] = collection_time
+                job["completedAtSource"] = {"kind": "collectionCheckpoint"}
+                sidecar["updatedAt"] = collection_time
+                # Receipt identity includes ``finished_at``.  Checkpoint a
+                # synthesized value before the first append so a crash retry
+                # derives byte-identical receipts.
+                write_sidecar(sidecar_path, sidecar)
+            result_lines = result_lines_from_artifacts(sidecar_path.parent, artifacts)
+            evaluation = evaluate_retained_job_results(
+                job,
+                aggregate_usage=status_evidence.aggregate_usage,
+                family=family,
+                rows_by_id=rows_by_id,
+                result_lines=result_lines,
+                work_kind=work_kind,
+            )
             appended = 0
-            mismatches = 0
-            seen: set[str] = set()
-            for line, parsed in results:
-                token = str(parsed.get("custom_id") or "")
-                planned = by_custom_id.get(token)
-                if planned is None:
-                    outcomes["unmatched_custom_id"] = outcomes.get("unmatched_custom_id", 0) + 1
+            for receipt in evaluation["receipts"]:
+                candidate_id = str(receipt["candidate_id"])
+                key = (candidate_id, family.name)
+                existing = existing_receipts.get(key)
+                if existing is not None:
+                    if dict(existing) != receipt:
+                        raise BatchError(
+                            f"candidate {candidate_id} / {family.name} resolves to two different batch results"
+                        )
                     continue
-                seen.add(token)
-                candidate_id = str(planned["candidateId"])
-                row = rows_by_id.get(candidate_id)
-                if row is None:
-                    outcomes["unknown_candidate"] = outcomes.get("unknown_candidate", 0) + 1
-                    continue
-                if (candidate_id, family.name) in done:
-                    duplicates += 1
-                    continue
-                request = BatchRequest(
-                    candidate_id=candidate_id,
-                    custom_id=token,
-                    task_id=str(planned["taskId"]),
-                    request_sha256=str(planned["requestSha256"]),
-                    body={},
-                )
-                receipt = receipt_from_result(
-                    family=family,
-                    model_id=str(job["modelId"]),
-                    protocol=str(job["protocol"]),
-                    row=row,
-                    request=request,
-                    result=parsed,
-                    raw_line=line,
-                    started_at=str(job.get("submittedAt") or now()),
-                    finished_at=str(job.get("completedAt") or now()),
-                    tracker=tracker,
-                    work_kind=work_kind,
-                )
                 handle.write(canonical_json(receipt) + "\n")
                 handle.flush()
-                done.add((candidate_id, family.name))
+                existing_receipts[key] = receipt
                 written.append(candidate_id)
                 appended += 1
-                outcome = str(receipt["outcome"])
-                outcomes[outcome] = outcomes.get(outcome, 0) + 1
-                if outcome == "completed" and not echo_check_passed(receipt):
-                    mismatches += 1
-            missing = sorted(set(by_custom_id) - seen)
-            job["collectedAt"] = now()
+            job["collectedAt"] = collection_time
             job["collection"] = {
-                # What this job really cost, so a later cap check counts money
-                # already gone instead of the projection it replaced.
-                "assumedCostUsd": round(tracker.assumed_cost_usd - spent_before, 6),
-                "downloadEndpoints": endpoints,
-                "duplicateSkips": duplicates,
-                "missingCustomIds": missing,
-                "outcomes": dict(sorted(outcomes.items())),
+                "assumedCostUsd": evaluation["exactCostUsd"],
+                "committedCostUsd": evaluation["committedCostUsd"],
+                "downloadEndpoints": [str(pin["endpoint"]) for pin in artifacts],
+                "exactCostUsd": evaluation["exactCostUsd"],
+                "groupIssues": evaluation["groupIssues"],
+                "lineIssues": evaluation["lineIssues"],
+                "missingCustomIds": evaluation["missingCustomIds"],
+                "outcomes": evaluation["outcomes"],
+                "receiptCount": len(evaluation["receipts"]),
                 "receiptsAppended": appended,
-                "resultLines": len(results),
-                "taskIdEchoMismatches": mismatches,
+                "resultLines": evaluation["resultLines"],
+                "usage": evaluation["usage"],
+                "usageStatus": evaluation["usageStatus"],
             }
             summaries.append(
                 {
+                    "attemptId": job["attemptId"],
                     "family": family.name,
                     "jobId": job["jobId"],
-                    "missing": len(missing),
-                    "outcomes": dict(sorted(outcomes.items())),
+                    "groupIssues": len(evaluation["groupIssues"]),
+                    "lineIssues": len(evaluation["lineIssues"]),
+                    "missing": len(evaluation["missingCustomIds"]),
+                    "outcomes": evaluation["outcomes"],
                     "receiptsAppended": appended,
-                    "taskIdEchoMismatches": mismatches,
+                    "shardId": job["shardId"],
+                    "usageStatus": evaluation["usageStatus"],
                 }
             )
 
-    spend = merge_spend(sidecar.get("spendByFamily", ()), trackers.values())
+    spend, total_committed = recompute_sidecar_spend(sidecar)
     sidecar["spendByFamily"] = spend
-    sidecar["totalBatchAssumedCostUsd"] = round(sum(item["assumed_cost_usd"] for item in spend), 6)
+    sidecar["totalBatchAssumedCostUsd"] = total_committed
     sidecar["updatedAt"] = now()
     write_sidecar(sidecar_path, sidecar)
     return {
@@ -1406,6 +3914,294 @@ def collect(
         "spendByFamily": spend,
         "totalBatchAssumedCostUsd": sidecar["totalBatchAssumedCostUsd"],
     }
+
+
+def verify_provider_batch_evidence(
+    *,
+    sidecar_path: Path,
+    families: Mapping[str, ValidatorFamily],
+    rows: Sequence[CandidateRow],
+    receipts: Sequence[Mapping[str, Any]],
+    work_kind: WorkKind,
+) -> dict[str, Any]:
+    """Recompute requests, retained responses, readings, usage, and accounting."""
+
+    sidecar = read_sidecar(sidecar_path)
+    summary = verify_sidecar_request_lineage(
+        sidecar,
+        families=families,
+        rows=rows,
+        work_kind=work_kind,
+    )
+    verify_receipt_request_lineage(receipts, sidecar=sidecar, work_kind=work_kind)
+    rows_by_id = {row.candidate_id: row for row in rows}
+    expected_receipts: dict[tuple[str, str], Mapping[str, Any]] = {}
+    collected_jobs = 0
+    issue_lines = 0
+    for job in sidecar.get("jobs", ()):
+        if not isinstance(job, Mapping) or str(job.get("workKind")) != work_kind:
+            continue
+        family = families.get(str(job.get("family") or ""))
+        if family is None:
+            raise BatchError(f"job {job.get('jobId')} names an unknown family")
+        status_evidence = _verified_status_evidence(sidecar_path.parent, job, family)
+        provider = provider_for(family)
+        artifacts = job.get("resultArtifacts") or ()
+        roles = _verified_result_artifact_roles(
+            job,
+            artifacts,
+            provider=provider,
+            status_evidence=status_evidence,
+        )
+        expected_roles = {
+            role
+            for role, file_id in (
+                ("output", status_evidence.output_file_id),
+                ("error", status_evidence.error_file_id),
+            )
+            if file_id
+        }
+        if job.get("collectedAt") and roles != expected_roles:
+            raise BatchError(f"job {job.get('jobId')} did not retain every provider result file")
+        if status_evidence.has_results and job.get("collectedAt") and not artifacts:
+            raise BatchError(f"job {job.get('jobId')} discarded its provider result bytes")
+        if not job.get("collectedAt"):
+            continue
+        collected_jobs += 1
+        result_lines = result_lines_from_artifacts(sidecar_path.parent, artifacts)
+        evaluation = evaluate_retained_job_results(
+            job,
+            aggregate_usage=status_evidence.aggregate_usage,
+            family=family,
+            rows_by_id=rows_by_id,
+            result_lines=result_lines,
+            work_kind=work_kind,
+        )
+        collection = job.get("collection")
+        if not isinstance(collection, Mapping):
+            raise BatchError(f"job {job.get('jobId')} has no collection accounting")
+        for key in (
+            "committedCostUsd",
+            "exactCostUsd",
+            "groupIssues",
+            "lineIssues",
+            "missingCustomIds",
+            "outcomes",
+            "receiptCount",
+            "resultLines",
+            "usage",
+            "usageStatus",
+        ):
+            expected_value = (
+                len(evaluation["receipts"]) if key == "receiptCount" else evaluation[key]
+            )
+            if collection.get(key) != expected_value:
+                raise BatchError(f"job {job.get('jobId')} collection {key} does not recompute")
+        issue_lines += len(evaluation["lineIssues"]) + len(evaluation["groupIssues"])
+        for receipt in evaluation["receipts"]:
+            key = (str(receipt["candidate_id"]), str(receipt["family"]))
+            prior = expected_receipts.get(key)
+            if prior is not None and dict(prior) != receipt:
+                raise BatchError(f"candidate {key[0]} / {key[1]} has two valid provider batch results")
+            expected_receipts[key] = receipt
+
+    actual_receipts = {
+        (str(receipt.get("candidate_id") or ""), str(receipt.get("family") or "")): receipt
+        for receipt in receipts
+        if receipt.get("batch_execution_mode") == "batch"
+    }
+    if len(actual_receipts) != sum(
+        1 for receipt in receipts if receipt.get("batch_execution_mode") == "batch"
+    ):
+        raise BatchError("batch receipt log repeats a candidate/family")
+    if set(actual_receipts) != set(expected_receipts):
+        raise BatchError("batch receipt log does not equal the valid readings recomputed from raw results")
+    for key, expected in expected_receipts.items():
+        if dict(actual_receipts[key]) != expected:
+            raise BatchError(f"batch receipt for {key[0]} / {key[1]} differs from raw result bytes")
+    spend, total_committed = recompute_sidecar_spend(sidecar)
+    if sidecar.get("spendByFamily") != spend:
+        raise BatchError("provider batch family spend does not recompute from job collections")
+    if sidecar.get("totalBatchAssumedCostUsd") != total_committed:
+        raise BatchError("provider batch committed total does not recompute from job collections")
+    return {
+        **summary,
+        "collectedJobs": collected_jobs,
+        "committedCostUsd": total_committed,
+        "issueLines": issue_lines,
+        "verifiedReceipts": len(expected_receipts),
+    }
+
+
+def _pinned_run_file(run_path: Path, pin: Mapping[str, Any], *, label: str) -> Path:
+    name = pin.get("file")
+    if not isinstance(name, str) or Path(name).name != name:
+        raise BatchError(f"{label} path is unsafe")
+    path = run_path.parent / name
+    if path.is_symlink() or not path.is_file():
+        raise BatchError(f"{label} is missing or unsafe")
+    payload = path.read_bytes()
+    if "sha256:" + hashlib.sha256(payload).hexdigest() != pin.get("fileDigest"):
+        raise BatchError(f"{label} differs from its pin")
+    return path
+
+
+def _canonical_receipt_rows(path: Path) -> tuple[Mapping[str, Any], ...]:
+    rows: list[Mapping[str, Any]] = []
+    for ordinal, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        parsed = json.loads(line)
+        if not isinstance(parsed, Mapping) or canonical_json(parsed) != line:
+            raise BatchError(f"receipt log line {ordinal} is not canonical JSON")
+        rows.append(parsed)
+    return tuple(rows)
+
+
+def _require_complete_production_batch_receipts(
+    run: Mapping[str, Any],
+    *,
+    evidence_name: str,
+    receipt_rows: Sequence[Mapping[str, Any]],
+    verification: Mapping[str, Any],
+) -> None:
+    """Require every production receipt row to derive from retained Batch bytes."""
+
+    if (
+        run.get("coverageMode") == qual.PRODUCTION_COVERAGE_MODE
+        and verification.get("verifiedReceipts") != len(receipt_rows)
+    ):
+        raise BatchError(
+            f"production {evidence_name} receipts must all reproduce from retained raw batch results"
+        )
+
+
+def verify_run_provider_batch_evidence(
+    run_path: Path,
+    run: Mapping[str, Any],
+    *,
+    families: Mapping[str, ValidatorFamily] = qual.VALIDATOR_FAMILIES,
+) -> dict[str, Any]:
+    """Reopen every provider-batch pin named by a qualification run receipt."""
+
+    raw_evidence = run.get("providerBatchEvidence")
+    if raw_evidence is None:
+        return {}
+    if not isinstance(raw_evidence, Mapping):
+        raise BatchError("qualification run provider batch evidence is invalid")
+    catalog_pin = run.get("candidateCatalog")
+    if not isinstance(catalog_pin, Mapping):
+        raise BatchError("qualification run has no candidate catalog pin")
+    catalog_path = _pinned_run_file(run_path, catalog_pin, label="candidate catalog")
+    catalog_bytes = catalog_path.read_bytes()
+    catalog = json.loads(catalog_bytes)
+    if not isinstance(catalog, Mapping) or (canonical_json(catalog) + "\n").encode("utf-8") != catalog_bytes:
+        raise BatchError("candidate catalog is not canonical JSON")
+    summaries: dict[str, Any] = {}
+    judging_receipts: tuple[Mapping[str, Any], ...] | None = None
+    scoring_receipts: tuple[Mapping[str, Any], ...] | None = None
+    combined_by_family: dict[str, float] = {}
+    declared_family_caps: dict[str, float] = {}
+    declared_total_cap: float | None = None
+    for name, raw_pin in raw_evidence.items():
+        if not isinstance(raw_pin, Mapping):
+            raise BatchError(f"provider batch evidence {name} is invalid")
+        if name == "judging":
+            work_kind: WorkKind = "validation"
+            receipt_pin = run.get("receiptLog")
+        elif name == "scoring":
+            work_kind = "scoring"
+            scoring = run.get("scoring")
+            receipt_pin = scoring.get("receiptLog") if isinstance(scoring, Mapping) else None
+        else:
+            raise BatchError(f"provider batch evidence {name} has an unsupported work kind")
+        if not isinstance(receipt_pin, Mapping):
+            raise BatchError(f"provider batch evidence {name} has no receipt-log pin")
+        sidecar_path = _pinned_run_file(run_path, raw_pin, label=f"{name} batch sidecar")
+        sidecar = read_sidecar(sidecar_path)
+        receipt_path = _pinned_run_file(run_path, receipt_pin, label=f"{name} receipt log")
+        receipt_rows = _canonical_receipt_rows(receipt_path)
+        summary = verify_provider_batch_evidence(
+            sidecar_path=sidecar_path,
+            families=families,
+            rows=candidate_rows_from_catalog(catalog, work_kind=work_kind),
+            receipts=receipt_rows,
+            work_kind=work_kind,
+        )
+        _require_complete_production_batch_receipts(
+            run,
+            evidence_name=str(name),
+            receipt_rows=receipt_rows,
+            verification=summary,
+        )
+        if name == "judging":
+            judging_receipts = receipt_rows
+        else:
+            scoring_receipts = receipt_rows
+        if raw_pin.get("verification") != summary:
+            raise BatchError(f"provider batch evidence {name} summary differs from recomputation")
+        sidecar_total_cap = float(sidecar["totalSpendCapUsd"])
+        if declared_total_cap is not None and declared_total_cap != sidecar_total_cap:
+            raise BatchError("qualification run batch sidecars disagree on the total spend cap")
+        declared_total_cap = sidecar_total_cap
+        for family_name, value in sidecar["spendCapsByFamily"].items():
+            cap = float(value)
+            if family_name in declared_family_caps and declared_family_caps[family_name] != cap:
+                raise BatchError(f"qualification run batch sidecars disagree on {family_name} spend cap")
+            declared_family_caps[str(family_name)] = cap
+        for item in sidecar["spendByFamily"]:
+            family_name = str(item["family"])
+            combined_by_family[family_name] = combined_by_family.get(family_name, 0.0) + float(
+                item["committed_cost_usd"]
+            )
+        summaries[str(name)] = summary
+    if run.get("coverageMode") == qual.PRODUCTION_COVERAGE_MODE:
+        if judging_receipts is None or scoring_receipts is None:
+            raise BatchError(
+                "production qualification requires verified judging and scoring receipt rows"
+            )
+        bundle_pin = run.get("bundle")
+        accounting = run.get("candidateAccounting")
+        if not isinstance(bundle_pin, Mapping):
+            raise BatchError("production qualification has no Crosswalk bundle pin")
+        if not isinstance(accounting, Sequence) or isinstance(
+            accounting,
+            (str, bytes),
+        ):
+            raise BatchError("production qualification has no candidate accounting")
+        bundle_path = _pinned_run_file(
+            run_path,
+            bundle_pin,
+            label="Crosswalk bundle",
+        )
+        try:
+            bundle = CrosswalkBundle.open(
+                bundle_path,
+                expected_file_digest=str(bundle_pin.get("fileDigest") or ""),
+                expected_bundle_digest=str(bundle_pin.get("bundleDigest") or ""),
+            )
+            if bundle.identifier != bundle_pin.get("id"):
+                raise BatchError("production Crosswalk bundle identity differs")
+            qual.verify_production_qualification_reproduction(
+                catalog=catalog,
+                judge_receipts=judging_receipts,
+                scorer_receipts=scoring_receipts,
+                bundle=bundle,
+                candidate_accounting=accounting,
+            )
+        except (OSError, qual.QualificationError, ValueError) as error:
+            if isinstance(error, BatchError):
+                raise
+            raise BatchError(
+                f"production qualification does not reproduce from provider evidence: {error}"
+            ) from error
+    combined_total = round(sum(combined_by_family.values()), 6)
+    if declared_total_cap is not None and combined_total > declared_total_cap:
+        raise BatchError("qualification run provider batch spend exceeds its total cap")
+    for family_name, amount in combined_by_family.items():
+        if family_name not in declared_family_caps or amount > declared_family_caps[family_name]:
+            raise BatchError(f"qualification run provider batch spend exceeds the {family_name} cap")
+    return summaries
 
 
 def cancel(
@@ -1418,16 +4214,25 @@ def cancel(
 ) -> dict[str, Any]:
     """Cancel every non-terminal job and record the outcome in the sidecar.
 
-    The cancellation is receipted whether or not it worked.  "We tried to stop
-    this and the provider said no" is exactly the fact a spend audit needs, and
-    it is the fact that goes missing if a failed cancel is silently retried or
-    silently dropped.
+    The cancellation is receipted whether or not it worked.  Acceptance starts
+    an asynchronous ``cancelling`` state; only a later provider status response
+    may move the job to a terminal state and release its candidates.
     """
 
     sidecar = read_sidecar(sidecar_path)
     outcomes: list[dict[str, Any]] = []
     for job in sidecar.get("jobs", ()):
         family = families[str(job["family"])]
+        if not job.get("jobId"):
+            outcomes.append(
+                {
+                    "attemptId": job.get("attemptId"),
+                    "family": family.name,
+                    "jobId": None,
+                    "skipped": str(job.get("state")),
+                }
+            )
+            continue
         if str(job.get("state")) in TERMINAL_STATES:
             outcomes.append({"family": family.name, "jobId": job["jobId"], "skipped": str(job.get("state"))})
             continue
@@ -1442,8 +4247,8 @@ def cancel(
             "response": result["response"],
         }
         if accepted:
-            job["state"] = "cancelled"
-            job["providerStatus"] = "cancelled"
+            job["state"] = "cancelling"
+            job["providerStatus"] = "cancelling"
         outcomes.append(
             {
                 "accepted": accepted,
@@ -1463,7 +4268,7 @@ def _collected_row(job: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "collectedAt": job.get("collectedAt"),
         "receiptsAppended": collection.get("receiptsAppended"),
-        "taskIdEchoMismatches": collection.get("taskIdEchoMismatches"),
+        "usageStatus": collection.get("usageStatus"),
     }
 
 
@@ -1491,36 +4296,3 @@ def merge_spend(
         current["assumed_pricing_usd_per_mtok"] = summary["assumed_pricing_usd_per_mtok"]
         current["spend_cap_usd"] = summary["spend_cap_usd"]
     return [merged[name] for name in sorted(merged)]
-
-
-def _download_results(
-    transport: BatchHttpTransport,
-    provider: BatchProvider,
-    api_key: str,
-    job: Mapping[str, Any],
-) -> tuple[list[tuple[str, dict[str, Any]]], list[str]]:
-    """Both result files, parsed, with the endpoints they came from.
-
-    The error file is downloaded too: a request the provider *answered* with an
-    error is a provider error, which the serial path receipts rather than
-    silently drops.
-    """
-
-    results: list[tuple[str, dict[str, Any]]] = []
-    endpoints: list[str] = []
-    for key in ("outputFileId", "errorFileId"):
-        file_id = job.get(key)
-        if not file_id:
-            continue
-        payload, endpoint = provider.download_file(transport, api_key, str(file_id))
-        endpoints.append(endpoint)
-        for line in payload.decode("utf-8", errors="replace").splitlines():
-            if not line.strip():
-                continue
-            try:
-                parsed = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(parsed, dict):
-                results.append((line, parsed))
-    return results, endpoints

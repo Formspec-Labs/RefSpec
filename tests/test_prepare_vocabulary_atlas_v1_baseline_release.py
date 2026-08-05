@@ -44,8 +44,10 @@ def test_prepares_and_rechecks_exact_baseline_evidence_definition(
         expected_file_digest=summary["definitionFileDigest"],
     )
     record = definition.as_record()
+    assert record["schemaVersion"] == "2.0"
     assert record["releaseMode"] == "baselineEvidenceRc"
     assert record["scopeKind"] == "bench"
+    assert record["reviewedSearchCorpus"] == {"status": "skippedPublicOnly"}
     assert record["productionQualificationRuns"] == []
     assert len(record["baselineQualificationRuns"]) == 3
     assert len(record["publication"]["rowDispositions"]) == 87
@@ -75,6 +77,23 @@ def test_prepares_and_rechecks_exact_baseline_evidence_definition(
         "federal-register-elsst": 190,
         "federal-register-icpsr": 201,
     }
+    for relation in cast(list[dict[str, Any]], record["relationBundles"]):
+        assert "/relation-assertions-v2/bundle-manifest.json" in relation[
+            "manifestPath"
+        ]
+        manifest = json.loads((ROOT / relation["manifestPath"]).read_text())
+        assert manifest["schemaVersion"] == "2.0"
+        assertions = json.loads(
+            (ROOT / relation["manifestPath"]).with_name(
+                "relation-assertions.json"
+            ).read_text()
+        )
+        assert assertions["schemaVersion"] == "2.0"
+        assert all(
+            mapping["lifecycleStatus"] == "current"
+            and mapping["supersedes"] == []
+            for mapping in assertions["mappingAssertions"]
+        )
     assert {
         field: record["expectedCounts"][field]
         for field in (

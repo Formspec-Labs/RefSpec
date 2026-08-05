@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import sys
+import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -22,24 +25,34 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from refspec import binding
+from refspec.atlas.relation_assertion import (
+    RELATION_ASSERTION_BUNDLE_MEDIA_TYPE,
+    RELATION_ASSERTION_BUNDLE_VERSION,
+    EmbeddedRelationAssertionBundle,
+)
 from refspec.atlas.v1_release import (
+    VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION,
     VocabularyAtlasV1ReleaseDefinition,
     read_vocabulary_atlas_v1_release_definition,
 )
-from refspec.registry.infrastructure.artifact_serialization import sha256_digest
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    sha256_digest,
+)
 from refspec.registry.infrastructure.semantic_foundation import (
     SUBJECT_BROAD_MATCH,
     SUBJECT_CLOSE_MATCH,
     SUBJECT_EXACT_MATCH,
     SUBJECT_NARROW_MATCH,
     SUBJECT_RELATED_MATCH,
+    MappingAssertion,
 )
 from refspec.storage import canonical_json
 
 DEFAULT_OUTPUT = (
     ROOT
     / "output/vocabulary-atlas-v1-rc1/control/release-definitions/"
-    "vocabulary-atlas-v1-baseline-evidence-rc1.json"
+    "vocabulary-atlas-v1-baseline-evidence-lifecycle-v2-rc1-2026-08-05.json"
 )
 
 DECISION_ACTOR = "urn:ref:actor:vocabulary-atlas-v1-release-review"
@@ -377,10 +390,199 @@ def _row_dispositions(index: Mapping[str, Any]) -> list[dict[str, str]]:
     return result
 
 
+def _lifecycle_mapping_record(
+    value: Mapping[str, Any],
+    *,
+    label: str,
+) -> dict[str, Any]:
+    """Upgrade one exact legacy mapping without changing its semantic facts."""
+
+    if "lifecycleStatus" in value or "supersedes" in value:
+        raise BaselineReleasePreparationError(
+            f"{label} must be a lifecycle-independent relation-bundle 1.0 mapping"
+        )
+    expected = {
+        "id",
+        "type",
+        "contentDigest",
+        "semanticRing",
+        "sourceConcept",
+        "targetConcept",
+        "sourceRelease",
+        "targetRelease",
+        "relation",
+        "evidence",
+        "assertedAt",
+    }
+    if value.get("semanticRing") in {"value", "legalIdentity"}:
+        expected.add("context")
+    if set(value) != expected or value.get("type") != "MappingAssertion":
+        raise BaselineReleasePreparationError(f"{label} has an unsupported legacy shape")
+    context = value.get("context")
+    mapping = MappingAssertion(
+        semantic_ring=cast(Any, value.get("semanticRing")),
+        source_concept=cast(str, value.get("sourceConcept")),
+        target_concept=cast(str, value.get("targetConcept")),
+        source_release=cast(str, value.get("sourceRelease")),
+        target_release=cast(str, value.get("targetRelease")),
+        relation=cast(str, value.get("relation")),
+        evidence=cast(tuple[str, ...], value.get("evidence")),
+        asserted_at=cast(str, value.get("assertedAt")),
+        context=(
+            cast(Mapping[str, str], context)
+            if isinstance(context, Mapping)
+            else None
+        ),
+        lifecycle_status="current",
+        supersedes=(),
+    )
+    return mapping.as_record()
+
+
+def _lifecycle_relation_artifacts(
+    legacy: Mapping[str, Any],
+    *,
+    label: str,
+) -> tuple[dict[str, bytes], Mapping[str, Any]]:
+    expected_fields = {
+        "id",
+        "type",
+        "schemaVersion",
+        "contentDigest",
+        "semanticRing",
+        "releasePins",
+        "machineProofPins",
+        "evidenceAssertions",
+        "mappingAssertions",
+    }
+    if (
+        set(legacy) != expected_fields
+        or legacy.get("type") != "RelationAssertionBundle"
+        or legacy.get("schemaVersion") != "1.0"
+    ):
+        raise BaselineReleasePreparationError(
+            f"{label} must be an exact relation-assertion bundle 1.0 record"
+        )
+    raw_mappings = legacy.get("mappingAssertions")
+    if not isinstance(raw_mappings, Sequence) or isinstance(
+        raw_mappings,
+        (str, bytes),
+    ):
+        raise BaselineReleasePreparationError(f"{label} mappings must be an array")
+    mappings = sorted(
+        (
+            _lifecycle_mapping_record(
+                cast(Mapping[str, Any], value),
+                label=f"{label}.mappingAssertions[{index}]",
+            )
+            for index, value in enumerate(raw_mappings)
+            if isinstance(value, Mapping)
+        ),
+        key=lambda value: cast(str, value["id"]),
+    )
+    if len(mappings) != len(raw_mappings):
+        raise BaselineReleasePreparationError(f"{label} mappings must be objects")
+    basis = {
+        "type": "RelationAssertionBundle",
+        "schemaVersion": RELATION_ASSERTION_BUNDLE_VERSION,
+        "semanticRing": legacy["semanticRing"],
+        "releasePins": legacy["releasePins"],
+        "machineProofPins": legacy["machineProofPins"],
+        "evidenceAssertions": legacy["evidenceAssertions"],
+        "mappingAssertions": mappings,
+    }
+    content_digest = sha256_digest(canonical_json_bytes(basis))
+    record = {
+        **basis,
+        "id": (
+            "urn:ref:relation-assertion-bundle:"
+            f"{basis['semanticRing']}:{content_digest.removeprefix('sha256:')}"
+        ),
+        "contentDigest": content_digest,
+    }
+    verified = EmbeddedRelationAssertionBundle.from_record(record)
+    assertion_bytes = canonical_json_bytes(verified.as_record())
+    manifest = {
+        "schemaVersion": RELATION_ASSERTION_BUNDLE_VERSION,
+        "packageKind": "relationAssertionBundle",
+        "bundleId": verified.identifier,
+        "contentDigest": verified.content_digest,
+        "artifacts": [
+            {
+                "path": "relation-assertions.json",
+                "role": "relationAssertions",
+                "mediaType": RELATION_ASSERTION_BUNDLE_MEDIA_TYPE,
+                "sha256": sha256_digest(assertion_bytes),
+                "byteLength": len(assertion_bytes),
+            }
+        ],
+    }
+    artifacts = {
+        "bundle-manifest.json": canonical_json_bytes(manifest),
+        "relation-assertions.json": assertion_bytes,
+    }
+    return artifacts, verified.as_record()
+
+
+def _prepare_lifecycle_relation_bundle(
+    root: Path,
+    *,
+    base: str,
+    legacy: Mapping[str, Any],
+    check: bool,
+) -> tuple[str, str, Mapping[str, Any]]:
+    artifacts, record = _lifecycle_relation_artifacts(
+        legacy,
+        label=f"baseline relation {base}",
+    )
+    relative_root = f"{base}/relation-assertions-v2"
+    destination = root.joinpath(*PurePosixPath(relative_root).parts)
+    observed = (
+        {
+            path.name: path.read_bytes()
+            for path in destination.iterdir()
+            if path.is_file() and not path.is_symlink()
+        }
+        if destination.is_dir() and not destination.is_symlink()
+        else {}
+    )
+    if observed:
+        if observed != artifacts or set(destination.iterdir()) != {
+            destination / name for name in artifacts
+        }:
+            raise BaselineReleasePreparationError(
+                f"prepared lifecycle relation bundle differs: {relative_root}"
+            )
+    elif check:
+        raise BaselineReleasePreparationError(
+            f"prepared lifecycle relation bundle is unavailable: {relative_root}"
+        )
+    else:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = Path(
+            tempfile.mkdtemp(
+                prefix=f".{destination.name}-",
+                dir=destination.parent,
+            )
+        )
+        try:
+            for name, payload in artifacts.items():
+                (temporary / name).write_bytes(payload)
+            os.replace(temporary, destination)
+        except BaseException:
+            shutil.rmtree(temporary, ignore_errors=True)
+            raise
+    manifest_path = f"{relative_root}/bundle-manifest.json"
+    manifest_digest = sha256_digest(artifacts["bundle-manifest.json"])
+    return manifest_path, manifest_digest, record
+
+
 def _baseline_job(
     root: Path,
     spec: BaselineJobSpec,
     role_release_ids: Mapping[str, str],
+    *,
+    check: bool,
 ) -> tuple[dict[str, str], dict[str, Any], Counter[str]]:
     base = f"output/vocabulary-atlas-v1-rc1/qualification-baseline/{spec.directory}"
     receipt_path = f"{base}/qualification-receipt.json"
@@ -563,6 +765,28 @@ def _baseline_job(
         raise BaselineReleasePreparationError(
             f"baseline job {spec.job} machine proofs differ from admitted receipt candidates"
         )
+    (
+        lifecycle_manifest_path,
+        lifecycle_manifest_digest,
+        lifecycle_relation,
+    ) = _prepare_lifecycle_relation_bundle(
+        root,
+        base=base,
+        legacy=relation,
+        check=check,
+    )
+    lifecycle_mappings = cast(
+        Sequence[Mapping[str, Any]],
+        lifecycle_relation["mappingAssertions"],
+    )
+    if len(lifecycle_mappings) != spec.mapping_count or any(
+        mapping.get("lifecycleStatus") != "current"
+        or mapping.get("supersedes") != []
+        for mapping in lifecycle_mappings
+    ):
+        raise BaselineReleasePreparationError(
+            f"baseline job {spec.job} lifecycle migration must preserve {spec.mapping_count} current mappings"
+        )
 
     proof_descriptor = {
         "crosswalkPath": crosswalk_path,
@@ -588,15 +812,15 @@ def _baseline_job(
     }
     relation_descriptor = {
         "key": spec.job,
-        "manifestPath": relation_manifest_path,
-        "manifestDigest": spec.relation_manifest_digest,
+        "manifestPath": lifecycle_manifest_path,
+        "manifestDigest": lifecycle_manifest_digest,
         "semanticRing": "subject",
         "releaseIds": sorted(expected_endpoints),
         "machineProofs": machine_proofs,
     }
     mapping_counts = Counter(
         cast(str, row["relation"])
-        for row in mappings
+        for row in lifecycle_mappings
         if isinstance(row, Mapping) and isinstance(row.get("relation"), str)
     )
     if sum(mapping_counts.values()) != spec.mapping_count:
@@ -606,7 +830,11 @@ def _baseline_job(
     return run_descriptor, relation_descriptor, mapping_counts
 
 
-def build_baseline_release_definition_basis(root: Path | str = ROOT) -> dict[str, Any]:
+def build_baseline_release_definition_basis(
+    root: Path | str = ROOT,
+    *,
+    check: bool = False,
+) -> dict[str, Any]:
     """Close the repository's exact baseline artifacts into a definition basis."""
 
     repository_root = Path(root).resolve(strict=True)
@@ -644,6 +872,7 @@ def build_baseline_release_definition_basis(root: Path | str = ROOT) -> dict[str
             repository_root,
             job,
             role_release_ids,
+            check=check,
         )
         run_rows.append(run)
         relation_rows.append(relation)
@@ -688,13 +917,14 @@ def build_baseline_release_definition_basis(root: Path | str = ROOT) -> dict[str
     }
     return {
         "type": "VocabularyAtlasV1ReleaseDefinition",
-        "schemaVersion": "1.0",
+        "schemaVersion": VOCABULARY_ATLAS_V1_RELEASE_DEFINITION_VERSION,
         "releaseMode": "baselineEvidenceRc",
         "releaseName": "urn:ref:vocabulary-atlas:release:v1-baseline-evidence-rc1",
         "scopeName": "urn:ref:vocabulary-atlas:scope:v1-baseline-evidence-rc1",
         "scopeKind": "bench",
         "title": "Vocabulary Atlas v1 baseline evidence preview",
         "planningIndex": dict(PLANNING_INDEX),
+        "reviewedSearchCorpus": {"status": "skippedPublicOnly"},
         "releases": release_rows,
         "relationBundles": relation_rows,
         "productionQualificationRuns": [],
@@ -750,7 +980,7 @@ def prepare_baseline_release_definition(
     """Write or verify one independently reopenable baseline definition."""
 
     definition = VocabularyAtlasV1ReleaseDefinition.seal(
-        build_baseline_release_definition_basis(root)
+        build_baseline_release_definition_basis(root, check=check)
     )
     output_path = Path(output)
     expected_payload = definition.artifact_bytes()

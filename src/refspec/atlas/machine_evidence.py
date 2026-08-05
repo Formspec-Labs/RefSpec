@@ -82,6 +82,28 @@ def _open_verified_crosswalk_bundle(
     )
 
 
+@lru_cache(maxsize=16)
+def _verify_provider_batch_run(path: str, file_digest: str) -> None:
+    """Recompute one immutable run's provider evidence once per process."""
+
+    run_path = Path(path)
+    payload = run_path.read_bytes()
+    if sha256_digest(payload) != file_digest:
+        raise CrosswalkMachineProofError("qualification run changed before provider evidence verification")
+    try:
+        record = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise CrosswalkMachineProofError("qualification run is not UTF-8 JSON") from error
+    if not isinstance(record, Mapping):
+        raise CrosswalkMachineProofError("qualification run is not an object")
+    from .qualification_batch import BatchError, verify_run_provider_batch_evidence
+
+    try:
+        verify_run_provider_batch_evidence(run_path, record)
+    except BatchError as error:
+        raise CrosswalkMachineProofError(str(error)) from error
+
+
 def machine_evidence_class_for_proof_kind(value: object) -> MachineEvidenceClass:
     """Derive the evidence class from one verified Crosswalk v2 proof kind."""
 
@@ -443,6 +465,12 @@ class PinnedCrosswalkMachineProof:
             raise CrosswalkMachineProofError(str(error)) from error
         if run.get("contentDigest") != self.qualification_run_content_digest:
             raise CrosswalkMachineProofError("qualification run content digest differs")
+        provider_batch_evidence = run.get("providerBatchEvidence")
+        if provider_batch_evidence is not None:
+            _verify_provider_batch_run(
+                str(self.qualification_run_path),
+                str(self.qualification_run_file_digest),
+            )
         source = run.get("bundle")
         if (
             not isinstance(source, Mapping)
