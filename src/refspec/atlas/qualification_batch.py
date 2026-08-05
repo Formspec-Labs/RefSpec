@@ -71,6 +71,7 @@ from __future__ import annotations
 import datetime as _dt
 import hashlib
 import json
+import math
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -1048,6 +1049,7 @@ def submit(
     models: Mapping[str, str],
     rows: Sequence[CandidateRow],
     caps: Mapping[str, float] | None = None,
+    total_cap_usd: float | None = None,
     protocol: str,
     work_kind: WorkKind = "validation",
     now: Callable[[], str] = qual._utcnow,
@@ -1059,6 +1061,12 @@ def submit(
     second submit against the same run directory spends real money the first
     one has not finished spending yet.
     """
+
+    effective_total_cap = (
+        qual.TOTAL_SPEND_CAP_USD if total_cap_usd is None else float(total_cap_usd)
+    )
+    if not math.isfinite(effective_total_cap) or effective_total_cap <= 0:
+        raise ValueError("total batch spend cap must be a positive finite USD value")
 
     speaks = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
@@ -1087,14 +1095,15 @@ def submit(
     # combined submit would have refused.
     total = sum(projection for _family, _pending, projection in planned)
     running = total + sum(committed.values())
-    if running > qual.TOTAL_SPEND_CAP_USD:
+    if running > effective_total_cap:
         raise BatchSpendCapReached(
             f"projected ${total:.2f} which, with ${sum(committed.values()):.2f} already committed, "
-            f"exceeds the ${qual.TOTAL_SPEND_CAP_USD:.2f} total cap; shrink the slice"
+            f"exceeds the ${effective_total_cap:.2f} total cap; shrink the slice"
         )
 
     sidecar["batchPricingFactor"] = BATCH_PRICE_FACTOR
     sidecar["protocol"] = SIDECAR_PROTOCOL
+    sidecar["totalSpendCapUsd"] = effective_total_cap
 
     submitted: list[dict[str, Any]] = []
     for family, pending, projection in planned:
@@ -1158,6 +1167,7 @@ def submit(
             "state": provider.normalize_state(job),
             "statusEndpoint": provider.job_url(job_id),
             "submittedAt": now(),
+            "totalSpendCapUsd": effective_total_cap,
             "vendor": family.vendor,
             "workKind": work_kind,
         }
@@ -1185,6 +1195,7 @@ def submit(
             for record in submitted
         ],
         "protocol": speaks,
+        "totalSpendCapUsd": effective_total_cap,
         "totalProjectedCostUsd": round(total, 6),
     }
 

@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -1134,6 +1135,7 @@ def command_batch_submit(args: argparse.Namespace) -> int:
             models=resolved,
             rows=_batch_rows(args, subset=True),
             caps=args.cap,
+            total_cap_usd=args.total_cap,
             protocol=protocol,
         )
     except qbatch.BatchSpendCapReached as error:
@@ -1237,6 +1239,7 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
             models={family.name: model_id},
             rows=rows,
             caps=args.cap,
+            total_cap_usd=args.total_cap,
             protocol=qual.SCORING_PROTOCOL,
             work_kind="scoring",
         )
@@ -1398,6 +1401,13 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="FAMILY=USD",
         help="override one family's hard spend cap",
     )
+    batch_submit.add_argument(
+        "--total-cap",
+        type=_positive_finite_usd,
+        default=qual.TOTAL_SPEND_CAP_USD,
+        metavar="USD",
+        help="set the hard spend cap across all families for this batch submission",
+    )
     batch_submit.set_defaults(handler=command_batch_submit)
 
     batch_status = subparsers.add_parser("batch-status", help="poll every submitted batch job and print its state")
@@ -1426,6 +1436,13 @@ def build_parser() -> argparse.ArgumentParser:
     score_batch_submit.add_argument("--family", default="openai")
     score_batch_submit.add_argument("--max-candidates", type=int, default=None)
     score_batch_submit.add_argument("--cap", action=_CapAction, default={}, metavar="FAMILY=USD")
+    score_batch_submit.add_argument(
+        "--total-cap",
+        type=_positive_finite_usd,
+        default=qual.TOTAL_SPEND_CAP_USD,
+        metavar="USD",
+        help="set the hard spend cap across all families for this batch submission",
+    )
     score_batch_submit.set_defaults(handler=command_score_batch_submit)
 
     score_batch_status = subparsers.add_parser("score-batch-status", help="poll scorer batch jobs")
@@ -1456,6 +1473,13 @@ class _CapAction(argparse.Action):
             raise argparse.ArgumentError(self, f"unknown family {name!r}")
         caps[name] = float(value)
         setattr(namespace, self.dest, caps)
+
+
+def _positive_finite_usd(value: str) -> float:
+    cap = float(value)
+    if not math.isfinite(cap) or cap <= 0:
+        raise argparse.ArgumentTypeError("must be a positive finite USD value")
+    return cap
 
 
 def main(argv: Sequence[str] | None = None) -> int:

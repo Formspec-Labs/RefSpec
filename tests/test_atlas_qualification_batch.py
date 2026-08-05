@@ -1249,6 +1249,87 @@ def test_the_total_cap_counts_what_earlier_submits_already_bought(
     assert len(_sidecar(run_dir)["jobs"]) == 1
 
 
+def test_the_default_total_cap_refuses_before_upload(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    monkeypatch.setattr(qual, "TOTAL_SPEND_CAP_USD", 0.01)
+    server = FakeProviders()
+
+    with pytest.raises(SystemExit, match=r"exceeds the \$0\.01 total cap"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+
+    assert all(not url.endswith(("/files", "/batches")) for url in server.urls())
+    assert not (run_dir / qbatch.SIDECAR).exists()
+
+
+def test_an_explicit_total_cap_allows_the_complete_catalog(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    monkeypatch.setattr(qual, "TOTAL_SPEND_CAP_USD", 0.01)
+    server = FakeProviders()
+
+    assert (
+        _run(
+            monkeypatch,
+            server,
+            run_dir,
+            "batch-submit",
+            "--families",
+            "openai",
+            "--total-cap",
+            "1.25",
+        )
+        == 0
+    )
+    assert _sidecar(run_dir)["jobs"][0]["candidateCount"] == len(_candidate_rows())
+
+
+@pytest.mark.parametrize(
+    ("command", "sidecar_name"),
+    [
+        ("batch-submit", qbatch.SIDECAR),
+        ("score-batch-submit", RUNNER.SCORING_BATCH_SIDECAR),
+    ],
+)
+def test_the_effective_total_cap_is_recorded_in_the_summary_and_sidecar(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    sidecar_name: str,
+) -> None:
+    server = FakeProviders()
+    family_option = "--families" if command == "batch-submit" else "--family"
+    _run(
+        monkeypatch,
+        server,
+        run_dir,
+        command,
+        family_option,
+        "openai",
+        "--total-cap",
+        "1.25",
+    )
+
+    sidecar = json.loads((run_dir / sidecar_name).read_text(encoding="utf-8"))
+    assert sidecar["totalSpendCapUsd"] == 1.25
+    assert sidecar["jobs"][0]["totalSpendCapUsd"] == 1.25
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert summary["totalSpendCapUsd"] == 1.25
+
+
+@pytest.mark.parametrize("command", ["batch-submit", "score-batch-submit"])
+@pytest.mark.parametrize("cap", ["0", "-1", "nan", "inf", "-inf"])
+def test_total_cap_must_be_positive_and_finite(command: str, cap: str) -> None:
+    parser = RUNNER.build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            ["--output", "run", command, "--env", "env", "--total-cap", cap]
+        )
+
+
 def test_the_cap_counts_live_projections_and_money_already_spent() -> None:
     """A job releases its projection only when nothing was ever bought."""
 
