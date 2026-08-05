@@ -1330,6 +1330,24 @@ def test_total_cap_must_be_positive_and_finite(command: str, cap: str) -> None:
         )
 
 
+@pytest.mark.parametrize("command", ["batch-submit", "score-batch-submit"])
+@pytest.mark.parametrize("cap", ["0", "-1", "nan", "inf", "-inf"])
+def test_family_cap_must_be_positive_and_finite(command: str, cap: str) -> None:
+    parser = RUNNER.build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--output",
+                "run",
+                command,
+                "--env",
+                "env",
+                "--cap",
+                f"openai={cap}",
+            ]
+        )
+
+
 def test_the_cap_counts_live_projections_and_money_already_spent() -> None:
     """A job releases its projection only when nothing was ever bought."""
 

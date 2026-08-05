@@ -1471,7 +1471,10 @@ class _CapAction(argparse.Action):
         name, _, value = str(values).partition("=")
         if name not in qual.VALIDATOR_FAMILIES:
             raise argparse.ArgumentError(self, f"unknown family {name!r}")
-        caps[name] = float(value)
+        try:
+            caps[name] = _positive_finite_usd(value)
+        except (argparse.ArgumentTypeError, ValueError) as error:
+            raise argparse.ArgumentError(self, str(error)) from error
         setattr(namespace, self.dest, caps)
 
 

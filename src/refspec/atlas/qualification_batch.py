@@ -1081,6 +1081,10 @@ def submit(
             continue
         projection = projected_batch_cost(family, len(pending))
         cap = float(caps.get(family.name)) if caps and family.name in caps else family.spend_cap_usd
+        if not math.isfinite(cap) or cap <= 0:
+            raise ValueError(
+                f"{family.name} batch spend cap must be a positive finite USD value"
+            )
         already = committed.get(family.name, 0.0)
         if projection + already > cap:
             raise BatchSpendCapReached(
