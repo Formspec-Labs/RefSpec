@@ -1,0 +1,87 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/conformance-corpus.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "expected": {
+                  "const": "invalid"
+                }
+              },
+              "required": [
+                "expected"
+              ]
+            },
+            "then": {
+              "required": [
+                "firstIssue"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "expected": {
+            "enum": [
+              "valid",
+              "invalid"
+            ]
+          },
+          "firstIssue": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "id": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "layers": {
+            "items": {
+              "enum": [
+                "json",
+                "lifecycle",
+                "rdf",
+                "shacl",
+                "dataset",
+                "reasoning",
+                "registry"
+              ]
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "path": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "expected",
+          "layers"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "type": {
+      "const": "AtlasConformanceCorpus"
+    },
+    "version": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "cases"
+  ],
+  "title": "RefSpec Atlas 3.0 conformance corpus",
+  "type": "object"
+}

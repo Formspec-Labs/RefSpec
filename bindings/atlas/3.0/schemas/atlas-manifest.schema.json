@@ -1,0 +1,291 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+        "binding": {
+          "additionalProperties": false,
+          "properties": {
+            "acceptanceSchemaDigest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "bindingBundleDigest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+        "manifestSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "ontologyDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "shapesDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceAccountingSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "validatorVersion": {
+          "const": "3.0"
+        },
+        "version": {
+          "const": "3.0"
+        }
+      },
+          "required": [
+            "version",
+            "bindingBundleDigest",
+            "ontologyDigest",
+        "shapesDigest",
+        "manifestSchemaDigest",
+        "sourceAccountingSchemaDigest",
+        "acceptanceSchemaDigest",
+        "validatorVersion"
+      ],
+      "type": "object"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "derivedRelations": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "labels": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "mappingAssertions": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "nativeRelationAssertions": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "projectedRelations": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "relationAssertions": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releases": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "resources": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceAssignments": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceRecords": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "releases",
+        "resources",
+        "labels",
+        "sourceRecords",
+        "relationAssertions",
+        "mappingAssertions",
+        "nativeRelationAssertions",
+        "sourceAssignments",
+        "projectedRelations",
+        "derivedRelations"
+      ],
+      "type": "object"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "distributionId": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "format": {
+      "const": "refspec-atlas-nquads-3.0"
+    },
+    "graphs": {
+      "items": false,
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
+            },
+            "quadCount": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "role": {
+              "const": "asserted"
+            }
+          },
+          "required": [
+            "role",
+            "id",
+            "quadCount"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
+            },
+            "quadCount": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "role": {
+              "const": "projection"
+            }
+          },
+          "required": [
+            "role",
+            "id",
+            "quadCount"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
+            },
+            "quadCount": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "role": {
+              "const": "derived"
+            }
+          },
+          "required": [
+            "role",
+            "id",
+            "quadCount"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "array"
+    },
+    "members": {
+      "items": false,
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byteLength": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "digest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "mediaType": {
+              "const": "application/n-quads"
+            },
+            "path": {
+              "const": "atlas.nq"
+            },
+            "role": {
+              "const": "atlasDataset"
+            }
+          },
+          "required": [
+            "role",
+            "path",
+            "mediaType",
+            "digest",
+            "byteLength"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byteLength": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "digest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "mediaType": {
+              "const": "application/json"
+            },
+            "path": {
+              "const": "atlas-source-accounting.json"
+            },
+            "role": {
+              "const": "sourceAccounting"
+            }
+          },
+          "required": [
+            "role",
+            "path",
+            "mediaType",
+            "digest",
+            "byteLength"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byteLength": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "digest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "mediaType": {
+              "const": "application/json"
+            },
+            "path": {
+              "const": "atlas-acceptance.json"
+            },
+            "role": {
+              "const": "acceptance"
+            }
+          },
+          "required": [
+            "role",
+            "path",
+            "mediaType",
+            "digest",
+            "byteLength"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "type": {
+      "const": "AtlasManifest"
+    }
+  },
+  "required": [
+    "type",
+    "schemaVersion",
+    "format",
+    "distributionId",
+    "createdAt",
+    "binding",
+    "graphs",
+    "members",
+    "counts",
+    "canonicalPayloadDigest"
+  ],
+  "title": "RefSpec Atlas 3.0 manifest",
+  "type": "object"
+}

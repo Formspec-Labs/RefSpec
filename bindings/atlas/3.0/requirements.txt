@@ -1,0 +1,4 @@
+jsonschema==4.26.0
+owlrl==7.1.4
+pyshacl==0.31.0
+rdflib==7.6.0

@@ -1,0 +1,210 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-source-accounting.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "distributionId": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "inputs": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "membershipMode": {
+                  "enum": [
+                    "complete",
+                    "partial"
+                  ]
+                }
+              },
+              "required": [
+                "membershipMode"
+              ]
+            },
+            "then": {
+              "required": [
+                "declaredMemberCount"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "membershipMode": {
+                  "const": "notEnumerated"
+                }
+              },
+              "required": [
+                "membershipMode"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "declaredMemberCount"
+                ]
+              }
+            }
+          }
+        ],
+        "properties": {
+          "declaredMemberCount": {
+            "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+          },
+          "dispositions": {
+            "items": {
+              "additionalProperties": false,
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "represented"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "not": {
+                      "required": [
+                        "reason"
+                      ]
+                    },
+                    "properties": {
+                      "atlasResources": {
+                        "minItems": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "excluded",
+                          "unresolved"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "atlasResources": {
+                        "maxItems": 0
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ]
+                  }
+                }
+              ],
+              "properties": {
+                "atlasResources": {
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/absoluteIri"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "reason": {
+                  "$ref": "common.schema.json#/$defs/nonEmptyString"
+                },
+                "sourceRecord": {
+                  "$ref": "common.schema.json#/$defs/absoluteIri"
+                },
+                "status": {
+                  "enum": [
+                    "represented",
+                    "excluded",
+                    "unresolved"
+                  ]
+                }
+              },
+              "required": [
+                "sourceRecord",
+                "status",
+                "atlasResources"
+              ],
+              "type": "object"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "membershipMode": {
+            "enum": [
+              "complete",
+              "partial",
+              "notEnumerated"
+            ]
+          },
+          "sourceRelease": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          }
+        },
+        "required": [
+          "sourceRelease",
+          "membershipMode",
+          "dispositions"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "totals": {
+      "additionalProperties": false,
+      "properties": {
+        "excluded": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "represented": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceRecords": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceReleases": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "unresolved": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "sourceReleases",
+        "sourceRecords",
+        "represented",
+        "excluded",
+        "unresolved"
+      ],
+      "type": "object"
+    },
+    "type": {
+      "const": "AtlasSourceAccounting"
+    },
+    "version": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "distributionId",
+    "inputs",
+    "totals"
+  ],
+  "title": "RefSpec Atlas 3.0 source accounting",
+  "type": "object"
+}

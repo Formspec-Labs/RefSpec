@@ -1,0 +1,29 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/common.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Atlas 3.0 common schema definitions",
+  "$defs": {
+    "absoluteIri": {
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s<>]+$",
+      "type": "string"
+    },
+    "dateTime": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "nonEmptyString": {
+      "minLength": 1,
+      "pattern": "\\S",
+      "type": "string"
+    },
+    "nonnegativeInteger": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    }
+  }
+}

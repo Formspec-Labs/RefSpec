@@ -1,0 +1,504 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-coverage.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "codeSchemeProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "semanticRingCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "subject": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "value": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "entity",
+            "subject",
+            "value"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "indexedResourceCount",
+        "indexedRowCount",
+        "indexedWithoutExactReleaseCount",
+        "releaseReadyIndexedResourceCount",
+        "semanticRingCounts"
+      ],
+      "type": "object"
+    },
+    "conceptSchemeProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "semanticRingCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "subject": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "value": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "entity",
+            "subject",
+            "value"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "indexedResourceCount",
+        "indexedRowCount",
+        "indexedWithoutExactReleaseCount",
+        "releaseReadyIndexedResourceCount",
+        "semanticRingCounts"
+      ],
+      "type": "object"
+    },
+    "identifierSchemeProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "semanticRingCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "legalIdentity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "entity",
+            "legalIdentity"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "indexedResourceCount",
+        "indexedRowCount",
+        "indexedWithoutExactReleaseCount",
+        "releaseReadyIndexedResourceCount",
+        "semanticRingCounts"
+      ],
+      "type": "object"
+    },
+    "resourceCollectionProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "semanticRingCounts": {
+          "additionalProperties": false,
+          "maxProperties": 0,
+          "type": "object"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "indexedResourceCount",
+        "indexedRowCount",
+        "indexedWithoutExactReleaseCount",
+        "releaseReadyIndexedResourceCount",
+        "semanticRingCounts"
+      ],
+      "type": "object"
+    },
+    "structureSchemeProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "semanticRingCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "legalIdentity": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "value": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "entity",
+            "legalIdentity",
+            "value"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "indexedResourceCount",
+        "indexedRowCount",
+        "indexedWithoutExactReleaseCount",
+        "releaseReadyIndexedResourceCount",
+        "semanticRingCounts"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "coverageDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "format": {
+      "const": "refspec-atlas-registry-coverage/3.0"
+    },
+    "inputs": {
+      "additionalProperties": false,
+      "properties": {
+        "atlasIndexDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "registryResourceProfilesDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "resourceCatalogDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "atlasIndexDigest",
+        "registryResourceProfilesDigest",
+        "resourceCatalogDigest"
+      ],
+      "type": "object"
+    },
+    "profiles": {
+      "additionalProperties": false,
+      "properties": {
+        "codeScheme": {
+          "$ref": "#/$defs/codeSchemeProfile"
+        },
+        "conceptScheme": {
+          "$ref": "#/$defs/conceptSchemeProfile"
+        },
+        "identifierScheme": {
+          "$ref": "#/$defs/identifierSchemeProfile"
+        },
+        "resourceCollection": {
+          "$ref": "#/$defs/resourceCollectionProfile"
+        },
+        "structureScheme": {
+          "$ref": "#/$defs/structureSchemeProfile"
+        }
+      },
+      "required": [
+        "codeScheme",
+        "conceptScheme",
+        "identifierScheme",
+        "resourceCollection",
+        "structureScheme"
+      ],
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "setDigests": {
+      "additionalProperties": false,
+      "properties": {
+        "catalogOnlyDescriptorIds": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "catalogResourceIds": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "implementationModules": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "indexedPlacementIdentities": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "indexedResourceIds": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "indexedSemanticRings": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "indexedWithoutExactReleaseIds": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "registryModules": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "releaseReadyIndexedResourceIds": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceModules": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "catalogOnlyDescriptorIds",
+        "catalogResourceIds",
+        "implementationModules",
+        "indexedPlacementIdentities",
+        "indexedResourceIds",
+        "indexedSemanticRings",
+        "indexedWithoutExactReleaseIds",
+        "registryModules",
+        "releaseReadyIndexedResourceIds",
+        "sourceModules"
+      ],
+      "type": "object"
+    },
+    "summary": {
+      "additionalProperties": false,
+      "properties": {
+        "atlasIndexRowCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogOnlyDescriptorCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "catalogResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "implementationModuleCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "indexedWithoutExactReleaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "registryModuleCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseReadyIndexedResourceCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "resourceKindCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "classification": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "codeList": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "historicalVocabulary": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "identifierAuthority": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "mappingReference": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "resourceFamily": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "sourceAssignedVocabulary": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "structuralSchema": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            },
+            "subjectVocabulary": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+            }
+          },
+          "required": [
+            "classification",
+            "codeList",
+            "historicalVocabulary",
+            "identifierAuthority",
+            "mappingReference",
+            "resourceFamily",
+            "sourceAssignedVocabulary",
+            "structuralSchema",
+            "subjectVocabulary"
+          ],
+          "type": "object"
+        },
+        "sourceModuleCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "atlasIndexRowCount",
+        "catalogOnlyDescriptorCount",
+        "catalogResourceCount",
+        "implementationModuleCount",
+        "indexedResourceCount",
+        "indexedWithoutExactReleaseCount",
+        "registryModuleCount",
+        "releaseReadyIndexedResourceCount",
+        "resourceKindCounts",
+        "sourceModuleCount"
+      ],
+      "type": "object"
+    },
+    "unsupported": {
+      "additionalProperties": false,
+      "properties": {
+        "modules": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "resourceKinds": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "resources": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "modules",
+        "resourceKinds",
+        "resources"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "coverageDigest",
+    "format",
+    "inputs",
+    "profiles",
+    "schemaVersion",
+    "setDigests",
+    "summary",
+    "unsupported"
+  ],
+  "title": "RefSpec Atlas 3.0 registry coverage",
+  "type": "object"
+}

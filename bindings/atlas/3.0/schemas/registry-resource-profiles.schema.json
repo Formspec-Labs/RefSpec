@@ -1,0 +1,217 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-resource-profiles.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "assertionPredicates": {
+      "additionalProperties": false,
+      "properties": {
+        "MappingAssertion": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "NativeRelationAssertion": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "SourceAssignment": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "MappingAssertion",
+        "NativeRelationAssertion",
+        "SourceAssignment"
+      ],
+      "type": "object"
+    },
+    "entryClass": {
+      "$ref": "common.schema.json#/$defs/absoluteIri",
+      "enum": [
+        "http://www.w3.org/2008/05/skos-xl#Label",
+        "https://refspec.org/ns/atlas/v3#AtlasRelease",
+        "https://refspec.org/ns/atlas/v3#AtlasResource",
+        "https://refspec.org/ns/atlas/v3#DerivedRelation",
+        "https://refspec.org/ns/atlas/v3#EntityResource",
+        "https://refspec.org/ns/atlas/v3#Identifier",
+        "https://refspec.org/ns/atlas/v3#LegalIdentityResource",
+        "https://refspec.org/ns/atlas/v3#MappingAssertion",
+        "https://refspec.org/ns/atlas/v3#NativeRelationAssertion",
+        "https://refspec.org/ns/atlas/v3#ProjectedRelation",
+        "https://refspec.org/ns/atlas/v3#RelationAssertion",
+        "https://refspec.org/ns/atlas/v3#ResourceScheme",
+        "https://refspec.org/ns/atlas/v3#SkosMappingAssertion",
+        "https://refspec.org/ns/atlas/v3#SourceAssignment",
+        "https://refspec.org/ns/atlas/v3#SourceRecord",
+        "https://refspec.org/ns/atlas/v3#SubjectConcept",
+        "https://refspec.org/ns/atlas/v3#ValueResource"
+      ]
+    },
+    "profile": {
+      "additionalProperties": false,
+      "properties": {
+        "applicableEntryClasses": {
+          "items": {
+            "$ref": "#/$defs/entryClass"
+          },
+          "maxItems": 17,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "applicableSemanticRings": {
+          "items": {
+            "$ref": "#/$defs/semanticRing"
+          },
+          "maxItems": 4,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "descriptorBehavior": {
+          "enum": [
+            "alwaysDescriptorOnly",
+            "descriptorOnlyUntilExactRelease"
+          ]
+        },
+        "profile": {
+          "$ref": "#/$defs/profileName"
+        },
+        "resourceKinds": {
+          "items": {
+            "$ref": "#/$defs/resourceKind"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "applicableEntryClasses",
+        "applicableSemanticRings",
+        "descriptorBehavior",
+        "profile",
+        "resourceKinds"
+      ],
+      "type": "object"
+    },
+    "profileName": {
+      "enum": [
+        "codeScheme",
+        "conceptScheme",
+        "identifierScheme",
+        "resourceCollection",
+        "structureScheme"
+      ],
+      "type": "string"
+    },
+    "relationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "assertionPredicates": {
+          "$ref": "#/$defs/assertionPredicates"
+        },
+        "resourceClass": {
+          "$ref": "common.schema.json#/$defs/absoluteIri",
+          "enum": [
+            "https://refspec.org/ns/atlas/v3#EntityResource",
+            "https://refspec.org/ns/atlas/v3#LegalIdentityResource",
+            "https://refspec.org/ns/atlas/v3#SubjectConcept",
+            "https://refspec.org/ns/atlas/v3#ValueResource"
+          ]
+        },
+        "semanticRing": {
+          "$ref": "#/$defs/semanticRing"
+        }
+      },
+      "required": [
+        "assertionPredicates",
+        "resourceClass",
+        "semanticRing"
+      ],
+      "type": "object"
+    },
+    "resourceKind": {
+      "enum": [
+        "classification",
+        "codeList",
+        "historicalVocabulary",
+        "identifierAuthority",
+        "mappingReference",
+        "resourceFamily",
+        "sourceAssignedVocabulary",
+        "structuralSchema",
+        "subjectVocabulary"
+      ],
+      "type": "string"
+    },
+    "semanticRing": {
+      "enum": [
+        "entity",
+        "legalIdentity",
+        "subject",
+        "value"
+      ],
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "refspec-atlas-registry-resource-profiles/3.0"
+    },
+    "namespace": {
+      "$ref": "common.schema.json#/$defs/absoluteIri",
+      "const": "https://refspec.org/ns/atlas/v3#"
+    },
+    "profileDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "profiles": {
+      "items": {
+        "$ref": "#/$defs/profile"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "relationPolicies": {
+      "items": {
+        "$ref": "#/$defs/relationPolicy"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schemaVersion": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "format",
+    "namespace",
+    "profileDigest",
+    "profiles",
+    "relationPolicies",
+    "schemaVersion"
+  ],
+  "title": "RefSpec Atlas 3.0 registry resource profiles",
+  "type": "object"
+}

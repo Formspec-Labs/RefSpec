@@ -1,0 +1,1121 @@
+@prefix atlas:   <https://refspec.org/ns/atlas/v3#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl:  <http://www.w3.org/2008/05/skos-xl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+<https://refspec.org/ns/atlas/v3/shapes>
+  a owl:Ontology ;
+  rdfs:label "RefSpec Atlas SHACL shapes 3.0"@en ;
+  rdfs:comment "Closed-world publication constraints for the asserted, projection, and derived roles of an Atlas 3.0 dataset."@en ;
+  owl:versionInfo "3.0" .
+
+# Reusable value shapes
+
+atlas:DigestValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:Literal ;
+  sh:datatype xsd:string ;
+  sh:pattern "^sha256:[0-9a-f]{64}$" ;
+  sh:message "A digest MUST use the lowercase sha256:<64 hex> form." .
+
+atlas:SemanticRingValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:IRI .
+
+atlas:ResourceProfileValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:IRI .
+
+atlas:NonEmptyStringValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:Literal ;
+  sh:datatype xsd:string ;
+  sh:minLength 1 .
+
+atlas:TextLiteralValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:Literal ;
+  sh:or (
+    [ sh:datatype rdf:langString ]
+    [ sh:datatype xsd:string ]
+  ) .
+
+atlas:DateTimeValueShape
+  a sh:NodeShape ;
+  sh:nodeKind sh:Literal ;
+  sh:datatype xsd:dateTime .
+
+# Releases, schemes, resources, identifiers, and source records
+
+atlas:SourceReleaseShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:SourceRelease ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path dcterms:issued ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal
+  ] ;
+  sh:property [
+    sh:path atlas:sourceDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceLocator ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+atlas:AtlasReleaseShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:AtlasRelease ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path dcterms:issued ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal
+  ] ;
+  sh:property [
+    sh:path atlas:inScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:ResourceScheme
+  ] ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:resourceProfile ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:ResourceProfileValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:membershipMode ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue atlas:completeMembership
+  ] ;
+  sh:property [
+    sh:path prov:hadMember ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "An AtlasRelease MUST use its ResourceScheme profile and one of that scheme's supported rings." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      SELECT $this
+      WHERE {
+        $this atlas:inScheme ?scheme ;
+              atlas:semanticRing ?ring ;
+              atlas:resourceProfile ?profile .
+        FILTER NOT EXISTS {
+          ?scheme atlas:supportedRing ?ring ;
+                  atlas:resourceProfile ?profile .
+        }
+      }
+    """
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "Every AtlasRelease member MUST point back to that release with atlas:inRelease." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX prov: <http://www.w3.org/ns/prov#>
+      SELECT $this ?member
+      WHERE {
+        $this prov:hadMember ?member .
+        FILTER NOT EXISTS { ?member atlas:inRelease $this }
+      }
+    """
+  ] .
+
+atlas:ResourceSchemeShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:ResourceScheme ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path atlas:resourceProfile ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:ResourceProfileValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:supportedRing ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:descriptorPayload ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype rdf:JSON
+  ] ;
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path atlas:collectionMember ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:ResourceScheme
+  ] ;
+  sh:property [ sh:path atlas:validationRule ; sh:node atlas:NonEmptyStringValueShape ] ;
+  sh:property [ sh:path atlas:recordStatus ; sh:maxCount 1 ; sh:node atlas:NonEmptyStringValueShape ] ;
+  sh:property [ sh:path atlas:definition ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:note ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [
+    sh:path atlas:validFrom ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape ;
+    sh:lessThanOrEquals atlas:validUntil
+  ] ;
+  sh:property [ sh:path atlas:validUntil ; sh:maxCount 1 ; sh:node atlas:DateTimeValueShape ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "A conceptScheme profile or any ResourceScheme hosting SKOS concepts MUST also be a skos:ConceptScheme." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+      SELECT $this
+      WHERE {
+        {
+          $this atlas:resourceProfile atlas:conceptScheme .
+        }
+        UNION
+        {
+          ?concept skos:inScheme $this .
+        }
+        FILTER NOT EXISTS { $this rdf:type skos:ConceptScheme }
+      }
+    """
+  ] .
+
+atlas:AtlasResourceShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:AtlasResource ;
+  sh:targetClass atlas:SubjectConcept ;
+  sh:targetClass atlas:EntityResource ;
+  sh:targetClass atlas:ValueResource ;
+  sh:targetClass atlas:LegalIdentityResource ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:xone (
+    [ sh:class atlas:SubjectConcept ]
+    [ sh:class atlas:EntityResource ]
+    [ sh:class atlas:ValueResource ]
+    [ sh:class atlas:LegalIdentityResource ]
+  ) ;
+  sh:not [ sh:class atlas:Identifier ] ;
+  sh:not [ sh:class atlas:SourceRecord ] ;
+  sh:not [ sh:class skosxl:Label ] ;
+  sh:property [
+    sh:path atlas:inRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:property [
+    sh:path atlas:inScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:ResourceScheme
+  ] ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:resourceProfile ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:ResourceProfileValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [ sh:path atlas:notation ; sh:node atlas:NonEmptyStringValueShape ] ;
+  sh:property [ sh:path atlas:recordStatus ; sh:maxCount 1 ; sh:node atlas:NonEmptyStringValueShape ] ;
+  sh:property [ sh:path atlas:definition ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [ sh:path atlas:note ; sh:node atlas:TextLiteralValueShape ] ;
+  sh:property [
+    sh:path atlas:componentPosition ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:integer ;
+    sh:minInclusive 0
+  ] ;
+  sh:property [
+    sh:path atlas:validFrom ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape ;
+    sh:lessThanOrEquals atlas:validUntil
+  ] ;
+  sh:property [ sh:path atlas:validUntil ; sh:maxCount 1 ; sh:node atlas:DateTimeValueShape ] ;
+  sh:property [
+    sh:path skos:inScheme ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class skos:ConceptScheme
+  ] ;
+  sh:property [
+    sh:path skosxl:prefLabel ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class skosxl:Label
+  ] ;
+  sh:property [
+    sh:path skosxl:altLabel ;
+    sh:nodeKind sh:IRI ;
+    sh:class skosxl:Label
+  ] ;
+  sh:property [
+    sh:path skosxl:hiddenLabel ;
+    sh:nodeKind sh:IRI ;
+    sh:class skosxl:Label
+  ] ;
+  sh:property [ sh:path skos:prefLabel ; sh:maxCount 0 ] ;
+  sh:property [ sh:path skos:altLabel ; sh:maxCount 0 ] ;
+  sh:property [ sh:path skos:hiddenLabel ; sh:maxCount 0 ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "An AtlasResource MUST agree with its release and scheme on scheme, semantic ring, profile, and release membership." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX prov: <http://www.w3.org/ns/prov#>
+      SELECT $this
+      WHERE {
+        $this atlas:inRelease ?release ;
+              atlas:inScheme ?scheme ;
+              atlas:semanticRing ?ring ;
+              atlas:resourceProfile ?profile .
+        FILTER (
+          NOT EXISTS {
+            ?release atlas:inScheme ?scheme ;
+                     atlas:semanticRing ?ring ;
+                     atlas:resourceProfile ?profile ;
+                     prov:hadMember $this .
+          }
+          ||
+          NOT EXISTS {
+            ?scheme atlas:supportedRing ?ring ;
+                    atlas:resourceProfile ?profile .
+          }
+        )
+      }
+    """
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "Each SKOS-XL label used by a resource MUST identify the same Atlas release and one of that resource's source records." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
+      SELECT $this ?label
+      WHERE {
+        {
+          $this skosxl:prefLabel ?label .
+        }
+        UNION
+        {
+          $this skosxl:altLabel ?label .
+        }
+        UNION
+        {
+          $this skosxl:hiddenLabel ?label .
+        }
+        $this atlas:inRelease ?release .
+        FILTER (
+          NOT EXISTS { ?label atlas:inRelease ?release }
+          ||
+          NOT EXISTS {
+            $this atlas:sourceRecord ?record .
+            ?label atlas:sourceRecord ?record .
+          }
+        )
+      }
+    """
+  ] .
+
+atlas:SubjectConceptShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:SubjectConcept ;
+  sh:property [ sh:path atlas:semanticRing ; sh:hasValue atlas:subject ] ;
+  sh:property [ sh:path skos:inScheme ; sh:minCount 1 ; sh:maxCount 1 ; sh:equals atlas:inScheme ] .
+
+atlas:EntityResourceShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:EntityResource ;
+  sh:property [ sh:path atlas:semanticRing ; sh:hasValue atlas:entity ] ;
+  sh:property [ sh:path skos:inScheme ; sh:maxCount 0 ] .
+
+atlas:ValueResourceShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:ValueResource ;
+  sh:property [ sh:path atlas:semanticRing ; sh:hasValue atlas:value ] ;
+  sh:or (
+    [
+      sh:not [ sh:class skos:Concept ] ;
+      sh:property [ sh:path skos:inScheme ; sh:maxCount 0 ]
+    ]
+    [
+      sh:class skos:Concept ;
+      sh:property [ sh:path skos:inScheme ; sh:minCount 1 ; sh:maxCount 1 ; sh:equals atlas:inScheme ]
+    ]
+  ) .
+
+atlas:LegalIdentityResourceShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:LegalIdentityResource ;
+  sh:property [ sh:path atlas:semanticRing ; sh:hasValue atlas:legalIdentity ] ;
+  sh:property [ sh:path skos:inScheme ; sh:maxCount 0 ] .
+
+atlas:IdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:Identifier ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:not [ sh:class atlas:AtlasResource ] ;
+  sh:not [ sh:class atlas:SourceRecord ] ;
+  sh:not [ sh:class skosxl:Label ] ;
+  sh:property [
+    sh:path atlas:identifierValue ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:string ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path atlas:identifierScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:ResourceScheme
+  ] ;
+  sh:property [
+    sh:path atlas:identifies ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "Identifier.identifierScheme MUST use the identifierScheme resource profile." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      SELECT $this
+      WHERE {
+        $this atlas:identifierScheme ?scheme .
+        FILTER NOT EXISTS { ?scheme atlas:resourceProfile atlas:identifierScheme }
+      }
+    """
+  ] .
+
+atlas:SourceRecordShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:SourceRecord ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:not [ sh:class atlas:AtlasResource ] ;
+  sh:not [ sh:class atlas:Identifier ] ;
+  sh:not [ sh:class skosxl:Label ] ;
+  sh:property [
+    sh:path atlas:inSourceRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRelease
+  ] ;
+  sh:property [
+    sh:path atlas:sourceDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceLocator ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:nativePayload ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype rdf:JSON
+  ] ;
+  sh:property [
+    sh:path atlas:representsResource ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+atlas:EditorialPolicyShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:EditorialPolicy ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path atlas:policyPayload ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype rdf:JSON
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+# Canonical SKOS-XL labels
+
+atlas:SkosXlLabelShape
+  a sh:NodeShape ;
+  sh:targetClass skosxl:Label ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:not [ sh:class atlas:AtlasResource ] ;
+  sh:not [ sh:class atlas:Identifier ] ;
+  sh:not [ sh:class atlas:SourceRecord ] ;
+  sh:property [
+    sh:path skosxl:literalForm ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1 ;
+    sh:or (
+      [ sh:datatype rdf:langString ]
+      [ sh:datatype xsd:string ]
+    )
+  ] ;
+  sh:property [
+    sh:path atlas:inRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRecord ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+atlas:PreferredLabelLanguageShape
+  a sh:NodeShape ;
+  sh:targetSubjectsOf skosxl:prefLabel ;
+  sh:property [
+    sh:path ( skosxl:prefLabel skosxl:literalForm ) ;
+    sh:uniqueLang true
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "A resource MUST have at most one preferred SKOS-XL label per language, including the untagged language bucket." ;
+    sh:select """
+      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
+      SELECT $this ?first ?second
+      WHERE {
+        $this skosxl:prefLabel ?first, ?second .
+        FILTER (STR(?first) < STR(?second))
+        ?first skosxl:literalForm ?firstLiteral .
+        ?second skosxl:literalForm ?secondLiteral .
+        FILTER (LCASE(LANG(?firstLiteral)) = LCASE(LANG(?secondLiteral)))
+      }
+    """
+  ] .
+
+atlas:SkosXlLabelRoleIntegrityShape
+  a sh:NodeShape ;
+  sh:targetSubjectsOf skosxl:prefLabel ;
+  sh:targetSubjectsOf skosxl:altLabel ;
+  sh:targetSubjectsOf skosxl:hiddenLabel ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "SKOS and SKOS-XL label roles MUST be pairwise disjoint by label node and projected literal." ;
+    sh:select """
+      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
+      SELECT $this ?first ?second
+      WHERE {
+        {
+          $this skosxl:prefLabel ?first ; skosxl:altLabel ?second .
+        }
+        UNION
+        {
+          $this skosxl:prefLabel ?first ; skosxl:hiddenLabel ?second .
+        }
+        UNION
+        {
+          $this skosxl:altLabel ?first ; skosxl:hiddenLabel ?second .
+        }
+        ?first skosxl:literalForm ?firstLiteral .
+        ?second skosxl:literalForm ?secondLiteral .
+        FILTER (?first = ?second || ?firstLiteral = ?secondLiteral)
+      }
+    """
+  ] .
+
+# Evidence-bearing relation assertions
+
+atlas:RelationAssertionShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:RelationAssertion ;
+  sh:targetClass atlas:MappingAssertion ;
+  sh:targetClass atlas:SkosMappingAssertion ;
+  sh:targetClass atlas:NativeRelationAssertion ;
+  sh:targetClass atlas:SourceAssignment ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:xone (
+    [ sh:class atlas:MappingAssertion ]
+    [ sh:class atlas:NativeRelationAssertion ]
+    [ sh:class atlas:SourceAssignment ]
+  ) ;
+  sh:not [ sh:class atlas:ProjectedRelation ] ;
+  sh:not [ sh:class atlas:DerivedRelation ] ;
+  sh:property [
+    sh:path rdf:subject ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path rdf:predicate ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path rdf:object ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:Release
+  ] ;
+  sh:property [
+    sh:path atlas:targetRelease ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:Release
+  ] ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:assertedAt ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:dateTime
+  ] ;
+  sh:property [
+    sh:path atlas:governedByPolicy ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:EditorialPolicy
+  ] ;
+  sh:property [
+    sh:path atlas:assertionStatus ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:in ( atlas:current atlas:superseded atlas:withdrawn )
+  ] ;
+  sh:property [
+    sh:path atlas:supersedes ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:RelationAssertion
+  ] ;
+  sh:property [
+    sh:path atlas:assertionIdentityDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath atlas:bindsAssertion ] ;
+    sh:qualifiedValueShape [
+      sh:nodeKind sh:IRI ;
+      sh:class atlas:EvidenceBinding
+    ] ;
+    sh:qualifiedMinCount 1
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "Every relation assertion MUST have an immutable EvidenceBinding backed by an Atlas SourceRecord." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this
+      WHERE {
+        FILTER NOT EXISTS {
+          ?binding rdf:type atlas:EvidenceBinding ;
+                   atlas:bindsAssertion $this ;
+                   atlas:evidenceSourceRecord ?sourceRecord .
+        }
+      }
+    """
+  ] .
+
+atlas:MappingAssertionShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:MappingAssertion ;
+  sh:property [
+    sh:path rdf:subject ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:property [
+    sh:path rdf:object ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRelease ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:property [
+    sh:path atlas:targetRelease ;
+    sh:class atlas:AtlasRelease
+  ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "MappingAssertion endpoints MUST have the assertion ring and occur in their exact source and target Atlas releases." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX prov: <http://www.w3.org/ns/prov#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this
+      WHERE {
+        $this rdf:subject ?source ;
+              rdf:object ?target ;
+              atlas:sourceRelease ?sourceRelease ;
+              atlas:targetRelease ?targetRelease ;
+              atlas:semanticRing ?ring .
+        FILTER (
+          NOT EXISTS {
+            ?source atlas:semanticRing ?ring .
+            ?sourceRelease prov:hadMember ?source .
+          }
+          ||
+          NOT EXISTS {
+            ?target atlas:semanticRing ?ring .
+            ?targetRelease prov:hadMember ?target .
+          }
+        )
+      }
+    """
+  ] .
+
+atlas:SkosMappingAssertionShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:SkosMappingAssertion ;
+  sh:property [ sh:path atlas:semanticRing ; sh:hasValue atlas:subject ] ;
+  sh:property [ sh:path rdf:subject ; sh:class atlas:SubjectConcept ] ;
+  sh:property [ sh:path rdf:object ; sh:class atlas:SubjectConcept ] ;
+  sh:property [ sh:path atlas:sourceRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] .
+
+atlas:NativeRelationAssertionShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:NativeRelationAssertion ;
+  sh:property [ sh:path rdf:subject ; sh:class atlas:AtlasResource ] ;
+  sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
+  sh:property [ sh:path atlas:sourceRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "Native relation endpoints MUST share one exact Atlas release and the assertion's semantic ring." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX prov: <http://www.w3.org/ns/prov#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this
+      WHERE {
+        $this rdf:subject ?source ;
+              rdf:object ?target ;
+              atlas:sourceRelease ?sourceRelease ;
+              atlas:targetRelease ?targetRelease ;
+              atlas:semanticRing ?ring .
+        FILTER (
+          ?sourceRelease != ?targetRelease
+          ||
+          NOT EXISTS {
+            ?source atlas:semanticRing ?ring .
+            ?target atlas:semanticRing ?ring .
+            ?sourceRelease prov:hadMember ?source, ?target .
+          }
+        )
+      }
+    """
+  ] .
+
+atlas:SourceAssignmentShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:SourceAssignment ;
+  sh:property [ sh:path rdf:subject ; sh:class atlas:SourceRecord ] ;
+  sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
+  sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:sparql [
+    a sh:SPARQLConstraint ;
+    sh:message "SourceAssignment endpoint releases and semantic ring MUST agree with its SourceRecord and normalized target." ;
+    sh:select """
+      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
+      PREFIX prov: <http://www.w3.org/ns/prov#>
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      SELECT $this
+      WHERE {
+        $this rdf:subject ?record ;
+              rdf:object ?target ;
+              atlas:sourceRelease ?sourceRelease ;
+              atlas:targetRelease ?targetRelease ;
+              atlas:semanticRing ?ring .
+        FILTER (
+          NOT EXISTS { ?record atlas:inSourceRelease ?sourceRelease }
+          ||
+          NOT EXISTS {
+            ?target atlas:inRelease ?targetRelease ;
+                    atlas:semanticRing ?ring .
+            ?targetRelease prov:hadMember ?target .
+          }
+        )
+      }
+    """
+  ] .
+
+atlas:EvidenceBindingShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:EvidenceBinding ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path atlas:bindsAssertion ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:RelationAssertion
+  ] ;
+  sh:property [
+    sh:path atlas:evidenceSourceRecord ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:SourceRecord
+  ] ;
+  sh:property [
+    sh:path atlas:evidenceSourceDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:reviewedBy ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:decisionStatus ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue atlas:approved
+  ] ;
+  sh:property [
+    sh:path atlas:reviewMethod ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in ( atlas:humanReview atlas:trustedPipelineReview )
+  ] ;
+  sh:property [
+    sh:path atlas:decidedAt ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:dateTime
+  ] ;
+  sh:property [
+    sh:path atlas:confidence ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:decimal ;
+    sh:minInclusive 0 ;
+    sh:maxInclusive 1
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+atlas:LifecycleEventShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:LifecycleEvent ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [ sh:path atlas:eventSubject ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+  sh:property [ sh:path atlas:eventType ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+  sh:property [ sh:path atlas:eventAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+  sh:property [ sh:path atlas:fromRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
+  sh:property [ sh:path atlas:toRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
+  sh:property [ sh:path atlas:sourceRecord ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:SourceRecord ] ;
+  sh:property [ sh:path atlas:contentDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:node atlas:DigestValueShape ] .
+
+# Reproducible projection records
+
+atlas:ProjectedRelationShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:ProjectedRelation ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type rdfs:label ) ;
+  sh:not [ sh:class atlas:RelationAssertion ] ;
+  sh:not [ sh:class atlas:DerivedRelation ] ;
+  sh:property [
+    sh:path atlas:relationSubject ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:relationPredicate ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:relationObject ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:supportingAssertion ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
+# Explicitly non-authoritative derived relation records
+
+atlas:DerivedRelationShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:DerivedRelation ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type rdfs:label ) ;
+  sh:not [ sh:class atlas:RelationAssertion ] ;
+  sh:not [ sh:class atlas:ProjectedRelation ] ;
+  sh:property [
+    sh:path atlas:relationSubject ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:relationPredicate ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:relationObject ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:derivedFromAssertion ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:derivationRule ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:engine ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path atlas:engineVersion ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:string ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path atlas:inputDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:generatedAt ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:dateTime
+  ] ;
+  sh:property [
+    sh:path atlas:authorityStatus ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:hasValue atlas:nonAuthoritative
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .

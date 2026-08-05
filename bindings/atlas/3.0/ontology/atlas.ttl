@@ -1,0 +1,633 @@
+@prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+<https://refspec.org/ns/atlas/v3>
+  a owl:Ontology ;
+  rdfs:label "RefSpec Atlas vocabulary 3.0"@en ;
+  rdfs:comment "Authority-first vocabulary for immutable reference-resource releases, evidence-bearing assertions, reproducible projections, and explicitly non-authoritative derivations."@en ;
+  owl:versionInfo "3.0" .
+
+# Classes
+
+atlas:SemanticRing
+  a owl:Class ;
+  rdfs:label "semantic ring"@en .
+
+atlas:ResourceProfile
+  a owl:Class ;
+  rdfs:label "resource profile"@en .
+
+atlas:AssertionStatus
+  a owl:Class ;
+  rdfs:label "assertion status"@en .
+
+atlas:AuthorityStatus
+  a owl:Class ;
+  rdfs:label "authority status"@en .
+
+atlas:MembershipMode
+  a owl:Class ;
+  rdfs:label "membership mode"@en .
+
+atlas:EditorialDecisionStatus
+  a owl:Class ;
+  rdfs:label "editorial decision status"@en .
+
+atlas:ReviewMethod
+  a owl:Class ;
+  rdfs:label "review method"@en .
+
+atlas:Release
+  a owl:Class ;
+  rdfs:label "release"@en .
+
+atlas:AtlasRelease
+  a owl:Class ;
+  rdfs:subClassOf atlas:Release ;
+  rdfs:label "Atlas release"@en .
+
+atlas:SourceRelease
+  a owl:Class ;
+  rdfs:subClassOf atlas:Release ;
+  rdfs:label "source release"@en .
+
+atlas:ResourceScheme
+  a owl:Class ;
+  rdfs:label "resource scheme"@en .
+
+atlas:AtlasResource
+  a owl:Class ;
+  rdfs:label "Atlas resource"@en .
+
+atlas:SubjectConcept
+  a owl:Class ;
+  rdfs:subClassOf atlas:AtlasResource, skos:Concept ;
+  rdfs:label "subject concept"@en .
+
+atlas:EntityResource
+  a owl:Class ;
+  rdfs:subClassOf atlas:AtlasResource ;
+  rdfs:label "entity resource"@en .
+
+atlas:ValueResource
+  a owl:Class ;
+  rdfs:subClassOf atlas:AtlasResource ;
+  rdfs:label "value resource"@en .
+
+atlas:LegalIdentityResource
+  a owl:Class ;
+  rdfs:subClassOf atlas:AtlasResource ;
+  rdfs:label "legal identity resource"@en .
+
+atlas:Identifier
+  a owl:Class ;
+  rdfs:label "identifier"@en .
+
+atlas:SourceRecord
+  a owl:Class ;
+  rdfs:label "source record"@en .
+
+atlas:EvidenceBinding
+  a owl:Class ;
+  rdfs:label "evidence binding"@en .
+
+atlas:EditorialPolicy
+  a owl:Class ;
+  rdfs:label "editorial policy"@en .
+
+atlas:LifecycleEvent
+  a owl:Class ;
+  rdfs:label "lifecycle event"@en .
+
+atlas:RelationAssertion
+  a owl:Class ;
+  rdfs:label "relation assertion"@en .
+
+atlas:MappingAssertion
+  a owl:Class ;
+  rdfs:subClassOf atlas:RelationAssertion ;
+  rdfs:label "mapping assertion"@en .
+
+atlas:SkosMappingAssertion
+  a owl:Class ;
+  rdfs:subClassOf atlas:MappingAssertion ;
+  rdfs:label "SKOS mapping assertion"@en ;
+  rdfs:comment "Subject-ring mapping assertion constrained to one of SKOS's five concrete mapping predicates."@en .
+
+atlas:NativeRelationAssertion
+  a owl:Class ;
+  rdfs:subClassOf atlas:RelationAssertion ;
+  rdfs:label "native relation assertion"@en .
+
+atlas:SourceAssignment
+  a owl:Class ;
+  rdfs:subClassOf atlas:RelationAssertion ;
+  rdfs:label "source assignment"@en .
+
+atlas:ProjectedRelation
+  a owl:Class ;
+  rdfs:label "projected relation"@en .
+
+atlas:DerivedRelation
+  a owl:Class ;
+  rdfs:label "derived relation"@en .
+
+# The four semantic resource types are mutually exclusive. Identifier is a
+# separate record and is deliberately not a fifth AtlasResource subtype.
+
+atlas:SubjectConcept
+  owl:disjointWith atlas:EntityResource,
+    atlas:ValueResource,
+    atlas:LegalIdentityResource .
+
+atlas:EntityResource
+  owl:disjointWith atlas:ValueResource,
+    atlas:LegalIdentityResource .
+
+atlas:ValueResource
+  owl:disjointWith atlas:LegalIdentityResource .
+
+atlas:AtlasResource
+  owl:disjointWith atlas:Identifier,
+    atlas:SourceRecord,
+    atlas:EvidenceBinding,
+    atlas:EditorialPolicy,
+    atlas:RelationAssertion,
+    atlas:ProjectedRelation,
+    atlas:DerivedRelation,
+    skosxl:Label .
+
+atlas:Identifier
+  owl:disjointWith atlas:SourceRecord,
+    atlas:EvidenceBinding,
+    atlas:EditorialPolicy,
+    atlas:RelationAssertion,
+    atlas:ProjectedRelation,
+    atlas:DerivedRelation,
+    skosxl:Label .
+
+atlas:SourceRecord
+  owl:disjointWith atlas:EvidenceBinding,
+    atlas:EditorialPolicy,
+    atlas:RelationAssertion,
+    atlas:ProjectedRelation,
+    atlas:DerivedRelation,
+    skosxl:Label .
+
+atlas:RelationAssertion
+  owl:disjointWith atlas:ProjectedRelation,
+    atlas:DerivedRelation .
+
+atlas:MappingAssertion
+  owl:disjointWith atlas:NativeRelationAssertion,
+    atlas:SourceAssignment .
+
+atlas:NativeRelationAssertion
+  owl:disjointWith atlas:SourceAssignment .
+
+atlas:ProjectedRelation
+  owl:disjointWith atlas:DerivedRelation .
+
+# Controlled vocabulary individuals
+
+atlas:subject a atlas:SemanticRing ; rdfs:label "subject"@en .
+atlas:entity a atlas:SemanticRing ; rdfs:label "entity"@en .
+atlas:value a atlas:SemanticRing ; rdfs:label "value"@en .
+atlas:legalIdentity a atlas:SemanticRing ; rdfs:label "legal identity"@en .
+
+atlas:conceptScheme a atlas:ResourceProfile ; rdfs:label "concept scheme"@en .
+atlas:codeScheme a atlas:ResourceProfile ; rdfs:label "code scheme"@en .
+atlas:identifierScheme a atlas:ResourceProfile ; rdfs:label "identifier scheme"@en .
+atlas:structureScheme a atlas:ResourceProfile ; rdfs:label "structure scheme"@en .
+atlas:resourceCollection a atlas:ResourceProfile ; rdfs:label "resource collection"@en .
+
+atlas:current a atlas:AssertionStatus ; rdfs:label "current"@en .
+atlas:superseded a atlas:AssertionStatus ; rdfs:label "superseded"@en .
+atlas:withdrawn a atlas:AssertionStatus ; rdfs:label "withdrawn"@en .
+
+atlas:authoritative a atlas:AuthorityStatus ; rdfs:label "authoritative"@en .
+atlas:nonAuthoritative a atlas:AuthorityStatus ; rdfs:label "non-authoritative"@en .
+
+atlas:completeMembership a atlas:MembershipMode ; rdfs:label "complete membership"@en .
+
+atlas:approved a atlas:EditorialDecisionStatus ; rdfs:label "approved"@en .
+atlas:humanReview a atlas:ReviewMethod ; rdfs:label "human review"@en .
+atlas:trustedPipelineReview a atlas:ReviewMethod ; rdfs:label "trusted pipeline review"@en .
+
+# Shared object properties
+
+atlas:inRelease
+  a owl:ObjectProperty ;
+  rdfs:range atlas:AtlasRelease ;
+  rdfs:label "in release"@en .
+
+atlas:inSourceRelease
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:SourceRelease ;
+  rdfs:label "in source release"@en .
+
+atlas:inScheme
+  a owl:ObjectProperty ;
+  rdfs:range atlas:ResourceScheme ;
+  rdfs:label "in scheme"@en .
+
+atlas:semanticRing
+  a owl:ObjectProperty ;
+  rdfs:range atlas:SemanticRing ;
+  rdfs:label "semantic ring"@en .
+
+atlas:supportedRing
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ResourceScheme ;
+  rdfs:range atlas:SemanticRing ;
+  rdfs:label "supported ring"@en .
+
+atlas:resourceProfile
+  a owl:ObjectProperty ;
+  rdfs:range atlas:ResourceProfile ;
+  rdfs:label "resource profile"@en .
+
+atlas:sourceRecord
+  a owl:ObjectProperty ;
+  rdfs:range atlas:SourceRecord ;
+  rdfs:label "source record"@en .
+
+atlas:representsResource
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:AtlasResource ;
+  rdfs:label "represents resource"@en .
+
+atlas:collectionMember
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ResourceScheme ;
+  rdfs:range atlas:ResourceScheme ;
+  rdfs:label "collection member"@en .
+
+atlas:sourceLocator
+  a owl:ObjectProperty ;
+  rdfs:label "source locator"@en .
+
+atlas:identifierScheme
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:Identifier ;
+  rdfs:range atlas:ResourceScheme ;
+  rdfs:label "identifier scheme"@en .
+
+atlas:identifies
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:Identifier ;
+  rdfs:range atlas:AtlasResource ;
+  rdfs:label "identifies"@en .
+
+# Assertion and evidence properties
+
+atlas:membershipMode
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:AtlasRelease ;
+  rdfs:range atlas:MembershipMode ;
+  rdfs:label "membership mode"@en .
+
+atlas:sourceRelease
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range atlas:Release ;
+  rdfs:label "source release"@en .
+
+atlas:targetRelease
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range atlas:Release ;
+  rdfs:label "target release"@en .
+
+atlas:governedByPolicy
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range atlas:EditorialPolicy ;
+  rdfs:label "governed by policy"@en .
+
+atlas:assertionStatus
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range atlas:AssertionStatus ;
+  rdfs:label "assertion status"@en .
+
+atlas:supersedes
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range atlas:RelationAssertion ;
+  rdfs:label "supersedes"@en .
+
+atlas:evidenceSourceRecord
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range atlas:SourceRecord ;
+  rdfs:label "evidence source record"@en .
+
+atlas:bindsAssertion
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range atlas:RelationAssertion ;
+  rdfs:label "binds assertion"@en .
+
+atlas:reviewedBy
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:label "reviewed by"@en .
+
+atlas:decisionStatus
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range atlas:EditorialDecisionStatus ;
+  rdfs:label "decision status"@en .
+
+atlas:reviewMethod
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range atlas:ReviewMethod ;
+  rdfs:label "review method"@en .
+
+atlas:relationSubject
+  a owl:ObjectProperty ;
+  rdfs:label "relation subject"@en .
+
+atlas:relationPredicate
+  a owl:ObjectProperty ;
+  rdfs:label "relation predicate"@en .
+
+atlas:relationObject
+  a owl:ObjectProperty ;
+  rdfs:label "relation object"@en .
+
+atlas:eventSubject
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:label "event subject"@en .
+
+atlas:eventType
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:label "event type"@en .
+
+atlas:fromRelease
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:range atlas:Release ;
+  rdfs:label "from release"@en .
+
+atlas:toRelease
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:range atlas:Release ;
+  rdfs:label "to release"@en .
+
+# Projection and derivation properties
+
+atlas:supportingAssertion
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ProjectedRelation ;
+  rdfs:label "supporting assertion"@en ;
+  rdfs:comment "Cross-graph assertion reference. Its target type is checked by the dataset validator rather than inferred into the projection graph."@en .
+
+atlas:derivedFromAssertion
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:label "derived from assertion"@en ;
+  rdfs:comment "Cross-graph assertion reference. Its target type is checked by the dataset validator rather than inferred into the derived graph."@en .
+
+atlas:derivationRule
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:label "derivation rule"@en .
+
+atlas:engine
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:label "engine"@en .
+
+atlas:authorityStatus
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:range atlas:AuthorityStatus ;
+  rdfs:label "authority status"@en .
+
+# Datatype properties
+
+atlas:sourceDigest
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:label "source digest"@en .
+
+atlas:evidenceSourceDigest
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range xsd:string ;
+  rdfs:label "evidence source digest"@en ;
+  rdfs:comment "Pins the exact contentDigest of the SourceRecord named by an evidence binding."@en .
+
+atlas:policyPayload
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:EditorialPolicy ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "policy payload"@en .
+
+atlas:assertionIdentityDigest
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range xsd:string ;
+  rdfs:label "assertion identity digest"@en .
+
+atlas:decidedAt
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "decided at"@en .
+
+atlas:confidence
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range xsd:decimal ;
+  rdfs:label "confidence"@en .
+
+atlas:nativePayload
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "native payload"@en .
+
+atlas:descriptorPayload
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:ResourceScheme ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "descriptor payload"@en .
+
+atlas:notation
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:label "notation"@en .
+
+atlas:definition
+  a owl:DatatypeProperty ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "definition"@en .
+
+atlas:note
+  a owl:DatatypeProperty ;
+  rdfs:range rdfs:Literal ;
+  rdfs:label "note"@en .
+
+atlas:recordStatus
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:label "record status"@en .
+
+atlas:validationRule
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:ResourceScheme ;
+  rdfs:range xsd:string ;
+  rdfs:label "validation rule"@en .
+
+atlas:componentPosition
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:AtlasResource ;
+  rdfs:range xsd:integer ;
+  rdfs:label "component position"@en .
+
+atlas:validFrom
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "valid from"@en .
+
+atlas:validUntil
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "valid until"@en .
+
+atlas:identifierValue
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:Identifier ;
+  rdfs:range xsd:string ;
+  rdfs:label "identifier value"@en .
+
+atlas:assertedAt
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:RelationAssertion ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "asserted at"@en .
+
+atlas:engineVersion
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:range xsd:string ;
+  rdfs:label "engine version"@en .
+
+atlas:inputDigest
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:range xsd:string ;
+  rdfs:label "input digest"@en .
+
+atlas:generatedAt
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:DerivedRelation ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "generated at"@en .
+
+atlas:eventAt
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "event at"@en .
+
+atlas:contentDigest
+  a owl:DatatypeProperty ;
+  rdfs:range xsd:string ;
+  rdfs:label "content digest"@en .
+
+# Atlas-native predicates. These are intentionally ordinary object properties:
+# the baseline does not declare any of them symmetric, transitive, inverse, or
+# functional.
+
+atlas:sameEntityAs
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EntityResource ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "same entity as"@en .
+
+atlas:parentEntity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EntityResource ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "parent entity"@en .
+
+atlas:relatedEntity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EntityResource ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "related entity"@en .
+
+atlas:equivalentValue
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ValueResource ;
+  rdfs:range atlas:ValueResource ;
+  rdfs:label "equivalent value"@en .
+
+atlas:broaderValue
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ValueResource ;
+  rdfs:range atlas:ValueResource ;
+  rdfs:label "broader value"@en .
+
+atlas:replacementValue
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ValueResource ;
+  rdfs:range atlas:ValueResource ;
+  rdfs:label "replacement value"@en .
+
+atlas:sameLegalIdentityAs
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LegalIdentityResource ;
+  rdfs:range atlas:LegalIdentityResource ;
+  rdfs:label "same legal identity as"@en .
+
+atlas:versionOf
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LegalIdentityResource ;
+  rdfs:range atlas:LegalIdentityResource ;
+  rdfs:label "version of"@en .
+
+atlas:relatedLegalIdentity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:LegalIdentityResource ;
+  rdfs:range atlas:LegalIdentityResource ;
+  rdfs:label "related legal identity"@en .
+
+atlas:assignedSubject
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "assigned subject"@en .
+
+atlas:assignedEntity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "assigned entity"@en .
+
+atlas:assignedValue
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:ValueResource ;
+  rdfs:label "assigned value"@en .
+
+atlas:assignedLegalIdentity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SourceRecord ;
+  rdfs:range atlas:LegalIdentityResource ;
+  rdfs:label "assigned legal identity"@en .

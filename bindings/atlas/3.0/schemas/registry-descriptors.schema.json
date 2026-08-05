@@ -1,0 +1,109 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/registry-descriptors.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "path": {
+          "const": "registry-descriptors.nq"
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "byteLength",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "atlasIndexPlacementCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "conceptSchemeCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "quadCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "resourceSchemeCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "supportedRingStatementCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "atlasIndexPlacementCount",
+        "conceptSchemeCount",
+        "quadCount",
+        "resourceSchemeCount",
+        "supportedRingStatementCount"
+      ],
+      "type": "object"
+    },
+    "format": {
+      "const": "refspec-atlas-registry-descriptors/3.0"
+    },
+    "graphIri": {
+      "$ref": "common.schema.json#/$defs/absoluteIri",
+      "const": "urn:ref:atlas-v3:registry-descriptors"
+    },
+    "inputs": {
+      "additionalProperties": false,
+      "properties": {
+        "atlasIndexDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "registryResourceProfilesDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "resourceCatalogDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "atlasIndexDigest",
+        "registryResourceProfilesDigest",
+        "resourceCatalogDigest"
+      ],
+      "type": "object"
+    },
+    "proofDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "resourceIdSetDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "schemaVersion": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "artifact",
+    "counts",
+    "format",
+    "graphIri",
+    "inputs",
+    "proofDigest",
+    "resourceIdSetDigest",
+    "schemaVersion"
+  ],
+  "title": "RefSpec Atlas 3.0 registry descriptors",
+  "type": "object"
+}

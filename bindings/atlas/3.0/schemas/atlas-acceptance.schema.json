@@ -1,0 +1,115 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-acceptance.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "distributionId": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "evaluatedAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "gates": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceDigest": {
+            "$ref": "common.schema.json#/$defs/digest"
+          },
+          "name": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "evidenceDigest"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+        "inputs": {
+          "additionalProperties": false,
+          "properties": {
+            "acceptanceSchemaDigest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "atlasDigest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "bindingBundleDigest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+        "manifestSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "ontologyDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "shapesDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceAccountingDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceAccountingSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+          "required": [
+            "atlasDigest",
+            "sourceAccountingDigest",
+            "bindingBundleDigest",
+            "ontologyDigest",
+        "shapesDigest",
+        "manifestSchemaDigest",
+        "sourceAccountingSchemaDigest",
+        "acceptanceSchemaDigest"
+      ],
+      "type": "object"
+    },
+    "type": {
+      "const": "AtlasAcceptance"
+    },
+    "validator": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "refspec-atlas-conformance"
+        },
+        "version": {
+          "const": "3.0"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "type": "object"
+    },
+    "verdict": {
+      "const": "passed"
+    },
+    "version": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "distributionId",
+    "evaluatedAt",
+    "validator",
+    "inputs",
+    "gates",
+    "verdict"
+  ],
+  "title": "RefSpec Atlas 3.0 acceptance",
+  "type": "object"
+}
