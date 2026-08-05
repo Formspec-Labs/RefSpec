@@ -223,10 +223,74 @@ def test_atlas_decision_derives_scope_and_planning_index_from_one_exact_scope(
         "qualificationPolicy",
         "selectionPolicy",
     ]
+    assert record["sourceApprovals"] == [
+        {
+            "releaseId": scope_record["releases"][0]["releaseId"],
+            "manifestDigest": scope_record["releases"][0]["manifestDigest"],
+            "semanticRing": "subject",
+            "disposition": "approved",
+            "conditions": [],
+        }
+    ]
+    assert record["rowDispositions"] == [
+        {
+            **scope_record["releases"][0]["atlasIndexRows"][0],
+            "disposition": "included",
+            "reason": "Included in this publication scope.",
+        }
+    ]
     assert [row["id"] for row in record["supersedes"]] == sorted(row["id"] for row in record["supersedes"])
     assert decision.identifier.startswith("urn:ref:vocabulary-atlas-publication-decision:")
     decision.validate_for_scope(scope)
     decision.validate_result(_atlas_result())
+
+
+def test_decision_reconciles_source_conditions_and_refuses_incomplete_controls(
+    tmp_path: Path,
+) -> None:
+    scope = _pinned_scope(tmp_path, name="release-controls")
+    release_id = scope.verified_scope().as_record()["releases"][0]["releaseId"]
+    condition = {
+        "kind": "developmentOnly",
+        "appliesTo": release_id,
+        "statement": "Public use is approved with this source condition recorded.",
+    }
+    decision = build_vocabulary_atlas_publication_decision(
+        scope,
+        artifact_kind="atlas",
+        policies=_policies(),
+        decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+        decided_at="2026-08-04T20:15:00Z",
+        result=_atlas_result("release-controls"),
+        exceptions=(condition,),
+    )
+    assert decision.as_record()["sourceApprovals"][0]["conditions"] == [
+        {
+            "kind": "developmentOnly",
+            "statement": condition["statement"],
+        }
+    ]
+
+    with pytest.raises(PublicationDecisionError, match="every exact planning-index row"):
+        build_vocabulary_atlas_publication_decision(
+            scope,
+            artifact_kind="atlas",
+            policies=_policies(),
+            decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+            decided_at="2026-08-04T20:15:00Z",
+            result=_atlas_result("missing-row"),
+            row_dispositions=(),
+        )
+    with pytest.raises(PublicationDecisionError, match="every and only included source"):
+        build_vocabulary_atlas_publication_decision(
+            scope,
+            artifact_kind="atlas",
+            policies=_policies(),
+            decision_actor="https://refspec.org/actors/portfolio-reviewer-1",
+            decided_at="2026-08-04T20:15:00Z",
+            result=_atlas_result("missing-approval"),
+            source_approvals=(),
+        )
 
 
 def test_atlas_decision_validates_the_verified_distribution_bytes(

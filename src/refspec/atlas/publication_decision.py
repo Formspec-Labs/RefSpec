@@ -20,6 +20,7 @@ from typing import Any, Literal, cast
 from typing_extensions import Self
 
 from refspec import binding
+from refspec.atlas_index import AtlasIndexError
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -44,7 +45,7 @@ from .model import (
 from .projection import VocabularyAtlasProjection
 
 PUBLICATION_DECISION_TYPE = "VocabularyAtlasPublicationDecision"
-PUBLICATION_DECISION_VERSION = "1.0"
+PUBLICATION_DECISION_VERSION = "2.0"
 
 PublicationArtifactKind = Literal["atlas", "projection"]
 PublicationPolicyKind = Literal[
@@ -53,10 +54,27 @@ PublicationPolicyKind = Literal[
     "projectionPolicy",
 ]
 PublicationExceptionKind = Literal["developmentOnly", "rights"]
+PublicationRowDisposition = Literal[
+    "included",
+    "planned",
+    "deferred",
+    "unavailable",
+    "deliberatelyExcluded",
+]
 
 _ARTIFACT_KINDS = frozenset({"atlas", "projection"})
 _POLICY_KINDS = frozenset({"selectionPolicy", "qualificationPolicy", "projectionPolicy"})
 _EXCEPTION_KINDS = frozenset({"developmentOnly", "rights"})
+_ROW_DISPOSITIONS = frozenset(
+    {
+        "included",
+        "planned",
+        "deferred",
+        "unavailable",
+        "deliberatelyExcluded",
+    }
+)
+_SEMANTIC_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 _SCOPE_PIN_FIELDS = frozenset({"role", "id", "contentDigest", "fileDigest"})
@@ -64,6 +82,19 @@ _INDEX_PIN_FIELDS = frozenset({"role", "id", "indexDigest", "fileDigest"})
 _INTENDED_SCOPE_FIELDS = frozenset({"name", "kind"})
 _POLICY_PIN_FIELDS = frozenset({"role", "id", "version", "contentDigest"})
 _EXCEPTION_FIELDS = frozenset({"kind", "appliesTo", "statement"})
+_APPROVAL_CONDITION_FIELDS = frozenset({"kind", "statement"})
+_SOURCE_APPROVAL_FIELDS = frozenset(
+    {
+        "releaseId",
+        "manifestDigest",
+        "semanticRing",
+        "disposition",
+        "conditions",
+    }
+)
+_ROW_DISPOSITION_FIELDS = frozenset(
+    {"rowId", "rowDigest", "disposition", "reason"}
+)
 _ATLAS_RESULT_FIELDS = frozenset({"role", "id", "manifestDigest", "distributionDigest"})
 _PROJECTION_RESULT_FIELDS = _ATLAS_RESULT_FIELDS | {"parent"}
 _PARENT_PIN_FIELDS = frozenset({"assetId", "manifestDigest", "distributionDigest"})
@@ -78,6 +109,8 @@ _BASIS_FIELDS = frozenset(
         "intendedScope",
         "policies",
         "exceptions",
+        "sourceApprovals",
+        "rowDispositions",
         "decisionActor",
         "decidedAt",
         "result",
@@ -248,6 +281,101 @@ def _normalize_exceptions(value: object) -> list[dict[str, str]]:
     return result
 
 
+def _normalize_approval_conditions(
+    value: object,
+    *,
+    label: str,
+) -> list[dict[str, str]]:
+    rows = _require_array(value, label)
+    result: list[dict[str, str]] = []
+    for index, raw in enumerate(rows):
+        item_label = f"{label}[{index}]"
+        row = _require_mapping(raw, item_label)
+        _require_exact_fields(row, _APPROVAL_CONDITION_FIELDS, item_label)
+        kind = row.get("kind")
+        if not isinstance(kind, str) or kind not in _EXCEPTION_KINDS:
+            raise PublicationDecisionError(f"{item_label}.kind is unsupported")
+        result.append(
+            {
+                "kind": kind,
+                "statement": _require_text(
+                    row.get("statement"),
+                    f"{item_label}.statement",
+                ),
+            }
+        )
+    result.sort(key=lambda row: (row["kind"], row["statement"]))
+    if len({_canonical_bytes(row) for row in result}) != len(result):
+        raise PublicationDecisionError("a source approval repeats a condition")
+    return result
+
+
+def _normalize_source_approvals(value: object) -> list[dict[str, Any]]:
+    rows = _require_array(value, "publication decision sourceApprovals")
+    result: list[dict[str, Any]] = []
+    release_ids: set[str] = set()
+    for index, raw in enumerate(rows):
+        label = f"publication decision sourceApprovals[{index}]"
+        row = _require_mapping(raw, label)
+        _require_exact_fields(row, _SOURCE_APPROVAL_FIELDS, label)
+        release_id = _require_iri(row.get("releaseId"), f"{label}.releaseId")
+        if release_id in release_ids:
+            raise PublicationDecisionError("publication decision repeats a source approval")
+        release_ids.add(release_id)
+        semantic_ring = row.get("semanticRing")
+        if not isinstance(semantic_ring, str) or semantic_ring not in _SEMANTIC_RINGS:
+            raise PublicationDecisionError(f"{label}.semanticRing is unsupported")
+        if row.get("disposition") != "approved":
+            raise PublicationDecisionError(f"{label}.disposition must be approved")
+        result.append(
+            {
+                "releaseId": release_id,
+                "manifestDigest": _require_digest(
+                    row.get("manifestDigest"),
+                    f"{label}.manifestDigest",
+                ),
+                "semanticRing": semantic_ring,
+                "disposition": "approved",
+                "conditions": _normalize_approval_conditions(
+                    row.get("conditions"),
+                    label=f"{label}.conditions",
+                ),
+            }
+        )
+    result.sort(key=lambda row: row["releaseId"])
+    return result
+
+
+def _normalize_row_dispositions(value: object) -> list[dict[str, str]]:
+    rows = _require_array(value, "publication decision rowDispositions")
+    result: list[dict[str, str]] = []
+    row_ids: set[str] = set()
+    for index, raw in enumerate(rows):
+        label = f"publication decision rowDispositions[{index}]"
+        row = _require_mapping(raw, label)
+        _require_exact_fields(row, _ROW_DISPOSITION_FIELDS, label)
+        row_id = _require_iri(row.get("rowId"), f"{label}.rowId")
+        if row_id in row_ids:
+            raise PublicationDecisionError("publication decision repeats a planning-row disposition")
+        row_ids.add(row_id)
+        disposition = row.get("disposition")
+        if not isinstance(disposition, str) or disposition not in _ROW_DISPOSITIONS:
+            raise PublicationDecisionError(f"{label}.disposition is unsupported")
+        result.append(
+            {
+                "rowId": row_id,
+                "rowDigest": _require_digest(
+                    row.get("rowDigest"),
+                    f"{label}.rowDigest",
+                ),
+                "disposition": disposition,
+                "reason": _require_text(row.get("reason"), f"{label}.reason"),
+            }
+        )
+    result.sort(key=lambda row: row["rowId"])
+    return result
+
+
 def _normalize_parent_pin(value: object, *, label: str) -> dict[str, str]:
     row = _require_mapping(value, label)
     _require_exact_fields(row, _PARENT_PIN_FIELDS, label)
@@ -346,6 +474,12 @@ def _normalize_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         "intendedScope": _normalize_intended_scope(row.get("intendedScope")),
         "policies": policies,
         "exceptions": _normalize_exceptions(row.get("exceptions")),
+        "sourceApprovals": _normalize_source_approvals(
+            row.get("sourceApprovals")
+        ),
+        "rowDispositions": _normalize_row_dispositions(
+            row.get("rowDispositions")
+        ),
         "decisionActor": _require_iri(row.get("decisionActor"), "publication decision decisionActor"),
         "decidedAt": _require_datetime(row.get("decidedAt"), "publication decision decidedAt"),
         "result": _normalize_result(row.get("result"), artifact_kind=normalized_kind),
@@ -412,6 +546,7 @@ class VocabularyAtlasPublicationDecision:
 
     def validate_for_scope(self, scope: PinnedVocabularyAtlasScope) -> None:
         self._validate_scope_facts(*_scope_facts(scope))
+        _validate_release_controls_for_scope(self.record, scope)
 
     def validate_result(self, result: Mapping[str, Any]) -> None:
         normalized = _normalize_result(result, artifact_kind=self.artifact_kind)
@@ -649,6 +784,207 @@ def _scope_facts(
     )
 
 
+def _scope_release_controls(
+    scope: PinnedVocabularyAtlasScope,
+    *,
+    exceptions: Sequence[Mapping[str, str]],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """Derive affirmative approvals and one disposition for every index row."""
+
+    try:
+        verified = scope.verified_scope()
+        scope_record = verified.as_record()
+        index = verified.atlas_index.verified_index()
+    except (AtlasScopeError, AtlasIndexError) as error:
+        raise PublicationDecisionError(str(error)) from error
+
+    release_rows = cast(Sequence[Mapping[str, Any]], scope_record["releases"])
+    included_rows = {
+        cast(str, reference["rowId"])
+        for release in release_rows
+        for reference in cast(
+            Sequence[Mapping[str, Any]],
+            release["atlasIndexRows"],
+        )
+    }
+    source_approvals: list[dict[str, Any]] = []
+    for release in release_rows:
+        release_id = cast(str, release["releaseId"])
+        conditions = [
+            {
+                "kind": exception["kind"],
+                "statement": exception["statement"],
+            }
+            for exception in exceptions
+            if exception["appliesTo"] == release_id
+        ]
+        source_approvals.append(
+            {
+                "releaseId": release_id,
+                "manifestDigest": cast(str, release["manifestDigest"]),
+                "semanticRing": cast(str, release["semanticRing"]),
+                "disposition": "approved",
+                "conditions": conditions,
+            }
+        )
+
+    raw_index_rows = index.get("rows")
+    if not isinstance(raw_index_rows, Sequence) or isinstance(
+        raw_index_rows,
+        (str, bytes),
+    ):
+        raise PublicationDecisionError("publication decision planning index rows must be an array")
+    row_dispositions: list[dict[str, str]] = []
+    for position, raw in enumerate(raw_index_rows):
+        row = _require_mapping(
+            raw,
+            f"publication decision planning index rows[{position}]",
+        )
+        row_id = _require_iri(
+            row.get("rowId"),
+            f"publication decision planning index rows[{position}].rowId",
+        )
+        if row_id in included_rows:
+            disposition = "included"
+            reason = "Included in this publication scope."
+        elif row.get("release") is not None:
+            disposition = "deliberatelyExcluded"
+            reason = "An exact release exists, and this publication scope does not include it."
+        else:
+            status = row.get("planningStatus")
+            if status == "planned":
+                disposition = "planned"
+                reason = "Planned for a later Atlas release."
+            elif status == "deferred":
+                disposition = "deferred"
+                reason = "Deferred until its recorded readiness work is complete."
+            elif status == "unassessed":
+                disposition = "unavailable"
+                reason = "No release assessment is available for this planning row."
+            else:
+                disposition = "deliberatelyExcluded"
+                reason = "This planning row does not apply to this publication scope."
+        row_dispositions.append(
+            {
+                "rowId": row_id,
+                "rowDigest": _require_digest(
+                    row.get("rowDigest"),
+                    f"publication decision planning index rows[{position}].rowDigest",
+                ),
+                "disposition": disposition,
+                "reason": reason,
+            }
+        )
+    return (
+        _normalize_source_approvals(source_approvals),
+        _normalize_row_dispositions(row_dispositions),
+    )
+
+
+def _validate_release_controls_for_scope(
+    record: Mapping[str, Any],
+    scope: PinnedVocabularyAtlasScope,
+) -> None:
+    """Reconcile approvals and dispositions to the exact scope and index."""
+
+    try:
+        verified = scope.verified_scope()
+        scope_record = verified.as_record()
+        index = verified.atlas_index.verified_index()
+    except (AtlasScopeError, AtlasIndexError) as error:
+        raise PublicationDecisionError(str(error)) from error
+
+    raw_rows = index.get("rows")
+    if not isinstance(raw_rows, Sequence) or isinstance(raw_rows, (str, bytes)):
+        raise PublicationDecisionError("publication decision planning index rows must be an array")
+    expected_rows = {
+        _require_iri(row.get("rowId"), "publication decision planning index rowId"): _require_digest(
+            row.get("rowDigest"),
+            "publication decision planning index rowDigest",
+        )
+        for row in (
+            _require_mapping(raw, "publication decision planning index row")
+            for raw in raw_rows
+        )
+    }
+    dispositions = cast(
+        Sequence[Mapping[str, Any]],
+        record["rowDispositions"],
+    )
+    actual_rows = {
+        cast(str, row["rowId"]): cast(str, row["rowDigest"])
+        for row in dispositions
+    }
+    if actual_rows != expected_rows:
+        raise PublicationDecisionError(
+            "publication decision must dispose every exact planning-index row"
+        )
+
+    scoped_releases = cast(
+        Sequence[Mapping[str, Any]],
+        scope_record["releases"],
+    )
+    included_rows = {
+        cast(str, reference["rowId"])
+        for release in scoped_releases
+        for reference in cast(
+            Sequence[Mapping[str, Any]],
+            release["atlasIndexRows"],
+        )
+    }
+    recorded_included = {
+        cast(str, row["rowId"])
+        for row in dispositions
+        if row["disposition"] == "included"
+    }
+    if recorded_included != included_rows:
+        raise PublicationDecisionError(
+            "publication decision included-row dispositions differ from its exact scope"
+        )
+
+    expected_releases = {
+        cast(str, release["releaseId"]): (
+            cast(str, release["manifestDigest"]),
+            cast(str, release["semanticRing"]),
+        )
+        for release in scoped_releases
+    }
+    approvals = cast(
+        Sequence[Mapping[str, Any]],
+        record["sourceApprovals"],
+    )
+    actual_releases = {
+        cast(str, approval["releaseId"]): (
+            cast(str, approval["manifestDigest"]),
+            cast(str, approval["semanticRing"]),
+        )
+        for approval in approvals
+    }
+    if actual_releases != expected_releases:
+        raise PublicationDecisionError(
+            "publication decision must approve every and only included source release"
+        )
+
+    exceptions = cast(Sequence[Mapping[str, str]], record["exceptions"])
+    for approval in approvals:
+        release_id = cast(str, approval["releaseId"])
+        expected_conditions = sorted(
+            (
+                {
+                    "kind": exception["kind"],
+                    "statement": exception["statement"],
+                }
+                for exception in exceptions
+                if exception["appliesTo"] == release_id
+            ),
+            key=lambda row: (row["kind"], row["statement"]),
+        )
+        if _plain(approval["conditions"]) != expected_conditions:
+            raise PublicationDecisionError(
+                "publication decision source-approval conditions differ from its exceptions"
+            )
+
+
 def build_vocabulary_atlas_publication_decision(
     scope: PinnedVocabularyAtlasScope,
     *,
@@ -659,6 +995,8 @@ def build_vocabulary_atlas_publication_decision(
     result: Mapping[str, Any],
     exceptions: Sequence[Mapping[str, Any]] = (),
     supersedes: Sequence[Mapping[str, Any]] = (),
+    source_approvals: Sequence[Mapping[str, Any]] | None = None,
+    row_dispositions: Sequence[Mapping[str, Any]] | None = None,
 ) -> VocabularyAtlasPublicationDecision:
     """Seal an approval after generation, without changing the generated id."""
 
@@ -666,6 +1004,11 @@ def build_vocabulary_atlas_publication_decision(
         raise PublicationDecisionError("artifact_kind must be atlas or projection")
     normalized_kind = cast(PublicationArtifactKind, artifact_kind)
     scope_pin, planning_index, intended_scope = _scope_facts(scope)
+    normalized_exceptions = _normalize_exceptions(exceptions)
+    default_approvals, default_dispositions = _scope_release_controls(
+        scope,
+        exceptions=normalized_exceptions,
+    )
     basis = _normalize_basis(
         {
             "type": PUBLICATION_DECISION_TYPE,
@@ -675,7 +1018,17 @@ def build_vocabulary_atlas_publication_decision(
             "planningIndex": planning_index,
             "intendedScope": intended_scope,
             "policies": list(policies),
-            "exceptions": list(exceptions),
+            "exceptions": normalized_exceptions,
+            "sourceApprovals": (
+                default_approvals
+                if source_approvals is None
+                else list(source_approvals)
+            ),
+            "rowDispositions": (
+                default_dispositions
+                if row_dispositions is None
+                else list(row_dispositions)
+            ),
             "decisionActor": decision_actor,
             "decidedAt": decided_at,
             "result": dict(result),
@@ -683,13 +1036,15 @@ def build_vocabulary_atlas_publication_decision(
         }
     )
     record_digest = sha256_digest(_canonical_bytes(basis))
-    return VocabularyAtlasPublicationDecision(
+    decision = VocabularyAtlasPublicationDecision(
         {
             **basis,
             "id": ("urn:ref:vocabulary-atlas-publication-decision:" + record_digest.removeprefix("sha256:")),
             "recordDigest": record_digest,
         }
     )
+    decision.validate_for_scope(scope)
+    return decision
 
 
 def read_vocabulary_atlas_publication_decision(
@@ -735,6 +1090,7 @@ __all__ = [
     "PublicationDecisionError",
     "PublicationExceptionKind",
     "PublicationPolicyKind",
+    "PublicationRowDisposition",
     "VocabularyAtlasPublicationDecision",
     "build_vocabulary_atlas_publication_decision",
     "read_vocabulary_atlas_publication_decision",
