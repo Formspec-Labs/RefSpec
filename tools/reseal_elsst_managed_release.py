@@ -4,7 +4,9 @@
 This migration preserves the source bytes, Rulespec graph, normalized tables,
 and indexed-expression corpus. It adds the current OutputProfile admission
 field, propagates linked record digests, embeds the current Rulespec dependency
-pin, and issues a fresh combined validation receipt.
+pin, and issues a fresh combined validation receipt. The operational
+serialization profile validates these distribution bytes; the selected
+Rulespec reference-release digest remains the vocabulary release identity.
 """
 
 from __future__ import annotations
@@ -593,6 +595,10 @@ def reseal_elsst_managed_release(
         },
         "rulespecDependencyManifestDigest": sha256_digest(rulespec_dependency_bytes()),
         "bindingSchemaSetDigest": schema_digest,
+        "releaseIdentityRule": {
+            "declaredVocabularyIdentity": "rulespecReferenceReleaseDigest",
+            "operationalSerializationProfile": "distributionValidationProvenanceOnly",
+        },
         "semanticChange": {
             "recordType": _OUTPUT_PROFILE_TYPE,
             "field": "subjectAdmissionPermissions",

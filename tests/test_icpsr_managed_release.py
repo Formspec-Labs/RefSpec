@@ -4,17 +4,30 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
+from refspec.atlas.atlas_scope import AtlasScopeRelease
+from refspec.atlas.concept_release import (
+    ManagedReleaseRingAssignment,
+    PinnedManagedReleaseRingAssignment,
+)
+from refspec.atlas.icpsr import (
+    ICPSR_USE_PROPERTY_IRI,
+    ICPSR_USED_FOR_PROPERTY_IRI,
+    PinnedIcpsrManagedConceptRelease,
+)
+from refspec.atlas.release_snapshot import AtlasReleaseSnapshot
 from refspec.registry.icpsr_subject import (
     build_icpsr_subject_index,
     parse_icpsr_subject_xml,
     write_icpsr_subject_index_capture,
 )
 from refspec.registry.managed_releases.icpsr_managed_release import (
+    IcpsrManagedRelease,
     IcpsrManagedReleaseError,
     IcpsrManagedReleaseSources,
     IcpsrManagedReleaseView,
@@ -71,6 +84,61 @@ def _build_fixture():
     )
 
 
+def _file_digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _atlas_snapshot(
+    release: IcpsrManagedRelease,
+    root: Path,
+) -> AtlasReleaseSnapshot:
+    manifest_path = release.write_to(root / "managed-release")
+    manifest_digest = _file_digest(manifest_path)
+    release_id = cast(str, release.manifest["release"]["id"])
+    assignment = ManagedReleaseRingAssignment(
+        managed_manifest_digest=manifest_digest,
+        release_id=release_id,
+        semantic_ring="subject",
+        assigned_by="urn:test:actor:icpsr-atlas-reviewer",
+        assigned_at=RECORDED_AT,
+        evidence=("urn:test:evidence:icpsr-complete-verified-subset",),
+    )
+    assignment_path = assignment.write_to(root / "managed-release-ring-assignment.json")
+    pinned_assignment = PinnedManagedReleaseRingAssignment.open(
+        assignment_path,
+        expected_file_digest=_file_digest(assignment_path),
+    )
+    selected = PinnedIcpsrManagedConceptRelease.open(
+        manifest_path,
+        expected_manifest_digest=manifest_digest,
+        release_id=release_id,
+        ring_assignment=pinned_assignment,
+    )
+    return AtlasReleaseSnapshot.create(AtlasScopeRelease(selected))
+
+
+def _relation_count(snapshot: AtlasReleaseSnapshot) -> int:
+    predicates = {
+        "http://www.w3.org/2004/02/skos/core#broader",
+        "http://www.w3.org/2004/02/skos/core#narrower",
+        "http://www.w3.org/2004/02/skos/core#related",
+        ICPSR_USE_PROPERTY_IRI,
+        ICPSR_USED_FOR_PROPERTY_IRI,
+    }
+
+    def count(value: Any) -> int:
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            return len(value)
+        return 1
+
+    return sum(
+        count(value)
+        for concept in snapshot.concept_records
+        for predicate, value in concept.items()
+        if predicate in predicates
+    )
+
+
 def test_fixture_release_is_deterministic_and_development_only() -> None:
     first = _build_fixture()
     second = _build_fixture()
@@ -85,6 +153,27 @@ def test_fixture_release_is_deterministic_and_development_only() -> None:
     assert first.manifest["counts"]["concepts"] == 5
     assert first.coverage["membershipCompleteForVerifiedSubset"] is True
     assert first.coverage["sourceVocabularyComplete"] is False
+
+
+def test_fixture_projects_as_one_complete_verified_subset_snapshot(
+    tmp_path: Path,
+) -> None:
+    snapshot = _atlas_snapshot(_build_fixture(), tmp_path)
+    release_node = next(
+        record
+        for record in snapshot.record["selectedReleaseGraph"]["@graph"]
+        if record["@id"] == snapshot.release_id
+    )
+
+    assert len(snapshot.member_ids) == 5
+    assert snapshot.release_pin["releaseKind"] == "managedReferenceRelease"
+    assert release_node["rkaf:membershipMode"] == "rkaf:completeMembership"
+    assert release_node["rkaf:referenceReleaseDigest"] == snapshot.release_pin[
+        "declaredReleaseDigest"
+    ]
+    assert release_node["atlas:operationalState"] == "developmentOnly"
+    assert "atlas:candidateLookupAllowed" not in release_node
+    assert "atlas:acceptedOutputAllowed" not in release_node
 
 
 def test_reader_verifies_bundle_and_searches_labels_aliases_and_notes(
@@ -241,10 +330,35 @@ def test_exact_2026_07_30_capture_preserves_verified_subset_and_gaps() -> None:
         == "sha256:1875e0331a8403c00fa47a3ededca98c902f55d0b84d70884543ed1d2db629ff"
     )
     evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
-    assert evidence["managedRelease"]["manifestDigest"] == (managed.manifest["canonicalPayloadDigest"])
+    exact_manifest = REAL_CAPTURE / "managed-release" / "managed-release.json"
+    assert evidence["managedRelease"]["manifestDigest"] == _file_digest(
+        exact_manifest
+    )
+    assert evidence["managedRelease"]["canonicalPayloadDigest"] == (
+        managed.manifest["canonicalPayloadDigest"]
+    )
     assert evidence["managedRelease"]["coverageDigest"] == (managed.coverage["canonicalPayloadDigest"])
     assert evidence["counts"]["uriVerifiedConcepts"] == len(managed.concepts)
     assert evidence["counts"]["indexedExpressions"] == len(managed.indexed_expressions)
+
+
+def test_exact_2026_07_30_capture_builds_a_complete_atlas_snapshot(
+    tmp_path: Path,
+) -> None:
+    if not REAL_CAPTURE.is_dir():
+        pytest.skip("ignored exact ICPSR capture is unavailable")
+
+    sources = open_icpsr_managed_release_sources(REAL_CAPTURE)
+    managed = build_icpsr_managed_release(
+        sources,
+        recorded_at=RECORDED_AT,
+        recorded_by=REAL_RECORDED_BY,
+        expected_gap_counts=(5, 45),
+    )
+    snapshot = _atlas_snapshot(managed, tmp_path)
+
+    assert len(snapshot.member_ids) == 3_760
+    assert _relation_count(snapshot) == 18_751
 
 
 def test_written_manifest_is_canonical_json(tmp_path: Path) -> None:

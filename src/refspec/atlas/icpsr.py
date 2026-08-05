@@ -71,6 +71,12 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
 from refspec.release_graph import rulespec_graph_digest
 from refspec.storage import canonical_json
 
+from .concept_release import (
+    ConceptReleaseError,
+    ManagedReleaseRingAssignment,
+    PinnedManagedConceptRelease,
+    PinnedManagedReleaseRingAssignment,
+)
 from .model import (
     ATLAS,
     VocabularyAtlasError,
@@ -107,18 +113,15 @@ _DCAT_VERSION = "http://www.w3.org/ns/dcat#version"
 _DCTERMS_FORMAT = "http://purl.org/dc/terms/format"
 _DCTERMS_IS_VERSION_OF = "http://purl.org/dc/terms/isVersionOf"
 _DCTERMS_TYPE = "http://purl.org/dc/terms/type"
-_REFERENCE_RELEASE_DIGEST = _RKAF + "referenceReleaseDigest"
-_MEMBERSHIP_MODE = _RKAF + "membershipMode"
-_PARTIAL_MEMBERSHIP = _RKAF + "partialMembership"
-_VERSION_BASIS = _RKAF + "versionBasis"
-_CONTENT_DERIVED = _RKAF + "contentDerived"
+_REFERENCE_RELEASE_DIGEST = "rkaf:referenceReleaseDigest"
+_MEMBERSHIP_MODE = "rkaf:membershipMode"
+_COMPLETE_MEMBERSHIP = "rkaf:completeMembership"
+_VERSION_BASIS = "rkaf:versionBasis"
+_CONTENT_DERIVED = "rkaf:contentDerived"
 _ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
 _CONTENT_DIGEST = _RKAF + "hasContentDigest"
 
-_OPERATIONAL_STATE = str(ATLAS.operationalState)
-_CANDIDATE_LOOKUP_ALLOWED = str(ATLAS.candidateLookupAllowed)
-_ACCEPTED_OUTPUT_ALLOWED = str(ATLAS.acceptedOutputAllowed)
-_XSD_BOOLEAN = "http://www.w3.org/2001/XMLSchema#boolean"
+_OPERATIONAL_STATE = "atlas:operationalState"
 
 _DEVELOPMENT_ONLY = "developmentOnly"
 
@@ -228,8 +231,16 @@ class IcpsrSubjectAtlasView:
     def rulespec_graph(self) -> Mapping[str, Any]:
         return self._graph
 
-    def iter_members(self) -> Iterable[ManagedReleaseMember]:
-        return self._members.values()
+    def iter_members(
+        self,
+        *,
+        release_iri: str | None = None,
+    ) -> Iterable[ManagedReleaseMember]:
+        return (
+            member
+            for member in self._members.values()
+            if release_iri is None or member.release_iri == release_iri
+        )
 
     def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
         return self._members.get(member_iri)
@@ -442,7 +453,7 @@ def _concept_projection(
         node: dict[str, Any] = {
             "@id": concept_iri,
             _RDF_TYPE: _RKAF + "RegisteredConcept",
-            _SKOS_IN_SCHEME: _iri(ICPSR_SUBJECT_SCHEME_IRI),
+            "skos:inScheme": _iri(ICPSR_SUBJECT_SCHEME_IRI),
             _LABEL_PROPERTY_IRIS[cast(str, role)]: _language_literal(label),
             _SKOS_NOTATION: _require_text(row.get("publisherCode"), "ICPSR publisher code"),
         }
@@ -609,25 +620,30 @@ def _project_view(view: IcpsrManagedReleaseView) -> IcpsrSubjectAtlasView:
 
     release_node: dict[str, Any] = {
         "@id": release_iri,
-        _RDF_TYPE: _RKAF + "ReferenceResourceRelease",
-        _DCTERMS_IS_VERSION_OF: _iri(ICPSR_SUBJECT_SCHEME_IRI),
-        _DCAT_VERSION: MANAGED_RELEASE_VERSION,
-        _DCTERMS_TYPE: _iri(_SKOS_CONCEPT_SCHEME),
-        # Partial, not complete: `dcterms:isVersionOf` names the whole ICPSR
-        # thesaurus, and this release deliberately omits every label the two
-        # source views disagree about. Claiming complete membership of the
-        # thesaurus would be the one overstatement the bundle avoided.
-        _MEMBERSHIP_MODE: _iri(_PARTIAL_MEMBERSHIP),
-        _PROV_HAD_MEMBER: [_iri(value) for value in sorted(members)],
-        _DCAT_DISTRIBUTION: [_iri(value) for value in distribution_iris],
+        _RDF_TYPE: "rkaf:ReferenceResourceRelease",
+        "dcterms:isVersionOf": _iri(ICPSR_SUBJECT_SCHEME_IRI),
+        "dcat:version": MANAGED_RELEASE_VERSION,
+        "dcterms:type": _iri("skos:ConceptScheme"),
+        # This release's declared scope is the URI-verified subset. The source
+        # bundle proves that every member of that scope is present while it
+        # records the wider publisher-vocabulary gaps separately.
+        _MEMBERSHIP_MODE: _COMPLETE_MEMBERSHIP,
+        "prov:hadMember": [_iri(value) for value in sorted(members)],
+        "dcat:distribution": [_iri(value) for value in distribution_iris],
         # ICPSR publishes no version string or issue date for the thesaurus,
         # so the release is identified by the digests of the bytes it read.
         _VERSION_BASIS: _iri(_CONTENT_DERIVED),
         _OPERATIONAL_STATE: _DEVELOPMENT_ONLY,
-        _CANDIDATE_LOOKUP_ALLOWED: {"@type": _XSD_BOOLEAN, "@value": "true"},
-        _ACCEPTED_OUTPUT_ALLOWED: {"@type": _XSD_BOOLEAN, "@value": "false"},
     }
     graph: dict[str, Any] = {
+        "@context": {
+            "atlas": str(ATLAS),
+            "dcat": "http://www.w3.org/ns/dcat#",
+            "dcterms": "http://purl.org/dc/terms/",
+            "prov": "http://www.w3.org/ns/prov#",
+            "rkaf": _RKAF,
+            "skos": _SKOS,
+        },
         "@graph": [
             # The scheme node carries a type and nothing else. Neither source
             # view states a label for the scheme itself, and `releaseFacts` is
@@ -635,7 +651,7 @@ def _project_view(view: IcpsrManagedReleaseView) -> IcpsrSubjectAtlasView:
             # would be this projection's own assertion rather than ICPSR's.
             {
                 "@id": ICPSR_SUBJECT_SCHEME_IRI,
-                _RDF_TYPE: _RKAF + "ConceptScheme",
+                _RDF_TYPE: "rkaf:ConceptScheme",
             },
             *distribution_nodes,
             *concept_nodes,
@@ -707,6 +723,111 @@ class PinnedIcpsrSubjectAtlasRelease:
         }
 
 
+class PinnedIcpsrManagedConceptRelease(PinnedManagedConceptRelease):
+    """Select the complete URI-verified ICPSR subset for Atlas 2.0.
+
+    The source-specific reader verifies the custom ICPSR package, then this
+    class presents its content-derived Rulespec graph through the same exact
+    managed-release pin used by every Atlas 2.0 scope.
+    """
+
+    @classmethod
+    def open(
+        cls,
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+        release_id: str,
+        ring_assignment: PinnedManagedReleaseRingAssignment,
+    ) -> Self:
+        try:
+            digest = _require_digest(
+                expected_manifest_digest,
+                "ICPSR managed release manifest digest",
+            )
+            selected_release = _require_iri(
+                release_id,
+                "ICPSR managed concept release id",
+            )
+            if not isinstance(
+                ring_assignment,
+                PinnedManagedReleaseRingAssignment,
+            ):
+                raise ConceptReleaseError(
+                    "ICPSR managed concept release requires a pinned ring assignment"
+                )
+            assignment = ring_assignment.verified_assignment()
+            package = _verified_package(
+                Path(manifest_path),
+                expected_manifest_digest=digest,
+            )
+            view = _project_view(package)
+        except VocabularyAtlasError as error:
+            raise ConceptReleaseError(str(error)) from error
+        if (
+            assignment.managed_manifest_digest != digest
+            or assignment.release_id != selected_release
+            or assignment.semantic_ring != "subject"
+        ):
+            raise ConceptReleaseError(
+                "ICPSR ring assignment names another exact subject release"
+            )
+        if view.reference_release_iri != selected_release or not tuple(
+            view.iter_members(release_iri=selected_release)
+        ):
+            raise ConceptReleaseError(
+                "ICPSR verified subset is absent from the selected release"
+            )
+        return cls(
+            manifest_path=Path(manifest_path).resolve(strict=True),
+            manifest_digest=digest,
+            release_id=selected_release,
+            ring_assignment=ring_assignment,
+        )
+
+    def _open_verified_view_and_assignment(
+        self,
+    ) -> tuple[IcpsrSubjectAtlasView, ManagedReleaseRingAssignment]:
+        try:
+            package = _verified_package(
+                self.manifest_path,
+                expected_manifest_digest=self.manifest_digest,
+            )
+            view = _project_view(package)
+        except VocabularyAtlasError as error:
+            raise ConceptReleaseError(str(error)) from error
+        assignment = self.ring_assignment.verified_assignment()
+        if (
+            assignment.managed_manifest_digest != self.manifest_digest
+            or assignment.release_id != self.release_id
+            or assignment.semantic_ring != "subject"
+        ):
+            raise ConceptReleaseError(
+                "ICPSR ring assignment names another exact subject release"
+            )
+        if view.reference_release_iri != self.release_id or not tuple(
+            view.iter_members(release_iri=self.release_id)
+        ):
+            raise ConceptReleaseError(
+                "ICPSR verified subset is no longer present or complete"
+            )
+        return view, assignment
+
+    def verified_view(self) -> IcpsrSubjectAtlasView:
+        """Reopen the custom package and re-cut the same complete subset."""
+
+        view, _ = self._open_verified_view_and_assignment()
+        return view
+
+    def verified_view_and_pin(
+        self,
+    ) -> tuple[IcpsrSubjectAtlasView, dict[str, Any]]:
+        """Derive the Atlas pin and graph from one fresh verification boundary."""
+
+        view, assignment = self._open_verified_view_and_assignment()
+        return view, self._pin_from_verified_view(view, assignment)  # type: ignore[arg-type]
+
+
 __all__ = [
     "ICPSR_CONCEPT_RELATION_IRI_PREFIX",
     "ICPSR_INDEX_DISTRIBUTION_IRI_PREFIX",
@@ -718,5 +839,6 @@ __all__ = [
     "ICPSR_USE_PROPERTY_IRI",
     "ICPSR_XML_DISTRIBUTION_IRI_PREFIX",
     "IcpsrSubjectAtlasView",
+    "PinnedIcpsrManagedConceptRelease",
     "PinnedIcpsrSubjectAtlasRelease",
 ]

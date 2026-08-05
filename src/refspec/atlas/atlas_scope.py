@@ -48,10 +48,10 @@ from .relation_assertion import (
 ATLAS_SCOPE_VERSION = "1.0"
 ATLAS_SCOPE_TYPE = "VocabularyAtlasScope"
 
-ScopeKind = Literal["bench", "product"]
+ScopeKind = Literal["bench", "published", "product"]
 SubjectParticipation = Literal["core", "specialist", "bridge"]
 
-_SCOPE_KINDS = frozenset({"bench", "product"})
+_SCOPE_KINDS = frozenset({"bench", "published", "product"})
 _PARTICIPATION = frozenset({"core", "specialist", "bridge"})
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _INDEX_ROW_REF_FIELDS = {"rowId", "rowDigest"}
@@ -122,7 +122,7 @@ def _require_digest(value: object, label: str) -> str:
 
 def _require_scope_kind(value: object, label: str) -> ScopeKind:
     if not isinstance(value, str) or value not in _SCOPE_KINDS:
-        raise AtlasScopeError(f"{label} must be bench or product")
+        raise AtlasScopeError(f"{label} must be bench, published, or product")
     return cast(ScopeKind, value)
 
 

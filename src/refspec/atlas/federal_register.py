@@ -34,7 +34,18 @@ from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_r
 )
 from refspec.release_graph import rulespec_graph_digest
 
-from .model import VocabularyAtlasError, closed_reference_release_digest
+from .concept_release import (
+    ConceptReleaseError,
+    ManagedReleaseRingAssignment,
+    PinnedManagedConceptRelease,
+    PinnedManagedReleaseRingAssignment,
+)
+from .model import (
+    VocabularyAtlasError,
+    _require_digest,
+    _require_iri,
+    closed_reference_release_digest,
+)
 
 FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI = (
     "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
@@ -47,20 +58,13 @@ FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI = (
 _EXPECTED_CONCEPT_COUNT = 705
 _RKAF = "https://rulespec.org/ns/v1#"
 _RDF_TYPE = "@type"
-_SKOS_IN_SCHEME = "http://www.w3.org/2004/02/skos/core#inScheme"
-_SKOS_CONCEPT_SCHEME = "http://www.w3.org/2004/02/skos/core#ConceptScheme"
-_PROV_HAD_MEMBER = "http://www.w3.org/ns/prov#hadMember"
-_DCAT_DISTRIBUTION = "http://www.w3.org/ns/dcat#distribution"
-_DCAT_VERSION = "http://www.w3.org/ns/dcat#version"
+_SKOS = "http://www.w3.org/2004/02/skos/core#"
 _DCTERMS_FORMAT = "http://purl.org/dc/terms/format"
-_DCTERMS_IS_VERSION_OF = "http://purl.org/dc/terms/isVersionOf"
-_DCTERMS_ISSUED = "http://purl.org/dc/terms/issued"
-_DCTERMS_TYPE = "http://purl.org/dc/terms/type"
-_REFERENCE_RELEASE_DIGEST = _RKAF + "referenceReleaseDigest"
-_MEMBERSHIP_MODE = _RKAF + "membershipMode"
-_COMPLETE_MEMBERSHIP = _RKAF + "completeMembership"
-_VERSION_BASIS = _RKAF + "versionBasis"
-_CONTENT_DERIVED = _RKAF + "contentDerived"
+_REFERENCE_RELEASE_DIGEST = "rkaf:referenceReleaseDigest"
+_MEMBERSHIP_MODE = "rkaf:membershipMode"
+_COMPLETE_MEMBERSHIP = "rkaf:completeMembership"
+_VERSION_BASIS = "rkaf:versionBasis"
+_CONTENT_DERIVED = "rkaf:contentDerived"
 _ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
 _CONTENT_DIGEST = _RKAF + "hasContentDigest"
 
@@ -127,8 +131,16 @@ class FederalRegisterThesaurus2025AtlasView:
     def rulespec_graph(self) -> Mapping[str, Any]:
         return self._graph
 
-    def iter_members(self) -> Iterable[ManagedReleaseMember]:
-        return self._members.values()
+    def iter_members(
+        self,
+        *,
+        release_iri: str | None = None,
+    ) -> Iterable[ManagedReleaseMember]:
+        return (
+            member
+            for member in self._members.values()
+            if release_iri is None or member.release_iri == release_iri
+        )
 
     def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
         return self._members.get(member_iri)
@@ -249,7 +261,7 @@ def _project_view(
         node: dict[str, Any] = {
             "@id": concept_iri,
             _RDF_TYPE: _RKAF + "RegisteredConcept",
-            _SKOS_IN_SCHEME: _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
+            "skos:inScheme": _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
             PREFERRED_LABEL_PROPERTY_IRI: _language_literal(preferred),
         }
         if declared_alternates:
@@ -317,21 +329,28 @@ def _project_view(
 
     release_node: dict[str, Any] = {
         "@id": FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
-        _RDF_TYPE: _RKAF + "ReferenceResourceRelease",
-        _DCTERMS_IS_VERSION_OF: _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
-        _DCAT_VERSION: FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION,
-        _DCTERMS_TYPE: _iri(_SKOS_CONCEPT_SCHEME),
-        _DCTERMS_ISSUED: FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
-        _MEMBERSHIP_MODE: _iri(_COMPLETE_MEMBERSHIP),
-        _PROV_HAD_MEMBER: [_iri(value) for value in sorted(concept_by_iri)],
-        _DCAT_DISTRIBUTION: _iri(FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI),
+        _RDF_TYPE: "rkaf:ReferenceResourceRelease",
+        "dcterms:isVersionOf": _iri(FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI),
+        "dcat:version": FEDERAL_REGISTER_THESAURUS_2025_MANAGED_RELEASE_VERSION,
+        "dcterms:type": _iri("skos:ConceptScheme"),
+        "dcterms:issued": FEDERAL_REGISTER_THESAURUS_2025_ISSUED,
+        _MEMBERSHIP_MODE: _COMPLETE_MEMBERSHIP,
+        "prov:hadMember": [_iri(value) for value in sorted(concept_by_iri)],
+        "dcat:distribution": _iri(FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI),
         _VERSION_BASIS: _iri(_CONTENT_DERIVED),
     }
     graph: dict[str, Any] = {
+        "@context": {
+            "dcat": "http://www.w3.org/ns/dcat#",
+            "dcterms": "http://purl.org/dc/terms/",
+            "prov": "http://www.w3.org/ns/prov#",
+            "rkaf": _RKAF,
+            "skos": _SKOS,
+        },
         "@graph": [
             {
                 "@id": FEDERAL_REGISTER_THESAURUS_2025_SCHEME_IRI,
-                _RDF_TYPE: _RKAF + "ConceptScheme",
+                _RDF_TYPE: "rkaf:ConceptScheme",
                 PREFERRED_LABEL_PROPERTY_IRI: _language_literal(
                     "Federal Register Thesaurus of Indexing Terms, April 1, 2025"
                 ),
@@ -409,10 +428,111 @@ class PinnedFederalRegisterThesaurus2025AtlasRelease:
         }
 
 
+class PinnedFederalRegisterManagedConceptRelease(PinnedManagedConceptRelease):
+    """Select the complete 2025 reference release for Atlas 2.0."""
+
+    @classmethod
+    def open(
+        cls,
+        manifest_path: Path | str,
+        *,
+        expected_manifest_digest: str,
+        release_id: str,
+        ring_assignment: PinnedManagedReleaseRingAssignment,
+    ) -> Self:
+        try:
+            digest = _require_digest(
+                expected_manifest_digest,
+                "Federal Register managed release manifest digest",
+            )
+            selected_release = _require_iri(
+                release_id,
+                "Federal Register managed concept release id",
+            )
+            if not isinstance(
+                ring_assignment,
+                PinnedManagedReleaseRingAssignment,
+            ):
+                raise ConceptReleaseError(
+                    "Federal Register managed concept release requires a pinned ring assignment"
+                )
+            assignment = ring_assignment.verified_assignment()
+            package = _verified_package(
+                Path(manifest_path),
+                expected_manifest_digest=digest,
+            )
+            view = _project_view(package)
+        except VocabularyAtlasError as error:
+            raise ConceptReleaseError(str(error)) from error
+        if (
+            assignment.managed_manifest_digest != digest
+            or assignment.release_id != selected_release
+            or assignment.semantic_ring != "subject"
+        ):
+            raise ConceptReleaseError(
+                "Federal Register ring assignment names another exact subject release"
+            )
+        if selected_release != FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI or not tuple(
+            view.iter_members(release_iri=selected_release)
+        ):
+            raise ConceptReleaseError(
+                "Federal Register 2025 release is absent from the selected package"
+            )
+        return cls(
+            manifest_path=Path(manifest_path).resolve(strict=True),
+            manifest_digest=digest,
+            release_id=selected_release,
+            ring_assignment=ring_assignment,
+        )
+
+    def _open_verified_view_and_assignment(
+        self,
+    ) -> tuple[FederalRegisterThesaurus2025AtlasView, ManagedReleaseRingAssignment]:
+        try:
+            package = _verified_package(
+                self.manifest_path,
+                expected_manifest_digest=self.manifest_digest,
+            )
+            view = _project_view(package)
+        except VocabularyAtlasError as error:
+            raise ConceptReleaseError(str(error)) from error
+        assignment = self.ring_assignment.verified_assignment()
+        if (
+            assignment.managed_manifest_digest != self.manifest_digest
+            or assignment.release_id != self.release_id
+            or assignment.semantic_ring != "subject"
+        ):
+            raise ConceptReleaseError(
+                "Federal Register ring assignment names another exact subject release"
+            )
+        if self.release_id != FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI or not tuple(
+            view.iter_members(release_iri=self.release_id)
+        ):
+            raise ConceptReleaseError(
+                "Federal Register 2025 release is no longer present or complete"
+            )
+        return view, assignment
+
+    def verified_view(self) -> FederalRegisterThesaurus2025AtlasView:
+        """Reopen the specialized package and select the same complete release."""
+
+        view, _ = self._open_verified_view_and_assignment()
+        return view
+
+    def verified_view_and_pin(
+        self,
+    ) -> tuple[FederalRegisterThesaurus2025AtlasView, dict[str, Any]]:
+        """Derive the Atlas pin and graph from one fresh verification boundary."""
+
+        view, assignment = self._open_verified_view_and_assignment()
+        return view, self._pin_from_verified_view(view, assignment)  # type: ignore[arg-type]
+
+
 __all__ = [
     "FEDERAL_REGISTER_THESAURUS_2025_DISTRIBUTION_IRI",
     "FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI",
     "FEDERAL_REGISTER_THESAURUS_2025_RULESPEC_GRAPH_IRI",
     "FederalRegisterThesaurus2025AtlasView",
+    "PinnedFederalRegisterManagedConceptRelease",
     "PinnedFederalRegisterThesaurus2025AtlasRelease",
 ]

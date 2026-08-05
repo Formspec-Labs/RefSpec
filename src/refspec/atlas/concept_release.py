@@ -158,7 +158,12 @@ def _managed_declared_release_digest(
     view: ManagedReleaseGraphFactsView,
     release_id: str,
 ) -> str:
-    """Read one selected release's declared digest from the verified graph."""
+    """Read the selected vocabulary identity from the verified Rulespec graph.
+
+    The managed bundle manifest separately pins the exact distribution bytes.
+    Operational serialization metadata can therefore change the distribution
+    pin without changing the publisher-declared vocabulary release identity.
+    """
 
     nodes = view.rulespec_graph.get("@graph")
     if not isinstance(nodes, Sequence) or isinstance(nodes, (str, bytes)):
@@ -571,7 +576,7 @@ class PinnedManagedConceptRelease:
         view: ManagedReleaseGraphFactsView,
         assignment: ManagedReleaseRingAssignment,
     ) -> dict[str, Any]:
-        """Derive one pin without reopening an already verified release."""
+        """Pin exact distribution bytes and declared vocabulary identity separately."""
 
         return {
             "releaseKind": "managedReferenceRelease",

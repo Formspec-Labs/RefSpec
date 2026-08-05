@@ -598,7 +598,7 @@ def test_file_only_scope_validator_recomputes_type_ring_and_identity() -> None:
 
     bad_scope_kind = _file_only_scope_record()
     bad_scope_kind["scopeKind"] = "publication"
-    with pytest.raises(AtlasScopeError, match="bench or product"):
+    with pytest.raises(AtlasScopeError, match="bench, published, or product"):
         validate_atlas_scope_record(bad_scope_kind)
 
     bad_index_role = _file_only_scope_record()
@@ -761,6 +761,12 @@ def test_scope_kind_is_closed_and_changes_content_identity(tmp_path: Path) -> No
         atlas_index=atlas_index,
         releases=(release,),
     )
+    published = VocabularyAtlasScope.create(
+        scope_name=SCOPE_NAME,
+        scope_kind="published",
+        atlas_index=atlas_index,
+        releases=(release,),
+    )
     product = VocabularyAtlasScope.create(
         scope_name=SCOPE_NAME,
         scope_kind="product",
@@ -768,7 +774,9 @@ def test_scope_kind_is_closed_and_changes_content_identity(tmp_path: Path) -> No
         releases=(release,),
     )
 
-    assert bench.identifier != product.identifier
+    assert len({bench.identifier, published.identifier, product.identifier}) == 3
+    assert published.scope_kind == "published"
+    assert validate_atlas_scope_record(published.as_record()) == published.as_record()
     with pytest.raises(AtlasScopeError, match="path-backed exact atlas index"):
         VocabularyAtlasScope.create(
             scope_name=SCOPE_NAME,
@@ -777,7 +785,7 @@ def test_scope_kind_is_closed_and_changes_content_identity(tmp_path: Path) -> No
             releases=(release,),
         )
     for value in ("release", [], 1):
-        with pytest.raises(AtlasScopeError, match="bench or product"):
+        with pytest.raises(AtlasScopeError, match="bench, published, or product"):
             VocabularyAtlasScope.create(
                 scope_name=SCOPE_NAME,
                 scope_kind=cast(Any, value),

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 from collections import Counter
 from collections.abc import Mapping
@@ -216,6 +217,50 @@ def _managed_scope_release(
         ring_assignment=pinned_assignment,
     )
     return AtlasScopeRelease(pinned), pinned, pinned_assignment
+
+
+def _copy_with_serialization_profile_digest(
+    source_manifest: Path,
+    destination: Path,
+    *,
+    profile_digest: str,
+) -> Path:
+    """Repack valid managed bytes after changing only serialization metadata."""
+
+    shutil.copytree(source_manifest.parent, destination)
+    manifest_path = destination / source_manifest.name
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    publication_path = destination / manifest["publicationReleaseManifest"]["path"]
+    publication = json.loads(publication_path.read_text(encoding="utf-8"))
+    publication["operationalSerializationProfile"]["digest"] = profile_digest
+    publication.pop("canonicalPayloadDigest")
+    publication = _FIXTURE_MODULE.seal_payload(publication)
+    _FIXTURE_MODULE._write_json(publication_path, publication)
+
+    receipt_path = destination / manifest["combinedValidationReceipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    publication_refs = [
+        row
+        for row in receipt["refRecordDigests"]
+        if row["id"] == publication["id"]
+    ]
+    assert len(publication_refs) == 1
+    publication_refs[0]["digest"] = publication["canonicalPayloadDigest"]
+    receipt.pop("canonicalPayloadDigest")
+    receipt = _FIXTURE_MODULE.seal_payload(receipt)
+    _FIXTURE_MODULE._write_json(receipt_path, receipt)
+
+    manifest["publicationReleaseManifest"] = _FIXTURE_MODULE._descriptor(
+        publication_path,
+        destination,
+    )
+    manifest["combinedValidationReceipt"] = _FIXTURE_MODULE._descriptor(
+        receipt_path,
+        destination,
+    )
+    _FIXTURE_MODULE._write_json(manifest_path, manifest)
+    return manifest_path
 
 
 def _reseal(record: dict[str, Any]) -> dict[str, Any]:
@@ -630,6 +675,47 @@ def test_managed_snapshot_copies_only_selected_release_semantic_closure(
     assert len(selected_graph["@graph"]) < len(full_graph["@graph"])
     assert snapshot.release_pin["rulespecGraph"]["digest"] == rulespec_graph_digest(full_graph)
     snapshot.verify_against(scope_release)
+
+
+def test_managed_release_keeps_serialization_profile_out_of_vocabulary_identity(
+    tmp_path: Path,
+) -> None:
+    _, original, _ = _managed_scope_release(tmp_path / "original")
+    modified_manifest = _copy_with_serialization_profile_digest(
+        original.manifest_path,
+        tmp_path / "modified-managed-release",
+        profile_digest="sha256:" + "c" * 64,
+    )
+    modified_manifest_digest = _file_digest(modified_manifest)
+    modified_assignment = ManagedReleaseRingAssignment(
+        managed_manifest_digest=modified_manifest_digest,
+        release_id=MANAGED_RELEASE_ID,
+        semantic_ring="subject",
+        assigned_by="https://refspec.org/actors/portfolio-reviewer-1",
+        assigned_at=ASSERTED_AT,
+        evidence=("urn:ref:test:atlas-snapshot:ring-review",),
+    )
+    modified_assignment_path = modified_assignment.write_to(
+        tmp_path / "modified-ring-assignment.json"
+    )
+    modified = PinnedManagedConceptRelease.open(
+        modified_manifest,
+        expected_manifest_digest=modified_manifest_digest,
+        release_id=MANAGED_RELEASE_ID,
+        ring_assignment=PinnedManagedReleaseRingAssignment.open(
+            modified_assignment_path,
+            expected_file_digest=_file_digest(modified_assignment_path),
+        ),
+    )
+
+    original_pin = original.pin()
+    modified_pin = modified.pin()
+
+    assert original_pin["manifestDigest"] != modified_pin["manifestDigest"]
+    assert original_pin["declaredReleaseDigest"] == modified_pin[
+        "declaredReleaseDigest"
+    ]
+    assert original_pin["rulespecGraph"] == modified_pin["rulespecGraph"]
 
 
 def test_managed_snapshot_reads_legacy_1_0_member_copies(
