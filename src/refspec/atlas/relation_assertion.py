@@ -1,10 +1,10 @@
 """Closed relation assertions over exact releases in one semantic ring.
 
 The bundle in this module is the shared foundation for subject mappings,
-entity links, value crosswalks, and legal-identity relations.  It shares
-identity, release pins, evidence, and lifecycle-independent assertion shape;
-the semantic foundation still enforces a different relation vocabulary for
-each ring.
+entity links, value crosswalks, and legal-identity relations. It shares
+identity, release pins, evidence, and immutable lifecycle and supersession
+facts; the semantic foundation still enforces a different relation vocabulary
+for each ring.
 
 Every endpoint is checked against a path-backed, digest-verified release.
 Labels never establish membership or identity, and contradictory assertions
@@ -63,7 +63,7 @@ from .relation_proof import (
     trusted_relation_machine_proof_adapter_id,
 )
 
-RELATION_ASSERTION_BUNDLE_VERSION = "1.0"
+RELATION_ASSERTION_BUNDLE_VERSION = "2.0"
 RELATION_ASSERTION_BUNDLE_MEDIA_TYPE = "application/vnd.refspec.relation-assertion-bundle+json"
 
 _ASSERTIONS_PATH = "relation-assertions.json"

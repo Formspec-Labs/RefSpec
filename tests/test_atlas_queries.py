@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+import test_icpsr_managed_release as icpsr_fixture
 import test_relation_assertion_bundle as relation_fixture
 import test_vocabulary_atlas_model as model_fixture
 
@@ -232,6 +233,76 @@ def test_native_relation_query_preserves_managed_release_skos_facts(
         queries.native_relations(predicate_iri="urn:test:unsupported")
 
 
+def test_native_relation_query_preserves_icpsr_use_and_used_for_without_hierarchy_inference(
+    tmp_path: Path,
+) -> None:
+    managed = icpsr_fixture._build_fixture()
+    manifest_path = managed.write_to(tmp_path / "query-icpsr-managed-release")
+    manifest_digest = icpsr_fixture._file_digest(manifest_path)
+    release_id = cast(str, managed.manifest["release"]["id"])
+    assignment = icpsr_fixture.ManagedReleaseRingAssignment(
+        managed_manifest_digest=manifest_digest,
+        release_id=release_id,
+        semantic_ring="subject",
+        assigned_by="urn:test:actor:icpsr-query-reviewer",
+        assigned_at=icpsr_fixture.RECORDED_AT,
+        evidence=("urn:test:evidence:icpsr-query-native-relations",),
+    )
+    assignment_path = assignment.write_to(
+        tmp_path / "query-icpsr-managed-ring-assignment.json"
+    )
+    pinned_assignment = icpsr_fixture.PinnedManagedReleaseRingAssignment.open(
+        assignment_path,
+        expected_file_digest=icpsr_fixture._file_digest(assignment_path),
+    )
+    source = icpsr_fixture.PinnedIcpsrManagedConceptRelease.open(
+        manifest_path,
+        expected_manifest_digest=manifest_digest,
+        release_id=release_id,
+        ring_assignment=pinned_assignment,
+    )
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-icpsr-native-relations",
+        releases=(release,),
+        specs=(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "query-icpsr-native-relations",
+                participation="specialist",
+            ),
+        ),
+    )
+
+    queries = VocabularyAtlasQueries(build_vocabulary_atlas(scope))
+    relations = queries.native_relations()
+
+    assert len(relations) == 4
+    assert {value.predicate_iri for value in relations} == {
+        "http://www.w3.org/2004/02/skos/core#broader",
+        "http://www.w3.org/2004/02/skos/core#related",
+        icpsr_fixture.ICPSR_USE_PROPERTY_IRI,
+        icpsr_fixture.ICPSR_USED_FOR_PROPERTY_IRI,
+    }
+    for predicate in (
+        icpsr_fixture.ICPSR_USE_PROPERTY_IRI,
+        icpsr_fixture.ICPSR_USED_FOR_PROPERTY_IRI,
+    ):
+        selected = queries.native_relations(predicate_iri=predicate)
+        assert len(selected) == 1
+        assertion = selected[0]
+        assert assertion.release_id == release_id
+        assert queries.native_ancestors(
+            assertion.subject_concept,
+            release_id=release_id,
+        ) == ()
+        assert queries.native_descendants(
+            assertion.subject_concept,
+            release_id=release_id,
+        ) == ()
+
+
 def test_mapping_query_resolves_typed_evidence_and_machine_proof_closure(
     tmp_path: Path,
 ) -> None:
@@ -286,6 +357,12 @@ def test_mapping_query_resolves_typed_evidence_and_machine_proof_closure(
     assert view.candidate_ids == (cast(str, proof.pin()["candidate"]["id"]),)
     assert view.validation_receipt_ids == evidence.validation_receipts
     assert view.external_evidence_ids == (cast(str, proof.pin()["id"]),)
+    assert view.effective_lifecycle_status == "current"
+    assert view.superseded_by_ids == ()
+    assert queries.mapping_assertions(lifecycle_status="current") == result
+    assert queries.mapping_assertions(lifecycle_status="superseded") == ()
+    with pytest.raises(VocabularyAtlasError, match="current or superseded"):
+        queries.mapping_assertions(lifecycle_status=cast(object, "withdrawn"))
     assert queries.mapping_assertion(machine_mapping.identifier) == view
     neighborhood = queries.direct_neighborhood(
         machine_mapping.source_concept,
@@ -293,3 +370,64 @@ def test_mapping_query_resolves_typed_evidence_and_machine_proof_closure(
     )
     assert neighborhood.mapping_assertions == result
     assert queries.mapping_assertions(semantic_ring="entity") == ()
+
+
+def test_mapping_supersession_resolves_across_immutable_relation_bundles(
+    tmp_path: Path,
+) -> None:
+    source, target, evidence, prior = relation_fixture._subject_facts(tmp_path)
+    successor = replace(
+        prior,
+        asserted_at="2026-08-04T16:01:00Z",
+        supersedes=(prior.identifier,),
+    )
+    pinned_relations = []
+    for name, mapping in (("prior", prior), ("successor", successor)):
+        bundle = RelationAssertionBundle.create(
+            semantic_ring="subject",
+            release_sources=(source, target),
+            evidence_assertions=(evidence,),
+            mapping_assertions=(mapping,),
+        )
+        root = bundle.write_to(tmp_path / f"query-supersession-{name}")
+        pinned_relations.append(
+            PinnedRelationAssertionBundle.open(
+                root,
+                expected_manifest_digest=bundle.manifest_digest,
+                release_sources=(source, target),
+            )
+        )
+    releases = (AtlasScopeRelease(source), AtlasScopeRelease(target))
+    incomplete_scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-supersession-incomplete",
+        releases=releases,
+        specs=(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(releases[0], "query-supersession-source"),
+            model_fixture._SCOPE_FIXTURE._IndexSpec(releases[1], "query-supersession-target"),
+        ),
+        relations=(pinned_relations[1],),
+    )
+    with pytest.raises(VocabularyAtlasError, match="unknown prior assertions"):
+        build_vocabulary_atlas(incomplete_scope)
+
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-supersession",
+        releases=releases,
+        specs=(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(releases[0], "query-supersession-source"),
+            model_fixture._SCOPE_FIXTURE._IndexSpec(releases[1], "query-supersession-target"),
+        ),
+        relations=tuple(pinned_relations),
+    )
+
+    queries = VocabularyAtlasQueries(build_vocabulary_atlas(scope))
+    prior_view = queries.mapping_assertion(prior.identifier)
+    successor_view = queries.mapping_assertion(successor.identifier)
+
+    assert prior_view.effective_lifecycle_status == "superseded"
+    assert prior_view.superseded_by_ids == (successor.identifier,)
+    assert successor_view.effective_lifecycle_status == "current"
+    assert queries.mapping_assertions(lifecycle_status="superseded") == (prior_view,)
+    assert queries.mapping_assertions(lifecycle_status="current") == (successor_view,)

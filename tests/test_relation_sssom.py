@@ -375,6 +375,8 @@ def test_sidecar_preserves_operator_adoption_closure(tmp_path: Path) -> None:
     )
 
     row = _jsonl(RelationSssomDistribution.create(bundle).artifact_bytes()[EVIDENCE_PATH])[0]
+    assert row["lifecycleStatus"] == "current"
+    assert row["supersedes"] == []
 
     assert [item["id"] for item in row["directEvidence"]] == [adopted.identifier]
     assert [item["id"] for item in row["evidenceClosure"]] == sorted((reviewed.identifier, adopted.identifier))

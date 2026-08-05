@@ -26,6 +26,7 @@ from refspec.registry.infrastructure.semantic_foundation import (
 
 from .atlas_scope import SubjectParticipation
 from .model import (
+    ATLAS,
     VocabularyAtlasAsset,
     VocabularyAtlasError,
     _decode_atlas_dataset,
@@ -45,6 +46,7 @@ CanonicalRecordRole = Literal[
 ]
 LabelRole = Literal["preferred", "alternate", "hidden"]
 LabelMatchMode = Literal["exact", "contains"]
+EffectiveMappingLifecycleStatus = Literal["current", "superseded"]
 VocabularyAtlasDistribution = VocabularyAtlasAsset | VocabularyAtlasProjection
 
 _RECORD_ROLES = frozenset(
@@ -72,7 +74,7 @@ _SKOS_LABEL_FIELDS: tuple[tuple[str, LabelRole], ...] = (
     ("skos:hiddenLabel", "hidden"),
     ("http://www.w3.org/2004/02/skos/core#hiddenLabel", "hidden"),
 )
-_SKOS_NATIVE_RELATION_FIELDS: tuple[tuple[str, str], ...] = (
+_NATIVE_RELATION_FIELDS: tuple[tuple[str, str], ...] = (
     (
         "skos:broader",
         "http://www.w3.org/2004/02/skos/core#broader",
@@ -97,8 +99,18 @@ _SKOS_NATIVE_RELATION_FIELDS: tuple[tuple[str, str], ...] = (
         "http://www.w3.org/2004/02/skos/core#related",
         "http://www.w3.org/2004/02/skos/core#related",
     ),
+    (
+        str(ATLAS.thesaurusUse),
+        str(ATLAS.thesaurusUse),
+    ),
+    (
+        str(ATLAS.thesaurusUsedFor),
+        str(ATLAS.thesaurusUsedFor),
+    ),
 )
-_SKOS_NATIVE_RELATION_PREDICATES = frozenset(predicate for _field, predicate in _SKOS_NATIVE_RELATION_FIELDS)
+_NATIVE_RELATION_PREDICATES = frozenset(
+    predicate for _field, predicate in _NATIVE_RELATION_FIELDS
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,7 +140,7 @@ class ConceptVersion:
 
 @dataclass(frozen=True, slots=True)
 class NativeConceptRelation:
-    """One source-native SKOS assertion inside one exact concept release."""
+    """One source-native concept assertion inside one exact concept release."""
 
     subject_concept: str
     predicate_iri: str
@@ -239,10 +251,17 @@ class MappingAssertionView:
     relation_bundle_ids: tuple[str, ...]
     evidence_assertions: tuple[EvidenceAssertionView, ...]
     machine_proofs: tuple[MachineProofView, ...]
+    superseded_by_ids: tuple[str, ...] = ()
 
     @property
     def mapping_id(self) -> str:
         return self.assertion.identifier
+
+    @property
+    def effective_lifecycle_status(self) -> EffectiveMappingLifecycleStatus:
+        """Resolve incoming supersession without mutating the immutable assertion."""
+
+        return "superseded" if self.superseded_by_ids else "current"
 
     @property
     def external_evidence_ids(self) -> tuple[str, ...]:
@@ -449,7 +468,7 @@ class VocabularyAtlasQueries:
             NativeConceptRelation,
         ] = {}
         for concept in self._concepts:
-            for field, predicate in _SKOS_NATIVE_RELATION_FIELDS:
+            for field, predicate in _NATIVE_RELATION_FIELDS:
                 raw_targets = concept.record.get(field)
                 if raw_targets is None:
                     continue
@@ -642,9 +661,24 @@ class VocabularyAtlasQueries:
                     machine_proofs=tuple(proofs),
                 )
             )
+        superseded_by: dict[str, list[str]] = {}
+        for view in result:
+            for prior_id in view.assertion.supersedes:
+                superseded_by.setdefault(prior_id, []).append(view.mapping_id)
+        resolved = tuple(
+            MappingAssertionView(
+                record_id=view.record_id,
+                assertion=view.assertion,
+                relation_bundle_ids=view.relation_bundle_ids,
+                evidence_assertions=view.evidence_assertions,
+                machine_proofs=view.machine_proofs,
+                superseded_by_ids=tuple(sorted(superseded_by.get(view.mapping_id, ()))),
+            )
+            for view in result
+        )
         return tuple(
             sorted(
-                result,
+                resolved,
                 key=lambda value: (
                     _RING_ORDER[value.assertion.semantic_ring],
                     value.assertion.source_release,
@@ -708,14 +742,16 @@ class VocabularyAtlasQueries:
         predicate_iri: str | None = None,
         concept_id: str | None = None,
     ) -> tuple[NativeConceptRelation, ...]:
-        """Return exact source-native SKOS assertions without inference.
+        """Return exact source-native concept assertions without inference.
 
         ``concept_id`` selects assertions where the concept is either the
         subject or object. Broader/narrower inverses and symmetric related
         assertions remain separate when the source release states both.
+        Registered source-specific relations such as ICPSR USE/UF remain
+        distinct predicates and do not participate in hierarchy inference.
         """
 
-        if predicate_iri is not None and predicate_iri not in _SKOS_NATIVE_RELATION_PREDICATES:
+        if predicate_iri is not None and predicate_iri not in _NATIVE_RELATION_PREDICATES:
             raise VocabularyAtlasError("source-native relation predicate is unsupported")
         return tuple(
             value
@@ -989,14 +1025,23 @@ class VocabularyAtlasQueries:
         semantic_ring: SemanticRing | None = None,
         release_id: str | None = None,
         concept_id: str | None = None,
+        lifecycle_status: EffectiveMappingLifecycleStatus | None = None,
     ) -> tuple[MappingAssertionView, ...]:
         """Return typed mappings with complete evidence and proof references."""
 
         ring = _checked_ring(semantic_ring) if semantic_ring is not None else None
+        if lifecycle_status not in {None, "current", "superseded"}:
+            raise VocabularyAtlasError(
+                "mapping lifecycle_status must be current or superseded"
+            )
         return tuple(
             value
             for value in self._mappings
             if (ring is None or value.assertion.semantic_ring == ring)
+            and (
+                lifecycle_status is None
+                or value.effective_lifecycle_status == lifecycle_status
+            )
             and (
                 release_id is None
                 or release_id
@@ -1029,6 +1074,7 @@ __all__ = [
     "ConceptLabel",
     "ConceptNeighborhood",
     "ConceptVersion",
+    "EffectiveMappingLifecycleStatus",
     "EvidenceAssertionView",
     "LabelMatch",
     "LabelMatchMode",

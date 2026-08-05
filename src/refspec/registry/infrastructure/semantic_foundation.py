@@ -19,6 +19,7 @@ from refspec.registry.infrastructure.artifact_serialization import canonical_jso
 from refspec.registry.infrastructure.identifier_validation import absolute_uri_issue
 from refspec.registry.infrastructure.source_identity import (
     SourceIdentityError,
+    parse_aware_datetime,
     require_aware_datetime_text,
 )
 
@@ -48,6 +49,7 @@ EvidenceUseCeiling = Literal[
     "notApplicable",
 ]
 RightsStatus = Literal["stated", "notStated"]
+MappingLifecycleStatus = Literal["current"]
 
 MACHINE_EVIDENCE_PROOF_VERSION = "1.0"
 SEMANTIC_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
@@ -71,6 +73,7 @@ EVIDENCE_USE_CEILINGS: Mapping[EvidenceClass, EvidenceUseCeiling] = MappingProxy
         "ruleGenerated": "notApplicable",
     }
 )
+MAPPING_LIFECYCLE_STATUSES = frozenset({"current"})
 
 SUBJECT_EXACT_MATCH = "http://www.w3.org/2004/02/skos/core#exactMatch"
 SUBJECT_CLOSE_MATCH = "http://www.w3.org/2004/02/skos/core#closeMatch"
@@ -960,6 +963,8 @@ class MappingAssertion:
     evidence: tuple[str, ...]
     asserted_at: str
     context: Mapping[str, str] | None = None
+    lifecycle_status: MappingLifecycleStatus = "current"
+    supersedes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         ring = _require_ring(self.semantic_ring, "mapping_assertion.semanticRing")
@@ -1000,6 +1005,17 @@ class MappingAssertion:
             "asserted_at",
             _require_datetime(self.asserted_at, "mapping_assertion.assertedAt"),
         )
+        if self.lifecycle_status not in MAPPING_LIFECYCLE_STATUSES:
+            raise SemanticFoundationError("mapping_assertion.lifecycleStatus must be current")
+        object.__setattr__(
+            self,
+            "supersedes",
+            _require_unique_iris(
+                self.supersedes,
+                "mapping_assertion.supersedes",
+                minimum=0,
+            ),
+        )
         object.__setattr__(
             self,
             "context",
@@ -1009,6 +1025,8 @@ class MappingAssertion:
                 label="mapping_assertion.context",
             ),
         )
+        if self.identifier in self.supersedes:
+            raise SemanticFoundationError("mapping_assertion cannot supersede itself")
 
     @classmethod
     def from_record(cls, value: Mapping[str, Any]) -> MappingAssertion:
@@ -1028,6 +1046,8 @@ class MappingAssertion:
             "relation",
             "evidence",
             "assertedAt",
+            "lifecycleStatus",
+            "supersedes",
         }
         if ring in {"value", "legalIdentity"}:
             required.add("context")
@@ -1045,6 +1065,8 @@ class MappingAssertion:
             evidence=cast(tuple[str, ...], value.get("evidence")),
             asserted_at=cast(str, value.get("assertedAt")),
             context=(cast(Mapping[str, str], context) if isinstance(context, Mapping) else None),
+            lifecycle_status=cast(MappingLifecycleStatus, value.get("lifecycleStatus")),
+            supersedes=cast(tuple[str, ...], value.get("supersedes")),
         )
         if assertion.as_record() != dict(value):
             raise SemanticFoundationError("mapping_assertion content identity or canonical order differs")
@@ -1131,6 +1153,8 @@ class MappingAssertion:
             "relation": self.relation,
             "evidence": list(self.evidence),
             "assertedAt": self.asserted_at,
+            "lifecycleStatus": self.lifecycle_status,
+            "supersedes": list(self.supersedes),
         }
         if self.context is not None:
             result["context"] = dict(self.context)
@@ -1218,6 +1242,7 @@ def _validate_mapping_assertions(
     evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
     semantic_ring: SemanticRing | None = None,
     allow_machine_evidence: bool,
+    require_supersession_closure: bool,
 ) -> tuple[MappingAssertion, ...]:
     expected_ring = None if semantic_ring is None else _require_ring(semantic_ring, "semantic_ring")
     evidence = validate_evidence_assertions(evidence_assertions)
@@ -1240,7 +1265,77 @@ def _validate_mapping_assertions(
         )
         identifiers.add(assertion.identifier)
         result.append(assertion)
+    _validate_mapping_supersession_graph(
+        result,
+        require_resolved=require_supersession_closure,
+    )
     return tuple(sorted(result, key=lambda value: value.identifier))
+
+
+def validate_mapping_supersession(
+    values: Sequence[MappingAssertion],
+    *,
+    require_resolved: bool = True,
+) -> None:
+    """Validate immutable mapping supersession across the supplied assertion set.
+
+    Relation bundles may name an assertion in another immutable bundle, so
+    bundle construction validates every locally resolvable edge and defers
+    external closure to the assembled Atlas. Atlas validation supplies the
+    complete assertion set and requires every reference to resolve.
+    """
+
+    by_id = {value.identifier: value for value in values}
+    for assertion in values:
+        missing = sorted(set(assertion.supersedes) - set(by_id))
+        if missing and require_resolved:
+            raise SemanticFoundationError(
+                f"mapping_assertion supersedes unknown prior assertions {missing!r}"
+            )
+        for prior_id in assertion.supersedes:
+            if prior_id not in by_id:
+                continue
+            prior = by_id[prior_id]
+            if prior_id == assertion.identifier:
+                raise SemanticFoundationError("mapping_assertion cannot supersede itself")
+            if prior.semantic_ring != assertion.semantic_ring:
+                raise SemanticFoundationError("mapping_assertion supersession crosses semantic rings")
+            if parse_aware_datetime(
+                prior.asserted_at,
+                label="mapping_assertion superseded assertedAt",
+            ) >= parse_aware_datetime(
+                assertion.asserted_at,
+                label="mapping_assertion superseding assertedAt",
+            ):
+                raise SemanticFoundationError(
+                    "mapping_assertion must be asserted after every assertion it supersedes"
+                )
+
+    visited: set[str] = set()
+    active: set[str] = set()
+
+    def visit(identifier: str) -> None:
+        if identifier in active:
+            raise SemanticFoundationError("mapping_assertion supersession contains a cycle")
+        if identifier in visited:
+            return
+        active.add(identifier)
+        for prior_id in by_id[identifier].supersedes:
+            if prior_id in by_id:
+                visit(prior_id)
+        active.remove(identifier)
+        visited.add(identifier)
+
+    for identifier in sorted(by_id):
+        visit(identifier)
+
+
+def _validate_mapping_supersession_graph(
+    values: Sequence[MappingAssertion],
+    *,
+    require_resolved: bool,
+) -> None:
+    validate_mapping_supersession(values, require_resolved=require_resolved)
 
 
 def validate_mapping_assertions(
@@ -1262,6 +1357,7 @@ def validate_mapping_assertions(
         evidence_assertions=evidence_assertions,
         semantic_ring=semantic_ring,
         allow_machine_evidence=False,
+        require_supersession_closure=True,
     )
 
 
@@ -1278,6 +1374,7 @@ def _validate_mapping_assertions_with_machine_evidence(
         evidence_assertions=evidence_assertions,
         semantic_ring=semantic_ring,
         allow_machine_evidence=True,
+        require_supersession_closure=False,
     )
 
 
@@ -1292,6 +1389,7 @@ __all__ = [
     "LEGAL_CITES",
     "LEGAL_IMPLEMENTS",
     "MACHINE_EVIDENCE_PROOF_VERSION",
+    "MAPPING_LIFECYCLE_STATUSES",
     "RING_RELATIONS",
     "SEMANTIC_RINGS",
     "SUBJECT_BROAD_MATCH",
@@ -1308,6 +1406,7 @@ __all__ = [
     "EvidenceClass",
     "EvidenceUseCeiling",
     "MappingAssertion",
+    "MappingLifecycleStatus",
     "RightsMetadata",
     "RightsStatus",
     "SemanticFoundationError",
@@ -1315,6 +1414,7 @@ __all__ = [
     "validate_evidence_assertions",
     "validate_machine_evidence_proof_pin",
     "validate_mapping_assertions",
+    "validate_mapping_supersession",
     "validate_rights_metadata",
     "validate_rights_metadata_records",
     "validate_ring_relation",

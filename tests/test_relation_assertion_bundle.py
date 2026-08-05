@@ -443,6 +443,9 @@ def test_source_relation_bundle_is_content_derived_deterministic_and_reopenable(
     )
 
     assert first.identifier.startswith("urn:ref:relation-assertion-bundle:subject:")
+    assert first.as_record()["schemaVersion"] == "2.0"
+    assert first.as_record()["mappingAssertions"][0]["lifecycleStatus"] == "current"
+    assert first.as_record()["mappingAssertions"][0]["supersedes"] == []
     assert first.content_digest.startswith("sha256:")
     assert first.as_record() == second.as_record()
     assert first.artifact_bytes() == second.artifact_bytes()

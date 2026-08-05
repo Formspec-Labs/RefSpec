@@ -2,8 +2,8 @@
 
 The TSV is the interoperable mapping table.  The JSON Lines sidecar preserves
 the facts SSSOM 1.0 cannot carry without changing their meaning: the mapping
-assertion identity, exact release pins, typed evidence, and ring-specific
-context.  The manifest seals both files to one verified
+assertion identity, exact release pins, typed evidence, ring-specific context,
+lifecycle status, and supersession links. The manifest seals both files to one verified
 ``RelationAssertionBundle``.
 
 This module does not convert crosswalk candidates.  It accepts only relation
@@ -37,7 +37,7 @@ from refspec.registry.infrastructure.semantic_foundation import EvidenceAssertio
 
 from .relation_assertion import RelationAssertionBundle, RelationAssertionError
 
-RELATION_SSSOM_VERSION = "1.0"
+RELATION_SSSOM_VERSION = "2.0"
 RELATION_SSSOM_PACKAGE_KIND = "relationAssertionSssomDistribution"
 RELATION_SSSOM_MAPPING_SET_NAMESPACE = "https://refspec.org/id/relation-assertion-sssom/"
 
@@ -390,6 +390,8 @@ def _sidecar_rows(bundle: RelationAssertionBundle) -> list[dict[str, Any]]:
             "targetRelease": mapping.target_release,
             "relation": mapping.relation,
             "assertedAt": mapping.asserted_at,
+            "lifecycleStatus": mapping.lifecycle_status,
+            "supersedes": list(mapping.supersedes),
             "directEvidence": [item.as_record() for item in direct],
             "evidenceClosure": [item.as_record() for item in closure],
             "releasePins": [_plain(release_by_id[identifier]) for identifier in sorted(endpoint_release_ids)],

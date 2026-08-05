@@ -190,9 +190,17 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "refspec.registry.infrastructure.semantic_foundation",
         "MACHINE_EVIDENCE_PROOF_VERSION",
     ),
+    "MAPPING_LIFECYCLE_STATUSES": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "MAPPING_LIFECYCLE_STATUSES",
+    ),
     "MappingAssertion": (
         "refspec.registry.infrastructure.semantic_foundation",
         "MappingAssertion",
+    ),
+    "MappingLifecycleStatus": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "MappingLifecycleStatus",
     ),
     "ManagedVocabularyBundle": ("refspec.registry.infrastructure.managed_vocabulary_bundle", "ManagedVocabularyBundle"),
     "ManagedVocabularyBundleError": (
@@ -353,6 +361,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "validate_mapping_assertions": (
         "refspec.registry.infrastructure.semantic_foundation",
         "validate_mapping_assertions",
+    ),
+    "validate_mapping_supersession": (
+        "refspec.registry.infrastructure.semantic_foundation",
+        "validate_mapping_supersession",
     ),
     "validate_rights_metadata": (
         "refspec.registry.infrastructure.semantic_foundation",

@@ -229,6 +229,10 @@ def test_evidence_and_mapping_ids_change_with_content_and_reject_aliases() -> No
 
     assert first.identifier != second.identifier
     assert mapping.identifier.startswith("urn:ref:mapping-assertion:subject:")
+    assert mapping.lifecycle_status == "current"
+    assert mapping.supersedes == ()
+    assert mapping.as_record()["lifecycleStatus"] == "current"
+    assert mapping.as_record()["supersedes"] == []
     assert MappingAssertion.from_record(mapping.as_record()) == mapping
 
     evidence_alias = {**first.as_record(), "id": "urn:ref:test:mutable-alias"}
@@ -237,6 +241,57 @@ def test_evidence_and_mapping_ids_change_with_content_and_reject_aliases() -> No
     mapping_alias = {**mapping.as_record(), "id": "urn:ref:test:mutable-mapping-alias"}
     with pytest.raises(SemanticFoundationError, match="content identity"):
         MappingAssertion.from_record(mapping_alias)
+
+    legacy = mapping.as_record()
+    del legacy["lifecycleStatus"]
+    del legacy["supersedes"]
+    with pytest.raises(SemanticFoundationError, match="missing fields"):
+        MappingAssertion.from_record(legacy)
+
+
+def test_mapping_supersession_is_content_derived_closed_and_preserves_disagreement() -> None:
+    evidence = _human()
+    prior = _mapping(
+        ring="subject",
+        relation=SUBJECT_EXACT_MATCH,
+        evidence=(evidence.identifier,),
+    )
+    successor = replace(
+        prior,
+        asserted_at="2026-08-04T14:01:00Z",
+        supersedes=(prior.identifier,),
+    )
+    contradictory = replace(
+        prior,
+        relation=SUBJECT_BROAD_MATCH,
+        asserted_at="2026-08-04T14:02:00Z",
+    )
+
+    assertions = validate_mapping_assertions(
+        (contradictory, successor, prior),
+        evidence_assertions=(evidence,),
+    )
+
+    assert {value.identifier for value in assertions} == {
+        prior.identifier,
+        successor.identifier,
+        contradictory.identifier,
+    }
+    assert successor.as_record()["supersedes"] == [prior.identifier]
+    assert successor.identifier != prior.identifier
+
+    with pytest.raises(SemanticFoundationError, match="must be current"):
+        replace(prior, lifecycle_status="withdrawn")  # type: ignore[arg-type]
+    with pytest.raises(SemanticFoundationError, match="unknown prior assertions"):
+        validate_mapping_assertions(
+            (replace(successor, supersedes=("urn:ref:mapping-assertion:subject:missing",)),),
+            evidence_assertions=(evidence,),
+        )
+    with pytest.raises(SemanticFoundationError, match="asserted after"):
+        validate_mapping_assertions(
+            (prior, replace(prior, supersedes=(prior.identifier,))),
+            evidence_assertions=(evidence,),
+        )
 
 
 def test_use_ceiling_is_derived_and_never_caller_selected() -> None:

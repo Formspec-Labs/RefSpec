@@ -1232,7 +1232,11 @@ def _as_sequence(value: object, label: str) -> Sequence[Any]:
 # pinned scope is the complete and only public build input.
 
 from refspec.atlas_index import AtlasIndexError
-from refspec.registry.infrastructure.semantic_foundation import SemanticRing
+from refspec.registry.infrastructure.semantic_foundation import (
+    SemanticFoundationError,
+    SemanticRing,
+    validate_mapping_supersession,
+)
 
 from .atlas_scope import (
     AtlasScopeError,
@@ -1929,12 +1933,20 @@ def _resolve_atlas_scope(scope: PinnedVocabularyAtlasScope) -> _ResolvedAtlasSco
                     },
                 )
             )
+        validate_mapping_supersession(
+            tuple(
+                mapping
+                for relation in relations
+                for mapping in relation.mapping_assertions
+            )
+        )
     except (
         AtlasIndexError,
         AtlasReleaseSnapshotError,
         AtlasScopeError,
         KeyError,
         RelationAssertionError,
+        SemanticFoundationError,
     ) as error:
         if isinstance(error, VocabularyAtlasError):
             raise
@@ -2675,6 +2687,16 @@ def _validate_embedded_scope_records(
         )
         for record in relation_records
     )
+    try:
+        validate_mapping_supersession(
+            tuple(
+                mapping
+                for relation in relations
+                for mapping in relation.mapping_assertions
+            )
+        )
+    except SemanticFoundationError as error:
+        raise VocabularyAtlasError(str(error)) from error
     relations_by_id = {relation.identifier: relation for relation in relations}
     if len(relations_by_id) != len(relations):
         raise VocabularyAtlasError("atlas repeats a relation bundle")
