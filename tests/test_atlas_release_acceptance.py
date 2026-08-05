@@ -119,6 +119,9 @@ def test_acceptance_pins_inputs_derives_counts_and_reopens(
             {"semanticRing": "legalIdentity", "count": 0},
         ],
         "byRelation": [{"value": relation, "count": 1}],
+        "byLifecycleStatus": [{"value": "current", "count": 1}],
+        "byEffectiveLifecycleStatus": [{"value": "current", "count": 1}],
+        "supersessionEdgeTotal": 0,
     }
     assert counts["evidence"]["assertionTotal"] == 1
     assert counts["evidence"]["byClass"] == [{"value": "humanReviewed", "count": 1}]

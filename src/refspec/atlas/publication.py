@@ -77,7 +77,7 @@ PUBLICATION_SCHEMA_VERSION = "2.2"
 
 _PUBLICATION_TYPE = "urn:ref:type:VocabularyAtlasPublicationManifest"
 _PUBLICATION_ID_PREFIX = "urn:ref:vocabulary-atlas-publication:"
-_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/3.0"
+_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/4.0"
 _DEFAULT_MAX_CONCEPTS: int | None = None
 _DEFAULT_MAX_MAPPING_ASSERTIONS: int | None = None
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -691,6 +691,9 @@ def _facet_catalog(
         "cfrParts": concept_values("cfrParts"),
         "nativePredicates": sorted({cast(str, row["predicate"]) for row in native_relations}),
         "mappingPredicates": sorted({cast(str, row["relation"]) for row in mappings}),
+        "mappingLifecycleStatuses": sorted(
+            {cast(str, row["effectiveLifecycleStatus"]) for row in mappings}
+        ),
         "evidenceClasses": sorted(
             {evidence_class for row in mappings for evidence_class in cast(Sequence[str], row["evidenceClasses"])}
         ),
@@ -945,6 +948,10 @@ def _build_explorer_model(
             "semanticRing": assertion.semantic_ring,
             "relation": assertion.relation,
             "relationLabel": _relation_label(assertion.relation),
+            "lifecycleStatus": assertion.lifecycle_status,
+            "effectiveLifecycleStatus": view.effective_lifecycle_status,
+            "supersedes": list(assertion.supersedes),
+            "supersededBy": list(view.superseded_by_ids),
             "directEvidenceAssertions": list(assertion.evidence),
             "evidenceAssertions": sorted({item.assertion.identifier for item in view.evidence_assertions}),
             "evidenceClasses": sorted({item.assertion.evidence_class for item in view.evidence_assertions}),

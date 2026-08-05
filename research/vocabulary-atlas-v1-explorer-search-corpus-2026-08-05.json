@@ -1,0 +1,172 @@
+{
+  "type": "VocabularyAtlasExplorerSearchCorpus",
+  "schemaVersion": "2.0",
+  "reviewedBy": "https://refspec.org/actors/vocabulary-atlas-v1-release-review",
+  "reviewedAt": "2026-08-05T04:25:00Z",
+  "releaseIds": [
+    "https://elsst.cessda.eu/id/6",
+    "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+    "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+    "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+    "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e",
+    "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
+  ],
+  "aggregateCases": [
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:source-fact-aggregate",
+      "semanticRing": "entity",
+      "category": "sourceFact",
+      "query": "https://www.congress.gov/help/field-values/legislative-subject-terms/organizations",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedResultCount": 478,
+      "expectedViewIdDigest": "sha256:61a340ea7a2d404f791d76e5c34d2ec9636de57272a515cd3b03ad9049052d00",
+      "expectedMatch": "Source or release fact"
+    }
+  ],
+  "cases": [
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:alias",
+      "semanticRing": "entity",
+      "category": "alias",
+      "query": "Federal Emergency Management Agency",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:exact-identifier",
+      "semanticRing": "entity",
+      "category": "exactIdentifier",
+      "query": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 1
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:exact-preferred-label",
+      "semanticRing": "entity",
+      "category": "exactPreferredLabel",
+      "query": "Federal Emergency Management Agency (FEMA)",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 1
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:normalized-punctuation-spacing",
+      "semanticRing": "entity",
+      "category": "normalizedPunctuationSpacing",
+      "query": "Federal-Emergency   Management/Agency [FEMA]",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:recognized-variant",
+      "semanticRing": "entity",
+      "category": "recognizedVariant",
+      "query": "FEMA",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:reviewed-one-edit-typo",
+      "semanticRing": "entity",
+      "category": "reviewedOneEditTypo",
+      "query": "FEMZ",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:entity:useful-prefix",
+      "semanticRing": "entity",
+      "category": "usefulPrefix",
+      "query": "Federal Emer",
+      "expectedReleaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822",
+      "expectedConceptId": "urn:ref:source-concept:v1:6db43bea6ad5f32b25d57b4cd182d1b3b7f5de9a29a727b65fc17954cec97f01:019fc9f2-c758-7e3b-a1fe-bc5d45e057ba",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:alias",
+      "semanticRing": "subject",
+      "category": "alias",
+      "query": "AFDC",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:definition-or-scope-note",
+      "semanticRing": "subject",
+      "category": "definitionOrScopeNote",
+      "query": "standard measure of performance",
+      "expectedReleaseId": "https://elsst.cessda.eu/id/6",
+      "expectedConceptId": "https://elsst.cessda.eu/id/6/002fe9e0-1b8a-4f07-a1da-62583c135f00",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:exact-identifier",
+      "semanticRing": "subject",
+      "category": "exactIdentifier",
+      "query": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 1
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:exact-notation",
+      "semanticRing": "subject",
+      "category": "exactNotation",
+      "query": "24040",
+      "expectedReleaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37",
+      "expectedConceptId": "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/24040",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:exact-preferred-label",
+      "semanticRing": "subject",
+      "category": "exactPreferredLabel",
+      "query": "Aid to Families with Dependent Children",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 1
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:normalized-punctuation-spacing",
+      "semanticRing": "subject",
+      "category": "normalizedPunctuationSpacing",
+      "query": "Aid-to Families/with   Dependent Children",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:recognized-variant",
+      "semanticRing": "subject",
+      "category": "recognizedVariant",
+      "query": "AFDC",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:reviewed-one-edit-typo",
+      "semanticRing": "subject",
+      "category": "reviewedOneEditTypo",
+      "query": "AFDG",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 5
+    },
+    {
+      "id": "urn:ref:vocabulary-atlas-v1:explorer-search:subject:useful-prefix",
+      "semanticRing": "subject",
+      "category": "usefulPrefix",
+      "query": "Aid to Fam",
+      "expectedReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+      "expectedConceptId": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0015",
+      "maximumRank": 5
+    }
+  ]
+}

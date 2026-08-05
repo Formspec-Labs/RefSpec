@@ -42,7 +42,7 @@ from .publication_decision import (
 from .queries import VocabularyAtlasQueries
 
 RELEASE_ACCEPTANCE_TYPE = "VocabularyAtlasReleaseAcceptance"
-RELEASE_ACCEPTANCE_VERSION = "1.0"
+RELEASE_ACCEPTANCE_VERSION = "2.0"
 
 AcceptanceCheckStatus = Literal["passed"]
 ReproducibilityStatus = Literal[
@@ -73,7 +73,16 @@ _COUNTS_FIELDS = frozenset(
 )
 _CONCEPT_COUNT_FIELDS = frozenset({"total", "byRelease", "byRing"})
 _NATIVE_COUNT_FIELDS = frozenset({"total", "byRelease", "byRing", "byPredicate"})
-_MAPPING_COUNT_FIELDS = frozenset({"total", "byRing", "byRelation"})
+_MAPPING_COUNT_FIELDS = frozenset(
+    {
+        "total",
+        "byRing",
+        "byRelation",
+        "byLifecycleStatus",
+        "byEffectiveLifecycleStatus",
+        "supersessionEdgeTotal",
+    }
+)
 _EVIDENCE_COUNT_FIELDS = frozenset({"assertionTotal", "machineProofTotal", "byClass", "byRing"})
 _FACET_COUNT_FIELDS = frozenset(
     {
@@ -375,8 +384,30 @@ def _normalize_counts(value: object) -> dict[str, Any]:
     mapping_total = _require_count(mapping_row.get("total"), f"{label}.mappingAssertions.total")
     mapping_rings = _normalize_ring_counts(mapping_row.get("byRing"), f"{label}.mappingAssertions.byRing")
     mapping_relations = _normalize_value_counts(mapping_row.get("byRelation"), f"{label}.mappingAssertions.byRelation")
+    mapping_lifecycle = _normalize_value_counts(
+        mapping_row.get("byLifecycleStatus"),
+        f"{label}.mappingAssertions.byLifecycleStatus",
+    )
+    mapping_effective_lifecycle = _normalize_value_counts(
+        mapping_row.get("byEffectiveLifecycleStatus"),
+        f"{label}.mappingAssertions.byEffectiveLifecycleStatus",
+    )
+    supersession_edge_total = _require_count(
+        mapping_row.get("supersessionEdgeTotal"),
+        f"{label}.mappingAssertions.supersessionEdgeTotal",
+    )
     _require_partition_total(mapping_rings, mapping_total, f"{label}.mappingAssertions.byRing")
     _require_partition_total(mapping_relations, mapping_total, f"{label}.mappingAssertions.byRelation")
+    _require_partition_total(
+        mapping_lifecycle,
+        mapping_total,
+        f"{label}.mappingAssertions.byLifecycleStatus",
+    )
+    _require_partition_total(
+        mapping_effective_lifecycle,
+        mapping_total,
+        f"{label}.mappingAssertions.byEffectiveLifecycleStatus",
+    )
 
     evidence_row = _require_mapping(row.get("evidence"), f"{label}.evidence")
     _require_exact_fields(evidence_row, _EVIDENCE_COUNT_FIELDS, f"{label}.evidence")
@@ -449,6 +480,9 @@ def _normalize_counts(value: object) -> dict[str, Any]:
             "total": mapping_total,
             "byRing": mapping_rings,
             "byRelation": mapping_relations,
+            "byLifecycleStatus": mapping_lifecycle,
+            "byEffectiveLifecycleStatus": mapping_effective_lifecycle,
+            "supersessionEdgeTotal": supersession_edge_total,
         },
         "evidence": {
             "assertionTotal": evidence_total,
@@ -596,6 +630,10 @@ def _derived_counts(
     native_by_predicate = Counter(value.predicate_iri for value in native_relations)
     mapping_by_ring = Counter(value.assertion.semantic_ring for value in mappings)
     mapping_by_relation = Counter(value.assertion.relation for value in mappings)
+    mapping_by_lifecycle = Counter(value.assertion.lifecycle_status for value in mappings)
+    mapping_by_effective_lifecycle = Counter(
+        value.effective_lifecycle_status for value in mappings
+    )
 
     evidence_by_class: Counter[str] = Counter()
     evidence_by_ring: Counter[str] = Counter()
@@ -695,6 +733,13 @@ def _derived_counts(
             "total": len(mappings),
             "byRing": _ring_count_rows(mapping_by_ring),
             "byRelation": _value_count_rows(mapping_by_relation),
+            "byLifecycleStatus": _value_count_rows(mapping_by_lifecycle),
+            "byEffectiveLifecycleStatus": _value_count_rows(
+                mapping_by_effective_lifecycle
+            ),
+            "supersessionEdgeTotal": sum(
+                len(value.assertion.supersedes) for value in mappings
+            ),
         },
         "evidence": {
             "assertionTotal": len(evidence_records),

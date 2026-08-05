@@ -17,7 +17,143 @@ from refspec.registry.infrastructure.semantic_foundation import (
 from .queries import native_concept_relation_id
 
 EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
-EXPLORER_SCHEMA_VERSION = "3.0"
+EXPLORER_SCHEMA_VERSION = "4.0"
+
+# The renderer and the executable acceptance gate consume this same table.
+# Each row says which planning-row field one shipped control evaluates and how
+# an unset control behaves.
+PLANNING_FILTER_SEMANTICS: tuple[Mapping[str, str], ...] = (
+    {
+        "dimension": "ring",
+        "rowField": "semanticRing",
+        "statePath": "activeRings",
+        "operator": "setContains",
+    },
+    {
+        "dimension": "sourceModule",
+        "rowField": "sourceModule",
+        "statePath": "activeConceptFacets.sourceModules",
+        "operator": "equalsWhenSet",
+    },
+    {
+        "dimension": "resourceId",
+        "rowField": "resourceId",
+        "statePath": "activeConceptFacets.resourceIds",
+        "operator": "equalsWhenSet",
+    },
+    {
+        "dimension": "participation",
+        "rowField": "atlasParticipation",
+        "statePath": "activeConceptFacets.participations",
+        "operator": "equalsWhenSet",
+    },
+    {
+        "dimension": "disposition",
+        "rowField": "disposition",
+        "statePath": "activePlanningDisposition",
+        "operator": "equalsWhenSet",
+    },
+)
+
+# One canonical description drives the shipped concept, native-relation, and
+# mapping-assertion controls plus the independent Python/Node acceptance gate.
+# Endpoint fields mean that an edge is eligible only when both endpoint
+# concepts also satisfy the active concept controls.
+EXPLORER_FILTER_SEMANTICS: tuple[Mapping[str, object], ...] = (
+    {
+        "recordKind": "concept",
+        "idField": "viewId",
+        "filters": (
+            {
+                "dimension": "release",
+                "rowField": "releaseId",
+                "statePath": "activeReleases",
+                "operator": "setContains",
+            },
+            {
+                "dimension": "ring",
+                "rowField": "semanticRing",
+                "statePath": "activeRings",
+                "operator": "setContains",
+            },
+            *(
+                {
+                    "dimension": field,
+                    "rowField": field,
+                    "statePath": f"activeConceptFacets.{field}",
+                    "operator": "arrayContainsWhenSet",
+                }
+                for field in (
+                    "sourceModules",
+                    "resourceIds",
+                    "participations",
+                    "languages",
+                    "lifecycle",
+                    "sourceCollections",
+                    "sourceUrls",
+                    "cfrTitles",
+                    "cfrParts",
+                )
+            ),
+        ),
+        "endpointFields": (),
+    },
+    {
+        "recordKind": "nativeRelation",
+        "idField": "id",
+        "filters": (
+            {
+                "dimension": "nativePredicate",
+                "rowField": "predicate",
+                "statePath": "activeNativePredicates",
+                "operator": "setContains",
+            },
+            {
+                "dimension": "ring",
+                "rowField": "semanticRing",
+                "statePath": "activeRings",
+                "operator": "setContains",
+            },
+        ),
+        "endpointFields": ("subjectViewId", "objectViewId"),
+    },
+    {
+        "recordKind": "mappingAssertion",
+        "idField": "id",
+        "filters": (
+            {
+                "dimension": "mappingVisibility",
+                "statePath": "mappingsActive",
+                "operator": "enabled",
+            },
+            {
+                "dimension": "ring",
+                "rowField": "semanticRing",
+                "statePath": "activeRings",
+                "operator": "setContains",
+            },
+            {
+                "dimension": "mappingPredicate",
+                "rowField": "relation",
+                "statePath": "activeMappingPredicate",
+                "operator": "equalsWhenSet",
+            },
+            {
+                "dimension": "mappingLifecycleStatus",
+                "rowField": "effectiveLifecycleStatus",
+                "statePath": "activeMappingLifecycleStatus",
+                "operator": "equalsWhenSet",
+            },
+            {
+                "dimension": "evidenceClass",
+                "rowField": "evidenceClasses",
+                "statePath": "activeEvidenceClass",
+                "operator": "arrayContainsWhenSet",
+            },
+        ),
+        "endpointFields": ("sourceViewId", "targetViewId"),
+    },
+)
 
 _MODEL_FIELDS = frozenset(
     {
@@ -96,6 +232,10 @@ _MAPPING_FIELDS = frozenset(
         "semanticRing",
         "relation",
         "relationLabel",
+        "lifecycleStatus",
+        "effectiveLifecycleStatus",
+        "supersedes",
+        "supersededBy",
         "directEvidenceAssertions",
         "evidenceAssertions",
         "evidenceClasses",
@@ -133,6 +273,8 @@ _NATIVE_RELATION_LABELS = {
     "http://www.w3.org/2004/02/skos/core#broader": "broader",
     "http://www.w3.org/2004/02/skos/core#narrower": "narrower",
     "http://www.w3.org/2004/02/skos/core#related": "related",
+    "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse": "thesaurus use",
+    "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor": "thesaurus used for",
 }
 _EVIDENCE_CLASSES = frozenset(
     {
@@ -177,6 +319,7 @@ _FACET_FIELDS = frozenset(
         "cfrParts",
         "nativePredicates",
         "mappingPredicates",
+        "mappingLifecycleStatuses",
         "evidenceClasses",
         "planningDispositions",
     }
@@ -584,6 +727,27 @@ def _validate_model(model: Mapping[str, Any]) -> None:
             raise AtlasExplorerError("atlas explorer mapping assertion differs from its endpoints")
         relation = _text(row.get("relation"), f"{label}.relation")
         _text(row.get("relationLabel"), f"{label}.relationLabel")
+        if row.get("lifecycleStatus") != "current":
+            raise AtlasExplorerError(
+                "atlas explorer mapping assertion lifecycleStatus must be current"
+            )
+        supersedes = _canonical_text_array(
+            row.get("supersedes"),
+            f"{label}.supersedes",
+        )
+        superseded_by = _canonical_text_array(
+            row.get("supersededBy"),
+            f"{label}.supersededBy",
+        )
+        effective_status = row.get("effectiveLifecycleStatus")
+        if effective_status not in {"current", "superseded"} or (
+            effective_status == "superseded"
+        ) != bool(superseded_by):
+            raise AtlasExplorerError(
+                "atlas explorer mapping assertion effective lifecycle differs from supersession links"
+            )
+        if mapping_id in supersedes or mapping_id in superseded_by:
+            raise AtlasExplorerError("atlas explorer mapping assertion cannot supersede itself")
         direct = _text_array(row.get("directEvidenceAssertions"), f"{label}.directEvidenceAssertions")
         evidence = _text_array(row.get("evidenceAssertions"), f"{label}.evidenceAssertions")
         if not direct or not set(direct) <= set(evidence):
@@ -673,6 +837,19 @@ def _validate_model(model: Mapping[str, Any]) -> None:
             ),
             "mappingPredicates": tuple(
                 sorted({cast(str, _mapping(row, "mapping assertion")["relation"]) for row in mappings})
+            ),
+            "mappingLifecycleStatuses": tuple(
+                sorted(
+                    {
+                        cast(
+                            str,
+                            _mapping(row, "mapping assertion")[
+                                "effectiveLifecycleStatus"
+                            ],
+                        )
+                        for row in mappings
+                    }
+                )
             ),
             "evidenceClasses": tuple(
                 sorted(
@@ -1254,7 +1431,7 @@ _HTML = r"""<!doctype html>
           <h3>Cross-release mappings</h3>
           <div class="filter-list" id="mapping-filters"></div>
           <div class="facet-selects" id="mapping-facet-filters"></div>
-          <p class="hint">Dashed lines are typed cross-release mapping assertions. Arrowheads show the asserted source-to-target direction for broad and narrow mappings.</p>
+          <p class="hint">Dashed lines are typed cross-release mapping assertions. Arrowheads show every asserted source-to-target direction.</p>
         </section>
         <section class="control-section" id="release-context-section" hidden>
           <h3>Release controls</h3>
@@ -1282,7 +1459,7 @@ _HTML = r"""<!doctype html>
       <section class="stage" id="stage" aria-label="Vocabulary graph">
         <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
         <div class="graph-status" id="graph-status" aria-live="polite"></div>
-        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings, with arrows for broad and narrow assertions.</p>
+        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings, with arrows for every directional assertion.</p>
         <div class="graph-tools" aria-label="Graph view controls">
           <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
           <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
@@ -1390,11 +1567,38 @@ _HTML = r"""<!doctype html>
     const ringOrder = ["subject", "entity", "value", "legalIdentity"];
     const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
     const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
-    const symmetricMappingLabels = new Set(["exactMatch", "closeMatch", "relatedMatch"]);
+    const symmetricMappingRelations = new Set([
+      "http://www.w3.org/2004/02/skos/core#exactMatch",
+      "http://www.w3.org/2004/02/skos/core#closeMatch",
+      "http://www.w3.org/2004/02/skos/core#relatedMatch",
+      "urn:ref:relation:entity:sameIdentityAs",
+      "urn:ref:relation:entity:relatedEntity",
+      "urn:ref:relation:value:exactCrosswalk"
+    ]);
+    const broaderMappingRelations = new Set([
+      "http://www.w3.org/2004/02/skos/core#broadMatch",
+      "urn:ref:relation:value:broadCrosswalk"
+    ]);
+    const narrowerMappingRelations = new Set([
+      "http://www.w3.org/2004/02/skos/core#narrowMatch",
+      "urn:ref:relation:value:narrowCrosswalk"
+    ]);
+    const directionalMappingRelations = new Set([
+      ...broaderMappingRelations,
+      ...narrowerMappingRelations,
+      "urn:ref:relation:entity:successorOf",
+      "urn:ref:relation:value:replacedBy",
+      "urn:ref:relation:legal-identity:cites",
+      "urn:ref:relation:legal-identity:amends",
+      "urn:ref:relation:legal-identity:authorizes",
+      "urn:ref:relation:legal-identity:implements"
+    ]);
     const nativePredicateOrder = [
       "http://www.w3.org/2004/02/skos/core#broader",
       "http://www.w3.org/2004/02/skos/core#narrower",
-      "http://www.w3.org/2004/02/skos/core#related"
+      "http://www.w3.org/2004/02/skos/core#related",
+      "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse",
+      "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor"
     ];
     const conceptFacetDefinitions = [
       ["sourceModules", "Source module"],
@@ -1407,6 +1611,83 @@ _HTML = r"""<!doctype html>
       ["cfrTitles", "CFR title"],
       ["cfrParts", "CFR part"]
     ];
+    /* explorer-filter-core:start */
+    const explorerFilterSemantics = @@explorer_filter_semantics;
+
+    function explorerStateValue(filterState, path) {
+      return path.split(".").reduce((value, field) => value?.[field], filterState);
+    }
+
+    function explorerSetHas(selected, value) {
+      if (selected instanceof Set) return selected.has(value);
+      if (Array.isArray(selected)) return selected.includes(value);
+      return false;
+    }
+
+    function explorerFilterMatches(record, specification, filterState) {
+      const selected = explorerStateValue(filterState, specification.statePath);
+      if (specification.operator === "enabled") return Boolean(selected);
+      if (specification.operator === "setContains") {
+        return explorerSetHas(selected, record[specification.rowField]);
+      }
+      if (specification.operator === "equalsWhenSet") {
+        return !selected || record[specification.rowField] === selected;
+      }
+      if (specification.operator === "arrayContainsWhenSet") {
+        return !selected || record[specification.rowField].includes(selected);
+      }
+      throw new Error(`Unsupported explorer filter operator: ${specification.operator}`);
+    }
+
+    function explorerConceptFromIndex(conceptIndex, viewId) {
+      return conceptIndex instanceof Map ? conceptIndex.get(viewId) : conceptIndex[viewId];
+    }
+
+    function explorerRecordEligibleForState(recordKind, record, filterState, conceptIndex) {
+      const semantics = explorerFilterSemantics.find(row => row.recordKind === recordKind);
+      if (!semantics) throw new Error(`Unsupported explorer record kind: ${recordKind}`);
+      if (!semantics.filters.every(filter => explorerFilterMatches(record, filter, filterState))) {
+        return false;
+      }
+      return semantics.endpointFields.every(field => {
+        const endpoint = explorerConceptFromIndex(conceptIndex, record[field]);
+        return Boolean(endpoint)
+          && explorerRecordEligibleForState("concept", endpoint, filterState, conceptIndex);
+      });
+    }
+
+    function conceptEligibleForState(concept, filterState, conceptIndex) {
+      return explorerRecordEligibleForState("concept", concept, filterState, conceptIndex);
+    }
+
+    function nativeRelationEligibleForState(relation, filterState, conceptIndex) {
+      return explorerRecordEligibleForState("nativeRelation", relation, filterState, conceptIndex);
+    }
+
+    function mappingAssertionEligibleForState(mapping, filterState, conceptIndex) {
+      return explorerRecordEligibleForState("mappingAssertion", mapping, filterState, conceptIndex);
+    }
+    /* explorer-filter-core:end */
+    /* planning-filter-core:start */
+    const planningFilterSemantics = @@planning_filter_semantics;
+
+    function planningStateValue(filterState, path) {
+      return path.split(".").reduce((value, field) => value?.[field], filterState);
+    }
+
+    function planningRowEligibleForState(row, filterState) {
+      return planningFilterSemantics.every(specification => {
+        const selected = planningStateValue(filterState, specification.statePath);
+        if (specification.operator === "setContains") {
+          return selected instanceof Set && selected.has(row[specification.rowField]);
+        }
+        if (specification.operator === "equalsWhenSet") {
+          return !selected || row[specification.rowField] === selected;
+        }
+        throw new Error(`Unsupported planning filter operator: ${specification.operator}`);
+      });
+    }
+    /* planning-filter-core:end */
     const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
     const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
     const availableSearchRings = ringOrder.filter(ring => data.concepts.some(concept => concept.semanticRing === ring));
@@ -1431,9 +1712,16 @@ _HTML = r"""<!doctype html>
         || left.other.localeCompare(right.other);
     }));
     const nativeDisplayGroups = new Map();
+    const nativePredicateFamilies = new Map([
+      ["http://www.w3.org/2004/02/skos/core#broader", "hierarchy"],
+      ["http://www.w3.org/2004/02/skos/core#narrower", "hierarchy"],
+      ["http://www.w3.org/2004/02/skos/core#related", "related"],
+      ["https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse", "thesaurus-use"],
+      ["https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor", "thesaurus-use"]
+    ]);
     data.nativeRelations.forEach(relation => {
       const endpoints = [relation.subjectViewId, relation.objectViewId].sort();
-      const family = relation.predicateLabel === "related" ? "related" : "hierarchy";
+      const family = nativePredicateFamilies.get(relation.predicate) || relation.predicate;
       const key = `${relation.releaseId}\u001f${family}\u001f${endpoints[0]}\u001f${endpoints[1]}`;
       if (!nativeDisplayGroups.has(key)) nativeDisplayGroups.set(key, []);
       nativeDisplayGroups.get(key).push(relation);
@@ -1456,21 +1744,21 @@ _HTML = r"""<!doctype html>
       hierarchyChildren.get(parent).push({ kind: "native", other: child, edge: relation });
     });
     data.mappingAssertions.forEach(mapping => {
-      const relationLabel = identifierTail(mapping.relation);
-      if (relationLabel === "broadMatch") {
+      if (broaderMappingRelations.has(mapping.relation)) {
         hierarchyParents.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
         hierarchyChildren.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
-      } else if (relationLabel === "narrowMatch") {
+      } else if (narrowerMappingRelations.has(mapping.relation)) {
         hierarchyChildren.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
         hierarchyParents.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
       }
     });
 
+    /* explorer-search-document-core:start */
     function normalizeSearch(value) {
       return String(value || "")
         .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLocaleLowerCase()
+        .replace(/\p{M}+/gu, "")
+        .toLowerCase()
         .replace(/[^\p{L}\p{N}]+/gu, " ")
         .trim()
         .replace(/\s+/g, " ");
@@ -1479,40 +1767,44 @@ _HTML = r"""<!doctype html>
       const parts = String(value).split(/[\/#:]/).filter(Boolean);
       return parts.length ? parts[parts.length - 1] : String(value);
     }
+    function buildSearchDocuments(concepts, facetDefinitions) {
+      return concepts.map(concept => {
+        const labels = [...new Set([concept.label, ...(concept.searchLabels || [])])];
+        const normalizedLabels = labels.map(value => {
+          const normalized = normalizeSearch(value);
+          return { value, normalized, tokens: normalized.split(" ").filter(Boolean) };
+        });
+        const notation = normalizeSearch(concept.notation || "");
+        const identifier = normalizeSearch(concept.conceptId);
+        const identifierTailValue = normalizeSearch(identifierTail(concept.conceptId));
+        const notes = normalizeSearch([concept.definition || "", concept.scopeNote || ""].join(" "));
+        const sourceFacts = normalizeSearch(facetDefinitions.flatMap(([field]) => concept[field]).join(" "));
+        return {
+          concept,
+          labels: normalizedLabels,
+          displayLabel: normalizeSearch(concept.label),
+          notation,
+          identifier,
+          identifierTail: identifierTailValue,
+          notes,
+          sourceFacts
+        };
+      });
+    }
+    /* explorer-search-document-core:end */
     function mappingRelationKind(mapping) {
-      const relationLabel = identifierTail(mapping.relation);
-      if (relationLabel === "broadMatch" || relationLabel === "narrowMatch") return "directedHierarchy";
-      if (symmetricMappingLabels.has(relationLabel)) return "symmetric";
+      if (broaderMappingRelations.has(mapping.relation) || narrowerMappingRelations.has(mapping.relation)) return "directedHierarchy";
+      if (directionalMappingRelations.has(mapping.relation)) return "directed";
+      if (symmetricMappingRelations.has(mapping.relation)) return "symmetric";
       return "typed";
     }
     function mappingConnector(mapping) {
       const kind = mappingRelationKind(mapping);
-      if (kind === "directedHierarchy") return `—${mapping.relationLabel}→`;
+      if (kind === "directedHierarchy" || kind === "directed") return `—${mapping.relationLabel}→`;
       if (kind === "symmetric") return `↔ ${mapping.relationLabel} ↔`;
       return `— ${mapping.relationLabel} —`;
     }
-    const searchDocuments = data.concepts.map(concept => {
-      const labels = [...new Set([concept.label, ...(concept.searchLabels || [])])];
-      const normalizedLabels = labels.map(value => {
-        const normalized = normalizeSearch(value);
-        return { value, normalized, tokens: normalized.split(" ").filter(Boolean) };
-      });
-      const notation = normalizeSearch(concept.notation || "");
-      const identifier = normalizeSearch(concept.conceptId);
-      const identifierTailValue = normalizeSearch(identifierTail(concept.conceptId));
-      const notes = normalizeSearch([concept.definition || "", concept.scopeNote || ""].join(" "));
-      const sourceFacts = normalizeSearch(conceptFacetDefinitions.flatMap(([field]) => concept[field]).join(" "));
-      return {
-        concept,
-        labels: normalizedLabels,
-        displayLabel: normalizeSearch(concept.label),
-        notation,
-        identifier,
-        identifierTail: identifierTailValue,
-        notes,
-        sourceFacts
-      };
-    });
+    const searchDocuments = buildSearchDocuments(data.concepts, conceptFacetDefinitions);
 
     const state = {
       activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
@@ -1521,6 +1813,7 @@ _HTML = r"""<!doctype html>
       activeSearchRing: defaultSearchRing,
       activeConceptFacets: Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""])),
       activeMappingPredicate: "",
+      activeMappingLifecycleStatus: "",
       activeEvidenceClass: "",
       activePlanningDisposition: "",
       mappingsActive: true,
@@ -1554,25 +1847,13 @@ _HTML = r"""<!doctype html>
       return { x: (x - state.view.x) / state.view.k, y: (y - state.view.y) / state.view.k };
     }
     function isConceptEligible(concept) {
-      return state.activeReleases.has(concept.releaseId)
-        && state.activeRings.has(concept.semanticRing)
-        && conceptFacetDefinitions.every(([field]) => {
-          const selected = state.activeConceptFacets[field];
-          return !selected || concept[field].includes(selected);
-        });
+      return conceptEligibleForState(concept, state, conceptByViewId);
     }
     function isConceptVisible(concept) {
       return isConceptEligible(concept) && state.renderedConceptIds.has(concept.viewId);
     }
     function isMappingEligible(mapping) {
-      const source = conceptByViewId.get(mapping.sourceViewId);
-      const target = conceptByViewId.get(mapping.targetViewId);
-      return state.mappingsActive
-        && state.activeRings.has(mapping.semanticRing)
-        && (!state.activeMappingPredicate || mapping.relation === state.activeMappingPredicate)
-        && (!state.activeEvidenceClass || mapping.evidenceClasses.includes(state.activeEvidenceClass))
-        && isConceptEligible(source)
-        && isConceptEligible(target);
+      return mappingAssertionEligibleForState(mapping, state, conceptByViewId);
     }
     function isMappingVisible(mapping) {
       return isMappingEligible(mapping)
@@ -1580,12 +1861,7 @@ _HTML = r"""<!doctype html>
         && state.renderedConceptIds.has(mapping.targetViewId);
     }
     function isNativeRelationEligible(relation) {
-      const subject = conceptByViewId.get(relation.subjectViewId);
-      const object = conceptByViewId.get(relation.objectViewId);
-      return state.activeNativePredicates.has(relation.predicate)
-        && state.activeRings.has(relation.semanticRing)
-        && isConceptEligible(subject)
-        && isConceptEligible(object);
+      return nativeRelationEligibleForState(relation, state, conceptByViewId);
     }
     function isNativeRelationVisible(relation) {
       return isNativeRelationEligible(relation)
@@ -1775,7 +2051,7 @@ _HTML = r"""<!doctype html>
       ctx.setLineDash([7 / state.view.k, 5 / state.view.k]);
       ctx.stroke();
       ctx.setLineDash([]);
-      if (mappingRelationKind(mapping) === "directedHierarchy") {
+      if (mappingRelationKind(mapping).startsWith("directed")) {
         const angle = Math.atan2(target.y - source.y, target.x - source.x);
         const tipOffset = (conceptRadius(target) + 2.5) / state.view.k;
         const arrowLength = 9 / state.view.k;
@@ -1947,10 +2223,17 @@ _HTML = r"""<!doctype html>
     }
 
     function nativeRelationFromSelected(item) {
-      if (item.edge.predicateLabel === "related" || item.direction === "outgoing") {
+      if (item.direction === "outgoing") {
         return item.edge.predicateLabel;
       }
-      return item.edge.predicateLabel === "broader" ? "narrower" : "broader";
+      const inverseLabels = new Map([
+        ["broader", "narrower"],
+        ["narrower", "broader"],
+        ["related", "related"],
+        ["thesaurus use", "thesaurus used for"],
+        ["thesaurus used for", "thesaurus use"]
+      ]);
+      return inverseLabels.get(item.edge.predicateLabel) || item.edge.predicateLabel;
     }
 
     function inspectorRelationLabel(item) {
@@ -2016,6 +2299,9 @@ _HTML = r"""<!doctype html>
       details.append(summary);
       [
         ["Mapping assertion", [mapping.id]],
+        ["Lifecycle status", [mapping.effectiveLifecycleStatus]],
+        ["Supersedes", mapping.supersedes],
+        ["Superseded by", mapping.supersededBy],
         ["Direct evidence assertions", mapping.directEvidenceAssertions],
         ["Complete evidence closure", mapping.evidenceAssertions],
         ["External evidence", mapping.externalEvidence],
@@ -2145,7 +2431,9 @@ _HTML = r"""<!doctype html>
           } else {
             const evidence = item.edge.evidenceClasses.join(", ") || "typed evidence";
             const semantics = mappingRelationKind(item.edge) === "directedHierarchy"
-              ? "directed source → target"
+              ? "directed hierarchy source → target"
+              : mappingRelationKind(item.edge) === "directed"
+                ? "directed source → target"
               : mappingRelationKind(item.edge) === "symmetric"
                 ? "symmetric relation with retained endpoint roles"
                 : "typed source and target roles";
@@ -2205,6 +2493,7 @@ _HTML = r"""<!doctype html>
       }
     }
 
+    /* explorer-search-ranking-core:start */
     function editDistanceWithin(left, right, limit) {
       if (Math.abs(left.length - right.length) > limit) return false;
       let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
@@ -2272,6 +2561,23 @@ _HTML = r"""<!doctype html>
       return null;
     }
 
+    function rankSearchDocuments(documents, queryValue, semanticRing) {
+      const query = normalizeSearch(queryValue);
+      if (!query) return [];
+      const tokens = query.split(" ").filter(Boolean);
+      return documents
+        .filter(document => document.concept.semanticRing === semanticRing)
+        .map(document => {
+          const score = scoreSearch(document, query, tokens);
+          return score ? { document, ...score } : null;
+        })
+        .filter(Boolean)
+        .sort((left, right) => right.score - left.score
+          || (left.document.concept.viewId < right.document.concept.viewId ? -1
+            : left.document.concept.viewId > right.document.concept.viewId ? 1 : 0));
+    }
+    /* explorer-search-ranking-core:end */
+
     function updateActiveSearchResult(index) {
       const buttons = [...resultBox.querySelectorAll(".result")];
       if (!buttons.length) {
@@ -2301,20 +2607,11 @@ _HTML = r"""<!doctype html>
     function renderSearch({ focusMatches = false, refresh = true } = {}) {
       const query = normalizeSearch(search.value);
       state.query = query;
-      const tokens = query.split(" ").filter(Boolean);
-      state.searchResults = query
-        ? searchDocuments
-          .filter(document => document.concept.semanticRing === state.activeSearchRing)
-          .filter(document => isConceptEligible(document.concept))
-          .map(document => {
-            const score = scoreSearch(document, query, tokens);
-            return score ? { document, ...score } : null;
-          })
-          .filter(Boolean)
-          .sort((left, right) => right.score - left.score
-            || left.document.concept.label.localeCompare(right.document.concept.label)
-            || left.document.concept.viewId.localeCompare(right.document.concept.viewId))
-        : [];
+      state.searchResults = rankSearchDocuments(
+        searchDocuments.filter(document => isConceptEligible(document.concept)),
+        query,
+        state.activeSearchRing
+      );
       state.matches = new Set(state.searchResults.map(result => result.document.concept.viewId));
       state.activeSearchIndex = -1;
       if (focusMatches) state.selected = null;
@@ -2406,11 +2703,7 @@ _HTML = r"""<!doctype html>
     }
 
     function planningRowEligible(row) {
-      return (!state.activePlanningDisposition || row.disposition === state.activePlanningDisposition)
-        && state.activeRings.has(row.semanticRing)
-        && (!state.activeConceptFacets.sourceModules || row.sourceModule === state.activeConceptFacets.sourceModules)
-        && (!state.activeConceptFacets.resourceIds || row.resourceId === state.activeConceptFacets.resourceIds)
-        && (!state.activeConceptFacets.participations || row.atlasParticipation === state.activeConceptFacets.participations);
+      return planningRowEligibleForState(row, state);
     }
 
     function renderPlanningRows() {
@@ -2447,6 +2740,16 @@ _HTML = r"""<!doctype html>
         data.facets.mappingPredicates,
         value => {
           state.activeMappingPredicate = value;
+          filtersChanged();
+        }
+      );
+      appendFacetSelect(
+        mappingFacetFilters,
+        "mappingLifecycleStatuses",
+        "Mapping lifecycle",
+        data.facets.mappingLifecycleStatuses,
+        value => {
+          state.activeMappingLifecycleStatus = value;
           filtersChanged();
         }
       );
@@ -2792,6 +3095,7 @@ _HTML = r"""<!doctype html>
       state.activeSearchRing = defaultSearchRing;
       state.activeConceptFacets = Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""]));
       state.activeMappingPredicate = "";
+      state.activeMappingLifecycleStatus = "";
       state.activeEvidenceClass = "";
       state.activePlanningDisposition = "";
       state.mappingsActive = true;
@@ -2853,12 +3157,26 @@ def render_atlas_explorer(model: Mapping[str, Any]) -> str:
         title=html.escape(title, quote=True),
         atlas_data=_safe_json(model),
         default_search_ring=_default_search_ring(model),
+        explorer_filter_semantics=json.dumps(
+            EXPLORER_FILTER_SEMANTICS,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        planning_filter_semantics=json.dumps(
+            PLANNING_FILTER_SEMANTICS,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
     )
 
 
 __all__ = [
+    "EXPLORER_FILTER_SEMANTICS",
     "EXPLORER_SCHEMA_VERSION",
     "EXPLORER_TYPE",
+    "PLANNING_FILTER_SEMANTICS",
     "AtlasExplorerError",
     "render_atlas_explorer",
 ]

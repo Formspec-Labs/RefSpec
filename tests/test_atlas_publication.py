@@ -46,6 +46,7 @@ from refspec.atlas.publication_decision import (
     VocabularyAtlasPublicationDecision,
     build_vocabulary_atlas_publication_decision,
 )
+from refspec.atlas.queries import native_concept_relation_id
 from refspec.atlas.relation_assertion import (
     PinnedRelationAssertionBundle,
     RelationAssertionBundle,
@@ -57,10 +58,18 @@ from refspec.registry.infrastructure.artifact_serialization import (
 )
 from refspec.registry.infrastructure.semantic_foundation import (
     ENTITY_RELATED,
+    ENTITY_SUCCESSOR,
+    LEGAL_AMENDS,
+    LEGAL_AUTHORIZES,
     LEGAL_CITES,
+    LEGAL_IMPLEMENTS,
     SUBJECT_BROAD_MATCH,
     SUBJECT_EXACT_MATCH,
+    SUBJECT_NARROW_MATCH,
+    VALUE_BROAD_CROSSWALK,
     VALUE_EXACT_CROSSWALK,
+    VALUE_NARROW_CROSSWALK,
+    VALUE_REPLACED_BY,
 )
 
 DECIDED_AT = "2026-08-04T20:15:00Z"
@@ -144,25 +153,37 @@ def _projection_fixture(
 
 def _mapped_fixture(
     tmp_path: Path,
+    *,
+    semantic_ring: str = "subject",
+    relation: str = SUBJECT_EXACT_MATCH,
+    context: dict[str, str] | None = None,
 ) -> tuple[PinnedVocabularyAtlasScope, VocabularyAtlasAsset, VocabularyAtlasPublicationDecision, str]:
     source, source_release_id, source_concept = relation_fixtures._source_release(
         tmp_path,
         "publication-source",
+        ring=semantic_ring,
     )
     target, target_release_id, target_concept = relation_fixtures._source_release(
         tmp_path,
         "publication-target",
+        ring=semantic_ring,
     )
-    evidence = relation_fixtures._human_evidence("publication-review")
+    evidence = relation_fixtures._human_evidence(
+        "publication-review",
+        ring=semantic_ring,
+    )
     mapping = relation_fixtures._mapping(
         source_concept=source_concept,
         target_concept=target_concept,
         source_release=source_release_id,
         target_release=target_release_id,
+        relation=relation,
         evidence=(evidence.identifier,),
+        ring=semantic_ring,
+        context=context,
     )
     bundle = RelationAssertionBundle.create(
-        semantic_ring="subject",
+        semantic_ring=semantic_ring,  # type: ignore[arg-type]
         release_sources=(source, target),
         evidence_assertions=(evidence,),
         mapping_assertions=(mapping,),
@@ -183,12 +204,14 @@ def _mapped_fixture(
             model_fixtures._SCOPE_FIXTURE._IndexSpec(
                 source_release,
                 "publication-source",
-                participation="core",
+                participation="core" if semantic_ring == "subject" else None,
             ),
             model_fixtures._SCOPE_FIXTURE._IndexSpec(
                 target_release,
                 "publication-target",
-                participation="specialist",
+                participation=(
+                    "specialist" if semantic_ring == "subject" else None
+                ),
             ),
         ),
         relations=(relation,),
@@ -638,6 +661,11 @@ def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
     assert mapping["semanticRing"] == "subject"
     assert mapping["relation"] == relation
     assert mapping["evidenceClasses"] == ["humanReviewed"]
+    assert mapping["lifecycleStatus"] == "current"
+    assert mapping["effectiveLifecycleStatus"] == "current"
+    assert mapping["supersedes"] == []
+    assert mapping["supersededBy"] == []
+    assert model["facets"]["mappingLifecycleStatuses"] == ["current"]
     assert model["summary"] == {
         "shownConceptCount": 2,
         "shownNativeRelationCount": 0,
@@ -689,12 +717,18 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert "Label, alias, notation, or identifier" in rendered
     assert 'id="search-ring"' in rendered
     assert 'const defaultSearchRing = "subject";' in rendered
-    assert "document.concept.semanticRing === state.activeSearchRing" in rendered
+    assert "document.concept.semanticRing === semanticRing" in rendered
+    assert "rankSearchDocuments(" in rendered
     assert 'id="mapping-filters"' in rendered
+    assert "Mapping lifecycle" in rendered
+    assert "mapping.effectiveLifecycleStatus" in rendered
     assert 'id="concept-facet-filters"' in rendered
     assert 'id="mapping-facet-filters"' in rendered
-    assert "conceptFacetDefinitions.every" in rendered
-    assert "mapping.evidenceClasses.includes" in rendered
+    assert "conceptEligibleForState(concept, state, conceptByViewId)" in rendered
+    assert "mappingAssertionEligibleForState(mapping, state, conceptByViewId)" in rendered
+    assert "nativeRelationEligibleForState(relation, state, conceptByViewId)" in rendered
+    assert '"rowField":"evidenceClasses"' in rendered
+    assert '"statePath":"activeEvidenceClass"' in rendered
     assert 'id="node-ancestor-count"' in rendered
     assert 'id="node-descendant-count"' in rendered
     assert "hierarchyClosure(concept.viewId, hierarchyParents)" in rendered
@@ -717,34 +751,79 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert "if (selected && isConceptEligible(selected)) add(selected.viewId);" in rendered
     assert "if (viewId === state.selected) return;" in rendered
     assert "if (selected && isConceptVisible(selected)) drawConcept(selected);" in rendered
-    assert "state.activeRings.has(concept.semanticRing)" in rendered
+    assert '"statePath":"activeRings"' in rendered
     assert "Possible preferred-label spelling match" in rendered
 
 
-def test_explorer_render_exposes_mapping_direction_endpoint_roles_and_proof_references(
+@pytest.mark.parametrize(
+    ("semantic_ring", "relation", "context"),
+    (
+        ("subject", SUBJECT_BROAD_MATCH, None),
+        ("subject", SUBJECT_NARROW_MATCH, None),
+        ("entity", ENTITY_SUCCESSOR, None),
+        (
+            "value",
+            VALUE_BROAD_CROSSWALK,
+            {
+                "sourceEdition": "2025",
+                "targetEdition": "2026",
+                "effectiveFrom": "2026-01-01",
+            },
+        ),
+        (
+            "value",
+            VALUE_NARROW_CROSSWALK,
+            {
+                "sourceEdition": "2025",
+                "targetEdition": "2026",
+                "effectiveFrom": "2026-01-01",
+            },
+        ),
+        (
+            "value",
+            VALUE_REPLACED_BY,
+            {
+                "sourceEdition": "2025",
+                "targetEdition": "2026",
+                "effectiveFrom": "2026-01-01",
+            },
+        ),
+        ("legalIdentity", LEGAL_CITES, {"effectiveAt": "2026-08-04"}),
+        ("legalIdentity", LEGAL_AMENDS, {"effectiveAt": "2026-08-04"}),
+        ("legalIdentity", LEGAL_AUTHORIZES, {"effectiveAt": "2026-08-04"}),
+        ("legalIdentity", LEGAL_IMPLEMENTS, {"effectiveAt": "2026-08-04"}),
+    ),
+)
+def test_explorer_render_exposes_every_directional_mapping_with_valid_identity(
     tmp_path: Path,
+    semantic_ring: str,
+    relation: str,
+    context: dict[str, str] | None,
 ) -> None:
-    """Pin the deterministic HTML behavior where no JS/DOM harness is configured."""
-
-    _, asset, _, _ = _mapped_fixture(tmp_path)
+    _, asset, _, _ = _mapped_fixture(
+        tmp_path,
+        semantic_ring=semantic_ring,
+        relation=relation,
+        context=context,
+    )
     model = json.loads(json.dumps(build_explorer_model(asset)))
     mapping = model["mappingAssertions"][0]
-    mapping["relation"] = SUBJECT_BROAD_MATCH
-    mapping["relationLabel"] = "broadMatch"
     mapping["externalEvidence"] = ["https://example.test/evidence/source-record"]
     mapping["candidateIds"] = ["urn:ref:test:candidate:directed-mapping"]
     mapping["validationReceiptIds"] = ["urn:ref:test:receipt:blind-judge"]
     mapping["machineProofs"] = ["urn:ref:test:proof:crosswalk-v2"]
-    model["facets"]["mappingPredicates"] = [SUBJECT_BROAD_MATCH]
 
     rendered = render_atlas_explorer(model)
 
+    assert mapping["relation"] == relation
+    assert mapping["semanticRing"] == semantic_ring
+    assert mapping["id"] in rendered
     assert "return `—${mapping.relationLabel}→`" in rendered
     assert "return `↔ ${mapping.relationLabel} ↔`" in rendered
-    assert 'new Set(["exactMatch", "closeMatch", "relatedMatch"])' in rendered
-    assert 'mappingRelationKind(mapping) === "directedHierarchy"' in rendered
+    assert "directionalMappingRelations.has(mapping.relation)" in rendered
+    assert 'mappingRelationKind(mapping).startsWith("directed")' in rendered
     assert "roleLabel.textContent = `${role} endpoint — `;" in rendered
-    assert "symmetric relation with retained endpoint roles" in rendered
+    assert "directed source → target" in rendered
     assert "Evidence and proof references" in rendered
     assert "Direct evidence assertions" in rendered
     assert "Complete evidence closure" in rendered
@@ -755,6 +834,25 @@ def test_explorer_render_exposes_mapping_direction_endpoint_roles_and_proof_refe
     assert "urn:ref:test:proof:crosswalk-v2" in rendered
     assert "inferred ${direction} route" in rendered
     assert 'Inspect ${formatQuantity(path.length, "direct assertion")}' in rendered
+
+
+def test_explorer_hierarchy_closure_uses_only_true_broad_and_narrow_mappings(
+    tmp_path: Path,
+) -> None:
+    _, asset, _, _ = _mapped_fixture(
+        tmp_path,
+        semantic_ring="entity",
+        relation=ENTITY_SUCCESSOR,
+    )
+
+    rendered = render_atlas_explorer(build_explorer_model(asset))
+    hierarchy_setup = rendered.split("const hierarchyParents", 1)[1].split(
+        "function normalizeSearch", 1
+    )[0]
+
+    assert "broaderMappingRelations.has(mapping.relation)" in hierarchy_setup
+    assert "narrowerMappingRelations.has(mapping.relation)" in hierarchy_setup
+    assert "directionalMappingRelations.has(mapping.relation)" not in hierarchy_setup
 
 
 def test_explorer_search_ring_default_uses_the_first_populated_ring(tmp_path: Path) -> None:
@@ -768,7 +866,8 @@ def test_explorer_search_ring_default_uses_the_first_populated_ring(tmp_path: Pa
     rendered = render_atlas_explorer(model)
 
     assert 'const defaultSearchRing = "entity";' in rendered
-    assert "document.concept.semanticRing === state.activeSearchRing" in rendered
+    assert "document.concept.semanticRing === semanticRing" in rendered
+    assert "rankSearchDocuments(" in rendered
 
 
 def test_renderer_rejects_noncanonical_search_labels(tmp_path: Path) -> None:
@@ -803,7 +902,7 @@ def test_explorer_preserves_native_relations_separately_from_mappings(
         max_concepts=2,
     )
 
-    assert model["schemaVersion"] == "3.0"
+    assert model["schemaVersion"] == "4.0"
     assert model["mappingAssertions"] == []
     assert len(model["nativeRelations"]) == 1
     relation = model["nativeRelations"][0]
@@ -817,13 +916,65 @@ def test_explorer_preserves_native_relations_separately_from_mappings(
     assert render_atlas_explorer(model).startswith("<!doctype html>")
 
 
+def test_explorer_ships_icpsr_use_and_used_for_as_non_hierarchy_predicates(
+    tmp_path: Path,
+) -> None:
+    source, _assignment = model_fixtures._SCOPE_FIXTURE._managed_release(tmp_path)
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixtures._pinned_scope(
+        tmp_path,
+        name="explorer-thesaurus-use-relations",
+        releases=(release,),
+        specs=(
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "explorer-thesaurus-use-relations",
+                participation="bridge",
+            ),
+        ),
+    )
+    model = build_explorer_model(build_vocabulary_atlas(scope), max_concepts=2)
+    template = model["nativeRelations"][0]
+    predicates = {
+        "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse": "thesaurus use",
+        "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor": "thesaurus used for",
+    }
+    for predicate, label in predicates.items():
+        relation = {**template, "predicate": predicate, "predicateLabel": label}
+        relation["id"] = native_concept_relation_id(
+            subject_concept=relation["subjectConcept"],
+            predicate_iri=predicate,
+            object_concept=relation["objectConcept"],
+            release_id=relation["releaseId"],
+            source_record_id=relation["sourceRecordId"],
+            source_record_digest=relation["sourceRecordDigest"],
+        )
+        model["nativeRelations"].append(relation)
+    model["facets"]["nativePredicates"] = sorted(
+        {row["predicate"] for row in model["nativeRelations"]}
+    )
+    model["summary"]["shownNativeRelationCount"] += 2
+    model["summary"]["availableNativeRelationCount"] += 2
+
+    rendered = render_atlas_explorer(model)
+    hierarchy_setup = rendered.split("const hierarchyParents", 1)[1].split(
+        "function normalizeSearch", 1
+    )[0]
+
+    assert all(predicate in rendered for predicate in predicates)
+    assert '["thesaurus use", "thesaurus used for"]' in rendered
+    assert '["thesaurus used for", "thesaurus use"]' in rendered
+    assert "thesaurus use" not in hierarchy_setup
+    assert "thesaurus used for" not in hierarchy_setup
+
+
 def test_renderer_fails_closed_on_non_2_0_view_fields(tmp_path: Path) -> None:
     _, asset, _ = _canonical_fixture(tmp_path, name="closed-explorer-shape")
     model = build_explorer_model(asset)
 
     old_collections = dict(model)
     old_collections["releases"] = old_collections.pop("conceptReleases")
-    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas explorer 3.0"):
+    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas explorer 4.0"):
         render_atlas_explorer(old_collections)
 
     unknown_counts = json.loads(json.dumps(model))
