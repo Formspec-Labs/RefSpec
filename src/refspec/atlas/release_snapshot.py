@@ -38,9 +38,11 @@ from refspec.registry.infrastructure.semantic_foundation import (
 )
 from refspec.registry.infrastructure.source_concept_release import (
     SOURCE_CONCEPT_ISSUER_IRI,
+    SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION,
     SOURCE_CONCEPT_RELEASE_VERSION,
     SourceConceptReleaseError,
     SourceConceptReleaseView,
+    normalize_source_release_supersessions,
     source_scoped_concept_iri,
 )
 
@@ -57,6 +59,12 @@ from .concept_release import (
 ATLAS_RELEASE_SNAPSHOT_TYPE = "AtlasReleaseSnapshot"
 ATLAS_RELEASE_SNAPSHOT_VERSION = "1.1"
 _SUPPORTED_SNAPSHOT_VERSIONS = frozenset({"1.0", ATLAS_RELEASE_SNAPSHOT_VERSION})
+_SUPPORTED_SOURCE_CONCEPT_RELEASE_VERSIONS = frozenset(
+    {
+        SOURCE_CONCEPT_RELEASE_VERSION,
+        SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION,
+    }
+)
 
 _COMMON_BASIS_FIELDS = {
     "type",
@@ -423,7 +431,8 @@ def _validate_source_bundle_manifest(
         "atlas release snapshot releaseBundleManifest",
     )
     if (
-        manifest.get("schemaVersion") != SOURCE_CONCEPT_RELEASE_VERSION
+        manifest.get("schemaVersion")
+        not in _SUPPORTED_SOURCE_CONCEPT_RELEASE_VERSIONS
         or manifest.get("packageKind") != "sourceConceptRelease"
     ):
         raise AtlasReleaseSnapshotError("atlas release snapshot source bundle manifest version is unsupported")
@@ -556,9 +565,11 @@ def _validate_source_basis(
     expected_fields = set(_SOURCE_BASIS_FIELDS) | _IDENTITY_FIELDS
     if "reconciliationRecord" in row:
         expected_fields.add("reconciliationRecord")
+    if "sourceReleaseSupersessions" in row:
+        expected_fields.add("sourceReleaseSupersessions")
     _require_exact_fields(row, expected_fields, "atlas release snapshot")
 
-    _, bundle_artifacts = _validate_source_bundle_manifest(
+    bundle_manifest, bundle_artifacts = _validate_source_bundle_manifest(
         row.get("releaseBundleManifest"),
         release_pin=release_pin,
     )
@@ -566,11 +577,25 @@ def _validate_source_basis(
         row.get("releaseManifest"),
         "atlas release snapshot releaseManifest",
     )
+    expected_manifest_fields = set(_SOURCE_MANIFEST_FIELDS)
+    if "sourceReleaseSupersessions" in release_manifest:
+        expected_manifest_fields.add("sourceReleaseSupersessions")
     _require_exact_fields(
         release_manifest,
-        _SOURCE_MANIFEST_FIELDS,
+        expected_manifest_fields,
         "atlas release snapshot releaseManifest",
     )
+    release_version = release_manifest.get("schemaVersion")
+    has_supersession = "sourceReleaseSupersessions" in release_manifest
+    if (
+        release_version not in _SUPPORTED_SOURCE_CONCEPT_RELEASE_VERSIONS
+        or bundle_manifest.get("schemaVersion") != release_version
+        or has_supersession
+        != (release_version == SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION)
+    ):
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot source release version differs from its lineage shape"
+        )
     semantic_ring = _require_ring(
         release_pin.get("semanticRing"),
         "atlas release snapshot releasePin.semanticRing",
@@ -735,6 +760,38 @@ def _validate_source_basis(
     )
     if source_manifest.get("sourceScheme") != source_scheme:
         raise AtlasReleaseSnapshotError("atlas release snapshot source schemes differ")
+    manifest_supersessions = release_manifest.get("sourceReleaseSupersessions")
+    snapshot_supersessions = row.get("sourceReleaseSupersessions")
+    if (manifest_supersessions is None) != (snapshot_supersessions is None):
+        raise AtlasReleaseSnapshotError(
+            "atlas release snapshot source-release supersession presence differs from its manifest"
+        )
+    if manifest_supersessions is not None:
+        successor_basis = {
+            key: value
+            for key, value in release_manifest.items()
+            if key
+            not in {
+                "id",
+                "releaseDigest",
+                "sourceReleaseSupersessions",
+            }
+        }
+        try:
+            normalized_supersessions = normalize_source_release_supersessions(
+                manifest_supersessions,
+                semantic_ring=semantic_ring,
+                source_scheme=source_scheme_id,
+                successor_basis_digest=sha256_digest(
+                    _canonical_bytes(successor_basis)
+                ),
+            )
+        except SourceConceptReleaseError as error:
+            raise AtlasReleaseSnapshotError(str(error)) from error
+        if _plain(snapshot_supersessions) != list(normalized_supersessions):
+            raise AtlasReleaseSnapshotError(
+                "atlas release snapshot source-release supersessions differ from its manifest"
+            )
     selected_observations: list[str] = []
     for index, concept in enumerate(concepts):
         _validate_source_concept(
@@ -1269,6 +1326,10 @@ class AtlasReleaseSnapshot:
                 }
                 if view.reconciliation_record is not None:
                     basis["reconciliationRecord"] = _plain(view.reconciliation_record)
+                if view.source_release_supersessions:
+                    basis["sourceReleaseSupersessions"] = _plain(
+                        view.source_release_supersessions
+                    )
             elif isinstance(source, PinnedManagedConceptRelease):
                 view, release_pin = source.verified_view_and_pin()
                 assignment = source.ring_assignment.verified_assignment()
@@ -1370,6 +1431,17 @@ class AtlasReleaseSnapshot:
             record
             for record in cast(Sequence[Mapping[str, Any]], graph["@graph"])
             if record.get("@id") in member_ids
+        )
+
+    @property
+    def source_release_supersessions(self) -> tuple[Mapping[str, Any], ...]:
+        """Return source-release lifecycle links, distinct from concept events."""
+
+        if self.release_pin["releaseKind"] != "sourceConceptRelease":
+            return ()
+        return cast(
+            tuple[Mapping[str, Any], ...],
+            self.record.get("sourceReleaseSupersessions", ()),
         )
 
 

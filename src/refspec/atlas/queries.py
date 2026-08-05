@@ -16,7 +16,12 @@ from typing import Any, Literal, cast
 
 from refspec import binding
 from refspec.immutable import deep_freeze_json
-from refspec.registry.infrastructure.artifact_serialization import plain_json
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    plain_json,
+    sha256_digest,
+)
+from refspec.registry.infrastructure.identifier_validation import absolute_uri_issue
 from refspec.registry.infrastructure.semantic_foundation import (
     SEMANTIC_RINGS,
     EvidenceAssertion,
@@ -111,6 +116,28 @@ _NATIVE_RELATION_FIELDS: tuple[tuple[str, str], ...] = (
 _NATIVE_RELATION_PREDICATES = frozenset(
     predicate for _field, predicate in _NATIVE_RELATION_FIELDS
 )
+_PUBLISHER_PRIOR_VERSION_FIELDS = (
+    "owl:priorVersion",
+    "http://www.w3.org/2002/07/owl#priorVersion",
+)
+_PUBLISHER_PRIOR_VERSION_PREDICATE = (
+    "http://www.w3.org/2002/07/owl#priorVersion"
+)
+_PUBLISHER_VERSION_RECORD_TYPES = frozenset(
+    {
+        "owl:Ontology",
+        "http://www.w3.org/2002/07/owl#Ontology",
+        "skos:ConceptScheme",
+        "http://www.w3.org/2004/02/skos/core#ConceptScheme",
+        "rkaf:ConceptScheme",
+        "https://rulespec.org/ns/v1#ConceptScheme",
+        "rkaf:ReferenceResourceRelease",
+        "https://rulespec.org/ns/v1#ReferenceResourceRelease",
+    }
+)
+PUBLISHER_RELEASE_PRIOR_VERSION_TYPE = "PublisherReleasePriorVersion"
+PUBLISHER_RELEASE_PRIOR_VERSION_VERSION = "1.0"
+PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND = "publisherIriOnly"
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +225,40 @@ class AtlasIndexClassification:
     resource_id: str
     subject_participation: SubjectParticipation | None
     record_id: str
+    record: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class SourceReleaseSupersessionView:
+    """One exact publisher-release replacement and its predecessor pin."""
+
+    relation_id: str
+    content_digest: str
+    superseding_release_id: str
+    superseded_release_id: str
+    semantic_ring: SemanticRing
+    record_id: str
+    superseded_release_pin: Mapping[str, Any]
+    record: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class PublisherReleasePriorVersionView:
+    """One publisher-native prior-version claim from an exact managed record.
+
+    The source record is content-pinned. ``prior_version_iri`` remains the
+    publisher's IRI-only reference and does not claim a predecessor package
+    digest.
+    """
+
+    relation_id: str
+    content_digest: str
+    managed_release_id: str
+    semantic_ring: SemanticRing
+    publisher_release_iri: str
+    prior_version_iri: str
+    source_record_id: str
+    source_record_digest: str
     record: Mapping[str, Any]
 
 
@@ -314,6 +375,26 @@ def _native_id(record: Mapping[str, Any]) -> str | None:
     return native if isinstance(native, str) else None
 
 
+def _record_types(record: Mapping[str, Any]) -> frozenset[str]:
+    value = record.get("@type", record.get("type"))
+    if isinstance(value, str):
+        return frozenset({value})
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return frozenset(item for item in value if isinstance(item, str))
+    return frozenset()
+
+
+def _checked_iri(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise VocabularyAtlasError(f"{label} must be a non-empty absolute IRI")
+    issue = absolute_uri_issue(value)
+    if issue == "missing-scheme":
+        raise VocabularyAtlasError(f"{label} must be an absolute IRI")
+    if issue == "credentials":
+        raise VocabularyAtlasError(f"{label} must not contain credentials")
+    return value
+
+
 def _normalized_text(value: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
 
@@ -424,6 +505,12 @@ class VocabularyAtlasQueries:
             if value.native_id is not None
             for release_id in value.release_ids
         }
+        self._source_release_supersessions = (
+            self._build_source_release_supersessions()
+        )
+        self._publisher_release_prior_versions = (
+            self._build_publisher_release_prior_versions()
+        )
         self._evidence_by_id = self._build_evidence()
         self._proofs_by_id = self._build_machine_proofs()
         self._mappings = self._build_mappings()
@@ -580,6 +667,246 @@ class VocabularyAtlasQueries:
             )
         )
 
+    def _build_source_release_supersessions(
+        self,
+    ) -> tuple[SourceReleaseSupersessionView, ...]:
+        snapshots_by_release = {
+            snapshot.release_id: snapshot for snapshot in self._snapshots
+        }
+        result: list[SourceReleaseSupersessionView] = []
+        relation_ids: set[str] = set()
+        for snapshot in self._snapshots:
+            for relation in snapshot.source_release_supersessions:
+                relation_id = relation.get("id")
+                content_digest = relation.get("contentDigest")
+                prior_value = relation.get("supersededRelease")
+                if (
+                    not isinstance(relation_id, str)
+                    or not isinstance(content_digest, str)
+                    or not isinstance(prior_value, Mapping)
+                ):
+                    raise VocabularyAtlasError(
+                        "source-release supersession record is incomplete"
+                    )
+                if relation_id in relation_ids:
+                    raise VocabularyAtlasError(
+                        "atlas repeats a source-release supersession identity"
+                    )
+                relation_ids.add(relation_id)
+                canonical = self._release_records_by_native_id.get(
+                    (snapshot.release_id, relation_id)
+                )
+                if canonical is None or canonical.record != relation:
+                    raise VocabularyAtlasError(
+                        "source-release supersession does not resolve to its exact canonical record"
+                    )
+                prior_id = prior_value.get("releaseId")
+                if not isinstance(prior_id, str):
+                    raise VocabularyAtlasError(
+                        "source-release supersession predecessor has no release identity"
+                    )
+                prior_snapshot = snapshots_by_release.get(prior_id)
+                if prior_snapshot is not None:
+                    prior_manifest = prior_snapshot.record.get("releaseManifest")
+                    prior_scheme = (
+                        prior_manifest.get("sourceScheme")
+                        if isinstance(prior_manifest, Mapping)
+                        else None
+                    )
+                    prior_scheme_id = (
+                        prior_scheme.get("id")
+                        if isinstance(prior_scheme, Mapping)
+                        else None
+                    )
+                    expected_pin = {
+                        "releaseId": prior_snapshot.release_id,
+                        "semanticRing": prior_snapshot.semantic_ring,
+                        "sourceScheme": prior_scheme_id,
+                        "manifestDigest": prior_snapshot.release_pin.get(
+                            "manifestDigest"
+                        ),
+                        "releaseDigest": prior_snapshot.release_pin.get(
+                            "releaseDigest"
+                        ),
+                        "logicalDigest": prior_snapshot.release_pin.get(
+                            "logicalDigest"
+                        ),
+                    }
+                    if (
+                        prior_snapshot.release_pin.get("releaseKind")
+                        != "sourceConceptRelease"
+                        or plain_json(prior_value) != expected_pin
+                    ):
+                        raise VocabularyAtlasError(
+                            "source-release supersession predecessor differs from the included exact release"
+                        )
+                result.append(
+                    SourceReleaseSupersessionView(
+                        relation_id=relation_id,
+                        content_digest=content_digest,
+                        superseding_release_id=snapshot.release_id,
+                        superseded_release_id=prior_id,
+                        semantic_ring=snapshot.semantic_ring,
+                        record_id=canonical.record_id,
+                        superseded_release_pin=cast(
+                            Mapping[str, Any],
+                            deep_freeze_json(prior_value),
+                        ),
+                        record=relation,
+                    )
+                )
+        return tuple(
+            sorted(
+                result,
+                key=lambda value: (
+                    _RING_ORDER[value.semantic_ring],
+                    value.superseding_release_id,
+                    value.superseded_release_id,
+                    value.relation_id,
+                ),
+            )
+        )
+
+    def _build_publisher_release_prior_versions(
+        self,
+    ) -> tuple[PublisherReleasePriorVersionView, ...]:
+        """Derive typed IRI-only lineage from exact managed source records."""
+
+        managed_release_ids = {
+            snapshot.release_id
+            for snapshot in self._snapshots
+            if snapshot.release_pin.get("releaseKind")
+            == "managedReferenceRelease"
+        }
+        result: list[PublisherReleasePriorVersionView] = []
+        assertions: set[tuple[str, str, str]] = set()
+        relation_ids: set[str] = set()
+        for source_record in self._records_by_role["releaseRecord"]:
+            if not (
+                _record_types(source_record.record)
+                & _PUBLISHER_VERSION_RECORD_TYPES
+            ):
+                continue
+            publisher_release_iri = source_record.native_id
+            if publisher_release_iri is None:
+                raise VocabularyAtlasError(
+                    "publisher prior-version source record has no native identity"
+                )
+            publisher_release_iri = _checked_iri(
+                publisher_release_iri,
+                "publisher prior-version source identity",
+            )
+            expected_source_record_id = (
+                "urn:ref:vocabulary-atlas-record:"
+                + source_record.record_digest.removeprefix("sha256:")
+            )
+            if source_record.record_id != expected_source_record_id:
+                raise VocabularyAtlasError(
+                    "publisher prior-version source record identity is stale"
+                )
+            for field in _PUBLISHER_PRIOR_VERSION_FIELDS:
+                raw_targets = source_record.record.get(field)
+                if raw_targets is None:
+                    continue
+                prior_version_iris = _native_relation_targets(
+                    raw_targets,
+                    label=(
+                        "publisher release "
+                        f"{publisher_release_iri!r} {field}"
+                    ),
+                )
+                for raw_prior_version_iri in prior_version_iris:
+                    prior_version_iri = _checked_iri(
+                        raw_prior_version_iri,
+                        "publisher prior-version target",
+                    )
+                    if prior_version_iri == publisher_release_iri:
+                        raise VocabularyAtlasError(
+                            "publisher release cannot name itself as its prior version"
+                        )
+                    for managed_release_id in source_record.release_ids:
+                        if managed_release_id not in managed_release_ids:
+                            continue
+                        assertion = (
+                            managed_release_id,
+                            publisher_release_iri,
+                            prior_version_iri,
+                        )
+                        if assertion in assertions:
+                            raise VocabularyAtlasError(
+                                "publisher prior-version assertion is recorded more than once"
+                            )
+                        assertions.add(assertion)
+                        semantic_ring = self._release_rings[managed_release_id]
+                        basis = {
+                            "type": PUBLISHER_RELEASE_PRIOR_VERSION_TYPE,
+                            "schemaVersion": (
+                                PUBLISHER_RELEASE_PRIOR_VERSION_VERSION
+                            ),
+                            "managedReleaseId": managed_release_id,
+                            "semanticRing": semantic_ring,
+                            "publisherReleaseIri": publisher_release_iri,
+                            "predicateIri": _PUBLISHER_PRIOR_VERSION_PREDICATE,
+                            "priorVersionIri": prior_version_iri,
+                            "predecessorReferenceKind": (
+                                PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND
+                            ),
+                            "sourceRecord": {
+                                "nativeId": publisher_release_iri,
+                                "recordId": source_record.record_id,
+                                "recordDigest": source_record.record_digest,
+                            },
+                        }
+                        content_digest = sha256_digest(
+                            canonical_json_bytes(basis)
+                        )
+                        relation_id = (
+                            "urn:ref:publisher-release-prior-version:"
+                            + content_digest.removeprefix("sha256:")
+                        )
+                        if relation_id in relation_ids:
+                            raise VocabularyAtlasError(
+                                "atlas repeats a publisher prior-version identity"
+                            )
+                        relation_ids.add(relation_id)
+                        record = cast(
+                            Mapping[str, Any],
+                            deep_freeze_json(
+                                {
+                                    **basis,
+                                    "id": relation_id,
+                                    "contentDigest": content_digest,
+                                }
+                            ),
+                        )
+                        result.append(
+                            PublisherReleasePriorVersionView(
+                                relation_id=relation_id,
+                                content_digest=content_digest,
+                                managed_release_id=managed_release_id,
+                                semantic_ring=semantic_ring,
+                                publisher_release_iri=publisher_release_iri,
+                                prior_version_iri=prior_version_iri,
+                                source_record_id=source_record.record_id,
+                                source_record_digest=(
+                                    source_record.record_digest
+                                ),
+                                record=record,
+                            )
+                        )
+        return tuple(
+            sorted(
+                result,
+                key=lambda value: (
+                    _RING_ORDER[value.semantic_ring],
+                    value.managed_release_id,
+                    value.publisher_release_iri,
+                    value.prior_version_iri,
+                    value.relation_id,
+                ),
+            )
+        )
+
     def _build_evidence(self) -> Mapping[str, EvidenceAssertionView]:
         result: dict[str, EvidenceAssertionView] = {}
         for canonical in self._records_by_role["evidenceAssertion"]:
@@ -715,6 +1042,87 @@ class VocabularyAtlasQueries:
         matches = tuple(value for value in self._snapshots if value.release_id == release_id)
         if len(matches) != 1:
             raise VocabularyAtlasError("atlas contains no unique release with that id")
+        return matches[0]
+
+    def source_release_supersessions(
+        self,
+        *,
+        superseding_release_id: str | None = None,
+        superseded_release_id: str | None = None,
+    ) -> tuple[SourceReleaseSupersessionView, ...]:
+        """Return publisher release replacements with exact predecessor pins."""
+
+        return tuple(
+            value
+            for value in self._source_release_supersessions
+            if (
+                superseding_release_id is None
+                or value.superseding_release_id == superseding_release_id
+            )
+            and (
+                superseded_release_id is None
+                or value.superseded_release_id == superseded_release_id
+            )
+        )
+
+    def source_release_supersession(
+        self,
+        relation_id: str,
+    ) -> SourceReleaseSupersessionView:
+        """Resolve one source-release supersession by content-derived id."""
+
+        matches = tuple(
+            value
+            for value in self._source_release_supersessions
+            if value.relation_id == relation_id
+        )
+        if len(matches) != 1:
+            raise VocabularyAtlasError(
+                "atlas contains no unique source-release supersession with that id"
+            )
+        return matches[0]
+
+    def publisher_release_prior_versions(
+        self,
+        *,
+        managed_release_id: str | None = None,
+        publisher_release_iri: str | None = None,
+        prior_version_iri: str | None = None,
+    ) -> tuple[PublisherReleasePriorVersionView, ...]:
+        """Return publisher-native managed lineage with IRI-only predecessors."""
+
+        return tuple(
+            value
+            for value in self._publisher_release_prior_versions
+            if (
+                managed_release_id is None
+                or value.managed_release_id == managed_release_id
+            )
+            and (
+                publisher_release_iri is None
+                or value.publisher_release_iri == publisher_release_iri
+            )
+            and (
+                prior_version_iri is None
+                or value.prior_version_iri == prior_version_iri
+            )
+        )
+
+    def publisher_release_prior_version(
+        self,
+        relation_id: str,
+    ) -> PublisherReleasePriorVersionView:
+        """Resolve one publisher-native prior-version claim by derived id."""
+
+        matches = tuple(
+            value
+            for value in self._publisher_release_prior_versions
+            if value.relation_id == relation_id
+        )
+        if len(matches) != 1:
+            raise VocabularyAtlasError(
+                "atlas contains no unique publisher prior-version relation with that id"
+            )
         return matches[0]
 
     def concepts(
@@ -1068,6 +1476,9 @@ class VocabularyAtlasQueries:
 
 
 __all__ = [
+    "PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND",
+    "PUBLISHER_RELEASE_PRIOR_VERSION_TYPE",
+    "PUBLISHER_RELEASE_PRIOR_VERSION_VERSION",
     "AtlasIndexClassification",
     "CanonicalAtlasRecord",
     "CanonicalRecordRole",
@@ -1082,6 +1493,8 @@ __all__ = [
     "MachineProofView",
     "MappingAssertionView",
     "NativeConceptRelation",
+    "PublisherReleasePriorVersionView",
+    "SourceReleaseSupersessionView",
     "VocabularyAtlasDistribution",
     "VocabularyAtlasQueries",
     "native_concept_relation_id",

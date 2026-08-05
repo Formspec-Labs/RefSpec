@@ -4,17 +4,27 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from collections.abc import Mapping, Sequence
 from string import Template
 from typing import Any, cast
 
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    sha256_digest,
+)
 from refspec.registry.infrastructure.semantic_foundation import (
     SemanticFoundationError,
     SemanticRing,
     validate_ring_relation,
 )
 
-from .queries import native_concept_relation_id
+from .queries import (
+    PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND,
+    PUBLISHER_RELEASE_PRIOR_VERSION_TYPE,
+    PUBLISHER_RELEASE_PRIOR_VERSION_VERSION,
+    native_concept_relation_id,
+)
 
 EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
 EXPLORER_SCHEMA_VERSION = "4.0"
@@ -197,6 +207,53 @@ _SUMMARY_FIELDS = frozenset(
     }
 )
 _RELEASE_FIELDS = frozenset({"releaseId", "label", "semanticRing", "conceptCount", "shownConceptCount"})
+_RELEASE_OPTIONAL_FIELDS = frozenset(
+    {
+        "publisherReleasePriorVersions",
+        "sourceReleaseSupersessions",
+    }
+)
+_SOURCE_RELEASE_SUPERSESSION_FIELDS = frozenset(
+    {
+        "type",
+        "schemaVersion",
+        "successorBasisDigest",
+        "successorLineageDigest",
+        "supersededRelease",
+        "id",
+        "contentDigest",
+    }
+)
+_SUPERSEDED_RELEASE_FIELDS = frozenset(
+    {
+        "releaseId",
+        "semanticRing",
+        "sourceScheme",
+        "manifestDigest",
+        "releaseDigest",
+        "logicalDigest",
+    }
+)
+_PUBLISHER_RELEASE_PRIOR_VERSION_FIELDS = frozenset(
+    {
+        "type",
+        "schemaVersion",
+        "managedReleaseId",
+        "semanticRing",
+        "publisherReleaseIri",
+        "predicateIri",
+        "priorVersionIri",
+        "predecessorReferenceKind",
+        "sourceRecord",
+        "id",
+        "contentDigest",
+    }
+)
+_PUBLISHER_RELEASE_SOURCE_RECORD_FIELDS = frozenset(
+    {"nativeId", "recordId", "recordDigest"}
+)
+_OWL_PRIOR_VERSION_IRI = "http://www.w3.org/2002/07/owl#priorVersion"
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _CONCEPT_FIELDS = frozenset(
     {
         "viewId",
@@ -520,6 +577,268 @@ def _validate_facets(value: object) -> Mapping[str, tuple[str, ...]]:
     }
 
 
+def _digest(value: object, label: str) -> str:
+    digest = _text(value, label)
+    if _SHA256.fullmatch(digest) is None:
+        raise AtlasExplorerError(f"{label} must be sha256:<64 lowercase hex>")
+    return digest
+
+
+def _validate_source_release_supersessions(
+    value: object,
+    *,
+    label: str,
+    superseding_release_id: str,
+    semantic_ring: str,
+) -> None:
+    rows = _sequence(value, label)
+    if not rows:
+        raise AtlasExplorerError(f"{label} must not be empty when present")
+    identifiers: set[str] = set()
+    prior_ids: list[str] = []
+    prior_pins: list[dict[str, str]] = []
+    successor_basis_digests: set[str] = set()
+    lineage_digests: set[str] = set()
+    for index, raw in enumerate(rows):
+        item_label = f"{label}[{index}]"
+        row = _mapping(raw, item_label)
+        _exact_fields(row, _SOURCE_RELEASE_SUPERSESSION_FIELDS, item_label)
+        if (
+            row.get("type") != "SourceReleaseSupersession"
+            or row.get("schemaVersion") != "1.1"
+        ):
+            raise AtlasExplorerError(
+                f"{item_label} type or schemaVersion is unsupported"
+            )
+        successor_basis_digest = _digest(
+            row.get("successorBasisDigest"),
+            f"{item_label}.successorBasisDigest",
+        )
+        successor_lineage_digest = _digest(
+            row.get("successorLineageDigest"),
+            f"{item_label}.successorLineageDigest",
+        )
+        prior = _mapping(
+            row.get("supersededRelease"),
+            f"{item_label}.supersededRelease",
+        )
+        _exact_fields(
+            prior,
+            _SUPERSEDED_RELEASE_FIELDS,
+            f"{item_label}.supersededRelease",
+        )
+        prior_id = _text(
+            prior.get("releaseId"),
+            f"{item_label}.supersededRelease.releaseId",
+        )
+        prior_ring = _ring(
+            prior.get("semanticRing"),
+            f"{item_label}.supersededRelease.semanticRing",
+        )
+        _text(
+            prior.get("sourceScheme"),
+            f"{item_label}.supersededRelease.sourceScheme",
+        )
+        manifest_digest = _digest(
+            prior.get("manifestDigest"),
+            f"{item_label}.supersededRelease.manifestDigest",
+        )
+        release_digest = _digest(
+            prior.get("releaseDigest"),
+            f"{item_label}.supersededRelease.releaseDigest",
+        )
+        logical_digest = _digest(
+            prior.get("logicalDigest"),
+            f"{item_label}.supersededRelease.logicalDigest",
+        )
+        expected_prior_id = (
+            f"urn:ref:source-concept-release:{prior_ring}:"
+            f"{release_digest.removeprefix('sha256:')}"
+        )
+        if (
+            prior_ring != semantic_ring
+            or prior_id != expected_prior_id
+            or prior_id == superseding_release_id
+        ):
+            raise AtlasExplorerError(
+                f"{item_label} does not name a distinct predecessor in the same semantic ring"
+            )
+        normalized_prior = {
+            "releaseId": prior_id,
+            "semanticRing": prior_ring,
+            "sourceScheme": prior["sourceScheme"],
+            "manifestDigest": manifest_digest,
+            "releaseDigest": release_digest,
+            "logicalDigest": logical_digest,
+        }
+        basis = {
+            "type": "SourceReleaseSupersession",
+            "schemaVersion": "1.1",
+            "successorBasisDigest": successor_basis_digest,
+            "successorLineageDigest": successor_lineage_digest,
+            "supersededRelease": normalized_prior,
+        }
+        content_digest = sha256_digest(canonical_json_bytes(basis))
+        identifier = _text(row.get("id"), f"{item_label}.id")
+        if (
+            row.get("contentDigest") != content_digest
+            or identifier
+            != "urn:ref:source-release-supersession:"
+            + content_digest.removeprefix("sha256:")
+            or dict(row) != {**basis, "id": identifier, "contentDigest": content_digest}
+        ):
+            raise AtlasExplorerError(
+                f"{item_label} content identity or exact predecessor pin is stale"
+            )
+        if identifier in identifiers:
+            raise AtlasExplorerError(f"{label} repeats a relation id")
+        identifiers.add(identifier)
+        successor_basis_digests.add(successor_basis_digest)
+        lineage_digests.add(successor_lineage_digest)
+        prior_ids.append(prior_id)
+        prior_pins.append(normalized_prior)
+    if prior_ids != sorted(set(prior_ids)):
+        raise AtlasExplorerError(
+            f"{label} must use unique canonical predecessor order"
+        )
+    if len(successor_basis_digests) != 1:
+        raise AtlasExplorerError(
+            f"{label} must share one successor basis digest"
+        )
+    expected_lineage_digest = sha256_digest(
+        canonical_json_bytes(prior_pins)
+    )
+    if lineage_digests != {expected_lineage_digest}:
+        raise AtlasExplorerError(
+            f"{label} does not bind the complete canonical predecessor set"
+        )
+
+
+def _validate_publisher_release_prior_versions(
+    value: object,
+    *,
+    label: str,
+    managed_release_id: str,
+    semantic_ring: str,
+) -> None:
+    rows = _sequence(value, label)
+    if not rows:
+        raise AtlasExplorerError(f"{label} must not be empty when present")
+    identifiers: set[str] = set()
+    semantic_claims: set[tuple[str, str]] = set()
+    order: list[tuple[str, str, str]] = []
+    for index, raw in enumerate(rows):
+        item_label = f"{label}[{index}]"
+        row = _mapping(raw, item_label)
+        _exact_fields(
+            row,
+            _PUBLISHER_RELEASE_PRIOR_VERSION_FIELDS,
+            item_label,
+        )
+        if (
+            row.get("type") != PUBLISHER_RELEASE_PRIOR_VERSION_TYPE
+            or row.get("schemaVersion")
+            != PUBLISHER_RELEASE_PRIOR_VERSION_VERSION
+            or row.get("managedReleaseId") != managed_release_id
+            or row.get("semanticRing") != semantic_ring
+            or row.get("predicateIri") != _OWL_PRIOR_VERSION_IRI
+            or row.get("predecessorReferenceKind")
+            != PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND
+        ):
+            raise AtlasExplorerError(
+                f"{item_label} differs from its managed publisher-lineage boundary"
+            )
+        publisher_release_iri = _text(
+            row.get("publisherReleaseIri"),
+            f"{item_label}.publisherReleaseIri",
+        )
+        prior_version_iri = _text(
+            row.get("priorVersionIri"),
+            f"{item_label}.priorVersionIri",
+        )
+        if publisher_release_iri == prior_version_iri:
+            raise AtlasExplorerError(
+                f"{item_label} publisher release and prior version must differ"
+            )
+        semantic_claim = (publisher_release_iri, prior_version_iri)
+        if semantic_claim in semantic_claims:
+            raise AtlasExplorerError(
+                f"{label} repeats a publisher prior-version claim"
+            )
+        semantic_claims.add(semantic_claim)
+        source_record = _mapping(
+            row.get("sourceRecord"),
+            f"{item_label}.sourceRecord",
+        )
+        _exact_fields(
+            source_record,
+            _PUBLISHER_RELEASE_SOURCE_RECORD_FIELDS,
+            f"{item_label}.sourceRecord",
+        )
+        source_native_id = _text(
+            source_record.get("nativeId"),
+            f"{item_label}.sourceRecord.nativeId",
+        )
+        source_record_id = _text(
+            source_record.get("recordId"),
+            f"{item_label}.sourceRecord.recordId",
+        )
+        source_record_digest = _digest(
+            source_record.get("recordDigest"),
+            f"{item_label}.sourceRecord.recordDigest",
+        )
+        if (
+            source_native_id != publisher_release_iri
+            or source_record_id
+            != "urn:ref:vocabulary-atlas-record:"
+            + source_record_digest.removeprefix("sha256:")
+        ):
+            raise AtlasExplorerError(
+                f"{item_label} source-record pin is stale"
+            )
+        basis = {
+            "type": PUBLISHER_RELEASE_PRIOR_VERSION_TYPE,
+            "schemaVersion": PUBLISHER_RELEASE_PRIOR_VERSION_VERSION,
+            "managedReleaseId": managed_release_id,
+            "semanticRing": semantic_ring,
+            "publisherReleaseIri": publisher_release_iri,
+            "predicateIri": _OWL_PRIOR_VERSION_IRI,
+            "priorVersionIri": prior_version_iri,
+            "predecessorReferenceKind": (
+                PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND
+            ),
+            "sourceRecord": {
+                "nativeId": source_native_id,
+                "recordId": source_record_id,
+                "recordDigest": source_record_digest,
+            },
+        }
+        content_digest = sha256_digest(canonical_json_bytes(basis))
+        identifier = _text(row.get("id"), f"{item_label}.id")
+        expected = {
+            **basis,
+            "id": (
+                "urn:ref:publisher-release-prior-version:"
+                + content_digest.removeprefix("sha256:")
+            ),
+            "contentDigest": content_digest,
+        }
+        if dict(row) != expected or identifier != expected["id"]:
+            raise AtlasExplorerError(
+                f"{item_label} content identity or source-record pin is stale"
+            )
+        if identifier in identifiers:
+            raise AtlasExplorerError(f"{label} repeats a relation id")
+        identifiers.add(identifier)
+        order.append(
+            (publisher_release_iri, prior_version_iri, identifier)
+        )
+    if order != sorted(set(order)):
+        raise AtlasExplorerError(
+            f"{label} must use unique canonical publisher lineage order"
+        )
+
+
 def _validate_model(model: Mapping[str, Any]) -> None:
     _exact_fields(model, _MODEL_FIELDS, "atlas explorer")
     if model.get("type") != EXPLORER_TYPE or model.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
@@ -593,7 +912,12 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     for index, raw in enumerate(releases):
         label = f"atlas explorer conceptReleases[{index}]"
         row = _mapping(raw, label)
-        _exact_fields(row, _RELEASE_FIELDS, label)
+        _exact_fields(
+            row,
+            _RELEASE_FIELDS,
+            label,
+            optional=_RELEASE_OPTIONAL_FIELDS,
+        )
         release_id = _text(row.get("releaseId"), f"{label}.releaseId")
         if release_id in release_by_id:
             raise AtlasExplorerError("atlas explorer repeats a concept release")
@@ -603,6 +927,20 @@ def _validate_model(model: Mapping[str, Any]) -> None:
         shown_count = _count(row.get("shownConceptCount"), f"{label}.shownConceptCount")
         if shown_count > concept_count:
             raise AtlasExplorerError("atlas explorer release shows more concepts than it contains")
+        if "sourceReleaseSupersessions" in row:
+            _validate_source_release_supersessions(
+                row["sourceReleaseSupersessions"],
+                label=f"{label}.sourceReleaseSupersessions",
+                superseding_release_id=release_id,
+                semantic_ring=cast(str, row["semanticRing"]),
+            )
+        if "publisherReleasePriorVersions" in row:
+            _validate_publisher_release_prior_versions(
+                row["publisherReleasePriorVersions"],
+                label=f"{label}.publisherReleasePriorVersions",
+                managed_release_id=release_id,
+                semantic_ring=cast(str, row["semanticRing"]),
+            )
         release_by_id[release_id] = row
     if len(release_by_id) != counts["conceptReleases"]:
         raise AtlasExplorerError("atlas explorer concept release count differs from the distribution")
@@ -2796,13 +3134,15 @@ _HTML = r"""<!doctype html>
     function renderFilters() {
       data.conceptReleases.forEach(release => {
         const meta = releaseById.get(release.releaseId);
+        const supersessions = release.sourceReleaseSupersessions || [];
+        const publisherPriorVersions = release.publisherReleasePriorVersions || [];
         const label = document.createElement("label");
         label.className = "filter release-filter";
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = true;
         input.dataset.release = release.releaseId;
-        input.setAttribute("aria-label", `${release.label} release, ${formatQuantity(release.shownConceptCount, "concept")}`);
+        input.setAttribute("aria-label", `${release.label} release, ${formatQuantity(release.shownConceptCount, "concept")}${supersessions.length ? `, supersedes ${formatQuantity(supersessions.length, "source release")}` : ""}${publisherPriorVersions.length ? `, publisher states ${formatQuantity(publisherPriorVersions.length, "prior version")}` : ""}`);
         const swatch = document.createElement("span");
         swatch.className = "swatch";
         swatch.style.setProperty("--swatch", meta.color);
@@ -2810,7 +3150,14 @@ _HTML = r"""<!doctype html>
         text.className = "label";
         text.textContent = release.label;
         const count = document.createElement("small");
-        count.textContent = formatQuantity(release.shownConceptCount, "concept");
+        count.textContent = `${formatQuantity(release.shownConceptCount, "concept")}${supersessions.length ? ` · supersedes ${formatQuantity(supersessions.length, "release")}` : ""}${publisherPriorVersions.length ? ` · publisher prior ${formatQuantity(publisherPriorVersions.length, "version")}` : ""}`;
+        const lineageDetails = [
+          ...supersessions.map(relation => `Exact predecessor: ${relation.supersededRelease.releaseId} · ${relation.supersededRelease.manifestDigest}`),
+          ...publisherPriorVersions.map(relation => `Publisher prior version: ${relation.publisherReleaseIri} → ${relation.priorVersionIri} · publisher IRI only`),
+        ];
+        if (lineageDetails.length) {
+          count.title = lineageDetails.join("\n");
+        }
         label.append(input, swatch, text, count);
         releaseFilters.append(label);
         input.addEventListener("change", () => {

@@ -17,6 +17,10 @@ from refspec.atlas.concept_release import (
 )
 from refspec.registry.infrastructure.source_concept_release import (
     SOURCE_CONCEPT_IDENTITY_POLICY_ID,
+    SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION,
+    SOURCE_RELEASE_SUPERSESSION_TYPE,
+    SOURCE_RELEASE_SUPERSESSION_VERSION,
+    SourceConceptReleaseBundle,
     SourceConceptReleaseError,
     SourceConceptReleaseView,
     build_source_concept_release_bundle,
@@ -125,6 +129,7 @@ def _build(
     reconciliation: Mapping[str, Any] | None = None,
     lifecycle: Sequence[Mapping[str, Any]] = (),
     rights: Sequence[Mapping[str, Any]] | None = None,
+    supersedes: Sequence[SourceConceptReleaseBundle] = (),
 ):
     selected_ids = tuple(str(row["id"]) for row in source.observations) if selected is None else tuple(selected)
     selected_artifacts = {
@@ -151,6 +156,7 @@ def _build(
         rights_metadata=rights_metadata,
         reconciliation_record=reconciliation,
         lifecycle_records=lifecycle,
+        supersedes=supersedes,
     )
 
 
@@ -398,6 +404,260 @@ def test_build_is_order_independent_and_content_derived() -> None:
     assert forward.release_id == reverse.release_id
     assert forward.logical_digest == reverse.logical_digest
     assert forward.artifact_bytes() == reverse.artifact_bytes()
+
+
+def test_source_release_supersession_is_distinct_content_addressed_and_reproducible(
+    tmp_path: Path,
+) -> None:
+    first = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="First publisher release",
+                    local_record_id=_local_record_id(1),
+                ),
+            ),
+            payload=b'{"release":"first"}\n',
+            resource_id="source-release-first",
+        )
+    )
+    second = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Second publisher release",
+                    local_record_id=_local_record_id(1),
+                ),
+            ),
+            payload=b'{"release":"second"}\n',
+            resource_id="source-release-second",
+        ),
+        supersedes=(first,),
+    )
+    prior_root = first.write_to(tmp_path / "superseded-release")
+    prior_view = SourceConceptReleaseView.open(
+        prior_root,
+        expected_manifest_digest=first.manifest_digest,
+    )
+    reproduced = build_source_concept_release_bundle(
+        second.source_bundle,
+        semantic_ring="subject",
+        selected_observation_ids=tuple(
+            str(row["id"]) for row in second.source_bundle.observations
+        ),
+        selection_policy=SELECTION_POLICY,
+        rights_metadata=second.rights_metadata,
+        supersedes=(prior_view,),
+    )
+
+    assert "sourceReleaseSupersessions" not in first.release_manifest
+    assert first.release_manifest["schemaVersion"] == "1.0"
+    assert (
+        second.release_manifest["schemaVersion"]
+        == SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION
+    )
+    assert second.artifact_bytes() == reproduced.artifact_bytes()
+    assert second.release_id == reproduced.release_id
+    assert second.lifecycle_records == ()
+    relation = second.source_release_supersessions[0]
+    assert relation["type"] == SOURCE_RELEASE_SUPERSESSION_TYPE
+    assert relation["schemaVersion"] == SOURCE_RELEASE_SUPERSESSION_VERSION
+    assert relation["id"] == (
+        "urn:ref:source-release-supersession:"
+        + str(relation["contentDigest"]).removeprefix("sha256:")
+    )
+    assert relation["supersededRelease"] == {
+        "releaseId": first.release_id,
+        "semanticRing": first.semantic_ring,
+        "sourceScheme": SCHEME_ID,
+        "manifestDigest": first.manifest_digest,
+        "releaseDigest": first.release_digest,
+        "logicalDigest": first.logical_digest,
+    }
+    root = second.write_to(tmp_path / "superseding-release")
+    reopened = SourceConceptReleaseView.open(
+        root,
+        expected_manifest_digest=second.manifest_digest,
+    )
+    assert reopened.source_release_supersessions == second.source_release_supersessions
+
+    forged_prior_view = SourceConceptReleaseView(
+        path=prior_root,
+        bundle=first,
+        manifest_digest="sha256:" + "0" * 64,
+    )
+    with pytest.raises(SourceConceptReleaseError, match="manifest digest differs"):
+        build_source_concept_release_bundle(
+            second.source_bundle,
+            semantic_ring="subject",
+            selected_observation_ids=tuple(
+                str(row["id"]) for row in second.source_bundle.observations
+            ),
+            selection_policy=SELECTION_POLICY,
+            rights_metadata=second.rights_metadata,
+            supersedes=(forged_prior_view,),
+        )
+
+
+def test_source_release_supersession_identity_binds_the_complete_predecessor_set() -> None:
+    predecessor_p = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Predecessor P",
+                    local_record_id=_local_record_id(1),
+                ),
+            ),
+            payload=b'{"release":"p"}\n',
+            resource_id="source-release-predecessor-p",
+        )
+    )
+    predecessor_q = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Predecessor Q",
+                    local_record_id=_local_record_id(1),
+                ),
+            ),
+            payload=b'{"release":"q"}\n',
+            resource_id="source-release-predecessor-q",
+        )
+    )
+    successor_source = _source(
+        (
+            _observation(
+                1,
+                label="Re-cut successor",
+                local_record_id=_local_record_id(1),
+            ),
+        ),
+        payload=b'{"release":"successor"}\n',
+        resource_id="source-release-successor-recut",
+    )
+
+    p_only = _build(successor_source, supersedes=(predecessor_p,))
+    p_and_q = _build(
+        successor_source,
+        supersedes=(predecessor_p, predecessor_q),
+    )
+    q_and_p = _build(
+        successor_source,
+        supersedes=(predecessor_q, predecessor_p),
+    )
+    p_only_relation = p_only.source_release_supersessions[0]
+    p_and_q_relation = next(
+        relation
+        for relation in p_and_q.source_release_supersessions
+        if relation["supersededRelease"]["releaseId"]
+        == predecessor_p.release_id
+    )
+
+    assert p_only_relation["successorBasisDigest"] == (
+        p_and_q_relation["successorBasisDigest"]
+    )
+    assert p_only_relation["successorLineageDigest"] != (
+        p_and_q_relation["successorLineageDigest"]
+    )
+    assert p_only_relation["id"] != p_and_q_relation["id"]
+    assert p_only.release_id != p_and_q.release_id
+    assert p_and_q.artifact_bytes() == q_and_p.artifact_bytes()
+    assert {
+        relation["successorLineageDigest"]
+        for relation in p_and_q.source_release_supersessions
+    } == {p_and_q_relation["successorLineageDigest"]}
+
+
+def test_source_release_supersession_rejects_cross_ring_and_resealed_tampering() -> None:
+    prior = _build(
+        _source(
+            (
+                _observation(
+                    1,
+                    label="Prior release",
+                    local_record_id=_local_record_id(1),
+                ),
+            ),
+            resource_id="source-release-prior",
+        )
+    )
+    current_source = _source(
+        (
+            _observation(
+                1,
+                label="Current release",
+                local_record_id=_local_record_id(1),
+            ),
+        ),
+        payload=b'{"release":"current"}\n',
+        resource_id="source-release-current",
+    )
+    with pytest.raises(SourceConceptReleaseError, match="same semantic ring"):
+        _build(
+            current_source,
+            ring="entity",
+            supersedes=(prior,),
+        )
+
+    current = _build(current_source, supersedes=(prior,))
+    tampered_manifest = json.loads(
+        current.artifact_bytes()["release-manifest.json"]
+    )
+    relation = tampered_manifest["sourceReleaseSupersessions"][0]
+    relation["successorBasisDigest"] = "sha256:" + "0" * 64
+    relation_basis = {
+        key: value
+        for key, value in relation.items()
+        if key not in {"id", "contentDigest"}
+    }
+    relation_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            relation_basis,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        + b"\n"
+    ).hexdigest()
+    relation["contentDigest"] = relation_digest
+    relation["id"] = (
+        "urn:ref:source-release-supersession:"
+        + relation_digest.removeprefix("sha256:")
+    )
+    manifest_basis = {
+        key: value
+        for key, value in tampered_manifest.items()
+        if key not in {"id", "releaseDigest"}
+    }
+    release_digest = "sha256:" + hashlib.sha256(
+        json.dumps(
+            manifest_basis,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        + b"\n"
+    ).hexdigest()
+    tampered_manifest["releaseDigest"] = release_digest
+    tampered_manifest["id"] = (
+        "urn:ref:source-concept-release:subject:"
+        + release_digest.removeprefix("sha256:")
+    )
+    with pytest.raises(
+        SourceConceptReleaseError,
+        match="successor release basis|stale or differs",
+    ):
+        SourceConceptReleaseBundle(
+            release_manifest=tampered_manifest,
+            concepts=current.concepts,
+            lifecycle_records=current.lifecycle_records,
+            source_bundle=current.source_bundle,
+            rights_metadata=current.rights_metadata,
+        )
 
 
 def test_lifecycle_events_are_typed_reviewed_and_ring_scoped() -> None:

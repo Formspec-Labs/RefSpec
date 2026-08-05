@@ -225,6 +225,7 @@ def build_bundle(
     *,
     local_eligibility_concept: bool = False,
     release_members: list[str] | None = None,
+    scheme_prior_version: str | None = None,
 ) -> Path:
     exact_release_members = (
         [MEMBER_ID, ELIGIBILITY_MEMBER_ID]
@@ -349,6 +350,9 @@ def build_bundle(
             },
         ],
     }
+    if scheme_prior_version is not None:
+        graph["@context"]["owl"] = "http://www.w3.org/2002/07/owl#"
+        graph["@graph"][0]["owl:priorVersion"] = scheme_prior_version
     graph_path = root / "rulespec" / "release.jsonld"
     _write_json(graph_path, graph)
 

@@ -15,7 +15,11 @@ from refspec.atlas.atlas_scope import AtlasScopeRelease
 from refspec.atlas.machine_evidence import (
     build_machine_evidence_from_crosswalk_proof,
 )
-from refspec.atlas.model import VocabularyAtlasError, build_vocabulary_atlas
+from refspec.atlas.model import (
+    VocabularyAtlasAsset,
+    VocabularyAtlasError,
+    build_vocabulary_atlas,
+)
 from refspec.atlas.projection import build_atlas_projection, ring_projection_policy
 from refspec.atlas.queries import VocabularyAtlasQueries
 from refspec.atlas.relation_assertion import (
@@ -167,6 +171,164 @@ def test_stable_identity_keeps_release_versions_and_labels_separate(
     )
 
 
+def test_queries_resolve_source_release_supersession_as_its_own_relation(
+    tmp_path: Path,
+) -> None:
+    prior = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-v1",
+        label="Prior term",
+    )
+    current = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-v2",
+        label="Current term",
+        supersedes=(prior,),
+    )
+    releases: list[AtlasScopeRelease] = []
+    for name, bundle in (("prior", prior), ("current", current)):
+        root = bundle.write_to(tmp_path / f"query-source-lineage-{name}")
+        pinned = model_fixture._SCOPE_FIXTURE.PinnedSourceConceptRelease.open(
+            root,
+            expected_manifest_digest=bundle.manifest_digest,
+        )
+        releases.append(AtlasScopeRelease(pinned))
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-source-release-supersession",
+        releases=tuple(releases),
+        specs=tuple(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(
+                release,
+                f"query-source-lineage-{index}",
+            )
+            for index, release in enumerate(releases)
+        ),
+    )
+
+    queries = VocabularyAtlasQueries(build_vocabulary_atlas(scope))
+    relations = queries.source_release_supersessions()
+
+    assert len(relations) == 1
+    relation = relations[0]
+    assert relation.superseding_release_id == current.release_id
+    assert relation.superseded_release_id == prior.release_id
+    assert relation.semantic_ring == "subject"
+    assert relation.superseded_release_pin == {
+        "releaseId": prior.release_id,
+        "semanticRing": prior.semantic_ring,
+        "sourceScheme": "https://publisher.example/schemes/shared",
+        "manifestDigest": prior.manifest_digest,
+        "releaseDigest": prior.release_digest,
+        "logicalDigest": prior.logical_digest,
+    }
+    assert queries.source_release_supersession(relation.relation_id) == relation
+    assert queries.source_release_supersessions(
+        superseding_release_id=current.release_id,
+        superseded_release_id=prior.release_id,
+    ) == (relation,)
+    assert queries.source_release_supersessions(
+        superseding_release_id=prior.release_id
+    ) == ()
+    canonical = next(
+        value
+        for value in queries.records(role="releaseRecord")
+        if value.native_id == relation.relation_id
+    )
+    assert canonical.record_id == relation.record_id
+    assert canonical.release_ids == (current.release_id,)
+    assert canonical.record == relation.record
+    with pytest.raises(VocabularyAtlasError, match="no unique"):
+        queries.source_release_supersession("urn:ref:test:missing-supersession")
+
+
+def test_source_release_recut_lineage_relations_coexist_without_identity_collision(
+    tmp_path: Path,
+) -> None:
+    predecessor_p = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-recut-p",
+        label="Predecessor P",
+    )
+    predecessor_q = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-recut-q",
+        label="Predecessor Q",
+    )
+    successor_p = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-recut-successor",
+        label="Re-cut successor",
+        supersedes=(predecessor_p,),
+    )
+    successor_pq = model_fixture._source_release_version(
+        tmp_path,
+        version="lineage-recut-successor",
+        label="Re-cut successor",
+        supersedes=(predecessor_p, predecessor_q),
+    )
+    releases: list[AtlasScopeRelease] = []
+    for name, bundle in (
+        ("p", predecessor_p),
+        ("q", predecessor_q),
+        ("successor-p", successor_p),
+        ("successor-pq", successor_pq),
+    ):
+        root = bundle.write_to(tmp_path / f"query-lineage-recut-{name}")
+        pinned = model_fixture._SCOPE_FIXTURE.PinnedSourceConceptRelease.open(
+            root,
+            expected_manifest_digest=bundle.manifest_digest,
+        )
+        releases.append(AtlasScopeRelease(pinned))
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-source-lineage-recut",
+        releases=tuple(releases),
+        specs=tuple(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(
+                release,
+                f"query-source-lineage-recut-{index}",
+            )
+            for index, release in enumerate(releases)
+        ),
+    )
+
+    queries = VocabularyAtlasQueries(build_vocabulary_atlas(scope))
+    p_only = queries.source_release_supersessions(
+        superseding_release_id=successor_p.release_id,
+        superseded_release_id=predecessor_p.release_id,
+    )
+    p_with_q = queries.source_release_supersessions(
+        superseding_release_id=successor_pq.release_id,
+        superseded_release_id=predecessor_p.release_id,
+    )
+    successor_pq_relations = queries.source_release_supersessions(
+        superseding_release_id=successor_pq.release_id,
+    )
+
+    assert len(p_only) == len(p_with_q) == 1
+    assert len(successor_pq_relations) == 2
+    assert p_only[0].relation_id != p_with_q[0].relation_id
+    assert p_only[0].record["successorBasisDigest"] == (
+        p_with_q[0].record["successorBasisDigest"]
+    )
+    assert p_only[0].record["successorLineageDigest"] != (
+        p_with_q[0].record["successorLineageDigest"]
+    )
+    canonical_relation_ids = {
+        record.native_id
+        for record in queries.records(role="releaseRecord")
+        if record.native_id is not None
+        and record.native_id.startswith(
+            "urn:ref:source-release-supersession:"
+        )
+    }
+    assert canonical_relation_ids == {
+        relation.relation_id
+        for relation in queries.source_release_supersessions()
+    }
+
+
 def test_native_relation_query_preserves_managed_release_skos_facts(
     tmp_path: Path,
 ) -> None:
@@ -231,6 +393,87 @@ def test_native_relation_query_preserves_managed_release_skos_facts(
     assert queries.native_relations(predicate_iri="http://www.w3.org/2004/02/skos/core#related") == ()
     with pytest.raises(VocabularyAtlasError, match="predicate"):
         queries.native_relations(predicate_iri="urn:test:unsupported")
+
+
+def test_managed_publisher_release_lineage_remains_an_exact_release_record(
+    tmp_path: Path,
+) -> None:
+    prior_release_iri = "https://elsst.cessda.eu/id/5/"
+    source, _assignment = model_fixture._SCOPE_FIXTURE._managed_release(
+        tmp_path,
+        scheme_prior_version=prior_release_iri,
+    )
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixture._pinned_scope(
+        tmp_path,
+        name="query-managed-native-release-lineage",
+        releases=(release,),
+        specs=(
+            model_fixture._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "query-managed-native-release-lineage",
+                participation="bridge",
+            ),
+        ),
+    )
+
+    asset = build_vocabulary_atlas(scope)
+    queries = VocabularyAtlasQueries(asset)
+    scheme_id = cast(
+        str,
+        model_fixture._SCOPE_FIXTURE._FIXTURE_MODULE.SCHEME_ID,
+    )
+    scheme_record = next(
+        record
+        for record in queries.records(role="releaseRecord")
+        if record.native_id == scheme_id
+    )
+
+    assert scheme_record.release_ids == (source.release_id,)
+    assert scheme_record.record["owl:priorVersion"] == prior_release_iri
+    snapshot_scheme_record = next(
+        record
+        for record in queries.release_snapshot(source.release_id).record[
+            "selectedReleaseGraph"
+        ]["@graph"]
+        if record["@id"] == scheme_id
+    )
+    assert snapshot_scheme_record == scheme_record.record
+    assert queries.source_release_supersessions() == ()
+    publisher_relations = queries.publisher_release_prior_versions(
+        managed_release_id=source.release_id,
+        publisher_release_iri=scheme_id,
+        prior_version_iri=prior_release_iri,
+    )
+    assert len(publisher_relations) == 1
+    publisher_relation = publisher_relations[0]
+    assert publisher_relation.publisher_release_iri == scheme_id
+    assert publisher_relation.prior_version_iri == prior_release_iri
+    assert publisher_relation.source_record_id == scheme_record.record_id
+    assert publisher_relation.source_record_digest == scheme_record.record_digest
+    assert publisher_relation.record["predecessorReferenceKind"] == (
+        "publisherIriOnly"
+    )
+    assert "predecessorDigest" not in publisher_relation.record
+    assert queries.publisher_release_prior_version(
+        publisher_relation.relation_id
+    ) == publisher_relation
+
+    root = asset.write(tmp_path / "managed-native-release-lineage-atlas")
+    reopened = VocabularyAtlasAsset.open(
+        root,
+        expected_manifest_digest=asset.manifest_digest,
+    )
+    reopened_queries = VocabularyAtlasQueries(reopened)
+    reopened_record = next(
+        record
+        for record in reopened_queries.records(role="releaseRecord")
+        if record.native_id == scheme_id
+    )
+    assert reopened_record == scheme_record
+    assert reopened_queries.publisher_release_prior_version(
+        publisher_relation.relation_id
+    ) == publisher_relation
 
 
 def test_native_relation_query_preserves_icpsr_use_and_used_for_without_hierarchy_inference(

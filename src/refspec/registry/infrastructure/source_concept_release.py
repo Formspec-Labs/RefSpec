@@ -9,9 +9,10 @@ source-scoped IRI from the publisher scheme and a reconciled UUIDv7
 
 The release model is shared by the ``subject``, ``entity``, ``value``, and
 ``legalIdentity`` rings.  It records semantic kind, identity, exact membership,
-source provenance, rights, and lifecycle facts only.  Admission and product
-permission belong to separate review and product-policy records and cannot
-appear here.
+source provenance, rights, concept lifecycle facts, and exact publisher-release
+supersession. Release supersession stays separate from concept lifecycle and
+from Atlas publication decisions. Admission and product permission belong to
+separate review and product-policy records and cannot appear here.
 """
 
 from __future__ import annotations
@@ -57,11 +58,20 @@ from refspec.registry.infrastructure.source_identity import (
 )
 
 SOURCE_CONCEPT_RELEASE_VERSION = "1.0"
+SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION = "1.1"
 SOURCE_CONCEPT_RELEASE_MEDIA_TYPE = "application/vnd.refspec.source-concept-release+json"
 SOURCE_CONCEPT_IDENTITY_POLICY_ID = "urn:ref:policy:source-concept-identity:v1"
 SOURCE_CONCEPT_ISSUER_IRI = "https://refspec.org/"
+SOURCE_RELEASE_SUPERSESSION_TYPE = "SourceReleaseSupersession"
+SOURCE_RELEASE_SUPERSESSION_VERSION = "1.1"
 
 _IDENTITY_KINDS = frozenset({"publisherConceptIri", "refspecSourceScoped"})
+_SUPPORTED_SOURCE_CONCEPT_RELEASE_VERSIONS = frozenset(
+    {
+        SOURCE_CONCEPT_RELEASE_VERSION,
+        SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION,
+    }
+)
 _LIFECYCLE_EVENT_TYPES = frozenset({"rename", "split", "merge", "retire"})
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PACKAGE_FILENAMES = frozenset(
@@ -98,6 +108,24 @@ _IDENTITY_POLICY = {
     "fallback": "sourceSchemePlusUuid7LocalRecordId",
     "labelIdentity": "prohibited",
 }
+_SUPERSEDED_RELEASE_FIELDS = {
+    "releaseId",
+    "semanticRing",
+    "sourceScheme",
+    "manifestDigest",
+    "releaseDigest",
+    "logicalDigest",
+}
+_SOURCE_RELEASE_SUPERSESSION_BASIS_FIELDS = {
+    "type",
+    "schemaVersion",
+    "successorBasisDigest",
+    "successorLineageDigest",
+    "supersededRelease",
+}
+_SOURCE_RELEASE_SUPERSESSION_FIELDS = (
+    _SOURCE_RELEASE_SUPERSESSION_BASIS_FIELDS | {"id", "contentDigest"}
+)
 
 
 class SourceConceptReleaseError(ValueError):
@@ -738,6 +766,206 @@ def _source_capture_pin(
     return result
 
 
+def _normalize_superseded_release_pin(
+    value: object,
+    *,
+    label: str,
+    semantic_ring: SemanticRing,
+    source_scheme: str,
+) -> dict[str, str]:
+    if not isinstance(value, Mapping):
+        raise SourceConceptReleaseError(f"{label} must be an object")
+    row = cast(dict[str, Any], _plain(value))
+    if set(row) != _SUPERSEDED_RELEASE_FIELDS:
+        raise SourceConceptReleaseError(f"{label} fields differ from the exact source-release pin")
+    prior_ring = _require_ring(row.get("semanticRing"), f"{label}.semanticRing")
+    if prior_ring != semantic_ring:
+        raise SourceConceptReleaseError("a source release can supersede only a release in the same semantic ring")
+    prior_scheme = _require_iri(row.get("sourceScheme"), f"{label}.sourceScheme")
+    if prior_scheme != source_scheme:
+        raise SourceConceptReleaseError("a source release can supersede only a release from the same source scheme")
+    release_digest = _require_digest(
+        row.get("releaseDigest"),
+        f"{label}.releaseDigest",
+    )
+    release_id = _require_iri(row.get("releaseId"), f"{label}.releaseId")
+    expected_release_id = (
+        f"urn:ref:source-concept-release:{prior_ring}:"
+        f"{release_digest.removeprefix('sha256:')}"
+    )
+    if release_id != expected_release_id:
+        raise SourceConceptReleaseError(f"{label}.releaseId differs from releaseDigest")
+    return {
+        "releaseId": release_id,
+        "semanticRing": prior_ring,
+        "sourceScheme": prior_scheme,
+        "manifestDigest": _require_digest(
+            row.get("manifestDigest"),
+            f"{label}.manifestDigest",
+        ),
+        "releaseDigest": release_digest,
+        "logicalDigest": _require_digest(
+            row.get("logicalDigest"),
+            f"{label}.logicalDigest",
+        ),
+    }
+
+
+def _source_release_supersession_records(
+    superseded_release_pins: Sequence[Mapping[str, Any]],
+    *,
+    semantic_ring: SemanticRing,
+    source_scheme: str,
+    successor_basis_digest: str,
+) -> tuple[dict[str, Any], ...]:
+    successor_digest = _require_digest(
+        successor_basis_digest,
+        "source release supersession successorBasisDigest",
+    )
+    pins = [
+        _normalize_superseded_release_pin(
+            value,
+            label=f"superseded_release_pins[{index}]",
+            semantic_ring=semantic_ring,
+            source_scheme=source_scheme,
+        )
+        for index, value in enumerate(superseded_release_pins)
+    ]
+    release_ids = [value["releaseId"] for value in pins]
+    if len(release_ids) != len(set(release_ids)):
+        raise SourceConceptReleaseError("source release supersession repeats a superseded release")
+    canonical_pins = sorted(pins, key=lambda value: value["releaseId"])
+    lineage_digest = _sha256(_canonical_bytes(canonical_pins))
+    result: list[dict[str, Any]] = []
+    for pin in canonical_pins:
+        basis = {
+            "type": SOURCE_RELEASE_SUPERSESSION_TYPE,
+            "schemaVersion": SOURCE_RELEASE_SUPERSESSION_VERSION,
+            "successorBasisDigest": successor_digest,
+            "successorLineageDigest": lineage_digest,
+            "supersededRelease": pin,
+        }
+        content_digest = _sha256(_canonical_bytes(basis))
+        result.append(
+            {
+                **basis,
+                "id": (
+                    "urn:ref:source-release-supersession:"
+                    + content_digest.removeprefix("sha256:")
+                ),
+                "contentDigest": content_digest,
+            }
+        )
+    return tuple(result)
+
+
+def _superseded_release_pins_from_records(
+    value: object,
+    *,
+    semantic_ring: SemanticRing,
+    source_scheme: str,
+) -> tuple[dict[str, str], ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
+        raise SourceConceptReleaseError("sourceReleaseSupersessions must be a non-empty array when present")
+    pins: list[dict[str, str]] = []
+    records: list[dict[str, Any]] = []
+    identifiers: set[str] = set()
+    lineage_digests: set[str] = set()
+    for index, raw in enumerate(value):
+        label = f"sourceReleaseSupersessions[{index}]"
+        if not isinstance(raw, Mapping):
+            raise SourceConceptReleaseError(f"{label} must be an object")
+        row = cast(dict[str, Any], _plain(raw))
+        if set(row) != _SOURCE_RELEASE_SUPERSESSION_FIELDS:
+            raise SourceConceptReleaseError(f"{label} fields differ from the supersession schema")
+        if (
+            row.get("type") != SOURCE_RELEASE_SUPERSESSION_TYPE
+            or row.get("schemaVersion") != SOURCE_RELEASE_SUPERSESSION_VERSION
+        ):
+            raise SourceConceptReleaseError(f"{label} type or version is unsupported")
+        successor_basis_digest = _require_digest(
+            row.get("successorBasisDigest"),
+            f"{label}.successorBasisDigest",
+        )
+        successor_lineage_digest = _require_digest(
+            row.get("successorLineageDigest"),
+            f"{label}.successorLineageDigest",
+        )
+        pin = _normalize_superseded_release_pin(
+            row.get("supersededRelease"),
+            label=f"{label}.supersededRelease",
+            semantic_ring=semantic_ring,
+            source_scheme=source_scheme,
+        )
+        basis = {
+            "type": SOURCE_RELEASE_SUPERSESSION_TYPE,
+            "schemaVersion": SOURCE_RELEASE_SUPERSESSION_VERSION,
+            "successorBasisDigest": successor_basis_digest,
+            "successorLineageDigest": successor_lineage_digest,
+            "supersededRelease": pin,
+        }
+        content_digest = _sha256(_canonical_bytes(basis))
+        expected = {
+            **basis,
+            "id": (
+                "urn:ref:source-release-supersession:"
+                + content_digest.removeprefix("sha256:")
+            ),
+            "contentDigest": content_digest,
+        }
+        if row != expected:
+            raise SourceConceptReleaseError(f"{label} content identity is stale")
+        identifier = cast(str, expected["id"])
+        if identifier in identifiers:
+            raise SourceConceptReleaseError("sourceReleaseSupersessions repeats an id")
+        identifiers.add(identifier)
+        lineage_digests.add(successor_lineage_digest)
+        pins.append(pin)
+        records.append(expected)
+    if records != sorted(
+        records,
+        key=lambda row: cast(str, cast(Mapping[str, Any], row["supersededRelease"])["releaseId"]),
+    ):
+        raise SourceConceptReleaseError(
+            "sourceReleaseSupersessions must use canonical superseded-release order"
+        )
+    if len({pin["releaseId"] for pin in pins}) != len(pins):
+        raise SourceConceptReleaseError("sourceReleaseSupersessions repeats a superseded release")
+    expected_lineage_digest = _sha256(_canonical_bytes(pins))
+    if lineage_digests != {expected_lineage_digest}:
+        raise SourceConceptReleaseError(
+            "sourceReleaseSupersessions do not bind the complete canonical predecessor set"
+        )
+    return tuple(pins)
+
+
+def normalize_source_release_supersessions(
+    value: object,
+    *,
+    semantic_ring: SemanticRing,
+    source_scheme: str,
+    successor_basis_digest: str,
+) -> tuple[dict[str, Any], ...]:
+    """Verify exact release-level supersession records from canonical facts."""
+
+    pins = _superseded_release_pins_from_records(
+        value,
+        semantic_ring=semantic_ring,
+        source_scheme=source_scheme,
+    )
+    expected = _source_release_supersession_records(
+        pins,
+        semantic_ring=semantic_ring,
+        source_scheme=source_scheme,
+        successor_basis_digest=successor_basis_digest,
+    )
+    if _plain(value) != list(expected):
+        raise SourceConceptReleaseError(
+            "sourceReleaseSupersessions differ from the successor release basis"
+        )
+    return expected
+
+
 def _release_manifest(
     *,
     semantic_ring: SemanticRing,
@@ -748,6 +976,7 @@ def _release_manifest(
     lifecycle_records: Sequence[Mapping[str, Any]],
     reconciliation: Mapping[str, Any] | None,
     selection_receipt: Mapping[str, Any] | None,
+    superseded_release_pins: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     scheme = _source_scheme(source)
     concept_set_digest = _sha256(_canonical_jsonl(concepts))
@@ -761,7 +990,11 @@ def _release_manifest(
     )
     basis = {
         "type": "SourceConceptRelease",
-        "schemaVersion": SOURCE_CONCEPT_RELEASE_VERSION,
+        "schemaVersion": (
+            SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION
+            if superseded_release_pins
+            else SOURCE_CONCEPT_RELEASE_VERSION
+        ),
         "semanticRing": semantic_ring,
         "issuer": SOURCE_CONCEPT_ISSUER_IRI,
         "sourceScheme": scheme,
@@ -780,12 +1013,33 @@ def _release_manifest(
     if selection_receipt is not None:
         basis["scopeKind"] = "policyFrontier"
         basis["scopeAccounting"] = _frontier_scope_accounting(selection_receipt)
+    if superseded_release_pins:
+        basis["sourceReleaseSupersessions"] = list(
+            _source_release_supersession_records(
+                superseded_release_pins,
+                semantic_ring=semantic_ring,
+                source_scheme=_require_iri(
+                    scheme.get("id"),
+                    "source release sourceScheme.id",
+                ),
+                successor_basis_digest=_sha256(_canonical_bytes(basis)),
+            )
+        )
     release_digest = _sha256(_canonical_bytes(basis))
-    return {
+    result = {
         **basis,
         "id": (f"urn:ref:source-concept-release:{semantic_ring}:{release_digest.removeprefix('sha256:')}"),
         "releaseDigest": release_digest,
     }
+    if any(
+        record["supersededRelease"]["releaseId"] == result["id"]
+        for record in cast(
+            Sequence[Mapping[str, Any]],
+            result.get("sourceReleaseSupersessions", ()),
+        )
+    ):
+        raise SourceConceptReleaseError("a source release cannot supersede itself")
+    return result
 
 
 def _logical_digest(bundle: SourceConceptReleaseBundle) -> str:
@@ -847,6 +1101,15 @@ class SourceConceptReleaseBundle:
         scheme_iri = _require_iri(
             _source_scheme(self.source_bundle).get("id"),
             "source resource manifest sourceScheme.id",
+        )
+        superseded_release_pins = (
+            _superseded_release_pins_from_records(
+                manifest["sourceReleaseSupersessions"],
+                semantic_ring=ring,
+                source_scheme=scheme_iri,
+            )
+            if "sourceReleaseSupersessions" in manifest
+            else ()
         )
 
         concept_rows = tuple(
@@ -919,6 +1182,7 @@ class SourceConceptReleaseBundle:
             lifecycle_records=lifecycle,
             reconciliation=reconciliation,
             selection_receipt=selection_receipt,
+            superseded_release_pins=superseded_release_pins,
         )
         if manifest != expected_manifest:
             raise SourceConceptReleaseError("release_manifest is stale or differs from the release contents")
@@ -967,6 +1231,13 @@ class SourceConceptReleaseBundle:
         return cast(SemanticRing, self.release_manifest["semanticRing"])
 
     @property
+    def source_release_supersessions(self) -> tuple[Mapping[str, Any], ...]:
+        """Return exact predecessor pins as distinct release-level relations."""
+
+        value = self.release_manifest.get("sourceReleaseSupersessions", ())
+        return cast(tuple[Mapping[str, Any], ...], value)
+
+    @property
     def logical_digest(self) -> str:
         return _logical_digest(self)
 
@@ -1009,7 +1280,7 @@ class SourceConceptReleaseBundle:
         ]
         artifacts["bundle-manifest.json"] = _canonical_bytes(
             {
-                "schemaVersion": SOURCE_CONCEPT_RELEASE_VERSION,
+                "schemaVersion": self.release_manifest["schemaVersion"],
                 "packageKind": "sourceConceptRelease",
                 "releaseId": self.release_id,
                 "releaseDigest": self.release_digest,
@@ -1050,6 +1321,48 @@ class SourceConceptReleaseBundle:
         return destination
 
 
+def _verified_superseded_release_pin(
+    value: SourceConceptReleaseBundle | SourceConceptReleaseView,
+) -> dict[str, str]:
+    if isinstance(value, SourceConceptReleaseBundle):
+        release: SourceConceptReleaseBundle | SourceConceptReleaseView = value
+    elif isinstance(value, SourceConceptReleaseView):
+        release = SourceConceptReleaseView.open(
+            value.path,
+            expected_manifest_digest=value.manifest_digest,
+        )
+    else:
+        raise SourceConceptReleaseError(
+            "supersedes must contain verified SourceConceptRelease bundles or views"
+        )
+    source_scheme = _require_iri(
+        release.release_manifest.get("sourceScheme", {}).get("id")
+        if isinstance(release.release_manifest.get("sourceScheme"), Mapping)
+        else None,
+        "superseded source release sourceScheme.id",
+    )
+    return {
+        "releaseId": _require_iri(
+            release.release_id,
+            "superseded source release releaseId",
+        ),
+        "semanticRing": release.semantic_ring,
+        "sourceScheme": source_scheme,
+        "manifestDigest": _require_digest(
+            release.manifest_digest,
+            "superseded source release manifestDigest",
+        ),
+        "releaseDigest": _require_digest(
+            release.release_digest,
+            "superseded source release releaseDigest",
+        ),
+        "logicalDigest": _require_digest(
+            release.logical_digest,
+            "superseded source release logicalDigest",
+        ),
+    }
+
+
 def build_source_concept_release_bundle(
     source: SourceControlledResourceBundle,
     *,
@@ -1060,8 +1373,15 @@ def build_source_concept_release_bundle(
     lifecycle_records: Sequence[Mapping[str, Any]] = (),
     reconciliation_record: Mapping[str, Any] | None = None,
     selection_receipt: Mapping[str, Any] | None = None,
+    supersedes: Sequence[
+        SourceConceptReleaseBundle | SourceConceptReleaseView
+    ] = (),
 ) -> SourceConceptReleaseBundle:
-    """Build one exact release without deriving identity from labels."""
+    """Build one exact release without deriving identity from labels.
+
+    ``supersedes`` names exact earlier publisher releases. It is separate from
+    Atlas publication decisions and from lifecycle events about concepts.
+    """
 
     ring = _require_ring(semantic_ring)
     policy = _selection_policy(selection_policy)
@@ -1119,6 +1439,10 @@ def build_source_concept_release_bundle(
         source=source,
         concepts=concepts,
     )
+    superseded_release_pins = tuple(
+        _verified_superseded_release_pin(value)
+        for value in supersedes
+    )
     manifest = _release_manifest(
         semantic_ring=ring,
         source=source,
@@ -1128,6 +1452,7 @@ def build_source_concept_release_bundle(
         lifecycle_records=lifecycle,
         reconciliation=reconciliation,
         selection_receipt=receipt,
+        superseded_release_pins=superseded_release_pins,
     )
     return SourceConceptReleaseBundle(
         release_manifest=manifest,
@@ -1221,7 +1546,8 @@ class SourceConceptReleaseView:
         }:
             raise SourceConceptReleaseError("source-concept bundle manifest shape is unsupported")
         if (
-            manifest.get("schemaVersion") != SOURCE_CONCEPT_RELEASE_VERSION
+            manifest.get("schemaVersion")
+            not in _SUPPORTED_SOURCE_CONCEPT_RELEASE_VERSIONS
             or manifest.get("packageKind") != "sourceConceptRelease"
         ):
             raise SourceConceptReleaseError("source-concept bundle manifest version is unsupported")
@@ -1311,6 +1637,10 @@ class SourceConceptReleaseView:
         )
         if not isinstance(release_manifest, Mapping):
             raise SourceConceptReleaseError("source-concept release manifest must be an object")
+        if release_manifest.get("schemaVersion") != manifest.get("schemaVersion"):
+            raise SourceConceptReleaseError(
+                "source-concept release and bundle manifest versions differ"
+            )
         if _canonical_bytes(release_manifest) != loaded["release-manifest.json"]:
             raise SourceConceptReleaseError("source-concept release manifest bytes are not canonical")
         concepts = _read_jsonl(loaded["concepts.jsonl"], "source concepts")
@@ -1437,16 +1767,24 @@ class SourceConceptReleaseView:
     def semantic_ring(self) -> SemanticRing:
         return self.bundle.semantic_ring
 
+    @property
+    def source_release_supersessions(self) -> tuple[Mapping[str, Any], ...]:
+        return self.bundle.source_release_supersessions
+
 
 __all__ = [
     "SOURCE_CONCEPT_IDENTITY_POLICY_ID",
     "SOURCE_CONCEPT_ISSUER_IRI",
+    "SOURCE_CONCEPT_RELEASE_LINEAGE_VERSION",
     "SOURCE_CONCEPT_RELEASE_MEDIA_TYPE",
     "SOURCE_CONCEPT_RELEASE_VERSION",
+    "SOURCE_RELEASE_SUPERSESSION_TYPE",
+    "SOURCE_RELEASE_SUPERSESSION_VERSION",
     "SemanticRing",
     "SourceConceptReleaseBundle",
     "SourceConceptReleaseError",
     "SourceConceptReleaseView",
     "build_source_concept_release_bundle",
+    "normalize_source_release_supersessions",
     "source_scoped_concept_iri",
 ]

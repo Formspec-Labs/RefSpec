@@ -153,8 +153,13 @@ def _source_release(
 
 def _managed_release(
     tmp_path: Path,
+    *,
+    scheme_prior_version: str | None = None,
 ) -> tuple[PinnedManagedConceptRelease, PinnedManagedReleaseRingAssignment]:
-    manifest = build_managed_bundle(tmp_path / "managed-release")
+    manifest = build_managed_bundle(
+        tmp_path / "managed-release",
+        scheme_prior_version=scheme_prior_version,
+    )
     assignment = ManagedReleaseRingAssignment(
         managed_manifest_digest=_file_digest(manifest),
         release_id=MANAGED_RELEASE_ID,

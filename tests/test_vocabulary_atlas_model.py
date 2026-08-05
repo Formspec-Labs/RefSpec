@@ -190,6 +190,7 @@ def _source_release_version(
     *,
     version: str,
     label: str,
+    supersedes: tuple[SourceConceptReleaseBundle, ...] = (),
 ) -> SourceConceptReleaseBundle:
     source_id = "https://publisher.example/shared-concept.json"
     scheme_id = "https://publisher.example/schemes/shared"
@@ -246,6 +247,7 @@ def _source_release_version(
                 "sourceDigest": sha256_digest(payload),
             },
         ),
+        supersedes=supersedes,
     )
 
 

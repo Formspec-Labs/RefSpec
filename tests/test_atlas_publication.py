@@ -46,7 +46,7 @@ from refspec.atlas.publication_decision import (
     VocabularyAtlasPublicationDecision,
     build_vocabulary_atlas_publication_decision,
 )
-from refspec.atlas.queries import native_concept_relation_id
+from refspec.atlas.queries import VocabularyAtlasQueries, native_concept_relation_id
 from refspec.atlas.relation_assertion import (
     PinnedRelationAssertionBundle,
     RelationAssertionBundle,
@@ -264,6 +264,235 @@ def test_canonical_publication_preserves_exact_authoritative_bytes_and_reopens(
     assert isinstance(reopened.distribution, VocabularyAtlasAsset)
     assert reopened.distribution.payload == asset.payload
     assert reopened.decision.as_record() == decision.as_record()
+
+
+def test_publication_keeps_source_release_supersession_visible_and_resolvable(
+    tmp_path: Path,
+) -> None:
+    prior = model_fixtures._source_release_version(
+        tmp_path,
+        version="publication-lineage-v1",
+        label="Prior publisher release",
+    )
+    other_prior = model_fixtures._source_release_version(
+        tmp_path,
+        version="publication-lineage-v0",
+        label="Other prior publisher release",
+    )
+    current = model_fixtures._source_release_version(
+        tmp_path,
+        version="publication-lineage-v2",
+        label="Current publisher release",
+        supersedes=(prior, other_prior),
+    )
+    releases: list[AtlasScopeRelease] = []
+    for name, bundle in (
+        ("prior", prior),
+        ("other-prior", other_prior),
+        ("current", current),
+    ):
+        root = bundle.write_to(tmp_path / f"publication-lineage-{name}")
+        pinned = model_fixtures._SCOPE_FIXTURE.PinnedSourceConceptRelease.open(
+            root,
+            expected_manifest_digest=bundle.manifest_digest,
+        )
+        releases.append(AtlasScopeRelease(pinned))
+    scope, _ = model_fixtures._pinned_scope(
+        tmp_path,
+        name="publication-source-release-supersession",
+        releases=tuple(releases),
+        specs=tuple(
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                release,
+                f"publication-lineage-{index}",
+            )
+            for index, release in enumerate(releases)
+        ),
+    )
+    asset = build_vocabulary_atlas(scope)
+    decision = _atlas_decision(scope, asset)
+
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published-source-lineage",
+        decision=decision,
+        release_labels={
+            prior.release_id: "Publisher release 1",
+            other_prior.release_id: "Publisher release 0",
+            current.release_id: "Publisher release 2",
+        },
+    )
+    explorer = json.loads(
+        (publication.directory / EXPLORER_DATA).read_bytes()
+    )
+    releases_by_id = {
+        row["releaseId"]: row for row in explorer["conceptReleases"]
+    }
+    assert "sourceReleaseSupersessions" not in releases_by_id[prior.release_id]
+    assert "sourceReleaseSupersessions" not in releases_by_id[
+        other_prior.release_id
+    ]
+    relations = releases_by_id[current.release_id][
+        "sourceReleaseSupersessions"
+    ]
+    relation = next(
+        value
+        for value in relations
+        if value["supersededRelease"]["releaseId"] == prior.release_id
+    )
+    assert relations == plain_json(current.source_release_supersessions)
+    assert relation["supersededRelease"]["manifestDigest"] == (
+        prior.manifest_digest
+    )
+    html = (publication.directory / EXPLORER_HTML).read_text()
+    assert relation["id"] in html
+    assert "supersedes ${formatQuantity(supersessions.length" in html
+
+    reopened = AtlasPublication.open(
+        publication.directory,
+        expected_manifest_digest=publication.manifest_digest,
+    )
+    reopened_relations = VocabularyAtlasQueries(
+        reopened.distribution
+    ).source_release_supersessions()
+    assert {value.relation_id for value in reopened_relations} == {
+        value["id"] for value in relations
+    }
+
+    tampered = json.loads(json.dumps(explorer))
+    tampered_relation = next(
+        row["sourceReleaseSupersessions"][0]
+        for row in tampered["conceptReleases"]
+        if "sourceReleaseSupersessions" in row
+    )
+    tampered_relation["supersededRelease"]["manifestDigest"] = (
+        "sha256:" + "0" * 64
+    )
+    with pytest.raises(AtlasExplorerError, match="content identity"):
+        render_atlas_explorer(tampered)
+
+    resealed = json.loads(json.dumps(explorer))
+    resealed_relations = next(
+        row["sourceReleaseSupersessions"]
+        for row in resealed["conceptReleases"]
+        if "sourceReleaseSupersessions" in row
+    )
+    resealed_relation = resealed_relations[1]
+    resealed_relation["successorBasisDigest"] = "sha256:" + "0" * 64
+    resealed_basis = {
+        key: value
+        for key, value in resealed_relation.items()
+        if key not in {"id", "contentDigest"}
+    }
+    resealed_digest = sha256_digest(canonical_json_bytes(resealed_basis))
+    resealed_relation["contentDigest"] = resealed_digest
+    resealed_relation["id"] = (
+        "urn:ref:source-release-supersession:"
+        + resealed_digest.removeprefix("sha256:")
+    )
+    with pytest.raises(AtlasExplorerError, match="one successor basis digest"):
+        render_atlas_explorer(resealed)
+
+
+def test_publication_exposes_managed_publisher_prior_version_as_iri_only_lineage(
+    tmp_path: Path,
+) -> None:
+    prior_version_iri = "https://elsst.cessda.eu/id/5/"
+    source, _assignment = model_fixtures._SCOPE_FIXTURE._managed_release(
+        tmp_path,
+        scheme_prior_version=prior_version_iri,
+    )
+    release = AtlasScopeRelease(source)
+    scope, _ = model_fixtures._pinned_scope(
+        tmp_path,
+        name="publication-managed-publisher-lineage",
+        releases=(release,),
+        specs=(
+            model_fixtures._SCOPE_FIXTURE._IndexSpec(
+                release,
+                "publication-managed-publisher-lineage",
+                participation="bridge",
+            ),
+        ),
+    )
+    asset = build_vocabulary_atlas(scope)
+    decision = _atlas_decision(scope, asset)
+
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published-managed-publisher-lineage",
+        decision=decision,
+        release_labels={source.release_id: "ELSST R6"},
+    )
+    explorer = json.loads(
+        (publication.directory / EXPLORER_DATA).read_bytes()
+    )
+    release_row = explorer["conceptReleases"][0]
+    relation = release_row["publisherReleasePriorVersions"][0]
+    scheme_id = (
+        model_fixtures._SCOPE_FIXTURE._FIXTURE_MODULE.SCHEME_ID
+    )
+
+    assert "sourceReleaseSupersessions" not in release_row
+    assert relation["publisherReleaseIri"] == scheme_id
+    assert relation["priorVersionIri"] == prior_version_iri
+    assert relation["predecessorReferenceKind"] == "publisherIriOnly"
+    assert "predecessorDigest" not in relation
+    html = (publication.directory / EXPLORER_HTML).read_text()
+    assert relation["id"] in html
+    assert "publisher prior ${formatQuantity" in html
+    assert "publisher IRI only" in html
+
+    reopened = AtlasPublication.open(
+        publication.directory,
+        expected_manifest_digest=publication.manifest_digest,
+    )
+    reopened_relation = VocabularyAtlasQueries(
+        reopened.distribution
+    ).publisher_release_prior_version(relation["id"])
+    assert plain_json(reopened_relation.record) == relation
+    assert VocabularyAtlasQueries(
+        reopened.distribution
+    ).source_release_supersessions() == ()
+
+    tampered = json.loads(json.dumps(explorer))
+    tampered_relation = tampered["conceptReleases"][0][
+        "publisherReleasePriorVersions"
+    ][0]
+    tampered_relation["sourceRecord"]["recordDigest"] = (
+        "sha256:" + "0" * 64
+    )
+    with pytest.raises(AtlasExplorerError, match="source-record pin"):
+        render_atlas_explorer(tampered)
+
+    duplicated = json.loads(json.dumps(explorer))
+    duplicate_relations = duplicated["conceptReleases"][0][
+        "publisherReleasePriorVersions"
+    ]
+    duplicate = json.loads(json.dumps(duplicate_relations[0]))
+    alternate_source_digest = "sha256:" + "1" * 64
+    duplicate["sourceRecord"]["recordDigest"] = alternate_source_digest
+    duplicate["sourceRecord"]["recordId"] = (
+        "urn:ref:vocabulary-atlas-record:"
+        + alternate_source_digest.removeprefix("sha256:")
+    )
+    duplicate_basis = {
+        key: value
+        for key, value in duplicate.items()
+        if key not in {"id", "contentDigest"}
+    }
+    duplicate_digest = sha256_digest(canonical_json_bytes(duplicate_basis))
+    duplicate["contentDigest"] = duplicate_digest
+    duplicate["id"] = (
+        "urn:ref:publisher-release-prior-version:"
+        + duplicate_digest.removeprefix("sha256:")
+    )
+    duplicate_relations.append(duplicate)
+    with pytest.raises(
+        AtlasExplorerError,
+        match="repeats a publisher prior-version claim",
+    ):
+        render_atlas_explorer(duplicated)
 
 
 def test_indexed_publication_carries_exact_release_controls_and_reopens(

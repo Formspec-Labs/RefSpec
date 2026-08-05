@@ -968,15 +968,34 @@ def _build_explorer_model(
     release_rows = []
     for snapshot in snapshots:
         members = queries.concepts(release_id=snapshot.release_id)
-        release_rows.append(
-            {
-                "releaseId": snapshot.release_id,
-                "label": labels.get(snapshot.release_id, _default_release_label(snapshot.release_id)),
-                "semanticRing": snapshot.semantic_ring,
-                "conceptCount": len(members),
-                "shownConceptCount": sum(concept["releaseId"] == snapshot.release_id for concept in concept_rows),
-            }
+        release_row: dict[str, Any] = {
+            "releaseId": snapshot.release_id,
+            "label": labels.get(
+                snapshot.release_id,
+                _default_release_label(snapshot.release_id),
+            ),
+            "semanticRing": snapshot.semantic_ring,
+            "conceptCount": len(members),
+            "shownConceptCount": sum(
+                concept["releaseId"] == snapshot.release_id
+                for concept in concept_rows
+            ),
+        }
+        supersessions = queries.source_release_supersessions(
+            superseding_release_id=snapshot.release_id
         )
+        if supersessions:
+            release_row["sourceReleaseSupersessions"] = [
+                _plain(value.record) for value in supersessions
+            ]
+        publisher_prior_versions = queries.publisher_release_prior_versions(
+            managed_release_id=snapshot.release_id
+        )
+        if publisher_prior_versions:
+            release_row["publisherReleasePriorVersions"] = [
+                _plain(value.record) for value in publisher_prior_versions
+            ]
+        release_rows.append(release_row)
 
     source_counts = _plain(distribution.manifest["counts"])
     if not isinstance(source_counts, dict):

@@ -95,13 +95,18 @@ def _source_scope_release(
     capture_count: int | None = None,
     selected_observation_indexes: tuple[int, ...] | None = None,
     reconciliation: bool = False,
+    source_scheme_name: str | None = None,
+    supersedes: tuple[SourceConceptReleaseBundle, ...] = (),
 ) -> tuple[
     AtlasScopeRelease,
     SourceConceptReleaseBundle,
     PinnedSourceConceptRelease,
 ]:
     source_id = f"https://publisher.example/source/{ring}/{name}.json"
-    scheme_id = f"https://publisher.example/schemes/{ring}/{name}"
+    scheme_id = (
+        f"https://publisher.example/schemes/{ring}/"
+        f"{name if source_scheme_name is None else source_scheme_name}"
+    )
     observations: list[dict[str, Any]] = []
     observation_count = concept_count if capture_count is None else capture_count
     selected_indexes = (
@@ -180,6 +185,7 @@ def _source_scope_release(
             },
         ),
         reconciliation_record=reconciliation_record,
+        supersedes=supersedes,
     )
     root = release.write_to(tmp_path / f"source-release-{ring}-{name}")
     pinned = PinnedSourceConceptRelease.open(
@@ -365,6 +371,49 @@ def test_source_snapshot_copies_complete_logical_release_and_is_immutable(
     mutable_copy = first.as_record()
     mutable_copy["concepts"][0]["id"] = "urn:changed"
     assert "urn:changed" not in first.member_ids
+
+
+def test_source_snapshot_preserves_and_revalidates_release_supersession(
+    tmp_path: Path,
+) -> None:
+    _, prior, _ = _source_scope_release(
+        tmp_path,
+        "lineage-prior",
+        source_scheme_name="lineage",
+    )
+    current_scope, current, _ = _source_scope_release(
+        tmp_path,
+        "lineage-current",
+        source_scheme_name="lineage",
+        supersedes=(prior,),
+    )
+
+    snapshot = AtlasReleaseSnapshot.create(current_scope)
+    assert snapshot.source_release_supersessions == (
+        current.source_release_supersessions
+    )
+    assert snapshot.record["sourceReleaseSupersessions"] == (
+        snapshot.record["releaseManifest"]["sourceReleaseSupersessions"]
+    )
+    assert (
+        snapshot.source_release_supersessions[0]["supersededRelease"][
+            "releaseId"
+        ]
+        == prior.release_id
+    )
+    assert AtlasReleaseSnapshot.from_record(snapshot.as_record()).as_record() == (
+        snapshot.as_record()
+    )
+
+    tampered = snapshot.as_record()
+    tampered["sourceReleaseSupersessions"][0]["supersededRelease"][
+        "manifestDigest"
+    ] = "sha256:" + "0" * 64
+    with pytest.raises(
+        AtlasReleaseSnapshotError,
+        match="supersessions differ from its manifest",
+    ):
+        AtlasReleaseSnapshot.from_record(_reseal(tampered))
 
 
 def test_source_snapshot_omits_absent_reconciliation_but_preserves_exact_nulls(
