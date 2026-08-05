@@ -1029,12 +1029,11 @@ def _qualified_candidates(
     candidates: Mapping[str, Mapping[str, Any]],
     validations: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, tuple[dict[str, Any], ...]]:
-    """Candidates that earn a mapping: adjudicated-``related`` is excluded."""
+    """Candidates that earn a typed mapping through independent agreement."""
 
     return {
         candidate_id: supporting
-        for candidate_id, (supporting, relation) in _independent_agreements(candidates, validations).items()
-        if relation != _RELATED_MATCH
+        for candidate_id, (supporting, _relation) in _independent_agreements(candidates, validations).items()
     }
 
 

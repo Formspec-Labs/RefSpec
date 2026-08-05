@@ -106,6 +106,49 @@ def test_qualification_runner_privately_selects_the_managed_release_reader(
     assert calls == [(expected_reader, manifest, digest)]
 
 
+def test_qualification_runner_selects_source_concept_release_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = tmp_path / "bundle-manifest.json"
+    manifest.write_text(json.dumps({"packageKind": "sourceConceptRelease"}), encoding="utf-8")
+    calls: list[tuple[Path, str]] = []
+
+    class FakeSourceConceptReleaseView:
+        @staticmethod
+        def open(manifest_path: Path, *, expected_manifest_digest: str) -> str:
+            calls.append((manifest_path, expected_manifest_digest))
+            return "source-release-view"
+
+    monkeypatch.setattr(RUNNER, "SourceConceptReleaseView", FakeSourceConceptReleaseView)
+    digest = "sha256:" + "a" * 64
+
+    assert RUNNER._open_qualification_release(manifest, digest) == (
+        "sourceConceptRelease",
+        "source-release-view",
+    )
+    assert calls == [(manifest, digest)]
+
+
+@pytest.mark.parametrize(
+    ("declared_type", "expected"),
+    [
+        (
+            "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest",
+            "PinnedFederalRegisterManagedConceptRelease",
+        ),
+        ("urn:ref:type:IcpsrManagedReleaseManifest", "PinnedIcpsrManagedConceptRelease"),
+        ("urn:ref:type:UnknownManagedReleaseManifest", "PinnedManagedConceptRelease"),
+    ],
+)
+def test_relation_sealing_selects_source_specific_managed_concept_readers(
+    declared_type: str,
+    expected: str,
+) -> None:
+    reader = RUNNER._managed_concept_release_reader({"type": declared_type})
+    assert reader.__name__ == expected
+
+
 def _pairs() -> tuple[qual.CandidatePair, ...]:
     sources = (
         _source("urn:ref:test:alpha:1", "Energy policy"),
@@ -249,7 +292,16 @@ class FakeProviders:
     def _output_line(self, token: str, body: Mapping[str, Any]) -> dict[str, Any]:
         payload = json.loads(body["messages"][1]["content"])
         task_id = "task-not-the-one-asked-about" if token in self.wrong_task_id_for else payload["taskId"]
-        answer = {"reason": "the labels denote the same concept", "task_id": task_id, "verdict": self.verdict}
+        if "semantic_plausibility" in str(body["messages"][0]["content"]):
+            answer = {
+                "task_id": task_id,
+                "semantic_plausibility": 91,
+                "evidence_sufficiency": 84,
+                "likely_relation": "near_same",
+                "reason": "the supplied concept facts support close review",
+            }
+        else:
+            answer = {"reason": "the labels denote the same concept", "task_id": task_id, "verdict": self.verdict}
         return {
             "custom_id": token,
             "error": None,
@@ -390,6 +442,13 @@ def _receipts(output: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _scoring_receipts(output: Path) -> list[dict[str, Any]]:
+    path = output / RUNNER.SCORING_RECEIPTS
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
 def _sidecar(output: Path) -> dict[str, Any]:
     return json.loads((output / qbatch.SIDECAR).read_text(encoding="utf-8"))
 
@@ -413,6 +472,27 @@ def test_a_batch_line_carries_the_serial_request_body_and_digest() -> None:
     assert request.body == expected
     assert request.request_sha256 == qual._sha256_text(canonical_json(expected))
     assert request.task_id == qual.task_id(pair)
+
+
+def test_a_scoring_batch_line_carries_the_serial_scorer_request() -> None:
+    pair = _pairs()[0]
+    entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
+    row = qbatch.CandidateRow(entry.candidate.identifier, pair, qual.scoring_input_digest(pair))
+
+    request = qbatch.build_request(
+        qual.OPENAI_FAMILY,
+        OPENAI_MODEL,
+        row,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+    )
+
+    system_text, user_text = qual.scoring_input_texts(pair)
+    expected = qual._request_body(qual.OPENAI_FAMILY, OPENAI_MODEL, system_text, user_text)
+    assert request.body == expected
+    assert request.request_sha256 == qual._sha256_text(canonical_json(expected))
+    assert request.task_id == qual.scoring_task_id(pair)
+    assert pair.generation_class not in request.line()
 
     line = json.loads(request.line())
     assert line["method"] == "POST"
@@ -549,6 +629,68 @@ class _SerialStub:
                 "usage": {"completion_tokens": 120, "prompt_tokens": 500},
             }
         )
+
+
+class _ScoringSerialStub:
+    def __init__(self, task_id: str) -> None:
+        self.task_id = task_id
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        headers: Mapping[str, str],
+        body: bytes | None,
+        timeout: float,
+    ) -> tuple[int, bytes]:
+        answer = {
+            "task_id": self.task_id,
+            "semantic_plausibility": 91,
+            "evidence_sufficiency": 84,
+            "likely_relation": "near_same",
+            "reason": "the supplied concept facts support close review",
+        }
+        return 200, _json(
+            {
+                "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(answer)}}],
+                "model": OPENAI_MODEL,
+                "usage": {"completion_tokens": 120, "prompt_tokens": 500},
+            }
+        )
+
+
+def test_scoring_batch_and_serial_paths_produce_the_same_receipt_shape(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "score-batch-submit", "--family", "openai")
+    server.complete_jobs()
+    _run(monkeypatch, server, run_dir, "score-batch-status")
+    _run(monkeypatch, server, run_dir, "score-batch-collect")
+    batched = _scoring_receipts(run_dir)[0]
+    row = next(item for item in _candidate_rows() if item["candidateId"] == batched["candidate_id"])
+    pair = RUNNER._pair_from_dict(row)
+    serial = qual.score_candidate(
+        _ScoringSerialStub(qual.scoring_task_id(pair)),
+        qual.OPENAI_FAMILY,
+        "OPENAI-SECRET-VALUE",
+        OPENAI_MODEL,
+        pair=pair,
+        candidate_id=str(row["candidateId"]),
+        input_digest=qual.scoring_input_digest(pair),
+        tracker=qual.SpendTracker(qual.OPENAI_FAMILY),
+    )
+
+    assert set(batched) == set(serial)
+    assert batched["request_sha256"] == serial["request_sha256"]
+    assert batched["kind"] == "crosswalk_scoring"
+    reading = qual.score_reading_from_receipt(batched, qual.OPENAI_FAMILY, OPENAI_MODEL)
+    assert reading is not None and reading.deterministic_checks_passed
+    assert reading.semantic_plausibility == 91
+    assert batched["assumed_cost_usd"] == pytest.approx(
+        serial["assumed_cost_usd"] * qbatch.BATCH_PRICE_FACTOR
+    )
 
 
 def test_gemini_uses_the_native_file_api_and_the_compatible_batches_endpoint(
@@ -696,6 +838,25 @@ def test_cli_has_no_protocol_override() -> None:
     assert not hasattr(parsed, "protocol")
     with pytest.raises(SystemExit):
         parser.parse_args(["--output", "run", "generate", "--generated-at", GENERATED_AT, "--protocol", "v1"])
+
+
+def test_production_cli_rejects_pilot_caps_and_execution_subsets() -> None:
+    parser = RUNNER.build_parser()
+    parsed = parser.parse_args(
+        ["--output", "run", "generate", "--generated-at", GENERATED_AT, "--production"]
+    )
+    assert parsed.production is True
+    catalog = {
+        "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+        "generationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+        "productionFloor": qual.PRODUCTION_FLOOR,
+        "limits": None,
+    }
+
+    with pytest.raises(SystemExit, match="complete candidate catalog"):
+        RUNNER._refuse_production_subset(catalog, 10)
+    with pytest.raises(SystemExit, match="pilot limit"):
+        RUNNER._coverage_mode({**catalog, "limits": {"normalizedLabelEquality": 10}})
 
 
 def test_candidates_without_a_protocol_are_refused(monkeypatch: pytest.MonkeyPatch, run_dir: Path) -> None:

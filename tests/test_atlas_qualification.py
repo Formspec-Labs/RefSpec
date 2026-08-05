@@ -138,6 +138,27 @@ def test_class_limits_bound_each_class(sources, targets) -> None:
     assert max(counts.values()) == 1
 
 
+def test_production_generation_has_no_pilot_class_caps(sources, targets) -> None:
+    production = qual.generate_candidate_pairs(sources, targets, production=True)
+    pilot = qual.generate_candidate_pairs(
+        sources,
+        targets,
+        limits=dict.fromkeys(qual.GENERATION_CLASSES, 1),
+    )
+
+    assert len(production) > len(pilot)
+    assert {pair.generation_policy for pair in production} == {
+        qual.PRODUCTION_CANDIDATE_GENERATION_POLICY
+    }
+    with pytest.raises(qual.QualificationError, match="does not accept pilot class limits"):
+        qual.generate_candidate_pairs(
+            sources,
+            targets,
+            production=True,
+            limits=qual.DEFAULT_CLASS_LIMITS,
+        )
+
+
 def test_generation_refuses_a_source_and_target_in_one_release(sources) -> None:
     with pytest.raises(VocabularyAtlasError):
         qual.generate_candidate_pairs(sources, sources)
@@ -170,6 +191,150 @@ def test_a_short_run_still_spans_every_class(sources, targets) -> None:
     assert len(qual.stratified_subset(rows, 10_000)) == len(rows)
     with pytest.raises(VocabularyAtlasError):
         qual.stratified_subset(rows, -1)
+
+
+def test_run_receipt_seals_complete_candidate_accounting() -> None:
+    rows = [
+        {
+            "candidateId": "candidate-admitted",
+            "generationClass": "normalizedLabelEquality",
+            "control": False,
+            "scored": True,
+            "scorerReceipts": [
+                {
+                    "family": "openai",
+                    "outcome": "completed",
+                    "deterministicChecksPassed": True,
+                    "receiptDigest": "sha256:" + "0" * 64,
+                }
+            ],
+            "judgeReceipts": [
+                {"family": "gemini", "outcome": "completed", "receiptDigest": "sha256:" + "1" * 64},
+                {"family": "openai", "outcome": "completed", "receiptDigest": "sha256:" + "2" * 64},
+            ],
+            "judged": True,
+            "disposition": "admitted",
+            "relation": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+        },
+        {
+            "candidateId": "candidate-control",
+            "generationClass": "randomNegativeControl",
+            "control": True,
+            "scored": False,
+            "scorerReceipts": [],
+            "judgeReceipts": [],
+            "judged": False,
+            "disposition": "controlled",
+        },
+    ]
+    counts = {
+        "generated": 2,
+        "scored": 1,
+        "scorerReceipts": 1,
+        "judgeReceipts": 2,
+        "judged": 1,
+        "abstained": 0,
+        "rejected": 0,
+        "controlled": 1,
+        "admitted": 1,
+        "incomplete": 0,
+    }
+    basis = {
+        "type": qual.QUALIFICATION_RUN_RECEIPT_TYPE,
+        "schemaVersion": qual.QUALIFICATION_RUN_RECEIPT_VERSION,
+        "coverageMode": qual.PILOT_COVERAGE_MODE,
+        "candidateGenerationPolicy": qual.PILOT_CANDIDATE_GENERATION_POLICY,
+        "productionFloor": None,
+        "candidateCatalog": {"file": "candidates.json", "fileDigest": "sha256:" + "3" * 64, "total": 2},
+        "receiptLog": {"file": "receipts.jsonl", "fileDigest": "sha256:" + "4" * 64, "total": 2},
+        "scoring": {
+            "status": "incomplete",
+            "receiptLog": {
+                "file": "scoring-receipts.jsonl",
+                "fileDigest": "sha256:" + "5" * 64,
+                "total": 1,
+            },
+        },
+        "candidateAccounting": rows,
+        "counts": counts,
+    }
+
+    sealed = qual.seal_qualification_run_receipt(basis)
+
+    assert qual.validate_qualification_run_receipt(sealed) == sealed
+    assert sealed["id"].startswith("urn:ref:atlas-qualification-run:")
+    assert sealed["productionReady"] is False
+    with pytest.raises(qual.QualificationError, match="counts do not reproduce"):
+        qual.seal_qualification_run_receipt({**basis, "counts": {**counts, "admitted": 2}})
+
+
+def test_production_ready_requires_complete_scoring_and_judging() -> None:
+    accounting = {
+        "candidateId": "candidate-ready",
+        "generationClass": "normalizedLabelEquality",
+        "control": False,
+        "scored": True,
+        "scorerReceipts": [
+            {
+                "family": "openai",
+                "outcome": "completed",
+                "deterministicChecksPassed": True,
+                "receiptDigest": "sha256:" + "1" * 64,
+            }
+        ],
+        "judgeReceipts": [
+            {"family": "gemini", "outcome": "completed", "receiptDigest": "sha256:" + "2" * 64},
+            {"family": "openai", "outcome": "completed", "receiptDigest": "sha256:" + "3" * 64},
+        ],
+        "judged": True,
+        "disposition": "admitted",
+        "relation": "http://www.w3.org/2004/02/skos/core#closeMatch",
+    }
+    counts = {
+        "generated": 1,
+        "scored": 1,
+        "scorerReceipts": 1,
+        "judgeReceipts": 2,
+        "judged": 1,
+        "abstained": 0,
+        "rejected": 0,
+        "controlled": 0,
+        "admitted": 1,
+        "incomplete": 0,
+    }
+    receipt = qual.seal_qualification_run_receipt(
+        {
+            "type": qual.QUALIFICATION_RUN_RECEIPT_TYPE,
+            "schemaVersion": qual.QUALIFICATION_RUN_RECEIPT_VERSION,
+            "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+            "candidateGenerationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+            "productionFloor": qual.PRODUCTION_FLOOR,
+            "candidateCatalog": {"total": 1},
+            "receiptLog": {"total": 2},
+            "scoring": {"receiptLog": {"total": 1, "fileDigest": "sha256:" + "4" * 64}},
+            "candidateAccounting": [accounting],
+            "counts": counts,
+        }
+    )
+
+    assert receipt["productionReady"] is True
+    incomplete = {**accounting, "scored": False, "scorerReceipts": []}
+    incomplete_counts = {**counts, "scored": 0, "scorerReceipts": 0}
+    incomplete_receipt = qual.seal_qualification_run_receipt(
+        {
+            "type": qual.QUALIFICATION_RUN_RECEIPT_TYPE,
+            "schemaVersion": qual.QUALIFICATION_RUN_RECEIPT_VERSION,
+            "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+            "candidateGenerationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+            "productionFloor": qual.PRODUCTION_FLOOR,
+            "candidateCatalog": {"total": 1},
+            "receiptLog": {"total": 2},
+            "scoring": {"receiptLog": {"total": 0}},
+            "candidateAccounting": [incomplete],
+            "counts": incomplete_counts,
+        }
+    )
+    assert incomplete_receipt["productionReady"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +379,39 @@ def test_input_context_is_the_exact_model_input(sources, targets) -> None:
     system_text, user_text = qual.model_input_texts(pair)
     assert system_text == content["instructions"]
     assert json.loads(user_text) == content["payload"]
+
+
+def test_model_input_carries_balanced_bounded_native_hierarchy() -> None:
+    neighbor = qual.AtlasConceptContext(
+        member="urn:ref:test:alpha:parent",
+        pref_label="Energy",
+        alt_labels=("Power",),
+        definition="A broader energy topic.",
+    )
+    pair = qual.CandidatePair(
+        source=_source(
+            "urn:ref:test:alpha:child",
+            "Energy policy",
+            parents=(neighbor,),
+            children=tuple(
+                qual.AtlasConceptContext(
+                    member=f"urn:ref:test:alpha:child:{index}",
+                    pref_label=f"Child {index}",
+                )
+                for index in range(qual.HIERARCHY_CONTEXT_LIMIT + 2)
+            ),
+        ),
+        target=_target("urn:ref:test:beta:child", "Energy policy"),
+        generation_class="normalizedLabelEquality",
+        evidence={"method": "test"},
+    )
+
+    payload = qual.model_input_payload(pair)
+
+    assert payload["source"]["nativeHierarchy"]["parents"][0]["prefLabel"] == "Energy"
+    assert len(payload["source"]["nativeHierarchy"]["children"]) == qual.HIERARCHY_CONTEXT_LIMIT
+    assert payload["target"]["nativeHierarchy"] == {"parents": [], "children": []}
+    assert "generationClass" not in json.dumps(payload)
 
 
 def test_the_model_input_never_names_the_generation_hypothesis(sources, targets) -> None:

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import importlib.util
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
+from refspec.atlas import qualification as qual
 from refspec.atlas.concept_release import PinnedSourceConceptRelease
 from refspec.atlas.machine_evidence import (
     PinnedCrosswalkMachineProof,
@@ -37,6 +40,16 @@ from refspec.registry.infrastructure.source_controlled_resource import (
     build_source_controlled_resource_bundle,
 )
 from refspec.registry.infrastructure.source_identity import derive_uuid7
+from refspec.storage import canonical_json
+
+REFSPEC_ROOT = Path(__file__).resolve().parents[1]
+_RUNNER_SPEC = importlib.util.spec_from_file_location(
+    "_refspec_atlas_qualification_runner_v2",
+    REFSPEC_ROOT / "tools/run_atlas_qualification.py",
+)
+assert _RUNNER_SPEC is not None and _RUNNER_SPEC.loader is not None
+RUNNER = importlib.util.module_from_spec(_RUNNER_SPEC)
+_RUNNER_SPEC.loader.exec_module(RUNNER)
 
 ASSERTED_AT = "2026-08-04T20:00:00Z"
 _SOURCE_CONCEPT = "https://publisher.example/concepts/source"
@@ -61,6 +74,7 @@ def _crosswalk_case(
     target_concept: str = _TARGET_CONCEPT,
     target_release: str = _TARGET_RELEASE,
     shared_provider: bool = False,
+    generation_class: str | None = None,
 ) -> _CrosswalkCase:
     input_context = CrosswalkArtifact.create(
         role="inputContext",
@@ -71,10 +85,18 @@ def _crosswalk_case(
             "protocol": "refspec-atlas-machine-validation-v2",
         },
     )
+    evidence_content = {"method": "sealed-test-comparison"}
+    if generation_class is not None:
+        evidence_content.update(
+            {
+                "generationClass": generation_class,
+                "generationPolicy": "atlas-crosswalk-candidate-generation-production-v1",
+            }
+        )
     evidence = CrosswalkArtifact.create(
         role="evidence",
         media_type="application/json",
-        content={"method": "sealed-test-comparison"},
+        content=evidence_content,
     )
     candidate = MappingCandidate.create(
         source_member=source_concept,
@@ -191,10 +213,10 @@ def test_adjudication_is_not_anchored_to_the_candidate_proposal() -> None:
     assert case.bundle.adjudicated_relations() == {case.candidate.identifier: SUBJECT_BROAD_MATCH}
 
 
-def test_related_agreement_is_typed_but_not_qualified_for_mapping() -> None:
+def test_related_agreement_is_a_first_class_qualified_mapping() -> None:
     case = _crosswalk_case("related", "related")
 
-    assert case.bundle.qualified() == {}
+    assert tuple(case.bundle.qualified()) == (case.candidate.identifier,)
     assert case.bundle.adjudicated_relations() == {case.candidate.identifier: SUBJECT_RELATED_MATCH}
 
 
@@ -347,14 +369,23 @@ def _source_release(
     return pinned, release.release_id, concept_id
 
 
+@pytest.mark.parametrize(
+    ("verdict", "expected_relation"),
+    [
+        ("target_is_broader", SUBJECT_BROAD_MATCH),
+        ("related", SUBJECT_RELATED_MATCH),
+    ],
+)
 def test_adjudicated_relation_emits_through_the_shared_foundation(
     tmp_path: Path,
+    verdict: str,
+    expected_relation: str,
 ) -> None:
     source, source_release, source_concept = _source_release(tmp_path, "source")
     target, target_release, target_concept = _source_release(tmp_path, "target")
     case = _crosswalk_case(
-        "target_is_broader",
-        "target_is_broader",
+        verdict,
+        verdict,
         source_concept=source_concept,
         source_release=source_release,
         target_concept=target_concept,
@@ -378,7 +409,7 @@ def test_adjudicated_relation_emits_through_the_shared_foundation(
         target_concept=target_concept,
         source_release=source_release,
         target_release=target_release,
-        relation=SUBJECT_BROAD_MATCH,
+        relation=expected_relation,
         evidence=(evidence.identifier,),
         asserted_at=ASSERTED_AT,
     )
@@ -397,10 +428,190 @@ def test_adjudicated_relation_emits_through_the_shared_foundation(
         machine_proof_sources=(proof,),
     )
 
-    assert proof.pin()["relation"] == SUBJECT_BROAD_MATCH
-    assert evidence.relation == SUBJECT_BROAD_MATCH
+    assert proof.pin()["relation"] == expected_relation
+    assert evidence.relation == expected_relation
     assert evidence.candidate == case.candidate.identifier
     assert reopened.mapping_assertions == (mapping,)
     assert source_concept in source.member_ids()
     assert target_concept in target.member_ids()
     assert len({case.candidate.identifier, evidence.identifier, mapping.identifier}) == 3
+
+
+@pytest.mark.parametrize("generation_class", ["siblingDistractor", "randomNegativeControl"])
+def test_control_candidates_remain_evidence_and_cannot_become_machine_proofs(
+    tmp_path: Path,
+    generation_class: str,
+) -> None:
+    case = _crosswalk_case("near_same", "near_same", generation_class=generation_class)
+    path = case.bundle.write(tmp_path / f"{generation_class}.json")
+    common = {
+        "expected_file_digest": sha256_digest(path.read_bytes()),
+        "expected_bundle_digest": case.bundle.digest,
+        "candidate_id": case.candidate.identifier,
+    }
+
+    with pytest.raises(ValueError, match="control-arm candidate"):
+        PinnedCrosswalkMachineProof.qualified(path, **common)
+    with pytest.raises(ValueError, match="control-arm candidate"):
+        PinnedCrosswalkMachineProof.reviewed(
+            path,
+            **common,
+            validation_id=case.validations[0].identifier,
+        )
+
+
+def test_seal_relations_emits_every_accounted_non_control_mapping(tmp_path: Path) -> None:
+    source, source_release, source_concept = _source_release(tmp_path, "seal-source")
+    target, target_release, target_concept = _source_release(tmp_path, "seal-target")
+    case = _crosswalk_case(
+        "near_same",
+        "near_same",
+        source_concept=source_concept,
+        source_release=source_release,
+        target_concept=target_concept,
+        target_release=target_release,
+        generation_class="normalizedLabelEquality",
+    )
+    run_dir = tmp_path / "qualification-run"
+    run_dir.mkdir()
+    case.bundle.write(run_dir / RUNNER.BUNDLE)
+    bundle_pin = case.bundle.pin()
+    catalog = {
+        "candidates": [{"candidateId": case.candidate.identifier}],
+        "total": 1,
+    }
+    catalog_path = run_dir / RUNNER.CANDIDATES
+    catalog_path.write_text(canonical_json(catalog) + "\n", encoding="utf-8")
+    judge_receipts = [
+        {"candidate_id": case.candidate.identifier, "family": "gemini"},
+        {"candidate_id": case.candidate.identifier, "family": "openai"},
+    ]
+    receipt_path = run_dir / RUNNER.RECEIPTS
+    receipt_path.write_text(
+        "".join(canonical_json(row) + "\n" for row in judge_receipts),
+        encoding="utf-8",
+    )
+    scorer_record = {
+        "candidate_id": case.candidate.identifier,
+        "family": "openai",
+        "kind": "crosswalk_scoring",
+        "protocol": qual.SCORING_PROTOCOL,
+        "model_id": "gpt-5.6-terra",
+        "outcome": "completed",
+        "task_id": "score-task-seal-relations",
+        "request_url": "https://api.openai.com/v1/chat/completions",
+        "request_sha256": "sha256:" + "4" * 64,
+        "response_sha256": "sha256:" + "5" * 64,
+        "finished_at": ASSERTED_AT,
+        "answer": {
+            "task_id": "score-task-seal-relations",
+            "semantic_plausibility": 90,
+            "evidence_sufficiency": 85,
+            "likely_relation": "near_same",
+            "reason": "the exact source facts support blind review",
+        },
+    }
+    scoring_path = run_dir / RUNNER.SCORING_RECEIPTS
+    scoring_path.write_text(canonical_json(scorer_record) + "\n", encoding="utf-8")
+    scorer_pin = {
+        "family": "openai",
+        "outcome": "completed",
+        "deterministicChecksPassed": True,
+        "modelId": "gpt-5.6-terra",
+        "endpoint": "api.openai.com",
+        "requestSha256": "sha256:" + "4" * 64,
+        "responseSha256": "sha256:" + "5" * 64,
+        "receiptDigest": sha256_digest(scoring_path.read_bytes()),
+    }
+    accounting = {
+        "candidateId": case.candidate.identifier,
+        "generationClass": "normalizedLabelEquality",
+        "control": False,
+        "scored": True,
+        "scorerReceipts": [scorer_pin],
+        "judgeReceipts": [
+            {
+                "family": row["family"],
+                "outcome": "completed",
+                "receiptDigest": sha256_digest((canonical_json(row) + "\n").encode("utf-8")),
+            }
+            for row in judge_receipts
+        ],
+        "judged": True,
+        "disposition": "admitted",
+        "relation": SUBJECT_CLOSE_MATCH,
+    }
+    run = qual.seal_qualification_run_receipt(
+        {
+            "type": qual.QUALIFICATION_RUN_RECEIPT_TYPE,
+            "schemaVersion": qual.QUALIFICATION_RUN_RECEIPT_VERSION,
+            "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
+            "candidateGenerationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+            "productionFloor": qual.PRODUCTION_FLOOR,
+            "protocol": qual.PROTOCOL,
+            "candidateCatalog": {
+                "file": RUNNER.CANDIDATES,
+                "fileDigest": sha256_digest(catalog_path.read_bytes()),
+                "total": 1,
+            },
+            "bundle": {
+                "file": RUNNER.BUNDLE,
+                "fileDigest": bundle_pin["fileDigest"],
+                "id": bundle_pin["id"],
+                "bundleDigest": bundle_pin["digest"],
+            },
+            "receiptLog": {
+                "file": RUNNER.RECEIPTS,
+                "fileDigest": sha256_digest(receipt_path.read_bytes()),
+                "total": 2,
+            },
+            "scoring": {
+                "protocol": qual.SCORING_PROTOCOL,
+                "receiptLog": {
+                    "file": RUNNER.SCORING_RECEIPTS,
+                    "fileDigest": sha256_digest(scoring_path.read_bytes()),
+                    "total": 1,
+                },
+            },
+            "candidateAccounting": [accounting],
+            "counts": {
+                "generated": 1,
+                "scored": 1,
+                "scorerReceipts": 1,
+                "judgeReceipts": 2,
+                "judged": 1,
+                "abstained": 0,
+                "rejected": 0,
+                "controlled": 0,
+                "admitted": 1,
+                "incomplete": 0,
+            },
+        }
+    )
+    (run_dir / RUNNER.RUN_RECEIPT).write_text(canonical_json(run) + "\n", encoding="utf-8")
+
+    assert RUNNER.main(
+        [
+            "--output",
+            str(run_dir),
+            "seal-relations",
+            "--source-release-manifest",
+            str(source.manifest_path),
+            "--target-release-manifest",
+            str(target.manifest_path),
+            "--asserted-by",
+            "https://refspec.org/software/qualification-gate-v2",
+            "--asserted-at",
+            ASSERTED_AT,
+        ]
+    ) == 0
+    record = json.loads((run_dir / "relation-assertions/relation-assertions.json").read_text(encoding="utf-8"))
+    assert len(record["mappingAssertions"]) == 1
+    assert record["mappingAssertions"][0]["relation"] == SUBJECT_CLOSE_MATCH
+    proof_details = record["machineProofPins"][0]["proofDetails"]
+    assert proof_details["candidateGeneration"] == {
+        "class": "normalizedLabelEquality",
+        "policy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
+    }
+    assert proof_details["qualificationRun"]["id"] == run["id"]
+    assert proof_details["qualificationRun"]["scorerReceipts"] == [scorer_pin]

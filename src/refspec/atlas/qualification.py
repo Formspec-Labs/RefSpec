@@ -46,7 +46,7 @@ import unicodedata
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
@@ -90,6 +90,15 @@ class SpendCapReached(RuntimeError):
 #: population its candidates came from.
 CANDIDATE_GENERATION_POLICY = "atlas-crosswalk-candidate-generation-v1"
 
+#: The release path evaluates every pair reached by the deterministic blocking
+#: rules.  It deliberately has a different policy identifier from the capped
+#: pilot so a sealed candidate cannot be mistaken for production coverage.
+PRODUCTION_CANDIDATE_GENERATION_POLICY = "atlas-crosswalk-candidate-generation-production-v1"
+PILOT_CANDIDATE_GENERATION_POLICY = CANDIDATE_GENERATION_POLICY
+PILOT_COVERAGE_MODE = "pilotSlice"
+PRODUCTION_COVERAGE_MODE = "completeProductionCatalog"
+PRODUCTION_FLOOR = "allDeterministicallyGeneratedCandidates"
+
 #: Seeded so the draw is reproducible from the two releases alone.
 GENERATION_SEED = "refspec-atlas-crosswalk-2026-08-02"
 
@@ -115,6 +124,30 @@ DEFAULT_CLASS_LIMITS: Mapping[str, int] = {
     "siblingDistractor": 45,
     "randomNegativeControl": 45,
 }
+
+#: A production catalog has no caps on semantic blocking classes.  Random
+#: controls are a measured arm rather than a discoverable population, so their
+#: reproducible sample size remains explicit.
+PRODUCTION_RANDOM_CONTROL_COUNT = 45
+CONTROL_GENERATION_CLASSES = frozenset({"siblingDistractor", "randomNegativeControl"})
+
+#: Direct parents and children supplied to a judge on each side.  The bound is
+#: symmetrical and member-IRI ordered, keeping payload size and identity stable.
+HIERARCHY_CONTEXT_LIMIT = 5
+
+QUALIFICATION_RUN_RECEIPT_VERSION = "1.0"
+QUALIFICATION_RUN_RECEIPT_TYPE = "AtlasQualificationRunReceipt"
+
+SCORING_PROTOCOL = "refspec-atlas-crosswalk-scoring-v1"
+SCORING_DIRECTIONS = (
+    "same",
+    "near_same",
+    "target_is_broader",
+    "target_is_narrower",
+    "related",
+    "unrelated",
+    "insufficient_evidence",
+)
 
 #: Uniform across every class, on purpose.  A relation chosen per class would
 #: hand the judge the generator's hypothesis through the back door, and
@@ -213,6 +246,41 @@ RESPONSE_SCHEMA: Mapping[str, Any] = {
     },
 }
 
+SCORING_INSTRUCTIONS = """\
+You score the plausibility and evidence quality of a possible relation between \
+two controlled-vocabulary concepts. The score prioritizes later blind review; \
+it does not prove or admit a mapping.
+
+Read both concepts' preferred and alternate labels, definitions, scope notes, \
+and bounded native parents and children. Return integer scores from 0 through \
+100 for semantic_plausibility and evidence_sufficiency. likely_relation is your \
+best directional classification; use insufficient_evidence when the supplied \
+facts do not support a direction. Echo task_id exactly.
+
+Return exactly one JSON object and nothing else. It must match this JSON Schema:
+
+{schema}
+"""
+
+SCORING_RESPONSE_SCHEMA: Mapping[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "task_id",
+        "semantic_plausibility",
+        "evidence_sufficiency",
+        "likely_relation",
+        "reason",
+    ],
+    "properties": {
+        "task_id": {"type": "string"},
+        "semantic_plausibility": {"type": "integer", "minimum": 0, "maximum": 100},
+        "evidence_sufficiency": {"type": "integer", "minimum": 0, "maximum": 100},
+        "likely_relation": {"type": "string", "enum": list(SCORING_DIRECTIONS)},
+        "reason": {"type": "string"},
+    },
+}
+
 def instructions_text() -> str:
     """The exact system text every family receives, schema included.
 
@@ -224,6 +292,12 @@ def instructions_text() -> str:
     """
 
     return INSTRUCTIONS.replace("{schema}", canonical_json(dict(RESPONSE_SCHEMA)))
+
+
+def scoring_instructions_text() -> str:
+    """The exact scorer system text, kept separate from blind judging."""
+
+    return SCORING_INSTRUCTIONS.replace("{schema}", canonical_json(dict(SCORING_RESPONSE_SCHEMA)))
 
 
 def require_protocol_v2(protocol: str) -> str:
@@ -254,6 +328,17 @@ instructions_text_v2 = instructions_text
 
 
 @dataclass(frozen=True, slots=True)
+class AtlasConceptContext:
+    """A non-recursive concept description used for bounded hierarchy context."""
+
+    member: str
+    pref_label: str
+    alt_labels: tuple[str, ...] = ()
+    definition: str | None = None
+    scope_note: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class AtlasConcept:
     """One release member reduced to what a crosswalk decision can use."""
 
@@ -265,6 +350,8 @@ class AtlasConcept:
     scope_note: str | None = None
     broader: tuple[str, ...] = ()
     vocabulary: str = ""
+    parents: tuple[AtlasConceptContext, ...] = ()
+    children: tuple[AtlasConceptContext, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -275,6 +362,7 @@ class CandidatePair:
     target: AtlasConcept
     generation_class: str
     evidence: Mapping[str, Any]
+    generation_policy: str = CANDIDATE_GENERATION_POLICY
 
     @property
     def key(self) -> tuple[str, str]:
@@ -332,15 +420,30 @@ def generate_candidate_pairs(
     source_concepts: Sequence[AtlasConcept],
     target_concepts: Sequence[AtlasConcept],
     *,
-    limits: Mapping[str, int] = DEFAULT_CLASS_LIMITS,
+    limits: Mapping[str, int] | None = None,
     seed: str = GENERATION_SEED,
+    production: bool = False,
 ) -> tuple[CandidatePair, ...]:
-    """Return the pilot slice: easy diagonal, near-misses, and controls.
+    """Return a deterministic pilot slice or the complete production catalog.
 
     Deterministic in the two concept sets alone — input order never reaches the
     result — because a candidate population that moves between runs cannot be
     the pinned input a sealed bundle claims it is.
     """
+
+    if production and limits is not None:
+        raise QualificationError("production candidate generation does not accept pilot class limits")
+    active_limits: Mapping[str, int | None]
+    if production:
+        active_limits = {
+            **{name: None for name in GENERATION_CLASSES},
+            "randomNegativeControl": PRODUCTION_RANDOM_CONTROL_COUNT,
+        }
+    else:
+        active_limits = dict(DEFAULT_CLASS_LIMITS if limits is None else limits)
+    generation_policy = (
+        PRODUCTION_CANDIDATE_GENERATION_POLICY if production else PILOT_CANDIDATE_GENERATION_POLICY
+    )
 
     sources = sorted(source_concepts, key=lambda concept: concept.member)
     targets = sorted(target_concepts, key=lambda concept: concept.member)
@@ -376,7 +479,12 @@ def generate_candidate_pairs(
         for pair in pairs:
             if pair.key not in claimed:
                 fresh.setdefault(pair.key, pair)
-        drawn = _draw(tuple(fresh.values()), int(limits.get(label, 0)), seed=seed, label=label)
+        limit = active_limits.get(label, 0)
+        drawn = (
+            sorted(fresh.values(), key=lambda pair: pair.key)
+            if limit is None
+            else _draw(tuple(fresh.values()), int(limit), seed=seed, label=label)
+        )
         claimed.update(pair.key for pair in drawn)
         selected.extend(drawn)
         return drawn
@@ -517,7 +625,7 @@ def generate_candidate_pairs(
     # 6. Random pairs with no shared token: the floor the gate must refuse.
     controls: list[CandidatePair] = []
     rng = random.Random(f"{seed}:randomNegativeControl:population")
-    wanted = int(limits.get("randomNegativeControl", 0))
+    wanted = int(active_limits.get("randomNegativeControl", 0) or 0)
     attempts = 0
     # The control population is drawn, not enumerated, so it needs its own
     # ceiling: a caller who asks for more controls than the vocabularies can
@@ -551,7 +659,10 @@ def generate_candidate_pairs(
     _claim(controls, "randomNegativeControl")
 
     order = {name: index for index, name in enumerate(GENERATION_CLASSES)}
-    return tuple(sorted(selected, key=lambda pair: (order[pair.generation_class], pair.key)))
+    return tuple(
+        replace(pair, generation_policy=generation_policy)
+        for pair in sorted(selected, key=lambda pair: (order[pair.generation_class], pair.key))
+    )
 
 
 def stratified_subset(
@@ -602,11 +713,32 @@ def _contains_token_run(haystack: Sequence[str], needle: Sequence[str]) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _context_payload(concept: AtlasConceptContext) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "member": concept.member,
+        "prefLabel": concept.pref_label,
+    }
+    if concept.alt_labels:
+        payload["altLabels"] = list(concept.alt_labels)
+    if concept.definition:
+        payload["definition"] = concept.definition
+    if concept.scope_note:
+        payload["scopeNote"] = concept.scope_note
+    return payload
+
+
 def _concept_payload(concept: AtlasConcept) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "member": concept.member,
         "prefLabel": concept.pref_label,
         "release": concept.release,
+        # Both sides always carry both arrays, including when a source has no
+        # native hierarchy.  That balanced shape gives direction judgments the
+        # same evidence without naming the rule that generated the pair.
+        "nativeHierarchy": {
+            "parents": [_context_payload(value) for value in concept.parents[:HIERARCHY_CONTEXT_LIMIT]],
+            "children": [_context_payload(value) for value in concept.children[:HIERARCHY_CONTEXT_LIMIT]],
+        },
     }
     if concept.alt_labels:
         payload["altLabels"] = list(concept.alt_labels)
@@ -632,6 +764,13 @@ def task_id(pair: CandidatePair) -> str:
 
     seed = pair.source.member + "|" + pair.target.member
     return "task-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
+
+
+def scoring_task_id(pair: CandidatePair) -> str:
+    """An opaque scorer echo token distinct from the blind judge token."""
+
+    seed = "scoring|" + pair.source.member + "|" + pair.target.member
+    return "score-task-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
 
 
 def model_input_payload(pair: CandidatePair, *, protocol: str = PROTOCOL) -> dict[str, Any]:
@@ -662,6 +801,29 @@ def model_input_texts(pair: CandidatePair, *, protocol: str = PROTOCOL) -> tuple
     return instructions_text(), canonical_json(model_input_payload(pair, protocol=protocol))
 
 
+def scoring_input_payload(pair: CandidatePair) -> dict[str, Any]:
+    """Concept evidence shown to the scorer, without generator/control facts."""
+
+    return {
+        "source": _concept_payload(pair.source),
+        "target": _concept_payload(pair.target),
+        "taskId": scoring_task_id(pair),
+    }
+
+
+def scoring_input_texts(pair: CandidatePair) -> tuple[str, str]:
+    """Return the exact scorer ``(system, user)`` strings."""
+
+    return scoring_instructions_text(), canonical_json(scoring_input_payload(pair))
+
+
+def scoring_input_digest(pair: CandidatePair) -> str:
+    """Pin the exact scorer question independently from judge input bytes."""
+
+    system, user = scoring_input_texts(pair)
+    return _sha256_text(canonical_json({"instructions": system, "payload": json.loads(user), "protocol": SCORING_PROTOCOL}))
+
+
 def input_context_artifact(pair: CandidatePair, *, protocol: str = PROTOCOL) -> CrosswalkArtifact:
     """Seal the model-input bytes so the bundle's closure check can resolve them.
 
@@ -689,7 +851,7 @@ def evidence_artifact(pair: CandidatePair) -> CrosswalkArtifact:
         media_type="application/json",
         content={
             "generationClass": pair.generation_class,
-            "generationPolicy": CANDIDATE_GENERATION_POLICY,
+            "generationPolicy": pair.generation_policy,
             **dict(pair.evidence),
         },
     )
@@ -1053,6 +1215,22 @@ def _parse_answer(content: str, *, protocol: str = PROTOCOL) -> dict[str, Any] |
     return None
 
 
+def _parse_scoring_answer(content: str) -> dict[str, Any] | None:
+    """Parse one scorer answer against the sealed scoring schema."""
+
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[A-Za-z]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text.strip())
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    return parsed if Draft202012Validator(dict(SCORING_RESPONSE_SCHEMA)).is_valid(parsed) else None
+
+
 def validate_candidate(
     transport: HttpTransport,
     family: ValidatorFamily,
@@ -1187,6 +1365,128 @@ def validate_candidate(
         return receipt
 
 
+def score_candidate(
+    transport: HttpTransport,
+    family: ValidatorFamily,
+    api_key: str,
+    model_id: str,
+    *,
+    pair: CandidatePair,
+    candidate_id: str,
+    input_digest: str,
+    tracker: SpendTracker,
+    retry_sleep: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """Score one candidate once, using the validation path's call discipline."""
+
+    system_text, user_text = scoring_input_texts(pair)
+    body = _request_body(family, model_id, system_text, user_text)
+    estimated_input = _estimate_tokens(system_text) + _estimate_tokens(user_text)
+    tracker.check_before_call(estimated_input, family.max_output_tokens)
+    url = family.base_url.rstrip("/") + "/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    receipt: dict[str, Any] = {
+        "candidate_id": candidate_id,
+        "family": family.name,
+        "generation_class": pair.generation_class,
+        "input_digest": input_digest,
+        "kind": "crosswalk_scoring",
+        "model_id": model_id,
+        "protocol": SCORING_PROTOCOL,
+        "model_requested": family.requested_model,
+        "request_headers": scrubbed_headers(headers),
+        "request_url": url,
+        "source_member": pair.source.member,
+        "started_at": _utcnow(),
+        "structured_mode": "prompted",
+        "target_member": pair.target.member,
+        "task_id": scoring_task_id(pair),
+        "vendor": family.vendor,
+    }
+    attempts = 0
+    transport_retries = 0
+    declined_retries = 0
+    dropped: list[str] = []
+    while True:
+        attempts += 1
+        request_bytes = canonical_json(body).encode("utf-8")
+        receipt["request_sha256"] = _sha256_text(canonical_json(body))
+        try:
+            status, response_bytes = transport.request(
+                "POST", url, headers, request_bytes, family.timeout_seconds
+            )
+        except Exception as error:  # noqa: BLE001 - provider failure is receipted evidence
+            if transport_retries < TRANSPORT_RETRY_LIMIT:
+                transport_retries += 1
+                retry_sleep(2.0)
+                continue
+            receipt.update(
+                {
+                    "attempts": attempts,
+                    "declined_retries": declined_retries,
+                    "dropped_parameters": dropped,
+                    "error_code": type(error).__name__,
+                    "finished_at": _utcnow(),
+                    "outcome": "transport_error",
+                    "response_status": None,
+                    "transport_retries": transport_retries,
+                }
+            )
+            tracker.record(0, 0, failed=True)
+            return receipt
+        response_text = response_bytes.decode("utf-8", errors="replace")
+        if status == 400 and len(dropped) < 3:
+            removed = _drop_refused_parameter(body, response_text)
+            if removed is not None:
+                dropped.append(removed)
+                continue
+        if status in _RETRYABLE_STATUSES and declined_retries < DECLINED_RETRY_LIMIT:
+            declined_retries += 1
+            retry_sleep(min(60.0, 10.0 * 2 ** (declined_retries - 1)))
+            continue
+        receipt.update(
+            {
+                "attempts": attempts,
+                "declined_retries": declined_retries,
+                "dropped_parameters": dropped,
+                "finished_at": _utcnow(),
+                "response_sha256": _sha256_text(response_text),
+                "response_status": status,
+                "transport_retries": transport_retries,
+            }
+        )
+        if status != 200:
+            receipt["outcome"] = "provider_error"
+            receipt["response_bytes"] = response_text[:2000]
+            tracker.record(0, 0, failed=True)
+            return receipt
+        try:
+            payload = json.loads(response_text)
+            content = str(payload["choices"][0]["message"]["content"])
+            usage = payload.get("usage") if isinstance(payload.get("usage"), Mapping) else {}
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
+            receipt.update({"error_code": type(error).__name__, "outcome": "unparseable_response"})
+            tracker.record(0, 0, failed=True)
+            return receipt
+        input_tokens = int((usage or {}).get("prompt_tokens") or 0)
+        output_tokens = int((usage or {}).get("completion_tokens") or 0)
+        tracker.record(input_tokens, output_tokens)
+        receipt.update(
+            {
+                "assumed_cost_usd": round(tracker.cost(input_tokens, output_tokens), 6),
+                "finish_reason": (payload["choices"][0] or {}).get("finish_reason"),
+                "response_model": payload.get("model"),
+                "usage": {"completion_tokens": output_tokens, "prompt_tokens": input_tokens},
+            }
+        )
+        answer = _parse_scoring_answer(content)
+        if answer is None:
+            receipt.update({"answer_text": content[:1000], "outcome": "unusable_answer"})
+            return receipt
+        receipt.update({"answer": answer, "outcome": "completed"})
+        return receipt
+
+
 def _drop_refused_parameter(body: dict[str, Any], response_text: str) -> str | None:
     """Remove one parameter the endpoint named in its own refusal.
 
@@ -1224,6 +1524,23 @@ class ValidationReading:
     @property
     def outcome(self) -> str:
         return VERDICT_OUTCOMES[self.verdict]
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreReading:
+    """One scorer answer reduced to the facts used for ranking and accounting."""
+
+    family: ValidatorFamily
+    provider_model_id: str
+    semantic_plausibility: int
+    evidence_sufficiency: int
+    likely_relation: str
+    deterministic_checks_passed: bool
+    completed_at: str
+    response_sha256: str
+    reason: str = ""
+    endpoint_host: str = ""
+    protocol: str = SCORING_PROTOCOL
 
 
 def endpoint_host(url: str) -> str:
@@ -1274,6 +1591,40 @@ def reading_from_receipt(
         reason=str(answer.get("reason", "")),
         endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
         protocol=protocol,
+    )
+
+
+def score_reading_from_receipt(
+    receipt: Mapping[str, Any],
+    family: ValidatorFamily,
+    model_id: str,
+) -> ScoreReading | None:
+    """Turn one completed scoring receipt into verified score facts."""
+
+    if receipt.get("outcome") != "completed" or receipt.get("kind") != "crosswalk_scoring":
+        return None
+    if receipt.get("protocol") != SCORING_PROTOCOL:
+        raise QualificationError("scoring receipt uses an unsupported protocol")
+    if receipt.get("family") != family.name or receipt.get("model_id") != model_id:
+        raise QualificationError("scoring receipt family or model differs from its pinned scorer")
+    answer = receipt.get("answer")
+    if not isinstance(answer, Mapping):
+        return None
+    schema_valid = Draft202012Validator(dict(SCORING_RESPONSE_SCHEMA)).is_valid(dict(answer))
+    if not schema_valid:
+        return None
+    deterministic = str(answer.get("task_id")) == str(receipt.get("task_id"))
+    return ScoreReading(
+        family=family,
+        provider_model_id=model_id,
+        semantic_plausibility=int(answer["semantic_plausibility"]),
+        evidence_sufficiency=int(answer["evidence_sufficiency"]),
+        likely_relation=str(answer["likely_relation"]),
+        deterministic_checks_passed=deterministic,
+        completed_at=str(receipt.get("finished_at") or _utcnow()),
+        response_sha256=str(receipt.get("response_sha256") or ""),
+        reason=str(answer.get("reason", "")),
+        endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
     )
 
 
@@ -1407,6 +1758,160 @@ def crosswalk_bundle(entries: Sequence[AssembledCandidate]) -> CrosswalkBundle:
 
 
 # ---------------------------------------------------------------------------
+# canonical run accounting
+# ---------------------------------------------------------------------------
+
+_CANDIDATE_DISPOSITIONS = frozenset({"admitted", "controlled", "abstained", "rejected", "incomplete"})
+
+
+def _run_accounting_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    identifiers: set[str] = set()
+    counts = {
+        "generated": len(rows),
+        "scored": 0,
+        "scorerReceipts": 0,
+        "judgeReceipts": 0,
+        "judged": 0,
+        "abstained": 0,
+        "rejected": 0,
+        "controlled": 0,
+        "admitted": 0,
+        "incomplete": 0,
+    }
+    for index, row in enumerate(rows):
+        identifier = row.get("candidateId")
+        if not isinstance(identifier, str) or not identifier:
+            raise QualificationError(f"candidateAccounting[{index}] has no candidateId")
+        if identifier in identifiers:
+            raise QualificationError("candidate accounting repeats a candidate")
+        identifiers.add(identifier)
+        generation_class = row.get("generationClass")
+        if generation_class not in GENERATION_CLASSES:
+            raise QualificationError(f"candidateAccounting[{index}] has an unsupported generation class")
+        control = row.get("control")
+        if control is not (generation_class in CONTROL_GENERATION_CLASSES):
+            raise QualificationError(f"candidateAccounting[{index}] control status disagrees with its class")
+        disposition = row.get("disposition")
+        if disposition not in _CANDIDATE_DISPOSITIONS:
+            raise QualificationError(f"candidateAccounting[{index}] has an unsupported disposition")
+        if control is True and disposition != "controlled":
+            raise QualificationError("a control candidate must remain controlled evidence")
+        if control is False and disposition == "controlled":
+            raise QualificationError("a non-control candidate cannot have the controlled disposition")
+        relation = row.get("relation")
+        if (disposition == "admitted") is not (isinstance(relation, str) and bool(relation)):
+            raise QualificationError("exactly an admitted candidate must name its relation")
+        receipts = row.get("judgeReceipts")
+        if not isinstance(receipts, Sequence) or isinstance(receipts, (str, bytes)):
+            raise QualificationError(f"candidateAccounting[{index}].judgeReceipts must be an array")
+        if any(
+            not isinstance(receipt, Mapping)
+            or not isinstance(receipt.get("family"), str)
+            or not isinstance(receipt.get("receiptDigest"), str)
+            for receipt in receipts
+        ):
+            raise QualificationError(f"candidateAccounting[{index}] has an invalid judge receipt pin")
+        if len({str(receipt["family"]) for receipt in receipts}) != len(receipts):
+            raise QualificationError(f"candidateAccounting[{index}] repeats a judge family")
+        scorer_receipts = row.get("scorerReceipts")
+        if not isinstance(scorer_receipts, Sequence) or isinstance(scorer_receipts, (str, bytes)):
+            raise QualificationError(f"candidateAccounting[{index}].scorerReceipts must be an array")
+        if any(
+            not isinstance(receipt, Mapping)
+            or not isinstance(receipt.get("family"), str)
+            or not isinstance(receipt.get("receiptDigest"), str)
+            or not isinstance(receipt.get("deterministicChecksPassed"), bool)
+            for receipt in scorer_receipts
+        ):
+            raise QualificationError(f"candidateAccounting[{index}] has an invalid scorer receipt pin")
+        if len({str(receipt["family"]) for receipt in scorer_receipts}) != len(scorer_receipts):
+            raise QualificationError(f"candidateAccounting[{index}] repeats a scorer family")
+        scored = row.get("scored")
+        judged = row.get("judged")
+        if not isinstance(scored, bool) or not isinstance(judged, bool):
+            raise QualificationError(f"candidateAccounting[{index}] scored and judged must be booleans")
+        reproduced_scored = any(
+            receipt.get("outcome") == "completed"
+            and receipt.get("deterministicChecksPassed") is True
+            for receipt in scorer_receipts
+        )
+        if scored is not reproduced_scored:
+            raise QualificationError(f"candidateAccounting[{index}] scored status differs from scorer receipts")
+        counts["scored"] += int(scored)
+        counts["scorerReceipts"] += len(scorer_receipts)
+        counts["judgeReceipts"] += len(receipts)
+        counts["judged"] += int(judged)
+        counts[str(disposition)] += 1
+    return counts
+
+
+def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Seal complete candidate-level accounting with a content-derived identity."""
+
+    if "id" in payload or "contentDigest" in payload:
+        raise QualificationError("qualification run receipt identity is content-derived")
+    basis = json.loads(canonical_json(dict(payload)))
+    if basis.get("type") != QUALIFICATION_RUN_RECEIPT_TYPE:
+        raise QualificationError("qualification run receipt type is unsupported")
+    if basis.get("schemaVersion") != QUALIFICATION_RUN_RECEIPT_VERSION:
+        raise QualificationError("qualification run receipt version is unsupported")
+    rows = basis.get("candidateAccounting")
+    if not isinstance(rows, list):
+        raise QualificationError("qualification run receipt candidateAccounting must be an array")
+    expected_counts = _run_accounting_counts(rows)
+    if basis.get("counts") != expected_counts:
+        raise QualificationError("qualification run receipt counts do not reproduce from candidate accounting")
+    catalog = basis.get("candidateCatalog")
+    receipt_log = basis.get("receiptLog")
+    if not isinstance(catalog, Mapping) or catalog.get("total") != expected_counts["generated"]:
+        raise QualificationError("qualification candidate catalog total disagrees with its accounting")
+    if not isinstance(receipt_log, Mapping) or receipt_log.get("total") != expected_counts["judgeReceipts"]:
+        raise QualificationError("qualification receipt-log total disagrees with its accounting")
+    scoring = basis.get("scoring")
+    if not isinstance(scoring, Mapping):
+        raise QualificationError("qualification run receipt scoring facts must be an object")
+    scoring_log = scoring.get("receiptLog")
+    if not isinstance(scoring_log, Mapping) or scoring_log.get("total") != expected_counts["scorerReceipts"]:
+        raise QualificationError("scoring receipt-log total disagrees with candidate accounting")
+    if expected_counts["scorerReceipts"] and not isinstance(scoring_log.get("fileDigest"), str):
+        raise QualificationError("scoring receipt-log bytes must be pinned when scorer receipts exist")
+    coverage_mode = basis.get("coverageMode")
+    if coverage_mode not in {PILOT_COVERAGE_MODE, PRODUCTION_COVERAGE_MODE}:
+        raise QualificationError("qualification run coverage mode is unsupported")
+    if coverage_mode == PRODUCTION_COVERAGE_MODE:
+        if basis.get("candidateGenerationPolicy") != PRODUCTION_CANDIDATE_GENERATION_POLICY:
+            raise QualificationError("production accounting must name the production generation policy")
+        if basis.get("productionFloor") != PRODUCTION_FLOOR:
+            raise QualificationError("production accounting must name the complete deterministic floor")
+    basis["productionReady"] = bool(
+        coverage_mode == PRODUCTION_COVERAGE_MODE
+        and expected_counts["scored"] == expected_counts["generated"]
+        and expected_counts["judged"] == expected_counts["generated"]
+        and expected_counts["incomplete"] == 0
+    )
+    digest = "sha256:" + hashlib.sha256(canonical_json(basis).encode("utf-8")).hexdigest()
+    identifier = "urn:ref:atlas-qualification-run:" + digest.removeprefix("sha256:")
+    return {**basis, "id": identifier, "contentDigest": digest}
+
+
+def validate_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate and reproduce one canonical qualification run receipt."""
+
+    record = json.loads(canonical_json(dict(payload)))
+    identifier = record.pop("id", None)
+    digest = record.pop("contentDigest", None)
+    # ``productionReady`` is derived by the sealer and therefore remains in
+    # the digest basis, but a caller cannot choose a different value.
+    expected_ready = record.pop("productionReady", None)
+    resealed = seal_qualification_run_receipt(record)
+    if identifier != resealed["id"] or digest != resealed["contentDigest"]:
+        raise QualificationError("qualification run receipt identity differs from its canonical content")
+    if expected_ready != resealed["productionReady"]:
+        raise QualificationError("qualification run receipt productionReady differs from its accounting")
+    return resealed
+
+
+# ---------------------------------------------------------------------------
 # release adapters
 # ---------------------------------------------------------------------------
 
@@ -1416,6 +1921,29 @@ _DEFINITION = "http://www.w3.org/2004/02/skos/core#definition"
 _SCOPE_NOTE = "http://www.w3.org/2004/02/skos/core#scopeNote"
 _BROADER = "http://www.w3.org/2004/02/skos/core#broader"
 _RETIRED_SOURCE_STATUSES = frozenset({"deprecated", "withdrawn", "superseded", "retired", "obsolete"})
+
+
+def _hierarchy_context(
+    member_ids: Iterable[str],
+    *,
+    preferred: Mapping[str, str],
+    alternates: Mapping[str, Sequence[str]],
+    definitions: Mapping[str, str],
+    scope_notes: Mapping[str, str],
+) -> tuple[AtlasConceptContext, ...]:
+    """Return a stable, bounded, non-recursive description of neighbors."""
+
+    return tuple(
+        AtlasConceptContext(
+            member=member_id,
+            pref_label=preferred[member_id],
+            alt_labels=tuple(sorted(alternates.get(member_id, ()))),
+            definition=definitions.get(member_id),
+            scope_note=scope_notes.get(member_id),
+        )
+        for member_id in sorted(set(member_ids))[:HIERARCHY_CONTEXT_LIMIT]
+        if member_id in preferred
+    )
 
 
 def concepts_from_view(
@@ -1471,6 +1999,10 @@ def concepts_from_view(
         if relation.subject_member_iri not in members or relation.object_member_iri not in members:
             continue
         broader.setdefault(relation.subject_member_iri, []).append(relation.object_member_iri)
+    children: dict[str, list[str]] = {}
+    for child, parents in broader.items():
+        for parent in parents:
+            children.setdefault(parent, []).append(child)
     return tuple(
         AtlasConcept(
             member=member_iri,
@@ -1481,10 +2013,83 @@ def concepts_from_view(
             scope_note=scope_notes.get(member_iri),
             broader=tuple(sorted(broader.get(member_iri, ()))),
             vocabulary=vocabulary,
+            parents=_hierarchy_context(
+                broader.get(member_iri, ()),
+                preferred=preferred,
+                alternates=alternates,
+                definitions=definitions,
+                scope_notes=scope_notes,
+            ),
+            children=_hierarchy_context(
+                children.get(member_iri, ()),
+                preferred=preferred,
+                alternates=alternates,
+                definitions=definitions,
+                scope_notes=scope_notes,
+            ),
         )
         for member_iri, member in sorted(members.items())
         if member_iri in preferred
     )
+
+
+def concepts_from_source_release(
+    view: Any,
+    *,
+    language: str | None = "en",
+    vocabulary: str = "",
+) -> tuple[AtlasConcept, ...]:
+    """Project one exact ``SourceConceptRelease`` into qualification concepts.
+
+    Source-scoped concept rows intentionally carry identity and provenance but
+    no duplicated labels.  Labels, definitions, and scope notes are recovered
+    from the exact source observations each row pins.  The qualification path
+    accepts the subject ring only; other rings need source-authoritative rules.
+    """
+
+    if getattr(view, "semantic_ring", None) != "subject":
+        raise QualificationError("crosswalk qualification accepts subject SourceConceptRelease inputs only")
+    observations = {
+        str(observation["id"]): observation for observation in view.source_bundle.observations
+    }
+    concepts: list[AtlasConcept] = []
+    for row in sorted(view.concepts, key=lambda value: str(value["id"])):
+        observation_id = str(row["sourceObservation"])
+        observation = observations.get(observation_id)
+        if observation is None:
+            raise QualificationError(
+                f"source concept {row['id']!r} cites an observation outside its exact source capture"
+            )
+        labels = [
+            label
+            for label in observation.get("labels", ())
+            if isinstance(label, Mapping)
+            and (language is None or label.get("language") in (None, language))
+            and isinstance(label.get("value"), str)
+            and str(label["value"]).strip()
+        ]
+        preferred = [str(label["value"]) for label in labels if label.get("role") == "preferred"]
+        if len(preferred) != 1:
+            raise QualificationError(
+                f"source concept {row['id']!r} needs exactly one preferred label for language {language!r}"
+            )
+        alternates = tuple(
+            sorted({str(label["value"]) for label in labels if label.get("role") == "alternate"})
+        )
+        definition = observation.get("definition")
+        scope_note = observation.get("scopeNote")
+        concepts.append(
+            AtlasConcept(
+                member=str(row["id"]),
+                release=str(view.release_id),
+                pref_label=preferred[0],
+                alt_labels=alternates,
+                definition=str(definition) if isinstance(definition, str) and definition else None,
+                scope_note=str(scope_note) if isinstance(scope_note, str) and scope_note else None,
+                vocabulary=vocabulary,
+            )
+        )
+    return tuple(concepts)
 
 
 def normalize_for_report(value: str) -> str:
@@ -1495,21 +2100,35 @@ def normalize_for_report(value: str) -> str:
 
 __all__ = [
     "CANDIDATE_GENERATION_POLICY",
+    "CONTROL_GENERATION_CLASSES",
     "DEFAULT_CLASS_LIMITS",
     "EDIT_DISTANCE_LIMIT",
     "GEMINI_FAMILY",
     "GENERATION_CLASSES",
     "GENERATION_SEED",
+    "HIERARCHY_CONTEXT_LIMIT",
     "INSTRUCTIONS",
     "INSTRUCTIONS_V2",
     "MODEL_INPUT_PROTOCOL",
     "MODEL_INPUT_PROTOCOL_V2",
     "OPENAI_FAMILY",
+    "PILOT_CANDIDATE_GENERATION_POLICY",
+    "PILOT_COVERAGE_MODE",
+    "PRODUCTION_CANDIDATE_GENERATION_POLICY",
+    "PRODUCTION_COVERAGE_MODE",
+    "PRODUCTION_FLOOR",
+    "PRODUCTION_RANDOM_CONTROL_COUNT",
     "PROPOSED_RELATION",
     "PROTOCOL",
     "PROTOCOL_V2",
+    "QUALIFICATION_RUN_RECEIPT_TYPE",
+    "QUALIFICATION_RUN_RECEIPT_VERSION",
     "RESPONSE_SCHEMA",
     "RESPONSE_SCHEMA_V2",
+    "SCORING_DIRECTIONS",
+    "SCORING_INSTRUCTIONS",
+    "SCORING_PROTOCOL",
+    "SCORING_RESPONSE_SCHEMA",
     "TOTAL_SPEND_CAP_USD",
     "VALIDATION_REQUEST_PROTOCOL",
     "VALIDATOR_FAMILIES",
@@ -1519,16 +2138,19 @@ __all__ = [
     "VERDICT_OUTCOMES_V2",
     "AssembledCandidate",
     "AtlasConcept",
+    "AtlasConceptContext",
     "CandidatePair",
     "FamilyUnavailableError",
     "HttpTransport",
     "QualificationError",
+    "ScoreReading",
     "SpendCapReached",
     "SpendTracker",
     "UrllibTransport",
     "ValidationReading",
     "ValidatorFamily",
     "assemble_candidate",
+    "concepts_from_source_release",
     "concepts_from_view",
     "crosswalk_bundle",
     "endpoint_host",
@@ -1544,9 +2166,18 @@ __all__ = [
     "reading_from_receipt",
     "require_protocol_v2",
     "resolve_validator_model",
+    "score_candidate",
+    "score_reading_from_receipt",
+    "scoring_input_digest",
+    "scoring_input_payload",
+    "scoring_input_texts",
+    "scoring_instructions_text",
+    "scoring_task_id",
     "scrubbed_headers",
+    "seal_qualification_run_receipt",
     "stratified_subset",
     "task_id",
     "validate_candidate",
+    "validate_qualification_run_receipt",
     "validation_request_artifact",
 ]

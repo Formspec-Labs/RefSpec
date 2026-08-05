@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 import refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release as federal_register_release
+from refspec.atlas import qualification as qual
 from refspec.atlas.federal_register import (
     FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
     PinnedFederalRegisterThesaurus2025AtlasRelease,
@@ -26,6 +27,7 @@ from refspec.registry.icpsr_subject import (
     build_icpsr_subject_index,
     parse_icpsr_subject_xml,
 )
+from refspec.registry.infrastructure.source_concept_release import SourceConceptReleaseView
 from refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release import (
     build_federal_register_thesaurus_2025_managed_release,
 )
@@ -170,6 +172,42 @@ def test_icpsr_qualification_reader_exposes_the_verified_fixture_subset(tmp_path
     }
     assert all(view.lookup_member(member.member_iri) == member for member in members)
     assert source.pin()["manifestDigest"] == _file_digest(manifest_path)
+    concepts = qual.concepts_from_view(view)
+    abolition = next(concept for concept in concepts if concept.pref_label == "Abolition movement")
+    social_movements = next(concept for concept in concepts if concept.pref_label == "social movements")
+    assert tuple(parent.pref_label for parent in abolition.parents) == ("social movements",)
+    assert tuple(child.pref_label for child in social_movements.children) == ("Abolition movement",)
+
+
+def test_crs_source_concept_releases_project_exact_labels_and_definitions() -> None:
+    evidence = (
+        Path(__file__).resolve().parents[1]
+        / "research/evidence/crs-source-concept-releases-2026-08-04"
+    )
+    legislative_path = evidence / "legislative-subjects/bundle-manifest.json"
+    policy_path = evidence / "policy-areas/bundle-manifest.json"
+    legislative = SourceConceptReleaseView.open(
+        legislative_path,
+        expected_manifest_digest=_file_digest(legislative_path),
+    )
+    policy = SourceConceptReleaseView.open(
+        policy_path,
+        expected_manifest_digest=_file_digest(policy_path),
+    )
+
+    legislative_concepts = qual.concepts_from_source_release(
+        legislative,
+        vocabulary="CRS Legislative Subject Terms",
+    )
+    policy_concepts = qual.concepts_from_source_release(policy, vocabulary="CRS Policy Areas")
+
+    assert len(legislative_concepts) == 565
+    assert len(policy_concepts) == 32
+    assert {concept.pref_label for concept in legislative_concepts} >= {"Abortion", "Water quality"}
+    agriculture = next(concept for concept in policy_concepts if concept.pref_label == "Agriculture and Food")
+    assert agriculture.release == policy.release_id
+    assert agriculture.definition is not None and "agricultural practices" in agriculture.definition
+    assert all(concept.parents == concept.children == () for concept in policy_concepts)
 
 
 def test_icpsr_qualification_reader_refuses_a_dropped_development_marker(tmp_path: Path) -> None:

@@ -76,7 +76,7 @@ import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from urllib.parse import urlparse
 
 from refspec.storage import canonical_json
@@ -121,6 +121,7 @@ CUSTOM_ID_DIGEST_CHARACTERS = 32
 #: Normalized job states.  Both providers are mapped onto these so the sidecar
 #: reads the same for either, and only ``succeeded`` releases results.
 TERMINAL_STATES = frozenset({"succeeded", "failed", "cancelled", "expired"})
+WorkKind = Literal["validation", "scoring"]
 
 _OPENAI_STATES: Mapping[str, str] = {
     "validating": "pending",
@@ -312,6 +313,14 @@ def distinguishing_verdicts(protocol: str) -> tuple[str, ...]:
     return tuple(sorted(protocol_verdicts(protocol)))
 
 
+def _require_work_protocol(protocol: str, work_kind: WorkKind) -> str:
+    if work_kind == "validation":
+        return qual.require_protocol_v2(protocol)
+    if protocol != qual.SCORING_PROTOCOL:
+        raise BatchError(f"unsupported scoring protocol {protocol!r}")
+    return protocol
+
+
 # ---------------------------------------------------------------------------
 # request construction
 # ---------------------------------------------------------------------------
@@ -353,6 +362,7 @@ def build_request(
     row: CandidateRow,
     *,
     protocol: str,
+    work_kind: WorkKind = "validation",
 ) -> BatchRequest:
     """Build the exact body ``validate_candidate`` would have POSTed.
 
@@ -361,13 +371,18 @@ def build_request(
     same thing in a batch receipt as in a serial one.
     """
 
-    qual.require_protocol_v2(protocol)
-    system_text, user_text = qual.model_input_texts(row.pair, protocol=protocol)
+    _require_work_protocol(protocol, work_kind)
+    if work_kind == "validation":
+        system_text, user_text = qual.model_input_texts(row.pair, protocol=protocol)
+        echo_token = qual.task_id(row.pair)
+    else:
+        system_text, user_text = qual.scoring_input_texts(row.pair)
+        echo_token = qual.scoring_task_id(row.pair)
     body = qual._request_body(family, model_id, system_text, user_text)
     return BatchRequest(
         candidate_id=row.candidate_id,
         custom_id=custom_id(family, row.candidate_id),
-        task_id=qual.task_id(row.pair),
+        task_id=echo_token,
         request_sha256=qual._sha256_text(canonical_json(body)),
         body=body,
     )
@@ -379,7 +394,13 @@ def input_jsonl(requests: Sequence[BatchRequest]) -> bytes:
     return "".join(request.line() + "\n" for request in requests).encode("utf-8")
 
 
-def assert_payload_speaks(payload: bytes, protocol: str, *, rows: Sequence[CandidateRow]) -> None:
+def assert_payload_speaks(
+    payload: bytes,
+    protocol: str,
+    *,
+    rows: Sequence[CandidateRow],
+    work_kind: WorkKind = "validation",
+) -> None:
     """Refuse to upload bytes that do not carry this run's rubric.
 
     The last gate before money is spent, and the only one that inspects what is
@@ -389,11 +410,15 @@ def assert_payload_speaks(payload: bytes, protocol: str, *, rows: Sequence[Candi
     and it reads the bytes.
     """
 
-    qual.require_protocol_v2(protocol)
+    _require_work_protocol(protocol, work_kind)
     if not rows:
         return
     text = payload.decode("utf-8")
-    system, _user = qual.model_input_texts(rows[0].pair, protocol=protocol)
+    system, _user = (
+        qual.model_input_texts(rows[0].pair, protocol=protocol)
+        if work_kind == "validation"
+        else qual.scoring_input_texts(rows[0].pair)
+    )
     # The system text appears JSON-escaped inside each line, so it is compared
     # in the encoding it is actually written in.
     escaped = canonical_json(system)[1:-1]
@@ -401,7 +426,12 @@ def assert_payload_speaks(payload: bytes, protocol: str, *, rows: Sequence[Candi
         raise BatchError(
             f"the batch payload does not carry the protocol {protocol!r} instructions; refusing to upload"
         )
-    missing = [verdict for verdict in distinguishing_verdicts(protocol) if verdict not in text]
+    expected_terms = (
+        distinguishing_verdicts(protocol)
+        if work_kind == "validation"
+        else ("semantic_plausibility", "evidence_sufficiency", "likely_relation")
+    )
+    missing = [term for term in expected_terms if term not in text]
     if missing:
         raise BatchError(
             f"the batch payload is missing the verdicts {missing} that identify protocol {protocol!r}; "
@@ -750,6 +780,7 @@ def receipt_from_result(
     started_at: str,
     finished_at: str,
     tracker: qual.SpendTracker,
+    work_kind: WorkKind = "validation",
 ) -> dict[str, Any]:
     """Turn one batch output line into the receipt the serial path would write.
 
@@ -769,7 +800,7 @@ def receipt_from_result(
       reads either: ``reading_from_receipt`` yields nothing for both.
     """
 
-    qual.require_protocol_v2(protocol)
+    _require_work_protocol(protocol, work_kind)
     url = family.base_url.rstrip("/") + "/chat/completions"
     # The same header shape the serial path records, run through the same
     # scrubber.  The credential is never put in to begin with: the batch job
@@ -784,9 +815,8 @@ def receipt_from_result(
         "family": family.name,
         "finished_at": finished_at,
         "generation_class": row.pair.generation_class,
-        "independence_group": family.independence_group,
         "input_digest": row.input_digest,
-        "kind": "crosswalk_validation",
+        "kind": "crosswalk_validation" if work_kind == "validation" else "crosswalk_scoring",
         "model_id": model_id,
         "model_requested": family.requested_model,
         "request_headers": qual.scrubbed_headers(headers),
@@ -800,6 +830,8 @@ def receipt_from_result(
         "transport_retries": 0,
         "vendor": family.vendor,
     }
+    if work_kind == "validation":
+        receipt["independence_group"] = family.independence_group
     receipt["protocol"] = protocol
 
     response = result.get("response") if isinstance(result.get("response"), Mapping) else None
@@ -853,7 +885,11 @@ def receipt_from_result(
             "usage": {"completion_tokens": output_tokens, "prompt_tokens": input_tokens},
         }
     )
-    answer = qual._parse_answer(content, protocol=protocol)
+    answer = (
+        qual._parse_answer(content, protocol=protocol)
+        if work_kind == "validation"
+        else qual._parse_scoring_answer(content)
+    )
     if answer is None:
         receipt.update({"answer_text": content[:1000], "outcome": "unusable_answer"})
         return receipt
@@ -1013,6 +1049,7 @@ def submit(
     rows: Sequence[CandidateRow],
     caps: Mapping[str, float] | None = None,
     protocol: str,
+    work_kind: WorkKind = "validation",
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Build, price-check, upload and create one batch job per family.
@@ -1023,7 +1060,7 @@ def submit(
     one has not finished spending yet.
     """
 
-    speaks = qual.require_protocol_v2(protocol)
+    speaks = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
     committed = committed_by_family(sidecar)
@@ -1066,16 +1103,19 @@ def submit(
         provider = provider_for(family)
         priced = batch_family(family)
         model_id = models[family.name]
-        requests = [build_request(family, model_id, row, protocol=speaks) for row in pending]
+        requests = [
+            build_request(family, model_id, row, protocol=speaks, work_kind=work_kind)
+            for row in pending
+        ]
         payload = input_jsonl(requests)
-        assert_payload_speaks(payload, speaks, rows=pending)
-        display_name = f"refspec-atlas-crosswalk-{family.name}-{len(requests)}"
+        assert_payload_speaks(payload, speaks, rows=pending, work_kind=work_kind)
+        display_name = f"refspec-atlas-crosswalk-{work_kind}-{family.name}-{len(requests)}"
         uploaded = provider.upload_input(transport, keys[family.name], payload, display_name + ".jsonl")
         job = provider.create_job(
             transport,
             keys[family.name],
             uploaded.file_id,
-            metadata={"refspec": SIDECAR_PROTOCOL, "family": family.name},
+            metadata={"refspec": SIDECAR_PROTOCOL, "family": family.name, "workKind": work_kind},
         )
         job_id = str(job.get("id") or job.get("name") or "")
         if not job_id:
@@ -1119,6 +1159,7 @@ def submit(
             "statusEndpoint": provider.job_url(job_id),
             "submittedAt": now(),
             "vendor": family.vendor,
+            "workKind": work_kind,
         }
         sidecar.setdefault("jobs", []).append(record)
         submitted.append(record)
@@ -1203,6 +1244,7 @@ def collect(
     keys: Mapping[str, str],
     rows: Sequence[CandidateRow],
     protocol: str,
+    work_kind: WorkKind = "validation",
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Download finished jobs, receipt every answer, and never receipt twice.
@@ -1227,9 +1269,14 @@ def collect(
     receipt to tell them apart.
     """
 
-    protocol = qual.require_protocol_v2(protocol)
+    protocol = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
     for job in sidecar.get("jobs", ()):
+        recorded_work_kind = str(job.get("workKind") or "validation")
+        if recorded_work_kind != work_kind:
+            raise BatchError(
+                f"job {job.get('jobId')} carries {recorded_work_kind!r} work, not {work_kind!r} work"
+            )
         asked = str(job.get("protocol") or "")
         if asked != protocol:
             raise BatchError(
@@ -1297,6 +1344,7 @@ def collect(
                     started_at=str(job.get("submittedAt") or now()),
                     finished_at=str(job.get("completedAt") or now()),
                     tracker=tracker,
+                    work_kind=work_kind,
                 )
                 handle.write(canonical_json(receipt) + "\n")
                 handle.flush()
