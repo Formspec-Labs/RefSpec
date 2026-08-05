@@ -727,19 +727,24 @@ def _context_payload(concept: AtlasConceptContext) -> dict[str, Any]:
     return payload
 
 
-def _concept_payload(concept: AtlasConcept) -> dict[str, Any]:
+def _concept_payload(
+    concept: AtlasConcept,
+    *,
+    include_native_hierarchy: bool,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "member": concept.member,
         "prefLabel": concept.pref_label,
         "release": concept.release,
-        # Both sides always carry both arrays, including when a source has no
-        # native hierarchy.  That balanced shape gives direction judgments the
-        # same evidence without naming the rule that generated the pair.
-        "nativeHierarchy": {
+    }
+    if include_native_hierarchy:
+        # Production questions always carry both arrays, including when a
+        # source has no native hierarchy. This balanced shape gives direction
+        # judgments the same evidence without naming the generator's rule.
+        payload["nativeHierarchy"] = {
             "parents": [_context_payload(value) for value in concept.parents[:HIERARCHY_CONTEXT_LIMIT]],
             "children": [_context_payload(value) for value in concept.children[:HIERARCHY_CONTEXT_LIMIT]],
-        },
-    }
+        }
     if concept.alt_labels:
         payload["altLabels"] = list(concept.alt_labels)
     if concept.definition:
@@ -787,9 +792,16 @@ def model_input_payload(pair: CandidatePair, *, protocol: str = PROTOCOL) -> dic
     """
 
     require_protocol_v2(protocol)
+    hierarchy_aware = pair.generation_policy == PRODUCTION_CANDIDATE_GENERATION_POLICY
     return {
-        "source": _concept_payload(pair.source),
-        "target": _concept_payload(pair.target),
+        "source": _concept_payload(
+            pair.source,
+            include_native_hierarchy=hierarchy_aware,
+        ),
+        "target": _concept_payload(
+            pair.target,
+            include_native_hierarchy=hierarchy_aware,
+        ),
         "taskId": task_id(pair),
     }
 
@@ -804,9 +816,16 @@ def model_input_texts(pair: CandidatePair, *, protocol: str = PROTOCOL) -> tuple
 def scoring_input_payload(pair: CandidatePair) -> dict[str, Any]:
     """Concept evidence shown to the scorer, without generator/control facts."""
 
+    hierarchy_aware = pair.generation_policy == PRODUCTION_CANDIDATE_GENERATION_POLICY
     return {
-        "source": _concept_payload(pair.source),
-        "target": _concept_payload(pair.target),
+        "source": _concept_payload(
+            pair.source,
+            include_native_hierarchy=hierarchy_aware,
+        ),
+        "target": _concept_payload(
+            pair.target,
+            include_native_hierarchy=hierarchy_aware,
+        ),
         "taskId": scoring_task_id(pair),
     }
 

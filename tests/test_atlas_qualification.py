@@ -404,6 +404,7 @@ def test_model_input_carries_balanced_bounded_native_hierarchy() -> None:
         target=_target("urn:ref:test:beta:child", "Energy policy"),
         generation_class="normalizedLabelEquality",
         evidence={"method": "test"},
+        generation_policy=qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
     )
 
     payload = qual.model_input_payload(pair)
@@ -412,6 +413,20 @@ def test_model_input_carries_balanced_bounded_native_hierarchy() -> None:
     assert len(payload["source"]["nativeHierarchy"]["children"]) == qual.HIERARCHY_CONTEXT_LIMIT
     assert payload["target"]["nativeHierarchy"] == {"parents": [], "children": []}
     assert "generationClass" not in json.dumps(payload)
+
+
+def test_pilot_question_shape_remains_reopenable_as_baseline_evidence() -> None:
+    pair = qual.CandidatePair(
+        source=_source("urn:ref:test:alpha", "Energy"),
+        target=_target("urn:ref:test:beta", "Energy"),
+        generation_class="normalizedLabelEquality",
+        evidence={"method": "test"},
+    )
+
+    payload = qual.model_input_payload(pair)
+
+    assert "nativeHierarchy" not in payload["source"]
+    assert "nativeHierarchy" not in payload["target"]
 
 
 def test_the_model_input_never_names_the_generation_hypothesis(sources, targets) -> None:
