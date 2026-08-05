@@ -58,6 +58,7 @@ from refspec.registry.infrastructure.artifact_serialization import (
 from refspec.registry.infrastructure.semantic_foundation import (
     ENTITY_RELATED,
     LEGAL_CITES,
+    SUBJECT_BROAD_MATCH,
     SUBJECT_EXACT_MATCH,
     VALUE_EXACT_CROSSWALK,
 )
@@ -686,6 +687,9 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert "Semantic rings" in rendered
     assert "Ring filters apply to concepts" in rendered
     assert "Label, alias, notation, or identifier" in rendered
+    assert 'id="search-ring"' in rendered
+    assert 'const defaultSearchRing = "subject";' in rendered
+    assert "document.concept.semanticRing === state.activeSearchRing" in rendered
     assert 'id="mapping-filters"' in rendered
     assert 'id="concept-facet-filters"' in rendered
     assert 'id="mapping-facet-filters"' in rendered
@@ -694,7 +698,11 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert 'id="node-ancestor-count"' in rendered
     assert 'id="node-descendant-count"' in rendered
     assert "hierarchyClosure(concept.viewId, hierarchyParents)" in rendered
-    assert "does not turn a path into a direct assertion" in rendered
+    assert "directed broad and narrow cross-release mappings" in rendered
+    assert 'hierarchyParents.get(mapping.sourceViewId).push({ kind: "mapping"' in rendered
+    assert 'hierarchyChildren.get(mapping.sourceViewId).push({ kind: "mapping"' in rendered
+    assert 'hierarchyParents.get(mapping.targetViewId).push({ kind: "mapping"' in rendered
+    assert "an inferred multi-hop route remains distinct from a direct assertion" in rendered
     assert 'id="render-limit-range"' in rendered
     assert 'id="render-limit-number"' in rendered
     assert "Maximum rendered concepts" in rendered
@@ -711,6 +719,56 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert "if (selected && isConceptVisible(selected)) drawConcept(selected);" in rendered
     assert "state.activeRings.has(concept.semanticRing)" in rendered
     assert "Possible preferred-label spelling match" in rendered
+
+
+def test_explorer_render_exposes_mapping_direction_endpoint_roles_and_proof_references(
+    tmp_path: Path,
+) -> None:
+    """Pin the deterministic HTML behavior where no JS/DOM harness is configured."""
+
+    _, asset, _, _ = _mapped_fixture(tmp_path)
+    model = json.loads(json.dumps(build_explorer_model(asset)))
+    mapping = model["mappingAssertions"][0]
+    mapping["relation"] = SUBJECT_BROAD_MATCH
+    mapping["relationLabel"] = "broadMatch"
+    mapping["externalEvidence"] = ["https://example.test/evidence/source-record"]
+    mapping["candidateIds"] = ["urn:ref:test:candidate:directed-mapping"]
+    mapping["validationReceiptIds"] = ["urn:ref:test:receipt:blind-judge"]
+    mapping["machineProofs"] = ["urn:ref:test:proof:crosswalk-v2"]
+    model["facets"]["mappingPredicates"] = [SUBJECT_BROAD_MATCH]
+
+    rendered = render_atlas_explorer(model)
+
+    assert "return `—${mapping.relationLabel}→`" in rendered
+    assert "return `↔ ${mapping.relationLabel} ↔`" in rendered
+    assert 'new Set(["exactMatch", "closeMatch", "relatedMatch"])' in rendered
+    assert 'mappingRelationKind(mapping) === "directedHierarchy"' in rendered
+    assert "roleLabel.textContent = `${role} endpoint — `;" in rendered
+    assert "symmetric relation with retained endpoint roles" in rendered
+    assert "Evidence and proof references" in rendered
+    assert "Direct evidence assertions" in rendered
+    assert "Complete evidence closure" in rendered
+    assert "View references in explorer data" in rendered
+    assert "Download canonical Atlas evidence" in rendered
+    assert "https://example.test/evidence/source-record" in rendered
+    assert "urn:ref:test:receipt:blind-judge" in rendered
+    assert "urn:ref:test:proof:crosswalk-v2" in rendered
+    assert "inferred ${direction} route" in rendered
+    assert 'Inspect ${formatQuantity(path.length, "direct assertion")}' in rendered
+
+
+def test_explorer_search_ring_default_uses_the_first_populated_ring(tmp_path: Path) -> None:
+    model = _explorer_model_for_ring(
+        tmp_path,
+        semantic_ring="entity",
+        relation=ENTITY_RELATED,
+        context=None,
+    )
+
+    rendered = render_atlas_explorer(model)
+
+    assert 'const defaultSearchRing = "entity";' in rendered
+    assert "document.concept.semanticRing === state.activeSearchRing" in rendered
 
 
 def test_renderer_rejects_noncanonical_search_labels(tmp_path: Path) -> None:

@@ -120,7 +120,8 @@ _NATIVE_RELATION_FIELDS = frozenset(
         "sourceRecordDigest",
     }
 )
-_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
+_RING_ORDER = ("subject", "entity", "value", "legalIdentity")
+_RINGS = frozenset(_RING_ORDER)
 _SELECTION_REASONS = frozenset(
     {
         "mappingEndpoint",
@@ -883,6 +884,7 @@ _HTML = r"""<!doctype html>
     .result small { display: block; color: var(--faint); font-size: .7rem; }
     .result .match { color: var(--muted); }
     .result-summary { display: block; padding: .42rem .1rem; color: var(--faint); font-size: .7rem; }
+    .search-ring-control { margin-top: .62rem; }
     .filter-list { display: grid; gap: .58rem; margin-top: .75rem; }
     .filter {
       display: grid;
@@ -1093,19 +1095,30 @@ _HTML = r"""<!doctype html>
     }
     .connection:hover { color: var(--ink); background: rgba(255, 255, 255, .045); }
     .connection b { display: block; color: inherit; font-size: .78rem; font-weight: 550; }
-    .connection small { color: var(--faint); }
-    /* Why the gate decided, under the decision it explains. Text only: these
-       are two machines' words, not another thing to click. */
+    .connection small { display: block; color: var(--faint); }
     .connection-group { display: grid; gap: .3rem; }
-    .connection-reason {
-      margin: 0 0 0 .55rem;
+    .mapping-endpoint { margin-top: .16rem; overflow-wrap: anywhere; }
+    .mapping-endpoint strong { color: var(--muted); font-weight: 550; }
+    .connection-evidence {
+      margin: 0 0 .18rem .55rem;
       padding-left: .5rem;
       border-left: 1px solid var(--rule);
       color: var(--faint);
-      font-size: .72rem;
-      line-height: 1.45;
+      font-size: .7rem;
     }
-    .connection-reason b { color: var(--muted); font-weight: 550; }
+    .connection-evidence summary { color: var(--muted); cursor: pointer; }
+    .reference-group { margin-top: .48rem; }
+    .reference-group b { display: block; color: var(--muted); font-weight: 550; }
+    .reference-group code, .reference-group a {
+      display: block;
+      margin-top: .16rem;
+      overflow-wrap: anywhere;
+      color: var(--faint);
+      font: 10px/1.4 var(--mono);
+      text-decoration: none;
+    }
+    .reference-group a:hover, .evidence-resolver:hover { color: var(--accent); }
+    .evidence-resolver { display: inline-block; margin-top: .58rem; color: var(--muted); text-decoration: none; }
 
     .provenance {
       display: grid;
@@ -1211,6 +1224,11 @@ _HTML = r"""<!doctype html>
             <input id="search" type="search" autocomplete="off" placeholder="Label, alias, notation, or identifier" aria-label="Find a concept" aria-controls="search-results" aria-expanded="false" aria-autocomplete="list" role="combobox">
             <span class="key" aria-hidden="true">/</span>
           </div>
+          <label class="facet-control search-ring-control" for="search-ring">
+            <span>Search within one semantic ring</span>
+            <select id="search-ring" aria-label="Search within one semantic ring" required></select>
+          </label>
+          <p class="hint">One active ring keeps subject, entity, value, and legal-identity concepts in separate rankings.</p>
           <div class="results" id="search-results" role="listbox" aria-live="polite"></div>
         </section>
         <section class="control-section">
@@ -1236,7 +1254,7 @@ _HTML = r"""<!doctype html>
           <h3>Cross-release mappings</h3>
           <div class="filter-list" id="mapping-filters"></div>
           <div class="facet-selects" id="mapping-facet-filters"></div>
-          <p class="hint">Dashed lines are typed cross-release mapping assertions. Labels never create a line.</p>
+          <p class="hint">Dashed lines are typed cross-release mapping assertions. Arrowheads show the asserted source-to-target direction for broad and narrow mappings.</p>
         </section>
         <section class="control-section" id="release-context-section" hidden>
           <h3>Release controls</h3>
@@ -1264,7 +1282,7 @@ _HTML = r"""<!doctype html>
       <section class="stage" id="stage" aria-label="Vocabulary graph">
         <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
         <div class="graph-status" id="graph-status" aria-live="polite"></div>
-        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings.</p>
+        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings, with arrows for broad and narrow assertions.</p>
         <div class="graph-tools" aria-label="Graph view controls">
           <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
           <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
@@ -1290,8 +1308,8 @@ _HTML = r"""<!doctype html>
             <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
             <dt>Filtered native assertions</dt><dd id="node-native-count"></dd>
             <dt>Filtered mapping assertions</dt><dd id="node-mapping-count"></dd>
-            <dt>Native parents</dt><dd id="node-parent-count"></dd>
-            <dt>Native children</dt><dd id="node-child-count"></dd>
+            <dt>Hierarchy parents</dt><dd id="node-parent-count"></dd>
+            <dt>Hierarchy children</dt><dd id="node-child-count"></dd>
             <dt>Ancestors</dt><dd id="node-ancestor-count"></dd>
             <dt>Descendants</dt><dd id="node-descendant-count"></dd>
             <dt>Related concepts</dt><dd id="node-related-count"></dd>
@@ -1307,7 +1325,7 @@ _HTML = r"""<!doctype html>
           </section>
           <section class="control-section" id="node-hierarchy" hidden>
             <h3>Hierarchy paths</h3>
-            <p class="hint">Multi-hop paths support inspection. Every listed link remains a source-asserted step; the explorer does not turn a path into a direct assertion.</p>
+            <p class="hint">Paths combine source-native hierarchy with directed broad and narrow cross-release mappings. Every route is composed of direct, source-asserted steps; an inferred multi-hop route remains distinct from a direct assertion.</p>
             <div class="connections" id="hierarchy-connections"></div>
           </section>
         </div>
@@ -1350,6 +1368,7 @@ _HTML = r"""<!doctype html>
     const ctx = canvas.getContext("2d", { alpha: true });
     const tooltip = document.getElementById("tooltip");
     const search = document.getElementById("search");
+    const searchRing = document.getElementById("search-ring");
     const resultBox = document.getElementById("search-results");
     const releaseFilters = document.getElementById("release-filters");
     const nativeFilters = document.getElementById("native-filters");
@@ -1371,6 +1390,7 @@ _HTML = r"""<!doctype html>
     const ringOrder = ["subject", "entity", "value", "legalIdentity"];
     const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
     const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
+    const symmetricMappingLabels = new Set(["exactMatch", "closeMatch", "relatedMatch"]);
     const nativePredicateOrder = [
       "http://www.w3.org/2004/02/skos/core#broader",
       "http://www.w3.org/2004/02/skos/core#narrower",
@@ -1389,10 +1409,12 @@ _HTML = r"""<!doctype html>
     ];
     const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
     const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
+    const availableSearchRings = ringOrder.filter(ring => data.concepts.some(concept => concept.semanticRing === ring));
+    const defaultSearchRing = "@@default_search_ring";
     const adjacency = new Map(data.concepts.map(concept => [concept.viewId, []]));
     data.mappingAssertions.forEach(mapping => {
-      adjacency.get(mapping.sourceViewId).push({ kind: "mapping", edge: mapping, other: mapping.targetViewId });
-      adjacency.get(mapping.targetViewId).push({ kind: "mapping", edge: mapping, other: mapping.sourceViewId });
+      adjacency.get(mapping.sourceViewId).push({ kind: "mapping", edge: mapping, other: mapping.targetViewId, endpointRole: "source" });
+      adjacency.get(mapping.targetViewId).push({ kind: "mapping", edge: mapping, other: mapping.sourceViewId, endpointRole: "target" });
     });
     data.nativeRelations.forEach(relation => {
       adjacency.get(relation.subjectViewId).push({ kind: "native", edge: relation, other: relation.objectViewId, direction: "outgoing" });
@@ -1430,8 +1452,18 @@ _HTML = r"""<!doctype html>
       } else {
         return;
       }
-      hierarchyParents.get(child).push({ other: parent, relation });
-      hierarchyChildren.get(parent).push({ other: child, relation });
+      hierarchyParents.get(child).push({ kind: "native", other: parent, edge: relation });
+      hierarchyChildren.get(parent).push({ kind: "native", other: child, edge: relation });
+    });
+    data.mappingAssertions.forEach(mapping => {
+      const relationLabel = identifierTail(mapping.relation);
+      if (relationLabel === "broadMatch") {
+        hierarchyParents.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
+        hierarchyChildren.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
+      } else if (relationLabel === "narrowMatch") {
+        hierarchyChildren.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
+        hierarchyParents.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
+      }
     });
 
     function normalizeSearch(value) {
@@ -1446,6 +1478,18 @@ _HTML = r"""<!doctype html>
     function identifierTail(value) {
       const parts = String(value).split(/[\/#:]/).filter(Boolean);
       return parts.length ? parts[parts.length - 1] : String(value);
+    }
+    function mappingRelationKind(mapping) {
+      const relationLabel = identifierTail(mapping.relation);
+      if (relationLabel === "broadMatch" || relationLabel === "narrowMatch") return "directedHierarchy";
+      if (symmetricMappingLabels.has(relationLabel)) return "symmetric";
+      return "typed";
+    }
+    function mappingConnector(mapping) {
+      const kind = mappingRelationKind(mapping);
+      if (kind === "directedHierarchy") return `—${mapping.relationLabel}→`;
+      if (kind === "symmetric") return `↔ ${mapping.relationLabel} ↔`;
+      return `— ${mapping.relationLabel} —`;
     }
     const searchDocuments = data.concepts.map(concept => {
       const labels = [...new Set([concept.label, ...(concept.searchLabels || [])])];
@@ -1474,6 +1518,7 @@ _HTML = r"""<!doctype html>
       activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
       activeNativePredicates: new Set(nativePredicateOrder),
       activeRings: new Set(ringOrder),
+      activeSearchRing: defaultSearchRing,
       activeConceptFacets: Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""])),
       activeMappingPredicate: "",
       activeEvidenceClass: "",
@@ -1547,19 +1592,29 @@ _HTML = r"""<!doctype html>
         && state.renderedConceptIds.has(relation.subjectViewId)
         && state.renderedConceptIds.has(relation.objectViewId);
     }
+    function hierarchyStepEligible(item) {
+      return item.kind === "mapping" ? isMappingEligible(item.edge) : isNativeRelationEligible(item.edge);
+    }
     function hierarchyNeighbors(viewId, index) {
       const result = new Map();
       index.get(viewId).forEach(item => {
         const other = conceptByViewId.get(item.other);
-        if (isNativeRelationEligible(item.relation) && isConceptEligible(other)) {
-          result.set(item.other, other);
+        if (hierarchyStepEligible(item) && isConceptEligible(other) && !result.has(item.other)) {
+          result.set(item.other, { concept: other, step: { ...item, from: viewId, to: item.other } });
         }
       });
-      return [...result.values()].sort((left, right) => left.label.localeCompare(right.label) || left.viewId.localeCompare(right.viewId));
+      return [...result.values()].sort((left, right) =>
+        left.concept.label.localeCompare(right.concept.label)
+        || left.concept.viewId.localeCompare(right.concept.viewId)
+      );
     }
     function hierarchyClosure(viewId, index) {
       const distances = new Map();
-      const pending = hierarchyNeighbors(viewId, index).map(concept => ({ concept, depth: 1 }));
+      const pending = hierarchyNeighbors(viewId, index).map(item => ({
+        concept: item.concept,
+        depth: 1,
+        path: [item.step]
+      }));
       let pendingIndex = 0;
       while (pendingIndex < pending.length) {
         const current = pending[pendingIndex];
@@ -1567,13 +1622,21 @@ _HTML = r"""<!doctype html>
         const previous = distances.get(current.concept.viewId);
         if (current.concept.viewId === viewId || (previous && previous.depth <= current.depth)) continue;
         distances.set(current.concept.viewId, current);
-        hierarchyNeighbors(current.concept.viewId, index).forEach(concept => {
-          pending.push({ concept, depth: current.depth + 1 });
+        hierarchyNeighbors(current.concept.viewId, index).forEach(item => {
+          pending.push({
+            concept: item.concept,
+            depth: current.depth + 1,
+            path: [...current.path, item.step]
+          });
         });
       }
       return [...distances.values()].sort((left, right) => left.depth - right.depth
         || left.concept.label.localeCompare(right.concept.label)
         || left.concept.viewId.localeCompare(right.concept.viewId));
+    }
+    function hierarchyPathKinds(path) {
+      const kinds = new Set(path.map(step => step.kind === "mapping" ? "cross-release mapping" : "source-native hierarchy"));
+      return [...kinds].join(" + ");
     }
     function isLinkEligible(link) {
       return link.kind === "mapping" ? isMappingEligible(link.edge) : isNativeRelationEligible(link.edge);
@@ -1701,15 +1764,34 @@ _HTML = r"""<!doctype html>
     function drawMapping(mapping, source, target, highlighted) {
       const color = ringColors[mapping.semanticRing];
       const subdued = state.selected && !highlighted;
+      const edgeColor = subdued ? subduedEdgeColor : color;
+      const edgeAlpha = highlighted ? .95 : subdued ? .72 : .52;
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = subdued ? subduedEdgeColor : color;
-      ctx.globalAlpha = highlighted ? .95 : subdued ? .72 : .52;
+      ctx.strokeStyle = edgeColor;
+      ctx.globalAlpha = edgeAlpha;
       ctx.lineWidth = (highlighted ? 2.4 : 1.5) / state.view.k;
       ctx.setLineDash([7 / state.view.k, 5 / state.view.k]);
       ctx.stroke();
       ctx.setLineDash([]);
+      if (mappingRelationKind(mapping) === "directedHierarchy") {
+        const angle = Math.atan2(target.y - source.y, target.x - source.x);
+        const tipOffset = (conceptRadius(target) + 2.5) / state.view.k;
+        const arrowLength = 9 / state.view.k;
+        const arrowWidth = 4.5 / state.view.k;
+        const tipX = target.x - Math.cos(angle) * tipOffset;
+        const tipY = target.y - Math.sin(angle) * tipOffset;
+        const baseX = tipX - Math.cos(angle) * arrowLength;
+        const baseY = tipY - Math.sin(angle) * arrowLength;
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(baseX + Math.sin(angle) * arrowWidth, baseY - Math.cos(angle) * arrowWidth);
+        ctx.lineTo(baseX - Math.sin(angle) * arrowWidth, baseY + Math.cos(angle) * arrowWidth);
+        ctx.closePath();
+        ctx.fillStyle = edgeColor;
+        ctx.fill();
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -1894,6 +1976,93 @@ _HTML = r"""<!doctype html>
       });
     }
 
+    function appendMappingEndpoint(container, role, concept) {
+      const endpoint = document.createElement("small");
+      endpoint.className = "mapping-endpoint";
+      const roleLabel = document.createElement("strong");
+      roleLabel.textContent = `${role} endpoint — `;
+      endpoint.append(
+        roleLabel,
+        document.createTextNode(`${concept.label} · ${releaseById.get(concept.releaseId).label}`)
+      );
+      container.append(endpoint);
+    }
+
+    function appendReferenceGroup(container, label, values) {
+      if (!values.length) return;
+      const group = document.createElement("div");
+      group.className = "reference-group";
+      const heading = document.createElement("b");
+      heading.textContent = label;
+      group.append(heading);
+      values.forEach(value => {
+        const reference = document.createElement(/^https?:/.test(value) ? "a" : "code");
+        reference.textContent = value;
+        if (reference instanceof HTMLAnchorElement) {
+          reference.href = value;
+          reference.target = "_blank";
+          reference.rel = "noreferrer";
+        }
+        group.append(reference);
+      });
+      container.append(group);
+    }
+
+    function renderMappingReferences(mapping) {
+      const details = document.createElement("details");
+      details.className = "connection-evidence";
+      const summary = document.createElement("summary");
+      summary.textContent = "Evidence and proof references";
+      details.append(summary);
+      [
+        ["Mapping assertion", [mapping.id]],
+        ["Direct evidence assertions", mapping.directEvidenceAssertions],
+        ["Complete evidence closure", mapping.evidenceAssertions],
+        ["External evidence", mapping.externalEvidence],
+        ["Candidate records", mapping.candidateIds],
+        ["Validation receipts", mapping.validationReceiptIds],
+        ["Machine proofs", mapping.machineProofs]
+      ].forEach(([label, values]) => appendReferenceGroup(details, label, values));
+      const referenceView = document.createElement("a");
+      referenceView.className = "evidence-resolver";
+      referenceView.href = "atlas-explorer.json";
+      referenceView.textContent = "View references in explorer data";
+      const canonicalEvidence = document.createElement("a");
+      canonicalEvidence.className = "evidence-resolver";
+      canonicalEvidence.href = "atlas.nq.gz";
+      canonicalEvidence.setAttribute("download", "");
+      canonicalEvidence.textContent = "Download canonical Atlas evidence";
+      details.append(referenceView, document.createTextNode(" · "), canonicalEvidence);
+      return details;
+    }
+
+    function hierarchyStepDescription(step) {
+      if (step.kind === "mapping") {
+        const source = conceptByViewId.get(step.edge.sourceViewId);
+        const target = conceptByViewId.get(step.edge.targetViewId);
+        return `Source ${source.label} (${releaseById.get(source.releaseId).label}) ${mappingConnector(step.edge)} Target ${target.label} (${releaseById.get(target.releaseId).label})`;
+      }
+      const subject = conceptByViewId.get(step.edge.subjectViewId);
+      const object = conceptByViewId.get(step.edge.objectViewId);
+      return `${subject.label} —${step.edge.predicateLabel}→ ${object.label} (${releaseById.get(step.edge.releaseId).label})`;
+    }
+
+    function renderHierarchySteps(path) {
+      const details = document.createElement("details");
+      details.className = "connection-evidence";
+      const summary = document.createElement("summary");
+      summary.textContent = `Inspect ${formatQuantity(path.length, "direct assertion")}`;
+      details.append(summary);
+      path.forEach((step, index) => {
+        appendReferenceGroup(
+          details,
+          `Step ${index + 1} · ${step.kind === "mapping" ? "cross-release mapping" : "source-native hierarchy"}`,
+          [hierarchyStepDescription(step), step.edge.id]
+        );
+      });
+      return details;
+    }
+
     function renderInspector() {
       const empty = document.getElementById("empty-inspector");
       const content = document.getElementById("inspector-content");
@@ -1975,11 +2144,30 @@ _HTML = r"""<!doctype html>
             relation.textContent = `${nativeRelationFromSelected(item)} · source-native relationship${equivalentAssertions} · ${releaseById.get(other.releaseId).label}`;
           } else {
             const evidence = item.edge.evidenceClasses.join(", ") || "typed evidence";
-            relation.textContent = `${item.edge.relationLabel} · ${ringLabels[item.edge.semanticRing]} mapping · ${evidence} · ${releaseById.get(other.releaseId).label}`;
+            const semantics = mappingRelationKind(item.edge) === "directedHierarchy"
+              ? "directed source → target"
+              : mappingRelationKind(item.edge) === "symmetric"
+                ? "symmetric relation with retained endpoint roles"
+                : "typed source and target roles";
+            relation.textContent = `${item.edge.relationLabel} · ${semantics} · ${ringLabels[item.edge.semanticRing]} mapping · ${evidence}`;
           }
           button.append(name, relation);
+          if (item.kind === "mapping") {
+            const source = conceptByViewId.get(item.edge.sourceViewId);
+            const target = conceptByViewId.get(item.edge.targetViewId);
+            appendMappingEndpoint(button, "Source", source);
+            const connector = document.createElement("small");
+            connector.className = "mapping-endpoint";
+            connector.textContent = mappingConnector(item.edge);
+            button.append(connector);
+            appendMappingEndpoint(button, "Target", target);
+          }
           button.addEventListener("click", () => selectConcept(other, { fit: true }));
-          container.append(button);
+          const wrapper = document.createElement("div");
+          wrapper.className = "connection-group";
+          wrapper.append(button);
+          if (item.kind === "mapping") wrapper.append(renderMappingReferences(item.edge));
+          container.append(wrapper);
         });
       const hierarchySection = document.getElementById("node-hierarchy");
       const hierarchyContainer = document.getElementById("hierarchy-connections");
@@ -1990,6 +2178,8 @@ _HTML = r"""<!doctype html>
       ];
       hierarchySection.hidden = !hierarchyRows.length;
       hierarchyRows.slice(0, 120).forEach(item => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "connection-group";
         const button = document.createElement("button");
         button.type = "button";
         button.className = "connection";
@@ -2000,10 +2190,12 @@ _HTML = r"""<!doctype html>
         const direction = item.depth === 1
           ? (item.direction === "ancestor" ? "parent" : "child")
           : item.direction;
-        path.textContent = `${direction} · ${formatQuantity(item.depth, "asserted step")}`;
+        const routeKind = item.depth === 1 ? `direct ${direction}` : `inferred ${direction} route`;
+        path.textContent = `${routeKind} · ${formatQuantity(item.depth, "asserted step")} · ${hierarchyPathKinds(item.path)}`;
         button.append(name, path);
         button.addEventListener("click", () => selectConcept(item.concept, { fit: true }));
-        hierarchyContainer.append(button);
+        wrapper.append(button, renderHierarchySteps(item.path));
+        hierarchyContainer.append(wrapper);
       });
       if (hierarchyRows.length > 120) {
         const note = document.createElement("p");
@@ -2112,6 +2304,7 @@ _HTML = r"""<!doctype html>
       const tokens = query.split(" ").filter(Boolean);
       state.searchResults = query
         ? searchDocuments
+          .filter(document => document.concept.semanticRing === state.activeSearchRing)
           .filter(document => isConceptEligible(document.concept))
           .map(document => {
             const score = scoreSearch(document, query, tokens);
@@ -2151,8 +2344,8 @@ _HTML = r"""<!doctype html>
         const note = document.createElement("small");
         note.className = "result-summary";
         note.textContent = state.searchResults.length
-          ? `${formatQuantity(state.searchResults.length, "matching concept")} · ${formatNumber(visibleResults.length)} listed`
-          : "No concepts match the search and active filters.";
+          ? `${ringLabels[state.activeSearchRing]} ring · ${formatQuantity(state.searchResults.length, "matching concept")} · ${formatNumber(visibleResults.length)} listed`
+          : `No ${ringLabels[state.activeSearchRing].toLocaleLowerCase()}-ring concepts match the search and active filters.`;
         resultBox.append(note);
       }
       search.setAttribute("aria-expanded", String(Boolean(query && visibleResults.length)));
@@ -2196,6 +2389,20 @@ _HTML = r"""<!doctype html>
       label.append(caption, select);
       container.append(label);
       return select;
+    }
+
+    function renderSearchRingControl() {
+      availableSearchRings.forEach(ring => {
+        const option = document.createElement("option");
+        option.value = ring;
+        option.textContent = `${ringLabels[ring]} ring`;
+        searchRing.append(option);
+      });
+      searchRing.value = state.activeSearchRing;
+      searchRing.addEventListener("change", () => {
+        state.activeSearchRing = searchRing.value;
+        renderSearch({ focusMatches: true });
+      });
     }
 
     function planningRowEligible(row) {
@@ -2582,6 +2789,7 @@ _HTML = r"""<!doctype html>
       state.activeReleases = new Set(data.conceptReleases.map(release => release.releaseId));
       state.activeNativePredicates = new Set(nativePredicateOrder);
       state.activeRings = new Set(ringOrder);
+      state.activeSearchRing = defaultSearchRing;
       state.activeConceptFacets = Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""]));
       state.activeMappingPredicate = "";
       state.activeEvidenceClass = "";
@@ -2590,7 +2798,8 @@ _HTML = r"""<!doctype html>
       state.selected = null;
       search.value = "";
       document.querySelectorAll("#controls input[type=checkbox]").forEach(input => { input.checked = true; });
-      document.querySelectorAll("#controls select").forEach(select => { select.value = ""; });
+      document.querySelectorAll("#controls select:not(#search-ring)").forEach(select => { select.value = ""; });
+      searchRing.value = defaultSearchRing;
       renderPlanningRows();
       renderSearch({ focusMatches: true });
     });
@@ -2607,6 +2816,7 @@ _HTML = r"""<!doctype html>
     new ResizeObserver(resize).observe(stage);
 
     populateText();
+    renderSearchRingControl();
     renderFacetFilters();
     renderFilters();
     renderReleaseContext();
@@ -2626,6 +2836,12 @@ def _safe_json(value: Mapping[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
+def _default_search_ring(model: Mapping[str, Any]) -> str:
+    concepts = cast(Sequence[Mapping[str, Any]], model["concepts"])
+    available = {cast(str, concept["semanticRing"]) for concept in concepts}
+    return next((ring for ring in _RING_ORDER if ring in available), "subject")
+
+
 def render_atlas_explorer(model: Mapping[str, Any]) -> str:
     """Validate Atlas 2.0 explorer data and return one self-contained HTML file."""
 
@@ -2636,6 +2852,7 @@ def render_atlas_explorer(model: Mapping[str, Any]) -> str:
     return _Template(_HTML).substitute(
         title=html.escape(title, quote=True),
         atlas_data=_safe_json(model),
+        default_search_ring=_default_search_ring(model),
     )
 
 
