@@ -3,8 +3,9 @@
 The canonical atlas or a closed projection remains the semantic authority.
 Publication preserves that distribution's exact manifest bytes, compresses its
 exact N-Quads deterministically, carries the exact publication decision, and
-adds only a bounded explorer view.  Every published byte is pinned by a
-content-derived publication manifest.
+adds a complete searchable explorer index with bounded client-side graph
+rendering.  Every published byte is pinned by a content-derived publication
+manifest.
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ from .publication_decision import (
     read_vocabulary_atlas_publication_decision,
 )
 from .queries import (
+    ConceptLabel,
     ConceptVersion,
     VocabularyAtlasDistribution,
     VocabularyAtlasQueries,
@@ -74,8 +76,8 @@ PUBLICATION_SCHEMA_VERSION = "2.1"
 _PUBLICATION_TYPE = "urn:ref:type:VocabularyAtlasPublicationManifest"
 _PUBLICATION_ID_PREFIX = "urn:ref:vocabulary-atlas-publication:"
 _SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/2.1"
-_DEFAULT_MAX_CONCEPTS = 640
-_DEFAULT_MAX_MAPPING_ASSERTIONS = 240
+_DEFAULT_MAX_CONCEPTS: int | None = None
+_DEFAULT_MAX_MAPPING_ASSERTIONS: int | None = None
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PUBLICATION_CONSTRUCTION_TOKEN = object()
 _READ_CHUNK_SIZE = 1024 * 1024
@@ -291,14 +293,14 @@ def _first_text(record: Mapping[str, Any], *fields: str) -> str | None:
 
 
 def _preferred_label(
-    queries: VocabularyAtlasQueries,
     version: ConceptVersion,
+    labels: Sequence[ConceptLabel],
 ) -> str:
-    labels = queries.concept_labels(version.concept_id, release_id=version.release_id)
-    if labels:
+    usable_labels = tuple(label for label in labels if label.value.strip())
+    if usable_labels:
         role_order = {"preferred": 0, "alternate": 1, "hidden": 2}
         selected = min(
-            labels,
+            usable_labels,
             key=lambda value: (
                 role_order[value.role],
                 0 if (value.language or "").casefold() == "en" else 1 if not value.language else 2,
@@ -308,7 +310,7 @@ def _preferred_label(
                 value.evidence_record_id,
             ),
         )
-        return selected.value
+        return selected.value.strip()
     return _iri_tail(version.concept_id)
 
 
@@ -365,18 +367,25 @@ def build_explorer_model(
     *,
     title: str = "RefSpec vocabulary atlas",
     release_labels: Mapping[str, str] | None = None,
-    max_concepts: int = _DEFAULT_MAX_CONCEPTS,
-    max_mapping_assertions: int = _DEFAULT_MAX_MAPPING_ASSERTIONS,
+    max_concepts: int | None = _DEFAULT_MAX_CONCEPTS,
+    max_mapping_assertions: int | None = _DEFAULT_MAX_MAPPING_ASSERTIONS,
 ) -> dict[str, Any]:
-    """Build one deterministic, bounded view through generic Atlas 2.0 queries."""
+    """Build one deterministic search index through generic Atlas 2.0 queries.
+
+    By default, every concept and assertion is indexed. Explicit limits remain
+    available for small demonstrations and compatibility fixtures; the browser
+    independently bounds how many indexed concepts it draws at once.
+    """
 
     _verified_distribution(distribution)
     clean_title = _require_text(title, "atlas publication title")
-    _require_count(max_concepts, "atlas explorer max_concepts", positive=True)
-    _require_count(
-        max_mapping_assertions,
-        "atlas explorer max_mapping_assertions",
-    )
+    if max_concepts is not None:
+        _require_count(max_concepts, "atlas explorer max_concepts", positive=True)
+    if max_mapping_assertions is not None:
+        _require_count(
+            max_mapping_assertions,
+            "atlas explorer max_mapping_assertions",
+        )
     labels = dict(release_labels or {})
     if any(
         not isinstance(key, str)
@@ -401,11 +410,13 @@ def build_explorer_model(
     repeated_ids = Counter(value.concept_id for value in concepts)
     mappings = queries.mapping_assertions()
     native_relations = queries.native_relations()
+    concept_limit = len(concepts) if max_concepts is None else max_concepts
+    mapping_limit = len(mappings) if max_mapping_assertions is None else max_mapping_assertions
     selected: dict[tuple[str, str], ConceptVersion] = {}
     selected_assertions = []
 
     for view in mappings:
-        if len(selected_assertions) >= max_mapping_assertions:
+        if len(selected_assertions) >= mapping_limit:
             break
         assertion = view.assertion
         source_key = (assertion.source_release, assertion.source_concept)
@@ -416,7 +427,7 @@ def build_explorer_model(
         if not _fits_concept_budget(
             selected,
             (source_key, target_key),
-            max_concepts=max_concepts,
+            max_concepts=concept_limit,
         ):
             continue
         selected[source_key] = cast(ConceptVersion, endpoints[0])
@@ -426,7 +437,7 @@ def build_explorer_model(
     representative_keys: set[tuple[str, str]] = set()
     for snapshot in snapshots:
         candidates = queries.concepts(release_id=snapshot.release_id)
-        if candidates and len(selected) < max_concepts:
+        if candidates and len(selected) < concept_limit:
             representative = candidates[0]
             key = (representative.release_id, representative.concept_id)
             selected.setdefault(key, representative)
@@ -443,13 +454,13 @@ def build_explorer_model(
         if not _fits_concept_budget(
             selected,
             (subject_key, object_key),
-            max_concepts=max_concepts,
+            max_concepts=concept_limit,
         ):
             continue
         selected[subject_key] = cast(ConceptVersion, endpoints[0])
         selected[object_key] = cast(ConceptVersion, endpoints[1])
     for version in concepts:
-        if len(selected) >= max_concepts:
+        if len(selected) >= concept_limit:
             break
         selected.setdefault((version.release_id, version.concept_id), version)
 
@@ -486,6 +497,10 @@ def build_explorer_model(
             item[1].record_id,
         ),
     ):
+        concept_labels = queries.concept_labels(
+            version.concept_id,
+            release_id=version.release_id,
+        )
         selection_reasons: list[str] = []
         if key in mapping_endpoint_keys:
             selection_reasons.append("mappingEndpoint")
@@ -500,7 +515,15 @@ def build_explorer_model(
             "semanticRing": version.semantic_ring,
             "recordId": version.record_id,
             "recordDigest": version.record_digest,
-            "label": _preferred_label(queries, version),
+            "label": _preferred_label(version, concept_labels),
+            "searchLabels": sorted(
+                {
+                    value
+                    for label in concept_labels
+                    if (value := label.value.strip())
+                },
+                key=lambda value: (value.casefold(), value),
+            ),
             "selectionReasons": selection_reasons,
         }
         notation = _first_text(version.record, "skos:notation", "http://www.w3.org/2004/02/skos/core#notation")
@@ -615,8 +638,8 @@ def build_explorer_model(
         "title": clean_title,
         "atlas": atlas_row,
         "selectionPolicy": _selection_policy(
-            max_concepts=max_concepts,
-            max_mapping_assertions=max_mapping_assertions,
+            max_concepts=concept_limit,
+            max_mapping_assertions=mapping_limit,
         ),
         "summary": summary,
         "conceptReleases": release_rows,
@@ -1273,8 +1296,8 @@ def publish_vocabulary_atlas(
     parent: VocabularyAtlasAsset | None = None,
     title: str = "RefSpec vocabulary atlas",
     release_labels: Mapping[str, str] | None = None,
-    max_concepts: int = _DEFAULT_MAX_CONCEPTS,
-    max_mapping_assertions: int = _DEFAULT_MAX_MAPPING_ASSERTIONS,
+    max_concepts: int | None = _DEFAULT_MAX_CONCEPTS,
+    max_mapping_assertions: int | None = _DEFAULT_MAX_MAPPING_ASSERTIONS,
 ) -> AtlasPublication:
     """Publish one verified, explicitly authorized Atlas 2.0 distribution."""
 
@@ -1344,11 +1367,17 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--parent-manifest-digest")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--title", default="RefSpec vocabulary atlas")
-    parser.add_argument("--max-concepts", type=int, default=_DEFAULT_MAX_CONCEPTS)
+    parser.add_argument(
+        "--max-concepts",
+        type=int,
+        default=_DEFAULT_MAX_CONCEPTS,
+        help="optional explorer index limit; omitted indexes every concept",
+    )
     parser.add_argument(
         "--max-mapping-assertions",
         type=int,
         default=_DEFAULT_MAX_MAPPING_ASSERTIONS,
+        help="optional explorer index limit; omitted indexes every mapping assertion",
     )
     parser.add_argument("--release-label", action="append", default=[], metavar="RELEASE_ID=LABEL")
     return parser

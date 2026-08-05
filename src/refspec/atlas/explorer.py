@@ -71,7 +71,8 @@ _CONCEPT_FIELDS = frozenset(
         "selectionReasons",
     }
 )
-_CONCEPT_OPTIONAL_FIELDS = frozenset({"notation", "definition", "scopeNote"})
+_CONCEPT_TEXT_FIELDS = frozenset({"notation", "definition", "scopeNote"})
+_CONCEPT_OPTIONAL_FIELDS = _CONCEPT_TEXT_FIELDS | {"searchLabels"}
 _MAPPING_FIELDS = frozenset(
     {
         "id",
@@ -296,8 +297,15 @@ def _validate_model(model: Mapping[str, Any]) -> None:
         reasons = _text_array(row.get("selectionReasons"), f"{label}.selectionReasons")
         if not set(reasons) <= _SELECTION_REASONS:
             raise AtlasExplorerError("atlas explorer concept has an unsupported selection reason")
-        for field in _CONCEPT_OPTIONAL_FIELDS & set(row):
+        for field in _CONCEPT_TEXT_FIELDS & set(row):
             _text(row[field], f"{label}.{field}")
+        if "searchLabels" in row:
+            search_labels = _text_array(row["searchLabels"], f"{label}.searchLabels")
+            if list(search_labels) != sorted(
+                search_labels,
+                key=lambda value: (value.casefold(), value),
+            ):
+                raise AtlasExplorerError(f"{label}.searchLabels must use canonical label order")
         concept_by_view_id[view_id] = row
         release_concept_keys.add((release_id, concept_id))
         shown_by_release[release_id] += 1
@@ -438,6 +446,7 @@ _HTML = r"""<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>@@title · RefSpec atlas explorer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230c1211'/%3E%3Cpath d='M18 32h28M32 18v28' stroke='%2374c7b8' stroke-width='4'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23e9b95f'/%3E%3Ccircle cx='46' cy='32' r='7' fill='%2374c7b8'/%3E%3Ccircle cx='32' cy='18' r='6' fill='%238eafd5'/%3E%3C/svg%3E">
   <style>
     :root {
       --ink: #edf1ed;
@@ -583,6 +592,7 @@ _HTML = r"""<!doctype html>
       background: #0a100f;
     }
     #search::placeholder { color: #63716c; }
+    #search::-webkit-search-cancel-button { display: none; }
     .key {
       position: absolute;
       top: 50%;
@@ -602,9 +612,11 @@ _HTML = r"""<!doctype html>
       text-align: left;
       cursor: pointer;
     }
-    .result:hover { color: var(--accent); }
+    .result:hover, .result.active { color: var(--accent); background: var(--accent-soft); }
     .result span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .result small { color: var(--faint); font-size: .7rem; }
+    .result small { display: block; color: var(--faint); font-size: .7rem; }
+    .result .match { color: var(--muted); }
+    .result-summary { display: block; padding: .42rem .1rem; color: var(--faint); font-size: .7rem; }
     .filter-list { display: grid; gap: .58rem; margin-top: .75rem; }
     .filter {
       display: grid;
@@ -616,10 +628,13 @@ _HTML = r"""<!doctype html>
       cursor: pointer;
     }
     .release-filter { grid-template-columns: 14px 9px minmax(0, 1fr) auto; }
+    .relation-filter { grid-template-columns: 14px 20px minmax(0, 1fr); }
     .filter input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
     .filter .swatch { width: 9px; height: 9px; border-radius: 50%; background: var(--swatch); }
     .filter .label { overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
     .filter small { color: var(--faint); font: 10px/1 var(--mono); }
+    .filter-copy { display: grid; min-width: 0; gap: .22rem; }
+    .filter-copy small { display: block; }
     .edge-key {
       width: 20px;
       height: 0;
@@ -627,6 +642,49 @@ _HTML = r"""<!doctype html>
     }
     .edge-key.mapping { border-top-style: dashed; }
     .hint { margin: .7rem 0 0; color: var(--faint); font-size: .75rem; }
+    .render-limit { margin-top: .75rem; }
+    .render-limit-heading {
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--ink);
+      font-size: .78rem;
+    }
+    #render-limit-number {
+      width: 4.8rem;
+      min-height: 32px;
+      padding: .35rem .42rem;
+      color: var(--ink);
+      border: 1px solid var(--rule-strong);
+      border-radius: 3px;
+      background: #0a100f;
+      font: 11px/1 var(--mono);
+      text-align: right;
+    }
+    #render-limit-range {
+      display: block;
+      width: 100%;
+      margin: .65rem 0 .25rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .render-limit-scale {
+      display: flex;
+      justify-content: space-between;
+      color: var(--faint);
+      font: 10px/1 var(--mono);
+    }
+    .secondary-action {
+      margin-top: .75rem;
+      padding: .42rem .6rem;
+      color: var(--muted);
+      border: 1px solid var(--rule-strong);
+      border-radius: 3px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .secondary-action:hover { color: var(--ink); border-color: var(--accent); }
 
     .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
     #graph {
@@ -671,6 +729,19 @@ _HTML = r"""<!doctype html>
       margin: 0;
       color: var(--faint);
       font: 10px/1.45 var(--mono);
+      pointer-events: none;
+    }
+    .graph-status {
+      position: absolute;
+      top: .85rem;
+      left: .9rem;
+      max-width: calc(100% - 12rem);
+      padding: .38rem .52rem;
+      color: var(--muted);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: rgba(12, 18, 17, .88);
+      font: 10px/1.35 var(--mono);
       pointer-events: none;
     }
     .tooltip {
@@ -842,18 +913,23 @@ _HTML = r"""<!doctype html>
 
     <main class="workspace">
       <aside class="panel controls" id="controls" aria-label="Graph controls">
-        <h2>Explore the view</h2>
+        <h2>Explore the atlas</h2>
         <section class="control-section">
           <h3>Find a concept</h3>
           <div class="search-wrap">
-            <input id="search" type="search" autocomplete="off" placeholder="Label or identifier" aria-label="Find a concept">
+            <input id="search" type="search" autocomplete="off" placeholder="Label, alias, notation, or identifier" aria-label="Find a concept" aria-controls="search-results" aria-expanded="false" aria-autocomplete="list" role="combobox">
             <span class="key" aria-hidden="true">/</span>
           </div>
-          <div class="results" id="search-results" aria-live="polite"></div>
+          <div class="results" id="search-results" role="listbox" aria-live="polite"></div>
         </section>
         <section class="control-section">
           <h3>Concept releases</h3>
           <div class="filter-list" id="release-filters"></div>
+        </section>
+        <section class="control-section">
+          <h3>Semantic rings</h3>
+          <div class="filter-list" id="ring-filters"></div>
+          <p class="hint">Ring filters apply to concepts and every relationship attached to them.</p>
         </section>
         <section class="control-section">
           <h3>Source-native relations</h3>
@@ -861,19 +937,29 @@ _HTML = r"""<!doctype html>
           <p class="hint">Solid lines preserve relations stated inside an exact source release. Paired inverse assertions share one drawn line but remain separate facts.</p>
         </section>
         <section class="control-section">
-          <h3>Mapping assertions by ring</h3>
-          <div class="filter-list" id="ring-filters"></div>
+          <h3>Cross-release mappings</h3>
+          <div class="filter-list" id="mapping-filters"></div>
           <p class="hint">Dashed lines are typed cross-release mapping assertions. Labels never create a line.</p>
         </section>
         <section class="control-section">
-          <h3>View boundary</h3>
+          <h3>Graph view</h3>
+          <div class="render-limit">
+            <label class="render-limit-heading" for="render-limit-number">
+              <span>Maximum rendered concepts</span>
+              <input id="render-limit-number" type="number" min="1" step="1" inputmode="numeric" aria-describedby="selection-note">
+            </label>
+            <input id="render-limit-range" type="range" min="1" step="1" aria-label="Maximum rendered concepts" aria-describedby="selection-note">
+            <div class="render-limit-scale" aria-hidden="true"><span>1</span><span id="render-limit-max">—</span></div>
+          </div>
           <p class="hint" id="selection-note"></p>
+          <button class="secondary-action" type="button" id="reset-filters">Reset search and filters</button>
         </section>
       </aside>
 
       <section class="stage" id="stage" aria-label="Vocabulary graph">
         <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
-        <p id="graph-description" class="legend-note">Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings.</p>
+        <div class="graph-status" id="graph-status" aria-live="polite"></div>
+        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings.</p>
         <div class="graph-tools" aria-label="Graph view controls">
           <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
           <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
@@ -897,8 +983,8 @@ _HTML = r"""<!doctype html>
             <dt>Source concept identity</dt>
             <dd><a class="iri" id="node-iri"></a><button class="copy-button" type="button" id="copy-iri">Copy IRI</button></dd>
             <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
-            <dt>Shown native relations</dt><dd id="node-native-count"></dd>
-            <dt>Shown mapping assertions</dt><dd id="node-mapping-count"></dd>
+            <dt>Filtered native assertions</dt><dd id="node-native-count"></dd>
+            <dt>Filtered mapping assertions</dt><dd id="node-mapping-count"></dd>
           </dl>
           <section class="control-section" id="node-notes" hidden>
             <h3>Source notes</h3>
@@ -906,7 +992,7 @@ _HTML = r"""<!doctype html>
             <p class="hint" id="node-scope-note" hidden></p>
           </section>
           <section class="control-section">
-            <h3>Relationships in this view</h3>
+            <h3>Relationships matching filters</h3>
             <div class="connections" id="connections"></div>
           </section>
         </div>
@@ -914,7 +1000,7 @@ _HTML = r"""<!doctype html>
     </main>
 
     <footer class="provenance">
-      <div><span id="view-count"></span> shown from the sealed atlas</div>
+      <div><span id="view-count"></span></div>
       <details>
         <summary>Provenance and exact pins</summary>
         <div class="pin-grid">
@@ -933,7 +1019,7 @@ _HTML = r"""<!doctype html>
     </footer>
   </div>
 
-  <noscript>This explorer needs JavaScript to draw the bounded graph. The atlas files and publication record remain downloadable.</noscript>
+  <noscript>This explorer needs JavaScript to search and draw the focused graph. The complete atlas files and publication record remain downloadable.</noscript>
   <script id="atlas-data" type="application/json">@@atlas_data</script>
   <script>
   (() => {
@@ -949,8 +1035,16 @@ _HTML = r"""<!doctype html>
     const releaseFilters = document.getElementById("release-filters");
     const nativeFilters = document.getElementById("native-filters");
     const ringFilters = document.getElementById("ring-filters");
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mappingFilters = document.getElementById("mapping-filters");
+    const graphStatus = document.getElementById("graph-status");
+    const renderLimitRange = document.getElementById("render-limit-range");
+    const renderLimitNumber = document.getElementById("render-limit-number");
+    const renderCapacity = Math.max(1, data.summary.shownConceptCount);
+    const defaultRenderLimit = Math.min(180, renderCapacity);
+    const maxSearchResults = 18;
+    let renderLimitFrame = null;
     const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
+    const subduedEdgeColor = "#24302c";
     const ringOrder = ["subject", "entity", "value", "legalIdentity"];
     const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
     const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
@@ -970,6 +1064,16 @@ _HTML = r"""<!doctype html>
       adjacency.get(relation.subjectViewId).push({ kind: "native", edge: relation, other: relation.objectViewId, direction: "outgoing" });
       adjacency.get(relation.objectViewId).push({ kind: "native", edge: relation, other: relation.subjectViewId, direction: "incoming" });
     });
+    adjacency.forEach(links => links.sort((left, right) => {
+      const leftRelation = left.edge.predicateLabel || left.edge.relationLabel;
+      const rightRelation = right.edge.predicateLabel || right.edge.relationLabel;
+      const leftConcept = conceptByViewId.get(left.other);
+      const rightConcept = conceptByViewId.get(right.other);
+      return left.kind.localeCompare(right.kind)
+        || leftRelation.localeCompare(rightRelation)
+        || leftConcept.label.localeCompare(rightConcept.label)
+        || left.other.localeCompare(right.other);
+    }));
     const nativeDisplayGroups = new Map();
     data.nativeRelations.forEach(relation => {
       const endpoints = [relation.subjectViewId, relation.objectViewId].sort();
@@ -979,13 +1083,54 @@ _HTML = r"""<!doctype html>
       nativeDisplayGroups.get(key).push(relation);
     });
 
+    function normalizeSearch(value) {
+      return String(value || "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+    function identifierTail(value) {
+      const parts = String(value).split(/[\/#:]/).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : String(value);
+    }
+    const searchDocuments = data.concepts.map(concept => {
+      const labels = [...new Set([concept.label, ...(concept.searchLabels || [])])];
+      const normalizedLabels = labels.map(value => {
+        const normalized = normalizeSearch(value);
+        return { value, normalized, tokens: normalized.split(" ").filter(Boolean) };
+      });
+      const notation = normalizeSearch(concept.notation || "");
+      const identifier = normalizeSearch(concept.conceptId);
+      const identifierTailValue = normalizeSearch(identifierTail(concept.conceptId));
+      const notes = normalizeSearch([concept.definition || "", concept.scopeNote || ""].join(" "));
+      return {
+        concept,
+        labels: normalizedLabels,
+        displayLabel: normalizeSearch(concept.label),
+        notation,
+        identifier,
+        identifierTail: identifierTailValue,
+        notes
+      };
+    });
+
     const state = {
       activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
       activeNativePredicates: new Set(nativePredicateOrder),
       activeRings: new Set(ringOrder),
+      mappingsActive: true,
       selected: null,
       hover: null,
       matches: new Set(),
+      searchResults: [],
+      activeSearchIndex: -1,
+      renderedConceptIds: new Set(),
+      renderedNativeGroups: [],
+      renderedMappings: [],
+      renderLimit: defaultRenderLimit,
       query: "",
       view: { x: 0, y: 0, k: 1 },
       width: 1,
@@ -996,6 +1141,9 @@ _HTML = r"""<!doctype html>
     };
 
     function formatNumber(value) { return new Intl.NumberFormat("en-US").format(value); }
+    function formatQuantity(value, singular, plural = `${singular}s`) {
+      return `${formatNumber(value)} ${value === 1 ? singular : plural}`;
+    }
     function shortId(value) {
       const tail = value.split(":").pop();
       return tail.length > 16 ? `${tail.slice(0, 8)}…${tail.slice(-6)}` : tail;
@@ -1003,16 +1151,40 @@ _HTML = r"""<!doctype html>
     function screenToWorld(x, y) {
       return { x: (x - state.view.x) / state.view.k, y: (y - state.view.y) / state.view.k };
     }
-    function isConceptVisible(concept) { return state.activeReleases.has(concept.releaseId); }
-    function isMappingVisible(mapping) {
+    function isConceptEligible(concept) {
+      return state.activeReleases.has(concept.releaseId) && state.activeRings.has(concept.semanticRing);
+    }
+    function isConceptVisible(concept) {
+      return isConceptEligible(concept) && state.renderedConceptIds.has(concept.viewId);
+    }
+    function isMappingEligible(mapping) {
       const source = conceptByViewId.get(mapping.sourceViewId);
       const target = conceptByViewId.get(mapping.targetViewId);
-      return state.activeRings.has(mapping.semanticRing) && isConceptVisible(source) && isConceptVisible(target);
+      return state.mappingsActive
+        && state.activeRings.has(mapping.semanticRing)
+        && isConceptEligible(source)
+        && isConceptEligible(target);
     }
-    function isNativeRelationVisible(relation) {
+    function isMappingVisible(mapping) {
+      return isMappingEligible(mapping)
+        && state.renderedConceptIds.has(mapping.sourceViewId)
+        && state.renderedConceptIds.has(mapping.targetViewId);
+    }
+    function isNativeRelationEligible(relation) {
       const subject = conceptByViewId.get(relation.subjectViewId);
       const object = conceptByViewId.get(relation.objectViewId);
-      return state.activeNativePredicates.has(relation.predicate) && isConceptVisible(subject) && isConceptVisible(object);
+      return state.activeNativePredicates.has(relation.predicate)
+        && state.activeRings.has(relation.semanticRing)
+        && isConceptEligible(subject)
+        && isConceptEligible(object);
+    }
+    function isNativeRelationVisible(relation) {
+      return isNativeRelationEligible(relation)
+        && state.renderedConceptIds.has(relation.subjectViewId)
+        && state.renderedConceptIds.has(relation.objectViewId);
+    }
+    function isLinkEligible(link) {
+      return link.kind === "mapping" ? isMappingEligible(link.edge) : isNativeRelationEligible(link.edge);
     }
     function conceptRadius(concept) {
       if (concept.selectionReasons.includes("mappingEndpoint")) return 5.2;
@@ -1020,18 +1192,63 @@ _HTML = r"""<!doctype html>
       return 3.4;
     }
 
+    function computeRenderedConcepts() {
+      const rendered = new Set();
+      const eligible = data.concepts
+        .map(concept => conceptByViewId.get(concept.viewId))
+        .filter(isConceptEligible);
+      const eligibleLinkCache = new Map();
+      const linksFor = viewId => {
+        if (!eligibleLinkCache.has(viewId)) {
+          eligibleLinkCache.set(viewId, adjacency.get(viewId).filter(isLinkEligible));
+        }
+        return eligibleLinkCache.get(viewId);
+      };
+      const add = viewId => {
+        if (rendered.size < state.renderLimit && conceptByViewId.has(viewId)) rendered.add(viewId);
+      };
+      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
+      if (selected && isConceptEligible(selected)) add(selected.viewId);
+
+      const degreeOrder = eligible.slice().sort((left, right) => {
+        const degreeDifference = linksFor(right.viewId).length - linksFor(left.viewId).length;
+        return degreeDifference
+          || left.label.localeCompare(right.label)
+          || left.viewId.localeCompare(right.viewId);
+      });
+      const searchSeeds = state.query
+        ? state.searchResults.slice(0, 12).map(result => result.document.concept)
+        : [];
+      const seeds = searchSeeds.length ? searchSeeds : degreeOrder.slice(0, 18);
+      seeds.forEach(concept => add(concept.viewId));
+      seeds.forEach(concept => linksFor(concept.viewId).forEach(link => add(link.other)));
+      degreeOrder.forEach(concept => add(concept.viewId));
+      return rendered;
+    }
+
+    function refreshRenderedEdges() {
+      state.renderedNativeGroups = [...nativeDisplayGroups.values()]
+        .map(relations => relations.filter(isNativeRelationVisible))
+        .filter(relations => relations.length);
+      state.renderedMappings = data.mappingAssertions.filter(isMappingVisible);
+    }
+
     function layout() {
-      const worldWidth = Math.max(1050, data.conceptReleases.length * 330);
-      const worldHeight = 780;
-      data.conceptReleases.forEach((release, releaseIndex) => {
-        const members = data.concepts
+      const visibleRows = data.concepts.filter(concept => state.renderedConceptIds.has(concept.viewId));
+      const visibleReleases = data.conceptReleases.filter(release =>
+        visibleRows.some(concept => concept.releaseId === release.releaseId)
+      );
+      const worldWidth = Math.max(920, visibleReleases.length * 310);
+      const worldHeight = 720;
+      visibleReleases.forEach((release, releaseIndex) => {
+        const members = visibleRows
           .filter(concept => concept.releaseId === release.releaseId)
           .sort((a, b) => a.label.localeCompare(b.label) || a.viewId.localeCompare(b.viewId));
-        const angle = data.conceptReleases.length === 1 ? 0 : (Math.PI * 2 * releaseIndex / data.conceptReleases.length) - Math.PI / 2;
-        const cx = data.conceptReleases.length <= 2
-          ? worldWidth * ((releaseIndex + 1) / (data.conceptReleases.length + 1))
+        const angle = visibleReleases.length === 1 ? 0 : (Math.PI * 2 * releaseIndex / visibleReleases.length) - Math.PI / 2;
+        const cx = visibleReleases.length <= 2
+          ? worldWidth * ((releaseIndex + 1) / (visibleReleases.length + 1))
           : worldWidth / 2 + Math.cos(angle) * worldWidth * .31;
-        const cy = data.conceptReleases.length <= 2 ? worldHeight / 2 : worldHeight / 2 + Math.sin(angle) * worldHeight * .29;
+        const cy = visibleReleases.length <= 2 ? worldHeight / 2 : worldHeight / 2 + Math.sin(angle) * worldHeight * .29;
         members.forEach((value, index) => {
           const concept = conceptByViewId.get(value.viewId);
           const theta = index * 2.399963229728653;
@@ -1043,7 +1260,9 @@ _HTML = r"""<!doctype html>
     }
 
     function bounds() {
-      const visible = data.concepts.map(concept => conceptByViewId.get(concept.viewId)).filter(isConceptVisible);
+      const visible = [...state.renderedConceptIds]
+        .map(viewId => conceptByViewId.get(viewId))
+        .filter(isConceptVisible);
       if (!visible.length) return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
       return {
         minX: Math.min(...visible.map(node => node.x)),
@@ -1051,6 +1270,16 @@ _HTML = r"""<!doctype html>
         minY: Math.min(...visible.map(node => node.y)),
         maxY: Math.max(...visible.map(node => node.y))
       };
+    }
+
+    function refreshGraph({ fit = false } = {}) {
+      state.renderedConceptIds = computeRenderedConcepts();
+      refreshRenderedEdges();
+      layout();
+      renderInspector();
+      updateGraphStatus();
+      if (fit) fitView();
+      else draw();
     }
 
     function fitView() {
@@ -1079,11 +1308,12 @@ _HTML = r"""<!doctype html>
 
     function drawMapping(mapping, source, target, highlighted) {
       const color = ringColors[mapping.semanticRing];
+      const subdued = state.selected && !highlighted;
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = color;
-      ctx.globalAlpha = highlighted ? .95 : .52;
+      ctx.strokeStyle = subdued ? subduedEdgeColor : color;
+      ctx.globalAlpha = highlighted ? .95 : subdued ? .72 : .52;
       ctx.lineWidth = (highlighted ? 2.4 : 1.5) / state.view.k;
       ctx.setLineDash([7 / state.view.k, 5 / state.view.k]);
       ctx.stroke();
@@ -1098,11 +1328,14 @@ _HTML = r"""<!doctype html>
       const source = conceptByViewId.get(relation.subjectViewId);
       const target = conceptByViewId.get(relation.objectViewId);
       const release = releaseById.get(relation.releaseId);
+      const subdued = state.selected && !highlighted;
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = release ? release.color : ringColors[relation.semanticRing];
-      ctx.globalAlpha = highlighted ? .92 : .34;
+      ctx.strokeStyle = subdued
+        ? subduedEdgeColor
+        : release ? release.color : ringColors[relation.semanticRing];
+      ctx.globalAlpha = highlighted ? .92 : subdued ? .72 : .34;
       ctx.lineWidth = (highlighted ? 2.2 : 1.15) / state.view.k;
       ctx.setLineDash([]);
       ctx.stroke();
@@ -1122,6 +1355,39 @@ _HTML = r"""<!doctype html>
       ctx.fillText(concept.label, x, y);
     }
 
+    function drawConcept(concept) {
+      const release = releaseById.get(concept.releaseId);
+      const radius = conceptRadius(concept) / state.view.k;
+      const selected = state.selected === concept.viewId;
+      const hovered = state.hover === concept.viewId;
+      const searchDimmed = state.query && !state.matches.has(concept.viewId) && !selected;
+      ctx.globalAlpha = searchDimmed ? .14 : 1;
+      if (concept.selectionReasons.includes("mappingEndpoint")) {
+        ctx.beginPath();
+        ctx.arc(concept.x, concept.y, radius + 3 / state.view.k, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(233, 185, 95, .42)";
+        ctx.lineWidth = 1 / state.view.k;
+        ctx.stroke();
+      }
+      if (selected || hovered) {
+        ctx.beginPath();
+        ctx.arc(concept.x, concept.y, radius + 5 / state.view.k, 0, Math.PI * 2);
+        ctx.fillStyle = selected ? "rgba(233, 185, 95, .2)" : "rgba(140, 211, 199, .15)";
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(concept.x, concept.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = release ? release.color : "#edf1ed";
+      ctx.fill();
+      ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
+      ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      if (selected || hovered || (state.matches.has(concept.viewId) && state.matches.size <= 12)) {
+        drawLabel(concept, radius);
+      }
+    }
+
     function draw() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1130,51 +1396,34 @@ _HTML = r"""<!doctype html>
         state.dpr * state.view.x, state.dpr * state.view.y
       );
 
-      nativeDisplayGroups.forEach(relations => {
-        const highlighted = state.selected && relations.some(relation => relation.subjectViewId === state.selected || relation.objectViewId === state.selected);
-        drawNativeRelations(relations, highlighted);
+      const highlightedNativeGroups = [];
+      state.renderedNativeGroups.forEach(relations => {
+        const highlighted = state.selected && relations.some(
+          relation => relation.subjectViewId === state.selected || relation.objectViewId === state.selected
+        );
+        if (highlighted) highlightedNativeGroups.push(relations);
+        else drawNativeRelations(relations, false);
       });
+      highlightedNativeGroups.forEach(relations => drawNativeRelations(relations, true));
 
-      data.mappingAssertions.forEach(mapping => {
-        if (!isMappingVisible(mapping)) return;
+      const highlightedMappings = [];
+      state.renderedMappings.forEach(mapping => {
         const source = conceptByViewId.get(mapping.sourceViewId);
         const target = conceptByViewId.get(mapping.targetViewId);
         const highlighted = state.selected && (mapping.sourceViewId === state.selected || mapping.targetViewId === state.selected);
-        drawMapping(mapping, source, target, highlighted);
+        if (highlighted) highlightedMappings.push({ mapping, source, target });
+        else drawMapping(mapping, source, target, false);
       });
+      highlightedMappings.forEach(({ mapping, source, target }) => drawMapping(mapping, source, target, true));
 
-      data.concepts.forEach(row => {
-        const concept = conceptByViewId.get(row.viewId);
+      state.renderedConceptIds.forEach(viewId => {
+        if (viewId === state.selected) return;
+        const concept = conceptByViewId.get(viewId);
         if (!isConceptVisible(concept)) return;
-        const release = releaseById.get(concept.releaseId);
-        const radius = conceptRadius(concept) / state.view.k;
-        const selected = state.selected === concept.viewId;
-        const hovered = state.hover === concept.viewId;
-        const searchDimmed = state.query && !state.matches.has(concept.viewId) && !selected;
-        ctx.globalAlpha = searchDimmed ? .14 : 1;
-        if (concept.selectionReasons.includes("mappingEndpoint")) {
-          ctx.beginPath();
-          ctx.arc(concept.x, concept.y, radius + 3 / state.view.k, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(233, 185, 95, .42)";
-          ctx.lineWidth = 1 / state.view.k;
-          ctx.stroke();
-        }
-        if (selected || hovered) {
-          ctx.beginPath();
-          ctx.arc(concept.x, concept.y, radius + 5 / state.view.k, 0, Math.PI * 2);
-          ctx.fillStyle = selected ? "rgba(233, 185, 95, .2)" : "rgba(140, 211, 199, .15)";
-          ctx.fill();
-        }
-        ctx.beginPath();
-        ctx.arc(concept.x, concept.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = release ? release.color : "#edf1ed";
-        ctx.fill();
-        ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
-        ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        if (selected || hovered || (state.matches.has(concept.viewId) && state.matches.size <= 12)) drawLabel(concept, radius);
+        drawConcept(concept);
       });
+      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
+      if (selected && isConceptVisible(selected)) drawConcept(selected);
     }
 
     function hitTest(clientX, clientY) {
@@ -1182,8 +1431,8 @@ _HTML = r"""<!doctype html>
       const point = screenToWorld(clientX - rect.left, clientY - rect.top);
       let found = null;
       let distance = Infinity;
-      data.concepts.forEach(row => {
-        const concept = conceptByViewId.get(row.viewId);
+      state.renderedConceptIds.forEach(viewId => {
+        const concept = conceptByViewId.get(viewId);
         if (!isConceptVisible(concept)) return;
         const dx = concept.x - point.x;
         const dy = concept.y - point.y;
@@ -1205,32 +1454,6 @@ _HTML = r"""<!doctype html>
       draw();
     }
 
-    function focusConcept(concept) {
-      const targetScale = Math.max(1.1, Math.min(2.8, state.view.k));
-      const target = {
-        k: targetScale,
-        x: state.width / 2 - concept.x * targetScale,
-        y: state.height / 2 - concept.y * targetScale
-      };
-      if (reducedMotion) {
-        state.view = target;
-        draw();
-        return;
-      }
-      const start = { ...state.view };
-      const started = performance.now();
-      function frame(now) {
-        const progress = Math.min(1, (now - started) / 280);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        state.view.k = start.k + (target.k - start.k) * eased;
-        state.view.x = start.x + (target.x - start.x) * eased;
-        state.view.y = start.y + (target.y - start.y) * eased;
-        draw();
-        if (progress < 1) requestAnimationFrame(frame);
-      }
-      requestAnimationFrame(frame);
-    }
-
     function roleLabel(concept) {
       const role = concept.selectionReasons.includes("mappingEndpoint")
         ? "Mapping assertion endpoint"
@@ -1242,12 +1465,41 @@ _HTML = r"""<!doctype html>
       return `${role} · ${ringLabels[concept.semanticRing]} ring`;
     }
 
-    function selectConcept(concept, move = false) {
+    function selectConcept(concept, { fit = false } = {}) {
       state.selected = concept ? concept.viewId : null;
       if (concept && !state.activeReleases.has(concept.releaseId)) state.activeReleases.add(concept.releaseId);
-      renderInspector();
-      draw();
-      if (concept && move) focusConcept(concept);
+      if (concept && !state.activeRings.has(concept.semanticRing)) state.activeRings.add(concept.semanticRing);
+      refreshGraph({ fit });
+    }
+
+    function nativeRelationFromSelected(item) {
+      if (item.edge.predicateLabel === "related" || item.direction === "outgoing") {
+        return item.edge.predicateLabel;
+      }
+      return item.edge.predicateLabel === "broader" ? "narrower" : "broader";
+    }
+
+    function inspectorRelationLabel(item) {
+      return item.kind === "native" ? nativeRelationFromSelected(item) : item.edge.relationLabel;
+    }
+
+    function groupInspectorLinks(links) {
+      const groups = new Map();
+      links.forEach(item => {
+        const key = item.kind === "native"
+          ? `native\u001f${item.other}\u001f${item.edge.releaseId}\u001f${nativeRelationFromSelected(item)}`
+          : `mapping\u001f${item.other}\u001f${item.edge.id}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      });
+      return [...groups.values()].sort((left, right) => {
+        const leftItem = left[0];
+        const rightItem = right[0];
+        return leftItem.kind.localeCompare(rightItem.kind)
+          || inspectorRelationLabel(leftItem).localeCompare(inspectorRelationLabel(rightItem))
+          || conceptByViewId.get(leftItem.other).label.localeCompare(conceptByViewId.get(rightItem.other).label)
+          || leftItem.other.localeCompare(rightItem.other);
+      });
     }
 
     function renderInspector() {
@@ -1260,7 +1512,7 @@ _HTML = r"""<!doctype html>
       inspector.classList.toggle("open", Boolean(concept));
       if (!concept) return;
       const release = releaseById.get(concept.releaseId);
-      const links = adjacency.get(concept.viewId).filter(item => item.kind === "mapping" ? isMappingVisible(item.edge) : isNativeRelationVisible(item.edge));
+      const links = adjacency.get(concept.viewId).filter(isLinkEligible);
       const nativeLinks = links.filter(item => item.kind === "native");
       const mappingLinks = links.filter(item => item.kind === "mapping");
       document.getElementById("node-role").textContent = roleLabel(concept);
@@ -1291,56 +1543,190 @@ _HTML = r"""<!doctype html>
       document.getElementById("node-notes").hidden = !(concept.definition || concept.scopeNote);
       const container = document.getElementById("connections");
       container.replaceChildren();
-      links
-        .sort((a, b) => a.kind.localeCompare(b.kind) || (a.edge.predicate || a.edge.relation).localeCompare(b.edge.predicate || b.edge.relation) || conceptByViewId.get(a.other).label.localeCompare(conceptByViewId.get(b.other).label))
-        .forEach(item => {
+      if (!links.length) {
+        const note = document.createElement("p");
+        note.className = "hint";
+        note.textContent = "No relationships match the active filters.";
+        container.append(note);
+      }
+      groupInspectorLinks(links)
+        .forEach(group => {
+          const item = group[0];
           const other = conceptByViewId.get(item.other);
           const button = document.createElement("button");
           button.type = "button";
           button.className = "connection";
+          button.dataset.sourceAssertionCount = String(group.length);
           const edgeColor = item.kind === "native" ? release.color : ringColors[item.edge.semanticRing];
           button.style.setProperty("--connection-color", edgeColor);
           const name = document.createElement("b");
           name.textContent = other.label;
           const relation = document.createElement("small");
           if (item.kind === "native") {
-            relation.textContent = `${item.edge.predicateLabel} · source-native ${item.direction} assertion · ${releaseById.get(other.releaseId).label}`;
+            const equivalentAssertions = group.length > 1
+              ? ` · ${formatQuantity(group.length, "equivalent source assertion")}`
+              : "";
+            relation.textContent = `${nativeRelationFromSelected(item)} · source-native relationship${equivalentAssertions} · ${releaseById.get(other.releaseId).label}`;
           } else {
             const evidence = item.edge.evidenceClasses.join(", ") || "typed evidence";
             relation.textContent = `${item.edge.relationLabel} · ${ringLabels[item.edge.semanticRing]} mapping · ${evidence} · ${releaseById.get(other.releaseId).label}`;
           }
           button.append(name, relation);
-          button.addEventListener("click", () => selectConcept(other, true));
+          button.addEventListener("click", () => selectConcept(other, { fit: true }));
           container.append(button);
         });
     }
 
-    function renderSearch() {
-      const query = search.value.trim().toLocaleLowerCase();
+    function editDistanceWithin(left, right, limit) {
+      if (Math.abs(left.length - right.length) > limit) return false;
+      let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+      for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+        const current = [leftIndex];
+        let rowMinimum = current[0];
+        for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+          const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+          const value = Math.min(
+            previous[rightIndex] + 1,
+            current[rightIndex - 1] + 1,
+            previous[rightIndex - 1] + cost
+          );
+          current.push(value);
+          rowMinimum = Math.min(rowMinimum, value);
+        }
+        if (rowMinimum > limit) return false;
+        previous = current;
+      }
+      return previous[right.length] <= limit;
+    }
+
+    function scoreSearch(document, query, tokens) {
+      const exactLabel = document.labels.find(label => label.normalized === query);
+      if (document.displayLabel === query) return { score: 1000, match: "Exact preferred label" };
+      if (exactLabel) return { score: 960, match: `Exact label · ${exactLabel.value}` };
+      if (document.notation && document.notation === query) return { score: 940, match: "Exact notation" };
+      if (document.identifier === query || document.identifierTail === query) return { score: 920, match: "Exact identifier" };
+      if (document.displayLabel.startsWith(query)) return { score: 880, match: "Preferred label starts with query" };
+      const prefixLabel = document.labels.find(label => label.normalized.startsWith(query));
+      if (prefixLabel) return { score: 850, match: `Label starts with query · ${prefixLabel.value}` };
+      const tokenPrefixLabel = document.labels.find(label =>
+        tokens.every(token => label.tokens.some(value => value.startsWith(token)))
+      );
+      if (tokenPrefixLabel) {
+        const preferred = tokenPrefixLabel.normalized === document.displayLabel;
+        return {
+          score: preferred ? 820 : 790,
+          match: preferred
+            ? "All words match preferred-label prefixes"
+            : `All words match one label · ${tokenPrefixLabel.value}`
+        };
+      }
+      if (document.displayLabel.includes(query)) return { score: 760, match: "Preferred label contains query" };
+      const containedLabel = document.labels.find(label => label.normalized.includes(query));
+      if (containedLabel) return { score: 720, match: `Label contains query · ${containedLabel.value}` };
+      if (document.notation && document.notation.includes(query)) return { score: 680, match: "Notation contains query" };
+      if (document.identifier.includes(query) || document.identifierTail.includes(query)) {
+        return { score: 640, match: "Identifier contains query" };
+      }
+      if (tokens.every(token => document.notes.includes(token))) return { score: 420, match: "Definition or scope note" };
+      const fuzzyLabel = query.length >= 4
+        ? document.labels.find(label => tokens.every(token => label.tokens.some(value =>
+          editDistanceWithin(token, value, token.length >= 8 ? 2 : 1)
+        )))
+        : null;
+      if (fuzzyLabel) {
+        const preferred = fuzzyLabel.normalized === document.displayLabel;
+        return {
+          score: preferred ? 300 : 260,
+          match: preferred ? "Possible preferred-label spelling match" : `Possible label spelling match · ${fuzzyLabel.value}`
+        };
+      }
+      return null;
+    }
+
+    function updateActiveSearchResult(index) {
+      const buttons = [...resultBox.querySelectorAll(".result")];
+      if (!buttons.length) {
+        state.activeSearchIndex = -1;
+        search.removeAttribute("aria-activedescendant");
+        return;
+      }
+      state.activeSearchIndex = Math.max(0, Math.min(index, buttons.length - 1));
+      buttons.forEach((button, buttonIndex) => {
+        const active = buttonIndex === state.activeSearchIndex;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      const active = buttons[state.activeSearchIndex];
+      search.setAttribute("aria-activedescendant", active.id);
+      active.scrollIntoView({ block: "nearest" });
+    }
+
+    function chooseSearchResult(index) {
+      const result = state.searchResults[index];
+      if (!result) return;
+      selectConcept(conceptByViewId.get(result.document.concept.viewId), { fit: true });
+      search.setAttribute("aria-expanded", "false");
+      resultBox.hidden = true;
+    }
+
+    function renderSearch({ focusMatches = false, refresh = true } = {}) {
+      const query = normalizeSearch(search.value);
       state.query = query;
-      const matching = query
-        ? data.concepts.filter(concept => concept.label.toLocaleLowerCase().includes(query) || concept.conceptId.toLocaleLowerCase().includes(query))
+      const tokens = query.split(" ").filter(Boolean);
+      state.searchResults = query
+        ? searchDocuments
+          .filter(document => isConceptEligible(document.concept))
+          .map(document => {
+            const score = scoreSearch(document, query, tokens);
+            return score ? { document, ...score } : null;
+          })
+          .filter(Boolean)
+          .sort((left, right) => right.score - left.score
+            || left.document.concept.label.localeCompare(right.document.concept.label)
+            || left.document.concept.viewId.localeCompare(right.document.concept.viewId))
         : [];
-      state.matches = new Set(matching.map(concept => concept.viewId));
+      state.matches = new Set(state.searchResults.map(result => result.document.concept.viewId));
+      state.activeSearchIndex = -1;
+      if (focusMatches) state.selected = null;
       resultBox.replaceChildren();
-      matching.slice(0, 8).forEach(row => {
+      resultBox.hidden = !query;
+      const visibleResults = state.searchResults.slice(0, maxSearchResults);
+      visibleResults.forEach((result, index) => {
+        const row = result.document.concept;
         const button = document.createElement("button");
         button.type = "button";
         button.className = "result";
+        button.id = `search-result-${index}`;
+        button.setAttribute("role", "option");
+        button.setAttribute("aria-selected", "false");
         const label = document.createElement("span");
         label.textContent = row.label;
         const source = document.createElement("small");
-        source.textContent = releaseById.get(row.releaseId).label;
-        button.append(label, source);
-        button.addEventListener("click", () => selectConcept(conceptByViewId.get(row.viewId), true));
+        source.textContent = `${releaseById.get(row.releaseId).label} · ${ringLabels[row.semanticRing]} ring`;
+        const match = document.createElement("small");
+        match.className = "match";
+        match.textContent = result.match;
+        button.append(label, source, match);
+        button.addEventListener("click", () => chooseSearchResult(index));
         resultBox.append(button);
       });
-      if (query && !matching.length) {
+      if (query) {
         const note = document.createElement("small");
-        note.textContent = "No concept in this bounded view.";
+        note.className = "result-summary";
+        note.textContent = state.searchResults.length
+          ? `${formatQuantity(state.searchResults.length, "matching concept")} · ${formatNumber(visibleResults.length)} listed`
+          : "No concepts match the search and active filters.";
         resultBox.append(note);
       }
-      draw();
+      search.setAttribute("aria-expanded", String(Boolean(query && visibleResults.length)));
+      if (refresh) refreshGraph({ fit: focusMatches });
+    }
+
+    function filtersChanged() {
+      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
+      if (selected && !isConceptEligible(selected)) state.selected = null;
+      renderSearch({ refresh: false });
+      refreshGraph({ fit: true });
     }
 
     function renderFilters() {
@@ -1352,6 +1738,7 @@ _HTML = r"""<!doctype html>
         input.type = "checkbox";
         input.checked = true;
         input.dataset.release = release.releaseId;
+        input.setAttribute("aria-label", `${release.label} release, ${formatQuantity(release.shownConceptCount, "concept")}`);
         const swatch = document.createElement("span");
         swatch.className = "swatch";
         swatch.style.setProperty("--swatch", meta.color);
@@ -1359,69 +1746,143 @@ _HTML = r"""<!doctype html>
         text.className = "label";
         text.textContent = release.label;
         const count = document.createElement("small");
-        count.textContent = formatNumber(release.shownConceptCount);
+        count.textContent = formatQuantity(release.shownConceptCount, "concept");
         label.append(input, swatch, text, count);
         releaseFilters.append(label);
         input.addEventListener("change", () => {
           if (input.checked) state.activeReleases.add(release.releaseId);
           else state.activeReleases.delete(release.releaseId);
-          if (state.selected && !isConceptVisible(conceptByViewId.get(state.selected))) selectConcept(null);
-          fitView();
+          filtersChanged();
         });
       });
+
+      const conceptCountByRing = new Map(ringOrder.map(ring => [
+        ring,
+        data.concepts.filter(concept => concept.semanticRing === ring).length
+      ]));
+      ringOrder.forEach(ring => {
+        const label = document.createElement("label");
+        label.className = "filter release-filter";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = true;
+        input.dataset.ring = ring;
+        input.setAttribute("aria-label", `${ringLabels[ring]} ring, ${formatQuantity(conceptCountByRing.get(ring), "concept")}`);
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.setProperty("--swatch", ringColors[ring]);
+        const text = document.createElement("span");
+        text.className = "label";
+        text.textContent = ringLabels[ring];
+        const count = document.createElement("small");
+        count.textContent = formatQuantity(conceptCountByRing.get(ring), "concept");
+        label.append(input, swatch, text, count);
+        ringFilters.append(label);
+        input.addEventListener("change", () => {
+          if (input.checked) state.activeRings.add(ring);
+          else state.activeRings.delete(ring);
+          filtersChanged();
+        });
+      });
+
       nativePredicateOrder.forEach(predicate => {
         const rows = data.nativeRelations.filter(relation => relation.predicate === predicate);
         const label = document.createElement("label");
-        label.className = "filter";
+        label.className = "filter relation-filter";
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = true;
         input.dataset.nativePredicate = predicate;
+        input.setAttribute("aria-label", `${rows[0] ? rows[0].predicateLabel : predicate.split("#").pop()}, ${formatQuantity(rows.length, "assertion")}`);
         const key = document.createElement("span");
         key.className = "edge-key";
         key.style.setProperty("--edge-color", "#9ba8a2");
         const text = document.createElement("span");
+        text.className = "filter-copy";
         const name = document.createElement("span");
         name.className = "label";
         name.textContent = rows[0] ? rows[0].predicateLabel : predicate.split("#").pop();
         const count = document.createElement("small");
-        count.textContent = `${formatNumber(rows.length)} shown`;
+        count.textContent = formatQuantity(rows.length, "assertion");
         text.append(name, count);
         label.append(input, key, text);
         nativeFilters.append(label);
         input.addEventListener("change", () => {
           if (input.checked) state.activeNativePredicates.add(predicate);
           else state.activeNativePredicates.delete(predicate);
-          renderInspector();
-          draw();
+          filtersChanged();
         });
       });
-      const countByRing = new Map(ringOrder.map(ring => [ring, data.mappingAssertions.filter(mapping => mapping.semanticRing === ring).length]));
-      ringOrder.forEach(ring => {
-        const label = document.createElement("label");
-        label.className = "filter";
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = true;
-        input.dataset.ring = ring;
-        const key = document.createElement("span");
-        key.className = "edge-key mapping";
-        key.style.setProperty("--edge-color", ringColors[ring]);
-        const text = document.createElement("span");
-        const name = document.createElement("span");
-        name.className = "label";
-        name.textContent = ringLabels[ring];
-        const count = document.createElement("small");
-        count.textContent = `${formatNumber(countByRing.get(ring))} shown`;
-        text.append(name, count);
-        label.append(input, key, text);
-        ringFilters.append(label);
-        input.addEventListener("change", () => {
-          if (input.checked) state.activeRings.add(ring);
-          else state.activeRings.delete(ring);
-          renderInspector();
-          draw();
-        });
+
+      const mappingLabel = document.createElement("label");
+      mappingLabel.className = "filter relation-filter";
+      const mappingInput = document.createElement("input");
+      mappingInput.type = "checkbox";
+      mappingInput.checked = true;
+      mappingInput.dataset.mappingAssertions = "all";
+      mappingInput.setAttribute("aria-label", `Qualified mappings, ${formatQuantity(data.mappingAssertions.length, "assertion")}`);
+      const mappingKey = document.createElement("span");
+      mappingKey.className = "edge-key mapping";
+      mappingKey.style.setProperty("--edge-color", "#9ba8a2");
+      const mappingText = document.createElement("span");
+      mappingText.className = "filter-copy";
+      const mappingName = document.createElement("span");
+      mappingName.className = "label";
+      mappingName.textContent = "Qualified mappings";
+      const mappingCount = document.createElement("small");
+      mappingCount.textContent = formatQuantity(data.mappingAssertions.length, "assertion");
+      mappingText.append(mappingName, mappingCount);
+      mappingLabel.append(mappingInput, mappingKey, mappingText);
+      mappingFilters.append(mappingLabel);
+      mappingInput.addEventListener("change", () => {
+        state.mappingsActive = mappingInput.checked;
+        filtersChanged();
+      });
+    }
+
+    function updateGraphStatus() {
+      const renderedNativeAssertions = state.renderedNativeGroups.reduce(
+        (total, relations) => total + relations.length,
+        0
+      );
+      const renderedConceptCount = state.renderedConceptIds.size;
+      const mode = state.selected
+        ? `Selected ${conceptByViewId.get(state.selected).label}`
+        : state.query
+          ? "Search matches"
+          : "Relationship overview";
+      graphStatus.textContent = renderedConceptCount
+        ? `${mode} · ${formatQuantity(renderedConceptCount, "concept")} · ${formatQuantity(renderedNativeAssertions, "native assertion")} · ${formatQuantity(state.renderedMappings.length, "mapping")}`
+        : "No concepts match the active filters.";
+      document.getElementById("view-count").textContent = `${formatNumber(renderedConceptCount)} rendered · ${formatNumber(state.renderLimit)} limit · ${formatNumber(data.summary.shownConceptCount)} searchable concepts`;
+    }
+
+    function explorerScopeText() {
+      return data.summary.truncated
+        ? `This index contains ${formatNumber(data.summary.shownConceptCount)} of ${formatNumber(data.summary.availableConceptCount)} concepts.`
+        : `All ${formatNumber(data.summary.shownConceptCount)} concepts and ${formatNumber(data.summary.shownNativeRelationCount)} native assertions are searchable.`;
+    }
+
+    function syncRenderLimitControls() {
+      renderLimitRange.value = String(state.renderLimit);
+      renderLimitNumber.value = String(state.renderLimit);
+      renderLimitRange.setAttribute("aria-valuetext", `${formatQuantity(state.renderLimit, "concept")} maximum`);
+      document.getElementById("selection-note").textContent = `${explorerScopeText()} The graph draws at most ${formatNumber(state.renderLimit)} concepts; active filters may produce fewer.`;
+    }
+
+    function setRenderLimit(value, { refresh = true } = {}) {
+      const parsed = Number.parseInt(String(value), 10);
+      const next = Number.isFinite(parsed)
+        ? Math.max(1, Math.min(renderCapacity, parsed))
+        : state.renderLimit;
+      const changed = next !== state.renderLimit;
+      state.renderLimit = next;
+      syncRenderLimitControls();
+      if (!refresh || !changed) return;
+      if (renderLimitFrame !== null) cancelAnimationFrame(renderLimitFrame);
+      renderLimitFrame = requestAnimationFrame(() => {
+        renderLimitFrame = null;
+        refreshGraph({ fit: true });
       });
     }
 
@@ -1430,8 +1891,10 @@ _HTML = r"""<!doctype html>
       document.getElementById("metric-releases").textContent = formatNumber(data.atlas.counts.conceptReleases);
       document.getElementById("metric-quads").textContent = formatNumber(data.atlas.quadCount);
       document.getElementById("metric-native").textContent = formatNumber(data.summary.availableNativeRelationCount);
-      document.getElementById("selection-note").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts, ${formatNumber(data.summary.shownNativeRelationCount)} source-native assertions, and ${formatNumber(data.summary.shownMappingAssertionCount)} mapping assertions are shown. The sealed atlas contains ${formatNumber(data.summary.availableNativeRelationCount)} source-native assertions in total.`;
-      document.getElementById("view-count").textContent = `${formatNumber(data.summary.shownConceptCount)} concepts · ${formatNumber(data.summary.shownNativeRelationCount)} native assertions · ${formatNumber(data.summary.shownMappingAssertionCount)} mappings`;
+      renderLimitRange.max = String(renderCapacity);
+      renderLimitNumber.max = String(renderCapacity);
+      document.getElementById("render-limit-max").textContent = formatNumber(data.summary.shownConceptCount);
+      syncRenderLimitControls();
       document.getElementById("pin-id").textContent = data.atlas.assetId;
       document.getElementById("pin-manifest").textContent = data.atlas.manifestDigest;
       document.getElementById("pin-output").textContent = data.atlas.distributionDigest;
@@ -1504,6 +1967,14 @@ _HTML = r"""<!doctype html>
     document.getElementById("zoom-in").addEventListener("click", () => zoomAt(1.25));
     document.getElementById("zoom-out").addEventListener("click", () => zoomAt(.8));
     document.getElementById("fit-view").addEventListener("click", fitView);
+    renderLimitRange.addEventListener("input", event => setRenderLimit(event.currentTarget.value));
+    renderLimitNumber.addEventListener("change", event => setRenderLimit(event.currentTarget.value));
+    renderLimitNumber.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      setRenderLimit(event.currentTarget.value);
+      event.currentTarget.select();
+    });
     document.getElementById("toggle-controls").addEventListener("click", event => {
       const controls = document.getElementById("controls");
       controls.classList.toggle("open");
@@ -1519,7 +1990,41 @@ _HTML = r"""<!doctype html>
         event.currentTarget.textContent = "Copy unavailable";
       }
     });
-    search.addEventListener("input", renderSearch);
+    search.addEventListener("input", () => renderSearch({ focusMatches: true }));
+    search.addEventListener("focus", () => {
+      if (state.query) {
+        resultBox.hidden = false;
+        search.setAttribute("aria-expanded", String(Boolean(state.searchResults.length)));
+      }
+    });
+    search.addEventListener("keydown", event => {
+      const visibleCount = Math.min(maxSearchResults, state.searchResults.length);
+      if (event.key === "ArrowDown" && visibleCount) {
+        event.preventDefault();
+        updateActiveSearchResult(state.activeSearchIndex + 1);
+      } else if (event.key === "ArrowUp" && visibleCount) {
+        event.preventDefault();
+        updateActiveSearchResult(state.activeSearchIndex <= 0 ? visibleCount - 1 : state.activeSearchIndex - 1);
+      } else if (event.key === "Enter" && visibleCount) {
+        event.preventDefault();
+        chooseSearchResult(state.activeSearchIndex < 0 ? 0 : state.activeSearchIndex);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        search.value = "";
+        renderSearch({ focusMatches: true });
+      }
+    });
+    document.getElementById("reset-filters").addEventListener("click", () => {
+      state.activeReleases = new Set(data.conceptReleases.map(release => release.releaseId));
+      state.activeNativePredicates = new Set(nativePredicateOrder);
+      state.activeRings = new Set(ringOrder);
+      state.mappingsActive = true;
+      state.selected = null;
+      search.value = "";
+      document.querySelectorAll("#controls input[type=checkbox]").forEach(input => { input.checked = true; });
+      renderSearch({ focusMatches: true });
+    });
     window.addEventListener("keydown", event => {
       if (event.key === "/" && document.activeElement !== search) {
         event.preventDefault();
@@ -1527,15 +2032,15 @@ _HTML = r"""<!doctype html>
       }
       if (event.key === "Escape") {
         search.value = "";
-        renderSearch();
-        selectConcept(null);
+        renderSearch({ focusMatches: true });
       }
     });
     new ResizeObserver(resize).observe(stage);
 
-    layout();
     populateText();
     renderFilters();
+    renderSearch({ refresh: false });
+    refreshGraph();
     resize();
     requestAnimationFrame(() => canvas.classList.add("ready"));
   })();

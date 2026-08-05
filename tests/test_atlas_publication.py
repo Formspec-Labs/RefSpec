@@ -507,6 +507,58 @@ def test_explorer_uses_generic_typed_mapping_queries_and_stays_bounded(
     assert bounded["summary"]["truncated"] is True
 
 
+def test_explorer_defaults_to_a_complete_searchable_index(
+    tmp_path: Path,
+) -> None:
+    _, asset, _, _ = _mapped_fixture(tmp_path)
+
+    model = build_explorer_model(asset, title="Complete searchable Atlas")
+
+    assert model["summary"] == {
+        "shownConceptCount": 2,
+        "shownNativeRelationCount": 0,
+        "shownMappingAssertionCount": 1,
+        "availableConceptCount": 2,
+        "availableNativeRelationCount": 0,
+        "availableMappingAssertionCount": 1,
+        "truncated": False,
+    }
+    assert model["selectionPolicy"]["maxConcepts"] == 2
+    assert model["selectionPolicy"]["maxMappingAssertions"] == 1
+    assert all(concept["label"] in concept["searchLabels"] for concept in model["concepts"])
+
+    rendered = render_atlas_explorer(model)
+    assert "Semantic rings" in rendered
+    assert "Ring filters apply to concepts" in rendered
+    assert "Label, alias, notation, or identifier" in rendered
+    assert 'id="mapping-filters"' in rendered
+    assert 'id="render-limit-range"' in rendered
+    assert 'id="render-limit-number"' in rendered
+    assert "Maximum rendered concepts" in rendered
+    assert "rendered.size < state.renderLimit" in rendered
+    assert "Math.min(renderCapacity, parsed)" in rendered
+    assert "groupInspectorLinks(links)" in rendered
+    assert "equivalent source assertion" in rendered
+    assert "nativeRelationFromSelected" in rendered
+    assert "unrelated lines dim to graphite without hiding the current graph" in rendered
+    assert 'const subduedEdgeColor = "#24302c";' in rendered
+    assert "subdued ? subduedEdgeColor" in rendered
+    assert "if (selected && isConceptEligible(selected)) add(selected.viewId);" in rendered
+    assert "if (viewId === state.selected) return;" in rendered
+    assert "if (selected && isConceptVisible(selected)) drawConcept(selected);" in rendered
+    assert "state.activeRings.has(concept.semanticRing)" in rendered
+    assert "Possible preferred-label spelling match" in rendered
+
+
+def test_renderer_rejects_noncanonical_search_labels(tmp_path: Path) -> None:
+    _, asset, _ = _canonical_fixture(tmp_path, name="search-label-order")
+    model = json.loads(json.dumps(build_explorer_model(asset)))
+    model["concepts"][0]["searchLabels"] = ["zeta", "Alpha"]
+
+    with pytest.raises(AtlasExplorerError, match="searchLabels must use canonical label order"):
+        render_atlas_explorer(model)
+
+
 def test_explorer_preserves_native_relations_separately_from_mappings(
     tmp_path: Path,
 ) -> None:

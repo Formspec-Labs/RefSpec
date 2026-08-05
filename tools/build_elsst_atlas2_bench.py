@@ -4,8 +4,9 @@
 The input is an exact RefSpec managed release that has already passed the
 pinned Rulespec gate. This tool does not reinterpret ELSST or call Rulespec.
 It selects the exact ELSST release, builds the canonical Atlas, publishes a
-bounded offline explorer, and verifies that ELSST's native SKOS assertions are
-preserved separately from cross-release mappings.
+complete searchable offline explorer with adjustable graph rendering, and
+verifies that ELSST's native SKOS assertions are preserved separately from
+cross-release mappings.
 """
 
 from __future__ import annotations
@@ -113,8 +114,16 @@ def _arguments() -> argparse.Namespace:
         "--decision-actor",
         default="urn:ref:actor:local-workspace-user",
     )
-    parser.add_argument("--max-concepts", type=int, default=640)
-    parser.add_argument("--max-mapping-assertions", type=int, default=240)
+    parser.add_argument(
+        "--max-concepts",
+        type=int,
+        help="optional explorer index limit; omitted indexes every concept",
+    )
+    parser.add_argument(
+        "--max-mapping-assertions",
+        type=int,
+        help="optional explorer index limit; omitted indexes every mapping assertion",
+    )
     return parser.parse_args()
 
 
@@ -240,10 +249,17 @@ def _verified_publication(
     *,
     atlas: VocabularyAtlasAsset,
     title: str,
-    max_concepts: int,
-    max_mapping_assertions: int,
+    max_concepts: int | None,
+    max_mapping_assertions: int | None,
     decision: VocabularyAtlasPublicationDecision,
 ) -> AtlasPublication:
+    atlas_counts = _mapping(atlas.manifest.get("counts"), label="Atlas manifest counts")
+    expected_max_concepts = atlas_counts.get("concepts") if max_concepts is None else max_concepts
+    expected_max_mappings = (
+        atlas_counts.get("mappingAssertions")
+        if max_mapping_assertions is None
+        else max_mapping_assertions
+    )
     if path.exists() or path.is_symlink():
         manifest_path = path / PUBLICATION_MANIFEST
         manifest_digest = sha256_digest(manifest_path.read_bytes())
@@ -261,8 +277,8 @@ def _verified_publication(
         )
         if (
             explorer.get("title") != title
-            or selection.get("maxConcepts") != max_concepts
-            or selection.get("maxMappingAssertions") != max_mapping_assertions
+            or selection.get("maxConcepts") != expected_max_concepts
+            or selection.get("maxMappingAssertions") != expected_max_mappings
             or publication.distribution.manifest_digest != atlas.manifest_digest
             or publication.decision.reference != decision.reference
         ):
@@ -528,7 +544,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         args.publication_output,
         label="publication output",
     )
-    _progress("publishing and reopening the bounded offline explorer")
+    _progress("publishing and reopening the complete searchable offline explorer")
     publication = _verified_publication(
         publication_output,
         atlas=atlas,
@@ -570,9 +586,13 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         summary.get("availableConceptCount") != len(concepts)
         or summary.get("availableNativeRelationCount") != len(native_relations)
         or summary.get("availableMappingAssertionCount") != 0
+        or summary.get("shownConceptCount") != len(concepts)
         or summary.get("shownNativeRelationCount") != len(shown_relations)
+        or summary.get("shownMappingAssertionCount") != 0
+        or summary.get("truncated") is not False
+        or len(shown_relations) != len(native_relations)
     ):
-        raise ElsstAtlasBenchError("published explorer summary differs from exact Atlas queries")
+        raise ElsstAtlasBenchError("published explorer is not the complete exact Atlas search index")
 
     result = {
         "type": "ElsstAtlas2BenchBuildResult",
