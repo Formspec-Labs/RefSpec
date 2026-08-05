@@ -14,6 +14,7 @@ import refspec.atlas as atlas_api
 from refspec.atlas.atlas_scope import (
     AtlasScopeRelease,
     PinnedVocabularyAtlasScope,
+    ScopeKind,
     VocabularyAtlasScope,
 )
 from refspec.atlas.model import VocabularyAtlasAsset, build_vocabulary_atlas
@@ -37,7 +38,12 @@ from refspec.registry.infrastructure.artifact_serialization import (
 )
 
 
-def _pinned_scope(tmp_path: Path, *, name: str = "decision") -> PinnedVocabularyAtlasScope:
+def _pinned_scope(
+    tmp_path: Path,
+    *,
+    name: str = "decision",
+    scope_kind: ScopeKind = "bench",
+) -> PinnedVocabularyAtlasScope:
     _, source, _ = scope_fixture._source_release(tmp_path, name)
     release = AtlasScopeRelease(source)
     atlas_index, _, _ = scope_fixture._pinned_index(
@@ -55,7 +61,7 @@ def _pinned_scope(tmp_path: Path, *, name: str = "decision") -> PinnedVocabulary
     )
     scope = VocabularyAtlasScope.create(
         scope_name=f"urn:ref:test:vocabulary-atlas-scope:{name}",
-        scope_kind="bench",
+        scope_kind=scope_kind,
         atlas_index=atlas_index,
         releases=(release,),
     )
@@ -243,6 +249,19 @@ def test_atlas_decision_derives_scope_and_planning_index_from_one_exact_scope(
     assert decision.identifier.startswith("urn:ref:vocabulary-atlas-publication-decision:")
     decision.validate_for_scope(scope)
     decision.validate_result(_atlas_result())
+
+
+def test_publication_decision_accepts_a_non_authorizing_published_scope(
+    tmp_path: Path,
+) -> None:
+    scope = _pinned_scope(tmp_path, name="published", scope_kind="published")
+
+    decision = _decision(scope)
+
+    assert decision.as_record()["intendedScope"] == {
+        "name": scope.verified_scope().scope_name,
+        "kind": "published",
+    }
 
 
 def test_decision_reconciles_source_conditions_and_refuses_incomplete_controls(

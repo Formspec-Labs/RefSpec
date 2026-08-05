@@ -226,8 +226,10 @@ def _normalize_intended_scope(value: object) -> dict[str, str]:
     row = _require_mapping(value, label)
     _require_exact_fields(row, _INTENDED_SCOPE_FIELDS, label)
     kind = row.get("kind")
-    if kind not in {"bench", "product"}:
-        raise PublicationDecisionError("publication decision intendedScope.kind must be bench or product")
+    if kind not in {"bench", "published", "product"}:
+        raise PublicationDecisionError(
+            "publication decision intendedScope.kind must be bench, published, or product"
+        )
     return {
         "name": _require_iri(row.get("name"), f"{label}.name"),
         "kind": cast(str, kind),
