@@ -283,15 +283,9 @@ def _qualification_run(
     )
     bundle_path = bundle.write(run_root / "crosswalk-v2.json")
     bundle_pin = bundle.pin()
-    coverage = (
-        qual.PRODUCTION_COVERAGE_MODE
-        if production
-        else qual.PILOT_COVERAGE_MODE
-    )
+    coverage = qual.PRODUCTION_COVERAGE_MODE if production else qual.PILOT_COVERAGE_MODE
     generation_policy = (
-        qual.PRODUCTION_CANDIDATE_GENERATION_POLICY
-        if production
-        else qual.PILOT_CANDIDATE_GENERATION_POLICY
+        qual.PRODUCTION_CANDIDATE_GENERATION_POLICY if production else qual.PILOT_CANDIDATE_GENERATION_POLICY
     )
     candidates_path = _write(
         run_root / "candidates.json",
@@ -422,9 +416,7 @@ def _definition_fixture(
             }
         release_rows.append(row)
 
-    index_path, index_input_path, catalog_path, index = _planning_index(
-        root, pinned_rows
-    )
+    index_path, index_input_path, catalog_path, index = _planning_index(root, pinned_rows)
     source = dict(pinned_rows)
     evidence = EvidenceAssertion(
         semantic_ring="subject",
@@ -482,9 +474,7 @@ def _definition_fixture(
         }
     ]
     policy_digest = sha256_digest(b"v1-test-policy")
-    development_statement = (
-        "This exact ICPSR fixture remains explicitly marked developmentOnly."
-    )
+    development_statement = "This exact ICPSR fixture remains explicitly marked developmentOnly."
     basis = {
         "type": "VocabularyAtlasV1ReleaseDefinition",
         "schemaVersion": "1.0",
@@ -601,9 +591,7 @@ def _tiny_public_basis(
     basis = _definition_basis(sealed)
     basis["releaseMode"] = "publicV1"
     basis["scopeKind"] = "published"
-    release_ids = {
-        row["v1Role"]: row["releaseId"] for row in basis["releases"]
-    }
+    release_ids = {row["v1Role"]: row["releaseId"] for row in basis["releases"]}
     basis["productionQualificationRuns"] = [
         {
             "job": job,
@@ -613,9 +601,7 @@ def _tiny_public_basis(
             "runReceiptFileDigest": "sha256:" + "0" * 64,
             "runReceiptContentDigest": "sha256:" + "1" * 64,
         }
-        for job, (source_role, target_role) in sorted(
-            v1_module._PRODUCTION_JOB_ROLES.items()
-        )
+        for job, (source_role, target_role) in sorted(v1_module._PRODUCTION_JOB_ROLES.items())
     ]
     return basis
 
@@ -722,9 +708,7 @@ def test_definition_requires_all_approvals_icpsr_condition_and_public_profile(
     missing_development = _definition_basis(sealed)
     missing_development["publication"]["exceptions"] = []
     icpsr_release_id = next(
-        release["releaseId"]
-        for release in missing_development["releases"]
-        if release["v1Role"] == "icpsr"
+        release["releaseId"] for release in missing_development["releases"] if release["v1Role"] == "icpsr"
     )
     icpsr_approval = next(
         approval
@@ -823,9 +807,7 @@ def test_build_refuses_incomplete_row_controls_and_nonproduction_job(
         root,
         assignment_directory,
     )
-    baseline_row = cast(
-        list[dict[str, Any]], sealed.record["baselineQualificationRuns"]
-    )[0]
+    baseline_row = cast(list[dict[str, Any]], sealed.record["baselineQualificationRuns"])[0]
     with pytest.raises(VocabularyAtlasV1ReleaseError, match="wrong coverage mode"):
         v1_module._verify_pair_qualification_run(
             baseline_row,
@@ -865,10 +847,7 @@ def test_baseline_rc_is_a_bench_preview_never_a_passed_public_v1(
     assert build.result["publication"]["role"] == "baselineEvidencePreview"
     assert (output / "baseline-preview/publication-manifest.json").is_file()
     assert not (output / "public").exists()
-    assert all(
-        run["runKind"] == "baselineEvidence"
-        for run in build.result["qualificationRuns"]
-    )
+    assert all(run["runKind"] == "baselineEvidence" for run in build.result["qualificationRuns"])
 
 
 def test_failed_post_placement_reopen_removes_the_new_output(
@@ -922,10 +901,7 @@ def test_builder_dispatches_all_release_kinds_and_seals_baseline_preview(
     assert build.result["releaseMode"] == "baselineEvidenceRc"
     assert build.result["status"] == "baselineEvidenceOnly"
     assert len(build.result["qualificationRuns"]) == 3
-    assert all(
-        run["counts"]["admitted"] == 0
-        for run in build.result["qualificationRuns"]
-    )
+    assert all(run["counts"]["admitted"] == 0 for run in build.result["qualificationRuns"])
     assert (output / "canonical/atlas.nq").is_file()
     assert (output / "baseline-preview/publication-manifest.json").is_file()
     assert not (output / "public").exists()
@@ -942,9 +918,7 @@ def test_builder_dispatches_all_release_kinds_and_seals_baseline_preview(
     )
     assert reopened.identifier == build.identifier
 
-    acceptance_record = json.loads(
-        (output / "control/release-acceptance.json").read_text(encoding="utf-8")
-    )
+    acceptance_record = json.loads((output / "control/release-acceptance.json").read_text(encoding="utf-8"))
     assert [row["id"] for row in acceptance_record["checks"]] == [
         "urn:ref:check:vocabulary-atlas-v1:canonical-reproduction",
         "urn:ref:check:vocabulary-atlas-v1:definition-and-controls",

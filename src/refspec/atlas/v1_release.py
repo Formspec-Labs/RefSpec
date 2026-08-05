@@ -158,9 +158,7 @@ _FEDERAL_REGISTER_RELATED_REFERENCE_COUNTS: Mapping[str, int] = {
     "suggestedOpenTermPattern": 11,
     "unresolved": 1,
 }
-_FEDERAL_REGISTER_RECONCILIATION_ID_PREFIX = (
-    "urn:ref:federal-register-related-reference-reconciliation:"
-)
+_FEDERAL_REGISTER_RECONCILIATION_ID_PREFIX = "urn:ref:federal-register-related-reference-reconciliation:"
 _PUBLIC_V1_PLANNING_INDEX_DIGESTS: Mapping[str, str] = {
     "fileDigest": "sha256:d18e1f254d53ecf2008dcb08ab4e721a580d98e988f86d3f159dd99fb84738e6",
     "inputFileDigest": "sha256:aeeedc35c99bb8a7ac6185ff323b8d8306f5a359aab46288a2fa102cef9e9d5c",
@@ -251,9 +249,7 @@ _PUBLIC_V1_BASELINE_RUNS: Mapping[str, tuple[str, str]] = {
         "sha256:de38585b99ec063a729ec23f74874572c72e8b2237644991b346d0ea7daecf20",
     ),
 }
-_PUBLIC_V1_BASELINE_ENDPOINT_MANIFEST_DIGESTS: Mapping[
-    str, tuple[str, str]
-] = {
+_PUBLIC_V1_BASELINE_ENDPOINT_MANIFEST_DIGESTS: Mapping[str, tuple[str, str]] = {
     "elsst-icpsr": (
         "sha256:e20928a6cb68494dfac8b8c16d6aa3db1147f2145d99c31bd01287eeced9761f",
         _PUBLIC_V1_RELEASE_PINS["icpsr"][1],
@@ -365,12 +361,8 @@ _SOURCE_APPROVAL_FIELDS = frozenset(
     }
 )
 _APPROVAL_CONDITION_FIELDS = frozenset({"kind", "statement"})
-_ROW_DISPOSITION_FIELDS = frozenset(
-    {"rowId", "rowDigest", "disposition", "reason"}
-)
-_ROW_DISPOSITIONS = frozenset(
-    {"included", "planned", "deferred", "unavailable", "deliberatelyExcluded"}
-)
+_ROW_DISPOSITION_FIELDS = frozenset({"rowId", "rowDigest", "disposition", "reason"})
+_ROW_DISPOSITIONS = frozenset({"included", "planned", "deferred", "unavailable", "deliberatelyExcluded"})
 _EXPECTED_COUNT_FIELDS = frozenset(
     {
         "releaseCount",
@@ -563,9 +555,7 @@ def _normalize_releases(value: object) -> list[dict[str, Any]]:
             raise VocabularyAtlasV1ReleaseError(f"{label}.v1Role is unsupported")
         release_id = _require_iri(row.get("releaseId"), f"{label}.releaseId")
         if key in keys or release_id in release_ids or role in roles:
-            raise VocabularyAtlasV1ReleaseError(
-                "v1 release definition repeats a release key, releaseId, or v1Role"
-            )
+            raise VocabularyAtlasV1ReleaseError("v1 release definition repeats a release key, releaseId, or v1Role")
         keys.add(key)
         release_ids.add(release_id)
         roles.add(role)
@@ -625,9 +615,7 @@ def _normalize_releases(value: object) -> list[dict[str, Any]]:
         for row in result
     }
     if actual_role_shapes != expected_role_shapes:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 release roles must name the exact six source kinds and semantic rings"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 release roles must name the exact six source kinds and semantic rings")
     return sorted(result, key=lambda row: row["key"])
 
 
@@ -800,10 +788,7 @@ def _normalize_pair_runs(
     expected_jobs: frozenset[str],
 ) -> list[dict[str, str]]:
     rows = _require_array(value, label, nonempty=bool(expected_jobs))
-    role_release_ids = {
-        cast(str, row["v1Role"]): cast(str, row["releaseId"])
-        for row in releases
-    }
+    role_release_ids = {cast(str, row["v1Role"]): cast(str, row["releaseId"]) for row in releases}
     result: list[dict[str, str]] = []
     jobs: set[str] = set()
     for index, raw in enumerate(rows):
@@ -812,32 +797,19 @@ def _normalize_pair_runs(
         _require_exact_fields(row, _PAIR_RUN_FIELDS, item_label)
         job = _require_key(row.get("job"), f"{item_label}.job")
         if job not in expected_jobs or job in jobs:
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label} must name every required job exactly once"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{label} must name every required job exactly once")
         jobs.add(job)
         source_role, target_role = _PRODUCTION_JOB_ROLES[job]
-        source_release_id = _require_iri(
-            row.get("sourceReleaseId"), f"{item_label}.sourceReleaseId"
-        )
-        target_release_id = _require_iri(
-            row.get("targetReleaseId"), f"{item_label}.targetReleaseId"
-        )
-        if (
-            source_release_id != role_release_ids[source_role]
-            or target_release_id != role_release_ids[target_role]
-        ):
-            raise VocabularyAtlasV1ReleaseError(
-                f"{item_label} endpoints differ from the required v1 pair"
-            )
+        source_release_id = _require_iri(row.get("sourceReleaseId"), f"{item_label}.sourceReleaseId")
+        target_release_id = _require_iri(row.get("targetReleaseId"), f"{item_label}.targetReleaseId")
+        if source_release_id != role_release_ids[source_role] or target_release_id != role_release_ids[target_role]:
+            raise VocabularyAtlasV1ReleaseError(f"{item_label} endpoints differ from the required v1 pair")
         result.append(
             {
                 "job": job,
                 "sourceReleaseId": source_release_id,
                 "targetReleaseId": target_release_id,
-                "runReceiptPath": _require_relative_path(
-                    row.get("runReceiptPath"), f"{item_label}.runReceiptPath"
-                ),
+                "runReceiptPath": _require_relative_path(row.get("runReceiptPath"), f"{item_label}.runReceiptPath"),
                 "runReceiptFileDigest": _require_digest(
                     row.get("runReceiptFileDigest"),
                     f"{item_label}.runReceiptFileDigest",
@@ -849,9 +821,7 @@ def _normalize_pair_runs(
             }
         )
     if jobs != expected_jobs:
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label} must name every required job exactly once"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label} must name every required job exactly once")
     return sorted(result, key=lambda row: row["job"])
 
 
@@ -868,9 +838,7 @@ def _normalize_approval_conditions(value: object, label: str) -> list[dict[str, 
         result.append(
             {
                 "kind": kind,
-                "statement": _require_text(
-                    row.get("statement"), f"{item_label}.statement"
-                ),
+                "statement": _require_text(row.get("statement"), f"{item_label}.statement"),
             }
         )
     canonical = [_canonical_bytes(row) for row in result]
@@ -887,9 +855,7 @@ def _normalize_source_approvals(
     exceptions: Sequence[Mapping[str, str]],
 ) -> list[dict[str, Any]]:
     rows = _require_array(value, label, nonempty=True)
-    expected = {
-        cast(str, release["releaseId"]): release for release in releases
-    }
+    expected = {cast(str, release["releaseId"]): release for release in releases}
     result: list[dict[str, Any]] = []
     identifiers: set[str] = set()
     for index, raw in enumerate(rows):
@@ -898,14 +864,10 @@ def _normalize_source_approvals(
         _require_exact_fields(row, _SOURCE_APPROVAL_FIELDS, item_label)
         release_id = _require_iri(row.get("releaseId"), f"{item_label}.releaseId")
         if release_id in identifiers or release_id not in expected:
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label} must approve every and only included release"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{label} must approve every and only included release")
         identifiers.add(release_id)
         release = expected[release_id]
-        conditions = _normalize_approval_conditions(
-            row.get("conditions"), f"{item_label}.conditions"
-        )
+        conditions = _normalize_approval_conditions(row.get("conditions"), f"{item_label}.conditions")
         expected_conditions = sorted(
             (
                 {"kind": exception["kind"], "statement": exception["statement"]}
@@ -915,21 +877,16 @@ def _normalize_source_approvals(
             key=lambda item: (item["kind"], item["statement"]),
         )
         if release["v1Role"] == "icpsr" and not any(
-            condition["kind"] == "developmentOnly"
-            for condition in expected_conditions
+            condition["kind"] == "developmentOnly" for condition in expected_conditions
         ):
-            raise VocabularyAtlasV1ReleaseError(
-                f"{item_label} must retain the ICPSR developmentOnly condition"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{item_label} must retain the ICPSR developmentOnly condition")
         if (
             row.get("disposition") != "approved"
             or row.get("manifestDigest") != release["manifestDigest"]
             or row.get("semanticRing") != release["semanticRing"]
             or conditions != expected_conditions
         ):
-            raise VocabularyAtlasV1ReleaseError(
-                f"{item_label} differs from its exact release or conditions"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{item_label} differs from its exact release or conditions")
         result.append(
             {
                 "releaseId": release_id,
@@ -940,9 +897,7 @@ def _normalize_source_approvals(
             }
         )
     if identifiers != set(expected):
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label} must approve every and only included release"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label} must approve every and only included release")
     return sorted(result, key=lambda row: row["releaseId"])
 
 
@@ -957,16 +912,12 @@ def _normalize_row_dispositions(value: object, label: str) -> list[dict[str, str
         row_id = _require_iri(row.get("rowId"), f"{item_label}.rowId")
         disposition = row.get("disposition")
         if row_id in identifiers or disposition not in _ROW_DISPOSITIONS:
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label} repeats a row or has an unsupported disposition"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{label} repeats a row or has an unsupported disposition")
         identifiers.add(row_id)
         result.append(
             {
                 "rowId": row_id,
-                "rowDigest": _require_digest(
-                    row.get("rowDigest"), f"{item_label}.rowDigest"
-                ),
+                "rowDigest": _require_digest(row.get("rowDigest"), f"{item_label}.rowDigest"),
                 "disposition": cast(str, disposition),
                 "reason": _require_text(row.get("reason"), f"{item_label}.reason"),
             }
@@ -1000,9 +951,7 @@ def _normalize_publication(
             releases=releases,
             exceptions=exceptions,
         ),
-        "rowDispositions": _normalize_row_dispositions(
-            row.get("rowDispositions"), f"{label}.rowDispositions"
-        ),
+        "rowDispositions": _normalize_row_dispositions(row.get("rowDispositions"), f"{label}.rowDispositions"),
     }
 
 
@@ -1078,13 +1027,8 @@ def _validate_public_v1_profile(
 ) -> None:
     """Keep the public v1 label tied to the approved current release profile."""
 
-    if any(
-        planning_index[field] != digest
-        for field, digest in _PUBLIC_V1_PLANNING_INDEX_DIGESTS.items()
-    ):
-        raise VocabularyAtlasV1ReleaseError(
-            "publicV1 requires the exact approved 87-row planning index and inputs"
-        )
+    if any(planning_index[field] != digest for field, digest in _PUBLIC_V1_PLANNING_INDEX_DIGESTS.items()):
+        raise VocabularyAtlasV1ReleaseError("publicV1 requires the exact approved 87-row planning index and inputs")
     observed_pins = {
         cast(str, release["v1Role"]): (
             cast(str, release["releaseId"]),
@@ -1094,25 +1038,17 @@ def _validate_public_v1_profile(
     }
     approved_pins = {
         role: (release_id, manifest_digest)
-        for role, (release_id, manifest_digest, _concepts, _native) in (
-            _PUBLIC_V1_RELEASE_PINS.items()
-        )
+        for role, (release_id, manifest_digest, _concepts, _native) in (_PUBLIC_V1_RELEASE_PINS.items())
     }
     if observed_pins != approved_pins:
-        raise VocabularyAtlasV1ReleaseError(
-            "publicV1 requires the exact approved six release IDs and manifest digests"
-        )
+        raise VocabularyAtlasV1ReleaseError("publicV1 requires the exact approved six release IDs and manifest digests")
     concepts = {
         release_id: concept_count
-        for release_id, _manifest, concept_count, _native in (
-            _PUBLIC_V1_RELEASE_PINS.values()
-        )
+        for release_id, _manifest, concept_count, _native in (_PUBLIC_V1_RELEASE_PINS.values())
     }
     native_relations = {
         release_id: native_count
-        for release_id, _manifest, _concepts, native_count in (
-            _PUBLIC_V1_RELEASE_PINS.values()
-        )
+        for release_id, _manifest, _concepts, native_count in (_PUBLIC_V1_RELEASE_PINS.values())
     }
     approved_counts = {
         "releaseCount": 6,
@@ -1121,13 +1057,10 @@ def _validate_public_v1_profile(
         "conceptTotal": 9_010,
         "conceptsByRelease": {key: concepts[key] for key in sorted(concepts)},
         "nativeRelationTotal": 32_684,
-        "nativeRelationsByRelease": {
-            key: native_relations[key] for key in sorted(native_relations)
-        },
+        "nativeRelationsByRelease": {key: native_relations[key] for key in sorted(native_relations)},
         "mappingMinimumTotal": 582,
         "mappingMinimumByRelation": {
-            key: _PUBLIC_V1_BASELINE_MAPPING_COUNTS[key]
-            for key in sorted(_PUBLIC_V1_BASELINE_MAPPING_COUNTS)
+            key: _PUBLIC_V1_BASELINE_MAPPING_COUNTS[key] for key in sorted(_PUBLIC_V1_BASELINE_MAPPING_COUNTS)
         },
     }
     if _plain(expected_counts) != approved_counts:
@@ -1162,27 +1095,17 @@ def _normalize_definition_basis(value: object) -> dict[str, Any]:
     release_ids = frozenset(cast(str, release["releaseId"]) for release in releases)
     release_mode = row.get("releaseMode")
     if not isinstance(release_mode, str) or release_mode not in _RELEASE_MODES:
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label}.releaseMode must be publicV1 or baselineEvidenceRc"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label}.releaseMode must be publicV1 or baselineEvidenceRc")
     expected_scope_kind = "published" if release_mode == "publicV1" else "bench"
     if row.get("scopeKind") != expected_scope_kind:
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label}.scopeKind must be {expected_scope_kind} for {release_mode}"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label}.scopeKind must be {expected_scope_kind} for {release_mode}")
     planning_index = _normalize_planning_index(row.get("planningIndex"))
-    expected_counts = _normalize_expected_counts(
-        row.get("expectedCounts"), release_ids=release_ids
-    )
+    expected_counts = _normalize_expected_counts(row.get("expectedCounts"), release_ids=release_ids)
     production_runs = _normalize_pair_runs(
         row.get("productionQualificationRuns"),
         f"{label}.productionQualificationRuns",
         releases=releases,
-        expected_jobs=(
-            frozenset(_PRODUCTION_JOB_ROLES)
-            if release_mode == "publicV1"
-            else frozenset()
-        ),
+        expected_jobs=(frozenset(_PRODUCTION_JOB_ROLES) if release_mode == "publicV1" else frozenset()),
     )
     baseline_runs = _normalize_pair_runs(
         row.get("baselineQualificationRuns"),
@@ -1236,15 +1159,11 @@ class VocabularyAtlasV1ReleaseDefinition:
         if _plain(row) != expected:
             raise VocabularyAtlasV1ReleaseError("v1 release definition identity, inputs, or canonical order differs")
         if (self.file_digest is None) is not (self.path is None):
-            raise VocabularyAtlasV1ReleaseError(
-                "v1 release definition path and file digest must be supplied together"
-            )
+            raise VocabularyAtlasV1ReleaseError("v1 release definition path and file digest must be supplied together")
         if self.file_digest is not None:
             _require_digest(self.file_digest, "v1 release definition file digest")
             if self.path is None:
-                raise VocabularyAtlasV1ReleaseError(
-                    "v1 release definition path is required with its file digest"
-                )
+                raise VocabularyAtlasV1ReleaseError("v1 release definition path is required with its file digest")
             object.__setattr__(
                 self,
                 "path",
@@ -1333,17 +1252,13 @@ def _verified_definition_bytes(
         expected_file_digest=definition.file_digest,
     )
     if reopened.as_record() != definition.as_record():
-        raise VocabularyAtlasV1ReleaseError(
-            "reopened v1 definition differs from the supplied definition"
-        )
+        raise VocabularyAtlasV1ReleaseError("reopened v1 definition differs from the supplied definition")
     payload = _read_regular_file(
         reopened.path or definition.path,
         label="v1 release definition",
     )
     if sha256_digest(payload) != definition.file_digest:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 release definition changed after reopening"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 release definition changed after reopening")
     return reopened, payload
 
 
@@ -1501,9 +1416,7 @@ def _run_support_file(
     name = descriptor.get("file")
     digest = descriptor.get("fileDigest")
     total = descriptor.get("total")
-    if require_total and (
-        not isinstance(total, int) or isinstance(total, bool) or total < 0
-    ):
+    if require_total and (not isinstance(total, int) or isinstance(total, bool) or total < 0):
         raise VocabularyAtlasV1ReleaseError(f"{label}.total is invalid")
     if not isinstance(name, str) or Path(name).name != name:
         raise VocabularyAtlasV1ReleaseError(f"{label}.file is unsafe")
@@ -1541,33 +1454,16 @@ def _verify_receipt_log(
     result: dict[tuple[str, str], dict[str, Any]] = {}
     for index, line in enumerate(rows):
         if not line.endswith(b"\n"):
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label}[{index}] lacks its canonical line ending"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] lacks its canonical line ending")
         value = _decode_json(line, f"{label}[{index}]")
-        if (
-            not isinstance(value, Mapping)
-            or (canonical_json(value) + "\n").encode("utf-8") != line
-        ):
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label}[{index}] is not canonical JSON"
-            )
-        candidate_id = _require_iri(
-            value.get("candidate_id"), f"{label}[{index}].candidate_id"
-        )
-        family_name = _require_text(
-            value.get("family"), f"{label}[{index}].family"
-        )
+        if not isinstance(value, Mapping) or (canonical_json(value) + "\n").encode("utf-8") != line:
+            raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] is not canonical JSON")
+        candidate_id = _require_iri(value.get("candidate_id"), f"{label}[{index}].candidate_id")
+        family_name = _require_text(value.get("family"), f"{label}[{index}].family")
         family = VALIDATOR_FAMILIES.get(family_name)
-        expected_kind = (
-            "crosswalk_validation" if receipt_kind == "judge" else "crosswalk_scoring"
-        )
-        request_url = _require_iri(
-            value.get("request_url"), f"{label}[{index}].request_url"
-        )
-        model_id = _require_text(
-            value.get("model_id"), f"{label}[{index}].model_id"
-        )
+        expected_kind = "crosswalk_validation" if receipt_kind == "judge" else "crosswalk_scoring"
+        request_url = _require_iri(value.get("request_url"), f"{label}[{index}].request_url")
+        model_id = _require_text(value.get("model_id"), f"{label}[{index}].model_id")
         if (
             family is None
             or value.get("kind") != expected_kind
@@ -1578,9 +1474,7 @@ def _verify_receipt_log(
                 f"{label}[{index}] differs from its approved family, model, or endpoint"
             )
         _require_digest(value.get("input_digest"), f"{label}[{index}].input_digest")
-        _require_digest(
-            value.get("request_sha256"), f"{label}[{index}].request_sha256"
-        )
+        _require_digest(value.get("request_sha256"), f"{label}[{index}].request_sha256")
         _require_datetime(value.get("started_at"), f"{label}[{index}].started_at")
         finished_at = value.get("finished_at")
         if not (
@@ -1595,9 +1489,7 @@ def _verify_receipt_log(
         deterministic = False
         if outcome == "completed":
             if value.get("response_status") != 200:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{label}[{index}] completed without a successful response"
-                )
+                raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] completed without a successful response")
             _require_digest(
                 value.get("response_sha256"),
                 f"{label}[{index}].response_sha256",
@@ -1614,18 +1506,12 @@ def _verify_receipt_log(
                 )
             except QualificationError as error:
                 raise VocabularyAtlasV1ReleaseError(str(error)) from error
-            deterministic = bool(
-                reading is not None and reading.deterministic_checks_passed
-            )
+            deterministic = bool(reading is not None and reading.deterministic_checks_passed)
             if not deterministic:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{label}[{index}] completed without deterministic response checks"
-                )
+                raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] completed without deterministic response checks")
         key = (candidate_id, family_name)
         if key in result:
-            raise VocabularyAtlasV1ReleaseError(
-                f"{label} repeats a candidate and validator family"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"{label} repeats a candidate and validator family")
         result[key] = {
             "family": family_name,
             "modelId": model_id,
@@ -1664,9 +1550,7 @@ def _verify_accounting_receipt_resolution(
     expected_scorers: dict[tuple[str, str], dict[str, Any]] = {}
     for index, raw in enumerate(accounting):
         row = _require_mapping(raw, f"{label}[{index}]")
-        candidate_id = _require_iri(
-            row.get("candidateId"), f"{label}[{index}].candidateId"
-        )
+        candidate_id = _require_iri(row.get("candidateId"), f"{label}[{index}].candidateId")
         completed_judge_groups: set[str] = set()
         for position, raw_pin in enumerate(
             _require_array(
@@ -1680,29 +1564,16 @@ def _verify_accounting_receipt_resolution(
             family = _require_text(pin.get("family"), f"{pin_label}.family")
             key = (candidate_id, family)
             if key in expected_judges:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{label}[{index}] repeats a judge receipt family"
-                )
+                raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] repeats a judge receipt family")
             expected = {
                 "family": family,
-                "outcome": _require_text(
-                    pin.get("outcome"), f"{pin_label}.outcome"
-                ),
-                "receiptDigest": _require_digest(
-                    pin.get("receiptDigest"), f"{pin_label}.receiptDigest"
-                ),
+                "outcome": _require_text(pin.get("outcome"), f"{pin_label}.outcome"),
+                "receiptDigest": _require_digest(pin.get("receiptDigest"), f"{pin_label}.receiptDigest"),
             }
             actual = judge_receipts.get(key)
-            if actual is None or {
-                field: actual[field] for field in judge_fields
-            } != expected:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{pin_label} does not resolve to its exact judge receipt row"
-                )
-            if (
-                actual["outcome"] == "completed"
-                and actual["deterministicChecksPassed"] is True
-            ):
+            if actual is None or {field: actual[field] for field in judge_fields} != expected:
+                raise VocabularyAtlasV1ReleaseError(f"{pin_label} does not resolve to its exact judge receipt row")
+            if actual["outcome"] == "completed" and actual["deterministicChecksPassed"] is True:
                 completed_judge_groups.add(cast(str, actual["independenceGroup"]))
             expected_judges[key] = expected
         reproduced_judged = len(completed_judge_groups) >= 2
@@ -1724,20 +1595,13 @@ def _verify_accounting_receipt_resolution(
             family = _require_text(pin.get("family"), f"{pin_label}.family")
             key = (candidate_id, family)
             if key in expected_scorers:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{label}[{index}] repeats a scorer receipt family"
-                )
+                raise VocabularyAtlasV1ReleaseError(f"{label}[{index}] repeats a scorer receipt family")
             expected = {field: _plain(pin[field]) for field in scorer_fields}
             actual = scorer_receipts.get(key)
-            if actual is None or {
-                field: actual[field] for field in scorer_fields
-            } != expected:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"{pin_label} does not resolve to its exact scorer receipt row"
-                )
+            if actual is None or {field: actual[field] for field in scorer_fields} != expected:
+                raise VocabularyAtlasV1ReleaseError(f"{pin_label} does not resolve to its exact scorer receipt row")
             reproduced_scored = reproduced_scored or (
-                actual["outcome"] == "completed"
-                and actual["deterministicChecksPassed"] is True
+                actual["outcome"] == "completed" and actual["deterministicChecksPassed"] is True
             )
             expected_scorers[key] = expected
         if row.get("scored") is not reproduced_scored:
@@ -1745,13 +1609,9 @@ def _verify_accounting_receipt_resolution(
                 f"{label}[{index}].scored does not reproduce from exact scorer receipts"
             )
     if set(expected_judges) != set(judge_receipts):
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label} judge receipt log has missing or extra rows"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label} judge receipt log has missing or extra rows")
     if set(expected_scorers) != set(scorer_receipts):
-        raise VocabularyAtlasV1ReleaseError(
-            f"{label} scorer receipt log has missing or extra rows"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"{label} scorer receipt log has missing or extra rows")
 
 
 def _verify_pair_qualification_run(
@@ -1776,36 +1636,21 @@ def _verify_pair_qualification_run(
         label=f"v1 qualification job {job} run receipt",
     )
     record = _decode_json(payload, f"v1 qualification job {job} run receipt")
-    if (
-        not isinstance(record, Mapping)
-        or (canonical_json(record) + "\n").encode("utf-8") != payload
-    ):
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} run receipt is not canonical"
-        )
+    if not isinstance(record, Mapping) or (canonical_json(record) + "\n").encode("utf-8") != payload:
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} run receipt is not canonical")
     try:
         run = validate_qualification_run_receipt(record)
     except QualificationError as error:
         raise VocabularyAtlasV1ReleaseError(str(error)) from error
     if run.get("contentDigest") != descriptor["runReceiptContentDigest"]:
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} content digest differs"
-        )
-    expected_coverage = (
-        PRODUCTION_COVERAGE_MODE if production else PILOT_COVERAGE_MODE
-    )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} content digest differs")
+    expected_coverage = PRODUCTION_COVERAGE_MODE if production else PILOT_COVERAGE_MODE
     if run.get("coverageMode") != expected_coverage:
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} has the wrong coverage mode"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} has the wrong coverage mode")
     if production and run.get("productionReady") is not True:
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} is not production ready"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} is not production ready")
     if not production and run.get("productionReady") is not False:
-        raise VocabularyAtlasV1ReleaseError(
-            f"baseline qualification job {job} must remain non-production evidence"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"baseline qualification job {job} must remain non-production evidence")
 
     source = releases[cast(str, descriptor["sourceReleaseId"])]
     target = releases[cast(str, descriptor["targetReleaseId"])]
@@ -1819,27 +1664,19 @@ def _verify_pair_qualification_run(
         descriptor["runReceiptContentDigest"],
     )
     if uses_approved_baseline:
-        expected_manifest_digests = (
-            _PUBLIC_V1_BASELINE_ENDPOINT_MANIFEST_DIGESTS[job]
-        )
+        expected_manifest_digests = _PUBLIC_V1_BASELINE_ENDPOINT_MANIFEST_DIGESTS[job]
     if (
         run.get("sourceManifestDigest"),
         run.get("targetManifestDigest"),
     ) != expected_manifest_digests:
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} names unapproved endpoint manifest digests"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} names unapproved endpoint manifest digests")
     if production and (
         run.get("sourceManifestDigest") != source.pin()["manifestDigest"]
         or run.get("targetManifestDigest") != target.pin()["manifestDigest"]
     ):
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} names another exact release pair"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} names another exact release pair")
 
-    bundle_row = _require_mapping(
-        run.get("bundle"), f"v1 qualification job {job} bundle"
-    )
+    bundle_row = _require_mapping(run.get("bundle"), f"v1 qualification job {job} bundle")
     bundle_file = _run_support_file(
         run_path,
         bundle_row,
@@ -1860,9 +1697,7 @@ def _verify_pair_qualification_run(
         ),
     )
     if bundle.identifier != bundle_row.get("id"):
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} CrosswalkBundle identity differs"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} CrosswalkBundle identity differs")
     candidate_rows = _require_array(
         bundle.to_dict().get("mappingCandidates"),
         f"v1 qualification job {job} Crosswalk candidates",
@@ -1882,9 +1717,7 @@ def _verify_pair_qualification_run(
         f"v1 qualification job {job} candidate catalog",
     )
     if production:
-        expected_catalog_total, expected_catalog_digest = (
-            _PUBLIC_V1_PRODUCTION_CATALOGS[job]
-        )
+        expected_catalog_total, expected_catalog_digest = _PUBLIC_V1_PRODUCTION_CATALOGS[job]
         if (
             catalog_row.get("total") != expected_catalog_total
             or catalog_row.get("fileDigest") != expected_catalog_digest
@@ -1899,23 +1732,12 @@ def _verify_pair_qualification_run(
     )
     assert catalog_file is not None
     _catalog_path, catalog_payload = catalog_file
-    catalog = _decode_json(
-        catalog_payload, f"v1 qualification job {job} candidate catalog"
-    )
-    if (
-        not isinstance(catalog, Mapping)
-        or (canonical_json(catalog) + "\n").encode("utf-8") != catalog_payload
-    ):
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 qualification job {job} candidate catalog is not canonical"
-        )
+    catalog = _decode_json(catalog_payload, f"v1 qualification job {job} candidate catalog")
+    if not isinstance(catalog, Mapping) or (canonical_json(catalog) + "\n").encode("utf-8") != catalog_payload:
+        raise VocabularyAtlasV1ReleaseError(f"v1 qualification job {job} candidate catalog is not canonical")
 
-    receipt_row = _require_mapping(
-        run.get("receiptLog"), f"v1 qualification job {job} judge receipt log"
-    )
-    receipt_total = _require_count(
-        receipt_row.get("total"), f"v1 qualification job {job} receiptLog.total"
-    )
+    receipt_row = _require_mapping(run.get("receiptLog"), f"v1 qualification job {job} judge receipt log")
+    receipt_total = _require_count(receipt_row.get("total"), f"v1 qualification job {job} receiptLog.total")
     receipt_file = _run_support_file(
         run_path,
         receipt_row,
@@ -1933,9 +1755,7 @@ def _verify_pair_qualification_run(
             allow_legacy_epoch=uses_approved_baseline,
         )
 
-    scoring = _require_mapping(
-        run.get("scoring"), f"v1 qualification job {job} scoring"
-    )
+    scoring = _require_mapping(run.get("scoring"), f"v1 qualification job {job} scoring")
     scoring_row = _require_mapping(
         scoring.get("receiptLog"),
         f"v1 qualification job {job} scorer receipt log",
@@ -1961,9 +1781,7 @@ def _verify_pair_qualification_run(
             allow_legacy_epoch=uses_approved_baseline,
         )
 
-    counts = _require_mapping(
-        run.get("counts"), f"v1 qualification job {job} counts"
-    )
+    counts = _require_mapping(run.get("counts"), f"v1 qualification job {job} counts")
     if production and counts.get("generated") != expected_catalog_total:
         raise VocabularyAtlasV1ReleaseError(
             f"publicV1 qualification job {job} generated count differs from its exact catalog"
@@ -2001,9 +1819,7 @@ def _verify_pair_qualification_run(
     ]
     accounting_ids = [
         _require_iri(
-            _require_mapping(
-                row, f"v1 qualification job {job} candidate accounting[{index}]"
-            ).get("candidateId"),
+            _require_mapping(row, f"v1 qualification job {job} candidate accounting[{index}]").get("candidateId"),
             f"v1 qualification job {job} candidate accounting[{index}].candidateId",
         )
         for index, row in enumerate(accounting)
@@ -2016,13 +1832,9 @@ def _verify_pair_qualification_run(
         or set(bundle_ids) != set(accounting_ids)
         or (
             catalog.get("coverageMode") != run.get("coverageMode")
-            and not (
-                uses_approved_baseline
-                and catalog.get("coverageMode") is None
-            )
+            and not (uses_approved_baseline and catalog.get("coverageMode") is None)
         )
-        or catalog.get("generationPolicy")
-        != run.get("candidateGenerationPolicy")
+        or catalog.get("generationPolicy") != run.get("candidateGenerationPolicy")
     ):
         raise VocabularyAtlasV1ReleaseError(
             f"v1 qualification job {job} catalog, Crosswalk bundle, and accounting do not close"
@@ -2076,9 +1888,7 @@ def _verify_qualification_runs(
         ("baselineQualificationRuns", False),
     )
     for field, production in groups:
-        for descriptor in cast(
-            Sequence[Mapping[str, Any]], definition.record[field]
-        ):
+        for descriptor in cast(Sequence[Mapping[str, Any]], definition.record[field]):
             pin = _verify_pair_qualification_run(
                 descriptor,
                 root=root,
@@ -2092,24 +1902,18 @@ def _verify_qualification_runs(
                 cast(str, descriptor["runReceiptContentDigest"]),
             )
             authorized_receipts.add(receipt_key)
-            for admission in cast(
-                Sequence[Mapping[str, Any]], pin["admittedCandidates"]
-            ):
+            for admission in cast(Sequence[Mapping[str, Any]], pin["admittedCandidates"]):
                 admission_key = (
                     *receipt_key,
                     cast(str, admission["candidateId"]),
                     cast(str, admission["relation"]),
                 )
                 if admission_key in admitted_candidates:
-                    raise VocabularyAtlasV1ReleaseError(
-                        "v1 qualification jobs repeat an admitted candidate proof"
-                    )
+                    raise VocabularyAtlasV1ReleaseError("v1 qualification jobs repeat an admitted candidate proof")
                 admitted_candidates.add(admission_key)
     ids = [cast(str, pin["id"]) for pin in pins]
     if len(ids) != len(set(ids)):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 qualification jobs must pin distinct run receipts"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 qualification jobs must pin distinct run receipts")
     return (
         sorted(pins, key=lambda pin: (pin["runKind"], pin["job"])),
         frozenset(authorized_receipts),
@@ -2182,8 +1986,7 @@ def _federal_register_related_reconciliation(
     digest = sha256_digest(_canonical_bytes(basis))
     return {
         **basis,
-        "id": _FEDERAL_REGISTER_RECONCILIATION_ID_PREFIX
-        + digest.removeprefix("sha256:"),
+        "id": _FEDERAL_REGISTER_RECONCILIATION_ID_PREFIX + digest.removeprefix("sha256:"),
         "contentDigest": digest,
     }
 
@@ -2237,9 +2040,7 @@ def _open_releases(
                     label=f"v1 release {key} ring assignment",
                 )
                 if payload != assignment.artifact_bytes():
-                    raise VocabularyAtlasV1ReleaseError(
-                        f"v1 release {key} ring assignment differs from its definition"
-                    )
+                    raise VocabularyAtlasV1ReleaseError(f"v1 release {key} ring assignment differs from its definition")
             pinned_assignment = PinnedManagedReleaseRingAssignment.open(
                 assignment_path,
                 expected_file_digest=sha256_digest(assignment.artifact_bytes()),
@@ -2299,9 +2100,7 @@ def _record_public_mapping_proof(
         )
     proof_id = next(iter(supporting_proofs))
     if proof_id in used_proof_ids:
-        raise VocabularyAtlasV1ReleaseError(
-            "publicV1 mapping assertions reuse an admitted candidate proof"
-        )
+        raise VocabularyAtlasV1ReleaseError("publicV1 mapping assertions reuse an admitted candidate proof")
     used_proof_ids.add(proof_id)
 
 
@@ -2310,9 +2109,7 @@ def _open_relation_bundles(
     root: Path,
     release_sources: Mapping[str, ConceptReleaseSource],
     authorized_run_receipts: frozenset[tuple[str, str, str]],
-    required_admitted_candidates: frozenset[
-        tuple[str, str, str, str, str]
-    ],
+    required_admitted_candidates: frozenset[tuple[str, str, str, str, str]],
 ) -> tuple[PinnedRelationAssertionBundle, ...]:
     result: list[PinnedRelationAssertionBundle] = []
     represented_admissions: set[tuple[str, str, str, str, str]] = set()
@@ -2336,9 +2133,7 @@ def _open_relation_bundles(
                 cast(str, run["contentDigest"]),
             )
             if run_key not in authorized_run_receipts:
-                raise VocabularyAtlasV1ReleaseError(
-                    f"v1 relation {key} proof uses an undeclared qualification run"
-                )
+                raise VocabularyAtlasV1ReleaseError(f"v1 relation {key} proof uses an undeclared qualification run")
             run_path = _exact_file(
                 root,
                 cast(str, run["path"]),
@@ -2363,9 +2158,7 @@ def _open_relation_bundles(
                 facts.relation,
             )
             if admission_key in represented_admissions:
-                raise VocabularyAtlasV1ReleaseError(
-                    "v1 relation bundles repeat an admitted run candidate proof"
-                )
+                raise VocabularyAtlasV1ReleaseError("v1 relation bundles repeat an admitted run candidate proof")
             represented_admissions.add(admission_key)
             approved_proof_ids.add(facts.identifier)
             proofs.append(proof)
@@ -2386,10 +2179,7 @@ def _open_relation_bundles(
             raise VocabularyAtlasV1ReleaseError(f"v1 relation {key} semantic ring differs from its descriptor")
         if public_v1:
             verified = bundle.verified_bundle()
-            evidence_by_id = {
-                evidence.identifier: evidence
-                for evidence in verified.evidence_assertions
-            }
+            evidence_by_id = {evidence.identifier: evidence for evidence in verified.evidence_assertions}
             for mapping in verified.mapping_assertions:
                 _record_public_mapping_proof(
                     mapping,
@@ -2579,9 +2369,7 @@ def _validate_build_result(value: object) -> dict[str, Any]:
         raise VocabularyAtlasV1ReleaseError("v1 build result releaseMode is unsupported")
     expected_status = "passed" if mode == "publicV1" else "baselineEvidenceOnly"
     if row.get("status") != expected_status:
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 build result status must be {expected_status} for {mode}"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 build result status must be {expected_status} for {mode}")
     basis = {field: _plain(row[field]) for field in _BUILD_RESULT_BASIS_FIELDS}
     expected = _seal_build_result(basis)
     if _plain(row) != expected:
@@ -2606,9 +2394,7 @@ def _verify_artifact_inventory(
     output: Path,
     result: Mapping[str, Any],
 ) -> None:
-    expected_rows = _require_array(
-        result.get("artifacts"), "v1 build result artifacts"
-    )
+    expected_rows = _require_array(result.get("artifacts"), "v1 build result artifacts")
     expected: dict[str, Mapping[str, Any]] = {}
     for index, raw in enumerate(expected_rows):
         row = _require_mapping(raw, f"v1 build result artifacts[{index}]")
@@ -2617,28 +2403,18 @@ def _verify_artifact_inventory(
             frozenset({"path", "role", "fileDigest", "byteLength"}),
             f"v1 build result artifacts[{index}]",
         )
-        path = _require_relative_path(
-            row.get("path"), f"v1 build result artifacts[{index}].path"
-        )
+        path = _require_relative_path(row.get("path"), f"v1 build result artifacts[{index}].path")
         if path == "build-result.json" or path in expected:
-            raise VocabularyAtlasV1ReleaseError(
-                "v1 build result artifact inventory repeats or self-lists a path"
-            )
+            raise VocabularyAtlasV1ReleaseError("v1 build result artifact inventory repeats or self-lists a path")
         expected[path] = row
 
-    observed_rows = [
-        row for row in _generated_artifacts(output) if row["path"] != "build-result.json"
-    ]
+    observed_rows = [row for row in _generated_artifacts(output) if row["path"] != "build-result.json"]
     observed = {cast(str, row["path"]): row for row in observed_rows}
     if set(observed) != set(expected):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 output has missing, unlisted, or extra generated files"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 output has missing, unlisted, or extra generated files")
     for path, row in expected.items():
         if _plain(row) != observed[path]:
-            raise VocabularyAtlasV1ReleaseError(
-                f"v1 output artifact {path} differs from its build-result pin"
-            )
+            raise VocabularyAtlasV1ReleaseError(f"v1 output artifact {path} differs from its build-result pin")
 
 
 @dataclass(frozen=True, slots=True)
@@ -2663,12 +2439,8 @@ def open_vocabulary_atlas_v1_build(
     """Reopen every generated file and reproduce the complete placed build."""
 
     output = _verified_output_directory(output_directory)
-    expected_digest = _require_digest(
-        expected_result_file_digest, "v1 build-result file digest"
-    )
-    result_payload = _read_regular_file(
-        output / "build-result.json", label="v1 build result"
-    )
+    expected_digest = _require_digest(expected_result_file_digest, "v1 build-result file digest")
+    result_payload = _read_regular_file(output / "build-result.json", label="v1 build result")
     if sha256_digest(result_payload) != expected_digest:
         raise VocabularyAtlasV1ReleaseError("v1 build-result file digest differs")
     value = _decode_json(result_payload, "v1 build result")
@@ -2677,12 +2449,8 @@ def open_vocabulary_atlas_v1_build(
     result = _validate_build_result(value)
     _verify_artifact_inventory(output, result)
 
-    definition_pin = _require_mapping(
-        result.get("releaseDefinition"), "v1 build result releaseDefinition"
-    )
-    definition_relative = _require_relative_path(
-        definition_pin.get("path"), "v1 build result releaseDefinition.path"
-    )
+    definition_pin = _require_mapping(result.get("releaseDefinition"), "v1 build result releaseDefinition")
+    definition_relative = _require_relative_path(definition_pin.get("path"), "v1 build result releaseDefinition.path")
     definition_path = output.joinpath(*PurePosixPath(definition_relative).parts)
     definition = read_vocabulary_atlas_v1_release_definition(
         definition_path,
@@ -2697,14 +2465,10 @@ def open_vocabulary_atlas_v1_build(
         or definition.record.get("releaseMode") != result.get("releaseMode")
         or definition.record.get("releaseName") != result.get("releaseName")
     ):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 copied definition differs from the build result"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 copied definition differs from the build result")
 
     root = _artifact_root(artifact_root)
-    source_reconciliations = [
-        _federal_register_related_reconciliation(definition, root)
-    ]
+    source_reconciliations = [_federal_register_related_reconciliation(definition, root)]
     index = _open_planning_index(definition, root)
     scope_releases, release_sources, _release_labels = _open_releases(
         definition,
@@ -2722,13 +2486,9 @@ def open_vocabulary_atlas_v1_build(
         releases=release_sources,
     )
     if _plain(result.get("qualificationRuns")) != qualification_runs:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 build-result qualification runs differ from their exact receipts"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 build-result qualification runs differ from their exact receipts")
     if _plain(result.get("sourceReconciliations")) != source_reconciliations:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 build-result source reconciliation differs from the exact source"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 build-result source reconciliation differs from the exact source")
     relation_bundles = _open_relation_bundles(
         definition,
         root,
@@ -2739,9 +2499,7 @@ def open_vocabulary_atlas_v1_build(
     scope_pin = _require_mapping(result.get("scope"), "v1 build result scope")
     pinned_scope = PinnedVocabularyAtlasScope.open(
         output / "control" / "atlas-scope.json",
-        expected_file_digest=_require_digest(
-            scope_pin.get("fileDigest"), "v1 build result scope.fileDigest"
-        ),
+        expected_file_digest=_require_digest(scope_pin.get("fileDigest"), "v1 build result scope.fileDigest"),
         atlas_index=index,
         releases=scope_releases,
         relation_bundles=relation_bundles,
@@ -2777,22 +2535,13 @@ def open_vocabulary_atlas_v1_build(
             "v1 build result publicationDecision.fileDigest",
         ),
     )
-    if (
-        decision.identifier != decision_pin.get("id")
-        or decision.record_digest != decision_pin.get("recordDigest")
-    ):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 publication decision differs from its build-result pin"
-        )
+    if decision.identifier != decision_pin.get("id") or decision.record_digest != decision_pin.get("recordDigest"):
+        raise VocabularyAtlasV1ReleaseError("v1 publication decision differs from its build-result pin")
     decision.validate_for_scope(pinned_scope)
     decision.validate_distribution(atlas)
 
-    publication_pin = _require_mapping(
-        result.get("publication"), "v1 build result publication"
-    )
-    publication_relative = _require_relative_path(
-        publication_pin.get("path"), "v1 build result publication.path"
-    )
+    publication_pin = _require_mapping(result.get("publication"), "v1 build result publication")
+    publication_relative = _require_relative_path(publication_pin.get("path"), "v1 build result publication.path")
     expected_publication = (
         ("publicVocabularyAtlas", "public")
         if result["releaseMode"] == "publicV1"
@@ -2802,9 +2551,7 @@ def open_vocabulary_atlas_v1_build(
         publication_pin.get("role"),
         publication_relative,
     ) != expected_publication:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 publication role or path differs from its release mode"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 publication role or path differs from its release mode")
     publication = AtlasPublication.open(
         output.joinpath(*PurePosixPath(publication_relative).parts),
         expected_manifest_digest=_require_digest(
@@ -2813,22 +2560,16 @@ def open_vocabulary_atlas_v1_build(
         ),
     )
     if publication.manifest.get("id") != publication_pin.get("id"):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 publication differs from its build-result pin"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 publication differs from its build-result pin")
     explorer_payload = _read_regular_file(
         publication.directory / EXPLORER_DATA,
         label="v1 publication explorer",
     )
     explorer = _decode_json(explorer_payload, "v1 publication explorer")
     if not isinstance(explorer, Mapping) or _canonical_bytes(explorer) != explorer_payload:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 publication explorer bytes are not canonical"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 publication explorer bytes are not canonical")
 
-    acceptance_pin = _require_mapping(
-        result.get("acceptance"), "v1 build result acceptance"
-    )
+    acceptance_pin = _require_mapping(result.get("acceptance"), "v1 build result acceptance")
     acceptance = read_vocabulary_atlas_release_acceptance(
         output / "control" / "release-acceptance.json",
         expected_file_digest=_require_digest(
@@ -2836,13 +2577,10 @@ def open_vocabulary_atlas_v1_build(
             "v1 build result acceptance.fileDigest",
         ),
     )
-    if (
-        acceptance.identifier != acceptance_pin.get("id")
-        or acceptance.record_digest != acceptance_pin.get("recordDigest")
+    if acceptance.identifier != acceptance_pin.get("id") or acceptance.record_digest != acceptance_pin.get(
+        "recordDigest"
     ):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 acceptance differs from its build-result pin"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 acceptance differs from its build-result pin")
     acceptance.validate_inputs(
         atlas,
         scope=pinned_scope,
@@ -2861,18 +2599,12 @@ def open_vocabulary_atlas_v1_build(
         federal_register_reconciliation=source_reconciliations[0],
     )
     if _plain(acceptance.record.get("checks")) != expected_checks:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 acceptance checks were not derived by the release builder"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 acceptance checks were not derived by the release builder")
     validate_vocabulary_atlas_v1_acceptance(definition, acceptance)
-    if (
-        _plain(acceptance.record.get("counts")) != _plain(result.get("counts"))
-        or _plain(acceptance.record.get("reproducibility"))
-        != _plain(result.get("reproducibility"))
-    ):
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 acceptance measurements differ from the build result"
-        )
+    if _plain(acceptance.record.get("counts")) != _plain(result.get("counts")) or _plain(
+        acceptance.record.get("reproducibility")
+    ) != _plain(result.get("reproducibility")):
+        raise VocabularyAtlasV1ReleaseError("v1 acceptance measurements differ from the build result")
     return VocabularyAtlasV1Build(
         output_directory=output,
         result=cast(Mapping[str, Any], deep_freeze_json(result)),
@@ -2892,9 +2624,7 @@ def _builder_acceptance_checks(
     federal_register_reconciliation: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     mode = cast(str, definition.record["releaseMode"])
-    qualification_evidence = sorted(
-        cast(str, run["id"]) for run in qualification_runs
-    )
+    qualification_evidence = sorted(cast(str, run["id"]) for run in qualification_runs)
     publication_statement = (
         "The exact public v1 package reopened from its external manifest digest."
         if mode == "publicV1"
@@ -2909,17 +2639,13 @@ def _builder_acceptance_checks(
             "id": "urn:ref:check:vocabulary-atlas-v1:canonical-reproduction",
             "statement": "The canonical Atlas reproduced from its exact six-release scope.",
             "status": "passed",
-            "evidence": sorted(
-                [scope.scope_id, cast(str, atlas.manifest["id"])]
-            ),
+            "evidence": sorted([scope.scope_id, cast(str, atlas.manifest["id"])]),
         },
         {
             "id": "urn:ref:check:vocabulary-atlas-v1:definition-and-controls",
             "statement": "The independently pinned definition, planning index, source approvals, and every planning-row disposition agree.",
             "status": "passed",
-            "evidence": sorted(
-                [definition.identifier, index.index_id, decision.identifier]
-            ),
+            "evidence": sorted([definition.identifier, index.index_id, decision.identifier]),
         },
         {
             "id": "urn:ref:check:vocabulary-atlas-v1:federal-register-related-reconciliation",
@@ -2942,9 +2668,7 @@ def _builder_acceptance_checks(
             "id": "urn:ref:check:vocabulary-atlas-v1:publication-reopen",
             "statement": publication_statement,
             "status": "passed",
-            "evidence": sorted(
-                [cast(str, publication.manifest["id"]), decision.identifier]
-            ),
+            "evidence": sorted([cast(str, publication.manifest["id"]), decision.identifier]),
         },
         {
             "id": "urn:ref:check:vocabulary-atlas-v1:qualification-accounting",
@@ -2971,9 +2695,7 @@ def _build_in_staging(
         label="copied v1 release definition",
     )
     index = _open_planning_index(definition, root)
-    source_reconciliations = [
-        _federal_register_related_reconciliation(definition, root)
-    ]
+    source_reconciliations = [_federal_register_related_reconciliation(definition, root)]
     assignment_directory = staging / "control" / "ring-assignments"
     assignment_directory.mkdir(parents=True)
     scope_releases, release_sources, release_labels = _open_releases(
@@ -3028,9 +2750,7 @@ def _build_in_staging(
         decision = build_vocabulary_atlas_publication_decision(
             pinned_scope,
             artifact_kind="atlas",
-            policies=cast(
-                Sequence[Mapping[str, Any]], publication_values["policies"]
-            ),
+            policies=cast(Sequence[Mapping[str, Any]], publication_values["policies"]),
             decision_actor=cast(str, publication_values["decisionActor"]),
             decided_at=cast(str, publication_values["decidedAt"]),
             result={
@@ -3039,18 +2759,10 @@ def _build_in_staging(
                 "manifestDigest": atlas.manifest_digest,
                 "distributionDigest": atlas.output_digest,
             },
-            exceptions=cast(
-                Sequence[Mapping[str, Any]], publication_values["exceptions"]
-            ),
-            supersedes=cast(
-                Sequence[Mapping[str, Any]], publication_values["supersedes"]
-            ),
-            source_approvals=cast(
-                Sequence[Mapping[str, Any]], publication_values["sourceApprovals"]
-            ),
-            row_dispositions=cast(
-                Sequence[Mapping[str, Any]], publication_values["rowDispositions"]
-            ),
+            exceptions=cast(Sequence[Mapping[str, Any]], publication_values["exceptions"]),
+            supersedes=cast(Sequence[Mapping[str, Any]], publication_values["supersedes"]),
+            source_approvals=cast(Sequence[Mapping[str, Any]], publication_values["sourceApprovals"]),
+            row_dispositions=cast(Sequence[Mapping[str, Any]], publication_values["rowDispositions"]),
         )
     except PublicationDecisionError as error:
         raise VocabularyAtlasV1ReleaseError(str(error)) from error
@@ -3121,9 +2833,7 @@ def _build_in_staging(
     )
 
     if definition.file_digest is None:
-        raise VocabularyAtlasV1ReleaseError(
-            "v1 build lost its independently reopened definition digest"
-        )
+        raise VocabularyAtlasV1ReleaseError("v1 build lost its independently reopened definition digest")
     basis = {
         "type": VOCABULARY_ATLAS_V1_BUILD_RESULT_TYPE,
         "schemaVersion": VOCABULARY_ATLAS_V1_BUILD_RESULT_VERSION,
@@ -3149,11 +2859,7 @@ def _build_in_staging(
             "fileDigest": decision_file_digest,
         },
         "publication": {
-            "role": (
-                "publicVocabularyAtlas"
-                if release_mode == "publicV1"
-                else "baselineEvidencePreview"
-            ),
+            "role": ("publicVocabularyAtlas" if release_mode == "publicV1" else "baselineEvidencePreview"),
             "path": publication_path,
             "id": publication.manifest["id"],
             "manifestDigest": publication.manifest_digest,
@@ -3192,9 +2898,7 @@ def build_vocabulary_atlas_v1_release(
     root = _artifact_root(artifact_root)
     requested_destination = Path(output_directory)
     if requested_destination.exists() or requested_destination.is_symlink():
-        raise VocabularyAtlasV1ReleaseError(
-            f"v1 output destination already exists: {requested_destination}"
-        )
+        raise VocabularyAtlasV1ReleaseError(f"v1 output destination already exists: {requested_destination}")
     requested_destination.parent.mkdir(parents=True, exist_ok=True)
     if requested_destination.parent.is_symlink():
         raise VocabularyAtlasV1ReleaseError("v1 output parent must not be a symlink")
@@ -3220,9 +2924,7 @@ def build_vocabulary_atlas_v1_release(
             expected_result_file_digest=sha256_digest(result_payload),
         )
         if _plain(reopened.result) != result:
-            raise VocabularyAtlasV1ReleaseError(
-                "placed v1 build differs from the verified staging result"
-            )
+            raise VocabularyAtlasV1ReleaseError("placed v1 build differs from the verified staging result")
         return reopened
     except BaseException:
         cleanup = destination if placed else staging
