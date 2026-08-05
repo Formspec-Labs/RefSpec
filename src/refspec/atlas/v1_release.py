@@ -160,7 +160,7 @@ _FEDERAL_REGISTER_RELATED_REFERENCE_COUNTS: Mapping[str, int] = {
 }
 _FEDERAL_REGISTER_RECONCILIATION_ID_PREFIX = "urn:ref:federal-register-related-reference-reconciliation:"
 _PUBLIC_V1_PLANNING_INDEX_DIGESTS: Mapping[str, str] = {
-    "fileDigest": "sha256:d18e1f254d53ecf2008dcb08ab4e721a580d98e988f86d3f159dd99fb84738e6",
+    "fileDigest": "sha256:c84657233253289530aaf43c58ae7d8098a1887630bffa8fe79590d945b4a386",
     "inputFileDigest": "sha256:aeeedc35c99bb8a7ac6185ff323b8d8306f5a359aab46288a2fa102cef9e9d5c",
     "resourceCatalogFileDigest": "sha256:f0f6be90ae4017187242561af837e3642dab80bff9371082bcdcfaf0b03a94d7",
 }
