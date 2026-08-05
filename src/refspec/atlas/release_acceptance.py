@@ -872,6 +872,7 @@ def _acceptance_basis(
         or rebuilt.manifest_bytes() != atlas.manifest_bytes()
     ):
         raise ReleaseAcceptanceError("canonical Atlas does not reproduce from the exact pinned scope")
+    publication_decision.validate_for_scope(scope)
     publication_decision.validate_distribution(atlas)
 
     queries = VocabularyAtlasQueries(atlas)
