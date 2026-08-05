@@ -7,6 +7,15 @@ from refspec.accepted_output import (
     AcceptedOutputAuthorizationError,
     authorize_accepted_assignment,
 )
+from refspec.atlas.release_acceptance import (
+    RELEASE_ACCEPTANCE_TYPE,
+    RELEASE_ACCEPTANCE_VERSION,
+    AcceptanceCheckStatus,
+    ReleaseAcceptanceError,
+    ReproducibilityStatus,
+    VocabularyAtlasReleaseAcceptance,
+    build_vocabulary_atlas_release_acceptance,
+)
 from refspec.generated_rulespec_dependency import load_rulespec_dependency
 from refspec.managed_release import (
     CANDIDATE_EXCLUDED_SOURCE_STATUSES,
@@ -80,7 +89,10 @@ __all__ = [
     "CONCEPT_LABEL_COLUMNS",
     "CONCEPT_RELATION_COLUMNS",
     "MAPPING_IMPORT_REQUIRED_FEATURES",
+    "RELEASE_ACCEPTANCE_TYPE",
+    "RELEASE_ACCEPTANCE_VERSION",
     "REQUIRED_IMPORT_FEATURES",
+    "AcceptanceCheckStatus",
     "AcceptedOutputAuthorization",
     "AcceptedOutputAuthorizationError",
     "ConceptEventParticipant",
@@ -111,12 +123,16 @@ __all__ = [
     "RegistryDeploymentDecision",
     "RegistryImportCoverageReport",
     "RegistryReconciliationReport",
+    "ReleaseAcceptanceError",
+    "ReproducibilityStatus",
+    "VocabularyAtlasReleaseAcceptance",
     "VocabularyUniverseFreeze",
     "__version__",
     "adapt_source_terms_for_migration",
     "assert_managed_vocabulary_row_integrity",
     "authorize_accepted_assignment",
     "bind_ranked_candidates",
+    "build_vocabulary_atlas_release_acceptance",
     "canonical_payload_digest",
     "canonical_text_digest",
     "indexed_expression_corpus_digest",
