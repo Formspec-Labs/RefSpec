@@ -24,8 +24,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:087b3e2e453ebb3bd81f1e80e0e7ba124421a63f8446cb7cddbc78490318ef24",
-  "indexId": "urn:ref:atlas-index:087b3e2e453ebb3bd81f1e80e0e7ba124421a63f8446cb7cddbc78490318ef24",
+  "indexDigest": "sha256:3e9488eb86192db103fdcf29d1727b0e31927f466ad7b1a33a7f2eeae7521d8d",
+  "indexId": "urn:ref:atlas-index:3e9488eb86192db103fdcf29d1727b0e31927f466ad7b1a33a7f2eeae7521d8d",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-04T10:18:54Z",
   "resourceCatalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
@@ -593,8 +593,8 @@
       "readinessEvidence": [
         {
           "kind": "managedReleaseValidation",
-          "path": "research/evidence/elsst-r6-only-atlas-2026-08-02/evidence.json",
-          "sha256": "sha256:8f120c7c65c324ae10b9c313f8d9ecba70b41c4856692f4ecc2631851f9d7225"
+          "path": "research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json",
+          "sha256": "sha256:83d12287a39e304bcd79aa16305a3f845fa80af5065d09f4062e8b1e0ddbb4c8"
         },
         {
           "kind": "parserTest",
@@ -608,14 +608,14 @@
         }
       ],
       "release": {
-        "evidencePath": "research/evidence/elsst-r6-only-atlas-2026-08-02/evidence.json",
-        "evidenceSha256": "sha256:8f120c7c65c324ae10b9c313f8d9ecba70b41c4856692f4ecc2631851f9d7225",
-        "manifestDigest": "sha256:e20928a6cb68494dfac8b8c16d6aa3db1147f2145d99c31bd01287eeced9761f",
-        "releaseId": "urn:ref:elsst:publication:development:f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552"
+        "evidencePath": "research/evidence/elsst-r6-atlas2-managed-release-2026-08-04/evidence.json",
+        "evidenceSha256": "sha256:83d12287a39e304bcd79aa16305a3f845fa80af5065d09f4062e8b1e0ddbb4c8",
+        "manifestDigest": "sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25",
+        "releaseId": "https://elsst.cessda.eu/id/6"
       },
       "resourceId": "elsst",
-      "rowDigest": "sha256:3119ba40de3982afc51ec365cd31314ce9584a81aa35f92ec3b8331cee30c7cf",
-      "rowId": "urn:ref:atlas-index-row:3119ba40de3982afc51ec365cd31314ce9584a81aa35f92ec3b8331cee30c7cf",
+      "rowDigest": "sha256:d10a9e49112d9afadaaa111e0e5b85eb723bee3fcad976a98cb67a65437d44a1",
+      "rowId": "urn:ref:atlas-index-row:d10a9e49112d9afadaaa111e0e5b85eb723bee3fcad976a98cb67a65437d44a1",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.elsst"
     },
@@ -912,12 +912,12 @@
         {
           "kind": "managedReleaseValidation",
           "path": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
-          "sha256": "sha256:32537e555d688dcd2760f00ff057e71e8cc73975e608c53a71b4d07aa7d27837"
+          "sha256": "sha256:9c0259d5e8c17a0a8cdd5712c490fb28e7ec68e1637058f0a84ad120d68aae7b"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_thesaurus_2025.py",
-          "sha256": "sha256:18b3dadb1d54799ce068890b43134b710412192cd77e08c9b8a79b5d4c68b8cc"
+          "sha256": "sha256:fd9fa4be7bc1ff3fa98370d2c827432e5d1a2e89ab9c55292f9aa5f30c9c86d3"
         },
         {
           "kind": "sourceImplementation",
@@ -927,13 +927,13 @@
       ],
       "release": {
         "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
-        "evidenceSha256": "sha256:32537e555d688dcd2760f00ff057e71e8cc73975e608c53a71b4d07aa7d27837",
+        "evidenceSha256": "sha256:9c0259d5e8c17a0a8cdd5712c490fb28e7ec68e1637058f0a84ad120d68aae7b",
         "manifestDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
-        "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:managed-release:v1"
+        "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
       },
       "resourceId": "federal-register-thesaurus-2025",
-      "rowDigest": "sha256:02731088e627655916ac684579c5f69e3602dff0343f4def21670da6d24b0c47",
-      "rowId": "urn:ref:atlas-index-row:02731088e627655916ac684579c5f69e3602dff0343f4def21670da6d24b0c47",
+      "rowDigest": "sha256:e103d59298965ac967564b5af0db6f07fc3f152eeef524b4e0523d313e94a413",
+      "rowId": "urn:ref:atlas-index-row:e103d59298965ac967564b5af0db6f07fc3f152eeef524b4e0523d313e94a413",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
     },
@@ -1287,7 +1287,7 @@
         {
           "kind": "managedReleaseValidation",
           "path": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
-          "sha256": "sha256:4bbe2515316ec00610e7fd37ec13d16d10a77bf542483adcb956a90f78b2225b"
+          "sha256": "sha256:d09d7504a29b5fed12648dd8eb8ea71ff2b1484e4329c2121b4169f268c8192e"
         },
         {
           "kind": "parserTest",
@@ -1302,13 +1302,13 @@
       ],
       "release": {
         "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
-        "evidenceSha256": "sha256:4bbe2515316ec00610e7fd37ec13d16d10a77bf542483adcb956a90f78b2225b",
-        "manifestDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
+        "evidenceSha256": "sha256:d09d7504a29b5fed12648dd8eb8ea71ff2b1484e4329c2121b4169f268c8192e",
+        "manifestDigest": "sha256:f3c9f4efa7fd12b6339db9feabb029b17425672293a8fb615999c881673ac12a",
         "releaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"
       },
       "resourceId": "icpsr-subject-thesaurus",
-      "rowDigest": "sha256:bc5c7f0cb21de665ee508c6c132019026e8cce645cfd95f6d9be5529a6e5dcde",
-      "rowId": "urn:ref:atlas-index-row:bc5c7f0cb21de665ee508c6c132019026e8cce645cfd95f6d9be5529a6e5dcde",
+      "rowDigest": "sha256:c15a113411198245dcebd971a6824da103c3983e5433a8850c054585152035f5",
+      "rowId": "urn:ref:atlas-index-row:c15a113411198245dcebd971a6824da103c3983e5433a8850c054585152035f5",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.icpsr_subject"
     },

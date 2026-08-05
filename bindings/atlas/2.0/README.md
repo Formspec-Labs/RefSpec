@@ -89,8 +89,9 @@ equal the fields in `atlas-scope.json`; and its `fileDigest` MUST cover the
 complete scope file bytes. Its `path`, `mediaType`, and `byteLength` identify
 those same bytes.
 
-`scopeKind` is either `bench` or `product`. It describes the intended build
-context and grants no permission.
+`scopeKind` is `bench`, `published`, or `product`. It describes the intended
+build context and grants no permission. `published` states that the facts are
+in a publication scope; product activation remains a separate decision.
 
 `atlasIndex` pins one exact index identity, content digest, and file digest.
 Every release row MUST contain every matching index row as a non-empty

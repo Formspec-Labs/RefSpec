@@ -1,0 +1,23 @@
+{
+  "evidenceType": "ElsstR6Atlas2ManagedConceptRelease",
+  "recordedAt": "2026-08-04T20:00:00Z",
+  "managedRelease": {
+    "releaseId": "https://elsst.cessda.eu/id/6",
+    "manifestDigest": "sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25",
+    "declaredReleaseDigest": "sha256:fdaf27ad3f013b21d1eaf1d745f37faa67229baa3f6c3033cfb822bf4dc96416",
+    "membershipMode": "completeMembership",
+    "memberCount": 3470,
+    "nativeRelationCount": 12482,
+    "rulespecGraph": {
+      "id": "urn:ref:elsst:rulespec-graph:f05a1aeb6e59c4f5a26347ea2a302f335149317bd0b8ceed929a8b117e537552",
+      "digest": "sha256:9b2f22defaac98c2156b4d4bec2eebad9470de27efd9833e2747b89e8f263b03"
+    }
+  },
+  "releaseIdentityRule": {
+    "declaredVocabularyIdentity": "rulespecReferenceReleaseDigest",
+    "exactDistributionIdentity": "managedBundleManifestDigest",
+    "operationalSerializationProfile": "distributionValidationProvenanceOnly"
+  },
+  "sourceEvidence": "research/evidence/elsst-r6-only-atlas-2026-08-02/evidence.json",
+  "interpretation": "The resealed bundle opens under current RefSpec metadata without changing the selected ELSST R6 graph, member set, native relation set, or declared vocabulary identity. The exact bundle manifest digest separately pins serialization and validation metadata."
+}
