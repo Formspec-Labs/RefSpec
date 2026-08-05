@@ -70,6 +70,13 @@ from .projection import (
     module_projection_policy,
     ring_projection_policy,
 )
+from .publication import (
+    ATLAS_INDEX,
+    AtlasPublication,
+    AtlasPublicationError,
+    build_explorer_model,
+    publish_vocabulary_atlas,
+)
 from .publication_decision import (
     PUBLICATION_DECISION_TYPE,
     PUBLICATION_DECISION_VERSION,
@@ -84,6 +91,7 @@ from .queries import (
     CanonicalAtlasRecord,
     CanonicalRecordRole,
     ConceptLabel,
+    ConceptNeighborhood,
     ConceptVersion,
     EvidenceAssertionView,
     LabelMatch,
@@ -125,6 +133,7 @@ from .release_acceptance import (
     ReproducibilityStatus,
     VocabularyAtlasReleaseAcceptance,
     build_vocabulary_atlas_release_acceptance,
+    read_vocabulary_atlas_release_acceptance,
 )
 from .release_snapshot import (
     ATLAS_RELEASE_SNAPSHOT_TYPE,
@@ -155,6 +164,7 @@ from .subject_emission import (
 
 __all__ = [
     "ATLAS",
+    "ATLAS_INDEX",
     "ATLAS_RELEASE_SNAPSHOT_TYPE",
     "ATLAS_RELEASE_SNAPSHOT_VERSION",
     "ATLAS_SCOPE_TYPE",
@@ -184,6 +194,8 @@ __all__ = [
     "SUBJECT_EMISSION_POLICY_VERSION",
     "AcceptanceCheckStatus",
     "AtlasIndexClassification",
+    "AtlasPublication",
+    "AtlasPublicationError",
     "AtlasReleaseSnapshot",
     "AtlasReleaseSnapshotError",
     "AtlasScopeError",
@@ -194,6 +206,7 @@ __all__ = [
     "ConceptAuthoringSource",
     "ConceptAuthoringTransition",
     "ConceptLabel",
+    "ConceptNeighborhood",
     "ConceptReleaseError",
     "ConceptReleaseSource",
     "ConceptStagingError",
@@ -248,6 +261,7 @@ __all__ = [
     "admitted_subject_concept_ids",
     "build_atlas_projection",
     "build_concept_authoring_transition",
+    "build_explorer_model",
     "build_machine_evidence_from_crosswalk_proof",
     "build_subject_admission_review",
     "build_subject_emission_policy",
@@ -260,8 +274,10 @@ __all__ = [
     "machine_evidence_class_for_proof_kind",
     "module_projection_policy",
     "normalize_concept_release_pin",
+    "publish_vocabulary_atlas",
     "read_concept_authoring_transition",
     "read_vocabulary_atlas_publication_decision",
+    "read_vocabulary_atlas_release_acceptance",
     "register_trusted_relation_machine_proof_adapter",
     "registered_relation_machine_proof_adapters",
     "relation_sssom_text",

@@ -28,6 +28,7 @@ from typing import Any, cast
 from urllib.parse import unquote, urlparse
 
 from refspec import binding
+from refspec.atlas_index import AtlasIndexError, PinnedAtlasIndex
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -65,17 +66,18 @@ from .queries import (
 )
 
 PUBLICATION_MANIFEST = "publication-manifest.json"
+ATLAS_INDEX = "atlas-index.json"
 EXPLORER_DATA = "atlas-explorer.json"
 EXPLORER_HTML = "index.html"
 COMPRESSED_ATLAS = "atlas.nq.gz"
 ATLAS_MANIFEST = MANIFEST_FILE
 ATLAS_SCOPE = SCOPE_FILE
 PUBLICATION_DECISION = "publication-decision.json"
-PUBLICATION_SCHEMA_VERSION = "2.1"
+PUBLICATION_SCHEMA_VERSION = "2.2"
 
 _PUBLICATION_TYPE = "urn:ref:type:VocabularyAtlasPublicationManifest"
 _PUBLICATION_ID_PREFIX = "urn:ref:vocabulary-atlas-publication:"
-_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/2.1"
+_SELECTION_POLICY_ID = "https://refspec.org/policies/vocabulary-atlas-explorer-bounded-view/3.0"
 _DEFAULT_MAX_CONCEPTS: int | None = None
 _DEFAULT_MAX_MAPPING_ASSERTIONS: int | None = None
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -98,6 +100,7 @@ _PUBLICATION_FIELDS = frozenset(
         "canonicalPayloadDigest",
     }
 )
+_PUBLICATION_OPTIONAL_FIELDS = frozenset({"planningIndex"})
 _PUBLICATION_BASIS_FIELDS = (
     "type",
     "schemaVersion",
@@ -112,6 +115,7 @@ _ATLAS_DISTRIBUTION_FIELDS = frozenset({"kind", "assetId", "manifestDigest", "di
 _PROJECTION_DISTRIBUTION_FIELDS = _ATLAS_DISTRIBUTION_FIELDS | {"parent"}
 _PARENT_FIELDS = frozenset({"assetId", "manifestDigest", "distributionDigest"})
 _DECISION_FIELDS = frozenset({"id", "recordDigest", "fileDigest"})
+_PLANNING_INDEX_FIELDS = frozenset({"role", "id", "indexDigest", "fileDigest"})
 _SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappingAssertions"})
 _SUMMARY_FIELDS = frozenset(
     {
@@ -131,6 +135,7 @@ _COMPRESSED_ARTIFACT_FIELDS = _ARTIFACT_FIELDS | {
     "uncompressedByteLength",
 }
 _ARTIFACT_SPEC = {
+    ATLAS_INDEX: ("planningIndex", "application/json"),
     ATLAS_MANIFEST: ("sourceDistributionManifest", "application/json"),
     ATLAS_SCOPE: ("canonicalScope", "application/json"),
     COMPRESSED_ATLAS: ("compressedDistribution", "application/n-quads"),
@@ -173,9 +178,11 @@ def _require_exact_fields(
     value: Mapping[str, Any],
     expected: frozenset[str],
     label: str,
+    *,
+    optional: frozenset[str] = frozenset(),
 ) -> None:
     actual = set(value)
-    if actual != expected:
+    if not expected <= actual or not actual <= expected | optional:
         raise AtlasPublicationError(
             f"{label} fields differ; missing={sorted(expected - actual)}, extra={sorted(actual - expected)}"
         )
@@ -211,6 +218,22 @@ def _load_canonical_json(payload: bytes, label: str) -> dict[str, Any]:
         raise AtlasPublicationError(f"{label} must be valid canonical UTF-8 JSON") from error
     if not isinstance(value, dict) or _canonical_bytes(value) != payload:
         raise AtlasPublicationError(f"{label} bytes are not canonical")
+    return value
+
+
+def _load_exact_json(payload: bytes, label: str) -> dict[str, Any]:
+    """Decode exact digest-pinned JSON that need not use canonical whitespace."""
+
+    try:
+        value = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=binding.reject_duplicate_keys,
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise AtlasPublicationError(f"{label} must be valid UTF-8 JSON") from error
+    if not isinstance(value, dict):
+        raise AtlasPublicationError(f"{label} must be an object")
     return value
 
 
@@ -362,13 +385,354 @@ def _selection_policy(
     }
 
 
+def _planning_index_snapshot(
+    planning_index: PinnedAtlasIndex | None,
+) -> tuple[Mapping[str, Any] | None, Mapping[str, str] | None, bytes | None]:
+    if planning_index is None:
+        return None, None, None
+    if not isinstance(planning_index, PinnedAtlasIndex):
+        raise AtlasPublicationError("planning_index must be a PinnedAtlasIndex")
+    try:
+        before = planning_index.path.read_bytes()
+        verified = planning_index.verified_index()
+        pin = planning_index.pin()
+        after = planning_index.path.read_bytes()
+    except (AtlasIndexError, OSError) as error:
+        raise AtlasPublicationError(str(error)) from error
+    if before != after or sha256_digest(before) != planning_index.file_digest:
+        raise AtlasPublicationError("planning index changed while preparing the publication")
+    return verified, pin, before
+
+
+def _release_context(
+    planning_index: Mapping[str, Any] | None,
+    planning_index_pin: Mapping[str, str] | None,
+    decision: VocabularyAtlasPublicationDecision | None,
+) -> dict[str, Any]:
+    if planning_index is None and planning_index_pin is None and decision is None:
+        return {
+            "sourceApprovals": [],
+            "planningRows": [],
+        }
+    if planning_index is None or planning_index_pin is None or decision is None:
+        raise AtlasPublicationError("planning_index and decision must be supplied together for release metadata")
+    if not isinstance(decision, VocabularyAtlasPublicationDecision):
+        raise AtlasPublicationError("release metadata requires a publication decision")
+    if _plain(decision.record.get("planningIndex")) != _plain(planning_index_pin):
+        raise AtlasPublicationError("publication decision planning index differs from the supplied exact index")
+    dispositions = decision.record.get("rowDispositions")
+    approvals = decision.record.get("sourceApprovals")
+    if (
+        not isinstance(dispositions, Sequence)
+        or isinstance(dispositions, (str, bytes))
+        or not isinstance(approvals, Sequence)
+        or isinstance(approvals, (str, bytes))
+    ):
+        raise AtlasPublicationError("release metadata requires a v2 publication decision with complete controls")
+    disposition_by_id: dict[str, Mapping[str, Any]] = {}
+    for index, raw in enumerate(dispositions):
+        row = _require_mapping(raw, f"publication decision rowDispositions[{index}]")
+        row_id = _require_text(
+            row.get("rowId"),
+            f"publication decision rowDispositions[{index}].rowId",
+        )
+        if row_id in disposition_by_id:
+            raise AtlasPublicationError("publication decision repeats a planning-row disposition")
+        disposition_by_id[row_id] = row
+
+    planning_rows = []
+    index_rows = _require_sequence(
+        planning_index.get("rows"),
+        "verified planning index rows",
+    )
+    for index, raw in enumerate(index_rows):
+        row = _require_mapping(raw, f"verified planning index rows[{index}]")
+        row_id = _require_text(row.get("rowId"), f"verified planning index rows[{index}].rowId")
+        disposition = disposition_by_id.pop(row_id, None)
+        if disposition is None or disposition.get("rowDigest") != row.get("rowDigest"):
+            raise AtlasPublicationError("publication decision dispositions differ from the exact planning index")
+        release = row.get("release")
+        release_id = (
+            _require_text(
+                cast(Mapping[str, Any], release).get("releaseId"),
+                f"verified planning index rows[{index}].release.releaseId",
+            )
+            if isinstance(release, Mapping)
+            else None
+        )
+        planning_row = {
+            "rowId": row_id,
+            "rowDigest": _require_digest(
+                row.get("rowDigest"),
+                f"verified planning index rows[{index}].rowDigest",
+            ),
+            "sourceModule": _require_text(
+                row.get("sourceModule"),
+                f"verified planning index rows[{index}].sourceModule",
+            ),
+            "resourceId": _require_text(
+                row.get("resourceId"),
+                f"verified planning index rows[{index}].resourceId",
+            ),
+            "facet": _require_text(
+                row.get("facet"),
+                f"verified planning index rows[{index}].facet",
+            ),
+            "semanticRing": _require_text(
+                row.get("semanticRing"),
+                f"verified planning index rows[{index}].semanticRing",
+            ),
+            "planningStatus": _require_text(
+                row.get("planningStatus"),
+                f"verified planning index rows[{index}].planningStatus",
+            ),
+            "intendedUses": list(
+                _require_sequence(
+                    row.get("intendedUses"),
+                    f"verified planning index rows[{index}].intendedUses",
+                )
+            ),
+            "disposition": _require_text(
+                disposition.get("disposition"),
+                f"publication decision disposition for {row_id}",
+            ),
+            "reason": _require_text(
+                disposition.get("reason"),
+                f"publication decision disposition reason for {row_id}",
+            ),
+        }
+        participation = row.get("atlasParticipation")
+        if participation is not None:
+            planning_row["atlasParticipation"] = _require_text(
+                participation,
+                f"verified planning index rows[{index}].atlasParticipation",
+            )
+        if release_id is not None:
+            planning_row["releaseId"] = release_id
+        planning_rows.append(planning_row)
+    if disposition_by_id:
+        raise AtlasPublicationError("publication decision disposes rows outside the exact planning index")
+    planning_rows.sort(key=lambda row: row["rowId"])
+    return {
+        "planningIndex": _plain(planning_index_pin),
+        "publicationDecision": {
+            "id": decision.identifier,
+            "recordDigest": decision.record_digest,
+            "schemaVersion": decision.record["schemaVersion"],
+        },
+        "sourceApprovals": _plain(approvals),
+        "planningRows": planning_rows,
+    }
+
+
+def _named_scalar_values(value: object, names: frozenset[str]) -> set[str]:
+    result: set[str] = set()
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if key in names:
+                if isinstance(child, (str, int)) and not isinstance(child, bool):
+                    result.add(str(child))
+                elif isinstance(child, Sequence) and not isinstance(child, (str, bytes)):
+                    result.update(
+                        str(item) for item in child if isinstance(item, (str, int)) and not isinstance(item, bool)
+                    )
+            result.update(_named_scalar_values(child, names))
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for child in value:
+            result.update(_named_scalar_values(child, names))
+    return result
+
+
+def _cfr_values(value: object) -> tuple[set[str], set[str]]:
+    titles = _named_scalar_values(
+        value,
+        frozenset({"cfrTitle", "cfrTitles", "titleNumber"}),
+    )
+    parts = _named_scalar_values(
+        value,
+        frozenset({"cfrPart", "cfrParts", "partNumber"}),
+    )
+    if isinstance(value, Mapping):
+        references = value.get("cfrReferences")
+        if isinstance(references, Sequence) and not isinstance(references, (str, bytes)):
+            for reference in references:
+                if not isinstance(reference, Mapping):
+                    continue
+                title = reference.get("title")
+                part = reference.get("part")
+                if isinstance(title, (str, int)) and not isinstance(title, bool):
+                    titles.add(str(title))
+                if isinstance(part, (str, int)) and not isinstance(part, bool):
+                    parts.add(str(part))
+        for child in value.values():
+            child_titles, child_parts = _cfr_values(child)
+            titles.update(child_titles)
+            parts.update(child_parts)
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for child in value:
+            child_titles, child_parts = _cfr_values(child)
+            titles.update(child_titles)
+            parts.update(child_parts)
+    return titles, parts
+
+
+def _concept_facet_facts(
+    queries: VocabularyAtlasQueries,
+) -> Mapping[tuple[str, str], Mapping[str, list[str]]]:
+    classifications: dict[str, list[Any]] = {}
+    for value in queries.index_classifications():
+        classifications.setdefault(value.release_id, []).append(value)
+
+    release_collections: dict[str, set[str]] = {}
+    release_urls: dict[str, set[str]] = {}
+    release_cfr_titles: dict[str, set[str]] = {}
+    release_cfr_parts: dict[str, set[str]] = {}
+    lifecycle: dict[tuple[str, str], set[str]] = {}
+    collection_names = frozenset(
+        {
+            "sourceCollection",
+            "sourceCollections",
+            "collectionId",
+            "collectionIds",
+            "sourceScheme",
+        }
+    )
+    url_names = frozenset(
+        {
+            "sourceUrl",
+            "sourceURL",
+            "sourceUri",
+            "sourceURI",
+            "jsonUrl",
+            "citationUrl",
+            "sourceArtifact",
+        }
+    )
+    for record in queries.records(role="releaseRecord"):
+        collections = _named_scalar_values(record.record, collection_names)
+        urls = {
+            value
+            for value in _named_scalar_values(record.record, url_names)
+            if value.startswith(("http://", "https://"))
+        }
+        cfr_titles, cfr_parts = _cfr_values(record.record)
+        event_type = record.record.get("eventType")
+        affected = (
+            *cast(Sequence[Any], record.record.get("priorConcepts", ())),
+            *cast(Sequence[Any], record.record.get("resultingConcepts", ())),
+        )
+        for release_id in record.release_ids:
+            release_collections.setdefault(release_id, set()).update(collections)
+            release_urls.setdefault(release_id, set()).update(urls)
+            release_cfr_titles.setdefault(release_id, set()).update(cfr_titles)
+            release_cfr_parts.setdefault(release_id, set()).update(cfr_parts)
+            if isinstance(event_type, str):
+                for concept_id in affected:
+                    if isinstance(concept_id, str):
+                        lifecycle.setdefault((release_id, concept_id), set()).add(event_type)
+
+    result: dict[tuple[str, str], Mapping[str, list[str]]] = {}
+    for concept in queries.concepts():
+        rows = classifications.get(concept.release_id, [])
+        labels = queries.concept_labels(
+            concept.concept_id,
+            release_id=concept.release_id,
+        )
+        concept_collections = _named_scalar_values(concept.record, collection_names)
+        concept_urls = {
+            value
+            for value in _named_scalar_values(concept.record, url_names)
+            if value.startswith(("http://", "https://"))
+        }
+        concept_titles, concept_parts = _cfr_values(concept.record)
+        result[(concept.release_id, concept.concept_id)] = {
+            "sourceModules": sorted({row.source_module for row in rows}),
+            "resourceIds": sorted({row.resource_id for row in rows}),
+            "participations": sorted(
+                {row.subject_participation for row in rows if row.subject_participation is not None}
+            ),
+            "languages": sorted({label.language for label in labels if label.language is not None}),
+            "lifecycle": sorted(lifecycle.get((concept.release_id, concept.concept_id), set())),
+            "sourceCollections": sorted(release_collections.get(concept.release_id, set()) | concept_collections),
+            "sourceUrls": sorted(release_urls.get(concept.release_id, set()) | concept_urls),
+            "cfrTitles": sorted(release_cfr_titles.get(concept.release_id, set()) | concept_titles),
+            "cfrParts": sorted(release_cfr_parts.get(concept.release_id, set()) | concept_parts),
+        }
+    return result
+
+
+def _facet_catalog(
+    concepts: Sequence[Mapping[str, Any]],
+    native_relations: Sequence[Mapping[str, Any]],
+    mappings: Sequence[Mapping[str, Any]],
+    release_context: Mapping[str, Any],
+) -> dict[str, list[str]]:
+    def concept_values(field: str) -> list[str]:
+        return sorted({cast(str, value) for concept in concepts for value in cast(Sequence[str], concept[field])})
+
+    planning_rows = cast(
+        Sequence[Mapping[str, Any]],
+        release_context["planningRows"],
+    )
+    planning_source_modules = {cast(str, row["sourceModule"]) for row in planning_rows}
+    planning_resource_ids = {cast(str, row["resourceId"]) for row in planning_rows}
+    planning_participations = {
+        cast(str, row["atlasParticipation"]) for row in planning_rows if "atlasParticipation" in row
+    }
+    return {
+        "sourceModules": sorted(set(concept_values("sourceModules")) | planning_source_modules),
+        "resourceIds": sorted(set(concept_values("resourceIds")) | planning_resource_ids),
+        "participations": sorted(set(concept_values("participations")) | planning_participations),
+        "languages": concept_values("languages"),
+        "lifecycle": concept_values("lifecycle"),
+        "sourceCollections": concept_values("sourceCollections"),
+        "sourceUrls": concept_values("sourceUrls"),
+        "cfrTitles": concept_values("cfrTitles"),
+        "cfrParts": concept_values("cfrParts"),
+        "nativePredicates": sorted({cast(str, row["predicate"]) for row in native_relations}),
+        "mappingPredicates": sorted({cast(str, row["relation"]) for row in mappings}),
+        "evidenceClasses": sorted(
+            {evidence_class for row in mappings for evidence_class in cast(Sequence[str], row["evidenceClasses"])}
+        ),
+        "planningDispositions": sorted({cast(str, row["disposition"]) for row in planning_rows}),
+    }
+
+
 def build_explorer_model(
     distribution: VocabularyAtlasDistribution,
     *,
+    planning_index: PinnedAtlasIndex | None = None,
+    decision: VocabularyAtlasPublicationDecision | None = None,
     title: str = "RefSpec vocabulary atlas",
     release_labels: Mapping[str, str] | None = None,
     max_concepts: int | None = _DEFAULT_MAX_CONCEPTS,
     max_mapping_assertions: int | None = _DEFAULT_MAX_MAPPING_ASSERTIONS,
+) -> dict[str, Any]:
+    """Build the complete explorer, optionally joining exact release controls."""
+
+    index_record, index_pin, _ = _planning_index_snapshot(planning_index)
+    return _build_explorer_model(
+        distribution,
+        planning_index=index_record,
+        planning_index_pin=index_pin,
+        decision=decision,
+        title=title,
+        release_labels=release_labels,
+        max_concepts=max_concepts,
+        max_mapping_assertions=max_mapping_assertions,
+    )
+
+
+def _build_explorer_model(
+    distribution: VocabularyAtlasDistribution,
+    *,
+    planning_index: Mapping[str, Any] | None,
+    planning_index_pin: Mapping[str, str] | None,
+    decision: VocabularyAtlasPublicationDecision | None,
+    title: str,
+    release_labels: Mapping[str, str] | None,
+    max_concepts: int | None,
+    max_mapping_assertions: int | None,
 ) -> dict[str, Any]:
     """Build one deterministic search index through generic Atlas 2.0 queries.
 
@@ -399,6 +763,12 @@ def build_explorer_model(
         raise AtlasPublicationError("atlas explorer release labels must be trimmed non-empty text")
 
     queries = VocabularyAtlasQueries(distribution)
+    release_context = _release_context(
+        planning_index,
+        planning_index_pin,
+        decision,
+    )
+    concept_facet_facts = _concept_facet_facts(queries)
     snapshots = queries.release_snapshots()
     release_ids = {snapshot.release_id for snapshot in snapshots}
     unknown_labels = sorted(set(labels) - release_ids)
@@ -517,14 +887,11 @@ def build_explorer_model(
             "recordDigest": version.record_digest,
             "label": _preferred_label(version, concept_labels),
             "searchLabels": sorted(
-                {
-                    value
-                    for label in concept_labels
-                    if (value := label.value.strip())
-                },
+                {value for label in concept_labels if (value := label.value.strip())},
                 key=lambda value: (value.casefold(), value),
             ),
             "selectionReasons": selection_reasons,
+            **concept_facet_facts[(version.release_id, version.concept_id)],
         }
         notation = _first_text(version.record, "skos:notation", "http://www.w3.org/2004/02/skos/core#notation")
         definition = _first_text(
@@ -642,6 +1009,13 @@ def build_explorer_model(
             max_mapping_assertions=mapping_limit,
         ),
         "summary": summary,
+        "releaseContext": release_context,
+        "facets": _facet_catalog(
+            concept_rows,
+            native_relation_rows,
+            mapping_rows,
+            release_context,
+        ),
         "conceptReleases": release_rows,
         "concepts": concept_rows,
         "nativeRelations": native_relation_rows,
@@ -681,6 +1055,7 @@ def _publication_manifest(
     decision: VocabularyAtlasPublicationDecision,
     explorer: Mapping[str, Any],
     payloads: Mapping[str, bytes],
+    planning_index_pin: Mapping[str, str] | None,
 ) -> dict[str, Any]:
     rows = [
         _artifact_row(
@@ -704,6 +1079,8 @@ def _publication_manifest(
         "summary": _plain(explorer["summary"]),
         "artifacts": rows,
     }
+    if planning_index_pin is not None:
+        basis["planningIndex"] = _plain(planning_index_pin)
     publication_digest = binding.canonical_sha256(basis)
     result = {
         **basis,
@@ -771,6 +1148,7 @@ class AtlasPublication:
     manifest: Mapping[str, Any]
     distribution: VocabularyAtlasDistribution
     decision: VocabularyAtlasPublicationDecision
+    planning_index: Mapping[str, Any] | None
     _verification_token: object
 
     def __init__(
@@ -779,6 +1157,7 @@ class AtlasPublication:
         manifest: Mapping[str, Any],
         distribution: VocabularyAtlasDistribution,
         decision: VocabularyAtlasPublicationDecision,
+        planning_index: Mapping[str, Any] | None = None,
         *,
         _construction_token: object | None = None,
     ) -> None:
@@ -788,6 +1167,7 @@ class AtlasPublication:
         object.__setattr__(self, "manifest", manifest)
         object.__setattr__(self, "distribution", distribution)
         object.__setattr__(self, "decision", decision)
+        object.__setattr__(self, "planning_index", planning_index)
         object.__setattr__(self, "_verification_token", _PUBLICATION_CONSTRUCTION_TOKEN)
 
     @classmethod
@@ -798,12 +1178,14 @@ class AtlasPublication:
         manifest: Mapping[str, Any],
         distribution: VocabularyAtlasDistribution,
         decision: VocabularyAtlasPublicationDecision,
+        planning_index: Mapping[str, Any] | None,
     ) -> AtlasPublication:
         return cls(
             directory,
             manifest,
             distribution,
             decision,
+            planning_index,
             _construction_token=_PUBLICATION_CONSTRUCTION_TOKEN,
         )
 
@@ -814,6 +1196,7 @@ class AtlasPublication:
             or not isinstance(self.manifest, Mapping)
             or not isinstance(self.distribution, (VocabularyAtlasAsset, VocabularyAtlasProjection))
             or not isinstance(self.decision, VocabularyAtlasPublicationDecision)
+            or (self.planning_index is not None and not isinstance(self.planning_index, Mapping))
         ):
             raise AtlasPublicationError("atlas publication is not a verified 2.0 publication")
 
@@ -882,6 +1265,17 @@ class AtlasPublication:
             parent=parent,
         )
 
+        planning_descriptor = _validate_planning_index_descriptor(manifest.get("planningIndex"))
+        planning_index = (
+            _validate_planning_index_bytes(
+                payloads[ATLAS_INDEX],
+                planning_descriptor,
+                decision,
+            )
+            if planning_descriptor is not None
+            else None
+        )
+
         explorer = _load_canonical_json(payloads[EXPLORER_DATA], "atlas explorer data")
         if (
             explorer.get("title") != manifest["title"]
@@ -889,7 +1283,13 @@ class AtlasPublication:
             or _plain(explorer.get("summary")) != _plain(manifest["summary"])
         ):
             raise AtlasPublicationError("publication manifest differs from its exact explorer data")
-        _validate_explorer(distribution, explorer)
+        _validate_explorer(
+            distribution,
+            explorer,
+            planning_index=planning_index,
+            planning_index_pin=planning_descriptor,
+            decision=decision if planning_index is not None else None,
+        )
         expected_html = render_atlas_explorer(explorer).encode("utf-8")
         if payloads[EXPLORER_HTML] != expected_html:
             raise AtlasPublicationError("offline explorer HTML differs from its exact explorer data")
@@ -899,6 +1299,9 @@ class AtlasPublication:
             manifest=cast(Mapping[str, Any], deep_freeze_json(manifest)),
             distribution=distribution,
             decision=decision,
+            planning_index=(
+                None if planning_index is None else cast(Mapping[str, Any], deep_freeze_json(planning_index))
+            ),
         )
 
 
@@ -1036,6 +1439,62 @@ def _validate_parent(value: object, label: str) -> dict[str, str]:
     }
 
 
+def _validate_planning_index_descriptor(
+    value: object,
+) -> dict[str, str] | None:
+    if value is None:
+        return None
+    row = _require_mapping(value, "publication planningIndex")
+    _require_exact_fields(
+        row,
+        _PLANNING_INDEX_FIELDS,
+        "publication planningIndex",
+    )
+    if row.get("role") != "AtlasIndex":
+        raise AtlasPublicationError("publication planningIndex.role must be AtlasIndex")
+    return {
+        "role": "AtlasIndex",
+        "id": _require_text(row.get("id"), "publication planningIndex.id"),
+        "indexDigest": _require_digest(
+            row.get("indexDigest"),
+            "publication planningIndex.indexDigest",
+        ),
+        "fileDigest": _require_digest(
+            row.get("fileDigest"),
+            "publication planningIndex.fileDigest",
+        ),
+    }
+
+
+def _validate_planning_index_bytes(
+    payload: bytes,
+    descriptor: Mapping[str, str],
+    decision: VocabularyAtlasPublicationDecision,
+) -> dict[str, Any]:
+    if sha256_digest(payload) != descriptor["fileDigest"]:
+        raise AtlasPublicationError("published planning index file digest differs")
+    record = _load_exact_json(payload, "published planning index")
+    index_id = _require_text(record.get("indexId"), "published planning index.indexId")
+    index_digest = _require_digest(
+        record.get("indexDigest"),
+        "published planning index.indexDigest",
+    )
+    basis = dict(record)
+    basis.pop("indexId", None)
+    basis.pop("indexDigest", None)
+    expected_digest = binding.canonical_sha256(basis)
+    if (
+        index_digest != expected_digest
+        or index_id != "urn:ref:atlas-index:" + expected_digest.removeprefix("sha256:")
+        or descriptor["id"] != index_id
+        or descriptor["indexDigest"] != index_digest
+    ):
+        raise AtlasPublicationError("published planning index content-derived identity differs")
+    if _plain(decision.record.get("planningIndex")) != _plain(descriptor):
+        raise AtlasPublicationError("published planning index differs from the publication decision")
+    return record
+
+
 def _validate_distribution_descriptor(value: object) -> dict[str, Any]:
     row = _require_mapping(value, "publication distribution")
     kind = row.get("kind")
@@ -1106,7 +1565,12 @@ def _validate_publication_manifest(
     manifest: Mapping[str, Any],
     payloads: Mapping[str, bytes],
 ) -> None:
-    _require_exact_fields(manifest, _PUBLICATION_FIELDS, "publication manifest")
+    _require_exact_fields(
+        manifest,
+        _PUBLICATION_FIELDS,
+        "publication manifest",
+        optional=_PUBLICATION_OPTIONAL_FIELDS,
+    )
     if manifest.get("type") != _PUBLICATION_TYPE or manifest.get("schemaVersion") != PUBLICATION_SCHEMA_VERSION:
         raise AtlasPublicationError("publication manifest version or type is unsupported")
     _require_text(manifest.get("title"), "publication manifest.title")
@@ -1116,11 +1580,16 @@ def _validate_publication_manifest(
     _require_text(decision.get("id"), "publication decision descriptor.id")
     _require_digest(decision.get("recordDigest"), "publication decision descriptor.recordDigest")
     _require_digest(decision.get("fileDigest"), "publication decision descriptor.fileDigest")
+    planning_index = _validate_planning_index_descriptor(manifest.get("planningIndex"))
     selection = _validate_selection(manifest.get("selectionPolicy"))
     summary = _validate_summary(manifest.get("summary"))
 
     rows = _require_sequence(manifest.get("artifacts"), "publication manifest artifacts")
-    expected_paths = set(_ARTIFACT_SPEC) if distribution["kind"] == "atlas" else set(_ARTIFACT_SPEC) - {ATLAS_SCOPE}
+    expected_paths = set(_ARTIFACT_SPEC) - {ATLAS_INDEX}
+    if distribution["kind"] != "atlas":
+        expected_paths.remove(ATLAS_SCOPE)
+    if planning_index is not None:
+        expected_paths.add(ATLAS_INDEX)
     normalized_rows = []
     seen_paths: set[str] = set()
     for index, raw in enumerate(rows):
@@ -1154,6 +1623,8 @@ def _validate_publication_manifest(
         raise AtlasPublicationError("publication artifacts must be ordered by path")
 
     basis = {field: _plain(manifest[field]) for field in _PUBLICATION_BASIS_FIELDS}
+    if planning_index is not None:
+        basis["planningIndex"] = planning_index
     publication_digest = binding.canonical_sha256(basis)
     if manifest.get("publicationDigest") != publication_digest or manifest.get(
         "id"
@@ -1254,6 +1725,10 @@ def _validate_opened_decision(
 def _validate_explorer(
     distribution: VocabularyAtlasDistribution,
     explorer: Mapping[str, Any],
+    *,
+    planning_index: Mapping[str, Any] | None,
+    planning_index_pin: Mapping[str, str] | None,
+    decision: VocabularyAtlasPublicationDecision | None,
 ) -> None:
     if explorer.get("type") != EXPLORER_TYPE or explorer.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
         raise AtlasPublicationError("atlas explorer type or version is unsupported")
@@ -1277,8 +1752,11 @@ def _validate_explorer(
         if identifier in release_labels:
             raise AtlasPublicationError("atlas explorer repeats a release")
         release_labels[identifier] = label
-    rebuilt = build_explorer_model(
+    rebuilt = _build_explorer_model(
         distribution,
+        planning_index=planning_index,
+        planning_index_pin=planning_index_pin,
+        decision=decision,
         title=title,
         release_labels=release_labels,
         max_concepts=selection["maxConcepts"],
@@ -1293,6 +1771,7 @@ def publish_vocabulary_atlas(
     directory: Path | str,
     *,
     decision: VocabularyAtlasPublicationDecision,
+    planning_index: PinnedAtlasIndex | None = None,
     parent: VocabularyAtlasAsset | None = None,
     title: str = "RefSpec vocabulary atlas",
     release_labels: Mapping[str, str] | None = None,
@@ -1303,12 +1782,18 @@ def publish_vocabulary_atlas(
 
     _verified_distribution(distribution)
     _validate_decision(distribution, decision, parent=parent)
+    index_record, index_pin, index_payload = _planning_index_snapshot(planning_index)
+    if index_pin is not None and _plain(decision.record.get("planningIndex")) != _plain(index_pin):
+        raise AtlasPublicationError("publication decision planning index differs from the supplied exact index")
     if isinstance(distribution, VocabularyAtlasProjection):
         if parent is None:  # The decision check above normally supplies the specific error.
             raise AtlasPublicationError("atlas projection publication requires its verified atlas parent")
         _validate_projection_reproduction(distribution, parent)
-    explorer = build_explorer_model(
+    explorer = _build_explorer_model(
         distribution,
+        planning_index=index_record,
+        planning_index_pin=index_pin,
+        decision=decision if index_record is not None else None,
         title=title,
         release_labels=release_labels,
         max_concepts=max_concepts,
@@ -1324,12 +1809,15 @@ def publish_vocabulary_atlas(
     }
     if isinstance(distribution, VocabularyAtlasAsset):
         payloads[ATLAS_SCOPE] = distribution.scope_payload
+    if index_payload is not None:
+        payloads[ATLAS_INDEX] = index_payload
     manifest = _publication_manifest(
         title=cast(str, explorer["title"]),
         distribution=distribution,
         decision=decision,
         explorer=explorer,
         payloads=payloads,
+        planning_index_pin=index_pin,
     )
     payloads[PUBLICATION_MANIFEST] = _canonical_bytes(manifest)
     target = _write_publication(directory, payloads)
@@ -1354,6 +1842,45 @@ def _release_label_values(values: Sequence[str]) -> dict[str, str]:
     return result
 
 
+def _planning_index_from_args(args: argparse.Namespace) -> PinnedAtlasIndex | None:
+    values = (
+        args.planning_index,
+        args.planning_index_file_digest,
+        args.planning_index_input,
+        args.resource_catalog,
+        args.repository_root,
+    )
+    if not any(value is not None for value in values):
+        if args.registry_root is not None:
+            raise AtlasPublicationError("--registry-root requires the complete planning-index inputs")
+        return None
+    if any(value is None for value in values):
+        raise AtlasPublicationError(
+            "--planning-index, --planning-index-file-digest, "
+            "--planning-index-input, --resource-catalog, and --repository-root "
+            "must be supplied together"
+        )
+    try:
+        index_input = _load_exact_json(
+            cast(Path, args.planning_index_input).read_bytes(),
+            "planning index input",
+        )
+        resource_catalog = _load_exact_json(
+            cast(Path, args.resource_catalog).read_bytes(),
+            "resource catalog",
+        )
+        return PinnedAtlasIndex.open(
+            cast(Path, args.planning_index),
+            expected_file_digest=cast(str, args.planning_index_file_digest),
+            index_input=index_input,
+            resource_catalog=resource_catalog,
+            repository_root=cast(Path, args.repository_root),
+            registry_root=cast(Path | None, args.registry_root),
+        )
+    except (AtlasIndexError, OSError) as error:
+        raise AtlasPublicationError(str(error)) from error
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m refspec.atlas.publication",
@@ -1363,6 +1890,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--distribution-manifest-digest", required=True)
     parser.add_argument("--decision", type=Path, required=True)
     parser.add_argument("--decision-file-digest", required=True)
+    parser.add_argument("--planning-index", type=Path)
+    parser.add_argument("--planning-index-file-digest")
+    parser.add_argument("--planning-index-input", type=Path)
+    parser.add_argument("--resource-catalog", type=Path)
+    parser.add_argument("--repository-root", type=Path)
+    parser.add_argument("--registry-root", type=Path)
     parser.add_argument("--parent", type=Path)
     parser.add_argument("--parent-manifest-digest")
     parser.add_argument("--output", type=Path, required=True)
@@ -1413,10 +1946,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.decision,
             expected_file_digest=args.decision_file_digest,
         )
+        planning_index = _planning_index_from_args(args)
         publication = publish_vocabulary_atlas(
             distribution,
             args.output,
             decision=decision,
+            planning_index=planning_index,
             parent=parent,
             title=args.title,
             release_labels=_release_label_values(args.release_label),
@@ -1434,6 +1969,7 @@ if __name__ == "__main__":  # pragma: no cover
 
 
 __all__ = [
+    "ATLAS_INDEX",
     "ATLAS_MANIFEST",
     "ATLAS_SCOPE",
     "COMPRESSED_ATLAS",

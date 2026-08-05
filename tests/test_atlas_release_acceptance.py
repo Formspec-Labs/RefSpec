@@ -22,6 +22,7 @@ from refspec.atlas.release_acceptance import (
     ReleaseAcceptanceError,
     VocabularyAtlasReleaseAcceptance,
     build_vocabulary_atlas_release_acceptance,
+    read_vocabulary_atlas_release_acceptance,
 )
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -40,6 +41,20 @@ def _checks(asset: VocabularyAtlasAsset) -> list[dict[str, Any]]:
     ]
 
 
+def _explorer(
+    scope: Any,
+    asset: VocabularyAtlasAsset,
+    decision: VocabularyAtlasPublicationDecision,
+    **limits: int,
+) -> dict[str, Any]:
+    return build_explorer_model(
+        asset,
+        planning_index=scope.verified_scope().atlas_index,
+        decision=decision,
+        **limits,
+    )
+
+
 def _acceptance(
     scope: Any,
     asset: VocabularyAtlasAsset,
@@ -48,12 +63,18 @@ def _acceptance(
     explorer: dict[str, Any] | None = None,
     checks: list[dict[str, Any]] | None = None,
 ) -> VocabularyAtlasReleaseAcceptance:
+    planning_index = scope.verified_scope().atlas_index
+    selected_explorer = (
+        _explorer(scope, asset, decision)
+        if explorer is None
+        else explorer
+    )
     return build_vocabulary_atlas_release_acceptance(
         asset,
         scope=scope,
-        planning_index=scope.verified_scope().atlas_index,
+        planning_index=planning_index,
         publication_decision=decision,
-        explorer=explorer or build_explorer_model(asset),
+        explorer=selected_explorer,
         checks=_checks(asset) if checks is None else checks,
     )
 
@@ -62,7 +83,7 @@ def test_acceptance_pins_inputs_derives_counts_and_reopens(
     tmp_path: Path,
 ) -> None:
     scope, asset, decision, relation = publication_fixtures._mapped_fixture(tmp_path)
-    explorer = build_explorer_model(asset)
+    explorer = _explorer(scope, asset, decision)
 
     acceptance = _acceptance(scope, asset, decision, explorer=explorer)
     record = acceptance.as_record()
@@ -219,13 +240,13 @@ def test_acceptance_rejects_incomplete_caller_checks(
 
 def test_acceptance_rejects_stale_or_bounded_explorer(tmp_path: Path) -> None:
     scope, asset, decision, _ = publication_fixtures._mapped_fixture(tmp_path)
-    stale = deepcopy(build_explorer_model(asset))
+    stale = deepcopy(_explorer(scope, asset, decision))
     stale["summary"]["availableConceptCount"] += 1
 
     with pytest.raises(ReleaseAcceptanceError, match="available counts"):
         _acceptance(scope, asset, decision, explorer=stale)
 
-    bounded = build_explorer_model(asset, max_concepts=1)
+    bounded = _explorer(scope, asset, decision, max_concepts=1)
     with pytest.raises(ReleaseAcceptanceError, match="complete explorer"):
         _acceptance(scope, asset, decision, explorer=bounded)
 
@@ -246,3 +267,35 @@ def test_acceptance_record_is_closed_and_exported(tmp_path: Path) -> None:
     assert atlas_api.build_vocabulary_atlas_release_acceptance is build_vocabulary_atlas_release_acceptance
     assert refspec.VocabularyAtlasReleaseAcceptance is VocabularyAtlasReleaseAcceptance
     assert refspec.build_vocabulary_atlas_release_acceptance is build_vocabulary_atlas_release_acceptance
+    assert atlas_api.read_vocabulary_atlas_release_acceptance is read_vocabulary_atlas_release_acceptance
+    assert refspec.read_vocabulary_atlas_release_acceptance is read_vocabulary_atlas_release_acceptance
+
+
+def test_acceptance_file_round_trips_under_an_external_digest(tmp_path: Path) -> None:
+    scope, asset, decision = publication_fixtures._canonical_fixture(
+        tmp_path,
+        name="release-acceptance-file",
+    )
+    acceptance = _acceptance(scope, asset, decision)
+    path = acceptance.write_to(tmp_path / "release-acceptance.json")
+
+    reopened = read_vocabulary_atlas_release_acceptance(
+        path,
+        expected_file_digest=sha256_digest(path.read_bytes()),
+    )
+
+    assert reopened.as_record() == acceptance.as_record()
+    reopened.validate_inputs(
+        asset,
+        scope=scope,
+        planning_index=scope.verified_scope().atlas_index,
+        publication_decision=decision,
+        explorer=_explorer(scope, asset, decision),
+    )
+    with pytest.raises(ReleaseAcceptanceError, match="file digest differs"):
+        read_vocabulary_atlas_release_acceptance(
+            path,
+            expected_file_digest=sha256_digest(b"wrong"),
+        )
+    with pytest.raises(ReleaseAcceptanceError, match="already exists"):
+        acceptance.write_to(path)

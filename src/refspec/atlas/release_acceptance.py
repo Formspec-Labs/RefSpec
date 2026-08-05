@@ -8,9 +8,13 @@ explorer agree, then records content-derived counts and explicit passing checks.
 
 from __future__ import annotations
 
+import json
+import os
+import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, cast
 
 from typing_extensions import Self
@@ -725,6 +729,9 @@ def _verified_explorer_bytes(
     atlas: VocabularyAtlasAsset,
     explorer: Mapping[str, Any],
     queries: VocabularyAtlasQueries,
+    *,
+    planning_index: PinnedAtlasIndex,
+    publication_decision: VocabularyAtlasPublicationDecision,
 ) -> bytes:
     if explorer.get("type") != EXPLORER_TYPE:
         raise ReleaseAcceptanceError("explorer type is unsupported")
@@ -824,6 +831,8 @@ def _verified_explorer_bytes(
 
     rebuilt = build_explorer_model(
         atlas,
+        planning_index=planning_index,
+        decision=publication_decision,
         title=title,
         release_labels=labels,
         max_concepts=max_concepts,
@@ -876,7 +885,13 @@ def _acceptance_basis(
     publication_decision.validate_distribution(atlas)
 
     queries = VocabularyAtlasQueries(atlas)
-    explorer_payload = _verified_explorer_bytes(atlas, explorer, queries)
+    explorer_payload = _verified_explorer_bytes(
+        atlas,
+        explorer,
+        queries,
+        planning_index=planning_index,
+        publication_decision=publication_decision,
+    )
     counts = _derived_counts(queries, verified_index)
     normalized_checks = _normalize_checks(checks)
 
@@ -986,6 +1001,29 @@ class VocabularyAtlasReleaseAcceptance:
     def artifact_bytes(self) -> bytes:
         return _canonical_bytes(self.as_record())
 
+    def write_to(self, path: Path | str) -> Path:
+        """Write the exact acceptance bytes once without replacing evidence."""
+
+        destination = Path(path)
+        if destination.exists() or destination.is_symlink():
+            raise ReleaseAcceptanceError(
+                f"release acceptance destination already exists: {destination}"
+            )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{destination.name}-",
+            dir=destination.parent,
+        )
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(self.artifact_bytes())
+            os.replace(temporary, destination)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+        return destination
+
     def validate_inputs(
         self,
         atlas: VocabularyAtlasAsset,
@@ -1050,6 +1088,47 @@ def build_vocabulary_atlas_release_acceptance(
     )
 
 
+def read_vocabulary_atlas_release_acceptance(
+    path: Path | str,
+    *,
+    expected_file_digest: str,
+) -> VocabularyAtlasReleaseAcceptance:
+    """Open canonical acceptance bytes from one independently trusted digest."""
+
+    digest = _require_digest(
+        expected_file_digest,
+        "release acceptance file digest",
+    )
+    candidate = Path(path)
+    if candidate.is_symlink():
+        raise ReleaseAcceptanceError("release acceptance must not be a symlink")
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise ReleaseAcceptanceError("release acceptance does not exist") from error
+    if not resolved.is_file():
+        raise ReleaseAcceptanceError("release acceptance must be a regular file")
+    payload = resolved.read_bytes()
+    if sha256_digest(payload) != digest:
+        raise ReleaseAcceptanceError("release acceptance file digest differs")
+    try:
+        value = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=binding.reject_duplicate_keys,
+            parse_constant=binding.reject_nonfinite_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise ReleaseAcceptanceError(
+            "release acceptance must be valid canonical UTF-8 JSON"
+        ) from error
+    if not isinstance(value, Mapping) or _canonical_bytes(value) != payload:
+        raise ReleaseAcceptanceError("release acceptance bytes are not canonical")
+    acceptance = VocabularyAtlasReleaseAcceptance.from_record(value)
+    if resolved.read_bytes() != payload:
+        raise ReleaseAcceptanceError("release acceptance changed while opening")
+    return acceptance
+
+
 __all__ = [
     "RELEASE_ACCEPTANCE_TYPE",
     "RELEASE_ACCEPTANCE_VERSION",
@@ -1058,4 +1137,5 @@ __all__ = [
     "ReproducibilityStatus",
     "VocabularyAtlasReleaseAcceptance",
     "build_vocabulary_atlas_release_acceptance",
+    "read_vocabulary_atlas_release_acceptance",
 ]

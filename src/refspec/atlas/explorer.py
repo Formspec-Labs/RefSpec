@@ -17,7 +17,7 @@ from refspec.registry.infrastructure.semantic_foundation import (
 from .queries import native_concept_relation_id
 
 EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
-EXPLORER_SCHEMA_VERSION = "2.1"
+EXPLORER_SCHEMA_VERSION = "3.0"
 
 _MODEL_FIELDS = frozenset(
     {
@@ -27,6 +27,8 @@ _MODEL_FIELDS = frozenset(
         "atlas",
         "selectionPolicy",
         "summary",
+        "releaseContext",
+        "facets",
         "conceptReleases",
         "concepts",
         "nativeRelations",
@@ -69,6 +71,15 @@ _CONCEPT_FIELDS = frozenset(
         "recordDigest",
         "label",
         "selectionReasons",
+        "sourceModules",
+        "resourceIds",
+        "participations",
+        "languages",
+        "lifecycle",
+        "sourceCollections",
+        "sourceUrls",
+        "cfrTitles",
+        "cfrParts",
     }
 )
 _CONCEPT_TEXT_FIELDS = frozenset({"notation", "definition", "scopeNote"})
@@ -132,6 +143,56 @@ _EVIDENCE_CLASSES = frozenset(
         "ruleGenerated",
     }
 )
+_RELEASE_CONTEXT_FIELDS = frozenset({"sourceApprovals", "planningRows"})
+_RELEASE_CONTEXT_PIN_FIELDS = frozenset({"planningIndex", "publicationDecision"})
+_PLANNING_INDEX_FIELDS = frozenset({"role", "id", "indexDigest", "fileDigest"})
+_PUBLICATION_DECISION_FIELDS = frozenset({"id", "recordDigest", "schemaVersion"})
+_SOURCE_APPROVAL_FIELDS = frozenset({"releaseId", "manifestDigest", "semanticRing", "disposition", "conditions"})
+_PLANNING_ROW_FIELDS = frozenset(
+    {
+        "rowId",
+        "rowDigest",
+        "sourceModule",
+        "resourceId",
+        "facet",
+        "semanticRing",
+        "planningStatus",
+        "intendedUses",
+        "disposition",
+        "reason",
+    }
+)
+_PLANNING_ROW_OPTIONAL_FIELDS = frozenset({"atlasParticipation", "releaseId"})
+_FACET_FIELDS = frozenset(
+    {
+        "sourceModules",
+        "resourceIds",
+        "participations",
+        "languages",
+        "lifecycle",
+        "sourceCollections",
+        "sourceUrls",
+        "cfrTitles",
+        "cfrParts",
+        "nativePredicates",
+        "mappingPredicates",
+        "evidenceClasses",
+        "planningDispositions",
+    }
+)
+_CONCEPT_FACET_FIELDS = frozenset(
+    {
+        "sourceModules",
+        "resourceIds",
+        "participations",
+        "languages",
+        "lifecycle",
+        "sourceCollections",
+        "sourceUrls",
+        "cfrTitles",
+        "cfrParts",
+    }
+)
 
 
 class AtlasExplorerError(ValueError):
@@ -189,11 +250,139 @@ def _text_array(value: object, label: str) -> tuple[str, ...]:
     return result
 
 
+def _canonical_text_array(value: object, label: str) -> tuple[str, ...]:
+    result = _text_array(value, label)
+    if list(result) != sorted(result):
+        raise AtlasExplorerError(f"{label} must use canonical text order")
+    return result
+
+
+def _validate_release_context(value: object) -> Mapping[str, Any]:
+    context = _mapping(value, "atlas explorer releaseContext")
+    _exact_fields(
+        context,
+        _RELEASE_CONTEXT_FIELDS,
+        "atlas explorer releaseContext",
+        optional=_RELEASE_CONTEXT_PIN_FIELDS,
+    )
+    index_pin = context.get("planningIndex")
+    decision_pin = context.get("publicationDecision")
+    approvals = _sequence(
+        context.get("sourceApprovals"),
+        "atlas explorer releaseContext.sourceApprovals",
+    )
+    planning_rows = _sequence(
+        context.get("planningRows"),
+        "atlas explorer releaseContext.planningRows",
+    )
+    if "planningIndex" not in context or "publicationDecision" not in context:
+        if "planningIndex" in context or "publicationDecision" in context or approvals or planning_rows:
+            raise AtlasExplorerError("atlas explorer releaseContext must supply both exact pins or neither")
+        return context
+
+    index = _mapping(index_pin, "atlas explorer releaseContext.planningIndex")
+    _exact_fields(
+        index,
+        _PLANNING_INDEX_FIELDS,
+        "atlas explorer releaseContext.planningIndex",
+    )
+    if index.get("role") != "AtlasIndex":
+        raise AtlasExplorerError("atlas explorer releaseContext planning index has the wrong role")
+    for field in ("id", "indexDigest", "fileDigest"):
+        _text(index.get(field), f"atlas explorer releaseContext.planningIndex.{field}")
+
+    decision = _mapping(
+        decision_pin,
+        "atlas explorer releaseContext.publicationDecision",
+    )
+    _exact_fields(
+        decision,
+        _PUBLICATION_DECISION_FIELDS,
+        "atlas explorer releaseContext.publicationDecision",
+    )
+    for field in _PUBLICATION_DECISION_FIELDS:
+        _text(
+            decision.get(field),
+            f"atlas explorer releaseContext.publicationDecision.{field}",
+        )
+
+    approval_ids: set[str] = set()
+    for position, raw in enumerate(approvals):
+        label = f"atlas explorer releaseContext.sourceApprovals[{position}]"
+        row = _mapping(raw, label)
+        _exact_fields(row, _SOURCE_APPROVAL_FIELDS, label)
+        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
+        if release_id in approval_ids:
+            raise AtlasExplorerError("atlas explorer repeats a source approval")
+        approval_ids.add(release_id)
+        _text(row.get("manifestDigest"), f"{label}.manifestDigest")
+        _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        if row.get("disposition") != "approved":
+            raise AtlasExplorerError("atlas explorer source approval must be approved")
+        conditions = _sequence(row.get("conditions"), f"{label}.conditions")
+        for condition_position, condition_raw in enumerate(conditions):
+            condition_label = f"{label}.conditions[{condition_position}]"
+            condition = _mapping(condition_raw, condition_label)
+            _exact_fields(
+                condition,
+                frozenset({"kind", "statement"}),
+                condition_label,
+            )
+            _text(condition.get("kind"), f"{condition_label}.kind")
+            _text(condition.get("statement"), f"{condition_label}.statement")
+
+    row_ids: list[str] = []
+    for position, raw in enumerate(planning_rows):
+        label = f"atlas explorer releaseContext.planningRows[{position}]"
+        row = _mapping(raw, label)
+        _exact_fields(
+            row,
+            _PLANNING_ROW_FIELDS,
+            label,
+            optional=_PLANNING_ROW_OPTIONAL_FIELDS,
+        )
+        row_id = _text(row.get("rowId"), f"{label}.rowId")
+        row_ids.append(row_id)
+        for field in (
+            "rowDigest",
+            "sourceModule",
+            "resourceId",
+            "facet",
+            "planningStatus",
+            "disposition",
+            "reason",
+        ):
+            _text(row.get(field), f"{label}.{field}")
+        _ring(row.get("semanticRing"), f"{label}.semanticRing")
+        if "atlasParticipation" in row:
+            _text(row.get("atlasParticipation"), f"{label}.atlasParticipation")
+        if "releaseId" in row:
+            _text(row.get("releaseId"), f"{label}.releaseId")
+        _canonical_text_array(row.get("intendedUses"), f"{label}.intendedUses")
+    if len(row_ids) != len(set(row_ids)) or row_ids != sorted(row_ids):
+        raise AtlasExplorerError("atlas explorer planning rows must be unique and in canonical order")
+    return context
+
+
+def _validate_facets(value: object) -> Mapping[str, tuple[str, ...]]:
+    facets = _mapping(value, "atlas explorer facets")
+    _exact_fields(facets, _FACET_FIELDS, "atlas explorer facets")
+    return {
+        field: _canonical_text_array(
+            facets.get(field),
+            f"atlas explorer facets.{field}",
+        )
+        for field in _FACET_FIELDS
+    }
+
+
 def _validate_model(model: Mapping[str, Any]) -> None:
     _exact_fields(model, _MODEL_FIELDS, "atlas explorer")
     if model.get("type") != EXPLORER_TYPE or model.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
         raise AtlasExplorerError("atlas explorer type or schemaVersion differs from " + EXPLORER_SCHEMA_VERSION)
     _text(model.get("title"), "atlas explorer title")
+    release_context = _validate_release_context(model.get("releaseContext"))
+    facets = _validate_facets(model.get("facets"))
 
     atlas = _mapping(model.get("atlas"), "atlas explorer atlas")
     kind = atlas.get("kind")
@@ -306,6 +495,8 @@ def _validate_model(model: Mapping[str, Any]) -> None:
                 key=lambda value: (value.casefold(), value),
             ):
                 raise AtlasExplorerError(f"{label}.searchLabels must use canonical label order")
+        for field in _CONCEPT_FACET_FIELDS:
+            _canonical_text_array(row.get(field), f"{label}.{field}")
         concept_by_view_id[view_id] = row
         release_concept_keys.add((release_id, concept_id))
         shown_by_release[release_id] += 1
@@ -426,6 +617,81 @@ def _validate_model(model: Mapping[str, Any]) -> None:
         or available_mappings != counts["mappingAssertions"]
     ):
         raise AtlasExplorerError("atlas explorer summary or selection bounds differ from its records")
+
+    approval_release_ids = {
+        cast(str, row["releaseId"])
+        for row in cast(
+            Sequence[Mapping[str, Any]],
+            release_context["sourceApprovals"],
+        )
+    }
+    if approval_release_ids and not set(release_by_id) <= approval_release_ids:
+        raise AtlasExplorerError("atlas explorer concept releases are absent from source approvals")
+    expected_facets = {
+        field: tuple(
+            sorted(
+                {
+                    cast(str, item)
+                    for concept in concepts
+                    for item in cast(Sequence[str], _mapping(concept, "concept")[field])
+                }
+            )
+        )
+        for field in _CONCEPT_FACET_FIELDS
+    }
+    planning_rows = cast(
+        Sequence[Mapping[str, Any]],
+        release_context["planningRows"],
+    )
+    expected_facets["sourceModules"] = tuple(
+        sorted(
+            set(expected_facets["sourceModules"])
+            | {cast(str, _mapping(row, "planning row")["sourceModule"]) for row in planning_rows}
+        )
+    )
+    expected_facets["resourceIds"] = tuple(
+        sorted(
+            set(expected_facets["resourceIds"])
+            | {cast(str, _mapping(row, "planning row")["resourceId"]) for row in planning_rows}
+        )
+    )
+    expected_facets["participations"] = tuple(
+        sorted(
+            set(expected_facets["participations"])
+            | {
+                cast(str, _mapping(row, "planning row")["atlasParticipation"])
+                for row in planning_rows
+                if "atlasParticipation" in _mapping(row, "planning row")
+            }
+        )
+    )
+    expected_facets.update(
+        {
+            "nativePredicates": tuple(
+                sorted({cast(str, _mapping(row, "native relation")["predicate"]) for row in native_relations})
+            ),
+            "mappingPredicates": tuple(
+                sorted({cast(str, _mapping(row, "mapping assertion")["relation"]) for row in mappings})
+            ),
+            "evidenceClasses": tuple(
+                sorted(
+                    {
+                        evidence_class
+                        for raw in mappings
+                        for evidence_class in cast(
+                            Sequence[str],
+                            _mapping(raw, "mapping assertion")["evidenceClasses"],
+                        )
+                    }
+                )
+            ),
+            "planningDispositions": tuple(
+                sorted({cast(str, _mapping(row, "planning row")["disposition"]) for row in planning_rows})
+            ),
+        }
+    )
+    if facets != expected_facets:
+        raise AtlasExplorerError("atlas explorer facet catalog differs from its exact records")
     expected_truncated = (
         shown_concepts < available_concepts
         or shown_native_relations < available_native_relations
@@ -476,9 +742,9 @@ _HTML = r"""<!doctype html>
       font: 14px/1.45 var(--sans);
       overflow: hidden;
     }
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; }
-    button:focus-visible, input:focus-visible, a:focus-visible, canvas:focus-visible {
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, canvas:focus-visible {
       outline: 2px solid var(--focus);
       outline-offset: 2px;
     }
@@ -642,6 +908,31 @@ _HTML = r"""<!doctype html>
     }
     .edge-key.mapping { border-top-style: dashed; }
     .hint { margin: .7rem 0 0; color: var(--faint); font-size: .75rem; }
+    .facet-selects { display: grid; gap: .62rem; margin-top: .75rem; }
+    .facet-control { display: grid; gap: .25rem; color: var(--faint); font-size: .7rem; }
+    .facet-control select {
+      width: 100%;
+      min-height: 34px;
+      padding: .42rem 1.9rem .42rem .5rem;
+      overflow: hidden;
+      color: var(--ink);
+      border: 1px solid var(--rule-strong);
+      border-radius: 3px;
+      background: #0a100f;
+      text-overflow: ellipsis;
+    }
+    .scope-summary { margin: .68rem 0 0; color: var(--muted); font-size: .75rem; }
+    .planning-rows { display: grid; gap: .38rem; margin-top: .7rem; }
+    .planning-row {
+      padding: .48rem 0;
+      border-top: 1px solid rgba(38, 51, 47, .72);
+      color: var(--muted);
+      font-size: .72rem;
+    }
+    .planning-row b, .planning-row small { display: block; overflow-wrap: anywhere; }
+    .planning-row b { color: var(--ink); font-weight: 550; }
+    .planning-row small { margin-top: .16rem; color: var(--faint); }
+    .planning-row-count { display: block; margin-top: .55rem; color: var(--faint); font: 10px/1.4 var(--mono); }
     .render-limit { margin-top: .75rem; }
     .render-limit-heading {
       display: flex;
@@ -931,6 +1222,11 @@ _HTML = r"""<!doctype html>
           <div class="filter-list" id="ring-filters"></div>
           <p class="hint">Ring filters apply to concepts and every relationship attached to them.</p>
         </section>
+        <section class="control-section" id="concept-facet-section">
+          <h3>Source and concept facts</h3>
+          <div class="facet-selects" id="concept-facet-filters"></div>
+          <p class="hint">Each available fact comes from the exact release records or planning index. Empty facets stay out of the way.</p>
+        </section>
         <section class="control-section">
           <h3>Source-native relations</h3>
           <div class="filter-list" id="native-filters"></div>
@@ -939,7 +1235,16 @@ _HTML = r"""<!doctype html>
         <section class="control-section">
           <h3>Cross-release mappings</h3>
           <div class="filter-list" id="mapping-filters"></div>
+          <div class="facet-selects" id="mapping-facet-filters"></div>
           <p class="hint">Dashed lines are typed cross-release mapping assertions. Labels never create a line.</p>
+        </section>
+        <section class="control-section" id="release-context-section" hidden>
+          <h3>Release controls</h3>
+          <p class="scope-summary" id="release-context-summary"></p>
+          <div class="planning-rows" id="source-approvals"></div>
+          <div class="facet-selects" id="planning-facet-filters"></div>
+          <div class="planning-rows" id="planning-rows"></div>
+          <small class="planning-row-count" id="planning-row-count"></small>
         </section>
         <section class="control-section">
           <h3>Graph view</h3>
@@ -985,6 +1290,11 @@ _HTML = r"""<!doctype html>
             <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
             <dt>Filtered native assertions</dt><dd id="node-native-count"></dd>
             <dt>Filtered mapping assertions</dt><dd id="node-mapping-count"></dd>
+            <dt>Native parents</dt><dd id="node-parent-count"></dd>
+            <dt>Native children</dt><dd id="node-child-count"></dd>
+            <dt>Ancestors</dt><dd id="node-ancestor-count"></dd>
+            <dt>Descendants</dt><dd id="node-descendant-count"></dd>
+            <dt>Related concepts</dt><dd id="node-related-count"></dd>
           </dl>
           <section class="control-section" id="node-notes" hidden>
             <h3>Source notes</h3>
@@ -994,6 +1304,11 @@ _HTML = r"""<!doctype html>
           <section class="control-section">
             <h3>Relationships matching filters</h3>
             <div class="connections" id="connections"></div>
+          </section>
+          <section class="control-section" id="node-hierarchy" hidden>
+            <h3>Hierarchy paths</h3>
+            <p class="hint">Multi-hop paths support inspection. Every listed link remains a source-asserted step; the explorer does not turn a path into a direct assertion.</p>
+            <div class="connections" id="hierarchy-connections"></div>
           </section>
         </div>
       </aside>
@@ -1008,12 +1323,16 @@ _HTML = r"""<!doctype html>
           <span>Manifest</span><code id="pin-manifest"></code>
           <span>N-Quads</span><code id="pin-output"></code>
           <span>Selection</span><code id="pin-selection"></code>
+          <span id="pin-index-label" hidden>Planning index</span><code id="pin-index" hidden></code>
+          <span id="pin-decision-label" hidden>Decision</span><code id="pin-decision" hidden></code>
         </div>
       </details>
       <nav class="downloads" aria-label="Atlas downloads">
         <a href="atlas-manifest.json" download>Manifest</a>
         <a href="atlas.nq.gz" download>N-Quads · gzip</a>
         <a href="atlas-explorer.json" download>Explorer data</a>
+        <a href="publication-decision.json" download>Decision</a>
+        <a href="atlas-index.json" download id="index-download" hidden>Planning index</a>
         <a href="publication-manifest.json" download>Publication record</a>
       </nav>
     </footer>
@@ -1036,6 +1355,10 @@ _HTML = r"""<!doctype html>
     const nativeFilters = document.getElementById("native-filters");
     const ringFilters = document.getElementById("ring-filters");
     const mappingFilters = document.getElementById("mapping-filters");
+    const conceptFacetFilters = document.getElementById("concept-facet-filters");
+    const mappingFacetFilters = document.getElementById("mapping-facet-filters");
+    const planningFacetFilters = document.getElementById("planning-facet-filters");
+    const planningRows = document.getElementById("planning-rows");
     const graphStatus = document.getElementById("graph-status");
     const renderLimitRange = document.getElementById("render-limit-range");
     const renderLimitNumber = document.getElementById("render-limit-number");
@@ -1052,6 +1375,17 @@ _HTML = r"""<!doctype html>
       "http://www.w3.org/2004/02/skos/core#broader",
       "http://www.w3.org/2004/02/skos/core#narrower",
       "http://www.w3.org/2004/02/skos/core#related"
+    ];
+    const conceptFacetDefinitions = [
+      ["sourceModules", "Source module"],
+      ["resourceIds", "Resource"],
+      ["participations", "Participation"],
+      ["languages", "Language"],
+      ["lifecycle", "Lifecycle event"],
+      ["sourceCollections", "Source collection"],
+      ["sourceUrls", "Source URL"],
+      ["cfrTitles", "CFR title"],
+      ["cfrParts", "CFR part"]
     ];
     const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
     const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
@@ -1082,6 +1416,23 @@ _HTML = r"""<!doctype html>
       if (!nativeDisplayGroups.has(key)) nativeDisplayGroups.set(key, []);
       nativeDisplayGroups.get(key).push(relation);
     });
+    const hierarchyParents = new Map(data.concepts.map(concept => [concept.viewId, []]));
+    const hierarchyChildren = new Map(data.concepts.map(concept => [concept.viewId, []]));
+    data.nativeRelations.forEach(relation => {
+      let child;
+      let parent;
+      if (relation.predicateLabel === "broader") {
+        child = relation.subjectViewId;
+        parent = relation.objectViewId;
+      } else if (relation.predicateLabel === "narrower") {
+        child = relation.objectViewId;
+        parent = relation.subjectViewId;
+      } else {
+        return;
+      }
+      hierarchyParents.get(child).push({ other: parent, relation });
+      hierarchyChildren.get(parent).push({ other: child, relation });
+    });
 
     function normalizeSearch(value) {
       return String(value || "")
@@ -1106,6 +1457,7 @@ _HTML = r"""<!doctype html>
       const identifier = normalizeSearch(concept.conceptId);
       const identifierTailValue = normalizeSearch(identifierTail(concept.conceptId));
       const notes = normalizeSearch([concept.definition || "", concept.scopeNote || ""].join(" "));
+      const sourceFacts = normalizeSearch(conceptFacetDefinitions.flatMap(([field]) => concept[field]).join(" "));
       return {
         concept,
         labels: normalizedLabels,
@@ -1113,7 +1465,8 @@ _HTML = r"""<!doctype html>
         notation,
         identifier,
         identifierTail: identifierTailValue,
-        notes
+        notes,
+        sourceFacts
       };
     });
 
@@ -1121,6 +1474,10 @@ _HTML = r"""<!doctype html>
       activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
       activeNativePredicates: new Set(nativePredicateOrder),
       activeRings: new Set(ringOrder),
+      activeConceptFacets: Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""])),
+      activeMappingPredicate: "",
+      activeEvidenceClass: "",
+      activePlanningDisposition: "",
       mappingsActive: true,
       selected: null,
       hover: null,
@@ -1152,7 +1509,12 @@ _HTML = r"""<!doctype html>
       return { x: (x - state.view.x) / state.view.k, y: (y - state.view.y) / state.view.k };
     }
     function isConceptEligible(concept) {
-      return state.activeReleases.has(concept.releaseId) && state.activeRings.has(concept.semanticRing);
+      return state.activeReleases.has(concept.releaseId)
+        && state.activeRings.has(concept.semanticRing)
+        && conceptFacetDefinitions.every(([field]) => {
+          const selected = state.activeConceptFacets[field];
+          return !selected || concept[field].includes(selected);
+        });
     }
     function isConceptVisible(concept) {
       return isConceptEligible(concept) && state.renderedConceptIds.has(concept.viewId);
@@ -1162,6 +1524,8 @@ _HTML = r"""<!doctype html>
       const target = conceptByViewId.get(mapping.targetViewId);
       return state.mappingsActive
         && state.activeRings.has(mapping.semanticRing)
+        && (!state.activeMappingPredicate || mapping.relation === state.activeMappingPredicate)
+        && (!state.activeEvidenceClass || mapping.evidenceClasses.includes(state.activeEvidenceClass))
         && isConceptEligible(source)
         && isConceptEligible(target);
     }
@@ -1182,6 +1546,34 @@ _HTML = r"""<!doctype html>
       return isNativeRelationEligible(relation)
         && state.renderedConceptIds.has(relation.subjectViewId)
         && state.renderedConceptIds.has(relation.objectViewId);
+    }
+    function hierarchyNeighbors(viewId, index) {
+      const result = new Map();
+      index.get(viewId).forEach(item => {
+        const other = conceptByViewId.get(item.other);
+        if (isNativeRelationEligible(item.relation) && isConceptEligible(other)) {
+          result.set(item.other, other);
+        }
+      });
+      return [...result.values()].sort((left, right) => left.label.localeCompare(right.label) || left.viewId.localeCompare(right.viewId));
+    }
+    function hierarchyClosure(viewId, index) {
+      const distances = new Map();
+      const pending = hierarchyNeighbors(viewId, index).map(concept => ({ concept, depth: 1 }));
+      let pendingIndex = 0;
+      while (pendingIndex < pending.length) {
+        const current = pending[pendingIndex];
+        pendingIndex += 1;
+        const previous = distances.get(current.concept.viewId);
+        if (current.concept.viewId === viewId || (previous && previous.depth <= current.depth)) continue;
+        distances.set(current.concept.viewId, current);
+        hierarchyNeighbors(current.concept.viewId, index).forEach(concept => {
+          pending.push({ concept, depth: current.depth + 1 });
+        });
+      }
+      return [...distances.values()].sort((left, right) => left.depth - right.depth
+        || left.concept.label.localeCompare(right.concept.label)
+        || left.concept.viewId.localeCompare(right.concept.viewId));
     }
     function isLinkEligible(link) {
       return link.kind === "mapping" ? isMappingEligible(link.edge) : isNativeRelationEligible(link.edge);
@@ -1515,6 +1907,15 @@ _HTML = r"""<!doctype html>
       const links = adjacency.get(concept.viewId).filter(isLinkEligible);
       const nativeLinks = links.filter(item => item.kind === "native");
       const mappingLinks = links.filter(item => item.kind === "mapping");
+      const parents = hierarchyNeighbors(concept.viewId, hierarchyParents);
+      const children = hierarchyNeighbors(concept.viewId, hierarchyChildren);
+      const ancestors = hierarchyClosure(concept.viewId, hierarchyParents);
+      const descendants = hierarchyClosure(concept.viewId, hierarchyChildren);
+      const related = new Set(
+        nativeLinks
+          .filter(item => item.edge.predicateLabel === "related")
+          .map(item => item.other)
+      );
       document.getElementById("node-role").textContent = roleLabel(concept);
       document.getElementById("node-title").textContent = concept.label;
       document.getElementById("node-release").textContent = release.label;
@@ -1531,6 +1932,11 @@ _HTML = r"""<!doctype html>
       }
       document.getElementById("node-native-count").textContent = formatNumber(nativeLinks.length);
       document.getElementById("node-mapping-count").textContent = formatNumber(mappingLinks.length);
+      document.getElementById("node-parent-count").textContent = formatNumber(parents.length);
+      document.getElementById("node-child-count").textContent = formatNumber(children.length);
+      document.getElementById("node-ancestor-count").textContent = formatNumber(ancestors.length);
+      document.getElementById("node-descendant-count").textContent = formatNumber(descendants.length);
+      document.getElementById("node-related-count").textContent = formatNumber(related.size);
       const notation = document.getElementById("notation-value");
       document.getElementById("notation-term").hidden = notation.hidden = !concept.notation;
       notation.textContent = concept.notation || "";
@@ -1575,6 +1981,36 @@ _HTML = r"""<!doctype html>
           button.addEventListener("click", () => selectConcept(other, { fit: true }));
           container.append(button);
         });
+      const hierarchySection = document.getElementById("node-hierarchy");
+      const hierarchyContainer = document.getElementById("hierarchy-connections");
+      hierarchyContainer.replaceChildren();
+      const hierarchyRows = [
+        ...ancestors.map(item => ({ ...item, direction: "ancestor" })),
+        ...descendants.map(item => ({ ...item, direction: "descendant" }))
+      ];
+      hierarchySection.hidden = !hierarchyRows.length;
+      hierarchyRows.slice(0, 120).forEach(item => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "connection";
+        button.style.setProperty("--connection-color", release.color);
+        const name = document.createElement("b");
+        name.textContent = item.concept.label;
+        const path = document.createElement("small");
+        const direction = item.depth === 1
+          ? (item.direction === "ancestor" ? "parent" : "child")
+          : item.direction;
+        path.textContent = `${direction} · ${formatQuantity(item.depth, "asserted step")}`;
+        button.append(name, path);
+        button.addEventListener("click", () => selectConcept(item.concept, { fit: true }));
+        hierarchyContainer.append(button);
+      });
+      if (hierarchyRows.length > 120) {
+        const note = document.createElement("p");
+        note.className = "hint";
+        note.textContent = `${formatNumber(hierarchyRows.length - 120)} additional path results remain searchable by concept.`;
+        hierarchyContainer.append(note);
+      }
     }
 
     function editDistanceWithin(left, right, limit) {
@@ -1627,6 +2063,7 @@ _HTML = r"""<!doctype html>
       if (document.identifier.includes(query) || document.identifierTail.includes(query)) {
         return { score: 640, match: "Identifier contains query" };
       }
+      if (tokens.every(token => document.sourceFacts.includes(token))) return { score: 520, match: "Source or release fact" };
       if (tokens.every(token => document.notes.includes(token))) return { score: 420, match: "Definition or scope note" };
       const fuzzyLabel = query.length >= 4
         ? document.labels.find(label => tokens.every(token => label.tokens.some(value =>
@@ -1726,7 +2163,124 @@ _HTML = r"""<!doctype html>
       const selected = state.selected ? conceptByViewId.get(state.selected) : null;
       if (selected && !isConceptEligible(selected)) state.selected = null;
       renderSearch({ refresh: false });
+      renderPlanningRows();
       refreshGraph({ fit: true });
+    }
+
+    function compactFacetValue(value) {
+      if (value.length <= 52) return value;
+      return `${value.slice(0, 24)}…${value.slice(-22)}`;
+    }
+
+    function appendFacetSelect(container, field, labelText, values, onChange) {
+      if (!values.length) return null;
+      const label = document.createElement("label");
+      label.className = "facet-control";
+      const caption = document.createElement("span");
+      caption.textContent = labelText;
+      const select = document.createElement("select");
+      select.dataset.facet = field;
+      select.setAttribute("aria-label", `Filter by ${labelText.toLocaleLowerCase()}`);
+      const all = document.createElement("option");
+      all.value = "";
+      all.textContent = `All ${labelText.toLocaleLowerCase()} values`;
+      select.append(all);
+      values.forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = compactFacetValue(value);
+        option.title = value;
+        select.append(option);
+      });
+      select.addEventListener("change", () => onChange(select.value));
+      label.append(caption, select);
+      container.append(label);
+      return select;
+    }
+
+    function planningRowEligible(row) {
+      return (!state.activePlanningDisposition || row.disposition === state.activePlanningDisposition)
+        && state.activeRings.has(row.semanticRing)
+        && (!state.activeConceptFacets.sourceModules || row.sourceModule === state.activeConceptFacets.sourceModules)
+        && (!state.activeConceptFacets.resourceIds || row.resourceId === state.activeConceptFacets.resourceIds)
+        && (!state.activeConceptFacets.participations || row.atlasParticipation === state.activeConceptFacets.participations);
+    }
+
+    function renderPlanningRows() {
+      if (!("planningIndex" in data.releaseContext)) return;
+      const rows = data.releaseContext.planningRows.filter(planningRowEligible);
+      planningRows.replaceChildren();
+      rows.forEach(row => {
+        const item = document.createElement("div");
+        item.className = "planning-row";
+        const heading = document.createElement("b");
+        heading.textContent = `${row.resourceId} · ${row.disposition}`;
+        const source = document.createElement("small");
+        const participation = row.atlasParticipation ? ` · ${row.atlasParticipation}` : "";
+        source.textContent = `${row.sourceModule} · ${ringLabels[row.semanticRing]}${participation} · ${row.planningStatus}`;
+        const reason = document.createElement("small");
+        reason.textContent = row.reason;
+        item.append(heading, source, reason);
+        planningRows.append(item);
+      });
+      document.getElementById("planning-row-count").textContent = `${formatNumber(rows.length)} shown · ${formatNumber(data.releaseContext.planningRows.length)} exact planning rows`;
+    }
+
+    function renderFacetFilters() {
+      conceptFacetDefinitions.forEach(([field, label]) => {
+        appendFacetSelect(conceptFacetFilters, field, label, data.facets[field], value => {
+          state.activeConceptFacets[field] = value;
+          filtersChanged();
+        });
+      });
+      appendFacetSelect(
+        mappingFacetFilters,
+        "mappingPredicates",
+        "Mapping predicate",
+        data.facets.mappingPredicates,
+        value => {
+          state.activeMappingPredicate = value;
+          filtersChanged();
+        }
+      );
+      appendFacetSelect(
+        mappingFacetFilters,
+        "evidenceClasses",
+        "Evidence class",
+        data.facets.evidenceClasses,
+        value => {
+          state.activeEvidenceClass = value;
+          filtersChanged();
+        }
+      );
+    }
+
+    function renderReleaseContext() {
+      if (!("planningIndex" in data.releaseContext)) return;
+      document.getElementById("release-context-section").hidden = false;
+      document.getElementById("release-context-summary").textContent = `${formatQuantity(data.releaseContext.sourceApprovals.length, "approved source release")} · ${formatQuantity(data.releaseContext.planningRows.length, "disposed planning row")}`;
+      const approvals = document.getElementById("source-approvals");
+      data.releaseContext.sourceApprovals.forEach(approval => {
+        const item = document.createElement("div");
+        item.className = "planning-row";
+        const heading = document.createElement("b");
+        heading.textContent = `${releaseById.get(approval.releaseId)?.label || identifierTail(approval.releaseId)} · approved`;
+        const source = document.createElement("small");
+        source.textContent = `${ringLabels[approval.semanticRing]} · ${shortId(approval.manifestDigest)}`;
+        item.append(heading, source);
+        approvals.append(item);
+      });
+      appendFacetSelect(
+        planningFacetFilters,
+        "planningDispositions",
+        "Planning disposition",
+        data.facets.planningDispositions,
+        value => {
+          state.activePlanningDisposition = value;
+          renderPlanningRows();
+        }
+      );
+      renderPlanningRows();
     }
 
     function renderFilters() {
@@ -1899,6 +2453,15 @@ _HTML = r"""<!doctype html>
       document.getElementById("pin-manifest").textContent = data.atlas.manifestDigest;
       document.getElementById("pin-output").textContent = data.atlas.distributionDigest;
       document.getElementById("pin-selection").textContent = data.selectionPolicy.id;
+      if ("planningIndex" in data.releaseContext) {
+        document.getElementById("pin-index-label").hidden = false;
+        document.getElementById("pin-index").hidden = false;
+        document.getElementById("pin-index").textContent = `${data.releaseContext.planningIndex.id} · ${data.releaseContext.planningIndex.fileDigest}`;
+        document.getElementById("pin-decision-label").hidden = false;
+        document.getElementById("pin-decision").hidden = false;
+        document.getElementById("pin-decision").textContent = `${data.releaseContext.publicationDecision.id} · ${data.releaseContext.publicationDecision.recordDigest}`;
+        document.getElementById("index-download").hidden = false;
+      }
     }
 
     canvas.addEventListener("pointerdown", event => {
@@ -2019,10 +2582,16 @@ _HTML = r"""<!doctype html>
       state.activeReleases = new Set(data.conceptReleases.map(release => release.releaseId));
       state.activeNativePredicates = new Set(nativePredicateOrder);
       state.activeRings = new Set(ringOrder);
+      state.activeConceptFacets = Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""]));
+      state.activeMappingPredicate = "";
+      state.activeEvidenceClass = "";
+      state.activePlanningDisposition = "";
       state.mappingsActive = true;
       state.selected = null;
       search.value = "";
       document.querySelectorAll("#controls input[type=checkbox]").forEach(input => { input.checked = true; });
+      document.querySelectorAll("#controls select").forEach(select => { select.value = ""; });
+      renderPlanningRows();
       renderSearch({ focusMatches: true });
     });
     window.addEventListener("keydown", event => {
@@ -2038,7 +2607,9 @@ _HTML = r"""<!doctype html>
     new ResizeObserver(resize).observe(stage);
 
     populateText();
+    renderFacetFilters();
     renderFilters();
+    renderReleaseContext();
     renderSearch({ refresh: false });
     refreshGraph();
     resize();

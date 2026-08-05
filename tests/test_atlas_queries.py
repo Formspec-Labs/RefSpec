@@ -206,6 +206,27 @@ def test_native_relation_query_preserves_managed_release_skos_facts(
     )
     assert relation.relation_id.startswith("urn:ref:vocabulary-atlas-native-relation:")
     assert queries.native_relations(concept_id=object_id) == relations
+    assert [
+        value.concept_id
+        for value in queries.native_ancestors(
+            subject_id,
+            release_id=source.release_id,
+        )
+    ] == [object_id]
+    assert [
+        value.concept_id
+        for value in queries.native_descendants(
+            object_id,
+            release_id=source.release_id,
+        )
+    ] == [subject_id]
+    neighborhood = queries.direct_neighborhood(
+        subject_id,
+        release_id=source.release_id,
+    )
+    assert neighborhood.concept.concept_id == subject_id
+    assert neighborhood.native_relations == relations
+    assert neighborhood.mapping_assertions == ()
     assert queries.native_relations(predicate_iri="http://www.w3.org/2004/02/skos/core#related") == ()
     with pytest.raises(VocabularyAtlasError, match="predicate"):
         queries.native_relations(predicate_iri="urn:test:unsupported")
@@ -266,4 +287,9 @@ def test_mapping_query_resolves_typed_evidence_and_machine_proof_closure(
     assert view.validation_receipt_ids == evidence.validation_receipts
     assert view.external_evidence_ids == (cast(str, proof.pin()["id"]),)
     assert queries.mapping_assertion(machine_mapping.identifier) == view
+    neighborhood = queries.direct_neighborhood(
+        machine_mapping.source_concept,
+        release_id=machine_mapping.source_release,
+    )
+    assert neighborhood.mapping_assertions == result
     assert queries.mapping_assertions(semantic_ring="entity") == ()

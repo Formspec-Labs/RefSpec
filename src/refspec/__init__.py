@@ -15,6 +15,7 @@ from refspec.atlas.release_acceptance import (
     ReproducibilityStatus,
     VocabularyAtlasReleaseAcceptance,
     build_vocabulary_atlas_release_acceptance,
+    read_vocabulary_atlas_release_acceptance,
 )
 from refspec.generated_rulespec_dependency import load_rulespec_dependency
 from refspec.managed_release import (
@@ -133,6 +134,7 @@ __all__ = [
     "authorize_accepted_assignment",
     "bind_ranked_candidates",
     "build_vocabulary_atlas_release_acceptance",
+    "read_vocabulary_atlas_release_acceptance",
     "canonical_payload_digest",
     "canonical_text_digest",
     "indexed_expression_corpus_digest",

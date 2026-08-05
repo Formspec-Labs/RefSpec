@@ -9,6 +9,7 @@ label equality.
 from __future__ import annotations
 
 import unicodedata
+from collections import deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, cast
@@ -268,6 +269,15 @@ class MappingAssertionView:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ConceptNeighborhood:
+    """Every direct, asserted relationship attached to one concept version."""
+
+    concept: ConceptVersion
+    native_relations: tuple[NativeConceptRelation, ...]
+    mapping_assertions: tuple[MappingAssertionView, ...]
+
+
 def _checked_ring(value: object) -> SemanticRing:
     if not isinstance(value, str) or value not in SEMANTIC_RINGS:
         raise VocabularyAtlasError("semantic ring must be subject, entity, value, or legalIdentity")
@@ -489,9 +499,7 @@ class VocabularyAtlasQueries:
         for value in self._concepts:
             key = (value.release_id, value.concept_id)
             if key in result:
-                raise VocabularyAtlasError(
-                    "atlas repeats a concept version inside one release"
-                )
+                raise VocabularyAtlasError("atlas repeats a concept version inside one release")
             result[key] = value
         return result
 
@@ -717,6 +725,108 @@ class VocabularyAtlasQueries:
             and (concept_id is None or concept_id in {value.subject_concept, value.object_concept})
         )
 
+    def _native_hierarchy(
+        self,
+        *,
+        release_id: str,
+    ) -> tuple[
+        Mapping[str, tuple[str, ...]],
+        Mapping[str, tuple[str, ...]],
+    ]:
+        parents: dict[str, set[str]] = {}
+        children: dict[str, set[str]] = {}
+        broader = "http://www.w3.org/2004/02/skos/core#broader"
+        narrower = "http://www.w3.org/2004/02/skos/core#narrower"
+        for relation in self.native_relations(release_id=release_id):
+            if relation.predicate_iri == broader:
+                child, parent = relation.subject_concept, relation.object_concept
+            elif relation.predicate_iri == narrower:
+                child, parent = relation.object_concept, relation.subject_concept
+            else:
+                continue
+            parents.setdefault(child, set()).add(parent)
+            children.setdefault(parent, set()).add(child)
+        return (
+            {key: tuple(sorted(values)) for key, values in parents.items()},
+            {key: tuple(sorted(values)) for key, values in children.items()},
+        )
+
+    def _native_hierarchy_closure(
+        self,
+        concept_id: str,
+        *,
+        release_id: str,
+        ancestors: bool,
+    ) -> tuple[ConceptVersion, ...]:
+        self.concept(concept_id, release_id=release_id)
+        parents, children = self._native_hierarchy(release_id=release_id)
+        adjacency = parents if ancestors else children
+        distances: dict[str, int] = {}
+        pending = deque((value, 1) for value in adjacency.get(concept_id, ()))
+        while pending:
+            current, distance = pending.popleft()
+            previous = distances.get(current)
+            if previous is not None and previous <= distance:
+                continue
+            distances[current] = distance
+            pending.extend((value, distance + 1) for value in adjacency.get(current, ()) if value != concept_id)
+        return tuple(
+            self.concept(identifier, release_id=release_id)
+            for identifier in sorted(
+                distances,
+                key=lambda value: (distances[value], value),
+            )
+        )
+
+    def native_ancestors(
+        self,
+        concept_id: str,
+        *,
+        release_id: str,
+    ) -> tuple[ConceptVersion, ...]:
+        """Return asserted broader ancestors, nearest first, without inference rows."""
+
+        return self._native_hierarchy_closure(
+            concept_id,
+            release_id=release_id,
+            ancestors=True,
+        )
+
+    def native_descendants(
+        self,
+        concept_id: str,
+        *,
+        release_id: str,
+    ) -> tuple[ConceptVersion, ...]:
+        """Return asserted narrower descendants, nearest first, without inference rows."""
+
+        return self._native_hierarchy_closure(
+            concept_id,
+            release_id=release_id,
+            ancestors=False,
+        )
+
+    def direct_neighborhood(
+        self,
+        concept_id: str,
+        *,
+        release_id: str,
+    ) -> ConceptNeighborhood:
+        """Return only direct native assertions and admitted mappings."""
+
+        concept = self.concept(concept_id, release_id=release_id)
+        return ConceptNeighborhood(
+            concept=concept,
+            native_relations=self.native_relations(
+                release_id=release_id,
+                concept_id=concept_id,
+            ),
+            mapping_assertions=self.mapping_assertions(
+                release_id=release_id,
+                concept_id=concept_id,
+            ),
+        )
+
     def concept_history(self, concept_id: str) -> tuple[ConceptVersion, ...]:
         """Return every release-scoped record for one stable concept identity."""
 
@@ -917,6 +1027,7 @@ __all__ = [
     "CanonicalAtlasRecord",
     "CanonicalRecordRole",
     "ConceptLabel",
+    "ConceptNeighborhood",
     "ConceptVersion",
     "EvidenceAssertionView",
     "LabelMatch",

@@ -15,7 +15,11 @@ import test_vocabulary_atlas_model as model_fixtures
 
 import refspec.atlas.publication as publication_module
 from refspec import binding
-from refspec.atlas.atlas_scope import AtlasScopeRelease, PinnedVocabularyAtlasScope
+from refspec.atlas.atlas_scope import (
+    AtlasScopeRelease,
+    PinnedVocabularyAtlasScope,
+    VocabularyAtlasScope,
+)
 from refspec.atlas.explorer import AtlasExplorerError, render_atlas_explorer
 from refspec.atlas.model import ATLAS_FILE, VocabularyAtlasAsset, build_vocabulary_atlas
 from refspec.atlas.projection import (
@@ -24,6 +28,7 @@ from refspec.atlas.projection import (
     ring_projection_policy,
 )
 from refspec.atlas.publication import (
+    ATLAS_INDEX,
     ATLAS_MANIFEST,
     ATLAS_SCOPE,
     COMPRESSED_ATLAS,
@@ -45,7 +50,11 @@ from refspec.atlas.relation_assertion import (
     PinnedRelationAssertionBundle,
     RelationAssertionBundle,
 )
-from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    plain_json,
+    sha256_digest,
+)
 from refspec.registry.infrastructure.semantic_foundation import (
     ENTITY_RELATED,
     LEGAL_CITES,
@@ -231,6 +240,147 @@ def test_canonical_publication_preserves_exact_authoritative_bytes_and_reopens(
     assert isinstance(reopened.distribution, VocabularyAtlasAsset)
     assert reopened.distribution.payload == asset.payload
     assert reopened.decision.as_record() == decision.as_record()
+
+
+def test_indexed_publication_carries_exact_release_controls_and_reopens(
+    tmp_path: Path,
+) -> None:
+    scope, asset, decision, relation = _mapped_fixture(tmp_path)
+    atlas_index = scope.verified_scope().atlas_index
+
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published-with-index",
+        decision=decision,
+        planning_index=atlas_index,
+    )
+
+    assert (publication.directory / ATLAS_INDEX).read_bytes() == atlas_index.path.read_bytes()
+    assert publication.manifest["planningIndex"] == atlas_index.pin()
+    assert (
+        next(row for row in publication.manifest["artifacts"] if row["path"] == ATLAS_INDEX)["fileDigest"]
+        == atlas_index.file_digest
+    )
+    explorer = json.loads((publication.directory / EXPLORER_DATA).read_bytes())
+    binding.validate_canonical_value(explorer)
+    release_context = explorer["releaseContext"]
+    assert release_context["planningIndex"] == atlas_index.pin()
+    assert release_context["publicationDecision"] == {
+        "id": decision.identifier,
+        "recordDigest": decision.record_digest,
+        "schemaVersion": decision.record["schemaVersion"],
+    }
+    assert release_context["sourceApprovals"] == json.loads(decision.artifact_bytes())["sourceApprovals"]
+    assert {(row["rowId"], row["rowDigest"], row["disposition"]) for row in release_context["planningRows"]} == {
+        (row["rowId"], row["rowDigest"], row["disposition"]) for row in decision.record["rowDispositions"]
+    }
+    assert explorer["facets"]["mappingPredicates"] == [relation]
+    assert explorer["facets"]["evidenceClasses"] == ["humanReviewed"]
+    assert explorer["facets"]["sourceModules"]
+    assert explorer["facets"]["resourceIds"]
+    assert explorer["facets"]["participations"] == ["core", "specialist"]
+    html = (publication.directory / EXPLORER_HTML).read_text()
+    assert 'id="release-context-section"' in html
+    assert 'id="planning-rows"' in html
+    assert 'id="index-download"' in html
+    assert "data.releaseContext.sourceApprovals" in html
+    assert "data.releaseContext.planningRows.filter(planningRowEligible)" in html
+
+    reopened = AtlasPublication.open(
+        publication.directory,
+        expected_manifest_digest=publication.manifest_digest,
+    )
+    assert reopened.planning_index == atlas_index.verified_index()
+
+
+def test_indexed_publication_rejects_a_changed_exact_planning_index(
+    tmp_path: Path,
+) -> None:
+    scope, asset, decision, _ = _mapped_fixture(tmp_path)
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published-with-index",
+        decision=decision,
+        planning_index=scope.verified_scope().atlas_index,
+    )
+    trusted_digest = publication.manifest_digest
+    index_path = publication.directory / ATLAS_INDEX
+    index_path.write_bytes(index_path.read_bytes() + b"\n")
+
+    with pytest.raises(AtlasPublicationError):
+        AtlasPublication.open(
+            publication.directory,
+            expected_manifest_digest=trusted_digest,
+        )
+
+
+def test_indexed_publication_omits_nullable_planning_facts_from_explorer(
+    tmp_path: Path,
+) -> None:
+    _, source, _ = decision_fixtures.scope_fixture._source_release(
+        tmp_path,
+        "nullable-planning-row",
+    )
+    release = AtlasScopeRelease(source)
+    atlas_index, exact_index, _ = decision_fixtures.scope_fixture._pinned_index(
+        tmp_path,
+        "nullable-planning-row",
+        (
+            decision_fixtures.scope_fixture._IndexSpec(
+                release,
+                "nullable-planning-row",
+                participation=None,
+            ),
+        ),
+    )
+    assert exact_index["rows"][0]["atlasParticipation"] is None
+    scope_value = VocabularyAtlasScope.create(
+        scope_name="urn:ref:test:vocabulary-atlas-scope:nullable-planning-row",
+        scope_kind="bench",
+        atlas_index=atlas_index,
+        releases=(release,),
+    )
+    scope_path = scope_value.write_to(tmp_path / "nullable-scope.json")
+    scope = PinnedVocabularyAtlasScope.open(
+        scope_path,
+        expected_file_digest=sha256_digest(scope_path.read_bytes()),
+        atlas_index=atlas_index,
+        releases=(release,),
+    )
+    asset = build_vocabulary_atlas(scope)
+    decision = _atlas_decision(scope, asset)
+
+    publication = publish_vocabulary_atlas(
+        asset,
+        tmp_path / "published-nullable-index",
+        decision=decision,
+        planning_index=atlas_index,
+    )
+
+    explorer = json.loads((publication.directory / EXPLORER_DATA).read_bytes())
+    assert "atlasParticipation" not in explorer["releaseContext"]["planningRows"][0]
+    binding.validate_canonical_value(explorer)
+    assert (
+        AtlasPublication.open(
+            publication.directory,
+            expected_manifest_digest=publication.manifest_digest,
+        ).planning_index
+        == atlas_index.verified_index()
+    )
+
+
+def test_explorer_rejects_a_decision_for_another_exact_index(
+    tmp_path: Path,
+) -> None:
+    scope, asset, _, _ = _mapped_fixture(tmp_path / "first")
+    _, _, other_decision = _canonical_fixture(tmp_path / "second", name="other-index")
+
+    with pytest.raises(AtlasPublicationError, match="planning index differs"):
+        build_explorer_model(
+            asset,
+            planning_index=scope.verified_scope().atlas_index,
+            decision=other_decision,
+        )
 
 
 def test_projection_publication_requires_parent_and_carries_no_canonical_scope(
@@ -526,12 +676,25 @@ def test_explorer_defaults_to_a_complete_searchable_index(
     assert model["selectionPolicy"]["maxConcepts"] == 2
     assert model["selectionPolicy"]["maxMappingAssertions"] == 1
     assert all(concept["label"] in concept["searchLabels"] for concept in model["concepts"])
+    assert model["releaseContext"] == {
+        "sourceApprovals": [],
+        "planningRows": [],
+    }
+    binding.validate_canonical_value(model)
 
     rendered = render_atlas_explorer(model)
     assert "Semantic rings" in rendered
     assert "Ring filters apply to concepts" in rendered
     assert "Label, alias, notation, or identifier" in rendered
     assert 'id="mapping-filters"' in rendered
+    assert 'id="concept-facet-filters"' in rendered
+    assert 'id="mapping-facet-filters"' in rendered
+    assert "conceptFacetDefinitions.every" in rendered
+    assert "mapping.evidenceClasses.includes" in rendered
+    assert 'id="node-ancestor-count"' in rendered
+    assert 'id="node-descendant-count"' in rendered
+    assert "hierarchyClosure(concept.viewId, hierarchyParents)" in rendered
+    assert "does not turn a path into a direct assertion" in rendered
     assert 'id="render-limit-range"' in rendered
     assert 'id="render-limit-number"' in rendered
     assert "Maximum rendered concepts" in rendered
@@ -582,7 +745,7 @@ def test_explorer_preserves_native_relations_separately_from_mappings(
         max_concepts=2,
     )
 
-    assert model["schemaVersion"] == "2.1"
+    assert model["schemaVersion"] == "3.0"
     assert model["mappingAssertions"] == []
     assert len(model["nativeRelations"]) == 1
     relation = model["nativeRelations"][0]
@@ -602,7 +765,7 @@ def test_renderer_fails_closed_on_non_2_0_view_fields(tmp_path: Path) -> None:
 
     old_collections = dict(model)
     old_collections["releases"] = old_collections.pop("conceptReleases")
-    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas explorer 2.1"):
+    with pytest.raises(AtlasExplorerError, match="fields differ from Atlas explorer 3.0"):
         render_atlas_explorer(old_collections)
 
     unknown_counts = json.loads(json.dumps(model))
@@ -627,6 +790,7 @@ def _explorer_model_for_ring(
     mapping = model["mappingAssertions"][0]
     mapping["semanticRing"] = semantic_ring
     mapping["relation"] = relation
+    model["facets"]["mappingPredicates"] = [relation]
     if context is None:
         mapping.pop("context", None)
     else:
@@ -808,6 +972,59 @@ def test_cli_auto_opens_canonical_and_projection_with_exact_decision_pins(
     )
     assert isinstance(reopened.distribution, VocabularyAtlasProjection)
     assert len(capsys.readouterr().out.splitlines()) == 2
+
+
+def test_cli_publishes_and_reopens_the_exact_planning_index(
+    tmp_path: Path,
+) -> None:
+    scope, asset, decision = _canonical_fixture(tmp_path, name="cli-indexed")
+    atlas_index = scope.verified_scope().atlas_index
+    atlas_root = asset.write(tmp_path / "atlas-distribution")
+    decision_path = decision.write_to(tmp_path / "decision.json")
+    input_path = tmp_path / "atlas-index-input.json"
+    catalog_path = tmp_path / "resource-catalog.json"
+    input_path.write_text(
+        json.dumps(plain_json(atlas_index._index_input), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    catalog_path.write_text(
+        json.dumps(plain_json(atlas_index._resource_catalog), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "publication"
+
+    assert (
+        main(
+            [
+                "--distribution",
+                str(atlas_root),
+                "--distribution-manifest-digest",
+                asset.manifest_digest,
+                "--decision",
+                str(decision_path),
+                "--decision-file-digest",
+                sha256_digest(decision_path.read_bytes()),
+                "--planning-index",
+                str(atlas_index.path),
+                "--planning-index-file-digest",
+                atlas_index.file_digest,
+                "--planning-index-input",
+                str(input_path),
+                "--resource-catalog",
+                str(catalog_path),
+                "--repository-root",
+                str(atlas_index._repository_root),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    reopened = AtlasPublication.open(
+        output,
+        expected_manifest_digest=_manifest_digest(output),
+    )
+    assert reopened.planning_index == atlas_index.verified_index()
 
 
 def test_cli_rejects_projection_without_parent(
