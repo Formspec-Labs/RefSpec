@@ -118,6 +118,8 @@ _BASIS_FIELDS = frozenset(
     }
 )
 _RECORD_FIELDS = _BASIS_FIELDS | {"id", "recordDigest"}
+_BASIS_FIELDS_V1 = _BASIS_FIELDS - {"sourceApprovals", "rowDispositions"}
+_RECORD_FIELDS_V1 = _BASIS_FIELDS_V1 | {"id", "recordDigest"}
 
 
 class PublicationDecisionError(ValueError):
@@ -443,11 +445,16 @@ def _normalize_supersedes(value: object) -> list[dict[str, str]]:
 
 def _normalize_basis(value: Mapping[str, Any]) -> dict[str, Any]:
     row = cast(dict[str, Any], _plain(value))
-    _require_exact_fields(row, _BASIS_FIELDS, "publication decision basis")
+    version = row.get("schemaVersion")
+    if version == "1.0":
+        expected_fields = _BASIS_FIELDS_V1
+    elif version == PUBLICATION_DECISION_VERSION:
+        expected_fields = _BASIS_FIELDS
+    else:
+        raise PublicationDecisionError("publication decision schemaVersion is unsupported")
+    _require_exact_fields(row, expected_fields, "publication decision basis")
     if row.get("type") != PUBLICATION_DECISION_TYPE:
         raise PublicationDecisionError("publication decision type is unsupported")
-    if row.get("schemaVersion") != PUBLICATION_DECISION_VERSION:
-        raise PublicationDecisionError("publication decision schemaVersion is unsupported")
     artifact_kind = row.get("artifactKind")
     if not isinstance(artifact_kind, str) or artifact_kind not in _ARTIFACT_KINDS:
         raise PublicationDecisionError("publication decision artifactKind must be atlas or projection")
@@ -465,32 +472,46 @@ def _normalize_basis(value: Mapping[str, Any]) -> dict[str, Any]:
         raise PublicationDecisionError("an atlas publication decision cannot name a projection policy")
     if normalized_kind == "projection" and len(projection_policies) != 1:
         raise PublicationDecisionError("a projection publication decision requires exactly one projection policy")
-    return {
+    result = {
         "type": PUBLICATION_DECISION_TYPE,
-        "schemaVersion": PUBLICATION_DECISION_VERSION,
+        "schemaVersion": version,
         "artifactKind": normalized_kind,
         "scope": _normalize_scope_pin(row.get("scope")),
         "planningIndex": _normalize_index_pin(row.get("planningIndex")),
         "intendedScope": _normalize_intended_scope(row.get("intendedScope")),
         "policies": policies,
         "exceptions": _normalize_exceptions(row.get("exceptions")),
-        "sourceApprovals": _normalize_source_approvals(
-            row.get("sourceApprovals")
-        ),
-        "rowDispositions": _normalize_row_dispositions(
-            row.get("rowDispositions")
-        ),
         "decisionActor": _require_iri(row.get("decisionActor"), "publication decision decisionActor"),
         "decidedAt": _require_datetime(row.get("decidedAt"), "publication decision decidedAt"),
         "result": _normalize_result(row.get("result"), artifact_kind=normalized_kind),
         "supersedes": _normalize_supersedes(row.get("supersedes")),
     }
+    if version == PUBLICATION_DECISION_VERSION:
+        result["sourceApprovals"] = _normalize_source_approvals(
+            row.get("sourceApprovals")
+        )
+        result["rowDispositions"] = _normalize_row_dispositions(
+            row.get("rowDispositions")
+        )
+        # Keep the content-derived field order stable, independent of the order
+        # in which the version-specific values were normalized above.
+        result = {field: result[field] for field in _BASIS_FIELDS}
+    else:
+        result = {field: result[field] for field in _BASIS_FIELDS_V1}
+    return result
 
 
 def _normalize_record(value: object) -> dict[str, Any]:
     row = _require_mapping(value, "publication decision")
-    _require_exact_fields(row, _RECORD_FIELDS, "publication decision")
-    basis = _normalize_basis({field: row[field] for field in _BASIS_FIELDS})
+    version = row.get("schemaVersion")
+    if version == "1.0":
+        basis_fields = _BASIS_FIELDS_V1
+        record_fields = _RECORD_FIELDS_V1
+    else:
+        basis_fields = _BASIS_FIELDS
+        record_fields = _RECORD_FIELDS
+    _require_exact_fields(row, record_fields, "publication decision")
+    basis = _normalize_basis({field: row[field] for field in basis_fields})
     record_digest = sha256_digest(_canonical_bytes(basis))
     expected = {
         **basis,
@@ -546,7 +567,8 @@ class VocabularyAtlasPublicationDecision:
 
     def validate_for_scope(self, scope: PinnedVocabularyAtlasScope) -> None:
         self._validate_scope_facts(*_scope_facts(scope))
-        _validate_release_controls_for_scope(self.record, scope)
+        if self.record["schemaVersion"] == PUBLICATION_DECISION_VERSION:
+            _validate_release_controls_for_scope(self.record, scope)
 
     def validate_result(self, result: Mapping[str, Any]) -> None:
         normalized = _normalize_result(result, artifact_kind=self.artifact_kind)

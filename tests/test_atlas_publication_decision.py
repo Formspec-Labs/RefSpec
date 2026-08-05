@@ -589,3 +589,25 @@ def test_decision_file_round_trips_under_an_external_digest(tmp_path: Path) -> N
         )
     with pytest.raises(PublicationDecisionError, match="already exists"):
         decision.write_to(path)
+
+
+def test_reader_preserves_resolvable_v1_publication_decisions(tmp_path: Path) -> None:
+    scope = _pinned_scope(tmp_path, name="legacy-decision")
+    legacy = _decision(scope).as_record()
+    legacy["schemaVersion"] = "1.0"
+    del legacy["sourceApprovals"]
+    del legacy["rowDispositions"]
+    del legacy["id"]
+    del legacy["recordDigest"]
+    digest = sha256_digest(canonical_json_bytes(legacy))
+    legacy.update(
+        {
+            "id": "urn:ref:vocabulary-atlas-publication-decision:" + digest.removeprefix("sha256:"),
+            "recordDigest": digest,
+        }
+    )
+
+    reopened = VocabularyAtlasPublicationDecision.from_record(legacy)
+
+    assert reopened.as_record() == legacy
+    reopened.validate_for_scope(scope)
