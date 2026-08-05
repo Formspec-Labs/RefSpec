@@ -45,7 +45,7 @@
 > [Source Vocabulary Catalog](source-vocabulary-ontology-thesaurus-catalog-2026-07-28.md) ·
 > [Source and Document Type Matrix](source-document-type-matrix-2026-07-28.md) ·
 > [Concept Tagging Architecture Proposal](concept-tagging-architecture-proposal-2026-07-28.md) ·
-> [External research synthesis](large-label-space-tagging-external-research-synthesis-2026-08-03.md) ·
+> [External research synthesis](archive/large-label-space-tagging-external-research-synthesis-2026-08-03.md) ·
 > [Crosswalk qualification pilot](../docs/atlas-crosswalk-qualification-pilot.md) ·
 > [Distribution measurement](../docs/atlas-distribution-measurement.md)
 >

@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-03
 **Sources:** The nine recovered blind research reports in
-[`evidence/blind-external-research-recovery-2026-07-28/`](evidence/blind-external-research-recovery-2026-07-28/).
+[`evidence/blind-external-research-recovery-2026-07-28/`](../evidence/blind-external-research-recovery-2026-07-28/).
 **Scope:** This report synthesizes what the external literature and the
 researchers' own primary-source measurements established about tagging
 documents against very large label spaces. It deliberately excludes the

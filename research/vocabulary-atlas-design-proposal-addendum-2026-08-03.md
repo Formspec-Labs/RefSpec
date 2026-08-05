@@ -37,7 +37,7 @@
 >
 > **Parent proposal:** [Vocabulary Atlas Design Proposal](vocabulary-atlas-design-proposal-2026-08-03.md)
 >
-> **Evidence base:** [External research synthesis](large-label-space-tagging-external-research-synthesis-2026-08-03.md)
+> **Evidence base:** [External research synthesis](archive/large-label-space-tagging-external-research-synthesis-2026-08-03.md)
 
 This addendum bounds the parent proposal: the commitments that remain
 experiments (§A), the work assigned to consuming or ring-specific layers
