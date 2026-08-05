@@ -19,6 +19,7 @@ import multiprocessing
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -1800,6 +1801,304 @@ def test_the_effective_total_cap_is_recorded_in_the_summary_and_sidecar(
     assert summary["totalSpendCapUsd"] == 1.25
 
 
+def test_a_spend_authority_is_pinned_before_submission_and_cannot_change(
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    authority = {
+        "authorityId": "urn:ref:test:spend-authority:one",
+        "authorityRecordDigest": "sha256:" + "1" * 64,
+        "jobKey": "test-job",
+        "runSpendCapUsd": 1.25,
+    }
+
+    qbatch.submit(
+        transport=server,
+        receipts_path=run_dir / RUNNER.RECEIPTS,
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=(qual.OPENAI_FAMILY,),
+        keys={"openai": "offline-secret"},
+        models={"openai": OPENAI_MODEL},
+        rows=rows,
+        caps={"openai": 1.25},
+        total_cap_usd=1.25,
+        protocol=qual.PROTOCOL,
+        group_size=1,
+        spend_authority=authority,
+    )
+
+    sidecar = _sidecar(run_dir)
+    assert sidecar["spendAuthority"] == authority
+    assert sidecar["jobs"][0]["spendAuthority"] == authority
+    verification = qbatch.verify_sidecar_request_lineage(
+        sidecar,
+        families=qual.VALIDATOR_FAMILIES,
+        rows=rows,
+        work_kind="validation",
+    )
+    assert verification["jobs"] == 1
+
+    for replacement in (
+        None,
+        {**authority, "authorityId": "urn:ref:test:spend-authority:two"},
+    ):
+        with pytest.raises(
+            qbatch.BatchError,
+            match="spend authority cannot change or be omitted",
+        ):
+            qbatch.submit(
+                transport=server,
+                receipts_path=run_dir / RUNNER.RECEIPTS,
+                sidecar_path=run_dir / qbatch.SIDECAR,
+                families=(qual.OPENAI_FAMILY,),
+                keys={"openai": "offline-secret"},
+                models={"openai": OPENAI_MODEL},
+                rows=rows,
+                caps={"openai": 1.25},
+                total_cap_usd=1.25,
+                protocol=qual.PROTOCOL,
+                group_size=1,
+                spend_authority=replacement,
+            )
+
+    sidecar["jobs"][0]["spendAuthority"] = None
+    with pytest.raises(qbatch.BatchError, match="inconsistent provider or spend facts"):
+        qbatch.verify_sidecar_request_lineage(
+            sidecar,
+            families=qual.VALIDATOR_FAMILIES,
+            rows=rows,
+            work_kind="validation",
+        )
+
+
+def test_official_production_refuses_before_provider_io_without_spend_authority(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    monkeypatch.setattr(
+        RUNNER,
+        "_official_production_job",
+        lambda _output: {
+            "key": "crs-policy-areas--federal-register-thesaurus-2025",
+            "outputPath": "output/official",
+        },
+    )
+    monkeypatch.setattr(
+        qbatch,
+        "default_transport",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("authority must be checked before provider transport")
+        ),
+    )
+
+    with pytest.raises(SystemExit, match="requires --spend-authority before any provider call"):
+        RUNNER.main(
+            [
+                "--output",
+                str(run_dir),
+                "batch-submit",
+                "--env",
+                str(run_dir / "env"),
+                "--group-size",
+                "25",
+            ]
+        )
+
+    with pytest.raises(SystemExit, match="Batch endpoints"):
+        RUNNER.main(
+            [
+                "--output",
+                str(run_dir),
+                "score",
+                "--env",
+                str(run_dir / "env"),
+            ]
+        )
+
+
+def test_official_production_uses_only_the_authority_run_allocation(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    tmp_path: Path,
+) -> None:
+    job = {
+        "key": "crs-policy-areas--federal-register-thesaurus-2025",
+        "outputPath": "output/official",
+    }
+    authority_file = tmp_path / "authority.json"
+    authority_file.write_text("{}\n", encoding="utf-8")
+    allocation = {
+        "batchPlanDigest": "sha256:" + "c" * 64,
+        "jobKey": job["key"],
+        "outputPath": job["outputPath"],
+        "runSpendCapUsd": "1.000000",
+    }
+    authority = SimpleNamespace(
+        approved_total_spend_cap_usd=112.0,
+        batch_policy_digest="sha256:" + "d" * 64,
+        file_digest="sha256:" + "a" * 64,
+        identifier="urn:ref:vocabulary-atlas-v1-production-spend-authority:" + "b" * 64,
+        record={
+            "approvedTotalSpendCapUsd": "112.000000",
+            "batchPolicy": {
+                "modelsByFamily": {
+                    "gemini": GEMINI_MODEL,
+                    "openai": OPENAI_MODEL,
+                }
+            },
+        },
+        record_digest="sha256:" + "b" * 64,
+        job=lambda key: allocation if key == job["key"] else None,
+    )
+    monkeypatch.setattr(RUNNER, "ROOT", tmp_path)
+    monkeypatch.setattr(RUNNER, "_official_production_job", lambda _output: job)
+    monkeypatch.setattr(RUNNER, "_production_qualification_manifest", lambda: object())
+    monkeypatch.setattr(
+        RUNNER.qspend,
+        "read_vocabulary_atlas_v1_production_spend_authority",
+        lambda *_args, **_kwargs: authority,
+    )
+    args = RUNNER.build_parser().parse_args(
+        [
+            "--output",
+            str(run_dir),
+            "batch-submit",
+            "--env",
+            str(run_dir / "env"),
+            "--group-size",
+            "25",
+            "--spend-authority",
+            str(authority_file),
+        ]
+    )
+
+    caps, total_cap, descriptor = RUNNER._production_batch_controls(
+        args,
+        work_kind="validation",
+    )
+
+    assert caps == {"gemini": 1.0, "openai": 1.0}
+    assert total_cap == 1.0
+    assert descriptor == {
+        "approvedTotalSpendCapUsd": "112.000000",
+        "batchPlanDigest": "sha256:" + "c" * 64,
+        "batchPolicyDigest": "sha256:" + "d" * 64,
+        "modelsByFamily": {
+            "gemini": GEMINI_MODEL,
+            "openai": OPENAI_MODEL,
+        },
+        "authorityFile": "authority.json",
+        "authorityFileDigest": "sha256:" + "a" * 64,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": "sha256:" + "b" * 64,
+        "jobKey": job["key"],
+        "runSpendCapUsd": "1.000000",
+    }
+
+    args.group_size = 1
+    with pytest.raises(SystemExit, match="same-stage 25-row Batch evidence"):
+        RUNNER._production_batch_controls(args, work_kind="validation")
+
+    (run_dir / RUNNER.SCORING_BATCH_SIDECAR).write_text(
+        canonical_json(
+            {
+                "plannedShards": [
+                    {"maxRequestGroupSize": 25, "workKind": "scoring"}
+                ],
+                "spendAuthority": descriptor,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="same-stage 25-row Batch evidence"):
+        RUNNER._production_batch_controls(args, work_kind="validation")
+
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json({"plannedShards": [], "spendAuthority": descriptor})
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="same-stage 25-row Batch evidence"):
+        RUNNER._production_batch_controls(args, work_kind="validation")
+
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json(
+            {
+                "plannedShards": [
+                    {"maxRequestGroupSize": 25, "workKind": "validation"}
+                ],
+                "spendAuthority": descriptor,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    assert RUNNER._production_batch_controls(
+        args,
+        work_kind="validation",
+    ) == (caps, total_cap, descriptor)
+
+    args.group_size = 25
+    args.total_cap = 112.0
+    with pytest.raises(SystemExit, match="remove manual --cap and --total-cap"):
+        RUNNER._production_batch_controls(args, work_kind="validation")
+
+
+def test_official_production_refuses_a_dated_model_variant_before_batch_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class DatedModelsOnly(FakeProviders):
+        def _route(self, method, url, headers, body):  # type: ignore[no-untyped-def]
+            if url.endswith("/models"):
+                requested = (
+                    qual.GEMINI_FAMILY.requested_model
+                    if "googleapis" in url
+                    else qual.OPENAI_FAMILY.requested_model
+                )
+                prefix = "models/" if "googleapis" in url else ""
+                return 200, {}, _json(
+                    {"data": [{"id": f"{prefix}{requested}-2026-08-05"}]}
+                )
+            return super()._route(method, url, headers, body)
+
+    server = DatedModelsOnly()
+    monkeypatch.setattr(qbatch, "default_transport", lambda: server)
+    monkeypatch.setattr(
+        RUNNER,
+        "_production_batch_controls",
+        lambda _args, *, work_kind: (
+            {"gemini": 10.0, "openai": 10.0},
+            10.0,
+            {
+                "authorityId": "urn:ref:test:production-authority",
+                "jobKey": "test-job",
+                "modelsByFamily": {
+                    "gemini": GEMINI_MODEL,
+                    "openai": OPENAI_MODEL,
+                },
+            },
+        ),
+    )
+
+    with pytest.raises(SystemExit, match="requires the exact approved gemini model"):
+        RUNNER.main(
+            [
+                "--output",
+                str(run_dir),
+                "batch-submit",
+                "--env",
+                str(run_dir / "env"),
+                "--group-size",
+                "25",
+            ]
+        )
+
+    assert not [call for call in server.calls if call["method"] == "POST"]
+
+
 @pytest.mark.parametrize("command", ["batch-submit", "score-batch-submit"])
 @pytest.mark.parametrize("cap", ["0", "-1", "nan", "inf", "-inf"])
 def test_total_cap_must_be_positive_and_finite(command: str, cap: str) -> None:
@@ -1871,6 +2170,110 @@ def test_a_job_holds_its_candidates_until_its_answers_are_in_hand() -> None:
     # Collected: the receipt file holds what it answered, and what it lost
     # goes back in the pool so a later submit can ask again.
     assert qbatch.released(job(collectedAt="2026-08-03T00:00:00Z")) is True
+
+
+def test_mutable_terminal_state_cannot_release_a_created_attempt(
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    sidecar_path = run_dir / qbatch.SIDECAR
+    submit = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": sidecar_path,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "protocol": qual.PROTOCOL,
+        "group_size": 1,
+    }
+    qbatch.submit(**submit)
+    sidecar = _sidecar(run_dir)
+    projection = sidecar["jobs"][0]["projectedCostUsd"]
+    sidecar["jobs"][0]["state"] = "failed"
+    sidecar["jobs"][0]["providerStatus"] = "failed"
+    sidecar["jobs"][0]["statusArtifacts"] = []
+    sidecar["jobs"][0].pop("terminalRelease", None)
+    sidecar_path.write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+    calls_before = len(server.calls)
+
+    summary = qbatch.submit(**submit)
+
+    assert summary["jobs"] == []
+    assert len(server.calls) == calls_before
+    assert qbatch.committed_by_family(_sidecar(run_dir)) == {
+        "openai": projection
+    }
+
+
+def test_retained_terminal_status_can_release_a_created_attempt(
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    sidecar_path = run_dir / qbatch.SIDECAR
+    submit = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": sidecar_path,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "protocol": qual.PROTOCOL,
+        "group_size": 1,
+    }
+    qbatch.submit(**submit)
+    provider_job = next(iter(server.jobs.values()))
+    provider_job["status"] = "failed"
+    qbatch.poll(
+        transport=server,
+        sidecar_path=sidecar_path,
+        families={"openai": qual.OPENAI_FAMILY},
+        keys={"openai": "offline-secret"},
+    )
+    failed = _sidecar(run_dir)["jobs"][0]
+    assert failed["terminalRelease"]["kind"] == "providerTerminalWithoutResults"
+    assert qbatch.released(failed)
+
+    summary = qbatch.submit(**submit)
+
+    assert len(summary["jobs"]) == 1
+    assert len(_sidecar(run_dir)["jobs"]) == 2
+
+
+def test_attempt_journal_blocks_deleted_sidecar_job_before_provider_io(
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    sidecar_path = run_dir / qbatch.SIDECAR
+    submit = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": sidecar_path,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "protocol": qual.PROTOCOL,
+        "group_size": 1,
+    }
+    qbatch.submit(**submit)
+    sidecar = _sidecar(run_dir)
+    sidecar["jobs"] = []
+    sidecar_path.write_text(canonical_json(sidecar) + "\n", encoding="utf-8")
+    calls_before = len(server.calls)
+
+    with pytest.raises(
+        qbatch.BatchError,
+        match="sidecar attempts differ from the immutable attempt journal",
+    ):
+        qbatch.submit(**submit)
+
+    assert len(server.calls) == calls_before
 
 
 def test_batch_pricing_is_half_the_serial_pricing() -> None:
@@ -2736,6 +3139,45 @@ def test_run_lock_prevents_concurrent_judging_and_scoring_provider_creates(
     assert {(job["family"], job["modelId"]) for job in jobs} == {
         ("openai", OPENAI_MODEL)
     }
+
+
+def test_poll_collect_and_cancel_share_the_submit_lock(
+    run_dir: Path,
+) -> None:
+    context = multiprocessing.get_context("spawn")
+    ready = context.Event()
+    release = context.Event()
+    holder = context.Process(
+        target=_hold_process_submit_lock,
+        args=(str(run_dir), ready, release),
+    )
+    holder.start()
+    assert ready.wait(timeout=15)
+    server = FakeProviders()
+    common = {
+        "transport": server,
+        "sidecar_path": run_dir / qbatch.SIDECAR,
+        "families": {"openai": qual.OPENAI_FAMILY},
+        "keys": {"openai": "offline-secret"},
+        "lock_timeout_seconds": 0.01,
+    }
+    try:
+        with pytest.raises(qbatch.BatchSubmitBusy):
+            qbatch.poll(**common)
+        with pytest.raises(qbatch.BatchSubmitBusy):
+            qbatch.collect(
+                **common,
+                receipts_path=run_dir / RUNNER.RECEIPTS,
+                rows=_batch_rows_from_run(run_dir),
+                protocol=qual.PROTOCOL,
+            )
+        with pytest.raises(qbatch.BatchSubmitBusy):
+            qbatch.cancel(**common)
+    finally:
+        release.set()
+        holder.join(timeout=20)
+    assert holder.exitcode == 0
+    assert server.calls == []
 
 
 def test_run_lock_times_out_with_retryable_error_and_refuses_symlinks(

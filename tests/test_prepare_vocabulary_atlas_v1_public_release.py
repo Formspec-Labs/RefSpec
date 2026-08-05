@@ -203,7 +203,7 @@ def test_public_basis_discovers_six_unique_manifest_jobs_and_relation_keys(
         source: Mapping[str, str],
         target: Mapping[str, str],
         policy: Mapping[str, str],
-    ) -> tuple[dict[str, str], dict[str, Any] | None, int]:
+    ) -> tuple[dict[str, str], dict[str, Any] | None, int, dict[str, Any]]:
         digest = "sha256:" + hashlib.sha256(public_job.encode()).hexdigest()
         run = {
             "job": public_job,
@@ -213,8 +213,22 @@ def test_public_basis_discovers_six_unique_manifest_jobs_and_relation_keys(
             "runReceiptFileDigest": digest,
             "runReceiptContentDigest": digest,
         }
+        spend = {
+            "approvedTotalSpendCapUsd": "112.000000",
+            "authorityFileDigest": "sha256:" + "a" * 64,
+            "authorityId": "urn:ref:test:production-spend-authority",
+            "authorityRecordDigest": "sha256:" + "b" * 64,
+            "batchPlanDigest": "sha256:" + "c" * 64,
+            "batchPolicyDigest": "sha256:" + "d" * 64,
+            "committedSpendUsd": 0.0,
+            "jobKey": planned_job["key"],
+            "runSpendCapUsd": format(
+                PUBLIC_TOOL.qspend.FIXED_RUN_SPEND_CAPS_USD[planned_job["key"]],
+                ".6f",
+            ),
+        }
         if public_job == "crs-subjects-crs-policy":
-            return run, None, 0
+            return run, None, 0, spend
         relation = {
             "key": f"production-{public_job}",
             "manifestPath": f"{planned_job['outputPath']}/relation-assertions/bundle-manifest.json",
@@ -223,7 +237,7 @@ def test_public_basis_discovers_six_unique_manifest_jobs_and_relation_keys(
             "releaseIds": sorted([source["releaseId"], target["releaseId"]]),
             "machineProofs": [],
         }
-        return run, relation, 1
+        return run, relation, 1, spend
 
     monkeypatch.setattr(PUBLIC_TOOL, "_production_job", production_job)
 
@@ -240,6 +254,53 @@ def test_public_basis_discovers_six_unique_manifest_jobs_and_relation_keys(
         f"production-{job}" for job in release_contract._PRODUCTION_JOB_ROLES if job != "crs-subjects-crs-policy"
     }
     assert len({row["key"] for row in result["relationBundles"]}) == len(result["relationBundles"])
+
+
+def test_public_campaign_spend_gate_requires_one_exact_global_authority() -> None:
+    manifest = PUBLIC_TOOL._qualification_manifest(ROOT)
+    rows = [
+        {
+            "approvedTotalSpendCapUsd": "112.000000",
+            "authorityFileDigest": "sha256:" + "a" * 64,
+            "authorityId": "urn:ref:test:production-spend-authority",
+            "authorityRecordDigest": "sha256:" + "b" * 64,
+            "batchPlanDigest": "sha256:" + "c" * 64,
+            "batchPolicyDigest": "sha256:" + "d" * 64,
+            "committedSpendUsd": 0.0,
+            "jobKey": job["key"],
+            "runSpendCapUsd": format(
+                PUBLIC_TOOL.qspend.FIXED_RUN_SPEND_CAPS_USD[job["key"]],
+                ".6f",
+            ),
+        }
+        for job in manifest.jobs
+    ]
+
+    PUBLIC_TOOL._verify_campaign_spend_rows(rows, manifest)
+
+    mixed = _copy(rows)
+    mixed[0]["authorityId"] = "urn:ref:test:another-authority"
+    with pytest.raises(
+        PUBLIC_TOOL.PublicReleasePreparationError,
+        match="share one exact six-run spend authority",
+    ):
+        PUBLIC_TOOL._verify_campaign_spend_rows(mixed, manifest)
+
+    overallocated = _copy(rows)
+    overallocated[0]["runSpendCapUsd"] = "1.110000"
+    with pytest.raises(
+        PUBLIC_TOOL.PublicReleasePreparationError,
+        match="exceeds its approved total spend cap",
+    ):
+        PUBLIC_TOOL._verify_campaign_spend_rows(overallocated, manifest)
+
+    overspent = _copy(rows)
+    overspent[0]["committedSpendUsd"] = 112.000001
+    with pytest.raises(
+        PUBLIC_TOOL.PublicReleasePreparationError,
+        match="exceeds its approved total spend cap",
+    ):
+        PUBLIC_TOOL._verify_campaign_spend_rows(overspent, manifest)
 
 
 def test_public_basis_never_creates_missing_upstream_lifecycle_artifacts(
@@ -310,6 +371,17 @@ def test_public_basis_rejects_a_repeated_manifest_pair(
             },
             None,
             0,
+            {
+                "approvedTotalSpendCapUsd": "112.000000",
+                "authorityFileDigest": "sha256:" + "a" * 64,
+                "authorityId": "urn:ref:test:production-spend-authority",
+                "authorityRecordDigest": "sha256:" + "b" * 64,
+                "batchPlanDigest": "sha256:" + "c" * 64,
+                "batchPolicyDigest": "sha256:" + "d" * 64,
+                "committedSpendUsd": 0.0,
+                "jobKey": kwargs["planned_job"]["key"],
+                "runSpendCapUsd": "1.100000",
+            },
         ),
     )
 

@@ -269,6 +269,39 @@ def test_run_receipt_seals_complete_candidate_accounting() -> None:
     with pytest.raises(qual.QualificationError, match="counts do not reproduce"):
         qual.seal_qualification_run_receipt({**basis, "counts": {**counts, "admitted": 2}})
 
+    authority_digest = "sha256:" + "6" * 64
+    authority = {
+        "approvedTotalSpendCapUsd": "112.000000",
+        "authorityFile": "output/qualification/production-spend-authority.json",
+        "authorityFileDigest": "sha256:" + "7" * 64,
+        "authorityId": (
+            "urn:ref:vocabulary-atlas-v1-production-spend-authority:" + "6" * 64
+        ),
+        "authorityRecordDigest": authority_digest,
+        "batchPlanDigest": "sha256:" + "8" * 64,
+        "batchPolicyDigest": "sha256:" + "9" * 64,
+        "jobKey": "crs-policy-areas--federal-register-thesaurus-2025",
+        "modelsByFamily": {
+            "gemini": "models/gemini-3.6-flash",
+            "openai": "gpt-5.6-terra",
+        },
+        "runSpendCapUsd": "1.000000",
+    }
+    governed = qual.seal_qualification_run_receipt(
+        {**basis, "spendAuthority": authority}
+    )
+    assert governed["spendAuthority"] == authority
+    with pytest.raises(qual.QualificationError, match="spend authority is invalid"):
+        qual.seal_qualification_run_receipt(
+            {
+                **basis,
+                "spendAuthority": {
+                    **authority,
+                    "authorityFile": "../authority.json",
+                },
+            }
+        )
+
 
 def test_production_ready_requires_complete_scoring_and_judging() -> None:
     accounting = {

@@ -31,13 +31,14 @@ import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from refspec.atlas import qualification as qual
 from refspec.atlas import qualification_batch as qbatch
+from refspec.atlas import qualification_spend as qspend
 from refspec.atlas.concept_release import (
     PinnedManagedConceptRelease,
     PinnedManagedReleaseRingAssignment,
@@ -57,6 +58,10 @@ from refspec.atlas.machine_evidence import (
     build_machine_evidence_from_crosswalk_proof,
 )
 from refspec.atlas.model import CrosswalkBundle, PinnedManagedRelease, VerifiedManagedReleaseSource
+from refspec.atlas.qualification_jobs import (
+    VocabularyAtlasV1QualificationJobs,
+    read_vocabulary_atlas_v1_qualification_jobs,
+)
 from refspec.atlas.relation_assertion import RelationAssertionBundle
 from refspec.registry.infrastructure.semantic_foundation import MappingAssertion
 from refspec.registry.infrastructure.source_concept_release import SourceConceptReleaseView
@@ -73,6 +78,9 @@ MODELS_RECEIPT = "models-list.json"
 SCORER_MODELS_RECEIPT = "scorer-models-list.json"
 SCORING_SPEND = "scoring-spend.json"
 SCORING_BATCH_SIDECAR = "scoring-batch-jobs.json"
+PRODUCTION_QUALIFICATION_JOBS = (
+    ROOT / "portfolio/vocabulary-atlas-v1-production-qualification-jobs.json"
+)
 
 _FEDERAL_REGISTER_2025_MANIFEST_TYPE = "urn:ref:type:FederalRegisterThesaurus2025ManagedReleaseManifest"
 
@@ -90,6 +98,204 @@ def _write_json(path: Path, payload: Any) -> str:
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _production_qualification_manifest() -> VocabularyAtlasV1QualificationJobs:
+    return read_vocabulary_atlas_v1_qualification_jobs(
+        PRODUCTION_QUALIFICATION_JOBS
+    )
+
+
+def _official_production_job(output: Path) -> Mapping[str, str] | None:
+    """Return the exact manifest job for one official production directory."""
+
+    try:
+        resolved = output.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+    manifest = _production_qualification_manifest()
+    for job in manifest.jobs:
+        expected = (ROOT / job["outputPath"]).resolve(strict=True)
+        if resolved == expected:
+            return job
+    return None
+
+
+def _spend_authority_descriptor(
+    authority: qspend.VocabularyAtlasV1ProductionSpendAuthority,
+    *,
+    authority_file: Path,
+    allocation: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "approvedTotalSpendCapUsd": authority.record[
+            "approvedTotalSpendCapUsd"
+        ],
+        "batchPlanDigest": allocation["batchPlanDigest"],
+        "batchPolicyDigest": authority.batch_policy_digest,
+        "modelsByFamily": dict(authority.record["batchPolicy"]["modelsByFamily"]),
+        "authorityFile": authority_file.relative_to(ROOT).as_posix(),
+        "authorityFileDigest": authority.file_digest,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": authority.record_digest,
+        "jobKey": allocation["jobKey"],
+        "runSpendCapUsd": allocation["runSpendCapUsd"],
+    }
+
+
+def _verify_official_spend_authority_descriptor(
+    output: Path,
+    descriptor: object,
+) -> tuple[
+    qspend.VocabularyAtlasV1ProductionSpendAuthority,
+    Mapping[str, Any],
+]:
+    planned_job = _official_production_job(output)
+    if planned_job is None or not isinstance(descriptor, Mapping):
+        raise SystemExit("official production evidence has no spend-authority descriptor")
+    authority_name = descriptor.get("authorityFile")
+    if not isinstance(authority_name, str):
+        raise SystemExit("official production spend authority has no repository path")
+    manifest = _production_qualification_manifest()
+    try:
+        authority = qspend.read_vocabulary_atlas_v1_production_spend_authority(
+            ROOT / authority_name,
+            manifest=manifest,
+            repository_root=ROOT,
+        )
+        allocation = authority.job(str(planned_job["key"]))
+        expected = _spend_authority_descriptor(
+            authority,
+            authority_file=(ROOT / authority_name).resolve(strict=True),
+            allocation=allocation,
+        )
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"official production spend authority is invalid: {error}") from error
+    if dict(descriptor) != expected:
+        raise SystemExit(
+            "official production spend-authority descriptor differs from its exact allocation"
+        )
+    if allocation["outputPath"] != planned_job["outputPath"]:
+        raise SystemExit("official production spend authority names another output directory")
+    return authority, allocation
+
+
+def _production_batch_controls(
+    args: argparse.Namespace,
+    *,
+    work_kind: qbatch.WorkKind,
+) -> tuple[dict[str, float], float | None, Mapping[str, Any] | None]:
+    """Bind an official run to its share of one approved six-run ceiling."""
+
+    output = Path(args.output)
+    planned_job = _official_production_job(output)
+    authority_path = getattr(args, "spend_authority", None)
+    if planned_job is None:
+        if authority_path is not None:
+            raise SystemExit(
+                "--spend-authority applies only to an exact Vocabulary Atlas v1 "
+                "production output directory"
+            )
+        return dict(args.cap), args.total_cap, None
+    if authority_path is None:
+        raise SystemExit(
+            "official Vocabulary Atlas v1 production submission requires "
+            "--spend-authority before any provider call"
+        )
+    if args.cap or args.total_cap is not None:
+        raise SystemExit(
+            "official production caps come only from --spend-authority; "
+            "remove manual --cap and --total-cap overrides"
+        )
+    if args.max_candidates is not None:
+        raise SystemExit(
+            "official production submission must cover the complete prepared catalog"
+        )
+    if work_kind == "validation":
+        selected = tuple(str(args.families).split(","))
+        if selected != qspend.JUDGE_FAMILIES:
+            raise SystemExit(
+                "official production judging requires the authority's exact "
+                f"family order {','.join(qspend.JUDGE_FAMILIES)}"
+            )
+    elif args.family != qspend.SCORER_FAMILY:
+        raise SystemExit(
+            "official production scoring requires the authority's exact scorer family"
+        )
+    if args.group_size not in {qspend.REQUEST_GROUP_SIZE, 1}:
+        raise SystemExit(
+            "official production starts with 25-row requests; group size 1 is "
+            "reserved for a run that already has Batch recovery evidence"
+        )
+
+    manifest = _production_qualification_manifest()
+    try:
+        authority = qspend.read_vocabulary_atlas_v1_production_spend_authority(
+            authority_path,
+            manifest=manifest,
+            repository_root=ROOT,
+        )
+        allocation = authority.job(str(planned_job["key"]))
+        requested_authority = Path(authority_path)
+        authority_file = (
+            requested_authority
+            if requested_authority.is_absolute()
+            else ROOT / requested_authority
+        ).resolve(strict=True)
+        authority_relative = authority_file.relative_to(ROOT).as_posix()
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"production spend authority is invalid: {error}") from error
+    if allocation["outputPath"] != planned_job["outputPath"]:
+        raise SystemExit("production spend authority allocation names another output directory")
+    run_cap = float(allocation["runSpendCapUsd"])
+    descriptor = _spend_authority_descriptor(
+        authority,
+        authority_file=ROOT / authority_relative,
+        allocation=allocation,
+    )
+    if args.group_size == 1:
+        recovery_name = (
+            qbatch.SIDECAR
+            if work_kind == "validation"
+            else SCORING_BATCH_SIDECAR
+        )
+        recovery_path = output / recovery_name
+        if not recovery_path.is_file() or recovery_path.is_symlink():
+            raise SystemExit(
+                "official production group size 1 requires same-stage 25-row "
+                "Batch evidence governed by this spend authority"
+            )
+        recovery = qbatch.read_sidecar(recovery_path)
+        plans = recovery.get("plannedShards")
+        if (
+            not isinstance(plans, Sequence)
+            or isinstance(plans, (str, bytes))
+            or not plans
+            or recovery.get("spendAuthority") != descriptor
+            or not any(
+                isinstance(plan, Mapping)
+                and plan.get("workKind") == work_kind
+                and plan.get("maxRequestGroupSize") == qspend.REQUEST_GROUP_SIZE
+                for plan in plans
+            )
+        ):
+            raise SystemExit(
+                "official production group size 1 requires same-stage 25-row "
+                "Batch evidence governed by this spend authority"
+            )
+    return (
+        {family_name: run_cap for family_name in qual.VALIDATOR_FAMILIES},
+        run_cap,
+        descriptor,
+    )
+
+
+def _refuse_official_serial_execution(args: argparse.Namespace) -> None:
+    if _official_production_job(Path(args.output)) is not None:
+        raise SystemExit(
+            "official Vocabulary Atlas v1 production evidence uses Batch endpoints; "
+            "the serial command is diagnostic only"
+        )
 
 
 def _open_managed_release(
@@ -412,6 +618,7 @@ def _refuse_production_subset(catalog: Mapping[str, Any], limit: int | None) -> 
 
 
 def command_qualify(args: argparse.Namespace) -> int:
+    _refuse_official_serial_execution(args)
     output = Path(args.output)
     catalog = _read_json(output / CANDIDATES)
     protocol = qbatch.run_protocol(catalog)
@@ -523,6 +730,7 @@ def _scoring_candidate_rows(catalog: Mapping[str, Any], limit: int | None = None
 
 
 def command_score(args: argparse.Namespace) -> int:
+    _refuse_official_serial_execution(args)
     output = Path(args.output)
     catalog = _read_json(output / CANDIDATES)
     rows = _scoring_rows(catalog, args.max_candidates)
@@ -647,6 +855,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         for row in judge_candidate_rows
     ]
     provider_batch_evidence: dict[str, Any] = {}
+    provider_sidecars: dict[str, Mapping[str, Any]] = {}
     for label, sidecar_name, work_kind, candidate_rows, receipts in (
         ("judging", qbatch.SIDECAR, "validation", judge_candidate_rows, receipt_rows),
         ("scoring", SCORING_BATCH_SIDECAR, "scoring", scoring_candidate_rows, scoring_rows),
@@ -656,6 +865,7 @@ def command_bundle(args: argparse.Namespace) -> int:
             if any(receipt.get("batch_execution_mode") == "batch" for receipt in receipts):
                 raise SystemExit(f"batch {label} receipts require their batch sidecar")
             continue
+        sidecar = qbatch.read_sidecar(sidecar_path)
         try:
             verification = qbatch.verify_provider_batch_evidence(
                 sidecar_path=sidecar_path,
@@ -666,12 +876,54 @@ def command_bundle(args: argparse.Namespace) -> int:
             )
         except qbatch.BatchError as error:
             raise SystemExit(f"{label} provider request lineage failed: {error}") from error
+        provider_sidecars[label] = sidecar
         provider_batch_evidence[label] = {
             "file": sidecar_name,
             "fileDigest": _file_digest(sidecar_path),
             "protocol": qbatch.SIDECAR_PROTOCOL,
             "verification": verification,
         }
+
+    spend_authority_descriptor: Mapping[str, Any] | None = None
+    if _official_production_job(output) is not None:
+        if set(provider_sidecars) != {"judging", "scoring"}:
+            raise SystemExit(
+                "official production bundle requires both governed judging and scoring Batch evidence"
+            )
+        descriptors = [
+            provider_sidecars[name].get("spendAuthority")
+            for name in ("judging", "scoring")
+        ]
+        if not isinstance(descriptors[0], Mapping) or descriptors[1] != descriptors[0]:
+            raise SystemExit(
+                "official production judging and scoring must use one spend authority"
+            )
+        _authority, allocation = _verify_official_spend_authority_descriptor(
+            output,
+            descriptors[0],
+        )
+        run_cap = float(allocation["runSpendCapUsd"])
+        for name, sidecar in provider_sidecars.items():
+            if float(sidecar.get("totalSpendCapUsd") or 0.0) != run_cap or any(
+                float(value) != run_cap
+                for value in cast(Mapping[str, Any], sidecar.get("spendCapsByFamily") or {}).values()
+            ):
+                raise SystemExit(
+                    f"official production {name} Batch caps differ from the approved run allocation"
+                )
+            try:
+                qspend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+                    _authority,
+                    sidecar,
+                    job_key=str(allocation["jobKey"]),
+                    work_kind=("validation" if name == "judging" else "scoring"),
+                    repository_root=ROOT,
+                )
+            except ValueError as error:
+                raise SystemExit(
+                    f"official production {name} Batch plan differs from its spend authority: {error}"
+                ) from error
+        spend_authority_descriptor = cast(Mapping[str, Any], descriptors[0])
 
     entries: list[qual.AssembledCandidate] = []
     readings_by_candidate: dict[str, tuple[qual.ValidationReading, ...]] = {}
@@ -843,6 +1095,11 @@ def command_bundle(args: argparse.Namespace) -> int:
         "productionFloor": catalog.get("productionFloor"),
         "protocol": protocol,
         **({"providerBatchEvidence": provider_batch_evidence} if provider_batch_evidence else {}),
+        **(
+            {"spendAuthority": dict(spend_authority_descriptor)}
+            if spend_authority_descriptor is not None
+            else {}
+        ),
         "qualifiedCandidates": len(qualified),
         "relationsByPredicate": dict(sorted(Counter(relations.values()).items())),
         "receiptLog": {
@@ -1189,10 +1446,15 @@ def command_batch_plan(args: argparse.Namespace) -> int:
         scorer = qual.VALIDATOR_FAMILIES[args.scorer_family]
     except KeyError as error:
         raise SystemExit(f"unknown family {error.args[0]!r}") from error
+    official_models = (
+        qspend.PRODUCTION_MODELS_BY_FAMILY
+        if _official_production_job(Path(args.output)) is not None
+        else {}
+    )
     jobs = [
         qbatch.request_plan_summary(
             scorer,
-            scorer.requested_model,
+            official_models.get(scorer.name, scorer.requested_model),
             score_rows,
             protocol=qual.SCORING_PROTOCOL,
             work_kind="scoring",
@@ -1201,7 +1463,7 @@ def command_batch_plan(args: argparse.Namespace) -> int:
         *[
             qbatch.request_plan_summary(
                 family,
-                family.requested_model,
+                official_models.get(family.name, family.requested_model),
                 judge_rows,
                 protocol=protocol,
                 work_kind="validation",
@@ -1230,6 +1492,10 @@ def command_batch_plan(args: argparse.Namespace) -> int:
 
 def command_batch_submit(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    caps, total_cap, spend_authority = _production_batch_controls(
+        args,
+        work_kind="validation",
+    )
     protocol = _batch_protocol(args)
     print(f"protocol {protocol} (from {CANDIDATES})", file=sys.stderr, flush=True)
     families = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
@@ -1242,6 +1508,20 @@ def command_batch_submit(args: argparse.Namespace) -> int:
     for family in families:
         model_ids, receipt = qual.list_models(plain, family, keys[family.name])
         model_id, rule = qual.resolve_validator_model(family, model_ids)
+        approved_models = (
+            spend_authority.get("modelsByFamily")
+            if spend_authority is not None
+            else None
+        )
+        if spend_authority is not None and (
+            rule != "exact_match"
+            or not isinstance(approved_models, Mapping)
+            or approved_models.get(family.name) != model_id
+        ):
+            raise SystemExit(
+                f"official production requires the exact approved {family.name} model; "
+                f"resolved {model_id!r} by {rule}"
+            )
         receipt["resolved_model_id"] = model_id
         receipt["resolution_rule"] = rule
         model_receipts.append(receipt)
@@ -1266,13 +1546,17 @@ def command_batch_submit(args: argparse.Namespace) -> int:
             keys=keys,
             models=resolved,
             rows=_batch_rows(args, subset=True),
-            caps=args.cap,
-            total_cap_usd=args.total_cap,
+            caps=caps,
+            total_cap_usd=total_cap,
             protocol=protocol,
             group_size=args.group_size,
             coordination_sidecars=(output / SCORING_BATCH_SIDECAR,),
+            spend_authority=spend_authority,
         )
-    except (qbatch.BatchSpendCapReached, qbatch.BatchSubmitBusy) as error:
+    except (
+        qbatch.BatchSpendCapReached,
+        qbatch.BatchSubmitBusy,
+    ) as error:
         # Refused before anything was bought.  A submitted batch is already
         # billable, so this is the only place the cap can still say no.
         raise SystemExit(str(error)) from error
@@ -1350,6 +1634,10 @@ def command_batch_cancel(args: argparse.Namespace) -> int:
 
 def command_score_batch_submit(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    caps, total_cap, spend_authority = _production_batch_controls(
+        args,
+        work_kind="scoring",
+    )
     catalog = _read_json(output / CANDIDATES)
     rows = _scoring_candidate_rows(catalog, args.max_candidates)
     try:
@@ -1360,6 +1648,20 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
     key = qual.load_env_value(args.env, family.api_key_env)
     model_ids, receipt = qual.list_models(qbatch.PlainTransport(transport), family, key)
     model_id, rule = qual.resolve_validator_model(family, model_ids)
+    approved_models = (
+        spend_authority.get("modelsByFamily")
+        if spend_authority is not None
+        else None
+    )
+    if spend_authority is not None and (
+        rule != "exact_match"
+        or not isinstance(approved_models, Mapping)
+        or approved_models.get(family.name) != model_id
+    ):
+        raise SystemExit(
+            f"official production requires the exact approved {family.name} model; "
+            f"resolved {model_id!r} by {rule}"
+        )
     receipt["resolved_model_id"] = model_id
     receipt["resolution_rule"] = rule
     _write_json(output / SCORER_MODELS_RECEIPT, {"families": [receipt]})
@@ -1372,14 +1674,18 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
             keys={family.name: key},
             models={family.name: model_id},
             rows=rows,
-            caps=args.cap,
-            total_cap_usd=args.total_cap,
+            caps=caps,
+            total_cap_usd=total_cap,
             protocol=qual.SCORING_PROTOCOL,
             work_kind="scoring",
             group_size=args.group_size,
             coordination_sidecars=(output / qbatch.SIDECAR,),
+            spend_authority=spend_authority,
         )
-    except (qbatch.BatchSpendCapReached, qbatch.BatchSubmitBusy) as error:
+    except (
+        qbatch.BatchSpendCapReached,
+        qbatch.BatchSubmitBusy,
+    ) as error:
         raise SystemExit(str(error)) from error
     print(canonical_json(summary))
     return 0
@@ -1547,9 +1853,18 @@ def build_parser() -> argparse.ArgumentParser:
     batch_submit.add_argument(
         "--total-cap",
         type=_positive_finite_usd,
-        default=qual.TOTAL_SPEND_CAP_USD,
+        default=None,
         metavar="USD",
-        help="set the hard spend cap across all families for this batch submission",
+        help=(
+            "set the hard spend cap across all families for a nonproduction batch "
+            f"(default: {qual.TOTAL_SPEND_CAP_USD:g})"
+        ),
+    )
+    batch_submit.add_argument(
+        "--spend-authority",
+        type=Path,
+        default=None,
+        help="approved six-run spend authority required by official v1 production",
     )
     batch_submit.set_defaults(handler=command_batch_submit)
 
@@ -1610,9 +1925,18 @@ def build_parser() -> argparse.ArgumentParser:
     score_batch_submit.add_argument(
         "--total-cap",
         type=_positive_finite_usd,
-        default=qual.TOTAL_SPEND_CAP_USD,
+        default=None,
         metavar="USD",
-        help="set the hard spend cap across all families for this batch submission",
+        help=(
+            "set the hard spend cap across all families for a nonproduction batch "
+            f"(default: {qual.TOTAL_SPEND_CAP_USD:g})"
+        ),
+    )
+    score_batch_submit.add_argument(
+        "--spend-authority",
+        type=Path,
+        default=None,
+        help="approved six-run spend authority required by official v1 production",
     )
     score_batch_submit.set_defaults(handler=command_score_batch_submit)
 

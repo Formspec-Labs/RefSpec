@@ -47,7 +47,8 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from pathlib import Path
+from decimal import Decimal
+from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
@@ -2306,6 +2307,62 @@ def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]
                 )
             ):
                 raise QualificationError(f"provider batch evidence {name} is invalid")
+    spend_authority = basis.get("spendAuthority")
+    if spend_authority is not None:
+        expected_fields = {
+            "approvedTotalSpendCapUsd",
+            "authorityFile",
+            "authorityFileDigest",
+            "authorityId",
+            "authorityRecordDigest",
+            "batchPlanDigest",
+            "batchPolicyDigest",
+            "jobKey",
+            "modelsByFamily",
+            "runSpendCapUsd",
+        }
+        if not isinstance(spend_authority, Mapping) or set(spend_authority) != expected_fields:
+            raise QualificationError("qualification run spend authority is invalid")
+        authority_file = spend_authority.get("authorityFile")
+        authority_path = PurePosixPath(str(authority_file))
+        authority_digest = spend_authority.get("authorityRecordDigest")
+        authority_id = spend_authority.get("authorityId")
+        money = re.compile(r"^[0-9]+\.[0-9]{6}$")
+        approved_total = spend_authority.get("approvedTotalSpendCapUsd")
+        run_cap = spend_authority.get("runSpendCapUsd")
+        models_by_family = spend_authority.get("modelsByFamily")
+        if (
+            not isinstance(authority_file, str)
+            or authority_path.is_absolute()
+            or not authority_path.parts
+            or authority_path.as_posix() != authority_file
+            or any(part in {"", ".", ".."} for part in authority_path.parts)
+            or not _is_sha256(spend_authority.get("authorityFileDigest"))
+            or not _is_sha256(authority_digest)
+            or not _is_sha256(spend_authority.get("batchPlanDigest"))
+            or not _is_sha256(spend_authority.get("batchPolicyDigest"))
+            or not isinstance(authority_id, str)
+            or authority_id
+            != "urn:ref:vocabulary-atlas-v1-production-spend-authority:"
+            + str(authority_digest).removeprefix("sha256:")
+            or not isinstance(spend_authority.get("jobKey"), str)
+            or not spend_authority["jobKey"]
+            or not isinstance(models_by_family, Mapping)
+            or set(models_by_family) != set(VALIDATOR_FAMILIES)
+            or any(
+                not isinstance(model_id, str)
+                or not model_id
+                or model_id != model_id.strip()
+                for model_id in models_by_family.values()
+            )
+            or not isinstance(approved_total, str)
+            or money.fullmatch(approved_total) is None
+            or not isinstance(run_cap, str)
+            or money.fullmatch(run_cap) is None
+            or Decimal(run_cap) <= 0
+            or Decimal(approved_total) < Decimal(run_cap)
+        ):
+            raise QualificationError("qualification run spend authority is invalid")
     coverage_mode = basis.get("coverageMode")
     if coverage_mode not in {PILOT_COVERAGE_MODE, PRODUCTION_COVERAGE_MODE}:
         raise QualificationError("qualification run coverage mode is unsupported")

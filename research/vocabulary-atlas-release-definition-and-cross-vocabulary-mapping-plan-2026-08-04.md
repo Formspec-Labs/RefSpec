@@ -29,17 +29,27 @@ candidates in total. The production Batch API path groups up to 25 independent
 rows per provider request, bounds groups and jobs by bytes and conservative
 tokens, preserves exact raw provider evidence, and retries only missing or
 malformed rows. The exact no-provider plan uses 1,488 provider requests across
-27 queue-safe jobs with a $109.904650 conservative ceiling; one-row requests
-would use 36,939 requests across 50 jobs with a $504.307663 ceiling. Public v1
-requires both scoring and judging batch evidence for every production run and
-recomputes requests, results, receipts, usage, and spend during reopening. It
-then rebuilds the complete Crosswalk from those exact judge receipts and
-reproduces every admitted, controlled, abstained, rejected, and incomplete
-candidate disposition before accepting the run.
+27 queue-safe jobs. Its conservative projected cost is $109.905511. One-row
+requests would use 36,939 requests across 50 jobs and cost a projected
+$504.329268. Public v1 requires both scoring and judging batch evidence for
+every production run and recomputes requests, results, receipts, usage, and
+spend during reopening. It then rebuilds the complete Crosswalk from those
+exact judge receipts and reproduces every admitted, controlled, abstained,
+rejected, and incomplete candidate disposition before accepting the run.
+
+One immutable production spend authority now governs all six directories. It
+recomputes the current 25-row plans locally before provider access and assigns
+non-overlapping hard limits of $1.10, $3.50, $1.00, $70.00, $20.50, and $15.90
+to the six manifest jobs. Those allocations total exactly $112.00. Each Batch
+sidecar, job, sealed run receipt, and public-release check reopens the same
+content-addressed authority and its plan and model-policy digests. Production
+accepts the exact approved model names; a later dated model requires a new
+authority. The implementation is ready to seal that authority from an explicit
+$112 approval and then execute the paid jobs within it.
 
 The public-definition preparer is implemented and verified through the exact
 point where production receipts become required. The remaining release actions
-are to execute the six paid jobs within an explicitly approved spend cap, seal
+are to record the explicit spend approval, execute the six governed jobs, seal
 every admitted non-control result, prepare and verify the canonical public
 definition from those receipts, and run the guarded public-v1 builder. The
 builder treats all six production run receipts as required inputs, including a
@@ -388,8 +398,10 @@ class. This gives judges enough evidence to determine `broadMatch` and
 
 Use `tools/run_atlas_qualification.py` and its `batch-submit`, `batch-status`,
 and `batch-collect` path by default. The serial path remains available for small
-smoke tests and recovery. Batch and serial execution produce the same receipt
-shape and qualification semantics.
+diagnostic smoke tests. Production recovery stays on the Batch path, including
+single-row Batch requests when grouped recovery is unsuitable, because public
+v1 requires every production receipt to retain raw Batch evidence. Batch and
+serial execution produce the same receipt shape and qualification semantics.
 
 The current runner already provides sealed blind two-family batch judging for
 managed releases. V1 extends that path with batch scoring,
@@ -761,7 +773,8 @@ store the document occurrence.
    candidate catalogs. Generate and run Federal Register ↔ CRS Legislative
    Subject Terms, Federal Register ↔ CRS Policy Areas, and CRS Legislative
    Subject Terms ↔ CRS Policy Areas. Use `batch-submit`, `batch-status`, and
-   `batch-collect`; use serial calls only for smoke tests and recovery.
+   `batch-collect`; use serial calls only for diagnostic smoke tests and use
+   single-row Batch requests when production recovery needs them.
 3. **Seal the v1 assertion set.** Preserve the 582-assertion baseline and its 69
    controls. Add every distinct non-control assertion admitted by the new runs,
    retain every new control, rejection, abstention, and disagreement as

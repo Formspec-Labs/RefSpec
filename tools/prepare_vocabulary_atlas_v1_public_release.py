@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
@@ -31,6 +32,7 @@ from prepare_vocabulary_atlas_v1_baseline_release import (
 from refspec import binding
 from refspec.atlas import qualification as qual
 from refspec.atlas import qualification_batch as qbatch
+from refspec.atlas import qualification_spend as qspend
 from refspec.atlas import v1_release as release_contract
 from refspec.atlas.machine_evidence import (
     CrosswalkMachineProofError,
@@ -496,7 +498,7 @@ def _production_job(
     source: Mapping[str, str],
     target: Mapping[str, str],
     policy: Mapping[str, str],
-) -> tuple[dict[str, str], dict[str, Any] | None, int]:
+) -> tuple[dict[str, str], dict[str, Any] | None, int, dict[str, Any]]:
     label = f"production job {public_job}"
     run_path = f"{planned_job['outputPath']}/qualification-receipt.json"
     receipt, receipt_payload = _canonical_object(
@@ -525,7 +527,7 @@ def _production_job(
     }:
         raise PublicReleasePreparationError(f"{label} must pin both judging and scoring batch evidence")
     try:
-        qbatch.verify_run_provider_batch_evidence(
+        provider_summaries = qbatch.verify_run_provider_batch_evidence(
             _path(root, run_path, label=f"{label} run receipt"),
             run,
         )
@@ -648,7 +650,122 @@ def _production_job(
         crosswalk_candidates=crosswalk_candidates,
         admitted=admitted,
     )
-    return run_descriptor, relation_descriptor, len(admitted)
+    spend_descriptor = _verify_production_spend_authority(
+        root,
+        planned_job=planned_job,
+        run=run,
+        provider_evidence=provider_evidence,
+        provider_summaries=provider_summaries,
+    )
+    return run_descriptor, relation_descriptor, len(admitted), spend_descriptor
+
+
+def _verify_production_spend_authority(
+    root: Path,
+    *,
+    planned_job: Mapping[str, str],
+    run: Mapping[str, Any],
+    provider_evidence: Mapping[str, Any],
+    provider_summaries: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Reopen the one campaign approval and this run's fixed allocation."""
+
+    descriptor = _object(
+        run.get("spendAuthority"),
+        label=f"production job {planned_job['key']} spend authority",
+    )
+    authority_relative = descriptor.get("authorityFile")
+    if not isinstance(authority_relative, str):
+        raise PublicReleasePreparationError("production spend authority has no repository path")
+    manifest = _qualification_manifest(root)
+    try:
+        authority = qspend.read_vocabulary_atlas_v1_production_spend_authority(
+            _path(root, authority_relative, label="production spend authority"),
+            manifest=manifest,
+            repository_root=root,
+        )
+        allocation = authority.job(str(planned_job["key"]))
+    except (OSError, ValueError) as error:
+        raise PublicReleasePreparationError(f"production spend authority does not reopen: {error}") from error
+    expected = {
+        "approvedTotalSpendCapUsd": authority.record["approvedTotalSpendCapUsd"],
+        "authorityFile": authority_relative,
+        "authorityFileDigest": authority.file_digest,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": authority.record_digest,
+        "batchPlanDigest": allocation["batchPlanDigest"],
+        "batchPolicyDigest": authority.batch_policy_digest,
+        "jobKey": allocation["jobKey"],
+        "modelsByFamily": dict(authority.record["batchPolicy"]["modelsByFamily"]),
+        "runSpendCapUsd": allocation["runSpendCapUsd"],
+    }
+    if plain_json(descriptor) != expected or allocation["outputPath"] != planned_job["outputPath"]:
+        raise PublicReleasePreparationError(
+            f"production job {planned_job['key']} spend authority differs from its exact allocation"
+        )
+    run_cap = float(allocation["runSpendCapUsd"])
+    for name in ("judging", "scoring"):
+        pin = _object(
+            provider_evidence.get(name),
+            label=f"production job {planned_job['key']} {name} batch evidence",
+        )
+        sidecar_name = pin.get("file")
+        if not isinstance(sidecar_name, str):
+            raise PublicReleasePreparationError("production batch evidence has no sidecar path")
+        sidecar, _payload = _canonical_object(
+            root,
+            f"{planned_job['outputPath']}/{sidecar_name}",
+            label=f"production job {planned_job['key']} {name} batch sidecar",
+            expected_digest=cast(str, pin.get("fileDigest")),
+        )
+        family_caps = _object(
+            sidecar.get("spendCapsByFamily"),
+            label=f"production job {planned_job['key']} {name} family caps",
+        )
+        if (
+            plain_json(sidecar.get("spendAuthority")) != expected
+            or float(sidecar.get("totalSpendCapUsd") or 0.0) != run_cap
+            or not family_caps
+            or any(float(value) != run_cap for value in family_caps.values())
+        ):
+            raise PublicReleasePreparationError(
+                f"production job {planned_job['key']} {name} batch caps differ from its spend authority"
+            )
+        try:
+            qspend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+                authority,
+                sidecar,
+                job_key=str(planned_job["key"]),
+                work_kind=("validation" if name == "judging" else "scoring"),
+                repository_root=root,
+            )
+        except ValueError as error:
+            raise PublicReleasePreparationError(
+                f"production job {planned_job['key']} {name} Batch plan "
+                f"differs from its spend authority: {error}"
+            ) from error
+    committed = round(
+        sum(
+            float(_object(summary, label=f"production {name} batch summary").get("committedCostUsd") or 0.0)
+            for name, summary in provider_summaries.items()
+        ),
+        6,
+    )
+    if committed > run_cap:
+        raise PublicReleasePreparationError(
+            f"production job {planned_job['key']} committed spend exceeds its allocation"
+        )
+    return {
+        "approvedTotalSpendCapUsd": authority.record["approvedTotalSpendCapUsd"],
+        "authorityFileDigest": authority.file_digest,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": authority.record_digest,
+        "batchPlanDigest": allocation["batchPlanDigest"],
+        "batchPolicyDigest": authority.batch_policy_digest,
+        "committedSpendUsd": committed,
+        "jobKey": allocation["jobKey"],
+        "runSpendCapUsd": allocation["runSpendCapUsd"],
+    }
 
 
 def _qualification_manifest(root: Path) -> VocabularyAtlasV1QualificationJobs:
@@ -661,6 +778,53 @@ def _qualification_manifest(root: Path) -> VocabularyAtlasV1QualificationJobs:
     if manifest.file_digest != QUALIFICATION_JOBS_FILE_DIGEST or manifest.record_digest != QUALIFICATION_POLICY_DIGEST:
         raise PublicReleasePreparationError("production qualification job manifest differs from the approved policy")
     return manifest
+
+
+def _verify_campaign_spend_rows(
+    spend_rows: Sequence[Mapping[str, Any]],
+    manifest: VocabularyAtlasV1QualificationJobs,
+) -> None:
+    """Prove that six run-local caps are one non-overlapping campaign cap."""
+
+    if len(spend_rows) != len(manifest.jobs):
+        raise PublicReleasePreparationError(
+            "public v1 production jobs must share one exact six-run spend authority"
+        )
+    authority_identities = {
+        (
+            row.get("authorityId"),
+            row.get("authorityRecordDigest"),
+            row.get("authorityFileDigest"),
+            row.get("approvedTotalSpendCapUsd"),
+            row.get("batchPolicyDigest"),
+        )
+        for row in spend_rows
+    }
+    spend_job_keys = {row.get("jobKey") for row in spend_rows}
+    if len(authority_identities) != 1 or spend_job_keys != {
+        str(job["key"]) for job in manifest.jobs
+    }:
+        raise PublicReleasePreparationError(
+            "public v1 production jobs must share one exact six-run spend authority"
+        )
+    try:
+        approved_total = Decimal(str(spend_rows[0]["approvedTotalSpendCapUsd"]))
+        allocated_total = sum(
+            (Decimal(str(row["runSpendCapUsd"])) for row in spend_rows),
+            start=Decimal(0),
+        )
+        committed_total = sum(
+            (Decimal(str(row["committedSpendUsd"])) for row in spend_rows),
+            start=Decimal(0),
+        )
+    except (ArithmeticError, KeyError, ValueError) as error:
+        raise PublicReleasePreparationError(
+            "public v1 production spend accounting is invalid"
+        ) from error
+    if allocated_total != approved_total or committed_total > approved_total:
+        raise PublicReleasePreparationError(
+            "public v1 production qualification exceeds its approved total spend cap"
+        )
 
 
 def build_public_release_definition_basis(
@@ -713,6 +877,7 @@ def build_public_release_definition_basis(
     run_rows: list[dict[str, str]] = []
     relation_rows = cast(list[dict[str, Any]], basis["relationBundles"])
     production_relation_rows: list[dict[str, Any]] = []
+    spend_rows: list[dict[str, Any]] = []
     observed_jobs: set[str] = set()
     for planned_job in manifest.jobs:
         source = sources[planned_job["sourceKey"]]
@@ -727,7 +892,7 @@ def build_public_release_definition_basis(
                 "production qualification manifest pairs do not map uniquely to public v1 jobs"
             )
         observed_jobs.add(public_job)
-        run, relation, _admitted = _production_job(
+        run, relation, _admitted, spend = _production_job(
             repository_root,
             public_job=public_job,
             planned_job=planned_job,
@@ -736,11 +901,13 @@ def build_public_release_definition_basis(
             policy=cast(Mapping[str, str], manifest.record["qualificationPolicy"]),
         )
         run_rows.append(run)
+        spend_rows.append(spend)
         if relation is not None:
             production_relation_rows.append(relation)
     expected_jobs = set(release_contract._PRODUCTION_JOB_ROLES)
     if observed_jobs != expected_jobs or len(run_rows) != 6:
         raise PublicReleasePreparationError("public v1 requires every production qualification job exactly once")
+    _verify_campaign_spend_rows(spend_rows, manifest)
     relation_keys = [cast(str, row["key"]) for row in [*relation_rows, *production_relation_rows]]
     if len(relation_keys) != len(set(relation_keys)):
         raise PublicReleasePreparationError("baseline and production relation bundle keys must be unique")

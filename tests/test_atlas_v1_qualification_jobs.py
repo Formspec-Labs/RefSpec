@@ -387,6 +387,35 @@ def test_check_and_verify_prepared_cli_modes_are_mutually_exclusive() -> None:
     assert "not allowed with argument" in completed.stderr
 
 
+def test_spend_authority_cli_refuses_an_output_outside_the_repository(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "production-spend-authority.json"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(PREPARATION_TOOL),
+            "--prepare-spend-authority",
+            "--approved-by",
+            "urn:ref:actor:test-approval",
+            "--approved-at",
+            "2026-08-05T14:00:00Z",
+            "--approved-total-cap",
+            "112.00",
+            "--spend-authority-output",
+            str(output),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert completed.returncode == 2
+    assert "must stay inside the repository" in completed.stderr
+    assert not output.exists()
+
+
 def test_preparation_verifies_all_source_pins_before_running_a_command(tmp_path: Path) -> None:
     basis = _fixture_basis(tmp_path)
     manifest = VocabularyAtlasV1QualificationJobs(

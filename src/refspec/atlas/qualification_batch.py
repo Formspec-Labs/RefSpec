@@ -150,6 +150,13 @@ GEMINI_MAX_INPUT_FILE_BYTES = 2_000_000_000
 #: public reopen parse only the retained bytes.
 BATCH_EVIDENCE_DIRECTORY = "provider-batch-evidence"
 
+#: Provider-create intent is durable outside the replace-in-place sidecar.  One
+#: immutable file records each attempt phase, so a stale writer or an accidental
+#: sidecar edit cannot erase a billable attempt and make the same allocation
+#: look available again.
+BATCH_ATTEMPT_JOURNAL_DIRECTORY = "provider-batch-attempt-journal"
+BATCH_ATTEMPT_JOURNAL_VERSION = "1.0"
+
 #: Judging and scoring sidecars share this advisory lock in their common run
 #: directory.  The kernel releases ``flock`` when a process exits, including a
 #: crash, while the stable inode prevents a third process from bypassing a
@@ -1059,6 +1066,12 @@ def verify_sidecar_request_lineage(
         raise BatchError("provider batch sidecar has the wrong protocol")
     if sidecar.get("batchPricingFactor") != BATCH_PRICE_FACTOR:
         raise BatchError("provider batch sidecar has the wrong pricing factor")
+    journal_version = sidecar.get("attemptJournalVersion")
+    if (
+        journal_version is not None
+        and journal_version != BATCH_ATTEMPT_JOURNAL_VERSION
+    ):
+        raise BatchError("provider batch sidecar has an unsupported attempt journal")
     total_cap = sidecar.get("totalSpendCapUsd")
     if isinstance(total_cap, bool) or not isinstance(total_cap, (int, float)) or not math.isfinite(float(total_cap)) or float(total_cap) <= 0:
         raise BatchError("provider batch sidecar has an invalid total spend cap")
@@ -1069,6 +1082,11 @@ def verify_sidecar_request_lineage(
         "oneActiveShardPerFamilyModel": True,
     }:
         raise BatchError("provider batch sidecar has an unsupported queue policy")
+    spend_authority = sidecar.get("spendAuthority")
+    if spend_authority is not None and (
+        not isinstance(spend_authority, Mapping) or not spend_authority
+    ):
+        raise BatchError("provider batch sidecar has an invalid spend authority")
     rows_by_id = {row.candidate_id: row for row in rows}
     plans: dict[str, Mapping[str, Any]] = {}
     verified_planned_candidates = 0
@@ -1185,6 +1203,7 @@ def verify_sidecar_request_lineage(
             or job.get("displayName") != expected_display_name
             or job.get("spendCapUsd") != spend_caps[family.name]
             or job.get("totalSpendCapUsd") != total_cap
+            or job.get("spendAuthority") != spend_authority
         ):
             raise BatchError(f"job {job.get('jobId')} has inconsistent provider or spend facts")
         job_id = str(job.get("jobId") or "")
@@ -2420,6 +2439,231 @@ def _safe_run_relative_path(run_root: Path, relative: str) -> Path:
     return current
 
 
+_ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{64}$")
+_ATTEMPT_JOURNAL_EVENT_TYPE = "ProviderBatchAttemptJournalEvent"
+_ATTEMPT_JOURNAL_PHASES = frozenset({"intent", "uploaded", "created"})
+
+
+def _attempt_journal_root(sidecar_path: Path, *, create: bool) -> Path:
+    root = _safe_run_relative_path(
+        sidecar_path.parent,
+        BATCH_ATTEMPT_JOURNAL_DIRECTORY,
+    )
+    if root.exists() or root.is_symlink():
+        if root.is_symlink() or not root.is_dir():
+            raise BatchError("provider batch attempt journal directory is unsafe")
+    elif create:
+        root.mkdir(mode=0o700)
+    return root
+
+
+def _attempt_event_record(
+    sidecar_path: Path,
+    job: Mapping[str, Any],
+    *,
+    phase: str,
+) -> dict[str, Any]:
+    attempt_id = str(job.get("attemptId") or "")
+    if phase not in _ATTEMPT_JOURNAL_PHASES or _ATTEMPT_ID_PATTERN.fullmatch(attempt_id) is None:
+        raise BatchError("provider batch attempt journal identity is invalid")
+    if phase == "intent":
+        facts = {
+            "attemptOrdinal": job.get("attemptOrdinal"),
+            "family": job.get("family"),
+            "inputFileSha256": job.get("inputFileSha256"),
+            "modelId": job.get("modelId"),
+            "projectedCostUsd": job.get("projectedCostUsd"),
+            "providerRequestCount": job.get("providerRequestCount"),
+            "shardId": job.get("shardId"),
+            "spendAuthority": job.get("spendAuthority"),
+            "spendCapUsd": job.get("spendCapUsd"),
+            "totalSpendCapUsd": job.get("totalSpendCapUsd"),
+            "workKind": job.get("workKind"),
+        }
+    elif phase == "uploaded":
+        facts = {
+            "inputFileId": job.get("inputFileId"),
+            "inputUploadEndpoint": job.get("inputUploadEndpoint"),
+        }
+    else:
+        facts = {
+            "jobId": job.get("jobId"),
+            "statusEndpoint": job.get("statusEndpoint"),
+        }
+    return {
+        "type": _ATTEMPT_JOURNAL_EVENT_TYPE,
+        "schemaVersion": BATCH_ATTEMPT_JOURNAL_VERSION,
+        "attemptId": attempt_id,
+        "event": phase,
+        "facts": facts,
+        "sidecarFile": sidecar_path.name,
+    }
+
+
+def _attempt_event_path(
+    sidecar_path: Path,
+    *,
+    attempt_id: str,
+    phase: str,
+) -> Path:
+    if _ATTEMPT_ID_PATTERN.fullmatch(attempt_id) is None or phase not in _ATTEMPT_JOURNAL_PHASES:
+        raise BatchError("provider batch attempt journal identity is invalid")
+    root = _attempt_journal_root(sidecar_path, create=True)
+    return root / f"{attempt_id}.{phase}.json"
+
+
+def _write_attempt_event(
+    sidecar_path: Path,
+    job: Mapping[str, Any],
+    *,
+    phase: str,
+) -> None:
+    """Create one immutable attempt event while the run lock is held."""
+
+    record = _attempt_event_record(sidecar_path, job, phase=phase)
+    payload = (canonical_json(record) + "\n").encode("utf-8")
+    destination = _attempt_event_path(
+        sidecar_path,
+        attempt_id=str(record["attemptId"]),
+        phase=phase,
+    )
+    if destination.exists() or destination.is_symlink():
+        if destination.is_symlink() or not destination.is_file():
+            raise BatchError("provider batch attempt journal event is unsafe")
+        if destination.read_bytes() != payload:
+            raise BatchError("provider batch attempt journal event differs from its immutable intent")
+        return
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise BatchError("provider batch attempt journal requires O_NOFOLLOW support")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW
+    try:
+        descriptor = os.open(destination, flags, 0o600)
+    except OSError as error:
+        raise BatchError("provider batch attempt journal event could not be created safely") from error
+    # A partial O_EXCL file is intentionally retained after a write failure.
+    # Reconciliation then fails closed instead of forgetting whether provider
+    # I/O could follow.
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _read_attempt_events(sidecar_path: Path) -> dict[tuple[str, str], Mapping[str, Any]]:
+    root = _attempt_journal_root(sidecar_path, create=False)
+    if not root.exists():
+        return {}
+    events: dict[tuple[str, str], Mapping[str, Any]] = {}
+    for path in sorted(root.iterdir(), key=lambda item: item.name):
+        if path.is_symlink() or not path.is_file():
+            raise BatchError("provider batch attempt journal contains an unsafe entry")
+        try:
+            payload = path.read_bytes()
+            parsed = json.loads(payload)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise BatchError("provider batch attempt journal event is invalid") from error
+        if (
+            not isinstance(parsed, Mapping)
+            or (canonical_json(parsed) + "\n").encode("utf-8") != payload
+            or set(parsed)
+            != {
+                "attemptId",
+                "event",
+                "facts",
+                "schemaVersion",
+                "sidecarFile",
+                "type",
+            }
+            or parsed.get("type") != _ATTEMPT_JOURNAL_EVENT_TYPE
+            or parsed.get("schemaVersion") != BATCH_ATTEMPT_JOURNAL_VERSION
+            or not isinstance(parsed.get("facts"), Mapping)
+        ):
+            raise BatchError("provider batch attempt journal event is invalid")
+        attempt_id = str(parsed.get("attemptId") or "")
+        phase = str(parsed.get("event") or "")
+        expected_name = f"{attempt_id}.{phase}.json"
+        if (
+            _ATTEMPT_ID_PATTERN.fullmatch(attempt_id) is None
+            or phase not in _ATTEMPT_JOURNAL_PHASES
+            or path.name != expected_name
+            or not isinstance(parsed.get("sidecarFile"), str)
+            or Path(str(parsed["sidecarFile"])).name != parsed["sidecarFile"]
+        ):
+            raise BatchError("provider batch attempt journal event identity is invalid")
+        if parsed["sidecarFile"] != sidecar_path.name:
+            continue
+        key = (attempt_id, phase)
+        if key in events:
+            raise BatchError("provider batch attempt journal repeats an event")
+        events[key] = parsed
+    return events
+
+
+def _verify_attempt_journal(
+    sidecar_path: Path,
+    sidecar: Mapping[str, Any],
+    *,
+    allow_legacy_read_only: bool = False,
+) -> None:
+    """Require mutable sidecar attempts to equal the immutable local journal."""
+
+    events = _read_attempt_events(sidecar_path)
+    jobs: dict[str, Mapping[str, Any]] = {}
+    for raw_job in sidecar.get("jobs", ()):
+        if not isinstance(raw_job, Mapping):
+            raise BatchError("provider batch sidecar contains a non-object attempt")
+        attempt_id = str(raw_job.get("attemptId") or "")
+        if attempt_id in jobs:
+            raise BatchError("provider batch sidecar repeats an attempt identity")
+        jobs[attempt_id] = raw_job
+    journal_attempts = {
+        attempt_id
+        for attempt_id, phase in events
+        if phase == "intent"
+    }
+    if (
+        allow_legacy_read_only
+        and jobs
+        and not events
+        and sidecar.get("attemptJournalVersion") is None
+        and sidecar.get("spendAuthority") is None
+        and all(
+            job.get("attemptId") is None and job.get("attemptState") is None
+            for job in jobs.values()
+        )
+    ):
+        return
+    if set(jobs) != journal_attempts:
+        raise BatchError(
+            "provider batch sidecar attempts differ from the immutable attempt journal"
+        )
+    for attempt_id, job in jobs.items():
+        intent = events.get((attempt_id, "intent"))
+        expected_intent = _attempt_event_record(sidecar_path, job, phase="intent")
+        if intent != expected_intent:
+            raise BatchError("provider batch attempt differs from its immutable intent")
+        upload = events.get((attempt_id, "uploaded"))
+        if bool(job.get("inputFileId")) != (upload is not None):
+            raise BatchError("provider batch upload identity differs from its attempt journal")
+        if upload is not None and upload != _attempt_event_record(
+            sidecar_path,
+            job,
+            phase="uploaded",
+        ):
+            raise BatchError("provider batch upload identity differs from its attempt journal")
+        created = events.get((attempt_id, "created"))
+        if bool(job.get("jobId")) != (created is not None):
+            raise BatchError("provider batch job identity differs from its attempt journal")
+        if created is not None and created != _attempt_event_record(
+            sidecar_path,
+            job,
+            phase="created",
+        ):
+            raise BatchError("provider batch job identity differs from its attempt journal")
+    if any(attempt_id not in journal_attempts for attempt_id, _phase in events):
+        raise BatchError("provider batch attempt journal has an event without an intent")
+
+
 def _retain_content_addressed_bytes(
     sidecar_path: Path,
     payload: bytes,
@@ -2588,20 +2832,62 @@ def has_results(job: Mapping[str, Any]) -> bool:
     return bool(job.get("outputFileId") or job.get("errorFileId"))
 
 
+def _terminal_release_pin(job: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Return a structurally linked terminal-release proof, if one remains."""
+
+    proof = job.get("terminalRelease")
+    artifacts = job.get("statusArtifacts")
+    if (
+        not isinstance(proof, Mapping)
+        or not isinstance(artifacts, Sequence)
+        or isinstance(artifacts, (str, bytes))
+        or not artifacts
+        or not isinstance(artifacts[-1], Mapping)
+        or str(job.get("state")) not in {"failed", "cancelled", "expired"}
+        or has_results(job)
+    ):
+        return None
+    latest = artifacts[-1]
+    expected = {
+        "kind": "providerTerminalWithoutResults",
+        "providerStatus": job.get("providerStatus"),
+        "state": job.get("state"),
+        "statusArtifactDigest": latest.get("fileDigest"),
+        "statusArtifactFile": latest.get("file"),
+        "statusPollOrdinal": latest.get("pollOrdinal"),
+    }
+    return proof if dict(proof) == expected else None
+
+
 def released(job: Mapping[str, Any]) -> bool:
     """Whether this job has stopped holding its candidates.
 
     A job holds them until its answers are in hand, and lets go in exactly two
     situations: it has been collected (whatever it answered is in the receipt
-    file, and whatever it lost is askable again), or it reached a terminal
-    state with nothing to read (it never ran, so nothing was bought).
+    file, and whatever it lost is askable again), or retained provider status
+    proves a terminal state with nothing to read. Mutable state alone never
+    releases a created attempt or its conservative spend reserve.
     """
 
     if job.get("collectedAt"):
         return True
+    if has_results(job):
+        return False
     if str(job.get("state")) not in {"failed", "cancelled", "expired"}:
         return False
-    return not has_results(job)
+    # An upload failure before any provider job identity exists is safe to ask
+    # again.  Once upload/create could have reached the provider, mutable state
+    # alone never releases the conservative projection.
+    if not job.get("jobId"):
+        attempt_state = str(job.get("attemptState") or "")
+        return not job.get("inputFileId") and attempt_state not in {
+            "creating",
+            "createReceived",
+            "createMismatch",
+            "submitted",
+            "uncertain",
+        }
+    return _terminal_release_pin(job) is not None
 
 
 def in_flight_pairs(sidecar: Mapping[str, Any]) -> set[tuple[str, str]]:
@@ -2673,6 +2959,7 @@ def submit(
     work_kind: WorkKind = "validation",
     group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
     coordination_sidecars: Sequence[Path] = (),
+    spend_authority: Mapping[str, Any] | None = None,
     lock_timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
@@ -2697,6 +2984,7 @@ def submit(
             work_kind=work_kind,
             group_size=group_size,
             coordination_sidecars=coordination_sidecars,
+            spend_authority=spend_authority,
             now=now,
         )
 
@@ -2716,6 +3004,7 @@ def _submit_locked(
     work_kind: WorkKind = "validation",
     group_size: int = DEFAULT_REQUEST_GROUP_SIZE,
     coordination_sidecars: Sequence[Path] = (),
+    spend_authority: Mapping[str, Any] | None = None,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Plan and create while the caller holds the run-wide submit lock."""
@@ -2728,6 +3017,26 @@ def _submit_locked(
 
     speaks = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
+    known_families = {
+        **qual.VALIDATOR_FAMILIES,
+        **{family.name: family for family in families},
+    }
+    _verify_attempt_journal(sidecar_path, sidecar)
+    _verify_terminal_releases(sidecar_path, sidecar, known_families)
+    authority = (
+        json.loads(canonical_json(dict(spend_authority)))
+        if spend_authority is not None
+        else None
+    )
+    if authority is not None and not authority:
+        raise BatchError("provider batch spend authority must be a nonempty object")
+    recorded_authority = sidecar.get("spendAuthority")
+    if (
+        recorded_authority is not None
+        or sidecar.get("jobs")
+        or sidecar.get("plannedShards")
+    ) and recorded_authority != authority:
+        raise BatchError("provider batch spend authority cannot change or be omitted")
     recorded_total_cap = sidecar.get("totalSpendCapUsd")
     if (
         recorded_total_cap is not None
@@ -2738,8 +3047,19 @@ def _submit_locked(
     excluded = read_receipt_pairs(receipts_path) | in_flight_pairs(sidecar)
     committed = committed_by_family(sidecar)
     rows_by_id = {row.candidate_id: row for row in rows}
-    coordination_states = [read_sidecar(path) for path in coordination_sidecars if path.exists()]
-    for other in coordination_states:
+    coordination_states: list[dict[str, Any]] = []
+    for coordination_path in coordination_sidecars:
+        other = read_sidecar(coordination_path)
+        _verify_attempt_journal(coordination_path, other)
+        _verify_terminal_releases(coordination_path, other, known_families)
+        coordination_states.append(other)
+        other_authority = other.get("spendAuthority")
+        if (
+            other_authority is not None
+            or other.get("jobs")
+            or other.get("plannedShards")
+        ) and other_authority != authority:
+            raise BatchError("coordinated batch sidecars must use one spend authority")
         if other.get("jobs") and other.get("totalSpendCapUsd") != effective_total_cap:
             raise BatchError("coordinated batch sidecars must use one total spend cap")
         for family_name, amount in committed_by_family(other).items():
@@ -2875,7 +3195,10 @@ def _submit_locked(
         )
 
     sidecar["batchPricingFactor"] = BATCH_PRICE_FACTOR
+    sidecar["attemptJournalVersion"] = BATCH_ATTEMPT_JOURNAL_VERSION
     sidecar["protocol"] = SIDECAR_PROTOCOL
+    if authority is not None:
+        sidecar["spendAuthority"] = authority
     sidecar["totalSpendCapUsd"] = effective_total_cap
     sidecar["spendCapsByFamily"] = dict(sorted(spend_caps.items()))
     sidecar["queuePolicy"] = {
@@ -2982,12 +3305,17 @@ def _submit_locked(
             "resultArtifacts": [],
             "statusArtifacts": [],
             "spendCapUsd": float(caps.get(family.name)) if caps and family.name in caps else family.spend_cap_usd,
+            "spendAuthority": authority,
             "state": "intent",
             "statusEndpoint": None,
             "submittedAt": None,
             "totalSpendCapUsd": effective_total_cap,
             "vendor": family.vendor,
         }
+        # This immutable intent exists before the first provider byte leaves.
+        # If the replace-in-place sidecar later loses this job, reconciliation
+        # fails closed instead of buying the shard again.
+        _write_attempt_event(sidecar_path, record, phase="intent")
         sidecar.setdefault("jobs", []).append(record)
         sidecar["updatedAt"] = now()
         write_sidecar(sidecar_path, sidecar)
@@ -3005,6 +3333,12 @@ def _submit_locked(
             sidecar["updatedAt"] = now()
             write_sidecar(sidecar_path, sidecar)
             raise
+        uploaded_record = {
+            **record,
+            "inputFileId": uploaded.file_id,
+            "inputUploadEndpoint": uploaded.endpoint,
+        }
+        _write_attempt_event(sidecar_path, uploaded_record, phase="uploaded")
         record["attemptState"] = "creating"
         record["inputFileId"] = uploaded.file_id
         record["inputUploadEndpoint"] = uploaded.endpoint
@@ -3041,6 +3375,12 @@ def _submit_locked(
             write_sidecar(sidecar_path, sidecar)
             raise BatchError(f"{family.name} batch create returned no job id")
         submitted_at = now()
+        created_record = {
+            **record,
+            "jobId": job_id,
+            "statusEndpoint": provider.job_url(job_id),
+        }
+        _write_attempt_event(sidecar_path, created_record, phase="created")
         # The provider identity is durable before any echoed field is trusted.
         # A crash here leaves a pollable, held, explicitly untrusted attempt.
         record.update(
@@ -3163,17 +3503,47 @@ def poll(
     sidecar_path: Path,
     families: Mapping[str, ValidatorFamily],
     keys: Mapping[str, str],
+    lock_timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Refresh every non-terminal job's state into the sidecar."""
 
+    with _run_submit_lock(
+        sidecar_path,
+        (),
+        timeout_seconds=lock_timeout_seconds,
+    ):
+        return _poll_locked(
+            transport=transport,
+            sidecar_path=sidecar_path,
+            families=families,
+            keys=keys,
+            now=now,
+        )
+
+
+def _poll_locked(
+    *,
+    transport: BatchHttpTransport,
+    sidecar_path: Path,
+    families: Mapping[str, ValidatorFamily],
+    keys: Mapping[str, str],
+    now: Callable[[], str],
+) -> dict[str, Any]:
+    """Poll while the caller owns the run-wide sidecar mutation lock."""
+
     sidecar = read_sidecar(sidecar_path)
+    known_families = {**qual.VALIDATOR_FAMILIES, **families}
+    _verify_attempt_journal(sidecar_path, sidecar)
+    _verify_terminal_releases(sidecar_path, sidecar, known_families)
     states: list[dict[str, Any]] = []
     for job in sidecar.get("jobs", ()):
         family = families[str(job["family"])]
         provider = provider_for(family)
         job_id = job.get("jobId")
-        if not job_id or str(job.get("state")) in TERMINAL_STATES:
+        state = str(job.get("state"))
+        trusted_terminal = state == "succeeded" or has_results(job) or released(job)
+        if not job_id or (state in TERMINAL_STATES and trusted_terminal):
             states.append(_job_state_row(job))
             continue
         response = provider.retrieve_job(transport, keys[family.name], str(job_id))
@@ -3214,6 +3584,14 @@ def poll(
                 "statusArtifactFile": status_pin["file"],
                 "statusPollOrdinal": status_pin["pollOrdinal"],
             }
+        if (
+            facts.state in {"failed", "cancelled", "expired"}
+            and not has_results(job)
+            and _usage_allows_terminal_release(facts.aggregate_usage)
+        ):
+            job["terminalRelease"] = _terminal_release_record(job, status_pin)
+        else:
+            job.pop("terminalRelease", None)
         job["polledAt"] = polled_at
         states.append(_job_state_row(job))
     sidecar["updatedAt"] = now()
@@ -3385,6 +3763,66 @@ def _verified_status_evidence(
         request_counts=request_counts,
         state=(latest_facts.state if latest_facts is not None else None),
     )
+
+
+def _usage_allows_terminal_release(usage: NormalizedUsage) -> bool:
+    if not usage.raw:
+        return True
+    return bool(
+        usage.exact
+        and usage.input_tokens == 0
+        and usage.output_tokens == 0
+    )
+
+
+def _terminal_release_record(
+    job: Mapping[str, Any],
+    status_pin: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "kind": "providerTerminalWithoutResults",
+        "providerStatus": job.get("providerStatus"),
+        "state": job.get("state"),
+        "statusArtifactDigest": status_pin.get("fileDigest"),
+        "statusArtifactFile": status_pin.get("file"),
+        "statusPollOrdinal": status_pin.get("pollOrdinal"),
+    }
+
+
+def _verify_terminal_releases(
+    sidecar_path: Path,
+    sidecar: Mapping[str, Any],
+    families: Mapping[str, ValidatorFamily],
+) -> None:
+    """Reopen every proof that allows a created attempt to free its reserve."""
+
+    for raw_job in sidecar.get("jobs", ()):
+        if not isinstance(raw_job, Mapping) or raw_job.get("terminalRelease") is None:
+            continue
+        family = families.get(str(raw_job.get("family") or ""))
+        if family is None:
+            raise BatchError("provider terminal release names an unknown family")
+        status = _verified_status_evidence(sidecar_path.parent, raw_job, family)
+        artifacts = raw_job.get("statusArtifacts")
+        latest = (
+            artifacts[-1]
+            if isinstance(artifacts, Sequence)
+            and not isinstance(artifacts, (str, bytes))
+            and artifacts
+            and isinstance(artifacts[-1], Mapping)
+            else None
+        )
+        if (
+            latest is None
+            or status.state not in {"failed", "cancelled", "expired"}
+            or status.has_results
+            or not _usage_allows_terminal_release(status.aggregate_usage)
+            or raw_job.get("terminalRelease")
+            != _terminal_release_record(raw_job, latest)
+        ):
+            raise BatchError(
+                f"job {raw_job.get('jobId')} terminal release does not reproduce from retained status"
+            )
 
 
 def _result_download_endpoint(provider: BatchProvider, file_id: str) -> str:
@@ -3733,6 +4171,7 @@ def collect(
     rows: Sequence[CandidateRow],
     protocol: str,
     work_kind: WorkKind = "validation",
+    lock_timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Retain finished jobs and append only deterministic valid readings.
@@ -3757,8 +4196,43 @@ def collect(
     receipt to tell them apart.
     """
 
+    with _run_submit_lock(
+        sidecar_path,
+        (),
+        timeout_seconds=lock_timeout_seconds,
+    ):
+        return _collect_locked(
+            transport=transport,
+            receipts_path=receipts_path,
+            sidecar_path=sidecar_path,
+            families=families,
+            keys=keys,
+            rows=rows,
+            protocol=protocol,
+            work_kind=work_kind,
+            now=now,
+        )
+
+
+def _collect_locked(
+    *,
+    transport: BatchHttpTransport,
+    receipts_path: Path,
+    sidecar_path: Path,
+    families: Mapping[str, ValidatorFamily],
+    keys: Mapping[str, str],
+    rows: Sequence[CandidateRow],
+    protocol: str,
+    work_kind: WorkKind,
+    now: Callable[[], str],
+) -> dict[str, Any]:
+    """Collect while the caller owns the run-wide sidecar mutation lock."""
+
     protocol = _require_work_protocol(protocol, work_kind)
     sidecar = read_sidecar(sidecar_path)
+    known_families = {**qual.VALIDATOR_FAMILIES, **families}
+    _verify_attempt_journal(sidecar_path, sidecar)
+    _verify_terminal_releases(sidecar_path, sidecar, known_families)
     for job in sidecar.get("jobs", ()):
         recorded_work_kind = str(job.get("workKind") or "validation")
         if recorded_work_kind != work_kind:
@@ -3927,6 +4401,13 @@ def verify_provider_batch_evidence(
     """Recompute requests, retained responses, readings, usage, and accounting."""
 
     sidecar = read_sidecar(sidecar_path)
+    known_families = {**qual.VALIDATOR_FAMILIES, **families}
+    _verify_attempt_journal(
+        sidecar_path,
+        sidecar,
+        allow_legacy_read_only=True,
+    )
+    _verify_terminal_releases(sidecar_path, sidecar, known_families)
     summary = verify_sidecar_request_lineage(
         sidecar,
         families=families,
@@ -4103,6 +4584,8 @@ def verify_run_provider_batch_evidence(
     combined_by_family: dict[str, float] = {}
     declared_family_caps: dict[str, float] = {}
     declared_total_cap: float | None = None
+    declared_spend_authority: object = None
+    authority_seen = False
     for name, raw_pin in raw_evidence.items():
         if not isinstance(raw_pin, Mapping):
             raise BatchError(f"provider batch evidence {name} is invalid")
@@ -4119,6 +4602,11 @@ def verify_run_provider_batch_evidence(
             raise BatchError(f"provider batch evidence {name} has no receipt-log pin")
         sidecar_path = _pinned_run_file(run_path, raw_pin, label=f"{name} batch sidecar")
         sidecar = read_sidecar(sidecar_path)
+        sidecar_authority = sidecar.get("spendAuthority")
+        if authority_seen and sidecar_authority != declared_spend_authority:
+            raise BatchError("qualification run batch sidecars disagree on spend authority")
+        declared_spend_authority = sidecar_authority
+        authority_seen = True
         receipt_path = _pinned_run_file(run_path, receipt_pin, label=f"{name} receipt log")
         receipt_rows = _canonical_receipt_rows(receipt_path)
         summary = verify_provider_batch_evidence(
@@ -4155,6 +4643,8 @@ def verify_run_provider_batch_evidence(
                 item["committed_cost_usd"]
             )
         summaries[str(name)] = summary
+    if run.get("spendAuthority") != declared_spend_authority:
+        raise BatchError("qualification run spend authority differs from its batch sidecars")
     if run.get("coverageMode") == qual.PRODUCTION_COVERAGE_MODE:
         if judging_receipts is None or scoring_receipts is None:
             raise BatchError(
@@ -4210,6 +4700,7 @@ def cancel(
     sidecar_path: Path,
     families: Mapping[str, ValidatorFamily],
     keys: Mapping[str, str],
+    lock_timeout_seconds: float = DEFAULT_SUBMIT_LOCK_TIMEOUT_SECONDS,
     now: Callable[[], str] = qual._utcnow,
 ) -> dict[str, Any]:
     """Cancel every non-terminal job and record the outcome in the sidecar.
@@ -4219,7 +4710,34 @@ def cancel(
     may move the job to a terminal state and release its candidates.
     """
 
+    with _run_submit_lock(
+        sidecar_path,
+        (),
+        timeout_seconds=lock_timeout_seconds,
+    ):
+        return _cancel_locked(
+            transport=transport,
+            sidecar_path=sidecar_path,
+            families=families,
+            keys=keys,
+            now=now,
+        )
+
+
+def _cancel_locked(
+    *,
+    transport: BatchHttpTransport,
+    sidecar_path: Path,
+    families: Mapping[str, ValidatorFamily],
+    keys: Mapping[str, str],
+    now: Callable[[], str],
+) -> dict[str, Any]:
+    """Cancel while the caller owns the run-wide sidecar mutation lock."""
+
     sidecar = read_sidecar(sidecar_path)
+    known_families = {**qual.VALIDATOR_FAMILIES, **families}
+    _verify_attempt_journal(sidecar_path, sidecar)
+    _verify_terminal_releases(sidecar_path, sidecar, known_families)
     outcomes: list[dict[str, Any]] = []
     for job in sidecar.get("jobs", ()):
         family = families[str(job["family"])]
