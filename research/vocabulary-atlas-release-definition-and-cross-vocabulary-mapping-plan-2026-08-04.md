@@ -15,6 +15,18 @@ frontier rule, and the promotion ladder; this one defines scope, schedule, and
 release lineage. Both were reconciled to this plan on 2026-08-04. Three limits
 they own and this plan inherits are recorded in §16.
 
+**Implementation checkpoint (2026-08-04):** RefSpec now implements the complete
+production qualification path, exact six-release opening, Atlas 2.0 assembly,
+publication decisions for all 87 planning rows, complete static access paths,
+and content-derived release acceptance. The three historical qualification
+runs have been resealed as 582 non-control relation assertions while preserving
+their 69 agreed control rows in qualification evidence. Six complete production
+candidate catalogs are prepared and pinned: 12,313 candidates in total. The
+next release action is to score and judge those catalogs with the two recorded
+provider families, seal the admitted non-control results, and run the guarded
+public-v1 builder. The builder treats those six production run receipts as a
+required release input, including a run that admits zero mappings.
+
 ## Decision
 
 RefSpec publishes versioned vocabulary atlases. Each publication includes only
@@ -502,8 +514,8 @@ geography records, `uei-authority`, `cage-authority`, `fec-native-controls`,
 
 Atlas v1 replaces the isolated single-source builds. It targets every concept
 and native relation from six named source releases whose current bytes are
-available today. ICPSR still needs a v1 re-cut, and the ELSST identity question
-must close before either becomes an exact v1 input.
+available today. The ICPSR and ELSST release-identity decisions are closed and
+their exact current bytes are pinned in `portfolio/atlas-index-v0.json`.
 
 | Exact release | Ring | V1 contents |
 | --- | --- | --- |
@@ -512,7 +524,7 @@ must close before either becomes an exact v1 input.
 | CRS Policy Areas | subject | 32 concepts. |
 | CRS legislative organizations and places | entity | 478 entities. |
 | ELSST R6 | subject | 3,470 concepts and 12,482 native `broader`, `narrower`, and `related` assertions. |
-| ICPSR Subject Thesaurus | subject | Complete verified subset and native relations, re-cut under the exact v1 release. |
+| ICPSR Subject Thesaurus | subject | 3,760 concepts and 18,751 native relations in the complete URI-verified subset. |
 
 The Federal Register source's 1,463 `Related` references comprise 1,451
 resolved `skos:related` concept links, 11 suggested open-term patterns, and one
@@ -520,18 +532,16 @@ unresolved target label. V1 retains the 1,451 typed native links and preserves
 the other 12 source records with their status and source location; no source
 fact disappears and no unresolved label is promoted into a concept link.
 
-Two of these six carry a release-identity question that must close before
-publication, not after:
+The two release-identity decisions are:
 
-- **ICPSR** currently projects its verified subset as *partial* membership, and
-  the Rulespec profile bars partial membership from backing a `ConceptMapping`
-  endpoint pin. The bundle already records
-  `membershipCompleteForVerifiedSubset: true`; the re-cut makes the projection
-  agree. Its republished `developmentOnly` marker is a source fact that the
-  publication decision must dispose of explicitly under §4.3.
-- **ELSST R6** carries the undecided `operationalSerializationProfile`
-  schema-set-digest question (design proposal §9). Rule on whether that digest
-  belongs in release identity before v1 seals, because v1 pins this release.
+- **ICPSR** is the exact complete URI-verified subset named by
+  `urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37`.
+  Its republished `developmentOnly` marker remains a source fact, and the
+  publication decision records the affirmative condition under §4.3.
+- **ELSST R6** uses the publisher release IRI `https://elsst.cessda.eu/id/6` as
+  release identity. The `operationalSerializationProfile` schema-set digest is
+  distribution-validation metadata; changing that profile alone does not mint
+  a different vocabulary release.
 
 Current sealed evidence provides a **582-assertion non-control baseline**: 121
 `exactMatch`, 232 `closeMatch`, 75 `broadMatch`, 119 `narrowMatch`, and 35
@@ -738,11 +748,8 @@ store the document occurrence.
    controls. Add every distinct non-control assertion admitted by the new runs,
    retain every new control, rejection, abstention, and disagreement as
    evidence, and produce Atlas 2.0 relation bundles for the final set.
-4. **Close the two release-identity questions and build the combined Atlas.**
-   Re-cut ICPSR so its projection states complete membership for its verified
-   subset, and rule on whether an `operationalSerializationProfile` digest
-   belongs in ELSST's release identity (§11). Then include the six exact
-   releases, every native
+4. **Build the combined Atlas from the closed release identities.** Include the
+   six exact releases named in §11, every native
    relation, every lifecycle fact, and the complete sealed cross-vocabulary
    assertion set in one canonical Atlas 2.0 distribution.
 5. **Build complete access paths.** Generate the indexes and explorer defined in
