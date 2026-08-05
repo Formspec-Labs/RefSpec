@@ -140,6 +140,11 @@ QUALIFICATION_RUN_RECEIPT_VERSION = "1.0"
 QUALIFICATION_RUN_RECEIPT_TYPE = "AtlasQualificationRunReceipt"
 
 SCORING_PROTOCOL = "refspec-atlas-crosswalk-scoring-v1"
+SCORER_PRIORITY_POLICY = (
+    "semanticPlausibilityDescEvidenceSufficiencyDescCandidateIdAscV1"
+)
+SCORER_PRIORITY_PROVENANCE_TYPE = "AtlasQualificationScorerPriority"
+SCORER_PRIORITY_PROVENANCE_VERSION = "1.0"
 SCORING_DIRECTIONS = (
     "same",
     "near_same",
@@ -1008,7 +1013,11 @@ GEMINI_FAMILY = ValidatorFamily(
 
 #: ``gpt-5.6-terra`` rejects ``temperature`` outright — receipted across the
 #: whole search holdout exam — so it is never sent, and the seed carries
-#: whatever determinism the provider offers instead.
+#: whatever determinism the provider offers instead. After the Batch factor,
+#: the pinned OpenAI assumptions become $1.25/M input and $7.50/M output.
+#: ``qualification_batch.GROUP_INPUT_TOKEN_LIMIT`` keeps grouped inputs at
+#: 60,000 tokens, so those assumptions conservatively cover the official
+#: short-context Terra Batch cache-write rate ($1.25/M) and output rate ($6/M).
 OPENAI_FAMILY = ValidatorFamily(
     name="openai",
     vendor="openai",
@@ -1238,6 +1247,21 @@ TRANSPORT_RETRY_LIMIT = 1
 #: few times, because a rate limit says "later", not "no".
 DECLINED_RETRY_LIMIT = 3
 
+#: Gemini 3.6 accepts the OpenAI-compatible message shape while managing its
+#: own generation policy.  These legacy sampling knobs are removed before the
+#: request is hashed, receipted, or uploaded.  Keeping the scrub at the common
+#: request builder gives serial and Batch execution the same sealed bytes.
+GEMINI_36_DEPRECATED_GENERATION_CONTROLS = frozenset(
+    {"temperature", "top_p", "top_k"}
+)
+
+
+def _uses_gemini_36(family: ValidatorFamily, model_id: str) -> bool:
+    return (
+        family.vendor == "google"
+        and model_id.removeprefix("models/").startswith("gemini-3.6")
+    )
+
 
 def _request_body(
     family: ValidatorFamily,
@@ -1259,6 +1283,9 @@ def _request_body(
         body["seed"] = VALIDATION_CALL_SEED
     if family.reasoning_effort is not None:
         body["reasoning_effort"] = family.reasoning_effort
+    if _uses_gemini_36(family, model_id):
+        for parameter in GEMINI_36_DEPRECATED_GENERATION_CONTROLS:
+            body.pop(parameter, None)
     return body
 
 
@@ -1755,6 +1782,201 @@ def score_reading_from_receipt(
         endpoint_host=endpoint_host(str(receipt.get("request_url") or "")),
         **lineage,
     )
+
+
+def scorer_priority_provenance(
+    catalog: Mapping[str, Any],
+    receipts: Sequence[Mapping[str, Any]],
+    *,
+    scorer_family: ValidatorFamily,
+    scorer_model_id: str,
+    candidate_catalog_file_digest: str,
+    scoring_receipt_log_file_digest: str,
+    scoring_sidecar_file_digest: str,
+) -> tuple[dict[str, Any], tuple[str, ...]]:
+    """Reproduce the complete score-derived order used for blind judging.
+
+    The returned record contains only digests and counts.  Score values stay in
+    the sealed scorer receipt log and never enter a judge request or judge
+    sidecar.  Ranking is descending semantic plausibility, then descending
+    evidence sufficiency, with candidate identity as the stable tie-breaker.
+    """
+
+    for value, label in (
+        (candidate_catalog_file_digest, "candidate catalog file digest"),
+        (scoring_receipt_log_file_digest, "scoring receipt-log file digest"),
+        (scoring_sidecar_file_digest, "scoring sidecar file digest"),
+    ):
+        if not _is_sha256(value):
+            raise QualificationError(f"scorer priority {label} is invalid")
+    if scorer_family.name not in VALIDATOR_FAMILIES:
+        raise QualificationError("scorer priority names an unknown family")
+    if not isinstance(scorer_model_id, str) or not scorer_model_id:
+        raise QualificationError("scorer priority model id is invalid")
+    raw_candidates = catalog.get("candidates")
+    if not isinstance(raw_candidates, Sequence) or isinstance(
+        raw_candidates,
+        (str, bytes),
+    ):
+        raise QualificationError("scorer priority requires candidate rows")
+    candidates: dict[str, Mapping[str, Any]] = {}
+    for index, raw in enumerate(raw_candidates):
+        if not isinstance(raw, Mapping):
+            raise QualificationError(
+                f"scorer priority candidate[{index}] must be an object"
+            )
+        candidate_id = raw.get("candidateId")
+        if not isinstance(candidate_id, str) or not candidate_id:
+            raise QualificationError(
+                f"scorer priority candidate[{index}] has no identity"
+            )
+        if candidate_id in candidates:
+            raise QualificationError("scorer priority candidate catalog repeats an identity")
+        candidates[candidate_id] = raw
+    if catalog.get("total") != len(candidates) or not candidates:
+        raise QualificationError("scorer priority candidate total is incomplete")
+
+    readings: dict[str, ScoreReading] = {}
+    vectors: list[dict[str, Any]] = []
+    for index, receipt in enumerate(receipts):
+        if not isinstance(receipt, Mapping):
+            raise QualificationError(
+                f"scorer priority receipt[{index}] must be an object"
+            )
+        candidate_id = receipt.get("candidate_id")
+        if not isinstance(candidate_id, str) or candidate_id not in candidates:
+            raise QualificationError("scorer priority receipt names an unknown candidate")
+        if candidate_id in readings:
+            raise QualificationError("scorer priority receipts repeat a candidate")
+        row = candidates[candidate_id]
+        pair = candidate_pair_from_catalog_row(row)
+        expected_input_digest = str(
+            row.get("scoringInputDigest") or scoring_input_digest(pair)
+        )
+        if (
+            receipt.get("family") != scorer_family.name
+            or receipt.get("model_id") != scorer_model_id
+            or receipt.get("input_digest") != expected_input_digest
+            or receipt.get("source_member") != pair.source.member
+            or receipt.get("target_member") != pair.target.member
+            or receipt.get("task_id") != scoring_task_id(pair)
+        ):
+            raise QualificationError(
+                "scorer priority receipt differs from its exact candidate question"
+            )
+        reading = score_reading_from_receipt(
+            receipt,
+            scorer_family,
+            scorer_model_id,
+        )
+        if reading is None or not reading.deterministic_checks_passed:
+            raise QualificationError(
+                "scorer priority requires one valid deterministic reading per candidate"
+            )
+        readings[candidate_id] = reading
+        vectors.append(
+            {
+                "candidateId": candidate_id,
+                "evidenceSufficiency": reading.evidence_sufficiency,
+                "likelyRelation": reading.likely_relation,
+                "semanticPlausibility": reading.semantic_plausibility,
+            }
+        )
+    if set(readings) != set(candidates):
+        missing = sorted(set(candidates) - set(readings))
+        extra = sorted(set(readings) - set(candidates))
+        raise QualificationError(
+            "scorer priority requires complete exact coverage; "
+            f"missing={missing[:5]!r}, extra={extra[:5]!r}"
+        )
+    ordered = tuple(
+        sorted(
+            readings,
+            key=lambda candidate_id: (
+                -readings[candidate_id].semantic_plausibility,
+                -readings[candidate_id].evidence_sufficiency,
+                candidate_id,
+            ),
+        )
+    )
+    vector_basis = sorted(vectors, key=lambda row: str(row["candidateId"]))
+    basis = {
+        "type": SCORER_PRIORITY_PROVENANCE_TYPE,
+        "schemaVersion": SCORER_PRIORITY_PROVENANCE_VERSION,
+        "policy": SCORER_PRIORITY_POLICY,
+        "candidateCatalogFileDigest": candidate_catalog_file_digest,
+        "candidateCount": len(candidates),
+        "orderedCandidateIdsDigest": _sha256_text(canonical_json(list(ordered))),
+        "scoreVectorDigest": _sha256_text(canonical_json(vector_basis)),
+        "scorerFamily": scorer_family.name,
+        "scorerModelId": scorer_model_id,
+        "scoringProtocol": SCORING_PROTOCOL,
+        "scoringReceiptCount": len(receipts),
+        "scoringReceiptLogFileDigest": scoring_receipt_log_file_digest,
+        "scoringSidecarFileDigest": scoring_sidecar_file_digest,
+    }
+    return (
+        {
+            **basis,
+            "priorityDigest": _sha256_text(canonical_json(basis)),
+        },
+        ordered,
+    )
+
+
+def validate_scorer_priority_provenance(payload: object) -> dict[str, Any]:
+    """Validate the compact, content-derived pin for score-prioritized judging."""
+
+    if not isinstance(payload, Mapping):
+        raise QualificationError("judging priority provenance must be an object")
+    record = json.loads(canonical_json(dict(payload)))
+    expected_fields = {
+        "type",
+        "schemaVersion",
+        "policy",
+        "candidateCatalogFileDigest",
+        "candidateCount",
+        "orderedCandidateIdsDigest",
+        "priorityDigest",
+        "scoreVectorDigest",
+        "scorerFamily",
+        "scorerModelId",
+        "scoringProtocol",
+        "scoringReceiptCount",
+        "scoringReceiptLogFileDigest",
+        "scoringSidecarFileDigest",
+    }
+    if set(record) != expected_fields:
+        raise QualificationError("judging priority provenance fields differ")
+    if (
+        record.get("type") != SCORER_PRIORITY_PROVENANCE_TYPE
+        or record.get("schemaVersion") != SCORER_PRIORITY_PROVENANCE_VERSION
+        or record.get("policy") != SCORER_PRIORITY_POLICY
+        or record.get("scoringProtocol") != SCORING_PROTOCOL
+        or record.get("scorerFamily") not in VALIDATOR_FAMILIES
+        or not isinstance(record.get("scorerModelId"), str)
+        or not record["scorerModelId"]
+        or isinstance(record.get("candidateCount"), bool)
+        or not isinstance(record.get("candidateCount"), int)
+        or int(record["candidateCount"]) <= 0
+        or record.get("scoringReceiptCount") != record.get("candidateCount")
+        or any(
+            not _is_sha256(record.get(field))
+            for field in (
+                "candidateCatalogFileDigest",
+                "orderedCandidateIdsDigest",
+                "priorityDigest",
+                "scoreVectorDigest",
+                "scoringReceiptLogFileDigest",
+                "scoringSidecarFileDigest",
+            )
+        )
+    ):
+        raise QualificationError("judging priority provenance is invalid")
+    digest = record.pop("priorityDigest")
+    if digest != _sha256_text(canonical_json(record)):
+        raise QualificationError("judging priority provenance identity differs")
+    return {**record, "priorityDigest": digest}
 
 
 # ---------------------------------------------------------------------------
@@ -2307,6 +2529,27 @@ def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]
                 )
             ):
                 raise QualificationError(f"provider batch evidence {name} is invalid")
+    judging_priority = basis.get("judgingPriority")
+    if judging_priority is not None:
+        priority = validate_scorer_priority_provenance(judging_priority)
+        scoring_evidence = (
+            provider_batch_evidence.get("scoring")
+            if isinstance(provider_batch_evidence, Mapping)
+            else None
+        )
+        if (
+            priority["candidateCount"] != expected_counts["generated"]
+            or priority["scoringReceiptCount"] != expected_counts["scorerReceipts"]
+            or priority["candidateCatalogFileDigest"] != catalog.get("fileDigest")
+            or priority["scoringReceiptLogFileDigest"]
+            != scoring_log.get("fileDigest")
+            or not isinstance(scoring_evidence, Mapping)
+            or priority["scoringSidecarFileDigest"]
+            != scoring_evidence.get("fileDigest")
+        ):
+            raise QualificationError(
+                "judging priority provenance differs from the run's pinned inputs"
+            )
     spend_authority = basis.get("spendAuthority")
     if spend_authority is not None:
         expected_fields = {
@@ -2363,6 +2606,23 @@ def seal_qualification_run_receipt(payload: Mapping[str, Any]) -> dict[str, Any]
             or Decimal(approved_total) < Decimal(run_cap)
         ):
             raise QualificationError("qualification run spend authority is invalid")
+        if (
+            basis.get("coverageMode") == PRODUCTION_COVERAGE_MODE
+            and judging_priority is None
+        ):
+            raise QualificationError(
+                "official qualification run must pin judging priority provenance"
+            )
+        if judging_priority is not None:
+            priority = validate_scorer_priority_provenance(judging_priority)
+            if (
+                priority["scorerFamily"] not in models_by_family
+                or priority["scorerModelId"]
+                != models_by_family[priority["scorerFamily"]]
+            ):
+                raise QualificationError(
+                    "judging priority scorer differs from the spend authority"
+                )
     coverage_mode = basis.get("coverageMode")
     if coverage_mode not in {PILOT_COVERAGE_MODE, PRODUCTION_COVERAGE_MODE}:
         raise QualificationError("qualification run coverage mode is unsupported")
@@ -2613,6 +2873,9 @@ __all__ = [
     "QUALIFICATION_RUN_RECEIPT_VERSION",
     "RESPONSE_SCHEMA",
     "RESPONSE_SCHEMA_V2",
+    "SCORER_PRIORITY_POLICY",
+    "SCORER_PRIORITY_PROVENANCE_TYPE",
+    "SCORER_PRIORITY_PROVENANCE_VERSION",
     "SCORING_DIRECTIONS",
     "SCORING_INSTRUCTIONS",
     "SCORING_PROTOCOL",
@@ -2657,6 +2920,7 @@ __all__ = [
     "resolve_validator_model",
     "score_candidate",
     "score_reading_from_receipt",
+    "scorer_priority_provenance",
     "scoring_input_digest",
     "scoring_input_payload",
     "scoring_input_texts",
@@ -2668,6 +2932,7 @@ __all__ = [
     "task_id",
     "validate_candidate",
     "validate_qualification_run_receipt",
+    "validate_scorer_priority_provenance",
     "validation_request_artifact",
     "verify_candidate_accounting_catalog_lineage",
     "verify_production_qualification_reproduction",

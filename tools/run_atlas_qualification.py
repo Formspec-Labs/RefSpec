@@ -29,7 +29,7 @@ import json
 import math
 import sys
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
@@ -180,6 +180,81 @@ def _verify_official_spend_authority_descriptor(
     return authority, allocation
 
 
+def _read_requested_official_spend_authority(
+    output: Path,
+    authority_path: Path,
+) -> tuple[
+    qspend.VocabularyAtlasV1ProductionSpendAuthority,
+    Mapping[str, Any],
+    dict[str, Any],
+]:
+    """Derive one expected run descriptor from its local approval file."""
+
+    planned_job = _official_production_job(output)
+    if planned_job is None:
+        raise SystemExit(
+            "--spend-authority applies only to an exact Vocabulary Atlas v1 "
+            "production output directory"
+        )
+    manifest = _production_qualification_manifest()
+    try:
+        authority = qspend.read_vocabulary_atlas_v1_production_spend_authority(
+            authority_path,
+            manifest=manifest,
+            repository_root=ROOT,
+        )
+        allocation = authority.job(str(planned_job["key"]))
+        requested_authority = Path(authority_path)
+        authority_file = (
+            requested_authority
+            if requested_authority.is_absolute()
+            else ROOT / requested_authority
+        ).resolve(strict=True)
+        authority_relative = authority_file.relative_to(ROOT).as_posix()
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"production spend authority is invalid: {error}") from error
+    if allocation["outputPath"] != planned_job["outputPath"]:
+        raise SystemExit(
+            "production spend authority allocation names another output directory"
+        )
+    return (
+        authority,
+        allocation,
+        _spend_authority_descriptor(
+            authority,
+            authority_file=ROOT / authority_relative,
+            allocation=allocation,
+        ),
+    )
+
+
+def _production_reconcile_spend_authority(
+    args: argparse.Namespace,
+) -> Mapping[str, Any] | None:
+    """Resolve reconciliation authority independently of mutable Batch state."""
+
+    output = Path(args.output)
+    planned_job = _official_production_job(output)
+    authority_path = getattr(args, "spend_authority", None)
+    if planned_job is None:
+        if authority_path is not None:
+            raise SystemExit(
+                "--spend-authority applies only to an exact Vocabulary Atlas v1 "
+                "production output directory"
+            )
+        return None
+    if authority_path is None:
+        raise SystemExit(
+            "official Vocabulary Atlas v1 production reconciliation requires "
+            "--spend-authority before any provider call"
+        )
+    _authority, _allocation, descriptor = _read_requested_official_spend_authority(
+        output,
+        authority_path,
+    )
+    return descriptor
+
+
 def _production_batch_controls(
     args: argparse.Namespace,
     *,
@@ -228,31 +303,11 @@ def _production_batch_controls(
             "reserved for a run that already has Batch recovery evidence"
         )
 
-    manifest = _production_qualification_manifest()
-    try:
-        authority = qspend.read_vocabulary_atlas_v1_production_spend_authority(
-            authority_path,
-            manifest=manifest,
-            repository_root=ROOT,
-        )
-        allocation = authority.job(str(planned_job["key"]))
-        requested_authority = Path(authority_path)
-        authority_file = (
-            requested_authority
-            if requested_authority.is_absolute()
-            else ROOT / requested_authority
-        ).resolve(strict=True)
-        authority_relative = authority_file.relative_to(ROOT).as_posix()
-    except (OSError, ValueError) as error:
-        raise SystemExit(f"production spend authority is invalid: {error}") from error
-    if allocation["outputPath"] != planned_job["outputPath"]:
-        raise SystemExit("production spend authority allocation names another output directory")
-    run_cap = float(allocation["runSpendCapUsd"])
-    descriptor = _spend_authority_descriptor(
-        authority,
-        authority_file=ROOT / authority_relative,
-        allocation=allocation,
+    _authority, allocation, descriptor = _read_requested_official_spend_authority(
+        output,
+        authority_path,
     )
+    run_cap = float(allocation["runSpendCapUsd"])
     if args.group_size == 1:
         recovery_name = (
             qbatch.SIDECAR
@@ -288,6 +343,177 @@ def _production_batch_controls(
         run_cap,
         descriptor,
     )
+
+
+def _read_canonical_receipt_log(path: Path, *, label: str) -> list[dict[str, Any]]:
+    if not path.is_file() or path.is_symlink():
+        raise SystemExit(f"{label} does not exist as a regular file")
+    rows: list[dict[str, Any]] = []
+    for index, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+        if not line:
+            continue
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise SystemExit(f"{label} row {index + 1} is not JSON") from error
+        if not isinstance(value, Mapping) or canonical_json(value) != line:
+            raise SystemExit(f"{label} row {index + 1} is not canonical")
+        rows.append(dict(value))
+    return rows
+
+
+def _official_judging_priority(
+    output: Path,
+    spend_authority: Mapping[str, Any],
+) -> tuple[list[qbatch.CandidateRow], dict[str, Any]]:
+    """Reopen complete scoring evidence and derive blind-judge packing order."""
+
+    catalog_path = output / CANDIDATES
+    scoring_path = output / SCORING_RECEIPTS
+    sidecar_path = output / SCORING_BATCH_SIDECAR
+    if not sidecar_path.is_file() or sidecar_path.is_symlink():
+        raise SystemExit(
+            "official production judging requires complete verified scoring Batch evidence"
+        )
+    catalog = _read_json(catalog_path)
+    receipts = _read_canonical_receipt_log(
+        scoring_path,
+        label="production scoring receipt log",
+    )
+    score_rows = list(
+        qbatch.candidate_rows_from_catalog(catalog, work_kind="scoring")
+    )
+    try:
+        scoring_sidecar = qbatch.read_sidecar(sidecar_path)
+        verification = qbatch.verify_provider_batch_evidence(
+            sidecar_path=sidecar_path,
+            families=qual.VALIDATOR_FAMILIES,
+            rows=score_rows,
+            receipts=receipts,
+            work_kind="scoring",
+        )
+        authority, allocation = _verify_official_spend_authority_descriptor(
+            output,
+            spend_authority,
+        )
+        run_cap = float(allocation["runSpendCapUsd"])
+        family_caps = scoring_sidecar.get("spendCapsByFamily")
+        if (
+            scoring_sidecar.get("spendAuthority") != spend_authority
+            or float(scoring_sidecar.get("totalSpendCapUsd") or 0.0) != run_cap
+            or not isinstance(family_caps, Mapping)
+            or not family_caps
+            or any(float(value) != run_cap for value in family_caps.values())
+        ):
+            raise ValueError(
+                "scoring Batch evidence differs from its exact spend allocation"
+            )
+        qspend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            scoring_sidecar,
+            job_key=str(allocation["jobKey"]),
+            work_kind="scoring",
+            repository_root=ROOT,
+        )
+        provenance, ordered_ids = qual.scorer_priority_provenance(
+            catalog,
+            receipts,
+            scorer_family=qual.VALIDATOR_FAMILIES[qspend.SCORER_FAMILY],
+            scorer_model_id=qspend.PRODUCTION_MODELS_BY_FAMILY[
+                qspend.SCORER_FAMILY
+            ],
+            candidate_catalog_file_digest=_file_digest(catalog_path),
+            scoring_receipt_log_file_digest=_file_digest(scoring_path),
+            scoring_sidecar_file_digest=_file_digest(sidecar_path),
+        )
+    except (qbatch.BatchError, qual.QualificationError, ValueError) as error:
+        raise SystemExit(
+            "official production judging requires complete verified scoring "
+            f"Batch evidence: {error}"
+        ) from error
+    if (
+        verification.get("verifiedReceipts") != len(score_rows)
+        or len(ordered_ids) != len(score_rows)
+    ):
+        raise SystemExit(
+            "official production judging requires complete scoring coverage"
+        )
+    rank_by_id = {
+        candidate_id: rank for rank, candidate_id in enumerate(ordered_ids)
+    }
+    judge_rows = list(
+        qbatch.candidate_rows_from_catalog(catalog, work_kind="validation")
+    )
+    return (
+        [
+            qbatch.CandidateRow(
+                candidate_id=row.candidate_id,
+                pair=row.pair,
+                input_digest=row.input_digest,
+                priority_rank=rank_by_id[row.candidate_id],
+            )
+            for row in judge_rows
+        ],
+        provenance,
+    )
+
+
+def _official_judging_priority_guard(
+    output: Path,
+    spend_authority: Mapping[str, Any],
+    expected_rows: Sequence[qbatch.CandidateRow],
+    expected_provenance: Mapping[str, Any],
+) -> Callable[[], None]:
+    """Recheck the exact scorer-derived order while the run lock is held."""
+
+    authority = json.loads(canonical_json(dict(spend_authority)))
+    provenance = json.loads(canonical_json(dict(expected_provenance)))
+
+    def row_basis(rows: Sequence[qbatch.CandidateRow]) -> tuple[tuple[Any, ...], ...]:
+        return tuple(
+            sorted(
+                (
+                    row.candidate_id,
+                    row.input_digest,
+                    row.priority_rank,
+                )
+                for row in rows
+            )
+        )
+
+    expected_basis = row_basis(expected_rows)
+
+    def guard() -> None:
+        current_rows, current_provenance = _official_judging_priority(
+            output,
+            authority,
+        )
+        if (
+            current_provenance != provenance
+            or row_basis(current_rows) != expected_basis
+        ):
+            raise qbatch.BatchError(
+                "official production scoring evidence changed after judging preflight"
+            )
+
+    return guard
+
+
+def _refuse_scoring_mutation_after_judging(output: Path) -> None:
+    judging_path = output / qbatch.SIDECAR
+    if not judging_path.exists():
+        return
+    judging = qbatch.read_sidecar(judging_path)
+    if (
+        judging.get("priorityProvenance") is not None
+        or (
+            judging.get("spendAuthority") is not None
+            and (judging.get("plannedShards") or judging.get("jobs"))
+        )
+    ):
+        raise SystemExit(
+            "scoring evidence is sealed as judging priority provenance and cannot change"
+        )
 
 
 def _refuse_official_serial_execution(args: argparse.Namespace) -> None:
@@ -885,6 +1111,7 @@ def command_bundle(args: argparse.Namespace) -> int:
         }
 
     spend_authority_descriptor: Mapping[str, Any] | None = None
+    judging_priority: Mapping[str, Any] | None = None
     if _official_production_job(output) is not None:
         if set(provider_sidecars) != {"judging", "scoring"}:
             raise SystemExit(
@@ -912,17 +1139,30 @@ def command_bundle(args: argparse.Namespace) -> int:
                     f"official production {name} Batch caps differ from the approved run allocation"
                 )
             try:
-                qspend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+                authority_verification = (
+                    qspend.verify_vocabulary_atlas_v1_production_batch_sidecar(
                     _authority,
                     sidecar,
                     job_key=str(allocation["jobKey"]),
                     work_kind=("validation" if name == "judging" else "scoring"),
                     repository_root=ROOT,
                 )
+                )
             except ValueError as error:
                 raise SystemExit(
                     f"official production {name} Batch plan differs from its spend authority: {error}"
                 ) from error
+            if name == "judging":
+                priority = sidecar.get("priorityProvenance")
+                if (
+                    not isinstance(priority, Mapping)
+                    or authority_verification.get("priorityDigest")
+                    != priority.get("priorityDigest")
+                ):
+                    raise SystemExit(
+                        "official production judging has no verified scorer priority provenance"
+                    )
+                judging_priority = priority
         spend_authority_descriptor = cast(Mapping[str, Any], descriptors[0])
 
     entries: list[qual.AssembledCandidate] = []
@@ -1095,6 +1335,11 @@ def command_bundle(args: argparse.Namespace) -> int:
         "productionFloor": catalog.get("productionFloor"),
         "protocol": protocol,
         **({"providerBatchEvidence": provider_batch_evidence} if provider_batch_evidence else {}),
+        **(
+            {"judgingPriority": dict(judging_priority)}
+            if judging_priority is not None
+            else {}
+        ),
         **(
             {"spendAuthority": dict(spend_authority_descriptor)}
             if spend_authority_descriptor is not None
@@ -1411,10 +1656,19 @@ def _batch_sidecar_families(
     args: argparse.Namespace,
     sidecar_name: str = qbatch.SIDECAR,
 ) -> dict[str, qual.ValidatorFamily]:
-    """Every family the sidecar already names; a poll invents no new work."""
+    """Every family the sidecar already plans or attempts."""
 
     sidecar = qbatch.read_sidecar(Path(args.output) / sidecar_name)
-    names = sorted({str(job["family"]) for job in sidecar.get("jobs", ())})
+    records = [*sidecar.get("plannedShards", ()), *sidecar.get("jobs", ())]
+    if any(not isinstance(record, Mapping) for record in records):
+        raise SystemExit(f"{sidecar_name} contains a non-object plan or attempt")
+    names = sorted(
+        {
+            str(record["family"])
+            for record in records
+            if isinstance(record.get("family"), str) and record.get("family")
+        }
+    )
     unknown = [name for name in names if name not in qual.VALIDATOR_FAMILIES]
     if unknown:
         raise SystemExit(
@@ -1477,6 +1731,7 @@ def command_batch_plan(args: argparse.Namespace) -> int:
             {
                 "candidateCount": len(judge_rows),
                 "jobs": jobs,
+                "judgingPlanResolution": "derivedFromCompleteScoringEvidence",
                 "modelResolution": "notPerformed",
                 "planningMode": "stratifiedSmoke" if args.smoke_candidates is not None else "complete",
                 "protocol": protocol,
@@ -1499,6 +1754,21 @@ def command_batch_submit(args: argparse.Namespace) -> int:
     protocol = _batch_protocol(args)
     print(f"protocol {protocol} (from {CANDIDATES})", file=sys.stderr, flush=True)
     families = [qual.VALIDATOR_FAMILIES[name] for name in args.families.split(",")]
+    if spend_authority is not None:
+        judge_rows, priority_provenance = _official_judging_priority(
+            output,
+            spend_authority,
+        )
+        mutation_guard = _official_judging_priority_guard(
+            output,
+            spend_authority,
+            judge_rows,
+            priority_provenance,
+        )
+    else:
+        judge_rows = _batch_rows(args, subset=True)
+        priority_provenance = None
+        mutation_guard = None
     transport = qbatch.default_transport()
     plain = qbatch.PlainTransport(transport)
     keys = _batch_keys(args, families)
@@ -1545,13 +1815,15 @@ def command_batch_submit(args: argparse.Namespace) -> int:
             families=families,
             keys=keys,
             models=resolved,
-            rows=_batch_rows(args, subset=True),
+            rows=judge_rows,
             caps=caps,
             total_cap_usd=total_cap,
             protocol=protocol,
             group_size=args.group_size,
             coordination_sidecars=(output / SCORING_BATCH_SIDECAR,),
             spend_authority=spend_authority,
+            priority_provenance=priority_provenance,
+            mutation_guard=mutation_guard,
         )
     except (
         qbatch.BatchSpendCapReached,
@@ -1578,6 +1850,46 @@ def command_batch_status(args: argparse.Namespace) -> int:
     )
     for job in summary["jobs"]:
         print(f"{job['family']} {job['jobId']}: {job['state']} ({job['providerStatus']})", file=sys.stderr, flush=True)
+    print(canonical_json(summary))
+    return 0
+
+
+def command_batch_reconcile(args: argparse.Namespace) -> int:
+    """Repair durable attempt state and resume only a provably unstarted create."""
+
+    output = Path(args.output)
+    families = _batch_sidecar_families(args)
+    spend_authority = _production_reconcile_spend_authority(args)
+    if spend_authority is not None:
+        judge_rows, priority_provenance = _official_judging_priority(
+            output,
+            spend_authority,
+        )
+        mutation_guard = _official_judging_priority_guard(
+            output,
+            spend_authority,
+            judge_rows,
+            priority_provenance,
+        )
+    else:
+        spend_authority = None
+        judge_rows = _batch_rows(args, subset=False)
+        priority_provenance = None
+        mutation_guard = None
+    transport = qbatch.default_transport()
+    keys = _batch_keys(args, list(families.values()))
+    summary = qbatch.reconcile(
+        transport=transport,
+        sidecar_path=output / qbatch.SIDECAR,
+        families=families,
+        keys=keys,
+        rows=judge_rows,
+        work_kind="validation",
+        coordination_sidecars=(output / SCORING_BATCH_SIDECAR,),
+        spend_authority=spend_authority,
+        priority_provenance=priority_provenance,
+        mutation_guard=mutation_guard,
+    )
     print(canonical_json(summary))
     return 0
 
@@ -1634,6 +1946,7 @@ def command_batch_cancel(args: argparse.Namespace) -> int:
 
 def command_score_batch_submit(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    _refuse_scoring_mutation_after_judging(output)
     caps, total_cap, spend_authority = _production_batch_controls(
         args,
         work_kind="scoring",
@@ -1681,6 +1994,9 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
             group_size=args.group_size,
             coordination_sidecars=(output / qbatch.SIDECAR,),
             spend_authority=spend_authority,
+            mutation_guard=lambda: _refuse_scoring_mutation_after_judging(
+                output
+            ),
         )
     except (
         qbatch.BatchSpendCapReached,
@@ -1693,6 +2009,7 @@ def command_score_batch_submit(args: argparse.Namespace) -> int:
 
 def command_score_batch_status(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    _refuse_scoring_mutation_after_judging(output)
     families = _batch_sidecar_families(args, SCORING_BATCH_SIDECAR)
     if not families:
         print(canonical_json({"jobs": []}))
@@ -1702,6 +2019,32 @@ def command_score_batch_status(args: argparse.Namespace) -> int:
         sidecar_path=output / SCORING_BATCH_SIDECAR,
         families=families,
         keys=_batch_keys(args, list(families.values())),
+        mutation_guard=lambda: _refuse_scoring_mutation_after_judging(output),
+    )
+    print(canonical_json(summary))
+    return 0
+
+
+def command_score_batch_reconcile(args: argparse.Namespace) -> int:
+    """Repair scorer attempt state under the shared run lock."""
+
+    output = Path(args.output)
+    _refuse_scoring_mutation_after_judging(output)
+    families = _batch_sidecar_families(args, SCORING_BATCH_SIDECAR)
+    spend_authority = _production_reconcile_spend_authority(args)
+    rows = _scoring_candidate_rows(_read_json(output / CANDIDATES))
+    transport = qbatch.default_transport()
+    keys = _batch_keys(args, list(families.values()))
+    summary = qbatch.reconcile(
+        transport=transport,
+        sidecar_path=output / SCORING_BATCH_SIDECAR,
+        families=families,
+        keys=keys,
+        rows=rows,
+        work_kind="scoring",
+        coordination_sidecars=(output / qbatch.SIDECAR,),
+        spend_authority=spend_authority,
+        mutation_guard=lambda: _refuse_scoring_mutation_after_judging(output),
     )
     print(canonical_json(summary))
     return 0
@@ -1709,6 +2052,7 @@ def command_score_batch_status(args: argparse.Namespace) -> int:
 
 def command_score_batch_collect(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    _refuse_scoring_mutation_after_judging(output)
     families = _batch_sidecar_families(args, SCORING_BATCH_SIDECAR)
     if not families:
         print(canonical_json({"jobs": [], "receiptsAppended": 0}))
@@ -1720,6 +2064,7 @@ def command_score_batch_collect(args: argparse.Namespace) -> int:
         sidecar_path=output / SCORING_BATCH_SIDECAR,
         families=families,
         keys=keys,
+        mutation_guard=lambda: _refuse_scoring_mutation_after_judging(output),
     )
     summary = qbatch.collect(
         transport=transport,
@@ -1730,6 +2075,7 @@ def command_score_batch_collect(args: argparse.Namespace) -> int:
         rows=_scoring_candidate_rows(_read_json(output / CANDIDATES)),
         protocol=qual.SCORING_PROTOCOL,
         work_kind="scoring",
+        mutation_guard=lambda: _refuse_scoring_mutation_after_judging(output),
     )
     _write_json(output / SCORING_SPEND, summary)
     print(canonical_json(summary))
@@ -1738,6 +2084,7 @@ def command_score_batch_collect(args: argparse.Namespace) -> int:
 
 def command_score_batch_cancel(args: argparse.Namespace) -> int:
     output = Path(args.output)
+    _refuse_scoring_mutation_after_judging(output)
     families = _batch_sidecar_families(args, SCORING_BATCH_SIDECAR)
     if not families:
         print(canonical_json({"cancellations": []}))
@@ -1747,6 +2094,7 @@ def command_score_batch_cancel(args: argparse.Namespace) -> int:
         sidecar_path=output / SCORING_BATCH_SIDECAR,
         families=families,
         keys=_batch_keys(args, list(families.values())),
+        mutation_guard=lambda: _refuse_scoring_mutation_after_judging(output),
     )
     print(canonical_json(summary))
     return 0
@@ -1826,7 +2174,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     batch_submit = subparsers.add_parser(
         "batch-submit",
-        help="submit grouped judge requests through provider Batch APIs; refuses at the cap before uploading",
+        help=(
+            "submit score-prioritized grouped judge requests through provider "
+            "Batch APIs after complete scoring; enforces the cap before uploading"
+        ),
     )
     batch_submit.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     batch_submit.add_argument("--families", default="gemini,openai")
@@ -1893,6 +2244,19 @@ def build_parser() -> argparse.ArgumentParser:
     batch_status.add_argument("--env", type=Path, required=True, help="dotenv file holding the provider credentials")
     batch_status.set_defaults(handler=command_batch_status)
 
+    batch_reconcile = subparsers.add_parser(
+        "batch-reconcile",
+        help="repair durable judge Batch attempts and resume only uploads whose create never began",
+    )
+    batch_reconcile.add_argument("--env", type=Path, required=True)
+    batch_reconcile.add_argument(
+        "--spend-authority",
+        type=Path,
+        default=None,
+        help="approved six-run spend authority required by official v1 production",
+    )
+    batch_reconcile.set_defaults(handler=command_batch_reconcile)
+
     batch_collect = subparsers.add_parser(
         "batch-collect",
         help="download finished batches and append their receipts; safe to run twice",
@@ -1943,6 +2307,19 @@ def build_parser() -> argparse.ArgumentParser:
     score_batch_status = subparsers.add_parser("score-batch-status", help="poll scorer batch jobs")
     score_batch_status.add_argument("--env", type=Path, required=True)
     score_batch_status.set_defaults(handler=command_score_batch_status)
+
+    score_batch_reconcile = subparsers.add_parser(
+        "score-batch-reconcile",
+        help="repair durable scorer Batch attempts and resume only uploads whose create never began",
+    )
+    score_batch_reconcile.add_argument("--env", type=Path, required=True)
+    score_batch_reconcile.add_argument(
+        "--spend-authority",
+        type=Path,
+        default=None,
+        help="approved six-run spend authority required by official v1 production",
+    )
+    score_batch_reconcile.set_defaults(handler=command_score_batch_reconcile)
 
     score_batch_collect = subparsers.add_parser("score-batch-collect", help="collect scorer batch receipts")
     score_batch_collect.add_argument("--env", type=Path, required=True)

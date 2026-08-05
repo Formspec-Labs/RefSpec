@@ -29,9 +29,9 @@ candidates in total. The production Batch API path groups up to 25 independent
 rows per provider request, bounds groups and jobs by bytes and conservative
 tokens, preserves exact raw provider evidence, and retries only missing or
 malformed rows. The exact no-provider plan uses 1,488 provider requests across
-27 queue-safe jobs. Its conservative projected cost is $109.905511. One-row
+27 queue-safe jobs. Its conservative projected cost is $109.903535. One-row
 requests would use 36,939 requests across 50 jobs and cost a projected
-$504.329268. Public v1 requires both scoring and judging batch evidence for
+$504.279960. Public v1 requires both scoring and judging batch evidence for
 every production run and recomputes requests, results, receipts, usage, and
 spend during reopening. It then rebuilds the complete Crosswalk from those
 exact judge receipts and reproduces every admitted, controlled, abstained,
@@ -376,8 +376,11 @@ Each subject-mapping run follows six stages:
    graph neighborhoods to build a high-recall candidate set. Candidate rules
    and random seeds remain reproducible.
 3. **Score in batch.** An LLM scorer ranks semantic plausibility, evidence
-   sufficiency, and likely direction. Scores prioritize judging and widen recall;
-   they never prove a mapping.
+   sufficiency, and likely direction. Production reopens complete retained
+   scoring Batch evidence before it plans any judging request. It orders
+   candidates by descending semantic plausibility, then descending evidence
+   sufficiency, with candidate identity as the deterministic tie-breaker.
+   Scores prioritize judging and widen recall; they never prove a mapping.
 4. **Judge in blind batches.** Two model families independently classify each
    candidate as `same`, `near_same`, `target_is_broader`,
    `target_is_narrower`, `related`, `unrelated`, or
@@ -396,12 +399,38 @@ parents and children. The payload never identifies a shared parent or control
 class. This gives judges enough evidence to determine `broadMatch` and
 `narrowMatch` without revealing the candidate generator's hypothesis.
 
+The judge sidecar pins a content-derived priority record to the exact candidate
+catalog, scoring receipt log, scoring Batch sidecar, scorer family and model,
+score vector, and ordered candidate identities. The priority record contains
+digests and counts rather than score values. Each judge receives only the two
+concepts and the blind rubric. Public reopening reproduces the scorer readings,
+priority order, 25-row judge packing, models, candidate coverage, and cost before
+accepting the qualification run.
+
+The campaign spend authority seals the exact scoring plan before provider work
+begins. Because scorer readings do not exist at approval time, it also seals the
+priority algorithm, complete candidate catalog, judge models, group-size limit,
+and fixed run allocation. After scoring completes, the verifier derives the
+exact judging plan from that governed evidence and requires the plan to fit the
+same allocation. Each changed scorer log, priority order, model, grouping, or
+cost therefore creates new governed evidence with an explicit lineage.
+
 Use `tools/run_atlas_qualification.py` and its `batch-submit`, `batch-status`,
 and `batch-collect` path by default. The serial path remains available for small
 diagnostic smoke tests. Production recovery stays on the Batch path, including
 single-row Batch requests when grouped recovery is unsuitable, because public
 v1 requires every production receipt to retain raw Batch evidence. Batch and
 serial execution produce the same receipt shape and qualification semantics.
+After an interrupted provider create, run `batch-reconcile` (or
+`score-batch-reconcile`) first. It restores sidecar state from acknowledged
+immutable journal phases, resumes an uploaded input only when the create call
+never began, releases definite client rejections, and keeps ambiguous creates
+reserved for operator review. Official reconciliation receives the same
+`--spend-authority` file as submission, derives the expected run allocation
+from that local approval, and compares it with the retained sidecar. Judging
+reopens complete verified scorer receipts before provider setup and again while
+holding the shared run lock, so the priority record and ranked candidate rows
+remain current through every upload or resumed create.
 
 The current runner already provides sealed blind two-family batch judging for
 managed releases. V1 extends that path with batch scoring,

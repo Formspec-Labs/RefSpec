@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+from collections.abc import Mapping
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,13 @@ APPROVED_TOTAL = "112.00"
 
 def _write(path: Path, value: object) -> str:
     payload = canonical_json_bytes(value)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+    return sha256_digest(payload)
+
+
+def _write_jsonl(path: Path, rows: list[Mapping[str, Any]]) -> str:
+    payload = b"".join(canonical_json_bytes(row) for row in rows)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
     return sha256_digest(payload)
@@ -173,15 +181,18 @@ def _fixture_manifest(root: Path) -> VocabularyAtlasV1QualificationJobs:
                     "vocabulary": endpoint["vocabulary"],
                 },
             )
-        candidate = _candidate_row(
-            source["releaseId"],
-            target["releaseId"],
-            index=index,
-        )
+        candidates = [
+            _candidate_row(
+                source["releaseId"],
+                target["releaseId"],
+                index=candidate_index,
+            )
+            for candidate_index in (index, 100 + index)
+        ]
         _write(
             output / "candidates.json",
             {
-                "candidates": [candidate],
+                "candidates": candidates,
                 "coverageMode": qual.PRODUCTION_COVERAGE_MODE,
                 "generatedAt": job["generatedAt"],
                 "generationPolicy": qual.PRODUCTION_CANDIDATE_GENERATION_POLICY,
@@ -192,7 +203,7 @@ def _fixture_manifest(root: Path) -> VocabularyAtlasV1QualificationJobs:
                 "seed": qual.GENERATION_SEED,
                 "sourceManifestDigest": source["manifestDigest"],
                 "targetManifestDigest": target["manifestDigest"],
-                "total": 1,
+                "total": len(candidates),
             },
         )
     return manifest
@@ -220,6 +231,31 @@ def _seal(
     )
 
 
+def _sidecar_authority(
+    root: Path,
+    authority_path: Path,
+    authority: spend.VocabularyAtlasV1ProductionSpendAuthority,
+    job_key: str,
+) -> dict[str, Any]:
+    allocation = authority.job(job_key)
+    return {
+        "approvedTotalSpendCapUsd": authority.record[
+            "approvedTotalSpendCapUsd"
+        ],
+        "authorityFile": authority_path.relative_to(root).as_posix(),
+        "authorityFileDigest": authority.file_digest,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": authority.record_digest,
+        "batchPlanDigest": allocation["batchPlanDigest"],
+        "batchPolicyDigest": authority.batch_policy_digest,
+        "jobKey": allocation["jobKey"],
+        "modelsByFamily": dict(
+            authority.record["batchPolicy"]["modelsByFamily"]
+        ),
+        "runSpendCapUsd": allocation["runSpendCapUsd"],
+    }
+
+
 def test_current_six_job_authority_recomputes_the_exact_25_row_plan_without_provider_calls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -239,28 +275,28 @@ def test_current_six_job_authority_recomputes_the_exact_25_row_plan_without_prov
     assert record["candidateTotal"] == 12_313
     assert record["providerRequestCount"] == 1_488
     assert record["providerJobCount"] == 27
-    assert record["projectedTotalSpendUsd"] == "109.905511"
+    assert record["projectedTotalSpendUsd"] == "109.903535"
     assert record["batchPolicy"]["modelResolution"] == "exactMatchOnly"
     assert {
         row["jobKey"]: (row["projectedCostUsd"], row["runSpendCapUsd"])
         for row in record["jobs"]
     } == {
-        "crs-legislative-subjects--crs-policy-areas": ("1.040417", "1.100000"),
+        "crs-legislative-subjects--crs-policy-areas": ("1.040396", "1.100000"),
         "crs-legislative-subjects--federal-register-thesaurus-2025": (
-            "3.266370",
+            "3.266306",
             "3.500000",
         ),
         "crs-policy-areas--federal-register-thesaurus-2025": (
-            "0.979179",
+            "0.979159",
             "1.000000",
         ),
-        "elsst-r6--icpsr-subject-thesaurus": ("69.026845", "70.000000"),
+        "elsst-r6--icpsr-subject-thesaurus": ("69.025621", "70.000000"),
         "federal-register-thesaurus-2025--elsst-r6": (
-            "20.061144",
+            "20.060778",
             "20.500000",
         ),
         "federal-register-thesaurus-2025--icpsr-subject-thesaurus": (
-            "15.531556",
+            "15.531275",
             "15.900000",
         ),
     }
@@ -442,7 +478,7 @@ def test_catalog_and_authority_paths_must_be_local_regular_files(
         _seal(root, manifest)
 
 
-def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
+def test_scoring_sidecar_must_reproduce_the_authority_model_and_initial_plan(
     local_campaign: tuple[Path, VocabularyAtlasV1QualificationJobs],
 ) -> None:
     root, manifest = local_campaign
@@ -457,11 +493,11 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
     catalog = json.loads(
         (root / job["outputPath"] / "candidates.json").read_text(encoding="utf-8")
     )
-    rows = qbatch.candidate_rows_from_catalog(catalog, work_kind="validation")
-    protocol = qbatch.run_protocol(catalog)
+    rows = qbatch.candidate_rows_from_catalog(catalog, work_kind="scoring")
+    protocol = qual.SCORING_PROTOCOL
     plans: list[dict[str, Any]] = []
     jobs: list[dict[str, Any]] = []
-    for family_name in spend.JUDGE_FAMILIES:
+    for family_name in (spend.SCORER_FAMILY,):
         family = qual.VALIDATOR_FAMILIES[family_name]
         model_id = spend.PRODUCTION_MODELS_BY_FAMILY[family_name]
         requests = qbatch.build_provider_requests(
@@ -469,7 +505,7 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
             model_id,
             rows,
             protocol=protocol,
-            work_kind="validation",
+            work_kind="scoring",
             group_size=spend.REQUEST_GROUP_SIZE,
         )
         plans.extend(
@@ -478,7 +514,7 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
                 model_id,
                 shard,
                 protocol=protocol,
-                work_kind="validation",
+                work_kind="scoring",
                 group_size=spend.REQUEST_GROUP_SIZE,
             )
             for shard in qbatch.deterministic_request_shards(
@@ -486,27 +522,36 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
                 model_id,
                 requests,
                 protocol=protocol,
-                work_kind="validation",
+                    work_kind="scoring",
             )
         )
         jobs.append(
             {
                 "family": family_name,
                 "modelId": model_id,
-                "workKind": "validation",
+                "workKind": "scoring",
             }
         )
-    sidecar = {"jobs": jobs, "plannedShards": plans}
+    sidecar = {
+        "jobs": jobs,
+        "plannedShards": plans,
+        "spendAuthority": _sidecar_authority(
+            root,
+            authority_path,
+            authority,
+            job["key"],
+        ),
+    }
 
     verified = spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
         authority,
         sidecar,
         job_key=job["key"],
-        work_kind="validation",
+        work_kind="scoring",
         repository_root=root,
     )
 
-    assert verified["initialShardCount"] == 2
+    assert verified["initialShardCount"] == 1
     wrong_model = copy.deepcopy(sidecar)
     wrong_model["jobs"][0]["modelId"] += "-2026-08-05"
     with pytest.raises(
@@ -517,7 +562,7 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
             authority,
             wrong_model,
             job_key=job["key"],
-            work_kind="validation",
+            work_kind="scoring",
             repository_root=root,
         )
 
@@ -530,6 +575,286 @@ def test_runtime_sidecar_must_reproduce_the_authority_model_and_initial_plan(
         spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
             authority,
             missing_initial_plan,
+            job_key=job["key"],
+            work_kind="scoring",
+            repository_root=root,
+        )
+
+    wrong_cost = copy.deepcopy(sidecar)
+    wrong_cost["plannedShards"][0]["projectedCostUsd"] += 0.000001
+    with pytest.raises(
+        spend.VocabularyAtlasV1ProductionSpendAuthorityError,
+        match="cost or coverage differs",
+    ):
+        spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            wrong_cost,
+            job_key=job["key"],
+            work_kind="scoring",
+            repository_root=root,
+        )
+
+
+def test_judging_sidecar_requires_complete_scoring_evidence(
+    local_campaign: tuple[Path, VocabularyAtlasV1QualificationJobs],
+) -> None:
+    root, manifest = local_campaign
+    authority_path = root / "output/control/spend-authority.json"
+    _write(authority_path, _seal(root, manifest))
+    authority = spend.read_vocabulary_atlas_v1_production_spend_authority(
+        authority_path,
+        manifest=manifest,
+        repository_root=root,
+    )
+    job = manifest.jobs[0]
+
+    with pytest.raises(
+        spend.VocabularyAtlasV1ProductionSpendAuthorityError,
+        match="scoring Batch sidecar does not exist",
+    ):
+        spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            {
+                "jobs": [],
+                "plannedShards": [],
+                "spendAuthority": _sidecar_authority(
+                    root,
+                    authority_path,
+                    authority,
+                    job["key"],
+                ),
+            },
+            job_key=job["key"],
+            work_kind="validation",
+            repository_root=root,
+        )
+
+
+def test_judging_plan_reproduces_score_priority_and_refuses_tampering(
+    monkeypatch: pytest.MonkeyPatch,
+    local_campaign: tuple[Path, VocabularyAtlasV1QualificationJobs],
+) -> None:
+    root, manifest = local_campaign
+    authority_path = root / "output/control/spend-authority.json"
+    _write(authority_path, _seal(root, manifest))
+    authority = spend.read_vocabulary_atlas_v1_production_spend_authority(
+        authority_path,
+        manifest=manifest,
+        repository_root=root,
+    )
+    job = manifest.jobs[0]
+    output = root / job["outputPath"]
+    catalog_path = output / "candidates.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    scorer = qual.VALIDATOR_FAMILIES[spend.SCORER_FAMILY]
+    scorer_model = spend.PRODUCTION_MODELS_BY_FAMILY[spend.SCORER_FAMILY]
+    scoring_rows = qbatch.candidate_rows_from_catalog(catalog, work_kind="scoring")
+    scoring_requests = qbatch.build_provider_requests(
+        scorer,
+        scorer_model,
+        scoring_rows,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+        group_size=spend.REQUEST_GROUP_SIZE,
+    )
+    scoring_plans: list[dict[str, Any]] = []
+    for order, shard in enumerate(
+        qbatch.deterministic_request_shards(
+            scorer,
+            scorer_model,
+            scoring_requests,
+            protocol=qual.SCORING_PROTOCOL,
+            work_kind="scoring",
+        ),
+        start=1,
+    ):
+        plan = qbatch._planned_shard_record(
+            scorer,
+            scorer_model,
+            shard,
+            protocol=qual.SCORING_PROTOCOL,
+            work_kind="scoring",
+            group_size=spend.REQUEST_GROUP_SIZE,
+        )
+        plan["planOrder"] = order
+        scoring_plans.append(plan)
+    scoring_sidecar = {
+        "jobs": [
+            {
+                "family": spend.SCORER_FAMILY,
+                "modelId": scorer_model,
+                "workKind": "scoring",
+            }
+        ],
+        "plannedShards": scoring_plans,
+        "spendAuthority": _sidecar_authority(
+            root,
+            authority_path,
+            authority,
+            job["key"],
+        ),
+    }
+    scoring_sidecar_path = output / "scoring-batch-jobs.json"
+    scoring_sidecar_digest = _write(scoring_sidecar_path, scoring_sidecar)
+
+    scoring_receipts: list[dict[str, Any]] = []
+    for index, row in enumerate(scoring_rows):
+        answer = {
+            "task_id": qual.scoring_task_id(row.pair),
+            "semantic_plausibility": 90 - (index * 20),
+            "evidence_sufficiency": 40 + (index * 10),
+            "likely_relation": "same" if index == 0 else "related",
+            "reason": "priority only",
+        }
+        scoring_receipts.append(
+            {
+                "answer": answer,
+                "candidate_id": row.candidate_id,
+                "family": spend.SCORER_FAMILY,
+                "input_digest": row.input_digest,
+                "kind": "crosswalk_scoring",
+                "model_id": scorer_model,
+                "outcome": "completed",
+                "protocol": qual.SCORING_PROTOCOL,
+                "request_sha256": "sha256:" + f"{index + 1:x}" * 64,
+                "response_sha256": "sha256:" + f"{index + 3:x}" * 64,
+                "source_member": row.pair.source.member,
+                "target_member": row.pair.target.member,
+                "task_id": qual.scoring_task_id(row.pair),
+            }
+        )
+    scoring_receipt_path = output / "scoring-receipts.jsonl"
+    scoring_receipt_digest = _write_jsonl(scoring_receipt_path, scoring_receipts)
+    provenance, ordered_ids = qual.scorer_priority_provenance(
+        catalog,
+        scoring_receipts,
+        scorer_family=scorer,
+        scorer_model_id=scorer_model,
+        candidate_catalog_file_digest=sha256_digest(catalog_path.read_bytes()),
+        scoring_receipt_log_file_digest=scoring_receipt_digest,
+        scoring_sidecar_file_digest=scoring_sidecar_digest,
+    )
+    rank_by_id = {
+        candidate_id: rank for rank, candidate_id in enumerate(ordered_ids)
+    }
+    judge_rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            rank_by_id[row.candidate_id],
+        )
+        for row in qbatch.candidate_rows_from_catalog(
+            catalog,
+            work_kind="validation",
+        )
+    ]
+    judging_plans: list[dict[str, Any]] = []
+    judging_jobs: list[dict[str, Any]] = []
+    plan_order = 0
+    for family_name in spend.JUDGE_FAMILIES:
+        family = qual.VALIDATOR_FAMILIES[family_name]
+        model_id = spend.PRODUCTION_MODELS_BY_FAMILY[family_name]
+        requests = qbatch.build_provider_requests(
+            family,
+            model_id,
+            judge_rows,
+            protocol=qbatch.run_protocol(catalog),
+            work_kind="validation",
+            group_size=spend.REQUEST_GROUP_SIZE,
+        )
+        for shard in qbatch.deterministic_request_shards(
+            family,
+            model_id,
+            requests,
+            protocol=qbatch.run_protocol(catalog),
+            work_kind="validation",
+        ):
+            plan_order += 1
+            plan = qbatch._planned_shard_record(
+                family,
+                model_id,
+                shard,
+                protocol=qbatch.run_protocol(catalog),
+                work_kind="validation",
+                group_size=spend.REQUEST_GROUP_SIZE,
+            )
+            plan["planOrder"] = plan_order
+            judging_plans.append(plan)
+        judging_jobs.append(
+            {
+                "family": family_name,
+                "modelId": model_id,
+                "workKind": "validation",
+            }
+        )
+    judging_sidecar = {
+        "jobs": judging_jobs,
+        "plannedShards": judging_plans,
+        "priorityProvenance": provenance,
+        "spendAuthority": _sidecar_authority(
+            root,
+            authority_path,
+            authority,
+            job["key"],
+        ),
+    }
+    monkeypatch.setattr(
+        qbatch,
+        "verify_provider_batch_evidence",
+        lambda **_kwargs: {},
+    )
+
+    verified = spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+        authority,
+        judging_sidecar,
+        job_key=job["key"],
+        work_kind="validation",
+        repository_root=root,
+    )
+    assert verified["priorityDigest"] == provenance["priorityDigest"]
+
+    incomplete = scoring_receipts[:1]
+    _write_jsonl(scoring_receipt_path, incomplete)
+    with pytest.raises(
+        spend.VocabularyAtlasV1ProductionSpendAuthorityError,
+        match="complete scoring evidence does not reproduce",
+    ):
+        spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            judging_sidecar,
+            job_key=job["key"],
+            work_kind="validation",
+            repository_root=root,
+        )
+
+    changed = copy.deepcopy(scoring_receipts)
+    changed[1]["answer"]["semantic_plausibility"] = 99
+    _write_jsonl(scoring_receipt_path, changed)
+    with pytest.raises(
+        spend.VocabularyAtlasV1ProductionSpendAuthorityError,
+        match="priority provenance differs",
+    ):
+        spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            judging_sidecar,
+            job_key=job["key"],
+            work_kind="validation",
+            repository_root=root,
+        )
+
+    _write_jsonl(scoring_receipt_path, scoring_receipts)
+    changed_order = copy.deepcopy(judging_sidecar)
+    changed_order["plannedShards"][0]["providerRequests"][0][
+        "candidateIds"
+    ].reverse()
+    with pytest.raises(
+        spend.VocabularyAtlasV1ProductionSpendAuthorityError,
+        match="judging order differs from scorer priority",
+    ):
+        spend.verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            changed_order,
             job_key=job["key"],
             work_kind="validation",
             repository_root=root,

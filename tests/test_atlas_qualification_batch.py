@@ -16,7 +16,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import multiprocessing
-from collections.abc import Mapping
+import threading
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -494,6 +495,26 @@ class _ProcessSubmitTransport:
         raise AssertionError(f"unexpected process transport request: {method} {url}")
 
 
+class _GuardRaceTransport:
+    """Report any provider access that crosses an under-lock mutation guard."""
+
+    def __init__(self, operation: str, events: Any) -> None:
+        self.operation = operation
+        self.events = events
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        headers: Mapping[str, str],
+        body: bytes | None,
+        timeout: float,
+    ) -> tuple[int, Mapping[str, str], bytes]:
+        del headers, body, timeout
+        self.events.put(("provider", self.operation, method, url))
+        raise AssertionError("a sealed scorer mutation reached the provider")
+
+
 def _concurrent_submit_worker(
     *,
     label: str,
@@ -525,6 +546,70 @@ def _concurrent_submit_worker(
         events.put(("error", label, repr(error)))
         return
     events.put(("finished", label, len(summary["jobs"])))
+
+
+def _queued_scoring_mutation_worker(
+    *,
+    run_root: str,
+    operation: str,
+    events: Any,
+) -> None:
+    root = Path(run_root)
+    rows = _batch_rows_from_run(root, scoring=True)
+    sidecar_path = root / RUNNER.SCORING_BATCH_SIDECAR
+    transport = _GuardRaceTransport(operation, events)
+    common = {
+        "transport": transport,
+        "sidecar_path": sidecar_path,
+        "families": {"openai": qual.OPENAI_FAMILY},
+        "keys": {"openai": "offline-process-secret"},
+        "mutation_guard": lambda: RUNNER._refuse_scoring_mutation_after_judging(
+            root
+        ),
+    }
+    events.put(("started", operation))
+    try:
+        if operation == "submit":
+            qbatch.submit(
+                transport=transport,
+                receipts_path=root / RUNNER.SCORING_RECEIPTS,
+                sidecar_path=sidecar_path,
+                families=(qual.OPENAI_FAMILY,),
+                keys={"openai": "offline-process-secret"},
+                models={"openai": OPENAI_MODEL},
+                rows=rows,
+                protocol=qual.SCORING_PROTOCOL,
+                work_kind="scoring",
+                coordination_sidecars=(root / qbatch.SIDECAR,),
+                mutation_guard=common["mutation_guard"],
+            )
+        elif operation == "reconcile":
+            qbatch.reconcile(
+                **common,
+                rows=rows,
+                work_kind="scoring",
+                coordination_sidecars=(root / qbatch.SIDECAR,),
+            )
+        elif operation == "poll":
+            qbatch.poll(**common)
+        elif operation == "collect":
+            qbatch.collect(
+                **common,
+                receipts_path=root / RUNNER.SCORING_RECEIPTS,
+                rows=rows,
+                protocol=qual.SCORING_PROTOCOL,
+                work_kind="scoring",
+            )
+        elif operation == "cancel":
+            qbatch.cancel(**common)
+        else:
+            raise AssertionError(f"unknown guarded operation {operation}")
+    except SystemExit as error:
+        events.put(("blocked", operation, str(error)))
+    except BaseException as error:  # noqa: BLE001 - child returns diagnostic
+        events.put(("error", operation, repr(error)))
+    else:
+        events.put(("finished", operation))
 
 
 def _hold_process_submit_lock(
@@ -631,6 +716,25 @@ def test_a_scoring_batch_line_carries_the_serial_scorer_request() -> None:
     assert len(line["custom_id"]) <= 64
 
 
+@pytest.mark.parametrize("group_size", [1, 25])
+def test_gemini_36_batch_bodies_drop_legacy_generation_controls(
+    run_dir: Path,
+    group_size: int,
+) -> None:
+    requests = qbatch.build_provider_requests(
+        qual.GEMINI_FAMILY,
+        GEMINI_MODEL,
+        _batch_rows_from_run(run_dir),
+        protocol=qual.PROTOCOL,
+        group_size=group_size,
+    )
+    assert requests
+    assert all(
+        qual.GEMINI_36_DEPRECATED_GENERATION_CONTROLS.isdisjoint(request.body)
+        for request in requests
+    )
+
+
 def test_custom_ids_are_deterministic_and_family_scoped() -> None:
     first = qbatch.custom_id(qual.OPENAI_FAMILY, "urn:ref:candidate:one")
     assert first == qbatch.custom_id(qual.OPENAI_FAMILY, "urn:ref:candidate:one")
@@ -658,6 +762,75 @@ def test_production_grouping_is_deterministic_bounded_and_explicit(run_dir: Path
         group_size=25,
     )
     assert len(requests) < len(rows)
+
+
+def _priority_provenance(
+    candidate_ids: Sequence[str],
+    *,
+    score_digit: str = "4",
+) -> dict[str, Any]:
+    candidate_count = len(candidate_ids)
+    basis = {
+        "type": qual.SCORER_PRIORITY_PROVENANCE_TYPE,
+        "schemaVersion": qual.SCORER_PRIORITY_PROVENANCE_VERSION,
+        "policy": qual.SCORER_PRIORITY_POLICY,
+        "candidateCatalogFileDigest": "sha256:" + "1" * 64,
+        "candidateCount": candidate_count,
+        "orderedCandidateIdsDigest": qual._sha256_text(
+            canonical_json(list(candidate_ids))
+        ),
+        "scoreVectorDigest": "sha256:" + score_digit * 64,
+        "scorerFamily": "openai",
+        "scorerModelId": OPENAI_MODEL,
+        "scoringProtocol": qual.SCORING_PROTOCOL,
+        "scoringReceiptCount": candidate_count,
+        "scoringReceiptLogFileDigest": "sha256:" + "5" * 64,
+        "scoringSidecarFileDigest": "sha256:" + "6" * 64,
+    }
+    return {
+        **basis,
+        "priorityDigest": qual._sha256_text(canonical_json(basis)),
+    }
+
+
+def test_ranked_judging_packs_in_score_order_without_revealing_scores(
+    run_dir: Path,
+) -> None:
+    unranked = _batch_rows_from_run(run_dir)
+    desired = list(reversed(unranked))
+    ranks = {row.candidate_id: rank for rank, row in enumerate(desired)}
+    rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            ranks[row.candidate_id],
+        )
+        for row in unranked
+    ]
+
+    requests = qbatch.build_provider_requests(
+        qual.OPENAI_FAMILY,
+        OPENAI_MODEL,
+        rows,
+        protocol=qual.PROTOCOL,
+        group_size=25,
+    )
+
+    actual = [
+        candidate_id
+        for request in requests
+        for candidate_id in (
+            request.candidate_ids
+            if isinstance(request, qbatch.GroupedBatchRequest)
+            else (request.candidate_id,)
+        )
+    ]
+    assert actual == [row.candidate_id for row in desired]
+    request_text = "\n".join(request.line() for request in requests)
+    assert "semantic_plausibility" not in request_text
+    assert "evidence_sufficiency" not in request_text
+    assert "priority" not in request_text.casefold()
     assert all(isinstance(request, qbatch.GroupedBatchRequest) for request in requests)
     for request in requests:
         assert request.request_sha256 == qual._sha256_text(canonical_json(request.body))
@@ -674,6 +847,164 @@ def test_production_grouping_is_deterministic_bounded_and_explicit(run_dir: Path
         ["--output", "run", "batch-submit", "--env", "env", "--group-size", "1"]
     )
     assert recovery.group_size == 1
+
+
+def test_priority_provenance_is_immutable_across_restart_and_recovery(
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    base_rows = _batch_rows_from_run(run_dir)
+    rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            rank,
+        )
+        for rank, row in enumerate(base_rows)
+    ]
+    sidecar = run_dir / qbatch.SIDECAR
+    ordered_ids = [row.candidate_id for row in rows]
+    provenance = _priority_provenance(ordered_ids)
+    submit = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": sidecar,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "protocol": qual.PROTOCOL,
+        "group_size": 25,
+        "priority_provenance": provenance,
+    }
+
+    qbatch.submit(**submit)
+    creates = sum(call["url"].endswith("/batches") for call in server.calls)
+    qbatch.submit(**submit)
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates
+    assert _sidecar(run_dir)["priorityProvenance"] == provenance
+
+    changed = {
+        **submit,
+        "priority_provenance": _priority_provenance(
+            ordered_ids,
+            score_digit="7",
+        ),
+    }
+    with pytest.raises(qbatch.BatchError, match="cannot change"):
+        qbatch.submit(**changed)
+    with pytest.raises(qbatch.BatchError, match="require priority provenance"):
+        qbatch.submit(**{key: value for key, value in submit.items() if key != "priority_provenance"})
+
+    fresh_sidecar = run_dir / "changed-order-batch-jobs.json"
+    changed_rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            len(rows) - rank - 1,
+        )
+        for rank, row in enumerate(base_rows)
+    ]
+    calls_before = len(server.calls)
+    with pytest.raises(qbatch.BatchError, match="ranks differ from priority provenance"):
+        qbatch.submit(
+            **{
+                **submit,
+                "sidecar_path": fresh_sidecar,
+                "rows": changed_rows,
+            }
+        )
+    assert len(server.calls) == calls_before
+    assert not fresh_sidecar.exists()
+
+
+def test_waiting_official_judging_rechecks_priority_under_the_run_lock(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    base_rows = _batch_rows_from_run(run_dir)
+    rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            rank,
+        )
+        for rank, row in enumerate(base_rows)
+    ]
+    ordered_ids = [row.candidate_id for row in rows]
+    provenance = _priority_provenance(ordered_ids)
+    current = {"rows": rows, "provenance": provenance}
+    authority = {"authorityId": "urn:ref:test:production-authority"}
+
+    def derive_current(
+        _output: Path,
+        _authority: Mapping[str, Any],
+    ) -> tuple[list[qbatch.CandidateRow], dict[str, Any]]:
+        return current["rows"], current["provenance"]
+
+    monkeypatch.setattr(RUNNER, "_official_judging_priority", derive_current)
+    guard = RUNNER._official_judging_priority_guard(
+        run_dir,
+        authority,
+        rows,
+        provenance,
+    )
+    server = FakeProviders()
+    started = threading.Event()
+    outcome: list[BaseException | dict[str, Any]] = []
+
+    def waiting_submit() -> None:
+        started.set()
+        try:
+            outcome.append(
+                qbatch.submit(
+                    transport=server,
+                    receipts_path=run_dir / RUNNER.RECEIPTS,
+                    sidecar_path=run_dir / qbatch.SIDECAR,
+                    families=(qual.OPENAI_FAMILY,),
+                    keys={"openai": "offline-secret"},
+                    models={"openai": OPENAI_MODEL},
+                    rows=rows,
+                    protocol=qual.PROTOCOL,
+                    coordination_sidecars=(run_dir / RUNNER.SCORING_BATCH_SIDECAR,),
+                    spend_authority=authority,
+                    priority_provenance=provenance,
+                    mutation_guard=guard,
+                    lock_timeout_seconds=5,
+                )
+            )
+        except BaseException as error:  # noqa: BLE001 - thread reports to test
+            outcome.append(error)
+
+    with qbatch._run_submit_lock(
+        run_dir / qbatch.SIDECAR,
+        (run_dir / RUNNER.SCORING_BATCH_SIDECAR,),
+    ):
+        worker = threading.Thread(target=waiting_submit)
+        worker.start()
+        assert started.wait(timeout=5)
+        changed_ids = list(reversed(ordered_ids))
+        ranks = {
+            candidate_id: rank for rank, candidate_id in enumerate(changed_ids)
+        }
+        current["rows"] = [
+            replace(row, priority_rank=ranks[row.candidate_id]) for row in rows
+        ]
+        current["provenance"] = _priority_provenance(
+            changed_ids,
+            score_digit="7",
+        )
+
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert len(outcome) == 1
+    assert isinstance(outcome[0], qbatch.BatchError)
+    assert "changed after judging preflight" in str(outcome[0])
+    assert server.calls == []
+    assert not (run_dir / qbatch.SIDECAR).exists()
 
 
 def test_batch_plan_is_read_only_and_reports_exact_request_shape(
@@ -2080,6 +2411,17 @@ def test_official_production_refuses_a_dated_model_variant_before_batch_create(
                     "openai": OPENAI_MODEL,
                 },
             },
+            ),
+        )
+    monkeypatch.setattr(
+        RUNNER,
+        "_official_judging_priority",
+        lambda output, _authority: (
+            RUNNER._batch_rows(
+                SimpleNamespace(output=output, max_candidates=None),
+                subset=False,
+            ),
+            {"priorityDigest": "sha256:" + "0" * 64},
         ),
     )
 
@@ -2097,6 +2439,380 @@ def test_official_production_refuses_a_dated_model_variant_before_batch_create(
         )
 
     assert not [call for call in server.calls if call["method"] == "POST"]
+
+
+def test_official_judging_requires_complete_scoring_before_provider_access(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    provider_accessed = False
+
+    def provider_forbidden() -> None:
+        nonlocal provider_accessed
+        provider_accessed = True
+        raise AssertionError("provider access must follow complete scoring")
+
+    monkeypatch.setattr(qbatch, "default_transport", provider_forbidden)
+    monkeypatch.setattr(
+        RUNNER,
+        "_production_batch_controls",
+        lambda _args, *, work_kind: (
+            {"gemini": 10.0, "openai": 10.0},
+            10.0,
+            {
+                "authorityId": "urn:ref:test:production-authority",
+                "jobKey": "test-job",
+                "modelsByFamily": {
+                    "gemini": GEMINI_MODEL,
+                    "openai": OPENAI_MODEL,
+                },
+            },
+        ),
+    )
+
+    with pytest.raises(SystemExit, match="complete verified scoring Batch evidence"):
+        RUNNER.main(
+            [
+                "--output",
+                str(run_dir),
+                "batch-submit",
+                "--env",
+                str(run_dir / "env"),
+                "--group-size",
+                "25",
+            ]
+        )
+
+    assert provider_accessed is False
+
+
+def test_official_judging_reconcile_derives_priority_before_provider_setup(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    descriptor = {"authorityId": "urn:ref:test:production-authority"}
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json(
+            {
+                "jobs": [],
+                "plannedShards": [{"family": "openai"}],
+                "spendAuthority": descriptor,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    base_rows = _batch_rows_from_run(run_dir)
+    judge_rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            rank,
+        )
+        for rank, row in enumerate(base_rows)
+    ]
+    provenance = _priority_provenance(
+        [row.candidate_id for row in judge_rows]
+    )
+    events: list[str] = []
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr(
+        RUNNER,
+        "_official_production_job",
+        lambda _output: {"key": "test-job", "outputPath": str(run_dir)},
+    )
+    monkeypatch.setattr(
+        RUNNER,
+        "_production_reconcile_spend_authority",
+        lambda _args: descriptor,
+    )
+
+    def priority_first(
+        output: Path,
+        spend_authority: Mapping[str, Any],
+    ) -> tuple[list[qbatch.CandidateRow], dict[str, Any]]:
+        events.append("priority")
+        assert output == run_dir
+        assert spend_authority == descriptor
+        return judge_rows, provenance
+
+    def provider_after_priority() -> object:
+        events.append("transport")
+        return object()
+
+    def keys_after_priority(
+        _args: Any,
+        families: Sequence[qual.ValidatorFamily],
+    ) -> dict[str, str]:
+        events.append("keys")
+        assert [family.name for family in families] == ["openai"]
+        return {"openai": "offline-secret"}
+
+    def reconcile_after_priority(**kwargs: Any) -> dict[str, Any]:
+        kwargs["mutation_guard"]()
+        events.append("reconcile")
+        captured.update(kwargs)
+        return {"jobs": [], "resumed": []}
+
+    monkeypatch.setattr(RUNNER, "_official_judging_priority", priority_first)
+    monkeypatch.setattr(qbatch, "default_transport", provider_after_priority)
+    monkeypatch.setattr(RUNNER, "_batch_keys", keys_after_priority)
+    monkeypatch.setattr(qbatch, "reconcile", reconcile_after_priority)
+
+    assert RUNNER.command_batch_reconcile(
+        SimpleNamespace(output=run_dir, env=run_dir / "env")
+    ) == 0
+    assert events == ["priority", "transport", "keys", "priority", "reconcile"]
+    assert captured["rows"] == judge_rows
+    assert captured["work_kind"] == "validation"
+    assert captured["spend_authority"] == descriptor
+    assert captured["priority_provenance"] == provenance
+    assert callable(captured["mutation_guard"])
+
+
+def test_official_reconcile_requires_an_independent_spend_authority_file(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    monkeypatch.setattr(
+        RUNNER,
+        "_official_production_job",
+        lambda _output: {"key": "test-job", "outputPath": str(run_dir)},
+    )
+    with pytest.raises(SystemExit, match="requires --spend-authority"):
+        RUNNER._production_reconcile_spend_authority(
+            SimpleNamespace(output=run_dir, spend_authority=None)
+        )
+
+    authority_path = REFSPEC_ROOT / "portfolio" / "test-spend-authority.json"
+    descriptor = {"authorityId": "urn:ref:test:production-authority"}
+    requested: list[tuple[Path, Path]] = []
+
+    def read_requested(
+        output: Path,
+        path: Path,
+    ) -> tuple[object, Mapping[str, Any], dict[str, Any]]:
+        requested.append((output, path))
+        return object(), {"jobKey": "test-job"}, descriptor
+
+    monkeypatch.setattr(
+        RUNNER,
+        "_read_requested_official_spend_authority",
+        read_requested,
+    )
+    assert RUNNER._production_reconcile_spend_authority(
+        SimpleNamespace(output=run_dir, spend_authority=authority_path)
+    ) == descriptor
+    assert requested == [(run_dir, authority_path)]
+
+    parsed = RUNNER.build_parser().parse_args(
+        [
+            "--output",
+            str(run_dir),
+            "batch-reconcile",
+            "--env",
+            str(run_dir / "env"),
+            "--spend-authority",
+            str(authority_path),
+        ]
+    )
+    assert parsed.spend_authority == authority_path
+
+
+def test_official_judging_reconcile_requires_scoring_before_provider_setup(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    descriptor = {"authorityId": "urn:ref:test:production-authority"}
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json(
+            {
+                "jobs": [],
+                "plannedShards": [{"family": "openai"}],
+                "spendAuthority": descriptor,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    provider_accessed = False
+
+    monkeypatch.setattr(
+        RUNNER,
+        "_official_production_job",
+        lambda _output: {"key": "test-job", "outputPath": str(run_dir)},
+    )
+    monkeypatch.setattr(
+        RUNNER,
+        "_production_reconcile_spend_authority",
+        lambda _args: descriptor,
+    )
+
+    def provider_forbidden() -> None:
+        nonlocal provider_accessed
+        provider_accessed = True
+        raise AssertionError("provider access must follow complete scoring")
+
+    monkeypatch.setattr(qbatch, "default_transport", provider_forbidden)
+
+    with pytest.raises(SystemExit, match="complete verified scoring Batch evidence"):
+        RUNNER.command_batch_reconcile(
+            SimpleNamespace(output=run_dir, env=run_dir / "env")
+        )
+    assert provider_accessed is False
+
+
+def test_official_partial_score_recovery_uses_complete_verified_receipts(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    rows = _batch_rows_from_run(run_dir, scoring=True)
+    omitted_task = qual.scoring_task_id(rows[0].pair)
+    server = FakeProviders(omit_task_ids=frozenset({omitted_task}))
+    descriptor = {
+        "authorityId": "urn:ref:test:production-authority",
+        "modelsByFamily": {"openai": OPENAI_MODEL},
+    }
+    submit = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.SCORING_RECEIPTS,
+        "sidecar_path": run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "caps": {"openai": 10.0},
+        "total_cap_usd": 10.0,
+        "protocol": qual.SCORING_PROTOCOL,
+        "work_kind": "scoring",
+        "group_size": 25,
+        "coordination_sidecars": (run_dir / qbatch.SIDECAR,),
+        "spend_authority": descriptor,
+    }
+
+    qbatch.submit(**submit)
+    server.complete_jobs()
+    qbatch.poll(
+        transport=server,
+        sidecar_path=run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        families={"openai": qual.OPENAI_FAMILY},
+        keys={"openai": "offline-secret"},
+    )
+    qbatch.collect(
+        transport=server,
+        receipts_path=run_dir / RUNNER.SCORING_RECEIPTS,
+        sidecar_path=run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        families={"openai": qual.OPENAI_FAMILY},
+        keys={"openai": "offline-secret"},
+        rows=rows,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+    )
+    assert 0 < len(_scoring_receipts(run_dir)) < len(rows)
+
+    server.omit_task_ids = frozenset()
+    qbatch.submit(**{**submit, "group_size": 1})
+    server.complete_jobs()
+    qbatch.poll(
+        transport=server,
+        sidecar_path=run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        families={"openai": qual.OPENAI_FAMILY},
+        keys={"openai": "offline-secret"},
+    )
+    qbatch.collect(
+        transport=server,
+        receipts_path=run_dir / RUNNER.SCORING_RECEIPTS,
+        sidecar_path=run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        families={"openai": qual.OPENAI_FAMILY},
+        keys={"openai": "offline-secret"},
+        rows=rows,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+    )
+    receipts = _scoring_receipts(run_dir)
+    verification = qbatch.verify_provider_batch_evidence(
+        sidecar_path=run_dir / RUNNER.SCORING_BATCH_SIDECAR,
+        families=qual.VALIDATOR_FAMILIES,
+        rows=rows,
+        receipts=receipts,
+        work_kind="scoring",
+    )
+    assert verification["candidateRequests"] > len(rows)
+    assert verification["verifiedReceipts"] == len(rows)
+
+    monkeypatch.setattr(
+        RUNNER,
+        "_verify_official_spend_authority_descriptor",
+        lambda _output, _descriptor: (
+            object(),
+            {"jobKey": "test-job", "runSpendCapUsd": "10.000000"},
+        ),
+    )
+    monkeypatch.setattr(
+        RUNNER.qspend,
+        "verify_vocabulary_atlas_v1_production_batch_sidecar",
+        lambda *_args, **_kwargs: {},
+    )
+    judge_rows, provenance = RUNNER._official_judging_priority(
+        run_dir,
+        descriptor,
+    )
+    assert len(judge_rows) == len(rows)
+    assert {row.priority_rank for row in judge_rows} == set(range(len(rows)))
+    assert provenance["scoringReceiptCount"] == len(rows)
+
+    receipt_path = run_dir / RUNNER.SCORING_RECEIPTS
+    original = [dict(receipt) for receipt in receipts]
+    tampered = [dict(receipt) for receipt in original]
+    tampered[0] = {
+        **tampered[0],
+        "answer": {
+            **dict(tampered[0]["answer"]),
+            "task_id": "urn:ref:task:tampered",
+        },
+    }
+    invalid_logs = (
+        original[:-1],
+        [*original, original[0]],
+        tampered,
+    )
+    for invalid in invalid_logs:
+        receipt_path.write_text(
+            "".join(canonical_json(receipt) + "\n" for receipt in invalid),
+            encoding="utf-8",
+        )
+        with pytest.raises(
+            SystemExit,
+            match="complete verified scoring Batch evidence|complete scoring coverage",
+        ):
+            RUNNER._official_judging_priority(run_dir, descriptor)
+
+
+@pytest.mark.parametrize("retained_key", ["plannedShards", "jobs"])
+def test_scoring_evidence_stays_sealed_when_judging_priority_is_deleted(
+    run_dir: Path,
+    retained_key: str,
+) -> None:
+    (run_dir / qbatch.SIDECAR).write_text(
+        canonical_json(
+            {
+                "jobs": [{"jobId": "batch-1"}] if retained_key == "jobs" else [],
+                "plannedShards": (
+                    [{"shardId": "shard-1"}]
+                    if retained_key == "plannedShards"
+                    else []
+                ),
+                "spendAuthority": {"authorityId": "urn:ref:test:authority"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit, match="sealed as judging priority provenance"):
+        RUNNER._refuse_scoring_mutation_after_judging(run_dir)
 
 
 @pytest.mark.parametrize("command", ["batch-submit", "score-batch-submit"])
@@ -2558,6 +3274,45 @@ def test_missing_usage_keeps_the_conservative_projection_committed(
     }
 
 
+def test_unmatched_extra_result_line_keeps_projected_cost_committed(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    server.complete_jobs()
+    provider_job = next(iter(server.jobs.values()))
+    output_id = str(provider_job["output_file_id"])
+    first = json.loads(server.files[output_id].splitlines()[0])
+    extra = {
+        **first,
+        "custom_id": "request-unmatched-extra-line",
+        "id": "batch-request-unmatched-extra-line",
+    }
+    server.files[output_id] += _json(extra) + b"\n"
+
+    _run(monkeypatch, server, run_dir, "batch-collect")
+    job = _sidecar(run_dir)["jobs"][0]
+    collection = job["collection"]
+    assert collection["usageStatus"] == "missing"
+    assert collection["exactCostUsd"] is None
+    assert collection["committedCostUsd"] == job["projectedCostUsd"]
+    assert any(
+        issue["kind"] == "unmatchedCustomId"
+        for issue in collection["lineIssues"]
+    )
+    assert collection["resultLines"] == job["providerRequestCount"] + 1
+
+    verification = qbatch.verify_provider_batch_evidence(
+        sidecar_path=run_dir / qbatch.SIDECAR,
+        families=qual.VALIDATOR_FAMILIES,
+        rows=_batch_rows_from_run(run_dir),
+        receipts=_receipts(run_dir),
+        work_kind="validation",
+    )
+    assert verification["committedCostUsd"] == job["projectedCostUsd"]
+
+
 def test_aggregate_usage_mismatch_blocks_collection_after_retaining_raw_bytes(
     monkeypatch: pytest.MonkeyPatch,
     run_dir: Path,
@@ -2659,6 +3414,582 @@ def test_create_timeout_holds_the_intent_and_prevents_duplicate_purchase(
     _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
     assert sum(call["url"].endswith("/batches") for call in server.calls) == creates_before
     assert len(_sidecar(run_dir)["jobs"]) == 1
+
+
+@pytest.mark.parametrize("response_status", [400, 429])
+def test_definite_create_rejection_releases_rows_for_a_new_attempt(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    response_status: int,
+) -> None:
+    class RejectsCreate(FakeProviders):
+        def _route(self, method, url, headers, body):  # type: ignore[no-untyped-def]
+            if method == "POST" and url.endswith("/batches"):
+                return response_status, {}, _json({"error": {"status": response_status}})
+            return super()._route(method, url, headers, body)
+
+    rejected = RejectsCreate()
+    with pytest.raises(qbatch.BatchCreateRejected, match=f"HTTP {response_status}"):
+        _run(monkeypatch, rejected, run_dir, "batch-submit", "--families", "openai")
+    first = _sidecar(run_dir)["jobs"][0]
+    assert first["attemptState"] == "createRejected"
+    assert first["state"] == "failed"
+    assert qbatch.released(first)
+    assert qbatch.committed_by_family(_sidecar(run_dir)) == {}
+    rejection = first["createRejection"]
+    assert rejection["responseStatus"] == response_status
+    assert (run_dir / rejection["file"]).is_file()
+
+    accepted = FakeProviders()
+    assert _run(monkeypatch, accepted, run_dir, "batch-submit", "--families", "openai") == 0
+    attempts = _sidecar(run_dir)["jobs"]
+    assert [attempt["attemptOrdinal"] for attempt in attempts] == [1, 2]
+    assert attempts[1]["attemptState"] == "submitted"
+
+
+def test_server_error_create_response_remains_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    class ServerErrorAfterCreateMayHaveCommitted(FakeProviders):
+        def _route(self, method, url, headers, body):  # type: ignore[no-untyped-def]
+            if method == "POST" and url.endswith("/batches"):
+                return 500, {}, _json({"error": {"status": 500}})
+            return super()._route(method, url, headers, body)
+
+    server = ServerErrorAfterCreateMayHaveCommitted()
+    with pytest.raises(qbatch.BatchError, match="HTTP 500"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptState"] == "uncertain"
+    assert not qbatch.released(attempt)
+    assert attempt["createRejection"] is None
+    creates_before = sum(call["url"].endswith("/batches") for call in server.calls)
+
+    assert _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai") == 0
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates_before
+    assert len(_sidecar(run_dir)["jobs"]) == 1
+
+
+def test_journal_only_intent_repairs_without_provider_io(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    original_write = qbatch.write_sidecar
+    crashed = False
+
+    def crash_before_intent_sidecar(path, payload):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        jobs = payload.get("jobs", ())
+        if (
+            not crashed
+            and jobs
+            and jobs[-1].get("attemptState") == "intent"
+            and jobs[-1].get("inputFileId") is None
+        ):
+            crashed = True
+            raise RuntimeError("crash after intent journal")
+        return original_write(path, payload)
+
+    monkeypatch.setattr(qbatch, "write_sidecar", crash_before_intent_sidecar)
+    with pytest.raises(RuntimeError, match="intent journal"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    monkeypatch.setattr(qbatch, "write_sidecar", original_write)
+    assert _sidecar(run_dir)["jobs"] == []
+    calls_before = len(server.calls)
+
+    assert _run(monkeypatch, server, run_dir, "batch-reconcile") == 0
+    assert len(server.calls) == calls_before
+    repaired = _sidecar(run_dir)["jobs"][0]
+    assert repaired["attemptState"] == "preCreateReleased"
+    assert qbatch.released(repaired)
+
+    assert _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai") == 0
+    assert [job["attemptOrdinal"] for job in _sidecar(run_dir)["jobs"]] == [1, 2]
+
+
+def test_journal_only_upload_resumes_create_without_reuploading(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+    attempt_id = _sidecar(run_dir)["jobs"][0]["attemptId"]
+    uploads_before = sum(call["url"].endswith("/files") for call in server.calls)
+    creates_before = sum(call["url"].endswith("/batches") for call in server.calls)
+
+    assert _run(monkeypatch, server, run_dir, "batch-reconcile") == 0
+    assert sum(call["url"].endswith("/files") for call in server.calls) == uploads_before
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates_before + 1
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptId"] == attempt_id
+    assert attempt["attemptState"] == "submitted"
+
+
+@pytest.mark.parametrize(
+    "changed_context",
+    ("rows", "workKind", "spendAuthority", "priorityProvenance"),
+)
+def test_uploaded_resume_rechecks_current_rows_and_governance_before_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    changed_context: str,
+) -> None:
+    server = FakeProviders()
+    base_rows = _batch_rows_from_run(run_dir)
+    rows = [
+        qbatch.CandidateRow(
+            row.candidate_id,
+            row.pair,
+            row.input_digest,
+            rank,
+        )
+        for rank, row in enumerate(base_rows)
+    ]
+    ordered_ids = [row.candidate_id for row in rows]
+    authority = {
+        "authorityId": "urn:ref:test:resume-authority",
+        "modelsByFamily": {"openai": OPENAI_MODEL},
+    }
+    provenance = _priority_provenance(ordered_ids)
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        qbatch.submit(
+            transport=server,
+            receipts_path=run_dir / RUNNER.RECEIPTS,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families=(qual.OPENAI_FAMILY,),
+            keys={"openai": "offline-secret"},
+            models={"openai": OPENAI_MODEL},
+            rows=rows,
+            protocol=qual.PROTOCOL,
+            group_size=25,
+            spend_authority=authority,
+            priority_provenance=provenance,
+        )
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+
+    current_rows = rows
+    work_kind: qbatch.WorkKind = "validation"
+    current_authority = authority
+    current_provenance = provenance
+    if changed_context == "rows":
+        changed_pair = replace(
+            rows[0].pair,
+            source=replace(
+                rows[0].pair.source,
+                pref_label=rows[0].pair.source.pref_label + " changed",
+            ),
+        )
+        current_rows = [replace(rows[0], pair=changed_pair), *rows[1:]]
+    elif changed_context == "workKind":
+        work_kind = "scoring"
+    elif changed_context == "spendAuthority":
+        current_authority = {
+            **authority,
+            "authorityId": "urn:ref:test:another-authority",
+        }
+    else:
+        current_provenance = _priority_provenance(
+            ordered_ids,
+            score_digit="7",
+        )
+
+    creates_before = sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    )
+    with pytest.raises(qbatch.BatchError):
+        qbatch.reconcile(
+            transport=server,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families={"openai": qual.OPENAI_FAMILY},
+            keys={"openai": "offline-secret"},
+            rows=current_rows,
+            work_kind=work_kind,
+            spend_authority=current_authority,
+            priority_provenance=current_provenance,
+        )
+    assert sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    ) == creates_before
+    assert _sidecar(run_dir)["jobs"][0]["attemptState"] == "uploaded"
+
+
+def test_submit_resume_rebuilds_current_rows_before_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    common = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": run_dir / qbatch.SIDECAR,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "protocol": qual.PROTOCOL,
+        "group_size": 25,
+    }
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        qbatch.submit(**common)
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+
+    changed_pair = replace(
+        rows[0].pair,
+        target=replace(
+            rows[0].pair.target,
+            definition="current catalog definition changed",
+        ),
+    )
+    changed_rows = [replace(rows[0], pair=changed_pair), *rows[1:]]
+    creates_before = sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    )
+    with pytest.raises(qbatch.BatchError, match="does not reproduce"):
+        qbatch.submit(**{**common, "rows": changed_rows})
+    assert sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    ) == creates_before
+    assert _sidecar(run_dir)["jobs"][0]["attemptState"] == "uploaded"
+
+
+@pytest.mark.parametrize(
+    ("changed_cap", "message"),
+    (
+        ("selected", "batch spend cap cannot change after planning"),
+        ("coordinated", "coordinated batch sidecars must use one spend cap"),
+        ("missingTopLevel", "family spend caps do not match its plans"),
+    ),
+)
+def test_uploaded_resume_validates_current_family_caps_before_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+    changed_cap: str,
+    message: str,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    scoring_sidecar = run_dir / RUNNER.SCORING_BATCH_SIDECAR
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    common = {
+        "transport": server,
+        "receipts_path": run_dir / RUNNER.RECEIPTS,
+        "sidecar_path": run_dir / qbatch.SIDECAR,
+        "families": (qual.OPENAI_FAMILY,),
+        "keys": {"openai": "offline-secret"},
+        "models": {"openai": OPENAI_MODEL},
+        "rows": rows,
+        "caps": {"openai": 10.0},
+        "total_cap_usd": 20.0,
+        "protocol": qual.PROTOCOL,
+        "group_size": 25,
+        "coordination_sidecars": (scoring_sidecar,),
+    }
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        qbatch.submit(**common)
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+
+    resumed = dict(common)
+    if changed_cap == "selected":
+        resumed["caps"] = {"openai": 11.0}
+    elif changed_cap == "coordinated":
+        qbatch.write_sidecar(
+            scoring_sidecar,
+            {
+                "batchPricingFactor": qbatch.BATCH_PRICE_FACTOR,
+                "jobs": [],
+                "plannedShards": [],
+                "protocol": qbatch.SIDECAR_PROTOCOL,
+                "spendCapsByFamily": {"openai": 11.0},
+                "totalSpendCapUsd": 20.0,
+            },
+        )
+    else:
+        sidecar = _sidecar(run_dir)
+        del sidecar["spendCapsByFamily"]
+        qbatch.write_sidecar(run_dir / qbatch.SIDECAR, sidecar)
+
+    creates_before = sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    )
+    with pytest.raises(qbatch.BatchError, match=message):
+        if changed_cap == "coordinated":
+            qbatch.reconcile(
+                transport=server,
+                sidecar_path=run_dir / qbatch.SIDECAR,
+                families={"openai": qual.OPENAI_FAMILY},
+                keys={"openai": "offline-secret"},
+                rows=rows,
+                work_kind="validation",
+                coordination_sidecars=(scoring_sidecar,),
+            )
+        else:
+            qbatch.submit(**resumed)
+    assert sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    ) == creates_before
+    assert _sidecar(run_dir)["jobs"][0]["attemptState"] == "uploaded"
+
+
+def test_reconcile_requires_one_coordinated_spend_authority_before_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    scoring_rows = _batch_rows_from_run(run_dir, scoring=True)
+    scoring_sidecar = run_dir / RUNNER.SCORING_BATCH_SIDECAR
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    authority = {"authorityId": "approved-campaign"}
+    cap = 10.0
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        qbatch.submit(
+            transport=server,
+            receipts_path=run_dir / RUNNER.RECEIPTS,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families=(qual.OPENAI_FAMILY,),
+            keys={"openai": "offline-secret"},
+            models={"openai": OPENAI_MODEL},
+            rows=rows,
+            caps={"openai": cap},
+            total_cap_usd=cap,
+            protocol=qual.PROTOCOL,
+            group_size=25,
+            coordination_sidecars=(scoring_sidecar,),
+            spend_authority=authority,
+        )
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+
+    qbatch.submit(
+        transport=server,
+        receipts_path=run_dir / RUNNER.SCORING_RECEIPTS,
+        sidecar_path=scoring_sidecar,
+        families=(qual.OPENAI_FAMILY,),
+        keys={"openai": "offline-secret"},
+        models={"openai": OPENAI_MODEL},
+        rows=scoring_rows,
+        caps={"openai": cap},
+        total_cap_usd=cap,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+        group_size=25,
+        spend_authority={"authorityId": "another-campaign"},
+    )
+    creates_before = sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    )
+
+    with pytest.raises(qbatch.BatchError, match="use one spend authority"):
+        qbatch.reconcile(
+            transport=server,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families={"openai": qual.OPENAI_FAMILY},
+            keys={"openai": "offline-secret"},
+            rows=rows,
+            work_kind="validation",
+            coordination_sidecars=(scoring_sidecar,),
+            spend_authority=authority,
+        )
+    assert sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    ) == creates_before
+    assert _sidecar(run_dir)["jobs"][0]["attemptState"] == "uploaded"
+
+
+def test_reconcile_rechecks_coordinated_committed_spend_before_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    rows = _batch_rows_from_run(run_dir)
+    scoring_rows = _batch_rows_from_run(run_dir, scoring=True)
+    scoring_sidecar = run_dir / RUNNER.SCORING_BATCH_SIDECAR
+    judge_cost = float(
+        qbatch.request_plan_summary(
+            qual.OPENAI_FAMILY,
+            OPENAI_MODEL,
+            rows,
+            protocol=qual.PROTOCOL,
+            work_kind="validation",
+            group_size=25,
+        )["projectedCostUsd"]
+    )
+    scoring_cost = float(
+        qbatch.request_plan_summary(
+            qual.OPENAI_FAMILY,
+            OPENAI_MODEL,
+            scoring_rows,
+            protocol=qual.SCORING_PROTOCOL,
+            work_kind="scoring",
+            group_size=25,
+        )["projectedCostUsd"]
+    )
+    cap = max(judge_cost, scoring_cost) + min(judge_cost, scoring_cost) * 0.75
+    authority = {"authorityId": "approved-campaign"}
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_upload_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "uploaded" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after uploaded journal")
+
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_upload_event)
+    with pytest.raises(RuntimeError, match="uploaded journal"):
+        qbatch.submit(
+            transport=server,
+            receipts_path=run_dir / RUNNER.RECEIPTS,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families=(qual.OPENAI_FAMILY,),
+            keys={"openai": "offline-secret"},
+            models={"openai": OPENAI_MODEL},
+            rows=rows,
+            caps={"openai": cap},
+            total_cap_usd=cap,
+            protocol=qual.PROTOCOL,
+            group_size=25,
+            coordination_sidecars=(scoring_sidecar,),
+            spend_authority=authority,
+        )
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+
+    qbatch.submit(
+        transport=server,
+        receipts_path=run_dir / RUNNER.SCORING_RECEIPTS,
+        sidecar_path=scoring_sidecar,
+        families=(qual.OPENAI_FAMILY,),
+        keys={"openai": "offline-secret"},
+        models={"openai": OPENAI_MODEL},
+        rows=scoring_rows,
+        caps={"openai": cap},
+        total_cap_usd=cap,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+        group_size=25,
+        spend_authority=authority,
+    )
+    combined = qbatch.committed_by_family(_sidecar(run_dir))["openai"]
+    combined += qbatch.committed_by_family(
+        qbatch.read_sidecar(scoring_sidecar)
+    )["openai"]
+    assert combined > cap
+    creates_before = sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    )
+
+    with pytest.raises(qbatch.BatchSpendCapReached, match="already committed"):
+        qbatch.reconcile(
+            transport=server,
+            sidecar_path=run_dir / qbatch.SIDECAR,
+            families={"openai": qual.OPENAI_FAMILY},
+            keys={"openai": "offline-secret"},
+            rows=rows,
+            work_kind="validation",
+            coordination_sidecars=(scoring_sidecar,),
+            spend_authority=authority,
+        )
+    assert sum(
+        call["method"] == "POST" and call["url"].endswith("/batches")
+        for call in server.calls
+    ) == creates_before
+    assert _sidecar(run_dir)["jobs"][0]["attemptState"] == "uploaded"
+
+
+def test_journal_only_created_job_repairs_without_a_second_create(
+    monkeypatch: pytest.MonkeyPatch,
+    run_dir: Path,
+) -> None:
+    server = FakeProviders()
+    original_event = qbatch._write_attempt_event
+    crashed = False
+
+    def crash_after_created_event(path, job, *, phase):  # type: ignore[no-untyped-def]
+        nonlocal crashed
+        original_event(path, job, phase=phase)
+        if phase == "created" and not crashed:
+            crashed = True
+            raise RuntimeError("crash after created journal")
+
+    monkeypatch.setattr(qbatch, "_write_attempt_event", crash_after_created_event)
+    with pytest.raises(RuntimeError, match="created journal"):
+        _run(monkeypatch, server, run_dir, "batch-submit", "--families", "openai")
+    monkeypatch.setattr(qbatch, "_write_attempt_event", original_event)
+    assert _sidecar(run_dir)["jobs"][0]["jobId"] is None
+    creates_before = sum(call["url"].endswith("/batches") for call in server.calls)
+
+    assert _run(monkeypatch, server, run_dir, "batch-reconcile") == 0
+    assert sum(call["url"].endswith("/batches") for call in server.calls) == creates_before
+    attempt = _sidecar(run_dir)["jobs"][0]
+    assert attempt["attemptState"] == "submitted"
+    assert attempt["jobId"] in server.jobs
 
 
 def test_exact_raw_result_bytes_are_pinned_and_tampering_blocks_bundle(
@@ -3178,6 +4509,69 @@ def test_poll_collect_and_cancel_share_the_submit_lock(
         holder.join(timeout=20)
     assert holder.exitcode == 0
     assert server.calls == []
+
+
+@pytest.mark.parametrize(
+    "operation",
+    ("submit", "reconcile", "poll", "collect", "cancel"),
+)
+def test_waiting_scorer_mutation_rechecks_judging_seal_under_the_run_lock(
+    run_dir: Path,
+    operation: str,
+) -> None:
+    scoring_sidecar = run_dir / RUNNER.SCORING_BATCH_SIDECAR
+    judging_sidecar = run_dir / qbatch.SIDECAR
+    rows = _batch_rows_from_run(run_dir, scoring=True)
+    qbatch.submit(
+        transport=FakeProviders(),
+        receipts_path=run_dir / RUNNER.SCORING_RECEIPTS,
+        sidecar_path=scoring_sidecar,
+        families=(qual.OPENAI_FAMILY,),
+        keys={"openai": "offline-secret"},
+        models={"openai": OPENAI_MODEL},
+        rows=rows,
+        protocol=qual.SCORING_PROTOCOL,
+        work_kind="scoring",
+        coordination_sidecars=(judging_sidecar,),
+    )
+    scoring_before = scoring_sidecar.read_bytes()
+    context = multiprocessing.get_context("spawn")
+    events = context.Queue()
+    worker = context.Process(
+        target=_queued_scoring_mutation_worker,
+        kwargs={
+            "run_root": str(run_dir),
+            "operation": operation,
+            "events": events,
+        },
+    )
+
+    with qbatch._run_submit_lock(scoring_sidecar, (judging_sidecar,)):
+        worker.start()
+        assert events.get(timeout=15) == ("started", operation)
+        judging_sidecar.write_text(
+            canonical_json(
+                {
+                    "jobs": [],
+                    "plannedShards": [{"shardId": "sealed-judging-plan"}],
+                    "priorityProvenance": {
+                        "priorityDigest": "sha256:" + "a" * 64
+                    },
+                    "protocol": qbatch.SIDECAR_PROTOCOL,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    worker.join(timeout=20)
+    assert not worker.is_alive()
+    assert worker.exitcode == 0
+    result = events.get(timeout=10)
+    assert result[:2] == ("blocked", operation)
+    assert "sealed as judging priority provenance" in result[2]
+    assert events.empty()
+    assert scoring_sidecar.read_bytes() == scoring_before
 
 
 def test_run_lock_times_out_with_retryable_error_and_refuses_symlinks(

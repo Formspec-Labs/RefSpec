@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -402,6 +403,131 @@ def _reading(
         endpoint_host=qual.endpoint_host(family.base_url),
         protocol=protocol,
     )
+
+
+def test_scorer_priority_is_complete_deterministic_and_score_derived(
+    sources: tuple[qual.AtlasConcept, ...],
+    targets: tuple[qual.AtlasConcept, ...],
+) -> None:
+    pairs = qual.generate_candidate_pairs(sources, targets)[:2]
+
+    def concept(value: qual.AtlasConcept) -> dict[str, Any]:
+        return {
+            "member": value.member,
+            "prefLabel": value.pref_label,
+            "release": value.release,
+            "vocabulary": value.vocabulary,
+        }
+
+    candidate_rows: list[dict[str, Any]] = []
+    receipts: list[dict[str, Any]] = []
+    scores = ((70, 95, "related"), (90, 20, "same"))
+    for pair, (plausibility, sufficiency, likely_relation) in zip(
+        pairs,
+        scores,
+        strict=True,
+    ):
+        entry = qual.assemble_candidate(
+            pair,
+            generated_at=GENERATED_AT,
+            readings=(),
+        )
+        scoring_digest = qual.scoring_input_digest(pair)
+        candidate_rows.append(
+            {
+                "candidateId": entry.candidate.identifier,
+                "evidence": dict(pair.evidence),
+                "generationClass": pair.generation_class,
+                "generationPolicy": pair.generation_policy,
+                "inputDigest": next(
+                    artifact.content_digest
+                    for artifact in entry.artifacts
+                    if artifact.role == "inputContext"
+                ),
+                "scoringInputDigest": scoring_digest,
+                "source": concept(pair.source),
+                "target": concept(pair.target),
+            }
+        )
+        answer = {
+            "task_id": qual.scoring_task_id(pair),
+            "semantic_plausibility": plausibility,
+            "evidence_sufficiency": sufficiency,
+            "likely_relation": likely_relation,
+            "reason": "priority only",
+        }
+        receipts.append(
+            {
+                "answer": answer,
+                "candidate_id": entry.candidate.identifier,
+                "family": "openai",
+                "input_digest": scoring_digest,
+                "kind": "crosswalk_scoring",
+                "model_id": "gpt-5.6-terra",
+                "outcome": "completed",
+                "protocol": qual.SCORING_PROTOCOL,
+                "request_sha256": "sha256:" + "1" * 64,
+                "response_sha256": "sha256:" + "2" * 64,
+                "source_member": pair.source.member,
+                "target_member": pair.target.member,
+                "task_id": qual.scoring_task_id(pair),
+            }
+        )
+    catalog = {"candidates": candidate_rows, "total": len(candidate_rows)}
+    digests = {
+        "candidate_catalog_file_digest": "sha256:" + "3" * 64,
+        "scoring_receipt_log_file_digest": "sha256:" + "4" * 64,
+        "scoring_sidecar_file_digest": "sha256:" + "5" * 64,
+    }
+
+    provenance, order = qual.scorer_priority_provenance(
+        catalog,
+        receipts,
+        scorer_family=qual.OPENAI_FAMILY,
+        scorer_model_id="gpt-5.6-terra",
+        **digests,
+    )
+
+    assert order == (
+        candidate_rows[1]["candidateId"],
+        candidate_rows[0]["candidateId"],
+    )
+    assert qual.validate_scorer_priority_provenance(provenance) == provenance
+    assert "semantic_plausibility" not in provenance
+    assert "evidence_sufficiency" not in provenance
+    assert all(
+        row["candidateId"] not in canonical_json(provenance)
+        for row in candidate_rows
+    )
+    with pytest.raises(qual.QualificationError, match="complete exact coverage"):
+        qual.scorer_priority_provenance(
+            catalog,
+            receipts[:1],
+            scorer_family=qual.OPENAI_FAMILY,
+            scorer_model_id="gpt-5.6-terra",
+            **digests,
+        )
+    invalid = json.loads(canonical_json(receipts))
+    invalid[0]["answer"]["task_id"] = "wrong-task"
+    with pytest.raises(qual.QualificationError, match="valid deterministic reading"):
+        qual.scorer_priority_provenance(
+            catalog,
+            invalid,
+            scorer_family=qual.OPENAI_FAMILY,
+            scorer_model_id="gpt-5.6-terra",
+            **digests,
+        )
+    changed = json.loads(canonical_json(receipts))
+    changed[0]["answer"]["semantic_plausibility"] = 99
+    changed_provenance, changed_order = qual.scorer_priority_provenance(
+        catalog,
+        changed,
+        scorer_family=qual.OPENAI_FAMILY,
+        scorer_model_id="gpt-5.6-terra",
+        **digests,
+    )
+    assert changed_order == tuple(reversed(order))
+    assert changed_provenance["priorityDigest"] != provenance["priorityDigest"]
 
 
 def test_input_context_is_the_exact_model_input(sources, targets) -> None:
@@ -938,6 +1064,26 @@ def test_model_resolution_refuses_an_absent_model() -> None:
         qual.resolve_validator_model(qual.OPENAI_FAMILY, ["gpt-4o", "gpt-5.6-luna"])
 
 
+def test_gemini_36_drops_legacy_generation_controls_before_sealing() -> None:
+    body = qual._request_body(
+        qual.GEMINI_FAMILY,
+        "models/gemini-3.6-flash",
+        "system",
+        "user",
+    )
+    assert qual.GEMINI_36_DEPRECATED_GENERATION_CONTROLS.isdisjoint(body)
+
+    openai = qual._request_body(
+        qual.OPENAI_FAMILY,
+        "gpt-5.6-terra",
+        "system",
+        "user",
+    )
+    assert openai["seed"] == qual.VALIDATION_CALL_SEED
+    assert openai["reasoning_effort"] == qual.OPENAI_FAMILY.reasoning_effort
+    assert openai["max_completion_tokens"] == qual.OPENAI_FAMILY.max_output_tokens
+
+
 def test_a_completed_call_receipts_both_digests(sources, targets) -> None:
     pair = _pair(sources, targets)
     entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
@@ -1005,7 +1151,7 @@ def test_a_transport_error_retries_exactly_once_and_receipts(sources, targets) -
 
 
 def test_a_refused_parameter_is_dropped_and_the_question_is_unchanged(sources, targets) -> None:
-    """``gpt-5.6-terra`` rejects ``temperature``; that is a shape fix, not a rerun."""
+    """An older compatible model can still report a removable shape error."""
 
     pair = _pair(sources, targets)
     entry = qual.assemble_candidate(pair, generated_at=GENERATED_AT, readings=())
@@ -1016,15 +1162,16 @@ def test_a_refused_parameter_is_dropped_and_the_question_is_unchanged(sources, t
             _chat_reply(_answer(pair)),
         ]
     )
+    legacy_family = replace(qual.GEMINI_FAMILY, requested_model="gemini-2.5-flash")
     receipt = qual.validate_candidate(
         transport,
-        qual.GEMINI_FAMILY,
+        legacy_family,
         "key",
-        "models/gemini-3.6-flash",
+        "models/gemini-2.5-flash",
         pair=pair,
         candidate_id=entry.candidate.identifier,
         input_digest=context.content_digest,
-        tracker=qual.SpendTracker(qual.GEMINI_FAMILY),
+        tracker=qual.SpendTracker(legacy_family),
         retry_sleep=lambda _seconds: None,
     )
     assert receipt["outcome"] == "completed"

@@ -7,8 +7,10 @@ the global bound holds even when jobs run concurrently or a process restarts;
 no mutable shared spend ledger is required.
 
 Sealing is local and deterministic.  It reopens the approved six-job manifest,
-verifies every prepared catalog, and rebuilds the exact 25-row scoring and
-judging Batch plans.  It never creates a provider transport or reads a key.
+verifies every prepared catalog, and rebuilds the exact 25-row scoring plan
+plus a score-independent judging budget baseline.  Complete scorer evidence
+later determines the exact judge order under the sealed priority policy.  This
+module never creates a provider transport or reads a key.
 """
 
 from __future__ import annotations
@@ -107,6 +109,8 @@ _BATCH_POLICY_FIELDS = frozenset(
     {
         "batchPricingFactor",
         "judgeFamilies",
+        "judgingPlanResolution",
+        "judgingPriorityPolicy",
         "modelResolution",
         "modelsByFamily",
         "requestGroupSize",
@@ -375,6 +379,54 @@ def _read_catalog(
     return catalog
 
 
+def _read_canonical_jsonl(
+    root: Path,
+    relative: str,
+    *,
+    label: str,
+) -> tuple[Path, list[dict[str, Any]], str]:
+    path = _safe_existing_file(root, relative, label=label)
+    payload = path.read_bytes()
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{label} must be UTF-8"
+        ) from error
+    rows: list[dict[str, Any]] = []
+    reproduced = ""
+    for index, line in enumerate(text.splitlines()):
+        if not line:
+            continue
+        try:
+            value = json.loads(
+                line,
+                object_pairs_hook=binding.reject_duplicate_keys,
+                parse_constant=binding.reject_nonfinite_constant,
+            )
+        except (json.JSONDecodeError, ValueError) as error:
+            raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                f"{label} row {index + 1} is invalid"
+            ) from error
+        if not isinstance(value, Mapping) or canonical_json_bytes(value) != (
+            line + "\n"
+        ).encode("utf-8"):
+            raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                f"{label} row {index + 1} is not canonical"
+            )
+        rows.append(dict(value))
+        reproduced += line + "\n"
+    if not rows or reproduced.encode("utf-8") != payload:
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{label} must contain canonical nonempty rows"
+        )
+    if path.read_bytes() != payload:
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{label} changed while opening"
+        )
+    return path, rows, sha256_digest(payload)
+
+
 def _batch_plan(catalog: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     if set(PRODUCTION_MODELS_BY_FAMILY) != set(qual.VALIDATOR_FAMILIES) or any(
         model_id.removeprefix("models/")
@@ -417,6 +469,7 @@ def _batch_plan(catalog: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, A
     plan = {
         "candidateCount": len(judging_rows),
         "jobs": plans,
+        "judgingPlanResolution": "derivedFromCompleteScoringEvidence",
         "modelResolution": "notPerformed",
         "planningMode": "complete",
         "protocol": protocol,
@@ -584,6 +637,8 @@ def seal_vocabulary_atlas_v1_production_spend_authority(
                 "f",
             ),
             "judgeFamilies": list(JUDGE_FAMILIES),
+            "judgingPlanResolution": "derivedFromCompleteScoringEvidence",
+            "judgingPriorityPolicy": qual.SCORER_PRIORITY_POLICY,
             "modelResolution": MODEL_RESOLUTION_POLICY,
             "modelsByFamily": {
                 name: PRODUCTION_MODELS_BY_FAMILY[name]
@@ -716,6 +771,107 @@ class VocabularyAtlasV1ProductionSpendAuthority:
         return matches[0]
 
 
+def _score_prioritized_judging_plan(
+    authority: VocabularyAtlasV1ProductionSpendAuthority,
+    allocation: Mapping[str, Any],
+    catalog: Mapping[str, Any],
+    *,
+    root: Path,
+    job_key: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any], tuple[str, ...]]:
+    output_path = _require_text(
+        allocation.get("outputPath"),
+        f"{job_key} output path",
+    )
+    scoring_sidecar_relative = f"{output_path}/scoring-batch-jobs.json"
+    scoring_sidecar_path = _safe_existing_file(
+        root,
+        scoring_sidecar_relative,
+        label=f"{job_key} scoring Batch sidecar",
+    )
+    scoring_sidecar_payload = scoring_sidecar_path.read_bytes()
+    scoring_sidecar = _decode_canonical_object(
+        scoring_sidecar_payload,
+        f"{job_key} scoring Batch sidecar",
+    )
+    scoring_receipt_path, scoring_receipts, scoring_receipt_digest = (
+        _read_canonical_jsonl(
+            root,
+            f"{output_path}/scoring-receipts.jsonl",
+            label=f"{job_key} scoring receipt log",
+        )
+    )
+    scoring_rows = qbatch.candidate_rows_from_catalog(
+        catalog,
+        work_kind="scoring",
+    )
+    try:
+        qbatch.verify_provider_batch_evidence(
+            sidecar_path=scoring_sidecar_path,
+            families=qual.VALIDATOR_FAMILIES,
+            rows=scoring_rows,
+            receipts=scoring_receipts,
+            work_kind="scoring",
+        )
+        verify_vocabulary_atlas_v1_production_batch_sidecar(
+            authority,
+            scoring_sidecar,
+            job_key=job_key,
+            work_kind="scoring",
+            repository_root=root,
+        )
+        provenance, ordered_ids = qual.scorer_priority_provenance(
+            catalog,
+            scoring_receipts,
+            scorer_family=qual.VALIDATOR_FAMILIES[SCORER_FAMILY],
+            scorer_model_id=PRODUCTION_MODELS_BY_FAMILY[SCORER_FAMILY],
+            candidate_catalog_file_digest=str(
+                _require_mapping(
+                    allocation.get("candidateCatalog"),
+                    f"{job_key} candidate catalog pin",
+                )["fileDigest"]
+            ),
+            scoring_receipt_log_file_digest=scoring_receipt_digest,
+            scoring_sidecar_file_digest=sha256_digest(scoring_sidecar_payload),
+        )
+    except (qbatch.BatchError, qual.QualificationError) as error:
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{job_key} complete scoring evidence does not reproduce: {error}"
+        ) from error
+    if scoring_receipt_path.read_bytes() == b"":
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{job_key} scoring receipt log is empty"
+        )
+    rank_by_id = {
+        candidate_id: rank for rank, candidate_id in enumerate(ordered_ids)
+    }
+    judge_rows = [
+        qbatch.CandidateRow(
+            candidate_id=row.candidate_id,
+            pair=row.pair,
+            input_digest=row.input_digest,
+            priority_rank=rank_by_id[row.candidate_id],
+        )
+        for row in qbatch.candidate_rows_from_catalog(
+            catalog,
+            work_kind="validation",
+        )
+    ]
+    protocol = qbatch.run_protocol(catalog)
+    plans = [
+        qbatch.request_plan_summary(
+            qual.VALIDATOR_FAMILIES[family_name],
+            PRODUCTION_MODELS_BY_FAMILY[family_name],
+            judge_rows,
+            protocol=protocol,
+            work_kind="validation",
+            group_size=REQUEST_GROUP_SIZE,
+        )
+        for family_name in JUDGE_FAMILIES
+    ]
+    return plans, provenance, ordered_ids
+
+
 def verify_vocabulary_atlas_v1_production_batch_sidecar(
     authority: VocabularyAtlasV1ProductionSpendAuthority,
     sidecar: Mapping[str, Any],
@@ -732,6 +888,40 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
         )
     allocation = authority.job(job_key)
     root = _resolve_root(repository_root)
+    sidecar_authority = _require_mapping(
+        sidecar.get("spendAuthority"),
+        f"{job_key} {work_kind} spend authority",
+    )
+    authority_relative = _require_text(
+        sidecar_authority.get("authorityFile"),
+        f"{job_key} {work_kind} spend authority path",
+    )
+    authority_path = _safe_existing_file(
+        root,
+        authority_relative,
+        label=f"{job_key} {work_kind} spend authority",
+    )
+    expected_sidecar_authority = {
+        "approvedTotalSpendCapUsd": authority.record[
+            "approvedTotalSpendCapUsd"
+        ],
+        "authorityFile": authority_relative,
+        "authorityFileDigest": authority.file_digest,
+        "authorityId": authority.identifier,
+        "authorityRecordDigest": authority.record_digest,
+        "batchPlanDigest": allocation["batchPlanDigest"],
+        "batchPolicyDigest": authority.batch_policy_digest,
+        "jobKey": allocation["jobKey"],
+        "modelsByFamily": dict(authority.record["batchPolicy"]["modelsByFamily"]),
+        "runSpendCapUsd": allocation["runSpendCapUsd"],
+    }
+    if (
+        _plain(sidecar_authority) != expected_sidecar_authority
+        or sha256_digest(authority_path.read_bytes()) != authority.file_digest
+    ):
+        raise VocabularyAtlasV1ProductionSpendAuthorityError(
+            f"{job_key} {work_kind} sidecar names another spend authority"
+        )
     catalog = _read_catalog(
         root,
         _require_mapping(
@@ -746,7 +936,7 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
         if work_kind == "scoring"
         else set(JUDGE_FAMILIES)
     )
-    planned_jobs = [
+    authority_jobs = [
         _require_mapping(row, f"{job_key} authority Batch plan")
         for row in _require_sequence(plan.get("jobs"), "authority Batch plans")
         if _require_mapping(row, f"{job_key} authority Batch plan").get(
@@ -754,12 +944,52 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
         )
         == work_kind
     ]
+    priority_provenance: Mapping[str, Any] | None = None
+    ordered_ids: tuple[str, ...] = ()
+    if work_kind == "validation":
+        planned_jobs, priority_provenance, ordered_ids = (
+            _score_prioritized_judging_plan(
+                authority,
+                allocation,
+                catalog,
+                root=root,
+                job_key=job_key,
+            )
+        )
+        if _plain(sidecar.get("priorityProvenance")) != priority_provenance:
+            raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                f"{job_key} judging priority provenance differs from complete scoring evidence"
+            )
+        scoring_cost = sum(
+            Decimal(str(row["projectedCostUsd"]))
+            for row in _require_sequence(plan.get("jobs"), "authority Batch plans")
+            if isinstance(row, Mapping) and row.get("workKind") == "scoring"
+        )
+        judging_cost = sum(
+            Decimal(str(row["projectedCostUsd"])) for row in planned_jobs
+        )
+        if scoring_cost + judging_cost > _money(
+            allocation.get("runSpendCapUsd"),
+            f"{job_key} run spend cap",
+        ):
+            raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                f"{job_key} score-prioritized 25-row plan exceeds its authority"
+            )
+    else:
+        planned_jobs = authority_jobs
+        if sidecar.get("priorityProvenance") is not None:
+            raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                f"{job_key} scoring sidecar must not carry judging priority provenance"
+            )
     if {str(row.get("family")) for row in planned_jobs} != expected_families:
         raise VocabularyAtlasV1ProductionSpendAuthorityError(
             f"{job_key} authority has the wrong {work_kind} families"
         )
-    expected_initial_shards = {
-        (str(row["family"]), str(shard["shardId"]))
+    expected_initial_plans = {
+        (str(row["family"]), str(shard["shardId"])): _require_mapping(
+            shard,
+            f"{job_key} {row['family']} authority shard",
+        )
         for row in planned_jobs
         for shard in _require_sequence(
             row.get("shards"),
@@ -767,6 +997,7 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
         )
         if isinstance(shard, Mapping)
     }
+    expected_initial_shards = set(expected_initial_plans)
     raw_plans = _require_sequence(
         sidecar.get("plannedShards"),
         f"{job_key} {work_kind} planned shards",
@@ -795,11 +1026,58 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
             )
         observed_plan_keys.add(key)
         if max_group_size == REQUEST_GROUP_SIZE:
+            expected_plan = expected_initial_plans.get(key)
+            if expected_plan is None or any(
+                runtime_plan.get(field) != expected_plan.get(field)
+                for field in (
+                    "candidateCount",
+                    "inputFileBytes",
+                    "projectedCostUsd",
+                    "projectedInputTokens",
+                    "projectedOutputTokenAllowance",
+                    "providerRequestCount",
+                    "shardId",
+                )
+            ):
+                raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                    f"{job_key} {work_kind} initial shard cost or coverage differs from its authority"
+                )
             actual_initial_shards.add(key)
     if actual_initial_shards != expected_initial_shards:
         raise VocabularyAtlasV1ProductionSpendAuthorityError(
             f"{job_key} {work_kind} initial 25-row shards differ from its authority"
         )
+    if work_kind == "validation":
+        for family_name in JUDGE_FAMILIES:
+            family_plans = sorted(
+                (
+                    _require_mapping(raw, f"{job_key} judging planned shard")
+                    for raw in raw_plans
+                    if isinstance(raw, Mapping)
+                    and raw.get("family") == family_name
+                    and raw.get("maxRequestGroupSize") == REQUEST_GROUP_SIZE
+                ),
+                key=lambda row: int(row.get("planOrder") or 0),
+            )
+            actual_order = tuple(
+                str(candidate_id)
+                for runtime_plan in family_plans
+                for provider_request in _require_sequence(
+                    runtime_plan.get("providerRequests"),
+                    f"{job_key} {family_name} provider requests",
+                )
+                for candidate_id in _require_sequence(
+                    _require_mapping(
+                        provider_request,
+                        f"{job_key} {family_name} provider request",
+                    ).get("candidateIds"),
+                    f"{job_key} {family_name} provider request candidates",
+                )
+            )
+            if actual_order != ordered_ids:
+                raise VocabularyAtlasV1ProductionSpendAuthorityError(
+                    f"{job_key} {family_name} judging order differs from scorer priority"
+                )
 
     raw_jobs = _require_sequence(
         sidecar.get("jobs"),
@@ -831,6 +1109,11 @@ def verify_vocabulary_atlas_v1_production_batch_sidecar(
         "modelPolicyDigest": authority.batch_policy_digest,
         "providerJobCount": len(raw_jobs),
         "runtimePlanCount": len(raw_plans),
+        **(
+            {"priorityDigest": priority_provenance["priorityDigest"]}
+            if priority_provenance is not None
+            else {}
+        ),
         "workKind": work_kind,
     }
 
