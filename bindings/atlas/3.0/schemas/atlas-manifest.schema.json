@@ -1,52 +1,8 @@
 {
   "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-manifest.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "additionalProperties": false,
-  "properties": {
-        "binding": {
-          "additionalProperties": false,
-          "properties": {
-            "acceptanceSchemaDigest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-            "bindingBundleDigest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-        "manifestSchemaDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
-        "ontologyDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
-        "shapesDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
-        "sourceAccountingSchemaDigest": {
-          "$ref": "common.schema.json#/$defs/digest"
-        },
-        "validatorVersion": {
-          "const": "3.0"
-        },
-        "version": {
-          "const": "3.0"
-        }
-      },
-          "required": [
-            "version",
-            "bindingBundleDigest",
-            "ontologyDigest",
-        "shapesDigest",
-        "manifestSchemaDigest",
-        "sourceAccountingSchemaDigest",
-        "acceptanceSchemaDigest",
-        "validatorVersion"
-      ],
-      "type": "object"
-    },
-    "canonicalPayloadDigest": {
-      "$ref": "common.schema.json#/$defs/digest"
-    },
-    "counts": {
+  "$defs": {
+    "aggregateCounts": {
       "additionalProperties": false,
       "properties": {
         "crossRingRelationAssertions": {
@@ -102,6 +58,543 @@
       ],
       "type": "object"
     },
+    "binding": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptanceSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "bindingBundleDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "manifestSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "ontologyDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "shapesDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceAccountingSchemaDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "validatorVersion": {
+          "const": "3.0"
+        },
+        "version": {
+          "const": "3.0"
+        }
+      },
+      "required": [
+        "version",
+        "bindingBundleDigest",
+        "ontologyDigest",
+        "shapesDigest",
+        "manifestSchemaDigest",
+        "sourceAccountingSchemaDigest",
+        "acceptanceSchemaDigest",
+        "validatorVersion"
+      ],
+      "type": "object"
+    },
+    "graphCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "asserted": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "derived": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "projection": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "asserted",
+        "projection",
+        "derived"
+      ],
+      "type": "object"
+    },
+    "graphInventory": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "quadCount": {
+                "const": 0
+              }
+            },
+            "required": [
+              "quadCount"
+            ]
+          },
+          "then": {
+            "properties": {
+              "packCount": {
+                "const": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "packCount": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "inventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "packCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "quadCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "role": {
+          "enum": [
+            "asserted",
+            "projection",
+            "derived"
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "id",
+        "quadCount",
+        "packCount",
+        "inventoryDigest"
+      ],
+      "type": "object"
+    },
+    "jsonMember": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "mediaType": {
+          "const": "application/json"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/safeRelativePath"
+        },
+        "role": {
+          "enum": [
+            "sourceAccounting",
+            "acceptance",
+            "producerValidation"
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "mediaType",
+        "digest",
+        "byteLength"
+      ],
+      "type": "object"
+    },
+    "nquadsContent": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "mediaType": {
+          "const": "application/n-quads"
+        },
+        "quadCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "mediaType",
+        "digest",
+        "byteLength",
+        "quadCount"
+      ],
+      "type": "object"
+    },
+    "pack": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "sourceRelease"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "graphCounts": {
+                "properties": {
+                  "asserted": {
+                    "minimum": 1
+                  },
+                  "derived": {
+                    "const": 0
+                  },
+                  "projection": {
+                    "const": 0
+                  }
+                }
+              },
+              "sourceReleases": {
+                "maxItems": 1,
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "catalog",
+                  "mapping"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "graphCounts": {
+                "properties": {
+                  "asserted": {
+                    "minimum": 1
+                  },
+                  "derived": {
+                    "const": 0
+                  },
+                  "projection": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "view"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {
+                  "graphCounts": {
+                    "properties": {
+                      "projection": {
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "graphCounts": {
+                    "properties": {
+                      "derived": {
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "dependencies": {
+                "minItems": 1
+              },
+              "graphCounts": {
+                "properties": {
+                  "asserted": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "graphCounts": {
+                    "properties": {
+                      "projection": {
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "graphCounts": {
+                    "properties": {
+                      "derived": {
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "required": [
+              "graphCounts"
+            ]
+          },
+          "then": {
+            "required": [
+              "inputAssertedDigest"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "mapping"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "dependencies": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "properties": {
+                  "compression": {
+                    "const": "zstd"
+                  }
+                },
+                "required": [
+                  "compression"
+                ]
+              }
+            },
+            "required": [
+              "transport"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "\\.nq\\.zst$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "path": {
+                "pattern": "\\.nq$"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/nquadsContent"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "graphCounts": {
+          "$ref": "#/$defs/graphCounts"
+        },
+        "inputAssertedDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "kind": {
+          "enum": [
+            "catalog",
+            "sourceRelease",
+            "mapping",
+            "view",
+            "aggregate"
+          ]
+        },
+        "packId": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "partition": {
+          "additionalProperties": false,
+          "properties": {
+            "prefix": {
+              "pattern": "^[0-9a-f]{1,8}$",
+              "type": "string"
+            },
+            "strategy": {
+              "const": "sha256-subject-iri-prefix"
+            }
+          },
+          "required": [
+            "strategy",
+            "prefix"
+          ],
+          "type": "object"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/safeRelativePath"
+        },
+        "rings": {
+          "items": {
+            "enum": [
+              "subject",
+              "entity",
+              "value",
+              "legalIdentity"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "sourceReleases": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "transport": {
+          "$ref": "#/$defs/transport"
+        }
+      },
+      "required": [
+        "packId",
+        "kind",
+        "path",
+        "transport",
+        "content",
+        "graphCounts",
+        "dependencies",
+        "sourceReleases",
+        "rings"
+      ],
+      "type": "object"
+    },
+    "transport": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byteLength": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "compression": {
+              "const": "none"
+            },
+            "digest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "mediaType": {
+              "const": "application/n-quads"
+            }
+          },
+          "required": [
+            "compression",
+            "mediaType",
+            "digest",
+            "byteLength"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byteLength": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
+            },
+            "compression": {
+              "const": "zstd"
+            },
+            "digest": {
+              "$ref": "common.schema.json#/$defs/digest"
+            },
+            "mediaType": {
+              "const": "application/zstd"
+            }
+          },
+          "required": [
+            "compression",
+            "mediaType",
+            "digest",
+            "byteLength"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding": {
+      "$ref": "#/$defs/binding"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "counts": {
+      "$ref": "#/$defs/aggregateCounts"
+    },
     "createdAt": {
       "$ref": "common.schema.json#/$defs/dateTime"
     },
@@ -109,7 +602,7 @@
       "$ref": "common.schema.json#/$defs/absoluteIri"
     },
     "format": {
-      "const": "refspec-atlas-nquads-3.0"
+      "const": "refspec-atlas-packed-nquads-3.0"
     },
     "graphs": {
       "items": false,
@@ -117,65 +610,52 @@
       "minItems": 3,
       "prefixItems": [
         {
-          "additionalProperties": false,
-          "properties": {
-            "id": {
-              "$ref": "common.schema.json#/$defs/absoluteIri"
+          "allOf": [
+            {
+              "$ref": "#/$defs/graphInventory"
             },
-            "quadCount": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
-              "minimum": 1
-            },
-            "role": {
-              "const": "asserted"
+            {
+              "properties": {
+                "packCount": {
+                  "minimum": 1
+                },
+                "quadCount": {
+                  "minimum": 1
+                },
+                "role": {
+                  "const": "asserted"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "id",
-            "quadCount"
-          ],
-          "type": "object"
+          ]
         },
         {
-          "additionalProperties": false,
-          "properties": {
-            "id": {
-              "$ref": "common.schema.json#/$defs/absoluteIri"
+          "allOf": [
+            {
+              "$ref": "#/$defs/graphInventory"
             },
-            "quadCount": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
-            },
-            "role": {
-              "const": "projection"
+            {
+              "properties": {
+                "role": {
+                  "const": "projection"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "id",
-            "quadCount"
-          ],
-          "type": "object"
+          ]
         },
         {
-          "additionalProperties": false,
-          "properties": {
-            "id": {
-              "$ref": "common.schema.json#/$defs/absoluteIri"
+          "allOf": [
+            {
+              "$ref": "#/$defs/graphInventory"
             },
-            "quadCount": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger"
-            },
-            "role": {
-              "const": "derived"
+            {
+              "properties": {
+                "role": {
+                  "const": "derived"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "id",
-            "quadCount"
-          ],
-          "type": "object"
+          ]
         }
       ],
       "type": "array"
@@ -183,97 +663,69 @@
     "members": {
       "items": false,
       "maxItems": 3,
-      "minItems": 3,
+      "minItems": 2,
       "prefixItems": [
         {
-          "additionalProperties": false,
-          "properties": {
-            "byteLength": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
-              "minimum": 1
+          "allOf": [
+            {
+              "$ref": "#/$defs/jsonMember"
             },
-            "digest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-            "mediaType": {
-              "const": "application/n-quads"
-            },
-            "path": {
-              "const": "atlas.nq"
-            },
-            "role": {
-              "const": "atlasDataset"
+            {
+              "properties": {
+                "path": {
+                  "const": "atlas-source-accounting.json"
+                },
+                "role": {
+                  "const": "sourceAccounting"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "path",
-            "mediaType",
-            "digest",
-            "byteLength"
-          ],
-          "type": "object"
+          ]
         },
         {
-          "additionalProperties": false,
-          "properties": {
-            "byteLength": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
-              "minimum": 1
+          "allOf": [
+            {
+              "$ref": "#/$defs/jsonMember"
             },
-            "digest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-            "mediaType": {
-              "const": "application/json"
-            },
-            "path": {
-              "const": "atlas-source-accounting.json"
-            },
-            "role": {
-              "const": "sourceAccounting"
+            {
+              "properties": {
+                "path": {
+                  "const": "atlas-acceptance.json"
+                },
+                "role": {
+                  "const": "acceptance"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "path",
-            "mediaType",
-            "digest",
-            "byteLength"
-          ],
-          "type": "object"
+          ]
         },
         {
-          "additionalProperties": false,
-          "properties": {
-            "byteLength": {
-              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
-              "minimum": 1
+          "allOf": [
+            {
+              "$ref": "#/$defs/jsonMember"
             },
-            "digest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-            "mediaType": {
-              "const": "application/json"
-            },
-            "path": {
-              "const": "atlas-acceptance.json"
-            },
-            "role": {
-              "const": "acceptance"
+            {
+              "properties": {
+                "path": {
+                  "const": "atlas-producer-validation.json"
+                },
+                "role": {
+                  "const": "producerValidation"
+                }
+              }
             }
-          },
-          "required": [
-            "role",
-            "path",
-            "mediaType",
-            "digest",
-            "byteLength"
-          ],
-          "type": "object"
+          ]
         }
       ],
       "type": "array"
+    },
+    "packs": {
+      "items": {
+        "$ref": "#/$defs/pack"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
     },
     "schemaVersion": {
       "const": "3.0"
@@ -290,10 +742,11 @@
     "createdAt",
     "binding",
     "graphs",
+    "packs",
     "members",
     "counts",
     "canonicalPayloadDigest"
   ],
-  "title": "RefSpec Atlas 3.0 manifest",
+  "title": "RefSpec Atlas 3.0 packed manifest",
   "type": "object"
 }

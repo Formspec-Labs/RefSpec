@@ -733,11 +733,25 @@ def _dataset_bytes(fixture: Fixture, distribution_id: str) -> tuple[bytes, list[
         for triple in graph
     )
     payload = ("\n".join(lines) + "\n").encode("utf-8")
-    descriptors = [
+    graph_rows = [
         {"id": str(graph_ids[role]), "quadCount": len(graphs[role]), "role": role}
         for role in ("asserted", "projection", "derived")
     ]
-    return payload, descriptors
+    return payload, graph_rows
+
+
+def _graph_inventory_digest(pack: dict[str, Any], role: str) -> str:
+    rows = []
+    quad_count = pack["graphCounts"][role]
+    if quad_count:
+        rows.append(
+            {
+                "contentDigest": pack["content"]["digest"],
+                "packId": pack["packId"],
+                "quadCount": quad_count,
+            }
+        )
+    return atlas_validate.canonical_sha256(rows, terminal_lf=False)
 
 
 def _counts(fixture: Fixture) -> dict[str, int]:
@@ -779,9 +793,42 @@ def _write_case(
     path.mkdir(parents=True, exist_ok=True)
     fixture.accounting["distributionId"] = distribution_id
     dataset_bytes, graph_rows = _dataset_bytes(fixture, distribution_id)
+    dataset_digest = "sha256:" + hashlib.sha256(dataset_bytes).hexdigest()
+    graph_counts = {row["role"]: row["quadCount"] for row in graph_rows}
+    pack = {
+        "content": {
+            "byteLength": len(dataset_bytes),
+            "digest": dataset_digest,
+            "mediaType": "application/n-quads",
+            "quadCount": sum(graph_counts.values()),
+        },
+        "dependencies": [],
+        "graphCounts": graph_counts,
+        "kind": "aggregate",
+        "packId": "urn:ref:atlas-fixture:pack:" + dataset_digest.removeprefix("sha256:"),
+        "path": "atlas.nq",
+        "rings": [],
+        "sourceReleases": [],
+        "transport": {
+            "byteLength": len(dataset_bytes),
+            "compression": "none",
+            "digest": dataset_digest,
+            "mediaType": "application/n-quads",
+        },
+    }
+    graph_rows = [
+        {
+            **row,
+            "inventoryDigest": _graph_inventory_digest(pack, row["role"]),
+            "packCount": int(row["quadCount"] > 0),
+        }
+        for row in graph_rows
+    ]
+    if graph_counts["projection"] or graph_counts["derived"]:
+        pack["inputAssertedDigest"] = graph_rows[0]["inventoryDigest"]
     accounting_bytes = atlas_validate.canonical_json_bytes(fixture.accounting)
     acceptance_inputs = {
-        "atlasDigest": "sha256:" + hashlib.sha256(dataset_bytes).hexdigest(),
+        "atlasDigest": graph_rows[0]["inventoryDigest"],
         **binding_digests,
         "sourceAccountingDigest": "sha256:" + hashlib.sha256(accounting_bytes).hexdigest(),
     }
@@ -815,16 +862,9 @@ def _write_case(
         "counts": _counts(fixture),
         "createdAt": CREATED_AT,
         "distributionId": distribution_id,
-        "format": "refspec-atlas-nquads-3.0",
+        "format": "refspec-atlas-packed-nquads-3.0",
         "graphs": graph_rows,
         "members": [
-            {
-                "byteLength": len(dataset_bytes),
-                "digest": "sha256:" + hashlib.sha256(dataset_bytes).hexdigest(),
-                "mediaType": "application/n-quads",
-                "path": "atlas.nq",
-                "role": "atlasDataset",
-            },
             {
                 "byteLength": len(accounting_bytes),
                 "digest": "sha256:" + hashlib.sha256(accounting_bytes).hexdigest(),
@@ -840,6 +880,7 @@ def _write_case(
                 "role": "acceptance",
             },
         ],
+        "packs": [pack],
         "schemaVersion": "3.0",
         "type": "AtlasManifest",
     }
@@ -1656,7 +1697,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             valid_supersession,
         ),
         ("manifest-unknown-field", ["json"], "json.schema", unknown_manifest_field),
-        ("dataset-digest-mismatch", ["dataset"], "distribution.digest", digest_mismatch),
+        ("dataset-digest-mismatch", ["dataset"], "pack.content", digest_mismatch),
         ("blank-node", ["rdf"], "rdf.blank-node", blank_node),
         ("label-missing-literal", ["shacl"], "shacl.data", label_missing_literal),
         ("non-english-label", ["shacl"], "shacl.data", non_english_label),

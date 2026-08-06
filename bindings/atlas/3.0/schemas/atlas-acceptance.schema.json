@@ -52,6 +52,9 @@
         "ontologyDigest": {
           "$ref": "common.schema.json#/$defs/digest"
         },
+        "producerValidationDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
         "shapesDigest": {
           "$ref": "common.schema.json#/$defs/digest"
         },

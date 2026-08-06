@@ -1,0 +1,73 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-producer-validation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assertedInventoryDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "binding": {
+      "$ref": "atlas-manifest.schema.json#/$defs/binding"
+    },
+    "checks": {
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "constructorProfile": {
+      "const": "atlas-3-source-only-compiled-shacl-v1"
+    },
+    "counts": {
+      "$ref": "atlas-manifest.schema.json#/$defs/aggregateCounts"
+    },
+    "implementationDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "mode": {
+      "const": "compiledSourceProducerValidation"
+    },
+    "shaclDataProof": {
+      "const": "compiledAgainstPinnedOntologyAndShapes"
+    },
+    "shaclMetaValidation": {
+      "const": "pySHACL"
+    },
+    "sourceAccountingDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "sourceReleaseCount": {
+      "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+      "minimum": 1
+    },
+    "status": {
+      "const": "passed"
+    },
+    "type": {
+      "const": "AtlasProducerValidation"
+    },
+    "version": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "status",
+    "mode",
+    "constructorProfile",
+    "implementationDigest",
+    "binding",
+    "assertedInventoryDigest",
+    "sourceAccountingDigest",
+    "sourceReleaseCount",
+    "counts",
+    "checks",
+    "shaclDataProof",
+    "shaclMetaValidation"
+  ],
+  "title": "RefSpec Atlas 3.0 compiled producer validation",
+  "type": "object"
+}

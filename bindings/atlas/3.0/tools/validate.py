@@ -9,37 +9,48 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import heapq
+import hmac
 import json
 import math
+import os
 import re
+import secrets
+import stat
 import sys
-import tempfile
 from collections import Counter, defaultdict, deque
-from collections.abc import Iterable, Mapping, Sequence
-from contextlib import ExitStack
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from itertools import zip_longest
+from functools import lru_cache
+from itertools import chain
 from pathlib import Path
 from typing import Any, NoReturn
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema import _utils as jsonschema_utils
+from jsonschema import validators as jsonschema_validators
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from pyshacl import validate as shacl_validate
+from pyshacl.rdfutil import inoculate
 from rdf_canonical import (
     ABSOLUTE_IRI_RE,
     RdfCanonicalError,
 )
-from rdf_canonical import nquads_line as _canonical_nquads_line
 from rdf_canonical import ntriples_term as _canonical_ntriples_term
 from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
-from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SKOS, XSD
+from rdflib.graph import ReadOnlyGraphAggregate
+from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SH, SKOS, XSD
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.nquads import NQuadsParser
-from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, unquote, uriquote
+from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, r_tail, r_wspace, unquote, uriquote
 from referencing import Registry, Resource
+
+try:  # Python 3.14+
+    from compression import zstd
+except ImportError:  # Python 3.10-3.13
+    from backports import zstd
 
 BINDING_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = BINDING_ROOT.parents[2]
@@ -80,24 +91,20 @@ SCHEMAS = {
     "manifest": "atlas-manifest.schema.json",
     "sourceAccounting": "atlas-source-accounting.schema.json",
     "acceptance": "atlas-acceptance.schema.json",
+    "producerValidation": "atlas-producer-validation.schema.json",
     "corpus": "conformance-corpus.schema.json",
     "registryCoverage": "registry-coverage.schema.json",
     "registryDescriptors": "registry-descriptors.schema.json",
     "registryProfiles": "registry-resource-profiles.schema.json",
 }
-EXPECTED_FILES = frozenset(
-    {
-        "atlas-manifest.json",
-        "atlas.nq",
-        "atlas-source-accounting.json",
-        "atlas-acceptance.json",
-    }
-)
+MANIFEST_FILE = "atlas-manifest.json"
+PRODUCER_VALIDATION_FILE = "atlas-producer-validation.json"
+CACHE_FORMAT = "refspec-atlas-validation-receipt-cache/1"
+CACHE_SECRET_BYTES = 32
+CACHE_RECEIPT_MAX_BYTES = 4 * 1024 * 1024
 SAFE_INTEGER = 9_007_199_254_740_991
-NQUADS_SORT_CHUNK_SIZE = 50_000
-NQUADS_SORT_CHUNK_BYTES = 64 * 1024 * 1024
 NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
-NQUADS_MERGE_FAN_IN = 64
+HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ASSERTION_TYPES = frozenset(
     {
@@ -377,6 +384,231 @@ class ExactMatchIndex:
         return sum(size**2 - self.directed_direct_counts[index] for index, size in enumerate(self.component_sizes))
 
 
+@dataclass(frozen=True, slots=True)
+class SemanticInventory:
+    """Reusable carrier inventory built during graph-placement validation."""
+
+    asserted_by_carrier: Mapping[URIRef, AbstractSet[URIRef]]
+    derived_nodes: AbstractSet[URIRef]
+    projection_nodes: AbstractSet[URIRef]
+
+    def nodes(self, carrier_type: URIRef) -> AbstractSet[URIRef]:
+        return self.asserted_by_carrier.get(carrier_type, frozenset())
+
+    def assertions(self) -> Iterable[URIRef]:
+        for assertion_type in ASSERTION_TYPES:
+            yield from self.nodes(assertion_type)
+
+    def is_assertion(self, node: Any) -> bool:
+        return any(node in self.nodes(assertion_type) for assertion_type in ASSERTION_TYPES)
+
+    def resources(self) -> Iterable[URIRef]:
+        for resource_type in RESOURCE_TYPES:
+            yield from self.nodes(resource_type)
+
+    def is_resource(self, node: Any) -> bool:
+        return any(node in self.nodes(resource_type) for resource_type in RESOURCE_TYPES)
+
+    @property
+    def resource_count(self) -> int:
+        return sum(len(self.nodes(resource_type)) for resource_type in RESOURCE_TYPES)
+
+
+AssertionTriple = tuple[URIRef, URIRef, URIRef]
+AssertionSupport = Collection[URIRef]
+NodePair = tuple[URIRef, URIRef]
+HierarchyComponentPair = tuple[int, int]
+
+
+@dataclass(frozen=True, slots=True)
+class _HierarchyReachabilityIndex:
+    """Cycle-safe DAG index for the hierarchy nodes relevant to SKOS S27."""
+
+    component_by_node: Mapping[URIRef, int]
+    component_is_cyclic: tuple[bool, ...]
+    dag: tuple[tuple[int, ...], ...]
+    topological_order: tuple[int, ...]
+    topological_rank: tuple[int, ...]
+    weak_component: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _AssertionState:
+    """Compact state retained while assertion lineages are reconciled."""
+
+    triple: AssertionTriple
+    assertion_type: URIRef
+    source_release: URIRef
+    ring_context: URIRef | tuple[URIRef, URIRef]
+    status: URIRef
+    asserted_at: datetime
+    predecessor: URIRef | None
+
+
+class _ShaclDataView(ReadOnlyGraphAggregate):
+    """Read-only data-plus-ontology view that pySHACL can key in reports."""
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
+
+    def __bool__(self) -> bool:
+        """Test non-emptiness without counting every triple in the view."""
+
+        cached = getattr(self, "_atlas_has_triples", None)
+        if cached is None:
+            cached = any(
+                next(graph.triples((None, None, None)), None) is not None
+                for graph in self.graphs
+            )
+            self._atlas_has_triples = cached
+        return cached
+
+
+@dataclass(frozen=True, slots=True)
+class _ClosedShapePlan:
+    """One closed-shape check lifted out of pySHACL's per-node call path."""
+
+    shape: URIRef
+    allowed_paths: frozenset[Any]
+    ignored_paths: frozenset[Any]
+
+
+@dataclass(frozen=True, slots=True)
+class _BatchedShaclPlan:
+    """Conformance-equivalent shapes optimized for Atlas's valid-data path."""
+
+    shapes: Graph
+    closed_shapes: tuple[_ClosedShapePlan, ...]
+    checks_relation_ring_context: bool
+
+
+class _DigestingReader:
+    """Hash and count transport bytes as a downstream reader consumes them."""
+
+    def __init__(self, stream: Any, *, label: str) -> None:
+        self.stream = stream
+        self.label = label
+        self.digest = hashlib.sha256()
+        self.byte_length = 0
+        self.saw_eof = False
+
+    def read(self, size: int = -1) -> bytes:
+        try:
+            chunk = self.stream.read(size)
+        except Exception as exc:  # noqa: BLE001 - normalize transport failures
+            _fail("pack.transport", f"cannot read {self.label}: {exc}")
+        if not isinstance(chunk, bytes):
+            _fail("pack.transport", f"{self.label} did not produce binary bytes")
+        if chunk:
+            self.digest.update(chunk)
+            self.byte_length += len(chunk)
+        else:
+            self.saw_eof = True
+        return chunk
+
+    def readable(self) -> bool:
+        return True
+
+    def finish(self, expected: Mapping[str, Any], *, require_consumed: bool) -> None:
+        trailing = self.read(1024 * 1024)
+        if trailing and require_consumed:
+            _fail("pack.transport", f"{self.label} contains bytes not consumed by its decoder")
+        while trailing:
+            trailing = self.read(1024 * 1024)
+        if self.byte_length != expected["byteLength"]:
+            _fail("pack.transport", f"{self.label} transport byteLength differs")
+        actual = "sha256:" + self.digest.hexdigest()
+        if actual != expected["digest"]:
+            _fail("pack.transport", f"{self.label} transport digest differs")
+
+
+class _NQuadsProfileReader:
+    """Validate and receipt canonical uncompressed N-Quads during parsing."""
+
+    def __init__(self, stream: Any, *, label: str, expected: Mapping[str, Any]) -> None:
+        self.stream = stream
+        self.label = label
+        self.expected = expected
+        self.digest = hashlib.sha256()
+        self.byte_length = 0
+        self.line_count = 0
+        self.previous: bytes | None = None
+        self.pending = bytearray()
+        self.finished = False
+
+    def _accept_line(self, line: bytes) -> None:
+        self.line_count += 1
+        if self.line_count > self.expected["quadCount"]:
+            _fail("pack.content", f"{self.label} exceeds its declared content quadCount")
+        if len(line) > NQUADS_MAX_LINE_BYTES:
+            _fail(
+                "rdf.resource-limit",
+                f"{self.label} line {self.line_count} exceeds {NQUADS_MAX_LINE_BYTES} bytes",
+            )
+        if b"\r" in line:
+            _fail("rdf.canonical", f"{self.label} contains a CR line ending")
+        try:
+            line.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            _fail("rdf.syntax", f"{self.label} is not UTF-8: {exc}")
+        content = line[:-1]
+        if not content or content != content.strip():
+            _fail("rdf.canonical", f"{self.label} contains a blank or padded line")
+        if self.previous is not None and line <= self.previous:
+            _fail("rdf.canonical", f"{self.label} lines must be sorted and unique")
+        self.previous = line
+
+    def _consume(self, chunk: bytes) -> None:
+        self.digest.update(chunk)
+        self.byte_length += len(chunk)
+        if self.byte_length > self.expected["byteLength"]:
+            _fail("pack.content", f"{self.label} exceeds its declared content byteLength")
+        self.pending.extend(chunk)
+        while True:
+            newline = self.pending.find(b"\n")
+            if newline < 0:
+                if len(self.pending) > NQUADS_MAX_LINE_BYTES:
+                    _fail(
+                        "rdf.resource-limit",
+                        f"{self.label} line {self.line_count + 1} exceeds {NQUADS_MAX_LINE_BYTES} bytes",
+                    )
+                return
+            line = bytes(self.pending[: newline + 1])
+            del self.pending[: newline + 1]
+            self._accept_line(line)
+
+    def read(self, size: int = -1) -> bytes:
+        try:
+            chunk = self.stream.read(size)
+        except AtlasValidationError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - normalize decompression failures
+            _fail("pack.compression", f"cannot decode {self.label}: {exc}")
+        if not isinstance(chunk, bytes):
+            _fail("pack.content", f"{self.label} did not produce binary bytes")
+        if chunk:
+            self._consume(chunk)
+        else:
+            self.finished = True
+        return chunk
+
+    def readable(self) -> bool:
+        return True
+
+    def finish(self, expected: Mapping[str, Any]) -> None:
+        while self.read():
+            pass
+        if self.pending or self.line_count == 0:
+            _fail("rdf.canonical", f"{self.label} must be nonempty LF text with one terminal LF")
+        if self.byte_length != expected["byteLength"]:
+            _fail("pack.content", f"{self.label} content byteLength differs")
+        if self.line_count != expected["quadCount"]:
+            _fail("pack.content", f"{self.label} content quadCount differs")
+        actual = "sha256:" + self.digest.hexdigest()
+        if actual != expected["digest"]:
+            _fail("pack.content", f"{self.label} content digest differs")
+
+
 def _fail(code: str, detail: str) -> NoReturn:
     raise AtlasValidationError(code, detail)
 
@@ -483,11 +715,18 @@ def file_sha256(path: Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+@lru_cache(maxsize=4_096)
+def _cached_iri_term(term: URIRef) -> str:
+    """Render frequently repeated IRIs without retaining unbounded source data."""
+
+    return _canonical_ntriples_term(term)
+
+
 def ntriples_term(term: Any) -> str:
     """Render one RDF term in one deterministic RDF 1.1 N-Triples form."""
 
     try:
-        return _canonical_ntriples_term(term)
+        return _cached_iri_term(term) if isinstance(term, URIRef) else _canonical_ntriples_term(term)
     except RdfCanonicalError as exc:
         code = "rdf.blank-node" if isinstance(term, BNode) else "rdf.term"
         _fail(code, str(exc))
@@ -501,10 +740,15 @@ def nquads_line(
 ) -> str:
     """Render one canonical named-graph RDF 1.1 N-Quads statement."""
 
-    try:
-        return _canonical_nquads_line(subject, predicate, obj, graph_id)
-    except RdfCanonicalError as exc:
-        _fail("rdf.term", str(exc))
+    return " ".join(
+        (
+            ntriples_term(subject),
+            ntriples_term(predicate),
+            ntriples_term(obj),
+            ntriples_term(graph_id),
+            ".",
+        )
+    )
 
 
 def _canonical_dataset_lines(
@@ -524,7 +768,19 @@ def _canonical_dataset_lines(
 
 
 class _LexicalNQuadsParser(NQuadsParser):
-    """Pinned RDFLib parser variant that never normalizes literal lexemes."""
+    """Pinned parser that preserves lexemes and verifies canonical terms inline."""
+
+    def __init__(
+        self,
+        *args: Any,
+        subject_observer: Callable[[URIRef, URIRef], None] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.graph_counts: Counter[URIRef] = Counter()
+        self.subject_observer = subject_observer
+        self.observed_subject: URIRef | None = None
+        self.observed_subject_graphs: set[URIRef] = set()
 
     def literal(self) -> Literal | bool:
         if not self.peek('"'):
@@ -540,23 +796,70 @@ class _LexicalNQuadsParser(NQuadsParser):
             normalize=False,
         )
 
+    def parseline(self, bnode_context: Any = None) -> None:
+        """Parse one statement and compare it with its canonical serialization."""
 
-def _parse_nquads_preserving_lexical_forms(dataset: Dataset, source: Path) -> None:
-    """Parse N-Quads without mutating RDFLib's process-global normalization flag."""
+        original = self.line
+        if not isinstance(original, str):
+            raise ParseError("N-Quads parser has no current line")
+        self.eat(r_wspace)
+        if not self.line or self.line.startswith("#"):
+            return
+
+        subject = self.subject(bnode_context)
+        self.eat(r_wspace)
+        predicate = self.predicate()
+        self.eat(r_wspace)
+        obj = self.object(bnode_context)
+        self.eat(r_wspace)
+        context = self.uriref() or self.nodeid(bnode_context)
+        self.eat(r_tail)
+        if self.line:
+            raise ParseError("Trailing garbage")
+        if any(isinstance(term, BNode) for term in (subject, predicate, obj, context)):
+            _fail("rdf.blank-node", "atlas.nq contains a blank node term")
+        if not all(isinstance(term, URIRef) for term in (subject, predicate, context)) or not isinstance(
+            obj, (URIRef, Literal)
+        ):
+            _fail("rdf.term", "atlas.nq contains an unsupported RDF term")
+        if original != nquads_line(subject, predicate, obj, context):
+            _fail("rdf.canonical", "atlas.nq is not in the canonical N-Quads term form")
+
+        if subject != self.observed_subject:
+            self.observed_subject = subject
+            self.observed_subject_graphs.clear()
+        if context not in self.observed_subject_graphs:
+            self.observed_subject_graphs.add(context)
+            if self.subject_observer is not None:
+                self.subject_observer(context, subject)
+        self.sink.get_context(context).add((subject, predicate, obj))
+        self.graph_counts[context] += 1
+
+
+def _parse_nquads_preserving_lexical_forms(
+    dataset: Dataset,
+    source: Any,
+    *,
+    subject_observer: Callable[[URIRef, URIRef], None] | None = None,
+) -> Counter[URIRef]:
+    """Parse and count canonical N-Quads without global literal normalization."""
 
     input_source = create_input_source(source=source, format="nquads")
+    parser = _LexicalNQuadsParser(subject_observer=subject_observer)
     try:
-        _LexicalNQuadsParser().parse(input_source, dataset)
+        parser.parse(input_source, dataset)
     finally:
         if input_source.auto_close:
             input_source.close()
+    return parser.graph_counts
 
 
-def _check_serialized_nquads_profile(path: Path) -> int:
-    """Check the line-level canonical profile with bounded memory."""
+def _check_serialized_nquads_profile(path: Path, *, expected_digest: str | None = None) -> int:
+    """Check line-level canonical rules and, when supplied, the member digest."""
 
     previous: bytes | None = None
     line_count = 0
+    digest = hashlib.sha256()
     has_line_ending_error = False
     has_blank_or_padded_line = False
     has_ordering_error = False
@@ -564,6 +867,7 @@ def _check_serialized_nquads_profile(path: Path) -> int:
         with path.open("rb") as stream:
             while line := stream.readline(NQUADS_MAX_LINE_BYTES + 1):
                 line_count += 1
+                digest.update(line)
                 if len(line) > NQUADS_MAX_LINE_BYTES:
                     _fail(
                         "rdf.resource-limit",
@@ -588,118 +892,24 @@ def _check_serialized_nquads_profile(path: Path) -> int:
         _fail("rdf.canonical", "atlas.nq contains a blank or padded line")
     if has_ordering_error:
         _fail("rdf.canonical", "atlas.nq lines must be sorted and unique")
+    if expected_digest is not None and "sha256:" + digest.hexdigest() != expected_digest:
+        _fail("distribution.digest", "atlas.nq digest differs")
     return line_count
-
-
-def _merge_sorted_nquads_chunks(inputs: Sequence[Path], output: Path) -> None:
-    """Merge one bounded group of sorted byte chunks without deduplicating."""
-
-    with ExitStack() as stack:
-        streams = [stack.enter_context(path.open("rb")) for path in inputs]
-        sink = stack.enter_context(output.open("wb"))
-        sink.writelines(heapq.merge(*streams))
-
-
-def _bound_sorted_nquads_merge(
-    chunks: Sequence[Path],
-    temporary: Path,
-    *,
-    fan_in: int,
-) -> list[Path]:
-    """Reduce sorted chunks until the final merge opens at most ``fan_in`` files."""
-
-    if fan_in < 2:
-        raise ValueError("N-Quads merge fan-in must be at least two")
-    current = list(chunks)
-    pass_index = 0
-    while len(current) > fan_in:
-        reduced: list[Path] = []
-        for group_index, offset in enumerate(range(0, len(current), fan_in)):
-            group = current[offset : offset + fan_in]
-            if len(group) == 1:
-                reduced.append(group[0])
-                continue
-            output = temporary / f"merge-{pass_index:03d}-{group_index:05d}.nq"
-            _merge_sorted_nquads_chunks(group, output)
-            reduced.append(output)
-            for path in group:
-                path.unlink()
-        current = reduced
-        pass_index += 1
-    return current
-
-
-def _check_canonical_dataset_terms(path: Path, dataset: Dataset, *, line_count: int) -> None:
-    """Externally sort canonical parsed quads and compare them to the source bytes."""
-
-    try:
-        with tempfile.TemporaryDirectory(prefix="atlas3-canonical-") as raw_temporary:
-            temporary = Path(raw_temporary)
-            chunks: list[Path] = []
-            buffered: list[bytes] = []
-            buffered_bytes = 0
-            parsed_count = 0
-
-            def flush_chunk() -> None:
-                nonlocal buffered_bytes
-                if not buffered:
-                    return
-                buffered.sort()
-                chunk = temporary / f"chunk-{len(chunks):05d}.nq"
-                with chunk.open("wb") as sink:
-                    sink.writelines(buffered)
-                chunks.append(chunk)
-                buffered.clear()
-                buffered_bytes = 0
-
-            for subject, predicate, obj, graph_id in dataset.quads((None, None, None, None)):
-                if any(isinstance(term, BNode) for term in (subject, predicate, obj, graph_id)):
-                    _fail("rdf.blank-node", "atlas.nq contains a blank node term")
-                line = (nquads_line(subject, predicate, obj, graph_id) + "\n").encode("utf-8")
-                if len(line) > NQUADS_MAX_LINE_BYTES:
-                    _fail(
-                        "rdf.resource-limit",
-                        f"canonical N-Quads line exceeds {NQUADS_MAX_LINE_BYTES} bytes",
-                    )
-                if buffered and (
-                    len(buffered) >= NQUADS_SORT_CHUNK_SIZE or buffered_bytes + len(line) > NQUADS_SORT_CHUNK_BYTES
-                ):
-                    flush_chunk()
-                buffered.append(line)
-                buffered_bytes += len(line)
-                parsed_count += 1
-            flush_chunk()
-            if parsed_count != line_count or not chunks:
-                _fail("rdf.canonical", "parsed quad count differs from serialized line count")
-            chunks = _bound_sorted_nquads_merge(
-                chunks,
-                temporary,
-                fan_in=NQUADS_MERGE_FAN_IN,
-            )
-            with ExitStack() as stack:
-                streams = [stack.enter_context(chunk.open("rb")) for chunk in chunks]
-                source = stack.enter_context(path.open("rb"))
-                for actual, expected in zip_longest(source, heapq.merge(*streams)):
-                    if actual != expected:
-                        _fail("rdf.canonical", "atlas.nq is not in the canonical N-Quads term form")
-    except OSError as exc:
-        _fail("rdf.resource-limit", f"canonical N-Quads external sort failed: {exc}")
 
 
 def rdf_node_digest(graph: Graph, node: URIRef) -> str:
     """Digest one node's sorted outgoing RDF facts, excluding the digest itself."""
 
-    facts = [(predicate, obj) for predicate, obj in graph.predicate_objects(node) if predicate != ATLAS.contentDigest]
-    if not facts:
-        _fail("dataset.node-identity", f"{node} has no digestible RDF facts")
-    return _outgoing_facts_digest(facts)
+    return _outgoing_facts_digest(graph.predicate_objects(node), node=node)
 
 
-def _load_json(path: Path, *, require_canonical: bool) -> Any:
+def _load_json(path: Path, *, require_canonical: bool, expected_digest: str | None = None) -> Any:
     try:
         raw = path.read_bytes()
     except OSError as exc:
         _fail("distribution.file", f"cannot read {path}: {exc}")
+    if expected_digest is not None and "sha256:" + hashlib.sha256(raw).hexdigest() != expected_digest:
+        _fail("distribution.digest", f"{path.name} digest differs")
     try:
         text = raw.decode("utf-8")
         value = json.loads(
@@ -749,6 +959,111 @@ def _schema_by_name(name: str, schemas: Mapping[str, Mapping[str, Any]]) -> Mapp
     return matches[0]
 
 
+def _json_equality_fingerprint(value: Any) -> bytes:
+    """Hash one JSON value under jsonschema's equality rules.
+
+    In particular, JSON objects are independent of member order, arrays retain
+    their order, booleans differ from the integers 0 and 1, and numerically
+    equal integer/decimal/float values share one fingerprint.
+    """
+
+    digest = hashlib.sha256()
+
+    def add_sized(marker: bytes, payload: bytes) -> None:
+        digest.update(marker)
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+
+    def add(child: Any) -> None:
+        if child is None:
+            digest.update(b"N")
+        elif child is True:
+            digest.update(b"B1")
+        elif child is False:
+            digest.update(b"B0")
+        elif isinstance(child, str):
+            add_sized(b"S", child.encode("utf-8"))
+        elif isinstance(child, Mapping):
+            digest.update(b"O")
+            digest.update(len(child).to_bytes(8, "big"))
+            for key in sorted(child):
+                add(key)
+                add(child[key])
+        elif isinstance(child, Sequence) and not isinstance(
+            child,
+            (str, bytes, bytearray),
+        ):
+            digest.update(b"A")
+            digest.update(len(child).to_bytes(8, "big"))
+            for item in child:
+                add(item)
+        elif isinstance(child, (int, float, Decimal)):
+            try:
+                numerator, denominator = child.as_integer_ratio()
+            except (AttributeError, OverflowError, ValueError):
+                add_sized(b"X", repr(child).encode("ascii", errors="backslashreplace"))
+            else:
+                add_sized(b"Q", f"{numerator}/{denominator}".encode("ascii"))
+        else:
+            add_sized(
+                b"X",
+                (
+                    f"{type(child).__module__}.{type(child).__qualname__}:"
+                    f"{child!r}"
+                ).encode("utf-8", errors="backslashreplace"),
+            )
+
+    add(value)
+    return digest.digest()
+
+
+def _json_items_are_unique(instance: Sequence[Any]) -> bool:
+    """Check JSON-array uniqueness in expected linear time and bounded keys.
+
+    SHA-256 fingerprints keep the index compact.  Equality is still checked
+    within a matching bucket, so even a fingerprint collision cannot change a
+    validation verdict.
+    """
+
+    seen: dict[bytes, int | list[int]] = {}
+    for index, item in enumerate(instance):
+        fingerprint = _json_equality_fingerprint(item)
+        previous = seen.get(fingerprint)
+        if previous is None:
+            seen[fingerprint] = index
+            continue
+        candidates = previous if isinstance(previous, list) else [previous]
+        if any(jsonschema_utils.equal(instance[candidate], item) for candidate in candidates):
+            return False
+        if isinstance(previous, list):
+            previous.append(index)
+        else:
+            seen[fingerprint] = [previous, index]
+    return True
+
+
+def _validate_unique_items_linear(
+    validator: Any,
+    unique_items: Any,
+    instance: Any,
+    _schema: Mapping[str, Any],
+) -> Iterable[ValidationError]:
+    """Draft 2020-12 uniqueItems without quadratic object comparisons."""
+
+    if (
+        unique_items
+        and validator.is_type(instance, "array")
+        and not _json_items_are_unique(instance)
+    ):
+        yield ValidationError(f"{instance!r} has non-unique elements")
+
+
+_AtlasDraft202012Validator = jsonschema_validators.extend(
+    Draft202012Validator,
+    {"uniqueItems": _validate_unique_items_linear},
+)
+
+
 def _validate_json_schema(
     value: Any,
     schema_name: str,
@@ -758,7 +1073,7 @@ def _validate_json_schema(
     label: str,
 ) -> None:
     schema = _schema_by_name(schema_name, schemas)
-    validator = Draft202012Validator(
+    validator = _AtlasDraft202012Validator(
         schema,
         registry=registry,
         format_checker=FormatChecker(),
@@ -858,43 +1173,193 @@ def _check_manifest_digest(manifest: Mapping[str, Any]) -> None:
         _fail("manifest.identity", "canonicalPayloadDigest does not match the canonical manifest payload")
 
 
-def _check_distribution_files(root: Path, manifest: Mapping[str, Any]) -> None:
+def _graph_inventory_digest(
+    packs: Iterable[Mapping[str, Any]],
+    role: str,
+) -> str:
+    rows = [
+        {
+            "contentDigest": pack["content"]["digest"],
+            "packId": pack["packId"],
+            "quadCount": pack["graphCounts"][role],
+        }
+        for pack in packs
+        if pack["graphCounts"][role] > 0
+    ]
+    rows.sort(key=lambda row: row["packId"])
+    return canonical_sha256(rows, terminal_lf=False)
+
+
+def _check_pack_manifest(manifest: Mapping[str, Any]) -> dict[str, URIRef]:
+    """Reconcile pack inventories, dependencies, ordering, and partition metadata."""
+
+    packs = manifest["packs"]
+    pack_ids = [pack["packId"] for pack in packs]
+    if pack_ids != sorted(pack_ids) or len(pack_ids) != len(set(pack_ids)):
+        _fail("pack.manifest", "packs must have unique packId values in lexicographic order")
+    paths = [pack["path"] for pack in packs]
+    if len(paths) != len(set(paths)):
+        _fail("pack.manifest", "pack paths must be unique")
+
+    known_pack_ids = set(pack_ids)
+    for pack in packs:
+        pack_id = pack["packId"]
+        for field in ("dependencies", "rings", "sourceReleases"):
+            values = pack[field]
+            if values != sorted(values) or len(values) != len(set(values)):
+                _fail("pack.manifest", f"{pack_id} {field} must be unique and sorted")
+        dependencies = pack["dependencies"]
+        if pack_id in dependencies or not set(dependencies) <= known_pack_ids:
+            _fail("pack.dependency", f"{pack_id} has a self or unknown dependency")
+        graph_count = sum(pack["graphCounts"].values())
+        if graph_count != pack["content"]["quadCount"]:
+            _fail("pack.inventory", f"{pack_id} graph counts differ from content quadCount")
+
+    graphs = manifest["graphs"]
+    graph_roles = [row["role"] for row in graphs]
+    if graph_roles != ["asserted", "projection", "derived"]:
+        _fail("pack.inventory", "graph inventories must occur in asserted, projection, derived order")
+    graph_ids = {row["role"]: URIRef(row["id"]) for row in graphs}
+    if len(set(graph_ids.values())) != len(graph_ids):
+        _fail("pack.inventory", "named graph IDs must be unique")
+    for graph_row in graphs:
+        role = graph_row["role"]
+        role_packs = [pack for pack in packs if pack["graphCounts"][role] > 0]
+        if graph_row["packCount"] != len(role_packs):
+            _fail("pack.inventory", f"{role} graph packCount differs")
+        if graph_row["quadCount"] != sum(pack["graphCounts"][role] for pack in role_packs):
+            _fail("pack.inventory", f"{role} graph quadCount differs")
+        if graph_row["inventoryDigest"] != _graph_inventory_digest(packs, role):
+            _fail("pack.inventory", f"{role} graph inventoryDigest differs")
+
+    asserted_digest = graphs[0]["inventoryDigest"]
+    asserted_pack_ids = {
+        pack["packId"] for pack in packs if pack["graphCounts"]["asserted"] > 0
+    }
+    for pack in packs:
+        has_view = pack["graphCounts"]["projection"] > 0 or pack["graphCounts"]["derived"] > 0
+        if has_view:
+            if pack.get("inputAssertedDigest") != asserted_digest:
+                _fail("pack.dependency", f"{pack['packId']} does not pin the asserted inventory")
+            expected_dependencies = asserted_pack_ids - {pack["packId"]}
+            if set(pack["dependencies"]) != expected_dependencies:
+                _fail("pack.dependency", f"{pack['packId']} does not depend on every external asserted pack")
+        elif "inputAssertedDigest" in pack:
+            _fail("pack.dependency", f"{pack['packId']} has an inapplicable inputAssertedDigest")
+
+    partitions_by_release: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    source_release_counts: Counter[str] = Counter(
+        release
+        for pack in packs
+        if pack["kind"] == "sourceRelease"
+        for release in pack["sourceReleases"]
+    )
+    for pack in packs:
+        if pack["kind"] != "sourceRelease":
+            continue
+        release = pack["sourceReleases"][0]
+        partition = pack.get("partition")
+        if source_release_counts[release] > 1 and partition is None:
+            _fail("pack.co-location", f"partitioned source release {release} lacks stable bucket metadata")
+        if partition is not None:
+            partitions_by_release[release].append((partition["prefix"], pack["packId"]))
+    for release, partitions in partitions_by_release.items():
+        for index, (prefix, pack_id) in enumerate(partitions):
+            for other_prefix, other_id in partitions[index + 1 :]:
+                if prefix.startswith(other_prefix) or other_prefix.startswith(prefix):
+                    _fail(
+                        "pack.co-location",
+                        f"{release} has overlapping subject buckets {pack_id} and {other_id}",
+                    )
+    return graph_ids
+
+
+def _safe_distribution_path(root: Path, relative: str) -> Path:
+    path = root / relative
+    try:
+        if not path.resolve().is_relative_to(root.resolve()):
+            _fail("distribution.path", f"distribution member escapes its root: {relative}")
+    except OSError as exc:
+        _fail("distribution.path", f"cannot resolve distribution member {relative}: {exc}")
+    return path
+
+
+def _check_distribution_files(root: Path, manifest: Mapping[str, Any]) -> dict[str, str]:
+    """Check closed membership and lengths; return digests for each required read to verify."""
+
     if root.is_symlink() or not root.is_dir():
         _fail("distribution.path", f"distribution is not a regular directory: {root}")
-    entries = list(root.iterdir())
-    for entry in entries:
-        if entry.is_symlink() or not entry.is_file():
-            _fail("distribution.path", f"unsafe distribution member: {entry.name}")
-    names = {entry.name for entry in entries}
-    if names != EXPECTED_FILES:
+    expected_lengths: dict[str, int] = {MANIFEST_FILE: (root / MANIFEST_FILE).stat().st_size}
+    member_digests: dict[str, str] = {}
+    for member in manifest["members"]:
+        relative = member["path"]
+        if relative in expected_lengths:
+            _fail("distribution.members", f"duplicate distribution path {relative}")
+        expected_lengths[relative] = member["byteLength"]
+        member_digests[relative] = member["digest"]
+    for pack in manifest["packs"]:
+        relative = pack["path"]
+        if relative in expected_lengths:
+            _fail("distribution.members", f"duplicate distribution path {relative}")
+        expected_lengths[relative] = pack["transport"]["byteLength"]
+        member_digests[relative] = pack["transport"]["digest"]
+
+    expected_directories = {
+        parent.as_posix()
+        for relative in expected_lengths
+        for parent in Path(relative).parents
+        if parent != Path(".")
+    }
+    actual_files: set[str] = set()
+    actual_directories: set[str] = set()
+    for entry in root.rglob("*"):
+        relative = entry.relative_to(root).as_posix()
+        if entry.is_symlink():
+            _fail("distribution.path", f"unsafe symlink in distribution: {relative}")
+        if entry.is_dir():
+            actual_directories.add(relative)
+        elif entry.is_file():
+            actual_files.add(relative)
+        else:
+            _fail("distribution.path", f"unsafe distribution member: {relative}")
+    if actual_files != set(expected_lengths) or actual_directories != expected_directories:
         _fail(
             "distribution.members",
-            f"distribution members differ; missing={sorted(EXPECTED_FILES - names)}, extra={sorted(names - EXPECTED_FILES)}",
+            "distribution members differ; "
+            f"missingFiles={sorted(set(expected_lengths) - actual_files)}, "
+            f"extraFiles={sorted(actual_files - set(expected_lengths))}, "
+            f"missingDirectories={sorted(expected_directories - actual_directories)}, "
+            f"extraDirectories={sorted(actual_directories - expected_directories)}",
         )
-    for member in manifest["members"]:
-        path = root / member["path"]
-        if path.stat().st_size != member["byteLength"]:
-            _fail("distribution.length", f"{path.name} byteLength differs")
-        if file_sha256(path) != member["digest"]:
-            _fail("distribution.digest", f"{path.name} digest differs")
+    for relative, expected_length in expected_lengths.items():
+        path = _safe_distribution_path(root, relative)
+        if path.stat().st_size != expected_length:
+            _fail("distribution.length", f"{relative} byteLength differs")
+    return member_digests
 
 
-def _parse_dataset(path: Path, manifest: Mapping[str, Any]) -> tuple[Dataset, dict[str, Graph]]:
-    line_count = _check_serialized_nquads_profile(path)
+def _parse_dataset(
+    path: Path,
+    manifest: Mapping[str, Any],
+    *,
+    expected_digest: str | None = None,
+) -> tuple[Dataset, dict[str, Graph]]:
+    line_count = _check_serialized_nquads_profile(path, expected_digest=expected_digest)
     dataset = Dataset()
     try:
-        _parse_nquads_preserving_lexical_forms(dataset, path)
+        counts = _parse_nquads_preserving_lexical_forms(dataset, path)
+    except AtlasValidationError:
+        raise
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
         _fail("rdf.syntax", f"atlas.nq cannot be parsed as N-Quads: {exc}")
-    _check_canonical_dataset_terms(path, dataset, line_count=line_count)
+    if sum(counts.values()) != line_count:
+        _fail("rdf.canonical", "parsed quad count differs from serialized line count")
 
     declared = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
     allowed_ids = set(declared.values())
-    counts: Counter[URIRef] = Counter()
-    for _, _, _, graph_id in dataset.quads((None, None, None, None)):
-        if not isinstance(graph_id, URIRef) or graph_id not in allowed_ids:
+    for graph_id in counts:
+        if graph_id not in allowed_ids:
             _fail("dataset.graph", f"statement occurs in undeclared graph {graph_id}")
-        counts[graph_id] += 1
     for row in manifest["graphs"]:
         graph_id = URIRef(row["id"])
         if counts[graph_id] != row["quadCount"]:
@@ -903,6 +1368,149 @@ def _parse_dataset(path: Path, manifest: Mapping[str, Any]) -> tuple[Dataset, di
         _fail("dataset.graph", "asserted graph is empty")
     graphs = {role: dataset.graph(graph_id) for role, graph_id in declared.items()}
     return dataset, graphs
+
+
+def _parse_pack_into_dataset(
+    dataset: Dataset,
+    root: Path,
+    pack: Mapping[str, Any],
+    graph_ids: Mapping[str, URIRef],
+    subject_owners: Mapping[str, dict[URIRef, str]],
+) -> Counter[URIRef]:
+    """Stream, receipt, and parse one independently addressable pack."""
+
+    pack_id = pack["packId"]
+    path = _safe_distribution_path(root, pack["path"])
+    role_by_graph = {graph_id: role for role, graph_id in graph_ids.items()}
+    partition_prefix = pack.get("partition", {}).get("prefix")
+
+    def observe_subject(graph_id: URIRef, subject: URIRef) -> None:
+        role = role_by_graph.get(graph_id)
+        if role is None:
+            _fail("dataset.graph", f"{pack_id} contains undeclared graph {graph_id}")
+        previous = subject_owners[role].get(subject)
+        if previous is not None and previous != pack_id:
+            _fail(
+                "pack.co-location",
+                f"{subject} has {role} outgoing facts in both {previous} and {pack_id}",
+            )
+        subject_owners[role][subject] = pack_id
+        if partition_prefix is not None:
+            actual_prefix = hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
+            if not actual_prefix.startswith(partition_prefix):
+                _fail("pack.partition", f"{subject} does not belong in {pack_id} bucket {partition_prefix}")
+
+    with path.open("rb") as stored_stream:
+        transport_reader = _DigestingReader(stored_stream, label=pack["path"])
+        compression = pack["transport"]["compression"]
+        decoded_stream: Any = transport_reader
+        if compression == "zstd":
+            try:
+                decoded_stream = zstd.open(transport_reader, "rb")
+            except Exception as exc:  # noqa: BLE001 - normalize decoder setup failures
+                _fail("pack.compression", f"cannot open {pack['path']} as Zstandard: {exc}")
+        content_reader = _NQuadsProfileReader(
+            decoded_stream,
+            label=pack["path"],
+            expected=pack["content"],
+        )
+        try:
+            counts = _parse_nquads_preserving_lexical_forms(
+                dataset,
+                content_reader,
+                subject_observer=observe_subject,
+            )
+            content_reader.finish(pack["content"])
+            transport_reader.finish(
+                pack["transport"],
+                require_consumed=compression == "zstd",
+            )
+        except AtlasValidationError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - normalize RDF and compression failures
+            _fail("rdf.syntax", f"{pack['path']} cannot be parsed as N-Quads: {exc}")
+        finally:
+            if decoded_stream is not transport_reader:
+                decoded_stream.close()
+
+    expected_counts = {
+        graph_ids[role]: count for role, count in pack["graphCounts"].items()
+    }
+    undeclared = set(counts) - set(expected_counts)
+    if undeclared:
+        _fail("dataset.graph", f"{pack_id} contains undeclared graph {min(undeclared, key=str)}")
+    for graph_id, expected in expected_counts.items():
+        if counts[graph_id] != expected:
+            _fail("pack.inventory", f"{pack_id} graph count differs for {graph_id}")
+    return counts
+
+
+def _parse_packed_dataset(
+    root: Path,
+    manifest: Mapping[str, Any],
+    graph_ids: Mapping[str, URIRef],
+) -> tuple[Dataset, dict[str, Graph]]:
+    """Parse verified packs into one graph store for global Atlas invariants."""
+
+    dataset = Dataset()
+    subject_owners: dict[str, dict[URIRef, str]] = {
+        role: {} for role in graph_ids
+    }
+    aggregate_counts: Counter[URIRef] = Counter()
+    for pack in manifest["packs"]:
+        counts = _parse_pack_into_dataset(
+            dataset,
+            root,
+            pack,
+            graph_ids,
+            subject_owners,
+        )
+        aggregate_counts.update(counts)
+    for graph_row in manifest["graphs"]:
+        graph_id = graph_ids[graph_row["role"]]
+        if aggregate_counts[graph_id] != graph_row["quadCount"]:
+            _fail("pack.inventory", f"{graph_row['role']} aggregate graph count differs")
+    _check_asserted_pack_dependencies(
+        dataset.graph(graph_ids["asserted"]),
+        manifest,
+        subject_owners["asserted"],
+    )
+    graphs = {
+        role: dataset.graph(graph_id) for role, graph_id in graph_ids.items()
+    }
+    return dataset, graphs
+
+
+def _check_asserted_pack_dependencies(
+    asserted: Graph,
+    manifest: Mapping[str, Any],
+    subject_owners: Mapping[URIRef, str],
+) -> None:
+    """Require exact dependencies for asserted references crossing pack boundaries."""
+
+    expected: dict[str, set[str]] = {
+        pack["packId"]: set() for pack in manifest["packs"]
+    }
+    for subject, _, obj in asserted:
+        if not isinstance(obj, URIRef):
+            continue
+        source_pack = subject_owners[subject]
+        target_pack = subject_owners.get(obj)
+        if target_pack is not None and target_pack != source_pack:
+            expected[source_pack].add(target_pack)
+
+    for pack in manifest["packs"]:
+        if pack["graphCounts"]["projection"] or pack["graphCounts"]["derived"]:
+            continue
+        pack_id = pack["packId"]
+        declared = set(pack["dependencies"])
+        if declared != expected[pack_id]:
+            _fail(
+                "pack.dependency",
+                f"{pack_id} dependencies differ; "
+                f"missing={sorted(expected[pack_id] - declared)}, "
+                f"extra={sorted(declared - expected[pack_id])}",
+            )
 
 
 def _parse_binding_graphs() -> tuple[Graph, Graph]:
@@ -977,44 +1585,320 @@ def _lint_ontology(ontology: Graph) -> None:
             _fail("ontology.term", f"Atlas term has no rdfs:label: {subject}")
 
 
+_SHACL_TARGET_PREDICATES = (
+    SH.targetClass,
+    SH.targetNode,
+    SH.targetObjectsOf,
+    SH.targetSubjectsOf,
+)
+_INLINE_VALUE_SHAPES = frozenset(
+    {
+        ATLAS.DateTimeValueShape,
+        ATLAS.DigestValueShape,
+        ATLAS.NonEmptyStringValueShape,
+        ATLAS.ResourceProfileValueShape,
+        ATLAS.SemanticRingValueShape,
+        ATLAS.TextLiteralValueShape,
+    }
+)
+_INLINE_VALUE_CONSTRAINTS = frozenset(
+    {
+        SH.datatype,
+        SH.minLength,
+        SH.nodeKind,
+        SH["or"],
+        SH.pattern,
+    }
+)
+_SHAPE_EXPECTING_PREDICATES = (
+    SH.node,
+    SH["not"],
+    SH.property,
+    SH.qualifiedValueShape,
+)
+_SHAPE_LIST_PREDICATES = (SH["and"], SH["or"], SH.xone)
+
+
+def _copy_graph(graph: Graph) -> Graph:
+    copied = Graph(identifier=graph.identifier)
+    for prefix, namespace in graph.namespaces():
+        copied.bind(prefix, namespace)
+    for triple in graph:
+        copied.add(triple)
+    return copied
+
+
+def _referenced_shapes(shapes: Graph) -> set[Any]:
+    referenced = {
+        obj
+        for predicate in _SHAPE_EXPECTING_PREDICATES
+        for obj in shapes.objects(None, predicate)
+    }
+    for predicate in _SHAPE_LIST_PREDICATES:
+        for head in shapes.objects(None, predicate):
+            referenced.update(shapes.items(head))
+    return referenced
+
+
+def _closed_shape_plan(
+    shapes: Graph,
+    shape: URIRef,
+    property_shapes: Sequence[Any],
+) -> _ClosedShapePlan | None:
+    closed_values = list(shapes.objects(shape, SH.closed))
+    if not closed_values or not all(isinstance(value, Literal) and bool(value.value) for value in closed_values):
+        return None
+    allowed_paths = frozenset(
+        path
+        for property_shape in property_shapes
+        for path in shapes.objects(property_shape, SH.path)
+    )
+    ignored_paths = frozenset(
+        item
+        for head in shapes.objects(shape, SH.ignoredProperties)
+        for item in shapes.items(head)
+    )
+    return _ClosedShapePlan(
+        shape=shape,
+        allowed_paths=allowed_paths,
+        ignored_paths=ignored_paths,
+    )
+
+
+def _ring_context_branch_signature(shapes: Graph, branch: Any) -> frozenset[tuple[Any, int | None, int | None]] | None:
+    if set(shapes.predicates(branch, None)) - {SH.property}:
+        return None
+    signature: set[tuple[Any, int | None, int | None]] = set()
+    for property_shape in shapes.objects(branch, SH.property):
+        if set(shapes.predicates(property_shape, None)) - {SH.path, SH.minCount, SH.maxCount}:
+            return None
+        paths = list(shapes.objects(property_shape, SH.path))
+        minimums = list(shapes.objects(property_shape, SH.minCount))
+        maximums = list(shapes.objects(property_shape, SH.maxCount))
+        if len(paths) != 1 or len(minimums) > 1 or len(maximums) > 1:
+            return None
+        minimum = int(minimums[0]) if minimums else None
+        maximum = int(maximums[0]) if maximums else None
+        signature.add((paths[0], minimum, maximum))
+    return frozenset(signature)
+
+
+def _can_lift_relation_ring_context(shapes: Graph) -> bool:
+    heads = list(shapes.objects(ATLAS.RelationAssertionShape, SH.xone))
+    if len(heads) != 1:
+        return False
+    signatures = {
+        _ring_context_branch_signature(shapes, branch)
+        for branch in shapes.items(heads[0])
+    }
+    return signatures == {
+        frozenset(
+            {
+                (ATLAS.semanticRing, 1, None),
+                (ATLAS.sourceRing, None, 0),
+                (ATLAS.targetRing, None, 0),
+            }
+        ),
+        frozenset(
+            {
+                (ATLAS.semanticRing, None, 0),
+                (ATLAS.sourceRing, 1, None),
+                (ATLAS.targetRing, 1, None),
+            }
+        ),
+    }
+
+
+def _batched_shacl_plan(shapes: Graph) -> _BatchedShaclPlan:
+    """Build a valid-data execution graph without changing normative shapes.
+
+    pySHACL 0.31 evaluates every ``sh:property`` shape once per focus node.
+    Atlas property constraints are direct children of targeted node shapes, so
+    targeting those property shapes directly preserves conformance while
+    batching all focus nodes into one constraint evaluation. Closed-shape and
+    the high-volume relation ring-context checks run once below. Any failure
+    falls back to the untouched shapes for the original report.
+    """
+
+    execution = _copy_graph(shapes)
+    referenced = _referenced_shapes(shapes)
+    closed_plans: list[_ClosedShapePlan] = []
+    targeted_shapes = {
+        subject
+        for predicate in _SHACL_TARGET_PREDICATES
+        for subject in shapes.subjects(predicate, None)
+    }
+    for shape in targeted_shapes:
+        property_shapes = list(shapes.objects(shape, SH.property))
+        if (
+            not property_shapes
+            or shape in referenced
+            or list(shapes.objects(shape, SH.path))
+            or (shape, RDF.type, SH.NodeShape) not in shapes
+        ):
+            continue
+        targets = [
+            (predicate, obj)
+            for predicate in _SHACL_TARGET_PREDICATES
+            for obj in shapes.objects(shape, predicate)
+        ]
+        for property_shape in property_shapes:
+            for predicate, obj in targets:
+                execution.add((property_shape, predicate, obj))
+            execution.remove((shape, SH.property, property_shape))
+
+        closed_plan = _closed_shape_plan(shapes, shape, property_shapes)
+        if closed_plan is not None:
+            closed_plans.append(closed_plan)
+            execution.remove((shape, SH.closed, None))
+            execution.remove((shape, SH.ignoredProperties, None))
+
+    for property_shape, value_shape in list(execution.subject_objects(SH.node)):
+        if value_shape not in _INLINE_VALUE_SHAPES:
+            continue
+        value_predicates = set(shapes.predicates(value_shape, None))
+        supported_predicates = {RDF.type, SH.message, *_INLINE_VALUE_CONSTRAINTS}
+        if value_predicates - supported_predicates:
+            continue
+        for predicate, obj in shapes.predicate_objects(value_shape):
+            if predicate in _INLINE_VALUE_CONSTRAINTS:
+                execution.add((property_shape, predicate, obj))
+        execution.remove((property_shape, SH.node, value_shape))
+
+    checks_relation_ring_context = _can_lift_relation_ring_context(shapes)
+    if checks_relation_ring_context:
+        execution.remove((ATLAS.RelationAssertionShape, SH.xone, None))
+
+    return _BatchedShaclPlan(
+        shapes=execution,
+        closed_shapes=tuple(sorted(closed_plans, key=lambda plan: str(plan.shape))),
+        checks_relation_ring_context=checks_relation_ring_context,
+    )
+
+
+def _core_shacl_targets(data_graph: Graph, shapes: Graph, shape: Any) -> set[Any]:
+    """Resolve the four SHACL Core target forms used by the Atlas shapes."""
+
+    targets = set(shapes.objects(shape, SH.targetNode))
+    for target_class in shapes.objects(shape, SH.targetClass):
+        targets.update(data_graph.subjects(RDF.type, target_class))
+        for subclass in data_graph.transitive_subjects(RDFS.subClassOf, target_class):
+            if subclass != target_class:
+                targets.update(data_graph.subjects(RDF.type, subclass))
+    for predicate in shapes.objects(shape, SH.targetSubjectsOf):
+        targets.update(data_graph.subjects(predicate, None))
+    for predicate in shapes.objects(shape, SH.targetObjectsOf):
+        targets.update(data_graph.objects(None, predicate))
+    return targets
+
+
+def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _BatchedShaclPlan) -> bool:
+    """Return false when a lifted constraint needs the original SHACL report."""
+
+    for closed in plan.closed_shapes:
+        for focus in _core_shacl_targets(data_graph, normative_shapes, closed.shape):
+            for predicate, obj in data_graph.predicate_objects(focus):
+                if (
+                    (predicate, obj) != (RDF.type, RDFS.Resource)
+                    and predicate not in closed.ignored_paths
+                    and predicate not in closed.allowed_paths
+                ):
+                    return False
+
+    if plan.checks_relation_ring_context:
+        for focus in _core_shacl_targets(data_graph, normative_shapes, ATLAS.RelationAssertionShape):
+            semantic_count = sum(1 for _ in data_graph.objects(focus, ATLAS.semanticRing))
+            source_count = sum(1 for _ in data_graph.objects(focus, ATLAS.sourceRing))
+            target_count = sum(1 for _ in data_graph.objects(focus, ATLAS.targetRing))
+            same_ring = semantic_count >= 1 and source_count == 0 and target_count == 0
+            cross_ring = semantic_count == 0 and source_count >= 1 and target_count >= 1
+            if same_ring == cross_ring:
+                return False
+    return True
+
+
+def _validate_shacl_data(data_graph: Graph, shapes: Graph) -> tuple[bool, Any, str]:
+    return shacl_validate(
+        data_graph,
+        shacl_graph=shapes,
+        inference="none",
+        inplace=True,
+        advanced=False,
+        abort_on_first=False,
+        allow_infos=False,
+        allow_warnings=False,
+        meta_shacl=False,
+    )
+
+
 def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> None:
     """Validate authoritative inputs; exact regeneration validates the projection."""
 
-    first = True
+    ontology_view = inoculate(Graph(), ontology)
+    try:
+        meta_view = _ShaclDataView([Graph(), ontology_view])
+        meta_conforms, _, meta_report = shacl_validate(
+            meta_view,
+            shacl_graph=shapes,
+            inference="none",
+            inplace=True,
+            advanced=False,
+            abort_on_first=False,
+            allow_infos=False,
+            allow_warnings=False,
+            meta_shacl=True,
+        )
+    except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
+        _fail("shacl.meta", f"SHACL processor failed for asserted: {exc}")
+    if not meta_conforms:
+        compact = " ".join(str(meta_report).split())
+        _fail("shacl.meta", f"shape graph does not conform: {compact[:900]}")
+
+    plan = _batched_shacl_plan(shapes)
     for role in ("asserted", "derived"):
+        validation_view = _ShaclDataView([graphs[role], ontology_view])
+        for prefix, namespace in ontology.namespaces():
+            validation_view.namespace_manager.bind(prefix, namespace)
+        conforms = False
+        report: Any = ""
         try:
-            conforms, _, report = shacl_validate(
-                graphs[role],
-                shacl_graph=shapes,
-                ont_graph=ontology,
-                inference="none",
-                advanced=False,
-                abort_on_first=False,
-                allow_infos=False,
-                allow_warnings=False,
-                meta_shacl=first,
-            )
+            if _batched_shacl_prechecks(validation_view, shapes, plan):
+                conforms, _, report = _validate_shacl_data(validation_view, plan.shapes)
         except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
-            code = "shacl.meta" if first else "shacl.data"
-            _fail(code, f"SHACL processor failed for {role}: {exc}")
-        first = False
+            conforms = False
+            report = str(exc)
+        if conforms:
+            continue
+
+        # Keep the normative processor's exact report and error behavior for
+        # every invalid graph and for any unsupported fast-path condition.
+        try:
+            conforms, _, report = _validate_shacl_data(validation_view, shapes)
+        except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
+            _fail("shacl.data", f"SHACL processor failed for {role}: {exc}")
         if not conforms:
             compact = " ".join(str(report).split())
             _fail("shacl.data", f"{role} graph does not conform: {compact[:900]}")
 
 
-def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
+def _check_graph_roles(graphs: Mapping[str, Graph]) -> SemanticInventory:
     asserted = graphs["asserted"]
     projection = graphs["projection"]
     derived = graphs["derived"]
     projection_only_predicates = _projection_only_predicates()
+    mutable_carriers: dict[URIRef, set[URIRef]] = {
+        carrier_type: set() for carrier_type in ASSERTED_CARRIER_TYPES
+    }
+    asserted_subjects: set[URIRef] = set()
 
     for subject, predicate, _ in asserted:
+        asserted_subjects.add(subject)
         if predicate in projection_only_predicates:
             _fail("dataset.graph-placement", f"bare projected predicate {predicate} occurs in asserted graph")
         if predicate not in ALLOWED_ASSERTED_PREDICATES:
             _fail("dataset.graph-placement", f"unsupported asserted predicate {predicate} on {subject}")
-    for subject in set(asserted.subjects()):
+    while asserted_subjects:
+        subject = asserted_subjects.pop()
         types = set(asserted.objects(subject, RDF.type))
         unsupported_types = types - ALLOWED_ASSERTED_TYPES
         if unsupported_types:
@@ -1029,6 +1913,7 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
                 f"asserted subject {subject} must have exactly one concrete Atlas carrier type",
             )
         carrier_type = next(iter(carrier_types))
+        mutable_carriers[carrier_type].add(subject)
         expected_types = {carrier_type}
         if carrier_type in RESOURCE_TYPES:
             expected_types.add(ATLAS.AtlasResource)
@@ -1065,18 +1950,93 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
         if predicate in projection_only_predicates:
             _fail("dataset.graph-placement", f"bare projected predicate {predicate} occurs in derived graph")
 
-    asserted_carrier_nodes = {
-        subject for carrier_type in ASSERTED_CARRIER_TYPES for subject in asserted.subjects(RDF.type, carrier_type)
-    }
+    asserted_by_carrier = mutable_carriers
     projection_nodes = set(projection.subjects(RDF.type, ATLAS.ProjectedRelation))
-    overlaps = {
-        "asserted/projection": asserted_carrier_nodes & projection_nodes,
-        "asserted/derived": asserted_carrier_nodes & derived_nodes,
-        "projection/derived": projection_nodes & derived_nodes,
+    for label, nodes in (
+        ("asserted/projection", projection_nodes),
+        ("asserted/derived", derived_nodes),
+    ):
+        overlap = min(
+            (
+                node
+                for node in nodes
+                if any(node in carrier_nodes for carrier_nodes in asserted_by_carrier.values())
+            ),
+            key=str,
+            default=None,
+        )
+        if overlap is not None:
+            _fail("dataset.graph-placement", f"record identity crosses {label} roles: {overlap}")
+    projection_derived_overlap = projection_nodes & derived_nodes
+    if projection_derived_overlap:
+        _fail(
+            "dataset.graph-placement",
+            "record identity crosses projection/derived roles: "
+            f"{min(projection_derived_overlap, key=str)}",
+        )
+    return SemanticInventory(
+        asserted_by_carrier=asserted_by_carrier,
+        derived_nodes=derived_nodes,
+        projection_nodes=projection_nodes,
+    )
+
+
+def _semantic_inventory_from_graphs(graphs: Mapping[str, Graph]) -> SemanticInventory:
+    """Build an inventory for direct helper calls that did not run placement first."""
+
+    asserted = graphs["asserted"]
+    asserted_by_carrier = {
+        carrier_type: frozenset(
+            node
+            for node in asserted.subjects(RDF.type, carrier_type)
+            if isinstance(node, URIRef)
+        )
+        for carrier_type in ASSERTED_CARRIER_TYPES
     }
-    for label, nodes in overlaps.items():
-        if nodes:
-            _fail("dataset.graph-placement", f"record identity crosses {label} roles: {min(nodes, key=str)}")
+    return SemanticInventory(
+        asserted_by_carrier=asserted_by_carrier,
+        derived_nodes=frozenset(graphs["derived"].subjects(RDF.type, ATLAS.DerivedRelation)),
+        projection_nodes=frozenset(
+            graphs["projection"].subjects(RDF.type, ATLAS.ProjectedRelation)
+        ),
+    )
+
+
+def _carrier_nodes(
+    asserted: Graph,
+    carrier_type: URIRef,
+    inventory: SemanticInventory | None,
+) -> AbstractSet[URIRef]:
+    if inventory is not None:
+        return inventory.nodes(carrier_type)
+    return frozenset(
+        node
+        for node in asserted.subjects(RDF.type, carrier_type)
+        if isinstance(node, URIRef)
+    )
+
+
+def _resource_nodes(
+    asserted: Graph,
+    inventory: SemanticInventory | None,
+) -> Iterable[URIRef]:
+    if inventory is not None:
+        return inventory.resources()
+    return (
+        node
+        for resource_type in RESOURCE_TYPES
+        for node in _carrier_nodes(asserted, resource_type, None)
+    )
+
+
+def _is_resource_node(
+    asserted: Graph,
+    node: Any,
+    inventory: SemanticInventory | None,
+) -> bool:
+    if inventory is not None:
+        return inventory.is_resource(node)
+    return any((node, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
 
 
 def _profile_policy_document() -> Mapping[str, Any]:
@@ -1317,20 +2277,30 @@ def _projection_only_predicates() -> frozenset[URIRef]:
     return same_ring_predicates | cross_ring_predicates | frozenset({SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel})
 
 
-def _check_profile_conformance(asserted: Graph) -> None:
+def _check_profile_conformance(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
     policies = _profile_policies()
+    constraints = {
+        profile: (
+            frozenset(URIRef(str(ATLAS) + value) for value in policy["applicableSemanticRings"]),
+            frozenset(URIRef(value) for value in policy["applicableEntryClasses"]),
+        )
+        for profile, policy in policies.items()
+    }
     for subject_type in (ATLAS.ResourceScheme, ATLAS.AtlasRelease, *RESOURCE_TYPES):
-        for subject in set(asserted.subjects(RDF.type, subject_type)):
+        for subject in _carrier_nodes(asserted, subject_type, inventory):
             profile = _iri(
                 _one(asserted, subject, ATLAS.resourceProfile, code="profile.conformance"),
                 code="profile.conformance",
                 label="resource profile",
             )
-            policy = policies.get(profile)
-            if policy is None:
+            constraint = constraints.get(profile)
+            if constraint is None:
                 _fail("profile.conformance", f"{subject} uses unknown profile {profile}")
+            allowed_rings, allowed_classes = constraint
             rings = set(asserted.objects(subject, ATLAS.semanticRing))
-            allowed_rings = {URIRef(str(ATLAS) + value) for value in policy["applicableSemanticRings"]}
             if rings - allowed_rings:
                 _fail("profile.conformance", f"{subject} ring is not allowed by {profile}")
             if subject_type == ATLAS.ResourceScheme:
@@ -1344,35 +2314,38 @@ def _check_profile_conformance(asserted: Graph) -> None:
                     _fail("profile.conformance", f"{subject} supported ring is not allowed by {profile}")
             if subject_type != ATLAS.ResourceScheme and len(rings) != 1:
                 _fail("profile.conformance", f"{subject} must have exactly one allowed semantic ring")
-            if subject_type in RESOURCE_TYPES:
-                allowed_classes = {URIRef(value) for value in policy["applicableEntryClasses"]}
-                if subject_type not in allowed_classes:
-                    _fail("profile.conformance", f"{subject_type} is not allowed by {profile}")
+            if subject_type in RESOURCE_TYPES and subject_type not in allowed_classes:
+                _fail("profile.conformance", f"{subject_type} is not allowed by {profile}")
 
-    for identifier in set(asserted.subjects(RDF.type, ATLAS.Identifier)):
+    scheme_profiles: dict[URIRef, URIRef] = {}
+    for identifier in _carrier_nodes(asserted, ATLAS.Identifier, inventory):
         scheme = _iri(
             _one(asserted, identifier, ATLAS.identifierScheme, code="profile.conformance"),
             code="profile.conformance",
             label="identifier scheme",
         )
-        profile = _iri(
-            _one(asserted, scheme, ATLAS.resourceProfile, code="profile.conformance"),
-            code="profile.conformance",
-            label="identifier profile",
-        )
-        policy = policies.get(profile)
-        if policy is None or str(ATLAS.Identifier) not in policy["applicableEntryClasses"]:
+        profile = scheme_profiles.get(scheme)
+        if profile is None:
+            profile = _iri(
+                _one(asserted, scheme, ATLAS.resourceProfile, code="profile.conformance"),
+                code="profile.conformance",
+                label="identifier profile",
+            )
+            scheme_profiles[scheme] = profile
+        constraint = constraints.get(profile)
+        if constraint is None or ATLAS.Identifier not in constraint[1]:
             _fail("profile.conformance", f"{identifier} is not allowed by {profile}")
 
 
-def _check_identifier_uniqueness(asserted: Graph) -> None:
+def _check_identifier_uniqueness(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
     """Require each authority-scoped identifier pair to name one resource."""
 
-    resources_by_pair: dict[tuple[URIRef, str], set[URIRef]] = {}
-    for identifier in sorted(
-        set(asserted.subjects(RDF.type, ATLAS.Identifier)),
-        key=str,
-    ):
+    resources_by_pair: dict[tuple[URIRef, str], URIRef] = {}
+    conflicts: dict[tuple[URIRef, str], set[URIRef]] = {}
+    for identifier in _carrier_nodes(asserted, ATLAS.Identifier, inventory):
         scheme = _iri(
             _one(
                 asserted,
@@ -1403,18 +2376,20 @@ def _check_identifier_uniqueness(asserted: Graph) -> None:
             code="dataset.identifier-uniqueness",
             label="identified resource",
         )
-        resources_by_pair.setdefault((scheme, value), set()).add(resource)
+        pair = (scheme, value)
+        existing = resources_by_pair.get(pair)
+        if existing is None:
+            resources_by_pair[pair] = resource
+        elif existing != resource:
+            conflicts.setdefault(pair, {existing}).add(resource)
 
-    for (scheme, value), resources in sorted(
-        resources_by_pair.items(),
-        key=lambda row: (str(row[0][0]), row[0][1]),
-    ):
-        if len(resources) > 1:
-            rendered = ", ".join(map(str, sorted(resources, key=str)))
-            _fail(
-                "dataset.identifier-uniqueness",
-                f"identifier pair ({scheme}, {value!r}) identifies multiple Atlas resources: {rendered}",
-            )
+    if conflicts:
+        scheme, value = min(conflicts)
+        rendered = ", ".join(map(str, sorted(conflicts[(scheme, value)])))
+        _fail(
+            "dataset.identifier-uniqueness",
+            f"identifier pair ({scheme}, {value!r}) identifies multiple Atlas resources: {rendered}",
+        )
 
 
 def _assertion_type(graph: Graph, assertion: URIRef) -> URIRef:
@@ -1514,20 +2489,22 @@ def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], t
 
 def _validate_assertions(
     asserted: Graph,
-) -> dict[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]]:
+    inventory: SemanticInventory | None = None,
+) -> dict[AssertionTriple, tuple[URIRef, ...]]:
     relation_policies = _relation_policies()
     cross_ring_policies = _cross_ring_relation_policies()
-    assertions = {
-        subject
-        for assertion_type in ASSERTION_TYPES
-        for subject in asserted.subjects(RDF.type, assertion_type)
-        if isinstance(subject, URIRef)
-    }
-    states: dict[
-        URIRef,
-        tuple[dict[str, Any], tuple[URIRef, URIRef, URIRef], URIRef, datetime, URIRef | None],
-    ] = {}
-    for assertion in sorted(assertions, key=str):
+    assertions: Iterable[URIRef] = (
+        inventory.assertions()
+        if inventory is not None
+        else frozenset(
+            subject
+            for assertion_type in ASSERTION_TYPES
+            for subject in asserted.subjects(RDF.type, assertion_type)
+            if isinstance(subject, URIRef)
+        )
+    )
+    states: dict[URIRef, _AssertionState] = {}
+    for assertion in sorted(assertions):
         basis, triple = _assertion_basis(asserted, assertion)
         identity_digest = canonical_sha256(basis)
         stored_identity_digest = _literal_text(
@@ -1568,8 +2545,6 @@ def _validate_assertions(
         if len(predecessors) > 1 or any(not isinstance(value, URIRef) for value in predecessors):
             _fail("dataset.supersession", f"{assertion} has an invalid supersedes value")
         predecessor = predecessors[0] if predecessors else None
-        states[assertion] = (basis, triple, status, asserted_at, predecessor)
-
         assertion_type = URIRef(basis["type"])
         predicate = triple[1]
         source_release = URIRef(basis["sourceRelease"])
@@ -1578,6 +2553,7 @@ def _validate_assertions(
         if assertion_type == ATLAS.CrossRingRelationAssertion:
             source_ring = URIRef(basis["sourceRing"])
             target_ring = URIRef(basis["targetRing"])
+            ring_context: URIRef | tuple[URIRef, URIRef] = (source_ring, target_ring)
             source_type = _resource_type(asserted, subject)
             target_type = _resource_type(asserted, obj)
             if source_ring == target_ring:
@@ -1602,6 +2578,7 @@ def _validate_assertions(
                 )
         else:
             ring = URIRef(basis["semanticRing"])
+            ring_context = ring
             allowed = relation_policies.get(ring, {}).get(assertion_type, frozenset())
             if predicate not in allowed:
                 _fail(
@@ -1634,26 +2611,57 @@ def _validate_assertions(
             if assertion_type == ATLAS.MappingAssertion and source_release == target_release:
                 _fail("dataset.release", f"{assertion} mapping endpoints use one release")
 
+        states[assertion] = _AssertionState(
+            triple=triple,
+            assertion_type=assertion_type,
+            source_release=source_release,
+            ring_context=ring_context,
+            status=status,
+            asserted_at=asserted_at,
+            predecessor=predecessor,
+        )
+
     successors: dict[URIRef, set[URIRef]] = defaultdict(set)
-    for assertion, (basis, _, _, asserted_at, predecessor) in states.items():
+    for assertion, state in states.items():
+        predecessor = state.predecessor
         if predecessor is None:
             continue
         if predecessor == assertion or predecessor not in states:
             _fail("dataset.supersession", f"{assertion} supersedes itself or an unknown assertion")
-        predecessor_basis, _, _, predecessor_time, _ = states[predecessor]
-        lineage_fields = ["type", "subject", "sourceRelease"]
-        lineage_fields.extend(
-            ("sourceRing", "targetRing")
-            if basis["type"] == str(ATLAS.CrossRingRelationAssertion)
-            else ("semanticRing",)
+        predecessor_state = states[predecessor]
+        lineage_values: tuple[tuple[str, Any, Any], ...] = (
+            ("type", state.assertion_type, predecessor_state.assertion_type),
+            ("subject", state.triple[0], predecessor_state.triple[0]),
+            ("sourceRelease", state.source_release, predecessor_state.source_release),
         )
-        for field in lineage_fields:
-            if basis[field] != predecessor_basis[field]:
+        for field, value, predecessor_value in lineage_values:
+            if value != predecessor_value:
                 _fail(
                     "dataset.supersession",
                     f"{assertion} and {predecessor} disagree on lineage field {field}",
                 )
-        if asserted_at <= predecessor_time:
+        if state.assertion_type == ATLAS.CrossRingRelationAssertion:
+            if not isinstance(state.ring_context, tuple) or not isinstance(
+                predecessor_state.ring_context, tuple
+            ):
+                raise AssertionError("validated cross-ring assertions require paired ring context")
+            source_ring, target_ring = state.ring_context
+            predecessor_source_ring, predecessor_target_ring = predecessor_state.ring_context
+            ring_values: tuple[tuple[str, URIRef, URIRef], ...] = (
+                ("sourceRing", source_ring, predecessor_source_ring),
+                ("targetRing", target_ring, predecessor_target_ring),
+            )
+        else:
+            if isinstance(state.ring_context, tuple) or isinstance(predecessor_state.ring_context, tuple):
+                raise AssertionError("validated same-ring assertions require one ring context")
+            ring_values = (("semanticRing", state.ring_context, predecessor_state.ring_context),)
+        for field, value, predecessor_value in ring_values:
+            if value != predecessor_value:
+                _fail(
+                    "dataset.supersession",
+                    f"{assertion} and {predecessor} disagree on lineage field {field}",
+                )
+        if state.asserted_at <= predecessor_state.asserted_at:
             _fail("dataset.supersession", f"{assertion} is not later than {predecessor}")
         successors[predecessor].add(assertion)
 
@@ -1661,26 +2669,45 @@ def _validate_assertions(
         if len(rows) != 1:
             _fail("dataset.supersession", f"{predecessor} has more than one direct successor")
 
-    projected: dict[tuple[URIRef, URIRef, URIRef], set[URIRef]] = defaultdict(set)
-    for assertion, (_, triple, status, _, _) in states.items():
-        has_successor = bool(successors[assertion])
-        if has_successor and status != ATLAS.superseded:
+    projected: dict[AssertionTriple, URIRef | list[URIRef]] = {}
+    for assertion, state in states.items():
+        has_successor = bool(successors.get(assertion))
+        if has_successor and state.status != ATLAS.superseded:
             _fail("dataset.supersession", f"non-terminal {assertion} must have superseded status")
-        if not has_successor and status == ATLAS.superseded:
+        if not has_successor and state.status == ATLAS.superseded:
             _fail("dataset.supersession", f"terminal {assertion} cannot have superseded status")
-        if not has_successor and status == ATLAS.current:
-            projected[triple].add(assertion)
-    return {triple: frozenset(assertions) for triple, assertions in projected.items()}
-
-
-def _check_evidence_bindings(asserted: Graph) -> None:
-    assertions = {
-        subject for assertion_type in ASSERTION_TYPES for subject in asserted.subjects(RDF.type, assertion_type)
+        if not has_successor and state.status == ATLAS.current:
+            existing = projected.get(state.triple)
+            if existing is None:
+                projected[state.triple] = assertion
+            elif isinstance(existing, list):
+                existing.append(assertion)
+            else:
+                projected[state.triple] = [existing, assertion]
+    return {
+        triple: tuple(assertions) if isinstance(assertions, list) else (assertions,)
+        for triple, assertions in projected.items()
     }
-    source_records = set(asserted.subjects(RDF.type, ATLAS.SourceRecord))
-    bindings = set(asserted.subjects(RDF.type, ATLAS.EvidenceBinding))
+
+
+def _check_evidence_bindings(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
+    assertions = (
+        None
+        if inventory is not None
+        else frozenset(
+            subject
+            for assertion_type in ASSERTION_TYPES
+            for subject in asserted.subjects(RDF.type, assertion_type)
+        )
+    )
+    source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
+    bindings = _carrier_nodes(asserted, ATLAS.EvidenceBinding, inventory)
     bound_assertions: set[URIRef] = set()
-    for binding in sorted(bindings, key=str):
+    source_digests: dict[URIRef, str] = {}
+    for binding in sorted(bindings):
         assertion = _iri(
             _one(asserted, binding, ATLAS.bindsAssertion, code="dataset.evidence"),
             code="dataset.evidence",
@@ -1691,7 +2718,11 @@ def _check_evidence_bindings(asserted: Graph) -> None:
             code="dataset.evidence",
             label="evidence source record",
         )
-        if assertion not in assertions:
+        if (
+            not inventory.is_assertion(assertion)
+            if inventory is not None
+            else assertion not in assertions
+        ):
             _fail("dataset.evidence", f"{binding} binds unknown assertion {assertion}")
         if source_record not in source_records:
             _fail("dataset.evidence", f"{binding} names unknown source record {source_record}")
@@ -1727,11 +2758,14 @@ def _check_evidence_bindings(asserted: Graph) -> None:
             code="dataset.evidence-identity",
             label="evidenceSourceDigest",
         )
-        actual_source_digest = _literal_text(
-            _one(asserted, source_record, ATLAS.contentDigest, code="dataset.evidence-identity"),
-            code="dataset.evidence-identity",
-            label="evidence SourceRecord contentDigest",
-        )
+        actual_source_digest = source_digests.get(source_record)
+        if actual_source_digest is None:
+            actual_source_digest = _literal_text(
+                _one(asserted, source_record, ATLAS.contentDigest, code="dataset.evidence-identity"),
+                code="dataset.evidence-identity",
+                label="evidence SourceRecord contentDigest",
+            )
+            source_digests[source_record] = actual_source_digest
         if pinned_source_digest != actual_source_digest:
             _fail("dataset.evidence-identity", f"{binding} does not pin its exact SourceRecord")
         stored = _literal_text(
@@ -1746,48 +2780,342 @@ def _check_evidence_bindings(asserted: Graph) -> None:
         if binding != expected_id:
             _fail("dataset.evidence-identity", f"{binding} is not its content-derived IRI")
         bound_assertions.add(assertion)
-    missing = assertions - bound_assertions
-    if missing:
-        _fail("dataset.evidence", f"assertion has no immutable evidence binding: {min(missing, key=str)}")
+    missing = min(
+        (
+            assertion
+            for assertion in (
+                inventory.assertions() if inventory is not None else assertions
+            )
+            if assertion not in bound_assertions
+        ),
+        key=str,
+        default=None,
+    )
+    if missing is not None:
+        _fail("dataset.evidence", f"assertion has no immutable evidence binding: {missing}")
 
 
 def _hierarchy_connected_pairs(
-    hierarchy: Mapping[URIRef, set[URIRef]],
-    pairs: Iterable[frozenset[URIRef]],
-) -> set[frozenset[URIRef]]:
-    """Find hierarchy-connected pairs with one target-aware traversal per source."""
+    hierarchy: Mapping[URIRef, URIRef | AbstractSet[URIRef]],
+    pairs: Iterable[NodePair],
+) -> set[NodePair]:
+    """Find positive-path hierarchy connections without per-endpoint traversals."""
 
-    targets_by_source: dict[URIRef, dict[URIRef, frozenset[URIRef]]] = defaultdict(dict)
-    for pair in pairs:
-        members = sorted(pair, key=str)
-        source = members[0]
-        target = members[-1]
-        targets_by_source[source][target] = pair
-        targets_by_source[target][source] = pair
+    canonical_pairs = frozenset(_canonical_pair(*pair) for pair in pairs)
+    if not hierarchy or not canonical_pairs:
+        return set()
 
-    connected: set[frozenset[URIRef]] = set()
-    for source in sorted(targets_by_source, key=str):
-        pending = dict(targets_by_source[source])
-        frontier = deque([source])
-        visited: set[URIRef] = set()
-        while frontier and pending:
-            current_node = frontier.popleft()
-            for broader in hierarchy.get(current_node, set()):
-                pair = pending.pop(broader, None)
-                if pair is not None:
-                    connected.add(pair)
-                if broader not in visited:
-                    visited.add(broader)
-                    frontier.append(broader)
+    index = _build_hierarchy_reachability_index(hierarchy)
+    connected: set[NodePair] = set()
+    component_queries: dict[int, set[HierarchyComponentPair]] = defaultdict(set)
+    original_queries: list[tuple[HierarchyComponentPair, NodePair]] = []
+
+    for pair in sorted(canonical_pairs):
+        subject, obj = pair
+        subject_component = index.component_by_node.get(subject)
+        object_component = index.component_by_node.get(obj)
+        if subject_component is None or object_component is None:
+            continue
+        if subject_component == object_component:
+            if subject != obj or index.component_is_cyclic[subject_component]:
+                connected.add(pair)
+            continue
+        subject_weak = index.weak_component[subject_component]
+        if subject_weak != index.weak_component[object_component]:
+            continue
+        if index.topological_rank[subject_component] < index.topological_rank[object_component]:
+            query = (subject_component, object_component)
+        else:
+            query = (object_component, subject_component)
+        component_queries[subject_weak].add(query)
+        original_queries.append((query, pair))
+
+    if not component_queries:
+        return connected
+
+    topological_orders = {weak: [] for weak in component_queries}
+    for component in index.topological_order:
+        weak = index.weak_component[component]
+        if weak in topological_orders:
+            topological_orders[weak].append(component)
+
+    reachable_queries: set[HierarchyComponentPair] = set()
+    reachability_masks = [0] * len(index.dag)
+    for weak in sorted(component_queries):
+        reachable_queries.update(
+            _batched_dag_reachable_pairs(
+                index.dag,
+                tuple(topological_orders[weak]),
+                component_queries[weak],
+                reachability_masks,
+            )
+        )
+    connected.update(pair for query, pair in original_queries if query in reachable_queries)
     return connected
 
 
+def _build_hierarchy_reachability_index(
+    hierarchy: Mapping[URIRef, URIRef | AbstractSet[URIRef]],
+) -> _HierarchyReachabilityIndex:
+    """Collapse hierarchy cycles into a deterministic directed acyclic graph."""
+
+    node_set: set[URIRef] = set(hierarchy)
+    for targets in hierarchy.values():
+        if isinstance(targets, AbstractSet):
+            node_set.update(targets)
+        else:
+            node_set.add(targets)
+    nodes = tuple(sorted(node_set))
+    node_index = {node: index for index, node in enumerate(nodes)}
+
+    self_loops = bytearray(len(nodes))
+    adjacency_rows: list[tuple[int, ...]] = []
+    for node in nodes:
+        targets = hierarchy.get(node)
+        if targets is None:
+            target_nodes: Iterable[URIRef] = ()
+        elif isinstance(targets, AbstractSet):
+            target_nodes = sorted(targets)
+        else:
+            target_nodes = (targets,)
+        row = tuple(node_index[target] for target in target_nodes)
+        adjacency_rows.append(row)
+        if node_index[node] in row:
+            self_loops[node_index[node]] = 1
+    adjacency = tuple(adjacency_rows)
+
+    component_by_vertex, component_is_cyclic = _hierarchy_strong_components(
+        adjacency,
+        self_loops,
+    )
+    component_count = len(component_is_cyclic)
+    outgoing: list[set[int] | None] = [None] * component_count
+    for source, targets in enumerate(adjacency):
+        source_component = component_by_vertex[source]
+        for target in targets:
+            target_component = component_by_vertex[target]
+            if source_component == target_component:
+                continue
+            row = outgoing[source_component]
+            if row is None:
+                row = set()
+                outgoing[source_component] = row
+            row.add(target_component)
+    dag = tuple(tuple(sorted(row)) if row is not None else () for row in outgoing)
+
+    indegree = [0] * component_count
+    weak_parent = list(range(component_count))
+    weak_size = [1] * component_count
+
+    def find(component: int) -> int:
+        while weak_parent[component] != component:
+            weak_parent[component] = weak_parent[weak_parent[component]]
+            component = weak_parent[component]
+        return component
+
+    def union(left: int, right: int) -> None:
+        left = find(left)
+        right = find(right)
+        if left == right:
+            return
+        if weak_size[left] < weak_size[right] or (
+            weak_size[left] == weak_size[right] and left > right
+        ):
+            left, right = right, left
+        weak_parent[right] = left
+        weak_size[left] += weak_size[right]
+
+    for source, targets in enumerate(dag):
+        for target in targets:
+            indegree[target] += 1
+            union(source, target)
+
+    ready = deque(sorted(component for component, count in enumerate(indegree) if count == 0))
+    topological_order: list[int] = []
+    while ready:
+        component = ready.popleft()
+        topological_order.append(component)
+        for target in dag[component]:
+            indegree[target] -= 1
+            if indegree[target] == 0:
+                ready.append(target)
+    if len(topological_order) != component_count:
+        raise AssertionError("strong-component condensation must be acyclic")
+
+    topological_rank = [0] * component_count
+    for rank, component in enumerate(topological_order):
+        topological_rank[component] = rank
+    component_by_node = {
+        node: component_by_vertex[vertex]
+        for vertex, node in enumerate(nodes)
+    }
+    return _HierarchyReachabilityIndex(
+        component_by_node=component_by_node,
+        component_is_cyclic=component_is_cyclic,
+        dag=dag,
+        topological_order=tuple(topological_order),
+        topological_rank=tuple(topological_rank),
+        weak_component=tuple(find(component) for component in range(component_count)),
+    )
+
+
+def _hierarchy_strong_components(
+    adjacency: Sequence[Sequence[int]],
+    self_loops: Sequence[int],
+) -> tuple[tuple[int, ...], tuple[bool, ...]]:
+    """Return iterative Tarjan components and their positive-cycle flags."""
+
+    vertex_count = len(adjacency)
+    discovery = [-1] * vertex_count
+    lowlink = [0] * vertex_count
+    parent = [-1] * vertex_count
+    active = bytearray(vertex_count)
+    active_stack: list[int] = []
+    component_by_vertex = [-1] * vertex_count
+    component_is_cyclic: list[bool] = []
+    serial = 0
+
+    for root in range(vertex_count):
+        if discovery[root] >= 0:
+            continue
+        discovery[root] = serial
+        lowlink[root] = serial
+        serial += 1
+        active[root] = 1
+        active_stack.append(root)
+        frame_nodes = [root]
+        frame_offsets = [0]
+
+        while frame_nodes:
+            vertex = frame_nodes[-1]
+            offset = frame_offsets[-1]
+            if offset < len(adjacency[vertex]):
+                target = adjacency[vertex][offset]
+                frame_offsets[-1] += 1
+                if discovery[target] < 0:
+                    parent[target] = vertex
+                    discovery[target] = serial
+                    lowlink[target] = serial
+                    serial += 1
+                    active[target] = 1
+                    active_stack.append(target)
+                    frame_nodes.append(target)
+                    frame_offsets.append(0)
+                elif active[target] and discovery[target] < lowlink[vertex]:
+                    lowlink[vertex] = discovery[target]
+                continue
+
+            frame_nodes.pop()
+            frame_offsets.pop()
+            parent_vertex = parent[vertex]
+            if parent_vertex >= 0 and lowlink[vertex] < lowlink[parent_vertex]:
+                lowlink[parent_vertex] = lowlink[vertex]
+            if lowlink[vertex] != discovery[vertex]:
+                continue
+
+            component = len(component_is_cyclic)
+            member_count = 0
+            has_self_loop = False
+            while True:
+                member = active_stack.pop()
+                active[member] = 0
+                component_by_vertex[member] = component
+                member_count += 1
+                has_self_loop = has_self_loop or bool(self_loops[member])
+                if member == vertex:
+                    break
+            component_is_cyclic.append(member_count > 1 or has_self_loop)
+
+    return tuple(component_by_vertex), tuple(component_is_cyclic)
+
+
+def _batched_dag_reachable_pairs(
+    dag: Sequence[Sequence[int]],
+    topological_order: Sequence[int],
+    queries: AbstractSet[HierarchyComponentPair],
+    reachability_masks: list[int],
+) -> set[HierarchyComponentPair]:
+    """Answer exact DAG reachability queries with bounded Python-int bitsets."""
+
+    sources = sorted({source for source, _ in queries})
+    targets = sorted({target for _, target in queries})
+    connected: set[HierarchyComponentPair] = set()
+
+    if len(targets) <= len(sources):
+        queries_by_target: dict[int, list[int]] = defaultdict(list)
+        for source, target in sorted(queries):
+            queries_by_target[target].append(source)
+        for offset in range(0, len(targets), HIERARCHY_REACHABILITY_BATCH_BITS):
+            batch = targets[offset : offset + HIERARCHY_REACHABILITY_BATCH_BITS]
+            bit_by_target = {target: 1 << bit for bit, target in enumerate(batch)}
+            for component in reversed(topological_order):
+                mask = bit_by_target.get(component, 0)
+                for successor in dag[component]:
+                    mask |= reachability_masks[successor]
+                reachability_masks[component] = mask
+            for target in batch:
+                bit = bit_by_target[target]
+                for source in queries_by_target[target]:
+                    if reachability_masks[source] & bit:
+                        connected.add((source, target))
+            for component in topological_order:
+                reachability_masks[component] = 0
+        return connected
+
+    queries_by_source: dict[int, list[int]] = defaultdict(list)
+    for source, target in sorted(queries):
+        queries_by_source[source].append(target)
+    for offset in range(0, len(sources), HIERARCHY_REACHABILITY_BATCH_BITS):
+        batch = sources[offset : offset + HIERARCHY_REACHABILITY_BATCH_BITS]
+        bit_by_source = {source: 1 << bit for bit, source in enumerate(batch)}
+        for component in topological_order:
+            mask = reachability_masks[component] | bit_by_source.get(component, 0)
+            reachability_masks[component] = mask
+            if mask:
+                for successor in dag[component]:
+                    reachability_masks[successor] |= mask
+        for source in batch:
+            bit = bit_by_source[source]
+            for target in queries_by_source[source]:
+                if reachability_masks[target] & bit:
+                    connected.add((source, target))
+        for component in topological_order:
+            reachability_masks[component] = 0
+    return connected
+
+
+def _canonical_pair(subject: URIRef, obj: URIRef) -> NodePair:
+    return (subject, obj) if subject <= obj else (obj, subject)
+
+
+def _add_compact_target(
+    targets: dict[URIRef, URIRef | set[URIRef]],
+    source: URIRef,
+    target: URIRef,
+) -> None:
+    existing = targets.get(source)
+    if existing is None:
+        targets[source] = target
+    elif isinstance(existing, set):
+        existing.add(target)
+    elif existing != target:
+        targets[source] = {existing, target}
+
+
 def _build_exact_match_index(
-    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    current: Mapping[AssertionTriple, AssertionSupport],
 ) -> ExactMatchIndex:
     """Index exactMatch components without retaining their Cartesian closure."""
 
     direct_triples = frozenset(triple for triple in current if triple[1] == SKOS.exactMatch)
+    return _build_exact_match_index_from_triples(direct_triples)
+
+
+def _build_exact_match_index_from_triples(
+    direct_triples: frozenset[AssertionTriple],
+) -> ExactMatchIndex:
+    """Build the exactMatch index from triples collected by another graph pass."""
+
     adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
     for subject, _, obj in direct_triples:
         adjacency[subject].add(obj)
@@ -1795,7 +3123,7 @@ def _build_exact_match_index(
 
     component_by_node: dict[URIRef, int] = {}
     component_sizes: list[int] = []
-    for start in sorted(adjacency, key=str):
+    for start in sorted(adjacency):
         if start in component_by_node:
             continue
         frontier = [start]
@@ -1822,32 +3150,36 @@ def _build_exact_match_index(
 
 
 def _check_skos_integrity(
-    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    current: Mapping[AssertionTriple, AssertionSupport],
     exact_index: ExactMatchIndex | None = None,
-) -> None:
-    exact_index = exact_index or _build_exact_match_index(current)
-    hierarchy: dict[URIRef, set[URIRef]] = defaultdict(set)
-    related_pairs: set[frozenset[URIRef]] = set()
-    thesaurus_related_pairs: set[frozenset[URIRef]] = set()
+) -> ExactMatchIndex:
+    hierarchy: dict[URIRef, URIRef | set[URIRef]] = {}
+    related_pairs: set[NodePair] = set()
+    thesaurus_related_pairs: set[NodePair] = set()
     mapping_relations: list[tuple[URIRef, URIRef, URIRef]] = []
+    exact_triples: set[AssertionTriple] | None = set() if exact_index is None else None
     for subject, predicate, obj in current:
+        if exact_triples is not None and predicate == SKOS.exactMatch:
+            exact_triples.add((subject, predicate, obj))
         if predicate in {SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}:
             mapping_relations.append((subject, predicate, obj))
         if predicate == SKOS.broader:
-            hierarchy[subject].add(obj)
+            _add_compact_target(hierarchy, subject, obj)
         elif predicate == SKOS.narrower or predicate == SKOS.narrowMatch:
-            hierarchy[obj].add(subject)
+            _add_compact_target(hierarchy, obj, subject)
         elif predicate == SKOS.broadMatch:
-            hierarchy[subject].add(obj)
+            _add_compact_target(hierarchy, subject, obj)
         elif predicate == SKOS.related or predicate == SKOS.relatedMatch:
-            related_pairs.add(frozenset((subject, obj)))
+            related_pairs.add(_canonical_pair(subject, obj))
         elif predicate == ATLAS.thesaurusRelated:
-            thesaurus_related_pairs.add(frozenset((subject, obj)))
+            thesaurus_related_pairs.add(_canonical_pair(subject, obj))
 
-    for subject, predicate, obj in sorted(
-        mapping_relations,
-        key=lambda triple: tuple(map(str, triple)),
-    ):
+    if exact_index is None:
+        if exact_triples is None:
+            raise AssertionError("exactMatch collection was not initialized")
+        exact_index = _build_exact_match_index_from_triples(frozenset(exact_triples))
+
+    for subject, predicate, obj in sorted(mapping_relations):
         if exact_index.same_component(subject, obj):
             _fail(
                 "dataset.skos-integrity",
@@ -1856,36 +3188,37 @@ def _check_skos_integrity(
 
     hierarchy_connected = _hierarchy_connected_pairs(
         hierarchy,
-        related_pairs | thesaurus_related_pairs,
+        chain(related_pairs, thesaurus_related_pairs),
     )
-    pair_key = lambda pair: tuple(map(str, sorted(pair, key=str)))
-    for pair in sorted(related_pairs, key=pair_key):
-        members = sorted(pair, key=str)
-        source = members[0]
-        target = members[-1]
+    for pair in sorted(related_pairs):
+        source, target = pair
         if pair in hierarchy_connected:
             _fail("dataset.skos-integrity", f"SKOS S27 transitive hierarchy conflict for {(source, target)}")
 
-    for pair in sorted(thesaurus_related_pairs, key=pair_key):
-        members = sorted(pair, key=str)
-        source = members[0]
-        target = members[-1]
+    for pair in sorted(thesaurus_related_pairs):
+        source, target = pair
         if pair not in hierarchy_connected:
             _fail(
                 "dataset.skos-integrity",
                 "atlas:thesaurusRelated is allowed only for an authored associative "
                 f"link with a transitive hierarchy conflict: {(source, target)}",
             )
+    return exact_index
 
 
-def _outgoing_facts_digest(facts: Iterable[tuple[URIRef, URIRef | Literal]]) -> str:
+def _outgoing_facts_digest(
+    facts: Iterable[tuple[URIRef, URIRef | Literal]],
+    *,
+    node: URIRef | None = None,
+) -> str:
     rows = sorted(
         f"{ntriples_term(predicate)} {ntriples_term(obj)} ."
         for predicate, obj in facts
         if predicate != ATLAS.contentDigest
     )
     if not rows:
-        _fail("dataset.node-identity", "node has no digestible RDF facts")
+        detail = f"{node} has no digestible RDF facts" if node is not None else "node has no digestible RDF facts"
+        _fail("dataset.node-identity", detail)
     return "sha256:" + hashlib.sha256(("\n".join(rows) + "\n").encode("utf-8")).hexdigest()
 
 
@@ -1902,8 +3235,8 @@ def _projection_record_iri(triple: tuple[URIRef, URIRef, URIRef]) -> URIRef:
 
 def _projection_ring_facts(
     asserted: Graph,
-    triple: tuple[URIRef, URIRef, URIRef],
-    assertions: frozenset[URIRef],
+    triple: AssertionTriple,
+    assertions: AssertionSupport,
 ) -> tuple[tuple[URIRef, URIRef], ...]:
     contexts: set[tuple[URIRef, ...]] = set()
     for assertion in assertions:
@@ -1937,8 +3270,8 @@ def _projection_ring_facts(
 
 def _projection_record_facts(
     asserted: Graph,
-    triple: tuple[URIRef, URIRef, URIRef],
-    assertions: frozenset[URIRef],
+    triple: AssertionTriple,
+    assertions: AssertionSupport,
 ) -> tuple[URIRef, list[tuple[URIRef, URIRef | Literal]]]:
     subject, predicate, obj = triple
     projection = _projection_record_iri(triple)
@@ -1949,13 +3282,13 @@ def _projection_record_facts(
         (ATLAS.relationObject, obj),
     ]
     facts.extend(_projection_ring_facts(asserted, triple, assertions))
-    facts.extend((ATLAS.supportingAssertion, assertion) for assertion in sorted(assertions, key=str))
+    facts.extend((ATLAS.supportingAssertion, assertion) for assertion in sorted(assertions))
     return projection, facts
 
 
 def _expected_projection_triples(
     asserted: Graph,
-    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    supported: Mapping[AssertionTriple, AssertionSupport],
 ) -> Iterable[tuple[URIRef, URIRef, URIRef | Literal]]:
     emitted_label_triples: set[tuple[URIRef, URIRef, Literal]] = set()
     for xl_predicate, plain_predicate in XL_TO_SKOS.items():
@@ -1970,7 +3303,7 @@ def _expected_projection_triples(
                 emitted_label_triples.add(triple)
                 yield triple
 
-    for triple, assertions in sorted(supported.items(), key=lambda row: tuple(map(str, row[0]))):
+    for triple, assertions in sorted(supported.items(), key=lambda row: row[0]):
         yield triple
         projection, facts = _projection_record_facts(asserted, triple, assertions)
         for fact_predicate, fact_object in facts:
@@ -1980,7 +3313,7 @@ def _expected_projection_triples(
 
 def _expected_projection(
     asserted: Graph,
-    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]] | None = None,
+    supported: Mapping[AssertionTriple, AssertionSupport] | None = None,
 ) -> Graph:
     expected = Graph()
     analysis = supported if supported is not None else _validate_assertions(asserted)
@@ -1992,11 +3325,11 @@ def _expected_projection(
 def _check_projection(
     asserted: Graph,
     projection: Graph,
-    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    supported: Mapping[AssertionTriple, AssertionSupport],
 ) -> None:
     projection_records: dict[
         URIRef,
-        tuple[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+        tuple[AssertionTriple, AssertionSupport],
     ] = {}
     for triple, assertions in supported.items():
         record_iri = _projection_record_iri(triple)
@@ -2064,9 +3397,12 @@ def _check_projection(
         _fail("dataset.projection", detail)
 
 
-def _check_release_membership(asserted: Graph) -> None:
-    releases = {subject for subject in asserted.subjects(RDF.type, ATLAS.AtlasRelease)}
-    resources = {subject for resource_type in RESOURCE_TYPES for subject in asserted.subjects(RDF.type, resource_type)}
+def _check_release_membership(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
+    releases = _carrier_nodes(asserted, ATLAS.AtlasRelease, inventory)
+    release_facts: dict[URIRef, tuple[Any, Any, URIRef]] = {}
     for release in releases:
         release_ring = _one(asserted, release, ATLAS.semanticRing, code="dataset.release")
         release_profile = _one(asserted, release, ATLAS.resourceProfile, code="dataset.release")
@@ -2081,45 +3417,43 @@ def _check_release_membership(asserted: Graph) -> None:
             _fail("dataset.release", f"{release} profile differs from {scheme}")
         if release_ring not in asserted.objects(scheme, ATLAS.supportedRing):
             _fail("dataset.release", f"{release} ring is not supported by {scheme}")
-        members = set(asserted.objects(release, PROV.hadMember))
-        if not members:
-            _fail("dataset.release", f"{release} has no prov:hadMember")
-        for member in members:
-            if member not in resources:
+        release_facts[release] = (release_ring, release_profile, scheme)
+        has_member = False
+        for member in asserted.objects(release, PROV.hadMember):
+            has_member = True
+            if not _is_resource_node(asserted, member, inventory):
                 _fail("dataset.release", f"{release} contains non-resource {member}")
             if release not in asserted.objects(member, ATLAS.inRelease):
                 _fail("dataset.release", f"{member} lacks inverse inRelease for {release}")
-    for resource in resources:
+        if not has_member:
+            _fail("dataset.release", f"{release} has no prov:hadMember")
+    for resource in _resource_nodes(asserted, inventory):
         release = _iri(
             _one(asserted, resource, ATLAS.inRelease, code="dataset.release"), code="dataset.release", label="inRelease"
         )
-        if release not in releases or (release, PROV.hadMember, resource) not in asserted:
+        facts = release_facts.get(release)
+        if facts is None or (release, PROV.hadMember, resource) not in asserted:
             _fail("dataset.release", f"{resource} is not a closed member of {release}")
+        release_ring, release_profile, release_scheme = facts
         resource_ring = _one(asserted, resource, ATLAS.semanticRing, code="dataset.release")
-        release_ring = _one(asserted, release, ATLAS.semanticRing, code="dataset.release")
         if resource_ring != release_ring:
             _fail("dataset.release", f"{resource} ring differs from {release}")
         resource_scheme = _one(asserted, resource, ATLAS.inScheme, code="dataset.release")
-        release_scheme = _one(asserted, release, ATLAS.inScheme, code="dataset.release")
         if resource_scheme != release_scheme:
             _fail("dataset.release", f"{resource} scheme differs from {release}")
         resource_profile = _one(asserted, resource, ATLAS.resourceProfile, code="dataset.release")
-        release_profile = _one(asserted, release, ATLAS.resourceProfile, code="dataset.release")
         if resource_profile != release_profile:
             _fail("dataset.release", f"{resource} profile differs from {release}")
 
 
-def _check_label_integrity(asserted: Graph) -> None:
+def _check_label_integrity(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
     """Enforce cross-record SKOS-XL invariants without per-node SPARQL queries."""
 
-    resources = {
-        subject
-        for resource_type in RESOURCE_TYPES
-        for subject in asserted.subjects(RDF.type, resource_type)
-        if isinstance(subject, URIRef)
-    }
     role_predicates = tuple(XL_TO_SKOS)
-    for resource in resources:
+    for resource in _resource_nodes(asserted, inventory):
         release = _iri(
             _one(asserted, resource, ATLAS.inRelease, code="dataset.label-integrity"),
             code="dataset.label-integrity",
@@ -2178,44 +3512,50 @@ def _check_label_integrity(asserted: Graph) -> None:
                     )
 
 
-def _check_node_digests(graphs: Mapping[str, Graph]) -> None:
+def _check_node_digests(
+    graphs: Mapping[str, Graph],
+    inventory: SemanticInventory | None = None,
+    precomputed: Mapping[tuple[str, URIRef], str] | None = None,
+) -> None:
     """Recompute the general RDF-node digest for every non-assertion carrier."""
 
-    classes_by_role = {
-        "asserted": {
-            ATLAS.RegistrySource,
-            ATLAS.ResourceScheme,
-            ATLAS.AtlasRelease,
-            ATLAS.SourceRelease,
-            ATLAS.AtlasResource,
-            ATLAS.SubjectConcept,
-            ATLAS.EntityResource,
-            ATLAS.ValueResource,
-            ATLAS.LegalIdentityResource,
-            ATLAS.Identifier,
-            ATLAS.SourceRecord,
-            ATLAS.EvidenceBinding,
-            ATLAS.EditorialPolicy,
-            ATLAS.LifecycleEvent,
-            SKOSXL.Label,
-        },
-        "projection": {ATLAS.ProjectedRelation},
-        "derived": {ATLAS.DerivedRelation},
-    }
-    for role, classes in classes_by_role.items():
-        graph = graphs[role]
-        nodes = {
-            node for class_iri in classes for node in graph.subjects(RDF.type, class_iri) if isinstance(node, URIRef)
-        }
-        for node in sorted(nodes, key=str):
-            stored = _literal_text(
-                _one(graph, node, ATLAS.contentDigest, code="dataset.node-identity"),
-                code="dataset.node-identity",
-                label="contentDigest",
-            )
-            expected = rdf_node_digest(graph, node)
-            if stored != expected:
-                _fail("dataset.node-identity", f"{node} contentDigest differs")
+    inventory = inventory or _semantic_inventory_from_graphs(graphs)
+    precomputed = precomputed or {}
+    asserted_classes = (
+        ATLAS.RegistrySource,
+        ATLAS.ResourceScheme,
+        ATLAS.AtlasRelease,
+        ATLAS.SourceRelease,
+        ATLAS.SubjectConcept,
+        ATLAS.EntityResource,
+        ATLAS.ValueResource,
+        ATLAS.LegalIdentityResource,
+        ATLAS.Identifier,
+        ATLAS.SourceRecord,
+        ATLAS.EditorialPolicy,
+        ATLAS.LifecycleEvent,
+        SKOSXL.Label,
+    )
+    for role, graph, node_groups in (
+        (
+            "asserted",
+            graphs["asserted"],
+            (inventory.nodes(class_iri) for class_iri in asserted_classes),
+        ),
+        ("derived", graphs["derived"], (inventory.derived_nodes,)),
+    ):
+        for nodes in node_groups:
+            for node in nodes:
+                stored = _literal_text(
+                    _one(graph, node, ATLAS.contentDigest, code="dataset.node-identity"),
+                    code="dataset.node-identity",
+                    label="contentDigest",
+                )
+                expected = precomputed.get((role, node))
+                if expected is None:
+                    expected = rdf_node_digest(graph, node)
+                if stored != expected:
+                    _fail("dataset.node-identity", f"{node} contentDigest differs")
 
 
 def _check_rdf_json_payload(
@@ -2244,8 +3584,12 @@ def _check_rdf_json_payload(
         _fail("dataset.native-payload", f"{node} {label} is not canonical REF JSON")
 
 
-def _check_native_payloads(asserted: Graph) -> None:
-    for record in set(asserted.subjects(RDF.type, ATLAS.SourceRecord)):
+def _check_native_payloads(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> dict[tuple[str, URIRef], str]:
+    precomputed_digests: dict[tuple[str, URIRef], str] = {}
+    for record in _carrier_nodes(asserted, ATLAS.SourceRecord, inventory):
         literal = _one(asserted, record, ATLAS.nativePayload, code="dataset.native-payload")
         _check_rdf_json_payload(
             literal,
@@ -2253,97 +3597,111 @@ def _check_native_payloads(asserted: Graph) -> None:
             label="nativePayload",
             source_native=True,
         )
-    for scheme in set(asserted.subjects(RDF.type, ATLAS.ResourceScheme)):
+    for scheme in _carrier_nodes(asserted, ATLAS.ResourceScheme, inventory):
         payloads = list(asserted.objects(scheme, ATLAS.descriptorPayload))
         if len(payloads) > 1:
             _fail("dataset.native-payload", f"{scheme} has more than one descriptorPayload")
         if payloads:
             _check_rdf_json_payload(payloads[0], node=scheme, label="descriptorPayload")
-    for source in set(asserted.subjects(RDF.type, ATLAS.RegistrySource)):
+    for source in _carrier_nodes(asserted, ATLAS.RegistrySource, inventory):
         literal = _one(asserted, source, ATLAS.descriptorPayload, code="dataset.native-payload")
         _check_rdf_json_payload(literal, node=source, label="descriptorPayload")
-    for policy in set(asserted.subjects(RDF.type, ATLAS.EditorialPolicy)):
+    for policy in _carrier_nodes(asserted, ATLAS.EditorialPolicy, inventory):
         literal = _one(asserted, policy, ATLAS.policyPayload, code="dataset.native-payload")
         _check_rdf_json_payload(literal, node=policy, label="policyPayload")
         expected_digest = rdf_node_digest(asserted, policy)
+        precomputed_digests[("asserted", policy)] = expected_digest
         expected_id = URIRef("urn:ref:atlas-policy:" + expected_digest.removeprefix("sha256:"))
         if policy != expected_id:
             _fail("dataset.policy-identity", f"{policy} is not its content-derived IRI")
+    return precomputed_digests
 
 
-def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> None:
-    graph_records = {str(subject) for subject in asserted.subjects(RDF.type, ATLAS.SourceRecord)}
-    graph_releases = {str(subject) for subject in asserted.subjects(RDF.type, ATLAS.SourceRelease)}
-    dispositions: dict[str, Mapping[str, Any]] = {}
-    input_releases: set[str] = set()
+def _check_source_accounting(
+    asserted: Graph,
+    accounting: Mapping[str, Any],
+    inventory: SemanticInventory | None = None,
+) -> None:
+    graph_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
+    graph_releases = _carrier_nodes(asserted, ATLAS.SourceRelease, inventory)
+    inverse_balance: dict[URIRef, int] = {}
+    input_releases: set[URIRef] = set()
     represented = excluded = unresolved = 0
     for source in accounting["inputs"]:
-        source_release = source["sourceRelease"]
+        source_release = URIRef(source["sourceRelease"])
         if source_release in input_releases:
             _fail("source.accounting", f"duplicate source release input {source_release}")
         input_releases.add(source_release)
         if source_release not in graph_releases:
             _fail("source.accounting", f"unknown source release input {source_release}")
         for disposition in source["dispositions"]:
-            record = disposition["sourceRecord"]
-            if record in dispositions:
+            record = URIRef(disposition["sourceRecord"])
+            if record in inverse_balance:
                 _fail("source.accounting", f"duplicate disposition for {record}")
-            dispositions[record] = disposition
-            record_iri = URIRef(record)
-            if (record_iri, RDF.type, ATLAS.SourceRecord) not in asserted:
+            inverse_balance[record] = 0
+            if (record, RDF.type, ATLAS.SourceRecord) not in asserted:
                 _fail("source.accounting", f"disposition names unknown source record {record}")
-            if URIRef(source["sourceRelease"]) not in asserted.objects(record_iri, ATLAS.inSourceRelease):
+            if source_release not in asserted.objects(record, ATLAS.inSourceRelease):
                 _fail("source.accounting", f"{record} is assigned to the wrong source release")
             status = disposition["status"]
             represented += status == "represented"
             excluded += status == "excluded"
             unresolved += status == "unresolved"
-            ledger_resources = set(disposition["atlasResources"])
-            graph_resources = {str(value) for value in asserted.objects(record_iri, ATLAS.representsResource)}
-            inverse_resources = {
-                str(resource)
-                for resource in asserted.subjects(ATLAS.sourceRecord, record_iri)
-                if any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
-            }
-            if not (ledger_resources == graph_resources == inverse_resources):
+            ledger_resources = {URIRef(value) for value in disposition["atlasResources"]}
+            graph_resources = set(asserted.objects(record, ATLAS.representsResource))
+            if ledger_resources != graph_resources:
                 _fail(
                     "source.accounting",
                     f"{record} represented resources differ across its ledger and bidirectional RDF links",
                 )
+            inverse_balance[record] = -len(ledger_resources)
             if status != "represented" and graph_resources:
                 _fail("source.accounting", f"{record} is {status} but links a represented resource")
             for resource in ledger_resources:
-                if not any((URIRef(resource), RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES):
+                if not _is_resource_node(asserted, resource, inventory):
                     _fail("source.accounting", f"{record} names unknown Atlas resource {resource}")
         if (
             source["membershipMode"] in {"complete", "partial"}
             and len(source["dispositions"]) != source["declaredMemberCount"]
         ):
             _fail("source.accounting", f"{source['sourceRelease']} declaredMemberCount differs")
-    if set(dispositions) != graph_records:
+    disposition_records = inverse_balance.keys()
+    if disposition_records != graph_records:
+        missing = sorted(map(str, graph_records - disposition_records))
+        extra = sorted(map(str, disposition_records - graph_records))
         _fail(
             "source.accounting",
-            f"source-record dispositions differ; missing={sorted(graph_records - set(dispositions))}, extra={sorted(set(dispositions) - graph_records)}",
+            f"source-record dispositions differ; missing={missing}, extra={extra}",
         )
     if input_releases != graph_releases:
+        missing = sorted(map(str, graph_releases - input_releases))
+        extra = sorted(map(str, input_releases - graph_releases))
         _fail(
             "source.accounting",
-            f"source releases differ; missing={sorted(graph_releases - input_releases)}, extra={sorted(input_releases - graph_releases)}",
+            f"source releases differ; missing={missing}, extra={extra}",
         )
-    for resource, _, record in asserted.triples((None, ATLAS.sourceRecord, None)):
-        if (
-            any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
-            and (
-                record,
-                ATLAS.representsResource,
-                resource,
+    for resource, record in asserted.subject_objects(ATLAS.sourceRecord):
+        if not _is_resource_node(asserted, resource, inventory):
+            continue
+        if (record, ATLAS.representsResource, resource) not in asserted:
+            _fail(
+                "source.accounting",
+                f"{resource} sourceRecord link is not reconciled by {record}",
             )
-            not in asserted
-        ):
-            _fail("source.accounting", f"{resource} sourceRecord link is not reconciled by {record}")
+        if record in inverse_balance:
+            inverse_balance[record] += 1
+    unbalanced_record = next(
+        (record for record, balance in inverse_balance.items() if balance),
+        None,
+    )
+    if unbalanced_record is not None:
+        _fail(
+            "source.accounting",
+            f"{unbalanced_record} represented resources differ across its ledger and bidirectional RDF links",
+        )
     expected_totals = {
         "sourceReleases": len(accounting["inputs"]),
-        "sourceRecords": len(dispositions),
+        "sourceRecords": len(inverse_balance),
         "represented": represented,
         "excluded": excluded,
         "unresolved": unresolved,
@@ -2352,25 +3710,27 @@ def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> 
         _fail("source.accounting", "source-accounting totals do not reconcile")
 
 
-def _check_counts(manifest: Mapping[str, Any], graphs: Mapping[str, Graph]) -> None:
-    asserted = graphs["asserted"]
+def _check_counts(
+    manifest: Mapping[str, Any],
+    graphs: Mapping[str, Graph],
+    inventory: SemanticInventory | None = None,
+) -> None:
+    inventory = inventory or _semantic_inventory_from_graphs(graphs)
     expected = {
-        "crossRingRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))),
-        "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
-        "resources": len(
-            {subject for resource_type in RESOURCE_TYPES for subject in asserted.subjects(RDF.type, resource_type)}
-        ),
-        "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
-        "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
-        "sourceRecords": len(set(asserted.subjects(RDF.type, ATLAS.SourceRecord))),
+        "crossRingRelationAssertions": len(inventory.nodes(ATLAS.CrossRingRelationAssertion)),
+        "releases": len(inventory.nodes(ATLAS.AtlasRelease)),
+        "resources": inventory.resource_count,
+        "identifiers": len(inventory.nodes(ATLAS.Identifier)),
+        "labels": len(inventory.nodes(SKOSXL.Label)),
+        "sourceRecords": len(inventory.nodes(ATLAS.SourceRecord)),
         "relationAssertions": sum(
-            len(set(asserted.subjects(RDF.type, assertion_type))) for assertion_type in ASSERTION_TYPES
+            len(inventory.nodes(assertion_type)) for assertion_type in ASSERTION_TYPES
         ),
-        "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
-        "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
-        "sourceAssignments": len(set(asserted.subjects(RDF.type, ATLAS.SourceAssignment))),
-        "projectedRelations": len(set(graphs["projection"].subjects(RDF.type, ATLAS.ProjectedRelation))),
-        "derivedRelations": len(set(graphs["derived"].subjects(RDF.type, ATLAS.DerivedRelation))),
+        "mappingAssertions": len(inventory.nodes(ATLAS.MappingAssertion)),
+        "nativeRelationAssertions": len(inventory.nodes(ATLAS.NativeRelationAssertion)),
+        "sourceAssignments": len(inventory.nodes(ATLAS.SourceAssignment)),
+        "projectedRelations": len(inventory.projection_nodes),
+        "derivedRelations": len(inventory.derived_nodes),
     }
     if manifest["counts"] != expected:
         _fail("dataset.counts", f"manifest counts differ; expected={expected}, actual={manifest['counts']}")
@@ -2378,7 +3738,7 @@ def _check_counts(manifest: Mapping[str, Any], graphs: Mapping[str, Graph]) -> N
 
 def derived_input_digest(asserted: Graph, inputs: Iterable[URIRef]) -> str:
     rows = []
-    for assertion in sorted(set(inputs), key=str):
+    for assertion in sorted(set(inputs)):
         digest = _literal_text(
             _one(asserted, assertion, ATLAS.contentDigest, code="dataset.derived-input"),
             code="dataset.derived-input",
@@ -2392,11 +3752,16 @@ def _check_derived(
     asserted: Graph,
     projection: Graph,
     derived: Graph,
-    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    current: Mapping[AssertionTriple, AssertionSupport],
+    derived_nodes: AbstractSet[URIRef] | None = None,
 ) -> None:
+    if derived_nodes is None:
+        derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
+    if not derived_nodes:
+        return
     relation_policies = _relation_policies()
     active_assertions = {assertion for assertions in current.values() for assertion in assertions}
-    derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
+    direct_relations = set(current)
     for node in derived_nodes:
         if (node, RDF.type, ATLAS.RelationAssertion) in derived or any(
             (node, RDF.type, assertion_type) in derived for assertion_type in ASSERTION_TYPES
@@ -2520,8 +3885,16 @@ def _check_derived(
         expected_id = URIRef("urn:ref:atlas-derived:" + stored_node_digest.removeprefix("sha256:"))
         if node != expected_id:
             _fail("dataset.derived-identity", f"{node} is not its content-derived IRI")
-        if (subject, predicate, obj) in projection or (
-            predicate == SKOS.exactMatch and (obj, predicate, subject) in projection
+        if (
+            (subject, predicate, obj) in direct_relations
+            or (subject, predicate, obj) in projection
+            or (
+                predicate == SKOS.exactMatch
+                and (
+                    (obj, predicate, subject) in direct_relations
+                    or (obj, predicate, subject) in projection
+                )
+            )
         ):
             _fail(
                 "dataset.derived-authority",
@@ -2531,13 +3904,18 @@ def _check_derived(
 
 def _check_reasoning_isolation(
     derived: Graph,
-    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    current: Mapping[AssertionTriple, AssertionSupport],
     exact_index: ExactMatchIndex | None = None,
+    derived_nodes: AbstractSet[URIRef] | None = None,
 ) -> int:
     exact_index = exact_index or _build_exact_match_index(current)
+    if derived_nodes is None:
+        derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
+    if not derived_nodes:
+        return exact_index.inferred_count
     direct_mappings = {triple for triple in current if triple[1] in SKOS_MAPPING_PREDICATES}
     assertion_triples = {assertion: triple for triple, assertions in current.items() for assertion in assertions}
-    for node in sorted(set(derived.subjects(RDF.type, ATLAS.DerivedRelation)), key=str):
+    for node in sorted(derived_nodes):
         output = (
             _iri(
                 _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
@@ -2594,17 +3972,93 @@ def acceptance_gate_evidence_digest(
     )
 
 
-def _check_acceptance(
-    manifest: Mapping[str, Any], accounting: Mapping[str, Any], acceptance: Mapping[str, Any], root: Path
+def _check_producer_validation(
+    manifest: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    producer_validation: Mapping[str, Any] | None,
+    member_digests: Mapping[str, str],
 ) -> None:
+    """Bind an optional compiled producer proof to this exact distribution."""
+
+    producer_members = [
+        member
+        for member in manifest["members"]
+        if member["role"] == "producerValidation"
+    ]
+    producer_input_digest = acceptance["inputs"].get(
+        "producerValidationDigest"
+    )
+    has_member = bool(producer_members)
+    has_input = producer_input_digest is not None
+    has_proof = producer_validation is not None
+    if not (has_member == has_input == has_proof):
+        _fail(
+            "producer.validation",
+            "producer validation member, acceptance input, and proof presence differ",
+        )
+    if not has_proof:
+        return
+    if len(producer_members) != 1:
+        _fail("producer.validation", "producer validation member is not unique")
+    member = producer_members[0]
     if (
-        acceptance["distributionId"] != manifest["distributionId"]
-        or accounting["distributionId"] != manifest["distributionId"]
+        member["path"] != PRODUCER_VALIDATION_FILE
+        or member_digests.get(PRODUCER_VALIDATION_FILE) != producer_input_digest
+        or canonical_sha256(producer_validation) != producer_input_digest
     ):
+        _fail(
+            "producer.validation",
+            "producer validation digest differs from the declared member",
+        )
+
+    assert producer_validation is not None
+    if producer_validation["binding"] != manifest["binding"]:
+        _fail("producer.validation", "producer validation binding differs")
+    asserted_inventory_digest = next(
+        row["inventoryDigest"]
+        for row in manifest["graphs"]
+        if row["role"] == "asserted"
+    )
+    if producer_validation["assertedInventoryDigest"] != asserted_inventory_digest:
+        _fail("producer.validation", "producer asserted inventory digest differs")
+    if (
+        producer_validation["sourceAccountingDigest"]
+        != member_digests["atlas-source-accounting.json"]
+    ):
+        _fail("producer.validation", "producer source accounting digest differs")
+    if producer_validation["counts"] != manifest["counts"]:
+        _fail("producer.validation", "producer aggregate counts differ")
+    if producer_validation["sourceReleaseCount"] != manifest["counts"]["releases"]:
+        _fail("producer.validation", "producer source release count differs")
+    expected_identity = {
+        "constructorProfile": "atlas-3-source-only-compiled-shacl-v1",
+        "mode": "compiledSourceProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "status": "passed",
+        "type": "AtlasProducerValidation",
+        "version": "3.0",
+    }
+    if any(
+        producer_validation[field] != value
+        for field, value in expected_identity.items()
+    ):
+        _fail("producer.validation", "producer validation identity differs")
+
+
+def _check_acceptance_metadata(
+    manifest: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    member_digests: Mapping[str, str],
+) -> None:
+    if acceptance["distributionId"] != manifest["distributionId"]:
         _fail("distribution.identity", "distributionId differs across JSON artifacts")
-    if acceptance["inputs"]["atlasDigest"] != file_sha256(root / "atlas.nq"):
+    asserted_inventory_digest = next(
+        row["inventoryDigest"] for row in manifest["graphs"] if row["role"] == "asserted"
+    )
+    if acceptance["inputs"]["atlasDigest"] != asserted_inventory_digest:
         _fail("acceptance.inputs", "acceptance atlasDigest differs")
-    if acceptance["inputs"]["sourceAccountingDigest"] != file_sha256(root / "atlas-source-accounting.json"):
+    if acceptance["inputs"]["sourceAccountingDigest"] != member_digests["atlas-source-accounting.json"]:
         _fail("acceptance.inputs", "acceptance sourceAccountingDigest differs")
     names = [gate["name"] for gate in acceptance["gates"]]
     if len(names) != len(set(names)) or set(names) != REQUIRED_GATES:
@@ -2622,58 +4076,458 @@ def _check_acceptance(
             _fail("acceptance.evidence", f"gate {gate['name']} evidenceDigest differs")
 
 
-def validate_distribution(root: Path) -> dict[str, Any]:
-    """Validate one closed Atlas 3.0 distribution and return proof counts."""
+def _check_acceptance(
+    manifest: Mapping[str, Any],
+    accounting: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    member_digests: Mapping[str, str],
+) -> None:
+    if accounting["distributionId"] != manifest["distributionId"]:
+        _fail("distribution.identity", "distributionId differs across JSON artifacts")
+    _check_acceptance_metadata(manifest, acceptance, member_digests)
 
-    schemas, registry = _schema_registry()
-    manifest_path = root / "atlas-manifest.json"
-    if not manifest_path.is_file() or manifest_path.is_symlink():
-        _fail("distribution.file", "atlas-manifest.json is missing or unsafe")
-    manifest = _load_json(manifest_path, require_canonical=True)
-    _validate_json_schema(manifest, "manifest", schemas=schemas, registry=registry, label="manifest")
-    _check_manifest_digest(manifest)
-    _check_distribution_files(root, manifest)
 
-    accounting = _load_json(root / "atlas-source-accounting.json", require_canonical=True)
-    acceptance = _load_json(root / "atlas-acceptance.json", require_canonical=True)
-    _validate_json_schema(accounting, "sourceAccounting", schemas=schemas, registry=registry, label="source accounting")
-    _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
-    _check_binding_pins(manifest, acceptance)
+def _validation_cache_identity(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the immutable identity of one complete semantic validation."""
 
-    dataset, graphs = _parse_dataset(root / "atlas.nq", manifest)
+    return {
+        "bindingBundleDigest": manifest["binding"]["bindingBundleDigest"],
+        "format": CACHE_FORMAT,
+        "manifestDigest": manifest["canonicalPayloadDigest"],
+        "validator": {"name": VALIDATOR_ID, "version": VALIDATOR_VERSION},
+    }
+
+
+def _validation_cache_key(manifest: Mapping[str, Any]) -> str:
+    return canonical_sha256(
+        _validation_cache_identity(manifest),
+        terminal_lf=False,
+    )
+
+
+def _validation_cache_pack_rows(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "contentDigest": pack["content"]["digest"],
+            "dependencyDigest": canonical_sha256(
+                pack["dependencies"],
+                terminal_lf=False,
+            ),
+            "graphCountsDigest": canonical_sha256(
+                pack["graphCounts"],
+                terminal_lf=False,
+            ),
+            "packId": pack["packId"],
+            "transportDigest": pack["transport"]["digest"],
+        }
+        for pack in manifest["packs"]
+    ]
+
+
+def _validation_receipt_payload(
+    manifest: Mapping[str, Any],
+    result: Mapping[str, Any],
+) -> dict[str, Any]:
+    key = _validation_cache_key(manifest)
+    return {
+        **_validation_cache_identity(manifest),
+        "cacheKey": key,
+        "packs": _validation_cache_pack_rows(manifest),
+        "result": dict(result),
+    }
+
+
+def _cache_location(root: Path, cache_dir: Path) -> Path:
+    """Reject a cache that would make the closed distribution self-modifying."""
+
+    try:
+        distribution = root.resolve()
+        cache = cache_dir.resolve()
+    except OSError as exc:
+        _fail("cache.path", f"cannot resolve validation cache path: {exc}")
+    if cache == distribution or cache.is_relative_to(distribution):
+        _fail("cache.path", "validation cache must be outside the closed distribution")
+    return cache_dir
+
+
+def _private_cache_directory(path: Path, *, create: bool) -> bool:
+    try:
+        if create:
+            path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        metadata = path.lstat()
+    except OSError:
+        return False
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+        return False
+    getuid = getattr(os, "getuid", None)
+    if getuid is not None and metadata.st_uid != getuid():
+        return False
+    return metadata.st_mode & 0o022 == 0
+
+
+def _private_cache_file(path: Path) -> bytes | None:
+    try:
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            return None
+        getuid = getattr(os, "getuid", None)
+        if getuid is not None and metadata.st_uid != getuid():
+            return None
+        if metadata.st_mode & 0o077:
+            return None
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def _cache_secret(cache_dir: Path, *, create: bool) -> bytes | None:
+    if not _private_cache_directory(cache_dir, create=create):
+        return None
+    secret_path = cache_dir / "authentication-key"
+    secret = _private_cache_file(secret_path)
+    if secret is not None:
+        return secret if len(secret) == CACHE_SECRET_BYTES else None
+    if not create:
+        return None
+
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    secret = secrets.token_bytes(CACHE_SECRET_BYTES)
+    try:
+        descriptor = os.open(secret_path, flags, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(secret)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError:
+        return _private_cache_file(secret_path)
+    return secret
+
+
+def _receipt_authentication_tag(secret: bytes, payload: Mapping[str, Any]) -> str:
+    digest = hmac.new(
+        secret,
+        canonical_json_bytes(payload, terminal_lf=False),
+        hashlib.sha256,
+    ).hexdigest()
+    return "hmac-sha256:" + digest
+
+
+def _cache_receipt_path(cache_dir: Path, cache_key: str) -> Path:
+    return cache_dir / "receipts" / (cache_key.removeprefix("sha256:") + ".json")
+
+
+def _read_validation_receipt(
+    cache_dir: Path,
+    manifest: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Return one authenticated exact-input cache hit, otherwise fail closed to a miss."""
+
+    secret = _cache_secret(cache_dir, create=False)
+    receipts_dir = cache_dir / "receipts"
+    if secret is None or not _private_cache_directory(receipts_dir, create=False):
+        return None
+    path = _cache_receipt_path(cache_dir, _validation_cache_key(manifest))
+    try:
+        metadata = path.lstat()
+        if (
+            stat.S_ISLNK(metadata.st_mode)
+            or not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_size > CACHE_RECEIPT_MAX_BYTES
+        ):
+            return None
+        raw = path.read_bytes()
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_reject_float,
+            parse_constant=_reject_constant,
+            parse_int=_parse_int,
+        )
+        if raw != canonical_json_bytes(value):
+            return None
+    except (AtlasValidationError, json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    if not isinstance(value, Mapping) or set(value) != {"authenticationTag", "payload"}:
+        return None
+    payload = value["payload"]
+    tag = value["authenticationTag"]
+    if not isinstance(payload, Mapping) or not isinstance(tag, str):
+        return None
+    try:
+        expected_tag = _receipt_authentication_tag(secret, payload)
+    except AtlasValidationError:
+        return None
+    if not hmac.compare_digest(tag, expected_tag):
+        return None
+
+    cached_result = payload.get("result")
+    if not isinstance(cached_result, Mapping):
+        return None
+    expected = _validation_receipt_payload(manifest, cached_result)
+    if payload != expected:
+        return None
+    result = cached_result
+    expected_result_keys = {
+        "counts",
+        "distributionId",
+        "inferredMappingCount",
+        "quadCount",
+    }
+    if (
+        not isinstance(result, Mapping)
+        or set(result) != expected_result_keys
+        or result["counts"] != manifest["counts"]
+        or result["distributionId"] != manifest["distributionId"]
+        or result["quadCount"] != sum(row["quadCount"] for row in manifest["graphs"])
+        or not isinstance(result["inferredMappingCount"], int)
+        or isinstance(result["inferredMappingCount"], bool)
+        or result["inferredMappingCount"] < 0
+    ):
+        return None
+    return dict(result)
+
+
+def _write_validation_receipt(
+    cache_dir: Path,
+    manifest: Mapping[str, Any],
+    result: Mapping[str, Any],
+) -> None:
+    """Best-effort atomic write of one private authenticated cache receipt."""
+
+    secret = _cache_secret(cache_dir, create=True)
+    receipts_dir = cache_dir / "receipts"
+    if secret is None or not _private_cache_directory(receipts_dir, create=True):
+        return
+    payload = _validation_receipt_payload(manifest, result)
+    receipt = {
+        "authenticationTag": _receipt_authentication_tag(secret, payload),
+        "payload": payload,
+    }
+    raw = canonical_json_bytes(receipt)
+    if len(raw) > CACHE_RECEIPT_MAX_BYTES:
+        return
+    target = _cache_receipt_path(cache_dir, payload["cacheKey"])
+    temporary = receipts_dir / f".{target.stem}.{secrets.token_hex(8)}.tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(temporary, flags, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    except OSError:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _check_cached_pack_transports(root: Path, manifest: Mapping[str, Any]) -> None:
+    """Stream-check every stored pack before trusting a cached semantic result."""
+
+    for pack in manifest["packs"]:
+        path = _safe_distribution_path(root, pack["path"])
+        if file_sha256(path) != pack["transport"]["digest"]:
+            _fail("pack.transport", f"{pack['path']} transport digest differs")
+
+
+def _validate_semantic_graphs(
+    manifest: Mapping[str, Any],
+    accounting: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    graphs: Mapping[str, Graph],
+    *,
+    member_digests: Mapping[str, str],
+) -> dict[str, Any]:
+    """Run every graph-level semantic gate against three parsed graph roles."""
+
+    if set(graphs) != {"asserted", "projection", "derived"} or not all(
+        isinstance(graph, Graph) for graph in graphs.values()
+    ):
+        _fail("dataset.graph", "preparsed validation requires the three Atlas graph roles")
     ontology, shapes = _parse_binding_graphs()
     _lint_ontology(ontology)
     _run_shacl(graphs, ontology, shapes)
-    _check_graph_roles(graphs)
-    _check_profile_conformance(graphs["asserted"])
-    _check_identifier_uniqueness(graphs["asserted"])
-    _check_release_membership(graphs["asserted"])
-    _check_label_integrity(graphs["asserted"])
-    _check_evidence_bindings(graphs["asserted"])
-    current_assertions = _validate_assertions(graphs["asserted"])
-    exact_index = _build_exact_match_index(current_assertions)
-    _check_skos_integrity(current_assertions, exact_index)
-    _check_projection(graphs["asserted"], graphs["projection"], current_assertions)
+    inventory = _check_graph_roles(graphs)
+    _check_profile_conformance(graphs["asserted"], inventory)
+    _check_identifier_uniqueness(graphs["asserted"], inventory)
+    _check_release_membership(graphs["asserted"], inventory)
+    _check_label_integrity(graphs["asserted"], inventory)
+    _check_evidence_bindings(graphs["asserted"], inventory)
+    current_assertions = _validate_assertions(graphs["asserted"], inventory)
+    exact_index = _check_skos_integrity(current_assertions)
+    projection_quad_count = next(
+        row["quadCount"] for row in manifest["graphs"] if row["role"] == "projection"
+    )
+    if projection_quad_count:
+        _check_projection(graphs["asserted"], graphs["projection"], current_assertions)
     _check_derived(
         graphs["asserted"],
         graphs["projection"],
         graphs["derived"],
         current_assertions,
+        inventory.derived_nodes,
     )
-    _check_native_payloads(graphs["asserted"])
-    _check_node_digests(graphs)
-    _check_source_accounting(graphs["asserted"], accounting)
-    _check_counts(manifest, graphs)
-    inferred_mapping_count = _check_reasoning_isolation(graphs["derived"], current_assertions, exact_index)
-    _check_acceptance(manifest, accounting, acceptance, root)
-    # Keep the shared Dataset store alive for every graph view through the last check.
-    del dataset
+    precomputed_node_digests = _check_native_payloads(graphs["asserted"], inventory)
+    _check_node_digests(
+        graphs,
+        inventory,
+        precomputed=precomputed_node_digests,
+    )
+    _check_source_accounting(graphs["asserted"], accounting, inventory)
+    _check_counts(manifest, graphs, inventory)
+    inferred_mapping_count = _check_reasoning_isolation(
+        graphs["derived"],
+        current_assertions,
+        exact_index,
+        inventory.derived_nodes,
+    )
+    _check_acceptance(manifest, accounting, acceptance, member_digests)
     return {
         "counts": manifest["counts"],
         "distributionId": manifest["distributionId"],
         "inferredMappingCount": inferred_mapping_count,
         "quadCount": sum(row["quadCount"] for row in manifest["graphs"]),
     }
+
+
+def validate_preparsed_distribution(
+    manifest: Mapping[str, Any],
+    accounting: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    graphs: Mapping[str, Graph],
+    *,
+    member_digests: Mapping[str, str],
+    producer_validation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Validate exact graphs retained by a trusted Atlas pack writer.
+
+    This avoids reparsing a publisher's already-resident graph. The writer must
+    separately verify closed serialized files plus every transport and content
+    pin. Consumers that have only files call :func:`validate_distribution`.
+    """
+
+    schemas, registry = _schema_registry()
+    _validate_json_schema(manifest, "manifest", schemas=schemas, registry=registry, label="manifest")
+    _validate_json_schema(accounting, "sourceAccounting", schemas=schemas, registry=registry, label="source accounting")
+    _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
+    if producer_validation is not None:
+        _validate_json_schema(
+            producer_validation,
+            "producerValidation",
+            schemas=schemas,
+            registry=registry,
+            label="producer validation",
+        )
+    _check_manifest_digest(manifest)
+    _check_pack_manifest(manifest)
+    _check_binding_pins(manifest, acceptance)
+    _check_producer_validation(
+        manifest,
+        acceptance,
+        producer_validation,
+        member_digests,
+    )
+    return _validate_semantic_graphs(
+        manifest,
+        accounting,
+        acceptance,
+        graphs,
+        member_digests=member_digests,
+    )
+
+
+def validate_distribution(
+    root: Path,
+    *,
+    cache_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Validate one closed Atlas 3.0 distribution and return proof counts.
+
+    An optional private cache can reuse a complete semantic result only when
+    the canonical manifest, binding, validator, JSON members, and exact stored
+    pack bytes are unchanged.
+    """
+
+    if cache_dir is not None:
+        cache_dir = _cache_location(root, cache_dir)
+    schemas, registry = _schema_registry()
+    manifest_path = root / MANIFEST_FILE
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        _fail("distribution.file", "atlas-manifest.json is missing or unsafe")
+    manifest = _load_json(manifest_path, require_canonical=True)
+    _validate_json_schema(manifest, "manifest", schemas=schemas, registry=registry, label="manifest")
+    _check_manifest_digest(manifest)
+    graph_ids = _check_pack_manifest(manifest)
+    member_digests = _check_distribution_files(root, manifest)
+
+    members_by_role = {member["role"]: member for member in manifest["members"]}
+    accounting_member = members_by_role["sourceAccounting"]
+    acceptance_member = members_by_role["acceptance"]
+    producer_member = members_by_role.get("producerValidation")
+
+    accounting_path = _safe_distribution_path(root, accounting_member["path"])
+    acceptance = _load_json(
+        _safe_distribution_path(root, acceptance_member["path"]),
+        require_canonical=True,
+        expected_digest=member_digests[acceptance_member["path"]],
+    )
+    _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
+    producer_validation = None
+    if producer_member is not None:
+        producer_validation = _load_json(
+            _safe_distribution_path(root, producer_member["path"]),
+            require_canonical=True,
+            expected_digest=member_digests[producer_member["path"]],
+        )
+        _validate_json_schema(
+            producer_validation,
+            "producerValidation",
+            schemas=schemas,
+            registry=registry,
+            label="producer validation",
+        )
+    _check_binding_pins(manifest, acceptance)
+    _check_producer_validation(
+        manifest,
+        acceptance,
+        producer_validation,
+        member_digests,
+    )
+    if cache_dir is not None:
+        cached_result = _read_validation_receipt(cache_dir, manifest)
+        if cached_result is not None:
+            if file_sha256(accounting_path) != member_digests[accounting_member["path"]]:
+                _fail("distribution.digest", f"{accounting_path.name} digest differs")
+            _check_cached_pack_transports(root, manifest)
+            _check_acceptance_metadata(manifest, acceptance, member_digests)
+            return cached_result
+
+    accounting = _load_json(
+        accounting_path,
+        require_canonical=True,
+        expected_digest=member_digests[accounting_member["path"]],
+    )
+    _validate_json_schema(accounting, "sourceAccounting", schemas=schemas, registry=registry, label="source accounting")
+
+    dataset, graphs = _parse_packed_dataset(root, manifest, graph_ids)
+    result = _validate_semantic_graphs(
+        manifest,
+        accounting,
+        acceptance,
+        graphs,
+        member_digests=member_digests,
+    )
+    # Keep the shared Dataset store alive for every graph view through the last check.
+    del dataset
+    if cache_dir is not None:
+        _write_validation_receipt(cache_dir, manifest, result)
+    return result
 
 
 def _check_registry_descriptors(
@@ -2813,7 +4667,7 @@ def _check_registry_descriptors(
     resource_ids: list[str] = []
     concept_scheme_count = 0
     observed_dispositions: Counter[str] = Counter()
-    for scheme in sorted(schemes, key=str):
+    for scheme in sorted(schemes):
         if not isinstance(scheme, URIRef):
             _fail("registry.descriptors", "registry descriptor scheme identity is not an IRI")
         profile = _iri(
@@ -2829,7 +4683,10 @@ def _check_registry_descriptors(
         if supported_rings - allowed_rings:
             _fail("registry.descriptors", f"registry descriptor {scheme} has an unsupported ring")
         is_concept_scheme = (scheme, RDF.type, SKOS.ConceptScheme) in graph
-        if is_concept_scheme != (profile == ATLAS.conceptScheme):
+        hosts_subject_concepts = ATLAS.subject in supported_rings
+        if is_concept_scheme != (
+            profile == ATLAS.conceptScheme or hosts_subject_concepts
+        ):
             _fail("registry.descriptors", f"registry descriptor {scheme} has inconsistent SKOS typing")
         concept_scheme_count += int(is_concept_scheme)
 
@@ -3183,13 +5040,24 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help="validate one distribution instead of the complete binding corpus",
     )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        help="private local receipt cache for repeated --distribution validation",
+    )
     return parser
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
     try:
-        result = validate_distribution(args.distribution) if args.distribution else validate_binding()
+        if args.cache_dir is not None and args.distribution is None:
+            _fail("cache.path", "--cache-dir requires --distribution")
+        result = (
+            validate_distribution(args.distribution, cache_dir=args.cache_dir)
+            if args.distribution
+            else validate_binding()
+        )
     except AtlasValidationError as exc:
         print(str(exc), file=sys.stderr)
         return 1

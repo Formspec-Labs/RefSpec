@@ -33,12 +33,13 @@ admissible, terminal-current, digest-checked, evidence-bearing
 
 ## Distribution
 
-A release contains exactly four regular files and no symlinks:
+A release is one self-contained directory. It contains one root manifest, two
+supporting JSON files, one or more N-Quads packs, and no symlinks:
 
 | File | Role | Purpose |
 | --- | --- | --- |
 | `atlas-manifest.json` | manifest | Closed distribution description and exact file pins |
-| `atlas.nq` | atlas dataset | Asserted, projection, and optional derived graphs |
+| one or more `*.nq` or `*.nq.zst` files | packs | Partitioned asserted data and optional reproducible views |
 | `atlas-source-accounting.json` | source accounting | One disposition for every enumerated source member |
 | `atlas-acceptance.json` | acceptance | Passed validation gates and their evidence |
 
@@ -48,7 +49,7 @@ The other JSON files MUST validate against their correspondingly named schemas.
 Every schema uses JSON Schema Draft 2020-12 and is closed to unknown fields.
 
 The manifest pins the exact ontology, SHACL shapes, core JSON Schemas, validator
-version, and three non-manifest files by SHA-256 digest and byte length. Its
+version, every pack, and both supporting JSON files. Its
 `bindingBundleDigest` additionally covers a sorted path, length, and digest
 inventory of the README, ontology, shapes, every schema, registry profile map,
 requirements, conformance-corpus declaration, coverage proof, real-registry
@@ -58,6 +59,54 @@ invisibly. The
 manifest itself is pinned by a trusted digest supplied outside the distribution.
 Its `canonicalPayloadDigest` covers the canonical JSON object with that one
 field removed.
+
+Every pack has a stable `packId`, a safe relative path, its graph counts, exact
+dependencies, source-release and ring coverage, and two pins:
+
+- `transport` pins the bytes stored in the distribution. It declares either
+  uncompressed N-Quads or a Zstandard frame and records its media type, SHA-256
+  digest, and byte length.
+- `content` pins the canonical uncompressed N-Quads with its SHA-256 digest,
+  byte length, and quad count.
+
+A validator MUST stream-decompress a Zstandard pack, enforce the declared
+uncompressed length, and require the resulting bytes to match `content`. The
+transport digest makes the release byte-exact; the content digest keeps pack
+identity independent from compression settings.
+
+The manifest's `graphs` rows reconcile aggregate quad and pack counts. A graph
+`inventoryDigest` is SHA-256 over REF-canonical JSON containing the sorted list
+of `{packId, contentDigest, quadCount}` rows for packs with a nonzero count for
+that role. An empty role hashes the empty list. The asserted graph's inventory
+digest is the distribution-wide asserted-data pin. `atlas-acceptance.json`
+records that value as `inputs.atlasDigest`.
+
+Production distributions SHOULD use one or more `sourceRelease` packs per exact
+source release. A large release MAY use stable subject buckets: hash the UTF-8
+subject IRI with SHA-256 and select the declared lowercase hexadecimal prefix.
+All asserted outgoing facts for one subject MUST remain in one pack. This rule
+applies per graph role, so the same resource may also be a subject in a separate
+projection pack. `catalog` packs hold descriptor-only shared data. Future
+Atlas-authored mappings belong in `mapping` packs that depend on the exact
+endpoint release packs. Publisher-native and cross-ring relation assertions
+belong to the source endpoint's release pack. A small distribution or fixture
+MAY use one uncompressed `aggregate` pack.
+
+Pack dependencies refer to `packId` values in the same root manifest. Pack IDs,
+paths, and dependency entries MUST be unique. Arrays and packs MUST be ordered
+lexicographically by their identifying value. Dependencies MAY contain cycles
+when publisher relations point both ways; they express exact input closure, not
+an execution order.
+
+Projection and derived packs are optional `view` packs. They contain no asserted
+quads, declare the asserted graph's `inventoryDigest` as
+`inputAssertedDigest`, and remain non-authoritative. A producer MAY omit the
+projection even when asserted labels or relations can reproduce it; in that
+case the projection graph count is zero and validation checks the asserted
+preconditions for later reproduction. When a projection pack is present, it
+MUST equal the projection regenerated from the asserted packs. The same rule
+applies to a mixed `aggregate` pack: graph role, not physical co-location,
+determines authority.
 
 JSON files use the REF canonical JSON profile: UTF-8; no duplicate keys,
 `null`, floating-point values, or non-finite numbers; sorted object keys;
@@ -71,11 +120,13 @@ distribution keeps multilingual source content external and pins its exact
 locator and digest. Descriptor and policy payloads remain on the stricter REF
 profile.
 
-`atlas.nq` MUST be valid UTF-8 N-Quads with absolute IRIs, no blank nodes, no
-default-graph statements, one statement per line, lexicographically sorted
-lines, LF line endings, and one terminal LF. A serialized line MUST NOT exceed
-16,777,216 bytes. Its only named graphs are the three graph IRIs declared by
-the manifest. The `derived` graph may have zero statements.
+The uncompressed content of every pack MUST be valid UTF-8 N-Quads with absolute
+IRIs, no blank nodes, no default-graph statements, one statement per line,
+lexicographically sorted unique lines, LF line endings, and one terminal LF. A
+serialized line MUST NOT exceed 16,777,216 bytes. Across the complete pack set,
+the same quad MUST NOT appear twice. The only named graphs are the three graph
+IRIs declared by the manifest. The projection and derived roles may have zero
+statements. Global line sorting across packs is neither required nor meaningful.
 
 Every scheme, release, normalized resource, identifier, source record,
 SKOS-XL label, editorial policy, relation assertion, evidence binding,
@@ -92,9 +143,10 @@ The binding supplies one shared term renderer for fixture construction,
 registry-descriptor generation, and validation. It escapes quotes, backslashes,
 tabs, line breaks, carriage returns, form feeds, and disallowed control
 characters according to N-Triples while preserving valid Unicode. Validation
-parses the dataset first and inspects RDF terms for blank nodes; text such as
-`_:not-a-node` inside a literal is not a blank node. It then reconstructs every
-canonical N-Quads line and requires byte-for-byte equality.
+parses each pack and inspects RDF terms for blank nodes; text such as
+`_:not-a-node` inside a literal is not a blank node. It reconstructs every
+canonical N-Quads line and requires byte-for-byte equality with the uncompressed
+content.
 
 ## Standards boundary
 
@@ -141,14 +193,15 @@ registry inventory into this binding.
 
 The same digest-pinned file is the single normative policy source for allowed
 relation predicates by semantic ring and assertion type. SHACL Core checks
-closed record structure, exact local path equality, inverse release membership,
-and label-node role disjointness. The shape graph contains no SPARQL constraints.
-The standalone validator performs indexed joins for conditions SHACL Core cannot
-express: a scheme supports each release ring; labels share their resource's
-release and source record; equal literals never cross label roles; evidence pins
-the exact source-record digest; lifecycle chains remain linear; and each
-assertion predicate occupies an allowed ring/type policy cell. The validator
-loads that policy matrix from the profile file instead of repeating it in SHACL.
+closed record structure, exact local path equality, and inverse release
+membership. The shape graph contains no SPARQL constraints. The standalone
+validator enforces carrier-type and graph-role exclusivity once in an indexed
+pass, then checks conditions SHACL Core cannot express: a scheme supports each
+release ring; labels share their resource's release and source record; equal
+literals never cross label roles; evidence pins the exact source-record digest;
+lifecycle chains remain linear; and each assertion predicate occupies an allowed
+ring/type policy cell. The validator loads that policy matrix from the profile
+file instead of repeating it in SHACL.
 
 The profile map, registry coverage report, and descriptor proof each validate
 against their own closed Draft 2020-12 JSON Schema. Procedural checks then
@@ -471,20 +524,66 @@ A conforming validator MUST fail closed in this order:
    mismatches;
 2. reject non-canonical JSON and validate every JSON document with its closed
    schema;
-3. parse the no-blank-node N-Quads profile and reconcile named graph IDs and
-   counts;
+3. stream-decompress each pack, check its transport and content pins, parse the
+   no-blank-node N-Quads profile, and reconcile per-pack and aggregate graph
+   counts and inventory digests;
 4. lint the Atlas ontology's local OWL profile, then parse and meta-validate the
    SHACL shapes;
-5. validate the asserted, projection, and derived graphs under their separate
-   shapes and placement rules;
+5. validate each asserted pack under its shapes and placement rules, then
+   reconcile global subject ownership, duplicate quads, and pack dependencies;
 6. reconcile releases, membership, endpoint releases, evidence, identities,
-   source accounting, and manifest counts;
-7. regenerate the label and relation projection and require exact equality;
+   source accounting, and manifest counts across the complete pack set;
+7. when projection packs exist, regenerate the label and relation projection
+   and require exact equality; otherwise verify its asserted preconditions;
 8. prove that allowlisted reasoning adds no assertion, projection record, or
    authoritative graph statement; and
 9. require the acceptance gate set; then, for binding validation, verify the
     sealed corpus, registry coverage report, and real-registry descriptor
     export.
+
+A validator MAY cache a successful pack receipt by binding digest, content
+digest, graph counts, and dependency digest. It MAY reuse that receipt when all
+pins match exactly. It MUST still run the root-level uniqueness, endpoint,
+dependency, accounting, count, projection, and acceptance checks. The cache is
+disposable and transfers no authority.
+
+The independent validator also supports an authenticated local receipt for an
+unchanged complete distribution:
+
+```sh
+python tools/validate.py \
+  --distribution /path/to/distribution \
+  --cache-dir /path/to/private-atlas-cache
+```
+
+The first run performs full parsing and semantic validation. A later exact hit
+still checks the closed file set, canonical manifest and JSON, binding pins,
+acceptance, lengths, and the SHA-256 digest of every stored pack. It can then
+reuse the prior semantic result without decompressing or loading the RDF. The
+receipt is keyed by the manifest, binding, and validator identity and protected
+by a private local authentication key. A missing, malformed, moved, or modified
+receipt is only a cache miss and triggers full validation. The cache directory
+must remain outside the distribution. If any pack or root input changes, the
+validator reparses the complete graph because the global checks above still
+need the cross-pack facts; compact per-pack receipts cannot safely replace
+those facts.
+
+A trusted source-only writer MAY satisfy `shacl-data` with a compiled producer
+proof instead of running general SHACL over its own generated RDF. The proof
+MUST pin the exact ontology and SHACL-shape digests it implements, run
+meta-SHACL, validate the normalized source rows and their joins, and reconcile
+the fixed constructor counts with source accounting and exact pack receipts. It
+MUST fail closed when either binding pin changes. The current compiled profile
+admits only publisher-source resources, English labels, identifiers, native and
+cross-ring relations, and source assignments; mappings, projections, derived
+relations, and supersession are all zero.
+
+The generation report distinguishes this compiled producer proof from
+independent consumer validation. A consumer does not inherit the writer's trust
+or resident state: `validate_distribution` still decompresses and parses the
+files, runs normative SHACL and the global semantic checks, and recomputes every
+receipt. The conformance tests compare representative output from every current
+assertion constructor with that normative verdict.
 
 The conformance corpus declares its expected result and first issue code. Its
 required case inventory is closed in the independent validator, and its paths
@@ -502,6 +601,8 @@ members came from those resources.
 
 JSON-LD, Turtle, SSSOM, tables, search indexes, and application-specific graph
 views MAY be generated from a verified distribution. They are derived products,
-pin the source manifest and dataset digest, and do not become competing sources
-of truth. SSSOM exports only semantically applicable mapping assertions and
-retain the supporting Atlas assertion identifiers.
+pin the root manifest and asserted inventory digest, and do not become competing
+sources of truth. A portable derived view MAY be included as a manifest-pinned
+`view` pack; a local file index need not be distributed. Neither case requires a
+database service. SSSOM exports only semantically applicable mapping assertions
+and retain the supporting Atlas assertion identifiers.
