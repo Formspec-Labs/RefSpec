@@ -11,6 +11,7 @@ import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
@@ -57,13 +58,17 @@ class RegistryInputPin:
     def verify(self) -> None:
         if not self.path.is_file() or self.path.is_symlink():
             raise ValueError(f"registry input is missing or unsafe: {self.logical_path}")
-        payload = self.path.read_bytes()
-        observed = "sha256:" + hashlib.sha256(payload).hexdigest()
-        if len(payload) != self.byte_length or observed != self.sha256:
+        observed_size = self.path.stat().st_size
+        digest = hashlib.sha256()
+        with self.path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        observed = "sha256:" + digest.hexdigest()
+        if observed_size != self.byte_length or observed != self.sha256:
             raise ValueError(
                 f"registry input pin differs for {self.logical_path}: "
                 f"expected=({self.byte_length}, {self.sha256}), "
-                f"observed=({len(payload)}, {observed})"
+                f"observed=({observed_size}, {observed})"
             )
 
 
@@ -106,9 +111,9 @@ class RegistryResource:
             raise ValueError("registry resource IRI must be absolute")
         if not self.labels:
             raise ValueError(f"registry resource {self.iri} has no English label")
-        if sum(label.role == "preferred" for label in self.labels) != 1:
+        if sum(label.role == "preferred" for label in self.labels) > 1:
             raise ValueError(
-                f"registry resource {self.iri} must have exactly one preferred label"
+                f"registry resource {self.iri} has more than one preferred label"
             )
         if not self.source_locator or ":" not in self.source_locator:
             raise ValueError(f"registry resource {self.iri} has no absolute source locator")
@@ -160,6 +165,16 @@ class RegistryRelease:
             raise ValueError(f"registry release {self.key} has no members")
         if self.dropped_label_count < 0:
             raise ValueError("dropped label count must be non-negative")
+        try:
+            parsed_issued = date.fromisoformat(self.issued)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"registry release {self.key} issued must be an ISO 8601 date"
+            ) from error
+        if parsed_issued.isoformat() != self.issued:
+            raise ValueError(
+                f"registry release {self.key} issued must use canonical YYYY-MM-DD"
+            )
 
     def verify_inputs(self) -> None:
         for source in self.inputs:
