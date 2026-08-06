@@ -206,7 +206,12 @@ release on scheme, profile, and ring. A scheme is also a
 resource linked through `skos:inScheme`, regardless of its Atlas profile.
 
 `atlas:Identifier` represents an authority-scoped identifier. Its literal value
-is not a label and does not establish identity outside the named scheme.
+is not a label and does not establish identity outside the named scheme. The
+manifest counts distinct identifier records under `identifiers`; it MUST NOT
+fold them into the `resources` count. Within one distribution, each ordered
+pair of `atlas:identifierScheme` and `atlas:identifierValue` MUST identify
+exactly one `atlas:AtlasResource`. More than one identifier record MAY repeat
+the pair only when every record identifies that same resource.
 
 `atlas:SourceRecord` identifies the source-local record and pins the exact
 external locator and digest from which normalized resources, labels, or
@@ -262,14 +267,34 @@ conformance. A future Rulespec compatibility view MUST pin and validate an
 exact published Rulespec contract; it MUST NOT infer conformance from shared
 field names.
 
-Atlas defines three assertion specializations:
+Atlas defines four assertion specializations:
 
 - `atlas:NativeRelationAssertion` preserves a publisher-authored relation
   within one release;
 - `atlas:MappingAssertion` compares resources across exact releases; a
   subject-ring mapping is also an `atlas:SkosMappingAssertion`; and
 - `atlas:SourceAssignment` preserves a publisher assignment from a source
-  record to a normalized resource.
+  record to a normalized resource; and
+- `atlas:CrossRingRelationAssertion` links normalized resources in different
+  semantic rings without weakening the same-ring rules for mappings and native
+  relations.
+
+A cross-ring assertion records `atlas:sourceRing` and `atlas:targetRing`, and
+its exact endpoint releases and resource types MUST agree with those rings. It
+MUST NOT also record `atlas:semanticRing`. The closed profile policy admits only
+these directed cells:
+
+| Source ring | Predicate | Target ring |
+| --- | --- | --- |
+| `entity` | `atlas:hasIndexedSubject` | `subject` |
+| `legalIdentity` | `atlas:hasIndexedSubject` | `subject` |
+| `entity` | `atlas:referencesLegalIdentity` | `legalIdentity` |
+
+Cross-ring assertions MUST NOT use a SKOS predicate. Atlas declares the two
+cross-ring predicates as ordinary object properties without inverse,
+transitive, symmetric, property-chain, or SKOS subproperty axioms. Validation
+and projection use their asserted direction only; no inference may create an
+authoritative cross-ring claim.
 
 For subject thesauri, `atlas:thesaurusUse` and
 `atlas:thesaurusUsedFor` preserve publisher-authored USE/UF links as ordinary
@@ -279,9 +304,10 @@ condition because the same resources also have a transitive hierarchy path.
 Atlas does not declare these predicates inverse, transitive, or equivalent to
 SKOS label or semantic relations.
 
-Each assertion records its semantic ring, exact endpoint releases, sealed
-editorial policy, assertion time, lifecycle status, stable identity digest, and
-content digest. `atlas:EditorialPolicy` preserves its policy document as
+Each same-ring assertion records its semantic ring. Each cross-ring assertion
+records its distinct source and target rings. Every assertion records exact
+endpoint releases, sealed editorial policy, assertion time, lifecycle status,
+stable identity digest, and content digest. `atlas:EditorialPolicy` preserves its policy document as
 canonical `rdf:JSON`, has a recomputed content digest, and uses the
 content-derived IRI `urn:ref:atlas-policy:<digest hex>`.
 
@@ -299,10 +325,11 @@ has a content digest and the content-derived IRI
 `urn:ref:atlas-evidence:<digest hex>`. Evidence may be added without changing
 the claim identity; an existing binding MUST NOT be rewritten.
 
-The stable assertion identity is SHA-256 over canonical REF JSON, including one
-terminal LF, with exactly these keys: `object`, `policy`,
+The stable identity of a same-ring assertion is SHA-256 over canonical REF JSON,
+including one terminal LF, with exactly these keys: `object`, `policy`,
 `policyContentDigest`, `predicate`, `semanticRing`, `sourceRelease`, `subject`,
-`targetRelease`, and `type`. The result is both
+`targetRelease`, and `type`. A cross-ring assertion replaces `semanticRing`
+with the two keys `sourceRing` and `targetRing`. The result is both
 `atlas:assertionIdentityDigest` and the suffix of
 `urn:ref:atlas-assertion:<digest hex>`. It deliberately excludes evidence,
 timestamps, lifecycle status, and supersession. The separate
@@ -312,11 +339,11 @@ Every distribution is immutable. A later distribution may retain the same
 stable claim IRI while changing its lifecycle state and therefore its content
 digest. `atlas:supersedes` connects a later, distinct claim to its predecessor.
 The chain is linear: a predecessor has at most one direct successor, a successor
-is strictly later, and the two records agree on assertion type, ring, subject,
-and source release. A non-terminal record MUST be `atlas:superseded`; a terminal
-record MUST NOT be. Only a terminal `atlas:current` assertion is admitted to the
-projection. A terminal `atlas:withdrawn` assertion remains auditable but has no
-public relation triple.
+is strictly later, and the two records agree on assertion type, ring context,
+subject, and source release. A non-terminal record MUST be `atlas:superseded`; a
+terminal record MUST NOT be. Only a terminal `atlas:current` assertion is
+admitted to the projection. A terminal `atlas:withdrawn` assertion remains
+auditable but has no public relation triple.
 
 ## Projection and inference
 
@@ -325,6 +352,11 @@ For each admitted relation assertion, the projection graph contains:
 1. the bare subject-predicate-object triple for interoperability; and
 2. one `atlas:ProjectedRelation` record with the same subject, predicate, and
    object and one or more `atlas:supportingAssertion` links.
+
+A projected same-ring relation records `atlas:semanticRing`. A projected
+cross-ring relation instead records `atlas:sourceRing` and `atlas:targetRing`.
+It retains the supporting cross-ring assertion identifier and remains a
+reproducible, non-authoritative convenience record.
 
 Projection and derivation records use the neutral fields
 `atlas:relationSubject`, `atlas:relationPredicate`, and

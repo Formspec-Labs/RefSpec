@@ -11,6 +11,13 @@ import pytest
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF
 
+from refspec.atlas.v3_source_data import (
+    RegistryInputPin,
+    RegistryLabel,
+    RegistryRelease,
+    RegistryResource,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 generator = importlib.import_module("generate_atlas_v3_full")
@@ -843,3 +850,289 @@ def test_crs_sources_are_complete_captures_not_claimed_publisher_releases() -> N
 
     assert len(crs) == 3
     assert {spec.scope for spec in crs} == {"completeCapture"}
+
+
+def test_build_graphs_emits_content_derived_registry_identifiers(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    resource_scheme = URIRef("urn:test:scheme:codes")
+    identifier_scheme = URIRef("urn:test:scheme:identifiers")
+    descriptor_graph = generator._new_build_graph()
+    for scheme, profile in (
+        (resource_scheme, generator.ATLAS.codeScheme),
+        (identifier_scheme, generator.ATLAS.identifierScheme),
+    ):
+        descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
+        descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        lambda: descriptor_graph,
+    )
+
+    source = tmp_path / "source.json"
+    source.write_text("{}", encoding="utf-8")
+    source_digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    resource_iri = "urn:test:resource:one"
+    source_path = "source.json#row=1.identifier"
+    release = generator._adapt_registry_release(
+        RegistryRelease(
+            key="identifier-emission-test",
+            resource_id="identifier-emission-test",
+            source_module="refspec.registry.test",
+            profile="codeScheme",
+            ring="value",
+            scope="completeCapture",
+            source_release_iri="urn:test:source-release",
+            source_release_digest=source_digest,
+            atlas_release_iri="urn:test:atlas-release",
+            scheme_iri=str(resource_scheme),
+            issued="2026-08-06",
+            inputs=(
+                RegistryInputPin(
+                    path=source,
+                    logical_path="source.json",
+                    sha256=source_digest,
+                    byte_length=source.stat().st_size,
+                    source_iri="urn:test:source",
+                ),
+            ),
+            resources=(
+                RegistryResource(
+                    iri=resource_iri,
+                    labels=(
+                        RegistryLabel(
+                            value="One",
+                            role="preferred",
+                            source_path="source.json#row=1.label",
+                        ),
+                    ),
+                    native_payload={"identifier": "ONE-001"},
+                    source_locator="urn:test:source-row:1",
+                    source_digest=source_digest,
+                    identifiers=(
+                        generator.RegistryIdentifier(
+                            value="ONE-001",
+                            scheme_iri=str(identifier_scheme),
+                            source_path=source_path,
+                        ),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    graphs = generator._build_graphs((release,))
+    identifiers = set(
+        graphs.asserted.subjects(RDF.type, generator.ATLAS.Identifier)
+    )
+
+    assert len(identifiers) == 1
+    identifier = next(iter(identifiers))
+    resource = URIRef(resource_iri)
+    source_record = graphs.asserted.value(resource, generator.ATLAS.sourceRecord)
+    assert identifier == generator._node_iri(
+        "atlas-identifier",
+        {
+            "identifierScheme": str(identifier_scheme),
+            "identifierValue": "ONE-001",
+            "identifies": resource_iri,
+            "sourcePath": source_path,
+            "sourceRecord": str(source_record),
+        },
+    )
+    assert set(graphs.asserted.predicate_objects(identifier)) == {
+        (RDF.type, generator.ATLAS.Identifier),
+        (
+            generator.ATLAS.identifierValue,
+            generator.Literal("ONE-001", datatype=generator.XSD.string),
+        ),
+        (generator.ATLAS.identifierScheme, identifier_scheme),
+        (generator.ATLAS.identifies, resource),
+        (generator.ATLAS.sourceRecord, source_record),
+        (
+            generator.ATLAS.contentDigest,
+            generator.Literal(
+                generator.ATLAS_VALIDATE.rdf_node_digest(
+                    graphs.asserted,
+                    identifier,
+                )
+            ),
+        ),
+    }
+    assert generator._counts(graphs)["identifiers"] == 1
+
+
+def test_build_graphs_rejects_one_authority_identifier_for_two_resources(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    resource_scheme = URIRef("urn:test:scheme:codes")
+    identifier_scheme = URIRef("urn:test:scheme:identifiers")
+    descriptor_graph = generator._new_build_graph()
+    for scheme, profile in (
+        (resource_scheme, generator.ATLAS.codeScheme),
+        (identifier_scheme, generator.ATLAS.identifierScheme),
+    ):
+        descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
+        descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        lambda: descriptor_graph,
+    )
+
+    source = tmp_path / "source.json"
+    source.write_text("{}", encoding="utf-8")
+    source_digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    identifier = generator.RegistryIdentifier(
+        value="DUPLICATE-001",
+        scheme_iri=str(identifier_scheme),
+        source_path="source.json#identifier",
+    )
+    release = generator._adapt_registry_release(
+        RegistryRelease(
+            key="identifier-uniqueness-test",
+            resource_id="identifier-uniqueness-test",
+            source_module="refspec.registry.test",
+            profile="codeScheme",
+            ring="value",
+            scope="completeCapture",
+            source_release_iri="urn:test:source-release",
+            source_release_digest=source_digest,
+            atlas_release_iri="urn:test:atlas-release",
+            scheme_iri=str(resource_scheme),
+            issued="2026-08-06",
+            inputs=(
+                RegistryInputPin(
+                    path=source,
+                    logical_path="source.json",
+                    sha256=source_digest,
+                    byte_length=source.stat().st_size,
+                    source_iri="urn:test:source",
+                ),
+            ),
+            resources=tuple(
+                RegistryResource(
+                    iri=f"urn:test:resource:{ordinal}",
+                    labels=(
+                        RegistryLabel(
+                            value=f"Resource {ordinal}",
+                            role="preferred",
+                            source_path=f"source.json#row={ordinal}.label",
+                        ),
+                    ),
+                    native_payload={"ordinal": ordinal},
+                    source_locator=f"urn:test:source-row:{ordinal}",
+                    source_digest=source_digest,
+                    identifiers=(identifier,),
+                )
+                for ordinal in (1, 2)
+            ),
+        )
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="authority-scoped identifier resolves to multiple resources",
+    ):
+        generator._build_graphs((release,))
+
+
+@pytest.mark.parametrize(
+    ("scheme_type", "scheme_profile"),
+    (
+        (None, generator.ATLAS.identifierScheme),
+        (generator.ATLAS.ResourceScheme, generator.ATLAS.codeScheme),
+    ),
+)
+def test_identifier_emission_rejects_non_identifier_schemes(
+    scheme_type: URIRef | None,
+    scheme_profile: URIRef,
+) -> None:
+    graph = generator._new_build_graph()
+    scheme = URIRef("urn:test:scheme:not-an-identifier-authority")
+    if scheme_type is not None:
+        graph.add((scheme, RDF.type, scheme_type))
+    graph.add((scheme, generator.ATLAS.resourceProfile, scheme_profile))
+
+    with pytest.raises(ValueError, match="atlas:identifierScheme profile"):
+        generator._add_identifier(
+            graph,
+            identifier_row=generator.RegistryIdentifier(
+                value="ONE-001",
+                scheme_iri=str(scheme),
+                source_path="source.json#identifier",
+            ),
+            resource=URIRef("urn:test:resource"),
+            source_record=URIRef("urn:test:source-record"),
+        )
+
+
+def test_real_document_releases_emit_identifiers_and_cross_ring_assignment() -> None:
+    from refspec.atlas.v3_registry_documents import load_registry_document_releases
+
+    releases = tuple(
+        generator._adapt_registry_release(release)
+        for release in load_registry_document_releases(ROOT)
+    )
+    assert generator._direct_source_counts(releases, label_count=1_060) == {
+        "crossRingRelations": 1,
+        "identifiers": 1_059,
+        "labels": 1_060,
+        "nativeRelations": 0,
+        "resources": 1_060,
+    }
+    assert [generator._release_direct_source_counts(release) for release in releases] == [
+        {
+            "crossRingRelations": 0,
+            "identifiers": 1_058,
+            "nativeRelations": 0,
+            "resources": 1_058,
+        },
+        {
+            "crossRingRelations": 1,
+            "identifiers": 1,
+            "nativeRelations": 0,
+            "resources": 1,
+        },
+        {
+            "crossRingRelations": 0,
+            "identifiers": 0,
+            "nativeRelations": 0,
+            "resources": 1,
+        },
+    ]
+    graphs = generator._build_graphs(releases)
+    report = URIRef("https://www.gao.gov/products/gao-26-108505")
+    topic = next(
+        resource
+        for resource in graphs.asserted.subjects(
+            RDF.type,
+            generator.ATLAS.SubjectConcept,
+        )
+    )
+    assertions = set(
+        graphs.asserted.subjects(
+            RDF.type,
+            generator.ATLAS.CrossRingRelationAssertion,
+        )
+    )
+
+    assert generator._counts(graphs)["identifiers"] == 1_059
+    assert generator._counts(graphs)["crossRingRelationAssertions"] == 1
+    assert len(assertions) == 1
+    assertion = next(iter(assertions))
+    assert graphs.asserted.value(assertion, RDF.subject) == report
+    assert graphs.asserted.value(assertion, RDF.predicate) == (
+        generator.ATLAS.hasIndexedSubject
+    )
+    assert graphs.asserted.value(assertion, RDF.object) == topic
+    assert graphs.asserted.value(assertion, generator.ATLAS.sourceRing) == (
+        generator.ATLAS.entity
+    )
+    assert graphs.asserted.value(assertion, generator.ATLAS.targetRing) == (
+        generator.ATLAS.subject
+    )
+    assert (report, generator.ATLAS.hasIndexedSubject, topic) in graphs.projection

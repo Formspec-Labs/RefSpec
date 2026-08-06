@@ -41,6 +41,7 @@ import re
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
 from types import MappingProxyType
@@ -398,13 +399,74 @@ def _normalize_text(chunks: Sequence[str]) -> str:
     return " ".join("".join(chunks).split())
 
 
-_TRACKED_TAGS = frozenset({"div", "h1", "h2", "section", "strong", "a"})
+_TRACKED_TAGS = frozenset(
+    {"a", "div", "h1", "h2", "section", "span", "strong"}
+)
 
 # gao.gov's real markup links each assigned Topic through a slug, e.g.
 # "/topics/auditing-and-financial-management"; this is deliberately stricter
 # than a bare "/topics/" prefix check so a malformed or empty slug fails
 # closed instead of being accepted as an assignment.
 _TOPIC_HREF = re.compile(r"^/topics/[a-z0-9]+(?:-[a-z0-9]+)*$")
+_DISPLAY_DATE = re.compile(
+    r"^(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+    r"(?P<day>[1-9]|[12][0-9]|3[01]), (?P<year>[0-9]{4})$"
+)
+_PUBLICATION_METADATA = re.compile(
+    r"^Published: (?P<published>"
+    r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+    r"(?:[1-9]|[12][0-9]|3[01]), [0-9]{4})\."
+    r"(?: Publicly Released: (?P<released>"
+    r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+    r"(?:[1-9]|[12][0-9]|3[01]), [0-9]{4})\.)?$"
+)
+_MONTH_NUMBER = MappingProxyType(
+    {
+        "Jan": 1,
+        "Feb": 2,
+        "Mar": 3,
+        "Apr": 4,
+        "May": 5,
+        "Jun": 6,
+        "Jul": 7,
+        "Aug": 8,
+        "Sep": 9,
+        "Oct": 10,
+        "Nov": 11,
+        "Dec": 12,
+    }
+)
+
+
+def _parse_display_date(value: str, *, label: str) -> str:
+    match = _DISPLAY_DATE.fullmatch(value)
+    if match is None:
+        raise GAOSourceDriftError(f"{label} has an unsupported date format: {value!r}")
+    try:
+        parsed = date(
+            int(match.group("year")),
+            _MONTH_NUMBER[match.group("month")],
+            int(match.group("day")),
+        )
+    except ValueError as error:
+        raise GAOSourceDriftError(f"{label} is not a calendar date: {value!r}") from error
+    return parsed.isoformat()
+
+
+def _published_date(metadata: str) -> str:
+    match = _PUBLICATION_METADATA.fullmatch(metadata)
+    if match is None:
+        raise GAOSourceDriftError(
+            f"product page Published metadata has an unsupported shape: {metadata!r}"
+        )
+    published = _parse_display_date(
+        match.group("published"),
+        label="product page Published date",
+    )
+    released = match.group("released")
+    if released is not None:
+        _parse_display_date(released, label="product page Publicly Released date")
+    return published
 
 
 class _GAOProductPageParser(HTMLParser):
@@ -436,11 +498,10 @@ class _GAOProductPageParser(HTMLParser):
       views block entirely and so are structurally excluded, not merely
       filtered by text.
 
-    Only ``div``, ``h1``, ``h2``, ``section``, ``strong``, and ``a`` push a
-    stack frame.  Void elements such as ``<link>`` or ``<meta>`` are read
-    directly in ``_open`` and never pushed, so a real capture that omits
-    their self-closing slash cannot desync the stack from tags this parser
-    actually tracks.
+    Only the small set in ``_TRACKED_TAGS`` pushes a stack frame. Void elements
+    such as ``<link>`` or ``<meta>`` are read directly in ``_open`` and never
+    pushed, so a real capture that omits their self-closing slash cannot desync
+    the stack from tags this parser actually tracks.
     """
 
     def __init__(self) -> None:
@@ -449,6 +510,7 @@ class _GAOProductPageParser(HTMLParser):
         self.product_id: str | None = None
         self.title: str | None = None
         self.topic_items: list[tuple[str | None, str]] = []
+        self.publication_metadata_candidates: list[str] = []
 
         self.product_id_section_match_count = 0
         self.product_id_match_count = 0
@@ -473,7 +535,13 @@ class _GAOProductPageParser(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         for frame in self._stack:
-            if frame["role"] in {"productId", "title", "topicAnchor", "topicsHeadingCandidate"}:
+            if frame["role"] in {
+                "productId",
+                "publicationMetadataCandidate",
+                "title",
+                "topicAnchor",
+                "topicsHeadingCandidate",
+            }:
                 frame["text"].append(data)
 
     def _open(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -495,6 +563,9 @@ class _GAOProductPageParser(HTMLParser):
         if tag == "strong" and self.product_id is None and self._inside_open_role("productIdSection"):
             self.product_id_match_count += 1
             role = "productId"
+
+        if tag == "span" and self._inside_open_role("productIdSection"):
+            role = "publicationMetadataCandidate"
 
         if tag == "h1":
             self.title_match_count += 1
@@ -539,6 +610,10 @@ class _GAOProductPageParser(HTMLParser):
         role = frame["role"]
         if role == "productId":
             self.product_id = _normalize_text(frame["text"])
+        elif role == "publicationMetadataCandidate":
+            self.publication_metadata_candidates.append(
+                _normalize_text(frame["text"])
+            )
         elif role == "title":
             self.title = _normalize_text(frame["text"])
         elif role == "topicsHeadingCandidate":
@@ -585,6 +660,7 @@ class ParsedGAOProductTopicsPage:
     source_byte_length: int
     retrieved_at: str
     product_report_number: str
+    publication_date: str
     product_title: str
     assignments: tuple[GAOTopicAssignment, ...]
     duplicate_topic_evidence: tuple[GAODuplicateTopicEvidence, ...]
@@ -673,6 +749,17 @@ def parse_gao_product_topics_page(page: AcquiredGAOProductPage) -> ParsedGAOProd
             f"product page product-id {product_id!r} does not match its captured URL slug {slug!r}"
         )
 
+    publication_metadata = [
+        candidate
+        for candidate in parser.publication_metadata_candidates
+        if candidate.startswith("Published:")
+    ]
+    if len(publication_metadata) != 1:
+        raise GAOSourceDriftError(
+            "product page must contain exactly one Published metadata field"
+        )
+    publication_date = _published_date(publication_metadata[0])
+
     title = (parser.title or "").strip()
     if not title:
         raise GAOSourceDriftError("product page title must not be empty")
@@ -702,6 +789,7 @@ def parse_gao_product_topics_page(page: AcquiredGAOProductPage) -> ParsedGAOProd
         source_byte_length=page.byte_length,
         retrieved_at=page.pin.retrieved_at,
         product_report_number=product_id,
+        publication_date=publication_date,
         product_title=title,
         assignments=assignments,
         duplicate_topic_evidence=_duplicate_topic_evidence(assignments),

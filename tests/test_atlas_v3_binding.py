@@ -45,10 +45,10 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 52,
-        "invalidCount": 47,
-        "registryDescriptorCount": 86,
-        "registryDescriptorQuadCount": 626,
+        "caseCount": 57,
+        "invalidCount": 52,
+        "registryDescriptorCount": 88,
+        "registryDescriptorQuadCount": 640,
         "schemaCount": 8,
     }
 
@@ -59,19 +59,76 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
     result = json.loads(completed.stdout)
 
     assert result["counts"] == {
+        "crossRingRelationAssertions": 3,
         "derivedRelations": 1,
+        "identifiers": 1,
         "labels": 10,
         "mappingAssertions": 2,
         "nativeRelationAssertions": 2,
-        "projectedRelations": 7,
-        "relationAssertions": 7,
+        "projectedRelations": 10,
+        "relationAssertions": 10,
         "releases": 8,
         "resources": 10,
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 614
+    assert result["quadCount"] == 713
     assert result["inferredMappingCount"] == 7
+
+
+def test_cross_ring_assertions_project_with_both_ring_directions() -> None:
+    manifest = json.loads(
+        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
+    dataset = Dataset()
+    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
+    graphs = {
+        role: Graph(identifier=graph_id)
+        for role, graph_id in graph_ids.items()
+    }
+    for role, graph in graphs.items():
+        for subject, predicate, obj, _ in dataset.quads(
+            (None, None, None, graph_ids[role])
+        ):
+            graph.add((subject, predicate, obj))
+    asserted = graphs["asserted"]
+    projection = graphs["projection"]
+    assertions = set(
+        asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion)
+    )
+
+    assert len(assertions) == 3
+    assert {
+        (
+            asserted.value(assertion, ATLAS.sourceRing),
+            asserted.value(assertion, RDF.predicate),
+            asserted.value(assertion, ATLAS.targetRing),
+        )
+        for assertion in assertions
+    } == {
+        (ATLAS.entity, ATLAS.hasIndexedSubject, ATLAS.subject),
+        (ATLAS.legalIdentity, ATLAS.hasIndexedSubject, ATLAS.subject),
+        (ATLAS.entity, ATLAS.referencesLegalIdentity, ATLAS.legalIdentity),
+    }
+    for assertion in assertions:
+        assert asserted.value(assertion, ATLAS.semanticRing) is None
+        triple = (
+            asserted.value(assertion, RDF.subject),
+            asserted.value(assertion, RDF.predicate),
+            asserted.value(assertion, RDF.object),
+        )
+        assert triple in projection
+        projected = list(projection.subjects(ATLAS.supportingAssertion, assertion))
+        assert len(projected) == 1
+        record = projected[0]
+        assert projection.value(record, ATLAS.sourceRing) == asserted.value(
+            assertion, ATLAS.sourceRing
+        )
+        assert projection.value(record, ATLAS.targetRing) == asserted.value(
+            assertion, ATLAS.targetRing
+        )
+        assert projection.value(record, ATLAS.semanticRing) is None
 
 
 def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None:
@@ -252,6 +309,51 @@ def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> N
     assert asserted.value(assertion, ATLAS.assertionIdentityDigest) == Literal(digest)
     assert str(assertion) == "urn:ref:atlas-assertion:" + digest.removeprefix("sha256:")
     assert not ({"assertedAt", "status", "supersedes", "evidence"} & basis.keys())
+
+
+def test_cross_ring_assertion_identity_uses_both_directed_rings() -> None:
+    manifest = json.loads(
+        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    asserted_id = URIRef(
+        next(row["id"] for row in manifest["graphs"] if row["role"] == "asserted")
+    )
+    dataset = Dataset()
+    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
+    asserted = Graph(identifier=asserted_id)
+    for subject, predicate, obj, _ in dataset.quads((None, None, None, asserted_id)):
+        asserted.add((subject, predicate, obj))
+    assertion = next(
+        asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion)
+    )
+    policy = asserted.value(assertion, ATLAS.governedByPolicy)
+    basis = {
+        "object": str(asserted.value(assertion, RDF.object)),
+        "policy": str(policy),
+        "policyContentDigest": str(asserted.value(policy, ATLAS.contentDigest)),
+        "predicate": str(asserted.value(assertion, RDF.predicate)),
+        "sourceRelease": str(asserted.value(assertion, ATLAS.sourceRelease)),
+        "sourceRing": str(asserted.value(assertion, ATLAS.sourceRing)),
+        "subject": str(asserted.value(assertion, RDF.subject)),
+        "targetRelease": str(asserted.value(assertion, ATLAS.targetRelease)),
+        "targetRing": str(asserted.value(assertion, ATLAS.targetRing)),
+        "type": str(ATLAS.CrossRingRelationAssertion),
+    }
+    payload = (
+        json.dumps(
+            basis,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode()
+    digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+
+    assert asserted.value(assertion, ATLAS.assertionIdentityDigest) == Literal(digest)
+    assert str(assertion) == "urn:ref:atlas-assertion:" + digest.removeprefix("sha256:")
+    assert "semanticRing" not in basis
 
 
 def test_fixture_corpus_rebuild_is_exact() -> None:

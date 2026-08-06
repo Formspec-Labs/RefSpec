@@ -147,7 +147,7 @@ def _add_assertion(
     graph: Graph,
     *,
     assertion_type: URIRef,
-    ring: URIRef,
+    ring: URIRef | None,
     subject: URIRef,
     predicate: URIRef,
     obj: URIRef,
@@ -160,7 +160,16 @@ def _add_assertion(
     status: URIRef = ATLAS.current,
     supersedes: URIRef | None = None,
     review_method: URIRef = ATLAS.humanReview,
+    source_ring: URIRef | None = None,
+    target_ring: URIRef | None = None,
 ) -> URIRef:
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        if ring is not None or source_ring is None or target_ring is None:
+            raise ValueError(
+                "cross-ring assertions require source_ring and target_ring, not ring"
+            )
+    elif ring is None or source_ring is not None or target_ring is not None:
+        raise ValueError("same-ring assertions require ring only")
     if policy is None:
         policies = list(graph.subjects(RDF.type, ATLAS.EditorialPolicy))
         if len(policies) != 1:
@@ -174,12 +183,16 @@ def _add_assertion(
         "policy": str(policy),
         "policyContentDigest": str(policy_digest),
         "predicate": str(predicate),
-        "semanticRing": str(ring),
         "sourceRelease": str(source_release),
         "subject": str(subject),
         "targetRelease": str(target_release),
         "type": str(assertion_type),
     }
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        basis["sourceRing"] = str(source_ring)
+        basis["targetRing"] = str(target_ring)
+    else:
+        basis["semanticRing"] = str(ring)
     digest = atlas_validate.canonical_sha256(basis)
     assertion = URIRef("urn:ref:atlas-assertion:" + digest.removeprefix("sha256:"))
     graph.add((assertion, RDF.type, ATLAS.RelationAssertion))
@@ -189,7 +202,13 @@ def _add_assertion(
     graph.add((assertion, RDF.subject, subject))
     graph.add((assertion, RDF.predicate, predicate))
     graph.add((assertion, RDF.object, obj))
-    graph.add((assertion, ATLAS.semanticRing, ring))
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        assert source_ring is not None and target_ring is not None
+        graph.add((assertion, ATLAS.sourceRing, source_ring))
+        graph.add((assertion, ATLAS.targetRing, target_ring))
+    else:
+        assert ring is not None
+        graph.add((assertion, ATLAS.semanticRing, ring))
     graph.add((assertion, ATLAS.sourceRelease, source_release))
     graph.add((assertion, ATLAS.targetRelease, target_release))
     graph.add((assertion, ATLAS.governedByPolicy, policy))
@@ -493,6 +512,51 @@ def _base_fixture() -> Fixture:
         evidence_record=source_legal,
         evidence_name="assignment-legal",
     )
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.CrossRingRelationAssertion,
+        ring=None,
+        source_ring=ATLAS.entity,
+        target_ring=ATLAS.subject,
+        subject=entity,
+        predicate=ATLAS.hasIndexedSubject,
+        obj=subject_a,
+        source_release=entity_release,
+        target_release=subject_a_release,
+        evidence_record=entity_rows[0][1],
+        evidence_name="entity-indexed-subject",
+        review_method=ATLAS.publisherAssertion,
+    )
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.CrossRingRelationAssertion,
+        ring=None,
+        source_ring=ATLAS.legalIdentity,
+        target_ring=ATLAS.subject,
+        subject=legal,
+        predicate=ATLAS.hasIndexedSubject,
+        obj=subject_a,
+        source_release=legal_release,
+        target_release=subject_a_release,
+        evidence_record=source_legal,
+        evidence_name="legal-indexed-subject",
+        review_method=ATLAS.publisherAssertion,
+    )
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.CrossRingRelationAssertion,
+        ring=None,
+        source_ring=ATLAS.entity,
+        target_ring=ATLAS.legalIdentity,
+        subject=entity,
+        predicate=ATLAS.referencesLegalIdentity,
+        obj=legal,
+        source_release=entity_release,
+        target_release=legal_release,
+        evidence_record=entity_rows[0][1],
+        evidence_name="entity-references-legal",
+        review_method=ATLAS.publisherAssertion,
+    )
 
     derived_id = URIRef("urn:ref:atlas-derived:pending")
     derived.add((derived_id, RDF.type, ATLAS.DerivedRelation))
@@ -650,7 +714,11 @@ def _dataset_bytes(fixture: Fixture, distribution_id: str) -> tuple[bytes, list[
 def _counts(fixture: Fixture) -> dict[str, int]:
     asserted = fixture.asserted
     return {
+        "crossRingRelationAssertions": len(
+            set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))
+        ),
         "derivedRelations": len(set(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))),
+        "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
         "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
         "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
@@ -784,6 +852,12 @@ def _refresh_evidence_for_source(graph: Graph, source_record: URIRef) -> None:
         graph.add((replacement, ATLAS.contentDigest, Literal(digest)))
 
 
+def _remove_assertion_with_evidence(graph: Graph, assertion: URIRef) -> None:
+    for evidence in list(graph.subjects(ATLAS.bindsAssertion, assertion)):
+        graph.remove((evidence, None, None))
+    graph.remove((assertion, None, None))
+
+
 def _reidentify_derived(graph: Graph, node: URIRef) -> URIRef:
     _remove_subject_predicate(graph, node, ATLAS.contentDigest)
     digest = atlas_validate.rdf_node_digest(graph, node)
@@ -796,6 +870,20 @@ def _reidentify_derived(graph: Graph, node: URIRef) -> URIRef:
 
 
 def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
+    def cross_assertion(
+        fixture: Fixture,
+        source_ring: URIRef,
+        target_ring: URIRef,
+    ) -> URIRef:
+        return next(
+            assertion
+            for assertion in fixture.asserted.subjects(
+                RDF.type, ATLAS.CrossRingRelationAssertion
+            )
+            if fixture.asserted.value(assertion, ATLAS.sourceRing) == source_ring
+            and fixture.asserted.value(assertion, ATLAS.targetRing) == target_ring
+        )
+
     def no_derived(fixture: Fixture) -> None:
         fixture.derived.remove((None, None, None))
 
@@ -969,6 +1057,70 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         for evidence in list(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion)):
             fixture.asserted.remove((evidence, None, None))
 
+    def cross_ring_missing_evidence(fixture: Fixture) -> None:
+        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.subject)
+        for evidence in list(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion)):
+            fixture.asserted.remove((evidence, None, None))
+
+    def cross_ring_endpoint_reversal(fixture: Fixture) -> None:
+        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.subject)
+        _remove_subject_predicate(fixture.asserted, assertion, ATLAS.sourceRing)
+        _remove_subject_predicate(fixture.asserted, assertion, ATLAS.targetRing)
+        fixture.asserted.add((assertion, ATLAS.sourceRing, ATLAS.subject))
+        fixture.asserted.add((assertion, ATLAS.targetRing, ATLAS.entity))
+
+    def cross_ring_disallowed_predicate(fixture: Fixture) -> None:
+        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.legalIdentity)
+        _, (subject, _, obj) = atlas_validate._assertion_basis(
+            fixture.asserted, assertion
+        )
+        source_release = next(
+            fixture.asserted.objects(assertion, ATLAS.sourceRelease)
+        )
+        target_release = next(
+            fixture.asserted.objects(assertion, ATLAS.targetRelease)
+        )
+        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion))
+        evidence_record = next(
+            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
+        )
+        _remove_assertion_with_evidence(fixture.asserted, assertion)
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.CrossRingRelationAssertion,
+            ring=None,
+            source_ring=ATLAS.entity,
+            target_ring=ATLAS.legalIdentity,
+            subject=subject,
+            predicate=ATLAS.hasIndexedSubject,
+            obj=obj,
+            source_release=source_release,
+            target_release=target_release,
+            evidence_record=evidence_record,
+            evidence_name="cross-ring-disallowed-predicate",
+        )
+
+    def cross_ring_disallowed_pair(fixture: Fixture) -> None:
+        subject = URIRef("urn:ref:atlas-fixture:resource:entity-agency")
+        obj = URIRef("urn:ref:atlas-fixture:resource:value-child")
+        source_release = next(fixture.asserted.objects(subject, ATLAS.inRelease))
+        target_release = next(fixture.asserted.objects(obj, ATLAS.inRelease))
+        evidence_record = next(fixture.asserted.objects(subject, ATLAS.sourceRecord))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.CrossRingRelationAssertion,
+            ring=None,
+            source_ring=ATLAS.entity,
+            target_ring=ATLAS.value,
+            subject=subject,
+            predicate=ATLAS.hasIndexedSubject,
+            obj=obj,
+            source_release=source_release,
+            target_release=target_release,
+            evidence_record=evidence_record,
+            evidence_name="cross-ring-disallowed-pair",
+        )
+
     def wrong_ring_relation(fixture: Fixture) -> None:
         assertion = next(
             row
@@ -1095,6 +1247,51 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
         _remove_subject_predicate(fixture.asserted, identifier, ATLAS.identifierValue)
         _refresh_node_digest(fixture.asserted, identifier)
+
+    def identifier_pair_conflict(fixture: Fixture) -> None:
+        identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
+        original_resource = next(fixture.asserted.objects(identifier, ATLAS.identifies))
+        conflicting_resource = next(
+            resource
+            for resource in fixture.asserted.subjects(RDF.type, ATLAS.AtlasResource)
+            if resource != original_resource
+        )
+        conflicting_identifier = URIRef(
+            "urn:ref:atlas-fixture:identifier:agency-conflict"
+        )
+        fixture.asserted.add(
+            (conflicting_identifier, RDF.type, ATLAS.Identifier)
+        )
+        fixture.asserted.add(
+            (
+                conflicting_identifier,
+                ATLAS.identifierValue,
+                next(fixture.asserted.objects(identifier, ATLAS.identifierValue)),
+            )
+        )
+        fixture.asserted.add(
+            (
+                conflicting_identifier,
+                ATLAS.identifierScheme,
+                next(fixture.asserted.objects(identifier, ATLAS.identifierScheme)),
+            )
+        )
+        fixture.asserted.add(
+            (conflicting_identifier, ATLAS.identifies, conflicting_resource)
+        )
+        fixture.asserted.add(
+            (
+                conflicting_identifier,
+                ATLAS.sourceRecord,
+                next(
+                    fixture.asserted.objects(
+                        conflicting_resource,
+                        ATLAS.sourceRecord,
+                    )
+                ),
+            )
+        )
+        _refresh_node_digest(fixture.asserted, conflicting_identifier)
 
     def wrong_endpoint_release(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -1434,6 +1631,30 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("non-english-label", ["shacl"], "shacl.data", non_english_label),
         ("duplicate-preferred-language", ["shacl"], "shacl.data", duplicate_preferred_language),
         ("mapping-missing-evidence", ["shacl", "dataset"], "shacl.data", missing_evidence),
+        (
+            "cross-ring-missing-evidence",
+            ["shacl", "dataset"],
+            "shacl.data",
+            cross_ring_missing_evidence,
+        ),
+        (
+            "cross-ring-endpoint-ring-reversal",
+            ["shacl", "dataset"],
+            "shacl.data",
+            cross_ring_endpoint_reversal,
+        ),
+        (
+            "cross-ring-disallowed-predicate",
+            ["dataset"],
+            "dataset.relation",
+            cross_ring_disallowed_predicate,
+        ),
+        (
+            "cross-ring-disallowed-pair",
+            ["dataset"],
+            "dataset.relation",
+            cross_ring_disallowed_pair,
+        ),
         ("wrong-ring-relation", ["dataset"], "dataset.relation", wrong_ring_relation),
         ("naked-projected-mapping", ["dataset"], "dataset.projection", naked_projection),
         ("derived-is-authoritative", ["shacl", "reasoning"], "shacl.data", derived_authoritative),
@@ -1445,6 +1666,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("manifest-count-mismatch", ["dataset"], "dataset.counts", count_mismatch),
         ("acceptance-missing-gate", ["json", "dataset"], "acceptance.gates", missing_acceptance_gate),
         ("identifier-missing-value", ["shacl"], "shacl.data", identifier_missing_value),
+        (
+            "identifier-pair-conflict",
+            ["dataset"],
+            "dataset.identifier-uniqueness",
+            identifier_pair_conflict,
+        ),
         ("mapping-wrong-endpoint-release", ["shacl", "dataset"], "shacl.data", wrong_endpoint_release),
         ("asserted-naked-mapping", ["shacl", "dataset", "reasoning"], "shacl.data", naked_asserted_mapping),
         ("derived-naked-mapping", ["dataset", "reasoning"], "dataset.graph-placement", naked_derived_mapping),

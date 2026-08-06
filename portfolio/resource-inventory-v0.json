@@ -243,6 +243,16 @@
       "versionRepresentation": "Pin report identity, edition or publication date, capture time, and source digest."
     },
     {
+      "accessOrReproducibilityGap": "The registry has one exact report-page capture, not GAO's complete publication history.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve the publisher-issued GAO report number, canonical product URL, title, publication date, and exact source record as distinct identity evidence.",
+      "officialLocator": "https://www.gao.gov/products/",
+      "resourceId": "gao-report-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "GAO report identifiers",
+      "versionRepresentation": "Pin each exact product-page capture, report number, canonical URL, publication date, retrieval time, and source digest."
+    },
+    {
       "accessOrReproducibilityGap": "The historical publication is not a maintained authority and is mapping-only unless a successor appears.",
       "distributionStatus": "historicalOnly",
       "identifierRepresentation": "Preserve historical source entries and identifiers without promoting them to current selectable concepts.",
@@ -351,6 +361,16 @@
       "resourceKind": "sourceAssignedVocabulary",
       "title": "CBO cost-estimate topics and fiscal facets",
       "versionRepresentation": "Pin the exact feed URL, Congress, capture time, response digest, and parser version; separately identify reconstructed fixtures and verified publisher captures."
+    },
+    {
+      "accessOrReproducibilityGap": "The exact 119th-Congress feed is complete for that captured response but does not cover CBO's full publication history.",
+      "distributionStatus": "partial",
+      "identifierRepresentation": "Preserve each publisher-issued numeric publication identifier, canonical CBO publication URL, title, date, description, bill value, and exact feed row.",
+      "officialLocator": "https://www.cbo.gov/rss/119congress-cost-estimates.xml",
+      "resourceId": "cbo-publication-identifiers",
+      "resourceKind": "identifierAuthority",
+      "title": "CBO publication identifiers",
+      "versionRepresentation": "Pin the Congress-specific feed URL, exact response digest, retrieval time, item key, publication identifier, and parser version."
     },
     {
       "accessOrReproducibilityGap": "The registry pins reviewed byte spans and a representative field subset rather than the full mutable variables table.",

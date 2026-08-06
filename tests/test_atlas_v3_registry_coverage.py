@@ -45,19 +45,19 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 87,
+        "atlasIndexRowCount": 89,
         "catalogOnlyDescriptorCount": 14,
-        "catalogResourceCount": 86,
+        "catalogResourceCount": 88,
         "implementationModuleCount": 21,
-        "indexedResourceCount": 72,
-        "indexedWithoutExactReleaseCount": 67,
+        "indexedResourceCount": 74,
+        "indexedWithoutExactReleaseCount": 69,
         "registryModuleCount": 75,
         "releaseReadyIndexedResourceCount": 5,
         "resourceKindCounts": {
             "classification": 5,
             "codeList": 23,
             "historicalVocabulary": 1,
-            "identifierAuthority": 19,
+            "identifierAuthority": 21,
             "mappingReference": 13,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 9,
@@ -123,6 +123,57 @@ def test_profile_map_requires_relation_policies() -> None:
 
     with pytest.raises(coverage.RegistryCoverageError, match=r"missing=.*relationPolicies"):
         coverage.validate_profile_map(changed, catalog)
+
+
+def test_cross_ring_relation_policy_is_the_closed_directed_matrix() -> None:
+    catalog, _, profiles = _inputs()
+
+    coverage.validate_profile_map(profiles, catalog)
+
+    assert {
+        (row["sourceRing"], row["targetRing"], tuple(row["predicates"]))
+        for row in profiles["crossRingRelationPolicies"]
+    } == {
+        (
+            "entity",
+            "legalIdentity",
+            (coverage.ATLAS_NAMESPACE + "referencesLegalIdentity",),
+        ),
+        (
+            "entity",
+            "subject",
+            (coverage.ATLAS_NAMESPACE + "hasIndexedSubject",),
+        ),
+        (
+            "legalIdentity",
+            "subject",
+            (coverage.ATLAS_NAMESPACE + "hasIndexedSubject",),
+        ),
+    }
+
+
+def test_cross_ring_relation_policy_rejects_reversal_and_skos_predicates() -> None:
+    catalog, _, profiles = _inputs()
+    reversed_pair = copy.deepcopy(profiles)
+    row = reversed_pair["crossRingRelationPolicies"][1]
+    row["sourceRing"], row["targetRing"] = row["targetRing"], row["sourceRing"]
+    row["sourceResourceClass"], row["targetResourceClass"] = (
+        row["targetResourceClass"],
+        row["sourceResourceClass"],
+    )
+    _resign(reversed_pair)
+
+    with pytest.raises(coverage.RegistryCoverageError, match="closed Atlas 3.0 matrix"):
+        coverage.validate_profile_map(reversed_pair, catalog)
+
+    skos_predicate = copy.deepcopy(profiles)
+    skos_predicate["crossRingRelationPolicies"][0]["predicates"] = [
+        coverage.SKOS_NAMESPACE + "related"
+    ]
+    _resign(skos_predicate)
+
+    with pytest.raises(coverage.RegistryCoverageError, match="only Atlas predicates"):
+        coverage.validate_profile_map(skos_predicate, catalog)
 
 
 def test_relation_policies_require_four_sorted_ring_rows() -> None:

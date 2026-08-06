@@ -56,6 +56,7 @@ ATLAS_ENTRY_CLASS_NAMES = frozenset(
     {
         "AtlasRelease",
         "AtlasResource",
+        "CrossRingRelationAssertion",
         "DerivedRelation",
         "EntityResource",
         "Identifier",
@@ -229,6 +230,88 @@ def _validate_relation_policies(profile_map: Mapping[str, Any]) -> None:
         )
 
 
+def _validate_cross_ring_relation_policies(profile_map: Mapping[str, Any]) -> None:
+    rows = _sequence(
+        profile_map["crossRingRelationPolicies"],
+        "profile map.crossRingRelationPolicies",
+    )
+    if len(rows) != 3:
+        raise RegistryCoverageError(
+            "profile map.crossRingRelationPolicies must contain exactly three rows"
+        )
+    expected = {
+        ("entity", "legalIdentity"): frozenset(
+            {ATLAS_NAMESPACE + "referencesLegalIdentity"}
+        ),
+        ("entity", "subject"): frozenset({ATLAS_NAMESPACE + "hasIndexedSubject"}),
+        ("legalIdentity", "subject"): frozenset(
+            {ATLAS_NAMESPACE + "hasIndexedSubject"}
+        ),
+    }
+    observed: dict[tuple[str, str], frozenset[str]] = {}
+    observed_order: list[tuple[str, str]] = []
+    same_ring_predicates = {
+        predicate
+        for policy in profile_map["relationPolicies"]
+        for predicates in policy["assertionPredicates"].values()
+        for predicate in predicates
+    }
+    for position, value in enumerate(rows):
+        location = f"profile map.crossRingRelationPolicies[{position}]"
+        if not isinstance(value, Mapping):
+            raise RegistryCoverageError(f"{location} must be an object")
+        _require_keys(
+            value,
+            {
+                "predicates",
+                "sourceResourceClass",
+                "sourceRing",
+                "targetResourceClass",
+                "targetRing",
+            },
+            location,
+        )
+        source_ring = _string(value["sourceRing"], f"{location}.sourceRing")
+        target_ring = _string(value["targetRing"], f"{location}.targetRing")
+        if source_ring not in SEMANTIC_RINGS or target_ring not in SEMANTIC_RINGS:
+            raise RegistryCoverageError(f"{location} contains an unsupported ring")
+        if source_ring == target_ring:
+            raise RegistryCoverageError(f"{location} does not cross semantic rings")
+        if value["sourceResourceClass"] != RING_ENTRY_CLASSES[source_ring]:
+            raise RegistryCoverageError(
+                f"{location}.sourceResourceClass does not match {source_ring!r}"
+            )
+        if value["targetResourceClass"] != RING_ENTRY_CLASSES[target_ring]:
+            raise RegistryCoverageError(
+                f"{location}.targetResourceClass does not match {target_ring!r}"
+            )
+        pair = (source_ring, target_ring)
+        observed_order.append(pair)
+        if pair in observed:
+            raise RegistryCoverageError(f"duplicate cross-ring policy pair {pair!r}")
+        predicates = frozenset(
+            _unique_sorted_iris(value["predicates"], f"{location}.predicates")
+        )
+        if len(predicates) != 1:
+            raise RegistryCoverageError(
+                f"{location}.predicates must contain exactly one predicate"
+            )
+        if any(not predicate.startswith(ATLAS_NAMESPACE) for predicate in predicates):
+            raise RegistryCoverageError(
+                f"{location}.predicates must contain only Atlas predicates"
+            )
+        overlap = predicates & same_ring_predicates
+        if overlap:
+            raise RegistryCoverageError(
+                f"{location}.predicates overlap a same-ring policy: {sorted(overlap)}"
+            )
+        observed[pair] = predicates
+    if observed_order != sorted(observed_order) or observed != expected:
+        raise RegistryCoverageError(
+            "profile map.crossRingRelationPolicies differ from the closed Atlas 3.0 matrix"
+        )
+
+
 def validate_profile_map(
     profile_map: Mapping[str, Any],
     catalog: Mapping[str, Any],
@@ -238,6 +321,7 @@ def validate_profile_map(
     _require_keys(
         profile_map,
         {
+            "crossRingRelationPolicies",
             "format",
             "namespace",
             "profileDigest",
@@ -261,6 +345,7 @@ def validate_profile_map(
         )
 
     _validate_relation_policies(profile_map)
+    _validate_cross_ring_relation_policies(profile_map)
 
     profile_rows = _sequence(profile_map["profiles"], "profile map.profiles")
     by_name: dict[str, Mapping[str, Any]] = {}

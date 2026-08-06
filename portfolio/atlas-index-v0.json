@@ -24,12 +24,12 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:62809c49f9c0b83025637038753206af594003c6e58a2ebfc293c697b962090d",
-  "indexId": "urn:ref:atlas-index:62809c49f9c0b83025637038753206af594003c6e58a2ebfc293c697b962090d",
+  "indexDigest": "sha256:4d71f33d1909f707623c29c637bfb3dca0954f278b77c0a7207d97f6818a2449",
+  "indexId": "urn:ref:atlas-index:4d71f33d1909f707623c29c637bfb3dca0954f278b77c0a7207d97f6818a2449",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-04T10:18:54Z",
-  "resourceCatalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
-  "resourceCatalogId": "urn:ref:resource-catalog:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
+  "resourceCatalogDigest": "sha256:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
+  "resourceCatalogId": "urn:ref:resource-catalog:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
@@ -140,6 +140,34 @@
       "rowDigest": "sha256:58636f6f26b4483d9e992bf8d7bea7933a95bb2b4756207517499bcee09e0648",
       "rowId": "urn:ref:atlas-index-row:58636f6f26b4483d9e992bf8d7bea7933a95bb2b4756207517499bcee09e0648",
       "semanticRing": "subject",
+      "sourceModule": "refspec.registry.cbo_topic_codes"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_cbo_topic_codes.py",
+          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/cbo_topic_codes.py",
+          "sha256": "sha256:19a92842081f76d73ac7af210560079453aba04c39b5a7613b55af6e45004397"
+        }
+      ],
+      "release": null,
+      "resourceId": "cbo-publication-identifiers",
+      "rowDigest": "sha256:d0d0731f6e8dc5b5b2e5577a49b0383080523429f8d070833d0ae07f4a0ae8da",
+      "rowId": "urn:ref:atlas-index-row:d0d0731f6e8dc5b5b2e5577a49b0383080523429f8d070833d0ae07f4a0ae8da",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
     {
@@ -1050,6 +1078,34 @@
       "sourceModule": "refspec.registry.gao_cra_facets"
     },
     {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_gao_topics.py",
+          "sha256": "sha256:3ae678c10341a5a8987cfc090ea73876df16c1169c389ed958ff564ef7ab9e73"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/gao_topics.py",
+          "sha256": "sha256:35d11c284f22cb5e017a1481ac625331b58095d77c9accba4e7d4772036c9b0a"
+        }
+      ],
+      "release": null,
+      "resourceId": "gao-report-identifiers",
+      "rowDigest": "sha256:f102210e53cac10fc5eb2dfd644be7bcfddf6c8b82ee6760ed3a7c64bea11b5e",
+      "rowId": "urn:ref:atlas-index-row:f102210e53cac10fc5eb2dfd644be7bcfddf6c8b82ee6760ed3a7c64bea11b5e",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.gao_topics"
+    },
+    {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentSubstantive",
       "atlasParticipation": null,
       "facet": "urn:ref:facet:general-subject",
@@ -1057,23 +1113,23 @@
         "candidateRanking",
         "sourceAssignedEvidence"
       ],
-      "planningStatus": "notApplicable",
+      "planningStatus": "planned",
       "readinessEvidence": [
         {
           "kind": "parserTest",
           "path": "tests/test_gao_topics.py",
-          "sha256": "sha256:e8d99363177013fd269283e6c0bfdaf9ee4c32bc645f0e6c56e7166a9871e254"
+          "sha256": "sha256:3ae678c10341a5a8987cfc090ea73876df16c1169c389ed958ff564ef7ab9e73"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_topics.py",
-          "sha256": "sha256:5c374311d8a6bd9364708717a58c4232086bbbd07bf9f465750a85cfd7700f62"
+          "sha256": "sha256:35d11c284f22cb5e017a1481ac625331b58095d77c9accba4e7d4772036c9b0a"
         }
       ],
       "release": null,
       "resourceId": "gao-topics",
-      "rowDigest": "sha256:1625701d7a72b19f0af45ab49949543fa9a352cf7de88accaf4a0c4099b82775",
-      "rowId": "urn:ref:atlas-index-row:1625701d7a72b19f0af45ab49949543fa9a352cf7de88accaf4a0c4099b82775",
+      "rowDigest": "sha256:22f1b5e8879bd0bf1b78cea949a88ed83e1933b20f650a98441176292a968aa1",
+      "rowId": "urn:ref:atlas-index-row:22f1b5e8879bd0bf1b78cea949a88ed83e1933b20f650a98441176292a968aa1",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gao_topics"
     },
@@ -2558,9 +2614,9 @@
       "core": 1,
       "specialist": 4
     },
-    "rowCount": 87,
+    "rowCount": 89,
     "semanticRingCounts": {
-      "entity": 16,
+      "entity": 18,
       "legalIdentity": 7,
       "subject": 24,
       "value": 40
@@ -2568,8 +2624,8 @@
     "sourceModuleCount": 54,
     "statusCounts": {
       "deferred": 2,
-      "notApplicable": 43,
-      "planned": 42,
+      "notApplicable": 42,
+      "planned": 45,
       "rejected": 0,
       "superseded": 0,
       "unassessed": 0

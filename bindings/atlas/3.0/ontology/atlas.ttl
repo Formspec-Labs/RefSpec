@@ -129,6 +129,12 @@ atlas:SourceAssignment
   rdfs:subClassOf atlas:RelationAssertion ;
   rdfs:label "source assignment"@en .
 
+atlas:CrossRingRelationAssertion
+  a owl:Class ;
+  rdfs:subClassOf atlas:RelationAssertion ;
+  rdfs:label "cross-ring relation assertion"@en ;
+  rdfs:comment "Evidence-bearing relation whose source and target resources belong to different, explicitly named semantic rings."@en .
+
 atlas:ProjectedRelation
   a owl:Class ;
   rdfs:label "projected relation"@en .
@@ -185,10 +191,15 @@ atlas:RelationAssertion
 
 atlas:MappingAssertion
   owl:disjointWith atlas:NativeRelationAssertion,
-    atlas:SourceAssignment .
+    atlas:SourceAssignment,
+    atlas:CrossRingRelationAssertion .
 
 atlas:NativeRelationAssertion
-  owl:disjointWith atlas:SourceAssignment .
+  owl:disjointWith atlas:SourceAssignment,
+    atlas:CrossRingRelationAssertion .
+
+atlas:SourceAssignment
+  owl:disjointWith atlas:CrossRingRelationAssertion .
 
 atlas:ProjectedRelation
   owl:disjointWith atlas:DerivedRelation .
@@ -260,6 +271,18 @@ atlas:semanticRing
   a owl:ObjectProperty ;
   rdfs:range atlas:SemanticRing ;
   rdfs:label "semantic ring"@en .
+
+atlas:sourceRing
+  a owl:ObjectProperty ;
+  rdfs:range atlas:SemanticRing ;
+  rdfs:label "source ring"@en ;
+  rdfs:comment "Semantic ring of the source endpoint of a cross-ring assertion or projected relation."@en .
+
+atlas:targetRing
+  a owl:ObjectProperty ;
+  rdfs:range atlas:SemanticRing ;
+  rdfs:label "target ring"@en ;
+  rdfs:comment "Semantic ring of the target endpoint of a cross-ring assertion or projected relation."@en .
 
 atlas:supportedRing
   a owl:ObjectProperty ;
@@ -647,6 +670,20 @@ atlas:relatedLegalIdentity
   rdfs:domain atlas:LegalIdentityResource ;
   rdfs:range atlas:LegalIdentityResource ;
   rdfs:label "related legal identity"@en .
+
+atlas:hasIndexedSubject
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:AtlasResource ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "has indexed subject"@en ;
+  rdfs:comment "Reviewed indexing relation from an entity or legal-identity resource to a subject concept; the closed cross-ring policy determines admissible source rings."@en .
+
+atlas:referencesLegalIdentity
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EntityResource ;
+  rdfs:range atlas:LegalIdentityResource ;
+  rdfs:label "references legal identity"@en ;
+  rdfs:comment "Reviewed relation from an entity resource to a legal-identity resource that it references."@en .
 
 atlas:assignedSubject
   a owl:ObjectProperty ;

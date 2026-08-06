@@ -9,7 +9,7 @@ import json
 import os
 import re
 import stat
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,6 +72,7 @@ RELATION_TYPES = (
     (ATLAS.MappingAssertion, "mapping"),
     (ATLAS.NativeRelationAssertion, "native"),
     (ATLAS.SourceAssignment, "sourceAssignment"),
+    (ATLAS.CrossRingRelationAssertion, "crossRing"),
 )
 LABEL_ROLES = (
     (SKOSXL.prefLabel, "preferred"),
@@ -97,6 +98,18 @@ PREDICATE_MEANINGS = {
         "The publisher asserted this direct associative link. Atlas preserves it outside skos:related "
         "when a hierarchy path makes that SKOS projection unsafe; the link remains directly relevant."
     ),
+    str(ATLAS.hasIndexedSubject): (
+        "The entity or legal identity is indexed under the subject concept."
+    ),
+    str(ATLAS.referencesLegalIdentity): (
+        "The entity record explicitly references the legal identity."
+    ),
+}
+
+_CROSS_RING_POLICIES = {
+    ("entity", "legalIdentity", str(ATLAS.referencesLegalIdentity)),
+    ("entity", "subject", str(ATLAS.hasIndexedSubject)),
+    ("legalIdentity", "subject", str(ATLAS.hasIndexedSubject)),
 }
 
 # Atlas 3 filtering starts from authority role. The reader does not consume the
@@ -110,12 +123,12 @@ EXPLORER_FILTER_SEMANTICS: tuple[Mapping[str, object], ...] = (
     {
         "recordKind": "assertedRelation",
         "authorityRole": "asserted",
-        "filterFields": ("kind", "semanticRing", "predicate", "status"),
+        "filterFields": ("kind", "semanticRing", "sourceRing", "targetRing", "predicate", "status"),
     },
     {
         "recordKind": "projectedRelation",
         "authorityRole": "projection",
-        "filterFields": ("semanticRing", "predicate"),
+        "filterFields": ("semanticRing", "sourceRing", "targetRing", "predicate"),
     },
     {
         "recordKind": "derivedRelation",
@@ -133,6 +146,7 @@ _SOURCE_ACCOUNTING_INLINE_MAX_BYTES = 16 * 1024 * 1024
 # A static visual graph remains useful well below the full Atlas cardinality.
 # These are hard materialization bounds, not claims about the sealed dataset.
 _VISUAL_RESOURCE_LIMIT = 2_000
+_VISUAL_IDENTIFIER_LIMIT = 500
 _VISUAL_TOPIC_ASSERTION_LIMIT = 2_000
 _VISUAL_SOURCE_ASSIGNMENT_LIMIT = 200
 _VISUAL_PROJECTED_RELATION_LIMIT = 500
@@ -171,9 +185,11 @@ _COUNT_FIELDS = frozenset(
     {
         "releases",
         "resources",
+        "identifiers",
         "labels",
         "sourceRecords",
         "relationAssertions",
+        "crossRingRelationAssertions",
         "mappingAssertions",
         "nativeRelationAssertions",
         "sourceAssignments",
@@ -373,6 +389,10 @@ _DCTERMS_TITLE_TOKEN = _nquad_iri_token(DCTERMS.title)
 _ATLAS_IN_RELEASE_TOKEN = _nquad_iri_token(ATLAS.inRelease)
 _ATLAS_IN_SOURCE_RELEASE_TOKEN = _nquad_iri_token(ATLAS.inSourceRelease)
 _ATLAS_SEMANTIC_RING_TOKEN = _nquad_iri_token(ATLAS.semanticRing)
+_ATLAS_SOURCE_RING_TOKEN = _nquad_iri_token(ATLAS.sourceRing)
+_ATLAS_TARGET_RING_TOKEN = _nquad_iri_token(ATLAS.targetRing)
+_ATLAS_IDENTIFIER_SCHEME_TOKEN = _nquad_iri_token(ATLAS.identifierScheme)
+_ATLAS_IDENTIFIES_TOKEN = _nquad_iri_token(ATLAS.identifies)
 _ATLAS_ASSERTION_STATUS_TOKEN = _nquad_iri_token(ATLAS.assertionStatus)
 _ATLAS_REPRESENTS_RESOURCE_TOKEN = _nquad_iri_token(ATLAS.representsResource)
 _RDF_SUBJECT_TOKEN = _nquad_iri_token(RDF.subject)
@@ -393,12 +413,14 @@ _LABEL_PREDICATE_TOKENS = frozenset(_nquad_iri_token(predicate) for predicate, _
 _ATLAS_RELEASE_TYPE_TOKEN = _nquad_iri_token(ATLAS.AtlasRelease)
 _SOURCE_RELEASE_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceRelease)
 _ATLAS_RESOURCE_TYPE_TOKEN = _nquad_iri_token(ATLAS.AtlasResource)
+_IDENTIFIER_TYPE_TOKEN = _nquad_iri_token(ATLAS.Identifier)
 _LABEL_TYPE_TOKEN = _nquad_iri_token(SKOSXL.Label)
 _SOURCE_RECORD_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceRecord)
 _RELATION_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.RelationAssertion)
 _MAPPING_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.MappingAssertion)
 _NATIVE_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.NativeRelationAssertion)
 _SOURCE_ASSIGNMENT_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceAssignment)
+_CROSS_RING_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.CrossRingRelationAssertion)
 _PROJECTED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.ProjectedRelation)
 _DERIVED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.DerivedRelation)
 _CURRENT_STATUS_TOKEN = _nquad_iri_token(ATLAS.current)
@@ -414,9 +436,11 @@ _SOURCE_ASSIGNMENT_PREDICATE_TOKENS = frozenset(
 _COUNT_TYPE_TOKENS = {
     _ATLAS_RELEASE_TYPE_TOKEN: "releases",
     _ATLAS_RESOURCE_TYPE_TOKEN: "resources",
+    _IDENTIFIER_TYPE_TOKEN: "identifiers",
     _LABEL_TYPE_TOKEN: "labels",
     _SOURCE_RECORD_TYPE_TOKEN: "sourceRecords",
     _RELATION_ASSERTION_TYPE_TOKEN: "relationAssertions",
+    _CROSS_RING_ASSERTION_TYPE_TOKEN: "crossRingRelationAssertions",
     _MAPPING_ASSERTION_TYPE_TOKEN: "mappingAssertions",
     _NATIVE_ASSERTION_TYPE_TOKEN: "nativeRelationAssertions",
     _SOURCE_ASSIGNMENT_TYPE_TOKEN: "sourceAssignments",
@@ -428,6 +452,10 @@ _FIRST_PASS_VALUE_PREDICATES = frozenset(
         _ATLAS_IN_RELEASE_TOKEN,
         _ATLAS_IN_SOURCE_RELEASE_TOKEN,
         _ATLAS_SEMANTIC_RING_TOKEN,
+        _ATLAS_SOURCE_RING_TOKEN,
+        _ATLAS_TARGET_RING_TOKEN,
+        _ATLAS_IDENTIFIER_SCHEME_TOKEN,
+        _ATLAS_IDENTIFIES_TOKEN,
         _ATLAS_ASSERTION_STATUS_TOKEN,
         _RDF_SUBJECT_TOKEN,
         _RDF_PREDICATE_TOKEN,
@@ -445,6 +473,8 @@ class _RawCandidate:
     kind: str
     release: bytes | None = None
     ring: bytes | None = None
+    source_ring: bytes | None = None
+    target_ring: bytes | None = None
     subject: bytes | None = None
     predicate: bytes | None = None
     object_value: bytes | None = None
@@ -512,6 +542,7 @@ class _StreamedAtlasIndex:
     resources_by_release: Mapping[bytes, int]
     resources_by_release_ring: Mapping[tuple[bytes, bytes], int]
     asserted_relations_by_ring: Mapping[bytes, int]
+    cross_ring_relations_by_pair: Mapping[tuple[bytes, bytes], int]
     asserted_relations_by_kind: Mapping[str, int]
     source_records_by_release: Mapping[bytes, int]
     represented_source_records_by_release: Mapping[bytes, int]
@@ -519,6 +550,7 @@ class _StreamedAtlasIndex:
     atlas_release_ids: tuple[bytes, ...]
     source_release_ids: tuple[bytes, ...]
     resource_ids: tuple[bytes, ...]
+    identifier_ids: tuple[bytes, ...]
     assertion_ids: tuple[bytes, ...]
     projected_relation_ids: tuple[bytes, ...]
     derived_relation_ids: tuple[bytes, ...]
@@ -613,6 +645,7 @@ class _StreamingIndexBuilder:
         self.resources_by_release: Counter[bytes] = Counter()
         self.resources_by_release_ring: Counter[tuple[bytes, bytes]] = Counter()
         self.asserted_relations_by_ring: Counter[bytes] = Counter()
+        self.cross_ring_relations_by_pair: Counter[tuple[bytes, bytes]] = Counter()
         self.asserted_relations_by_kind: Counter[str] = Counter()
         self.source_records_by_release: Counter[bytes] = Counter()
         self.represented_source_records_by_release: Counter[bytes] = Counter()
@@ -624,6 +657,10 @@ class _StreamingIndexBuilder:
         self.resources = _CandidatePool(
             category=b"resource",
             limit=_VISUAL_RESOURCE_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+        self.identifiers = _CandidatePool(
+            category=b"identifier",
+            limit=_VISUAL_IDENTIFIER_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
         )
         self.topic_assertions = _CandidatePool(
             category=b"topic-assertion",
@@ -686,6 +723,26 @@ class _StreamingIndexBuilder:
             if represents_resource_count:
                 self.represented_source_records_by_release[release] += 1
 
+        if _IDENTIFIER_TYPE_TOKEN in types:
+            scheme = _require_raw_value(
+                values,
+                _ATLAS_IDENTIFIER_SCHEME_TOKEN,
+                f"identifier {subject!r} scheme",
+            )
+            identified_resource = _require_raw_value(
+                values,
+                _ATLAS_IDENTIFIES_TOKEN,
+                f"identifier {subject!r} resource",
+            )
+            self.identifiers.offer(
+                _RawCandidate(
+                    subject,
+                    "identifier",
+                    object_value=identified_resource,
+                ),
+                stratum=(scheme,),
+            )
+
         if _RELATION_ASSERTION_TYPE_TOKEN in types:
             kinds = [
                 name
@@ -693,6 +750,7 @@ class _StreamingIndexBuilder:
                     (_MAPPING_ASSERTION_TYPE_TOKEN, "mapping"),
                     (_NATIVE_ASSERTION_TYPE_TOKEN, "native"),
                     (_SOURCE_ASSIGNMENT_TYPE_TOKEN, "sourceAssignment"),
+                    (_CROSS_RING_ASSERTION_TYPE_TOKEN, "crossRing"),
                 )
                 if type_token in types
             ]
@@ -701,28 +759,84 @@ class _StreamingIndexBuilder:
                     f"streamed Atlas 3.0 assertion {subject!r} has an invalid specialization"
                 )
             kind = kinds[0]
-            ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"assertion {subject!r} ring")
+            ring = values.get(_ATLAS_SEMANTIC_RING_TOKEN)
+            source_ring = values.get(_ATLAS_SOURCE_RING_TOKEN)
+            target_ring = values.get(_ATLAS_TARGET_RING_TOKEN)
+            if kind == "crossRing":
+                if ring is not None:
+                    raise Atlas3ExplorerError(
+                        f"streamed Atlas 3.0 cross-ring assertion {subject!r} has semanticRing"
+                    )
+                source_ring = _require_raw_value(
+                    values, _ATLAS_SOURCE_RING_TOKEN, f"assertion {subject!r} source ring"
+                )
+                target_ring = _require_raw_value(
+                    values, _ATLAS_TARGET_RING_TOKEN, f"assertion {subject!r} target ring"
+                )
+                if source_ring == target_ring:
+                    raise Atlas3ExplorerError(
+                        f"streamed Atlas 3.0 cross-ring assertion {subject!r} uses one ring"
+                    )
+            else:
+                ring = _require_raw_value(
+                    values, _ATLAS_SEMANTIC_RING_TOKEN, f"assertion {subject!r} ring"
+                )
+                if source_ring is not None or target_ring is not None:
+                    raise Atlas3ExplorerError(
+                        f"streamed Atlas 3.0 same-ring assertion {subject!r} has endpoint rings"
+                    )
             predicate = _require_raw_value(values, _RDF_PREDICATE_TOKEN, f"assertion {subject!r} predicate")
             assertion = _RawCandidate(
                 subject,
                 kind,
                 ring=ring,
+                source_ring=source_ring,
+                target_ring=target_ring,
                 subject=_require_raw_value(values, _RDF_SUBJECT_TOKEN, f"assertion {subject!r} subject"),
                 predicate=predicate,
                 object_value=_require_raw_value(values, _RDF_OBJECT_TOKEN, f"assertion {subject!r} object"),
             )
-            self.asserted_relations_by_ring[ring] += 1
+            relation_rings = (source_ring, target_ring) if kind == "crossRing" else (ring,)
+            for relation_ring in relation_rings:
+                self.asserted_relations_by_ring[cast(bytes, relation_ring)] += 1
+            if kind == "crossRing":
+                self.cross_ring_relations_by_pair[
+                    (cast(bytes, source_ring), cast(bytes, target_ring))
+                ] += 1
             self.asserted_relations_by_kind[kind] += 1
             if values.get(_ATLAS_ASSERTION_STATUS_TOKEN) == _CURRENT_STATUS_TOKEN:
                 self.current_authoritative_relations += 1
             pool = self.source_assignments if kind == "sourceAssignment" else self.topic_assertions
-            pool.offer(assertion, stratum=(kind.encode("ascii"), ring, predicate))
+            pool.offer(
+                assertion,
+                stratum=tuple(
+                    cast(bytes, value)
+                    for value in (kind.encode("ascii"), source_ring or ring, target_ring or ring, predicate)
+                ),
+            )
 
         if _PROJECTED_RELATION_TYPE_TOKEN in types:
             if supporting_assertion_count > _VISUAL_MAX_RELATION_REFERENCES:
                 self.oversized_relations_skipped += 1
             else:
-                ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"projection {subject!r} ring")
+                ring = values.get(_ATLAS_SEMANTIC_RING_TOKEN)
+                source_ring = values.get(_ATLAS_SOURCE_RING_TOKEN)
+                target_ring = values.get(_ATLAS_TARGET_RING_TOKEN)
+                if ring is None:
+                    source_ring = _require_raw_value(
+                        values, _ATLAS_SOURCE_RING_TOKEN, f"projection {subject!r} source ring"
+                    )
+                    target_ring = _require_raw_value(
+                        values, _ATLAS_TARGET_RING_TOKEN, f"projection {subject!r} target ring"
+                    )
+                    if source_ring == target_ring:
+                        raise Atlas3ExplorerError(
+                            f"streamed Atlas 3.0 cross-ring projection {subject!r} uses one ring"
+                        )
+                elif source_ring is not None or target_ring is not None:
+                    raise Atlas3ExplorerError(
+                        f"streamed Atlas 3.0 same-ring projection {subject!r} has endpoint rings"
+                    )
                 predicate = _require_raw_value(
                     values,
                     _ATLAS_RELATION_PREDICATE_TOKEN,
@@ -732,6 +846,8 @@ class _StreamingIndexBuilder:
                     subject,
                     "projection",
                     ring=ring,
+                    source_ring=source_ring,
+                    target_ring=target_ring,
                     subject=_require_raw_value(
                         values,
                         _ATLAS_RELATION_SUBJECT_TOKEN,
@@ -748,7 +864,7 @@ class _StreamingIndexBuilder:
                 score_key = projection.references[0] if projection.references else projection.record_id
                 self.projected_relations.offer(
                     projection,
-                    stratum=(ring, predicate),
+                    stratum=(source_ring or cast(bytes, ring), target_ring or cast(bytes, ring), predicate),
                     score_key=score_key,
                 )
 
@@ -863,6 +979,17 @@ class _StreamingIndexBuilder:
             selected_assertion_ids.update(references)
             selected_derived.append(candidate)
 
+        selected_identifier_ids: set[bytes] = set()
+        for candidate in self.identifiers.sample(_VISUAL_IDENTIFIER_LIMIT):
+            identified_resource = cast(bytes, candidate.object_value)
+            if (
+                identified_resource not in selected_resources
+                and len(selected_resources) >= _VISUAL_RESOURCE_LIMIT
+            ):
+                continue
+            selected_resources.add(identified_resource)
+            selected_identifier_ids.add(candidate.record_id)
+
         for candidate in self.resources.sample(_VISUAL_RESOURCE_LIMIT):
             if len(selected_resources) == _VISUAL_RESOURCE_LIMIT:
                 break
@@ -880,6 +1007,7 @@ class _StreamingIndexBuilder:
             resources_by_release=dict(self.resources_by_release),
             resources_by_release_ring=dict(self.resources_by_release_ring),
             asserted_relations_by_ring=dict(self.asserted_relations_by_ring),
+            cross_ring_relations_by_pair=dict(self.cross_ring_relations_by_pair),
             asserted_relations_by_kind=dict(self.asserted_relations_by_kind),
             source_records_by_release=dict(self.source_records_by_release),
             represented_source_records_by_release=dict(self.represented_source_records_by_release),
@@ -887,6 +1015,7 @@ class _StreamingIndexBuilder:
             atlas_release_ids=tuple(sorted(self.atlas_release_ids)),
             source_release_ids=tuple(sorted(self.source_release_ids)),
             resource_ids=tuple(sorted(selected_resources)),
+            identifier_ids=tuple(sorted(selected_identifier_ids)),
             assertion_ids=tuple(sorted(selected_assertion_ids)),
             projected_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_projected)),
             derived_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_derived)),
@@ -1246,8 +1375,10 @@ def _add_sample_quad(
 def _visual_index_is_complete(index: _StreamedAtlasIndex) -> bool:
     return (
         index.record_counts.get("resources", 0) <= _VISUAL_RELATION_RESOURCE_BUDGET
+        and index.record_counts.get("identifiers", 0) <= _VISUAL_IDENTIFIER_LIMIT
         and index.record_counts.get("mappingAssertions", 0)
         + index.record_counts.get("nativeRelationAssertions", 0)
+        + index.record_counts.get("crossRingRelationAssertions", 0)
         <= _VISUAL_TOPIC_ASSERTION_LIMIT
         and index.record_counts.get("sourceAssignments", 0) <= _VISUAL_SOURCE_ASSIGNMENT_LIMIT
         and index.record_counts.get("projectedRelations", 0) <= _VISUAL_PROJECTED_RELATION_LIMIT
@@ -1273,6 +1404,7 @@ def _materialize_visual_dataset(
         *index.atlas_release_ids,
         *index.source_release_ids,
         *index.resource_ids,
+        *index.identifier_ids,
         *index.assertion_ids,
         *index.projected_relation_ids,
         *index.derived_relation_ids,
@@ -1281,6 +1413,7 @@ def _materialize_visual_dataset(
     evidence_ids: set[bytes] = set()
     policy_ids: set[bytes] = set()
     source_record_ids: set[bytes] = set()
+    scheme_ids: set[bytes] = set()
     stream.seek(0)
     while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
         subject, predicate, object_value, role = _nquad_fields(line, graph_suffixes)
@@ -1303,10 +1436,12 @@ def _materialize_visual_dataset(
             policy_ids.add(object_value)
         elif predicate in {_ATLAS_SOURCE_RECORD_TOKEN, _ATLAS_EVIDENCE_SOURCE_RECORD_TOKEN}:
             source_record_ids.add(object_value)
+        elif predicate == _ATLAS_IDENTIFIER_SCHEME_TOKEN:
+            scheme_ids.add(object_value)
 
     processed_dependencies: set[bytes] = set()
     for _pass in range(3):
-        dependency_ids = label_ids | evidence_ids | policy_ids | source_record_ids
+        dependency_ids = label_ids | evidence_ids | policy_ids | source_record_ids | scheme_ids
         pending_ids = dependency_ids - processed_dependencies
         if not pending_ids:
             break
@@ -1525,6 +1660,16 @@ def _coverage_view(index: _StreamedAtlasIndex) -> dict[str, Any]:
             _iri_name(iri(ring, "assertion ring")): count
             for ring, count in sorted(index.asserted_relations_by_ring.items())
         },
+        "crossRingRelationsByPair": [
+            {
+                "sourceRing": _iri_name(iri(source_ring, "assertion source ring")),
+                "targetRing": _iri_name(iri(target_ring, "assertion target ring")),
+                "count": count,
+            }
+            for (source_ring, target_ring), count in sorted(
+                index.cross_ring_relations_by_pair.items()
+            )
+        ],
         "assertedRelationsByKind": dict(sorted(index.asserted_relations_by_kind.items())),
         "sourceRecordsByRelease": [
             {
@@ -1698,6 +1843,7 @@ class Atlas3ExplorerDistribution:
             "complete": _visual_index_is_complete(streamed_index),
             "limits": {
                 "resources": _VISUAL_RESOURCE_LIMIT,
+                "identifiers": _VISUAL_IDENTIFIER_LIMIT,
                 "topicAssertions": _VISUAL_TOPIC_ASSERTION_LIMIT,
                 "sourceAssignments": _VISUAL_SOURCE_ASSIGNMENT_LIMIT,
                 "projectedRelations": _VISUAL_PROJECTED_RELATION_LIMIT,
@@ -1706,6 +1852,7 @@ class Atlas3ExplorerDistribution:
             },
             "materialized": {
                 "resources": len(streamed_index.resource_ids),
+                "identifiers": len(streamed_index.identifier_ids),
                 "assertedRelations": len(streamed_index.assertion_ids),
                 "projectedRelations": len(streamed_index.projected_relation_ids),
                 "derivedRelations": len(streamed_index.derived_relation_ids),
@@ -1864,7 +2011,12 @@ def _resource_display_label(graph: Graph, resource: URIRef) -> str:
     return min(candidates)[3]
 
 
-def _resource_view(graph: Graph, resource: URIRef) -> dict[str, Any]:
+def _resource_view(
+    graph: Graph,
+    resource: URIRef,
+    *,
+    identifiers: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
     labels: list[dict[str, Any]] = []
     for predicate, role in LABEL_ROLES:
         for value in graph.objects(resource, predicate):
@@ -1911,6 +2063,7 @@ def _resource_view(graph: Graph, resource: URIRef) -> dict[str, Any]:
             for value in graph.objects(resource, ATLAS.note)
             if isinstance(value, Literal) and _english_display_literal(value)
         ],
+        "identifiers": [dict(row) for row in identifiers],
     }
 
 
@@ -1929,6 +2082,74 @@ def _resource_index_view(
             _one(graph, resource, ATLAS.semanticRing, label=f"resource {resource}")
         ),
     }
+
+
+def _identifier_scheme_label(graph: Graph, scheme: URIRef) -> str:
+    candidates: list[str] = []
+    for predicate in (DCTERMS.title, DCTERMS.identifier):
+        candidates.extend(
+            str(value)
+            for value in graph.objects(scheme, predicate)
+            if isinstance(value, Literal) and str(value).strip()
+        )
+    for release in graph.subjects(ATLAS.inScheme, scheme):
+        if not isinstance(release, URIRef) or (release, RDF.type, ATLAS.AtlasRelease) not in graph:
+            continue
+        for predicate in (DCTERMS.title, DCTERMS.identifier):
+            candidates.extend(
+                str(value)
+                for value in graph.objects(release, predicate)
+                if isinstance(value, Literal) and str(value).strip()
+            )
+    if candidates:
+        return min(candidates, key=lambda value: (value.casefold(), value))
+    return _iri_name(scheme)
+
+
+def _identifier_view(graph: Graph, identifier: URIRef) -> dict[str, Any]:
+    value = _one(graph, identifier, ATLAS.identifierValue, label=f"identifier {identifier}")
+    scheme = _one(graph, identifier, ATLAS.identifierScheme, label=f"identifier {identifier}")
+    identified_resource = _one(
+        graph,
+        identifier,
+        ATLAS.identifies,
+        label=f"identifier {identifier}",
+    )
+    if (
+        not isinstance(value, Literal)
+        or not str(value)
+        or not isinstance(scheme, URIRef)
+        or not isinstance(identified_resource, URIRef)
+    ):
+        raise Atlas3ExplorerError(f"identifier {identifier} has an invalid value, scheme, or target")
+    source_records = sorted(
+        str(record)
+        for record in graph.objects(identifier, ATLAS.sourceRecord)
+        if isinstance(record, URIRef)
+    )
+    result: dict[str, Any] = {
+        "id": str(identifier),
+        "value": str(value),
+        "scheme": str(scheme),
+        "schemeLabel": _identifier_scheme_label(graph, scheme),
+        "identifies": str(identified_resource),
+        "contentDigest": str(
+            _one(graph, identifier, ATLAS.contentDigest, label=f"identifier {identifier}")
+        ),
+        "sourceRecordCount": len(source_records),
+    }
+    scheme_profile = _one(
+        graph,
+        scheme,
+        ATLAS.resourceProfile,
+        label=f"identifier scheme {scheme}",
+        required=False,
+    )
+    if scheme_profile is not None:
+        result["schemeProfile"] = _iri_name(scheme_profile)
+    if len(source_records) == 1:
+        result["sourceRecord"] = source_records[0]
+    return result
 
 
 def _policy_view(graph: Graph, policy: URIRef) -> dict[str, Any]:
@@ -1994,6 +2215,7 @@ def _assertion_view(
     if not evidence:
         raise Atlas3ExplorerError(f"assertion {assertion} has no evidence binding")
     status = _iri_name(_one(graph, assertion, ATLAS.assertionStatus, label=f"assertion {assertion}"))
+    ring_fields = _relation_ring_view(graph, assertion, label=f"assertion {assertion}")
     result: dict[str, Any] = {
         "id": str(assertion),
         "kind": kinds[0],
@@ -2006,7 +2228,7 @@ def _assertion_view(
         "predicateMeaning": atlas_v3_predicate_meaning(str(predicate)),
         "object": str(object_value),
         "objectLabel": labels.get(str(object_value), _iri_name(object_value)),
-        "semanticRing": _iri_name(_one(graph, assertion, ATLAS.semanticRing, label=f"assertion {assertion}")),
+        **ring_fields,
         "sourceRelease": str(_one(graph, assertion, ATLAS.sourceRelease, label=f"assertion {assertion}")),
         "targetRelease": str(_one(graph, assertion, ATLAS.targetRelease, label=f"assertion {assertion}")),
         "assertedAt": str(_one(graph, assertion, ATLAS.assertedAt, label=f"assertion {assertion}")),
@@ -2022,6 +2244,26 @@ def _assertion_view(
     if supersedes is not None:
         result["supersedes"] = str(supersedes)
     return result
+
+
+def _relation_ring_view(graph: Graph, relation: URIRef, *, label: str) -> dict[str, Any]:
+    semantic_ring = _one(graph, relation, ATLAS.semanticRing, label=label, required=False)
+    source_ring = _one(graph, relation, ATLAS.sourceRing, label=label, required=False)
+    target_ring = _one(graph, relation, ATLAS.targetRing, label=label, required=False)
+    if semantic_ring is not None and source_ring is None and target_ring is None:
+        ring = _iri_name(semantic_ring)
+        return {"semanticRing": ring, "semanticRings": [ring]}
+    if semantic_ring is None and source_ring is not None and target_ring is not None:
+        source = _iri_name(source_ring)
+        target = _iri_name(target_ring)
+        if source == target:
+            raise Atlas3ExplorerError(f"{label} does not cross semantic rings")
+        return {
+            "sourceRing": source,
+            "targetRing": target,
+            "semanticRings": [source, target],
+        }
+    raise Atlas3ExplorerError(f"{label} has incomplete or conflicting ring fields")
 
 
 def _projected_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> dict[str, Any]:
@@ -2042,7 +2284,7 @@ def _projected_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -
         "predicateMeaning": atlas_v3_predicate_meaning(str(predicate)),
         "object": str(object_value),
         "objectLabel": labels.get(str(object_value), _iri_name(object_value)),
-        "semanticRing": _iri_name(_one(graph, relation, ATLAS.semanticRing, label=f"projection {relation}")),
+        **_relation_ring_view(graph, relation, label=f"projection {relation}"),
         "supportingAssertions": supporting_assertions,
         "contentDigest": str(_one(graph, relation, ATLAS.contentDigest, label=f"projection {relation}")),
     }
@@ -2187,9 +2429,28 @@ def build_atlas_v3_explorer_model(
         _resource_index_view(asserted, resource, labels[str(resource)])
         for resource in resource_ids
     ]
+    identifier_ids = sorted(
+        (
+            identifier
+            for identifier in set(asserted.subjects(RDF.type, ATLAS.Identifier))
+            if isinstance(identifier, URIRef)
+        ),
+        key=str,
+    )
+    identifier_rows = [_identifier_view(asserted, identifier) for identifier in identifier_ids]
+    identifiers_by_resource: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for identifier in identifier_rows:
+        target = cast(str, identifier["identifies"])
+        if target not in labels:
+            raise Atlas3ExplorerError(f"identifier {identifier['id']} names an unavailable resource")
+        identifiers_by_resource[target].append(identifier)
     shown_resource_ids = _limit(resource_ids, max_resources, "max_resources")
     resources = [
-        _resource_view(asserted, resource)
+        _resource_view(
+            asserted,
+            resource,
+            identifiers=identifiers_by_resource.get(str(resource), ()),
+        )
         for resource in shown_resource_ids
     ]
     assertion_ids = sorted(
@@ -2337,6 +2598,9 @@ def build_atlas_v3_explorer_model(
             "availableResources": full_counts["resources"],
             "indexedResources": len(resource_index),
             "shownResources": len(resources),
+            "availableIdentifiers": full_counts["identifiers"],
+            "indexedIdentifiers": len(identifier_rows),
+            "shownIdentifiers": sum(len(resource["identifiers"]) for resource in resources),
             "availableSourceRecords": full_counts["sourceRecords"],
             "indexedSourceRecords": len(source_record_ids),
             "shownSourceRecords": len(shown_source_records),
@@ -2356,6 +2620,7 @@ def build_atlas_v3_explorer_model(
             "truncated": any(
                 (
                     len(resources) < full_counts["resources"],
+                    len(identifier_rows) < full_counts["identifiers"],
                     len(assertions) < full_counts["relationAssertions"],
                     len(projected) < full_counts["projectedRelations"],
                     len(derived_rows) < full_counts["derivedRelations"],
@@ -2466,10 +2731,21 @@ def _validate_model(model: Mapping[str, Any]) -> None:
         coverage.get("assertedRelationsByRing"),
         "Atlas 3.0 explorer assertedRelationsByRing",
     )
-    if sum(
+    ring_touch_count = sum(
         _count(value, f"Atlas 3.0 explorer assertedRelationsByRing.{ring}")
         for ring, value in asserted_relations_by_ring.items()
-    ) != available_assertions:
+    )
+    cross_ring_relation_count = sum(
+        _count(
+            _mapping(row, "Atlas 3.0 cross-ring pair coverage").get("count"),
+            "Atlas 3.0 explorer cross-ring pair count",
+        )
+        for row in _sequence(
+            coverage.get("crossRingRelationsByPair"),
+            "Atlas 3.0 explorer crossRingRelationsByPair",
+        )
+    )
+    if ring_touch_count - cross_ring_relation_count != available_assertions:
         raise Atlas3ExplorerError("Atlas 3.0 explorer assertion ring counts do not reconcile")
     available_source_records = _count(
         summary.get("availableSourceRecords"),
@@ -2493,12 +2769,80 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     }
     if not detailed_resource_ids.issubset(resource_index_ids):
         raise Atlas3ExplorerError("Atlas 3.0 detailed resources are absent from its index")
+    available_identifiers = _count(
+        summary.get("availableIdentifiers"),
+        "Atlas 3.0 explorer availableIdentifiers",
+    )
+    indexed_identifiers = _count(
+        summary.get("indexedIdentifiers"),
+        "Atlas 3.0 explorer indexedIdentifiers",
+    )
+    shown_identifiers = _count(
+        summary.get("shownIdentifiers"),
+        "Atlas 3.0 explorer shownIdentifiers",
+    )
+    identifier_ids: set[str] = set()
+    observed_shown_identifiers = 0
+    for resource_value in model["resources"]:
+        resource = _mapping(resource_value, "Atlas 3.0 resource")
+        resource_id = _text(resource.get("id"), "Atlas 3.0 resource id")
+        for identifier_value in _sequence(
+            resource.get("identifiers"),
+            f"Atlas 3.0 resource {resource_id} identifiers",
+        ):
+            identifier = _mapping(identifier_value, "Atlas 3.0 identifier")
+            identifier_id = _text(identifier.get("id"), "Atlas 3.0 identifier id")
+            _text(identifier.get("value"), f"Atlas 3.0 identifier {identifier_id} value")
+            _text(
+                identifier.get("schemeLabel"),
+                f"Atlas 3.0 identifier {identifier_id} scheme label",
+            )
+            if identifier.get("identifies") != resource_id:
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 identifier {identifier_id} is attached to the wrong resource"
+                )
+            if identifier_id in identifier_ids:
+                raise Atlas3ExplorerError("Atlas 3.0 explorer repeats an identifier record")
+            identifier_ids.add(identifier_id)
+            observed_shown_identifiers += 1
+    if (
+        observed_shown_identifiers != shown_identifiers
+        or shown_identifiers > indexed_identifiers
+        or indexed_identifiers > available_identifiers
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 explorer identifier counts do not reconcile")
+    def validate_relation_rings(row: Mapping[str, Any], label: str) -> None:
+        rings = list(_sequence(row.get("semanticRings"), f"{label} semanticRings"))
+        semantic_ring = row.get("semanticRing")
+        source_ring = row.get("sourceRing")
+        target_ring = row.get("targetRing")
+        if semantic_ring is not None:
+            if source_ring is not None or target_ring is not None or rings != [semantic_ring]:
+                raise Atlas3ExplorerError(f"{label} has conflicting same-ring fields")
+            return
+        if (
+            not isinstance(source_ring, str)
+            or not isinstance(target_ring, str)
+            or source_ring == target_ring
+            or rings != [source_ring, target_ring]
+        ):
+            raise Atlas3ExplorerError(f"{label} has invalid cross-ring fields")
+
     for row in model["assertedRelations"]:
+        validate_relation_rings(row, "Atlas 3.0 asserted relation")
         expected_authority = row.get("status") == "current"
         if row.get("authoritative") is not expected_authority or row.get("authority") != (
             "authoritative" if expected_authority else "historicalEditorialRecord"
         ):
             raise Atlas3ExplorerError("Atlas 3.0 asserted relation authority differs from its lifecycle status")
+        if row.get("kind") == "crossRing":
+            policy = (row.get("sourceRing"), row.get("targetRing"), row.get("predicate"))
+            if policy not in _CROSS_RING_POLICIES:
+                raise Atlas3ExplorerError("Atlas 3.0 asserted cross-ring relation violates its policy")
+        elif row.get("sourceRing") is not None or row.get("targetRing") is not None:
+            raise Atlas3ExplorerError("Atlas 3.0 same-ring assertion uses endpoint rings")
+    for row in model["projectedRelations"]:
+        validate_relation_rings(row, "Atlas 3.0 projected relation")
     if any(row.get("authoritative") is not False for row in model["projectedRelations"]):
         raise Atlas3ExplorerError("Atlas 3.0 projections contain an authoritative row")
     if any(row.get("authority") != "nonAuthoritative" for row in model["derivedRelations"]):
@@ -2724,11 +3068,11 @@ _GRAPH_HTML = r"""<!doctype html>
   const short = value => { const text=String(value); const hash=text.lastIndexOf("#"); return hash>=0?text.slice(hash+1):text.replace(/\/$/,"").split(/[/:]/).pop(); };
   const format = value => new Intl.NumberFormat("en-US").format(value);
   const hash = value => { let result=2166136261; for(const char of String(value)){result^=char.codePointAt(0);result=Math.imul(result,16777619);} return result>>>0; };
-  const searchText = node => [node.label,node.id,node.release,...node.rings,...(node.detail?.labels||[]).map(row=>row.value),...(node.detail?.notations||[])].join(" ").toLocaleLowerCase("en-US");
+  const searchText = node => [node.label,node.id,node.release,...node.rings,...(node.detail?.labels||[]).map(row=>row.value),...(node.detail?.notations||[]),...(node.detail?.identifiers||[]).flatMap(row=>[row.value,row.schemeLabel])].join(" ").toLocaleLowerCase("en-US");
   function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;}return node;}
   data.resourceIndex.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,null,false));
   data.resources.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,row,false));
-  function edgeFrom(row,layer){const sourceRelease=row.sourceRelease||"";const targetRelease=row.targetRelease||"";ensureNode(row.subject,row.subjectLabel,sourceRelease,row.semanticRing,null,row.kind==="sourceAssignment");ensureNode(row.object,row.objectLabel,targetRelease,row.semanticRing);return {...row,layer,color:layerColors[layer]};}
+  function edgeFrom(row,layer){const sourceRelease=row.sourceRelease||"";const targetRelease=row.targetRelease||"";const rings=row.semanticRings||[row.semanticRing].filter(Boolean);const sourceRing=row.sourceRing||row.semanticRing||"";const targetRing=row.targetRing||row.semanticRing||"";ensureNode(row.subject,row.subjectLabel,sourceRelease,sourceRing,null,row.kind==="sourceAssignment");ensureNode(row.object,row.objectLabel,targetRelease,targetRing);return {...row,semanticRings:rings,layer,color:layerColors[layer]};}
   data.assertedRelations.forEach(row=>allEdges.push(edgeFrom(row,"asserted")));
   data.projectedRelations.forEach(row=>allEdges.push(edgeFrom(row,"projection")));
   data.derivedRelations.forEach(row=>allEdges.push(edgeFrom(row,"derived")));
@@ -2743,9 +3087,12 @@ _GRAPH_HTML = r"""<!doctype html>
   const range=document.getElementById("render-limit-range"), number=document.getElementById("render-limit-number");range.max=number.max=String(maxLimit);range.value=number.value=String(state.renderLimit);
   function releaseLabel(row){return row.title||row.identifier||short(row.id);}
   function renderReleaseFilters(){const root=document.getElementById("release-filters");root.replaceChildren();releaseById.forEach(row=>{const label=document.createElement("label");label.className="filter";label.innerHTML=`<input type="checkbox" checked data-release="${esc(row.id)}"><span class="swatch" style="--swatch:${row.color}"></span><span class="label">${esc(releaseLabel(row))}</span><small>${format(row.memberCount||0)}</small>`;root.append(label);});root.querySelectorAll("input").forEach(input=>input.addEventListener("change",()=>{input.checked?state.activeReleases.add(input.dataset.release):state.activeReleases.delete(input.dataset.release);refresh(true);}));}
-  function layerEnabled(edge){if(edge.layer==="asserted"&&!state.layers.asserted)return false;if(edge.layer==="projection"&&!state.layers.projection)return false;if(edge.layer==="derived"&&!state.layers.derived)return false;if(edge.kind==="sourceAssignment"&&!state.showAssignments)return false;if(state.ring&&edge.semanticRing!==state.ring)return false;return !state.predicate||edge.predicate===state.predicate;}
+  /* atlas-edge-ring-filter:start */
+  function edgeMatchesRing(edge,ring){return !ring||(edge.semanticRings||[edge.semanticRing].filter(Boolean)).includes(ring);}
+  /* atlas-edge-ring-filter:end */
+  function layerEnabled(edge){if(edge.layer==="asserted"&&!state.layers.asserted)return false;if(edge.layer==="projection"&&!state.layers.projection)return false;if(edge.layer==="derived"&&!state.layers.derived)return false;if(edge.kind==="sourceAssignment"&&!state.showAssignments)return false;if(!edgeMatchesRing(edge,state.ring))return false;return !state.predicate||edge.predicate===state.predicate;}
   function releaseEnabled(node){return !node.release||!releaseById.has(node.release)||state.activeReleases.has(node.release);}
-  function computeGraph(){nodes.forEach(node=>{node.degree=0;});const eligibleEdges=allEdges.filter(edge=>{if(!layerEnabled(edge))return false;const source=nodeById.get(edge.subject),target=nodeById.get(edge.object);if(!source||!target||!releaseEnabled(source)||!releaseEnabled(target))return false;source.degree++;target.degree++;return true;});const selectedNeighbors=selectedNodeNeighborIds(state.selected,eligibleEdges);const candidates=nodes.filter(node=>(!state.ring||node.rings.has(state.ring))&&releaseEnabled(node)&&(!node.isSource||state.showAssignments));candidates.sort((a,b)=>(state.matches.has(b.id)?1:0)-(state.matches.has(a.id)?1:0)||(state.selected?.kind==="node"&&state.selected.id===b.id?1:0)-(state.selected?.kind==="node"&&state.selected.id===a.id?1:0)||(selectedNeighbors.has(b.id)?1:0)-(selectedNeighbors.has(a.id)?1:0)||b.degree-a.degree||a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id));state.renderedNodes=candidates.slice(0,state.renderLimit);const ids=new Set(state.renderedNodes.map(node=>node.id));state.renderedEdges=eligibleEdges.filter(edge=>ids.has(edge.subject)&&ids.has(edge.object));}
+  function computeGraph(){nodes.forEach(node=>{node.degree=0;});const eligibleEdges=allEdges.filter(edge=>{if(!layerEnabled(edge))return false;const source=nodeById.get(edge.subject),target=nodeById.get(edge.object);if(!source||!target||!releaseEnabled(source)||!releaseEnabled(target))return false;source.degree++;target.degree++;return true;});const selectedNeighbors=selectedNodeNeighborIds(state.selected,eligibleEdges);const ringEndpointIds=new Set(eligibleEdges.flatMap(edge=>[edge.subject,edge.object]));const candidates=nodes.filter(node=>(!state.ring||node.rings.has(state.ring)||ringEndpointIds.has(node.id))&&releaseEnabled(node)&&(!node.isSource||state.showAssignments));candidates.sort((a,b)=>(state.matches.has(b.id)?1:0)-(state.matches.has(a.id)?1:0)||(state.selected?.kind==="node"&&state.selected.id===b.id?1:0)-(state.selected?.kind==="node"&&state.selected.id===a.id?1:0)||(selectedNeighbors.has(b.id)?1:0)-(selectedNeighbors.has(a.id)?1:0)||b.degree-a.degree||a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id));state.renderedNodes=candidates.slice(0,state.renderLimit);const ids=new Set(state.renderedNodes.map(node=>node.id));state.renderedEdges=eligibleEdges.filter(edge=>ids.has(edge.subject)&&ids.has(edge.object));}
   function layout(animate=true){const groups=new Map();state.renderedNodes.forEach(node=>{const key=node.release||"unreleased";if(!groups.has(key))groups.set(key,[]);groups.get(key).push(node);});const ordered=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));const orbit=Math.max(220,Math.sqrt(state.renderedNodes.length)*28);const golden=2.399963229728653;ordered.forEach(([key,group],groupIndex)=>{group.sort((a,b)=>b.degree-a.degree||a.id.localeCompare(b.id));const angle=(Math.PI*2*groupIndex/Math.max(1,ordered.length))+((hash(key)%1000)/1000)*.3;const cx=ordered.length===1?0:Math.cos(angle)*orbit,cy=ordered.length===1?0:Math.sin(angle)*orbit;group.forEach((node,index)=>{const theta=index*golden+(hash(node.id)%628)/100;const radius=18*Math.sqrt(index);node.sx=Number.isFinite(node.x)?node.x:cx;node.sy=Number.isFinite(node.y)?node.y:cy;node.tx=cx+Math.cos(theta)*radius;node.ty=cy+Math.sin(theta)*radius;});});if(!animate||matchMedia("(prefers-reduced-motion: reduce)").matches){state.renderedNodes.forEach(node=>{node.x=node.tx;node.y=node.ty;});draw();return;}const started=performance.now();if(state.animation)cancelAnimationFrame(state.animation);const tick=now=>{const t=Math.min(1,(now-started)/360),ease=1-Math.pow(1-t,3);state.renderedNodes.forEach(node=>{node.x=node.sx+(node.tx-node.sx)*ease;node.y=node.sy+(node.ty-node.sy)*ease;});draw();if(t<1)state.animation=requestAnimationFrame(tick);};state.animation=requestAnimationFrame(tick);}
   function bounds(){if(!state.renderedNodes.length)return{minX:-1,maxX:1,minY:-1,maxY:1};return{minX:Math.min(...state.renderedNodes.map(n=>n.x)),maxX:Math.max(...state.renderedNodes.map(n=>n.x)),minY:Math.min(...state.renderedNodes.map(n=>n.y)),maxY:Math.max(...state.renderedNodes.map(n=>n.y))};}
   function fitView(){const box=bounds(),padding=80,width=Math.max(1,box.maxX-box.minX),height=Math.max(1,box.maxY-box.minY);state.view.k=Math.max(.08,Math.min(2.8,Math.min((state.width-padding*2)/width,(state.height-padding*2)/height)));state.view.x=state.width/2-(box.minX+box.maxX)/2*state.view.k;state.view.y=state.height/2-(box.minY+box.maxY)/2*state.view.k;draw();}
@@ -2766,6 +3113,12 @@ _GRAPH_HTML = r"""<!doctype html>
   function hitEdge(clientX,clientY){const rect=canvas.getBoundingClientRect(),point=screenToWorld(clientX-rect.left,clientY-rect.top);let best=null,distance=Infinity;state.renderedEdges.forEach(edge=>{const a=nodeById.get(edge.subject),b=nodeById.get(edge.object),d=segmentDistance(point,a,b);if(d<7/state.view.k&&d<distance){best=edge;distance=d;}});return best;}
   function zoomAt(factor,x=state.width/2,y=state.height/2){const before=screenToWorld(x,y);state.view.k=Math.max(.06,Math.min(8,state.view.k*factor));state.view.x=x-before.x*state.view.k;state.view.y=y-before.y*state.view.k;draw();}
   function sourceDetails(ids){return ids.map(id=>sourceById.get(id)).filter(Boolean);}
+  function identifierBrief(detail){
+    const identifiers=detail?.identifiers||[];
+    if(!identifiers.length)return "";
+    const rows=identifiers.map(identifier=>{const source=identifier.sourceRecord?sourceById.get(identifier.sourceRecord):null;const sourceText=source?`<small>Source: ${esc(friendlySource(source))}</small>`:"";return `<div class="evidence-row"><b>${esc(identifier.value)}</b><p>Scheme / authority: ${esc(identifier.schemeLabel)}</p>${sourceText}</div>`;}).join("");
+    return `<section class="supporting"><h3>Identifiers</h3><div class="evidence-list">${rows}</div></section>`;
+  }
   function friendlySource(record){
     if(!record)return "Pinned source record";
     const token=record.nativePayload?.sourceIdentity?.namespaceToken;
@@ -2803,7 +3156,9 @@ _GRAPH_HTML = r"""<!doctype html>
       relatedMatch:`${subject} and ${object} are associated across vocabularies.`,
       thesaurusUse:`Use ${object}, the preferred term, instead of ${subject}.`,
       thesaurusUsedFor:`${object} is a non-preferred term for ${subject}.`,
-      thesaurusRelated:`${subject} and ${object} are publisher-related despite also sharing a hierarchy.`
+      thesaurusRelated:`${subject} and ${object} are publisher-related despite also sharing a hierarchy.`,
+      hasIndexedSubject:`${subject} is indexed under the subject ${object}.`,
+      referencesLegalIdentity:`${subject} references the legal identity ${object}.`
     })[edge.predicateLabel]||`${subject} has relation “${edge.predicateLabel}” to ${object}.`;
   }
   function relationWhy(edge){
@@ -2841,7 +3196,7 @@ _GRAPH_HTML = r"""<!doctype html>
     empty.hidden=true;view.hidden=false;
     if(state.selected.kind==="node"){
       const node=nodeById.get(state.selected.id),detail=node.detail,connections=state.renderedEdges.filter(edge=>nodeConnected(node,edge)).slice(0,20);
-      view.innerHTML=`<p class="kicker">${node.isSource?"Source record":"Atlas resource"}</p><h3 class="inspector-title">${esc(node.label)}</h3><span class="badge">${esc(detail?.displayLabelRole||node.ring||"endpoint")}</span><h3 style="margin-top:1rem">Relations</h3><div class="connections">${connections.map(edge=>`<button class="connection" data-edge="${esc(edge.layer+"|"+edge.id)}" style="--edge:${edge.color}">${esc(relationMeaning(edge))}<small>${esc(edge.layer)} · ${esc(edge.predicateLabel)}</small></button>`).join("")||"<span class=\"hint\">No visible relations under current filters.</span>"}</div><details class="technical"><summary>About this resource</summary><dl class="facts"><dt>IRI</dt><dd class="iri">${esc(node.id)}</dd><dt>Release</dt><dd class="iri">${esc(node.release||"Not available in bounded view")}</dd>${detail?`<dt>Profile</dt><dd>${esc(detail.resourceProfile)}</dd><dt>Type</dt><dd>${esc(detail.resourceType)}</dd>`:""}</dl>${detail?`<details><summary>English labels</summary><pre>${esc(JSON.stringify(detail.labels,null,2))}</pre></details><details><summary>Source records</summary><pre>${esc(JSON.stringify(sourceDetails(detail.sourceRecords),null,2))}</pre></details>`:"<p class=\"hint\">Increase the resource limit for full details.</p>"}</details>`;
+      view.innerHTML=`<p class="kicker">${node.isSource?"Source record":"Atlas resource"}</p><h3 class="inspector-title">${esc(node.label)}</h3><span class="badge">${esc(detail?.displayLabelRole||node.ring||"endpoint")}</span>${identifierBrief(detail)}<h3 style="margin-top:1rem">Relations</h3><div class="connections">${connections.map(edge=>`<button class="connection" data-edge="${esc(edge.layer+"|"+edge.id)}" style="--edge:${edge.color}">${esc(relationMeaning(edge))}<small>${esc(edge.layer)} · ${esc(edge.predicateLabel)}</small></button>`).join("")||"<span class=\"hint\">No visible relations under current filters.</span>"}</div><details class="technical"><summary>About this resource</summary><dl class="facts"><dt>IRI</dt><dd class="iri">${esc(node.id)}</dd><dt>Release</dt><dd class="iri">${esc(node.release||"Not available in bounded view")}</dd>${detail?`<dt>Profile</dt><dd>${esc(detail.resourceProfile)}</dd><dt>Type</dt><dd>${esc(detail.resourceType)}</dd>`:""}</dl>${detail?`<details><summary>English labels</summary><pre>${esc(JSON.stringify(detail.labels,null,2))}</pre></details><details><summary>Source records</summary><pre>${esc(JSON.stringify(sourceDetails(detail.sourceRecords),null,2))}</pre></details>`:"<p class=\"hint\">Increase the resource limit for full details.</p>"}</details>`;
     }else{
       const edge=state.selected.edge;
       const guidance=relationGuidance(edge),back=state.inspectorReturn?`<button class="inspector-back" id="inspector-back" type="button">← ${state.inspectorReturn.selection.kind==="node"?"Back to relations":"Back"}</button>`:"";

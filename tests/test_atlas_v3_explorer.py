@@ -181,6 +181,162 @@ def test_model_preserves_authority_provenance_and_alternate_only_labels() -> Non
     assert "<table" not in rendered
 
 
+def test_identifier_records_are_attached_to_their_resource_with_readable_authority() -> None:
+    model = build_atlas_v3_explorer_model(_open_distribution())
+    resource = next(
+        row for row in model["resources"] if row["id"].endswith("resource:entity-agency")
+    )
+
+    assert resource["identifiers"] == [
+        {
+            "id": "urn:ref:atlas-fixture:identifier:agency",
+            "value": "AGENCY-001",
+            "scheme": "urn:ref:atlas-fixture:scheme:entities",
+            "schemeLabel": "entities",
+            "schemeProfile": "identifierScheme",
+            "identifies": resource["id"],
+            "contentDigest": "sha256:3eb59d5612ca3693b9f92003854abf9d6acd81a702756000251622af0de6b8af",
+            "sourceRecordCount": 1,
+            "sourceRecord": "urn:ref:atlas-fixture:source-record:entity-agency",
+        }
+    ]
+    assert model["summary"]["availableIdentifiers"] == 1
+    assert model["summary"]["indexedIdentifiers"] == 1
+    assert model["summary"]["shownIdentifiers"] == 1
+    assert model["visualIndex"]["materialized"]["identifiers"] == 1
+    assert model["visualIndex"]["limits"]["identifiers"] == explorer_module._VISUAL_IDENTIFIER_LIMIT
+
+    rendered = render_atlas_explorer(model)
+    assert "Identifiers" in rendered
+    assert "Scheme / authority" in rendered
+    assert "AGENCY-001" in rendered
+    assert "row.value,row.schemeLabel" in rendered
+
+    resource["identifiers"][0]["identifies"] = "urn:ref:atlas-fixture:resource:wrong"
+    with pytest.raises(Atlas3ExplorerError, match="attached to the wrong resource"):
+        render_atlas_explorer(model)
+
+
+def test_streaming_identifier_selection_is_deterministic_and_bounded() -> None:
+    scheme = b"<urn:test:identifier-scheme>"
+
+    def build_index():
+        builder = explorer_module._StreamingIndexBuilder()
+        for index in range(5_000):
+            builder.consume(
+                f"<urn:test:identifier:{index:05d}>".encode(),
+                {explorer_module._IDENTIFIER_TYPE_TOKEN},
+                {
+                    explorer_module._ATLAS_IDENTIFIER_SCHEME_TOKEN: scheme,
+                    explorer_module._ATLAS_IDENTIFIES_TOKEN: (
+                        f"<urn:test:resource:{index:05d}>".encode()
+                    ),
+                },
+                (),
+                0,
+                (),
+                0,
+                0,
+                0,
+            )
+        return builder.finish(
+            byte_length=1,
+            digest="sha256:" + "0" * 64,
+            graph_quad_counts={"asserted": 25_000, "projection": 0, "derived": 0},
+        )
+
+    first = build_index()
+    second = build_index()
+
+    assert len(first.identifier_ids) == explorer_module._VISUAL_IDENTIFIER_LIMIT
+    assert len(first.resource_ids) == explorer_module._VISUAL_IDENTIFIER_LIMIT
+    assert first.identifier_ids == second.identifier_ids
+    assert first.resource_ids == second.resource_ids
+    assert first.record_counts["identifiers"] == 5_000
+
+
+def test_model_exposes_cross_ring_assertions_and_projections_by_both_endpoint_rings() -> None:
+    model = build_atlas_v3_explorer_model(_open_distribution())
+    assertions = [row for row in model["assertedRelations"] if row["kind"] == "crossRing"]
+
+    assert {
+        (row["sourceRing"], row["targetRing"], row["predicateLabel"])
+        for row in assertions
+    } == {
+        ("entity", "legalIdentity", "referencesLegalIdentity"),
+        ("entity", "subject", "hasIndexedSubject"),
+        ("legalIdentity", "subject", "hasIndexedSubject"),
+    }
+    assert all("semanticRing" not in row for row in assertions)
+    assert all(row["semanticRings"] == [row["sourceRing"], row["targetRing"]] for row in assertions)
+    assert all(row["predicateMeaning"] for row in assertions)
+    assert {
+        (row["sourceRing"], row["targetRing"])
+        for row in model["projectedRelations"]
+        if "sourceRing" in row
+    } == {
+        ("entity", "legalIdentity"),
+        ("entity", "subject"),
+        ("legalIdentity", "subject"),
+    }
+    assert model["coverage"]["crossRingRelationsByPair"] == [
+        {"sourceRing": "entity", "targetRing": "legalIdentity", "count": 1},
+        {"sourceRing": "entity", "targetRing": "subject", "count": 1},
+        {"sourceRing": "legalIdentity", "targetRing": "subject", "count": 1},
+    ]
+
+    rendered = render_atlas_explorer(model)
+    assert "is indexed under the subject" in rendered
+    assert "references the legal identity" in rendered
+    assert "Back to relations" in rendered
+
+
+def test_cross_ring_filter_matches_either_endpoint_and_rejects_unrelated_rings() -> None:
+    model = build_atlas_v3_explorer_model(_open_distribution())
+    rendered = render_atlas_explorer(model)
+    filter_core = re.search(
+        r"/\* atlas-edge-ring-filter:start \*/(.*?)/\* atlas-edge-ring-filter:end \*/",
+        rendered,
+        flags=re.DOTALL,
+    )
+
+    assert filter_core is not None
+    assert "ringEndpointIds.has(node.id)" in rendered
+    script = "\n".join(
+        (
+            filter_core.group(1),
+            """
+const crossRing = {semanticRings: ["entity", "subject"]};
+const sameRing = {semanticRing: "value", semanticRings: ["value"]};
+process.stdout.write(JSON.stringify({
+  source: edgeMatchesRing(crossRing, "entity"),
+  target: edgeMatchesRing(crossRing, "subject"),
+  unrelated: edgeMatchesRing(crossRing, "legalIdentity"),
+  same: edgeMatchesRing(sameRing, "value")
+}));
+""",
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == {
+        "source": True,
+        "target": True,
+        "unrelated": False,
+        "same": True,
+    }
+
+    assertions = [row for row in model["assertedRelations"] if row["kind"] == "crossRing"]
+    assertions[0]["predicate"] = "https://refspec.org/ns/atlas/v3#disallowedCrossRing"
+    with pytest.raises(Atlas3ExplorerError, match="violates its policy"):
+        render_atlas_explorer(model)
+
+
 def test_rendered_explorer_javascript_is_syntactically_valid() -> None:
     rendered = render_atlas_explorer(
         build_atlas_v3_explorer_model(_open_distribution())
@@ -254,6 +410,8 @@ def test_model_limits_precede_detailed_views_and_preserve_full_counts(
 
     for field in (
         "availableResources",
+        "availableIdentifiers",
+        "indexedIdentifiers",
         "availableSourceRecords",
         "availableAssertedRelations",
         "currentAuthoritativeRelations",

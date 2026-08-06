@@ -40,12 +40,47 @@
       ],
       "type": "object"
     },
+    "crossRingRelationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "predicates": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "sourceResourceClass": {
+          "$ref": "#/$defs/ringResourceClass"
+        },
+        "sourceRing": {
+          "$ref": "#/$defs/semanticRing"
+        },
+        "targetResourceClass": {
+          "$ref": "#/$defs/ringResourceClass"
+        },
+        "targetRing": {
+          "$ref": "#/$defs/semanticRing"
+        }
+      },
+      "required": [
+        "predicates",
+        "sourceResourceClass",
+        "sourceRing",
+        "targetResourceClass",
+        "targetRing"
+      ],
+      "type": "object"
+    },
     "entryClass": {
       "$ref": "common.schema.json#/$defs/absoluteIri",
       "enum": [
         "http://www.w3.org/2008/05/skos-xl#Label",
         "https://refspec.org/ns/atlas/v3#AtlasRelease",
         "https://refspec.org/ns/atlas/v3#AtlasResource",
+        "https://refspec.org/ns/atlas/v3#CrossRingRelationAssertion",
         "https://refspec.org/ns/atlas/v3#DerivedRelation",
         "https://refspec.org/ns/atlas/v3#EntityResource",
         "https://refspec.org/ns/atlas/v3#Identifier",
@@ -69,7 +104,7 @@
           "items": {
             "$ref": "#/$defs/entryClass"
           },
-          "maxItems": 17,
+          "maxItems": 18,
           "minItems": 1,
           "type": "array",
           "uniqueItems": true
@@ -146,6 +181,15 @@
       ],
       "type": "object"
     },
+    "ringResourceClass": {
+      "$ref": "common.schema.json#/$defs/absoluteIri",
+      "enum": [
+        "https://refspec.org/ns/atlas/v3#EntityResource",
+        "https://refspec.org/ns/atlas/v3#LegalIdentityResource",
+        "https://refspec.org/ns/atlas/v3#SubjectConcept",
+        "https://refspec.org/ns/atlas/v3#ValueResource"
+      ]
+    },
     "resourceKind": {
       "enum": [
         "classification",
@@ -174,6 +218,15 @@
   "properties": {
     "format": {
       "const": "refspec-atlas-registry-resource-profiles/3.0"
+    },
+    "crossRingRelationPolicies": {
+      "items": {
+        "$ref": "#/$defs/crossRingRelationPolicy"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array",
+      "uniqueItems": true
     },
     "namespace": {
       "$ref": "common.schema.json#/$defs/absoluteIri",
@@ -206,6 +259,7 @@
   },
   "required": [
     "format",
+    "crossRingRelationPolicies",
     "namespace",
     "profileDigest",
     "profiles",

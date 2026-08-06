@@ -1,6 +1,6 @@
 {
-  "catalogDigest": "sha256:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
-  "catalogId": "urn:ref:resource-catalog:fbdfea4db9bde4abac71b1d169452175615efea32d1021c86d2eeabd8ca277b0",
+  "catalogDigest": "sha256:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
+  "catalogId": "urn:ref:resource-catalog:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-08-04T08:01:00Z",
@@ -43,6 +43,19 @@
       "sourceAvailability": "partial",
       "title": "CBO cost-estimate topics and fiscal facets",
       "versionRepresentation": "Pin the exact feed URL, Congress, capture time, response digest, and parser version; separately identify reconstructed fixtures and verified publisher captures."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "The exact 119th-Congress feed is complete for that captured response but does not cover CBO's full publication history.",
+      "identifierRepresentation": "Preserve each publisher-issued numeric publication identifier, canonical CBO publication URL, title, date, description, bill value, and exact feed row.",
+      "officialLocator": "https://www.cbo.gov/rss/119congress-cost-estimates.xml",
+      "resourceId": "cbo-publication-identifiers",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "partial",
+      "title": "CBO publication identifiers",
+      "versionRepresentation": "Pin the Congress-specific feed URL, exact response digest, retrieval time, item key, publication identifier, and parser version."
     },
     {
       "consumability": "inventoryOnly",
@@ -798,6 +811,19 @@
       "consumability": "inventoryOnly",
       "distributions": [],
       "evidence": [],
+      "gap": "The registry has one exact report-page capture, not GAO's complete publication history.",
+      "identifierRepresentation": "Preserve the publisher-issued GAO report number, canonical product URL, title, publication date, and exact source record as distinct identity evidence.",
+      "officialLocator": "https://www.gao.gov/products/",
+      "resourceId": "gao-report-identifiers",
+      "resourceKind": "identifierAuthority",
+      "sourceAvailability": "partial",
+      "title": "GAO report identifiers",
+      "versionRepresentation": "Pin each exact product-page capture, report number, canonical URL, publication date, retrieval time, and source digest."
+    },
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
       "gap": "The historical publication is not a maintained authority and is mapping-only unless a successor appears.",
       "identifierRepresentation": "Preserve historical source entries and identifiers without promoting them to current selectable concepts.",
       "officialLocator": "GAO Thesaurus, 1998 publication",
@@ -1515,8 +1541,8 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 76,
-    "resourceCount": 86,
+    "inventoryOnlyCount": 78,
+    "resourceCount": 88,
     "verifiedDistributionCount": 5,
     "verifiedResourceCount": 3
   }

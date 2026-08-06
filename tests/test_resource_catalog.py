@@ -148,8 +148,8 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
 
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 76,
-        "resourceCount": 86,
+        "inventoryOnlyCount": 78,
+        "resourceCount": 88,
         "verifiedDistributionCount": 5,
         "verifiedResourceCount": 3,
     }

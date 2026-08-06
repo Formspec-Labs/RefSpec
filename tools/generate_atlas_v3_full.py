@@ -2,10 +2,11 @@
 
 The generator runs the RefSpec registry parsers over every supported complete
 release or explicitly bounded capture whose exact bytes are available locally.
-It preserves publisher label roles, source identities, semantic rings, direct
-authored relations, and release-level provenance. It never consumes an Atlas
-1.x or Atlas 2.x graph, and it never imports the archived generated mapping
-pairs under ``research/evidence``.
+It preserves publisher label roles, authority-scoped identifiers, globally
+reusable document identities, semantic rings, direct authored relations, and
+release-level provenance. It never consumes an Atlas 1.x or Atlas 2.x graph,
+and it never imports the archived generated mapping pairs under
+``research/evidence``.
 """
 
 from __future__ import annotations
@@ -30,7 +31,12 @@ from typing import Literal as TypeLiteral
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
-from refspec.atlas.v3_source_data import RegistryInputPin, RegistryRelease
+from refspec.atlas.v3_source_data import (
+    RegistryCrossRingRelation,
+    RegistryIdentifier,
+    RegistryInputPin,
+    RegistryRelease,
+)
 from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseView,
@@ -102,6 +108,7 @@ class SourceSpec:
     profile: str
     ring: str
     expected_relations: int = 0
+    expected_cross_ring_relations: int = 0
     fallback_namespace_token: str | None = None
     emit_source_assignments: bool = True
     resource_id: str | None = None
@@ -133,6 +140,7 @@ class SourceResource:
     notes: tuple[str, ...] = ()
     notations: tuple[str, ...] = ()
     status: str | None = None
+    identifiers: Sequence[RegistryIdentifier] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +161,7 @@ class LoadedRelease:
     issued: str
     resources: Sequence[SourceResource]
     relations: Sequence[SourceRelation]
+    cross_ring_relations: Sequence[RegistryCrossRingRelation] = ()
     dropped_label_count: int = 0
     metadata: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
@@ -363,7 +372,7 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.0/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:f6d9ae24aac695fb4f817afced5d8d7b96d9457ef9ede62c0e88e08b49e08620"
+    "sha256:fe7fd164dfd61d5212f9d483b9d1e9f358eade50ed496fc23d98b9c689ecb6e6"
 )
 
 
@@ -1446,10 +1455,12 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
 
 def _validate_loaded_release(release: LoadedRelease) -> LoadedRelease:
     observed = {
+        "crossRingRelations": len(release.cross_ring_relations),
         "relations": len(release.relations),
         "resources": len(release.resources),
     }
     expected = {
+        "crossRingRelations": release.spec.expected_cross_ring_relations,
         "relations": release.spec.expected_relations,
         "resources": release.spec.expected_resources,
     }
@@ -1473,6 +1484,7 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
         expected_digest=primary.sha256,
         expected_resources=release.expected_resources,
         expected_relations=release.expected_relations,
+        expected_cross_ring_relations=release.expected_cross_ring_relations,
         profile=release.profile,
         ring=release.ring,
         emit_source_assignments=False,
@@ -1491,6 +1503,7 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
             issued=release.issued,
             resources=release.resources,  # type: ignore[arg-type]
             relations=release.relations,  # type: ignore[arg-type]
+            cross_ring_relations=release.cross_ring_relations,
             dropped_label_count=release.dropped_label_count,
             metadata=release.metadata,
         )
@@ -1499,6 +1512,7 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
 
 def load_releases() -> tuple[LoadedRelease, ...]:
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
+    from refspec.atlas.v3_registry_documents import load_registry_document_releases
     from refspec.atlas.v3_registry_large import load_large_registry_releases
     from refspec.atlas.v3_registry_vocabularies import (
         load_all_registry_vocabulary_releases,
@@ -1520,6 +1534,7 @@ def load_releases() -> tuple[LoadedRelease, ...]:
         *load_all_registry_vocabulary_releases(),
         *load_large_registry_releases(),
         *load_registry_code_releases(ROOT),
+        *load_registry_document_releases(ROOT),
     )
     _validate_registry_release_descriptors(registry_releases)
     releases.extend(_adapt_registry_release(release) for release in registry_releases)
@@ -1674,6 +1689,50 @@ def _add_source_record(
     return node
 
 
+def _add_identifier(
+    graph: Graph,
+    *,
+    identifier_row: RegistryIdentifier,
+    resource: URIRef,
+    source_record: URIRef,
+) -> URIRef:
+    """Add one source-backed identifier under an identifier-authority scheme."""
+
+    scheme = URIRef(identifier_row.scheme_iri)
+    profiles = set(graph.objects(scheme, ATLAS.resourceProfile))
+    if (
+        (scheme, RDF.type, ATLAS.ResourceScheme) not in graph
+        or profiles != {ATLAS.identifierScheme}
+    ):
+        raise ValueError(
+            "identifier scheme must be an atlas:ResourceScheme with the "
+            f"atlas:identifierScheme profile: {scheme}"
+        )
+    identifier = _node_iri(
+        "atlas-identifier",
+        {
+            "identifierScheme": str(scheme),
+            "identifierValue": identifier_row.value,
+            "identifies": str(resource),
+            "sourcePath": identifier_row.source_path,
+            "sourceRecord": str(source_record),
+        },
+    )
+    graph.add((identifier, RDF.type, ATLAS.Identifier))
+    graph.add(
+        (
+            identifier,
+            ATLAS.identifierValue,
+            Literal(identifier_row.value, datatype=XSD.string),
+        )
+    )
+    graph.add((identifier, ATLAS.identifierScheme, scheme))
+    graph.add((identifier, ATLAS.identifies, resource))
+    graph.add((identifier, ATLAS.sourceRecord, source_record))
+    _add_content_digest(graph, identifier)
+    return identifier
+
+
 def _review_method_for_assertion(
     assertion_type: URIRef,
     *,
@@ -1681,7 +1740,11 @@ def _review_method_for_assertion(
 ) -> URIRef:
     """Select the narrow review method supported by an assertion's provenance."""
 
-    if assertion_type in {ATLAS.SourceAssignment, ATLAS.NativeRelationAssertion}:
+    if assertion_type in {
+        ATLAS.CrossRingRelationAssertion,
+        ATLAS.NativeRelationAssertion,
+        ATLAS.SourceAssignment,
+    }:
         return (
             ATLAS.deterministicTransformation
             if deterministic_transformation
@@ -1728,7 +1791,7 @@ def _add_assertion(
     graph: Graph,
     *,
     assertion_type: URIRef,
-    ring: URIRef,
+    ring: URIRef | None,
     subject: URIRef,
     predicate: URIRef,
     obj: URIRef,
@@ -1740,21 +1803,37 @@ def _add_assertion(
     reviewer: URIRef,
     review_method: URIRef,
     confidence: str | None,
+    source_ring: URIRef | None = None,
+    target_ring: URIRef | None = None,
 ) -> URIRef:
     policy_digest = graph.value(policy, ATLAS.contentDigest)
     if not isinstance(policy_digest, Literal):
         raise TypeError(f"policy has no content digest: {policy}")
-    basis = {
+    basis: dict[str, str] = {
         "object": str(obj),
         "policy": str(policy),
         "policyContentDigest": str(policy_digest),
         "predicate": str(predicate),
-        "semanticRing": str(ring),
         "sourceRelease": str(source_release),
         "subject": str(subject),
         "targetRelease": str(target_release),
         "type": str(assertion_type),
     }
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        if ring is not None or source_ring is None or target_ring is None:
+            raise ValueError(
+                "cross-ring assertions require sourceRing and targetRing only"
+            )
+        if source_ring == target_ring:
+            raise ValueError("cross-ring assertion endpoints use one ring")
+        basis["sourceRing"] = str(source_ring)
+        basis["targetRing"] = str(target_ring)
+    else:
+        if ring is None or source_ring is not None or target_ring is not None:
+            raise ValueError(
+                "same-ring assertions require one semanticRing only"
+            )
+        basis["semanticRing"] = str(ring)
     identity_digest = _canonical_digest(basis)
     assertion = URIRef(
         "urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:")
@@ -1766,7 +1845,11 @@ def _add_assertion(
     graph.add((assertion, RDF.subject, subject))
     graph.add((assertion, RDF.predicate, predicate))
     graph.add((assertion, RDF.object, obj))
-    graph.add((assertion, ATLAS.semanticRing, ring))
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        graph.add((assertion, ATLAS.sourceRing, source_ring))
+        graph.add((assertion, ATLAS.targetRing, target_ring))
+    else:
+        graph.add((assertion, ATLAS.semanticRing, ring))
     graph.add((assertion, ATLAS.sourceRelease, source_release))
     graph.add((assertion, ATLAS.targetRelease, target_release))
     graph.add((assertion, ATLAS.governedByPolicy, policy))
@@ -1894,7 +1977,7 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
                 f"{release.spec.key}/{resource.iri}/{violation}"
                 for violation in payload_violations
             )
-        for relation in release.relations:
+        for relation in (*release.relations, *release.cross_ring_relations):
             relation_payload_count += 1
             maps, tags, payload_violations = _audit_english_language_content(
                 relation.source_payload,
@@ -1964,6 +2047,8 @@ def _build_graphs(
     source_release_nodes: dict[str, URIRef] = {}
     resource_release: dict[str, URIRef] = {}
     resource_record: dict[str, URIRef] = {}
+    resource_ring: dict[str, URIRef] = {}
+    identifier_targets: dict[tuple[str, str], str] = {}
     accounting_inputs: list[dict[str, Any]] = []
     source_accounting_by_release: dict[str, dict[str, Any]] = {}
 
@@ -2014,6 +2099,7 @@ def _build_graphs(
             )
             resource_record[resource_row.iri] = record
             resource_release[resource_row.iri] = atlas_release
+            resource_ring[resource_row.iri] = ring
             asserted.add((resource, RDF.type, ATLAS.AtlasResource))
             asserted.add((resource, RDF.type, resource_class))
             if ring == ATLAS.subject:
@@ -2055,6 +2141,28 @@ def _build_graphs(
                 asserted.add((label, ATLAS.inRelease, atlas_release))
                 asserted.add((label, ATLAS.sourceRecord, record))
                 _add_content_digest(asserted, label)
+            for identifier_row in resource_row.identifiers:
+                identifier_key = (
+                    identifier_row.scheme_iri,
+                    identifier_row.value,
+                )
+                previous_target = identifier_targets.setdefault(
+                    identifier_key,
+                    resource_row.iri,
+                )
+                if previous_target != resource_row.iri:
+                    raise ValueError(
+                        "authority-scoped identifier resolves to multiple resources: "
+                        f"scheme={identifier_row.scheme_iri}, "
+                        f"value={identifier_row.value!r}, "
+                        f"targets={previous_target!r}, {resource_row.iri!r}"
+                    )
+                _add_identifier(
+                    asserted,
+                    identifier_row=identifier_row,
+                    resource=resource,
+                    source_record=record,
+                )
             if resource_row.definition is not None:
                 asserted.add(
                     (
@@ -2196,6 +2304,64 @@ def _build_graphs(
             f"emitted {remap_evidence_count}"
         )
 
+    cross_ring_count = 0
+    for release in releases:
+        for relation in release.cross_ring_relations:
+            try:
+                source_atlas_release = resource_release[relation.subject]
+                target_atlas_release = resource_release[relation.object]
+                evidence_record = resource_record[relation.subject]
+                observed_source_ring = resource_ring[relation.subject]
+                observed_target_ring = resource_ring[relation.object]
+            except KeyError as error:
+                raise ValueError(
+                    f"cross-ring relation endpoint is outside loaded releases: {relation}"
+                ) from error
+            source_ring = ATLAS[relation.source_ring]
+            target_ring = ATLAS[relation.target_ring]
+            if source_atlas_release != URIRef(release.atlas_release_iri):
+                raise ValueError(
+                    "cross-ring relation must be owned by its subject release: "
+                    f"{relation}"
+                )
+            if (observed_source_ring, observed_target_ring) != (
+                source_ring,
+                target_ring,
+            ):
+                raise ValueError(
+                    f"cross-ring relation endpoint ring differs: {relation}"
+                )
+            _add_assertion(
+                asserted,
+                assertion_type=ATLAS.CrossRingRelationAssertion,
+                ring=None,
+                subject=URIRef(relation.subject),
+                predicate=URIRef(relation.predicate),
+                obj=URIRef(relation.object),
+                source_release=source_atlas_release,
+                target_release=target_atlas_release,
+                policy=native_policy,
+                asserted_at=CREATED_AT,
+                evidence_record=evidence_record,
+                reviewer=NATIVE_REVIEWER,
+                review_method=_review_method_for_assertion(
+                    ATLAS.CrossRingRelationAssertion
+                ),
+                confidence="1",
+                source_ring=source_ring,
+                target_ring=target_ring,
+            )
+            cross_ring_count += 1
+    expected_cross_ring_count = sum(
+        len(release.cross_ring_relations) for release in releases
+    )
+    if cross_ring_count != expected_cross_ring_count:
+        raise ValueError(
+            "expected "
+            f"{expected_cross_ring_count} cross-ring assertions; "
+            f"emitted {cross_ring_count}"
+        )
+
     if any(asserted.subjects(RDF.type, ATLAS.MappingAssertion)):
         raise ValueError("source-only Atlas build emitted a MappingAssertion")
     projection = _expected_projection_graph(asserted)
@@ -2243,6 +2409,15 @@ def _counts(graphs: BuildGraphs) -> dict[str, int]:
         "derivedRelations": len(
             set(graphs.derived.subjects(RDF.type, ATLAS.DerivedRelation))
         ),
+        "crossRingRelationAssertions": len(
+            set(
+                asserted.subjects(
+                    RDF.type,
+                    ATLAS.CrossRingRelationAssertion,
+                )
+            )
+        ),
+        "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
         "mappingAssertions": len(
             set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -2764,8 +2939,8 @@ def verify_inputs(
             ATLAS.ResourceScheme,
         )
     }
-    if len(descriptors) != 86:
-        raise ValueError(f"expected 86 registry descriptors; found {len(descriptors)}")
+    if len(descriptors) != 88:
+        raise ValueError(f"expected 88 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),
@@ -2807,6 +2982,37 @@ def verify_inputs(
     }
 
 
+def _release_direct_source_counts(release: LoadedRelease) -> dict[str, int]:
+    """Count direct normalized records emitted from one source release."""
+
+    return {
+        "crossRingRelations": len(release.cross_ring_relations),
+        "identifiers": sum(len(resource.identifiers) for resource in release.resources),
+        "nativeRelations": len(release.relations),
+        "resources": len(release.resources),
+    }
+
+
+def _direct_source_counts(
+    releases: Sequence[LoadedRelease],
+    *,
+    label_count: int,
+) -> dict[str, int]:
+    """Aggregate direct normalized source counts without counting RDF projections."""
+
+    counts = {
+        "crossRingRelations": 0,
+        "identifiers": 0,
+        "labels": label_count,
+        "nativeRelations": 0,
+        "resources": 0,
+    }
+    for release in releases:
+        for key, value in _release_direct_source_counts(release).items():
+            counts[key] += value
+    return counts
+
+
 def build_distribution(output: Path) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution."""
 
@@ -2815,12 +3021,14 @@ def build_distribution(output: Path) -> None:
     inventory = verify_inputs(releases)
     english_only_scan = _english_only_scan(releases)
     dropped_label_count = sum(release.dropped_label_count for release in releases)
-    observed_counts = {
-        "labels": english_only_scan["emittedLabels"],
-        "nativeRelations": sum(len(release.relations) for release in releases),
-        "resources": sum(len(release.resources) for release in releases),
-    }
+    observed_counts = _direct_source_counts(
+        releases,
+        label_count=english_only_scan["emittedLabels"],
+    )
     expected_counts = {
+        "crossRingRelations": sum(
+            release.spec.expected_cross_ring_relations for release in releases
+        ),
         "nativeRelations": sum(
             release.spec.expected_relations for release in releases
         ),
@@ -2852,11 +3060,10 @@ def build_distribution(output: Path) -> None:
             "sourceReleases": [
                 {
                     "atlasRelease": release.atlas_release_iri,
+                    **_release_direct_source_counts(release),
                     "key": release.spec.key,
                     "metadata": _plain(release.metadata),
-                    "nativeRelations": len(release.relations),
                     "resourceId": release.spec.resource_id,
-                    "resources": len(release.resources),
                     "scope": release.spec.scope,
                     "sourceRelease": release.source_release_iri,
                 }

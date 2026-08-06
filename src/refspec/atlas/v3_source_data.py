@@ -93,6 +93,23 @@ class RegistryLabel:
 
 
 @dataclass(frozen=True, slots=True)
+class RegistryIdentifier:
+    """One authority-scoped identifier attached to a normalized resource."""
+
+    value: str
+    scheme_iri: str
+    source_path: str
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise ValueError("Atlas registry identifier values must be non-empty")
+        if not self.scheme_iri or ":" not in self.scheme_iri:
+            raise ValueError("Atlas registry identifier schemes must be absolute IRIs")
+        if not self.source_path:
+            raise ValueError("Atlas registry identifiers must retain a source path")
+
+
+@dataclass(frozen=True, slots=True)
 class RegistryResource:
     """One normalized Atlas member backed by an exact source record."""
 
@@ -105,6 +122,7 @@ class RegistryResource:
     notes: Sequence[str] = ()
     notations: Sequence[str] = ()
     status: str | None = None
+    identifiers: Sequence[RegistryIdentifier] = ()
 
     def __post_init__(self) -> None:
         if not self.iri or ":" not in self.iri:
@@ -119,6 +137,14 @@ class RegistryResource:
             raise ValueError(f"registry resource {self.iri} has no absolute source locator")
         if not self.source_digest.startswith("sha256:"):
             raise ValueError(f"registry resource {self.iri} has no SHA-256 source digest")
+        identifier_keys: set[tuple[str, str]] = set()
+        for identifier in self.identifiers:
+            key = (identifier.scheme_iri, identifier.value)
+            if key in identifier_keys:
+                raise ValueError(
+                    f"registry resource {self.iri} repeats identifier {key!r}"
+                )
+            identifier_keys.add(key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +155,29 @@ class RegistryRelation:
     predicate: str
     object: str
     source_payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class RegistryCrossRingRelation:
+    """One direct publisher relation between resources in different rings."""
+
+    subject: str
+    predicate: str
+    object: str
+    source_ring: str
+    target_ring: str
+    source_payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        if self.source_ring not in SEMANTIC_RINGS:
+            raise ValueError(f"unsupported source semantic ring: {self.source_ring!r}")
+        if self.target_ring not in SEMANTIC_RINGS:
+            raise ValueError(f"unsupported target semantic ring: {self.target_ring!r}")
+        if self.source_ring == self.target_ring:
+            raise ValueError("cross-ring relations must name two different rings")
+        for endpoint in (self.subject, self.predicate, self.object):
+            if not endpoint or ":" not in endpoint:
+                raise ValueError("cross-ring relation terms must be absolute IRIs")
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,6 +198,7 @@ class RegistryRelease:
     inputs: Sequence[RegistryInputPin]
     resources: Sequence[RegistryResource]
     relations: Sequence[RegistryRelation] = ()
+    cross_ring_relations: Sequence[RegistryCrossRingRelation] = ()
     dropped_label_count: int = 0
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
@@ -188,6 +238,10 @@ class RegistryRelease:
     def expected_relations(self) -> int:
         return len(self.relations)
 
+    @property
+    def expected_cross_ring_relations(self) -> int:
+        return len(self.cross_ring_relations)
+
 
 __all__ = [
     "LABEL_ROLES",
@@ -195,6 +249,8 @@ __all__ = [
     "RESOURCE_PROFILES",
     "SEMANTIC_RINGS",
     "LabelRole",
+    "RegistryCrossRingRelation",
+    "RegistryIdentifier",
     "RegistryInputPin",
     "RegistryLabel",
     "RegistryRelation",

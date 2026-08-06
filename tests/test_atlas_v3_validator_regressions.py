@@ -43,6 +43,7 @@ def _fresh_asserted_graph_without_assertions() -> Graph:
     asserted = atlas_fixtures._base_fixture().asserted
     node_types = (
         ATLAS.RelationAssertion,
+        ATLAS.CrossRingRelationAssertion,
         ATLAS.MappingAssertion,
         ATLAS.NativeRelationAssertion,
         ATLAS.SourceAssignment,
@@ -341,6 +342,157 @@ def test_python_assertion_backstops_reject_ring_and_release_mismatches(
     assert expected_detail in raised.value.detail
 
 
+@pytest.mark.parametrize(
+    ("case", "expected_detail"),
+    (
+        ("source-ring", "source endpoint ring differs"),
+        ("target-release", "target release does not contain"),
+    ),
+)
+def test_python_cross_ring_backstops_reject_endpoint_mismatches(
+    case: str,
+    expected_detail: str,
+) -> None:
+    asserted = _fresh_asserted_graph_without_assertions()
+    source, source_release, evidence_record = _resource_rows(
+        asserted, ATLAS.entity
+    )[0]
+    target, target_release, _ = _resource_rows(asserted, ATLAS.subject)[0]
+    source_ring = ATLAS.entity
+    if case == "source-ring":
+        source_ring = ATLAS.legalIdentity
+    else:
+        target_release = next(
+            release
+            for release in asserted.subjects(RDF.type, ATLAS.AtlasRelease)
+            if release not in {source_release, target_release}
+        )
+
+    atlas_fixtures._add_assertion(
+        asserted,
+        assertion_type=ATLAS.CrossRingRelationAssertion,
+        ring=None,
+        source_ring=source_ring,
+        target_ring=ATLAS.subject,
+        subject=source,
+        predicate=ATLAS.hasIndexedSubject,
+        obj=target,
+        source_release=source_release,
+        target_release=target_release,
+        evidence_record=evidence_record,
+        evidence_name=f"python-cross-ring-{case}",
+    )
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
+        atlas_validate._validate_assertions(asserted)
+
+    assert raised.value.code == "dataset.release"
+    assert expected_detail in raised.value.detail
+
+
+@pytest.mark.parametrize("case", ("pair", "predicate"))
+def test_python_cross_ring_policy_rejects_disallowed_cells(case: str) -> None:
+    asserted = _fresh_asserted_graph_without_assertions()
+    source, source_release, evidence_record = _resource_rows(
+        asserted, ATLAS.entity
+    )[0]
+    if case == "pair":
+        target_ring = ATLAS.value
+        predicate = ATLAS.hasIndexedSubject
+    else:
+        target_ring = ATLAS.legalIdentity
+        predicate = ATLAS.hasIndexedSubject
+    target, target_release, _ = _resource_rows(asserted, target_ring)[0]
+
+    atlas_fixtures._add_assertion(
+        asserted,
+        assertion_type=ATLAS.CrossRingRelationAssertion,
+        ring=None,
+        source_ring=ATLAS.entity,
+        target_ring=target_ring,
+        subject=source,
+        predicate=predicate,
+        obj=target,
+        source_release=source_release,
+        target_release=target_release,
+        evidence_record=evidence_record,
+        evidence_name=f"python-cross-ring-policy-{case}",
+    )
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
+        atlas_validate._validate_assertions(asserted)
+
+    assert raised.value.code == "dataset.relation"
+    assert "is not allowed" in raised.value.detail
+
+
+def test_python_cross_ring_policy_matrix_is_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile = json.loads(atlas_validate.PROFILE_MAP_PATH.read_text(encoding="utf-8"))
+    profile["crossRingRelationPolicies"][0]["predicates"] = [
+        str(ATLAS.alternateCrossRingRelation)
+    ]
+    profile["profileDigest"] = atlas_validate.canonical_sha256(
+        {key: value for key, value in profile.items() if key != "profileDigest"},
+        terminal_lf=False,
+    )
+    changed_path = tmp_path / "registry-resource-profiles.json"
+    changed_path.write_bytes(atlas_validate.canonical_json_bytes(profile))
+    monkeypatch.setattr(atlas_validate, "PROFILE_MAP_PATH", changed_path)
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
+        atlas_validate._cross_ring_relation_policies()
+
+    assert raised.value.code == "profile.policy"
+    assert "closed Atlas 3.0 matrix" in raised.value.detail
+
+
+@pytest.mark.parametrize("conflicting_target", (False, True))
+def test_identifier_pair_maps_to_exactly_one_resource(
+    conflicting_target: bool,
+) -> None:
+    asserted = atlas_fixtures._base_fixture().asserted
+    identifier = next(asserted.subjects(RDF.type, ATLAS.Identifier))
+    original_resource = next(asserted.objects(identifier, ATLAS.identifies))
+    duplicate = URIRef("urn:ref:atlas-test:identifier:duplicate")
+    asserted.add((duplicate, RDF.type, ATLAS.Identifier))
+    asserted.add(
+        (
+            duplicate,
+            ATLAS.identifierScheme,
+            next(asserted.objects(identifier, ATLAS.identifierScheme)),
+        )
+    )
+    asserted.add(
+        (
+            duplicate,
+            ATLAS.identifierValue,
+            next(asserted.objects(identifier, ATLAS.identifierValue)),
+        )
+    )
+    target = original_resource
+    if conflicting_target:
+        target = next(
+            resource
+            for resource in asserted.subjects(RDF.type, ATLAS.AtlasResource)
+            if resource != original_resource
+        )
+    asserted.add((duplicate, ATLAS.identifies, target))
+
+    if not conflicting_target:
+        atlas_validate._check_identifier_uniqueness(asserted)
+        return
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
+        atlas_validate._check_identifier_uniqueness(asserted)
+
+    assert raised.value.code == "dataset.identifier-uniqueness"
+    assert "AGENCY-001" in raised.value.detail
+    assert "identifies multiple Atlas resources" in raised.value.detail
+
+
 def test_serialized_nquads_profile_accepts_only_sorted_unique_lines(tmp_path: Path) -> None:
     first = b"<urn:a> <urn:p> <urn:o> <urn:g> .\n"
     second = b"<urn:b> <urn:p> <urn:o> <urn:g> .\n"
@@ -526,12 +678,16 @@ def test_reasoning_isolation_sends_only_mapping_triples_to_owl(
     second_mapping = (middle, SKOS.exactMatch, target)
     inferred_mapping = (source, SKOS.exactMatch, target)
     native = (source, SKOS.related, target)
+    cross_ring = (source, ATLAS.hasIndexedSubject, target)
     first_assertion = URIRef("urn:ref:atlas-test:assertion:mapping-1")
     second_assertion = URIRef("urn:ref:atlas-test:assertion:mapping-2")
     current = {
         first_mapping: frozenset({first_assertion}),
         second_mapping: frozenset({second_assertion}),
         native: frozenset({URIRef("urn:ref:atlas-test:assertion:native")}),
+        cross_ring: frozenset(
+            {URIRef("urn:ref:atlas-test:assertion:cross-ring")}
+        ),
     }
     derived = Graph()
     derived_node = URIRef("urn:ref:atlas-test:derived")

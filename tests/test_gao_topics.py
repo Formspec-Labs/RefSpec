@@ -192,6 +192,7 @@ def test_parses_actual_topic_assignments_without_minting_identity(tmp_path: Path
     parsed = gao.parse_gao_product_topics_page(acquired)
 
     assert parsed.product_report_number == "GAO-24-106529"
+    assert parsed.publication_date == "2024-07-30"
     assert parsed.product_title == "Military Housing: DOD Should Improve Oversight of Contractor Performance"
     assert [assignment.label for assignment in parsed.assignments] == [
         "Defense Capabilities and Management",
@@ -271,6 +272,7 @@ def test_parses_real_captured_product_page_topic_assignment(tmp_path: Path) -> N
     parsed = gao.parse_gao_product_topics_page(acquired)
 
     assert parsed.product_report_number == "GAO-26-108505"
+    assert parsed.publication_date == "2026-05-12"
     assert [assignment.label for assignment in parsed.assignments] == [
         "Auditing and Financial Management",
     ]
@@ -393,6 +395,40 @@ def test_product_id_mismatch_fails_closed(tmp_path: Path) -> None:
     acquired = gao.acquire_gao_product_page(pin, tmp_path, fetcher=_StaticFetcher(mutated))
 
     with pytest.raises(gao.GAOSourceDriftError, match="does not match its captured URL slug"):
+        gao.parse_gao_product_topics_page(acquired)
+
+
+def test_missing_published_metadata_fails_closed(tmp_path: Path) -> None:
+    payload = _payload("gao-product-topics-mini.html")
+    mutated = payload.replace(
+        b"Published: Jul 30, 2024.",
+        b"Publication pending.",
+    )
+    pin = _pin(PRODUCT_URL, mutated)
+    acquired = gao.acquire_gao_product_page(
+        pin,
+        tmp_path,
+        fetcher=_StaticFetcher(mutated),
+    )
+
+    with pytest.raises(gao.GAOSourceDriftError, match="exactly one Published"):
+        gao.parse_gao_product_topics_page(acquired)
+
+
+def test_invalid_published_calendar_date_fails_closed(tmp_path: Path) -> None:
+    payload = _payload("gao-product-topics-mini.html")
+    mutated = payload.replace(
+        b"Published: Jul 30, 2024.",
+        b"Published: Feb 30, 2024.",
+    )
+    pin = _pin(PRODUCT_URL, mutated)
+    acquired = gao.acquire_gao_product_page(
+        pin,
+        tmp_path,
+        fetcher=_StaticFetcher(mutated),
+    )
+
+    with pytest.raises(gao.GAOSourceDriftError, match="not a calendar date"):
         gao.parse_gao_product_topics_page(acquired)
 
 

@@ -539,6 +539,7 @@ atlas:RelationAssertionShape
   sh:targetClass atlas:SkosMappingAssertion ;
   sh:targetClass atlas:NativeRelationAssertion ;
   sh:targetClass atlas:SourceAssignment ;
+  sh:targetClass atlas:CrossRingRelationAssertion ;
   sh:nodeKind sh:IRI ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
@@ -546,6 +547,7 @@ atlas:RelationAssertionShape
     [ sh:class atlas:MappingAssertion ]
     [ sh:class atlas:NativeRelationAssertion ]
     [ sh:class atlas:SourceAssignment ]
+    [ sh:class atlas:CrossRingRelationAssertion ]
   ) ;
   sh:not [ sh:class atlas:ProjectedRelation ] ;
   sh:not [ sh:class atlas:DerivedRelation ] ;
@@ -583,7 +585,16 @@ atlas:RelationAssertionShape
   ] ;
   sh:property [
     sh:path atlas:semanticRing ;
-    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRing ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:targetRing ;
     sh:maxCount 1 ;
     sh:node atlas:SemanticRingValueShape
   ] ;
@@ -631,7 +642,19 @@ atlas:RelationAssertionShape
     sh:minCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:EvidenceBinding
-  ] .
+  ] ;
+  sh:xone (
+    [
+      sh:property [ sh:path atlas:semanticRing ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:sourceRing ; sh:maxCount 0 ] ;
+      sh:property [ sh:path atlas:targetRing ; sh:maxCount 0 ]
+    ]
+    [
+      sh:property [ sh:path atlas:semanticRing ; sh:maxCount 0 ] ;
+      sh:property [ sh:path atlas:sourceRing ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:targetRing ; sh:minCount 1 ]
+    ]
+  ) .
 
 atlas:MappingAssertionShape
   a sh:NodeShape ;
@@ -720,6 +743,34 @@ atlas:SourceAssignmentShape
   sh:property [
     sh:path ( rdf:object atlas:semanticRing ) ;
     sh:equals atlas:semanticRing
+  ] .
+
+atlas:CrossRingRelationAssertionShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:CrossRingRelationAssertion ;
+  sh:property [ sh:path rdf:subject ; sh:class atlas:AtlasResource ] ;
+  sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
+  sh:property [ sh:path atlas:sourceRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
+  sh:property [
+    sh:path atlas:sourceRing ;
+    sh:disjoint atlas:targetRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:equals atlas:sourceRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:equals atlas:targetRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:equals atlas:sourceRelease
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:equals atlas:targetRelease
   ] .
 
 atlas:EvidenceBindingShape
@@ -837,7 +888,16 @@ atlas:ProjectedRelationShape
   ] ;
   sh:property [
     sh:path atlas:semanticRing ;
-    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceRing ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:targetRing ;
     sh:maxCount 1 ;
     sh:node atlas:SemanticRingValueShape
   ] ;
@@ -851,7 +911,19 @@ atlas:ProjectedRelationShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
-  ] .
+  ] ;
+  sh:xone (
+    [
+      sh:property [ sh:path atlas:semanticRing ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:sourceRing ; sh:maxCount 0 ] ;
+      sh:property [ sh:path atlas:targetRing ; sh:maxCount 0 ]
+    ]
+    [
+      sh:property [ sh:path atlas:semanticRing ; sh:maxCount 0 ] ;
+      sh:property [ sh:path atlas:sourceRing ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:targetRing ; sh:minCount 1 ]
+    ]
+  ) .
 
 # Explicitly non-authoritative derived relation records
 

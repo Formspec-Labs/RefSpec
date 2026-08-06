@@ -100,7 +100,12 @@ NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
 NQUADS_MERGE_FAN_IN = 64
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ASSERTION_TYPES = frozenset(
-    {ATLAS.MappingAssertion, ATLAS.NativeRelationAssertion, ATLAS.SourceAssignment}
+    {
+        ATLAS.CrossRingRelationAssertion,
+        ATLAS.MappingAssertion,
+        ATLAS.NativeRelationAssertion,
+        ATLAS.SourceAssignment,
+    }
 )
 RESOURCE_TYPES = frozenset(
     {
@@ -196,6 +201,8 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.inSourceRelease,
         ATLAS.inScheme,
         ATLAS.semanticRing,
+        ATLAS.sourceRing,
+        ATLAS.targetRing,
         ATLAS.supportedRing,
         ATLAS.resourceProfile,
         ATLAS.sourceRecord,
@@ -271,6 +278,10 @@ REQUIRED_CORPUS_CASES = frozenset(
         "asserted-untyped-statement",
         "assertion-extra-property",
         "blank-node",
+        "cross-ring-disallowed-pair",
+        "cross-ring-disallowed-predicate",
+        "cross-ring-endpoint-ring-reversal",
+        "cross-ring-missing-evidence",
         "cross-role-identity",
         "dataset-digest-mismatch",
         "derived-input-digest",
@@ -286,6 +297,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
         "identifier-missing-value",
+        "identifier-pair-conflict",
         "label-missing-literal",
         "label-extra-skos-type",
         "manifest-count-mismatch",
@@ -1075,6 +1087,7 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
 def _profile_policy_document() -> Mapping[str, Any]:
     profile_map = _load_json(PROFILE_MAP_PATH, require_canonical=True)
     expected_keys = {
+        "crossRingRelationPolicies",
         "format",
         "namespace",
         "profileDigest",
@@ -1221,15 +1234,103 @@ def _relation_policies() -> dict[URIRef, dict[URIRef, frozenset[URIRef]]]:
     return policies
 
 
-def _projection_only_predicates() -> frozenset[URIRef]:
-    relation_predicates = frozenset().union(
+def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URIRef]]:
+    """Load the closed source-ring/target-ring predicate policy matrix."""
+
+    expected = {
+        (ATLAS.entity, ATLAS.legalIdentity): frozenset(
+            {ATLAS.referencesLegalIdentity}
+        ),
+        (ATLAS.entity, ATLAS.subject): frozenset({ATLAS.hasIndexedSubject}),
+        (ATLAS.legalIdentity, ATLAS.subject): frozenset(
+            {ATLAS.hasIndexedSubject}
+        ),
+    }
+    profile_map = _profile_policy_document()
+    rows = profile_map.get("crossRingRelationPolicies")
+    if not isinstance(rows, list) or len(rows) != 3:
+        _fail("profile.policy", "crossRingRelationPolicies must contain exactly three rows")
+    observed_pairs: list[tuple[str, str]] = []
+    policies: dict[tuple[URIRef, URIRef], frozenset[URIRef]] = {}
+    same_ring_predicates = frozenset().union(
         *(
             predicates
             for ring_policy in _relation_policies().values()
             for predicates in ring_policy.values()
         )
     )
-    return relation_predicates | frozenset({SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel})
+    for position, row in enumerate(rows):
+        location = f"crossRingRelationPolicies[{position}]"
+        if not isinstance(row, Mapping) or set(row) != {
+            "predicates",
+            "sourceResourceClass",
+            "sourceRing",
+            "targetResourceClass",
+            "targetRing",
+        }:
+            _fail("profile.policy", f"{location} fields are incomplete or unknown")
+        source_name = row.get("sourceRing")
+        target_name = row.get("targetRing")
+        if not isinstance(source_name, str) or not isinstance(target_name, str):
+            _fail("profile.policy", f"{location} rings must be strings")
+        observed_pairs.append((source_name, target_name))
+        source_ring = URIRef(str(ATLAS) + source_name)
+        target_ring = URIRef(str(ATLAS) + target_name)
+        source_class = RING_RESOURCE_CLASSES.get(source_ring)
+        target_class = RING_RESOURCE_CLASSES.get(target_ring)
+        if source_class is None or row.get("sourceResourceClass") != str(source_class):
+            _fail("profile.policy", f"{location}.sourceResourceClass does not match its ring")
+        if target_class is None or row.get("targetResourceClass") != str(target_class):
+            _fail("profile.policy", f"{location}.targetResourceClass does not match its ring")
+        if source_ring == target_ring:
+            _fail("profile.policy", f"{location} does not cross semantic rings")
+        pair = (source_ring, target_ring)
+        if pair in policies:
+            _fail("profile.policy", f"duplicate cross-ring policy pair {source_name}->{target_name}")
+        values = row.get("predicates")
+        if (
+            not isinstance(values, list)
+            or len(values) != 1
+            or not all(isinstance(value, str) and ABSOLUTE_IRI_RE.fullmatch(value) for value in values)
+            or values != sorted(values)
+            or len(values) != len(set(values))
+        ):
+            _fail(
+                "profile.policy",
+                f"{location}.predicates must contain one unique sorted absolute IRI",
+            )
+        predicates = frozenset(URIRef(value) for value in values)
+        if any(not str(predicate).startswith(str(ATLAS)) for predicate in predicates):
+            _fail("profile.policy", f"{location} contains a non-Atlas cross-ring predicate")
+        overlap = predicates & same_ring_predicates
+        if overlap:
+            _fail(
+                "profile.policy",
+                f"cross-ring predicate also occurs in a same-ring policy cell: {min(overlap, key=str)}",
+            )
+        policies[pair] = predicates
+    if observed_pairs != sorted(observed_pairs):
+        _fail("profile.policy", "crossRingRelationPolicies must be sorted by source and target ring")
+    if policies != expected:
+        _fail(
+            "profile.policy",
+            "crossRingRelationPolicies differ from the closed Atlas 3.0 matrix",
+        )
+    return policies
+
+
+def _projection_only_predicates() -> frozenset[URIRef]:
+    same_ring_predicates = frozenset().union(
+        *(
+            predicates
+            for ring_policy in _relation_policies().values()
+            for predicates in ring_policy.values()
+        )
+    )
+    cross_ring_predicates = frozenset().union(*_cross_ring_relation_policies().values())
+    return same_ring_predicates | cross_ring_predicates | frozenset(
+        {SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel}
+    )
 
 
 def _check_profile_conformance(asserted: Graph) -> None:
@@ -1280,6 +1381,58 @@ def _check_profile_conformance(asserted: Graph) -> None:
             _fail("profile.conformance", f"{identifier} is not allowed by {profile}")
 
 
+def _check_identifier_uniqueness(asserted: Graph) -> None:
+    """Require each authority-scoped identifier pair to name one resource."""
+
+    resources_by_pair: dict[tuple[URIRef, str], set[URIRef]] = {}
+    for identifier in sorted(
+        set(asserted.subjects(RDF.type, ATLAS.Identifier)),
+        key=str,
+    ):
+        scheme = _iri(
+            _one(
+                asserted,
+                identifier,
+                ATLAS.identifierScheme,
+                code="dataset.identifier-uniqueness",
+            ),
+            code="dataset.identifier-uniqueness",
+            label="identifier scheme",
+        )
+        value = _literal_text(
+            _one(
+                asserted,
+                identifier,
+                ATLAS.identifierValue,
+                code="dataset.identifier-uniqueness",
+            ),
+            code="dataset.identifier-uniqueness",
+            label="identifier value",
+        )
+        resource = _iri(
+            _one(
+                asserted,
+                identifier,
+                ATLAS.identifies,
+                code="dataset.identifier-uniqueness",
+            ),
+            code="dataset.identifier-uniqueness",
+            label="identified resource",
+        )
+        resources_by_pair.setdefault((scheme, value), set()).add(resource)
+
+    for (scheme, value), resources in sorted(
+        resources_by_pair.items(),
+        key=lambda row: (str(row[0][0]), row[0][1]),
+    ):
+        if len(resources) > 1:
+            rendered = ", ".join(map(str, sorted(resources, key=str)))
+            _fail(
+                "dataset.identifier-uniqueness",
+                f"identifier pair ({scheme}, {value!r}) identifies multiple Atlas resources: {rendered}",
+            )
+
+
 def _assertion_type(graph: Graph, assertion: URIRef) -> URIRef:
     types = ASSERTION_TYPES & set(graph.objects(assertion, RDF.type))
     if len(types) != 1:
@@ -1310,7 +1463,6 @@ def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], t
     subject = _iri(_one(graph, assertion, RDF.subject, code="dataset.assertion"), code="dataset.assertion", label="assertion subject")
     predicate = _iri(_one(graph, assertion, RDF.predicate, code="dataset.assertion"), code="dataset.assertion", label="assertion predicate")
     obj = _iri(_one(graph, assertion, RDF.object, code="dataset.assertion"), code="dataset.assertion", label="assertion object")
-    ring = _iri(_one(graph, assertion, ATLAS.semanticRing, code="dataset.assertion"), code="dataset.assertion", label="semantic ring")
     source_release = _iri(_one(graph, assertion, ATLAS.sourceRelease, code="dataset.assertion"), code="dataset.assertion", label="source release")
     target_release = _iri(_one(graph, assertion, ATLAS.targetRelease, code="dataset.assertion"), code="dataset.assertion", label="target release")
     policy = _iri(_one(graph, assertion, ATLAS.governedByPolicy, code="dataset.assertion"), code="dataset.assertion", label="policy")
@@ -1326,12 +1478,31 @@ def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], t
         "policy": str(policy),
         "policyContentDigest": policy_digest,
         "predicate": str(predicate),
-        "semanticRing": str(ring),
         "sourceRelease": str(source_release),
         "subject": str(subject),
         "targetRelease": str(target_release),
         "type": str(assertion_type),
     }
+    if assertion_type == ATLAS.CrossRingRelationAssertion:
+        source_ring = _iri(
+            _one(graph, assertion, ATLAS.sourceRing, code="dataset.assertion"),
+            code="dataset.assertion",
+            label="source ring",
+        )
+        target_ring = _iri(
+            _one(graph, assertion, ATLAS.targetRing, code="dataset.assertion"),
+            code="dataset.assertion",
+            label="target ring",
+        )
+        basis["sourceRing"] = str(source_ring)
+        basis["targetRing"] = str(target_ring)
+    else:
+        ring = _iri(
+            _one(graph, assertion, ATLAS.semanticRing, code="dataset.assertion"),
+            code="dataset.assertion",
+            label="semantic ring",
+        )
+        basis["semanticRing"] = str(ring)
     return basis, (subject, predicate, obj)
 
 
@@ -1339,6 +1510,7 @@ def _validate_assertions(
     asserted: Graph,
 ) -> dict[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]]:
     relation_policies = _relation_policies()
+    cross_ring_policies = _cross_ring_relation_policies()
     assertions = {
         subject
         for assertion_type in ASSERTION_TYPES
@@ -1395,16 +1567,47 @@ def _validate_assertions(
         states[assertion] = (basis, triple, status, asserted_at, predecessor)
 
         assertion_type = URIRef(basis["type"])
-        ring = URIRef(basis["semanticRing"])
         predicate = triple[1]
-        allowed = relation_policies.get(ring, {}).get(assertion_type, frozenset())
-        if predicate not in allowed:
-            _fail("dataset.relation", f"{assertion} predicate {predicate} is not allowed for its ring and type")
-
         source_release = URIRef(basis["sourceRelease"])
         target_release = URIRef(basis["targetRelease"])
         subject, _, obj = triple
+        if assertion_type == ATLAS.CrossRingRelationAssertion:
+            source_ring = URIRef(basis["sourceRing"])
+            target_ring = URIRef(basis["targetRing"])
+            source_type = _resource_type(asserted, subject)
+            target_type = _resource_type(asserted, obj)
+            if source_ring == target_ring:
+                _fail("dataset.release", f"{assertion} does not cross semantic rings")
+            if RING_RESOURCE_CLASSES.get(source_ring) != source_type or set(
+                asserted.objects(subject, ATLAS.semanticRing)
+            ) != {source_ring}:
+                _fail("dataset.release", f"{assertion} source endpoint ring differs")
+            if RING_RESOURCE_CLASSES.get(target_ring) != target_type or set(
+                asserted.objects(obj, ATLAS.semanticRing)
+            ) != {target_ring}:
+                _fail("dataset.release", f"{assertion} target endpoint ring differs")
+            if source_release not in asserted.objects(subject, ATLAS.inRelease):
+                _fail("dataset.release", f"{assertion} source release does not contain its subject")
+            if target_release not in asserted.objects(obj, ATLAS.inRelease):
+                _fail("dataset.release", f"{assertion} target release does not contain its object")
+            allowed = cross_ring_policies.get((source_ring, target_ring), frozenset())
+            if predicate not in allowed:
+                _fail(
+                    "dataset.relation",
+                    f"{assertion} predicate {predicate} is not allowed for "
+                    f"{source_ring}->{target_ring}",
+                )
+        else:
+            ring = URIRef(basis["semanticRing"])
+            allowed = relation_policies.get(ring, {}).get(assertion_type, frozenset())
+            if predicate not in allowed:
+                _fail(
+                    "dataset.relation",
+                    f"{assertion} predicate {predicate} is not allowed for its ring and type",
+                )
+
         if assertion_type == ATLAS.SourceAssignment:
+            ring = URIRef(basis["semanticRing"])
             if (subject, RDF.type, ATLAS.SourceRecord) not in asserted:
                 _fail("dataset.assignment", f"{assertion} subject is not a SourceRecord")
             if source_release not in asserted.objects(subject, ATLAS.inSourceRelease):
@@ -1413,7 +1616,8 @@ def _validate_assertions(
                 _fail("dataset.assignment", f"{assertion} target release does not contain its object")
             if set(asserted.objects(obj, ATLAS.semanticRing)) != {ring}:
                 _fail("dataset.assignment", f"{assertion} target ring differs from its assertion ring")
-        else:
+        elif assertion_type != ATLAS.CrossRingRelationAssertion:
+            ring = URIRef(basis["semanticRing"])
             _resource_type(asserted, subject)
             _resource_type(asserted, obj)
             if source_release not in asserted.objects(subject, ATLAS.inRelease):
@@ -1436,7 +1640,13 @@ def _validate_assertions(
         if predecessor == assertion or predecessor not in states:
             _fail("dataset.supersession", f"{assertion} supersedes itself or an unknown assertion")
         predecessor_basis, _, _, predecessor_time, _ = states[predecessor]
-        for field in ("type", "semanticRing", "subject", "sourceRelease"):
+        lineage_fields = ["type", "subject", "sourceRelease"]
+        lineage_fields.extend(
+            ("sourceRing", "targetRing")
+            if basis["type"] == str(ATLAS.CrossRingRelationAssertion)
+            else ("semanticRing",)
+        )
+        for field in lineage_fields:
             if basis[field] != predecessor_basis[field]:
                 _fail(
                     "dataset.supersession",
@@ -1693,19 +1903,39 @@ def _projection_record_iri(triple: tuple[URIRef, URIRef, URIRef]) -> URIRef:
     return URIRef("urn:ref:atlas-projection:" + digest)
 
 
-def _projection_support_ring(
+def _projection_ring_facts(
     asserted: Graph,
     triple: tuple[URIRef, URIRef, URIRef],
     assertions: frozenset[URIRef],
-) -> URIRef:
-    rings = {
-        ring
-        for assertion in assertions
-        for ring in asserted.objects(assertion, ATLAS.semanticRing)
-    }
-    if len(rings) != 1:
-        _fail("dataset.projection", f"projection support for {triple} disagrees on semantic ring")
-    return _iri(next(iter(rings)), code="dataset.projection", label="projection semantic ring")
+) -> tuple[tuple[URIRef, URIRef], ...]:
+    contexts: set[tuple[URIRef, ...]] = set()
+    for assertion in assertions:
+        assertion_type = _assertion_type(asserted, assertion)
+        if assertion_type == ATLAS.CrossRingRelationAssertion:
+            source_ring = _iri(
+                _one(asserted, assertion, ATLAS.sourceRing, code="dataset.projection"),
+                code="dataset.projection",
+                label="projection source ring",
+            )
+            target_ring = _iri(
+                _one(asserted, assertion, ATLAS.targetRing, code="dataset.projection"),
+                code="dataset.projection",
+                label="projection target ring",
+            )
+            contexts.add((ATLAS.sourceRing, source_ring, ATLAS.targetRing, target_ring))
+        else:
+            ring = _iri(
+                _one(asserted, assertion, ATLAS.semanticRing, code="dataset.projection"),
+                code="dataset.projection",
+                label="projection semantic ring",
+            )
+            contexts.add((ATLAS.semanticRing, ring))
+    if len(contexts) != 1:
+        _fail("dataset.projection", f"projection support for {triple} disagrees on ring context")
+    context = next(iter(contexts))
+    if len(context) == 2:
+        return ((context[0], context[1]),)
+    return ((context[0], context[1]), (context[2], context[3]))
 
 
 def _projection_record_facts(
@@ -1720,8 +1950,8 @@ def _projection_record_facts(
         (ATLAS.relationSubject, subject),
         (ATLAS.relationPredicate, predicate),
         (ATLAS.relationObject, obj),
-        (ATLAS.semanticRing, _projection_support_ring(asserted, triple, assertions)),
     ]
+    facts.extend(_projection_ring_facts(asserted, triple, assertions))
     facts.extend(
         (ATLAS.supportingAssertion, assertion)
         for assertion in sorted(assertions, key=str)
@@ -1805,8 +2035,10 @@ def _check_projection(
             return obj == relation_predicate
         if predicate == ATLAS.relationObject:
             return obj == relation_object
-        if predicate == ATLAS.semanticRing:
-            return obj == _projection_support_ring(asserted, relation, assertions)
+        if predicate in {ATLAS.semanticRing, ATLAS.sourceRing, ATLAS.targetRing}:
+            return (predicate, obj) in _projection_ring_facts(
+                asserted, relation, assertions
+            )
         if predicate == ATLAS.supportingAssertion:
             return obj in assertions
         if predicate == ATLAS.contentDigest:
@@ -2134,6 +2366,9 @@ def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> 
 def _check_counts(manifest: Mapping[str, Any], graphs: Mapping[str, Graph]) -> None:
     asserted = graphs["asserted"]
     expected = {
+        "crossRingRelationAssertions": len(
+            set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))
+        ),
         "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
         "resources": len(
             {
@@ -2142,6 +2377,7 @@ def _check_counts(manifest: Mapping[str, Any], graphs: Mapping[str, Graph]) -> N
                 for subject in asserted.subjects(RDF.type, resource_type)
             }
         ),
+        "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
         "sourceRecords": len(set(asserted.subjects(RDF.type, ATLAS.SourceRecord))),
         "relationAssertions": sum(
@@ -2430,6 +2666,7 @@ def validate_distribution(root: Path) -> dict[str, Any]:
     _run_shacl(graphs, ontology, shapes)
     _check_graph_roles(graphs)
     _check_profile_conformance(graphs["asserted"])
+    _check_identifier_uniqueness(graphs["asserted"])
     _check_release_membership(graphs["asserted"])
     _check_label_integrity(graphs["asserted"])
     _check_evidence_bindings(graphs["asserted"])
