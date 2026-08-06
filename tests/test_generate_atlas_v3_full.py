@@ -5,6 +5,7 @@ import importlib
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from rdflib import Graph, URIRef
@@ -166,6 +167,140 @@ def test_v3_fallback_identity_rejects_non_string_local_id() -> None:
 
 def _source_spec(key: str):
     return next(spec for spec in generator.SOURCE_SPECS if spec.key == key)
+
+
+@pytest.mark.parametrize(
+    ("role", "predicate"),
+    (
+        ("preferred", generator.SKOSXL.prefLabel),
+        ("alternate", generator.SKOSXL.altLabel),
+        ("hidden", generator.SKOSXL.hiddenLabel),
+    ),
+)
+def test_source_label_roles_map_to_skosxl(role: str, predicate: URIRef) -> None:
+    label = generator.SourceLabel(
+        value="Label",
+        language="en",
+        role=role,
+        source_path="source#label",
+    )
+
+    assert label.role == role
+    assert generator._source_label_predicate(role) == predicate
+
+
+def test_source_label_roles_fail_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported source label role"):
+        generator.SourceLabel(
+            value="Label",
+            language="en",
+            role="future-role",
+            source_path="source#label",
+        )
+    with pytest.raises(ValueError, match="unsupported source label role"):
+        generator._source_label_predicate("future-role")
+
+
+def test_crs_loader_preserves_source_label_roles(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "crs-source.json"
+    source.write_text("{}", encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    observation = {
+        "id": "urn:test:observation",
+        "labels": [
+            {"language": "en", "role": "preferred", "value": "Public label"},
+            {"language": "en", "role": "hidden", "value": "Search-only form"},
+        ],
+        "sourcePath": "source.json#concept",
+    }
+    view = SimpleNamespace(
+        concepts=(
+            {
+                "id": "https://example.test/concept",
+                "identityKind": "publisherConceptIri",
+                "sourceObservation": observation["id"],
+                "sourceObservationDigest": "sha256:" + "1" * 64,
+            },
+        ),
+        release_digest="sha256:" + "2" * 64,
+        release_id="urn:test:crs-release",
+        source_bundle=SimpleNamespace(observations=(observation,)),
+    )
+    monkeypatch.setattr(
+        generator.SourceConceptReleaseView,
+        "open",
+        staticmethod(lambda *_args, **_kwargs: view),
+    )
+    spec = generator.SourceSpec(
+        key="crs-test",
+        kind="sourceConceptRelease",
+        path=source,
+        logical_path="test/crs-source.json",
+        expected_digest=digest,
+        expected_resources=1,
+        profile="conceptScheme",
+        ring="subject",
+    )
+
+    release = generator._load_crs(spec)
+
+    assert {label.value: label.role for label in release.resources[0].labels} == {
+        "Public label": "preferred",
+        "Search-only form": "hidden",
+    }
+
+
+def test_elsst_loader_includes_english_hidden_labels(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "elsst-source.json"
+    source.write_text("{}", encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    member = SimpleNamespace(
+        member_iri="https://example.test/elsst/concept",
+        record={
+            "skos:altLabel": {"en": ["Alternate label"]},
+            "skos:hiddenLabel": {
+                "en": ["Hidden label"],
+                "fr": ["Etiquette cachee"],
+            },
+            "skos:prefLabel": {"en": "Preferred label"},
+        },
+    )
+
+    class FakeElsstView:
+        def iter_members(self, *, release_iri: str):
+            assert release_iri == "https://elsst.cessda.eu/id/6"
+            return iter((member,))
+
+    monkeypatch.setattr(
+        generator.ManagedReleaseGraphFactsView,
+        "open",
+        staticmethod(lambda *_args, **_kwargs: FakeElsstView()),
+    )
+    spec = generator.SourceSpec(
+        key="elsst-r6",
+        kind="managedRelease",
+        path=source,
+        logical_path="test/elsst-source.json",
+        expected_digest=digest,
+        expected_resources=1,
+        profile="conceptScheme",
+        ring="subject",
+    )
+
+    release = generator._load_elsst(spec)
+
+    assert {label.value: label.role for label in release.resources[0].labels} == {
+        "Alternate label": "alternate",
+        "Hidden label": "hidden",
+        "Preferred label": "preferred",
+    }
+    assert release.dropped_label_count == 1
 
 
 @pytest.fixture(scope="module")

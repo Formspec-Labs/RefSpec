@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
+from typing import Literal as TypeLiteral
 
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
@@ -84,6 +85,8 @@ _FALLBACK_SOURCE_NAMESPACES = MappingProxyType(
         ),
     }
 )
+SourceLabelRole = TypeLiteral["preferred", "alternate", "hidden"]
+SOURCE_LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,8 +106,12 @@ class SourceSpec:
 class SourceLabel:
     value: str
     language: str | None
-    preferred: bool
+    role: SourceLabelRole
     source_path: str
+
+    def __post_init__(self) -> None:
+        if self.role not in SOURCE_LABEL_ROLES:
+            raise ValueError(f"unsupported source label role: {self.role!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -351,6 +358,42 @@ def _load_validator() -> Any:
 ATLAS_VALIDATE = _load_validator()
 ATLAS = ATLAS_VALIDATE.ATLAS
 SKOSXL = ATLAS_VALIDATE.SKOSXL
+_SOURCE_LABEL_PREDICATES = MappingProxyType(
+    {
+        "alternate": SKOSXL.altLabel,
+        "hidden": SKOSXL.hiddenLabel,
+        "preferred": SKOSXL.prefLabel,
+    }
+)
+
+
+def _source_label_role(value: object, *, context: str) -> SourceLabelRole:
+    if value == "preferred":
+        return "preferred"
+    if value == "alternate":
+        return "alternate"
+    if value == "hidden":
+        return "hidden"
+    raise ValueError(f"{context} has unsupported label role: {value!r}")
+
+
+def _source_label_role_from_preferred(
+    value: object,
+    *,
+    context: str,
+) -> SourceLabelRole:
+    if value is True:
+        return "preferred"
+    if value is False:
+        return "alternate"
+    raise TypeError(f"{context} preferred flag is not boolean")
+
+
+def _source_label_predicate(role: SourceLabelRole) -> URIRef:
+    try:
+        return _SOURCE_LABEL_PREDICATES[role]
+    except KeyError as error:
+        raise ValueError(f"unsupported source label role: {role!r}") from error
 
 
 def _sha256_file(path: Path) -> str:
@@ -735,7 +778,12 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
                 SourceLabel(
                     value=value,
                     language=language,
-                    preferred=row.get("role") == "preferred",
+                    role=_source_label_role(
+                        row.get("role"),
+                        context=(
+                            f"{spec.key} observation {observation_id} label"
+                        ),
+                    ),
                     source_path=str(observation["sourcePath"]),
                 )
             )
@@ -820,7 +868,7 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
             SourceLabel(
                 value=str(concept["preferredLabel"]),
                 language="en",
-                preferred=True,
+                role="preferred",
                 source_path=json.dumps(
                     _plain(locator), sort_keys=True, separators=(",", ":")
                 ),
@@ -830,7 +878,7 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
             SourceLabel(
                 value=str(value),
                 language="en",
-                preferred=False,
+                role="alternate",
                 source_path=json.dumps(
                     _plain(locator), sort_keys=True, separators=(",", ":")
                 ),
@@ -921,16 +969,21 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
                 dropped_language_value_counts_by_language.get(language, 0)
                 + value_count
             )
-            if dropped["path"] in {"skos:prefLabel", "skos:altLabel"}:
+            if dropped["path"] in {
+                "skos:altLabel",
+                "skos:hiddenLabel",
+                "skos:prefLabel",
+            }:
                 dropped_label_count += value_count
                 member_dropped_label_count += value_count
                 member_dropped_label_counts_by_language[language] = (
                     member_dropped_label_counts_by_language.get(language, 0)
                     + value_count
                 )
-        for property_name, preferred in (
-            ("skos:prefLabel", True),
-            ("skos:altLabel", False),
+        for property_name, role in (
+            ("skos:prefLabel", "preferred"),
+            ("skos:altLabel", "alternate"),
+            ("skos:hiddenLabel", "hidden"),
         ):
             language_map = normalized_record.get(property_name, {})
             if not isinstance(language_map, Mapping):
@@ -949,7 +1002,7 @@ def _load_elsst(spec: SourceSpec) -> LoadedRelease:
                         SourceLabel(
                             value=str(value),
                             language=str(language),
-                            preferred=preferred,
+                            role=role,
                             source_path=f"{member.member_iri}#{property_name}",
                         )
                     )
@@ -1147,7 +1200,13 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                     SourceLabel(
                         value=str(concept["officialLabel"]),
                         language="en",
-                        preferred=concept["officialLabelRole"] == "preferred",
+                        role=_source_label_role(
+                            concept["officialLabelRole"],
+                            context=(
+                                "ICPSR managed concept "
+                                f"{concept['conceptIri']} official label"
+                            ),
+                        ),
                         source_path=source_path,
                     ),
                 ),
@@ -1176,7 +1235,10 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                     SourceLabel(
                         value=str(term["label"]),
                         language="en",
-                        preferred=bool(term["preferred"]),
+                        role=_source_label_role_from_preferred(
+                            term["preferred"],
+                            context=f"ICPSR index term {term['conceptIri']} label",
+                        ),
                         source_path=source_path,
                     ),
                 ),
@@ -1214,7 +1276,13 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
                     SourceLabel(
                         value=term.label,
                         language="en",
-                        preferred=term.preferred,
+                        role=_source_label_role_from_preferred(
+                            term.preferred,
+                            context=(
+                                "ICPSR XML term "
+                                f"{term.source_local_record_number} label"
+                            ),
+                        ),
                         source_path=str(payload["sourcePath"]),
                     ),
                 ),
@@ -1791,13 +1859,15 @@ def _build_graphs(
                     "atlas-label",
                     {
                         "language": label_row.language,
-                        "preferred": label_row.preferred,
                         "resource": resource_row.iri,
+                        "role": label_row.role,
                         "sourcePath": label_row.source_path,
                         "value": label_row.value,
                     },
                 )
-                asserted.add((resource, SKOSXL.prefLabel if label_row.preferred else SKOSXL.altLabel, label))
+                asserted.add(
+                    (resource, _source_label_predicate(label_row.role), label)
+                )
                 asserted.add((label, RDF.type, SKOSXL.Label))
                 asserted.add(
                     (
