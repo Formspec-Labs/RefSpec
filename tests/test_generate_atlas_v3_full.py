@@ -777,3 +777,69 @@ def test_external_sort_bounds_open_files_across_multiple_merge_rounds(
     )
 
     assert output.read_text().splitlines() == sorted(row.strip() for row in rows)
+
+
+def test_lean_build_graph_preserves_validator_projection_semantics() -> None:
+    asserted = Graph()
+    resource = URIRef("urn:test:resource")
+    label = URIRef("urn:test:label")
+    asserted.add((resource, generator.SKOSXL.prefLabel, label))
+    asserted.add(
+        (
+            label,
+            generator.SKOSXL.literalForm,
+            generator.Literal("Public label", lang="en"),
+        )
+    )
+
+    expected = generator.ATLAS_VALIDATE._expected_projection(asserted)
+    actual = generator._expected_projection_graph(asserted)
+
+    assert actual.store.__class__.__name__ == "SimpleMemory"
+    assert actual.store.context_aware is False
+    assert set(actual) == set(expected)
+
+
+def test_released_build_graphs_remain_lean_and_empty() -> None:
+    graphs = generator.BuildGraphs(
+        asserted=generator._new_build_graph(),
+        projection=generator._new_build_graph(),
+        derived=generator._new_build_graph(),
+        accounting={"large": "ledger"},
+    )
+    graphs.asserted.add(
+        (
+            URIRef("urn:test:subject"),
+            URIRef("urn:test:predicate"),
+            URIRef("urn:test:object"),
+        )
+    )
+
+    graphs.release()
+
+    assert graphs.accounting == {}
+    for graph in (graphs.asserted, graphs.projection, graphs.derived):
+        assert graph.store.__class__.__name__ == "SimpleMemory"
+        assert not graph
+
+
+@pytest.mark.parametrize(
+    ("scope", "membership_mode"),
+    (
+        ("publisherRelease", "complete"),
+        ("completeCapture", "complete"),
+        ("captureSubset", "partial"),
+    ),
+)
+def test_source_scope_controls_accounting_membership(
+    scope: str,
+    membership_mode: str,
+) -> None:
+    assert generator._accounting_membership_mode(scope) == membership_mode
+
+
+def test_crs_sources_are_complete_captures_not_claimed_publisher_releases() -> None:
+    crs = [spec for spec in generator.SOURCE_SPECS if spec.key.startswith("crs-")]
+
+    assert len(crs) == 3
+    assert {spec.scope for spec in crs} == {"completeCapture"}

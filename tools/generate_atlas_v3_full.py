@@ -170,10 +170,16 @@ class BuildGraphs:
         self.asserted.close()
         self.projection.close()
         self.derived.close()
-        self.asserted = Graph()
-        self.projection = Graph()
-        self.derived = Graph()
+        self.asserted = _new_build_graph()
+        self.projection = _new_build_graph()
+        self.derived = _new_build_graph()
         self.accounting = {}
+
+
+def _new_build_graph() -> Graph:
+    """Create a single-context graph without rdflib's redundant context index."""
+
+    return Graph(store="SimpleMemory")
 
 
 def _v3_fallback_source_identity(
@@ -256,6 +262,7 @@ SOURCE_SPECS = (
         expected_resources=478,
         profile="conceptScheme",
         ring="entity",
+        scope="completeCapture",
         fallback_namespace_token="loc-lst",
     ),
     SourceSpec(
@@ -272,6 +279,7 @@ SOURCE_SPECS = (
         expected_resources=565,
         profile="conceptScheme",
         ring="subject",
+        scope="completeCapture",
         fallback_namespace_token="loc-lst",
     ),
     SourceSpec(
@@ -288,6 +296,7 @@ SOURCE_SPECS = (
         expected_resources=32,
         profile="conceptScheme",
         ring="subject",
+        scope="completeCapture",
         fallback_namespace_token="loc-cgpa",
     ),
     SourceSpec(
@@ -1822,10 +1831,20 @@ def _registry_asserted_graph() -> Graph:
     )
     dataset = Dataset(default_union=True)
     dataset.parse(REGISTRY_DESCRIPTORS, format="nquads")
-    graph = Graph()
+    graph = _new_build_graph()
     for subject, predicate, obj, _ in dataset.quads((None, None, None, None)):
         graph.add((subject, predicate, obj))
     return graph
+
+
+def _expected_projection_graph(asserted: Graph) -> Graph:
+    """Build the validator-defined projection in the lean single-context store."""
+
+    projection = _new_build_graph()
+    supported = ATLAS_VALIDATE._validate_assertions(asserted)
+    for triple in ATLAS_VALIDATE._expected_projection_triples(asserted, supported):
+        projection.add(triple)
+    return projection
 
 
 def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
@@ -1924,6 +1943,16 @@ def _finalize_source_accounting_inputs(
         )
         row["declaredMemberCount"] = len(row["dispositions"])
     accounting_inputs.sort(key=lambda row: row["sourceRelease"])
+
+
+def _accounting_membership_mode(scope: str) -> str:
+    """State whether the source ledger covers the source or only a named subset."""
+
+    if scope == "captureSubset":
+        return "partial"
+    if scope in {"completeCapture", "publisherRelease"}:
+        return "complete"
+    raise ValueError(f"unsupported source release scope: {scope!r}")
 
 
 def _build_graphs(
@@ -2079,7 +2108,7 @@ def _build_graphs(
         accounting_row = {
             "declaredMemberCount": len(dispositions),
             "dispositions": dispositions,
-            "membershipMode": "complete",
+            "membershipMode": _accounting_membership_mode(release.spec.scope),
             "sourceRelease": str(source_release),
         }
         accounting_inputs.append(accounting_row)
@@ -2169,8 +2198,8 @@ def _build_graphs(
 
     if any(asserted.subjects(RDF.type, ATLAS.MappingAssertion)):
         raise ValueError("source-only Atlas build emitted a MappingAssertion")
-    projection = ATLAS_VALIDATE._expected_projection(asserted)
-    derived = Graph()
+    projection = _expected_projection_graph(asserted)
+    derived = _new_build_graph()
     _finalize_source_accounting_inputs(accounting_inputs)
     represented = sum(
         disposition["status"] == "represented"
