@@ -1,0 +1,4328 @@
+{
+  "depths": [
+    1,
+    10,
+    100
+  ],
+  "experiment": "E3-E5-cost-recall-frontier",
+  "note": "greedy rows are an upper bound on cost for their recall, not a proven optimum",
+  "results": [
+    {
+      "byRelationClass": {
+        "associative": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.label@100"
+            ],
+            "gold.associative": 2534,
+            "gold.hierarchy": 3159,
+            "pairs": 229442
+          },
+          "gold": 2848,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2534,
+              "pairs": 229442
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.hierarchy": 0,
+              "pairs": 0
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 203,
+              "gold.hierarchy": 287,
+              "pairs": 2503
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1"
+              ],
+              "gold.associative": 306,
+              "gold.hierarchy": 406,
+              "pairs": 2617
+            },
+            {
+              "arms": [
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 376,
+              "gold.hierarchy": 557,
+              "pairs": 2668
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 413,
+              "gold.hierarchy": 611,
+              "pairs": 2669
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 419,
+              "gold.hierarchy": 621,
+              "pairs": 2688
+            },
+            {
+              "arms": [
+                "openai-ada-002.natural@1",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 455,
+              "gold.hierarchy": 680,
+              "pairs": 3440
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@1",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 485,
+              "gold.hierarchy": 693,
+              "pairs": 3460
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 498,
+              "gold.hierarchy": 756,
+              "pairs": 3560
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 539,
+              "gold.hierarchy": 770,
+              "pairs": 3703
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 543,
+              "gold.hierarchy": 864,
+              "pairs": 3796
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 566,
+              "gold.hierarchy": 884,
+              "pairs": 3884
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 567,
+              "gold.hierarchy": 807,
+              "pairs": 3894
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 584,
+              "gold.hierarchy": 893,
+              "pairs": 4054
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 602,
+              "gold.hierarchy": 888,
+              "pairs": 4116
+            },
+            {
+              "arms": [
+                "minilm.label@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 605,
+              "gold.hierarchy": 928,
+              "pairs": 4267
+            },
+            {
+              "arms": [
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 777,
+              "gold.hierarchy": 1226,
+              "pairs": 18107
+            },
+            {
+              "arms": [
+                "contextSparseV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 800,
+              "gold.hierarchy": 1248,
+              "pairs": 18332
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 868,
+              "gold.hierarchy": 1284,
+              "pairs": 19178
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 929,
+              "gold.hierarchy": 1424,
+              "pairs": 19274
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 942,
+              "gold.hierarchy": 1483,
+              "pairs": 19358
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 954,
+              "gold.hierarchy": 1420,
+              "pairs": 19375
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 973,
+              "gold.hierarchy": 1472,
+              "pairs": 19488
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 994,
+              "gold.hierarchy": 1461,
+              "pairs": 21222
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1021,
+              "gold.hierarchy": 1513,
+              "pairs": 21304
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1547,
+              "gold.hierarchy": 2241,
+              "pairs": 23946
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 1554,
+              "gold.hierarchy": 2242,
+              "pairs": 24046
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 1560,
+              "gold.hierarchy": 2253,
+              "pairs": 24129
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1563,
+              "gold.hierarchy": 2253,
+              "pairs": 24195
+            },
+            {
+              "arms": [
+                "minilm.natural@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1566,
+              "gold.hierarchy": 2264,
+              "pairs": 24300
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1567,
+              "gold.hierarchy": 2267,
+              "pairs": 24392
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.definitionFirst@1"
+              ],
+              "gold.associative": 1573,
+              "gold.hierarchy": 2274,
+              "pairs": 24515
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1579,
+              "gold.hierarchy": 2285,
+              "pairs": 24572
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@10",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 1593,
+              "gold.hierarchy": 2173,
+              "pairs": 30748
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 1641,
+              "gold.hierarchy": 2212,
+              "pairs": 31390
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 1702,
+              "gold.hierarchy": 2396,
+              "pairs": 32388
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 1752,
+              "gold.hierarchy": 2440,
+              "pairs": 33048
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.natural@10"
+              ],
+              "gold.associative": 1775,
+              "gold.hierarchy": 2434,
+              "pairs": 34433
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1807,
+              "gold.hierarchy": 2501,
+              "pairs": 34772
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1811,
+              "gold.hierarchy": 2545,
+              "pairs": 37896
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1822,
+              "gold.hierarchy": 2527,
+              "pairs": 38105
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1836,
+              "gold.hierarchy": 2507,
+              "pairs": 39551
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-small.natural@10"
+              ],
+              "gold.associative": 1858,
+              "gold.hierarchy": 2469,
+              "pairs": 146324
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 1869,
+              "gold.hierarchy": 2534,
+              "pairs": 146589
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-ada-002.label@10"
+              ],
+              "gold.associative": 1877,
+              "gold.hierarchy": 2520,
+              "pairs": 146907
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1924,
+              "gold.hierarchy": 2624,
+              "pairs": 147118
+            },
+            {
+              "arms": [
+                "bge-small.label@100"
+              ],
+              "gold.associative": 2436,
+              "gold.hierarchy": 3124,
+              "pairs": 225976
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 2437,
+              "gold.hierarchy": 3126,
+              "pairs": 225999
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "minilm.structured@1"
+              ],
+              "gold.associative": 2440,
+              "gold.hierarchy": 3126,
+              "pairs": 226029
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 2441,
+              "gold.hierarchy": 3127,
+              "pairs": 226051
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@10"
+              ],
+              "gold.associative": 2443,
+              "gold.hierarchy": 3132,
+              "pairs": 227196
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 2450,
+              "gold.hierarchy": 3145,
+              "pairs": 227205
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 2459,
+              "gold.hierarchy": 3146,
+              "pairs": 228429
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 2460,
+              "gold.hierarchy": 3147,
+              "pairs": 229107
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2534,
+              "gold.hierarchy": 3159,
+              "pairs": 229442
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 2535,
+              "gold.hierarchy": 3159,
+              "pairs": 229456
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 2536,
+              "gold.hierarchy": 3159,
+              "pairs": 229470
+            },
+            {
+              "arms": [
+                "nomic.natural@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2537,
+              "gold.hierarchy": 3159,
+              "pairs": 229489
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2538,
+              "gold.hierarchy": 3162,
+              "pairs": 229565
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2539,
+              "gold.hierarchy": 3162,
+              "pairs": 229573
+            },
+            {
+              "arms": [
+                "nomic.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2540,
+              "gold.hierarchy": 3161,
+              "pairs": 229630
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 2541,
+              "gold.hierarchy": 3165,
+              "pairs": 230266
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 2542,
+              "gold.hierarchy": 3166,
+              "pairs": 231055
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 2543,
+              "gold.hierarchy": 3169,
+              "pairs": 231320
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2547,
+              "gold.hierarchy": 3173,
+              "pairs": 231668
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.definitionFirst@10"
+              ],
+              "gold.associative": 2550,
+              "gold.hierarchy": 3172,
+              "pairs": 233025
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2551,
+              "gold.hierarchy": 3181,
+              "pairs": 233318
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2555,
+              "gold.hierarchy": 3176,
+              "pairs": 234616
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 2564,
+              "gold.hierarchy": 3139,
+              "pairs": 303462
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 2604,
+              "gold.hierarchy": 3215,
+              "pairs": 316731
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 2621,
+              "gold.hierarchy": 3220,
+              "pairs": 318237
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2643,
+              "gold.hierarchy": 3245,
+              "pairs": 325318
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 2646,
+              "gold.hierarchy": 3250,
+              "pairs": 353236
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 2654,
+              "gold.hierarchy": 3276,
+              "pairs": 355423
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2655,
+              "gold.hierarchy": 3262,
+              "pairs": 357674
+            }
+          ]
+        },
+        "hierarchy": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.label@100"
+            ],
+            "gold.associative": 2534,
+            "gold.hierarchy": 3159,
+            "pairs": 229442
+          },
+          "gold": 3393,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.hierarchy": 3159,
+              "pairs": 229442
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.hierarchy": 0,
+              "pairs": 0
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 203,
+              "gold.hierarchy": 287,
+              "pairs": 2503
+            },
+            {
+              "arms": [
+                "contextSparseV1@1"
+              ],
+              "gold.associative": 202,
+              "gold.hierarchy": 289,
+              "pairs": 2540
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1"
+              ],
+              "gold.associative": 306,
+              "gold.hierarchy": 406,
+              "pairs": 2617
+            },
+            {
+              "arms": [
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 376,
+              "gold.hierarchy": 557,
+              "pairs": 2668
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 413,
+              "gold.hierarchy": 611,
+              "pairs": 2669
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 408,
+              "gold.hierarchy": 688,
+              "pairs": 2671
+            },
+            {
+              "arms": [
+                "bge-small.label@1"
+              ],
+              "gold.associative": 348,
+              "gold.hierarchy": 693,
+              "pairs": 2691
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 498,
+              "gold.hierarchy": 756,
+              "pairs": 3560
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 539,
+              "gold.hierarchy": 770,
+              "pairs": 3703
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 521,
+              "gold.hierarchy": 816,
+              "pairs": 3708
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 521,
+              "gold.hierarchy": 874,
+              "pairs": 3789
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 566,
+              "gold.hierarchy": 884,
+              "pairs": 3884
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "minilm.label@1"
+              ],
+              "gold.associative": 513,
+              "gold.hierarchy": 910,
+              "pairs": 3965
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 508,
+              "gold.hierarchy": 914,
+              "pairs": 4020
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "jina.label@1"
+              ],
+              "gold.associative": 492,
+              "gold.hierarchy": 922,
+              "pairs": 4042
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 537,
+              "gold.hierarchy": 956,
+              "pairs": 4047
+            },
+            {
+              "arms": [
+                "arctic.natural@1",
+                "bge-small.label@1"
+              ],
+              "gold.associative": 520,
+              "gold.hierarchy": 960,
+              "pairs": 4397
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-ada-002.definitionFirst@1"
+              ],
+              "gold.associative": 578,
+              "gold.hierarchy": 970,
+              "pairs": 4428
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "minilm.definitionFirst@1"
+              ],
+              "gold.associative": 545,
+              "gold.hierarchy": 981,
+              "pairs": 4475
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.definitionFirst@1"
+              ],
+              "gold.associative": 551,
+              "gold.hierarchy": 986,
+              "pairs": 4479
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 591,
+              "gold.hierarchy": 988,
+              "pairs": 4490
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 583,
+              "gold.hierarchy": 991,
+              "pairs": 4576
+            },
+            {
+              "arms": [
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 777,
+              "gold.hierarchy": 1226,
+              "pairs": 18107
+            },
+            {
+              "arms": [
+                "contextSparseV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 800,
+              "gold.hierarchy": 1248,
+              "pairs": 18332
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 868,
+              "gold.hierarchy": 1284,
+              "pairs": 19178
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 929,
+              "gold.hierarchy": 1424,
+              "pairs": 19274
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 925,
+              "gold.hierarchy": 1433,
+              "pairs": 19277
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "minilm.label@1"
+              ],
+              "gold.associative": 924,
+              "gold.hierarchy": 1438,
+              "pairs": 19350
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 916,
+              "gold.hierarchy": 1455,
+              "pairs": 19351
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 942,
+              "gold.hierarchy": 1483,
+              "pairs": 19358
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 993,
+              "gold.hierarchy": 1485,
+              "pairs": 21246
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 984,
+              "gold.hierarchy": 1492,
+              "pairs": 21253
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1021,
+              "gold.hierarchy": 1513,
+              "pairs": 21304
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 1004,
+              "gold.hierarchy": 1535,
+              "pairs": 21309
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1547,
+              "gold.hierarchy": 2241,
+              "pairs": 23946
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 1554,
+              "gold.hierarchy": 2242,
+              "pairs": 24046
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 1550,
+              "gold.hierarchy": 2247,
+              "pairs": 24070
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1554,
+              "gold.hierarchy": 2252,
+              "pairs": 24087
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 1560,
+              "gold.hierarchy": 2253,
+              "pairs": 24129
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1552,
+              "gold.hierarchy": 2254,
+              "pairs": 24171
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1550,
+              "gold.hierarchy": 2257,
+              "pairs": 24222
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1558,
+              "gold.hierarchy": 2267,
+              "pairs": 24300
+            },
+            {
+              "arms": [
+                "minilm.structured@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1566,
+              "gold.hierarchy": 2269,
+              "pairs": 24344
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.definitionFirst@1"
+              ],
+              "gold.associative": 1573,
+              "gold.hierarchy": 2274,
+              "pairs": 24515
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1579,
+              "gold.hierarchy": 2285,
+              "pairs": 24572
+            },
+            {
+              "arms": [
+                "openai-3-small.label@10",
+                "openai-ada-002.label@10"
+              ],
+              "gold.associative": 1624,
+              "gold.hierarchy": 2301,
+              "pairs": 32250
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 1702,
+              "gold.hierarchy": 2396,
+              "pairs": 32388
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 1752,
+              "gold.hierarchy": 2440,
+              "pairs": 33048
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1731,
+              "gold.hierarchy": 2475,
+              "pairs": 34127
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1807,
+              "gold.hierarchy": 2501,
+              "pairs": 34772
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 1781,
+              "gold.hierarchy": 2542,
+              "pairs": 37754
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1811,
+              "gold.hierarchy": 2545,
+              "pairs": 37896
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 1924,
+              "gold.hierarchy": 2624,
+              "pairs": 147118
+            },
+            {
+              "arms": [
+                "bge-small.label@100"
+              ],
+              "gold.associative": 2436,
+              "gold.hierarchy": 3124,
+              "pairs": 225976
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 2437,
+              "gold.hierarchy": 3126,
+              "pairs": 225999
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@1"
+              ],
+              "gold.associative": 2436,
+              "gold.hierarchy": 3127,
+              "pairs": 226005
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.definitionFirst@1"
+              ],
+              "gold.associative": 2439,
+              "gold.hierarchy": 3128,
+              "pairs": 226099
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@10"
+              ],
+              "gold.associative": 2443,
+              "gold.hierarchy": 3132,
+              "pairs": 227196
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 2450,
+              "gold.hierarchy": 3145,
+              "pairs": 227205
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 2459,
+              "gold.hierarchy": 3146,
+              "pairs": 228429
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 2460,
+              "gold.hierarchy": 3147,
+              "pairs": 229107
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2534,
+              "gold.hierarchy": 3159,
+              "pairs": 229442
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 2535,
+              "gold.hierarchy": 3160,
+              "pairs": 229466
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 2535,
+              "gold.hierarchy": 3161,
+              "pairs": 229563
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2538,
+              "gold.hierarchy": 3162,
+              "pairs": 229565
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 2467,
+              "gold.hierarchy": 3166,
+              "pairs": 229912
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.natural@10"
+              ],
+              "gold.associative": 2540,
+              "gold.hierarchy": 3168,
+              "pairs": 230937
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 2543,
+              "gold.hierarchy": 3169,
+              "pairs": 231320
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2547,
+              "gold.hierarchy": 3173,
+              "pairs": 231668
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.definitionFirst@10"
+              ],
+              "gold.associative": 2550,
+              "gold.hierarchy": 3174,
+              "pairs": 233101
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2551,
+              "gold.hierarchy": 3181,
+              "pairs": 233318
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 2604,
+              "gold.hierarchy": 3215,
+              "pairs": 316731
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 2621,
+              "gold.hierarchy": 3220,
+              "pairs": 318237
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2643,
+              "gold.hierarchy": 3245,
+              "pairs": 325318
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 2630,
+              "gold.hierarchy": 3253,
+              "pairs": 327504
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.definitionFirst@100"
+              ],
+              "gold.associative": 2642,
+              "gold.hierarchy": 3260,
+              "pairs": 355352
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 2654,
+              "gold.hierarchy": 3276,
+              "pairs": 355423
+            }
+          ]
+        }
+      },
+      "conceptCount": 3470,
+      "goldSizes": {
+        "associative": 2848,
+        "hierarchy": 3393
+      },
+      "options": 107,
+      "source": "elsst-r6"
+    },
+    {
+      "byRelationClass": {
+        "associative": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.structured@100"
+            ],
+            "gold.associative": 751,
+            "pairs": 47780
+          },
+          "gold": 780,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 751,
+              "pairs": 47780
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "pairs": 0
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1"
+              ],
+              "gold.associative": 126,
+              "pairs": 531
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1"
+              ],
+              "gold.associative": 175,
+              "pairs": 535
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1"
+              ],
+              "gold.associative": 206,
+              "pairs": 544
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1"
+              ],
+              "gold.associative": 215,
+              "pairs": 563
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 219,
+              "pairs": 713
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 236,
+              "pairs": 746
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "minilm.definitionFirst@1"
+              ],
+              "gold.associative": 247,
+              "pairs": 760
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "jina.definitionFirst@1"
+              ],
+              "gold.associative": 261,
+              "pairs": 779
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "jina.natural@1"
+              ],
+              "gold.associative": 262,
+              "pairs": 822
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 264,
+              "pairs": 829
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 270,
+              "pairs": 837
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "openai-3-large.definitionFirst@1"
+              ],
+              "gold.associative": 271,
+              "pairs": 852
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 280,
+              "pairs": 871
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 293,
+              "pairs": 876
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 300,
+              "pairs": 889
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@10"
+              ],
+              "gold.associative": 326,
+              "pairs": 4679
+            },
+            {
+              "arms": [
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 488,
+              "pairs": 4783
+            },
+            {
+              "arms": [
+                "openai-3-small.definitionFirst@10"
+              ],
+              "gold.associative": 527,
+              "pairs": 4797
+            },
+            {
+              "arms": [
+                "openai-3-small.definitionFirst@10",
+                "openai-ada-002.definitionFirst@1"
+              ],
+              "gold.associative": 529,
+              "pairs": 4811
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10"
+              ],
+              "gold.associative": 540,
+              "pairs": 4824
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "bge-small.label@1"
+              ],
+              "gold.associative": 543,
+              "pairs": 4846
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 546,
+              "pairs": 4863
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-ada-002.definitionFirst@1"
+              ],
+              "gold.associative": 547,
+              "pairs": 4873
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 550,
+              "pairs": 4884
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 552,
+              "pairs": 4889
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 557,
+              "pairs": 4905
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 558,
+              "pairs": 4927
+            },
+            {
+              "arms": [
+                "jina.natural@1",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 562,
+              "pairs": 4961
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 563,
+              "pairs": 4984
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "jina.structured@1"
+              ],
+              "gold.associative": 564,
+              "pairs": 5101
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "jina.definitionFirst@10"
+              ],
+              "gold.associative": 565,
+              "pairs": 5105
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 567,
+              "pairs": 5107
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 568,
+              "pairs": 5117
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 569,
+              "pairs": 5132
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "bge-small.label@10"
+              ],
+              "gold.associative": 578,
+              "pairs": 5989
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 598,
+              "pairs": 6148
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "jina.label@10"
+              ],
+              "gold.associative": 599,
+              "pairs": 6474
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "minilm.definitionFirst@10"
+              ],
+              "gold.associative": 601,
+              "pairs": 6735
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 618,
+              "pairs": 6821
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 624,
+              "pairs": 6999
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@10",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 626,
+              "pairs": 7100
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 631,
+              "pairs": 7259
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 635,
+              "pairs": 7522
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 640,
+              "pairs": 7709
+            },
+            {
+              "arms": [
+                "bge-small.label@100"
+              ],
+              "gold.associative": 728,
+              "pairs": 44361
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "bge-small.label@100"
+              ],
+              "gold.associative": 729,
+              "pairs": 44439
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-small.definitionFirst@100"
+              ],
+              "gold.associative": 731,
+              "pairs": 44573
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-ada-002.label@10"
+              ],
+              "gold.associative": 733,
+              "pairs": 44606
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 734,
+              "pairs": 44621
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 735,
+              "pairs": 44635
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 739,
+              "pairs": 44646
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 740,
+              "pairs": 44673
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 741,
+              "pairs": 44737
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 748,
+              "pairs": 44746
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 749,
+              "pairs": 44763
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 752,
+              "pairs": 44859
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 753,
+              "pairs": 45029
+            },
+            {
+              "arms": [
+                "jina.label@10",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 754,
+              "pairs": 45363
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@100",
+                "openai-3-small.definitionFirst@10"
+              ],
+              "gold.associative": 755,
+              "pairs": 48110
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 756,
+              "pairs": 48981
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 758,
+              "pairs": 54625
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 759,
+              "pairs": 58660
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@100",
+                "openai-3-small.structured@100"
+              ],
+              "gold.associative": 760,
+              "pairs": 61363
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 763,
+              "pairs": 61720
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 767,
+              "pairs": 63519
+            },
+            {
+              "arms": [
+                "minilm.structured@100",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 769,
+              "pairs": 67928
+            },
+            {
+              "arms": [
+                "jina.label@100",
+                "openai-3-large.definitionFirst@100"
+              ],
+              "gold.associative": 770,
+              "pairs": 69396
+            }
+          ]
+        }
+      },
+      "conceptCount": 705,
+      "goldSizes": {
+        "associative": 780
+      },
+      "options": 107,
+      "source": "federal-register-thesaurus-2025"
+    },
+    {
+      "byRelationClass": {
+        "associative": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.structured@100"
+            ],
+            "gold.associative": 6468,
+            "gold.equivalence": 481,
+            "gold.hierarchy": 1686,
+            "pairs": 276789
+          },
+          "gold": 7180,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6468,
+              "pairs": 276789
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.equivalence": 0,
+              "gold.hierarchy": 0,
+              "pairs": 2
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 346,
+              "gold.equivalence": 101,
+              "gold.hierarchy": 427,
+              "pairs": 2242
+            },
+            {
+              "arms": [
+                "contextSparseV1@1"
+              ],
+              "gold.associative": 457,
+              "gold.equivalence": 111,
+              "gold.hierarchy": 325,
+              "pairs": 2488
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 758,
+              "gold.equivalence": 346,
+              "gold.hierarchy": 310,
+              "pairs": 2854
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 762,
+              "gold.equivalence": 318,
+              "gold.hierarchy": 262,
+              "pairs": 2870
+            },
+            {
+              "arms": [
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 786,
+              "gold.equivalence": 280,
+              "gold.hierarchy": 256,
+              "pairs": 2900
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 854,
+              "gold.equivalence": 320,
+              "gold.hierarchy": 313,
+              "pairs": 2908
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 877,
+              "gold.equivalence": 278,
+              "gold.hierarchy": 322,
+              "pairs": 2925
+            },
+            {
+              "arms": [
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 884,
+              "gold.equivalence": 283,
+              "gold.hierarchy": 324,
+              "pairs": 2950
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 888,
+              "gold.equivalence": 355,
+              "gold.hierarchy": 358,
+              "pairs": 3373
+            },
+            {
+              "arms": [
+                "openai-3-small.definitionFirst@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 930,
+              "gold.equivalence": 327,
+              "gold.hierarchy": 309,
+              "pairs": 3474
+            },
+            {
+              "arms": [
+                "jina.natural@1",
+                "jina.structured@1"
+              ],
+              "gold.associative": 937,
+              "gold.equivalence": 235,
+              "gold.hierarchy": 502,
+              "pairs": 3685
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@1",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 1077,
+              "gold.equivalence": 315,
+              "gold.hierarchy": 411,
+              "pairs": 3746
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@1",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 1086,
+              "gold.equivalence": 318,
+              "gold.hierarchy": 422,
+              "pairs": 3839
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@1",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 1103,
+              "gold.equivalence": 317,
+              "gold.hierarchy": 414,
+              "pairs": 3863
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1110,
+              "gold.equivalence": 340,
+              "gold.hierarchy": 417,
+              "pairs": 3905
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 1126,
+              "gold.equivalence": 348,
+              "gold.hierarchy": 433,
+              "pairs": 3951
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1149,
+              "gold.equivalence": 321,
+              "gold.hierarchy": 437,
+              "pairs": 4035
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1156,
+              "gold.equivalence": 361,
+              "gold.hierarchy": 422,
+              "pairs": 4250
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1163,
+              "gold.equivalence": 374,
+              "gold.hierarchy": 452,
+              "pairs": 4269
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 1184,
+              "gold.equivalence": 314,
+              "gold.hierarchy": 460,
+              "pairs": 4321
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 1186,
+              "gold.equivalence": 357,
+              "gold.hierarchy": 435,
+              "pairs": 4369
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1189,
+              "gold.equivalence": 340,
+              "gold.hierarchy": 468,
+              "pairs": 4371
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1191,
+              "gold.equivalence": 314,
+              "gold.hierarchy": 471,
+              "pairs": 4379
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 1201,
+              "gold.equivalence": 369,
+              "gold.hierarchy": 499,
+              "pairs": 4629
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 1214,
+              "gold.equivalence": 353,
+              "gold.hierarchy": 486,
+              "pairs": 4678
+            },
+            {
+              "arms": [
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1335,
+              "gold.equivalence": 225,
+              "gold.hierarchy": 815,
+              "pairs": 16469
+            },
+            {
+              "arms": [
+                "contextSparseV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1460,
+              "gold.equivalence": 229,
+              "gold.hierarchy": 834,
+              "pairs": 17029
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1682,
+              "gold.equivalence": 318,
+              "gold.hierarchy": 904,
+              "pairs": 17707
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "minilm.label@1"
+              ],
+              "gold.associative": 1701,
+              "gold.equivalence": 321,
+              "gold.hierarchy": 910,
+              "pairs": 17757
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 1711,
+              "gold.equivalence": 390,
+              "gold.hierarchy": 910,
+              "pairs": 17770
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 1766,
+              "gold.equivalence": 361,
+              "gold.hierarchy": 907,
+              "pairs": 17832
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1783,
+              "gold.equivalence": 358,
+              "gold.hierarchy": 905,
+              "pairs": 17875
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 1794,
+              "gold.equivalence": 352,
+              "gold.hierarchy": 923,
+              "pairs": 17879
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1797,
+              "gold.equivalence": 383,
+              "gold.hierarchy": 914,
+              "pairs": 17926
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 1821,
+              "gold.equivalence": 361,
+              "gold.hierarchy": 916,
+              "pairs": 17960
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 1823,
+              "gold.equivalence": 356,
+              "gold.hierarchy": 911,
+              "pairs": 17979
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 1973,
+              "gold.equivalence": 361,
+              "gold.hierarchy": 875,
+              "pairs": 20773
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 1983,
+              "gold.equivalence": 354,
+              "gold.hierarchy": 884,
+              "pairs": 20786
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 1985,
+              "gold.equivalence": 361,
+              "gold.hierarchy": 875,
+              "pairs": 20831
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 2011,
+              "gold.equivalence": 357,
+              "gold.hierarchy": 873,
+              "pairs": 20896
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 2019,
+              "gold.equivalence": 364,
+              "gold.hierarchy": 883,
+              "pairs": 20898
+            },
+            {
+              "arms": [
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 3169,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1087,
+              "pairs": 26002
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3301,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1223,
+              "pairs": 26030
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3315,
+              "gold.equivalence": 474,
+              "gold.hierarchy": 1225,
+              "pairs": 26096
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 3335,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1231,
+              "pairs": 26192
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 3337,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1229,
+              "pairs": 26215
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 3343,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1231,
+              "pairs": 26220
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 3356,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1233,
+              "pairs": 26264
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 3359,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1237,
+              "pairs": 26267
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 3362,
+              "gold.equivalence": 474,
+              "gold.hierarchy": 1237,
+              "pairs": 26295
+            },
+            {
+              "arms": [
+                "arctic.natural@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3364,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1243,
+              "pairs": 26475
+            },
+            {
+              "arms": [
+                "jina.natural@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3368,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1262,
+              "pairs": 26479
+            },
+            {
+              "arms": [
+                "minilm.structured@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3378,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1245,
+              "pairs": 26489
+            },
+            {
+              "arms": [
+                "bge-small.structured@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3387,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1249,
+              "pairs": 26517
+            },
+            {
+              "arms": [
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3530,
+              "gold.equivalence": 451,
+              "gold.hierarchy": 1224,
+              "pairs": 26886
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3532,
+              "gold.equivalence": 451,
+              "gold.hierarchy": 1225,
+              "pairs": 26912
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3534,
+              "gold.equivalence": 452,
+              "gold.hierarchy": 1225,
+              "pairs": 26941
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3537,
+              "gold.equivalence": 458,
+              "gold.hierarchy": 1229,
+              "pairs": 26984
+            },
+            {
+              "arms": [
+                "openai-3-small.label@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3543,
+              "gold.equivalence": 457,
+              "gold.hierarchy": 1233,
+              "pairs": 27061
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3554,
+              "gold.equivalence": 458,
+              "gold.hierarchy": 1233,
+              "pairs": 27076
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3557,
+              "gold.equivalence": 456,
+              "gold.hierarchy": 1241,
+              "pairs": 27201
+            },
+            {
+              "arms": [
+                "nomic.label@1",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3566,
+              "gold.equivalence": 454,
+              "gold.hierarchy": 1245,
+              "pairs": 27278
+            },
+            {
+              "arms": [
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 3585,
+              "gold.equivalence": 450,
+              "gold.hierarchy": 1262,
+              "pairs": 27501
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 3685,
+              "gold.equivalence": 469,
+              "gold.hierarchy": 1222,
+              "pairs": 27506
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 3691,
+              "gold.equivalence": 471,
+              "gold.hierarchy": 1224,
+              "pairs": 27556
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 3693,
+              "gold.equivalence": 469,
+              "gold.hierarchy": 1223,
+              "pairs": 27572
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 3695,
+              "gold.equivalence": 471,
+              "gold.hierarchy": 1228,
+              "pairs": 27592
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 3704,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1228,
+              "pairs": 27645
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3708,
+              "gold.equivalence": 453,
+              "gold.hierarchy": 1256,
+              "pairs": 27717
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3710,
+              "gold.equivalence": 456,
+              "gold.hierarchy": 1257,
+              "pairs": 27756
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3711,
+              "gold.equivalence": 458,
+              "gold.hierarchy": 1256,
+              "pairs": 27769
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 3713,
+              "gold.equivalence": 455,
+              "gold.hierarchy": 1259,
+              "pairs": 27781
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-ada-002.natural@1"
+              ],
+              "gold.associative": 3716,
+              "gold.equivalence": 455,
+              "gold.hierarchy": 1257,
+              "pairs": 27818
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-3-small.definitionFirst@1"
+              ],
+              "gold.associative": 3721,
+              "gold.equivalence": 455,
+              "gold.hierarchy": 1261,
+              "pairs": 27870
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3732,
+              "gold.equivalence": 458,
+              "gold.hierarchy": 1263,
+              "pairs": 27891
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 3733,
+              "gold.equivalence": 460,
+              "gold.hierarchy": 1267,
+              "pairs": 27996
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 3735,
+              "gold.equivalence": 460,
+              "gold.hierarchy": 1264,
+              "pairs": 28015
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3748,
+              "gold.equivalence": 456,
+              "gold.hierarchy": 1288,
+              "pairs": 28098
+            },
+            {
+              "arms": [
+                "nomic.label@1",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 3757,
+              "gold.equivalence": 456,
+              "gold.hierarchy": 1284,
+              "pairs": 28193
+            },
+            {
+              "arms": [
+                "openai-3-small.natural@10",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 3851,
+              "gold.equivalence": 464,
+              "gold.hierarchy": 1304,
+              "pairs": 33721
+            },
+            {
+              "arms": [
+                "openai-ada-002.natural@10",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 4011,
+              "gold.equivalence": 459,
+              "gold.hierarchy": 1333,
+              "pairs": 34723
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4127,
+              "gold.equivalence": 474,
+              "gold.hierarchy": 1344,
+              "pairs": 34745
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 4135,
+              "gold.equivalence": 471,
+              "gold.hierarchy": 1335,
+              "pairs": 35813
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 4181,
+              "gold.equivalence": 476,
+              "gold.hierarchy": 1373,
+              "pairs": 36258
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4212,
+              "gold.equivalence": 476,
+              "gold.hierarchy": 1415,
+              "pairs": 36932
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@10",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 4230,
+              "gold.equivalence": 466,
+              "gold.hierarchy": 1375,
+              "pairs": 37220
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 4267,
+              "gold.equivalence": 477,
+              "gold.hierarchy": 1396,
+              "pairs": 38387
+            },
+            {
+              "arms": [
+                "minilm.label@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4274,
+              "gold.equivalence": 464,
+              "gold.hierarchy": 1440,
+              "pairs": 40248
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 4343,
+              "gold.equivalence": 475,
+              "gold.hierarchy": 1384,
+              "pairs": 104300
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4392,
+              "gold.equivalence": 458,
+              "gold.hierarchy": 1415,
+              "pairs": 104757
+            },
+            {
+              "arms": [
+                "bge-small.label@100"
+              ],
+              "gold.associative": 5949,
+              "gold.equivalence": 461,
+              "gold.hierarchy": 1666,
+              "pairs": 245735
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "minilm.label@1"
+              ],
+              "gold.associative": 5950,
+              "gold.equivalence": 461,
+              "gold.hierarchy": 1666,
+              "pairs": 245760
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@1"
+              ],
+              "gold.associative": 5954,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1666,
+              "pairs": 245769
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "minilm.natural@1"
+              ],
+              "gold.associative": 5957,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1666,
+              "pairs": 245779
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 5959,
+              "gold.equivalence": 469,
+              "gold.hierarchy": 1666,
+              "pairs": 245794
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "minilm.structured@1"
+              ],
+              "gold.associative": 5960,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1666,
+              "pairs": 245806
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.structured@1"
+              ],
+              "gold.associative": 5965,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1666,
+              "pairs": 245808
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 5966,
+              "gold.equivalence": 471,
+              "gold.hierarchy": 1669,
+              "pairs": 245812
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 5968,
+              "gold.equivalence": 463,
+              "gold.hierarchy": 1667,
+              "pairs": 245818
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "jina.definitionFirst@1"
+              ],
+              "gold.associative": 5969,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1666,
+              "pairs": 245851
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "contextSparseV1@1"
+              ],
+              "gold.associative": 5979,
+              "gold.equivalence": 461,
+              "gold.hierarchy": 1666,
+              "pairs": 246012
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@10"
+              ],
+              "gold.associative": 6005,
+              "gold.equivalence": 465,
+              "gold.hierarchy": 1673,
+              "pairs": 246724
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "bge-small.label@100"
+              ],
+              "gold.associative": 6044,
+              "gold.equivalence": 464,
+              "gold.hierarchy": 1672,
+              "pairs": 246942
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "minilm.definitionFirst@10"
+              ],
+              "gold.associative": 6049,
+              "gold.equivalence": 464,
+              "gold.hierarchy": 1674,
+              "pairs": 247884
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 6093,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1677,
+              "pairs": 248004
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 6096,
+              "gold.equivalence": 480,
+              "gold.hierarchy": 1679,
+              "pairs": 248106
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 6116,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1681,
+              "pairs": 248300
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6232,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252456
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6234,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252466
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 6236,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1681,
+              "pairs": 252473
+            },
+            {
+              "arms": [
+                "nomic.structured@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6237,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252521
+            },
+            {
+              "arms": [
+                "minilm.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6238,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252533
+            },
+            {
+              "arms": [
+                "nomic.definitionFirst@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6241,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252541
+            },
+            {
+              "arms": [
+                "contextSparseV1@1",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6242,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252734
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6258,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252841
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 6273,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1682,
+              "pairs": 253121
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 6274,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1684,
+              "pairs": 253326
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 6287,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1685,
+              "pairs": 253620
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 6290,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1684,
+              "pairs": 253747
+            },
+            {
+              "arms": [
+                "jina.structured@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6303,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1685,
+              "pairs": 255783
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6426,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1674,
+              "pairs": 270522
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6427,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1674,
+              "pairs": 270535
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6429,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1674,
+              "pairs": 270587
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 6433,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1676,
+              "pairs": 270726
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 6434,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1674,
+              "pairs": 270776
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 6439,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1675,
+              "pairs": 270950
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-ada-002.definitionFirst@10"
+              ],
+              "gold.associative": 6440,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1675,
+              "pairs": 271317
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-3-small.definitionFirst@10"
+              ],
+              "gold.associative": 6441,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1675,
+              "pairs": 271365
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 6444,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1678,
+              "pairs": 271727
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6450,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1687,
+              "pairs": 272647
+            },
+            {
+              "arms": [
+                "jina.label@10",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6454,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1685,
+              "pairs": 273212
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6468,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1686,
+              "pairs": 276789
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@100",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 6469,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1686,
+              "pairs": 276823
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6471,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1686,
+              "pairs": 276857
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6476,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1687,
+              "pairs": 276989
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6477,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1689,
+              "pairs": 277585
+            },
+            {
+              "arms": [
+                "openai-3-large.structured@100",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 6482,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1691,
+              "pairs": 278328
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6491,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1701,
+              "pairs": 279146
+            },
+            {
+              "arms": [
+                "minilm.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6495,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1696,
+              "pairs": 279442
+            },
+            {
+              "arms": [
+                "jina.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6496,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1699,
+              "pairs": 279898
+            },
+            {
+              "arms": [
+                "contextSparseV1@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6516,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1694,
+              "pairs": 328198
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6664,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1704,
+              "pairs": 348362
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6707,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1715,
+              "pairs": 356165
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6733,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1726,
+              "pairs": 364290
+            }
+          ]
+        },
+        "equivalence": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.label@100"
+            ],
+            "gold.associative": 6232,
+            "gold.equivalence": 485,
+            "gold.hierarchy": 1680,
+            "pairs": 252456
+          },
+          "gold": 485,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.equivalence": 485,
+              "pairs": 252456
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.equivalence": 0,
+              "gold.hierarchy": 0,
+              "pairs": 2
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 346,
+              "gold.equivalence": 101,
+              "gold.hierarchy": 427,
+              "pairs": 2242
+            },
+            {
+              "arms": [
+                "contextSparseV1@1"
+              ],
+              "gold.associative": 457,
+              "gold.equivalence": 111,
+              "gold.hierarchy": 325,
+              "pairs": 2488
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 758,
+              "gold.equivalence": 346,
+              "gold.hierarchy": 310,
+              "pairs": 2854
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 888,
+              "gold.equivalence": 355,
+              "gold.hierarchy": 358,
+              "pairs": 3373
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 1012,
+              "gold.equivalence": 368,
+              "gold.hierarchy": 386,
+              "pairs": 3963
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 982,
+              "gold.equivalence": 374,
+              "gold.hierarchy": 397,
+              "pairs": 4037
+            },
+            {
+              "arms": [
+                "openai-3-large.label@1",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1103,
+              "gold.equivalence": 379,
+              "gold.hierarchy": 440,
+              "pairs": 4116
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1",
+                "openai-ada-002.label@1"
+              ],
+              "gold.associative": 1120,
+              "gold.equivalence": 383,
+              "gold.hierarchy": 436,
+              "pairs": 4334
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 1711,
+              "gold.equivalence": 390,
+              "gold.hierarchy": 910,
+              "pairs": 17770
+            },
+            {
+              "arms": [
+                "contextSparseV1@10",
+                "openai-3-large.label@1"
+              ],
+              "gold.associative": 1950,
+              "gold.equivalence": 391,
+              "gold.hierarchy": 876,
+              "pairs": 20797
+            },
+            {
+              "arms": [
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 3169,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1087,
+              "pairs": 26002
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3301,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1223,
+              "pairs": 26030
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3315,
+              "gold.equivalence": 474,
+              "gold.hierarchy": 1225,
+              "pairs": 26096
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3666,
+              "gold.equivalence": 475,
+              "gold.hierarchy": 1286,
+              "pairs": 30606
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 3767,
+              "gold.equivalence": 476,
+              "gold.hierarchy": 1306,
+              "pairs": 34888
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.label@10"
+              ],
+              "gold.associative": 3780,
+              "gold.equivalence": 477,
+              "gold.hierarchy": 1306,
+              "pairs": 35273
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 4161,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1381,
+              "pairs": 36293
+            },
+            {
+              "arms": [
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 5984,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1662,
+              "pairs": 249987
+            },
+            {
+              "arms": [
+                "minilm.label@1",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 5986,
+              "gold.equivalence": 484,
+              "gold.hierarchy": 1663,
+              "pairs": 250039
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6232,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1680,
+              "pairs": 252456
+            }
+          ]
+        },
+        "hierarchy": {
+          "bestSingleArm": {
+            "arms": [
+              "openai-3-large.structured@100"
+            ],
+            "gold.associative": 6468,
+            "gold.equivalence": 481,
+            "gold.hierarchy": 1686,
+            "pairs": 276789
+          },
+          "gold": 1763,
+          "greedyTrail": [
+            {
+              "arms": [
+                "openai-3-large.structured@100"
+              ],
+              "gold.hierarchy": 1686,
+              "pairs": 276789
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.equivalence": 0,
+              "gold.hierarchy": 0,
+              "pairs": 2
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 346,
+              "gold.equivalence": 101,
+              "gold.hierarchy": 427,
+              "pairs": 2242
+            },
+            {
+              "arms": [
+                "bge-small.label@1"
+              ],
+              "gold.associative": 699,
+              "gold.equivalence": 285,
+              "gold.hierarchy": 463,
+              "pairs": 2913
+            },
+            {
+              "arms": [
+                "jina.label@1"
+              ],
+              "gold.associative": 688,
+              "gold.equivalence": 261,
+              "gold.hierarchy": 516,
+              "pairs": 2972
+            },
+            {
+              "arms": [
+                "jina.definitionFirst@1",
+                "jina.label@1"
+              ],
+              "gold.associative": 866,
+              "gold.equivalence": 274,
+              "gold.hierarchy": 556,
+              "pairs": 3697
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "jina.natural@1"
+              ],
+              "gold.associative": 993,
+              "gold.equivalence": 277,
+              "gold.hierarchy": 600,
+              "pairs": 4034
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "minilm.label@1"
+              ],
+              "gold.associative": 931,
+              "gold.equivalence": 300,
+              "gold.hierarchy": 608,
+              "pairs": 4070
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "jina.label@1"
+              ],
+              "gold.associative": 932,
+              "gold.equivalence": 320,
+              "gold.hierarchy": 637,
+              "pairs": 4172
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "nomic.label@1"
+              ],
+              "gold.associative": 939,
+              "gold.equivalence": 317,
+              "gold.hierarchy": 639,
+              "pairs": 4224
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 850,
+              "gold.equivalence": 267,
+              "gold.hierarchy": 659,
+              "pairs": 4280
+            },
+            {
+              "arms": [
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1335,
+              "gold.equivalence": 225,
+              "gold.hierarchy": 815,
+              "pairs": 16469
+            },
+            {
+              "arms": [
+                "contextSparseV1@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1460,
+              "gold.equivalence": 229,
+              "gold.hierarchy": 834,
+              "pairs": 17029
+            },
+            {
+              "arms": [
+                "jina.label@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1682,
+              "gold.equivalence": 318,
+              "gold.hierarchy": 904,
+              "pairs": 17707
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "labelSparseV1@10"
+              ],
+              "gold.associative": 1680,
+              "gold.equivalence": 338,
+              "gold.hierarchy": 910,
+              "pairs": 17729
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "nomic.label@1"
+              ],
+              "gold.associative": 1674,
+              "gold.equivalence": 331,
+              "gold.hierarchy": 917,
+              "pairs": 17741
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 1794,
+              "gold.equivalence": 352,
+              "gold.hierarchy": 923,
+              "pairs": 17879
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "minilm.definitionFirst@1"
+              ],
+              "gold.associative": 1764,
+              "gold.equivalence": 309,
+              "gold.hierarchy": 927,
+              "pairs": 17914
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "minilm.structured@1"
+              ],
+              "gold.associative": 1784,
+              "gold.equivalence": 309,
+              "gold.hierarchy": 928,
+              "pairs": 17969
+            },
+            {
+              "arms": [
+                "openai-3-small.label@10"
+              ],
+              "gold.associative": 3169,
+              "gold.equivalence": 462,
+              "gold.hierarchy": 1087,
+              "pairs": 26002
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3301,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1223,
+              "pairs": 26030
+            },
+            {
+              "arms": [
+                "openai-3-large.definitionFirst@1",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3315,
+              "gold.equivalence": 474,
+              "gold.hierarchy": 1225,
+              "pairs": 26096
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 3335,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1231,
+              "pairs": 26192
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-small.natural@1"
+              ],
+              "gold.associative": 3356,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1233,
+              "pairs": 26264
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-ada-002.structured@1"
+              ],
+              "gold.associative": 3359,
+              "gold.equivalence": 473,
+              "gold.hierarchy": 1237,
+              "pairs": 26267
+            },
+            {
+              "arms": [
+                "bge-small.label@10"
+              ],
+              "gold.associative": 3142,
+              "gold.equivalence": 424,
+              "gold.hierarchy": 1314,
+              "pairs": 26279
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "minilm.label@1"
+              ],
+              "gold.associative": 3159,
+              "gold.equivalence": 424,
+              "gold.hierarchy": 1317,
+              "pairs": 26445
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "bge-small.natural@1"
+              ],
+              "gold.associative": 3175,
+              "gold.equivalence": 427,
+              "gold.hierarchy": 1319,
+              "pairs": 26457
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "jina.label@1"
+              ],
+              "gold.associative": 3155,
+              "gold.equivalence": 425,
+              "gold.hierarchy": 1320,
+              "pairs": 26469
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "bge-small.label@10"
+              ],
+              "gold.associative": 3188,
+              "gold.equivalence": 426,
+              "gold.hierarchy": 1321,
+              "pairs": 26475
+            },
+            {
+              "arms": [
+                "arctic.label@1",
+                "bge-small.label@10"
+              ],
+              "gold.associative": 3152,
+              "gold.equivalence": 424,
+              "gold.hierarchy": 1322,
+              "pairs": 26533
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "minilm.natural@1"
+              ],
+              "gold.associative": 3191,
+              "gold.equivalence": 426,
+              "gold.hierarchy": 1326,
+              "pairs": 26571
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 3217,
+              "gold.equivalence": 437,
+              "gold.hierarchy": 1327,
+              "pairs": 26598
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 3226,
+              "gold.equivalence": 449,
+              "gold.hierarchy": 1328,
+              "pairs": 26613
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@10",
+                "bge-small.label@10"
+              ],
+              "gold.associative": 3572,
+              "gold.equivalence": 430,
+              "gold.hierarchy": 1379,
+              "pairs": 31882
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 4161,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1381,
+              "pairs": 36293
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "bge-small.natural@10"
+              ],
+              "gold.associative": 3821,
+              "gold.equivalence": 436,
+              "gold.hierarchy": 1414,
+              "pairs": 36392
+            },
+            {
+              "arms": [
+                "openai-3-large.label@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4212,
+              "gold.equivalence": 476,
+              "gold.hierarchy": 1415,
+              "pairs": 36932
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 3946,
+              "gold.equivalence": 475,
+              "gold.hierarchy": 1442,
+              "pairs": 37648
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-small.structured@10"
+              ],
+              "gold.associative": 4102,
+              "gold.equivalence": 463,
+              "gold.hierarchy": 1450,
+              "pairs": 38350
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.definitionFirst@10"
+              ],
+              "gold.associative": 4082,
+              "gold.equivalence": 475,
+              "gold.hierarchy": 1452,
+              "pairs": 38840
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4244,
+              "gold.equivalence": 469,
+              "gold.hierarchy": 1469,
+              "pairs": 39555
+            },
+            {
+              "arms": [
+                "jina.label@10",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 4254,
+              "gold.equivalence": 467,
+              "gold.hierarchy": 1471,
+              "pairs": 40799
+            },
+            {
+              "arms": [
+                "bge-small.label@100"
+              ],
+              "gold.associative": 5949,
+              "gold.equivalence": 461,
+              "gold.hierarchy": 1666,
+              "pairs": 245735
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-small.label@1"
+              ],
+              "gold.associative": 5955,
+              "gold.equivalence": 467,
+              "gold.hierarchy": 1667,
+              "pairs": 245799
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 5966,
+              "gold.equivalence": 471,
+              "gold.hierarchy": 1669,
+              "pairs": 245812
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@10"
+              ],
+              "gold.associative": 6005,
+              "gold.equivalence": 465,
+              "gold.hierarchy": 1673,
+              "pairs": 246724
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.structured@10"
+              ],
+              "gold.associative": 6026,
+              "gold.equivalence": 463,
+              "gold.hierarchy": 1675,
+              "pairs": 247006
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 6040,
+              "gold.equivalence": 479,
+              "gold.hierarchy": 1678,
+              "pairs": 247787
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-ada-002.natural@10"
+              ],
+              "gold.associative": 6093,
+              "gold.equivalence": 472,
+              "gold.hierarchy": 1683,
+              "pairs": 248067
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@10"
+              ],
+              "gold.associative": 6274,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1684,
+              "pairs": 253326
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-ada-002.structured@10"
+              ],
+              "gold.associative": 6287,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1685,
+              "pairs": 253620
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6250,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1686,
+              "pairs": 254390
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-small.structured@100"
+              ],
+              "gold.associative": 6296,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1692,
+              "pairs": 263441
+            },
+            {
+              "arms": [
+                "labelSparseV1@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6469,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1694,
+              "pairs": 279130
+            },
+            {
+              "arms": [
+                "bge-small.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6491,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1701,
+              "pairs": 279146
+            },
+            {
+              "arms": [
+                "arctic.label@10",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6491,
+              "gold.equivalence": 481,
+              "gold.hierarchy": 1702,
+              "pairs": 281818
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-small.label@100"
+              ],
+              "gold.associative": 6478,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1710,
+              "pairs": 345418
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "bge-small.natural@100"
+              ],
+              "gold.associative": 6430,
+              "gold.equivalence": 467,
+              "gold.hierarchy": 1713,
+              "pairs": 349014
+            },
+            {
+              "arms": [
+                "openai-3-small.label@100",
+                "openai-3-small.structured@100"
+              ],
+              "gold.associative": 6559,
+              "gold.equivalence": 483,
+              "gold.hierarchy": 1720,
+              "pairs": 349842
+            },
+            {
+              "arms": [
+                "openai-3-large.label@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6733,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1726,
+              "pairs": 364290
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.label@100"
+              ],
+              "gold.associative": 6569,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1729,
+              "pairs": 366930
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-small.structured@100"
+              ],
+              "gold.associative": 6607,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1733,
+              "pairs": 374853
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.natural@100"
+              ],
+              "gold.associative": 6705,
+              "gold.equivalence": 485,
+              "gold.hierarchy": 1735,
+              "pairs": 381142
+            },
+            {
+              "arms": [
+                "bge-small.label@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.associative": 6724,
+              "gold.equivalence": 482,
+              "gold.hierarchy": 1740,
+              "pairs": 388616
+            }
+          ]
+        }
+      },
+      "conceptCount": 3810,
+      "goldSizes": {
+        "associative": 7180,
+        "equivalence": 485,
+        "hierarchy": 1763
+      },
+      "options": 107,
+      "source": "icpsr-subject-thesaurus"
+    }
+  ],
+  "type": "AtlasNativeRelationFrontier"
+}

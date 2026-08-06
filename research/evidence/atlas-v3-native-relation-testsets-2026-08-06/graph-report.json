@@ -1,0 +1,151 @@
+{
+  "results": [
+    {
+      "concepts": 705,
+      "reachability": {
+        "associative": {
+          "components": 15,
+          "conceptsWithEdges": 566,
+          "largestComponent": 532,
+          "largestComponentShare": 0.9399,
+          "orphanRate": 0.1972,
+          "pairsWithin": {
+            "1": 780,
+            "2": 4109,
+            "3": 11213
+          }
+        },
+        "union": {
+          "components": 15,
+          "conceptsWithEdges": 566,
+          "largestComponent": 532,
+          "largestComponentShare": 0.9399,
+          "orphanRate": 0.1972,
+          "pairsWithin": {
+            "1": 780,
+            "2": 4109,
+            "3": 11213
+          }
+        }
+      },
+      "source": "federal-register-thesaurus-2025",
+      "transfer": {}
+    },
+    {
+      "concepts": 3470,
+      "reachability": {
+        "associative": {
+          "components": 121,
+          "conceptsWithEdges": 2210,
+          "largestComponent": 1901,
+          "largestComponentShare": 0.8602,
+          "orphanRate": 0.3631,
+          "pairsWithin": {
+            "1": 2848,
+            "2": 12766,
+            "3": 36645
+          }
+        },
+        "hierarchy": {
+          "components": 98,
+          "conceptsWithEdges": 3393,
+          "largestComponent": 2248,
+          "largestComponentShare": 0.6625,
+          "orphanRate": 0.0222,
+          "pairsWithin": {
+            "1": 3393,
+            "2": 16921,
+            "3": 41953
+          }
+        },
+        "union": {
+          "components": 2,
+          "conceptsWithEdges": 3427,
+          "largestComponent": 3425,
+          "largestComponentShare": 0.9994,
+          "orphanRate": 0.0124,
+          "pairsWithin": {
+            "1": 6241,
+            "2": 41949,
+            "3": 177092
+          }
+        }
+      },
+      "source": "elsst-r6",
+      "transfer": {
+        "associative2hop->hierarchy": {
+          "candidates": 9918,
+          "candidatesPerHit": 25.0,
+          "found": 397,
+          "goldTargets": 3393,
+          "recall": 0.117
+        },
+        "hierarchy2hop->associative": {
+          "candidates": 13528,
+          "candidatesPerHit": 588.2,
+          "found": 23,
+          "goldTargets": 2848,
+          "recall": 0.0081
+        }
+      }
+    },
+    {
+      "concepts": 3810,
+      "reachability": {
+        "associative": {
+          "components": 36,
+          "conceptsWithEdges": 2870,
+          "largestComponent": 2779,
+          "largestComponentShare": 0.9683,
+          "orphanRate": 0.2467,
+          "pairsWithin": {
+            "1": 7180,
+            "2": 44123,
+            "3": 180144
+          }
+        },
+        "hierarchy": {
+          "components": 242,
+          "conceptsWithEdges": 1984,
+          "largestComponent": 179,
+          "largestComponentShare": 0.0902,
+          "orphanRate": 0.4793,
+          "pairsWithin": {
+            "1": 1763,
+            "2": 8370,
+            "3": 13721
+          }
+        },
+        "union": {
+          "components": 7,
+          "conceptsWithEdges": 3221,
+          "largestComponent": 3207,
+          "largestComponentShare": 0.9957,
+          "orphanRate": 0.1546,
+          "pairsWithin": {
+            "1": 8943,
+            "2": 68530,
+            "3": 323432
+          }
+        }
+      },
+      "source": "icpsr-subject-thesaurus",
+      "transfer": {
+        "associative2hop->hierarchy": {
+          "candidates": 36943,
+          "candidatesPerHit": 72.2,
+          "found": 512,
+          "goldTargets": 1763,
+          "recall": 0.2904
+        },
+        "hierarchy2hop->associative": {
+          "candidates": 6607,
+          "candidatesPerHit": 19.4,
+          "found": 340,
+          "goldTargets": 7180,
+          "recall": 0.0474
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "results": [
+    {
+      "closure": {
+        "assertedEdges": 3393,
+        "byHopCount": {
+          "1": 0,
+          "2": 2438,
+          "3": 1216,
+          "4": 417,
+          "5": 107,
+          "6": 37
+        },
+        "impliedButNotAsserted": 4215,
+        "impliedWithinDepth": 7608,
+        "inflationFactor": 2.242,
+        "transitivelyClosed": false
+      },
+      "cycle": null,
+      "degrees": {
+        "conceptsInRelease": 3470,
+        "conceptsWithAnyEdge": 3393,
+        "maxDegree": 39,
+        "medianDegree": 1,
+        "shareOfEdgesOnTopDecile": 0.3802
+      },
+      "sampleUnassertedEntailments": [
+        [
+          "LOANS",
+          "FINANCE"
+        ],
+        [
+          "LOANS",
+          "FINANCING"
+        ],
+        [
+          "LOANS",
+          "ECONOMICS"
+        ],
+        [
+          "TRUCKS",
+          "MOTOR VEHICLES"
+        ],
+        [
+          "TRUCKS",
+          "VEHICLES"
+        ],
+        [
+          "EDUCATIONAL TESTS",
+          "EVALUATION"
+        ],
+        [
+          "DISTANCE EDUCATION",
+          "EDUCATION"
+        ],
+        [
+          "FERTILITY TREATMENT",
+          "HEALTH"
+        ]
+      ],
+      "source": "elsst-r6"
+    },
+    {
+      "closure": {
+        "assertedEdges": 1763,
+        "byHopCount": {
+          "1": 0,
+          "2": 606,
+          "3": 142,
+          "4": 26,
+          "5": 2
+        },
+        "impliedButNotAsserted": 776,
+        "impliedWithinDepth": 2539,
+        "inflationFactor": 1.44,
+        "transitivelyClosed": false
+      },
+      "cycle": null,
+      "degrees": {
+        "conceptsInRelease": 3810,
+        "conceptsWithAnyEdge": 1984,
+        "maxDegree": 30,
+        "medianDegree": 1,
+        "shareOfEdgesOnTopDecile": 0.4033
+      },
+      "sampleUnassertedEntailments": [
+        [
+          "academic libraries",
+          "facilities"
+        ],
+        [
+          "accreditation (institutions)",
+          "credentials"
+        ],
+        [
+          "admissions policies",
+          "policy"
+        ],
+        [
+          "adoption leave",
+          "employee benefits"
+        ],
+        [
+          "adoptive parents",
+          "family relationships"
+        ],
+        [
+          "adult care services",
+          "human services"
+        ],
+        [
+          "adult reading programs",
+          "educational programs"
+        ],
+        [
+          "adult reading programs",
+          "programs"
+        ]
+      ],
+      "source": "icpsr-subject-thesaurus"
+    }
+  ]
+}

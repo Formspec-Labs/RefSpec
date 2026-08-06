@@ -1,0 +1,1569 @@
+{
+  "depths": [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "experiment": "E3-E5-cost-recall-frontier",
+  "note": "greedy rows are an upper bound on cost for their recall, not a proven optimum",
+  "results": [
+    {
+      "byRelationClass": {
+        "hierarchyClosure": {
+          "bestSingleArm": {
+            "arms": [
+              "gemini-001-sim.label@100"
+            ],
+            "gold.associative": 2621,
+            "gold.hierarchy": 3269,
+            "gold.hierarchyClosure": 6570,
+            "gold.sibling": 8296,
+            "pairs": 243751
+          },
+          "gold": 7608,
+          "greedyTrail": [
+            {
+              "arms": [
+                "gemini-001-sim.label@100"
+              ],
+              "gold.hierarchyClosure": 6570,
+              "pairs": 243751
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.definitionFirst@100"
+              ],
+              "gold.hierarchyClosure": 6935,
+              "pairs": 339757
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.definitionFirst@100",
+                "view-bge-small.schemeQualified@100"
+              ],
+              "gold.hierarchyClosure": 7087,
+              "pairs": 481103
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.definitionFirst@100",
+                "view-bge-small.schemeQualified@100",
+                "arctic.label@100"
+              ],
+              "gold.hierarchyClosure": 7168,
+              "pairs": 602387
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.definitionFirst@100",
+                "view-bge-small.schemeQualified@100",
+                "arctic.label@100",
+                "view-MiniLM-L6-v2.maxOverLabels@100"
+              ],
+              "gold.hierarchyClosure": 7213,
+              "pairs": 652716
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.definitionFirst@100",
+                "view-bge-small.schemeQualified@100",
+                "arctic.label@100",
+                "view-MiniLM-L6-v2.maxOverLabels@100",
+                "openai-3-large.structured@100"
+              ],
+              "gold.hierarchyClosure": 7248,
+              "pairs": 721886
+            }
+          ],
+          "paretoFront": [
+            {
+              "arms": [
+                "exactPreferredLabel"
+              ],
+              "gold.associative": 0,
+              "gold.hierarchy": 0,
+              "gold.hierarchyClosure": 0,
+              "gold.sibling": 0,
+              "pairs": 0
+            },
+            {
+              "arms": [
+                "labelSparseV1@1"
+              ],
+              "gold.associative": 203,
+              "gold.hierarchy": 287,
+              "gold.hierarchyClosure": 306,
+              "gold.sibling": 196,
+              "pairs": 2503
+            },
+            {
+              "arms": [
+                "contextSparseV1@1"
+              ],
+              "gold.associative": 202,
+              "gold.hierarchy": 289,
+              "gold.hierarchyClosure": 309,
+              "gold.sibling": 213,
+              "pairs": 2540
+            },
+            {
+              "arms": [
+                "labelCharacterNgramV1@1"
+              ],
+              "gold.associative": 306,
+              "gold.hierarchy": 406,
+              "gold.hierarchyClosure": 449,
+              "gold.sibling": 215,
+              "pairs": 2617
+            },
+            {
+              "arms": [
+                "openai-3-small.structured@1"
+              ],
+              "gold.associative": 376,
+              "gold.hierarchy": 557,
+              "gold.hierarchyClosure": 611,
+              "gold.sibling": 495,
+              "pairs": 2668
+            },
+            {
+              "arms": [
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 413,
+              "gold.hierarchy": 611,
+              "gold.hierarchyClosure": 659,
+              "gold.sibling": 502,
+              "pairs": 2669
+            },
+            {
+              "arms": [
+                "view-bge-small.maxOverLabels@1"
+              ],
+              "gold.associative": 366,
+              "gold.hierarchy": 713,
+              "gold.hierarchyClosure": 796,
+              "gold.sibling": 333,
+              "pairs": 2670
+            },
+            {
+              "arms": [
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 346,
+              "gold.hierarchy": 733,
+              "gold.hierarchyClosure": 819,
+              "gold.sibling": 366,
+              "pairs": 2674
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1"
+              ],
+              "gold.associative": 453,
+              "gold.hierarchy": 824,
+              "gold.hierarchyClosure": 898,
+              "gold.sibling": 350,
+              "pairs": 2697
+            },
+            {
+              "arms": [
+                "view-bge-small.labelOnly@1",
+                "view-bge-small.maxOverLabels@1"
+              ],
+              "gold.associative": 450,
+              "gold.hierarchy": 873,
+              "gold.hierarchyClosure": 988,
+              "gold.sibling": 448,
+              "pairs": 3537
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 462,
+              "gold.hierarchy": 924,
+              "gold.hierarchyClosure": 1046,
+              "gold.sibling": 533,
+              "pairs": 3728
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@1",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 568,
+              "gold.hierarchy": 950,
+              "gold.hierarchyClosure": 1056,
+              "gold.sibling": 574,
+              "pairs": 3781
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 611,
+              "gold.hierarchy": 1032,
+              "gold.hierarchyClosure": 1134,
+              "gold.sibling": 542,
+              "pairs": 3803
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "minilm.label@1"
+              ],
+              "gold.associative": 601,
+              "gold.hierarchy": 1047,
+              "gold.hierarchyClosure": 1159,
+              "gold.sibling": 575,
+              "pairs": 4131
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "gemini-001-sim.label@1"
+              ],
+              "gold.associative": 576,
+              "gold.hierarchy": 1075,
+              "gold.hierarchyClosure": 1195,
+              "gold.sibling": 584,
+              "pairs": 4138
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@1",
+                "gemini-001-sim.label@1"
+              ],
+              "gold.associative": 613,
+              "gold.hierarchy": 1086,
+              "gold.hierarchyClosure": 1206,
+              "gold.sibling": 587,
+              "pairs": 4142
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "view-bge-small.maxOverLabels@1"
+              ],
+              "gold.associative": 594,
+              "gold.hierarchy": 1117,
+              "gold.hierarchyClosure": 1245,
+              "gold.sibling": 538,
+              "pairs": 4182
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 589,
+              "gold.hierarchy": 1136,
+              "gold.hierarchyClosure": 1263,
+              "gold.sibling": 573,
+              "pairs": 4212
+            },
+            {
+              "arms": [
+                "lexical.rapidfuzz-token-set-ratio@1",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 490,
+              "gold.hierarchy": 1057,
+              "gold.hierarchyClosure": 1277,
+              "gold.sibling": 491,
+              "pairs": 4771
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "lexical.character-trigram-token-set@1"
+              ],
+              "gold.associative": 627,
+              "gold.hierarchy": 1171,
+              "gold.hierarchyClosure": 1389,
+              "gold.sibling": 490,
+              "pairs": 4855
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "lexical.rapidfuzz-token-set-ratio@1"
+              ],
+              "gold.associative": 615,
+              "gold.hierarchy": 1199,
+              "gold.hierarchyClosure": 1414,
+              "gold.sibling": 485,
+              "pairs": 4972
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "labelSparseV1@5"
+              ],
+              "gold.associative": 783,
+              "gold.hierarchy": 1301,
+              "gold.hierarchyClosure": 1491,
+              "gold.sibling": 1279,
+              "pairs": 11723
+            },
+            {
+              "arms": [
+                "openai-3-large.label@5"
+              ],
+              "gold.associative": 1139,
+              "gold.hierarchy": 1743,
+              "gold.hierarchyClosure": 2129,
+              "gold.sibling": 1895,
+              "pairs": 12239
+            },
+            {
+              "arms": [
+                "view-bge-small.labelOnly@5"
+              ],
+              "gold.associative": 1005,
+              "gold.hierarchy": 1746,
+              "gold.hierarchyClosure": 2195,
+              "gold.sibling": 1740,
+              "pairs": 12241
+            },
+            {
+              "arms": [
+                "view-bge-small.maxOverLabels@5"
+              ],
+              "gold.associative": 1055,
+              "gold.hierarchy": 1786,
+              "gold.hierarchyClosure": 2235,
+              "gold.sibling": 1654,
+              "pairs": 12415
+            },
+            {
+              "arms": [
+                "view-bge-small.labelOnly@1",
+                "view-bge-small.maxOverLabels@5"
+              ],
+              "gold.associative": 1058,
+              "gold.hierarchy": 1791,
+              "gold.hierarchyClosure": 2241,
+              "gold.sibling": 1663,
+              "pairs": 12470
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "view-bge-small.maxOverLabels@5"
+              ],
+              "gold.associative": 1067,
+              "gold.hierarchy": 1804,
+              "gold.hierarchyClosure": 2259,
+              "gold.sibling": 1684,
+              "pairs": 12583
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1276,
+              "gold.hierarchy": 2020,
+              "gold.hierarchyClosure": 2620,
+              "gold.sibling": 1609,
+              "pairs": 12605
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 1300,
+              "gold.hierarchy": 2040,
+              "gold.hierarchyClosure": 2645,
+              "gold.sibling": 1656,
+              "pairs": 12830
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "gemini-001-sim.natural@1"
+              ],
+              "gold.associative": 1300,
+              "gold.hierarchy": 2045,
+              "gold.hierarchyClosure": 2655,
+              "gold.sibling": 1671,
+              "pairs": 12953
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "openai-3-large.natural@1"
+              ],
+              "gold.associative": 1315,
+              "gold.hierarchy": 2057,
+              "gold.hierarchyClosure": 2662,
+              "gold.sibling": 1717,
+              "pairs": 13112
+            },
+            {
+              "arms": [
+                "bge-small.label@1",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1308,
+              "gold.hierarchy": 2053,
+              "gold.hierarchyClosure": 2665,
+              "gold.sibling": 1696,
+              "pairs": 13119
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@1",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1310,
+              "gold.hierarchy": 2068,
+              "gold.hierarchyClosure": 2683,
+              "gold.sibling": 1687,
+              "pairs": 13125
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 1310,
+              "gold.hierarchy": 2074,
+              "gold.hierarchyClosure": 2690,
+              "gold.sibling": 1684,
+              "pairs": 13178
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "minilm.structured@1"
+              ],
+              "gold.associative": 1317,
+              "gold.hierarchy": 2078,
+              "gold.hierarchyClosure": 2692,
+              "gold.sibling": 1737,
+              "pairs": 13344
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1330,
+              "gold.hierarchy": 2074,
+              "gold.hierarchyClosure": 2693,
+              "gold.sibling": 1758,
+              "pairs": 13509
+            },
+            {
+              "arms": [
+                "arctic.structured@1",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1321,
+              "gold.hierarchy": 2084,
+              "gold.hierarchyClosure": 2701,
+              "gold.sibling": 1767,
+              "pairs": 13577
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@1",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1328,
+              "gold.hierarchy": 2080,
+              "gold.hierarchyClosure": 2708,
+              "gold.sibling": 1760,
+              "pairs": 13710
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "lexical.character-trigram-token-set@1"
+              ],
+              "gold.associative": 1333,
+              "gold.hierarchy": 2111,
+              "gold.hierarchyClosure": 2778,
+              "gold.sibling": 1686,
+              "pairs": 13949
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "lexical.rapidfuzz-partial-ratio@1"
+              ],
+              "gold.associative": 1335,
+              "gold.hierarchy": 2122,
+              "gold.hierarchyClosure": 2782,
+              "gold.sibling": 1651,
+              "pairs": 14242
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "gemini-001-sim.structured@5"
+              ],
+              "gold.associative": 1506,
+              "gold.hierarchy": 2246,
+              "gold.hierarchyClosure": 2988,
+              "gold.sibling": 2079,
+              "pairs": 16785
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@5",
+                "gemini-001-sim.label@5"
+              ],
+              "gold.associative": 1522,
+              "gold.hierarchy": 2298,
+              "gold.hierarchyClosure": 3085,
+              "gold.sibling": 2205,
+              "pairs": 18320
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "view-bge-small.schemeQualified@5"
+              ],
+              "gold.associative": 1489,
+              "gold.hierarchy": 2295,
+              "gold.hierarchyClosure": 3110,
+              "gold.sibling": 2272,
+              "pairs": 19517
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1715,
+              "gold.hierarchy": 2498,
+              "gold.hierarchyClosure": 3611,
+              "gold.sibling": 2805,
+              "pairs": 24880
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 1722,
+              "gold.hierarchy": 2510,
+              "gold.hierarchyClosure": 3624,
+              "gold.sibling": 2828,
+              "pairs": 24997
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "gemini-001-sim.natural@1"
+              ],
+              "gold.associative": 1726,
+              "gold.hierarchy": 2508,
+              "gold.hierarchyClosure": 3627,
+              "gold.sibling": 2839,
+              "pairs": 25099
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 1728,
+              "gold.hierarchy": 2515,
+              "gold.hierarchyClosure": 3634,
+              "gold.sibling": 2848,
+              "pairs": 25206
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@1",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1729,
+              "gold.hierarchy": 2522,
+              "gold.hierarchyClosure": 3643,
+              "gold.sibling": 2847,
+              "pairs": 25214
+            },
+            {
+              "arms": [
+                "bge-small.definitionFirst@1",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1740,
+              "gold.hierarchy": 2524,
+              "gold.hierarchyClosure": 3645,
+              "gold.sibling": 2892,
+              "pairs": 25497
+            },
+            {
+              "arms": [
+                "arctic.structured@1",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1734,
+              "gold.hierarchy": 2524,
+              "gold.hierarchyClosure": 3647,
+              "gold.sibling": 2891,
+              "pairs": 25510
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@1",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1738,
+              "gold.hierarchy": 2522,
+              "gold.hierarchyClosure": 3651,
+              "gold.sibling": 2896,
+              "pairs": 25685
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "lexical.character-trigram-token-set@1"
+              ],
+              "gold.associative": 1740,
+              "gold.hierarchy": 2537,
+              "gold.hierarchyClosure": 3681,
+              "gold.sibling": 2855,
+              "pairs": 25921
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "gemini-001-sim.structured@5"
+              ],
+              "gold.associative": 1783,
+              "gold.hierarchy": 2566,
+              "gold.hierarchyClosure": 3722,
+              "gold.sibling": 3001,
+              "pairs": 26578
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@5",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1815,
+              "gold.hierarchy": 2603,
+              "gold.hierarchyClosure": 3805,
+              "gold.sibling": 3108,
+              "pairs": 28311
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "view-bge-small.schemeQualified@5"
+              ],
+              "gold.associative": 1805,
+              "gold.hierarchy": 2604,
+              "gold.hierarchyClosure": 3817,
+              "gold.sibling": 3179,
+              "pairs": 29649
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@5",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1815,
+              "gold.hierarchy": 2596,
+              "gold.hierarchyClosure": 3841,
+              "gold.sibling": 3341,
+              "pairs": 31677
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "gemini-001-sim.structured@10"
+              ],
+              "gold.associative": 1928,
+              "gold.hierarchy": 2667,
+              "gold.hierarchyClosure": 4015,
+              "gold.sibling": 3455,
+              "pairs": 32863
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@10",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 1939,
+              "gold.hierarchy": 2699,
+              "gold.hierarchyClosure": 4072,
+              "gold.sibling": 3627,
+              "pairs": 35702
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "view-bge-small.schemeQualified@10"
+              ],
+              "gold.associative": 1893,
+              "gold.hierarchy": 2699,
+              "gold.hierarchyClosure": 4080,
+              "gold.sibling": 3748,
+              "pairs": 38618
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "view-bge-small.labelOnly@20"
+              ],
+              "gold.associative": 1890,
+              "gold.hierarchy": 2693,
+              "gold.hierarchyClosure": 4104,
+              "gold.sibling": 4620,
+              "pairs": 48964
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2089,
+              "gold.hierarchy": 2850,
+              "gold.hierarchyClosure": 4651,
+              "gold.sibling": 4419,
+              "pairs": 49245
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 2095,
+              "gold.hierarchy": 2855,
+              "gold.hierarchyClosure": 4657,
+              "gold.sibling": 4429,
+              "pairs": 49299
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 2094,
+              "gold.hierarchy": 2861,
+              "gold.hierarchyClosure": 4663,
+              "gold.sibling": 4441,
+              "pairs": 49429
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "view-MiniLM-L6-v2.maxOverLabels@1"
+              ],
+              "gold.associative": 2093,
+              "gold.hierarchy": 2857,
+              "gold.hierarchyClosure": 4664,
+              "gold.sibling": 4432,
+              "pairs": 49452
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "minilm.definitionFirst@1"
+              ],
+              "gold.associative": 2098,
+              "gold.hierarchy": 2860,
+              "gold.hierarchyClosure": 4666,
+              "gold.sibling": 4461,
+              "pairs": 49605
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@1",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2100,
+              "gold.hierarchy": 2859,
+              "gold.hierarchyClosure": 4669,
+              "gold.sibling": 4465,
+              "pairs": 49802
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "gemini-001-sim.structured@5"
+              ],
+              "gold.associative": 2118,
+              "gold.hierarchy": 2867,
+              "gold.hierarchyClosure": 4674,
+              "gold.sibling": 4493,
+              "pairs": 49959
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "lexical.character-trigram-token-set@1"
+              ],
+              "gold.associative": 2097,
+              "gold.hierarchy": 2865,
+              "gold.hierarchyClosure": 4676,
+              "gold.sibling": 4445,
+              "pairs": 50068
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "openai-3-large.label@5"
+              ],
+              "gold.associative": 2121,
+              "gold.hierarchy": 2872,
+              "gold.hierarchyClosure": 4682,
+              "gold.sibling": 4560,
+              "pairs": 50456
+            },
+            {
+              "arms": [
+                "bge-small.label@5",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2116,
+              "gold.hierarchy": 2869,
+              "gold.hierarchyClosure": 4688,
+              "gold.sibling": 4615,
+              "pairs": 51155
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@5",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2130,
+              "gold.hierarchy": 2883,
+              "gold.hierarchyClosure": 4714,
+              "gold.sibling": 4542,
+              "pairs": 51312
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "view-bge-small.maxOverLabels@5"
+              ],
+              "gold.associative": 2124,
+              "gold.hierarchy": 2895,
+              "gold.hierarchyClosure": 4718,
+              "gold.sibling": 4608,
+              "pairs": 51599
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "view-MiniLM-L6-v2.maxOverLabels@5"
+              ],
+              "gold.associative": 2136,
+              "gold.hierarchy": 2887,
+              "gold.hierarchyClosure": 4724,
+              "gold.sibling": 4582,
+              "pairs": 51758
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "gemini-001-sim.structured@10"
+              ],
+              "gold.associative": 2151,
+              "gold.hierarchy": 2887,
+              "gold.hierarchyClosure": 4738,
+              "gold.sibling": 4603,
+              "pairs": 52155
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "gemini-001-sim.natural@10"
+              ],
+              "gold.associative": 2155,
+              "gold.hierarchy": 2881,
+              "gold.hierarchyClosure": 4741,
+              "gold.sibling": 4678,
+              "pairs": 53916
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "openai-3-large.label@10"
+              ],
+              "gold.associative": 2158,
+              "gold.hierarchy": 2901,
+              "gold.hierarchyClosure": 4746,
+              "gold.sibling": 4861,
+              "pairs": 54255
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@5",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2135,
+              "gold.hierarchy": 2883,
+              "gold.hierarchyClosure": 4752,
+              "gold.sibling": 4708,
+              "pairs": 54339
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@10",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2190,
+              "gold.hierarchy": 2919,
+              "gold.hierarchyClosure": 4813,
+              "gold.sibling": 4766,
+              "pairs": 55538
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "view-bge-small.schemeQualified@10"
+              ],
+              "gold.associative": 2167,
+              "gold.hierarchy": 2933,
+              "gold.hierarchyClosure": 4847,
+              "gold.sibling": 4899,
+              "pairs": 58825
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@10",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2165,
+              "gold.hierarchy": 2918,
+              "gold.hierarchyClosure": 4854,
+              "gold.sibling": 5009,
+              "pairs": 62716
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@20",
+                "gemini-001-sim.structured@20"
+              ],
+              "gold.associative": 2257,
+              "gold.hierarchy": 2974,
+              "gold.hierarchyClosure": 5035,
+              "gold.sibling": 5158,
+              "pairs": 64761
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@20",
+                "gemini-001-sim.label@20"
+              ],
+              "gold.associative": 2295,
+              "gold.hierarchy": 2986,
+              "gold.hierarchyClosure": 5104,
+              "gold.sibling": 5376,
+              "pairs": 69832
+            },
+            {
+              "arms": [
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2312,
+              "gold.hierarchy": 2980,
+              "gold.hierarchyClosure": 5114,
+              "gold.sibling": 6732,
+              "pairs": 115535
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@1",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2315,
+              "gold.hierarchy": 2983,
+              "gold.hierarchyClosure": 5117,
+              "gold.sibling": 6734,
+              "pairs": 115559
+            },
+            {
+              "arms": [
+                "openai-3-large.label@50",
+                "openai-3-large.structured@1"
+              ],
+              "gold.associative": 2315,
+              "gold.hierarchy": 2982,
+              "gold.hierarchyClosure": 5119,
+              "gold.sibling": 6735,
+              "pairs": 115582
+            },
+            {
+              "arms": [
+                "gemini-001-sim.structured@1",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2317,
+              "gold.hierarchy": 2985,
+              "gold.hierarchyClosure": 5121,
+              "gold.sibling": 6737,
+              "pairs": 115587
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@1",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2320,
+              "gold.hierarchy": 2990,
+              "gold.hierarchyClosure": 5126,
+              "gold.sibling": 6742,
+              "pairs": 115710
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@1",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2321,
+              "gold.hierarchy": 2988,
+              "gold.hierarchyClosure": 5131,
+              "gold.sibling": 6743,
+              "pairs": 115912
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "view-bge-small.maxOverLabels@50"
+              ],
+              "gold.associative": 2275,
+              "gold.hierarchy": 3001,
+              "gold.hierarchyClosure": 5137,
+              "gold.sibling": 6658,
+              "pairs": 115980
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@5",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2330,
+              "gold.hierarchy": 2996,
+              "gold.hierarchyClosure": 5149,
+              "gold.sibling": 6743,
+              "pairs": 115983
+            },
+            {
+              "arms": [
+                "gemini-001-sim.structured@5",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2348,
+              "gold.hierarchy": 3013,
+              "gold.hierarchyClosure": 5172,
+              "gold.sibling": 6773,
+              "pairs": 116379
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "view-bge-small.labelOnly@50"
+              ],
+              "gold.associative": 2276,
+              "gold.hierarchy": 3011,
+              "gold.hierarchyClosure": 5195,
+              "gold.sibling": 6689,
+              "pairs": 116942
+            },
+            {
+              "arms": [
+                "bge-small.label@50",
+                "gemini-001-sim.label@10"
+              ],
+              "gold.associative": 2278,
+              "gold.hierarchy": 3001,
+              "gold.hierarchyClosure": 5198,
+              "gold.sibling": 6560,
+              "pairs": 117507
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2358,
+              "gold.hierarchy": 3029,
+              "gold.hierarchyClosure": 5235,
+              "gold.sibling": 6808,
+              "pairs": 117665
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@10",
+                "view-bge-small.maxOverLabels@50"
+              ],
+              "gold.associative": 2308,
+              "gold.hierarchy": 3039,
+              "gold.hierarchyClosure": 5244,
+              "gold.sibling": 6780,
+              "pairs": 118408
+            },
+            {
+              "arms": [
+                "gemini-001-sim.structured@10",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2379,
+              "gold.hierarchy": 3042,
+              "gold.hierarchyClosure": 5246,
+              "gold.sibling": 6856,
+              "pairs": 118665
+            },
+            {
+              "arms": [
+                "gemini-001-sim.structured@10",
+                "view-bge-small.maxOverLabels@50"
+              ],
+              "gold.associative": 2338,
+              "gold.hierarchy": 3051,
+              "gold.hierarchyClosure": 5282,
+              "gold.sibling": 6851,
+              "pairs": 119744
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2440,
+              "gold.hierarchy": 3137,
+              "gold.hierarchyClosure": 5827,
+              "gold.sibling": 6790,
+              "pairs": 121490
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 2442,
+              "gold.hierarchy": 3141,
+              "gold.hierarchyClosure": 5831,
+              "gold.sibling": 6794,
+              "pairs": 121510
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "view-bge-small.labelOnly@1"
+              ],
+              "gold.associative": 2440,
+              "gold.hierarchy": 3142,
+              "gold.hierarchyClosure": 5832,
+              "gold.sibling": 6794,
+              "pairs": 121571
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "minilm.definitionFirst@1"
+              ],
+              "gold.associative": 2441,
+              "gold.hierarchy": 3141,
+              "gold.hierarchyClosure": 5833,
+              "gold.sibling": 6802,
+              "pairs": 121667
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.structured@5"
+              ],
+              "gold.associative": 2450,
+              "gold.hierarchy": 3144,
+              "gold.hierarchyClosure": 5836,
+              "gold.sibling": 6817,
+              "pairs": 121772
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@1",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2444,
+              "gold.hierarchy": 3144,
+              "gold.hierarchyClosure": 5837,
+              "gold.sibling": 6803,
+              "pairs": 121837
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.natural@5"
+              ],
+              "gold.associative": 2447,
+              "gold.hierarchy": 3141,
+              "gold.hierarchyClosure": 5838,
+              "gold.sibling": 6827,
+              "pairs": 122224
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "minilm.label@5"
+              ],
+              "gold.associative": 2447,
+              "gold.hierarchy": 3143,
+              "gold.hierarchyClosure": 5840,
+              "gold.sibling": 6823,
+              "pairs": 122315
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.structured@10"
+              ],
+              "gold.associative": 2456,
+              "gold.hierarchy": 3146,
+              "gold.hierarchyClosure": 5844,
+              "gold.sibling": 6846,
+              "pairs": 122430
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "view-bge-small.maxOverLabels@5"
+              ],
+              "gold.associative": 2447,
+              "gold.hierarchy": 3152,
+              "gold.hierarchyClosure": 5846,
+              "gold.sibling": 6832,
+              "pairs": 122554
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "view-MiniLM-L6-v2.labelOnly@5"
+              ],
+              "gold.associative": 2446,
+              "gold.hierarchy": 3147,
+              "gold.hierarchyClosure": 5849,
+              "gold.sibling": 6839,
+              "pairs": 122643
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "view-MiniLM-L6-v2.maxOverLabels@5"
+              ],
+              "gold.associative": 2447,
+              "gold.hierarchy": 3149,
+              "gold.hierarchyClosure": 5852,
+              "gold.sibling": 6835,
+              "pairs": 122667
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "minilm.definitionFirst@5"
+              ],
+              "gold.associative": 2449,
+              "gold.hierarchy": 3149,
+              "gold.hierarchyClosure": 5853,
+              "gold.sibling": 6867,
+              "pairs": 123429
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "minilm.label@10"
+              ],
+              "gold.associative": 2456,
+              "gold.hierarchy": 3148,
+              "gold.hierarchyClosure": 5854,
+              "gold.sibling": 6886,
+              "pairs": 124470
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "openai-3-large.natural@10"
+              ],
+              "gold.associative": 2459,
+              "gold.hierarchy": 3152,
+              "gold.hierarchyClosure": 5857,
+              "gold.sibling": 6953,
+              "pairs": 124675
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@5",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2452,
+              "gold.hierarchy": 3151,
+              "gold.hierarchyClosure": 5864,
+              "gold.sibling": 6868,
+              "pairs": 124689
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@10",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2481,
+              "gold.hierarchy": 3162,
+              "gold.hierarchyClosure": 5878,
+              "gold.sibling": 6885,
+              "pairs": 124841
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.structured@20"
+              ],
+              "gold.associative": 2474,
+              "gold.hierarchy": 3160,
+              "gold.hierarchyClosure": 5888,
+              "gold.sibling": 6910,
+              "pairs": 125459
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.natural@20"
+              ],
+              "gold.associative": 2476,
+              "gold.hierarchy": 3159,
+              "gold.hierarchyClosure": 5889,
+              "gold.sibling": 6945,
+              "pairs": 128799
+            },
+            {
+              "arms": [
+                "arctic.definitionFirst@10",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2460,
+              "gold.hierarchy": 3163,
+              "gold.hierarchyClosure": 5891,
+              "gold.sibling": 6980,
+              "pairs": 130563
+            },
+            {
+              "arms": [
+                "bge-small.label@20",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2466,
+              "gold.hierarchy": 3162,
+              "gold.hierarchyClosure": 5902,
+              "gold.sibling": 7102,
+              "pairs": 131469
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@20",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2518,
+              "gold.hierarchy": 3177,
+              "gold.hierarchyClosure": 5968,
+              "gold.sibling": 7036,
+              "pairs": 131569
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@50",
+                "gemini-001-sim.structured@50"
+              ],
+              "gold.associative": 2585,
+              "gold.hierarchy": 3211,
+              "gold.hierarchyClosure": 6165,
+              "gold.sibling": 7429,
+              "pairs": 160067
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@50",
+                "gemini-001-sim.label@50"
+              ],
+              "gold.associative": 2595,
+              "gold.hierarchy": 3232,
+              "gold.hierarchyClosure": 6293,
+              "gold.sibling": 7583,
+              "pairs": 170901
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100"
+              ],
+              "gold.associative": 2621,
+              "gold.hierarchy": 3269,
+              "gold.hierarchyClosure": 6570,
+              "gold.sibling": 8296,
+              "pairs": 243751
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@1"
+              ],
+              "gold.associative": 2622,
+              "gold.hierarchy": 3273,
+              "gold.hierarchyClosure": 6574,
+              "gold.sibling": 8298,
+              "pairs": 243763
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@5"
+              ],
+              "gold.associative": 2626,
+              "gold.hierarchy": 3274,
+              "gold.hierarchyClosure": 6575,
+              "gold.sibling": 8304,
+              "pairs": 243895
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@10"
+              ],
+              "gold.associative": 2628,
+              "gold.hierarchy": 3275,
+              "gold.hierarchyClosure": 6578,
+              "gold.sibling": 8315,
+              "pairs": 244205
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "minilm.definitionFirst@5"
+              ],
+              "gold.associative": 2625,
+              "gold.hierarchy": 3275,
+              "gold.hierarchyClosure": 6579,
+              "gold.sibling": 8326,
+              "pairs": 244920
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "nomic.structured@5"
+              ],
+              "gold.associative": 2624,
+              "gold.hierarchy": 3276,
+              "gold.hierarchyClosure": 6581,
+              "gold.sibling": 8329,
+              "pairs": 245032
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@20"
+              ],
+              "gold.associative": 2633,
+              "gold.hierarchy": 3280,
+              "gold.hierarchyClosure": 6588,
+              "gold.sibling": 8336,
+              "pairs": 245469
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "view-bge-small.labelOnly@20"
+              ],
+              "gold.associative": 2632,
+              "gold.hierarchy": 3276,
+              "gold.hierarchyClosure": 6591,
+              "gold.sibling": 8429,
+              "pairs": 249741
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@20",
+                "gemini-001-sim.label@100"
+              ],
+              "gold.associative": 2654,
+              "gold.hierarchy": 3287,
+              "gold.hierarchyClosure": 6618,
+              "gold.sibling": 8364,
+              "pairs": 249858
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@50"
+              ],
+              "gold.associative": 2664,
+              "gold.hierarchy": 3294,
+              "gold.hierarchyClosure": 6632,
+              "gold.sibling": 8433,
+              "pairs": 256777
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "openai-3-large.label@50"
+              ],
+              "gold.associative": 2646,
+              "gold.hierarchy": 3287,
+              "gold.hierarchyClosure": 6643,
+              "gold.sibling": 8630,
+              "pairs": 268731
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@50",
+                "gemini-001-sim.label@100"
+              ],
+              "gold.associative": 2687,
+              "gold.hierarchy": 3304,
+              "gold.hierarchyClosure": 6760,
+              "gold.sibling": 8550,
+              "pairs": 271714
+            },
+            {
+              "arms": [
+                "gemini-001-sim.label@100",
+                "gemini-001-sim.structured@100"
+              ],
+              "gold.associative": 2712,
+              "gold.hierarchy": 3320,
+              "gold.hierarchyClosure": 6844,
+              "gold.sibling": 8815,
+              "pairs": 321877
+            },
+            {
+              "arms": [
+                "gemini-001-sim.definitionFirst@100",
+                "gemini-001-sim.label@100"
+              ],
+              "gold.associative": 2724,
+              "gold.hierarchy": 3320,
+              "gold.hierarchyClosure": 6935,
+              "gold.sibling": 8927,
+              "pairs": 339757
+            }
+          ]
+        }
+      },
+      "conceptCount": 3470,
+      "goldSizes": {
+        "associative": 2848,
+        "hierarchy": 3393,
+        "hierarchyClosure": 7608,
+        "sibling": 10938
+      },
+      "options": 428,
+      "source": "elsst-r6"
+    }
+  ],
+  "type": "AtlasNativeRelationFrontier"
+}

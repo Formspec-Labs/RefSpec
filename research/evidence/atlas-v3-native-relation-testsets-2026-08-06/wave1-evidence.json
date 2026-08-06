@@ -1,0 +1,1552 @@
+{
+  "results": [
+    {
+      "classMix": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "found": {
+              "associative": 153
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 2,
+            "found": {
+              "associative": 245
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 3,
+            "found": {
+              "associative": 312
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 5,
+            "found": {
+              "associative": 399
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 10,
+            "found": {
+              "associative": 521
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 20,
+            "found": {
+              "associative": 607
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 50,
+            "found": {
+              "associative": 693
+            },
+            "share": {
+              "associative": 1.0
+            }
+          },
+          {
+            "depth": 100,
+            "found": {
+              "associative": 739
+            },
+            "share": {
+              "associative": 1.0
+            }
+          }
+        ]
+      },
+      "conceptCount": 705,
+      "goldSizes": {
+        "associative": 780
+      },
+      "source": "federal-register-thesaurus-2025",
+      "triage": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "entailed": 0,
+            "inGold": 153,
+            "neither": 384,
+            "retrieved": 537,
+            "sibling": 0
+          },
+          {
+            "depth": 2,
+            "entailed": 0,
+            "inGold": 245,
+            "neither": 798,
+            "retrieved": 1043,
+            "sibling": 0
+          },
+          {
+            "depth": 3,
+            "entailed": 0,
+            "inGold": 312,
+            "neither": 1216,
+            "retrieved": 1528,
+            "sibling": 0
+          },
+          {
+            "depth": 5,
+            "entailed": 0,
+            "inGold": 399,
+            "neither": 2106,
+            "retrieved": 2505,
+            "sibling": 0
+          },
+          {
+            "depth": 10,
+            "entailed": 0,
+            "inGold": 521,
+            "neither": 4315,
+            "retrieved": 4836,
+            "sibling": 0
+          },
+          {
+            "depth": 20,
+            "entailed": 0,
+            "inGold": 607,
+            "neither": 8814,
+            "retrieved": 9421,
+            "sibling": 0
+          },
+          {
+            "depth": 50,
+            "entailed": 0,
+            "inGold": 693,
+            "neither": 22212,
+            "retrieved": 22905,
+            "sibling": 0
+          },
+          {
+            "depth": 100,
+            "entailed": 0,
+            "inGold": 739,
+            "neither": 43907,
+            "retrieved": 44646,
+            "sibling": 0
+          }
+        ]
+      }
+    },
+    {
+      "classMix": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "found": {
+              "associative": 408,
+              "hierarchy": 688
+            },
+            "share": {
+              "associative": 0.3722627737226277,
+              "hierarchy": 0.6277372262773723
+            }
+          },
+          {
+            "depth": 2,
+            "found": {
+              "associative": 657,
+              "hierarchy": 1121
+            },
+            "share": {
+              "associative": 0.3695163104611924,
+              "hierarchy": 0.6304836895388076
+            }
+          },
+          {
+            "depth": 3,
+            "found": {
+              "associative": 858,
+              "hierarchy": 1351
+            },
+            "share": {
+              "associative": 0.38841104572204616,
+              "hierarchy": 0.6115889542779538
+            }
+          },
+          {
+            "depth": 5,
+            "found": {
+              "associative": 1139,
+              "hierarchy": 1743
+            },
+            "share": {
+              "associative": 0.3952116585704372,
+              "hierarchy": 0.6047883414295628
+            }
+          },
+          {
+            "depth": 10,
+            "found": {
+              "associative": 1547,
+              "hierarchy": 2241
+            },
+            "share": {
+              "associative": 0.4083949313621964,
+              "hierarchy": 0.5916050686378036
+            }
+          },
+          {
+            "depth": 20,
+            "found": {
+              "associative": 1914,
+              "hierarchy": 2637
+            },
+            "share": {
+              "associative": 0.4205669083717864,
+              "hierarchy": 0.5794330916282135
+            }
+          },
+          {
+            "depth": 50,
+            "found": {
+              "associative": 2312,
+              "hierarchy": 2980
+            },
+            "share": {
+              "associative": 0.436885865457294,
+              "hierarchy": 0.563114134542706
+            }
+          },
+          {
+            "depth": 100,
+            "found": {
+              "associative": 2534,
+              "hierarchy": 3159
+            },
+            "share": {
+              "associative": 0.4451080274020727,
+              "hierarchy": 0.5548919725979273
+            }
+          }
+        ]
+      },
+      "closure": {
+        "arms": [
+          {
+            "arm": "gemini-001-sim.label",
+            "asserted": 3269,
+            "assertedRecall": 0.9634541703507221,
+            "closure": 6570,
+            "closureRecall": 0.863564668769716
+          },
+          {
+            "arm": "gemini-001-sim.structured",
+            "asserted": 3228,
+            "assertedRecall": 0.9513704686118479,
+            "closure": 6379,
+            "closureRecall": 0.838459516298633
+          },
+          {
+            "arm": "openai-3-large.label",
+            "asserted": 3159,
+            "assertedRecall": 0.9310344827586207,
+            "closure": 5936,
+            "closureRecall": 0.7802313354363828
+          },
+          {
+            "arm": "view-bge-small.maxOverLabels",
+            "asserted": 3134,
+            "assertedRecall": 0.923666371942234,
+            "closure": 5850,
+            "closureRecall": 0.7689274447949527
+          },
+          {
+            "arm": "gemini-001-sim.natural",
+            "asserted": 3130,
+            "assertedRecall": 0.9224874742116121,
+            "closure": 5859,
+            "closureRecall": 0.7701104100946372
+          },
+          {
+            "arm": "bge-small.label",
+            "asserted": 3124,
+            "assertedRecall": 0.9207191276156793,
+            "closure": 5786,
+            "closureRecall": 0.7605152471083071
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.maxOverLabels",
+            "asserted": 3106,
+            "assertedRecall": 0.9154140878278809,
+            "closure": 5881,
+            "closureRecall": 0.7730021030494216
+          },
+          {
+            "arm": "view-bge-small.labelOnly",
+            "asserted": 3097,
+            "assertedRecall": 0.9127615679339818,
+            "closure": 5762,
+            "closureRecall": 0.7573606729758149
+          },
+          {
+            "arm": "view-bge-small.lowercased",
+            "asserted": 3097,
+            "assertedRecall": 0.9127615679339818,
+            "closure": 5762,
+            "closureRecall": 0.7573606729758149
+          },
+          {
+            "arm": "minilm.natural",
+            "asserted": 3075,
+            "assertedRecall": 0.9062776304155614,
+            "closure": 5667,
+            "closureRecall": 0.7448738170347003
+          },
+          {
+            "arm": "openai-3-large.natural",
+            "asserted": 3073,
+            "assertedRecall": 0.9056881815502505,
+            "closure": 5555,
+            "closureRecall": 0.7301524710830705
+          },
+          {
+            "arm": "openai-3-small.label",
+            "asserted": 3063,
+            "assertedRecall": 0.9027409372236959,
+            "closure": 5536,
+            "closureRecall": 0.7276550998948476
+          },
+          {
+            "arm": "openai-3-large.definitionFirst",
+            "asserted": 3059,
+            "assertedRecall": 0.901562039493074,
+            "closure": 5555,
+            "closureRecall": 0.7301524710830705
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.labelOnly",
+            "asserted": 3047,
+            "assertedRecall": 0.8980253463012083,
+            "closure": 5783,
+            "closureRecall": 0.7601209253417456
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.lowercased",
+            "asserted": 3047,
+            "assertedRecall": 0.8980253463012083,
+            "closure": 5783,
+            "closureRecall": 0.7601209253417456
+          },
+          {
+            "arm": "minilm.label",
+            "asserted": 3045,
+            "assertedRecall": 0.8974358974358975,
+            "closure": 5568,
+            "closureRecall": 0.7318611987381703
+          },
+          {
+            "arm": "view-bge-small.schemeQualified",
+            "asserted": 3042,
+            "assertedRecall": 0.896551724137931,
+            "closure": 5900,
+            "closureRecall": 0.7754994742376445
+          },
+          {
+            "arm": "openai-ada-002.label",
+            "asserted": 3040,
+            "assertedRecall": 0.8959622752726201,
+            "closure": 5565,
+            "closureRecall": 0.7314668769716088
+          },
+          {
+            "arm": "openai-3-large.structured",
+            "asserted": 3032,
+            "assertedRecall": 0.8936044798113764,
+            "closure": 5486,
+            "closureRecall": 0.7210830704521556
+          },
+          {
+            "arm": "arctic.label",
+            "asserted": 3018,
+            "assertedRecall": 0.8894783377541998,
+            "closure": 5526,
+            "closureRecall": 0.7263406940063092
+          },
+          {
+            "arm": "opensearch.label",
+            "asserted": 3001,
+            "assertedRecall": 0.8844680223990569,
+            "closure": 5242,
+            "closureRecall": 0.6890115667718192
+          },
+          {
+            "arm": "arctic.natural",
+            "asserted": 2997,
+            "assertedRecall": 0.883289124668435,
+            "closure": 5371,
+            "closureRecall": 0.7059674027339643
+          },
+          {
+            "arm": "openai-ada-002.definitionFirst",
+            "asserted": 2995,
+            "assertedRecall": 0.882699675803124,
+            "closure": 5442,
+            "closureRecall": 0.7152996845425867
+          },
+          {
+            "arm": "gemini-001-sim.definitionFirst",
+            "asserted": 2994,
+            "assertedRecall": 0.8824049513704686,
+            "closure": 5784,
+            "closureRecall": 0.7602523659305994
+          },
+          {
+            "arm": "openai-3-small.structured",
+            "asserted": 2994,
+            "assertedRecall": 0.8824049513704686,
+            "closure": 5360,
+            "closureRecall": 0.704521556256572
+          },
+          {
+            "arm": "nomic.label",
+            "asserted": 2990,
+            "assertedRecall": 0.8812260536398467,
+            "closure": 5404,
+            "closureRecall": 0.7103049421661409
+          },
+          {
+            "arm": "openai-ada-002.structured",
+            "asserted": 2990,
+            "assertedRecall": 0.8812260536398467,
+            "closure": 5408,
+            "closureRecall": 0.7108307045215563
+          },
+          {
+            "arm": "openai-ada-002.natural",
+            "asserted": 2985,
+            "assertedRecall": 0.8797524314765695,
+            "closure": 5387,
+            "closureRecall": 0.7080704521556257
+          },
+          {
+            "arm": "openai-3-small.natural",
+            "asserted": 2984,
+            "assertedRecall": 0.8794577070439139,
+            "closure": 5287,
+            "closureRecall": 0.6949263932702419
+          },
+          {
+            "arm": "jina.natural",
+            "asserted": 2974,
+            "assertedRecall": 0.8765104627173592,
+            "closure": 5329,
+            "closureRecall": 0.700446898002103
+          },
+          {
+            "arm": "openai-3-small.definitionFirst",
+            "asserted": 2974,
+            "assertedRecall": 0.8765104627173592,
+            "closure": 5264,
+            "closureRecall": 0.6919032597266036
+          },
+          {
+            "arm": "minilm.structured",
+            "asserted": 2970,
+            "assertedRecall": 0.8753315649867374,
+            "closure": 5397,
+            "closureRecall": 0.7093848580441641
+          },
+          {
+            "arm": "jina.label",
+            "asserted": 2969,
+            "assertedRecall": 0.8750368405540819,
+            "closure": 5366,
+            "closureRecall": 0.705310199789695
+          },
+          {
+            "arm": "bge-small.definitionFirst",
+            "asserted": 2962,
+            "assertedRecall": 0.8729737695254937,
+            "closure": 5335,
+            "closureRecall": 0.701235541535226
+          },
+          {
+            "arm": "bge-small.natural",
+            "asserted": 2949,
+            "assertedRecall": 0.8691423519009726,
+            "closure": 5290,
+            "closureRecall": 0.6953207150368034
+          },
+          {
+            "arm": "minilm.definitionFirst",
+            "asserted": 2946,
+            "assertedRecall": 0.8682581786030061,
+            "closure": 5417,
+            "closureRecall": 0.7120136698212408
+          },
+          {
+            "arm": "nomic.natural",
+            "asserted": 2932,
+            "assertedRecall": 0.8641320365458296,
+            "closure": 5248,
+            "closureRecall": 0.6898002103049422
+          },
+          {
+            "arm": "bge-small.structured",
+            "asserted": 2922,
+            "assertedRecall": 0.861184792219275,
+            "closure": 5217,
+            "closureRecall": 0.6857255520504731
+          },
+          {
+            "arm": "arctic.definitionFirst",
+            "asserted": 2908,
+            "assertedRecall": 0.8570586501620985,
+            "closure": 5260,
+            "closureRecall": 0.6913774973711883
+          },
+          {
+            "arm": "splade.label",
+            "asserted": 2847,
+            "assertedRecall": 0.8390804597701149,
+            "closure": 5035,
+            "closureRecall": 0.6618033648790747
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.schemeQualified",
+            "asserted": 2820,
+            "assertedRecall": 0.8311229000884174,
+            "closure": 5323,
+            "closureRecall": 0.69965825446898
+          },
+          {
+            "arm": "arctic.structured",
+            "asserted": 2800,
+            "assertedRecall": 0.825228411435308,
+            "closure": 4972,
+            "closureRecall": 0.6535226077812829
+          },
+          {
+            "arm": "nomic.structured",
+            "asserted": 2775,
+            "assertedRecall": 0.8178603006189213,
+            "closure": 4863,
+            "closureRecall": 0.6391955835962145
+          },
+          {
+            "arm": "jina.definitionFirst",
+            "asserted": 2754,
+            "assertedRecall": 0.8116710875331565,
+            "closure": 4855,
+            "closureRecall": 0.6381440588853838
+          },
+          {
+            "arm": "jina.structured",
+            "asserted": 2753,
+            "assertedRecall": 0.811376363100501,
+            "closure": 4743,
+            "closureRecall": 0.623422712933754
+          },
+          {
+            "arm": "nomic.definitionFirst",
+            "asserted": 2717,
+            "assertedRecall": 0.8007662835249042,
+            "closure": 4848,
+            "closureRecall": 0.637223974763407
+          },
+          {
+            "arm": "opensearch.structured",
+            "asserted": 2703,
+            "assertedRecall": 0.7966401414677277,
+            "closure": 4490,
+            "closureRecall": 0.5901682439537329
+          },
+          {
+            "arm": "splade.structured",
+            "asserted": 2538,
+            "assertedRecall": 0.7480106100795756,
+            "closure": 4179,
+            "closureRecall": 0.5492902208201893
+          },
+          {
+            "arm": "minicoil.structured",
+            "asserted": 2151,
+            "assertedRecall": 0.6339522546419099,
+            "closure": 3366,
+            "closureRecall": 0.44242902208201895
+          },
+          {
+            "arm": "labelCharacterNgramV1",
+            "asserted": 2079,
+            "assertedRecall": 0.6127320954907162,
+            "closure": 3003,
+            "closureRecall": 0.3947160883280757
+          },
+          {
+            "arm": "contextSparseV1",
+            "asserted": 2047,
+            "assertedRecall": 0.6033009136457412,
+            "closure": 2966,
+            "closureRecall": 0.3898527865404837
+          },
+          {
+            "arm": "lexical.alias-token-set-ratio",
+            "asserted": 1979,
+            "assertedRecall": 0.5832596522251695,
+            "closure": 2821,
+            "closureRecall": 0.3707939011566772
+          },
+          {
+            "arm": "minicoil.label",
+            "asserted": 1972,
+            "assertedRecall": 0.5811965811965812,
+            "closure": 2875,
+            "closureRecall": 0.3778916929547844
+          },
+          {
+            "arm": "lexical.character-trigram-token-set",
+            "asserted": 1831,
+            "assertedRecall": 0.5396404361921603,
+            "closure": 2663,
+            "closureRecall": 0.35002628811777076
+          },
+          {
+            "arm": "lexical.rapidfuzz-token-set-ratio",
+            "asserted": 1831,
+            "assertedRecall": 0.5396404361921603,
+            "closure": 2644,
+            "closureRecall": 0.34752891692954785
+          },
+          {
+            "arm": "lexical.rapidfuzz-partial-ratio",
+            "asserted": 1830,
+            "assertedRecall": 0.5393457117595049,
+            "closure": 2660,
+            "closureRecall": 0.34963196635120924
+          },
+          {
+            "arm": "lexical.rapidfuzz-wratio",
+            "asserted": 1820,
+            "assertedRecall": 0.5363984674329502,
+            "closure": 2652,
+            "closureRecall": 0.34858044164037855
+          },
+          {
+            "arm": "labelSparseV1",
+            "asserted": 1812,
+            "assertedRecall": 0.5340406719717065,
+            "closure": 2449,
+            "closureRecall": 0.3218980021030494
+          },
+          {
+            "arm": "lexical.rapidfuzz-qratio",
+            "asserted": 1716,
+            "assertedRecall": 0.5057471264367817,
+            "closure": 2407,
+            "closureRecall": 0.3163774973711882
+          },
+          {
+            "arm": "lexical.rapidfuzz-ratio",
+            "asserted": 1716,
+            "assertedRecall": 0.5057471264367817,
+            "closure": 2407,
+            "closureRecall": 0.3163774973711882
+          },
+          {
+            "arm": "lexical.rapidfuzz-token-sort-ratio",
+            "asserted": 1646,
+            "assertedRecall": 0.4851164161508989,
+            "closure": 2337,
+            "closureRecall": 0.30717665615141954
+          },
+          {
+            "arm": "lexical.token-sorted-qratio",
+            "asserted": 1646,
+            "assertedRecall": 0.4851164161508989,
+            "closure": 2337,
+            "closureRecall": 0.30717665615141954
+          },
+          {
+            "arm": "lexical.normalized-levenshtein",
+            "asserted": 1633,
+            "assertedRecall": 0.48128499852637785,
+            "closure": 2280,
+            "closureRecall": 0.2996845425867508
+          },
+          {
+            "arm": "lexical.levenshtein-distance",
+            "asserted": 1623,
+            "assertedRecall": 0.47833775419982316,
+            "closure": 2313,
+            "closureRecall": 0.30402208201892744
+          },
+          {
+            "arm": "lexical.alias-wratio",
+            "asserted": 1554,
+            "assertedRecall": 0.45800176834659595,
+            "closure": 2312,
+            "closureRecall": 0.3038906414300736
+          },
+          {
+            "arm": "lexical.compact-jaro-winkler",
+            "asserted": 1252,
+            "assertedRecall": 0.36899498968464484,
+            "closure": 1754,
+            "closureRecall": 0.23054679284963198
+          },
+          {
+            "arm": "lexical.jaro",
+            "asserted": 1215,
+            "assertedRecall": 0.35809018567639256,
+            "closure": 1707,
+            "closureRecall": 0.22436908517350157
+          },
+          {
+            "arm": "lexical.jaro-winkler",
+            "asserted": 1215,
+            "assertedRecall": 0.35809018567639256,
+            "closure": 1707,
+            "closureRecall": 0.22436908517350157
+          },
+          {
+            "arm": "lexical.acronym-token-set-ratio",
+            "asserted": 1134,
+            "assertedRecall": 0.33421750663129973,
+            "closure": 1584,
+            "closureRecall": 0.2082018927444795
+          },
+          {
+            "arm": "minilm-ce.label",
+            "asserted": 1121,
+            "assertedRecall": 0.3303860890067787,
+            "closure": 2218,
+            "closureRecall": 0.29153522607781285
+          },
+          {
+            "arm": "lexical.identifier-qratio",
+            "asserted": 135,
+            "assertedRecall": 0.03978779840848806,
+            "closure": 299,
+            "closureRecall": 0.03930073606729758
+          },
+          {
+            "arm": "exactPreferredLabel",
+            "asserted": 0,
+            "assertedRecall": 0.0,
+            "closure": 0,
+            "closureRecall": 0.0
+          },
+          {
+            "arm": "exactSharedAliasAnchor",
+            "asserted": 0,
+            "assertedRecall": 0.0,
+            "closure": 0,
+            "closureRecall": 0.0
+          }
+        ],
+        "assertedEdges": 3393,
+        "closureEdges": 7608,
+        "top10Identical": false,
+        "top10SetIdentical": false
+      },
+      "conceptCount": 3470,
+      "goldSizes": {
+        "associative": 2848,
+        "hierarchy": 3393
+      },
+      "source": "elsst-r6",
+      "triage": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "entailed": 53,
+            "inGold": 1096,
+            "neither": 1030,
+            "retrieved": 2671,
+            "sibling": 492
+          },
+          {
+            "depth": 2,
+            "entailed": 127,
+            "inGold": 1778,
+            "neither": 2320,
+            "retrieved": 5106,
+            "sibling": 881
+          },
+          {
+            "depth": 3,
+            "entailed": 227,
+            "inGold": 2209,
+            "neither": 3778,
+            "retrieved": 7489,
+            "sibling": 1275
+          },
+          {
+            "depth": 5,
+            "entailed": 386,
+            "inGold": 2882,
+            "neither": 7083,
+            "retrieved": 12239,
+            "sibling": 1888
+          },
+          {
+            "depth": 10,
+            "entailed": 762,
+            "inGold": 3788,
+            "neither": 16330,
+            "retrieved": 23946,
+            "sibling": 3066
+          },
+          {
+            "depth": 20,
+            "entailed": 1267,
+            "inGold": 4551,
+            "neither": 36581,
+            "retrieved": 47016,
+            "sibling": 4617
+          },
+          {
+            "depth": 50,
+            "entailed": 2134,
+            "inGold": 5292,
+            "neither": 101388,
+            "retrieved": 115535,
+            "sibling": 6721
+          },
+          {
+            "depth": 100,
+            "entailed": 2777,
+            "inGold": 5693,
+            "neither": 212895,
+            "retrieved": 229442,
+            "sibling": 8077
+          }
+        ]
+      }
+    },
+    {
+      "classMix": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "found": {
+              "associative": 758,
+              "equivalence": 346,
+              "hierarchy": 310
+            },
+            "share": {
+              "associative": 0.536067892503536,
+              "equivalence": 0.2446958981612447,
+              "hierarchy": 0.21923620933521923
+            }
+          },
+          {
+            "depth": 2,
+            "found": {
+              "associative": 1266,
+              "equivalence": 409,
+              "hierarchy": 516
+            },
+            "share": {
+              "associative": 0.577818347786399,
+              "equivalence": 0.18667275216795984,
+              "hierarchy": 0.23550890004564126
+            }
+          },
+          {
+            "depth": 3,
+            "found": {
+              "associative": 1682,
+              "equivalence": 441,
+              "hierarchy": 674
+            },
+            "share": {
+              "associative": 0.6013585984983911,
+              "equivalence": 0.15766893099749732,
+              "hierarchy": 0.24097247050411155
+            }
+          },
+          {
+            "depth": 5,
+            "found": {
+              "associative": 2312,
+              "equivalence": 460,
+              "hierarchy": 898
+            },
+            "share": {
+              "associative": 0.6299727520435967,
+              "equivalence": 0.12534059945504086,
+              "hierarchy": 0.2446866485013624
+            }
+          },
+          {
+            "depth": 10,
+            "found": {
+              "associative": 3301,
+              "equivalence": 472,
+              "hierarchy": 1223
+            },
+            "share": {
+              "associative": 0.660728582866293,
+              "equivalence": 0.0944755804643715,
+              "hierarchy": 0.24479583666933546
+            }
+          },
+          {
+            "depth": 20,
+            "found": {
+              "associative": 4373,
+              "equivalence": 479,
+              "hierarchy": 1453
+            },
+            "share": {
+              "associative": 0.6935765265662173,
+              "equivalence": 0.07597145122918318,
+              "hierarchy": 0.2304520222045995
+            }
+          },
+          {
+            "depth": 50,
+            "found": {
+              "associative": 5530,
+              "equivalence": 483,
+              "hierarchy": 1619
+            },
+            "share": {
+              "associative": 0.72458071278826,
+              "equivalence": 0.06328616352201258,
+              "hierarchy": 0.21213312368972748
+            }
+          },
+          {
+            "depth": 100,
+            "found": {
+              "associative": 6232,
+              "equivalence": 485,
+              "hierarchy": 1680
+            },
+            "share": {
+              "associative": 0.7421698225556747,
+              "equivalence": 0.05775872335357866,
+              "hierarchy": 0.2000714540907467
+            }
+          }
+        ]
+      },
+      "closure": {
+        "arms": [
+          {
+            "arm": "gemini-001-sim.label",
+            "asserted": 1714,
+            "assertedRecall": 0.9722064662507091,
+            "closure": 2330,
+            "closureRecall": 0.917684127609295
+          },
+          {
+            "arm": "gemini-001-sim.natural",
+            "asserted": 1706,
+            "assertedRecall": 0.9676687464549064,
+            "closure": 2317,
+            "closureRecall": 0.9125640015754234
+          },
+          {
+            "arm": "gemini-001-sim.definitionFirst",
+            "asserted": 1701,
+            "assertedRecall": 0.9648326715825298,
+            "closure": 2312,
+            "closureRecall": 0.9105947223316266
+          },
+          {
+            "arm": "gemini-001-sim.structured",
+            "asserted": 1697,
+            "assertedRecall": 0.9625638116846285,
+            "closure": 2305,
+            "closureRecall": 0.9078377313903111
+          },
+          {
+            "arm": "openai-3-large.structured",
+            "asserted": 1686,
+            "assertedRecall": 0.9563244469653999,
+            "closure": 2234,
+            "closureRecall": 0.879873966128397
+          },
+          {
+            "arm": "openai-ada-002.structured",
+            "asserted": 1682,
+            "assertedRecall": 0.9540555870674986,
+            "closure": 2222,
+            "closureRecall": 0.8751476959432848
+          },
+          {
+            "arm": "openai-3-small.structured",
+            "asserted": 1681,
+            "assertedRecall": 0.9534883720930233,
+            "closure": 2203,
+            "closureRecall": 0.8676644348168571
+          },
+          {
+            "arm": "openai-3-large.label",
+            "asserted": 1680,
+            "assertedRecall": 0.952921157118548,
+            "closure": 2188,
+            "closureRecall": 0.8617565970854667
+          },
+          {
+            "arm": "openai-3-large.natural",
+            "asserted": 1674,
+            "assertedRecall": 0.949517867271696,
+            "closure": 2202,
+            "closureRecall": 0.8672705789680977
+          },
+          {
+            "arm": "openai-ada-002.label",
+            "asserted": 1673,
+            "assertedRecall": 0.9489506522972206,
+            "closure": 2146,
+            "closureRecall": 0.8452146514375738
+          },
+          {
+            "arm": "openai-ada-002.definitionFirst",
+            "asserted": 1668,
+            "assertedRecall": 0.9461145774248441,
+            "closure": 2171,
+            "closureRecall": 0.8550610476565577
+          },
+          {
+            "arm": "openai-ada-002.natural",
+            "asserted": 1667,
+            "assertedRecall": 0.9455473624503687,
+            "closure": 2196,
+            "closureRecall": 0.8649074438755415
+          },
+          {
+            "arm": "bge-small.label",
+            "asserted": 1666,
+            "assertedRecall": 0.9449801474758933,
+            "closure": 2179,
+            "closureRecall": 0.8582118944466325
+          },
+          {
+            "arm": "view-bge-small.labelOnly",
+            "asserted": 1666,
+            "assertedRecall": 0.9449801474758933,
+            "closure": 2179,
+            "closureRecall": 0.8582118944466325
+          },
+          {
+            "arm": "view-bge-small.lowercased",
+            "asserted": 1666,
+            "assertedRecall": 0.9449801474758933,
+            "closure": 2179,
+            "closureRecall": 0.8582118944466325
+          },
+          {
+            "arm": "view-bge-small.maxOverLabels",
+            "asserted": 1666,
+            "assertedRecall": 0.9449801474758933,
+            "closure": 2179,
+            "closureRecall": 0.8582118944466325
+          },
+          {
+            "arm": "openai-3-small.label",
+            "asserted": 1662,
+            "assertedRecall": 0.942711287577992,
+            "closure": 2110,
+            "closureRecall": 0.8310358408822371
+          },
+          {
+            "arm": "bge-small.definitionFirst",
+            "asserted": 1657,
+            "assertedRecall": 0.9398752127056155,
+            "closure": 2169,
+            "closureRecall": 0.854273335959039
+          },
+          {
+            "arm": "minilm.natural",
+            "asserted": 1654,
+            "assertedRecall": 0.9381735677821894,
+            "closure": 2168,
+            "closureRecall": 0.8538794801102796
+          },
+          {
+            "arm": "openai-3-small.natural",
+            "asserted": 1653,
+            "assertedRecall": 0.9376063528077141,
+            "closure": 2159,
+            "closureRecall": 0.8503347774714455
+          },
+          {
+            "arm": "bge-small.natural",
+            "asserted": 1652,
+            "assertedRecall": 0.9370391378332388,
+            "closure": 2148,
+            "closureRecall": 0.8460023631350926
+          },
+          {
+            "arm": "openai-3-large.definitionFirst",
+            "asserted": 1652,
+            "assertedRecall": 0.9370391378332388,
+            "closure": 2159,
+            "closureRecall": 0.8503347774714455
+          },
+          {
+            "arm": "minilm.label",
+            "asserted": 1650,
+            "assertedRecall": 0.9359047078842881,
+            "closure": 2151,
+            "closureRecall": 0.8471839306813707
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.labelOnly",
+            "asserted": 1650,
+            "assertedRecall": 0.9359047078842881,
+            "closure": 2151,
+            "closureRecall": 0.8471839306813707
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.lowercased",
+            "asserted": 1650,
+            "assertedRecall": 0.9359047078842881,
+            "closure": 2151,
+            "closureRecall": 0.8471839306813707
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.maxOverLabels",
+            "asserted": 1650,
+            "assertedRecall": 0.9359047078842881,
+            "closure": 2151,
+            "closureRecall": 0.8471839306813707
+          },
+          {
+            "arm": "minilm.definitionFirst",
+            "asserted": 1644,
+            "assertedRecall": 0.9325014180374361,
+            "closure": 2130,
+            "closureRecall": 0.8389129578574241
+          },
+          {
+            "arm": "openai-3-small.definitionFirst",
+            "asserted": 1639,
+            "assertedRecall": 0.9296653431650596,
+            "closure": 2101,
+            "closureRecall": 0.8274911382434029
+          },
+          {
+            "arm": "jina.label",
+            "asserted": 1630,
+            "assertedRecall": 0.9245604083947816,
+            "closure": 2132,
+            "closureRecall": 0.8397006695549429
+          },
+          {
+            "arm": "minilm.structured",
+            "asserted": 1630,
+            "assertedRecall": 0.9245604083947816,
+            "closure": 2117,
+            "closureRecall": 0.8337928318235526
+          },
+          {
+            "arm": "jina.natural",
+            "asserted": 1625,
+            "assertedRecall": 0.921724333522405,
+            "closure": 2133,
+            "closureRecall": 0.8400945254037022
+          },
+          {
+            "arm": "arctic.natural",
+            "asserted": 1624,
+            "assertedRecall": 0.9211571185479297,
+            "closure": 2117,
+            "closureRecall": 0.8337928318235526
+          },
+          {
+            "arm": "bge-small.structured",
+            "asserted": 1621,
+            "assertedRecall": 0.9194554736245036,
+            "closure": 2099,
+            "closureRecall": 0.8267034265458842
+          },
+          {
+            "arm": "view-bge-small.schemeQualified",
+            "asserted": 1617,
+            "assertedRecall": 0.9171866137266024,
+            "closure": 2152,
+            "closureRecall": 0.8475777865301299
+          },
+          {
+            "arm": "arctic.structured",
+            "asserted": 1609,
+            "assertedRecall": 0.9126488939307997,
+            "closure": 2097,
+            "closureRecall": 0.8259157148483655
+          },
+          {
+            "arm": "jina.structured",
+            "asserted": 1609,
+            "assertedRecall": 0.9126488939307997,
+            "closure": 2100,
+            "closureRecall": 0.8270972823946435
+          },
+          {
+            "arm": "nomic.label",
+            "asserted": 1608,
+            "assertedRecall": 0.9120816789563244,
+            "closure": 2068,
+            "closureRecall": 0.8144938952343442
+          },
+          {
+            "arm": "nomic.natural",
+            "asserted": 1607,
+            "assertedRecall": 0.9115144639818491,
+            "closure": 2085,
+            "closureRecall": 0.8211894446632533
+          },
+          {
+            "arm": "opensearch.label",
+            "asserted": 1607,
+            "assertedRecall": 0.9115144639818491,
+            "closure": 2061,
+            "closureRecall": 0.8117369042930288
+          },
+          {
+            "arm": "arctic.definitionFirst",
+            "asserted": 1601,
+            "assertedRecall": 0.9081111741349972,
+            "closure": 2078,
+            "closureRecall": 0.8184324537219377
+          },
+          {
+            "arm": "jina.definitionFirst",
+            "asserted": 1598,
+            "assertedRecall": 0.9064095292115711,
+            "closure": 2077,
+            "closureRecall": 0.8180385978731785
+          },
+          {
+            "arm": "arctic.label",
+            "asserted": 1597,
+            "assertedRecall": 0.9058423142370958,
+            "closure": 2092,
+            "closureRecall": 0.8239464356045687
+          },
+          {
+            "arm": "nomic.structured",
+            "asserted": 1591,
+            "assertedRecall": 0.9024390243902439,
+            "closure": 2052,
+            "closureRecall": 0.8081922016541946
+          },
+          {
+            "arm": "opensearch.structured",
+            "asserted": 1577,
+            "assertedRecall": 0.8944980147475894,
+            "closure": 1989,
+            "closureRecall": 0.7833792831823553
+          },
+          {
+            "arm": "splade.label",
+            "asserted": 1577,
+            "assertedRecall": 0.8944980147475894,
+            "closure": 1996,
+            "closureRecall": 0.7861362741236707
+          },
+          {
+            "arm": "nomic.definitionFirst",
+            "asserted": 1571,
+            "assertedRecall": 0.8910947249007374,
+            "closure": 2015,
+            "closureRecall": 0.7936195352500984
+          },
+          {
+            "arm": "view-MiniLM-L6-v2.schemeQualified",
+            "asserted": 1549,
+            "assertedRecall": 0.8786159954622802,
+            "closure": 2022,
+            "closureRecall": 0.796376526191414
+          },
+          {
+            "arm": "splade.structured",
+            "asserted": 1523,
+            "assertedRecall": 0.8638684061259218,
+            "closure": 1938,
+            "closureRecall": 0.7632926348956282
+          },
+          {
+            "arm": "minicoil.structured",
+            "asserted": 1213,
+            "assertedRecall": 0.6880317640385706,
+            "closure": 1419,
+            "closureRecall": 0.5588814493895234
+          },
+          {
+            "arm": "labelCharacterNgramV1",
+            "asserted": 1127,
+            "assertedRecall": 0.6392512762336926,
+            "closure": 1289,
+            "closureRecall": 0.5076801890508074
+          },
+          {
+            "arm": "lexical.rapidfuzz-partial-ratio",
+            "asserted": 1112,
+            "assertedRecall": 0.6307430516165626,
+            "closure": 1271,
+            "closureRecall": 0.500590783773139
+          },
+          {
+            "arm": "lexical.alias-wratio",
+            "asserted": 1101,
+            "assertedRecall": 0.624503686897334,
+            "closure": 1260,
+            "closureRecall": 0.49625836943678614
+          },
+          {
+            "arm": "lexical.rapidfuzz-wratio",
+            "asserted": 1101,
+            "assertedRecall": 0.624503686897334,
+            "closure": 1260,
+            "closureRecall": 0.49625836943678614
+          },
+          {
+            "arm": "lexical.character-trigram-token-set",
+            "asserted": 1099,
+            "assertedRecall": 0.6233692569483834,
+            "closure": 1243,
+            "closureRecall": 0.4895628200078771
+          },
+          {
+            "arm": "lexical.alias-token-set-ratio",
+            "asserted": 1093,
+            "assertedRecall": 0.6199659671015315,
+            "closure": 1247,
+            "closureRecall": 0.4911382434029145
+          },
+          {
+            "arm": "lexical.rapidfuzz-token-set-ratio",
+            "asserted": 1093,
+            "assertedRecall": 0.6199659671015315,
+            "closure": 1247,
+            "closureRecall": 0.4911382434029145
+          },
+          {
+            "arm": "lexical.rapidfuzz-qratio",
+            "asserted": 1055,
+            "assertedRecall": 0.598411798071469,
+            "closure": 1195,
+            "closureRecall": 0.4706577392674281
+          },
+          {
+            "arm": "lexical.rapidfuzz-ratio",
+            "asserted": 1055,
+            "assertedRecall": 0.598411798071469,
+            "closure": 1195,
+            "closureRecall": 0.4706577392674281
+          },
+          {
+            "arm": "minicoil.label",
+            "asserted": 1038,
+            "assertedRecall": 0.5887691435053886,
+            "closure": 1170,
+            "closureRecall": 0.4608113430484443
+          },
+          {
+            "arm": "lexical.rapidfuzz-token-sort-ratio",
+            "asserted": 1022,
+            "assertedRecall": 0.5796937039137833,
+            "closure": 1161,
+            "closureRecall": 0.45726664040961007
+          },
+          {
+            "arm": "lexical.token-sorted-qratio",
+            "asserted": 1022,
+            "assertedRecall": 0.5796937039137833,
+            "closure": 1161,
+            "closureRecall": 0.45726664040961007
+          },
+          {
+            "arm": "contextSparseV1",
+            "asserted": 1006,
+            "assertedRecall": 0.5706182643221781,
+            "closure": 1164,
+            "closureRecall": 0.45844820795588814
+          },
+          {
+            "arm": "lexical.normalized-levenshtein",
+            "asserted": 981,
+            "assertedRecall": 0.556437889960295,
+            "closure": 1100,
+            "closureRecall": 0.4332414336352895
+          },
+          {
+            "arm": "lexical.levenshtein-distance",
+            "asserted": 977,
+            "assertedRecall": 0.5541690300623936,
+            "closure": 1115,
+            "closureRecall": 0.4391492713666798
+          },
+          {
+            "arm": "labelSparseV1",
+            "asserted": 895,
+            "assertedRecall": 0.5076574021554169,
+            "closure": 1007,
+            "closureRecall": 0.3966128397006696
+          },
+          {
+            "arm": "lexical.compact-jaro-winkler",
+            "asserted": 579,
+            "assertedRecall": 0.3284174702212138,
+            "closure": 662,
+            "closureRecall": 0.2607325718786924
+          },
+          {
+            "arm": "lexical.jaro",
+            "asserted": 523,
+            "assertedRecall": 0.2966534316505956,
+            "closure": 608,
+            "closureRecall": 0.23946435604568728
+          },
+          {
+            "arm": "lexical.jaro-winkler",
+            "asserted": 523,
+            "assertedRecall": 0.2966534316505956,
+            "closure": 608,
+            "closureRecall": 0.23946435604568728
+          },
+          {
+            "arm": "minilm-ce.label",
+            "asserted": 516,
+            "assertedRecall": 0.2926829268292683,
+            "closure": 704,
+            "closureRecall": 0.2772745175265853
+          },
+          {
+            "arm": "lexical.acronym-token-set-ratio",
+            "asserted": 202,
+            "assertedRecall": 0.11457742484401588,
+            "closure": 250,
+            "closureRecall": 0.09846396218983852
+          },
+          {
+            "arm": "lexical.identifier-qratio",
+            "asserted": 147,
+            "assertedRecall": 0.08338060124787294,
+            "closure": 178,
+            "closureRecall": 0.07010634107916502
+          },
+          {
+            "arm": "exactPreferredLabel",
+            "asserted": 0,
+            "assertedRecall": 0.0,
+            "closure": 0,
+            "closureRecall": 0.0
+          },
+          {
+            "arm": "exactSharedAliasAnchor",
+            "asserted": 0,
+            "assertedRecall": 0.0,
+            "closure": 0,
+            "closureRecall": 0.0
+          }
+        ],
+        "assertedEdges": 1763,
+        "closureEdges": 2539,
+        "top10Identical": false,
+        "top10SetIdentical": false
+      },
+      "conceptCount": 3810,
+      "goldSizes": {
+        "associative": 7180,
+        "equivalence": 485,
+        "hierarchy": 1763
+      },
+      "source": "icpsr-subject-thesaurus",
+      "triage": {
+        "arm": "openai-3-large.label",
+        "byDepth": [
+          {
+            "depth": 1,
+            "entailed": 2,
+            "inGold": 1414,
+            "neither": 1191,
+            "retrieved": 2854,
+            "sibling": 247
+          },
+          {
+            "depth": 2,
+            "entailed": 7,
+            "inGold": 2191,
+            "neither": 2792,
+            "retrieved": 5511,
+            "sibling": 521
+          },
+          {
+            "depth": 3,
+            "entailed": 19,
+            "inGold": 2797,
+            "neither": 4504,
+            "retrieved": 8091,
+            "sibling": 771
+          },
+          {
+            "depth": 5,
+            "entailed": 45,
+            "inGold": 3670,
+            "neither": 8306,
+            "retrieved": 13232,
+            "sibling": 1211
+          },
+          {
+            "depth": 10,
+            "entailed": 101,
+            "inGold": 4996,
+            "neither": 18936,
+            "retrieved": 26030,
+            "sibling": 1997
+          },
+          {
+            "depth": 20,
+            "entailed": 195,
+            "inGold": 6305,
+            "neither": 41684,
+            "retrieved": 51172,
+            "sibling": 2988
+          },
+          {
+            "depth": 50,
+            "entailed": 368,
+            "inGold": 7632,
+            "neither": 114416,
+            "retrieved": 126509,
+            "sibling": 4093
+          },
+          {
+            "depth": 100,
+            "entailed": 498,
+            "inGold": 8397,
+            "neither": 238912,
+            "retrieved": 252456,
+            "sibling": 4649
+          }
+        ]
+      }
+    }
+  ]
+}
