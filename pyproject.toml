@@ -5,6 +5,7 @@ description = "Reference implementation and bindings for the Regulatory Evidence
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "backports-zstd==1.6.0; python_version < '3.14'",
     "jsonschema>=4.26,<5",
     "openpyxl>=3.1,<4",
     "pypdf>=6,<7",
@@ -16,6 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
+refspec-atlas-explorer = "refspec.atlas.explorer_cli:main"
 refspec-build-vocabulary-atlas-projection = "refspec.atlas.projection_cli:main"
 refspec-publish-vocabulary-atlas = "refspec.atlas.publication:main"
 refspec-validate = "refspec.binding:main"
