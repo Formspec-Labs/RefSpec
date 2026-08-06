@@ -1,10 +1,11 @@
-"""Generate the development Atlas 3.0 distribution from original source releases.
+"""Generate the full English Atlas 3.0 distribution from pinned registry sources.
 
-The generator deliberately reads only six pinned publisher/source packages. It
-never consumes an Atlas 1.x or Atlas 2.x graph or the historical generated-pair
-archive under ``research/evidence``. The ELSST path retains an older benchmark
-directory name, but the consumed file is the closed upstream managed-release
-bundle, not an Atlas graph.
+The generator reads exact publisher artifacts and source-native packages through
+the RefSpec registry parsers. It never consumes an Atlas 1.x or Atlas 2.x graph,
+and it does not import the archived generated mapping pairs under
+``research/evidence``. Publisher vocabularies, controlled values, entities, and
+legal identifiers retain separate release identities, semantic rings, source
+records, and direct authored relations.
 """
 
 from __future__ import annotations
