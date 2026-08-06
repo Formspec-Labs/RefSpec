@@ -64,11 +64,18 @@ JSON files use the REF canonical JSON profile: UTF-8; no duplicate keys,
 compact separators; and one terminal LF. Integers MUST be within the exact
 JavaScript integer range. Arrays retain their declared order.
 
+An `atlas:nativePayload` uses the same canonical ordering and number rules but
+MAY contain JSON `null` when its normalized source-evidence view contains it.
+The payload need not copy the publisher record verbatim: an English-only Atlas
+distribution keeps multilingual source content external and pins its exact
+locator and digest. Descriptor and policy payloads remain on the stricter REF
+profile.
+
 `atlas.nq` MUST be valid UTF-8 N-Quads with absolute IRIs, no blank nodes, no
 default-graph statements, one statement per line, lexicographically sorted
-lines, LF line endings, and one terminal LF. Its only named graphs are the
-three graph IRIs declared by the manifest. The `derived` graph may have zero
-statements.
+lines, LF line endings, and one terminal LF. A serialized line MUST NOT exceed
+16,777,216 bytes. Its only named graphs are the three graph IRIs declared by
+the manifest. The `derived` graph may have zero statements.
 
 Every scheme, release, normalized resource, identifier, source record,
 SKOS-XL label, editorial policy, relation assertion, evidence binding,
@@ -130,10 +137,15 @@ module, and implementation module has a disposition without copying the
 registry inventory into this binding.
 
 The same digest-pinned file is the single normative policy source for allowed
-relation predicates by semantic ring and assertion type. SHACL checks record
-structure and cross-node consistency. The standalone validator loads the
-profile map to enforce the closed ring/type/predicate combinations; it does not
-repeat that mechanical matrix in code or SHACL.
+relation predicates by semantic ring and assertion type. SHACL Core checks
+closed record structure, exact local path equality, inverse release membership,
+and label-node role disjointness. The shape graph contains no SPARQL constraints.
+The standalone validator performs indexed joins for conditions SHACL Core cannot
+express: a scheme supports each release ring; labels share their resource's
+release and source record; equal literals never cross label roles; evidence pins
+the exact source-record digest; lifecycle chains remain linear; and each
+assertion predicate occupies an allowed ring/type policy cell. The validator
+loads that policy matrix from the profile file instead of repeating it in SHACL.
 
 The profile map, registry coverage report, and descriptor proof each validate
 against their own closed Draft 2020-12 JSON Schema. Procedural checks then
@@ -154,9 +166,12 @@ Common fields use `atlas:notation`, `atlas:definition`, `atlas:note`,
 `atlas:recordStatus`, `atlas:validFrom`, `atlas:validUntil`,
 `atlas:validationRule`, `atlas:componentPosition`, and
 `atlas:collectionMember`. Source-specific fields that do not belong in that
-small shared vocabulary remain lossless in a canonical `rdf:JSON`
-`atlas:nativePayload` on the source record. The native payload is evidence, not
-an invitation to create an ungoverned property for every publisher column.
+small shared vocabulary remain in a canonical `rdf:JSON` `atlas:nativePayload`
+on the source record. In an English-only distribution, that payload is an
+English-only normalized view. The source record pins the exact external source
+locator and digest, and may preserve dropped-language counts and digests without
+copying dropped text. The native payload is evidence, not an invitation to
+create an ungoverned property for every publisher column.
 
 Every release and normalized resource belongs to exactly one semantic ring:
 
@@ -193,13 +208,15 @@ resource linked through `skos:inScheme`, regardless of its Atlas profile.
 `atlas:Identifier` represents an authority-scoped identifier. Its literal value
 is not a label and does not establish identity outside the named scheme.
 
-`atlas:SourceRecord` preserves the source-local record, locator, and digest from
-which normalized resources, labels, or assertions were derived. It carries the
-canonical native payload and explicit `atlas:representsResource` links. Source
-record, label, and normalized resource identities MUST be distinct. A source
-record belongs to exactly one captured source release and has exactly one
-disposition in `atlas-source-accounting.json` when that source release has
-enumerated membership.
+`atlas:SourceRecord` identifies the source-local record and pins the exact
+external locator and digest from which normalized resources, labels, or
+assertions were derived. It carries a canonical English-only normalized native
+view and explicit `atlas:representsResource` links; it does not claim to copy a
+multilingual publisher record verbatim. Source record, label, and normalized
+resource identities MUST be distinct. A source record belongs to exactly one
+captured source release and has exactly one disposition in
+`atlas-source-accounting.json` when that source release has enumerated
+membership.
 
 ## SKOS-XL labels
 
@@ -207,15 +224,24 @@ SKOS-XL labels are canonical. Every label:
 
 1. has an absolute IRI;
 2. is a `skosxl:Label` and no normalized resource class;
-3. has exactly one `skosxl:literalForm`;
+3. has exactly one non-empty English `skosxl:literalForm`, represented as an
+   `rdf:langString` with the language tag `en`;
 4. identifies its exact Atlas release; and
 5. identifies the source record from which it was produced.
 
-Label identity MUST NOT be derived from literal text alone. Two publishers, two
+Atlas 3.0 is English-only. Producers MUST omit non-English source labels from
+the Atlas distribution and MUST NOT emit untagged label literals. The original
+source may remain multilingual outside the distribution and may be referenced
+by its exact locator and digest.
+
+An Atlas resource MUST have at least one SKOS-XL label in any role. A source
+may publish an alternate-only term identity, so Atlas does not invent a
+preferred role that the publisher did not assert. Label identity MUST NOT be
+derived from literal text alone. Two publishers, two
 releases, or two records may use equal lexical forms without sharing a label
 identity. Preferred, alternate, and hidden roles are expressed only through
 `skosxl:prefLabel`, `skosxl:altLabel`, and `skosxl:hiddenLabel`. A resource has
-at most one preferred label for each language. Label roles are pairwise
+at most one preferred English label. Label roles are pairwise
 disjoint both by label IRI and by the literal that the plain-SKOS projection
 would expose. A subject concept's `skos:inScheme` MUST equal its
 `atlas:inScheme`; a `conceptScheme` is also a `skos:ConceptScheme`.
@@ -245,6 +271,14 @@ Atlas defines three assertion specializations:
 - `atlas:SourceAssignment` preserves a publisher assignment from a source
   record to a normalized resource.
 
+For subject thesauri, `atlas:thesaurusUse` and
+`atlas:thesaurusUsedFor` preserve publisher-authored USE/UF links as ordinary
+Atlas predicates. `atlas:thesaurusRelated` preserves an authored associative
+link when projecting it as `skos:related` would violate a SKOS integrity
+condition because the same resources also have a transitive hierarchy path.
+Atlas does not declare these predicates inverse, transitive, or equivalent to
+SKOS label or semantic relations.
+
 Each assertion records its semantic ring, exact endpoint releases, sealed
 editorial policy, assertion time, lifecycle status, stable identity digest, and
 content digest. `atlas:EditorialPolicy` preserves its policy document as
@@ -254,11 +288,16 @@ content-derived IRI `urn:ref:atlas-policy:<digest hex>`.
 An assertion has at least one `atlas:EvidenceBinding` through the inverse
 `atlas:bindsAssertion` path. Each binding identifies and pins the exact
 `contentDigest` of one source record. It also records the approving reviewer,
-human or trusted-pipeline review method, decision time, and optional decimal
-confidence in the closed range 0 through 1. Only an `atlas:approved` binding
-supports an authoritative assertion. A binding has a content digest and the
-content-derived IRI `urn:ref:atlas-evidence:<digest hex>`. Evidence may be added
-without changing the claim identity; an existing binding MUST NOT be rewritten.
+review method, decision time, and optional decimal confidence in the closed
+range 0 through 1. Review methods describe only how the claim was warranted:
+human review, two-machine adjudication, publisher assertion, operator adoption,
+or deterministic transformation. `atlas:trustedPipelineReview` remains the
+generic method for a trusted process that cannot yet use a more precise basis.
+No review method grants search, tagging, emission, or other product permission.
+Only an `atlas:approved` binding supports an authoritative assertion. A binding
+has a content digest and the content-derived IRI
+`urn:ref:atlas-evidence:<digest hex>`. Evidence may be added without changing
+the claim identity; an existing binding MUST NOT be rewritten.
 
 The stable assertion identity is SHA-256 over canonical REF JSON, including one
 terminal LF, with exactly these keys: `object`, `policy`,

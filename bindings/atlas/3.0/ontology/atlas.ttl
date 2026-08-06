@@ -217,7 +217,26 @@ atlas:completeMembership a atlas:MembershipMode ; rdfs:label "complete membershi
 
 atlas:approved a atlas:EditorialDecisionStatus ; rdfs:label "approved"@en .
 atlas:humanReview a atlas:ReviewMethod ; rdfs:label "human review"@en .
-atlas:trustedPipelineReview a atlas:ReviewMethod ; rdfs:label "trusted pipeline review"@en .
+atlas:trustedPipelineReview
+  a atlas:ReviewMethod ;
+  rdfs:label "trusted pipeline review"@en ;
+  rdfs:comment "Generic trusted-pipeline warrant; publishers should use a more specific review method when one applies."@en .
+atlas:twoMachineAdjudication
+  a atlas:ReviewMethod ;
+  rdfs:label "two-machine adjudication"@en ;
+  rdfs:comment "Two independent machine reviewers adjudicated the same claim and agreed under a pinned procedure."@en .
+atlas:publisherAssertion
+  a atlas:ReviewMethod ;
+  rdfs:label "publisher assertion"@en ;
+  rdfs:comment "The source publisher explicitly supplied the asserted fact in pinned source bytes."@en .
+atlas:operatorAdoption
+  a atlas:ReviewMethod ;
+  rdfs:label "operator adoption"@en ;
+  rdfs:comment "A named operator directly adopted a reviewed claim without changing its underlying provenance."@en .
+atlas:deterministicTransformation
+  a atlas:ReviewMethod ;
+  rdfs:label "deterministic transformation"@en ;
+  rdfs:comment "A pinned deterministic Atlas policy transformed explicit source facts into the asserted form."@en .
 
 # Shared object properties
 
@@ -553,6 +572,27 @@ atlas:contentDigest
 # Atlas-native predicates. These are intentionally ordinary object properties:
 # the baseline does not declare any of them symmetric, transitive, inverse, or
 # functional.
+
+atlas:thesaurusUse
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SubjectConcept ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "thesaurus USE"@en ;
+  rdfs:comment "Publisher-authored non-preferred-term pointer preserved without treating it as a SKOS semantic relation."@en .
+
+atlas:thesaurusUsedFor
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SubjectConcept ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "thesaurus used for"@en ;
+  rdfs:comment "Publisher-authored preferred-to-non-preferred-term pointer preserved without declaring inverse or label semantics."@en .
+
+atlas:thesaurusRelated
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:SubjectConcept ;
+  rdfs:range atlas:SubjectConcept ;
+  rdfs:label "thesaurus related"@en ;
+  rdfs:comment "Publisher-authored associative link retained when projecting it as skos:related would violate a SKOS integrity condition."@en .
 
 atlas:sameEntityAs
   a owl:ObjectProperty ;

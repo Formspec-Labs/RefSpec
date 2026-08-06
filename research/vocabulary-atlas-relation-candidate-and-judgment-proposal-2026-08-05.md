@@ -526,7 +526,7 @@ negative or limitation from disappearing when the policy is summarized.
 
 | Experiment | What was tried and observed | Lesson and proposal role |
 | --- | --- | --- |
-| Existing production generator | Six label/control classes; 12,313 rows; all 582 historical assertions; only 196/305 Conference references | Historical evidence and implementation baseline, not an independent recall floor |
+| Retired historical pair generator | Six label/control classes; 12,313 rows; all 582 historical assertions; only 196/305 Conference references | Test-only historical evidence and implementation baseline, not a production Atlas input or an independent recall floor |
 | Fielded deterministic retrieval | Preferred/alternate labels, identifiers, definitions, scope notes, parents, children; word and character sparse views; anchor-gated graph expansion | Keep the fielded sparse and gated graph families; permissive graph expansion creates millions of noisy rows |
 | Lexical controls | Levenshtein, normalized Levenshtein, RapidFuzz ratio/partial/token-sort/token-set/WRatio/QRatio, Jaro, Jaro-Winkler, compact strings, alias bags, identifiers, acronym keys, and character trigrams | Keep the seven-arm practical profile; remove duplicate/weak controls; add individual-label alias handling because one concatenated alias bag dilutes evidence |
 | Exact real-Atlas deterministic frontier | Lexical K3 plus sparse/mutual-graph K1: 210,197 rows before ICPSR access-term projection and 214,271 after it; both recover 582/582 historical assertions | The corrected 214,271-row floor is selected; historical coverage is a regression check, not proof of new-relation recall |

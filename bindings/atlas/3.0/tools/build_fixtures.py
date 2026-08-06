@@ -159,6 +159,7 @@ def _add_assertion(
     asserted_at: str = CREATED_AT,
     status: URIRef = ATLAS.current,
     supersedes: URIRef | None = None,
+    review_method: URIRef = ATLAS.humanReview,
 ) -> URIRef:
     if policy is None:
         policies = list(graph.subjects(RDF.type, ATLAS.EditorialPolicy))
@@ -216,7 +217,7 @@ def _add_assertion(
     graph.add((evidence, ATLAS.evidenceSourceRecord, evidence_record))
     graph.add((evidence, ATLAS.reviewedBy, REVIEWER))
     graph.add((evidence, ATLAS.decisionStatus, ATLAS.approved))
-    graph.add((evidence, ATLAS.reviewMethod, ATLAS.humanReview))
+    graph.add((evidence, ATLAS.reviewMethod, review_method))
     graph.add(
         (
             evidence,
@@ -414,6 +415,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_a_release,
         evidence_record=source_a_child,
         evidence_name="native-subject",
+        review_method=ATLAS.publisherAssertion,
     )
     exact_ab = _add_assertion(
         asserted,
@@ -426,6 +428,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_b_release,
         evidence_record=source_a,
         evidence_name="exact-ab",
+        review_method=ATLAS.twoMachineAdjudication,
     )
     exact_bc = _add_assertion(
         asserted,
@@ -438,6 +441,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_c_release,
         evidence_record=source_b,
         evidence_name="exact-bc",
+        review_method=ATLAS.operatorAdoption,
     )
     _add_assertion(
         asserted,
@@ -450,6 +454,7 @@ def _base_fixture() -> Fixture:
         target_release=value_release,
         evidence_record=source_value_child,
         evidence_name="native-value",
+        review_method=ATLAS.deterministicTransformation,
     )
     _add_assertion(
         asserted,
@@ -462,6 +467,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_c_release,
         evidence_record=source_c,
         evidence_name="assignment-subject",
+        review_method=ATLAS.trustedPipelineReview,
     )
     _add_assertion(
         asserted,
@@ -796,6 +802,56 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def rdf_literal_escaping(_fixture: Fixture) -> None:
         return
 
+    def source_native_thesaurus(fixture: Fixture) -> None:
+        resource = URIRef("urn:ref:atlas-fixture:resource:subject-a-child")
+        parent = URIRef("urn:ref:atlas-fixture:resource:subject-a")
+        label = next(fixture.asserted.objects(resource, SKOSXL.prefLabel))
+        source_record = next(fixture.asserted.objects(resource, ATLAS.sourceRecord))
+        release = next(fixture.asserted.objects(resource, ATLAS.inRelease))
+
+        fixture.asserted.remove((resource, SKOSXL.prefLabel, label))
+        fixture.asserted.add((resource, SKOSXL.altLabel, label))
+        _remove_subject_predicate(fixture.asserted, source_record, ATLAS.nativePayload)
+        fixture.asserted.add(
+            (
+                source_record,
+                ATLAS.nativePayload,
+                Literal(
+                    atlas_validate.canonical_native_json_bytes(
+                        {
+                            "identifier": "subject-a-child",
+                            "label": "Agency procedure",
+                            "publisherOptionalValue": None,
+                        }
+                    ).decode("utf-8"),
+                    datatype=RDF.JSON,
+                    normalize=False,
+                ),
+            )
+        )
+        _refresh_node_digest(fixture.asserted, source_record)
+        _refresh_evidence_for_source(fixture.asserted, source_record)
+        _refresh_node_digest(fixture.asserted, resource)
+
+        for predicate, subject, obj, name in (
+            (ATLAS.thesaurusUse, resource, parent, "thesaurus-use"),
+            (ATLAS.thesaurusUsedFor, parent, resource, "thesaurus-used-for"),
+            (ATLAS.thesaurusRelated, resource, parent, "thesaurus-related"),
+        ):
+            _add_assertion(
+                fixture.asserted,
+                assertion_type=ATLAS.NativeRelationAssertion,
+                ring=ATLAS.subject,
+                subject=subject,
+                predicate=predicate,
+                obj=obj,
+                source_release=release,
+                target_release=release,
+                evidence_record=source_record,
+                evidence_name=name,
+            )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
     def valid_supersession(fixture: Fixture) -> None:
         old = next(
             assertion
@@ -885,6 +941,15 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
         _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
         _refresh_node_digest(fixture.asserted, label)
+
+    def non_english_label(fixture: Fixture) -> None:
+        label = next(fixture.asserted.subjects(RDF.type, SKOSXL.Label))
+        _remove_subject_predicate(fixture.asserted, label, SKOSXL.literalForm)
+        fixture.asserted.add(
+            (label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr"))
+        )
+        _refresh_node_digest(fixture.asserted, label)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def duplicate_preferred_language(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -1278,6 +1343,38 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             evidence_name="skos-hierarchy-conflict",
         )
 
+    def unjustified_thesaurus_related(fixture: Fixture) -> None:
+        assertion = next(
+            row
+            for row in fixture.asserted.subjects(
+                RDF.type, ATLAS.NativeRelationAssertion
+            )
+            if fixture.asserted.value(row, RDF.predicate) == SKOS.broader
+        )
+        _, (subject, _, obj) = atlas_validate._assertion_basis(
+            fixture.asserted, assertion
+        )
+        release = next(fixture.asserted.objects(assertion, ATLAS.sourceRelease))
+        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion))
+        evidence_record = next(
+            fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
+        )
+        fixture.asserted.remove((assertion, None, None))
+        fixture.asserted.remove((evidence, None, None))
+        _add_assertion(
+            fixture.asserted,
+            assertion_type=ATLAS.NativeRelationAssertion,
+            ring=ATLAS.subject,
+            subject=subject,
+            predicate=ATLAS.thesaurusRelated,
+            obj=obj,
+            source_release=release,
+            target_release=release,
+            evidence_record=evidence_record,
+            evidence_name="unjustified-thesaurus-related",
+        )
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
     def assertion_extra_property(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
         fixture.asserted.add((assertion, DCTERMS.description, Literal("mutable annotation")))
@@ -1319,6 +1416,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
         (
+            "source-native-thesaurus",
+            ["rdf", "shacl", "dataset", "reasoning"],
+            "valid",
+            source_native_thesaurus,
+        ),
+        (
             "superseded-policy-revision",
             ["rdf", "dataset", "lifecycle"],
             "valid",
@@ -1328,6 +1431,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("dataset-digest-mismatch", ["dataset"], "distribution.digest", digest_mismatch),
         ("blank-node", ["rdf"], "rdf.blank-node", blank_node),
         ("label-missing-literal", ["shacl"], "shacl.data", label_missing_literal),
+        ("non-english-label", ["shacl"], "shacl.data", non_english_label),
         ("duplicate-preferred-language", ["shacl"], "shacl.data", duplicate_preferred_language),
         ("mapping-missing-evidence", ["shacl", "dataset"], "shacl.data", missing_evidence),
         ("wrong-ring-relation", ["dataset"], "dataset.relation", wrong_ring_relation),
@@ -1369,12 +1473,23 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("derived-input-digest", ["dataset", "reasoning"], "dataset.derived-input", wrong_derived_input_digest),
         ("derived-nonresource-endpoint", ["dataset", "reasoning"], "dataset.derived", wrong_derived_endpoint),
         ("profile-ring-mismatch", ["shacl", "dataset", "registry"], "profile.conformance", wrong_profile_ring),
-        ("skosxl-label-role-overlap", ["shacl", "rdf"], "shacl.data", label_role_overlap),
+        (
+            "skosxl-label-role-overlap",
+            ["shacl", "dataset", "rdf"],
+            "shacl.data",
+            label_role_overlap,
+        ),
         ("skos-mapping-conflict", ["shacl", "dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_conflict),
         ("skos-mapping-reverse-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_reverse_conflict),
         ("skos-mapping-transitive-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_transitive_conflict),
         ("skos-mapping-hierarchy-conflict", ["dataset", "reasoning"], "dataset.skos-integrity", skos_mapping_hierarchy_conflict),
         ("skos-hierarchy-conflict", ["shacl", "dataset", "reasoning"], "dataset.skos-integrity", skos_hierarchy_conflict),
+        (
+            "unjustified-thesaurus-related",
+            ["dataset", "reasoning"],
+            "dataset.skos-integrity",
+            unjustified_thesaurus_related,
+        ),
         ("assertion-extra-property", ["shacl", "dataset"], "shacl.data", assertion_extra_property),
         ("validator-identity-mismatch", ["json", "dataset"], "json.schema", wrong_validator_identity),
         ("subject-scheme-disagreement", ["shacl", "rdf"], "shacl.data", subject_scheme_disagreement),

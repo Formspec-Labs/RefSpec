@@ -560,10 +560,10 @@ the model:
   candidate-generator class. §7 keeps that candidate-provenance correction
   open.
 
-Atlas 2.0 defines these evidence classes, each with a derived safety ceiling
-that limits what an exact product policy may select:
+Atlas 2.0 defines these evidence classes. The final column records RefSpec's
+house policy for those classes; it is not a portable evidence property:
 
-| Class | Origin / basis | Ceiling | Example |
+| Class | Origin / basis | RefSpec policy limit | Example |
 | --- | --- | --- | --- |
 | `machineQualified` | subject-only `CrosswalkBundle` v2 proof derived from one exact candidate, its selected sealed question, every supporting validation, and an independent-validator witness | `searchOnly` | current qualified subject mappings |
 | `machineReviewed` (candidate provenance, not mapping support) | one deterministic supporting `CrosswalkBundle` v2 validation and its verdict-derived relation | n/a until directly adopted | ICPSR interim reviews |

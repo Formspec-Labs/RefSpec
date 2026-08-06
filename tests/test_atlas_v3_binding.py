@@ -45,8 +45,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 49,
-        "invalidCount": 45,
+        "caseCount": 52,
+        "invalidCount": 47,
         "registryDescriptorCount": 86,
         "registryDescriptorQuadCount": 626,
         "schemaCount": 8,
@@ -71,7 +71,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceRecords": 10,
     }
     assert result["quadCount"] == 614
-    assert result["inferredMappingCount"] > 0
+    assert result["inferredMappingCount"] == 7
 
 
 def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None:
@@ -126,6 +126,26 @@ def test_ontology_uses_the_declared_safe_local_profile() -> None:
     graph.add((ATLAS.injected, OWL.inverseOf, ATLAS.other))
     with pytest.raises(atlas_validate.AtlasValidationError, match="ontology.profile"):
         atlas_validate._lint_ontology(graph)
+
+
+def test_review_methods_describe_warrant_basis_without_product_permission() -> None:
+    graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
+    expected = {
+        ATLAS.deterministicTransformation,
+        ATLAS.humanReview,
+        ATLAS.operatorAdoption,
+        ATLAS.publisherAssertion,
+        ATLAS.trustedPipelineReview,
+        ATLAS.twoMachineAdjudication,
+    }
+
+    assert set(graph.subjects(RDF.type, ATLAS.ReviewMethod)) == expected
+    assert atlas_validate.REVIEW_METHODS == expected
+    assert not any(
+        keyword in str(term).lower()
+        for term in graph.all_nodes()
+        for keyword in ("ceiling", "eligibility", "searchonly", "usagepermission")
+    )
 
 
 def test_canonical_rdf_renderer_escapes_terms_without_false_blank_nodes() -> None:

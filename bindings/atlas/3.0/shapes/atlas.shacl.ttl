@@ -145,35 +145,9 @@ atlas:AtlasReleaseShape
     sh:nodeKind sh:IRI ;
     sh:class atlas:AtlasResource
   ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "An AtlasRelease MUST use its ResourceScheme profile and one of that scheme's supported rings." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      SELECT $this
-      WHERE {
-        $this atlas:inScheme ?scheme ;
-              atlas:semanticRing ?ring ;
-              atlas:resourceProfile ?profile .
-        FILTER NOT EXISTS {
-          ?scheme atlas:supportedRing ?ring ;
-                  atlas:resourceProfile ?profile .
-        }
-      }
-    """
-  ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "Every AtlasRelease member MUST point back to that release with atlas:inRelease." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX prov: <http://www.w3.org/ns/prov#>
-      SELECT $this ?member
-      WHERE {
-        $this prov:hadMember ?member .
-        FILTER NOT EXISTS { ?member atlas:inRelease $this }
-      }
-    """
+  sh:property [
+    sh:path ( atlas:inScheme atlas:resourceProfile ) ;
+    sh:equals atlas:resourceProfile
   ] .
 
 atlas:ResourceSchemeShape
@@ -232,26 +206,15 @@ atlas:ResourceSchemeShape
     sh:lessThanOrEquals atlas:validUntil
   ] ;
   sh:property [ sh:path atlas:validUntil ; sh:maxCount 1 ; sh:node atlas:DateTimeValueShape ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "A conceptScheme profile or any ResourceScheme hosting SKOS concepts MUST also be a skos:ConceptScheme." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-      SELECT $this
-      WHERE {
-        {
-          $this atlas:resourceProfile atlas:conceptScheme .
-        }
-        UNION
-        {
-          ?concept skos:inScheme $this .
-        }
-        FILTER NOT EXISTS { $this rdf:type skos:ConceptScheme }
-      }
-    """
-  ] .
+  sh:or (
+    [ sh:not [ sh:property [ sh:path atlas:resourceProfile ; sh:hasValue atlas:conceptScheme ] ] ]
+    [ sh:class skos:ConceptScheme ]
+  ) .
+
+atlas:ConceptHostingSchemeShape
+  a sh:NodeShape ;
+  sh:targetObjectsOf skos:inScheme ;
+  sh:class skos:ConceptScheme .
 
 atlas:AtlasResourceShape
   a sh:NodeShape ;
@@ -336,81 +299,45 @@ atlas:AtlasResourceShape
   ] ;
   sh:property [
     sh:path skosxl:prefLabel ;
-    sh:minCount 1 ;
+    sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
-    sh:class skosxl:Label
+    sh:class skosxl:Label ;
+    sh:disjoint skosxl:altLabel ;
+    sh:disjoint skosxl:hiddenLabel
   ] ;
   sh:property [
     sh:path skosxl:altLabel ;
     sh:nodeKind sh:IRI ;
-    sh:class skosxl:Label
+    sh:class skosxl:Label ;
+    sh:disjoint skosxl:hiddenLabel
   ] ;
   sh:property [
     sh:path skosxl:hiddenLabel ;
     sh:nodeKind sh:IRI ;
     sh:class skosxl:Label
   ] ;
+  sh:property [
+    sh:path [ sh:alternativePath ( skosxl:prefLabel skosxl:altLabel skosxl:hiddenLabel ) ] ;
+    sh:minCount 1
+  ] ;
   sh:property [ sh:path skos:prefLabel ; sh:maxCount 0 ] ;
   sh:property [ sh:path skos:altLabel ; sh:maxCount 0 ] ;
   sh:property [ sh:path skos:hiddenLabel ; sh:maxCount 0 ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "An AtlasResource MUST agree with its release and scheme on scheme, semantic ring, profile, and release membership." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX prov: <http://www.w3.org/ns/prov#>
-      SELECT $this
-      WHERE {
-        $this atlas:inRelease ?release ;
-              atlas:inScheme ?scheme ;
-              atlas:semanticRing ?ring ;
-              atlas:resourceProfile ?profile .
-        FILTER (
-          NOT EXISTS {
-            ?release atlas:inScheme ?scheme ;
-                     atlas:semanticRing ?ring ;
-                     atlas:resourceProfile ?profile ;
-                     prov:hadMember $this .
-          }
-          ||
-          NOT EXISTS {
-            ?scheme atlas:supportedRing ?ring ;
-                    atlas:resourceProfile ?profile .
-          }
-        )
-      }
-    """
+  sh:property [
+    sh:path ( atlas:inRelease atlas:inScheme ) ;
+    sh:equals atlas:inScheme
   ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "Each SKOS-XL label used by a resource MUST identify the same Atlas release and one of that resource's source records." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
-      SELECT $this ?label
-      WHERE {
-        {
-          $this skosxl:prefLabel ?label .
-        }
-        UNION
-        {
-          $this skosxl:altLabel ?label .
-        }
-        UNION
-        {
-          $this skosxl:hiddenLabel ?label .
-        }
-        $this atlas:inRelease ?release .
-        FILTER (
-          NOT EXISTS { ?label atlas:inRelease ?release }
-          ||
-          NOT EXISTS {
-            $this atlas:sourceRecord ?record .
-            ?label atlas:sourceRecord ?record .
-          }
-        )
-      }
-    """
+  sh:property [
+    sh:path ( atlas:inRelease atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
+  ] ;
+  sh:property [
+    sh:path ( atlas:inRelease atlas:resourceProfile ) ;
+    sh:equals atlas:resourceProfile
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath prov:hadMember ] ;
+    sh:equals atlas:inRelease
   ] .
 
 atlas:SubjectConceptShape
@@ -489,17 +416,9 @@ atlas:IdentifierShape
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
   ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "Identifier.identifierScheme MUST use the identifierScheme resource profile." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      SELECT $this
-      WHERE {
-        $this atlas:identifierScheme ?scheme .
-        FILTER NOT EXISTS { ?scheme atlas:resourceProfile atlas:identifierScheme }
-      }
-    """
+  sh:property [
+    sh:path ( atlas:identifierScheme atlas:resourceProfile ) ;
+    sh:hasValue atlas:identifierScheme
   ] .
 
 atlas:SourceRecordShape
@@ -586,10 +505,9 @@ atlas:SkosXlLabelShape
     sh:maxCount 1 ;
     sh:nodeKind sh:Literal ;
     sh:minLength 1 ;
-    sh:or (
-      [ sh:datatype rdf:langString ]
-      [ sh:datatype xsd:string ]
-    )
+    sh:datatype rdf:langString ;
+    sh:languageIn ( "en" ) ;
+    sh:message "Atlas 3.0 label literals MUST use the English language tag @en."
   ] ;
   sh:property [
     sh:path atlas:inRelease ;
@@ -610,59 +528,6 @@ atlas:SkosXlLabelShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
-  ] .
-
-atlas:PreferredLabelLanguageShape
-  a sh:NodeShape ;
-  sh:targetSubjectsOf skosxl:prefLabel ;
-  sh:property [
-    sh:path ( skosxl:prefLabel skosxl:literalForm ) ;
-    sh:uniqueLang true
-  ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "A resource MUST have at most one preferred SKOS-XL label per language, including the untagged language bucket." ;
-    sh:select """
-      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
-      SELECT $this ?first ?second
-      WHERE {
-        $this skosxl:prefLabel ?first, ?second .
-        FILTER (STR(?first) < STR(?second))
-        ?first skosxl:literalForm ?firstLiteral .
-        ?second skosxl:literalForm ?secondLiteral .
-        FILTER (LCASE(LANG(?firstLiteral)) = LCASE(LANG(?secondLiteral)))
-      }
-    """
-  ] .
-
-atlas:SkosXlLabelRoleIntegrityShape
-  a sh:NodeShape ;
-  sh:targetSubjectsOf skosxl:prefLabel ;
-  sh:targetSubjectsOf skosxl:altLabel ;
-  sh:targetSubjectsOf skosxl:hiddenLabel ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "SKOS and SKOS-XL label roles MUST be pairwise disjoint by label node and projected literal." ;
-    sh:select """
-      PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
-      SELECT $this ?first ?second
-      WHERE {
-        {
-          $this skosxl:prefLabel ?first ; skosxl:altLabel ?second .
-        }
-        UNION
-        {
-          $this skosxl:prefLabel ?first ; skosxl:hiddenLabel ?second .
-        }
-        UNION
-        {
-          $this skosxl:altLabel ?first ; skosxl:hiddenLabel ?second .
-        }
-        ?first skosxl:literalForm ?firstLiteral .
-        ?second skosxl:literalForm ?secondLiteral .
-        FILTER (?first = ?second || ?firstLiteral = ?secondLiteral)
-      }
-    """
   ] .
 
 # Evidence-bearing relation assertions
@@ -763,27 +628,9 @@ atlas:RelationAssertionShape
   ] ;
   sh:property [
     sh:path [ sh:inversePath atlas:bindsAssertion ] ;
-    sh:qualifiedValueShape [
-      sh:nodeKind sh:IRI ;
-      sh:class atlas:EvidenceBinding
-    ] ;
-    sh:qualifiedMinCount 1
-  ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "Every relation assertion MUST have an immutable EvidenceBinding backed by an Atlas SourceRecord." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      SELECT $this
-      WHERE {
-        FILTER NOT EXISTS {
-          ?binding rdf:type atlas:EvidenceBinding ;
-                   atlas:bindsAssertion $this ;
-                   atlas:evidenceSourceRecord ?sourceRecord .
-        }
-      }
-    """
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:EvidenceBinding
   ] .
 
 atlas:MappingAssertionShape
@@ -805,33 +652,21 @@ atlas:MappingAssertionShape
     sh:path atlas:targetRelease ;
     sh:class atlas:AtlasRelease
   ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "MappingAssertion endpoints MUST have the assertion ring and occur in their exact source and target Atlas releases." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX prov: <http://www.w3.org/ns/prov#>
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      SELECT $this
-      WHERE {
-        $this rdf:subject ?source ;
-              rdf:object ?target ;
-              atlas:sourceRelease ?sourceRelease ;
-              atlas:targetRelease ?targetRelease ;
-              atlas:semanticRing ?ring .
-        FILTER (
-          NOT EXISTS {
-            ?source atlas:semanticRing ?ring .
-            ?sourceRelease prov:hadMember ?source .
-          }
-          ||
-          NOT EXISTS {
-            ?target atlas:semanticRing ?ring .
-            ?targetRelease prov:hadMember ?target .
-          }
-        )
-      }
-    """
+  sh:property [
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:equals atlas:sourceRelease
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:equals atlas:targetRelease
   ] .
 
 atlas:SkosMappingAssertionShape
@@ -850,31 +685,22 @@ atlas:NativeRelationAssertionShape
   sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
   sh:property [ sh:path atlas:sourceRelease ; sh:class atlas:AtlasRelease ] ;
   sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "Native relation endpoints MUST share one exact Atlas release and the assertion's semantic ring." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX prov: <http://www.w3.org/ns/prov#>
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      SELECT $this
-      WHERE {
-        $this rdf:subject ?source ;
-              rdf:object ?target ;
-              atlas:sourceRelease ?sourceRelease ;
-              atlas:targetRelease ?targetRelease ;
-              atlas:semanticRing ?ring .
-        FILTER (
-          ?sourceRelease != ?targetRelease
-          ||
-          NOT EXISTS {
-            ?source atlas:semanticRing ?ring .
-            ?target atlas:semanticRing ?ring .
-            ?sourceRelease prov:hadMember ?source, ?target .
-          }
-        )
-      }
-    """
+  sh:property [ sh:path atlas:targetRelease ; sh:equals atlas:sourceRelease ] ;
+  sh:property [
+    sh:path ( rdf:subject atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
+  ] ;
+  sh:property [
+    sh:path ( rdf:subject atlas:inRelease ) ;
+    sh:equals atlas:sourceRelease
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:equals atlas:targetRelease
   ] .
 
 atlas:SourceAssignmentShape
@@ -883,31 +709,17 @@ atlas:SourceAssignmentShape
   sh:property [ sh:path rdf:subject ; sh:class atlas:SourceRecord ] ;
   sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
   sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:message "SourceAssignment endpoint releases and semantic ring MUST agree with its SourceRecord and normalized target." ;
-    sh:select """
-      PREFIX atlas: <https://refspec.org/ns/atlas/v3#>
-      PREFIX prov: <http://www.w3.org/ns/prov#>
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      SELECT $this
-      WHERE {
-        $this rdf:subject ?record ;
-              rdf:object ?target ;
-              atlas:sourceRelease ?sourceRelease ;
-              atlas:targetRelease ?targetRelease ;
-              atlas:semanticRing ?ring .
-        FILTER (
-          NOT EXISTS { ?record atlas:inSourceRelease ?sourceRelease }
-          ||
-          NOT EXISTS {
-            ?target atlas:inRelease ?targetRelease ;
-                    atlas:semanticRing ?ring .
-            ?targetRelease prov:hadMember ?target .
-          }
-        )
-      }
-    """
+  sh:property [
+    sh:path ( rdf:subject atlas:inSourceRelease ) ;
+    sh:equals atlas:sourceRelease
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:inRelease ) ;
+    sh:equals atlas:targetRelease
+  ] ;
+  sh:property [
+    sh:path ( rdf:object atlas:semanticRing ) ;
+    sh:equals atlas:semanticRing
   ] .
 
 atlas:EvidenceBindingShape
@@ -952,7 +764,14 @@ atlas:EvidenceBindingShape
     sh:path atlas:reviewMethod ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:in ( atlas:humanReview atlas:trustedPipelineReview )
+    sh:in (
+      atlas:humanReview
+      atlas:trustedPipelineReview
+      atlas:twoMachineAdjudication
+      atlas:publisherAssertion
+      atlas:operatorAdoption
+      atlas:deterministicTransformation
+    )
   ] ;
   sh:property [
     sh:path atlas:decidedAt ;

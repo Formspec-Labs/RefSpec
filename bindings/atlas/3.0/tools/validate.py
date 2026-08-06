@@ -9,15 +9,19 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import heapq
 import json
 import math
 import re
 import sys
-from collections import Counter, defaultdict
+import tempfile
+from collections import Counter, defaultdict, deque
 from collections.abc import Iterable, Mapping, Sequence
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from itertools import zip_longest
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -32,6 +36,9 @@ from rdf_canonical import nquads_line as _canonical_nquads_line
 from rdf_canonical import ntriples_term as _canonical_ntriples_term
 from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS, SKOS, XSD
+from rdflib.parser import create_input_source
+from rdflib.plugins.parsers.nquads import NQuadsParser
+from rdflib.plugins.parsers.ntriples import URI, ParseError, r_literal, unquote, uriquote
 from referencing import Registry, Resource
 
 BINDING_ROOT = Path(__file__).resolve().parents[1]
@@ -87,6 +94,10 @@ EXPECTED_FILES = frozenset(
     }
 )
 SAFE_INTEGER = 9_007_199_254_740_991
+NQUADS_SORT_CHUNK_SIZE = 50_000
+NQUADS_SORT_CHUNK_BYTES = 64 * 1024 * 1024
+NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
+NQUADS_MERGE_FAN_IN = 64
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ASSERTION_TYPES = frozenset(
     {ATLAS.MappingAssertion, ATLAS.NativeRelationAssertion, ATLAS.SourceAssignment}
@@ -103,6 +114,16 @@ SKOS_MAPPING_PREDICATES = frozenset(
     {SKOS.exactMatch, SKOS.closeMatch, SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}
 )
 SKOS_NATIVE_RELATION_PREDICATES = frozenset({SKOS.broader, SKOS.narrower, SKOS.related})
+REVIEW_METHODS = frozenset(
+    {
+        ATLAS.deterministicTransformation,
+        ATLAS.humanReview,
+        ATLAS.operatorAdoption,
+        ATLAS.publisherAssertion,
+        ATLAS.trustedPipelineReview,
+        ATLAS.twoMachineAdjudication,
+    }
+)
 EXPECTED_PROFILE_NAMES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
@@ -225,6 +246,7 @@ XL_TO_SKOS = {
     SKOSXL.altLabel: SKOS.altLabel,
     SKOSXL.hiddenLabel: SKOS.hiddenLabel,
 }
+SKOS_TO_XL = {plain: xl for xl, plain in XL_TO_SKOS.items()}
 REQUIRED_GATES = frozenset(
     {
         "canonical-json",
@@ -273,10 +295,12 @@ REQUIRED_CORPUS_CASES = frozenset(
         "native-payload-noncanonical",
         "naked-projected-mapping",
         "no-derived",
+        "non-english-label",
         "profile-ring-mismatch",
         "policy-payload-changed",
         "rdf-literal-escaping",
         "scheme-assertion-property",
+        "source-native-thesaurus",
         "skos-hierarchy-conflict",
         "skos-mapping-conflict",
         "skos-mapping-hierarchy-conflict",
@@ -289,13 +313,14 @@ REQUIRED_CORPUS_CASES = frozenset(
         "subject-scheme-disagreement",
         "superseded-policy-revision",
         "supersession-old-still-current",
+        "unjustified-thesaurus-related",
         "validator-identity-mismatch",
         "wrong-ring-relation",
     }
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class AtlasValidationError(ValueError):
     """One deterministic Atlas validation failure."""
 
@@ -304,6 +329,27 @@ class AtlasValidationError(ValueError):
 
     def __str__(self) -> str:
         return f"{self.code}: {self.detail}"
+
+
+@dataclass(frozen=True, slots=True)
+class ExactMatchIndex:
+    """Linear-space index for the pinned symmetric-transitive semantics."""
+
+    component_by_node: Mapping[URIRef, int]
+    component_sizes: tuple[int, ...]
+    directed_direct_counts: tuple[int, ...]
+    direct_triples: frozenset[tuple[URIRef, URIRef, URIRef]]
+
+    def same_component(self, subject: URIRef, obj: URIRef) -> bool:
+        component = self.component_by_node.get(subject)
+        return component is not None and component == self.component_by_node.get(obj)
+
+    @property
+    def inferred_count(self) -> int:
+        return sum(
+            size**2 - self.directed_direct_counts[index]
+            for index, size in enumerate(self.component_sizes)
+        )
 
 
 def _fail(code: str, detail: str) -> NoReturn:
@@ -369,6 +415,39 @@ def canonical_json_bytes(value: Any, *, terminal_lf: bool = True) -> bytes:
     return payload + (b"\n" if terminal_lf else b"")
 
 
+def canonical_native_json_bytes(value: Any) -> bytes:
+    """Return canonical source JSON while preserving publisher null values."""
+
+    def reject_numbers(child: Any, location: str = "$") -> None:
+        if child is None or isinstance(child, bool):
+            return
+        if isinstance(child, int):
+            if abs(child) > SAFE_INTEGER:
+                _fail("json.number", f"{location} exceeds the safe integer range")
+            return
+        if isinstance(child, float):
+            if not math.isfinite(child):
+                _fail("json.number", f"{location} contains a non-finite number")
+            _fail("json.number", f"{location} contains a floating-point number")
+        if isinstance(child, Mapping):
+            for key, grandchild in child.items():
+                reject_numbers(grandchild, f"{location}.{key}")
+        elif isinstance(child, Sequence) and not isinstance(
+            child, (str, bytes, bytearray)
+        ):
+            for index, grandchild in enumerate(child):
+                reject_numbers(grandchild, f"{location}[{index}]")
+
+    reject_numbers(value)
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
 def canonical_sha256(value: Any, *, terminal_lf: bool = True) -> str:
     return "sha256:" + hashlib.sha256(
         canonical_json_bytes(value, terminal_lf=terminal_lf)
@@ -376,7 +455,11 @@ def canonical_sha256(value: Any, *, terminal_lf: bool = True) -> str:
 
 
 def file_sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def ntriples_term(term: Any) -> str:
@@ -419,18 +502,181 @@ def _canonical_dataset_lines(
     return sorted(lines)
 
 
+class _LexicalNQuadsParser(NQuadsParser):
+    """Pinned RDFLib parser variant that never normalizes literal lexemes."""
+
+    def literal(self) -> Literal | bool:
+        if not self.peek('"'):
+            return False
+        lexical, language, datatype = self.eat(r_literal).groups()
+        if language and datatype:
+            raise ParseError("Can't have both a language and a datatype")
+        datatype_node = URI(uriquote(unquote(datatype))) if datatype else None
+        return Literal(
+            unquote(lexical),
+            lang=language or None,
+            datatype=datatype_node,
+            normalize=False,
+        )
+
+
+def _parse_nquads_preserving_lexical_forms(dataset: Dataset, source: Path) -> None:
+    """Parse N-Quads without mutating RDFLib's process-global normalization flag."""
+
+    input_source = create_input_source(source=source, format="nquads")
+    try:
+        _LexicalNQuadsParser().parse(input_source, dataset)
+    finally:
+        if input_source.auto_close:
+            input_source.close()
+
+
+def _check_serialized_nquads_profile(path: Path) -> int:
+    """Check the line-level canonical profile with bounded memory."""
+
+    previous: bytes | None = None
+    line_count = 0
+    has_line_ending_error = False
+    has_blank_or_padded_line = False
+    has_ordering_error = False
+    try:
+        with path.open("rb") as stream:
+            while line := stream.readline(NQUADS_MAX_LINE_BYTES + 1):
+                line_count += 1
+                if len(line) > NQUADS_MAX_LINE_BYTES:
+                    _fail(
+                        "rdf.resource-limit",
+                        f"atlas.nq line {line_count} exceeds {NQUADS_MAX_LINE_BYTES} bytes",
+                    )
+                try:
+                    line.decode("utf-8")
+                except UnicodeDecodeError as exc:
+                    _fail("rdf.syntax", f"atlas.nq is not UTF-8: {exc}")
+                has_terminal_lf = line.endswith(b"\n")
+                has_line_ending_error |= not has_terminal_lf or b"\r" in line
+                content = line[:-1] if has_terminal_lf else line
+                has_blank_or_padded_line |= not content or content != content.strip()
+                if previous is not None and line <= previous:
+                    has_ordering_error = True
+                previous = line
+    except OSError as exc:
+        _fail("distribution.file", f"cannot read {path}: {exc}")
+    if line_count == 0 or has_line_ending_error:
+        _fail("rdf.canonical", "atlas.nq must be nonempty LF text with one terminal LF")
+    if has_blank_or_padded_line:
+        _fail("rdf.canonical", "atlas.nq contains a blank or padded line")
+    if has_ordering_error:
+        _fail("rdf.canonical", "atlas.nq lines must be sorted and unique")
+    return line_count
+
+
+def _merge_sorted_nquads_chunks(inputs: Sequence[Path], output: Path) -> None:
+    """Merge one bounded group of sorted byte chunks without deduplicating."""
+
+    with ExitStack() as stack:
+        streams = [stack.enter_context(path.open("rb")) for path in inputs]
+        sink = stack.enter_context(output.open("wb"))
+        sink.writelines(heapq.merge(*streams))
+
+
+def _bound_sorted_nquads_merge(
+    chunks: Sequence[Path],
+    temporary: Path,
+    *,
+    fan_in: int,
+) -> list[Path]:
+    """Reduce sorted chunks until the final merge opens at most ``fan_in`` files."""
+
+    if fan_in < 2:
+        raise ValueError("N-Quads merge fan-in must be at least two")
+    current = list(chunks)
+    pass_index = 0
+    while len(current) > fan_in:
+        reduced: list[Path] = []
+        for group_index, offset in enumerate(range(0, len(current), fan_in)):
+            group = current[offset : offset + fan_in]
+            if len(group) == 1:
+                reduced.append(group[0])
+                continue
+            output = temporary / f"merge-{pass_index:03d}-{group_index:05d}.nq"
+            _merge_sorted_nquads_chunks(group, output)
+            reduced.append(output)
+            for path in group:
+                path.unlink()
+        current = reduced
+        pass_index += 1
+    return current
+
+
+def _check_canonical_dataset_terms(path: Path, dataset: Dataset, *, line_count: int) -> None:
+    """Externally sort canonical parsed quads and compare them to the source bytes."""
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="atlas3-canonical-") as raw_temporary:
+            temporary = Path(raw_temporary)
+            chunks: list[Path] = []
+            buffered: list[bytes] = []
+            buffered_bytes = 0
+            parsed_count = 0
+
+            def flush_chunk() -> None:
+                nonlocal buffered_bytes
+                if not buffered:
+                    return
+                buffered.sort()
+                chunk = temporary / f"chunk-{len(chunks):05d}.nq"
+                with chunk.open("wb") as sink:
+                    sink.writelines(buffered)
+                chunks.append(chunk)
+                buffered.clear()
+                buffered_bytes = 0
+
+            for subject, predicate, obj, graph_id in dataset.quads((None, None, None, None)):
+                if any(isinstance(term, BNode) for term in (subject, predicate, obj, graph_id)):
+                    _fail("rdf.blank-node", "atlas.nq contains a blank node term")
+                line = (nquads_line(subject, predicate, obj, graph_id) + "\n").encode("utf-8")
+                if len(line) > NQUADS_MAX_LINE_BYTES:
+                    _fail(
+                        "rdf.resource-limit",
+                        f"canonical N-Quads line exceeds {NQUADS_MAX_LINE_BYTES} bytes",
+                    )
+                if buffered and (
+                    len(buffered) >= NQUADS_SORT_CHUNK_SIZE
+                    or buffered_bytes + len(line) > NQUADS_SORT_CHUNK_BYTES
+                ):
+                    flush_chunk()
+                buffered.append(line)
+                buffered_bytes += len(line)
+                parsed_count += 1
+            flush_chunk()
+            if parsed_count != line_count or not chunks:
+                _fail("rdf.canonical", "parsed quad count differs from serialized line count")
+            chunks = _bound_sorted_nquads_merge(
+                chunks,
+                temporary,
+                fan_in=NQUADS_MERGE_FAN_IN,
+            )
+            with ExitStack() as stack:
+                streams = [stack.enter_context(chunk.open("rb")) for chunk in chunks]
+                source = stack.enter_context(path.open("rb"))
+                for actual, expected in zip_longest(source, heapq.merge(*streams)):
+                    if actual != expected:
+                        _fail("rdf.canonical", "atlas.nq is not in the canonical N-Quads term form")
+    except OSError as exc:
+        _fail("rdf.resource-limit", f"canonical N-Quads external sort failed: {exc}")
+
+
 def rdf_node_digest(graph: Graph, node: URIRef) -> str:
     """Digest one node's sorted outgoing RDF facts, excluding the digest itself."""
 
-    rows = sorted(
-        f"{ntriples_term(predicate)} {ntriples_term(obj)} ."
+    facts = [
+        (predicate, obj)
         for predicate, obj in graph.predicate_objects(node)
         if predicate != ATLAS.contentDigest
-    )
-    if not rows:
+    ]
+    if not facts:
         _fail("dataset.node-identity", f"{node} has no digestible RDF facts")
-    payload = ("\n".join(rows) + "\n").encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
+    return _outgoing_facts_digest(facts)
 
 
 def _load_json(path: Path, *, require_canonical: bool) -> Any:
@@ -615,39 +861,20 @@ def _check_distribution_files(root: Path, manifest: Mapping[str, Any]) -> None:
         )
     for member in manifest["members"]:
         path = root / member["path"]
-        payload = path.read_bytes()
-        if len(payload) != member["byteLength"]:
+        if path.stat().st_size != member["byteLength"]:
             _fail("distribution.length", f"{path.name} byteLength differs")
         if file_sha256(path) != member["digest"]:
             _fail("distribution.digest", f"{path.name} digest differs")
 
 
 def _parse_dataset(path: Path, manifest: Mapping[str, Any]) -> tuple[Dataset, dict[str, Graph]]:
-    raw = path.read_bytes()
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        _fail("rdf.syntax", f"atlas.nq is not UTF-8: {exc}")
-    if not text or not text.endswith("\n") or "\r" in text:
-        _fail("rdf.canonical", "atlas.nq must be nonempty LF text with one terminal LF")
-    lines = text.splitlines()
-    if any(not line or line != line.strip() for line in lines):
-        _fail("rdf.canonical", "atlas.nq contains a blank or padded line")
-    if lines != sorted(lines) or len(lines) != len(set(lines)):
-        _fail("rdf.canonical", "atlas.nq lines must be sorted and unique")
+    line_count = _check_serialized_nquads_profile(path)
     dataset = Dataset()
     try:
-        dataset.parse(data=text, format="nquads")
+        _parse_nquads_preserving_lexical_forms(dataset, path)
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
         _fail("rdf.syntax", f"atlas.nq cannot be parsed as N-Quads: {exc}")
-
-    canonical_lines = _canonical_dataset_lines(
-        dataset,
-        blank_node_code="rdf.blank-node",
-        blank_node_detail="atlas.nq contains a blank node term",
-    )
-    if canonical_lines != lines:
-        _fail("rdf.canonical", "atlas.nq is not in the canonical N-Quads term form")
+    _check_canonical_dataset_terms(path, dataset, line_count=line_count)
 
     declared = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
     allowed_ids = set(declared.values())
@@ -662,12 +889,7 @@ def _parse_dataset(path: Path, manifest: Mapping[str, Any]) -> tuple[Dataset, di
             _fail("dataset.graph-count", f"{row['role']} graph quadCount differs")
     if counts[declared["asserted"]] == 0:
         _fail("dataset.graph", "asserted graph is empty")
-    graphs: dict[str, Graph] = {}
-    for role, graph_id in declared.items():
-        graph = Graph(identifier=graph_id)
-        for subject, predicate, obj, _ in dataset.quads((None, None, None, graph_id)):
-            graph.add((subject, predicate, obj))
-        graphs[role] = graph
+    graphs = {role: dataset.graph(graph_id) for role, graph_id in declared.items()}
     return dataset, graphs
 
 
@@ -746,15 +968,17 @@ def _lint_ontology(ontology: Graph) -> None:
 
 
 def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> None:
+    """Validate authoritative inputs; exact regeneration validates the projection."""
+
     first = True
-    for role in ("asserted", "projection", "derived"):
+    for role in ("asserted", "derived"):
         try:
             conforms, _, report = shacl_validate(
                 graphs[role],
                 shacl_graph=shapes,
                 ont_graph=ontology,
                 inference="none",
-                advanced=True,
+                advanced=False,
                 abort_on_first=False,
                 allow_infos=False,
                 allow_warnings=False,
@@ -1111,7 +1335,9 @@ def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], t
     return basis, (subject, predicate, obj)
 
 
-def _validate_assertions(asserted: Graph) -> dict[tuple[URIRef, URIRef, URIRef], set[URIRef]]:
+def _validate_assertions(
+    asserted: Graph,
+) -> dict[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]]:
     relation_policies = _relation_policies()
     assertions = {
         subject
@@ -1185,6 +1411,8 @@ def _validate_assertions(asserted: Graph) -> dict[tuple[URIRef, URIRef, URIRef],
                 _fail("dataset.assignment", f"{assertion} source release does not match its SourceRecord")
             if target_release not in asserted.objects(obj, ATLAS.inRelease):
                 _fail("dataset.assignment", f"{assertion} target release does not contain its object")
+            if set(asserted.objects(obj, ATLAS.semanticRing)) != {ring}:
+                _fail("dataset.assignment", f"{assertion} target ring differs from its assertion ring")
         else:
             _resource_type(asserted, subject)
             _resource_type(asserted, obj)
@@ -1192,6 +1420,10 @@ def _validate_assertions(asserted: Graph) -> dict[tuple[URIRef, URIRef, URIRef],
                 _fail("dataset.release", f"{assertion} source release does not contain its subject")
             if target_release not in asserted.objects(obj, ATLAS.inRelease):
                 _fail("dataset.release", f"{assertion} target release does not contain its object")
+            if set(asserted.objects(subject, ATLAS.semanticRing)) != {ring} or set(
+                asserted.objects(obj, ATLAS.semanticRing)
+            ) != {ring}:
+                _fail("dataset.release", f"{assertion} endpoint ring differs from its assertion ring")
             if assertion_type == ATLAS.NativeRelationAssertion and source_release != target_release:
                 _fail("dataset.release", f"{assertion} native relation crosses releases")
             if assertion_type == ATLAS.MappingAssertion and source_release == target_release:
@@ -1227,7 +1459,7 @@ def _validate_assertions(asserted: Graph) -> dict[tuple[URIRef, URIRef, URIRef],
             _fail("dataset.supersession", f"terminal {assertion} cannot have superseded status")
         if not has_successor and status == ATLAS.current:
             projected[triple].add(assertion)
-    return projected
+    return {triple: frozenset(assertions) for triple, assertions in projected.items()}
 
 
 def _check_evidence_bindings(asserted: Graph) -> None:
@@ -1261,10 +1493,7 @@ def _check_evidence_bindings(asserted: Graph) -> None:
         )
         if _one(asserted, binding, ATLAS.decisionStatus, code="dataset.evidence") != ATLAS.approved:
             _fail("dataset.evidence", f"{binding} is not an approved editorial decision")
-        if _one(asserted, binding, ATLAS.reviewMethod, code="dataset.evidence") not in {
-            ATLAS.humanReview,
-            ATLAS.trustedPipelineReview,
-        }:
+        if _one(asserted, binding, ATLAS.reviewMethod, code="dataset.evidence") not in REVIEW_METHODS:
             _fail("dataset.evidence", f"{binding} uses an unsupported review method")
         _date_time(
             _one(asserted, binding, ATLAS.decidedAt, code="dataset.evidence"),
@@ -1313,17 +1542,89 @@ def _check_evidence_bindings(asserted: Graph) -> None:
         _fail("dataset.evidence", f"assertion has no immutable evidence binding: {min(missing, key=str)}")
 
 
-def _check_skos_integrity(asserted: Graph) -> None:
-    current = _validate_assertions(asserted)
-    exact_adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
+def _hierarchy_connected_pairs(
+    hierarchy: Mapping[URIRef, set[URIRef]],
+    pairs: Iterable[frozenset[URIRef]],
+) -> set[frozenset[URIRef]]:
+    """Find hierarchy-connected pairs with one target-aware traversal per source."""
+
+    targets_by_source: dict[URIRef, dict[URIRef, frozenset[URIRef]]] = defaultdict(dict)
+    for pair in pairs:
+        members = sorted(pair, key=str)
+        source = members[0]
+        target = members[-1]
+        targets_by_source[source][target] = pair
+        targets_by_source[target][source] = pair
+
+    connected: set[frozenset[URIRef]] = set()
+    for source in sorted(targets_by_source, key=str):
+        pending = dict(targets_by_source[source])
+        frontier = deque([source])
+        visited: set[URIRef] = set()
+        while frontier and pending:
+            current_node = frontier.popleft()
+            for broader in hierarchy.get(current_node, set()):
+                pair = pending.pop(broader, None)
+                if pair is not None:
+                    connected.add(pair)
+                if broader not in visited:
+                    visited.add(broader)
+                    frontier.append(broader)
+    return connected
+
+
+def _build_exact_match_index(
+    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+) -> ExactMatchIndex:
+    """Index exactMatch components without retaining their Cartesian closure."""
+
+    direct_triples = frozenset(
+        triple for triple in current if triple[1] == SKOS.exactMatch
+    )
+    adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
+    for subject, _, obj in direct_triples:
+        adjacency[subject].add(obj)
+        adjacency[obj].add(subject)
+
+    component_by_node: dict[URIRef, int] = {}
+    component_sizes: list[int] = []
+    for start in sorted(adjacency, key=str):
+        if start in component_by_node:
+            continue
+        frontier = [start]
+        visited = {start}
+        while frontier:
+            current_node = frontier.pop()
+            for neighbor in adjacency[current_node] - visited:
+                visited.add(neighbor)
+                frontier.append(neighbor)
+        component = len(component_sizes)
+        component_sizes.append(len(visited))
+        for node in visited:
+            component_by_node[node] = component
+
+    directed_direct_counts = [0] * len(component_sizes)
+    for subject, _, _ in direct_triples:
+        directed_direct_counts[component_by_node[subject]] += 1
+    return ExactMatchIndex(
+        component_by_node=component_by_node,
+        component_sizes=tuple(component_sizes),
+        directed_direct_counts=tuple(directed_direct_counts),
+        direct_triples=direct_triples,
+    )
+
+
+def _check_skos_integrity(
+    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    exact_index: ExactMatchIndex | None = None,
+) -> None:
+    exact_index = exact_index or _build_exact_match_index(current)
     hierarchy: dict[URIRef, set[URIRef]] = defaultdict(set)
     related_pairs: set[frozenset[URIRef]] = set()
+    thesaurus_related_pairs: set[frozenset[URIRef]] = set()
     mapping_relations: list[tuple[URIRef, URIRef, URIRef]] = []
     for subject, predicate, obj in current:
-        if predicate == SKOS.exactMatch:
-            exact_adjacency[subject].add(obj)
-            exact_adjacency[obj].add(subject)
-        elif predicate in {SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}:
+        if predicate in {SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}:
             mapping_relations.append((subject, predicate, obj))
         if predicate == SKOS.broader:
             hierarchy[subject].add(obj)
@@ -1333,96 +1634,208 @@ def _check_skos_integrity(asserted: Graph) -> None:
             hierarchy[subject].add(obj)
         elif predicate == SKOS.related or predicate == SKOS.relatedMatch:
             related_pairs.add(frozenset((subject, obj)))
+        elif predicate == ATLAS.thesaurusRelated:
+            thesaurus_related_pairs.add(frozenset((subject, obj)))
 
-    exact_component: dict[URIRef, frozenset[URIRef]] = {}
-    for start in set(exact_adjacency):
-        if start in exact_component:
-            continue
-        frontier = [start]
-        visited = {start}
-        while frontier:
-            current_node = frontier.pop()
-            for neighbor in exact_adjacency[current_node] - visited:
-                visited.add(neighbor)
-                frontier.append(neighbor)
-        component = frozenset(visited)
-        for member in component:
-            exact_component[member] = component
-
-    for subject, predicate, obj in mapping_relations:
-        if subject in exact_component and obj in exact_component[subject]:
+    for subject, predicate, obj in sorted(
+        mapping_relations,
+        key=lambda triple: tuple(map(str, triple)),
+    ):
+        if exact_index.same_component(subject, obj):
             _fail(
                 "dataset.skos-integrity",
                 f"SKOS S46 exactMatch-component conflict for {(subject, predicate, obj)}",
             )
 
-    def reaches(source: URIRef, target: URIRef) -> bool:
-        frontier = [source]
-        visited: set[URIRef] = set()
-        while frontier:
-            current_node = frontier.pop()
-            for broader in hierarchy[current_node] - visited:
-                visited.add(broader)
-                frontier.append(broader)
-        return target in visited
-
-    for pair in related_pairs:
-        members = tuple(pair)
+    hierarchy_connected = _hierarchy_connected_pairs(
+        hierarchy,
+        related_pairs | thesaurus_related_pairs,
+    )
+    pair_key = lambda pair: tuple(map(str, sorted(pair, key=str)))
+    for pair in sorted(related_pairs, key=pair_key):
+        members = sorted(pair, key=str)
         source = members[0]
         target = members[-1]
-        if reaches(source, target) or reaches(target, source):
+        if pair in hierarchy_connected:
             _fail("dataset.skos-integrity", f"SKOS S27 transitive hierarchy conflict for {(source, target)}")
 
+    for pair in sorted(thesaurus_related_pairs, key=pair_key):
+        members = sorted(pair, key=str)
+        source = members[0]
+        target = members[-1]
+        if pair not in hierarchy_connected:
+            _fail(
+                "dataset.skos-integrity",
+                "atlas:thesaurusRelated is allowed only for an authored associative "
+                f"link with a transitive hierarchy conflict: {(source, target)}",
+            )
 
-def _expected_projection(asserted: Graph) -> Graph:
-    expected = Graph()
+
+def _outgoing_facts_digest(facts: Iterable[tuple[URIRef, URIRef | Literal]]) -> str:
+    rows = sorted(
+        f"{ntriples_term(predicate)} {ntriples_term(obj)} ."
+        for predicate, obj in facts
+        if predicate != ATLAS.contentDigest
+    )
+    if not rows:
+        _fail("dataset.node-identity", "node has no digestible RDF facts")
+    return "sha256:" + hashlib.sha256(("\n".join(rows) + "\n").encode("utf-8")).hexdigest()
+
+
+def _projection_record_iri(triple: tuple[URIRef, URIRef, URIRef]) -> URIRef:
+    subject, predicate, obj = triple
+    digest = hashlib.sha256(
+        canonical_json_bytes(
+            {"object": str(obj), "predicate": str(predicate), "subject": str(subject)},
+            terminal_lf=False,
+        )
+    ).hexdigest()
+    return URIRef("urn:ref:atlas-projection:" + digest)
+
+
+def _projection_support_ring(
+    asserted: Graph,
+    triple: tuple[URIRef, URIRef, URIRef],
+    assertions: frozenset[URIRef],
+) -> URIRef:
+    rings = {
+        ring
+        for assertion in assertions
+        for ring in asserted.objects(assertion, ATLAS.semanticRing)
+    }
+    if len(rings) != 1:
+        _fail("dataset.projection", f"projection support for {triple} disagrees on semantic ring")
+    return _iri(next(iter(rings)), code="dataset.projection", label="projection semantic ring")
+
+
+def _projection_record_facts(
+    asserted: Graph,
+    triple: tuple[URIRef, URIRef, URIRef],
+    assertions: frozenset[URIRef],
+) -> tuple[URIRef, list[tuple[URIRef, URIRef | Literal]]]:
+    subject, predicate, obj = triple
+    projection = _projection_record_iri(triple)
+    facts: list[tuple[URIRef, URIRef | Literal]] = [
+        (RDF.type, ATLAS.ProjectedRelation),
+        (ATLAS.relationSubject, subject),
+        (ATLAS.relationPredicate, predicate),
+        (ATLAS.relationObject, obj),
+        (ATLAS.semanticRing, _projection_support_ring(asserted, triple, assertions)),
+    ]
+    facts.extend(
+        (ATLAS.supportingAssertion, assertion)
+        for assertion in sorted(assertions, key=str)
+    )
+    return projection, facts
+
+
+def _expected_projection_triples(
+    asserted: Graph,
+    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+) -> Iterable[tuple[URIRef, URIRef, URIRef | Literal]]:
+    emitted_label_triples: set[tuple[URIRef, URIRef, Literal]] = set()
     for xl_predicate, plain_predicate in XL_TO_SKOS.items():
         for resource, _, label in asserted.triples((None, xl_predicate, None)):
             literal = _one(asserted, _iri(label, code="dataset.label", label="label"), SKOSXL.literalForm, code="dataset.label")
-            expected.add((resource, plain_predicate, literal))
+            if not isinstance(literal, Literal):
+                _fail("dataset.label", f"{label} literalForm must be a literal")
+            triple = (resource, plain_predicate, literal)
+            if triple not in emitted_label_triples:
+                emitted_label_triples.add(triple)
+                yield triple
 
-    supported = _validate_assertions(asserted)
     for triple, assertions in sorted(supported.items(), key=lambda row: tuple(map(str, row[0]))):
-        subject, predicate, obj = triple
+        yield triple
+        projection, facts = _projection_record_facts(asserted, triple, assertions)
+        for fact_predicate, fact_object in facts:
+            yield projection, fact_predicate, fact_object
+        yield projection, ATLAS.contentDigest, Literal(_outgoing_facts_digest(facts))
+
+
+def _expected_projection(
+    asserted: Graph,
+    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]] | None = None,
+) -> Graph:
+    expected = Graph()
+    analysis = supported if supported is not None else _validate_assertions(asserted)
+    for triple in _expected_projection_triples(asserted, analysis):
         expected.add(triple)
-        digest = hashlib.sha256(
-            canonical_json_bytes(
-                {"object": str(obj), "predicate": str(predicate), "subject": str(subject)},
-                terminal_lf=False,
-            )
-        ).hexdigest()
-        projection = URIRef("urn:ref:atlas-projection:" + digest)
-        expected.add((projection, RDF.type, ATLAS.ProjectedRelation))
-        expected.add((projection, ATLAS.relationSubject, subject))
-        expected.add((projection, ATLAS.relationPredicate, predicate))
-        expected.add((projection, ATLAS.relationObject, obj))
-        rings = {
-            ring
-            for assertion in assertions
-            for ring in asserted.objects(assertion, ATLAS.semanticRing)
-        }
-        if len(rings) != 1:
-            _fail("dataset.projection", f"projection support for {triple} disagrees on semantic ring")
-        expected.add((projection, ATLAS.semanticRing, next(iter(rings))))
-        for assertion in sorted(assertions, key=str):
-            expected.add((projection, ATLAS.supportingAssertion, assertion))
-    for projection in set(expected.subjects(RDF.type, ATLAS.ProjectedRelation)):
-        expected.add((projection, ATLAS.contentDigest, Literal(rdf_node_digest(expected, projection))))
     return expected
 
 
-def _check_projection(asserted: Graph, projection: Graph) -> None:
-    expected = _expected_projection(asserted)
-    missing = set(expected) - set(projection)
-    extra = set(projection) - set(expected)
-    if missing or extra:
-        detail = (
-            f"projection differs; missing={len(missing)}, extra={len(extra)}"
-        )
-        if missing:
-            detail += f", firstMissing={min(missing, key=lambda row: tuple(map(str, row)))}"
-        if extra:
-            detail += f", firstExtra={min(extra, key=lambda row: tuple(map(str, row)))}"
+def _check_projection(
+    asserted: Graph,
+    projection: Graph,
+    supported: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+) -> None:
+    projection_records: dict[
+        URIRef,
+        tuple[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    ] = {}
+    for triple, assertions in supported.items():
+        record_iri = _projection_record_iri(triple)
+        previous = projection_records.get(record_iri)
+        if previous is not None and previous[0] != triple:
+            _fail("dataset.projection", f"projection record identity collision for {record_iri}")
+        projection_records[record_iri] = (triple, assertions)
+
+    def triple_key(triple: tuple[Any, Any, Any]) -> tuple[str, str, str]:
+        return tuple(ntriples_term(term) for term in triple)  # type: ignore[return-value]
+
+    def is_expected(triple: tuple[Any, Any, Any]) -> bool:
+        subject, predicate, obj = triple
+        if triple in supported:
+            return True
+        xl_predicate = SKOS_TO_XL.get(predicate)
+        if xl_predicate is not None and isinstance(obj, Literal):
+            return any(
+                (label, SKOSXL.literalForm, obj) in asserted
+                for label in asserted.objects(subject, xl_predicate)
+            )
+        record = projection_records.get(subject)
+        if record is None:
+            return False
+        relation, assertions = record
+        relation_subject, relation_predicate, relation_object = relation
+        if predicate == RDF.type:
+            return obj == ATLAS.ProjectedRelation
+        if predicate == ATLAS.relationSubject:
+            return obj == relation_subject
+        if predicate == ATLAS.relationPredicate:
+            return obj == relation_predicate
+        if predicate == ATLAS.relationObject:
+            return obj == relation_object
+        if predicate == ATLAS.semanticRing:
+            return obj == _projection_support_ring(asserted, relation, assertions)
+        if predicate == ATLAS.supportingAssertion:
+            return obj in assertions
+        if predicate == ATLAS.contentDigest:
+            _, facts = _projection_record_facts(asserted, relation, assertions)
+            return obj == Literal(_outgoing_facts_digest(facts))
+        return False
+
+    missing_count = 0
+    first_missing: tuple[URIRef, URIRef, URIRef | Literal] | None = None
+    for triple in _expected_projection_triples(asserted, supported):
+        if triple not in projection:
+            missing_count += 1
+            if first_missing is None or triple_key(triple) < triple_key(first_missing):
+                first_missing = triple
+
+    extra_count = 0
+    first_extra: tuple[Any, Any, Any] | None = None
+    for triple in projection:
+        if not is_expected(triple):
+            extra_count += 1
+            if first_extra is None or triple_key(triple) < triple_key(first_extra):
+                first_extra = triple
+
+    if missing_count or extra_count:
+        detail = f"projection differs; missing={missing_count}, extra={extra_count}"
+        if first_missing is not None:
+            detail += f", firstMissing={first_missing}"
+        if first_extra is not None:
+            detail += f", firstExtra={first_extra}"
         _fail("dataset.projection", detail)
 
 
@@ -1463,6 +1876,86 @@ def _check_release_membership(asserted: Graph) -> None:
         release_ring = _one(asserted, release, ATLAS.semanticRing, code="dataset.release")
         if resource_ring != release_ring:
             _fail("dataset.release", f"{resource} ring differs from {release}")
+        resource_scheme = _one(asserted, resource, ATLAS.inScheme, code="dataset.release")
+        release_scheme = _one(asserted, release, ATLAS.inScheme, code="dataset.release")
+        if resource_scheme != release_scheme:
+            _fail("dataset.release", f"{resource} scheme differs from {release}")
+        resource_profile = _one(asserted, resource, ATLAS.resourceProfile, code="dataset.release")
+        release_profile = _one(asserted, release, ATLAS.resourceProfile, code="dataset.release")
+        if resource_profile != release_profile:
+            _fail("dataset.release", f"{resource} profile differs from {release}")
+
+
+def _check_label_integrity(asserted: Graph) -> None:
+    """Enforce cross-record SKOS-XL invariants without per-node SPARQL queries."""
+
+    resources = {
+        subject
+        for resource_type in RESOURCE_TYPES
+        for subject in asserted.subjects(RDF.type, resource_type)
+        if isinstance(subject, URIRef)
+    }
+    role_predicates = tuple(XL_TO_SKOS)
+    for resource in resources:
+        release = _iri(
+            _one(asserted, resource, ATLAS.inRelease, code="dataset.label-integrity"),
+            code="dataset.label-integrity",
+            label="resource release",
+        )
+        source_records = set(asserted.objects(resource, ATLAS.sourceRecord))
+        labels_by_role: dict[URIRef, set[URIRef]] = {}
+        literals_by_role: dict[URIRef, set[Literal]] = {}
+        for role in role_predicates:
+            labels: set[URIRef] = set()
+            literals: set[Literal] = set()
+            for raw_label in asserted.objects(resource, role):
+                label = _iri(
+                    raw_label,
+                    code="dataset.label-integrity",
+                    label="SKOS-XL label",
+                )
+                labels.add(label)
+                if set(asserted.objects(label, ATLAS.inRelease)) != {release}:
+                    _fail(
+                        "dataset.label-integrity",
+                        f"{label} release differs from its resource {resource}",
+                    )
+                label_records = set(asserted.objects(label, ATLAS.sourceRecord))
+                if not source_records.intersection(label_records):
+                    _fail(
+                        "dataset.label-integrity",
+                        f"{label} shares no SourceRecord with its resource {resource}",
+                    )
+                literal = _one(
+                    asserted,
+                    label,
+                    SKOSXL.literalForm,
+                    code="dataset.label-integrity",
+                )
+                if not isinstance(literal, Literal):
+                    _fail("dataset.label-integrity", f"{label} literalForm is not a literal")
+                literals.add(literal)
+            labels_by_role[role] = labels
+            literals_by_role[role] = literals
+
+        preferred_languages = [
+            (literal.language or "").lower()
+            for literal in literals_by_role[SKOSXL.prefLabel]
+        ]
+        if len(preferred_languages) != len(set(preferred_languages)):
+            _fail(
+                "dataset.label-integrity",
+                f"{resource} has more than one preferred label in a language",
+            )
+        for index, first_role in enumerate(role_predicates):
+            for second_role in role_predicates[index + 1 :]:
+                if labels_by_role[first_role] & labels_by_role[second_role] or (
+                    literals_by_role[first_role] & literals_by_role[second_role]
+                ):
+                    _fail(
+                        "dataset.label-integrity",
+                        f"{resource} reuses a label node or literal across SKOS-XL roles",
+                    )
 
 
 def _check_node_digests(graphs: Mapping[str, Graph]) -> None:
@@ -1507,7 +2000,13 @@ def _check_node_digests(graphs: Mapping[str, Graph]) -> None:
                 _fail("dataset.node-identity", f"{node} contentDigest differs")
 
 
-def _check_rdf_json_payload(literal: Any, *, node: URIRef, label: str) -> None:
+def _check_rdf_json_payload(
+    literal: Any,
+    *,
+    node: URIRef,
+    label: str,
+    source_native: bool = False,
+) -> None:
     if not isinstance(literal, Literal) or literal.datatype != RDF.JSON:
         _fail("dataset.native-payload", f"{node} {label} is not rdf:JSON")
     try:
@@ -1518,17 +2017,26 @@ def _check_rdf_json_payload(literal: Any, *, node: URIRef, label: str) -> None:
             parse_int=_parse_int,
             parse_constant=_reject_constant,
         )
-        _reject_nulls_and_numbers(value)
+        expected = (
+            canonical_native_json_bytes(value)
+            if source_native
+            else canonical_json_bytes(value, terminal_lf=False)
+        )
     except (json.JSONDecodeError, AtlasValidationError) as exc:
         _fail("dataset.native-payload", f"{node} {label} is invalid: {exc}")
-    if str(literal).encode("utf-8") != canonical_json_bytes(value, terminal_lf=False):
+    if str(literal).encode("utf-8") != expected:
         _fail("dataset.native-payload", f"{node} {label} is not canonical REF JSON")
 
 
 def _check_native_payloads(asserted: Graph) -> None:
     for record in set(asserted.subjects(RDF.type, ATLAS.SourceRecord)):
         literal = _one(asserted, record, ATLAS.nativePayload, code="dataset.native-payload")
-        _check_rdf_json_payload(literal, node=record, label="nativePayload")
+        _check_rdf_json_payload(
+            literal,
+            node=record,
+            label="nativePayload",
+            source_native=True,
+        )
     for scheme in set(asserted.subjects(RDF.type, ATLAS.ResourceScheme)):
         payloads = list(asserted.objects(scheme, ATLAS.descriptorPayload))
         if len(payloads) > 1:
@@ -1661,11 +2169,16 @@ def derived_input_digest(asserted: Graph, inputs: Iterable[URIRef]) -> str:
     return canonical_sha256({"assertions": rows}, terminal_lf=False)
 
 
-def _check_derived(asserted: Graph, projection: Graph, derived: Graph) -> None:
+def _check_derived(
+    asserted: Graph,
+    projection: Graph,
+    derived: Graph,
+    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+) -> None:
     relation_policies = _relation_policies()
     active_assertions = {
         assertion
-        for assertions in _validate_assertions(asserted).values()
+        for assertions in current.values()
         for assertion in assertions
     }
     derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -1798,30 +2311,22 @@ def _check_derived(asserted: Graph, projection: Graph, derived: Graph) -> None:
 
 
 def _check_reasoning_isolation(
-    asserted: Graph,
-    projection: Graph,
     derived: Graph,
+    current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
+    exact_index: ExactMatchIndex | None = None,
 ) -> int:
-    base = Graph()
-    for triple in projection:
-        base.add(triple)
+    exact_index = exact_index or _build_exact_match_index(current)
     direct_mappings = {
         triple
-        for triple in _validate_assertions(asserted)
+        for triple in current
         if triple[1] in SKOS_MAPPING_PREDICATES
     }
-    reasoned = Graph()
-    for triple in base:
-        reasoned.add(triple)
-    reasoned.add((SKOS.exactMatch, RDF.type, OWL.TransitiveProperty))
-    reasoned.add((SKOS.exactMatch, RDF.type, OWL.SymmetricProperty))
-    DeductiveClosure(OWLRL_Semantics, axiomatic_triples=False, datatype_axioms=False).expand(reasoned)
-    inferred = {
-        triple
-        for triple in reasoned
-        if triple[1] in SKOS_MAPPING_PREDICATES and triple not in direct_mappings
+    assertion_triples = {
+        assertion: triple
+        for triple, assertions in current.items()
+        for assertion in assertions
     }
-    for node in set(derived.subjects(RDF.type, ATLAS.DerivedRelation)):
+    for node in sorted(set(derived.subjects(RDF.type, ATLAS.DerivedRelation)), key=str):
         output = (
             _iri(
                 _one(derived, node, ATLAS.relationSubject, code="reasoning.authority"),
@@ -1839,12 +2344,24 @@ def _check_reasoning_isolation(
                 label="derived object",
             ),
         )
-        if output not in inferred:
+        replay = Graph()
+        for assertion in derived.objects(node, ATLAS.derivedFromAssertion):
+            input_triple = assertion_triples.get(assertion)
+            if input_triple is not None:
+                replay.add(input_triple)
+        replay.add((SKOS.exactMatch, RDF.type, OWL.TransitiveProperty))
+        replay.add((SKOS.exactMatch, RDF.type, OWL.SymmetricProperty))
+        DeductiveClosure(
+            OWLRL_Semantics,
+            axiomatic_triples=False,
+            datatype_axioms=False,
+        ).expand(replay)
+        if output in direct_mappings or output not in replay:
             _fail(
                 "reasoning.authority",
                 f"{node} is not a newly inferred mapping under the pinned reasoner",
             )
-    return len(inferred)
+    return exact_index.inferred_count
 
 
 def acceptance_gate_evidence_digest(
@@ -1907,25 +2424,35 @@ def validate_distribution(root: Path) -> dict[str, Any]:
     _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
     _check_binding_pins(manifest, acceptance)
 
-    _, graphs = _parse_dataset(root / "atlas.nq", manifest)
+    dataset, graphs = _parse_dataset(root / "atlas.nq", manifest)
     ontology, shapes = _parse_binding_graphs()
     _lint_ontology(ontology)
     _run_shacl(graphs, ontology, shapes)
     _check_graph_roles(graphs)
     _check_profile_conformance(graphs["asserted"])
     _check_release_membership(graphs["asserted"])
+    _check_label_integrity(graphs["asserted"])
     _check_evidence_bindings(graphs["asserted"])
-    _check_skos_integrity(graphs["asserted"])
-    _check_projection(graphs["asserted"], graphs["projection"])
-    _check_derived(graphs["asserted"], graphs["projection"], graphs["derived"])
+    current_assertions = _validate_assertions(graphs["asserted"])
+    exact_index = _build_exact_match_index(current_assertions)
+    _check_skos_integrity(current_assertions, exact_index)
+    _check_projection(graphs["asserted"], graphs["projection"], current_assertions)
+    _check_derived(
+        graphs["asserted"],
+        graphs["projection"],
+        graphs["derived"],
+        current_assertions,
+    )
     _check_native_payloads(graphs["asserted"])
     _check_node_digests(graphs)
     _check_source_accounting(graphs["asserted"], accounting)
     _check_counts(manifest, graphs)
     inferred_mapping_count = _check_reasoning_isolation(
-        graphs["asserted"], graphs["projection"], graphs["derived"]
+        graphs["derived"], current_assertions, exact_index
     )
     _check_acceptance(manifest, accounting, acceptance, root)
+    # Keep the shared Dataset store alive for every graph view through the last check.
+    del dataset
     return {
         "counts": manifest["counts"],
         "distributionId": manifest["distributionId"],
@@ -2012,7 +2539,7 @@ def _check_registry_descriptors(
         _fail("registry.descriptors", "registry descriptor N-Quads are not sorted and unique")
     dataset = Dataset()
     try:
-        dataset.parse(data=text, format="nquads")
+        _parse_nquads_preserving_lexical_forms(dataset, REGISTRY_DESCRIPTOR_DATASET_PATH)
     except Exception as exc:  # noqa: BLE001 - normalize RDF parser failures
         _fail("registry.descriptors", f"registry descriptor N-Quads cannot be parsed: {exc}")
     canonical_lines = _canonical_dataset_lines(
@@ -2151,7 +2678,7 @@ def validate_binding() -> dict[str, Any]:
             shacl_graph=shapes,
             ont_graph=ontology,
             inference="none",
-            advanced=True,
+            advanced=False,
             meta_shacl=True,
         )
     except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
