@@ -353,8 +353,9 @@
 <urn:ref:atlas-resource-scheme:govinfo-collections> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://purl.org/dc/terms/identifier> "grants-gov-status-codes" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://purl.org/dc/terms/title> "Grants.gov eligibility and funding category codes" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:e403ed96bbad9d5aed509ac1464c68f4a5a4cbcaeb7487b1d1bd6919280ae612" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:8168f5e3e7e46ffbe7b03ca6782151d413108e0e6f515f2a5f4f39d421fd4514" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:grants-gov-status-codes> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .

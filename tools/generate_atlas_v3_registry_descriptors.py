@@ -345,7 +345,13 @@ def build_registry_descriptors(
         graph.add((source_node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, source_node))))
 
         graph.add((node, RDF.type, ATLAS.ResourceScheme))
-        if profile == "conceptScheme":
+        # A code list may still supply subject concepts. SKOS requires the
+        # object of skos:inScheme to be a skos:ConceptScheme, independently of
+        # Atlas's operational resource profile.
+        if profile == "conceptScheme" or "subject" in rings_by_resource.get(
+            resource_id,
+            set(),
+        ):
             graph.add((node, RDF.type, SKOS.ConceptScheme))
             concept_scheme_count += 1
         graph.add((node, DCTERMS.identifier, Literal(resource_id)))

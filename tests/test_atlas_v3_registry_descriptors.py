@@ -104,7 +104,7 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     assert proof["resourceIdSetDigest"] == _canonical_sha256(resource_ids)
     assert proof["counts"] == {
         "atlasIndexPlacementCount": 89,
-        "conceptSchemeCount": 29,
+        "conceptSchemeCount": 30,
         "memberDispositionCounts": {
             "assignmentEvidenceOnly": 4,
             "childReleaseOnly": 6,
@@ -115,7 +115,7 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-        "quadCount": 1168,
+        "quadCount": 1169,
         "registrySourceCount": 88,
         "resourceSchemeCount": 88,
         "supportedRingStatementCount": 83,
@@ -197,7 +197,9 @@ def test_every_catalog_row_has_one_source_and_one_profiled_resource_scheme() -> 
 
         types = set(graph.objects(node, RDF.type))
         assert ATLAS.ResourceScheme in types
-        assert (SKOS.ConceptScheme in types) is (profile == "conceptScheme")
+        assert (SKOS.ConceptScheme in types) is (
+            profile == "conceptScheme" or "subject" in expected_rings
+        )
 
         assert not list(graph.objects(node, ATLAS.descriptorPayload))
         assert list(graph.objects(source, DCTERMS.identifier)) == [Literal(resource_id)]
@@ -222,7 +224,7 @@ def test_every_catalog_row_has_one_source_and_one_profiled_resource_scheme() -> 
         assert list(graph.objects(node, ATLAS.contentDigest)) == [Literal(_node_digest(graph, node))]
         assert list(graph.objects(source, ATLAS.contentDigest)) == [Literal(_node_digest(graph, source))]
 
-    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 29
+    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 30
     assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 83
 
 
@@ -250,7 +252,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.0 registry descriptors are current: 88 schemes, 89 index placements, 1168 quads\n"
+        "Atlas 3.0 registry descriptors are current: 88 schemes, 89 index placements, 1169 quads\n"
     )
 
 
