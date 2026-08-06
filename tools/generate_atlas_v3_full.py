@@ -1514,6 +1514,9 @@ def load_releases() -> tuple[LoadedRelease, ...]:
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
     from refspec.atlas.v3_registry_documents import load_registry_document_releases
     from refspec.atlas.v3_registry_large import load_large_registry_releases
+    from refspec.atlas.v3_registry_nonemitters import (
+        load_registry_nonemitter_releases,
+    )
     from refspec.atlas.v3_registry_vocabularies import (
         load_all_registry_vocabulary_releases,
     )
@@ -1535,6 +1538,7 @@ def load_releases() -> tuple[LoadedRelease, ...]:
         *load_large_registry_releases(),
         *load_registry_code_releases(ROOT),
         *load_registry_document_releases(ROOT),
+        *load_registry_nonemitter_releases(ROOT),
     )
     _validate_registry_release_descriptors(registry_releases)
     releases.extend(_adapt_registry_release(release) for release in registry_releases)
