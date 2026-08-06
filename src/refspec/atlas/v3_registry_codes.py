@@ -1010,6 +1010,14 @@ def _load_oira(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
 def _load_omb_a11(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import omb_a11_budget_codes as source
 
+    document_input = _input_pin(
+        repo_root,
+        "output/registry-real-data-sources/omb-a11-2025-wayback.pdf",
+        source_iri=source.OMB_A11_DOCUMENT_URL,
+        sha256=source.OMB_A11_DOCUMENT_SHA256,
+        byte_length=source.OMB_A11_DOCUMENT_BYTE_LENGTH,
+        role="publisherSource",
+    )
     rows = (
         (
             "functional-classification",
@@ -1038,7 +1046,10 @@ def _load_omb_a11(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ..
         input_pin = _input_pin(
             repo_root,
             logical_path,
-            source_iri=pin.source.document_url,
+            source_iri=(
+                "urn:ref:derived-artifact:"
+                + pin.expected_sha256.removeprefix("sha256:")
+            ),
             sha256=pin.expected_sha256,
             byte_length=pin.expected_byte_length,
             role="publisherPdfTextExtraction",
@@ -1060,15 +1071,15 @@ def _load_omb_a11(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ..
                 source_token=f"omb-a11-{suffix}",
                 profile="codeScheme",
                 ring="value",
-                scope="publisherRelease",
+                scope="captureSubset",
                 issued=parsed.retrieved_at,
-                inputs=(input_pin,),
+                inputs=(document_input, input_pin),
                 items=_code_items(
                     parsed.codes,
                     resource_name=pin.source.resource_name,
                     source_iri=pin.source.document_url,
                 ),
-                source_release_digest=parsed.source_sha256,
+                source_release_digest=document_input.sha256,
             )
         )
     return tuple(releases)
@@ -1189,13 +1200,21 @@ def _load_nasa_technology(repo_root: Path) -> tuple[RegistryRelease, ...]:
 def _load_nature_of_suit(repo_root: Path) -> tuple[RegistryRelease, ...]:
     from refspec.registry import nature_of_suit_codes as source
 
+    document_pin = _input_pin(
+        repo_root,
+        "output/registry-real-data-sources/js_044_code_descriptions.pdf",
+        source_iri=source.NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL,
+        sha256="sha256:aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95",
+        byte_length=316_187,
+        role="publisherSource",
+    )
     logical_path = "tests/fixtures/nature_of_suit_codes/js_044_code_descriptions.layout.txt"
     payload = (repo_root / logical_path).read_bytes()
     digest = "sha256:" + hashlib.sha256(payload).hexdigest()
     pin = _input_pin(
         repo_root,
         logical_path,
-        source_iri=source.NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL,
+        source_iri="urn:ref:derived-artifact:" + digest.removeprefix("sha256:"),
         sha256=digest,
         byte_length=len(payload),
         role="publisherPdfTextExtraction",
@@ -1206,8 +1225,7 @@ def _load_nature_of_suit(repo_root: Path) -> tuple[RegistryRelease, ...]:
         captured_at="2026-08-03T00:00:00Z",
     )
     return (
-        _bundle_release(
-            bundle,
+        _release(
             key="uscourts-nature-of-suit",
             resource_id="nature-of-suit",
             source_module="refspec.registry.nature_of_suit_codes",
@@ -1215,8 +1233,16 @@ def _load_nature_of_suit(repo_root: Path) -> tuple[RegistryRelease, ...]:
             profile="codeScheme",
             ring="value",
             scope="completeCapture",
-            inputs=(pin,),
-            expected_count=93,
+            issued=str(bundle.resource_manifest["capturedAt"]),
+            inputs=(document_pin, pin),
+            items=_bundle_items(
+                bundle.observations,
+                key="uscourts-nature-of-suit",
+            ),
+            source_release_digest=document_pin.sha256,
+            source_digests={
+                source.NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL: document_pin.sha256
+            },
         ),
     )
 
@@ -1639,7 +1665,7 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
                 source_token=f"unified-agenda-{suffix}",
                 profile="codeScheme",
                 ring="value",
-                scope="publisherRelease",
+                scope="captureSubset",
                 issued=parsed.retrieved_at,
                 inputs=(schema_input,),
                 items=items,
@@ -1691,7 +1717,7 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
             source_token="unified-agenda-legal-authority",
             profile="identifierScheme",
             ring="legalIdentity",
-            scope="publisherRelease",
+            scope="captureSubset",
             issued=evidence.retrieved_at,
             inputs=(preamble_input,),
             items=citation_items,

@@ -158,6 +158,19 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
     assert by_key["billstatus-action-codes"].scope == "captureSubset"
     assert by_key["nasa-technology-taxonomy-8817"].scope == "captureSubset"
     assert by_key["census-acs-geography-identifiers"].scope == "captureSubset"
+    assert by_key["omb-a11-functional-classification"].scope == "captureSubset"
+    assert by_key["unified-agenda-rule-stage"].scope == "captureSubset"
+    assert by_key["unified-agenda-legal-authority-citation-types"].scope == (
+        "captureSubset"
+    )
+    assert {pin.role for pin in by_key["omb-a11-functional-classification"].inputs} == {
+        "publisherSource",
+        "publisherPdfTextExtraction",
+    }
+    assert {pin.role for pin in by_key["uscourts-nature-of-suit"].inputs} == {
+        "publisherSource",
+        "publisherPdfTextExtraction",
+    }
     assert len(by_key["regulatory-native-federal-register-unresolved-agency-name"].resources) == 715
     assert by_key["ferc-docket-prefixes"].resources[0].status in {"active", "discontinued"}
     regulatory_resource = by_key["regulatory-native-federal-register-unresolved-agency-name"].resources[0]
