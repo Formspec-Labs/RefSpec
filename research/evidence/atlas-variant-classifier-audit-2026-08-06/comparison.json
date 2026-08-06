@@ -1,0 +1,48 @@
+{
+  "experiment": "E-V5 classifier validation",
+  "note": "False principled and false unprincipled are reported separately and never pooled: the first admits a coincidence into a traversed graph, the second only loses a candidate.",
+  "result": {
+    "classifierPrincipled": 16,
+    "confusion": {
+      "numberVariant -> numberVariant": 11,
+      "spellingVariant -> spellingVariant": 5,
+      "unprincipled -> numberVariant": 1,
+      "unprincipled -> spellingVariant": 1,
+      "unprincipled -> unprincipled": 147
+    },
+    "digest": "sha256:3d472254aeb74caa4086f1c3f878a8aac3dc6107dcd4852a24914bb94211c67f",
+    "exactAgreement": 0.9878787878787879,
+    "falsePrincipled": [],
+    "falseUnprincipled": [
+      {
+        "classifier": "unprincipled",
+        "labels": [
+          "CYBERSECURITY",
+          "cyber security"
+        ],
+        "reviewer": "spellingVariant",
+        "row": 36,
+        "why": "closed versus open compounding of one term"
+      },
+      {
+        "classifier": "unprincipled",
+        "labels": [
+          "STILL-BIRTH",
+          "stillbirths"
+        ],
+        "reviewer": "numberVariant",
+        "row": 142,
+        "why": "same noun pluralised; hyphenation is incidental"
+      }
+    ],
+    "precisionOnPrincipled": 1.0,
+    "precisionOnPrincipled95": [
+      0.8063865817272802,
+      1.0
+    ],
+    "principledBinaryAgreement": 0.9878787878787879,
+    "rowsMissing": 0,
+    "rowsScored": 165
+  },
+  "type": "AtlasVariantClassifierAuditComparison"
+}
