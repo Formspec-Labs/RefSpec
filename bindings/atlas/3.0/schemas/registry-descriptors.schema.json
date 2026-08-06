@@ -35,7 +35,35 @@
           "$ref": "common.schema.json#/$defs/nonnegativeInteger",
           "minimum": 1
         },
+        "memberDispositionCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "assignmentEvidenceOnly": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "childReleaseOnly": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "definitionOnly": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "historicalEvidenceOnly": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "memberRelease": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "noPublisherRecord": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "resourceFamily": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" },
+            "reviewWithheld": { "$ref": "common.schema.json#/$defs/nonnegativeInteger" }
+          },
+          "required": [
+            "assignmentEvidenceOnly",
+            "childReleaseOnly",
+            "definitionOnly",
+            "historicalEvidenceOnly",
+            "memberRelease",
+            "noPublisherRecord",
+            "resourceFamily",
+            "reviewWithheld"
+          ],
+          "type": "object"
+        },
         "quadCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "registrySourceCount": {
           "$ref": "common.schema.json#/$defs/nonnegativeInteger",
           "minimum": 1
         },
@@ -51,7 +79,9 @@
       "required": [
         "atlasIndexPlacementCount",
         "conceptSchemeCount",
+        "memberDispositionCounts",
         "quadCount",
+        "registrySourceCount",
         "resourceSchemeCount",
         "supportedRingStatementCount"
       ],

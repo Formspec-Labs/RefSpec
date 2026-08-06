@@ -249,7 +249,6 @@ def test_core_paths_reject_assertion_endpoint_ring_and_release_mismatches(
         ("mapping-ring", "dataset.release", "endpoint ring differs"),
         ("mapping-release", "dataset.release", "target release does not contain"),
         ("native-ring", "dataset.release", "endpoint ring differs"),
-        ("native-release", "dataset.release", "native relation crosses releases"),
         ("assignment-ring", "dataset.assignment", "target ring differs"),
         ("assignment-release", "dataset.assignment", "target release does not contain"),
     ),
@@ -295,15 +294,6 @@ def test_python_assertion_backstops_reject_ring_and_release_mismatches(
         target, target_release, _ = target_row
         assertion_type = ATLAS.NativeRelationAssertion
         ring = ATLAS.subject
-    elif case == "native-release":
-        source, source_release, evidence_record = _resource_rows(asserted, ATLAS.subject)[0]
-        target, target_release, _ = next(
-            row
-            for row in _resource_rows(asserted, ATLAS.subject)
-            if row[1] != source_release
-        )
-        assertion_type = ATLAS.NativeRelationAssertion
-        ring = ATLAS.subject
     else:
         target, actual_target_release, source = _resource_rows(asserted, ATLAS.entity)[0]
         source_release = next(asserted.objects(source, ATLAS.inSourceRelease))
@@ -340,6 +330,33 @@ def test_python_assertion_backstops_reject_ring_and_release_mismatches(
 
     assert raised.value.code == expected_code
     assert expected_detail in raised.value.detail
+
+
+def test_publisher_native_relation_may_cross_exact_releases_in_one_ring() -> None:
+    asserted = _fresh_asserted_graph_without_assertions()
+    predicate = SKOS.related
+    source, source_release, evidence_record = _resource_rows(asserted, ATLAS.subject)[0]
+    target, target_release, _ = next(
+        row
+        for row in _resource_rows(asserted, ATLAS.subject)
+        if row[1] != source_release
+    )
+    atlas_fixtures._add_assertion(
+        asserted,
+        assertion_type=ATLAS.NativeRelationAssertion,
+        ring=ATLAS.subject,
+        subject=source,
+        predicate=predicate,
+        obj=target,
+        source_release=source_release,
+        target_release=target_release,
+        evidence_record=evidence_record,
+        evidence_name="publisher-native-cross-release",
+    )
+
+    supported = atlas_validate._validate_assertions(asserted)
+
+    assert (source, predicate, target) in supported
 
 
 @pytest.mark.parametrize(

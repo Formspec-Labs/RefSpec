@@ -60,6 +60,11 @@ atlas:ResourceScheme
   a owl:Class ;
   rdfs:label "resource scheme"@en .
 
+atlas:RegistrySource
+  a owl:Class ;
+  rdfs:label "registry source"@en ;
+  rdfs:comment "Cataloged publisher or reference source from which one or more governed resource schemes may be emitted."@en .
+
 atlas:AtlasResource
   a owl:Class ;
   rdfs:label "Atlas resource"@en .
@@ -160,6 +165,7 @@ atlas:ValueResource
 
 atlas:AtlasResource
   owl:disjointWith atlas:Identifier,
+    atlas:RegistrySource,
     atlas:SourceRecord,
     atlas:EvidenceBinding,
     atlas:EditorialPolicy,
@@ -169,7 +175,8 @@ atlas:AtlasResource
     skosxl:Label .
 
 atlas:Identifier
-  owl:disjointWith atlas:SourceRecord,
+  owl:disjointWith atlas:RegistrySource,
+    atlas:SourceRecord,
     atlas:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
@@ -179,6 +186,16 @@ atlas:Identifier
 
 atlas:SourceRecord
   owl:disjointWith atlas:EvidenceBinding,
+    atlas:EditorialPolicy,
+    atlas:RelationAssertion,
+    atlas:ProjectedRelation,
+    atlas:DerivedRelation,
+    skosxl:Label .
+
+atlas:RegistrySource
+  owl:disjointWith atlas:ResourceScheme,
+    atlas:SourceRecord,
+    atlas:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
@@ -311,6 +328,13 @@ atlas:collectionMember
   rdfs:domain atlas:ResourceScheme ;
   rdfs:range atlas:ResourceScheme ;
   rdfs:label "collection member"@en .
+
+atlas:sourceDescriptor
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:ResourceScheme ;
+  rdfs:range atlas:RegistrySource ;
+  rdfs:label "source descriptor"@en ;
+  rdfs:comment "Cataloged source that defines or supplies this governed resource scheme."@en .
 
 atlas:sourceLocator
   a owl:ObjectProperty ;
@@ -505,9 +529,16 @@ atlas:nativePayload
 
 atlas:descriptorPayload
   a owl:DatatypeProperty ;
-  rdfs:domain atlas:ResourceScheme ;
   rdfs:range rdfs:Literal ;
-  rdfs:label "descriptor payload"@en .
+  rdfs:label "descriptor payload"@en ;
+  rdfs:comment "Source or scheme catalog metadata retained as canonical JSON."@en .
+
+atlas:memberDisposition
+  a owl:DatatypeProperty ;
+  rdfs:domain atlas:RegistrySource ;
+  rdfs:range xsd:string ;
+  rdfs:label "member disposition"@en ;
+  rdfs:comment "How Atlas represents, defers, or declines member data from this cataloged source."@en .
 
 atlas:notation
   a owl:DatatypeProperty ;

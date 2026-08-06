@@ -48,7 +48,7 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
         "caseCount": 57,
         "invalidCount": 52,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 640,
+        "registryDescriptorQuadCount": 1168,
         "schemaCount": 8,
     }
 
@@ -72,7 +72,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 713
+    assert result["quadCount"] == 769
     assert result["inferredMappingCount"] == 7
 
 

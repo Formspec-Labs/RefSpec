@@ -372,7 +372,7 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.0/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:fe7fd164dfd61d5212f9d483b9d1e9f358eade50ed496fc23d98b9c689ecb6e6"
+    "sha256:4957f64c0c27ef73261fd16879b798c8c5f33f0e91d4da3adeb9052c88c7e431"
 )
 
 
@@ -1553,35 +1553,46 @@ def _validate_registry_release_descriptors(
         raise TypeError("Atlas registry index has no rows")
 
     for release in releases:
-        expected_scheme = URIRef(
-            "urn:ref:atlas-resource-scheme:" + release.resource_id
+        source_descriptor = URIRef(
+            "urn:ref:atlas-source-descriptor:" + release.resource_id
         )
-        if URIRef(release.scheme_iri) != expected_scheme:
+        if (source_descriptor, RDF.type, ATLAS.RegistrySource) not in descriptors:
             raise ValueError(
-                f"{release.key} scheme differs from registry descriptor: "
-                f"{release.scheme_iri} != {expected_scheme}"
+                f"{release.key} names unknown registry source {release.resource_id!r}"
             )
-        if (expected_scheme, RDF.type, ATLAS.ResourceScheme) not in descriptors:
+        scheme = URIRef(release.scheme_iri)
+        scheme_prefix = "urn:ref:atlas-resource-scheme:" + release.resource_id
+        if str(scheme) != scheme_prefix and not str(scheme).startswith(scheme_prefix + ":"):
             raise ValueError(
-                f"{release.key} names unknown registry resource {release.resource_id!r}"
+                f"{release.key} scheme is outside its registry source namespace: {scheme}"
             )
-        if (expected_scheme, ATLAS.resourceProfile, ATLAS[release.profile]) not in descriptors:
-            raise ValueError(
-                f"{release.key} profile {release.profile!r} differs from its descriptor"
-            )
-        if (expected_scheme, ATLAS.supportedRing, ATLAS[release.ring]) not in descriptors:
-            raise ValueError(
-                f"{release.key} ring {release.ring!r} differs from its descriptor"
-            )
+        if (scheme, RDF.type, ATLAS.ResourceScheme) in descriptors:
+            if (scheme, ATLAS.sourceDescriptor, source_descriptor) not in descriptors:
+                raise ValueError(f"{release.key} scheme differs from its source descriptor")
+            if (scheme, ATLAS.resourceProfile, ATLAS[release.profile]) not in descriptors:
+                raise ValueError(
+                    f"{release.key} profile {release.profile!r} differs from its descriptor"
+                )
+            if (scheme, ATLAS.supportedRing, ATLAS[release.ring]) not in descriptors:
+                raise ValueError(
+                    f"{release.key} ring {release.ring!r} differs from its descriptor"
+                )
+        else:
+            policies = ATLAS_VALIDATE._profile_policies()
+            policy = policies.get(ATLAS[release.profile])
+            if policy is None or release.ring not in policy["applicableSemanticRings"]:
+                raise ValueError(
+                    f"{release.key} child scheme profile/ring is not allowed: "
+                    f"{release.profile}/{release.ring}"
+                )
         if not any(
             isinstance(row, Mapping)
             and row.get("resourceId") == release.resource_id
-            and row.get("semanticRing") == release.ring
             and row.get("sourceModule") == release.source_module
             for row in index_rows
         ):
             raise ValueError(
-                f"{release.key} source module/ring is absent from the Atlas index"
+                f"{release.key} source module is absent from the Atlas index"
             )
 
 
@@ -1920,6 +1931,52 @@ def _registry_asserted_graph() -> Graph:
     return graph
 
 
+def _ensure_release_schemes(
+    graph: Graph,
+    releases: Sequence[LoadedRelease],
+) -> None:
+    """Add source-owned child schemes required by mixed registry sources."""
+
+    grouped: dict[URIRef, list[LoadedRelease]] = {}
+    for release in releases:
+        grouped.setdefault(URIRef(release.scheme_iri), []).append(release)
+    policies = ATLAS_VALIDATE._profile_policies()
+    for scheme, scheme_releases in sorted(grouped.items(), key=lambda row: str(row[0])):
+        profiles = {release.spec.profile for release in scheme_releases}
+        resource_ids = {release.spec.resource_id for release in scheme_releases}
+        rings = {release.spec.ring for release in scheme_releases}
+        if len(profiles) != 1 or len(resource_ids) != 1:
+            raise ValueError(f"registry child scheme has inconsistent ownership: {scheme}")
+        profile_name = next(iter(profiles))
+        resource_id = next(iter(resource_ids))
+        profile = ATLAS[profile_name]
+        policy = policies.get(profile)
+        if policy is None or not rings <= set(policy["applicableSemanticRings"]):
+            raise ValueError(f"registry child scheme has unsupported rings: {scheme}")
+        if (scheme, RDF.type, ATLAS.ResourceScheme) in graph:
+            if set(graph.objects(scheme, ATLAS.resourceProfile)) != {profile}:
+                raise ValueError(f"registry scheme profile differs across releases: {scheme}")
+            if not {ATLAS[ring] for ring in rings} <= set(
+                graph.objects(scheme, ATLAS.supportedRing)
+            ):
+                raise ValueError(f"registry scheme omits a release ring: {scheme}")
+            continue
+        if resource_id is None:
+            raise ValueError(f"registry child scheme has no catalog source owner: {scheme}")
+        source = URIRef("urn:ref:atlas-source-descriptor:" + resource_id)
+        if (source, RDF.type, ATLAS.RegistrySource) not in graph:
+            raise ValueError(f"registry child scheme names unknown source: {source}")
+        graph.add((scheme, RDF.type, ATLAS.ResourceScheme))
+        if profile == ATLAS.conceptScheme:
+            graph.add((scheme, RDF.type, SKOS.ConceptScheme))
+        graph.add((scheme, DCTERMS.identifier, Literal(str(scheme))))
+        graph.add((scheme, ATLAS.resourceProfile, profile))
+        graph.add((scheme, ATLAS.sourceDescriptor, source))
+        for ring in sorted(rings):
+            graph.add((scheme, ATLAS.supportedRing, ATLAS[ring]))
+        _add_content_digest(graph, scheme)
+
+
 def _expected_projection_graph(asserted: Graph) -> Graph:
     """Build the validator-defined projection in the lean single-context store."""
 
@@ -2042,6 +2099,7 @@ def _build_graphs(
     releases: tuple[LoadedRelease, ...],
 ) -> BuildGraphs:
     asserted = _registry_asserted_graph()
+    _ensure_release_schemes(asserted, releases)
     native_policy = _add_policy(asserted, SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD)
 
     source_release_nodes: dict[str, URIRef] = {}
@@ -2233,8 +2291,6 @@ def _build_graphs(
                 evidence_record = resource_record[relation.subject]
             except KeyError as error:
                 raise ValueError(f"native relation endpoint is outside loaded releases: {relation}") from error
-            if source_atlas_release != target_atlas_release:
-                raise ValueError(f"native relation crosses releases: {relation}")
             review_method = _review_method_for_assertion(
                 ATLAS.NativeRelationAssertion
             )

@@ -126,12 +126,15 @@ checked profile map is
 | `codeScheme` | code lists and classifications | Governed values, notations, field meanings, status and effective dates |
 | `identifierScheme` | identifier authorities | Identifier values, validation rules, component positions, identified resources |
 | `structureScheme` | structural schemas | Named fields, sections, ordered nodes, validation rules, and native relations |
-| `resourceCollection` | resource families | Descriptors and links to separately released resources |
+| `resourceCollection` | resource families | Schemes whose members are separately released schemes |
 
 The five profiles describe how a registry resource can be represented; they do
 not claim that every inventoried resource already has a complete release.
-Catalog-only resources remain `ResourceScheme` descriptors until exact source
-membership and distributions are available. The generated coverage report
+Every catalog row is an `atlas:RegistrySource` descriptor. It identifies the
+publisher or reference source independently from the governed schemes emitted
+from it. A source may supply zero, one, or several `atlas:ResourceScheme`
+instances. Schemes remain descriptor-only until exact source membership and
+distributions are available. The generated coverage report
 proves that every current resource kind, catalog row, Atlas index row, source
 module, and implementation module has a disposition without copying the
 registry inventory into this binding.
@@ -153,10 +156,11 @@ enforce ordering, embedded digests, exact inventory, and count reconciliation
 that JSON Schema cannot express safely.
 
 The checked `tests/registry-descriptors.nq` artifact serializes every current
-catalog row as one `atlas:ResourceScheme`: 86 schemes, including 29
-`skos:ConceptScheme` instances. Each descriptor preserves its complete catalog
-row as canonical `rdf:JSON`, declares every ring supported by its current Atlas
-index placements, and has a recomputed content digest. Its proof pins the
+catalog row as one `atlas:RegistrySource` plus its primary
+`atlas:ResourceScheme`. Each source descriptor preserves its complete catalog
+row as canonical `rdf:JSON`. Each primary scheme declares its source, profile,
+and every ring supported by current Atlas index placements. Both nodes have a
+recomputed content digest. Its proof pins the
 catalog, index, profile policy, exact N-Quads bytes, resource-identity set, and
 reconciled counts. This proves descriptor serialization, not complete member
 releases: only resources with exact source membership may advance from a
@@ -195,8 +199,18 @@ resource profile and semantic ring, and lists its complete membership with
 `atlas:inRelease`. `atlas:SourceRelease` separately identifies the captured
 publisher edition used by source records.
 
-`atlas:ResourceScheme` identifies the stable governed resource independently
-from any edition. A scheme declares zero or more `atlas:supportedRing` values;
+`atlas:RegistrySource` identifies a cataloged publisher or reference source.
+It is not itself a concept scheme, code list, identifier authority, or
+structural schema. Its `atlas:memberDisposition` states whether Atlas emits a
+member release, uses child releases or assignment evidence, retains only a
+definition or historical evidence, withholds unreviewed mappings, records a
+source with no publisher rows, or describes a resource family. This prevents a
+descriptor-only source from looking like a silently unfinished adapter.
+`atlas:ResourceScheme` identifies one stable governed
+resource supplied by that source, independently from any edition. Every scheme
+points to exactly one source descriptor; a source may supply several schemes
+when its records have different governing semantics. A scheme declares zero or
+more `atlas:supportedRing` values;
 it does not collapse a multi-purpose registry resource into one singular ring.
 Each release points to that scheme and selects exactly one supported ring. A
 normalized member uses one of `atlas:SubjectConcept`, `atlas:EntityResource`,
@@ -270,7 +284,8 @@ field names.
 Atlas defines four assertion specializations:
 
 - `atlas:NativeRelationAssertion` preserves a publisher-authored relation
-  within one release;
+  between resources in the same semantic ring. Its exact endpoints may belong
+  to one release or to different releases;
 - `atlas:MappingAssertion` compares resources across exact releases; a
   subject-ring mapping is also an `atlas:SkosMappingAssertion`; and
 - `atlas:SourceAssignment` preserves a publisher assignment from a source

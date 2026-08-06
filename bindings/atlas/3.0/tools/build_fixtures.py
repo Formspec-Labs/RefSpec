@@ -38,6 +38,32 @@ class Fixture:
     post_write: Callable[[Path], None] | None = None
 
 
+def _add_registry_source(graph: Graph, scheme: URIRef, *, name: str) -> URIRef:
+    source = URIRef(str(scheme) + ":source")
+    graph.add((scheme, ATLAS.sourceDescriptor, source))
+    if (source, RDF.type, ATLAS.RegistrySource) in graph:
+        return source
+    graph.add((source, RDF.type, ATLAS.RegistrySource))
+    graph.add((source, DCTERMS.identifier, Literal(name)))
+    graph.add((source, DCTERMS.title, Literal(f"Fixture source {name}")))
+    graph.add((source, ATLAS.memberDisposition, Literal("memberRelease")))
+    graph.add(
+        (
+            source,
+            ATLAS.descriptorPayload,
+            Literal(
+                atlas_validate.canonical_json_bytes(
+                    {"resourceId": name, "title": f"Fixture source {name}"},
+                    terminal_lf=False,
+                ).decode("utf-8"),
+                datatype=RDF.JSON,
+                normalize=False,
+            ),
+        )
+    )
+    return source
+
+
 def _add_release(
     graph: Graph,
     *,
@@ -50,6 +76,7 @@ def _add_release(
     scheme = scheme or URIRef(f"urn:ref:atlas-fixture:scheme:{name}")
     release = URIRef(f"urn:ref:atlas-fixture:release:{name}:2026")
     graph.add((scheme, RDF.type, ATLAS.ResourceScheme))
+    _add_registry_source(graph, scheme, name=name)
     if profile == ATLAS.conceptScheme or any(
         resource_type == ATLAS.SubjectConcept for _, resource_type, _ in resources
     ):
@@ -349,6 +376,7 @@ def _base_fixture() -> Fixture:
     )
     collection_scheme = URIRef("urn:ref:atlas-fixture:scheme:collection")
     asserted.add((collection_scheme, RDF.type, ATLAS.ResourceScheme))
+    _add_registry_source(asserted, collection_scheme, name="fixture-collection")
     asserted.add((collection_scheme, ATLAS.resourceProfile, ATLAS.resourceCollection))
     asserted.add((collection_scheme, DCTERMS.identifier, Literal("fixture-collection")))
     asserted.add((collection_scheme, DCTERMS.title, Literal("Fixture resource collection")))
@@ -600,6 +628,7 @@ def _base_fixture() -> Fixture:
     asserted.add((lifecycle, ATLAS.sourceRecord, source_a))
 
     digest_classes = {
+        ATLAS.RegistrySource,
         ATLAS.ResourceScheme,
         ATLAS.AtlasRelease,
         ATLAS.SourceRelease,
@@ -1401,8 +1430,10 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def derived_asserted_scheme_collision(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
+        source = next(fixture.asserted.subjects(RDF.type, ATLAS.RegistrySource))
         fixture.asserted.add((derived, RDF.type, ATLAS.ResourceScheme))
         fixture.asserted.add((derived, ATLAS.resourceProfile, ATLAS.resourceCollection))
+        fixture.asserted.add((derived, ATLAS.sourceDescriptor, source))
         fixture.asserted.add(
             (derived, ATLAS.contentDigest, Literal(atlas_validate.rdf_node_digest(fixture.asserted, derived)))
         )

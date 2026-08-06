@@ -8,7 +8,7 @@ import hashlib
 import json
 import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, NoReturn
@@ -38,6 +38,27 @@ RESOURCE_PROFILES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+NON_MEMBER_DISPOSITIONS: Mapping[str, str] = {
+    "cbo-cost-estimate-feed": "assignmentEvidenceOnly",
+    "cfr-list-of-subjects": "assignmentEvidenceOnly",
+    "cfr47-procedure": "noPublisherRecord",
+    "cms-certification-number-authority": "definitionOnly",
+    "court-identifiers-and-controls": "childReleaseOnly",
+    "crs-native-controls": "childReleaseOnly",
+    "ecfr-govinfo-cfr-structure": "childReleaseOnly",
+    "entity-identifier-authorities": "childReleaseOnly",
+    "federal-legislative-identifiers": "childReleaseOnly",
+    "federal-register-thesaurus-1995": "historicalEvidenceOnly",
+    "frn-authority": "noPublisherRecord",
+    "gao-native-controls": "assignmentEvidenceOnly",
+    "gao-thesaurus-historical": "historicalEvidenceOnly",
+    "lcsh-fast-mapping-references": "reviewWithheld",
+    "lda-native-controls": "childReleaseOnly",
+    "rin-authority": "assignmentEvidenceOnly",
+    "specialist-subject-modules": "resourceFamily",
+    "uslm": "noPublisherRecord",
+}
 
 
 class RegistryDescriptorError(ValueError):
@@ -131,10 +152,7 @@ def _verify_embedded_digest(
         # Catalog and index use stable identities derived from their semantic digest.
         actual_identity = _string(document.get(identity_field), f"{location}.{identity_field}")
         if actual_identity != expected_identity:
-            _fail(
-                f"{location}.{identity_field} differs: expected={expected_identity}, "
-                f"actual={actual_identity}"
-            )
+            _fail(f"{location}.{identity_field} differs: expected={expected_identity}, actual={actual_identity}")
     return claimed
 
 
@@ -198,9 +216,7 @@ def _validated_inputs(
         if not rings <= SEMANTIC_RINGS:
             _fail(f"{location}.applicableSemanticRings contains unsupported values")
         rings_for_profile[profile] = rings
-        for kind_position, value in enumerate(
-            _list(raw_profile.get("resourceKinds"), f"{location}.resourceKinds")
-        ):
+        for kind_position, value in enumerate(_list(raw_profile.get("resourceKinds"), f"{location}.resourceKinds")):
             kind = _string(value, f"{location}.resourceKinds[{kind_position}]")
             if kind in profile_for_kind:
                 _fail(f"resource kind {kind!r} is assigned to more than one profile")
@@ -263,6 +279,10 @@ def scheme_iri(resource_id: str) -> URIRef:
     return URIRef("urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~"))
 
 
+def source_descriptor_iri(resource_id: str) -> URIRef:
+    return URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
+
+
 def rdf_node_digest(graph: Graph, node: URIRef) -> str:
     """Digest sorted outgoing predicate-object N-Triples pairs, excluding the digest."""
 
@@ -296,15 +316,34 @@ def build_registry_descriptors(
 ) -> tuple[bytes, bytes]:
     """Build the descriptor N-Quads and its canonical proof manifest."""
 
-    resources, profile_for_kind, _, rings_by_resource, input_digests = _validated_inputs(
-        catalog, index, profiles
-    )
+    resources, profile_for_kind, _, rings_by_resource, input_digests = _validated_inputs(catalog, index, profiles)
+    stale_dispositions = set(NON_MEMBER_DISPOSITIONS) - set(resources)
+    if stale_dispositions:
+        _fail(f"member dispositions name resources absent from the catalog: {sorted(stale_dispositions)}")
     graph = Graph()
     concept_scheme_count = 0
+    disposition_counts: Counter[str] = Counter()
     for resource_id in sorted(resources):
         resource = resources[resource_id]
         profile = profile_for_kind[str(resource["resourceKind"])]
+        source_node = source_descriptor_iri(resource_id)
         node = scheme_iri(resource_id)
+
+        graph.add((source_node, RDF.type, ATLAS.RegistrySource))
+        graph.add((source_node, DCTERMS.identifier, Literal(resource_id)))
+        graph.add((source_node, DCTERMS.title, Literal(str(resource["title"]))))
+        disposition = NON_MEMBER_DISPOSITIONS.get(resource_id, "memberRelease")
+        disposition_counts[disposition] += 1
+        graph.add((source_node, ATLAS.memberDisposition, Literal(disposition)))
+        graph.add(
+            (
+                source_node,
+                ATLAS.descriptorPayload,
+                Literal(canonical_json_bytes(resource).decode("utf-8"), datatype=RDF.JSON),
+            )
+        )
+        graph.add((source_node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, source_node))))
+
         graph.add((node, RDF.type, ATLAS.ResourceScheme))
         if profile == "conceptScheme":
             graph.add((node, RDF.type, SKOS.ConceptScheme))
@@ -312,13 +351,7 @@ def build_registry_descriptors(
         graph.add((node, DCTERMS.identifier, Literal(resource_id)))
         graph.add((node, DCTERMS.title, Literal(str(resource["title"]))))
         graph.add((node, ATLAS.resourceProfile, ATLAS[profile]))
-        graph.add(
-            (
-                node,
-                ATLAS.descriptorPayload,
-                Literal(canonical_json_bytes(resource).decode("utf-8"), datatype=RDF.JSON),
-            )
-        )
+        graph.add((node, ATLAS.sourceDescriptor, source_node))
         for ring in sorted(rings_by_resource.get(resource_id, set())):
             graph.add((node, ATLAS.supportedRing, ATLAS[ring]))
         graph.add((node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, node))))
@@ -336,7 +369,9 @@ def build_registry_descriptors(
         "counts": {
             "atlasIndexPlacementCount": len(index_rows),
             "conceptSchemeCount": concept_scheme_count,
+            "memberDispositionCounts": dict(sorted(disposition_counts.items())),
             "quadCount": len(graph),
+            "registrySourceCount": len(resources),
             "resourceSchemeCount": len(resources),
             "supportedRingStatementCount": supported_ring_statement_count,
         },

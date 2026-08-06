@@ -53,6 +53,57 @@ atlas:DateTimeValueShape
 
 # Releases, schemes, resources, identifiers, and source records
 
+atlas:RegistrySourceShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:RegistrySource ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:not [ sh:class atlas:ResourceScheme ] ;
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:minLength 1
+  ] ;
+  sh:property [
+    sh:path atlas:descriptorPayload ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype rdf:JSON
+  ] ;
+  sh:property [
+    sh:path atlas:memberDisposition ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:string ;
+    sh:in (
+      "assignmentEvidenceOnly"
+      "childReleaseOnly"
+      "definitionOnly"
+      "historicalEvidenceOnly"
+      "memberRelease"
+      "noPublisherRecord"
+      "resourceFamily"
+      "reviewWithheld"
+    )
+  ] ;
+  sh:property [
+    sh:path atlas:contentDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] .
+
 atlas:SourceReleaseShape
   a sh:NodeShape ;
   sh:targetClass atlas:SourceRelease ;
@@ -167,6 +218,13 @@ atlas:ResourceSchemeShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path atlas:sourceDescriptor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:RegistrySource
   ] ;
   sh:property [
     sh:path atlas:supportedRing ;
@@ -708,7 +766,6 @@ atlas:NativeRelationAssertionShape
   sh:property [ sh:path rdf:object ; sh:class atlas:AtlasResource ] ;
   sh:property [ sh:path atlas:sourceRelease ; sh:class atlas:AtlasRelease ] ;
   sh:property [ sh:path atlas:targetRelease ; sh:class atlas:AtlasRelease ] ;
-  sh:property [ sh:path atlas:targetRelease ; sh:equals atlas:sourceRelease ] ;
   sh:property [
     sh:path ( rdf:subject atlas:semanticRing ) ;
     sh:equals atlas:semanticRing

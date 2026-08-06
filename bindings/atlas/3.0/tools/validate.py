@@ -132,6 +132,18 @@ REVIEW_METHODS = frozenset(
 EXPECTED_PROFILE_NAMES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
+MEMBER_DISPOSITIONS = frozenset(
+    {
+        "assignmentEvidenceOnly",
+        "childReleaseOnly",
+        "definitionOnly",
+        "historicalEvidenceOnly",
+        "memberRelease",
+        "noPublisherRecord",
+        "resourceFamily",
+        "reviewWithheld",
+    }
+)
 RING_RESOURCE_CLASSES = {
     ATLAS.entity: ATLAS.EntityResource,
     ATLAS.legalIdentity: ATLAS.LegalIdentityResource,
@@ -148,6 +160,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         ATLAS.Release,
         ATLAS.AtlasRelease,
         ATLAS.SourceRelease,
+        ATLAS.RegistrySource,
         ATLAS.ResourceScheme,
         ATLAS.AtlasResource,
         *RESOURCE_TYPES,
@@ -168,6 +181,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
     {
         ATLAS.AtlasRelease,
         ATLAS.SourceRelease,
+        ATLAS.RegistrySource,
         ATLAS.ResourceScheme,
         *RESOURCE_TYPES,
         ATLAS.Identifier,
@@ -208,6 +222,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.sourceRecord,
         ATLAS.representsResource,
         ATLAS.collectionMember,
+        ATLAS.sourceDescriptor,
         ATLAS.sourceLocator,
         ATLAS.identifierScheme,
         ATLAS.identifies,
@@ -230,6 +245,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.sourceDigest,
         ATLAS.nativePayload,
         ATLAS.descriptorPayload,
+        ATLAS.memberDisposition,
         ATLAS.policyPayload,
         ATLAS.notation,
         ATLAS.definition,
@@ -358,10 +374,7 @@ class ExactMatchIndex:
 
     @property
     def inferred_count(self) -> int:
-        return sum(
-            size**2 - self.directed_direct_counts[index]
-            for index, size in enumerate(self.component_sizes)
-        )
+        return sum(size**2 - self.directed_direct_counts[index] for index, size in enumerate(self.component_sizes))
 
 
 def _fail(code: str, detail: str) -> NoReturn:
@@ -444,9 +457,7 @@ def canonical_native_json_bytes(value: Any) -> bytes:
         if isinstance(child, Mapping):
             for key, grandchild in child.items():
                 reject_numbers(grandchild, f"{location}.{key}")
-        elif isinstance(child, Sequence) and not isinstance(
-            child, (str, bytes, bytearray)
-        ):
+        elif isinstance(child, Sequence) and not isinstance(child, (str, bytes, bytearray)):
             for index, grandchild in enumerate(child):
                 reject_numbers(grandchild, f"{location}[{index}]")
 
@@ -461,9 +472,7 @@ def canonical_native_json_bytes(value: Any) -> bytes:
 
 
 def canonical_sha256(value: Any, *, terminal_lf: bool = True) -> str:
-    return "sha256:" + hashlib.sha256(
-        canonical_json_bytes(value, terminal_lf=terminal_lf)
-    ).hexdigest()
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(value, terminal_lf=terminal_lf)).hexdigest()
 
 
 def file_sha256(path: Path) -> str:
@@ -653,8 +662,7 @@ def _check_canonical_dataset_terms(path: Path, dataset: Dataset, *, line_count: 
                         f"canonical N-Quads line exceeds {NQUADS_MAX_LINE_BYTES} bytes",
                     )
                 if buffered and (
-                    len(buffered) >= NQUADS_SORT_CHUNK_SIZE
-                    or buffered_bytes + len(line) > NQUADS_SORT_CHUNK_BYTES
+                    len(buffered) >= NQUADS_SORT_CHUNK_SIZE or buffered_bytes + len(line) > NQUADS_SORT_CHUNK_BYTES
                 ):
                     flush_chunk()
                 buffered.append(line)
@@ -681,11 +689,7 @@ def _check_canonical_dataset_terms(path: Path, dataset: Dataset, *, line_count: 
 def rdf_node_digest(graph: Graph, node: URIRef) -> str:
     """Digest one node's sorted outgoing RDF facts, excluding the digest itself."""
 
-    facts = [
-        (predicate, obj)
-        for predicate, obj in graph.predicate_objects(node)
-        if predicate != ATLAS.contentDigest
-    ]
+    facts = [(predicate, obj) for predicate, obj in graph.predicate_objects(node) if predicate != ATLAS.contentDigest]
     if not facts:
         _fail("dataset.node-identity", f"{node} has no digestible RDF facts")
     return _outgoing_facts_digest(facts)
@@ -737,9 +741,7 @@ def _schema_registry() -> tuple[dict[str, Mapping[str, Any]], Registry]:
     return schemas, registry
 
 
-def _schema_by_name(
-    name: str, schemas: Mapping[str, Mapping[str, Any]]
-) -> Mapping[str, Any]:
+def _schema_by_name(name: str, schemas: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
     filename = SCHEMAS[name]
     matches = [schema for schema in schemas.values() if str(schema.get("$id", "")).endswith("/" + filename)]
     if len(matches) != 1:
@@ -764,9 +766,7 @@ def _validate_json_schema(
     errors = sorted(validator.iter_errors(value), key=lambda error: (list(error.absolute_path), error.message))
     if errors:
         error = errors[0]
-        location = "$" + "".join(
-            f"[{part}]" if isinstance(part, int) else f".{part}" for part in error.absolute_path
-        )
+        location = "$" + "".join(f"[{part}]" if isinstance(part, int) else f".{part}" for part in error.absolute_path)
         _fail("json.schema", f"{label}{location}: {error.message}")
 
 
@@ -954,9 +954,7 @@ def _lint_ontology(ontology: Graph) -> None:
     for subject, predicate, obj in ontology:
         if isinstance(subject, BNode) or isinstance(obj, BNode):
             _fail("ontology.profile", "Atlas ontology MUST contain no blank nodes")
-        if not isinstance(subject, URIRef) or not (
-            subject == ontology_iri or str(subject).startswith(str(ATLAS))
-        ):
+        if not isinstance(subject, URIRef) or not (subject == ontology_iri or str(subject).startswith(str(ATLAS))):
             _fail("ontology.profile", f"Atlas ontology defines an external subject {subject}")
         if predicate not in allowed_predicates:
             _fail("ontology.profile", f"Atlas ontology uses non-allowlisted predicate {predicate}")
@@ -1034,21 +1032,20 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
         expected_types = {carrier_type}
         if carrier_type in RESOURCE_TYPES:
             expected_types.add(ATLAS.AtlasResource)
-            if carrier_type == ATLAS.SubjectConcept or (
-                carrier_type == ATLAS.ValueResource and SKOS.Concept in types
-            ):
+            if carrier_type == ATLAS.SubjectConcept or (carrier_type == ATLAS.ValueResource and SKOS.Concept in types):
                 expected_types.add(SKOS.Concept)
         elif carrier_type == ATLAS.ResourceScheme:
-            if set(asserted.objects(subject, ATLAS.resourceProfile)) == {
-                ATLAS.conceptScheme
-            } or any(asserted.subjects(SKOS.inScheme, subject)):
+            if set(asserted.objects(subject, ATLAS.resourceProfile)) == {ATLAS.conceptScheme} or any(
+                asserted.subjects(SKOS.inScheme, subject)
+            ):
                 expected_types.add(SKOS.ConceptScheme)
+        elif carrier_type == ATLAS.RegistrySource:
+            pass
         elif carrier_type in ASSERTION_TYPES:
             expected_types.add(ATLAS.RelationAssertion)
-            if (
-                carrier_type == ATLAS.MappingAssertion
-                and set(asserted.objects(subject, ATLAS.semanticRing)) == {ATLAS.subject}
-            ):
+            if carrier_type == ATLAS.MappingAssertion and set(asserted.objects(subject, ATLAS.semanticRing)) == {
+                ATLAS.subject
+            }:
                 expected_types.add(ATLAS.SkosMappingAssertion)
         if types != expected_types:
             _fail(
@@ -1069,9 +1066,7 @@ def _check_graph_roles(graphs: Mapping[str, Graph]) -> None:
             _fail("dataset.graph-placement", f"bare projected predicate {predicate} occurs in derived graph")
 
     asserted_carrier_nodes = {
-        subject
-        for carrier_type in ASSERTED_CARRIER_TYPES
-        for subject in asserted.subjects(RDF.type, carrier_type)
+        subject for carrier_type in ASSERTED_CARRIER_TYPES for subject in asserted.subjects(RDF.type, carrier_type)
     }
     projection_nodes = set(projection.subjects(RDF.type, ATLAS.ProjectedRelation))
     overlaps = {
@@ -1195,9 +1190,7 @@ def _relation_policies() -> dict[URIRef, dict[URIRef, frozenset[URIRef]]]:
         if expected_resource_class is None or row.get("resourceClass") != str(expected_resource_class):
             _fail("profile.policy", f"{location}.resourceClass does not match its ring")
         raw_predicates = row.get("assertionPredicates")
-        if not isinstance(raw_predicates, Mapping) or set(raw_predicates) != set(
-            RELATION_POLICY_TYPE_NAMES
-        ):
+        if not isinstance(raw_predicates, Mapping) or set(raw_predicates) != set(RELATION_POLICY_TYPE_NAMES):
             _fail("profile.policy", f"{location}.assertionPredicates has the wrong type cells")
         ring_policy: dict[URIRef, frozenset[URIRef]] = {}
         for type_name, assertion_type in RELATION_POLICY_TYPE_NAMES.items():
@@ -1209,7 +1202,10 @@ def _relation_policies() -> dict[URIRef, dict[URIRef, frozenset[URIRef]]]:
                 or values != sorted(values)
                 or len(values) != len(set(values))
             ):
-                _fail("profile.policy", f"{location}.{type_name} predicates must be nonempty, unique, sorted absolute IRIs")
+                _fail(
+                    "profile.policy",
+                    f"{location}.{type_name} predicates must be nonempty, unique, sorted absolute IRIs",
+                )
             predicates = frozenset(URIRef(value) for value in values)
             allowed_skos = (
                 SKOS_MAPPING_PREDICATES
@@ -1225,7 +1221,9 @@ def _relation_policies() -> dict[URIRef, dict[URIRef, frozenset[URIRef]]]:
                     _fail("profile.policy", f"{location}.{type_name} contains unsupported predicate {predicate}")
             overlap = seen_predicates & predicates
             if overlap:
-                _fail("profile.policy", f"relation predicate occurs in more than one policy cell: {min(overlap, key=str)}")
+                _fail(
+                    "profile.policy", f"relation predicate occurs in more than one policy cell: {min(overlap, key=str)}"
+                )
             seen_predicates.update(predicates)
             ring_policy[assertion_type] = predicates
         policies[ring] = ring_policy
@@ -1238,13 +1236,9 @@ def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URI
     """Load the closed source-ring/target-ring predicate policy matrix."""
 
     expected = {
-        (ATLAS.entity, ATLAS.legalIdentity): frozenset(
-            {ATLAS.referencesLegalIdentity}
-        ),
+        (ATLAS.entity, ATLAS.legalIdentity): frozenset({ATLAS.referencesLegalIdentity}),
         (ATLAS.entity, ATLAS.subject): frozenset({ATLAS.hasIndexedSubject}),
-        (ATLAS.legalIdentity, ATLAS.subject): frozenset(
-            {ATLAS.hasIndexedSubject}
-        ),
+        (ATLAS.legalIdentity, ATLAS.subject): frozenset({ATLAS.hasIndexedSubject}),
     }
     profile_map = _profile_policy_document()
     rows = profile_map.get("crossRingRelationPolicies")
@@ -1253,11 +1247,7 @@ def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URI
     observed_pairs: list[tuple[str, str]] = []
     policies: dict[tuple[URIRef, URIRef], frozenset[URIRef]] = {}
     same_ring_predicates = frozenset().union(
-        *(
-            predicates
-            for ring_policy in _relation_policies().values()
-            for predicates in ring_policy.values()
-        )
+        *(predicates for ring_policy in _relation_policies().values() for predicates in ring_policy.values())
     )
     for position, row in enumerate(rows):
         location = f"crossRingRelationPolicies[{position}]"
@@ -1321,16 +1311,10 @@ def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URI
 
 def _projection_only_predicates() -> frozenset[URIRef]:
     same_ring_predicates = frozenset().union(
-        *(
-            predicates
-            for ring_policy in _relation_policies().values()
-            for predicates in ring_policy.values()
-        )
+        *(predicates for ring_policy in _relation_policies().values() for predicates in ring_policy.values())
     )
     cross_ring_predicates = frozenset().union(*_cross_ring_relation_policies().values())
-    return same_ring_predicates | cross_ring_predicates | frozenset(
-        {SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel}
-    )
+    return same_ring_predicates | cross_ring_predicates | frozenset({SKOS.prefLabel, SKOS.altLabel, SKOS.hiddenLabel})
 
 
 def _check_profile_conformance(asserted: Graph) -> None:
@@ -1460,12 +1444,34 @@ def _resource_type(graph: Graph, resource: URIRef) -> URIRef:
 
 def _assertion_basis(graph: Graph, assertion: URIRef) -> tuple[dict[str, Any], tuple[URIRef, URIRef, URIRef]]:
     assertion_type = _assertion_type(graph, assertion)
-    subject = _iri(_one(graph, assertion, RDF.subject, code="dataset.assertion"), code="dataset.assertion", label="assertion subject")
-    predicate = _iri(_one(graph, assertion, RDF.predicate, code="dataset.assertion"), code="dataset.assertion", label="assertion predicate")
-    obj = _iri(_one(graph, assertion, RDF.object, code="dataset.assertion"), code="dataset.assertion", label="assertion object")
-    source_release = _iri(_one(graph, assertion, ATLAS.sourceRelease, code="dataset.assertion"), code="dataset.assertion", label="source release")
-    target_release = _iri(_one(graph, assertion, ATLAS.targetRelease, code="dataset.assertion"), code="dataset.assertion", label="target release")
-    policy = _iri(_one(graph, assertion, ATLAS.governedByPolicy, code="dataset.assertion"), code="dataset.assertion", label="policy")
+    subject = _iri(
+        _one(graph, assertion, RDF.subject, code="dataset.assertion"),
+        code="dataset.assertion",
+        label="assertion subject",
+    )
+    predicate = _iri(
+        _one(graph, assertion, RDF.predicate, code="dataset.assertion"),
+        code="dataset.assertion",
+        label="assertion predicate",
+    )
+    obj = _iri(
+        _one(graph, assertion, RDF.object, code="dataset.assertion"), code="dataset.assertion", label="assertion object"
+    )
+    source_release = _iri(
+        _one(graph, assertion, ATLAS.sourceRelease, code="dataset.assertion"),
+        code="dataset.assertion",
+        label="source release",
+    )
+    target_release = _iri(
+        _one(graph, assertion, ATLAS.targetRelease, code="dataset.assertion"),
+        code="dataset.assertion",
+        label="target release",
+    )
+    policy = _iri(
+        _one(graph, assertion, ATLAS.governedByPolicy, code="dataset.assertion"),
+        code="dataset.assertion",
+        label="policy",
+    )
     if (policy, RDF.type, ATLAS.EditorialPolicy) not in graph:
         _fail("dataset.assertion", f"{assertion} names unknown editorial policy {policy}")
     policy_digest = _literal_text(
@@ -1536,9 +1542,7 @@ def _validate_assertions(
         )
         if stored_identity_digest != identity_digest:
             _fail("dataset.assertion-identity", f"{assertion} identity digest differs")
-        expected_id = URIRef(
-            "urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:")
-        )
+        expected_id = URIRef("urn:ref:atlas-assertion:" + identity_digest.removeprefix("sha256:"))
         if assertion != expected_id:
             _fail("dataset.assertion-identity", f"{assertion} is not its stable claim IRI")
 
@@ -1594,8 +1598,7 @@ def _validate_assertions(
             if predicate not in allowed:
                 _fail(
                     "dataset.relation",
-                    f"{assertion} predicate {predicate} is not allowed for "
-                    f"{source_ring}->{target_ring}",
+                    f"{assertion} predicate {predicate} is not allowed for {source_ring}->{target_ring}",
                 )
         else:
             ring = URIRef(basis["semanticRing"])
@@ -1628,8 +1631,6 @@ def _validate_assertions(
                 asserted.objects(obj, ATLAS.semanticRing)
             ) != {ring}:
                 _fail("dataset.release", f"{assertion} endpoint ring differs from its assertion ring")
-            if assertion_type == ATLAS.NativeRelationAssertion and source_release != target_release:
-                _fail("dataset.release", f"{assertion} native relation crosses releases")
             if assertion_type == ATLAS.MappingAssertion and source_release == target_release:
                 _fail("dataset.release", f"{assertion} mapping endpoints use one release")
 
@@ -1674,9 +1675,7 @@ def _validate_assertions(
 
 def _check_evidence_bindings(asserted: Graph) -> None:
     assertions = {
-        subject
-        for assertion_type in ASSERTION_TYPES
-        for subject in asserted.subjects(RDF.type, assertion_type)
+        subject for assertion_type in ASSERTION_TYPES for subject in asserted.subjects(RDF.type, assertion_type)
     }
     source_records = set(asserted.subjects(RDF.type, ATLAS.SourceRecord))
     bindings = set(asserted.subjects(RDF.type, ATLAS.EvidenceBinding))
@@ -1788,9 +1787,7 @@ def _build_exact_match_index(
 ) -> ExactMatchIndex:
     """Index exactMatch components without retaining their Cartesian closure."""
 
-    direct_triples = frozenset(
-        triple for triple in current if triple[1] == SKOS.exactMatch
-    )
+    direct_triples = frozenset(triple for triple in current if triple[1] == SKOS.exactMatch)
     adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
     for subject, _, obj in direct_triples:
         adjacency[subject].add(obj)
@@ -1952,10 +1949,7 @@ def _projection_record_facts(
         (ATLAS.relationObject, obj),
     ]
     facts.extend(_projection_ring_facts(asserted, triple, assertions))
-    facts.extend(
-        (ATLAS.supportingAssertion, assertion)
-        for assertion in sorted(assertions, key=str)
-    )
+    facts.extend((ATLAS.supportingAssertion, assertion) for assertion in sorted(assertions, key=str))
     return projection, facts
 
 
@@ -1966,7 +1960,9 @@ def _expected_projection_triples(
     emitted_label_triples: set[tuple[URIRef, URIRef, Literal]] = set()
     for xl_predicate, plain_predicate in XL_TO_SKOS.items():
         for resource, _, label in asserted.triples((None, xl_predicate, None)):
-            literal = _one(asserted, _iri(label, code="dataset.label", label="label"), SKOSXL.literalForm, code="dataset.label")
+            literal = _one(
+                asserted, _iri(label, code="dataset.label", label="label"), SKOSXL.literalForm, code="dataset.label"
+            )
             if not isinstance(literal, Literal):
                 _fail("dataset.label", f"{label} literalForm must be a literal")
             triple = (resource, plain_predicate, literal)
@@ -2019,8 +2015,7 @@ def _check_projection(
         xl_predicate = SKOS_TO_XL.get(predicate)
         if xl_predicate is not None and isinstance(obj, Literal):
             return any(
-                (label, SKOSXL.literalForm, obj) in asserted
-                for label in asserted.objects(subject, xl_predicate)
+                (label, SKOSXL.literalForm, obj) in asserted for label in asserted.objects(subject, xl_predicate)
             )
         record = projection_records.get(subject)
         if record is None:
@@ -2036,9 +2031,7 @@ def _check_projection(
         if predicate == ATLAS.relationObject:
             return obj == relation_object
         if predicate in {ATLAS.semanticRing, ATLAS.sourceRing, ATLAS.targetRing}:
-            return (predicate, obj) in _projection_ring_facts(
-                asserted, relation, assertions
-            )
+            return (predicate, obj) in _projection_ring_facts(asserted, relation, assertions)
         if predicate == ATLAS.supportingAssertion:
             return obj in assertions
         if predicate == ATLAS.contentDigest:
@@ -2073,11 +2066,7 @@ def _check_projection(
 
 def _check_release_membership(asserted: Graph) -> None:
     releases = {subject for subject in asserted.subjects(RDF.type, ATLAS.AtlasRelease)}
-    resources = {
-        subject
-        for resource_type in RESOURCE_TYPES
-        for subject in asserted.subjects(RDF.type, resource_type)
-    }
+    resources = {subject for resource_type in RESOURCE_TYPES for subject in asserted.subjects(RDF.type, resource_type)}
     for release in releases:
         release_ring = _one(asserted, release, ATLAS.semanticRing, code="dataset.release")
         release_profile = _one(asserted, release, ATLAS.resourceProfile, code="dataset.release")
@@ -2101,7 +2090,9 @@ def _check_release_membership(asserted: Graph) -> None:
             if release not in asserted.objects(member, ATLAS.inRelease):
                 _fail("dataset.release", f"{member} lacks inverse inRelease for {release}")
     for resource in resources:
-        release = _iri(_one(asserted, resource, ATLAS.inRelease, code="dataset.release"), code="dataset.release", label="inRelease")
+        release = _iri(
+            _one(asserted, resource, ATLAS.inRelease, code="dataset.release"), code="dataset.release", label="inRelease"
+        )
         if release not in releases or (release, PROV.hadMember, resource) not in asserted:
             _fail("dataset.release", f"{resource} is not a closed member of {release}")
         resource_ring = _one(asserted, resource, ATLAS.semanticRing, code="dataset.release")
@@ -2170,10 +2161,7 @@ def _check_label_integrity(asserted: Graph) -> None:
             labels_by_role[role] = labels
             literals_by_role[role] = literals
 
-        preferred_languages = [
-            (literal.language or "").lower()
-            for literal in literals_by_role[SKOSXL.prefLabel]
-        ]
+        preferred_languages = [(literal.language or "").lower() for literal in literals_by_role[SKOSXL.prefLabel]]
         if len(preferred_languages) != len(set(preferred_languages)):
             _fail(
                 "dataset.label-integrity",
@@ -2195,6 +2183,7 @@ def _check_node_digests(graphs: Mapping[str, Graph]) -> None:
 
     classes_by_role = {
         "asserted": {
+            ATLAS.RegistrySource,
             ATLAS.ResourceScheme,
             ATLAS.AtlasRelease,
             ATLAS.SourceRelease,
@@ -2216,10 +2205,7 @@ def _check_node_digests(graphs: Mapping[str, Graph]) -> None:
     for role, classes in classes_by_role.items():
         graph = graphs[role]
         nodes = {
-            node
-            for class_iri in classes
-            for node in graph.subjects(RDF.type, class_iri)
-            if isinstance(node, URIRef)
+            node for class_iri in classes for node in graph.subjects(RDF.type, class_iri) if isinstance(node, URIRef)
         }
         for node in sorted(nodes, key=str):
             stored = _literal_text(
@@ -2250,9 +2236,7 @@ def _check_rdf_json_payload(
             parse_constant=_reject_constant,
         )
         expected = (
-            canonical_native_json_bytes(value)
-            if source_native
-            else canonical_json_bytes(value, terminal_lf=False)
+            canonical_native_json_bytes(value) if source_native else canonical_json_bytes(value, terminal_lf=False)
         )
     except (json.JSONDecodeError, AtlasValidationError) as exc:
         _fail("dataset.native-payload", f"{node} {label} is invalid: {exc}")
@@ -2275,13 +2259,14 @@ def _check_native_payloads(asserted: Graph) -> None:
             _fail("dataset.native-payload", f"{scheme} has more than one descriptorPayload")
         if payloads:
             _check_rdf_json_payload(payloads[0], node=scheme, label="descriptorPayload")
+    for source in set(asserted.subjects(RDF.type, ATLAS.RegistrySource)):
+        literal = _one(asserted, source, ATLAS.descriptorPayload, code="dataset.native-payload")
+        _check_rdf_json_payload(literal, node=source, label="descriptorPayload")
     for policy in set(asserted.subjects(RDF.type, ATLAS.EditorialPolicy)):
         literal = _one(asserted, policy, ATLAS.policyPayload, code="dataset.native-payload")
         _check_rdf_json_payload(literal, node=policy, label="policyPayload")
         expected_digest = rdf_node_digest(asserted, policy)
-        expected_id = URIRef(
-            "urn:ref:atlas-policy:" + expected_digest.removeprefix("sha256:")
-        )
+        expected_id = URIRef("urn:ref:atlas-policy:" + expected_digest.removeprefix("sha256:"))
         if policy != expected_id:
             _fail("dataset.policy-identity", f"{policy} is not its content-derived IRI")
 
@@ -2318,10 +2303,7 @@ def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> 
             inverse_resources = {
                 str(resource)
                 for resource in asserted.subjects(ATLAS.sourceRecord, record_iri)
-                if any(
-                    (resource, RDF.type, resource_type) in asserted
-                    for resource_type in RESOURCE_TYPES
-                )
+                if any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
             }
             if not (ledger_resources == graph_resources == inverse_resources):
                 _fail(
@@ -2333,24 +2315,31 @@ def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> 
             for resource in ledger_resources:
                 if not any((URIRef(resource), RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES):
                     _fail("source.accounting", f"{record} names unknown Atlas resource {resource}")
-        if source["membershipMode"] in {"complete", "partial"} and len(source["dispositions"]) != source["declaredMemberCount"]:
+        if (
+            source["membershipMode"] in {"complete", "partial"}
+            and len(source["dispositions"]) != source["declaredMemberCount"]
+        ):
             _fail("source.accounting", f"{source['sourceRelease']} declaredMemberCount differs")
     if set(dispositions) != graph_records:
         _fail(
             "source.accounting",
-            f"source-record dispositions differ; missing={sorted(graph_records-set(dispositions))}, extra={sorted(set(dispositions)-graph_records)}",
+            f"source-record dispositions differ; missing={sorted(graph_records - set(dispositions))}, extra={sorted(set(dispositions) - graph_records)}",
         )
     if input_releases != graph_releases:
         _fail(
             "source.accounting",
-            f"source releases differ; missing={sorted(graph_releases-input_releases)}, extra={sorted(input_releases-graph_releases)}",
+            f"source releases differ; missing={sorted(graph_releases - input_releases)}, extra={sorted(input_releases - graph_releases)}",
         )
     for resource, _, record in asserted.triples((None, ATLAS.sourceRecord, None)):
-        if any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES) and (
-            record,
-            ATLAS.representsResource,
-            resource,
-        ) not in asserted:
+        if (
+            any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
+            and (
+                record,
+                ATLAS.representsResource,
+                resource,
+            )
+            not in asserted
+        ):
             _fail("source.accounting", f"{resource} sourceRecord link is not reconciled by {record}")
     expected_totals = {
         "sourceReleases": len(accounting["inputs"]),
@@ -2366,16 +2355,10 @@ def _check_source_accounting(asserted: Graph, accounting: Mapping[str, Any]) -> 
 def _check_counts(manifest: Mapping[str, Any], graphs: Mapping[str, Graph]) -> None:
     asserted = graphs["asserted"]
     expected = {
-        "crossRingRelationAssertions": len(
-            set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))
-        ),
+        "crossRingRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion))),
         "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
         "resources": len(
-            {
-                subject
-                for resource_type in RESOURCE_TYPES
-                for subject in asserted.subjects(RDF.type, resource_type)
-            }
+            {subject for resource_type in RESOURCE_TYPES for subject in asserted.subjects(RDF.type, resource_type)}
         ),
         "identifiers": len(set(asserted.subjects(RDF.type, ATLAS.Identifier))),
         "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
@@ -2412,11 +2395,7 @@ def _check_derived(
     current: Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]],
 ) -> None:
     relation_policies = _relation_policies()
-    active_assertions = {
-        assertion
-        for assertions in current.values()
-        for assertion in assertions
-    }
+    active_assertions = {assertion for assertions in current.values() for assertion in assertions}
     derived_nodes = set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
     for node in derived_nodes:
         if (node, RDF.type, ATLAS.RelationAssertion) in derived or any(
@@ -2439,9 +2418,21 @@ def _check_derived(
         expected_input_digest = derived_input_digest(asserted, inputs)
         if stored_input_digest != expected_input_digest:
             _fail("dataset.derived-input", f"{node} inputDigest differs from its assertion inputs")
-        subject = _iri(_one(derived, node, ATLAS.relationSubject, code="dataset.derived"), code="dataset.derived", label="derived subject")
-        predicate = _iri(_one(derived, node, ATLAS.relationPredicate, code="dataset.derived"), code="dataset.derived", label="derived predicate")
-        obj = _iri(_one(derived, node, ATLAS.relationObject, code="dataset.derived"), code="dataset.derived", label="derived object")
+        subject = _iri(
+            _one(derived, node, ATLAS.relationSubject, code="dataset.derived"),
+            code="dataset.derived",
+            label="derived subject",
+        )
+        predicate = _iri(
+            _one(derived, node, ATLAS.relationPredicate, code="dataset.derived"),
+            code="dataset.derived",
+            label="derived predicate",
+        )
+        obj = _iri(
+            _one(derived, node, ATLAS.relationObject, code="dataset.derived"),
+            code="dataset.derived",
+            label="derived object",
+        )
         ring = _iri(
             _one(derived, node, ATLAS.semanticRing, code="dataset.derived"),
             code="dataset.derived",
@@ -2451,12 +2442,13 @@ def _check_derived(
             _fail("dataset.derived", f"{node} subject is not an asserted Atlas resource")
         if not any((obj, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES):
             _fail("dataset.derived", f"{node} object is not an asserted Atlas resource")
-        if ring not in asserted.objects(subject, ATLAS.semanticRing) or ring not in asserted.objects(obj, ATLAS.semanticRing):
+        if ring not in asserted.objects(subject, ATLAS.semanticRing) or ring not in asserted.objects(
+            obj, ATLAS.semanticRing
+        ):
             _fail("dataset.derived", f"{node} endpoint ring differs")
-        allowed = (
-            relation_policies.get(ring, {}).get(ATLAS.MappingAssertion, frozenset())
-            | relation_policies.get(ring, {}).get(ATLAS.NativeRelationAssertion, frozenset())
-        )
+        allowed = relation_policies.get(ring, {}).get(ATLAS.MappingAssertion, frozenset()) | relation_policies.get(
+            ring, {}
+        ).get(ATLAS.NativeRelationAssertion, frozenset())
         if predicate not in allowed:
             _fail("dataset.derived", f"{node} predicate is not allowed for its ring")
 
@@ -2481,12 +2473,7 @@ def _check_derived(
             DERIVATION_ENGINE_VERSION,
         ):
             _fail("dataset.derived-rule", f"{node} uses an unallowlisted rule or engine")
-        if (
-            ring != ATLAS.subject
-            or predicate != SKOS.exactMatch
-            or subject == obj
-            or len(inputs) < 2
-        ):
+        if ring != ATLAS.subject or predicate != SKOS.exactMatch or subject == obj or len(inputs) < 2:
             _fail("dataset.derived-rule", f"{node} does not match the exactMatch transitivity rule")
         adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
         edges: set[frozenset[URIRef]] = set()
@@ -2518,10 +2505,7 @@ def _check_derived(
             or adjacency[subject] == set()
             or len(adjacency[subject]) != 1
             or len(adjacency[obj]) != 1
-            or any(
-                len(adjacency[path_node]) != 2
-                for path_node in graph_nodes - {subject, obj}
-            )
+            or any(len(adjacency[path_node]) != 2 for path_node in graph_nodes - {subject, obj})
         ):
             _fail(
                 "dataset.derived-rule",
@@ -2537,8 +2521,7 @@ def _check_derived(
         if node != expected_id:
             _fail("dataset.derived-identity", f"{node} is not its content-derived IRI")
         if (subject, predicate, obj) in projection or (
-            predicate == SKOS.exactMatch
-            and (obj, predicate, subject) in projection
+            predicate == SKOS.exactMatch and (obj, predicate, subject) in projection
         ):
             _fail(
                 "dataset.derived-authority",
@@ -2552,16 +2535,8 @@ def _check_reasoning_isolation(
     exact_index: ExactMatchIndex | None = None,
 ) -> int:
     exact_index = exact_index or _build_exact_match_index(current)
-    direct_mappings = {
-        triple
-        for triple in current
-        if triple[1] in SKOS_MAPPING_PREDICATES
-    }
-    assertion_triples = {
-        assertion: triple
-        for triple, assertions in current.items()
-        for assertion in assertions
-    }
+    direct_mappings = {triple for triple in current if triple[1] in SKOS_MAPPING_PREDICATES}
+    assertion_triples = {assertion: triple for triple, assertions in current.items() for assertion in assertions}
     for node in sorted(set(derived.subjects(RDF.type, ATLAS.DerivedRelation)), key=str):
         output = (
             _iri(
@@ -2619,8 +2594,13 @@ def acceptance_gate_evidence_digest(
     )
 
 
-def _check_acceptance(manifest: Mapping[str, Any], accounting: Mapping[str, Any], acceptance: Mapping[str, Any], root: Path) -> None:
-    if acceptance["distributionId"] != manifest["distributionId"] or accounting["distributionId"] != manifest["distributionId"]:
+def _check_acceptance(
+    manifest: Mapping[str, Any], accounting: Mapping[str, Any], acceptance: Mapping[str, Any], root: Path
+) -> None:
+    if (
+        acceptance["distributionId"] != manifest["distributionId"]
+        or accounting["distributionId"] != manifest["distributionId"]
+    ):
         _fail("distribution.identity", "distributionId differs across JSON artifacts")
     if acceptance["inputs"]["atlasDigest"] != file_sha256(root / "atlas.nq"):
         _fail("acceptance.inputs", "acceptance atlasDigest differs")
@@ -2630,7 +2610,7 @@ def _check_acceptance(manifest: Mapping[str, Any], accounting: Mapping[str, Any]
     if len(names) != len(set(names)) or set(names) != REQUIRED_GATES:
         _fail(
             "acceptance.gates",
-            f"acceptance gates differ; missing={sorted(REQUIRED_GATES-set(names))}, extra={sorted(set(names)-REQUIRED_GATES)}",
+            f"acceptance gates differ; missing={sorted(REQUIRED_GATES - set(names))}, extra={sorted(set(names) - REQUIRED_GATES)}",
         )
     for gate in acceptance["gates"]:
         expected_digest = acceptance_gate_evidence_digest(
@@ -2684,9 +2664,7 @@ def validate_distribution(root: Path) -> dict[str, Any]:
     _check_node_digests(graphs)
     _check_source_accounting(graphs["asserted"], accounting)
     _check_counts(manifest, graphs)
-    inferred_mapping_count = _check_reasoning_isolation(
-        graphs["derived"], current_assertions, exact_index
-    )
+    inferred_mapping_count = _check_reasoning_isolation(graphs["derived"], current_assertions, exact_index)
     _check_acceptance(manifest, accounting, acceptance, root)
     # Keep the shared Dataset store alive for every graph view through the last check.
     del dataset
@@ -2730,10 +2708,7 @@ def _check_registry_descriptors(
     }
     if not isinstance(proof, Mapping) or set(proof) != expected_proof_keys:
         _fail("registry.descriptors", "registry descriptor proof fields are incomplete or unknown")
-    if (
-        proof.get("format") != "refspec-atlas-registry-descriptors/3.0"
-        or proof.get("schemaVersion") != "3.0"
-    ):
+    if proof.get("format") != "refspec-atlas-registry-descriptors/3.0" or proof.get("schemaVersion") != "3.0":
         _fail("registry.descriptors", "registry descriptor proof is not Atlas 3.0")
     expected_proof_digest = canonical_sha256(
         {key: value for key, value in proof.items() if key != "proofDigest"},
@@ -2770,8 +2745,10 @@ def _check_registry_descriptors(
     if not text or not text.endswith("\n") or "\r" in text:
         _fail("registry.descriptors", "registry descriptor N-Quads must be LF text")
     lines = text.splitlines()
-    if lines != sorted(lines) or len(lines) != len(set(lines)) or any(
-        not line or line != line.strip() for line in lines
+    if (
+        lines != sorted(lines)
+        or len(lines) != len(set(lines))
+        or any(not line or line != line.strip() for line in lines)
     ):
         _fail("registry.descriptors", "registry descriptor N-Quads are not sorted and unique")
     dataset = Dataset()
@@ -2790,10 +2767,7 @@ def _check_registry_descriptors(
     if not isinstance(graph_iri, str) or not ABSOLUTE_IRI_RE.fullmatch(graph_iri):
         _fail("registry.descriptors", "registry descriptor graphIri is not an absolute IRI")
     graph_id = URIRef(graph_iri)
-    graph_ids = {
-        quad_graph
-        for _, _, _, quad_graph in dataset.quads((None, None, None, None))
-    }
+    graph_ids = {quad_graph for _, _, _, quad_graph in dataset.quads((None, None, None, None))}
     if graph_ids != {graph_id}:
         _fail("registry.descriptors", "registry descriptor statements use unexpected graph IRIs")
     graph = Graph(identifier=graph_id)
@@ -2804,27 +2778,41 @@ def _check_registry_descriptors(
     expected_count_keys = {
         "atlasIndexPlacementCount",
         "conceptSchemeCount",
+        "memberDispositionCounts",
         "quadCount",
+        "registrySourceCount",
         "resourceSchemeCount",
         "supportedRingStatementCount",
     }
-    if (
-        not isinstance(counts, Mapping)
-        or set(counts) != expected_count_keys
-        or any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in counts.values())
+    if not isinstance(counts, Mapping) or set(counts) != expected_count_keys:
+        _fail("registry.descriptors", "registry descriptor counts are missing or vacuous")
+    scalar_counts = {name: value for name, value in counts.items() if name != "memberDispositionCounts"}
+    disposition_counts = counts["memberDispositionCounts"]
+    if any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in scalar_counts.values()) or (
+        not isinstance(disposition_counts, Mapping)
+        or set(disposition_counts) != MEMBER_DISPOSITIONS
+        or any(
+            not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in disposition_counts.values()
+        )
     ):
         _fail("registry.descriptors", "registry descriptor counts are missing or vacuous")
     if counts["atlasIndexPlacementCount"] != coverage["summary"]["atlasIndexRowCount"]:
         _fail("registry.descriptors", "registry descriptor index count does not reconcile")
     if counts["resourceSchemeCount"] != coverage["summary"]["catalogResourceCount"]:
         _fail("registry.descriptors", "registry descriptor scheme count does not reconcile")
+    if counts["registrySourceCount"] != coverage["summary"]["catalogResourceCount"]:
+        _fail("registry.descriptors", "registry descriptor source count does not reconcile")
 
     schemes = set(graph.subjects(RDF.type, ATLAS.ResourceScheme))
-    if set(graph.subjects()) != schemes:
-        _fail("registry.descriptors", "registry descriptor graph has a non-ResourceScheme subject")
+    sources = set(graph.subjects(RDF.type, ATLAS.RegistrySource))
+    if set(graph.subjects()) != schemes | sources:
+        _fail("registry.descriptors", "registry descriptor graph has an unexpected subject")
+    if schemes & sources or len(schemes) != len(sources):
+        _fail("registry.descriptors", "registry sources and schemes do not reconcile")
     policies = _profile_policies()
     resource_ids: list[str] = []
     concept_scheme_count = 0
+    observed_dispositions: Counter[str] = Counter()
     for scheme in sorted(schemes, key=str):
         if not isinstance(scheme, URIRef):
             _fail("registry.descriptors", "registry descriptor scheme identity is not an IRI")
@@ -2855,9 +2843,39 @@ def _check_registry_descriptors(
             code="registry.descriptors",
             label="registry descriptor title",
         )
-        payload_literal = _one(graph, scheme, ATLAS.descriptorPayload, code="registry.descriptors")
+        source = _iri(
+            _one(graph, scheme, ATLAS.sourceDescriptor, code="registry.descriptors"),
+            code="registry.descriptors",
+            label="registry source descriptor",
+        )
+        if source not in sources:
+            _fail("registry.descriptors", f"registry descriptor {scheme} names an unknown source")
+        source_identifier = _literal_text(
+            _one(graph, source, DCTERMS.identifier, code="registry.descriptors"),
+            code="registry.descriptors",
+            label="registry source identifier",
+        )
+        source_title = _literal_text(
+            _one(graph, source, DCTERMS.title, code="registry.descriptors"),
+            code="registry.descriptors",
+            label="registry source title",
+        )
+        if (source_identifier, source_title) != (identifier, title):
+            _fail("registry.descriptors", f"registry descriptor {scheme} differs from its source")
+        disposition = _literal_text(
+            _one(graph, source, ATLAS.memberDisposition, code="registry.descriptors"),
+            code="registry.descriptors",
+            label="registry source member disposition",
+        )
+        if disposition not in MEMBER_DISPOSITIONS:
+            _fail(
+                "registry.descriptors",
+                f"registry source {source} has an unsupported member disposition",
+            )
+        observed_dispositions[disposition] += 1
+        payload_literal = _one(graph, source, ATLAS.descriptorPayload, code="registry.descriptors")
         if not isinstance(payload_literal, Literal) or payload_literal.datatype != RDF.JSON:
-            _fail("registry.descriptors", f"registry descriptor {scheme} payload is not rdf:JSON")
+            _fail("registry.descriptors", f"registry source {source} payload is not rdf:JSON")
         try:
             payload = json.loads(
                 str(payload_literal),
@@ -2867,14 +2885,14 @@ def _check_registry_descriptors(
                 parse_int=_parse_int,
             )
         except (AtlasValidationError, json.JSONDecodeError) as exc:
-            _fail("registry.descriptors", f"registry descriptor {scheme} payload is invalid: {exc}")
+            _fail("registry.descriptors", f"registry source {source} payload is invalid: {exc}")
         if (
             not isinstance(payload, Mapping)
             or canonical_json_bytes(payload, terminal_lf=False).decode("utf-8") != str(payload_literal)
             or payload.get("resourceId") != identifier
             or payload.get("title") != title
         ):
-            _fail("registry.descriptors", f"registry descriptor {scheme} payload is not a lossless canonical row")
+            _fail("registry.descriptors", f"registry source {source} payload is not a lossless canonical row")
         stored_digest = _literal_text(
             _one(graph, scheme, ATLAS.contentDigest, code="registry.descriptors"),
             code="registry.descriptors",
@@ -2882,22 +2900,32 @@ def _check_registry_descriptors(
         )
         if stored_digest != rdf_node_digest(graph, scheme):
             _fail("registry.descriptors", f"registry descriptor {scheme} contentDigest differs")
+        source_digest = _literal_text(
+            _one(graph, source, ATLAS.contentDigest, code="registry.descriptors"),
+            code="registry.descriptors",
+            label="registry source contentDigest",
+        )
+        if source_digest != rdf_node_digest(graph, source):
+            _fail("registry.descriptors", f"registry source {source} contentDigest differs")
         resource_ids.append(identifier)
 
     actual_counts = {
         "conceptSchemeCount": concept_scheme_count,
         "quadCount": len(graph),
+        "registrySourceCount": len(sources),
         "resourceSchemeCount": len(schemes),
         "supportedRingStatementCount": len(list(graph.triples((None, ATLAS.supportedRing, None)))),
     }
     for name, value in actual_counts.items():
         if counts[name] != value:
             _fail("registry.descriptors", f"registry descriptor {name} differs")
+    if dict(sorted(observed_dispositions.items())) != dict(disposition_counts):
+        _fail("registry.descriptors", "registry descriptor member dispositions differ")
     if len(resource_ids) != len(set(resource_ids)) or proof.get("resourceIdSetDigest") != canonical_sha256(
         sorted(resource_ids), terminal_lf=False
     ):
         _fail("registry.descriptors", "registry descriptor resource identity set differs")
-    return {name: int(value) for name, value in counts.items()}
+    return {name: int(value) for name, value in scalar_counts.items()}
 
 
 def validate_binding() -> dict[str, Any]:
@@ -2930,7 +2958,7 @@ def validate_binding() -> dict[str, Any]:
     if case_ids != REQUIRED_CORPUS_CASES:
         _fail(
             "corpus.coverage",
-            f"corpus cases differ; missing={sorted(REQUIRED_CORPUS_CASES-case_ids)}, extra={sorted(case_ids-REQUIRED_CORPUS_CASES)}",
+            f"corpus cases differ; missing={sorted(REQUIRED_CORPUS_CASES - case_ids)}, extra={sorted(case_ids - REQUIRED_CORPUS_CASES)}",
         )
     declared_paths = {case["path"] for case in corpus["cases"]}
     fixture_paths = {
@@ -2942,7 +2970,7 @@ def validate_binding() -> dict[str, Any]:
     if declared_paths != fixture_paths:
         _fail(
             "corpus.coverage",
-            f"corpus paths differ from fixture directories; missing={sorted(fixture_paths-declared_paths)}, extra={sorted(declared_paths-fixture_paths)}",
+            f"corpus paths differ from fixture directories; missing={sorted(fixture_paths - declared_paths)}, extra={sorted(declared_paths - fixture_paths)}",
         )
     results: list[dict[str, str]] = []
     seen_paths: set[str] = set()
@@ -3063,20 +3091,14 @@ def validate_binding() -> dict[str, Any]:
     if not isinstance(summary, Mapping) or set(summary) != expected_summary_keys:
         _fail("registry.coverage", "registry report summary fields are incomplete or unknown")
     integer_summary = {name: value for name, value in summary.items() if name != "resourceKindCounts"}
-    if any(
-        not isinstance(value, int) or isinstance(value, bool) or value < 0
-        for value in integer_summary.values()
-    ):
+    if any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in integer_summary.values()):
         _fail("registry.coverage", "registry report summary counts must be non-negative integers")
     resource_kind_counts = summary.get("resourceKindCounts")
     if (
         not isinstance(resource_kind_counts, Mapping)
         or not resource_kind_counts
         or any(
-            not isinstance(name, str)
-            or not isinstance(value, int)
-            or isinstance(value, bool)
-            or value <= 0
+            not isinstance(name, str) or not isinstance(value, int) or isinstance(value, bool) or value <= 0
             for name, value in resource_kind_counts.items()
         )
     ):

@@ -398,3 +398,47 @@ that selected scope before mapping candidates are regenerated and qualified. Cod
 identifier authorities, entity registries, legal identifiers, and publisher-assigned topics
 remain in their separate publication targets and never enter atlas `releaseFacts` or
 `analysis` merely because they share labels with subject concepts.
+
+### REF-014: Separate cataloged sources from governed Atlas schemes
+
+- **Date:** 2026-08-06
+- **Status:** Accepted for the unreleased Atlas 3.0 implementation; supersedes
+  REF-013 only where REF-013 excludes non-subject reference resources from Atlas
+  3.0.
+
+Atlas 3.0 keeps its four semantic rings and five resource profiles. It adds a
+separate `atlas:RegistrySource` descriptor for each cataloged publisher or
+reference source. A source may supply zero, one, or several
+`atlas:ResourceScheme` instances. Every emitted release still selects exactly
+one scheme, one resource profile, and one semantic ring.
+
+Every source also records a closed `atlas:memberDisposition`. Seventy cataloged
+sources currently have member releases. The remaining eighteen explicitly name
+why they do not: their facts live in child releases or source assignments, they
+are definition-only, historical-only, review-withheld, source-empty, or a
+resource family. Descriptor-only no longer means "adapter status unknown."
+
+This corrects a category error in the first registry-wide implementation. The
+catalog rows describe sources: they carry an official locator, availability,
+capture limits, and versioning instructions. A `ResourceScheme` describes a
+governed set of members. Treating those as the same node forced mixed sources
+such as a data model with both field definitions and code domains into one
+profile. Splitting catalog rows into duplicate pseudo-sources would hide the
+shared publisher capture and provenance. The explicit source-to-scheme link
+preserves both facts.
+
+The change does not alter the standards boundary. Subject members remain SKOS
+concepts, labels remain canonical SKOS-XL labels, and the Atlas-owned ontology
+stays inside its declared OWL 2 RL-safe subset. Atlas assertions retain separate
+proposition, evidence, and lifecycle records so a compatibility view can map to
+a pinned Rulespec Core release. Atlas does not claim Rulespec conformance until
+that exact compatibility view exists and validates.
+
+`atlas:NativeRelationAssertion` now permits publisher-authored, same-ring facts
+whose endpoints belong to different exact releases. Requiring one release made
+ordinary facts such as a facility-to-organization association impossible unless
+the producer misused an equivalence mapping or merged distinct schemes. The
+assertion still names both endpoint releases, one semantic ring, a closed
+predicate policy, immutable evidence, and lifecycle state. Cross-ring facts
+continue to use `atlas:CrossRingRelationAssertion`; mappings continue to mean
+cross-release semantic comparison rather than an arbitrary relationship.
