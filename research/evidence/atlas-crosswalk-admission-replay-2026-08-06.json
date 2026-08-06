@@ -1,0 +1,1323 @@
+{
+  "baselineAudit": {
+    "clearedLatticeButExcluded": 69,
+    "excludedByClass": {
+      "randomNegativeControl": 5,
+      "siblingDistractor": 64
+    },
+    "mismatches": 0,
+    "recordedAdmissions": 582,
+    "reproducedBy": "control-class exclusion applied before the v2 lattice"
+  },
+  "calibration": {
+    "controlSupportRates": {
+      "randomNegativeControl": {
+        "google-gemini": {
+          "rate": 0.05185185185185185,
+          "supports": 7
+        },
+        "independentReviewer": {
+          "rate": 0.037037037037037035,
+          "supports": 5
+        },
+        "judgeRelationsWhenSupporting": {
+          "related": 10,
+          "target_is_broader": 2,
+          "target_is_narrower": 2
+        },
+        "openai": {
+          "rate": 0.05185185185185185,
+          "supports": 7
+        },
+        "rows": 135
+      },
+      "siblingDistractor": {
+        "google-gemini": {
+          "rate": 0.5555555555555556,
+          "supports": 75
+        },
+        "independentReviewer": {
+          "rate": 0.48148148148148145,
+          "supports": 65
+        },
+        "judgeRelationsWhenSupporting": {
+          "related": 117,
+          "target_is_broader": 20,
+          "target_is_narrower": 15
+        },
+        "openai": {
+          "rate": 0.5703703703703704,
+          "supports": 77
+        },
+        "rows": 135
+      }
+    },
+    "reviewerSupportByStratum": {
+      "controls": {
+        "rate": 0.25925925925925924,
+        "reviewerSupports": 70,
+        "rows": 270
+      },
+      "disputed": {
+        "rate": 0.9883720930232558,
+        "reviewerSupports": 85,
+        "rows": 86
+      },
+      "hard-negatives": {
+        "rate": 0.1592356687898089,
+        "reviewerSupports": 25,
+        "rows": 157
+      },
+      "positives": {
+        "rate": 0.993127147766323,
+        "reviewerSupports": 578,
+        "rows": 582
+      }
+    },
+    "supportLikelihoodRatio": {
+      "vsHardNegatives": 6.236838487972509,
+      "vsRandomNegativeControl": 26.814432989690722
+    }
+  },
+  "disputed": {
+    "byGenerationClass": {
+      "alternateLabelEquality": 40,
+      "editDistanceNearMiss": 6,
+      "normalizedLabelEquality": 13,
+      "substringNearMiss": 27
+    },
+    "rows": 86,
+    "verdictPairs": {
+      "near_same vs related": 4,
+      "near_same vs target_is_broader": 8,
+      "near_same vs target_is_narrower": 22,
+      "related vs same": 1,
+      "related vs target_is_broader": 18,
+      "related vs target_is_narrower": 22,
+      "same vs target_is_broader": 5,
+      "same vs target_is_narrower": 5,
+      "target_is_broader vs target_is_narrower": 1
+    }
+  },
+  "editDistanceHygiene": {
+    "byVariantClass": {
+      "numberVariant": {
+        "admissionRate": 0.8181818181818182,
+        "admissionRate95": [
+          0.5230138624217553,
+          0.9486333993289995
+        ],
+        "admitted": 9,
+        "disputed": 1,
+        "examples": [
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "ELITE",
+            "target": "elites"
+          },
+          {
+            "relation": "exactMatch",
+            "set": "positives",
+            "source": "CARDIOVASCULAR DISEASES",
+            "target": "cardiovascular disease"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "REFERENDUMS",
+            "target": "referendum"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "SOCIAL INFLUENCE",
+            "target": "social influences"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "Sports",
+            "target": "SPORT"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "Income taxes",
+            "target": "INCOME TAX"
+          }
+        ],
+        "generated": 11,
+        "relatedMatch": 1,
+        "relatedMatchShare95": [
+          0.019890371327130507,
+          0.4350062147680602
+        ],
+        "relatedMatchShareOfAdmissions": 0.1111111111111111
+      },
+      "spellingVariant": {
+        "admissionRate": 0.8,
+        "admissionRate95": [
+          0.3755282641185388,
+          0.9637768390302125
+        ],
+        "admitted": 4,
+        "disputed": 1,
+        "examples": [
+          {
+            "relation": "exactMatch",
+            "set": "positives",
+            "source": "SEXUAL BEHAVIOUR",
+            "target": "sexual behavior"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "NEIGHBOURS",
+            "target": "neighbors"
+          },
+          {
+            "relation": "exactMatch",
+            "set": "positives",
+            "source": "LABOUR DISPUTES",
+            "target": "labor disputes"
+          },
+          {
+            "relation": "closeMatch",
+            "set": "positives",
+            "source": "Civil defense",
+            "target": "CIVIL DEFENCE"
+          },
+          {
+            "relation": null,
+            "set": "disputed",
+            "source": "Child labor",
+            "target": "CHILD LABOUR"
+          }
+        ],
+        "generated": 5,
+        "relatedMatch": 0,
+        "relatedMatchShare95": [
+          0.0,
+          0.48990002040399916
+        ],
+        "relatedMatchShareOfAdmissions": 0.0
+      },
+      "unprincipled": {
+        "admissionRate": 0.11409395973154363,
+        "admissionRate95": [
+          0.07246525159271658,
+          0.17512179277216838
+        ],
+        "admitted": 17,
+        "disputed": 4,
+        "examples": [
+          {
+            "relation": "narrowMatch",
+            "set": "positives",
+            "source": "SOCIAL INTEGRATION",
+            "target": "racial integration"
+          },
+          {
+            "relation": "relatedMatch",
+            "set": "positives",
+            "source": "ECONOMISTS",
+            "target": "economics"
+          },
+          {
+            "relation": "exactMatch",
+            "set": "positives",
+            "source": "CYBERSECURITY",
+            "target": "cyber security"
+          },
+          {
+            "relation": "relatedMatch",
+            "set": "positives",
+            "source": "LEGISLATURE",
+            "target": "legislators"
+          },
+          {
+            "relation": "relatedMatch",
+            "set": "positives",
+            "source": "BAIL",
+            "target": "jails"
+          },
+          {
+            "relation": "relatedMatch",
+            "set": "positives",
+            "source": "TERRORISM",
+            "target": "terrorists"
+          }
+        ],
+        "generated": 149,
+        "relatedMatch": 12,
+        "relatedMatchShare95": [
+          0.468664666737861,
+          0.8672020613444361
+        ],
+        "relatedMatchShareOfAdmissions": 0.7058823529411765
+      }
+    },
+    "generated": 165,
+    "principled": {
+      "admitted": 13,
+      "generated": 16,
+      "relatedMatch": 1
+    },
+    "principledVsUnprincipled": {
+      "admissionRateFisherP": 7.2523754857535386e-09,
+      "principled": {
+        "admitted": 13,
+        "generated": 16,
+        "rate": 0.8125,
+        "rate95": [
+          0.5699064013154177,
+          0.9340852122641324
+        ]
+      },
+      "relatedMatchShareFisherP": 0.0007820150075338282,
+      "unprincipled": {
+        "admitted": 17,
+        "generated": 149,
+        "rate": 0.11409395973154363,
+        "rate95": [
+          0.07246525159271658,
+          0.17512179277216838
+        ]
+      }
+    },
+    "rows": [
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 18,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 22,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 24,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 25,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 26,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 28,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 29,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 36,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 41,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 42,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 48,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 50,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 66,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 69,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 76,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 90,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 101,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 102,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 118,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 120,
+        "variantClass": "spellingVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 122,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 123,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 125,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 132,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 147,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 153,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 161,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 162,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 176,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 196,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 198,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 206,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 208,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 210,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 211,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 235,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 237,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 239,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 242,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 243,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 247,
+        "variantClass": "spellingVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 269,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 292,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 296,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 298,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 299,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 304,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 313,
+        "variantClass": "spellingVariant"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 315,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 321,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 325,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 330,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 333,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 336,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "elsst-icpsr",
+        "row": 364,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 6,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 13,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 19,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 28,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 33,
+        "variantClass": "spellingVariant"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 34,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 52,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 58,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 59,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 73,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 74,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 79,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 81,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 82,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 96,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 103,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 104,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 108,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 109,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 117,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 130,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 131,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 137,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 138,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 144,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 150,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 152,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 154,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 169,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 171,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 172,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 176,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 178,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 191,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 213,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 223,
+        "variantClass": "spellingVariant"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 224,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 226,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 238,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 242,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 243,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 259,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 271,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 277,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 280,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 308,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 310,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 313,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 322,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 330,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 331,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 335,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 337,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 340,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-elsst",
+        "row": 359,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 3,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 22,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 30,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 35,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 40,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 51,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 57,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 58,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 61,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 65,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 66,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 67,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 68,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 77,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 79,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 88,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 91,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 96,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 97,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 98,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 110,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 113,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 122,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 123,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 135,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 138,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 140,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 144,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 145,
+        "variantClass": "numberVariant"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 150,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 151,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 153,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 154,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 158,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 159,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 164,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 165,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 171,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 175,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 178,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 179,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 191,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 209,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 236,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 260,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 265,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 293,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 306,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 308,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 314,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 322,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 323,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 325,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 329,
+        "variantClass": "unprincipled"
+      },
+      {
+        "crosswalk": "fr-icpsr",
+        "row": 349,
+        "variantClass": "unprincipled"
+      }
+    ]
+  },
+  "experiments": [
+    "E-V1",
+    "E-V2 (calibration half)",
+    "E-V4",
+    "E-V5",
+    "E-V7"
+  ],
+  "note": "The 86 disputed rows are scored here, never resolved. Control admissions are reported against the lattice with the control-class exclusion lifted, which is the only way to see what a relaxed lattice would let through. The population is machine-proposed cross-vocabulary pairs, not publisher assertions.",
+  "orderIndependence": {
+    "distinctAdmittedSets": 1,
+    "orderIndependent": true,
+    "ordersTried": 5,
+    "reason": "the rule carries no cross-row state; no redundancy or graph-minimality check is applied",
+    "rule": "R4-granularity-principled-variants"
+  },
+  "relationShare": {
+    "admissions": 582,
+    "byGenerationClass": {
+      "alternateLabelEquality": {
+        "admissions": 120,
+        "liftOverBaseRate": 1.3857142857142857,
+        "relatedMatchShare": 0.08333333333333333,
+        "relations": {
+          "broadMatch": 10,
+          "closeMatch": 31,
+          "exactMatch": 9,
+          "narrowMatch": 60,
+          "relatedMatch": 10
+        }
+      },
+      "editDistanceNearMiss": {
+        "admissions": 30,
+        "liftOverBaseRate": 7.2057142857142855,
+        "relatedMatchShare": 0.43333333333333335,
+        "relations": {
+          "broadMatch": 2,
+          "closeMatch": 8,
+          "exactMatch": 6,
+          "narrowMatch": 1,
+          "relatedMatch": 13
+        }
+      },
+      "normalizedLabelEquality": {
+        "admissions": 302,
+        "liftOverBaseRate": 0.0,
+        "relatedMatchShare": 0.0,
+        "relations": {
+          "closeMatch": 193,
+          "exactMatch": 106,
+          "narrowMatch": 3
+        }
+      },
+      "substringNearMiss": {
+        "admissions": 130,
+        "liftOverBaseRate": 1.534945054945055,
+        "relatedMatchShare": 0.09230769230769231,
+        "relations": {
+          "broadMatch": 63,
+          "narrowMatch": 55,
+          "relatedMatch": 12
+        }
+      }
+    },
+    "editDistanceVsRest": {
+      "allOtherClasses": {
+        "other": 530,
+        "relatedMatch": 22
+      },
+      "editDistance": {
+        "other": 17,
+        "relatedMatch": 13
+      },
+      "fisherP": 7.642667874338782e-10
+    },
+    "interval95": {
+      "alternateLabelEquality": [
+        0.045893154816730314,
+        0.14662373772987763
+      ],
+      "editDistanceNearMiss": [
+        0.2737723743061511,
+        0.6080299045459127
+      ],
+      "normalizedLabelEquality": [
+        8.673617379884035e-19,
+        0.012560750401515032
+      ],
+      "substringNearMiss": [
+        0.053592894325345655,
+        0.1544261371267589
+      ]
+    },
+    "overall": {
+      "broadMatch": 75,
+      "closeMatch": 232,
+      "exactMatch": 121,
+      "narrowMatch": 119,
+      "relatedMatch": 35
+    },
+    "relatedMatchBaseRate": 0.06013745704467354
+  },
+  "rules": [
+    {
+      "admitted": 582,
+      "controlsAddedVsBaseline": 0,
+      "controlsClearingLattice": 69,
+      "deltaVsBaseline": 0,
+      "newlyAdmitted": {
+        "byGenerationClass": {},
+        "fromDisputedSet": 0,
+        "reviewerCallsDirect": 0,
+        "reviewerPicksAJudgeRelation": 0,
+        "reviewerSupports": 0,
+        "rows": 0
+      },
+      "rule": "R0-v2-baseline",
+      "shareOfBaselineGraph": 0.0,
+      "summary": "production lattice: identical verdicts, or same/near_same"
+    },
+    {
+      "admitted": 619,
+      "controlsAddedVsBaseline": 0,
+      "controlsClearingLattice": 69,
+      "deltaVsBaseline": 37,
+      "newlyAdmitted": {
+        "byGenerationClass": {
+          "alternateLabelEquality": 24,
+          "normalizedLabelEquality": 13
+        },
+        "fromDisputedSet": 37,
+        "reviewerCallsDirect": 37,
+        "reviewerPicksAJudgeRelation": 35,
+        "reviewerSupports": 37,
+        "rows": 37
+      },
+      "rule": "R1-granularity-label-equality",
+      "shareOfBaselineGraph": 0.06357388316151202,
+      "summary": "R0 + one granularity step, label-equality classes only"
+    },
+    {
+      "admitted": 622,
+      "controlsAddedVsBaseline": 0,
+      "controlsClearingLattice": 69,
+      "deltaVsBaseline": 40,
+      "newlyAdmitted": {
+        "byGenerationClass": {
+          "alternateLabelEquality": 24,
+          "editDistanceNearMiss": 2,
+          "normalizedLabelEquality": 13,
+          "substringNearMiss": 1
+        },
+        "fromDisputedSet": 40,
+        "reviewerCallsDirect": 40,
+        "reviewerPicksAJudgeRelation": 38,
+        "reviewerSupports": 40,
+        "rows": 40
+      },
+      "rule": "R2-granularity-any-class",
+      "shareOfBaselineGraph": 0.06872852233676977,
+      "summary": "R0 + one granularity step, any non-control class"
+    },
+    {
+      "admitted": 667,
+      "controlsAddedVsBaseline": 4,
+      "controlsClearingLattice": 73,
+      "deltaVsBaseline": 85,
+      "newlyAdmitted": {
+        "byGenerationClass": {
+          "alternateLabelEquality": 39,
+          "editDistanceNearMiss": 6,
+          "normalizedLabelEquality": 13,
+          "substringNearMiss": 27
+        },
+        "fromDisputedSet": 85,
+        "reviewerCallsDirect": 72,
+        "reviewerPicksAJudgeRelation": 79,
+        "reviewerSupports": 84,
+        "rows": 85
+      },
+      "rule": "R3-related-absorbs-direction",
+      "shareOfBaselineGraph": 0.14604810996563575,
+      "summary": "R2 + associative treated as compatible with directional"
+    },
+    {
+      "admitted": 621,
+      "controlsAddedVsBaseline": 0,
+      "controlsClearingLattice": 69,
+      "deltaVsBaseline": 39,
+      "newlyAdmitted": {
+        "byGenerationClass": {
+          "alternateLabelEquality": 24,
+          "editDistanceNearMiss": 2,
+          "normalizedLabelEquality": 13
+        },
+        "fromDisputedSet": 39,
+        "reviewerCallsDirect": 39,
+        "reviewerPicksAJudgeRelation": 37,
+        "reviewerSupports": 39,
+        "rows": 39
+      },
+      "rule": "R4-granularity-principled-variants",
+      "shareOfBaselineGraph": 0.06701030927835051,
+      "summary": "R1 + edit-distance candidates that are real orthographic variants"
+    }
+  ],
+  "type": "AtlasCrosswalkAdmissionReplay"
+}
