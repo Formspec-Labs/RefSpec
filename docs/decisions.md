@@ -442,3 +442,59 @@ assertion still names both endpoint releases, one semantic ring, a closed
 predicate policy, immutable evidence, and lifecycle state. Cross-ring facts
 continue to use `atlas:CrossRingRelationAssertion`; mappings continue to mean
 cross-release semantic comparison rather than an arbitrary relationship.
+
+### REF-015: Make compact managed records the eventual Atlas source of truth
+
+- **Date:** 2026-08-06
+- **Status:** Accepted direction; canonical cutover requires parity acceptance
+
+Atlas will borrow two publication patterns without adopting either system's
+data model. [ESCO publishes one managed classification through RDF, tabular
+downloads, and APIs](https://esco.ec.europa.eu/en/use-esco). [Wikibase exposes
+both full statement RDF and a simpler direct or "truthy"
+form](https://www.mediawiki.org/wiki/Wikibase/Indexing/RDF_Dump_Format). Atlas
+will apply that separation to versioned United States public reference sources:
+one governed record set, several reproducible consumer views.
+
+The current [Atlas 3.0 RDF binding](../bindings/atlas/3.0/README.md) remains
+canonical during migration. Compact managed records become canonical only in a
+deliberate binding cutover after they reproduce every authoritative RDF fact
+and pass independent parity checks. Until then, compact packs are
+non-authoritative sidecars. The initial
+[`compact_pack.py`](../src/refspec/atlas/compact_pack.py) module supplies only
+deterministic JSONL/Zstandard transport: its header seals pack defaults and
+dependencies, its rows sort uniquely by `id`, and separate digests pin compact
+bytes, transport bytes, and fully expanded logical rows. Role schemas and
+semantic adapters remain migration work.
+
+After cutover, the canonical release will contain compact `Resource`, `Label`,
+`Statement`, evidence/reference, source-record, and release records. Four
+outputs will be derived from that same release:
+
+- **full audit RDF**, preserving statement identity, evidence, provenance, and
+  lifecycle;
+- **direct RDF**, containing convenient current relation and label triples but
+  creating no new editorial authority;
+- **search indexes**, which remain disposable consumer-owned artifacts; and
+- **the explorer**, which visualizes the compact records and their derived
+  relations without becoming a second source of truth.
+
+Every canonical release remains immutable and content-addressed. Its manifest
+must pin exact source inputs, binding and recipe versions, pack membership,
+uncompressed content digests, transport digests, and provenance closure. Every
+derived view must pin the canonical release and the exact derivation recipe.
+Inference stays identifiable as derived; it never changes an asserted statement
+or supplies missing editorial evidence. Any source, policy, record, or recipe
+change produces a new release rather than rewriting an existing one.
+
+Migration proceeds by evidence, not by format preference. First, publish compact
+sidecars beside the existing RDF. Next, add closed role schemas and deterministic
+adapters in both directions. Run fixtures and complete real releases through
+both paths and require identical IDs, membership, English labels, identifiers,
+relations, assertion state, evidence, provenance, source accounting, and
+release closure. Rebuilds must be byte-stable; digest and tamper failures must
+fail closed; full audit RDF must pass the independent Atlas validator; and the
+direct view must contain only triples licensed by current authoritative
+statements. Cut over only after those checks pass and complete-release
+measurements confirm that compact generation and validation materially reduce
+time and memory. Until then, rollback is simply omission of the sidecars.
