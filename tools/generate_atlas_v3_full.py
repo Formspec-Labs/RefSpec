@@ -29,6 +29,7 @@ from typing import Literal as TypeLiteral
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
+from refspec.atlas.v3_source_data import RegistryInputPin, RegistryRelease
 from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseView,
@@ -101,6 +102,11 @@ class SourceSpec:
     ring: str
     expected_relations: int = 0
     fallback_namespace_token: str | None = None
+    emit_source_assignments: bool = True
+    resource_id: str | None = None
+    source_module: str | None = None
+    scope: str = "publisherRelease"
+    input_pins: tuple[RegistryInputPin, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1444,6 +1450,42 @@ def _validate_loaded_release(release: LoadedRelease) -> LoadedRelease:
     return release
 
 
+def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
+    """Adapt one normalized registry release without source-specific branching."""
+
+    release.verify_inputs()
+    primary = release.inputs[0]
+    spec = SourceSpec(
+        key=release.key,
+        kind="registryRelease",
+        path=primary.path,
+        logical_path=primary.logical_path,
+        expected_digest=primary.sha256,
+        expected_resources=release.expected_resources,
+        expected_relations=release.expected_relations,
+        profile=release.profile,
+        ring=release.ring,
+        emit_source_assignments=False,
+        resource_id=release.resource_id,
+        source_module=release.source_module,
+        scope=release.scope,
+        input_pins=tuple(release.inputs),
+    )
+    return _validate_loaded_release(
+        LoadedRelease(
+            spec=spec,
+            source_release_iri=release.source_release_iri,
+            source_release_digest=release.source_release_digest,
+            atlas_release_iri=release.atlas_release_iri,
+            scheme_iri=release.scheme_iri,
+            issued=release.issued,
+            resources=tuple(release.resources),  # type: ignore[arg-type]
+            relations=tuple(release.relations),  # type: ignore[arg-type]
+            dropped_label_count=release.dropped_label_count,
+        )
+    )
+
+
 def load_releases() -> tuple[LoadedRelease, ...]:
     loaders = {
         "sourceConceptRelease": _load_crs,
@@ -1729,8 +1771,12 @@ def _registry_asserted_graph() -> Graph:
 
 def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
     release_keys = {release.spec.key for release in releases}
-    if release_keys != set(SOURCE_LANGUAGE_PROFILES):
-        raise ValueError("Atlas source language-profile coverage is incomplete")
+    if len(release_keys) != len(releases):
+        raise ValueError("Atlas releases repeat a source key")
+    language_profiles = {
+        key: SOURCE_LANGUAGE_PROFILES.get(key, "registryEnglishOnlyV1")
+        for key in sorted(release_keys)
+    }
     labels = [
         label
         for release in releases
@@ -1796,7 +1842,7 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
         "normalizedLanguageTag": "en",
         "relationPayloadsChecked": relation_payload_count,
         "scanAlgorithm": "recursiveLanguageMapsAndExplicitLanguageTagsV1",
-        "sourceLanguageProfiles": dict(SOURCE_LANGUAGE_PROFILES),
+        "sourceLanguageProfiles": language_profiles,
         "status": "passed",
     }
 
@@ -1938,24 +1984,25 @@ def _build_graphs(
                     )
                 )
             _add_content_digest(asserted, resource)
-            _add_assertion(
-                asserted,
-                assertion_type=ATLAS.SourceAssignment,
-                ring=ring,
-                subject=record,
-                predicate=assignment_predicate,
-                obj=resource,
-                source_release=source_release,
-                target_release=atlas_release,
-                policy=native_policy,
-                asserted_at=CREATED_AT,
-                evidence_record=record,
-                reviewer=NATIVE_REVIEWER,
-                review_method=_review_method_for_assertion(
-                    ATLAS.SourceAssignment
-                ),
-                confidence="1",
-            )
+            if release.spec.emit_source_assignments:
+                _add_assertion(
+                    asserted,
+                    assertion_type=ATLAS.SourceAssignment,
+                    ring=ring,
+                    subject=record,
+                    predicate=assignment_predicate,
+                    obj=resource,
+                    source_release=source_release,
+                    target_release=atlas_release,
+                    policy=native_policy,
+                    asserted_at=CREATED_AT,
+                    evidence_record=record,
+                    reviewer=NATIVE_REVIEWER,
+                    review_method=_review_method_for_assertion(
+                        ATLAS.SourceAssignment
+                    ),
+                    confidence="1",
+                )
             dispositions.append(
                 {
                     "atlasResources": [resource_row.iri],
@@ -2520,7 +2567,27 @@ def _write_distribution(
     return result
 
 
-def verify_inputs() -> dict[str, Any]:
+def _source_input_pins(source: SourceSpec) -> tuple[RegistryInputPin, ...]:
+    if source.input_pins:
+        return source.input_pins
+    byte_length = source.path.stat().st_size if source.path.is_file() else -1
+    return (
+        RegistryInputPin(
+            path=source.path,
+            logical_path=source.logical_path,
+            sha256=source.expected_digest,
+            byte_length=byte_length,
+            source_iri=(
+                "urn:ref:source-artifact:"
+                + source.expected_digest.removeprefix("sha256:")
+            ),
+        ),
+    )
+
+
+def verify_inputs(
+    releases: tuple[LoadedRelease, ...] | None = None,
+) -> dict[str, Any]:
     """Fail closed unless every original input named by the build is present."""
 
     _verify_pinned_file(
@@ -2528,12 +2595,22 @@ def verify_inputs() -> dict[str, Any]:
         logical_path=REGISTRY_DESCRIPTORS_LOGICAL_PATH,
         expected_digest=REGISTRY_DESCRIPTORS_EXPECTED_DIGEST,
     )
-    for source in SOURCE_SPECS:
-        _verify_pinned_file(
-            source.path,
-            logical_path=source.logical_path,
-            expected_digest=source.expected_digest,
-        )
+    sources = (
+        SOURCE_SPECS
+        if releases is None
+        else tuple(release.spec for release in releases)
+    )
+    for source in sources:
+        for pin in _source_input_pins(source):
+            _verify_pinned_file(
+                pin.path,
+                logical_path=pin.logical_path,
+                expected_digest=pin.sha256,
+            )
+            if pin.path.stat().st_size != pin.byte_length:
+                raise ValueError(
+                    f"pinned input byte length differs for {pin.logical_path}"
+                )
     registry = Dataset(default_union=True)
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = {
@@ -2547,7 +2624,7 @@ def verify_inputs() -> dict[str, Any]:
         raise ValueError(f"expected 86 registry descriptors; found {len(descriptors)}")
 
     return {
-        "expectedResources": sum(source.expected_resources for source in SOURCE_SPECS),
+        "expectedResources": sum(source.expected_resources for source in sources),
         "registryDescriptors": len(descriptors),
         "registryDescriptorsPin": {
             "digest": REGISTRY_DESCRIPTORS_EXPECTED_DIGEST,
@@ -2560,10 +2637,23 @@ def verify_inputs() -> dict[str, Any]:
                 "key": source.key,
                 "kind": source.kind,
                 "path": source.logical_path,
+                "inputs": [
+                    {
+                        "byteLength": pin.byte_length,
+                        "path": pin.logical_path,
+                        "role": pin.role,
+                        "sha256": pin.sha256,
+                        "sourceIri": pin.source_iri,
+                    }
+                    for pin in _source_input_pins(source)
+                ],
+                "resourceId": source.resource_id,
+                "scope": source.scope,
+                "sourceModule": source.source_module,
                 "sha256": source.expected_digest,
                 "usesPriorAtlasGraph": False,
             }
-            for source in SOURCE_SPECS
+            for source in sources
         ],
     }
 
@@ -2572,8 +2662,8 @@ def build_distribution(output: Path) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    inventory = verify_inputs()
     releases = load_releases()
+    inventory = verify_inputs(releases)
     english_only_scan = _english_only_scan(releases)
     dropped_label_count = sum(release.dropped_label_count for release in releases)
     observed_counts = {
