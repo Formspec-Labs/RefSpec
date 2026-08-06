@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import html
 import json
 import os
@@ -15,9 +16,9 @@ from pathlib import Path
 from string import Template
 from typing import Any, BinaryIO, TypeVar, cast
 
-from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
-from rdflib.exceptions import ParserError
+from rdflib import Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS
+from rdflib.util import from_n3
 
 from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
@@ -127,6 +128,19 @@ PLANNING_FILTER_SEMANTICS: tuple[Mapping[str, str], ...] = ()
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SAFE_INTEGER = 9_007_199_254_740_991
 _NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
+_SOURCE_ACCOUNTING_INLINE_MAX_BYTES = 16 * 1024 * 1024
+
+# A static visual graph remains useful well below the full Atlas cardinality.
+# These are hard materialization bounds, not claims about the sealed dataset.
+_VISUAL_RESOURCE_LIMIT = 2_000
+_VISUAL_TOPIC_ASSERTION_LIMIT = 2_000
+_VISUAL_SOURCE_ASSIGNMENT_LIMIT = 200
+_VISUAL_PROJECTED_RELATION_LIMIT = 500
+_VISUAL_DERIVED_RELATION_LIMIT = 100
+_VISUAL_RELATION_RESOURCE_BUDGET = 1_500
+_VISUAL_PROVENANCE_ASSERTION_LIMIT = 4_000
+_VISUAL_CANDIDATE_MULTIPLIER = 4
+_VISUAL_MAX_RELATION_REFERENCES = 64
 _MANIFEST_FIELDS = frozenset(
     {
         "type",
@@ -250,6 +264,14 @@ def _sequence(value: object, label: str) -> Sequence[Any]:
     return cast(Sequence[Any], value)
 
 
+def _json_copy(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _json_copy(child) for key, child in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return [_json_copy(child) for child in value]
+    return value
+
+
 def _exact_fields(value: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
     if set(value) != expected:
         raise Atlas3ExplorerError(
@@ -319,6 +341,12 @@ def _literal_view(value: Literal) -> dict[str, str]:
     return result
 
 
+def _english_display_literal(value: Literal) -> bool:
+    """Treat explicit English and language-neutral publisher text as displayable."""
+
+    return value.language is None or value.language.casefold() == "en"
+
+
 def atlas_v3_predicate_meaning(predicate_iri: str) -> str:
     """Explain a relation without weakening or changing its source semantics."""
 
@@ -333,6 +361,169 @@ def _canonical_digest_without_lf(value: object) -> str:
     if not payload.endswith(b"\n"):
         raise Atlas3ExplorerError("canonical JSON encoder omitted its expected terminal LF")
     return sha256_digest(payload[:-1])
+
+
+def _nquad_iri_token(value: object) -> bytes:
+    return f"<{value}>".encode()
+
+
+_RDF_TYPE_TOKEN = _nquad_iri_token(RDF.type)
+_PROV_HAD_MEMBER_TOKEN = _nquad_iri_token(PROV.hadMember)
+_DCTERMS_TITLE_TOKEN = _nquad_iri_token(DCTERMS.title)
+_ATLAS_IN_RELEASE_TOKEN = _nquad_iri_token(ATLAS.inRelease)
+_ATLAS_IN_SOURCE_RELEASE_TOKEN = _nquad_iri_token(ATLAS.inSourceRelease)
+_ATLAS_SEMANTIC_RING_TOKEN = _nquad_iri_token(ATLAS.semanticRing)
+_ATLAS_ASSERTION_STATUS_TOKEN = _nquad_iri_token(ATLAS.assertionStatus)
+_ATLAS_REPRESENTS_RESOURCE_TOKEN = _nquad_iri_token(ATLAS.representsResource)
+_RDF_SUBJECT_TOKEN = _nquad_iri_token(RDF.subject)
+_RDF_PREDICATE_TOKEN = _nquad_iri_token(RDF.predicate)
+_RDF_OBJECT_TOKEN = _nquad_iri_token(RDF.object)
+_ATLAS_RELATION_SUBJECT_TOKEN = _nquad_iri_token(ATLAS.relationSubject)
+_ATLAS_RELATION_PREDICATE_TOKEN = _nquad_iri_token(ATLAS.relationPredicate)
+_ATLAS_RELATION_OBJECT_TOKEN = _nquad_iri_token(ATLAS.relationObject)
+_ATLAS_SUPPORTING_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.supportingAssertion)
+_ATLAS_DERIVED_FROM_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.derivedFromAssertion)
+_ATLAS_GOVERNED_BY_POLICY_TOKEN = _nquad_iri_token(ATLAS.governedByPolicy)
+_ATLAS_BINDS_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.bindsAssertion)
+_ATLAS_EVIDENCE_SOURCE_RECORD_TOKEN = _nquad_iri_token(ATLAS.evidenceSourceRecord)
+_ATLAS_SOURCE_RECORD_TOKEN = _nquad_iri_token(ATLAS.sourceRecord)
+_SKOSXL_LITERAL_FORM_TOKEN = _nquad_iri_token(SKOSXL.literalForm)
+_LABEL_PREDICATE_TOKENS = frozenset(_nquad_iri_token(predicate) for predicate, _role in LABEL_ROLES)
+
+_ATLAS_RELEASE_TYPE_TOKEN = _nquad_iri_token(ATLAS.AtlasRelease)
+_SOURCE_RELEASE_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceRelease)
+_ATLAS_RESOURCE_TYPE_TOKEN = _nquad_iri_token(ATLAS.AtlasResource)
+_LABEL_TYPE_TOKEN = _nquad_iri_token(SKOSXL.Label)
+_SOURCE_RECORD_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceRecord)
+_RELATION_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.RelationAssertion)
+_MAPPING_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.MappingAssertion)
+_NATIVE_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.NativeRelationAssertion)
+_SOURCE_ASSIGNMENT_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceAssignment)
+_PROJECTED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.ProjectedRelation)
+_DERIVED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.DerivedRelation)
+_CURRENT_STATUS_TOKEN = _nquad_iri_token(ATLAS.current)
+_SOURCE_ASSIGNMENT_PREDICATE_TOKENS = frozenset(
+    {
+        _nquad_iri_token(ATLAS.assignedSubject),
+        _nquad_iri_token(ATLAS.assignedEntity),
+        _nquad_iri_token(ATLAS.assignedValue),
+        _nquad_iri_token(ATLAS.assignedLegalIdentity),
+    }
+)
+
+_COUNT_TYPE_TOKENS = {
+    _ATLAS_RELEASE_TYPE_TOKEN: "releases",
+    _ATLAS_RESOURCE_TYPE_TOKEN: "resources",
+    _LABEL_TYPE_TOKEN: "labels",
+    _SOURCE_RECORD_TYPE_TOKEN: "sourceRecords",
+    _RELATION_ASSERTION_TYPE_TOKEN: "relationAssertions",
+    _MAPPING_ASSERTION_TYPE_TOKEN: "mappingAssertions",
+    _NATIVE_ASSERTION_TYPE_TOKEN: "nativeRelationAssertions",
+    _SOURCE_ASSIGNMENT_TYPE_TOKEN: "sourceAssignments",
+    _PROJECTED_RELATION_TYPE_TOKEN: "projectedRelations",
+    _DERIVED_RELATION_TYPE_TOKEN: "derivedRelations",
+}
+_FIRST_PASS_VALUE_PREDICATES = frozenset(
+    {
+        _ATLAS_IN_RELEASE_TOKEN,
+        _ATLAS_IN_SOURCE_RELEASE_TOKEN,
+        _ATLAS_SEMANTIC_RING_TOKEN,
+        _ATLAS_ASSERTION_STATUS_TOKEN,
+        _RDF_SUBJECT_TOKEN,
+        _RDF_PREDICATE_TOKEN,
+        _RDF_OBJECT_TOKEN,
+        _ATLAS_RELATION_SUBJECT_TOKEN,
+        _ATLAS_RELATION_PREDICATE_TOKEN,
+        _ATLAS_RELATION_OBJECT_TOKEN,
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _RawCandidate:
+    record_id: bytes
+    kind: str
+    release: bytes | None = None
+    ring: bytes | None = None
+    subject: bytes | None = None
+    predicate: bytes | None = None
+    object_value: bytes | None = None
+    references: tuple[bytes, ...] = ()
+
+
+class _CandidatePool:
+    """Retain stable low-hash candidates plus one representative per stratum."""
+
+    def __init__(self, *, category: bytes, limit: int) -> None:
+        self._category = category
+        self._limit = limit
+        self._heap: list[tuple[int, bytes, _RawCandidate]] = []
+        self._strata: dict[tuple[bytes, ...], tuple[int, bytes, _RawCandidate]] = {}
+
+    def _score(self, key: bytes) -> int:
+        payload = b"refspec-atlas-explorer-sample-v1\0" + self._category + b"\0" + key
+        return int.from_bytes(hashlib.sha256(payload).digest(), "big")
+
+    def offer(
+        self,
+        candidate: _RawCandidate,
+        *,
+        stratum: tuple[bytes, ...],
+        score_key: bytes | None = None,
+    ) -> None:
+        score = self._score(score_key or candidate.record_id)
+        entry = (score, candidate.record_id, candidate)
+        previous = self._strata.get(stratum)
+        if previous is None or entry[:2] < previous[:2]:
+            self._strata[stratum] = entry
+        heap_entry = (-score, candidate.record_id, candidate)
+        if len(self._heap) < self._limit:
+            heapq.heappush(self._heap, heap_entry)
+        elif score < -self._heap[0][0]:
+            heapq.heapreplace(self._heap, heap_entry)
+
+    def sample(self, limit: int) -> list[_RawCandidate]:
+        if limit <= 0:
+            return []
+        result: list[_RawCandidate] = []
+        seen: set[bytes] = set()
+        stratum_rows = sorted(self._strata.values(), key=lambda row: row[:2])
+        heap_rows = sorted(
+            ((-negative_score, record_id, candidate) for negative_score, record_id, candidate in self._heap),
+            key=lambda row: row[:2],
+        )
+        for _score, record_id, candidate in (*stratum_rows, *heap_rows):
+            if record_id in seen:
+                continue
+            result.append(candidate)
+            seen.add(record_id)
+            if len(result) == limit:
+                break
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class _StreamedAtlasIndex:
+    byte_length: int
+    digest: str
+    graph_quad_counts: Mapping[str, int]
+    record_counts: Mapping[str, int]
+    resources_by_ring: Mapping[bytes, int]
+    resources_by_release: Mapping[bytes, int]
+    resources_by_release_ring: Mapping[tuple[bytes, bytes], int]
+    asserted_relations_by_ring: Mapping[bytes, int]
+    asserted_relations_by_kind: Mapping[str, int]
+    source_records_by_release: Mapping[bytes, int]
+    represented_source_records_by_release: Mapping[bytes, int]
+    release_member_counts: Mapping[bytes, int]
+    atlas_release_ids: tuple[bytes, ...]
+    source_release_ids: tuple[bytes, ...]
+    resource_ids: tuple[bytes, ...]
+    assertion_ids: tuple[bytes, ...]
+    projected_relation_ids: tuple[bytes, ...]
+    derived_relation_ids: tuple[bytes, ...]
+    current_authoritative_relations: int
+    oversized_relations_skipped: int
 
 
 def _binding_digests() -> dict[str, str]:
@@ -394,11 +585,356 @@ def _verify_binding_evidence(
             )
 
 
-def _scan_dataset_member(stream: BinaryIO) -> tuple[int, str]:
+def _require_raw_value(
+    values: Mapping[bytes, bytes],
+    predicate: bytes,
+    label: str,
+) -> bytes:
+    value = values.get(predicate)
+    if value is None:
+        raise Atlas3ExplorerError(f"streamed Atlas 3.0 {label} is missing")
+    return value
+
+
+def _raw_iri_text(token: bytes, label: str) -> str:
+    try:
+        value = from_n3(token.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as error:
+        raise Atlas3ExplorerError(f"streamed Atlas 3.0 {label} is not an IRI") from error
+    if not isinstance(value, URIRef):
+        raise Atlas3ExplorerError(f"streamed Atlas 3.0 {label} is not an IRI")
+    return str(value)
+
+
+class _StreamingIndexBuilder:
+    def __init__(self) -> None:
+        self.record_counts: Counter[str] = Counter()
+        self.resources_by_ring: Counter[bytes] = Counter()
+        self.resources_by_release: Counter[bytes] = Counter()
+        self.resources_by_release_ring: Counter[tuple[bytes, bytes]] = Counter()
+        self.asserted_relations_by_ring: Counter[bytes] = Counter()
+        self.asserted_relations_by_kind: Counter[str] = Counter()
+        self.source_records_by_release: Counter[bytes] = Counter()
+        self.represented_source_records_by_release: Counter[bytes] = Counter()
+        self.release_member_counts: dict[bytes, int] = {}
+        self.atlas_release_ids: set[bytes] = set()
+        self.source_release_ids: set[bytes] = set()
+        self.current_authoritative_relations = 0
+        self.oversized_relations_skipped = 0
+        self.resources = _CandidatePool(
+            category=b"resource",
+            limit=_VISUAL_RESOURCE_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+        self.topic_assertions = _CandidatePool(
+            category=b"topic-assertion",
+            limit=_VISUAL_TOPIC_ASSERTION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+        self.source_assignments = _CandidatePool(
+            category=b"source-assignment",
+            limit=_VISUAL_SOURCE_ASSIGNMENT_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+        self.projected_relations = _CandidatePool(
+            category=b"projected-relation",
+            limit=_VISUAL_PROJECTED_RELATION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+        self.derived_relations = _CandidatePool(
+            category=b"derived-relation",
+            limit=_VISUAL_DERIVED_RELATION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER,
+        )
+
+    def consume(
+        self,
+        subject: bytes,
+        types: set[bytes],
+        values: Mapping[bytes, bytes],
+        supporting_assertions: Sequence[bytes],
+        supporting_assertion_count: int,
+        derived_from_assertions: Sequence[bytes],
+        derived_from_assertion_count: int,
+        had_member_count: int,
+        represents_resource_count: int,
+    ) -> None:
+        for type_token in types:
+            count_name = _COUNT_TYPE_TOKENS.get(type_token)
+            if count_name is not None:
+                self.record_counts[count_name] += 1
+
+        if _ATLAS_RELEASE_TYPE_TOKEN in types:
+            self.atlas_release_ids.add(subject)
+            self.release_member_counts[subject] = had_member_count
+        if _SOURCE_RELEASE_TYPE_TOKEN in types:
+            self.source_release_ids.add(subject)
+
+        if _ATLAS_RESOURCE_TYPE_TOKEN in types:
+            release = _require_raw_value(values, _ATLAS_IN_RELEASE_TOKEN, f"resource {subject!r} release")
+            ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"resource {subject!r} ring")
+            self.resources_by_release[release] += 1
+            self.resources_by_ring[ring] += 1
+            self.resources_by_release_ring[(release, ring)] += 1
+            self.resources.offer(
+                _RawCandidate(subject, "resource", release=release, ring=ring),
+                stratum=(release, ring),
+            )
+
+        if _SOURCE_RECORD_TYPE_TOKEN in types:
+            release = _require_raw_value(
+                values,
+                _ATLAS_IN_SOURCE_RELEASE_TOKEN,
+                f"source record {subject!r} release",
+            )
+            self.source_records_by_release[release] += 1
+            if represents_resource_count:
+                self.represented_source_records_by_release[release] += 1
+
+        if _RELATION_ASSERTION_TYPE_TOKEN in types:
+            kinds = [
+                name
+                for type_token, name in (
+                    (_MAPPING_ASSERTION_TYPE_TOKEN, "mapping"),
+                    (_NATIVE_ASSERTION_TYPE_TOKEN, "native"),
+                    (_SOURCE_ASSIGNMENT_TYPE_TOKEN, "sourceAssignment"),
+                )
+                if type_token in types
+            ]
+            if len(kinds) != 1:
+                raise Atlas3ExplorerError(
+                    f"streamed Atlas 3.0 assertion {subject!r} has an invalid specialization"
+                )
+            kind = kinds[0]
+            ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"assertion {subject!r} ring")
+            predicate = _require_raw_value(values, _RDF_PREDICATE_TOKEN, f"assertion {subject!r} predicate")
+            assertion = _RawCandidate(
+                subject,
+                kind,
+                ring=ring,
+                subject=_require_raw_value(values, _RDF_SUBJECT_TOKEN, f"assertion {subject!r} subject"),
+                predicate=predicate,
+                object_value=_require_raw_value(values, _RDF_OBJECT_TOKEN, f"assertion {subject!r} object"),
+            )
+            self.asserted_relations_by_ring[ring] += 1
+            self.asserted_relations_by_kind[kind] += 1
+            if values.get(_ATLAS_ASSERTION_STATUS_TOKEN) == _CURRENT_STATUS_TOKEN:
+                self.current_authoritative_relations += 1
+            pool = self.source_assignments if kind == "sourceAssignment" else self.topic_assertions
+            pool.offer(assertion, stratum=(kind.encode("ascii"), ring, predicate))
+
+        if _PROJECTED_RELATION_TYPE_TOKEN in types:
+            if supporting_assertion_count > _VISUAL_MAX_RELATION_REFERENCES:
+                self.oversized_relations_skipped += 1
+            else:
+                ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"projection {subject!r} ring")
+                predicate = _require_raw_value(
+                    values,
+                    _ATLAS_RELATION_PREDICATE_TOKEN,
+                    f"projection {subject!r} predicate",
+                )
+                projection = _RawCandidate(
+                    subject,
+                    "projection",
+                    ring=ring,
+                    subject=_require_raw_value(
+                        values,
+                        _ATLAS_RELATION_SUBJECT_TOKEN,
+                        f"projection {subject!r} subject",
+                    ),
+                    predicate=predicate,
+                    object_value=_require_raw_value(
+                        values,
+                        _ATLAS_RELATION_OBJECT_TOKEN,
+                        f"projection {subject!r} object",
+                    ),
+                    references=tuple(supporting_assertions),
+                )
+                score_key = projection.references[0] if projection.references else projection.record_id
+                self.projected_relations.offer(
+                    projection,
+                    stratum=(ring, predicate),
+                    score_key=score_key,
+                )
+
+        if _DERIVED_RELATION_TYPE_TOKEN in types:
+            if derived_from_assertion_count > _VISUAL_MAX_RELATION_REFERENCES:
+                self.oversized_relations_skipped += 1
+            else:
+                ring = _require_raw_value(values, _ATLAS_SEMANTIC_RING_TOKEN, f"derivation {subject!r} ring")
+                predicate = _require_raw_value(
+                    values,
+                    _ATLAS_RELATION_PREDICATE_TOKEN,
+                    f"derivation {subject!r} predicate",
+                )
+                derived = _RawCandidate(
+                    subject,
+                    "derived",
+                    ring=ring,
+                    subject=_require_raw_value(
+                        values,
+                        _ATLAS_RELATION_SUBJECT_TOKEN,
+                        f"derivation {subject!r} subject",
+                    ),
+                    predicate=predicate,
+                    object_value=_require_raw_value(
+                        values,
+                        _ATLAS_RELATION_OBJECT_TOKEN,
+                        f"derivation {subject!r} object",
+                    ),
+                    references=tuple(derived_from_assertions),
+                )
+                self.derived_relations.offer(derived, stratum=(ring, predicate))
+
+    def finish(
+        self,
+        *,
+        byte_length: int,
+        digest: str,
+        graph_quad_counts: Mapping[str, int],
+    ) -> _StreamedAtlasIndex:
+        selected_resources: set[bytes] = set()
+        selected_assertions: list[_RawCandidate] = []
+
+        assignment_candidates = self.source_assignments.sample(
+            _VISUAL_SOURCE_ASSIGNMENT_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER
+        )
+        for candidate in assignment_candidates:
+            if len(selected_assertions) >= _VISUAL_SOURCE_ASSIGNMENT_LIMIT:
+                break
+            endpoints = {cast(bytes, candidate.object_value)}
+            if len(selected_resources | endpoints) > _VISUAL_RELATION_RESOURCE_BUDGET:
+                continue
+            selected_resources.update(endpoints)
+            selected_assertions.append(candidate)
+
+        topic_count = 0
+        topic_candidates = self.topic_assertions.sample(
+            _VISUAL_TOPIC_ASSERTION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER
+        )
+        for candidate in topic_candidates:
+            if topic_count >= _VISUAL_TOPIC_ASSERTION_LIMIT:
+                break
+            endpoints = {cast(bytes, candidate.subject), cast(bytes, candidate.object_value)}
+            if len(selected_resources | endpoints) > _VISUAL_RELATION_RESOURCE_BUDGET:
+                continue
+            selected_resources.update(endpoints)
+            selected_assertions.append(candidate)
+            topic_count += 1
+
+        selected_assertion_ids = {candidate.record_id for candidate in selected_assertions}
+        selected_projected: list[_RawCandidate] = []
+        projection_candidates = self.projected_relations.sample(
+            _VISUAL_PROJECTED_RELATION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER
+        )
+        projection_candidates.sort(
+            key=lambda candidate: (
+                not bool(selected_assertion_ids.intersection(candidate.references)),
+                candidate.record_id,
+            )
+        )
+        for candidate in projection_candidates:
+            if len(selected_projected) >= _VISUAL_PROJECTED_RELATION_LIMIT:
+                break
+            endpoints = (
+                {cast(bytes, candidate.object_value)}
+                if candidate.predicate in _SOURCE_ASSIGNMENT_PREDICATE_TOKENS
+                else {cast(bytes, candidate.subject), cast(bytes, candidate.object_value)}
+            )
+            references = set(candidate.references)
+            if (
+                len(selected_resources | endpoints) > _VISUAL_RELATION_RESOURCE_BUDGET
+                or len(selected_assertion_ids | references) > _VISUAL_PROVENANCE_ASSERTION_LIMIT
+            ):
+                continue
+            selected_resources.update(endpoints)
+            selected_assertion_ids.update(references)
+            selected_projected.append(candidate)
+
+        selected_derived: list[_RawCandidate] = []
+        for candidate in self.derived_relations.sample(
+            _VISUAL_DERIVED_RELATION_LIMIT * _VISUAL_CANDIDATE_MULTIPLIER
+        ):
+            if len(selected_derived) >= _VISUAL_DERIVED_RELATION_LIMIT:
+                break
+            endpoints = {cast(bytes, candidate.subject), cast(bytes, candidate.object_value)}
+            references = set(candidate.references)
+            if (
+                len(selected_resources | endpoints) > _VISUAL_RELATION_RESOURCE_BUDGET
+                or len(selected_assertion_ids | references) > _VISUAL_PROVENANCE_ASSERTION_LIMIT
+            ):
+                continue
+            selected_resources.update(endpoints)
+            selected_assertion_ids.update(references)
+            selected_derived.append(candidate)
+
+        for candidate in self.resources.sample(_VISUAL_RESOURCE_LIMIT):
+            if len(selected_resources) == _VISUAL_RESOURCE_LIMIT:
+                break
+            selected_resources.add(candidate.record_id)
+
+        return _StreamedAtlasIndex(
+            byte_length=byte_length,
+            digest=digest,
+            graph_quad_counts={
+                role: graph_quad_counts.get(role, 0)
+                for role in ("asserted", "projection", "derived")
+            },
+            record_counts=dict(self.record_counts),
+            resources_by_ring=dict(self.resources_by_ring),
+            resources_by_release=dict(self.resources_by_release),
+            resources_by_release_ring=dict(self.resources_by_release_ring),
+            asserted_relations_by_ring=dict(self.asserted_relations_by_ring),
+            asserted_relations_by_kind=dict(self.asserted_relations_by_kind),
+            source_records_by_release=dict(self.source_records_by_release),
+            represented_source_records_by_release=dict(self.represented_source_records_by_release),
+            release_member_counts=dict(self.release_member_counts),
+            atlas_release_ids=tuple(sorted(self.atlas_release_ids)),
+            source_release_ids=tuple(sorted(self.source_release_ids)),
+            resource_ids=tuple(sorted(selected_resources)),
+            assertion_ids=tuple(sorted(selected_assertion_ids)),
+            projected_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_projected)),
+            derived_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_derived)),
+            current_authoritative_relations=self.current_authoritative_relations,
+            oversized_relations_skipped=self.oversized_relations_skipped,
+        )
+
+
+def _scan_dataset_member(
+    stream: BinaryIO,
+    graph_ids: Mapping[str, URIRef],
+) -> _StreamedAtlasIndex:
     digest = hashlib.sha256()
     byte_length = 0
     previous: bytes | None = None
     line_count = 0
+    graph_suffixes = {
+        role: b" " + _nquad_iri_token(graph_id) + b" .\n"
+        for role, graph_id in graph_ids.items()
+    }
+    graph_counts: Counter[str] = Counter()
+    builder = _StreamingIndexBuilder()
+    current_subject: bytes | None = None
+    types: set[bytes] = set()
+    values: dict[bytes, bytes] = {}
+    supporting_assertions: list[bytes] = []
+    supporting_assertion_count = 0
+    derived_from_assertions: list[bytes] = []
+    derived_from_assertion_count = 0
+    had_member_count = 0
+    represents_resource_count = 0
+
+    def finish_subject() -> None:
+        nonlocal current_subject
+        if current_subject is None:
+            return
+        builder.consume(
+            current_subject,
+            types,
+            values,
+            supporting_assertions,
+            supporting_assertion_count,
+            derived_from_assertions,
+            derived_from_assertion_count,
+            had_member_count,
+            represents_resource_count,
+        )
+
     while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
         line_count += 1
         if len(line) > _NQUADS_MAX_LINE_BYTES:
@@ -409,17 +945,77 @@ def _scan_dataset_member(stream: BinaryIO) -> tuple[int, str]:
         byte_length += len(line)
         if not line.endswith(b"\n") or b"\r" in line:
             raise Atlas3ExplorerError("Atlas 3.0 dataset must use canonical LF lines")
-        content = line[:-1]
-        if not content or content != content.strip() or (
-            previous is not None and line <= previous
+        if (
+            len(line) <= 1
+            or line[0] != ord("<")
+            or line[-2] != ord(".")
+            or (previous is not None and line <= previous)
         ):
             raise Atlas3ExplorerError(
-                "Atlas 3.0 dataset lines must be non-empty, unique, and sorted"
+                "Atlas 3.0 dataset lines must be non-empty, unique, sorted IRI-subject N-Quads"
             )
         previous = line
+
+        role = next((name for name, suffix in graph_suffixes.items() if line.endswith(suffix)), None)
+        if role is None:
+            raise Atlas3ExplorerError("Atlas 3.0 dataset uses an undeclared or malformed graph")
+        graph_counts[role] += 1
+
+        if current_subject is None or not (
+            line.startswith(current_subject) and line[len(current_subject) : len(current_subject) + 1] == b" "
+        ):
+            finish_subject()
+            subject_end = line.find(b"> ", 1)
+            if subject_end < 0:
+                raise Atlas3ExplorerError(f"Atlas 3.0 dataset line {line_count} has a malformed subject")
+            current_subject = line[: subject_end + 1]
+            types = set()
+            values = {}
+            supporting_assertions = []
+            supporting_assertion_count = 0
+            derived_from_assertions = []
+            derived_from_assertion_count = 0
+            had_member_count = 0
+            represents_resource_count = 0
+
+        predicate_start = len(cast(bytes, current_subject)) + 1
+        predicate_end = line.find(b"> ", predicate_start + 1)
+        graph_start = line.rfind(b" <") + 1
+        if (
+            predicate_end < predicate_start
+            or graph_start <= predicate_end + 2
+            or line[predicate_start : predicate_start + 1] != b"<"
+        ):
+            raise Atlas3ExplorerError(f"Atlas 3.0 dataset line {line_count} is malformed")
+        predicate = line[predicate_start : predicate_end + 1]
+        object_value = line[predicate_end + 2 : graph_start - 1]
+        if not object_value or object_value.startswith(b"_:"):
+            raise Atlas3ExplorerError("Atlas 3.0 dataset must not contain blank nodes")
+        if predicate == _RDF_TYPE_TOKEN:
+            types.add(object_value)
+        elif predicate in _FIRST_PASS_VALUE_PREDICATES:
+            values.setdefault(predicate, object_value)
+        elif predicate == _ATLAS_SUPPORTING_ASSERTION_TOKEN:
+            supporting_assertion_count += 1
+            if len(supporting_assertions) < _VISUAL_MAX_RELATION_REFERENCES:
+                supporting_assertions.append(object_value)
+        elif predicate == _ATLAS_DERIVED_FROM_ASSERTION_TOKEN:
+            derived_from_assertion_count += 1
+            if len(derived_from_assertions) < _VISUAL_MAX_RELATION_REFERENCES:
+                derived_from_assertions.append(object_value)
+        elif predicate == _PROV_HAD_MEMBER_TOKEN:
+            had_member_count += 1
+        elif predicate == _ATLAS_REPRESENTS_RESOURCE_TOKEN:
+            represents_resource_count += 1
+
+    finish_subject()
     if line_count == 0:
         raise Atlas3ExplorerError("Atlas 3.0 dataset must not be empty")
-    return byte_length, "sha256:" + digest.hexdigest()
+    return builder.finish(
+        byte_length=byte_length,
+        digest="sha256:" + digest.hexdigest(),
+        graph_quad_counts=graph_counts,
+    )
 
 
 def _file_identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
@@ -565,49 +1161,186 @@ def _verify_acceptance(
             raise Atlas3ExplorerError(f"Atlas 3.0 gate {raw['name']} evidenceDigest differs")
 
 
-def _verify_dataset(
+def _verify_streamed_dataset(
     manifest: Mapping[str, Any],
-    atlas_stream: BinaryIO,
-    graph_ids: Mapping[str, URIRef],
-) -> Dataset:
-    dataset = Dataset(default_union=False)
-    try:
-        atlas_stream.seek(0)
-        dataset.parse(source=atlas_stream, format="nquads")
-    except (ParserError, UnicodeDecodeError) as error:
-        raise Atlas3ExplorerError("Atlas 3.0 dataset is not valid N-Quads") from error
-    observed_graph_counts: Counter[str] = Counter()
-    allowed_graph_ids = set(graph_ids.values())
-    for subject, predicate, object_value, graph_id in dataset.quads((None, None, None, None)):
-        if graph_id not in allowed_graph_ids:
-            raise Atlas3ExplorerError(f"Atlas 3.0 dataset uses undeclared graph {graph_id}")
-        if any(isinstance(term, BNode) for term in (subject, predicate, object_value, graph_id)):
-            raise Atlas3ExplorerError("Atlas 3.0 dataset must not contain blank nodes")
-        observed_graph_counts[str(graph_id)] += 1
+    index: _StreamedAtlasIndex,
+) -> None:
     expected_graph_counts = {
-        str(row["id"]): row["quadCount"]
+        cast(str, row["role"]): cast(int, row["quadCount"])
         for row in cast(Sequence[Mapping[str, Any]], manifest["graphs"])
     }
-    if {graph_id: observed_graph_counts[graph_id] for graph_id in expected_graph_counts} != expected_graph_counts:
-        raise Atlas3ExplorerError("Atlas 3.0 graph quad counts differ from the manifest")
-
-    asserted = dataset.graph(graph_ids["asserted"])
-    projection = dataset.graph(graph_ids["projection"])
-    derived = dataset.graph(graph_ids["derived"])
-    observed_counts = {
-        "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
-        "resources": len(set(asserted.subjects(RDF.type, ATLAS.AtlasResource))),
-        "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
-        "sourceRecords": len(set(asserted.subjects(RDF.type, ATLAS.SourceRecord))),
-        "relationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.RelationAssertion))),
-        "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
-        "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
-        "sourceAssignments": len(set(asserted.subjects(RDF.type, ATLAS.SourceAssignment))),
-        "projectedRelations": len(set(projection.subjects(RDF.type, ATLAS.ProjectedRelation))),
-        "derivedRelations": len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))),
+    observed_graph_counts = {
+        role: index.graph_quad_counts.get(role, 0)
+        for role in expected_graph_counts
     }
-    if observed_counts != dict(cast(Mapping[str, Any], manifest["counts"])):
+    if observed_graph_counts != expected_graph_counts:
+        raise Atlas3ExplorerError("Atlas 3.0 graph quad counts differ from the manifest")
+    observed_record_counts = {
+        field: index.record_counts.get(field, 0)
+        for field in _COUNT_FIELDS
+    }
+    if observed_record_counts != dict(cast(Mapping[str, int], manifest["counts"])):
         raise Atlas3ExplorerError("Atlas 3.0 RDF record counts differ from the manifest")
+    if sum(index.resources_by_ring.values()) != manifest["counts"]["resources"]:
+        raise Atlas3ExplorerError("Atlas 3.0 resource ring counts do not reconcile")
+    if sum(index.resources_by_release.values()) != manifest["counts"]["resources"]:
+        raise Atlas3ExplorerError("Atlas 3.0 resource release counts do not reconcile")
+    if sum(index.asserted_relations_by_kind.values()) != manifest["counts"]["relationAssertions"]:
+        raise Atlas3ExplorerError("Atlas 3.0 asserted relation-kind counts do not reconcile")
+    if sum(index.source_records_by_release.values()) != manifest["counts"]["sourceRecords"]:
+        raise Atlas3ExplorerError("Atlas 3.0 source-record release counts do not reconcile")
+    if not set(index.source_records_by_release).issubset(index.source_release_ids):
+        raise Atlas3ExplorerError("Atlas 3.0 source records name an undeclared source release")
+
+
+def _parse_nquad_term(token: bytes, label: str) -> URIRef | Literal:
+    try:
+        value = from_n3(token.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as error:
+        raise Atlas3ExplorerError(f"sampled Atlas 3.0 {label} is malformed") from error
+    if not isinstance(value, (URIRef, Literal)):
+        raise Atlas3ExplorerError(f"sampled Atlas 3.0 {label} uses an unsupported RDF term")
+    return value
+
+
+def _nquad_fields(
+    line: bytes,
+    graph_suffixes: Mapping[str, bytes],
+) -> tuple[bytes, bytes, bytes, str]:
+    subject_end = line.find(b"> ", 1)
+    if subject_end < 0:
+        raise Atlas3ExplorerError("sampled Atlas 3.0 N-Quad has a malformed subject")
+    subject = line[: subject_end + 1]
+    predicate_start = subject_end + 2
+    predicate_end = line.find(b"> ", predicate_start + 1)
+    graph_start = line.rfind(b" <") + 1
+    if predicate_end < predicate_start or graph_start <= predicate_end + 2:
+        raise Atlas3ExplorerError("sampled Atlas 3.0 N-Quad is malformed")
+    role = next((name for name, suffix in graph_suffixes.items() if line.endswith(suffix)), None)
+    if role is None:
+        raise Atlas3ExplorerError("sampled Atlas 3.0 N-Quad uses an undeclared graph")
+    return (
+        subject,
+        line[predicate_start : predicate_end + 1],
+        line[predicate_end + 2 : graph_start - 1],
+        role,
+    )
+
+
+def _add_sample_quad(
+    dataset: Dataset,
+    graph_ids: Mapping[str, URIRef],
+    subject: bytes,
+    predicate: bytes,
+    object_value: bytes,
+    role: str,
+) -> None:
+    subject_term = _parse_nquad_term(subject, "subject")
+    predicate_term = _parse_nquad_term(predicate, "predicate")
+    object_term = _parse_nquad_term(object_value, "object")
+    if not isinstance(subject_term, URIRef) or not isinstance(predicate_term, URIRef):
+        raise Atlas3ExplorerError("sampled Atlas 3.0 subject and predicate must be IRIs")
+    dataset.graph(graph_ids[role]).add((subject_term, predicate_term, object_term))
+
+
+def _visual_index_is_complete(index: _StreamedAtlasIndex) -> bool:
+    return (
+        index.record_counts.get("resources", 0) <= _VISUAL_RELATION_RESOURCE_BUDGET
+        and index.record_counts.get("mappingAssertions", 0)
+        + index.record_counts.get("nativeRelationAssertions", 0)
+        <= _VISUAL_TOPIC_ASSERTION_LIMIT
+        and index.record_counts.get("sourceAssignments", 0) <= _VISUAL_SOURCE_ASSIGNMENT_LIMIT
+        and index.record_counts.get("projectedRelations", 0) <= _VISUAL_PROJECTED_RELATION_LIMIT
+        and index.record_counts.get("derivedRelations", 0) <= _VISUAL_DERIVED_RELATION_LIMIT
+    )
+
+
+def _materialize_visual_dataset(
+    stream: BinaryIO,
+    index: _StreamedAtlasIndex,
+    graph_ids: Mapping[str, URIRef],
+) -> Dataset:
+    """Read only selected records into RDFLib; never construct the full dataset."""
+
+    dataset = Dataset(default_union=False)
+    graph_suffixes = {
+        role: b" " + _nquad_iri_token(graph_id) + b" .\n"
+        for role, graph_id in graph_ids.items()
+    }
+    complete_small_distribution = _visual_index_is_complete(index)
+    assertion_ids = set(index.assertion_ids)
+    selected_subjects = {
+        *index.atlas_release_ids,
+        *index.source_release_ids,
+        *index.resource_ids,
+        *index.assertion_ids,
+        *index.projected_relation_ids,
+        *index.derived_relation_ids,
+    }
+    label_ids: set[bytes] = set()
+    evidence_ids: set[bytes] = set()
+    policy_ids: set[bytes] = set()
+    source_record_ids: set[bytes] = set()
+    stream.seek(0)
+    while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+        subject, predicate, object_value, role = _nquad_fields(line, graph_suffixes)
+        if predicate == _ATLAS_BINDS_ASSERTION_TOKEN and object_value in assertion_ids:
+            evidence_ids.add(subject)
+        include = (
+            complete_small_distribution
+            or subject in selected_subjects
+            or subject in label_ids
+            or subject in evidence_ids
+            or subject in policy_ids
+            or subject in source_record_ids
+        )
+        if not include or predicate == _PROV_HAD_MEMBER_TOKEN:
+            continue
+        _add_sample_quad(dataset, graph_ids, subject, predicate, object_value, role)
+        if predicate in _LABEL_PREDICATE_TOKENS:
+            label_ids.add(object_value)
+        elif predicate == _ATLAS_GOVERNED_BY_POLICY_TOKEN:
+            policy_ids.add(object_value)
+        elif predicate in {_ATLAS_SOURCE_RECORD_TOKEN, _ATLAS_EVIDENCE_SOURCE_RECORD_TOKEN}:
+            source_record_ids.add(object_value)
+
+    processed_dependencies: set[bytes] = set()
+    for _pass in range(3):
+        dependency_ids = label_ids | evidence_ids | policy_ids | source_record_ids
+        pending_ids = dependency_ids - processed_dependencies
+        if not pending_ids:
+            break
+        last_pending_id = max(pending_ids)
+        seen_ids: set[bytes] = set()
+        stream.seek(0)
+        while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+            subject, predicate, object_value, role = _nquad_fields(line, graph_suffixes)
+            if subject > last_pending_id:
+                break
+            if subject not in pending_ids:
+                continue
+            seen_ids.add(subject)
+            _add_sample_quad(dataset, graph_ids, subject, predicate, object_value, role)
+            if predicate in _LABEL_PREDICATE_TOKENS:
+                label_ids.add(object_value)
+            elif predicate == _ATLAS_GOVERNED_BY_POLICY_TOKEN:
+                policy_ids.add(object_value)
+            elif predicate in {_ATLAS_SOURCE_RECORD_TOKEN, _ATLAS_EVIDENCE_SOURCE_RECORD_TOKEN}:
+                source_record_ids.add(object_value)
+        missing_ids = pending_ids - seen_ids
+        if missing_ids:
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 visual sample has {len(missing_ids)} unresolved dependency records"
+            )
+        processed_dependencies.update(seen_ids)
+    unresolved_dependencies = (
+        label_ids | evidence_ids | policy_ids | source_record_ids
+    ) - processed_dependencies
+    if unresolved_dependencies:
+        raise Atlas3ExplorerError(
+            f"Atlas 3.0 visual sample dependency closure exceeds three streaming passes: "
+            f"{len(unresolved_dependencies)} records remain"
+        )
     return dataset
 
 
@@ -693,9 +1426,147 @@ def _verify_source_accounting(
         raise Atlas3ExplorerError("Atlas 3.0 source-accounting totals do not reconcile")
 
 
+def _source_accounting_summary(
+    manifest: Mapping[str, Any],
+    index: _StreamedAtlasIndex,
+    accounting: Mapping[str, Any] | None,
+    *,
+    directly_verified: bool,
+) -> dict[str, Any]:
+    if accounting is None:
+        inputs = [
+            {
+                "sourceRelease": _raw_iri_text(release, "source release"),
+                "sourceRecords": count,
+                "represented": index.represented_source_records_by_release.get(release, 0),
+                "unrepresented": count - index.represented_source_records_by_release.get(release, 0),
+            }
+            for release in sorted(index.source_release_ids)
+            for count in (index.source_records_by_release.get(release, 0),)
+        ]
+        return {
+            "type": "AtlasSourceAccountingSummary",
+            "version": "3.0",
+            "distributionId": manifest["distributionId"],
+            "verification": "sealedAcceptanceReceiptAndStreamedRdfCounts",
+            "inputs": inputs,
+            "totals": {
+                "sourceReleases": len(index.source_release_ids),
+                "sourceRecords": sum(index.source_records_by_release.values()),
+                "represented": sum(index.represented_source_records_by_release.values()),
+                "unrepresented": (
+                    sum(index.source_records_by_release.values())
+                    - sum(index.represented_source_records_by_release.values())
+                ),
+            },
+        }
+
+    input_summaries: list[dict[str, Any]] = []
+    for raw_source in _sequence(accounting.get("inputs"), "Atlas 3.0 source accounting inputs"):
+        source = _mapping(raw_source, "Atlas 3.0 source accounting input")
+        status_counts: Counter[str] = Counter()
+        represented_resources = 0
+        dispositions = _sequence(source.get("dispositions"), "Atlas 3.0 source dispositions")
+        for raw_disposition in dispositions:
+            disposition = _mapping(raw_disposition, "Atlas 3.0 source disposition")
+            status_counts[_text(disposition.get("status"), "Atlas 3.0 source status")] += 1
+            represented_resources += len(
+                _sequence(disposition.get("atlasResources"), "Atlas 3.0 disposition resources")
+            )
+        input_summaries.append(
+            {
+                "sourceRelease": _text(source.get("sourceRelease"), "Atlas 3.0 source release"),
+                "membershipMode": source.get("membershipMode"),
+                "declaredMemberCount": source.get("declaredMemberCount"),
+                "sourceRecords": len(dispositions),
+                "representedResources": represented_resources,
+                "statusCounts": dict(sorted(status_counts.items())),
+            }
+        )
+    return {
+        "type": "AtlasSourceAccountingSummary",
+        "version": "3.0",
+        "distributionId": manifest["distributionId"],
+        "verification": (
+            "directForCompleteVisualIndex"
+            if directly_verified
+            else "canonicalAccountingAndSealedAcceptanceReceipt"
+        ),
+        "inputs": input_summaries,
+        "totals": dict(_mapping(accounting.get("totals"), "Atlas 3.0 source totals")),
+    }
+
+
+def _coverage_view(index: _StreamedAtlasIndex) -> dict[str, Any]:
+    def iri(token: bytes, label: str) -> str:
+        return _raw_iri_text(token, label)
+
+    return {
+        "resourcesByRing": {
+            _iri_name(iri(ring, "resource ring")): count
+            for ring, count in sorted(index.resources_by_ring.items())
+        },
+        "resourcesByRelease": [
+            {
+                "release": iri(release, "Atlas release"),
+                "count": index.resources_by_release.get(release, 0),
+            }
+            for release in sorted(index.atlas_release_ids)
+        ],
+        "resourcesByReleaseAndRing": [
+            {
+                "release": iri(release, "Atlas release"),
+                "ring": _iri_name(iri(ring, "resource ring")),
+                "count": count,
+            }
+            for (release, ring), count in sorted(index.resources_by_release_ring.items())
+        ],
+        "assertedRelationsByRing": {
+            _iri_name(iri(ring, "assertion ring")): count
+            for ring, count in sorted(index.asserted_relations_by_ring.items())
+        },
+        "assertedRelationsByKind": dict(sorted(index.asserted_relations_by_kind.items())),
+        "sourceRecordsByRelease": [
+            {
+                "sourceRelease": iri(release, "source release"),
+                "sourceRecords": count,
+                "represented": index.represented_source_records_by_release.get(release, 0),
+                "unrepresented": count - index.represented_source_records_by_release.get(release, 0),
+            }
+            for release in sorted(index.source_release_ids)
+            for count in (index.source_records_by_release.get(release, 0),)
+        ],
+    }
+
+
+def _scan_binary_member(path: Path) -> tuple[int, str]:
+    digest = hashlib.sha256()
+    byte_length = 0
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+            byte_length += len(chunk)
+    return byte_length, "sha256:" + digest.hexdigest()
+
+
+def _provisional_graph_ids(manifest: Mapping[str, Any]) -> dict[str, URIRef]:
+    rows = _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")
+    if len(rows) != 3:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest must declare exactly three graph roles")
+    result: dict[str, URIRef] = {}
+    for expected_role, raw_row in zip(("asserted", "projection", "derived"), rows, strict=True):
+        row = _mapping(raw_row, f"Atlas 3.0 {expected_role} graph")
+        if row.get("role") != expected_role:
+            raise Atlas3ExplorerError("Atlas 3.0 manifest graph roles are out of order")
+        result[expected_role] = URIRef(_text(row.get("id"), f"Atlas 3.0 {expected_role} graph id"))
+    if len(set(result.values())) != 3:
+        raise Atlas3ExplorerError("Atlas 3.0 graph role IRIs must be distinct")
+    return result
+
+
 @dataclass(frozen=True, slots=True)
 class Atlas3ExplorerDistribution:
-    """A verified, read-only view of one sealed Atlas 3.0 distribution."""
+    """A verified distribution with an exact summary and bounded visual graph."""
 
     root: Path
     manifest_digest: str
@@ -704,8 +1575,11 @@ class Atlas3ExplorerDistribution:
     acceptance: Mapping[str, Any]
     trusted_manifest: bool
     binding_verified: bool
+    coverage: Mapping[str, Any]
+    visual_index: Mapping[str, Any]
     _dataset: Dataset
     _graph_ids: Mapping[str, URIRef]
+    _streamed_index: _StreamedAtlasIndex
 
     @classmethod
     def open(
@@ -714,7 +1588,7 @@ class Atlas3ExplorerDistribution:
         *,
         trusted_manifest_digest: str,
     ) -> Atlas3ExplorerDistribution:
-        """Open four exact files, verify their pins, and retain graph roles."""
+        """Verify four exact files and materialize a bounded visual index."""
 
         requested_root = Path(root)
         try:
@@ -738,18 +1612,29 @@ class Atlas3ExplorerDistribution:
                 raise Atlas3ExplorerError(f"Atlas 3.0 member {name} must be a regular non-symlink file")
             member_statuses[name] = file_status
 
-        json_payloads = {
-            name: children[name].read_bytes()
-            for name in (
-                "atlas-manifest.json",
-                "atlas-source-accounting.json",
-                "atlas-acceptance.json",
-            )
-        }
+        manifest_payload = children["atlas-manifest.json"].read_bytes()
+        acceptance_payload = children["atlas-acceptance.json"].read_bytes()
+        if sha256_digest(manifest_payload) != _digest(
+            trusted_manifest_digest,
+            "trusted Atlas 3.0 manifest digest",
+        ):
+            raise Atlas3ExplorerError("Atlas 3.0 manifest differs from the trusted digest")
+        manifest = _read_canonical_json(manifest_payload, "Atlas 3.0 manifest")
+        acceptance = _read_canonical_json(acceptance_payload, "Atlas 3.0 acceptance")
+        graph_ids = _provisional_graph_ids(manifest)
+
+        accounting_path = children["atlas-source-accounting.json"]
+        accounting_payload: bytes | None = None
+        source_accounting: Mapping[str, Any] | None = None
+        if member_statuses["atlas-source-accounting.json"].st_size <= _SOURCE_ACCOUNTING_INLINE_MAX_BYTES:
+            accounting_payload = accounting_path.read_bytes()
+            accounting_evidence = (len(accounting_payload), sha256_digest(accounting_payload))
+            source_accounting = _read_canonical_json(accounting_payload, "Atlas 3.0 source accounting")
+        else:
+            accounting_evidence = _scan_binary_member(accounting_path)
         member_evidence = {
-            name: (len(payload), sha256_digest(payload))
-            for name, payload in json_payloads.items()
-            if name != "atlas-manifest.json"
+            "atlas-source-accounting.json": accounting_evidence,
+            "atlas-acceptance.json": (len(acceptance_payload), sha256_digest(acceptance_payload)),
         }
         atlas_path = children["atlas.nq"]
         with atlas_path.open("rb") as atlas_stream:
@@ -764,19 +1649,10 @@ class Atlas3ExplorerDistribution:
             ):
                 raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being opened")
             opened_identity = _file_identity(opened_status)
-            member_evidence["atlas.nq"] = _scan_dataset_member(atlas_stream)
+            streamed_index = _scan_dataset_member(atlas_stream, graph_ids)
+            member_evidence["atlas.nq"] = (streamed_index.byte_length, streamed_index.digest)
 
-            manifest_payload = json_payloads["atlas-manifest.json"]
-            manifest = _read_canonical_json(manifest_payload, "Atlas 3.0 manifest")
-            source_accounting = _read_canonical_json(
-                json_payloads["atlas-source-accounting.json"],
-                "Atlas 3.0 source accounting",
-            )
-            acceptance = _read_canonical_json(
-                json_payloads["atlas-acceptance.json"],
-                "Atlas 3.0 acceptance",
-            )
-            manifest_digest, graph_ids = _verify_manifest(
+            manifest_digest, verified_graph_ids = _verify_manifest(
                 manifest,
                 manifest_payload,
                 member_evidence,
@@ -788,7 +1664,10 @@ class Atlas3ExplorerDistribution:
                 {name: digest for name, (_size, digest) in member_evidence.items()},
             )
             _verify_binding_evidence(manifest, acceptance)
-            dataset = _verify_dataset(manifest, atlas_stream, graph_ids)
+            if verified_graph_ids != graph_ids:
+                raise Atlas3ExplorerError("Atlas 3.0 graph roles changed during verification")
+            _verify_streamed_dataset(manifest, streamed_index)
+            dataset = _materialize_visual_dataset(atlas_stream, streamed_index, graph_ids)
             try:
                 current_path_status = atlas_path.lstat()
                 final_status = os.fstat(atlas_stream.fileno())
@@ -800,30 +1679,71 @@ class Atlas3ExplorerDistribution:
                 or _file_identity(current_path_status) != opened_identity
             ):
                 raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being read")
-            _verify_source_accounting(
-                manifest,
-                source_accounting,
-                dataset.graph(graph_ids["asserted"]),
-            )
+            complete_small_distribution = _visual_index_is_complete(streamed_index)
+            if source_accounting is not None and complete_small_distribution:
+                _verify_source_accounting(
+                    manifest,
+                    source_accounting,
+                    dataset.graph(graph_ids["asserted"]),
+                )
+        accounting_summary = _source_accounting_summary(
+            manifest,
+            streamed_index,
+            source_accounting,
+            directly_verified=source_accounting is not None and complete_small_distribution,
+        )
+        coverage = _coverage_view(streamed_index)
+        visual_index = {
+            "algorithm": "sha256-lowest-stratified-relation-coherent-v1",
+            "complete": _visual_index_is_complete(streamed_index),
+            "limits": {
+                "resources": _VISUAL_RESOURCE_LIMIT,
+                "topicAssertions": _VISUAL_TOPIC_ASSERTION_LIMIT,
+                "sourceAssignments": _VISUAL_SOURCE_ASSIGNMENT_LIMIT,
+                "projectedRelations": _VISUAL_PROJECTED_RELATION_LIMIT,
+                "derivedRelations": _VISUAL_DERIVED_RELATION_LIMIT,
+                "provenanceAssertions": _VISUAL_PROVENANCE_ASSERTION_LIMIT,
+            },
+            "materialized": {
+                "resources": len(streamed_index.resource_ids),
+                "assertedRelations": len(streamed_index.assertion_ids),
+                "projectedRelations": len(streamed_index.projected_relation_ids),
+                "derivedRelations": len(streamed_index.derived_relation_ids),
+            },
+            "oversizedRelationsSkipped": streamed_index.oversized_relations_skipped,
+            "fullDatasetRdfLibParsed": False,
+            "sourceRecordPayloadMode": (
+                "complete" if _visual_index_is_complete(streamed_index) else "metadataOnly"
+            ),
+        }
         return cls(
             root=resolved_root,
             manifest_digest=manifest_digest,
             manifest=cast(Mapping[str, Any], deep_freeze_json(manifest)),
-            source_accounting=cast(Mapping[str, Any], deep_freeze_json(source_accounting)),
+            source_accounting=cast(Mapping[str, Any], deep_freeze_json(accounting_summary)),
             acceptance=cast(Mapping[str, Any], deep_freeze_json(acceptance)),
             trusted_manifest=True,
             binding_verified=True,
+            coverage=cast(Mapping[str, Any], deep_freeze_json(coverage)),
+            visual_index=cast(Mapping[str, Any], deep_freeze_json(visual_index)),
             _dataset=dataset,
             _graph_ids=cast(Mapping[str, URIRef], deep_freeze_json(graph_ids)),
+            _streamed_index=streamed_index,
         )
 
     def graph(self, role: str) -> Graph:
-        """Return exactly one manifest-assigned graph role."""
+        """Return the bounded visual materialization for one graph role."""
 
         graph_id = self._graph_ids.get(role)
         if graph_id is None:
             raise Atlas3ExplorerError(f"unknown Atlas 3.0 graph role {role!r}")
         return self._dataset.graph(graph_id)
+
+    @property
+    def dataset_quad_counts(self) -> Mapping[str, int]:
+        """Return exact full-distribution quad counts by graph role."""
+
+        return self._streamed_index.graph_quad_counts
 
     @property
     def asserted_graph(self) -> Graph:
@@ -848,25 +1768,66 @@ def open_atlas_v3_explorer_distribution(
     return Atlas3ExplorerDistribution.open(root, trusted_manifest_digest=trusted_manifest_digest)
 
 
-def _source_record_view(graph: Graph, record: URIRef) -> dict[str, Any]:
-    return {
+def _compact_native_payload_metadata(value: object | None) -> object | None:
+    if not isinstance(value, Mapping):
+        return value
+    selected: dict[str, Any] = {}
+    for key in sorted(value):
+        normalized = key.casefold()
+        if not (
+            key == "sourceIdentity"
+            or "status" in normalized
+            or "tombstone" in normalized
+            or "replacement" in normalized
+            or normalized in {"deprecated", "deleted", "active"}
+        ):
+            continue
+        child = value[key]
+        encoded = json.dumps(child, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        if len(encoded.encode()) <= 2_048:
+            selected[key] = child
+        else:
+            selected[key] = {
+                "omittedFromVisualIndex": True,
+                "itemCount": len(child) if isinstance(child, (Mapping, Sequence)) else 1,
+            }
+        if len(selected) == 32:
+            break
+    return selected
+
+
+def _source_record_view(
+    graph: Graph,
+    record: URIRef,
+    *,
+    compact_native_payload: bool = False,
+) -> dict[str, Any]:
+    native_payload = _json_literal(
+        _one(graph, record, ATLAS.nativePayload, label=f"source record {record}"),
+        f"source record {record} nativePayload",
+    )
+    result = {
         "id": str(record),
         "sourceRelease": str(_one(graph, record, ATLAS.inSourceRelease, label=f"source record {record}")),
         "sourceLocator": str(_one(graph, record, ATLAS.sourceLocator, label=f"source record {record}")),
         "sourceDigest": str(_one(graph, record, ATLAS.sourceDigest, label=f"source record {record}")),
         "contentDigest": str(_one(graph, record, ATLAS.contentDigest, label=f"source record {record}")),
-        "nativePayload": _json_literal(
-            _one(graph, record, ATLAS.nativePayload, label=f"source record {record}"),
-            f"source record {record} nativePayload",
+        "nativePayload": (
+            _compact_native_payload_metadata(native_payload)
+            if compact_native_payload
+            else native_payload
         ),
         "representsResources": sorted(str(value) for value in graph.objects(record, ATLAS.representsResource)),
     }
+    if compact_native_payload:
+        result["nativePayloadMetadataOnly"] = True
+    return result
 
 
 def _label_view(graph: Graph, label: URIRef, role: str) -> dict[str, Any]:
     literal = _one(graph, label, SKOSXL.literalForm, label=f"label {label}")
-    if not isinstance(literal, Literal):
-        raise Atlas3ExplorerError(f"label {label} literalForm must be a literal")
+    if not isinstance(literal, Literal) or not _english_display_literal(literal):
+        raise Atlas3ExplorerError(f"label {label} literalForm must be English or language-neutral")
     return {
         "id": str(label),
         "role": role,
@@ -885,6 +1846,8 @@ def _resource_display_label(graph: Graph, resource: URIRef) -> str:
             literal = _one(graph, label, SKOSXL.literalForm, label=f"label {label}")
             if not isinstance(literal, Literal):
                 raise Atlas3ExplorerError(f"label {label} literalForm must be a literal")
+            if not _english_display_literal(literal):
+                continue
             literal_view = _literal_view(literal)
             value = literal_view["value"]
             candidates.append(
@@ -904,11 +1867,12 @@ def _resource_display_label(graph: Graph, resource: URIRef) -> str:
 def _resource_view(graph: Graph, resource: URIRef) -> dict[str, Any]:
     labels: list[dict[str, Any]] = []
     for predicate, role in LABEL_ROLES:
-        labels.extend(
-            _label_view(graph, value, role)
-            for value in graph.objects(resource, predicate)
-            if isinstance(value, URIRef)
-        )
+        for value in graph.objects(resource, predicate):
+            if not isinstance(value, URIRef):
+                continue
+            literal = _one(graph, value, SKOSXL.literalForm, label=f"label {value}")
+            if isinstance(literal, Literal) and _english_display_literal(literal):
+                labels.append(_label_view(graph, value, role))
     role_order = {role: position for position, (_predicate, role) in enumerate(LABEL_ROLES)}
     labels.sort(
         key=lambda row: (
@@ -940,12 +1904,12 @@ def _resource_view(graph: Graph, resource: URIRef) -> dict[str, Any]:
         "definitions": [
             _literal_view(value)
             for value in graph.objects(resource, ATLAS.definition)
-            if isinstance(value, Literal)
+            if isinstance(value, Literal) and _english_display_literal(value)
         ],
         "notes": [
             _literal_view(value)
             for value in graph.objects(resource, ATLAS.note)
-            if isinstance(value, Literal)
+            if isinstance(value, Literal) and _english_display_literal(value)
         ],
     }
 
@@ -1116,7 +2080,13 @@ def _derived_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> 
     }
 
 
-def _release_view(graph: Graph, release: URIRef, *, source: bool) -> dict[str, Any]:
+def _release_view(
+    graph: Graph,
+    release: URIRef,
+    *,
+    source: bool,
+    member_count: int | None = None,
+) -> dict[str, Any]:
     result: dict[str, Any] = {
         "id": str(release),
         "kind": "source" if source else "atlas",
@@ -1138,7 +2108,11 @@ def _release_view(graph: Graph, release: URIRef, *, source: bool) -> dict[str, A
         if value is not None:
             result[field] = _iri_name(value) if short_iri else str(value)
     if not source:
-        result["memberCount"] = len(set(graph.objects(release, PROV.hadMember)))
+        result["memberCount"] = (
+            member_count
+            if member_count is not None
+            else len(set(graph.objects(release, PROV.hadMember)))
+        )
     return result
 
 
@@ -1174,6 +2148,11 @@ def build_atlas_v3_explorer_model(
     asserted = distribution.asserted_graph
     projection = distribution.projection_graph
     derived = distribution.derived_graph
+    full_counts = cast(Mapping[str, int], distribution.manifest["counts"])
+    release_member_counts = {
+        _raw_iri_text(release, "Atlas release"): count
+        for release, count in distribution._streamed_index.release_member_counts.items()
+    }
 
     source_record_ids = sorted(
         (
@@ -1284,18 +2263,7 @@ def build_atlas_v3_explorer_model(
         )
         for assertion in shown_assertion_ids
     ]
-    current_authoritative_relations = sum(
-        _iri_name(
-            _one(
-                asserted,
-                assertion,
-                ATLAS.assertionStatus,
-                label=f"assertion {assertion}",
-            )
-        )
-        == "current"
-        for assertion in assertion_ids
-    )
+    current_authoritative_relations = distribution._streamed_index.current_authoritative_relations
     shown_source_record_ids = {
         cast(str, record)
         for resource in resources
@@ -1306,7 +2274,11 @@ def build_atlas_v3_explorer_model(
         for evidence in cast(Sequence[Mapping[str, Any]], assertion["evidence"])
     }
     shown_source_records = [
-        _source_record_view(asserted, source_record_by_id[record_id])
+        _source_record_view(
+            asserted,
+            source_record_by_id[record_id],
+            compact_native_payload=not cast(bool, distribution.visual_index["complete"]),
+        )
         for record_id in sorted(shown_source_record_ids)
     ]
     graph_by_role = {
@@ -1324,6 +2296,9 @@ def build_atlas_v3_explorer_model(
             "createdAt": distribution.manifest["createdAt"],
             "counts": dict(cast(Mapping[str, Any], distribution.manifest["counts"])),
         },
+        "visualIndex": _json_copy(distribution.visual_index),
+        "coverage": _json_copy(distribution.coverage),
+        "sourceAccounting": _json_copy(distribution.source_accounting),
         "acceptance": {
             "verdict": distribution.acceptance["verdict"],
             "receiptVerified": True,
@@ -1359,33 +2334,42 @@ def build_atlas_v3_explorer_model(
             },
         },
         "summary": {
-            "availableResources": len(resource_ids),
+            "availableResources": full_counts["resources"],
             "indexedResources": len(resource_index),
             "shownResources": len(resources),
-            "availableSourceRecords": len(source_record_ids),
+            "availableSourceRecords": full_counts["sourceRecords"],
+            "indexedSourceRecords": len(source_record_ids),
             "shownSourceRecords": len(shown_source_records),
-            "availableAssertedRelations": len(assertion_ids),
+            "availableAssertedRelations": full_counts["relationAssertions"],
+            "indexedAssertedRelations": len(assertion_ids),
             "shownAssertedRelations": len(assertions),
             "provenanceClosureAssertedRelations": (
                 len(assertions) - len(primary_assertion_ids)
             ),
             "currentAuthoritativeRelations": current_authoritative_relations,
-            "availableProjectedRelations": len(projected_ids),
+            "availableProjectedRelations": full_counts["projectedRelations"],
+            "indexedProjectedRelations": len(projected_ids),
             "shownProjectedRelations": len(projected),
-            "availableDerivedRelations": len(derived_ids),
+            "availableDerivedRelations": full_counts["derivedRelations"],
+            "indexedDerivedRelations": len(derived_ids),
             "shownDerivedRelations": len(derived_rows),
             "truncated": any(
                 (
-                    len(resources) < len(resource_ids),
-                    len(assertions) < len(assertion_ids),
-                    len(projected) < len(projected_ids),
-                    len(derived_rows) < len(derived_ids),
+                    len(resources) < full_counts["resources"],
+                    len(assertions) < full_counts["relationAssertions"],
+                    len(projected) < full_counts["projectedRelations"],
+                    len(derived_rows) < full_counts["derivedRelations"],
                 )
             ),
         },
         "atlasReleases": sorted(
             (
-                _release_view(asserted, release, source=False)
+                _release_view(
+                    asserted,
+                    release,
+                    source=False,
+                    member_count=release_member_counts.get(str(release)),
+                )
                 for release in set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
                 if isinstance(release, URIRef)
             ),
@@ -1444,8 +2428,65 @@ def _validate_model(model: Mapping[str, Any]) -> None:
     if len(resource_index_ids) != len(set(resource_index_ids)):
         raise Atlas3ExplorerError("Atlas 3.0 resource index repeats an id")
     summary = _mapping(model.get("summary"), "Atlas 3.0 explorer summary")
-    if summary.get("availableResources") != len(resource_index_ids):
-        raise Atlas3ExplorerError("Atlas 3.0 resource index is incomplete")
+    if summary.get("indexedResources") != len(resource_index_ids):
+        raise Atlas3ExplorerError("Atlas 3.0 resource index count differs")
+    available_resources = _count(
+        summary.get("availableResources"),
+        "Atlas 3.0 explorer availableResources",
+    )
+    if available_resources < len(resource_index_ids):
+        raise Atlas3ExplorerError("Atlas 3.0 resource index exceeds the sealed resource count")
+    coverage = _mapping(model.get("coverage"), "Atlas 3.0 explorer coverage")
+    resources_by_ring = _mapping(
+        coverage.get("resourcesByRing"),
+        "Atlas 3.0 explorer resourcesByRing",
+    )
+    if sum(
+        _count(value, f"Atlas 3.0 explorer resourcesByRing.{ring}")
+        for ring, value in resources_by_ring.items()
+    ) != available_resources:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer resource ring counts do not reconcile")
+    release_resource_total = sum(
+        _count(
+            _mapping(row, "Atlas 3.0 explorer release coverage").get("count"),
+            "Atlas 3.0 explorer release resource count",
+        )
+        for row in _sequence(
+            coverage.get("resourcesByRelease"),
+            "Atlas 3.0 explorer resourcesByRelease",
+        )
+    )
+    if release_resource_total != available_resources:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer resource release counts do not reconcile")
+    available_assertions = _count(
+        summary.get("availableAssertedRelations"),
+        "Atlas 3.0 explorer availableAssertedRelations",
+    )
+    asserted_relations_by_ring = _mapping(
+        coverage.get("assertedRelationsByRing"),
+        "Atlas 3.0 explorer assertedRelationsByRing",
+    )
+    if sum(
+        _count(value, f"Atlas 3.0 explorer assertedRelationsByRing.{ring}")
+        for ring, value in asserted_relations_by_ring.items()
+    ) != available_assertions:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer assertion ring counts do not reconcile")
+    available_source_records = _count(
+        summary.get("availableSourceRecords"),
+        "Atlas 3.0 explorer availableSourceRecords",
+    )
+    source_record_total = sum(
+        _count(
+            _mapping(row, "Atlas 3.0 explorer source coverage").get("sourceRecords"),
+            "Atlas 3.0 explorer source-record count",
+        )
+        for row in _sequence(
+            coverage.get("sourceRecordsByRelease"),
+            "Atlas 3.0 explorer sourceRecordsByRelease",
+        )
+    )
+    if source_record_total != available_source_records:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer source release counts do not reconcile")
     detailed_resource_ids = {
         _text(_mapping(row, "Atlas 3.0 resource").get("id"), "resource id")
         for row in model["resources"]
@@ -1632,6 +2673,7 @@ _GRAPH_HTML = r"""<!doctype html>
       <section class="control-section">
         <h3>Search</h3><div class="search-wrap"><input id="search" type="search" autocomplete="off" placeholder="English label, notation, or IRI" aria-label="Search Atlas resources"><span class="key">/</span></div>
         <div class="results" id="search-results" aria-live="polite"></div>
+        <p class="hint" id="search-coverage"></p>
       </section>
       <section class="control-section"><h3>Authority layers</h3><div class="filter-list">
         <label class="filter authority-filter"><input id="authority-asserted" type="checkbox" checked><span class="edge-key" style="--edge:var(--asserted)"></span><span class="label">Asserted</span></label>
@@ -1692,8 +2734,9 @@ _GRAPH_HTML = r"""<!doctype html>
   data.derivedRelations.forEach(row=>allEdges.push(edgeFrom(row,"derived")));
   const nodes=[...nodeById.values()];
   const ringLabels={subject:"Subject",entity:"Entity",value:"Value",legalIdentity:"Legal identity"};
-  const rings=[...new Set(nodes.flatMap(node=>[...node.rings]))].sort((a,b)=>(ringLabels[a]||a).localeCompare(ringLabels[b]||b,"en"));
-  rings.forEach(value=>{const option=document.createElement("option");option.value=value;option.textContent=ringLabels[value]||value;ringFilter.append(option);});
+  const ringCounts=data.coverage.resourcesByRing||{};
+  const rings=[...new Set([...Object.keys(ringCounts),...nodes.flatMap(node=>[...node.rings])])].sort((a,b)=>(ringLabels[a]||a).localeCompare(ringLabels[b]||b,"en"));
+  rings.forEach(value=>{const option=document.createElement("option");option.value=value;option.textContent=`${ringLabels[value]||value} · ${format(ringCounts[value]||0)}`;ringFilter.append(option);});
   const predicates=[...new Map(allEdges.map(edge=>[edge.predicate,edge.predicateLabel])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"en"));
   predicates.forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;predicateFilter.append(option);});
   const maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);state.renderLimit=Math.min(900,maxLimit);
@@ -1820,7 +2863,7 @@ _GRAPH_HTML = r"""<!doctype html>
   function setLimit(value){state.renderLimit=Math.max(1,Math.min(maxLimit,Number(value)||1));range.value=number.value=String(state.renderLimit);refresh(true);}range.addEventListener("input",event=>setLimit(event.currentTarget.value));number.addEventListener("change",event=>setLimit(event.currentTarget.value));
   function reset(){state.activeReleases=new Set(releaseById.keys());state.layers={asserted:true,projection:false,derived:true};state.showAssignments=false;state.ring="";state.predicate="";state.selected=null;state.inspectorReturn=null;state.query="";state.matches.clear();search.value="";ringFilter.value="";predicateFilter.value="";document.getElementById("authority-asserted").checked=true;document.getElementById("authority-projection").checked=false;document.getElementById("authority-derived").checked=true;document.getElementById("show-source-assignments").checked=false;document.querySelectorAll("[data-release]").forEach(input=>{input.checked=true;});refresh(true);}
   document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
-  document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
+  document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("search-coverage").textContent=`English search covers ${format(data.summary.indexedResources)} deterministic visual-index resources out of ${format(data.summary.availableResources)} sealed resources.`;document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
   renderReleaseFilters();refresh(false);resize();
 })();
 </script>

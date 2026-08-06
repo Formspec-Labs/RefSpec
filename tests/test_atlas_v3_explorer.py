@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from rdflib import Dataset
+from rdflib import Dataset, URIRef
 
 import refspec.atlas.explorer as explorer_module
 from refspec.atlas.explorer import (
@@ -85,9 +85,13 @@ def test_opens_four_file_distribution_and_checks_trusted_manifest() -> None:
 
     assert distribution.trusted_manifest
     assert distribution.manifest_digest == trusted_digest
-    assert len(distribution.asserted_graph) == distribution.manifest["graphs"][0]["quadCount"]
-    assert len(distribution.projection_graph) == distribution.manifest["graphs"][1]["quadCount"]
-    assert len(distribution.derived_graph) == distribution.manifest["graphs"][2]["quadCount"]
+    assert distribution.dataset_quad_counts == {
+        row["role"]: row["quadCount"] for row in distribution.manifest["graphs"]
+    }
+    assert len(distribution.asserted_graph) <= distribution.dataset_quad_counts["asserted"]
+    assert len(distribution.projection_graph) <= distribution.dataset_quad_counts["projection"]
+    assert len(distribution.derived_graph) <= distribution.dataset_quad_counts["derived"]
+    assert distribution.visual_index["fullDatasetRdfLibParsed"] is False
     with pytest.raises(Atlas3ExplorerError, match="unknown Atlas 3.0 graph role"):
         distribution.graph("union")
 
@@ -104,9 +108,18 @@ def test_model_preserves_authority_provenance_and_alternate_only_labels() -> Non
     assert model["acceptance"]["bindingDigestChecked"] is True
     assert model["acceptance"]["gatesReexecutedByExplorer"] is False
     assert len(model["resourceIndex"]) == model["summary"]["availableResources"]
+    assert model["visualIndex"]["complete"] is True
+    assert sum(model["coverage"]["resourcesByRing"].values()) == model["summary"]["availableResources"]
+    assert sum(row["count"] for row in model["coverage"]["resourcesByRelease"]) == model["summary"]["availableResources"]
+    assert sum(row["sourceRecords"] for row in model["coverage"]["sourceRecordsByRelease"]) == model["summary"]["availableSourceRecords"]
     assert {row["id"] for row in model["resources"]} <= {
         row["id"] for row in model["resourceIndex"]
     }
+    assert {
+        label.get("language")
+        for resource in model["resources"]
+        for label in resource["labels"]
+    } <= {None, "en"}
 
     alternate_only = next(row for row in model["resources"] if row["id"].endswith("subject-a-child"))
     assert alternate_only["displayLabel"] == "Agency procedure"
@@ -188,7 +201,7 @@ def test_renderer_rejects_an_incomplete_resource_index() -> None:
     model = build_atlas_v3_explorer_model(_open_distribution())
     model["resourceIndex"] = model["resourceIndex"][:-1]
 
-    with pytest.raises(Atlas3ExplorerError, match="resource index is incomplete"):
+    with pytest.raises(Atlas3ExplorerError, match="resource index count differs"):
         render_atlas_explorer(model)
 
 
@@ -271,11 +284,54 @@ def test_open_streams_the_nquads_member_instead_of_reading_it_all(
 
     monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
     monkeypatch.setattr(Path, "open", counted_open)
+    monkeypatch.setattr(
+        Dataset,
+        "parse",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("the full Atlas must not be parsed into RDFLib")
+        ),
+    )
 
     distribution = _open_distribution()
 
-    assert len(distribution.asserted_graph) == distribution.manifest["graphs"][0]["quadCount"]
+    assert distribution.dataset_quad_counts["asserted"] == distribution.manifest["graphs"][0]["quadCount"]
+    assert len(distribution.asserted_graph) <= distribution.dataset_quad_counts["asserted"]
     assert atlas_open_count == 1
+
+
+def test_streaming_index_is_deterministic_and_resource_bounded() -> None:
+    release = b"<urn:test:release>"
+    rings = tuple(f"<https://refspec.org/ns/atlas/v3#ring-{index}>".encode() for index in range(4))
+
+    def build_index():
+        builder = explorer_module._StreamingIndexBuilder()
+        for index in range(5_000):
+            builder.consume(
+                f"<urn:test:resource:{index:05d}>".encode(),
+                {explorer_module._ATLAS_RESOURCE_TYPE_TOKEN},
+                {
+                    explorer_module._ATLAS_IN_RELEASE_TOKEN: release,
+                    explorer_module._ATLAS_SEMANTIC_RING_TOKEN: rings[index % len(rings)],
+                },
+                (),
+                0,
+                (),
+                0,
+                0,
+                0,
+            )
+        return builder.finish(
+            byte_length=1,
+            digest="sha256:" + "0" * 64,
+            graph_quad_counts={"asserted": 5_000, "projection": 0, "derived": 0},
+        )
+
+    first = build_index()
+    second = build_index()
+
+    assert len(first.resource_ids) == explorer_module._VISUAL_RESOURCE_LIMIT
+    assert first.resource_ids == second.resource_ids
+    assert first.resources_by_ring == dict.fromkeys(rings, 1_250)
 
 
 def test_selected_node_neighbor_lookup_is_linear_and_keeps_direct_neighbors_visible() -> None:
@@ -355,25 +411,25 @@ def test_bounded_model_adds_every_referenced_assertion_for_provenance() -> None:
         render_atlas_explorer(unclosed)
 
 
-def test_rejects_dataset_path_replacement_during_parse(
+def test_rejects_dataset_path_replacement_during_streaming_materialization(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raced = tmp_path / "raced"
     shutil.copytree(FIXTURE, raced)
-    original_parse = Dataset.parse
+    original_materialize = explorer_module._materialize_visual_dataset
 
-    def replacing_parse(dataset: Dataset, *args, **kwargs):
+    def replacing_materialize(stream, index, graph_ids):
         atlas_path = raced / "atlas.nq"
         moved_path = raced / "opened-atlas.nq"
         atlas_path.replace(moved_path)
         shutil.copyfile(moved_path, atlas_path)
         try:
-            return original_parse(dataset, *args, **kwargs)
+            return original_materialize(stream, index, graph_ids)
         finally:
             moved_path.unlink()
 
-    monkeypatch.setattr(Dataset, "parse", replacing_parse)
+    monkeypatch.setattr(explorer_module, "_materialize_visual_dataset", replacing_materialize)
 
     with pytest.raises(Atlas3ExplorerError, match="changed while it was being read"):
         _open_distribution(raced)
@@ -418,7 +474,14 @@ def test_dataset_scan_bounds_each_physical_line_before_accumulating_it(
         Atlas3ExplorerError,
         match="dataset line 1 exceeds 8 bytes",
     ):
-        explorer_module._scan_dataset_member(stream)
+        explorer_module._scan_dataset_member(
+            stream,
+            {
+                "asserted": URIRef("urn:g"),
+                "projection": URIRef("urn:projection"),
+                "derived": URIRef("urn:derived"),
+            },
+        )
 
 
 def test_rejects_receipt_for_a_different_atlas_v3_binding(tmp_path: Path) -> None:
