@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -145,6 +145,7 @@ class RegistryRelease:
     resources: Sequence[RegistryResource]
     relations: Sequence[RegistryRelation] = ()
     dropped_label_count: int = 0
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.profile not in RESOURCE_PROFILES:
