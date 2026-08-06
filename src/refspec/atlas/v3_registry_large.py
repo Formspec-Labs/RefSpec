@@ -242,22 +242,27 @@ class _FASTResourceSequence(Sequence[RegistryResource]):
             "publisherIri": row.uri,
         }
         source_path = row.uri
+        preferred_label = row.heading.strip()
         labels = [
             RegistryLabel(
-                value=row.heading,
+                value=preferred_label,
                 role="preferred",
                 source_path=f"{source_path}#skos:prefLabel",
             )
         ]
-        labels.extend(
-            RegistryLabel(
-                value=value,
-                role="alternate",
-                source_path=f"{source_path}#skos:altLabel[{position}]",
+        seen_labels = {preferred_label}
+        for position, raw_value in enumerate(row.alt_labels):
+            value = raw_value.strip()
+            if not value or value in seen_labels:
+                continue
+            seen_labels.add(value)
+            labels.append(
+                RegistryLabel(
+                    value=value,
+                    role="alternate",
+                    source_path=f"{source_path}#skos:altLabel[{position}]",
+                )
             )
-            for position, value in enumerate(row.alt_labels)
-            if value != row.heading
-        )
         return RegistryResource(
             iri=row.uri,
             labels=tuple(labels),

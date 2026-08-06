@@ -44,7 +44,7 @@ def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
         legacy_fst_id="fst00000100",
         uri="http://id.worldcat.org/fast/100",
         heading="Export trade",
-        alt_labels=("Exports",),
+        alt_labels=("Exports", "", " Exports ", "   ", "International exports "),
         broader_ids=("200", "999"),
     )
     parent = fast_topical.FASTTopicalNativeRow(
@@ -86,6 +86,12 @@ def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
     assert [label.role for label in release.resources[0].labels] == [
         "preferred",
         "alternate",
+        "alternate",
+    ]
+    assert [label.value for label in release.resources[0].labels] == [
+        "Export trade",
+        "Exports",
+        "International exports",
     ]
     assert [(relation.subject, relation.object) for relation in release.relations] == [(first.uri, parent.uri)]
     assert release.metadata["tombstoneCount"] == 1
