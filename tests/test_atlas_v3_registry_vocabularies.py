@@ -48,6 +48,55 @@ def test_source_scoped_identity_is_stable_readable_uuid7() -> None:
     }
 
 
+def test_label_role_normalization_prefers_stronger_skos_role_and_receipts_source() -> None:
+    retained, conflicts = vocabularies._normalize_skos_label_roles(
+        (
+            vocabularies.RegistryLabel(
+                value="urban waste water",
+                role="hidden",
+                source_path="concept/12284::skos:hiddenLabel",
+            ),
+            vocabularies.RegistryLabel(
+                value="urban waste water",
+                role="preferred",
+                source_path="concept/12284::skos:prefLabel",
+            ),
+        )
+    )
+
+    assert [(label.value, label.role) for label in retained] == [
+        ("urban waste water", "preferred")
+    ]
+    assert conflicts == (
+        {
+            "language": "en",
+            "retainedRole": "preferred",
+            "retainedSourcePath": "concept/12284::skos:prefLabel",
+            "suppressedRole": "hidden",
+            "suppressedSourcePath": "concept/12284::skos:hiddenLabel",
+            "value": "urban waste water",
+        },
+    )
+
+
+def test_label_role_normalization_rejects_duplicate_normalized_claim() -> None:
+    with pytest.raises(ValueError, match="repeat the same value and role"):
+        vocabularies._normalize_skos_label_roles(
+            (
+                vocabularies.RegistryLabel(
+                    value="same",
+                    role="alternate",
+                    source_path="source:a",
+                ),
+                vocabularies.RegistryLabel(
+                    value="same",
+                    role="alternate",
+                    source_path="source:b",
+                ),
+            )
+        )
+
+
 def test_direct_relations_keep_only_unique_member_triples() -> None:
     member = SimpleNamespace(
         subject_iri="https://example.test/a",

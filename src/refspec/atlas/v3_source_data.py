@@ -133,6 +133,21 @@ class RegistryResource:
             raise ValueError(
                 f"registry resource {self.iri} has more than one preferred label"
             )
+        label_roles: dict[str, str] = {}
+        label_claims: set[tuple[str, str]] = set()
+        for label in self.labels:
+            claim = (label.value, label.role)
+            if claim in label_claims:
+                raise ValueError(
+                    f"registry resource {self.iri} repeats label claim {claim!r}"
+                )
+            label_claims.add(claim)
+            previous_role = label_roles.setdefault(label.value, label.role)
+            if previous_role != label.role:
+                raise ValueError(
+                    f"registry resource {self.iri} reuses label value "
+                    f"{label.value!r} across roles"
+                )
         if not self.source_locator or ":" not in self.source_locator:
             raise ValueError(f"registry resource {self.iri} has no absolute source locator")
         if not self.source_digest.startswith("sha256:"):

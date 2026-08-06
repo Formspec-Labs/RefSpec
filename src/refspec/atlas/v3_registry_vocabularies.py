@@ -115,7 +115,7 @@ EXPECTED_LABEL_COUNTS = {
     "elsst-r6": 6_234,
     "federal-register-thesaurus-2025": 1_138,
     "gcmd-science-keywords-24-4": 3_774,
-    "gemet-4.2.3": 5_647,
+    "gemet-4.2.3": 5_645,
     "mesh-descriptors-2026": 134_904,
     "nasa-thesaurus-skos": 27_125,
 }
@@ -177,9 +177,46 @@ def _sorted_labels(labels: Iterable[RegistryLabel]) -> tuple[RegistryLabel, ...]
     return tuple(
         sorted(
             labels,
-            key=lambda item: (_ROLE_ORDER[item.role], item.value.casefold(), item.value),
+            key=lambda item: (
+                _ROLE_ORDER[item.role],
+                item.value.casefold(),
+                item.value,
+                item.source_path,
+            ),
         )
     )
+
+
+def _normalize_skos_label_roles(
+    labels: Iterable[RegistryLabel],
+) -> tuple[tuple[RegistryLabel, ...], tuple[dict[str, str], ...]]:
+    """Apply SKOS S13 role precedence while receipting publisher conflicts."""
+
+    retained: list[RegistryLabel] = []
+    retained_by_value: dict[str, RegistryLabel] = {}
+    conflicts: list[dict[str, str]] = []
+    for label in _sorted_labels(labels):
+        previous = retained_by_value.get(label.value)
+        if previous is None:
+            retained_by_value[label.value] = label
+            retained.append(label)
+            continue
+        if previous.role == label.role:
+            raise ValueError(
+                "normalized registry labels repeat the same value and role: "
+                f"{label.value!r} ({label.role})"
+            )
+        conflicts.append(
+            {
+                "language": "en",
+                "retainedRole": previous.role,
+                "retainedSourcePath": previous.source_path,
+                "suppressedRole": label.role,
+                "suppressedSourcePath": label.source_path,
+                "value": label.value,
+            }
+        )
+    return tuple(retained), tuple(conflicts)
 
 
 def _direct_relations(
@@ -316,6 +353,7 @@ def _release(
     resources: Sequence[RegistryResource],
     relations: Sequence[RegistryRelation] = (),
     dropped_label_count: int = 0,
+    metadata: Mapping[str, Any] | None = None,
 ) -> RegistryRelease:
     _assert_release_counts(key, resources, relations)
     return RegistryRelease(
@@ -334,6 +372,7 @@ def _release(
         resources=tuple(resources),
         relations=_preserve_s27_conflicts(tuple(relations)),
         dropped_label_count=dropped_label_count,
+        metadata=dict(metadata or {}),
     )
 
 
@@ -544,20 +583,31 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
             metadata[row.subject_iri].append({"propertyIri": row.property_iri, **_literal_payload(row.value)})
 
     resources: list[RegistryResource] = []
+    label_role_conflict_count = 0
     for concept in parsed.concepts:
         concept_notes = notes.get(concept.concept_iri, ())
         definitions = [row.value.lexical_form for row in concept_notes if row.property_iri == GEMET_DEFINITION]
         other_notes = [row.value.lexical_form for row in concept_notes if row.property_iri != GEMET_DEFINITION]
+        normalized_labels, label_role_conflicts = _normalize_skos_label_roles(
+            labels[concept.concept_iri]
+        )
+        label_role_conflict_count += len(label_role_conflicts)
+        native_payload: dict[str, Any] = {
+            "publisherConceptIri": concept.concept_iri,
+            "schemeIris": list(concept.scheme_iris),
+            "topConceptOfIris": list(concept.top_concept_of_iris),
+            "metadata": metadata.get(concept.concept_iri, []),
+        }
+        if label_role_conflicts:
+            native_payload["labelRoleNormalization"] = {
+                "conflicts": list(label_role_conflicts),
+                "rule": "skos-s13-preferred-alternate-hidden-precedence-v1",
+            }
         resources.append(
             RegistryResource(
                 iri=concept.concept_iri,
-                labels=_sorted_labels(labels[concept.concept_iri]),
-                native_payload={
-                    "publisherConceptIri": concept.concept_iri,
-                    "schemeIris": list(concept.scheme_iris),
-                    "topConceptOfIris": list(concept.top_concept_of_iris),
-                    "metadata": metadata.get(concept.concept_iri, []),
-                },
+                labels=normalized_labels,
+                native_payload=native_payload,
                 source_locator=concept.concept_iri,
                 source_digest=source.sha256,
                 definition=definitions[0] if definitions else None,
@@ -578,6 +628,12 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
         resources=resources,
         relations=_direct_relations(parsed.semantic_relations, member_iris),
         dropped_label_count=dropped,
+        metadata={
+            "labelRoleConflictCount": label_role_conflict_count,
+            "labelRoleConflictRule": (
+                "skos-s13-preferred-alternate-hidden-precedence-v1"
+            ),
+        },
     )
 
 

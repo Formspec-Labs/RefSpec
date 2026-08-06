@@ -39,6 +39,35 @@ def test_registry_resource_rejects_multiple_preferred_labels() -> None:
         _resource(labels)
 
 
+def test_registry_resource_rejects_duplicate_label_claim() -> None:
+    label = RegistryLabel(
+        value="Repeated",
+        role="alternate",
+        source_path="$.labels[0]",
+    )
+
+    with pytest.raises(ValueError, match="repeats label claim"):
+        _resource((label, label))
+
+
+def test_registry_resource_rejects_label_value_across_roles() -> None:
+    with pytest.raises(ValueError, match="reuses label value.*across roles"):
+        _resource(
+            (
+                RegistryLabel(
+                    value="Same value",
+                    role="preferred",
+                    source_path="$.labels[0]",
+                ),
+                RegistryLabel(
+                    value="Same value",
+                    role="hidden",
+                    source_path="$.labels[1]",
+                ),
+            )
+        )
+
+
 def test_registry_resource_requires_at_least_one_label() -> None:
     with pytest.raises(ValueError, match="has no English label"):
         _resource(())
