@@ -1,3485 +1,1485 @@
-"""Render the dependency-free, offline vocabulary-atlas explorer."""
+"""Open and render sealed RefSpec Atlas 3.0 distributions."""
 
 from __future__ import annotations
 
+import hashlib
 import html
 import json
+import os
 import re
+import stat
+from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from string import Template
-from typing import Any, cast
+from typing import Any, BinaryIO, TypeVar, cast
 
+from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
+from rdflib.exceptions import ParserError
+from rdflib.namespace import DCTERMS, PROV, RDF, SKOS
+
+from refspec.immutable import deep_freeze_json
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
-from refspec.registry.infrastructure.semantic_foundation import (
-    SemanticFoundationError,
-    SemanticRing,
-    validate_ring_relation,
+
+ATLAS_V3_EXPLORER_TYPE = "urn:ref:type:Atlas3ExplorerView"
+ATLAS_V3_EXPLORER_SCHEMA_VERSION = "3.0"
+
+# These familiar names now identify Atlas 3.0. They are aliases, not a legacy
+# Atlas 2 reader or wire-format compatibility layer.
+EXPLORER_TYPE = ATLAS_V3_EXPLORER_TYPE
+EXPLORER_SCHEMA_VERSION = ATLAS_V3_EXPLORER_SCHEMA_VERSION
+
+ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+
+EXPECTED_FILES = frozenset(
+    {
+        "atlas-manifest.json",
+        "atlas.nq",
+        "atlas-source-accounting.json",
+        "atlas-acceptance.json",
+    }
 )
-
-from .queries import (
-    PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND,
-    PUBLISHER_RELEASE_PRIOR_VERSION_TYPE,
-    PUBLISHER_RELEASE_PRIOR_VERSION_VERSION,
-    native_concept_relation_id,
+REQUIRED_ACCEPTANCE_GATES = frozenset(
+    {
+        "canonical-json",
+        "json-schema",
+        "rdf-syntax",
+        "ontology-profile",
+        "shacl-meta",
+        "shacl-data",
+        "dataset-closure",
+        "source-accounting",
+        "projection-parity",
+        "reasoning-isolation",
+        "profile-conformance",
+    }
 )
-
-EXPLORER_TYPE = "urn:ref:type:VocabularyAtlasExplorerView"
-EXPLORER_SCHEMA_VERSION = "4.0"
-
-# The renderer and the executable acceptance gate consume this same table.
-# Each row says which planning-row field one shipped control evaluates and how
-# an unset control behaves.
-PLANNING_FILTER_SEMANTICS: tuple[Mapping[str, str], ...] = (
+RESOURCE_TYPES = frozenset(
     {
-        "dimension": "ring",
-        "rowField": "semanticRing",
-        "statePath": "activeRings",
-        "operator": "setContains",
-    },
-    {
-        "dimension": "sourceModule",
-        "rowField": "sourceModule",
-        "statePath": "activeConceptFacets.sourceModules",
-        "operator": "equalsWhenSet",
-    },
-    {
-        "dimension": "resourceId",
-        "rowField": "resourceId",
-        "statePath": "activeConceptFacets.resourceIds",
-        "operator": "equalsWhenSet",
-    },
-    {
-        "dimension": "participation",
-        "rowField": "atlasParticipation",
-        "statePath": "activeConceptFacets.participations",
-        "operator": "equalsWhenSet",
-    },
-    {
-        "dimension": "disposition",
-        "rowField": "disposition",
-        "statePath": "activePlanningDisposition",
-        "operator": "equalsWhenSet",
-    },
+        ATLAS.SubjectConcept,
+        ATLAS.EntityResource,
+        ATLAS.ValueResource,
+        ATLAS.LegalIdentityResource,
+    }
 )
+RELATION_TYPES = (
+    (ATLAS.MappingAssertion, "mapping"),
+    (ATLAS.NativeRelationAssertion, "native"),
+    (ATLAS.SourceAssignment, "sourceAssignment"),
+)
+LABEL_ROLES = (
+    (SKOSXL.prefLabel, "preferred"),
+    (SKOSXL.altLabel, "alternate"),
+    (SKOSXL.hiddenLabel, "hidden"),
+)
+PREDICATE_MEANINGS = {
+    str(SKOS.broader): "The subject is narrower than the object in the publisher's hierarchy.",
+    str(SKOS.narrower): "The subject is broader than the object in the publisher's hierarchy.",
+    str(SKOS.related): "The publisher asserted a direct associative SKOS relationship.",
+    str(SKOS.exactMatch): "The concepts have an exact match across two exact releases.",
+    str(SKOS.closeMatch): "The concepts are similar enough for some cross-vocabulary retrieval uses.",
+    str(SKOS.broadMatch): "The subject maps to a broader concept in another exact release.",
+    str(SKOS.narrowMatch): "The subject maps to a narrower concept in another exact release.",
+    str(SKOS.relatedMatch): "The subject maps associatively to a concept in another exact release.",
+    str(ATLAS.thesaurusUse): (
+        "Use the object as the publisher's preferred term for the non-preferred subject term."
+    ),
+    str(ATLAS.thesaurusUsedFor): (
+        "The preferred subject term is used for the non-preferred object term."
+    ),
+    str(ATLAS.thesaurusRelated): (
+        "The publisher asserted this direct associative link. Atlas preserves it outside skos:related "
+        "when a hierarchy path makes that SKOS projection unsafe; the link remains directly relevant."
+    ),
+}
 
-# One canonical description drives the shipped concept, native-relation, and
-# mapping-assertion controls plus the independent Python/Node acceptance gate.
-# Endpoint fields mean that an edge is eligible only when both endpoint
-# concepts also satisfy the active concept controls.
+# Atlas 3 filtering starts from authority role. The reader does not consume the
+# Atlas 2 planning-index facets that the retired explorer used.
 EXPLORER_FILTER_SEMANTICS: tuple[Mapping[str, object], ...] = (
     {
-        "recordKind": "concept",
-        "idField": "viewId",
-        "filters": (
-            {
-                "dimension": "release",
-                "rowField": "releaseId",
-                "statePath": "activeReleases",
-                "operator": "setContains",
-            },
-            {
-                "dimension": "ring",
-                "rowField": "semanticRing",
-                "statePath": "activeRings",
-                "operator": "setContains",
-            },
-            *(
-                {
-                    "dimension": field,
-                    "rowField": field,
-                    "statePath": f"activeConceptFacets.{field}",
-                    "operator": "arrayContainsWhenSet",
-                }
-                for field in (
-                    "sourceModules",
-                    "resourceIds",
-                    "participations",
-                    "languages",
-                    "lifecycle",
-                    "sourceCollections",
-                    "sourceUrls",
-                    "cfrTitles",
-                    "cfrParts",
-                )
-            ),
-        ),
-        "endpointFields": (),
+        "recordKind": "resource",
+        "authorityRole": "asserted",
+        "filterFields": ("semanticRing", "resourceProfile", "labels"),
     },
     {
-        "recordKind": "nativeRelation",
-        "idField": "id",
-        "filters": (
-            {
-                "dimension": "nativePredicate",
-                "rowField": "predicate",
-                "statePath": "activeNativePredicates",
-                "operator": "setContains",
-            },
-            {
-                "dimension": "ring",
-                "rowField": "semanticRing",
-                "statePath": "activeRings",
-                "operator": "setContains",
-            },
-        ),
-        "endpointFields": ("subjectViewId", "objectViewId"),
+        "recordKind": "assertedRelation",
+        "authorityRole": "asserted",
+        "filterFields": ("kind", "semanticRing", "predicate", "status"),
     },
     {
-        "recordKind": "mappingAssertion",
-        "idField": "id",
-        "filters": (
-            {
-                "dimension": "mappingVisibility",
-                "statePath": "mappingsActive",
-                "operator": "enabled",
-            },
-            {
-                "dimension": "ring",
-                "rowField": "semanticRing",
-                "statePath": "activeRings",
-                "operator": "setContains",
-            },
-            {
-                "dimension": "mappingPredicate",
-                "rowField": "relation",
-                "statePath": "activeMappingPredicate",
-                "operator": "equalsWhenSet",
-            },
-            {
-                "dimension": "mappingLifecycleStatus",
-                "rowField": "effectiveLifecycleStatus",
-                "statePath": "activeMappingLifecycleStatus",
-                "operator": "equalsWhenSet",
-            },
-            {
-                "dimension": "evidenceClass",
-                "rowField": "evidenceClasses",
-                "statePath": "activeEvidenceClass",
-                "operator": "arrayContainsWhenSet",
-            },
-        ),
-        "endpointFields": ("sourceViewId", "targetViewId"),
+        "recordKind": "projectedRelation",
+        "authorityRole": "projection",
+        "filterFields": ("semanticRing", "predicate"),
+    },
+    {
+        "recordKind": "derivedRelation",
+        "authorityRole": "derived",
+        "filterFields": ("semanticRing", "predicate", "rule", "engine"),
     },
 )
+PLANNING_FILTER_SEMANTICS: tuple[Mapping[str, str], ...] = ()
 
-_MODEL_FIELDS = frozenset(
+_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+_SAFE_INTEGER = 9_007_199_254_740_991
+_NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
+_MANIFEST_FIELDS = frozenset(
     {
         "type",
         "schemaVersion",
-        "title",
-        "atlas",
-        "selectionPolicy",
-        "summary",
-        "releaseContext",
-        "facets",
-        "conceptReleases",
-        "concepts",
-        "nativeRelations",
-        "mappingAssertions",
+        "format",
+        "distributionId",
+        "createdAt",
+        "binding",
+        "graphs",
+        "members",
+        "counts",
+        "canonicalPayloadDigest",
     }
 )
-_ATLAS_FIELDS = frozenset({"kind", "assetId", "manifestDigest", "distributionDigest", "counts", "quadCount"})
-_PARENT_FIELDS = frozenset({"assetId", "manifestDigest", "distributionDigest"})
+_BINDING_FIELDS = frozenset(
+    {
+        "version",
+        "bindingBundleDigest",
+        "ontologyDigest",
+        "shapesDigest",
+        "manifestSchemaDigest",
+        "sourceAccountingSchemaDigest",
+        "acceptanceSchemaDigest",
+        "validatorVersion",
+    }
+)
 _COUNT_FIELDS = frozenset(
     {
-        "conceptReleases",
-        "concepts",
-        "releaseRecords",
-        "relationBundles",
-        "evidenceAssertions",
+        "releases",
+        "resources",
+        "labels",
+        "sourceRecords",
+        "relationAssertions",
         "mappingAssertions",
-        "machineProofs",
+        "nativeRelationAssertions",
+        "sourceAssignments",
+        "projectedRelations",
+        "derivedRelations",
     }
 )
-_SELECTION_FIELDS = frozenset({"id", "type", "version", "maxConcepts", "maxMappingAssertions"})
-_SUMMARY_FIELDS = frozenset(
-    {
-        "shownConceptCount",
-        "shownNativeRelationCount",
-        "shownMappingAssertionCount",
-        "availableConceptCount",
-        "availableNativeRelationCount",
-        "availableMappingAssertionCount",
-        "truncated",
-    }
-)
-_RELEASE_FIELDS = frozenset({"releaseId", "label", "semanticRing", "conceptCount", "shownConceptCount"})
-_RELEASE_OPTIONAL_FIELDS = frozenset(
-    {
-        "publisherReleasePriorVersions",
-        "sourceReleaseSupersessions",
-    }
-)
-_SOURCE_RELEASE_SUPERSESSION_FIELDS = frozenset(
-    {
-        "type",
-        "schemaVersion",
-        "successorBasisDigest",
-        "successorLineageDigest",
-        "supersededRelease",
-        "id",
-        "contentDigest",
-    }
-)
-_SUPERSEDED_RELEASE_FIELDS = frozenset(
-    {
-        "releaseId",
-        "semanticRing",
-        "sourceScheme",
-        "manifestDigest",
-        "releaseDigest",
-        "logicalDigest",
-    }
-)
-_PUBLISHER_RELEASE_PRIOR_VERSION_FIELDS = frozenset(
-    {
-        "type",
-        "schemaVersion",
-        "managedReleaseId",
-        "semanticRing",
-        "publisherReleaseIri",
-        "predicateIri",
-        "priorVersionIri",
-        "predecessorReferenceKind",
-        "sourceRecord",
-        "id",
-        "contentDigest",
-    }
-)
-_PUBLISHER_RELEASE_SOURCE_RECORD_FIELDS = frozenset(
-    {"nativeId", "recordId", "recordDigest"}
-)
-_OWL_PRIOR_VERSION_IRI = "http://www.w3.org/2002/07/owl#priorVersion"
-_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
-_CONCEPT_FIELDS = frozenset(
-    {
-        "viewId",
-        "conceptId",
-        "releaseId",
-        "semanticRing",
-        "recordId",
-        "recordDigest",
-        "label",
-        "selectionReasons",
-        "sourceModules",
-        "resourceIds",
-        "participations",
-        "languages",
-        "lifecycle",
-        "sourceCollections",
-        "sourceUrls",
-        "cfrTitles",
-        "cfrParts",
-    }
-)
-_CONCEPT_TEXT_FIELDS = frozenset({"notation", "definition", "scopeNote"})
-_CONCEPT_OPTIONAL_FIELDS = _CONCEPT_TEXT_FIELDS | {"searchLabels"}
-_MAPPING_FIELDS = frozenset(
-    {
-        "id",
-        "sourceViewId",
-        "targetViewId",
-        "sourceConcept",
-        "targetConcept",
-        "sourceRelease",
-        "targetRelease",
-        "semanticRing",
-        "relation",
-        "relationLabel",
-        "lifecycleStatus",
-        "effectiveLifecycleStatus",
-        "supersedes",
-        "supersededBy",
-        "directEvidenceAssertions",
-        "evidenceAssertions",
-        "evidenceClasses",
-        "externalEvidence",
-        "candidateIds",
-        "validationReceiptIds",
-        "machineProofs",
-    }
-)
-_NATIVE_RELATION_FIELDS = frozenset(
-    {
-        "id",
-        "subjectViewId",
-        "objectViewId",
-        "subjectConcept",
-        "objectConcept",
-        "releaseId",
-        "semanticRing",
-        "predicate",
-        "predicateLabel",
-        "sourceRecordId",
-        "sourceRecordDigest",
-    }
-)
-_RING_ORDER = ("subject", "entity", "value", "legalIdentity")
-_RINGS = frozenset(_RING_ORDER)
-_SELECTION_REASONS = frozenset(
-    {
-        "mappingEndpoint",
-        "nativeRelationEndpoint",
-        "releaseRepresentative",
-    }
-)
-_NATIVE_RELATION_LABELS = {
-    "http://www.w3.org/2004/02/skos/core#broader": "broader",
-    "http://www.w3.org/2004/02/skos/core#narrower": "narrower",
-    "http://www.w3.org/2004/02/skos/core#related": "related",
-    "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse": "thesaurus use",
-    "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor": "thesaurus used for",
-}
-_EVIDENCE_CLASSES = frozenset(
-    {
-        "machineQualified",
-        "machineReviewed",
-        "publisherAsserted",
-        "operatorAdopted",
-        "humanReviewed",
-        "ruleGenerated",
-    }
-)
-_RELEASE_CONTEXT_FIELDS = frozenset({"sourceApprovals", "planningRows"})
-_RELEASE_CONTEXT_PIN_FIELDS = frozenset({"planningIndex", "publicationDecision"})
-_PLANNING_INDEX_FIELDS = frozenset({"role", "id", "indexDigest", "fileDigest"})
-_PUBLICATION_DECISION_FIELDS = frozenset({"id", "recordDigest", "schemaVersion"})
-_SOURCE_APPROVAL_FIELDS = frozenset({"releaseId", "manifestDigest", "semanticRing", "disposition", "conditions"})
-_PLANNING_ROW_FIELDS = frozenset(
-    {
-        "rowId",
-        "rowDigest",
-        "sourceModule",
-        "resourceId",
-        "facet",
-        "semanticRing",
-        "planningStatus",
-        "intendedUses",
-        "disposition",
-        "reason",
-    }
-)
-_PLANNING_ROW_OPTIONAL_FIELDS = frozenset({"atlasParticipation", "releaseId"})
-_FACET_FIELDS = frozenset(
-    {
-        "sourceModules",
-        "resourceIds",
-        "participations",
-        "languages",
-        "lifecycle",
-        "sourceCollections",
-        "sourceUrls",
-        "cfrTitles",
-        "cfrParts",
-        "nativePredicates",
-        "mappingPredicates",
-        "mappingLifecycleStatuses",
-        "evidenceClasses",
-        "planningDispositions",
-    }
-)
-_CONCEPT_FACET_FIELDS = frozenset(
-    {
-        "sourceModules",
-        "resourceIds",
-        "participations",
-        "languages",
-        "lifecycle",
-        "sourceCollections",
-        "sourceUrls",
-        "cfrTitles",
-        "cfrParts",
-    }
+_BINDING_ROOT = Path(__file__).resolve().parents[3] / "bindings" / "atlas" / "3.0"
+_BINDING_BUNDLE_PATHS = (
+    Path("README.md"),
+    Path("fixtures/corpus.json"),
+    Path("ontology/atlas.ttl"),
+    Path("registry-resource-profiles.json"),
+    Path("requirements.txt"),
+    Path("shapes/atlas.shacl.ttl"),
+    Path("tests/registry-coverage.json"),
+    Path("tests/registry-descriptors.json"),
+    Path("tests/registry-descriptors.nq"),
+    Path("tools/build_fixtures.py"),
+    Path("tools/rdf_canonical.py"),
+    Path("tools/validate.py"),
 )
 
 
-class AtlasExplorerError(ValueError):
-    """The bounded explorer model is not the closed Atlas 2.0 shape."""
+class Atlas3ExplorerError(ValueError):
+    """An Atlas 3.0 distribution or explorer model is unsafe to consume."""
+
+
+AtlasExplorerError = Atlas3ExplorerError
+
+_LimitedRow = TypeVar("_LimitedRow")
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise Atlas3ExplorerError(f"Atlas 3.0 JSON repeats key {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite(token: str) -> None:
+    raise Atlas3ExplorerError(f"Atlas 3.0 JSON contains non-finite number {token}")
+
+
+def _validate_json_value(value: object, label: str) -> None:
+    if value is None or isinstance(value, float):
+        raise Atlas3ExplorerError(f"{label} uses a forbidden null or floating-point value")
+    if isinstance(value, int) and not isinstance(value, bool) and abs(value) > _SAFE_INTEGER:
+        raise Atlas3ExplorerError(f"{label} contains an unsafe integer")
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise Atlas3ExplorerError(f"{label} contains a non-text object key")
+            _validate_json_value(child, f"{label}.{key}")
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, child in enumerate(value):
+            _validate_json_value(child, f"{label}[{index}]")
+
+
+def _read_canonical_json(payload: bytes, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise Atlas3ExplorerError(f"{label} must be valid UTF-8 JSON") from error
+    if not isinstance(value, dict):
+        raise Atlas3ExplorerError(f"{label} must be a JSON object")
+    _validate_json_value(value, label)
+    if canonical_json_bytes(value) != payload:
+        raise Atlas3ExplorerError(f"{label} is not canonical JSON")
+    return value
 
 
 def _mapping(value: object, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
-        raise AtlasExplorerError(f"{label} must be an object")
+        raise Atlas3ExplorerError(f"{label} must be an object")
     return cast(Mapping[str, Any], value)
 
 
 def _sequence(value: object, label: str) -> Sequence[Any]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
-        raise AtlasExplorerError(f"{label} must be an array")
+        raise Atlas3ExplorerError(f"{label} must be an array")
     return cast(Sequence[Any], value)
 
 
-def _exact_fields(
-    value: Mapping[str, Any],
-    expected: frozenset[str],
-    label: str,
-    *,
-    optional: frozenset[str] = frozenset(),
-) -> None:
-    actual = set(value)
-    if not expected <= actual or not actual <= expected | optional:
-        raise AtlasExplorerError(f"{label} fields differ from Atlas explorer {EXPLORER_SCHEMA_VERSION}")
+def _exact_fields(value: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
+    if set(value) != expected:
+        raise Atlas3ExplorerError(
+            f"{label} fields differ; missing={sorted(expected - set(value))}, "
+            f"extra={sorted(set(value) - expected)}"
+        )
 
 
 def _text(value: object, label: str) -> str:
     if not isinstance(value, str) or not value.strip() or value != value.strip():
-        raise AtlasExplorerError(f"{label} must be non-empty trimmed text")
+        raise Atlas3ExplorerError(f"{label} must be non-empty trimmed text")
     return value
-
-
-def _count(value: object, label: str, *, positive: bool = False) -> int:
-    if not isinstance(value, int) or isinstance(value, bool) or value < (1 if positive else 0):
-        qualifier = "positive" if positive else "non-negative"
-        raise AtlasExplorerError(f"{label} must be a {qualifier} integer")
-    return value
-
-
-def _ring(value: object, label: str) -> str:
-    if not isinstance(value, str) or value not in _RINGS:
-        raise AtlasExplorerError(f"{label} must be an Atlas 2.0 semantic ring")
-    return value
-
-
-def _text_array(value: object, label: str) -> tuple[str, ...]:
-    rows = _sequence(value, label)
-    result = tuple(_text(item, f"{label}[]") for item in rows)
-    if len(result) != len(set(result)):
-        raise AtlasExplorerError(f"{label} must not repeat values")
-    return result
-
-
-def _canonical_text_array(value: object, label: str) -> tuple[str, ...]:
-    result = _text_array(value, label)
-    if list(result) != sorted(result):
-        raise AtlasExplorerError(f"{label} must use canonical text order")
-    return result
-
-
-def _validate_release_context(value: object) -> Mapping[str, Any]:
-    context = _mapping(value, "atlas explorer releaseContext")
-    _exact_fields(
-        context,
-        _RELEASE_CONTEXT_FIELDS,
-        "atlas explorer releaseContext",
-        optional=_RELEASE_CONTEXT_PIN_FIELDS,
-    )
-    index_pin = context.get("planningIndex")
-    decision_pin = context.get("publicationDecision")
-    approvals = _sequence(
-        context.get("sourceApprovals"),
-        "atlas explorer releaseContext.sourceApprovals",
-    )
-    planning_rows = _sequence(
-        context.get("planningRows"),
-        "atlas explorer releaseContext.planningRows",
-    )
-    if "planningIndex" not in context or "publicationDecision" not in context:
-        if "planningIndex" in context or "publicationDecision" in context or approvals or planning_rows:
-            raise AtlasExplorerError("atlas explorer releaseContext must supply both exact pins or neither")
-        return context
-
-    index = _mapping(index_pin, "atlas explorer releaseContext.planningIndex")
-    _exact_fields(
-        index,
-        _PLANNING_INDEX_FIELDS,
-        "atlas explorer releaseContext.planningIndex",
-    )
-    if index.get("role") != "AtlasIndex":
-        raise AtlasExplorerError("atlas explorer releaseContext planning index has the wrong role")
-    for field in ("id", "indexDigest", "fileDigest"):
-        _text(index.get(field), f"atlas explorer releaseContext.planningIndex.{field}")
-
-    decision = _mapping(
-        decision_pin,
-        "atlas explorer releaseContext.publicationDecision",
-    )
-    _exact_fields(
-        decision,
-        _PUBLICATION_DECISION_FIELDS,
-        "atlas explorer releaseContext.publicationDecision",
-    )
-    for field in _PUBLICATION_DECISION_FIELDS:
-        _text(
-            decision.get(field),
-            f"atlas explorer releaseContext.publicationDecision.{field}",
-        )
-
-    approval_ids: set[str] = set()
-    for position, raw in enumerate(approvals):
-        label = f"atlas explorer releaseContext.sourceApprovals[{position}]"
-        row = _mapping(raw, label)
-        _exact_fields(row, _SOURCE_APPROVAL_FIELDS, label)
-        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
-        if release_id in approval_ids:
-            raise AtlasExplorerError("atlas explorer repeats a source approval")
-        approval_ids.add(release_id)
-        _text(row.get("manifestDigest"), f"{label}.manifestDigest")
-        _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        if row.get("disposition") != "approved":
-            raise AtlasExplorerError("atlas explorer source approval must be approved")
-        conditions = _sequence(row.get("conditions"), f"{label}.conditions")
-        for condition_position, condition_raw in enumerate(conditions):
-            condition_label = f"{label}.conditions[{condition_position}]"
-            condition = _mapping(condition_raw, condition_label)
-            _exact_fields(
-                condition,
-                frozenset({"kind", "statement"}),
-                condition_label,
-            )
-            _text(condition.get("kind"), f"{condition_label}.kind")
-            _text(condition.get("statement"), f"{condition_label}.statement")
-
-    row_ids: list[str] = []
-    for position, raw in enumerate(planning_rows):
-        label = f"atlas explorer releaseContext.planningRows[{position}]"
-        row = _mapping(raw, label)
-        _exact_fields(
-            row,
-            _PLANNING_ROW_FIELDS,
-            label,
-            optional=_PLANNING_ROW_OPTIONAL_FIELDS,
-        )
-        row_id = _text(row.get("rowId"), f"{label}.rowId")
-        row_ids.append(row_id)
-        for field in (
-            "rowDigest",
-            "sourceModule",
-            "resourceId",
-            "facet",
-            "planningStatus",
-            "disposition",
-            "reason",
-        ):
-            _text(row.get(field), f"{label}.{field}")
-        _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        if "atlasParticipation" in row:
-            _text(row.get("atlasParticipation"), f"{label}.atlasParticipation")
-        if "releaseId" in row:
-            _text(row.get("releaseId"), f"{label}.releaseId")
-        _canonical_text_array(row.get("intendedUses"), f"{label}.intendedUses")
-    if len(row_ids) != len(set(row_ids)) or row_ids != sorted(row_ids):
-        raise AtlasExplorerError("atlas explorer planning rows must be unique and in canonical order")
-    return context
-
-
-def _validate_facets(value: object) -> Mapping[str, tuple[str, ...]]:
-    facets = _mapping(value, "atlas explorer facets")
-    _exact_fields(facets, _FACET_FIELDS, "atlas explorer facets")
-    return {
-        field: _canonical_text_array(
-            facets.get(field),
-            f"atlas explorer facets.{field}",
-        )
-        for field in _FACET_FIELDS
-    }
 
 
 def _digest(value: object, label: str) -> str:
-    digest = _text(value, label)
-    if _SHA256.fullmatch(digest) is None:
-        raise AtlasExplorerError(f"{label} must be sha256:<64 lowercase hex>")
-    return digest
+    text_value = _text(value, label)
+    if _DIGEST.fullmatch(text_value) is None:
+        raise Atlas3ExplorerError(f"{label} must be sha256:<64 lowercase hex>")
+    return text_value
 
 
-def _validate_source_release_supersessions(
-    value: object,
+def _count(value: object, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise Atlas3ExplorerError(f"{label} must be a non-negative integer")
+    return value
+
+
+def _iri_name(value: object) -> str:
+    text_value = str(value)
+    if "#" in text_value:
+        return text_value.rsplit("#", 1)[-1]
+    return text_value.rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+
+
+def _one(
+    graph: Graph,
+    subject: URIRef,
+    predicate: URIRef,
     *,
     label: str,
-    superseding_release_id: str,
-    semantic_ring: str,
-) -> None:
-    rows = _sequence(value, label)
-    if not rows:
-        raise AtlasExplorerError(f"{label} must not be empty when present")
-    identifiers: set[str] = set()
-    prior_ids: list[str] = []
-    prior_pins: list[dict[str, str]] = []
-    successor_basis_digests: set[str] = set()
-    lineage_digests: set[str] = set()
-    for index, raw in enumerate(rows):
-        item_label = f"{label}[{index}]"
-        row = _mapping(raw, item_label)
-        _exact_fields(row, _SOURCE_RELEASE_SUPERSESSION_FIELDS, item_label)
-        if (
-            row.get("type") != "SourceReleaseSupersession"
-            or row.get("schemaVersion") != "1.1"
-        ):
-            raise AtlasExplorerError(
-                f"{item_label} type or schemaVersion is unsupported"
-            )
-        successor_basis_digest = _digest(
-            row.get("successorBasisDigest"),
-            f"{item_label}.successorBasisDigest",
-        )
-        successor_lineage_digest = _digest(
-            row.get("successorLineageDigest"),
-            f"{item_label}.successorLineageDigest",
-        )
-        prior = _mapping(
-            row.get("supersededRelease"),
-            f"{item_label}.supersededRelease",
-        )
-        _exact_fields(
-            prior,
-            _SUPERSEDED_RELEASE_FIELDS,
-            f"{item_label}.supersededRelease",
-        )
-        prior_id = _text(
-            prior.get("releaseId"),
-            f"{item_label}.supersededRelease.releaseId",
-        )
-        prior_ring = _ring(
-            prior.get("semanticRing"),
-            f"{item_label}.supersededRelease.semanticRing",
-        )
-        _text(
-            prior.get("sourceScheme"),
-            f"{item_label}.supersededRelease.sourceScheme",
-        )
-        manifest_digest = _digest(
-            prior.get("manifestDigest"),
-            f"{item_label}.supersededRelease.manifestDigest",
-        )
-        release_digest = _digest(
-            prior.get("releaseDigest"),
-            f"{item_label}.supersededRelease.releaseDigest",
-        )
-        logical_digest = _digest(
-            prior.get("logicalDigest"),
-            f"{item_label}.supersededRelease.logicalDigest",
-        )
-        expected_prior_id = (
-            f"urn:ref:source-concept-release:{prior_ring}:"
-            f"{release_digest.removeprefix('sha256:')}"
-        )
-        if (
-            prior_ring != semantic_ring
-            or prior_id != expected_prior_id
-            or prior_id == superseding_release_id
-        ):
-            raise AtlasExplorerError(
-                f"{item_label} does not name a distinct predecessor in the same semantic ring"
-            )
-        normalized_prior = {
-            "releaseId": prior_id,
-            "semanticRing": prior_ring,
-            "sourceScheme": prior["sourceScheme"],
-            "manifestDigest": manifest_digest,
-            "releaseDigest": release_digest,
-            "logicalDigest": logical_digest,
-        }
-        basis = {
-            "type": "SourceReleaseSupersession",
-            "schemaVersion": "1.1",
-            "successorBasisDigest": successor_basis_digest,
-            "successorLineageDigest": successor_lineage_digest,
-            "supersededRelease": normalized_prior,
-        }
-        content_digest = sha256_digest(canonical_json_bytes(basis))
-        identifier = _text(row.get("id"), f"{item_label}.id")
-        if (
-            row.get("contentDigest") != content_digest
-            or identifier
-            != "urn:ref:source-release-supersession:"
-            + content_digest.removeprefix("sha256:")
-            or dict(row) != {**basis, "id": identifier, "contentDigest": content_digest}
-        ):
-            raise AtlasExplorerError(
-                f"{item_label} content identity or exact predecessor pin is stale"
-            )
-        if identifier in identifiers:
-            raise AtlasExplorerError(f"{label} repeats a relation id")
-        identifiers.add(identifier)
-        successor_basis_digests.add(successor_basis_digest)
-        lineage_digests.add(successor_lineage_digest)
-        prior_ids.append(prior_id)
-        prior_pins.append(normalized_prior)
-    if prior_ids != sorted(set(prior_ids)):
-        raise AtlasExplorerError(
-            f"{label} must use unique canonical predecessor order"
-        )
-    if len(successor_basis_digests) != 1:
-        raise AtlasExplorerError(
-            f"{label} must share one successor basis digest"
-        )
-    expected_lineage_digest = sha256_digest(
-        canonical_json_bytes(prior_pins)
+    required: bool = True,
+) -> object | None:
+    values = tuple(graph.objects(subject, predicate))
+    if len(values) > 1 or (required and not values):
+        qualifier = "exactly one" if required else "at most one"
+        raise Atlas3ExplorerError(f"{label} must have {qualifier} {predicate}")
+    return values[0] if values else None
+
+
+def _json_literal(value: object | None, label: str) -> object | None:
+    if value is None:
+        return None
+    if not isinstance(value, Literal):
+        raise Atlas3ExplorerError(f"{label} must be an RDF JSON literal")
+    try:
+        return json.loads(str(value), object_pairs_hook=_reject_duplicate_keys)
+    except json.JSONDecodeError as error:
+        raise Atlas3ExplorerError(f"{label} must contain valid JSON") from error
+
+
+def _literal_view(value: Literal) -> dict[str, str]:
+    result = {"value": str(value)}
+    if value.language:
+        result["language"] = value.language
+    if value.datatype:
+        result["datatype"] = str(value.datatype)
+    return result
+
+
+def atlas_v3_predicate_meaning(predicate_iri: str) -> str:
+    """Explain a relation without weakening or changing its source semantics."""
+
+    return PREDICATE_MEANINGS.get(
+        predicate_iri,
+        "A relation preserved with its exact publisher or editorial predicate.",
     )
-    if lineage_digests != {expected_lineage_digest}:
-        raise AtlasExplorerError(
-            f"{label} does not bind the complete canonical predecessor set"
-        )
 
 
-def _validate_publisher_release_prior_versions(
-    value: object,
-    *,
-    label: str,
-    managed_release_id: str,
-    semantic_ring: str,
+def _canonical_digest_without_lf(value: object) -> str:
+    payload = canonical_json_bytes(value)
+    if not payload.endswith(b"\n"):
+        raise Atlas3ExplorerError("canonical JSON encoder omitted its expected terminal LF")
+    return sha256_digest(payload[:-1])
+
+
+def _binding_digests() -> dict[str, str]:
+    try:
+        root_status = _BINDING_ROOT.lstat()
+    except OSError as error:
+        raise Atlas3ExplorerError("the authoritative Atlas 3.0 binding is unavailable") from error
+    if stat.S_ISLNK(root_status.st_mode) or not stat.S_ISDIR(root_status.st_mode):
+        raise Atlas3ExplorerError("the authoritative Atlas 3.0 binding root is unsafe")
+    relative_paths = {
+        *_BINDING_BUNDLE_PATHS,
+        *(path.relative_to(_BINDING_ROOT) for path in (_BINDING_ROOT / "schemas").glob("*.schema.json")),
+    }
+    payloads: dict[Path, bytes] = {}
+    for relative in sorted(relative_paths, key=lambda path: path.as_posix()):
+        path = _BINDING_ROOT / relative
+        try:
+            file_status = path.lstat()
+            payload = path.read_bytes()
+        except OSError as error:
+            raise Atlas3ExplorerError(f"cannot read Atlas 3.0 binding asset {relative}") from error
+        if stat.S_ISLNK(file_status.st_mode) or not stat.S_ISREG(file_status.st_mode):
+            raise Atlas3ExplorerError(f"Atlas 3.0 binding asset {relative} is unsafe")
+        payloads[relative] = payload
+    bundle_rows = [
+        {
+            "byteLength": len(payload),
+            "digest": sha256_digest(payload),
+            "path": relative.as_posix(),
+        }
+        for relative, payload in payloads.items()
+    ]
+    return {
+        "bindingBundleDigest": _canonical_digest_without_lf(bundle_rows),
+        "ontologyDigest": sha256_digest(payloads[Path("ontology/atlas.ttl")]),
+        "shapesDigest": sha256_digest(payloads[Path("shapes/atlas.shacl.ttl")]),
+        "manifestSchemaDigest": sha256_digest(
+            payloads[Path("schemas/atlas-manifest.schema.json")]
+        ),
+        "sourceAccountingSchemaDigest": sha256_digest(
+            payloads[Path("schemas/atlas-source-accounting.schema.json")]
+        ),
+        "acceptanceSchemaDigest": sha256_digest(
+            payloads[Path("schemas/atlas-acceptance.schema.json")]
+        ),
+    }
+
+
+def _verify_binding_evidence(
+    manifest: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
 ) -> None:
-    rows = _sequence(value, label)
-    if not rows:
-        raise AtlasExplorerError(f"{label} must not be empty when present")
-    identifiers: set[str] = set()
-    semantic_claims: set[tuple[str, str]] = set()
-    order: list[tuple[str, str, str]] = []
-    for index, raw in enumerate(rows):
-        item_label = f"{label}[{index}]"
-        row = _mapping(raw, item_label)
+    binding = _mapping(manifest.get("binding"), "Atlas 3.0 manifest binding")
+    inputs = _mapping(acceptance.get("inputs"), "Atlas 3.0 acceptance inputs")
+    for field, expected in _binding_digests().items():
+        if binding.get(field) != expected or inputs.get(field) != expected:
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 {field} does not match the authoritative v3 binding"
+            )
+
+
+def _scan_dataset_member(stream: BinaryIO) -> tuple[int, str]:
+    digest = hashlib.sha256()
+    byte_length = 0
+    previous: bytes | None = None
+    line_count = 0
+    while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+        line_count += 1
+        if len(line) > _NQUADS_MAX_LINE_BYTES:
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 dataset line {line_count} exceeds {_NQUADS_MAX_LINE_BYTES} bytes"
+            )
+        digest.update(line)
+        byte_length += len(line)
+        if not line.endswith(b"\n") or b"\r" in line:
+            raise Atlas3ExplorerError("Atlas 3.0 dataset must use canonical LF lines")
+        content = line[:-1]
+        if not content or content != content.strip() or (
+            previous is not None and line <= previous
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 dataset lines must be non-empty, unique, and sorted"
+            )
+        previous = line
+    if line_count == 0:
+        raise Atlas3ExplorerError("Atlas 3.0 dataset must not be empty")
+    return byte_length, "sha256:" + digest.hexdigest()
+
+
+def _file_identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+
+
+def _verify_manifest(
+    manifest: Mapping[str, Any],
+    manifest_payload: bytes,
+    member_evidence: Mapping[str, tuple[int, str]],
+    trusted_manifest_digest: str | None,
+) -> tuple[str, dict[str, URIRef]]:
+    _exact_fields(manifest, _MANIFEST_FIELDS, "Atlas 3.0 manifest")
+    if (
+        manifest.get("type") != "AtlasManifest"
+        or manifest.get("schemaVersion") != "3.0"
+        or manifest.get("format") != "refspec-atlas-nquads-3.0"
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 manifest type, schemaVersion, or format is unsupported")
+    _text(manifest.get("distributionId"), "Atlas 3.0 manifest distributionId")
+    _text(manifest.get("createdAt"), "Atlas 3.0 manifest createdAt")
+
+    manifest_digest = sha256_digest(manifest_payload)
+    if trusted_manifest_digest is not None and (
+        _digest(trusted_manifest_digest, "trusted Atlas 3.0 manifest digest") != manifest_digest
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 manifest differs from the trusted digest")
+    basis = dict(manifest)
+    expected_payload_digest = _digest(
+        basis.pop("canonicalPayloadDigest"),
+        "Atlas 3.0 manifest canonicalPayloadDigest",
+    )
+    if _canonical_digest_without_lf(basis) != expected_payload_digest:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest canonicalPayloadDigest is stale")
+
+    binding = _mapping(manifest.get("binding"), "Atlas 3.0 manifest binding")
+    _exact_fields(binding, _BINDING_FIELDS, "Atlas 3.0 manifest binding")
+    if binding.get("version") != "3.0" or binding.get("validatorVersion") != "3.0":
+        raise Atlas3ExplorerError("Atlas 3.0 manifest binding version is unsupported")
+    for key in _BINDING_FIELDS - {"version", "validatorVersion"}:
+        _digest(binding.get(key), f"Atlas 3.0 manifest binding.{key}")
+
+    graph_rows = _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")
+    if len(graph_rows) != 3:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest must declare exactly three graph roles")
+    graph_ids: dict[str, URIRef] = {}
+    for position, role in enumerate(("asserted", "projection", "derived")):
+        row = _mapping(graph_rows[position], f"Atlas 3.0 {role} graph")
+        _exact_fields(row, frozenset({"role", "id", "quadCount"}), f"Atlas 3.0 {role} graph")
+        if row.get("role") != role:
+            raise Atlas3ExplorerError("Atlas 3.0 manifest graph roles are out of order")
+        graph_ids[role] = URIRef(_text(row.get("id"), f"Atlas 3.0 {role} graph id"))
+        _count(row.get("quadCount"), f"Atlas 3.0 {role} graph quadCount")
+    if len(set(graph_ids.values())) != 3:
+        raise Atlas3ExplorerError("Atlas 3.0 graph role IRIs must be distinct")
+
+    expected_members = (
+        ("atlasDataset", "atlas.nq", "application/n-quads"),
+        ("sourceAccounting", "atlas-source-accounting.json", "application/json"),
+        ("acceptance", "atlas-acceptance.json", "application/json"),
+    )
+    members = _sequence(manifest.get("members"), "Atlas 3.0 manifest members")
+    if len(members) != len(expected_members):
+        raise Atlas3ExplorerError("Atlas 3.0 manifest must pin exactly three non-manifest members")
+    for position, (role, path, media_type) in enumerate(expected_members):
+        row = _mapping(members[position], f"Atlas 3.0 member {path}")
         _exact_fields(
             row,
-            _PUBLISHER_RELEASE_PRIOR_VERSION_FIELDS,
-            item_label,
+            frozenset({"role", "path", "mediaType", "digest", "byteLength"}),
+            f"Atlas 3.0 member {path}",
         )
-        if (
-            row.get("type") != PUBLISHER_RELEASE_PRIOR_VERSION_TYPE
-            or row.get("schemaVersion")
-            != PUBLISHER_RELEASE_PRIOR_VERSION_VERSION
-            or row.get("managedReleaseId") != managed_release_id
-            or row.get("semanticRing") != semantic_ring
-            or row.get("predicateIri") != _OWL_PRIOR_VERSION_IRI
-            or row.get("predecessorReferenceKind")
-            != PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND
-        ):
-            raise AtlasExplorerError(
-                f"{item_label} differs from its managed publisher-lineage boundary"
+        if row.get("role") != role or row.get("path") != path or row.get("mediaType") != media_type:
+            raise Atlas3ExplorerError(f"Atlas 3.0 member {path} role, path, or media type differs")
+        byte_length, digest = member_evidence[path]
+        if _digest(row.get("digest"), f"Atlas 3.0 member {path} digest") != digest:
+            raise Atlas3ExplorerError(f"Atlas 3.0 member {path} digest differs")
+        if _count(row.get("byteLength"), f"Atlas 3.0 member {path} byteLength") != byte_length:
+            raise Atlas3ExplorerError(f"Atlas 3.0 member {path} byte length differs")
+
+    counts = _mapping(manifest.get("counts"), "Atlas 3.0 manifest counts")
+    _exact_fields(counts, _COUNT_FIELDS, "Atlas 3.0 manifest counts")
+    for key, value in counts.items():
+        _count(value, f"Atlas 3.0 manifest counts.{key}")
+    return manifest_digest, graph_ids
+
+
+def _verify_acceptance(
+    manifest: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    member_digests: Mapping[str, str],
+) -> None:
+    if (
+        acceptance.get("type") != "AtlasAcceptance"
+        or acceptance.get("version") != "3.0"
+        or acceptance.get("distributionId") != manifest.get("distributionId")
+        or acceptance.get("verdict") != "passed"
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 acceptance does not certify this distribution")
+    validator = _mapping(acceptance.get("validator"), "Atlas 3.0 acceptance validator")
+    if dict(validator) != {"name": "refspec-atlas-conformance", "version": "3.0"}:
+        raise Atlas3ExplorerError("Atlas 3.0 acceptance validator identity is unsupported")
+    gate_names: list[str] = []
+    for raw in _sequence(acceptance.get("gates"), "Atlas 3.0 acceptance gates"):
+        row = _mapping(raw, "Atlas 3.0 acceptance gate")
+        if row.get("status") != "passed":
+            raise Atlas3ExplorerError("Every Atlas 3.0 acceptance gate must have passed")
+        gate_names.append(_text(row.get("name"), "Atlas 3.0 acceptance gate name"))
+        _digest(row.get("evidenceDigest"), "Atlas 3.0 acceptance gate evidenceDigest")
+    if frozenset(gate_names) != REQUIRED_ACCEPTANCE_GATES or len(gate_names) != len(set(gate_names)):
+        raise Atlas3ExplorerError("Atlas 3.0 acceptance gate set is incomplete or duplicated")
+
+    inputs = _mapping(acceptance.get("inputs"), "Atlas 3.0 acceptance inputs")
+    binding = _mapping(manifest.get("binding"), "Atlas 3.0 manifest binding")
+    expected = {
+        "atlasDigest": member_digests["atlas.nq"],
+        "sourceAccountingDigest": member_digests["atlas-source-accounting.json"],
+        "bindingBundleDigest": binding["bindingBundleDigest"],
+        "ontologyDigest": binding["ontologyDigest"],
+        "shapesDigest": binding["shapesDigest"],
+        "manifestSchemaDigest": binding["manifestSchemaDigest"],
+        "sourceAccountingSchemaDigest": binding["sourceAccountingSchemaDigest"],
+        "acceptanceSchemaDigest": binding["acceptanceSchemaDigest"],
+    }
+    if dict(inputs) != expected:
+        raise Atlas3ExplorerError("Atlas 3.0 acceptance inputs differ from the sealed distribution")
+    for raw in cast(Sequence[Mapping[str, Any]], acceptance["gates"]):
+        expected_gate_digest = _canonical_digest_without_lf(
+            {
+                "inputs": dict(inputs),
+                "name": raw["name"],
+                "status": "passed",
+                "validator": dict(validator),
+            }
+        )
+        if raw["evidenceDigest"] != expected_gate_digest:
+            raise Atlas3ExplorerError(f"Atlas 3.0 gate {raw['name']} evidenceDigest differs")
+
+
+def _verify_dataset(
+    manifest: Mapping[str, Any],
+    atlas_stream: BinaryIO,
+    graph_ids: Mapping[str, URIRef],
+) -> Dataset:
+    dataset = Dataset(default_union=False)
+    try:
+        atlas_stream.seek(0)
+        dataset.parse(source=atlas_stream, format="nquads")
+    except (ParserError, UnicodeDecodeError) as error:
+        raise Atlas3ExplorerError("Atlas 3.0 dataset is not valid N-Quads") from error
+    observed_graph_counts: Counter[str] = Counter()
+    allowed_graph_ids = set(graph_ids.values())
+    for subject, predicate, object_value, graph_id in dataset.quads((None, None, None, None)):
+        if graph_id not in allowed_graph_ids:
+            raise Atlas3ExplorerError(f"Atlas 3.0 dataset uses undeclared graph {graph_id}")
+        if any(isinstance(term, BNode) for term in (subject, predicate, object_value, graph_id)):
+            raise Atlas3ExplorerError("Atlas 3.0 dataset must not contain blank nodes")
+        observed_graph_counts[str(graph_id)] += 1
+    expected_graph_counts = {
+        str(row["id"]): row["quadCount"]
+        for row in cast(Sequence[Mapping[str, Any]], manifest["graphs"])
+    }
+    if {graph_id: observed_graph_counts[graph_id] for graph_id in expected_graph_counts} != expected_graph_counts:
+        raise Atlas3ExplorerError("Atlas 3.0 graph quad counts differ from the manifest")
+
+    asserted = dataset.graph(graph_ids["asserted"])
+    projection = dataset.graph(graph_ids["projection"])
+    derived = dataset.graph(graph_ids["derived"])
+    observed_counts = {
+        "releases": len(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))),
+        "resources": len(set(asserted.subjects(RDF.type, ATLAS.AtlasResource))),
+        "labels": len(set(asserted.subjects(RDF.type, SKOSXL.Label))),
+        "sourceRecords": len(set(asserted.subjects(RDF.type, ATLAS.SourceRecord))),
+        "relationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.RelationAssertion))),
+        "mappingAssertions": len(set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))),
+        "nativeRelationAssertions": len(set(asserted.subjects(RDF.type, ATLAS.NativeRelationAssertion))),
+        "sourceAssignments": len(set(asserted.subjects(RDF.type, ATLAS.SourceAssignment))),
+        "projectedRelations": len(set(projection.subjects(RDF.type, ATLAS.ProjectedRelation))),
+        "derivedRelations": len(set(derived.subjects(RDF.type, ATLAS.DerivedRelation))),
+    }
+    if observed_counts != dict(cast(Mapping[str, Any], manifest["counts"])):
+        raise Atlas3ExplorerError("Atlas 3.0 RDF record counts differ from the manifest")
+    return dataset
+
+
+def _verify_source_accounting(
+    manifest: Mapping[str, Any],
+    accounting: Mapping[str, Any],
+    asserted: Graph,
+) -> None:
+    if (
+        accounting.get("type") != "AtlasSourceAccounting"
+        or accounting.get("version") != "3.0"
+        or accounting.get("distributionId") != manifest.get("distributionId")
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 source accounting belongs to another distribution")
+    graph_records = {str(value) for value in asserted.subjects(RDF.type, ATLAS.SourceRecord)}
+    graph_releases = {str(value) for value in asserted.subjects(RDF.type, ATLAS.SourceRelease)}
+    input_releases: set[str] = set()
+    dispositions: dict[str, Mapping[str, Any]] = {}
+    status_counts = {"represented": 0, "excluded": 0, "unresolved": 0}
+    inputs = _sequence(accounting.get("inputs"), "Atlas 3.0 source accounting inputs")
+    for raw_input in inputs:
+        source = _mapping(raw_input, "Atlas 3.0 source accounting input")
+        source_release = _text(source.get("sourceRelease"), "Atlas 3.0 source release")
+        if source_release in input_releases or source_release not in graph_releases:
+            raise Atlas3ExplorerError("Atlas 3.0 source accounting repeats or invents a source release")
+        input_releases.add(source_release)
+        rows = _sequence(source.get("dispositions"), "Atlas 3.0 source dispositions")
+        if source.get("membershipMode") in {"complete", "partial"} and source.get("declaredMemberCount") != len(rows):
+            raise Atlas3ExplorerError("Atlas 3.0 source declaredMemberCount differs from its dispositions")
+        for raw_disposition in rows:
+            disposition = _mapping(raw_disposition, "Atlas 3.0 source disposition")
+            record = _text(disposition.get("sourceRecord"), "Atlas 3.0 disposition sourceRecord")
+            status_value = disposition.get("status")
+            if record in dispositions or record not in graph_records or status_value not in status_counts:
+                raise Atlas3ExplorerError("Atlas 3.0 source accounting repeats or invents a source record")
+            if URIRef(source_release) not in asserted.objects(URIRef(record), ATLAS.inSourceRelease):
+                raise Atlas3ExplorerError("Atlas 3.0 source record is assigned to the wrong source release")
+            atlas_resources = _sequence(
+                disposition.get("atlasResources"),
+                f"Atlas 3.0 disposition {record} atlasResources",
             )
-        publisher_release_iri = _text(
-            row.get("publisherReleaseIri"),
-            f"{item_label}.publisherReleaseIri",
-        )
-        prior_version_iri = _text(
-            row.get("priorVersionIri"),
-            f"{item_label}.priorVersionIri",
-        )
-        if publisher_release_iri == prior_version_iri:
-            raise AtlasExplorerError(
-                f"{item_label} publisher release and prior version must differ"
+            ledger_resources = {str(value) for value in atlas_resources}
+            if len(ledger_resources) != len(atlas_resources):
+                raise Atlas3ExplorerError(f"Atlas 3.0 disposition {record} repeats an Atlas resource")
+            graph_resources = {
+                str(value)
+                for value in asserted.objects(URIRef(record), ATLAS.representsResource)
+            }
+            inverse_resources = {
+                str(resource)
+                for resource in asserted.subjects(ATLAS.sourceRecord, URIRef(record))
+                if any((resource, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES)
+            }
+            if not (ledger_resources == graph_resources == inverse_resources):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 disposition {record} differs from its bidirectional RDF resource links"
+                )
+            if status_value == "represented":
+                if not ledger_resources or "reason" in disposition:
+                    raise Atlas3ExplorerError(
+                        f"represented Atlas 3.0 disposition {record} needs resources and no reason"
+                    )
+            else:
+                if ledger_resources or "reason" not in disposition:
+                    raise Atlas3ExplorerError(
+                        f"{status_value} Atlas 3.0 disposition {record} needs a reason and no resources"
+                    )
+                _text(disposition["reason"], f"Atlas 3.0 disposition {record} reason")
+            for resource in ledger_resources:
+                resource_iri = URIRef(resource)
+                if not any((resource_iri, RDF.type, resource_type) in asserted for resource_type in RESOURCE_TYPES):
+                    raise Atlas3ExplorerError(f"Atlas 3.0 disposition {record} names an unknown resource")
+            dispositions[record] = disposition
+            status_counts[cast(str, status_value)] += 1
+    if set(dispositions) != graph_records or input_releases != graph_releases:
+        raise Atlas3ExplorerError("Atlas 3.0 source accounting is not complete for the asserted graph")
+    expected_totals = {
+        "sourceReleases": len(input_releases),
+        "sourceRecords": len(dispositions),
+        **status_counts,
+    }
+    if accounting.get("totals") != expected_totals:
+        raise Atlas3ExplorerError("Atlas 3.0 source-accounting totals do not reconcile")
+
+
+@dataclass(frozen=True, slots=True)
+class Atlas3ExplorerDistribution:
+    """A verified, read-only view of one sealed Atlas 3.0 distribution."""
+
+    root: Path
+    manifest_digest: str
+    manifest: Mapping[str, Any]
+    source_accounting: Mapping[str, Any]
+    acceptance: Mapping[str, Any]
+    trusted_manifest: bool
+    binding_verified: bool
+    _dataset: Dataset
+    _graph_ids: Mapping[str, URIRef]
+
+    @classmethod
+    def open(
+        cls,
+        root: str | Path,
+        *,
+        trusted_manifest_digest: str,
+    ) -> Atlas3ExplorerDistribution:
+        """Open four exact files, verify their pins, and retain graph roles."""
+
+        requested_root = Path(root)
+        try:
+            root_status = requested_root.lstat()
+        except OSError as error:
+            raise Atlas3ExplorerError(f"cannot open Atlas 3.0 distribution {requested_root}") from error
+        if stat.S_ISLNK(root_status.st_mode) or not stat.S_ISDIR(root_status.st_mode):
+            raise Atlas3ExplorerError("Atlas 3.0 distribution root must be a real directory")
+        resolved_root = requested_root.resolve(strict=True)
+        children = {child.name: child for child in resolved_root.iterdir()}
+        if set(children) != EXPECTED_FILES:
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 distribution files differ; "
+                f"missing={sorted(EXPECTED_FILES - set(children))}, "
+                f"extra={sorted(set(children) - EXPECTED_FILES)}"
             )
-        semantic_claim = (publisher_release_iri, prior_version_iri)
-        if semantic_claim in semantic_claims:
-            raise AtlasExplorerError(
-                f"{label} repeats a publisher prior-version claim"
+        member_statuses: dict[str, os.stat_result] = {}
+        for name, path in children.items():
+            file_status = path.lstat()
+            if stat.S_ISLNK(file_status.st_mode) or not stat.S_ISREG(file_status.st_mode):
+                raise Atlas3ExplorerError(f"Atlas 3.0 member {name} must be a regular non-symlink file")
+            member_statuses[name] = file_status
+
+        json_payloads = {
+            name: children[name].read_bytes()
+            for name in (
+                "atlas-manifest.json",
+                "atlas-source-accounting.json",
+                "atlas-acceptance.json",
             )
-        semantic_claims.add(semantic_claim)
-        source_record = _mapping(
-            row.get("sourceRecord"),
-            f"{item_label}.sourceRecord",
-        )
-        _exact_fields(
-            source_record,
-            _PUBLISHER_RELEASE_SOURCE_RECORD_FIELDS,
-            f"{item_label}.sourceRecord",
-        )
-        source_native_id = _text(
-            source_record.get("nativeId"),
-            f"{item_label}.sourceRecord.nativeId",
-        )
-        source_record_id = _text(
-            source_record.get("recordId"),
-            f"{item_label}.sourceRecord.recordId",
-        )
-        source_record_digest = _digest(
-            source_record.get("recordDigest"),
-            f"{item_label}.sourceRecord.recordDigest",
-        )
-        if (
-            source_native_id != publisher_release_iri
-            or source_record_id
-            != "urn:ref:vocabulary-atlas-record:"
-            + source_record_digest.removeprefix("sha256:")
-        ):
-            raise AtlasExplorerError(
-                f"{item_label} source-record pin is stale"
+        }
+        member_evidence = {
+            name: (len(payload), sha256_digest(payload))
+            for name, payload in json_payloads.items()
+            if name != "atlas-manifest.json"
+        }
+        atlas_path = children["atlas.nq"]
+        with atlas_path.open("rb") as atlas_stream:
+            opened_status = os.fstat(atlas_stream.fileno())
+            if (
+                not stat.S_ISREG(opened_status.st_mode)
+                or (opened_status.st_dev, opened_status.st_ino)
+                != (
+                    member_statuses["atlas.nq"].st_dev,
+                    member_statuses["atlas.nq"].st_ino,
+                )
+            ):
+                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being opened")
+            opened_identity = _file_identity(opened_status)
+            member_evidence["atlas.nq"] = _scan_dataset_member(atlas_stream)
+
+            manifest_payload = json_payloads["atlas-manifest.json"]
+            manifest = _read_canonical_json(manifest_payload, "Atlas 3.0 manifest")
+            source_accounting = _read_canonical_json(
+                json_payloads["atlas-source-accounting.json"],
+                "Atlas 3.0 source accounting",
             )
-        basis = {
-            "type": PUBLISHER_RELEASE_PRIOR_VERSION_TYPE,
-            "schemaVersion": PUBLISHER_RELEASE_PRIOR_VERSION_VERSION,
-            "managedReleaseId": managed_release_id,
-            "semanticRing": semantic_ring,
-            "publisherReleaseIri": publisher_release_iri,
-            "predicateIri": _OWL_PRIOR_VERSION_IRI,
-            "priorVersionIri": prior_version_iri,
-            "predecessorReferenceKind": (
-                PUBLISHER_RELEASE_PRIOR_VERSION_REFERENCE_KIND
-            ),
-            "sourceRecord": {
-                "nativeId": source_native_id,
-                "recordId": source_record_id,
-                "recordDigest": source_record_digest,
+            acceptance = _read_canonical_json(
+                json_payloads["atlas-acceptance.json"],
+                "Atlas 3.0 acceptance",
+            )
+            manifest_digest, graph_ids = _verify_manifest(
+                manifest,
+                manifest_payload,
+                member_evidence,
+                trusted_manifest_digest,
+            )
+            _verify_acceptance(
+                manifest,
+                acceptance,
+                {name: digest for name, (_size, digest) in member_evidence.items()},
+            )
+            _verify_binding_evidence(manifest, acceptance)
+            dataset = _verify_dataset(manifest, atlas_stream, graph_ids)
+            try:
+                current_path_status = atlas_path.lstat()
+                final_status = os.fstat(atlas_stream.fileno())
+            except OSError as error:
+                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being read") from error
+            if (
+                _file_identity(final_status) != opened_identity
+                or stat.S_ISLNK(current_path_status.st_mode)
+                or _file_identity(current_path_status) != opened_identity
+            ):
+                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being read")
+            _verify_source_accounting(
+                manifest,
+                source_accounting,
+                dataset.graph(graph_ids["asserted"]),
+            )
+        return cls(
+            root=resolved_root,
+            manifest_digest=manifest_digest,
+            manifest=cast(Mapping[str, Any], deep_freeze_json(manifest)),
+            source_accounting=cast(Mapping[str, Any], deep_freeze_json(source_accounting)),
+            acceptance=cast(Mapping[str, Any], deep_freeze_json(acceptance)),
+            trusted_manifest=True,
+            binding_verified=True,
+            _dataset=dataset,
+            _graph_ids=cast(Mapping[str, URIRef], deep_freeze_json(graph_ids)),
+        )
+
+    def graph(self, role: str) -> Graph:
+        """Return exactly one manifest-assigned graph role."""
+
+        graph_id = self._graph_ids.get(role)
+        if graph_id is None:
+            raise Atlas3ExplorerError(f"unknown Atlas 3.0 graph role {role!r}")
+        return self._dataset.graph(graph_id)
+
+    @property
+    def asserted_graph(self) -> Graph:
+        return self.graph("asserted")
+
+    @property
+    def projection_graph(self) -> Graph:
+        return self.graph("projection")
+
+    @property
+    def derived_graph(self) -> Graph:
+        return self.graph("derived")
+
+
+def open_atlas_v3_explorer_distribution(
+    root: str | Path,
+    *,
+    trusted_manifest_digest: str,
+) -> Atlas3ExplorerDistribution:
+    """Open one Atlas 3.0 distribution for evidence-aware exploration."""
+
+    return Atlas3ExplorerDistribution.open(root, trusted_manifest_digest=trusted_manifest_digest)
+
+
+def _source_record_view(graph: Graph, record: URIRef) -> dict[str, Any]:
+    return {
+        "id": str(record),
+        "sourceRelease": str(_one(graph, record, ATLAS.inSourceRelease, label=f"source record {record}")),
+        "sourceLocator": str(_one(graph, record, ATLAS.sourceLocator, label=f"source record {record}")),
+        "sourceDigest": str(_one(graph, record, ATLAS.sourceDigest, label=f"source record {record}")),
+        "contentDigest": str(_one(graph, record, ATLAS.contentDigest, label=f"source record {record}")),
+        "nativePayload": _json_literal(
+            _one(graph, record, ATLAS.nativePayload, label=f"source record {record}"),
+            f"source record {record} nativePayload",
+        ),
+        "representsResources": sorted(str(value) for value in graph.objects(record, ATLAS.representsResource)),
+    }
+
+
+def _label_view(graph: Graph, label: URIRef, role: str) -> dict[str, Any]:
+    literal = _one(graph, label, SKOSXL.literalForm, label=f"label {label}")
+    if not isinstance(literal, Literal):
+        raise Atlas3ExplorerError(f"label {label} literalForm must be a literal")
+    return {
+        "id": str(label),
+        "role": role,
+        **_literal_view(literal),
+        "sourceRecord": str(_one(graph, label, ATLAS.sourceRecord, label=f"label {label}")),
+        "contentDigest": str(_one(graph, label, ATLAS.contentDigest, label=f"label {label}")),
+    }
+
+
+def _resource_display_label(graph: Graph, resource: URIRef) -> str:
+    candidates: list[tuple[int, str, str, str, str]] = []
+    for role_order, (predicate, _role) in enumerate(LABEL_ROLES):
+        for label in graph.objects(resource, predicate):
+            if not isinstance(label, URIRef):
+                continue
+            literal = _one(graph, label, SKOSXL.literalForm, label=f"label {label}")
+            if not isinstance(literal, Literal):
+                raise Atlas3ExplorerError(f"label {label} literalForm must be a literal")
+            literal_view = _literal_view(literal)
+            value = literal_view["value"]
+            candidates.append(
+                (
+                    role_order,
+                    literal_view.get("language", ""),
+                    value.casefold(),
+                    value,
+                    str(label),
+                )
+            )
+    if not candidates:
+        raise Atlas3ExplorerError(f"resource {resource} has no asserted SKOS-XL label")
+    return min(candidates)[3]
+
+
+def _resource_view(graph: Graph, resource: URIRef) -> dict[str, Any]:
+    labels: list[dict[str, Any]] = []
+    for predicate, role in LABEL_ROLES:
+        labels.extend(
+            _label_view(graph, value, role)
+            for value in graph.objects(resource, predicate)
+            if isinstance(value, URIRef)
+        )
+    role_order = {role: position for position, (_predicate, role) in enumerate(LABEL_ROLES)}
+    labels.sort(
+        key=lambda row: (
+            role_order[row["role"]],
+            row.get("language", ""),
+            cast(str, row["value"]).casefold(),
+            row["value"],
+            row["id"],
+        )
+    )
+    if not labels:
+        raise Atlas3ExplorerError(f"resource {resource} has no asserted SKOS-XL label")
+    resource_types = [value for value in RESOURCE_TYPES if (resource, RDF.type, value) in graph]
+    if len(resource_types) != 1:
+        raise Atlas3ExplorerError(f"resource {resource} must have one Atlas 3.0 resource type")
+    return {
+        "id": str(resource),
+        "resourceType": _iri_name(resource_types[0]),
+        "release": str(_one(graph, resource, ATLAS.inRelease, label=f"resource {resource}")),
+        "scheme": str(_one(graph, resource, ATLAS.inScheme, label=f"resource {resource}")),
+        "semanticRing": _iri_name(_one(graph, resource, ATLAS.semanticRing, label=f"resource {resource}")),
+        "resourceProfile": _iri_name(_one(graph, resource, ATLAS.resourceProfile, label=f"resource {resource}")),
+        "displayLabel": labels[0]["value"],
+        "displayLabelRole": labels[0]["role"],
+        "labels": labels,
+        "sourceRecords": sorted(str(value) for value in graph.objects(resource, ATLAS.sourceRecord)),
+        "contentDigest": str(_one(graph, resource, ATLAS.contentDigest, label=f"resource {resource}")),
+        "notations": sorted(str(value) for value in graph.objects(resource, ATLAS.notation)),
+        "definitions": [
+            _literal_view(value)
+            for value in graph.objects(resource, ATLAS.definition)
+            if isinstance(value, Literal)
+        ],
+        "notes": [
+            _literal_view(value)
+            for value in graph.objects(resource, ATLAS.note)
+            if isinstance(value, Literal)
+        ],
+    }
+
+
+def _resource_index_view(
+    graph: Graph,
+    resource: URIRef,
+    display_label: str,
+) -> dict[str, str]:
+    """Return the small, complete resource row used by search and filtering."""
+
+    return {
+        "id": str(resource),
+        "displayLabel": display_label,
+        "release": str(_one(graph, resource, ATLAS.inRelease, label=f"resource {resource}")),
+        "semanticRing": _iri_name(
+            _one(graph, resource, ATLAS.semanticRing, label=f"resource {resource}")
+        ),
+    }
+
+
+def _policy_view(graph: Graph, policy: URIRef) -> dict[str, Any]:
+    return {
+        "id": str(policy),
+        "contentDigest": str(_one(graph, policy, ATLAS.contentDigest, label=f"policy {policy}")),
+        "payload": _json_literal(
+            _one(graph, policy, ATLAS.policyPayload, label=f"policy {policy}"),
+            f"policy {policy} payload",
+        ),
+    }
+
+
+def _evidence_view(
+    graph: Graph,
+    binding: URIRef,
+    source_record_content_digests: Mapping[str, str],
+) -> dict[str, Any]:
+    record = _one(graph, binding, ATLAS.evidenceSourceRecord, label=f"evidence {binding}")
+    record_id = str(record)
+    if not isinstance(record, URIRef) or record_id not in source_record_content_digests:
+        raise Atlas3ExplorerError(f"evidence {binding} names an unavailable source record")
+    result: dict[str, Any] = {
+        "id": str(binding),
+        "sourceRecord": record_id,
+        "sourceRecordContentDigest": source_record_content_digests[record_id],
+        "sourceDigest": str(_one(graph, binding, ATLAS.evidenceSourceDigest, label=f"evidence {binding}")),
+        "decisionStatus": _iri_name(_one(graph, binding, ATLAS.decisionStatus, label=f"evidence {binding}")),
+        "reviewMethod": _iri_name(_one(graph, binding, ATLAS.reviewMethod, label=f"evidence {binding}")),
+        "decidedAt": str(_one(graph, binding, ATLAS.decidedAt, label=f"evidence {binding}")),
+        "contentDigest": str(_one(graph, binding, ATLAS.contentDigest, label=f"evidence {binding}")),
+    }
+    for predicate, field in ((ATLAS.reviewedBy, "reviewedBy"), (ATLAS.confidence, "confidence")):
+        value = _one(graph, binding, predicate, label=f"evidence {binding}", required=False)
+        if value is not None:
+            result[field] = str(value)
+    return result
+
+
+def _assertion_view(
+    graph: Graph,
+    assertion: URIRef,
+    source_record_content_digests: Mapping[str, str],
+    labels: Mapping[str, str],
+) -> dict[str, Any]:
+    kinds = [label for relation_type, label in RELATION_TYPES if (assertion, RDF.type, relation_type) in graph]
+    if len(kinds) != 1:
+        raise Atlas3ExplorerError(f"assertion {assertion} must have one Atlas 3.0 specialization")
+    subject = _one(graph, assertion, RDF.subject, label=f"assertion {assertion}")
+    predicate = _one(graph, assertion, RDF.predicate, label=f"assertion {assertion}")
+    object_value = _one(graph, assertion, RDF.object, label=f"assertion {assertion}")
+    policy = _one(graph, assertion, ATLAS.governedByPolicy, label=f"assertion {assertion}")
+    if not all(isinstance(value, URIRef) for value in (subject, predicate, object_value, policy)):
+        raise Atlas3ExplorerError(f"assertion {assertion} endpoints, predicate, and policy must be IRIs")
+    evidence = sorted(
+        (
+            _evidence_view(graph, binding, source_record_content_digests)
+            for binding in graph.subjects(ATLAS.bindsAssertion, assertion)
+            if isinstance(binding, URIRef)
+        ),
+        key=lambda row: row["id"],
+    )
+    if not evidence:
+        raise Atlas3ExplorerError(f"assertion {assertion} has no evidence binding")
+    status = _iri_name(_one(graph, assertion, ATLAS.assertionStatus, label=f"assertion {assertion}"))
+    result: dict[str, Any] = {
+        "id": str(assertion),
+        "kind": kinds[0],
+        "authority": "authoritative" if status == "current" else "historicalEditorialRecord",
+        "authoritative": status == "current",
+        "subject": str(subject),
+        "subjectLabel": labels.get(str(subject), _iri_name(subject)),
+        "predicate": str(predicate),
+        "predicateLabel": _iri_name(predicate),
+        "predicateMeaning": atlas_v3_predicate_meaning(str(predicate)),
+        "object": str(object_value),
+        "objectLabel": labels.get(str(object_value), _iri_name(object_value)),
+        "semanticRing": _iri_name(_one(graph, assertion, ATLAS.semanticRing, label=f"assertion {assertion}")),
+        "sourceRelease": str(_one(graph, assertion, ATLAS.sourceRelease, label=f"assertion {assertion}")),
+        "targetRelease": str(_one(graph, assertion, ATLAS.targetRelease, label=f"assertion {assertion}")),
+        "assertedAt": str(_one(graph, assertion, ATLAS.assertedAt, label=f"assertion {assertion}")),
+        "status": status,
+        "identityDigest": str(
+            _one(graph, assertion, ATLAS.assertionIdentityDigest, label=f"assertion {assertion}")
+        ),
+        "contentDigest": str(_one(graph, assertion, ATLAS.contentDigest, label=f"assertion {assertion}")),
+        "policy": _policy_view(graph, cast(URIRef, policy)),
+        "evidence": evidence,
+    }
+    supersedes = _one(graph, assertion, ATLAS.supersedes, label=f"assertion {assertion}", required=False)
+    if supersedes is not None:
+        result["supersedes"] = str(supersedes)
+    return result
+
+
+def _projected_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> dict[str, Any]:
+    subject = _one(graph, relation, ATLAS.relationSubject, label=f"projection {relation}")
+    predicate = _one(graph, relation, ATLAS.relationPredicate, label=f"projection {relation}")
+    object_value = _one(graph, relation, ATLAS.relationObject, label=f"projection {relation}")
+    supporting_assertions = sorted(str(value) for value in graph.objects(relation, ATLAS.supportingAssertion))
+    if not supporting_assertions:
+        raise Atlas3ExplorerError(f"projection {relation} has no supporting assertion")
+    return {
+        "id": str(relation),
+        "authority": "reproducibleProjection",
+        "authoritative": False,
+        "subject": str(subject),
+        "subjectLabel": labels.get(str(subject), _iri_name(subject)),
+        "predicate": str(predicate),
+        "predicateLabel": _iri_name(predicate),
+        "predicateMeaning": atlas_v3_predicate_meaning(str(predicate)),
+        "object": str(object_value),
+        "objectLabel": labels.get(str(object_value), _iri_name(object_value)),
+        "semanticRing": _iri_name(_one(graph, relation, ATLAS.semanticRing, label=f"projection {relation}")),
+        "supportingAssertions": supporting_assertions,
+        "contentDigest": str(_one(graph, relation, ATLAS.contentDigest, label=f"projection {relation}")),
+    }
+
+
+def _derived_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> dict[str, Any]:
+    subject = _one(graph, relation, ATLAS.relationSubject, label=f"derived relation {relation}")
+    predicate = _one(graph, relation, ATLAS.relationPredicate, label=f"derived relation {relation}")
+    object_value = _one(graph, relation, ATLAS.relationObject, label=f"derived relation {relation}")
+    authority_status = _one(graph, relation, ATLAS.authorityStatus, label=f"derived relation {relation}")
+    if authority_status != ATLAS.nonAuthoritative:
+        raise Atlas3ExplorerError(f"derived relation {relation} is not explicitly non-authoritative")
+    return {
+        "id": str(relation),
+        "authority": "nonAuthoritative",
+        "authorityStatus": _iri_name(authority_status),
+        "authoritative": False,
+        "subject": str(subject),
+        "subjectLabel": labels.get(str(subject), _iri_name(subject)),
+        "predicate": str(predicate),
+        "predicateLabel": _iri_name(predicate),
+        "predicateMeaning": atlas_v3_predicate_meaning(str(predicate)),
+        "object": str(object_value),
+        "objectLabel": labels.get(str(object_value), _iri_name(object_value)),
+        "semanticRing": _iri_name(
+            _one(graph, relation, ATLAS.semanticRing, label=f"derived relation {relation}")
+        ),
+        "derivedFromAssertions": sorted(str(value) for value in graph.objects(relation, ATLAS.derivedFromAssertion)),
+        "rule": str(_one(graph, relation, ATLAS.derivationRule, label=f"derived relation {relation}")),
+        "engine": str(_one(graph, relation, ATLAS.engine, label=f"derived relation {relation}")),
+        "engineVersion": str(_one(graph, relation, ATLAS.engineVersion, label=f"derived relation {relation}")),
+        "inputDigest": str(_one(graph, relation, ATLAS.inputDigest, label=f"derived relation {relation}")),
+        "generatedAt": str(_one(graph, relation, ATLAS.generatedAt, label=f"derived relation {relation}")),
+        "contentDigest": str(_one(graph, relation, ATLAS.contentDigest, label=f"derived relation {relation}")),
+    }
+
+
+def _release_view(graph: Graph, release: URIRef, *, source: bool) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "id": str(release),
+        "kind": "source" if source else "atlas",
+        "contentDigest": str(_one(graph, release, ATLAS.contentDigest, label=f"release {release}")),
+    }
+    optional_fields = (
+        (DCTERMS.title, "title", False),
+        (DCTERMS.identifier, "identifier", False),
+        (DCTERMS.issued, "issued", False),
+        (ATLAS.sourceLocator, "sourceLocator", False),
+        (ATLAS.sourceDigest, "sourceDigest", False),
+        (ATLAS.inScheme, "scheme", False),
+        (ATLAS.sourceRelease, "sourceRelease", False),
+        (ATLAS.resourceProfile, "resourceProfile", True),
+        (ATLAS.semanticRing, "semanticRing", True),
+    )
+    for predicate, field, short_iri in optional_fields:
+        value = _one(graph, release, predicate, label=f"release {release}", required=False)
+        if value is not None:
+            result[field] = _iri_name(value) if short_iri else str(value)
+    if not source:
+        result["memberCount"] = len(set(graph.objects(release, PROV.hadMember)))
+    return result
+
+
+def _limit(rows: list[_LimitedRow], limit: int | None, label: str) -> list[_LimitedRow]:
+    if limit is None:
+        return rows
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit < 0:
+        raise Atlas3ExplorerError(f"{label} must be a non-negative integer or None")
+    return rows[:limit]
+
+
+def build_atlas_v3_explorer_model(
+    distribution: Atlas3ExplorerDistribution,
+    *,
+    title: str = "RefSpec Atlas 3.0 explorer",
+    max_resources: int | None = None,
+    max_assertions: int | None = None,
+    max_projected_relations: int | None = None,
+    max_derived_relations: int | None = None,
+) -> dict[str, Any]:
+    """Build a JSON view whose relation collections retain their authority roles."""
+
+    if not isinstance(distribution, Atlas3ExplorerDistribution):
+        raise Atlas3ExplorerError("Atlas 3.0 explorer requires an opened distribution")
+    _text(title, "Atlas 3.0 explorer title")
+    for limit, label in (
+        (max_resources, "max_resources"),
+        (max_assertions, "max_assertions"),
+        (max_projected_relations, "max_projected_relations"),
+        (max_derived_relations, "max_derived_relations"),
+    ):
+        _limit([], limit, label)
+    asserted = distribution.asserted_graph
+    projection = distribution.projection_graph
+    derived = distribution.derived_graph
+
+    source_record_ids = sorted(
+        (
+            record
+            for record in set(asserted.subjects(RDF.type, ATLAS.SourceRecord))
+            if isinstance(record, URIRef)
+        ),
+        key=str,
+    )
+    source_record_by_id = {str(record): record for record in source_record_ids}
+    source_record_content_digests = {
+        str(record): str(_one(asserted, record, ATLAS.contentDigest, label=f"source record {record}"))
+        for record in source_record_ids
+    }
+    resource_ids = [
+        resource
+        for resource in set(asserted.subjects(RDF.type, ATLAS.AtlasResource))
+        if isinstance(resource, URIRef)
+    ]
+    labels = {
+        str(resource): _resource_display_label(asserted, resource)
+        for resource in resource_ids
+    }
+    resource_ids.sort(
+        key=lambda resource: (
+            labels[str(resource)].casefold(),
+            labels[str(resource)],
+            str(resource),
+        )
+    )
+    resource_index = [
+        _resource_index_view(asserted, resource, labels[str(resource)])
+        for resource in resource_ids
+    ]
+    shown_resource_ids = _limit(resource_ids, max_resources, "max_resources")
+    resources = [
+        _resource_view(asserted, resource)
+        for resource in shown_resource_ids
+    ]
+    assertion_ids = sorted(
+        (
+            assertion
+            for assertion in set(asserted.subjects(RDF.type, ATLAS.RelationAssertion))
+            if isinstance(assertion, URIRef)
+        ),
+        key=str,
+    )
+    primary_assertion_ids = _limit(assertion_ids, max_assertions, "max_assertions")
+    projected_ids = sorted(
+        (
+            relation
+            for relation in set(projection.subjects(RDF.type, ATLAS.ProjectedRelation))
+            if isinstance(relation, URIRef)
+        ),
+        key=str,
+    )
+    shown_projected_ids = _limit(
+        projected_ids,
+        max_projected_relations,
+        "max_projected_relations",
+    )
+    projected = [
+        _projected_view(projection, relation, labels)
+        for relation in shown_projected_ids
+    ]
+    derived_ids = sorted(
+        (
+            relation
+            for relation in set(derived.subjects(RDF.type, ATLAS.DerivedRelation))
+            if isinstance(relation, URIRef)
+        ),
+        key=str,
+    )
+    shown_derived_ids = _limit(
+        derived_ids,
+        max_derived_relations,
+        "max_derived_relations",
+    )
+    derived_rows = [
+        _derived_view(derived, relation, labels)
+        for relation in shown_derived_ids
+    ]
+    referenced_assertion_ids = {
+        assertion_id
+        for relation in (*projected, *derived_rows)
+        for field in ("supportingAssertions", "derivedFromAssertions")
+        for assertion_id in cast(Sequence[str], relation.get(field, ()))
+    }
+    assertion_by_id = {str(assertion): assertion for assertion in assertion_ids}
+    unavailable_assertions = referenced_assertion_ids - set(assertion_by_id)
+    if unavailable_assertions:
+        raise Atlas3ExplorerError(
+            "bounded Atlas 3.0 relations cite unavailable assertions: "
+            f"{sorted(unavailable_assertions)}"
+        )
+    selected_assertion_ids = {str(assertion) for assertion in primary_assertion_ids}
+    selected_assertion_ids.update(referenced_assertion_ids)
+    shown_assertion_ids = [
+        assertion_by_id[assertion_id]
+        for assertion_id in sorted(selected_assertion_ids)
+    ]
+    assertions = [
+        _assertion_view(
+            asserted,
+            assertion,
+            source_record_content_digests,
+            labels,
+        )
+        for assertion in shown_assertion_ids
+    ]
+    current_authoritative_relations = sum(
+        _iri_name(
+            _one(
+                asserted,
+                assertion,
+                ATLAS.assertionStatus,
+                label=f"assertion {assertion}",
+            )
+        )
+        == "current"
+        for assertion in assertion_ids
+    )
+    shown_source_record_ids = {
+        cast(str, record)
+        for resource in resources
+        for record in cast(Sequence[str], resource["sourceRecords"])
+    } | {
+        cast(str, evidence["sourceRecord"])
+        for assertion in assertions
+        for evidence in cast(Sequence[Mapping[str, Any]], assertion["evidence"])
+    }
+    shown_source_records = [
+        _source_record_view(asserted, source_record_by_id[record_id])
+        for record_id in sorted(shown_source_record_ids)
+    ]
+    graph_by_role = {
+        cast(str, row["role"]): cast(str, row["id"])
+        for row in cast(Sequence[Mapping[str, Any]], distribution.manifest["graphs"])
+    }
+    return {
+        "type": ATLAS_V3_EXPLORER_TYPE,
+        "schemaVersion": ATLAS_V3_EXPLORER_SCHEMA_VERSION,
+        "title": title,
+        "distribution": {
+            "id": distribution.manifest["distributionId"],
+            "manifestDigest": distribution.manifest_digest,
+            "trustedManifestDigestChecked": distribution.trusted_manifest,
+            "createdAt": distribution.manifest["createdAt"],
+            "counts": dict(cast(Mapping[str, Any], distribution.manifest["counts"])),
+        },
+        "acceptance": {
+            "verdict": distribution.acceptance["verdict"],
+            "receiptVerified": True,
+            "bindingDigestChecked": distribution.binding_verified,
+            "gatesReexecutedByExplorer": False,
+            "evaluatedAt": distribution.acceptance["evaluatedAt"],
+            "validator": dict(cast(Mapping[str, Any], distribution.acceptance["validator"])),
+            "gates": [dict(cast(Mapping[str, Any], row)) for row in distribution.acceptance["gates"]],
+        },
+        "authority": {
+            "asserted": {
+                "graph": graph_by_role["asserted"],
+                "status": "authoritative",
+                "meaning": (
+                    "Evidence-bearing current assertion records are editorial authority. "
+                    "Every displayed assertion links to its policy and source-record evidence."
+                ),
             },
-        }
-        content_digest = sha256_digest(canonical_json_bytes(basis))
-        identifier = _text(row.get("id"), f"{item_label}.id")
-        expected = {
-            **basis,
-            "id": (
-                "urn:ref:publisher-release-prior-version:"
-                + content_digest.removeprefix("sha256:")
+            "projection": {
+                "graph": graph_by_role["projection"],
+                "status": "reproducibleConvenienceView",
+                "meaning": (
+                    "Bare relation triples and plain SKOS labels are generated from asserted records; "
+                    "they are not independent editorial facts."
+                ),
+            },
+            "derived": {
+                "graph": graph_by_role["derived"],
+                "status": "nonAuthoritative",
+                "meaning": (
+                    "Reasoner output is useful for search and analysis but is never an editorial assertion."
+                ),
+            },
+        },
+        "summary": {
+            "availableResources": len(resource_ids),
+            "indexedResources": len(resource_index),
+            "shownResources": len(resources),
+            "availableSourceRecords": len(source_record_ids),
+            "shownSourceRecords": len(shown_source_records),
+            "availableAssertedRelations": len(assertion_ids),
+            "shownAssertedRelations": len(assertions),
+            "provenanceClosureAssertedRelations": (
+                len(assertions) - len(primary_assertion_ids)
             ),
-            "contentDigest": content_digest,
-        }
-        if dict(row) != expected or identifier != expected["id"]:
-            raise AtlasExplorerError(
-                f"{item_label} content identity or source-record pin is stale"
-            )
-        if identifier in identifiers:
-            raise AtlasExplorerError(f"{label} repeats a relation id")
-        identifiers.add(identifier)
-        order.append(
-            (publisher_release_iri, prior_version_iri, identifier)
-        )
-    if order != sorted(set(order)):
-        raise AtlasExplorerError(
-            f"{label} must use unique canonical publisher lineage order"
-        )
+            "currentAuthoritativeRelations": current_authoritative_relations,
+            "availableProjectedRelations": len(projected_ids),
+            "shownProjectedRelations": len(projected),
+            "availableDerivedRelations": len(derived_ids),
+            "shownDerivedRelations": len(derived_rows),
+            "truncated": any(
+                (
+                    len(resources) < len(resource_ids),
+                    len(assertions) < len(assertion_ids),
+                    len(projected) < len(projected_ids),
+                    len(derived_rows) < len(derived_ids),
+                )
+            ),
+        },
+        "atlasReleases": sorted(
+            (
+                _release_view(asserted, release, source=False)
+                for release in set(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+                if isinstance(release, URIRef)
+            ),
+            key=lambda row: row["id"],
+        ),
+        "sourceReleases": sorted(
+            (
+                _release_view(asserted, release, source=True)
+                for release in set(asserted.subjects(RDF.type, ATLAS.SourceRelease))
+                if isinstance(release, URIRef)
+            ),
+            key=lambda row: row["id"],
+        ),
+        "sourceRecords": shown_source_records,
+        "resourceIndex": resource_index,
+        "resources": resources,
+        "assertedRelations": assertions,
+        "projectedRelations": projected,
+        "derivedRelations": derived_rows,
+    }
 
 
 def _validate_model(model: Mapping[str, Any]) -> None:
-    _exact_fields(model, _MODEL_FIELDS, "atlas explorer")
-    if model.get("type") != EXPLORER_TYPE or model.get("schemaVersion") != EXPLORER_SCHEMA_VERSION:
-        raise AtlasExplorerError("atlas explorer type or schemaVersion differs from " + EXPLORER_SCHEMA_VERSION)
-    _text(model.get("title"), "atlas explorer title")
-    release_context = _validate_release_context(model.get("releaseContext"))
-    facets = _validate_facets(model.get("facets"))
-
-    atlas = _mapping(model.get("atlas"), "atlas explorer atlas")
-    kind = atlas.get("kind")
-    expected_atlas_fields = _ATLAS_FIELDS if kind == "atlas" else _ATLAS_FIELDS | {"parent"}
-    if kind not in {"atlas", "projection"}:
-        raise AtlasExplorerError("atlas explorer kind must be atlas or projection")
-    _exact_fields(atlas, expected_atlas_fields, "atlas explorer atlas")
-    for field in ("assetId", "manifestDigest", "distributionDigest"):
-        _text(atlas.get(field), f"atlas explorer atlas.{field}")
-    _count(atlas.get("quadCount"), "atlas explorer atlas.quadCount", positive=True)
-    counts = _mapping(atlas.get("counts"), "atlas explorer atlas.counts")
-    _exact_fields(counts, _COUNT_FIELDS, "atlas explorer atlas.counts")
-    for field in _COUNT_FIELDS:
-        _count(counts.get(field), f"atlas explorer atlas.counts.{field}")
-    if kind == "projection":
-        parent = _mapping(atlas.get("parent"), "atlas explorer atlas.parent")
-        _exact_fields(parent, _PARENT_FIELDS, "atlas explorer atlas.parent")
-        for field in _PARENT_FIELDS:
-            _text(parent.get(field), f"atlas explorer atlas.parent.{field}")
-
-    selection = _mapping(model.get("selectionPolicy"), "atlas explorer selectionPolicy")
-    _exact_fields(selection, _SELECTION_FIELDS, "atlas explorer selectionPolicy")
-    if selection.get("type") != "boundedExplorerView" or selection.get("version") != EXPLORER_SCHEMA_VERSION:
-        raise AtlasExplorerError("atlas explorer selectionPolicy differs from " + EXPLORER_SCHEMA_VERSION)
-    _text(selection.get("id"), "atlas explorer selectionPolicy.id")
-    max_concepts = _count(
-        selection.get("maxConcepts"),
-        "atlas explorer selectionPolicy.maxConcepts",
-        positive=True,
-    )
-    max_mappings = _count(
-        selection.get("maxMappingAssertions"),
-        "atlas explorer selectionPolicy.maxMappingAssertions",
-    )
-
-    summary = _mapping(model.get("summary"), "atlas explorer summary")
-    _exact_fields(summary, _SUMMARY_FIELDS, "atlas explorer summary")
-    shown_concepts = _count(summary.get("shownConceptCount"), "atlas explorer summary.shownConceptCount")
-    shown_mappings = _count(
-        summary.get("shownMappingAssertionCount"),
-        "atlas explorer summary.shownMappingAssertionCount",
-    )
-    shown_native_relations = _count(
-        summary.get("shownNativeRelationCount"),
-        "atlas explorer summary.shownNativeRelationCount",
-    )
-    available_concepts = _count(
-        summary.get("availableConceptCount"),
-        "atlas explorer summary.availableConceptCount",
-    )
-    available_mappings = _count(
-        summary.get("availableMappingAssertionCount"),
-        "atlas explorer summary.availableMappingAssertionCount",
-    )
-    available_native_relations = _count(
-        summary.get("availableNativeRelationCount"),
-        "atlas explorer summary.availableNativeRelationCount",
-    )
-    if not isinstance(summary.get("truncated"), bool):
-        raise AtlasExplorerError("atlas explorer summary.truncated must be boolean")
-
-    releases = _sequence(model.get("conceptReleases"), "atlas explorer conceptReleases")
-    release_by_id: dict[str, Mapping[str, Any]] = {}
-    for index, raw in enumerate(releases):
-        label = f"atlas explorer conceptReleases[{index}]"
-        row = _mapping(raw, label)
-        _exact_fields(
-            row,
-            _RELEASE_FIELDS,
-            label,
-            optional=_RELEASE_OPTIONAL_FIELDS,
-        )
-        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
-        if release_id in release_by_id:
-            raise AtlasExplorerError("atlas explorer repeats a concept release")
-        _text(row.get("label"), f"{label}.label")
-        _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        concept_count = _count(row.get("conceptCount"), f"{label}.conceptCount", positive=True)
-        shown_count = _count(row.get("shownConceptCount"), f"{label}.shownConceptCount")
-        if shown_count > concept_count:
-            raise AtlasExplorerError("atlas explorer release shows more concepts than it contains")
-        if "sourceReleaseSupersessions" in row:
-            _validate_source_release_supersessions(
-                row["sourceReleaseSupersessions"],
-                label=f"{label}.sourceReleaseSupersessions",
-                superseding_release_id=release_id,
-                semantic_ring=cast(str, row["semanticRing"]),
-            )
-        if "publisherReleasePriorVersions" in row:
-            _validate_publisher_release_prior_versions(
-                row["publisherReleasePriorVersions"],
-                label=f"{label}.publisherReleasePriorVersions",
-                managed_release_id=release_id,
-                semantic_ring=cast(str, row["semanticRing"]),
-            )
-        release_by_id[release_id] = row
-    if len(release_by_id) != counts["conceptReleases"]:
-        raise AtlasExplorerError("atlas explorer concept release count differs from the distribution")
-
-    concepts = _sequence(model.get("concepts"), "atlas explorer concepts")
-    concept_by_view_id: dict[str, Mapping[str, Any]] = {}
-    release_concept_keys: set[tuple[str, str]] = set()
-    shown_by_release: dict[str, int] = {release_id: 0 for release_id in release_by_id}
-    for index, raw in enumerate(concepts):
-        label = f"atlas explorer concepts[{index}]"
-        row = _mapping(raw, label)
-        _exact_fields(row, _CONCEPT_FIELDS, label, optional=_CONCEPT_OPTIONAL_FIELDS)
-        view_id = _text(row.get("viewId"), f"{label}.viewId")
-        concept_id = _text(row.get("conceptId"), f"{label}.conceptId")
-        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
-        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        if view_id in concept_by_view_id or (release_id, concept_id) in release_concept_keys:
-            raise AtlasExplorerError("atlas explorer repeats a release-scoped concept")
-        release = release_by_id.get(release_id)
-        if release is None or release["semanticRing"] != ring:
-            raise AtlasExplorerError("atlas explorer concept differs from its concept release")
-        _text(row.get("recordId"), f"{label}.recordId")
-        _text(row.get("recordDigest"), f"{label}.recordDigest")
-        _text(row.get("label"), f"{label}.label")
-        reasons = _text_array(row.get("selectionReasons"), f"{label}.selectionReasons")
-        if not set(reasons) <= _SELECTION_REASONS:
-            raise AtlasExplorerError("atlas explorer concept has an unsupported selection reason")
-        for field in _CONCEPT_TEXT_FIELDS & set(row):
-            _text(row[field], f"{label}.{field}")
-        if "searchLabels" in row:
-            search_labels = _text_array(row["searchLabels"], f"{label}.searchLabels")
-            if list(search_labels) != sorted(
-                search_labels,
-                key=lambda value: (value.casefold(), value),
-            ):
-                raise AtlasExplorerError(f"{label}.searchLabels must use canonical label order")
-        for field in _CONCEPT_FACET_FIELDS:
-            _canonical_text_array(row.get(field), f"{label}.{field}")
-        concept_by_view_id[view_id] = row
-        release_concept_keys.add((release_id, concept_id))
-        shown_by_release[release_id] += 1
-    if any(release_by_id[key]["shownConceptCount"] != value for key, value in shown_by_release.items()):
-        raise AtlasExplorerError("atlas explorer release shown counts differ from its concepts")
-
-    native_relations = _sequence(
-        model.get("nativeRelations"),
-        "atlas explorer nativeRelations",
-    )
-    native_relation_ids: set[str] = set()
-    for index, raw in enumerate(native_relations):
-        label = f"atlas explorer nativeRelations[{index}]"
-        row = _mapping(raw, label)
-        _exact_fields(row, _NATIVE_RELATION_FIELDS, label)
-        relation_id = _text(row.get("id"), f"{label}.id")
-        if relation_id in native_relation_ids:
-            raise AtlasExplorerError("atlas explorer repeats a native relation")
-        subject = concept_by_view_id.get(_text(row.get("subjectViewId"), f"{label}.subjectViewId"))
-        object_concept = concept_by_view_id.get(_text(row.get("objectViewId"), f"{label}.objectViewId"))
-        if subject is None or object_concept is None:
-            raise AtlasExplorerError("atlas explorer native relation has an unavailable endpoint")
-        release_id = _text(row.get("releaseId"), f"{label}.releaseId")
-        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        if (
-            subject["releaseId"] != release_id
-            or object_concept["releaseId"] != release_id
-            or subject["semanticRing"] != ring
-            or object_concept["semanticRing"] != ring
-            or subject["conceptId"] != row.get("subjectConcept")
-            or object_concept["conceptId"] != row.get("objectConcept")
-        ):
-            raise AtlasExplorerError("atlas explorer native relation differs from its exact release endpoints")
-        predicate = _text(row.get("predicate"), f"{label}.predicate")
-        expected_label = _NATIVE_RELATION_LABELS.get(predicate)
-        if expected_label is None or row.get("predicateLabel") != expected_label:
-            raise AtlasExplorerError("atlas explorer native relation predicate is unsupported")
-        source_record_id = _text(
-            row.get("sourceRecordId"),
-            f"{label}.sourceRecordId",
-        )
-        source_record_digest = _text(
-            row.get("sourceRecordDigest"),
-            f"{label}.sourceRecordDigest",
-        )
-        if source_record_id != subject["recordId"] or source_record_digest != subject["recordDigest"]:
-            raise AtlasExplorerError("atlas explorer native relation does not bind its source concept record")
-        expected_id = native_concept_relation_id(
-            subject_concept=cast(str, row["subjectConcept"]),
-            predicate_iri=predicate,
-            object_concept=cast(str, row["objectConcept"]),
-            release_id=release_id,
-            source_record_id=source_record_id,
-            source_record_digest=source_record_digest,
-        )
-        if relation_id != expected_id:
-            raise AtlasExplorerError("atlas explorer native relation id differs from its facts")
-        native_relation_ids.add(relation_id)
-
-    mappings = _sequence(model.get("mappingAssertions"), "atlas explorer mappingAssertions")
-    mapping_ids: set[str] = set()
-    for index, raw in enumerate(mappings):
-        label = f"atlas explorer mappingAssertions[{index}]"
-        row = _mapping(raw, label)
-        _exact_fields(row, _MAPPING_FIELDS, label, optional=frozenset({"context"}))
-        mapping_id = _text(row.get("id"), f"{label}.id")
-        if mapping_id in mapping_ids:
-            raise AtlasExplorerError("atlas explorer repeats a mapping assertion")
-        source = concept_by_view_id.get(_text(row.get("sourceViewId"), f"{label}.sourceViewId"))
-        target = concept_by_view_id.get(_text(row.get("targetViewId"), f"{label}.targetViewId"))
-        if source is None or target is None or source is target:
-            raise AtlasExplorerError("atlas explorer mapping assertion has an unavailable endpoint")
-        ring = _ring(row.get("semanticRing"), f"{label}.semanticRing")
-        endpoint_facts = (
-            (source, "sourceConcept", "sourceRelease"),
-            (target, "targetConcept", "targetRelease"),
-        )
-        if any(
-            endpoint["semanticRing"] != ring
-            or endpoint["conceptId"] != row[concept_field]
-            or endpoint["releaseId"] != row[release_field]
-            for endpoint, concept_field, release_field in endpoint_facts
-        ):
-            raise AtlasExplorerError("atlas explorer mapping assertion differs from its endpoints")
-        relation = _text(row.get("relation"), f"{label}.relation")
-        _text(row.get("relationLabel"), f"{label}.relationLabel")
-        if row.get("lifecycleStatus") != "current":
-            raise AtlasExplorerError(
-                "atlas explorer mapping assertion lifecycleStatus must be current"
-            )
-        supersedes = _canonical_text_array(
-            row.get("supersedes"),
-            f"{label}.supersedes",
-        )
-        superseded_by = _canonical_text_array(
-            row.get("supersededBy"),
-            f"{label}.supersededBy",
-        )
-        effective_status = row.get("effectiveLifecycleStatus")
-        if effective_status not in {"current", "superseded"} or (
-            effective_status == "superseded"
-        ) != bool(superseded_by):
-            raise AtlasExplorerError(
-                "atlas explorer mapping assertion effective lifecycle differs from supersession links"
-            )
-        if mapping_id in supersedes or mapping_id in superseded_by:
-            raise AtlasExplorerError("atlas explorer mapping assertion cannot supersede itself")
-        direct = _text_array(row.get("directEvidenceAssertions"), f"{label}.directEvidenceAssertions")
-        evidence = _text_array(row.get("evidenceAssertions"), f"{label}.evidenceAssertions")
-        if not direct or not set(direct) <= set(evidence):
-            raise AtlasExplorerError("atlas explorer mapping assertion evidence closure is incomplete")
-        classes = _text_array(row.get("evidenceClasses"), f"{label}.evidenceClasses")
-        if not classes or not set(classes) <= _EVIDENCE_CLASSES:
-            raise AtlasExplorerError("atlas explorer mapping assertion evidence class is unsupported")
-        for field in ("externalEvidence", "candidateIds", "validationReceiptIds", "machineProofs"):
-            _text_array(row.get(field), f"{label}.{field}")
-        context_value = row.get("context")
-        if "context" in row and not isinstance(context_value, Mapping):
-            raise AtlasExplorerError(f"{label}.context must be an object")
-        try:
-            validate_ring_relation(
-                cast(SemanticRing, ring),
-                relation,
-                cast(Mapping[str, str], context_value) if isinstance(context_value, Mapping) else None,
-            )
-        except SemanticFoundationError as error:
-            raise AtlasExplorerError(f"{label} violates ring relation semantics: {error}") from error
-        mapping_ids.add(mapping_id)
-
-    if (
-        shown_concepts != len(concepts)
-        or shown_native_relations != len(native_relations)
-        or shown_mappings != len(mappings)
-        or shown_concepts > available_concepts
-        or shown_native_relations > available_native_relations
-        or shown_mappings > available_mappings
-        or shown_concepts > max_concepts
-        or shown_mappings > max_mappings
-        or available_mappings != counts["mappingAssertions"]
+    if model.get("type") != ATLAS_V3_EXPLORER_TYPE or model.get("schemaVersion") != ATLAS_V3_EXPLORER_SCHEMA_VERSION:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer type or schemaVersion is unsupported")
+    _text(model.get("title"), "Atlas 3.0 explorer title")
+    authority = _mapping(model.get("authority"), "Atlas 3.0 explorer authority")
+    if set(authority) != {"asserted", "projection", "derived"}:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer must keep all three graph roles distinct")
+    expected_status = {
+        "asserted": "authoritative",
+        "projection": "reproducibleConvenienceView",
+        "derived": "nonAuthoritative",
+    }
+    graph_ids: set[str] = set()
+    for role, status_value in expected_status.items():
+        row = _mapping(authority.get(role), f"Atlas 3.0 explorer {role}")
+        if row.get("status") != status_value:
+            raise Atlas3ExplorerError(f"Atlas 3.0 explorer {role} authority status differs")
+        graph_ids.add(_text(row.get("graph"), f"Atlas 3.0 explorer {role} graph"))
+    if len(graph_ids) != 3:
+        raise Atlas3ExplorerError("Atlas 3.0 explorer graph role IRIs must be distinct")
+    for field in (
+        "resourceIndex",
+        "resources",
+        "sourceRecords",
+        "assertedRelations",
+        "projectedRelations",
+        "derivedRelations",
     ):
-        raise AtlasExplorerError("atlas explorer summary or selection bounds differ from its records")
-
-    approval_release_ids = {
-        cast(str, row["releaseId"])
-        for row in cast(
-            Sequence[Mapping[str, Any]],
-            release_context["sourceApprovals"],
-        )
+        _sequence(model.get(field), f"Atlas 3.0 explorer {field}")
+    resource_index_ids = [
+        _text(_mapping(row, "Atlas 3.0 resource index row").get("id"), "resource index id")
+        for row in model["resourceIndex"]
+    ]
+    if len(resource_index_ids) != len(set(resource_index_ids)):
+        raise Atlas3ExplorerError("Atlas 3.0 resource index repeats an id")
+    summary = _mapping(model.get("summary"), "Atlas 3.0 explorer summary")
+    if summary.get("availableResources") != len(resource_index_ids):
+        raise Atlas3ExplorerError("Atlas 3.0 resource index is incomplete")
+    detailed_resource_ids = {
+        _text(_mapping(row, "Atlas 3.0 resource").get("id"), "resource id")
+        for row in model["resources"]
     }
-    if approval_release_ids and not set(release_by_id) <= approval_release_ids:
-        raise AtlasExplorerError("atlas explorer concept releases are absent from source approvals")
-    expected_facets = {
-        field: tuple(
-            sorted(
-                {
-                    cast(str, item)
-                    for concept in concepts
-                    for item in cast(Sequence[str], _mapping(concept, "concept")[field])
-                }
-            )
-        )
-        for field in _CONCEPT_FACET_FIELDS
+    if not detailed_resource_ids.issubset(resource_index_ids):
+        raise Atlas3ExplorerError("Atlas 3.0 detailed resources are absent from its index")
+    for row in model["assertedRelations"]:
+        expected_authority = row.get("status") == "current"
+        if row.get("authoritative") is not expected_authority or row.get("authority") != (
+            "authoritative" if expected_authority else "historicalEditorialRecord"
+        ):
+            raise Atlas3ExplorerError("Atlas 3.0 asserted relation authority differs from its lifecycle status")
+    if any(row.get("authoritative") is not False for row in model["projectedRelations"]):
+        raise Atlas3ExplorerError("Atlas 3.0 projections contain an authoritative row")
+    if any(row.get("authority") != "nonAuthoritative" for row in model["derivedRelations"]):
+        raise Atlas3ExplorerError("Atlas 3.0 derivations contain an authoritative row")
+    assertion_ids = {
+        _text(_mapping(row, "Atlas 3.0 asserted relation").get("id"), "asserted relation id")
+        for row in model["assertedRelations"]
     }
-    planning_rows = cast(
-        Sequence[Mapping[str, Any]],
-        release_context["planningRows"],
-    )
-    expected_facets["sourceModules"] = tuple(
-        sorted(
-            set(expected_facets["sourceModules"])
-            | {cast(str, _mapping(row, "planning row")["sourceModule"]) for row in planning_rows}
-        )
-    )
-    expected_facets["resourceIds"] = tuple(
-        sorted(
-            set(expected_facets["resourceIds"])
-            | {cast(str, _mapping(row, "planning row")["resourceId"]) for row in planning_rows}
-        )
-    )
-    expected_facets["participations"] = tuple(
-        sorted(
-            set(expected_facets["participations"])
-            | {
-                cast(str, _mapping(row, "planning row")["atlasParticipation"])
-                for row in planning_rows
-                if "atlasParticipation" in _mapping(row, "planning row")
+    for field, rows in (
+        ("supportingAssertions", model["projectedRelations"]),
+        ("derivedFromAssertions", model["derivedRelations"]),
+    ):
+        for raw_row in rows:
+            row = _mapping(raw_row, f"Atlas 3.0 relation with {field}")
+            references = {
+                _text(value, f"Atlas 3.0 relation {field}[]")
+                for value in _sequence(row.get(field), f"Atlas 3.0 relation {field}")
             }
-        )
-    )
-    expected_facets.update(
-        {
-            "nativePredicates": tuple(
-                sorted({cast(str, _mapping(row, "native relation")["predicate"]) for row in native_relations})
-            ),
-            "mappingPredicates": tuple(
-                sorted({cast(str, _mapping(row, "mapping assertion")["relation"]) for row in mappings})
-            ),
-            "mappingLifecycleStatuses": tuple(
-                sorted(
-                    {
-                        cast(
-                            str,
-                            _mapping(row, "mapping assertion")[
-                                "effectiveLifecycleStatus"
-                            ],
-                        )
-                        for row in mappings
-                    }
+            if not references.issubset(assertion_ids):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 relation {field} is not provenance-closed"
                 )
-            ),
-            "evidenceClasses": tuple(
-                sorted(
-                    {
-                        evidence_class
-                        for raw in mappings
-                        for evidence_class in cast(
-                            Sequence[str],
-                            _mapping(raw, "mapping assertion")["evidenceClasses"],
-                        )
-                    }
-                )
-            ),
-            "planningDispositions": tuple(
-                sorted({cast(str, _mapping(row, "planning row")["disposition"]) for row in planning_rows})
-            ),
-        }
-    )
-    if facets != expected_facets:
-        raise AtlasExplorerError("atlas explorer facet catalog differs from its exact records")
-    expected_truncated = (
-        shown_concepts < available_concepts
-        or shown_native_relations < available_native_relations
-        or shown_mappings < available_mappings
-    )
-    if summary["truncated"] is not expected_truncated:
-        raise AtlasExplorerError("atlas explorer summary.truncated differs from its records")
-
-
-class _Template(Template):
-    delimiter = "@@"
-
-
-_HTML = r"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>@@title · RefSpec atlas explorer</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230c1211'/%3E%3Cpath d='M18 32h28M32 18v28' stroke='%2374c7b8' stroke-width='4'/%3E%3Ccircle cx='18' cy='32' r='7' fill='%23e9b95f'/%3E%3Ccircle cx='46' cy='32' r='7' fill='%2374c7b8'/%3E%3Ccircle cx='32' cy='18' r='6' fill='%238eafd5'/%3E%3C/svg%3E">
-  <style>
-    :root {
-      --ink: #edf1ed;
-      --muted: #9ba8a2;
-      --faint: #68756f;
-      --paper: #0c1211;
-      --paper-raised: #111a18;
-      --rule: #26332f;
-      --rule-strong: #3b4c46;
-      --accent: #e9b95f;
-      --accent-soft: rgba(233, 185, 95, .12);
-      --danger: #ee8b78;
-      --focus: #8cd3c7;
-      --serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 68% 32%, rgba(70, 111, 101, .12), transparent 34rem),
-        var(--paper);
-      font: 14px/1.45 var(--sans);
-      overflow: hidden;
-    }
-    button, input, select { font: inherit; }
-    button, a { -webkit-tap-highlight-color: transparent; }
-    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, canvas:focus-visible {
-      outline: 2px solid var(--focus);
-      outline-offset: 2px;
-    }
-    .skip-link {
-      position: fixed;
-      top: .5rem;
-      left: .5rem;
-      z-index: 20;
-      padding: .55rem .8rem;
-      color: #07100e;
-      background: var(--focus);
-      transform: translateY(-160%);
-    }
-    .skip-link:focus { transform: translateY(0); }
-
-    .shell {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      height: 100%;
-      min-height: 0;
-    }
-    .appbar {
-      display: grid;
-      grid-template-columns: minmax(15rem, 1fr) auto auto;
-      gap: 1.5rem;
-      align-items: center;
-      min-height: 74px;
-      padding: .9rem 1.1rem .85rem 1.35rem;
-      border-bottom: 1px solid var(--rule);
-      background: rgba(12, 18, 17, .93);
-      backdrop-filter: blur(12px);
-    }
-    .identity { min-width: 0; }
-    .eyebrow {
-      display: block;
-      color: var(--accent);
-      font: 600 10px/1.2 var(--mono);
-      letter-spacing: .14em;
-      text-transform: uppercase;
-    }
-    h1 {
-      margin: .18rem 0 0;
-      overflow: hidden;
-      font: 500 clamp(1.15rem, 2vw, 1.55rem)/1.15 var(--serif);
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .seal {
-      display: flex;
-      gap: .55rem;
-      align-items: center;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .seal-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #80c99a;
-      box-shadow: 0 0 0 4px rgba(128, 201, 154, .1);
-    }
-    .seal strong { color: var(--ink); font-size: .82rem; font-weight: 600; }
-    .seal code { color: var(--faint); font: 11px/1.2 var(--mono); }
-    .metrics { display: flex; gap: 1.35rem; }
-    .metric { min-width: 4.3rem; text-align: right; }
-    .metric b { display: block; font: 600 1rem/1 var(--mono); }
-    .metric span { color: var(--faint); font-size: .7rem; letter-spacing: .04em; text-transform: uppercase; }
-
-    .workspace {
-      display: grid;
-      grid-template-columns: 250px minmax(0, 1fr) 282px;
-      min-height: 0;
-    }
-    .panel {
-      min-height: 0;
-      overflow: auto;
-      scrollbar-color: var(--rule-strong) transparent;
-    }
-    .controls {
-      padding: 1rem 1rem 1.5rem 1.2rem;
-      border-right: 1px solid var(--rule);
-      background: rgba(14, 21, 20, .78);
-    }
-    .inspector {
-      padding: 1rem 1.1rem 1.5rem;
-      border-left: 1px solid var(--rule);
-      background: rgba(14, 21, 20, .82);
-    }
-    .panel h2, .panel h3 {
-      margin: 0;
-      font-size: .72rem;
-      font-weight: 650;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-    }
-    .panel h2 { color: var(--ink); }
-    .panel h3 { color: var(--faint); }
-    .control-section {
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--rule);
-    }
-    .control-section:last-child { border-bottom: 0; }
-    .search-wrap { position: relative; margin-top: .7rem; }
-    #search {
-      width: 100%;
-      min-height: 42px;
-      padding: .65rem 2rem .65rem .72rem;
-      color: var(--ink);
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: #0a100f;
-    }
-    #search::placeholder { color: #63716c; }
-    #search::-webkit-search-cancel-button { display: none; }
-    .key {
-      position: absolute;
-      top: 50%;
-      right: .6rem;
-      color: var(--faint);
-      font: 11px/1 var(--mono);
-      transform: translateY(-50%);
-    }
-    .results { display: grid; gap: 1px; margin-top: .45rem; }
-    .result {
-      width: 100%;
-      padding: .48rem .1rem;
-      color: var(--ink);
-      border: 0;
-      border-bottom: 1px solid rgba(38, 51, 47, .7);
-      background: transparent;
-      text-align: left;
-      cursor: pointer;
-    }
-    .result:hover, .result.active { color: var(--accent); background: var(--accent-soft); }
-    .result span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .result small { display: block; color: var(--faint); font-size: .7rem; }
-    .result .match { color: var(--muted); }
-    .result-summary { display: block; padding: .42rem .1rem; color: var(--faint); font-size: .7rem; }
-    .search-ring-control { margin-top: .62rem; }
-    .filter-list { display: grid; gap: .58rem; margin-top: .75rem; }
-    .filter {
-      display: grid;
-      grid-template-columns: 14px 1fr auto;
-      gap: .55rem;
-      align-items: center;
-      min-height: 26px;
-      color: var(--muted);
-      cursor: pointer;
-    }
-    .release-filter { grid-template-columns: 14px 9px minmax(0, 1fr) auto; }
-    .relation-filter { grid-template-columns: 14px 20px minmax(0, 1fr); }
-    .filter input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
-    .filter .swatch { width: 9px; height: 9px; border-radius: 50%; background: var(--swatch); }
-    .filter .label { overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
-    .filter small { color: var(--faint); font: 10px/1 var(--mono); }
-    .filter-copy { display: grid; min-width: 0; gap: .22rem; }
-    .filter-copy small { display: block; }
-    .edge-key {
-      width: 20px;
-      height: 0;
-      border-top: 2px solid var(--edge-color);
-    }
-    .edge-key.mapping { border-top-style: dashed; }
-    .hint { margin: .7rem 0 0; color: var(--faint); font-size: .75rem; }
-    .facet-selects { display: grid; gap: .62rem; margin-top: .75rem; }
-    .facet-control { display: grid; gap: .25rem; color: var(--faint); font-size: .7rem; }
-    .facet-control select {
-      width: 100%;
-      min-height: 34px;
-      padding: .42rem 1.9rem .42rem .5rem;
-      overflow: hidden;
-      color: var(--ink);
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: #0a100f;
-      text-overflow: ellipsis;
-    }
-    .scope-summary { margin: .68rem 0 0; color: var(--muted); font-size: .75rem; }
-    .planning-rows { display: grid; gap: .38rem; margin-top: .7rem; }
-    .planning-row {
-      padding: .48rem 0;
-      border-top: 1px solid rgba(38, 51, 47, .72);
-      color: var(--muted);
-      font-size: .72rem;
-    }
-    .planning-row b, .planning-row small { display: block; overflow-wrap: anywhere; }
-    .planning-row b { color: var(--ink); font-weight: 550; }
-    .planning-row small { margin-top: .16rem; color: var(--faint); }
-    .planning-row-count { display: block; margin-top: .55rem; color: var(--faint); font: 10px/1.4 var(--mono); }
-    .render-limit { margin-top: .75rem; }
-    .render-limit-heading {
-      display: flex;
-      gap: .75rem;
-      align-items: center;
-      justify-content: space-between;
-      color: var(--ink);
-      font-size: .78rem;
-    }
-    #render-limit-number {
-      width: 4.8rem;
-      min-height: 32px;
-      padding: .35rem .42rem;
-      color: var(--ink);
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: #0a100f;
-      font: 11px/1 var(--mono);
-      text-align: right;
-    }
-    #render-limit-range {
-      display: block;
-      width: 100%;
-      margin: .65rem 0 .25rem;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-    .render-limit-scale {
-      display: flex;
-      justify-content: space-between;
-      color: var(--faint);
-      font: 10px/1 var(--mono);
-    }
-    .secondary-action {
-      margin-top: .75rem;
-      padding: .42rem .6rem;
-      color: var(--muted);
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: transparent;
-      cursor: pointer;
-    }
-    .secondary-action:hover { color: var(--ink); border-color: var(--accent); }
-
-    .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
-    #graph {
-      display: block;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: grab;
-      transition: opacity .45s ease;
-      touch-action: none;
-    }
-    #graph.ready { opacity: 1; }
-    #graph.panning { cursor: grabbing; }
-    .graph-tools {
-      position: absolute;
-      top: .75rem;
-      right: .75rem;
-      display: flex;
-      overflow: hidden;
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: rgba(12, 18, 17, .92);
-    }
-    .graph-tools button {
-      width: 38px;
-      height: 38px;
-      padding: 0;
-      color: var(--muted);
-      border: 0;
-      border-right: 1px solid var(--rule);
-      background: transparent;
-      cursor: pointer;
-    }
-    .graph-tools button:last-child { border-right: 0; }
-    .graph-tools button:hover { color: var(--accent); background: var(--accent-soft); }
-    .mobile-only { display: none; }
-    .legend-note {
-      position: absolute;
-      bottom: .8rem;
-      left: .9rem;
-      max-width: min(34rem, calc(100% - 1.8rem));
-      margin: 0;
-      color: var(--faint);
-      font: 10px/1.45 var(--mono);
-      pointer-events: none;
-    }
-    .graph-status {
-      position: absolute;
-      top: .85rem;
-      left: .9rem;
-      max-width: calc(100% - 12rem);
-      padding: .38rem .52rem;
-      color: var(--muted);
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      background: rgba(12, 18, 17, .88);
-      font: 10px/1.35 var(--mono);
-      pointer-events: none;
-    }
-    .tooltip {
-      position: absolute;
-      z-index: 4;
-      max-width: 260px;
-      padding: .45rem .6rem;
-      color: var(--ink);
-      border: 1px solid var(--rule-strong);
-      background: rgba(8, 13, 12, .96);
-      box-shadow: 0 8px 26px rgba(0, 0, 0, .3);
-      font-size: .78rem;
-      pointer-events: none;
-      transform: translate(12px, 12px);
-    }
-    .tooltip[hidden] { display: none; }
-    .tooltip small { display: block; color: var(--faint); }
-
-    .empty-state { margin-top: 1.4rem; color: var(--muted); }
-    .empty-state strong { display: block; margin-bottom: .35rem; color: var(--ink); font: 500 1.15rem/1.25 var(--serif); }
-    .inspector-content[hidden], .empty-state[hidden] { display: none; }
-    .node-kicker { margin: 1.1rem 0 .25rem; color: var(--accent); font: 10px/1.2 var(--mono); text-transform: uppercase; }
-    .node-title { margin: 0; font: 500 1.3rem/1.2 var(--serif); overflow-wrap: anywhere; }
-    .node-release { display: flex; gap: .45rem; align-items: center; margin: .55rem 0 1rem; color: var(--muted); }
-    .node-release i { width: 8px; height: 8px; border-radius: 50%; background: var(--node-color); }
-    .facts { display: grid; grid-template-columns: 5.2rem 1fr; gap: .45rem .65rem; margin: 0; }
-    .facts dt { color: var(--faint); font-size: .72rem; }
-    .facts dd { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
-    .iri {
-      display: block;
-      max-height: 5.5rem;
-      overflow: auto;
-      color: var(--muted);
-      font: 10px/1.45 var(--mono);
-      text-decoration: none;
-    }
-    a.iri:hover { color: var(--accent); }
-    .copy-button {
-      margin-top: .65rem;
-      padding: .4rem .55rem;
-      color: var(--muted);
-      border: 1px solid var(--rule-strong);
-      border-radius: 3px;
-      background: transparent;
-      cursor: pointer;
-    }
-    .copy-button:hover { color: var(--ink); border-color: var(--accent); }
-    .connections { display: grid; gap: .35rem; margin-top: .7rem; }
-    .connection {
-      width: 100%;
-      padding: .5rem .55rem;
-      color: var(--muted);
-      border: 0;
-      border-left: 2px solid var(--connection-color);
-      background: rgba(255, 255, 255, .02);
-      text-align: left;
-      cursor: pointer;
-    }
-    .connection:hover { color: var(--ink); background: rgba(255, 255, 255, .045); }
-    .connection b { display: block; color: inherit; font-size: .78rem; font-weight: 550; }
-    .connection small { display: block; color: var(--faint); }
-    .connection-group { display: grid; gap: .3rem; }
-    .mapping-endpoint { margin-top: .16rem; overflow-wrap: anywhere; }
-    .mapping-endpoint strong { color: var(--muted); font-weight: 550; }
-    .connection-evidence {
-      margin: 0 0 .18rem .55rem;
-      padding-left: .5rem;
-      border-left: 1px solid var(--rule);
-      color: var(--faint);
-      font-size: .7rem;
-    }
-    .connection-evidence summary { color: var(--muted); cursor: pointer; }
-    .reference-group { margin-top: .48rem; }
-    .reference-group b { display: block; color: var(--muted); font-weight: 550; }
-    .reference-group code, .reference-group a {
-      display: block;
-      margin-top: .16rem;
-      overflow-wrap: anywhere;
-      color: var(--faint);
-      font: 10px/1.4 var(--mono);
-      text-decoration: none;
-    }
-    .reference-group a:hover, .evidence-resolver:hover { color: var(--accent); }
-    .evidence-resolver { display: inline-block; margin-top: .58rem; color: var(--muted); text-decoration: none; }
-
-    .provenance {
-      display: grid;
-      grid-template-columns: 250px minmax(0, 1fr) auto;
-      align-items: center;
-      min-height: 45px;
-      border-top: 1px solid var(--rule);
-      color: var(--faint);
-      background: #0a100f;
-      font-size: .72rem;
-    }
-    .provenance > * { padding: .65rem 1.1rem; }
-    .provenance summary { color: var(--muted); cursor: pointer; }
-    .provenance details[open] {
-      position: absolute;
-      right: 1rem;
-      bottom: 3rem;
-      left: 1rem;
-      z-index: 8;
-      padding: 1rem;
-      border: 1px solid var(--rule-strong);
-      background: #0a100f;
-      box-shadow: 0 14px 50px rgba(0, 0, 0, .4);
-    }
-    .pin-grid { display: grid; grid-template-columns: 9rem 1fr; gap: .4rem .8rem; margin-top: .8rem; }
-    .pin-grid code { overflow-wrap: anywhere; color: var(--muted); font: 10px/1.4 var(--mono); }
-    .downloads { display: flex; gap: .9rem; justify-content: flex-end; white-space: nowrap; }
-    .downloads a { color: var(--muted); text-decoration: none; }
-    .downloads a:hover { color: var(--accent); }
-
-    @media (max-width: 940px) {
-      .workspace { grid-template-columns: 220px minmax(0, 1fr); }
-      .inspector {
-        position: absolute;
-        top: 74px;
-        right: 0;
-        bottom: 45px;
-        z-index: 6;
-        width: min(310px, 86vw);
-        box-shadow: -12px 0 40px rgba(0, 0, 0, .32);
-        transform: translateX(100%);
-        transition: transform .2s ease;
-      }
-      .inspector.open { transform: translateX(0); }
-      .metrics .metric:nth-child(-n+2) { display: none; }
-      .provenance { grid-template-columns: 220px minmax(0, 1fr); }
-      .downloads { display: none; }
-    }
-    @media (max-width: 660px) {
-      body { overflow: auto; }
-      .shell { min-height: 100%; height: auto; grid-template-rows: auto minmax(36rem, 1fr) auto; }
-      .appbar { grid-template-columns: minmax(0, 1fr) auto; gap: .8rem; }
-      .seal code, .metrics { display: none; }
-      .workspace { position: relative; grid-template-columns: 1fr; min-height: 36rem; }
-      .controls {
-        position: absolute;
-        top: .6rem;
-        left: .6rem;
-        z-index: 5;
-        width: min(230px, calc(100vw - 1.2rem));
-        max-height: calc(100% - 1.2rem);
-        border: 1px solid var(--rule-strong);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, .32);
-        transform: translateX(calc(-100% - 1rem));
-        transition: transform .2s ease;
-      }
-      .controls.open { transform: translateX(0); }
-      .provenance { grid-template-columns: 1fr; }
-      .provenance > :first-child { display: none; }
-      .graph-tools { top: .6rem; right: .6rem; }
-      .mobile-only { display: block; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-    }
-  </style>
-</head>
-<body>
-  <a class="skip-link" href="#graph">Skip to graph</a>
-  <div class="shell">
-    <header class="appbar">
-      <div class="identity">
-        <span class="eyebrow">RefSpec vocabulary atlas</span>
-        <h1>@@title</h1>
-      </div>
-      <div class="seal" aria-label="Atlas verified before publication">
-        <span class="seal-dot" aria-hidden="true"></span>
-        <span><strong>Sealed input</strong><br><code id="short-id"></code></span>
-      </div>
-      <div class="metrics" aria-label="Atlas totals">
-        <div class="metric"><b id="metric-releases">—</b><span>releases</span></div>
-        <div class="metric"><b id="metric-quads">—</b><span>quads</span></div>
-        <div class="metric"><b id="metric-native">—</b><span>native relations</span></div>
-      </div>
-    </header>
-
-    <main class="workspace">
-      <aside class="panel controls" id="controls" aria-label="Graph controls">
-        <h2>Explore the atlas</h2>
-        <section class="control-section">
-          <h3>Find a concept</h3>
-          <div class="search-wrap">
-            <input id="search" type="search" autocomplete="off" placeholder="Label, alias, notation, or identifier" aria-label="Find a concept" aria-controls="search-results" aria-expanded="false" aria-autocomplete="list" role="combobox">
-            <span class="key" aria-hidden="true">/</span>
-          </div>
-          <label class="facet-control search-ring-control" for="search-ring">
-            <span>Search within one semantic ring</span>
-            <select id="search-ring" aria-label="Search within one semantic ring" required></select>
-          </label>
-          <p class="hint">One active ring keeps subject, entity, value, and legal-identity concepts in separate rankings.</p>
-          <div class="results" id="search-results" role="listbox" aria-live="polite"></div>
-        </section>
-        <section class="control-section">
-          <h3>Concept releases</h3>
-          <div class="filter-list" id="release-filters"></div>
-        </section>
-        <section class="control-section">
-          <h3>Semantic rings</h3>
-          <div class="filter-list" id="ring-filters"></div>
-          <p class="hint">Ring filters apply to concepts and every relationship attached to them.</p>
-        </section>
-        <section class="control-section" id="concept-facet-section">
-          <h3>Source and concept facts</h3>
-          <div class="facet-selects" id="concept-facet-filters"></div>
-          <p class="hint">Each available fact comes from the exact release records or planning index. Empty facets stay out of the way.</p>
-        </section>
-        <section class="control-section">
-          <h3>Source-native relations</h3>
-          <div class="filter-list" id="native-filters"></div>
-          <p class="hint">Solid lines preserve relations stated inside an exact source release. Paired inverse assertions share one drawn line but remain separate facts.</p>
-        </section>
-        <section class="control-section">
-          <h3>Cross-release mappings</h3>
-          <div class="filter-list" id="mapping-filters"></div>
-          <div class="facet-selects" id="mapping-facet-filters"></div>
-          <p class="hint">Dashed lines are typed cross-release mapping assertions. Arrowheads show every asserted source-to-target direction.</p>
-        </section>
-        <section class="control-section" id="release-context-section" hidden>
-          <h3>Release controls</h3>
-          <p class="scope-summary" id="release-context-summary"></p>
-          <div class="planning-rows" id="source-approvals"></div>
-          <div class="facet-selects" id="planning-facet-filters"></div>
-          <div class="planning-rows" id="planning-rows"></div>
-          <small class="planning-row-count" id="planning-row-count"></small>
-        </section>
-        <section class="control-section">
-          <h3>Graph view</h3>
-          <div class="render-limit">
-            <label class="render-limit-heading" for="render-limit-number">
-              <span>Maximum rendered concepts</span>
-              <input id="render-limit-number" type="number" min="1" step="1" inputmode="numeric" aria-describedby="selection-note">
-            </label>
-            <input id="render-limit-range" type="range" min="1" step="1" aria-label="Maximum rendered concepts" aria-describedby="selection-note">
-            <div class="render-limit-scale" aria-hidden="true"><span>1</span><span id="render-limit-max">—</span></div>
-          </div>
-          <p class="hint" id="selection-note"></p>
-          <button class="secondary-action" type="button" id="reset-filters">Reset search and filters</button>
-        </section>
-      </aside>
-
-      <section class="stage" id="stage" aria-label="Vocabulary graph">
-        <canvas id="graph" tabindex="0" aria-describedby="graph-description"></canvas>
-        <div class="graph-status" id="graph-status" aria-live="polite"></div>
-        <p id="graph-description" class="legend-note">Search or select a concept to highlight its relationships; unrelated lines dim to graphite without hiding the current graph. Drag to pan. Scroll or use the controls to zoom. Solid lines are source-native relations; dashed lines are typed mappings, with arrows for every directional assertion.</p>
-        <div class="graph-tools" aria-label="Graph view controls">
-          <button class="mobile-only" type="button" id="toggle-controls" aria-label="Show filters">☰</button>
-          <button type="button" id="zoom-in" aria-label="Zoom in">＋</button>
-          <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
-          <button type="button" id="fit-view" aria-label="Fit graph to view">⌂</button>
-        </div>
-        <div class="tooltip" id="tooltip" hidden></div>
-      </section>
-
-      <aside class="panel inspector" id="inspector" aria-label="Concept inspector">
-        <h2>Concept inspector</h2>
-        <div class="empty-state" id="empty-inspector">
-          <strong>Select a concept</strong>
-          Search by label, or choose a point in the graph to inspect its source identity and exact relationships.
-        </div>
-        <div class="inspector-content" id="inspector-content" hidden>
-          <p class="node-kicker" id="node-role"></p>
-          <h3 class="node-title" id="node-title"></h3>
-          <p class="node-release"><i id="node-swatch"></i><span id="node-release"></span></p>
-          <dl class="facts">
-            <dt>Source concept identity</dt>
-            <dd><a class="iri" id="node-iri"></a><button class="copy-button" type="button" id="copy-iri">Copy IRI</button></dd>
-            <dt id="notation-term" hidden>Notation</dt><dd id="notation-value" hidden></dd>
-            <dt>Filtered native assertions</dt><dd id="node-native-count"></dd>
-            <dt>Filtered mapping assertions</dt><dd id="node-mapping-count"></dd>
-            <dt>Hierarchy parents</dt><dd id="node-parent-count"></dd>
-            <dt>Hierarchy children</dt><dd id="node-child-count"></dd>
-            <dt>Ancestors</dt><dd id="node-ancestor-count"></dd>
-            <dt>Descendants</dt><dd id="node-descendant-count"></dd>
-            <dt>Related concepts</dt><dd id="node-related-count"></dd>
-          </dl>
-          <section class="control-section" id="node-notes" hidden>
-            <h3>Source notes</h3>
-            <p class="hint" id="node-definition" hidden></p>
-            <p class="hint" id="node-scope-note" hidden></p>
-          </section>
-          <section class="control-section">
-            <h3>Relationships matching filters</h3>
-            <div class="connections" id="connections"></div>
-          </section>
-          <section class="control-section" id="node-hierarchy" hidden>
-            <h3>Hierarchy paths</h3>
-            <p class="hint">Paths combine source-native hierarchy with directed broad and narrow cross-release mappings. Every route is composed of direct, source-asserted steps; an inferred multi-hop route remains distinct from a direct assertion.</p>
-            <div class="connections" id="hierarchy-connections"></div>
-          </section>
-        </div>
-      </aside>
-    </main>
-
-    <footer class="provenance">
-      <div><span id="view-count"></span></div>
-      <details>
-        <summary>Provenance and exact pins</summary>
-        <div class="pin-grid">
-          <span>Atlas ID</span><code id="pin-id"></code>
-          <span>Manifest</span><code id="pin-manifest"></code>
-          <span>N-Quads</span><code id="pin-output"></code>
-          <span>Selection</span><code id="pin-selection"></code>
-          <span id="pin-index-label" hidden>Planning index</span><code id="pin-index" hidden></code>
-          <span id="pin-decision-label" hidden>Decision</span><code id="pin-decision" hidden></code>
-        </div>
-      </details>
-      <nav class="downloads" aria-label="Atlas downloads">
-        <a href="atlas-manifest.json" download>Manifest</a>
-        <a href="atlas.nq.gz" download>N-Quads · gzip</a>
-        <a href="atlas-explorer.json" download>Explorer data</a>
-        <a href="publication-decision.json" download>Decision</a>
-        <a href="atlas-index.json" download id="index-download" hidden>Planning index</a>
-        <a href="publication-manifest.json" download>Publication record</a>
-      </nav>
-    </footer>
-  </div>
-
-  <noscript>This explorer needs JavaScript to search and draw the focused graph. The complete atlas files and publication record remain downloadable.</noscript>
-  <script id="atlas-data" type="application/json">@@atlas_data</script>
-  <script>
-  (() => {
-    "use strict";
-
-    const data = JSON.parse(document.getElementById("atlas-data").textContent);
-    const canvas = document.getElementById("graph");
-    const stage = document.getElementById("stage");
-    const ctx = canvas.getContext("2d", { alpha: true });
-    const tooltip = document.getElementById("tooltip");
-    const search = document.getElementById("search");
-    const searchRing = document.getElementById("search-ring");
-    const resultBox = document.getElementById("search-results");
-    const releaseFilters = document.getElementById("release-filters");
-    const nativeFilters = document.getElementById("native-filters");
-    const ringFilters = document.getElementById("ring-filters");
-    const mappingFilters = document.getElementById("mapping-filters");
-    const conceptFacetFilters = document.getElementById("concept-facet-filters");
-    const mappingFacetFilters = document.getElementById("mapping-facet-filters");
-    const planningFacetFilters = document.getElementById("planning-facet-filters");
-    const planningRows = document.getElementById("planning-rows");
-    const graphStatus = document.getElementById("graph-status");
-    const renderLimitRange = document.getElementById("render-limit-range");
-    const renderLimitNumber = document.getElementById("render-limit-number");
-    const renderCapacity = Math.max(1, data.summary.shownConceptCount);
-    const defaultRenderLimit = Math.min(180, renderCapacity);
-    const maxSearchResults = 18;
-    let renderLimitFrame = null;
-    const palette = ["#74c7b8", "#efb65d", "#e77d6d", "#8eafd5", "#b3c76d", "#c497cf", "#67b6d4"];
-    const subduedEdgeColor = "#24302c";
-    const ringOrder = ["subject", "entity", "value", "legalIdentity"];
-    const ringColors = { subject: "#e9b95f", entity: "#74c7b8", value: "#8eafd5", legalIdentity: "#c497cf" };
-    const ringLabels = { subject: "Subject", entity: "Entity", value: "Value", legalIdentity: "Legal identity" };
-    const symmetricMappingRelations = new Set([
-      "http://www.w3.org/2004/02/skos/core#exactMatch",
-      "http://www.w3.org/2004/02/skos/core#closeMatch",
-      "http://www.w3.org/2004/02/skos/core#relatedMatch",
-      "urn:ref:relation:entity:sameIdentityAs",
-      "urn:ref:relation:entity:relatedEntity",
-      "urn:ref:relation:value:exactCrosswalk"
-    ]);
-    const broaderMappingRelations = new Set([
-      "http://www.w3.org/2004/02/skos/core#broadMatch",
-      "urn:ref:relation:value:broadCrosswalk"
-    ]);
-    const narrowerMappingRelations = new Set([
-      "http://www.w3.org/2004/02/skos/core#narrowMatch",
-      "urn:ref:relation:value:narrowCrosswalk"
-    ]);
-    const directionalMappingRelations = new Set([
-      ...broaderMappingRelations,
-      ...narrowerMappingRelations,
-      "urn:ref:relation:entity:successorOf",
-      "urn:ref:relation:value:replacedBy",
-      "urn:ref:relation:legal-identity:cites",
-      "urn:ref:relation:legal-identity:amends",
-      "urn:ref:relation:legal-identity:authorizes",
-      "urn:ref:relation:legal-identity:implements"
-    ]);
-    const nativePredicateOrder = [
-      "http://www.w3.org/2004/02/skos/core#broader",
-      "http://www.w3.org/2004/02/skos/core#narrower",
-      "http://www.w3.org/2004/02/skos/core#related",
-      "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse",
-      "https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor"
-    ];
-    const conceptFacetDefinitions = [
-      ["sourceModules", "Source module"],
-      ["resourceIds", "Resource"],
-      ["participations", "Participation"],
-      ["languages", "Language"],
-      ["lifecycle", "Lifecycle event"],
-      ["sourceCollections", "Source collection"],
-      ["sourceUrls", "Source URL"],
-      ["cfrTitles", "CFR title"],
-      ["cfrParts", "CFR part"]
-    ];
-    /* explorer-filter-core:start */
-    const explorerFilterSemantics = @@explorer_filter_semantics;
-
-    function explorerStateValue(filterState, path) {
-      return path.split(".").reduce((value, field) => value?.[field], filterState);
-    }
-
-    function explorerSetHas(selected, value) {
-      if (selected instanceof Set) return selected.has(value);
-      if (Array.isArray(selected)) return selected.includes(value);
-      return false;
-    }
-
-    function explorerFilterMatches(record, specification, filterState) {
-      const selected = explorerStateValue(filterState, specification.statePath);
-      if (specification.operator === "enabled") return Boolean(selected);
-      if (specification.operator === "setContains") {
-        return explorerSetHas(selected, record[specification.rowField]);
-      }
-      if (specification.operator === "equalsWhenSet") {
-        return !selected || record[specification.rowField] === selected;
-      }
-      if (specification.operator === "arrayContainsWhenSet") {
-        return !selected || record[specification.rowField].includes(selected);
-      }
-      throw new Error(`Unsupported explorer filter operator: ${specification.operator}`);
-    }
-
-    function explorerConceptFromIndex(conceptIndex, viewId) {
-      return conceptIndex instanceof Map ? conceptIndex.get(viewId) : conceptIndex[viewId];
-    }
-
-    function explorerRecordEligibleForState(recordKind, record, filterState, conceptIndex) {
-      const semantics = explorerFilterSemantics.find(row => row.recordKind === recordKind);
-      if (!semantics) throw new Error(`Unsupported explorer record kind: ${recordKind}`);
-      if (!semantics.filters.every(filter => explorerFilterMatches(record, filter, filterState))) {
-        return false;
-      }
-      return semantics.endpointFields.every(field => {
-        const endpoint = explorerConceptFromIndex(conceptIndex, record[field]);
-        return Boolean(endpoint)
-          && explorerRecordEligibleForState("concept", endpoint, filterState, conceptIndex);
-      });
-    }
-
-    function conceptEligibleForState(concept, filterState, conceptIndex) {
-      return explorerRecordEligibleForState("concept", concept, filterState, conceptIndex);
-    }
-
-    function nativeRelationEligibleForState(relation, filterState, conceptIndex) {
-      return explorerRecordEligibleForState("nativeRelation", relation, filterState, conceptIndex);
-    }
-
-    function mappingAssertionEligibleForState(mapping, filterState, conceptIndex) {
-      return explorerRecordEligibleForState("mappingAssertion", mapping, filterState, conceptIndex);
-    }
-    /* explorer-filter-core:end */
-    /* planning-filter-core:start */
-    const planningFilterSemantics = @@planning_filter_semantics;
-
-    function planningStateValue(filterState, path) {
-      return path.split(".").reduce((value, field) => value?.[field], filterState);
-    }
-
-    function planningRowEligibleForState(row, filterState) {
-      return planningFilterSemantics.every(specification => {
-        const selected = planningStateValue(filterState, specification.statePath);
-        if (specification.operator === "setContains") {
-          return selected instanceof Set && selected.has(row[specification.rowField]);
-        }
-        if (specification.operator === "equalsWhenSet") {
-          return !selected || row[specification.rowField] === selected;
-        }
-        throw new Error(`Unsupported planning filter operator: ${specification.operator}`);
-      });
-    }
-    /* planning-filter-core:end */
-    const releaseById = new Map(data.conceptReleases.map((release, index) => [release.releaseId, { ...release, index, color: palette[index % palette.length] }]));
-    const conceptByViewId = new Map(data.concepts.map(concept => [concept.viewId, { ...concept, x: 0, y: 0 }]));
-    const availableSearchRings = ringOrder.filter(ring => data.concepts.some(concept => concept.semanticRing === ring));
-    const defaultSearchRing = "@@default_search_ring";
-    const adjacency = new Map(data.concepts.map(concept => [concept.viewId, []]));
-    data.mappingAssertions.forEach(mapping => {
-      adjacency.get(mapping.sourceViewId).push({ kind: "mapping", edge: mapping, other: mapping.targetViewId, endpointRole: "source" });
-      adjacency.get(mapping.targetViewId).push({ kind: "mapping", edge: mapping, other: mapping.sourceViewId, endpointRole: "target" });
-    });
-    data.nativeRelations.forEach(relation => {
-      adjacency.get(relation.subjectViewId).push({ kind: "native", edge: relation, other: relation.objectViewId, direction: "outgoing" });
-      adjacency.get(relation.objectViewId).push({ kind: "native", edge: relation, other: relation.subjectViewId, direction: "incoming" });
-    });
-    adjacency.forEach(links => links.sort((left, right) => {
-      const leftRelation = left.edge.predicateLabel || left.edge.relationLabel;
-      const rightRelation = right.edge.predicateLabel || right.edge.relationLabel;
-      const leftConcept = conceptByViewId.get(left.other);
-      const rightConcept = conceptByViewId.get(right.other);
-      return left.kind.localeCompare(right.kind)
-        || leftRelation.localeCompare(rightRelation)
-        || leftConcept.label.localeCompare(rightConcept.label)
-        || left.other.localeCompare(right.other);
-    }));
-    const nativeDisplayGroups = new Map();
-    const nativePredicateFamilies = new Map([
-      ["http://www.w3.org/2004/02/skos/core#broader", "hierarchy"],
-      ["http://www.w3.org/2004/02/skos/core#narrower", "hierarchy"],
-      ["http://www.w3.org/2004/02/skos/core#related", "related"],
-      ["https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUse", "thesaurus-use"],
-      ["https://refspec.org/ns/vocabulary-atlas/v2#thesaurusUsedFor", "thesaurus-use"]
-    ]);
-    data.nativeRelations.forEach(relation => {
-      const endpoints = [relation.subjectViewId, relation.objectViewId].sort();
-      const family = nativePredicateFamilies.get(relation.predicate) || relation.predicate;
-      const key = `${relation.releaseId}\u001f${family}\u001f${endpoints[0]}\u001f${endpoints[1]}`;
-      if (!nativeDisplayGroups.has(key)) nativeDisplayGroups.set(key, []);
-      nativeDisplayGroups.get(key).push(relation);
-    });
-    const hierarchyParents = new Map(data.concepts.map(concept => [concept.viewId, []]));
-    const hierarchyChildren = new Map(data.concepts.map(concept => [concept.viewId, []]));
-    data.nativeRelations.forEach(relation => {
-      let child;
-      let parent;
-      if (relation.predicateLabel === "broader") {
-        child = relation.subjectViewId;
-        parent = relation.objectViewId;
-      } else if (relation.predicateLabel === "narrower") {
-        child = relation.objectViewId;
-        parent = relation.subjectViewId;
-      } else {
-        return;
-      }
-      hierarchyParents.get(child).push({ kind: "native", other: parent, edge: relation });
-      hierarchyChildren.get(parent).push({ kind: "native", other: child, edge: relation });
-    });
-    data.mappingAssertions.forEach(mapping => {
-      if (broaderMappingRelations.has(mapping.relation)) {
-        hierarchyParents.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
-        hierarchyChildren.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
-      } else if (narrowerMappingRelations.has(mapping.relation)) {
-        hierarchyChildren.get(mapping.sourceViewId).push({ kind: "mapping", other: mapping.targetViewId, edge: mapping });
-        hierarchyParents.get(mapping.targetViewId).push({ kind: "mapping", other: mapping.sourceViewId, edge: mapping });
-      }
-    });
-
-    /* explorer-search-document-core:start */
-    function normalizeSearch(value) {
-      return String(value || "")
-        .normalize("NFKD")
-        .replace(/\p{M}+/gu, "")
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]+/gu, " ")
-        .trim()
-        .replace(/\s+/g, " ");
-    }
-    function identifierTail(value) {
-      const parts = String(value).split(/[\/#:]/).filter(Boolean);
-      return parts.length ? parts[parts.length - 1] : String(value);
-    }
-    function buildSearchDocuments(concepts, facetDefinitions) {
-      return concepts.map(concept => {
-        const labels = [...new Set([concept.label, ...(concept.searchLabels || [])])];
-        const normalizedLabels = labels.map(value => {
-          const normalized = normalizeSearch(value);
-          return { value, normalized, tokens: normalized.split(" ").filter(Boolean) };
-        });
-        const notation = normalizeSearch(concept.notation || "");
-        const identifier = normalizeSearch(concept.conceptId);
-        const identifierTailValue = normalizeSearch(identifierTail(concept.conceptId));
-        const notes = normalizeSearch([concept.definition || "", concept.scopeNote || ""].join(" "));
-        const sourceFacts = normalizeSearch(facetDefinitions.flatMap(([field]) => concept[field]).join(" "));
-        return {
-          concept,
-          labels: normalizedLabels,
-          displayLabel: normalizeSearch(concept.label),
-          notation,
-          identifier,
-          identifierTail: identifierTailValue,
-          notes,
-          sourceFacts
-        };
-      });
-    }
-    /* explorer-search-document-core:end */
-    function mappingRelationKind(mapping) {
-      if (broaderMappingRelations.has(mapping.relation) || narrowerMappingRelations.has(mapping.relation)) return "directedHierarchy";
-      if (directionalMappingRelations.has(mapping.relation)) return "directed";
-      if (symmetricMappingRelations.has(mapping.relation)) return "symmetric";
-      return "typed";
-    }
-    function mappingConnector(mapping) {
-      const kind = mappingRelationKind(mapping);
-      if (kind === "directedHierarchy" || kind === "directed") return `—${mapping.relationLabel}→`;
-      if (kind === "symmetric") return `↔ ${mapping.relationLabel} ↔`;
-      return `— ${mapping.relationLabel} —`;
-    }
-    const searchDocuments = buildSearchDocuments(data.concepts, conceptFacetDefinitions);
-
-    const state = {
-      activeReleases: new Set(data.conceptReleases.map(release => release.releaseId)),
-      activeNativePredicates: new Set(nativePredicateOrder),
-      activeRings: new Set(ringOrder),
-      activeSearchRing: defaultSearchRing,
-      activeConceptFacets: Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""])),
-      activeMappingPredicate: "",
-      activeMappingLifecycleStatus: "",
-      activeEvidenceClass: "",
-      activePlanningDisposition: "",
-      mappingsActive: true,
-      selected: null,
-      hover: null,
-      matches: new Set(),
-      searchResults: [],
-      activeSearchIndex: -1,
-      renderedConceptIds: new Set(),
-      renderedNativeGroups: [],
-      renderedMappings: [],
-      renderLimit: defaultRenderLimit,
-      query: "",
-      view: { x: 0, y: 0, k: 1 },
-      width: 1,
-      height: 1,
-      dpr: 1,
-      panning: false,
-      dragStart: null
-    };
-
-    function formatNumber(value) { return new Intl.NumberFormat("en-US").format(value); }
-    function formatQuantity(value, singular, plural = `${singular}s`) {
-      return `${formatNumber(value)} ${value === 1 ? singular : plural}`;
-    }
-    function shortId(value) {
-      const tail = value.split(":").pop();
-      return tail.length > 16 ? `${tail.slice(0, 8)}…${tail.slice(-6)}` : tail;
-    }
-    function screenToWorld(x, y) {
-      return { x: (x - state.view.x) / state.view.k, y: (y - state.view.y) / state.view.k };
-    }
-    function isConceptEligible(concept) {
-      return conceptEligibleForState(concept, state, conceptByViewId);
-    }
-    function isConceptVisible(concept) {
-      return isConceptEligible(concept) && state.renderedConceptIds.has(concept.viewId);
-    }
-    function isMappingEligible(mapping) {
-      return mappingAssertionEligibleForState(mapping, state, conceptByViewId);
-    }
-    function isMappingVisible(mapping) {
-      return isMappingEligible(mapping)
-        && state.renderedConceptIds.has(mapping.sourceViewId)
-        && state.renderedConceptIds.has(mapping.targetViewId);
-    }
-    function isNativeRelationEligible(relation) {
-      return nativeRelationEligibleForState(relation, state, conceptByViewId);
-    }
-    function isNativeRelationVisible(relation) {
-      return isNativeRelationEligible(relation)
-        && state.renderedConceptIds.has(relation.subjectViewId)
-        && state.renderedConceptIds.has(relation.objectViewId);
-    }
-    function hierarchyStepEligible(item) {
-      return item.kind === "mapping" ? isMappingEligible(item.edge) : isNativeRelationEligible(item.edge);
-    }
-    function hierarchyNeighbors(viewId, index) {
-      const result = new Map();
-      index.get(viewId).forEach(item => {
-        const other = conceptByViewId.get(item.other);
-        if (hierarchyStepEligible(item) && isConceptEligible(other) && !result.has(item.other)) {
-          result.set(item.other, { concept: other, step: { ...item, from: viewId, to: item.other } });
-        }
-      });
-      return [...result.values()].sort((left, right) =>
-        left.concept.label.localeCompare(right.concept.label)
-        || left.concept.viewId.localeCompare(right.concept.viewId)
-      );
-    }
-    function hierarchyClosure(viewId, index) {
-      const distances = new Map();
-      const pending = hierarchyNeighbors(viewId, index).map(item => ({
-        concept: item.concept,
-        depth: 1,
-        path: [item.step]
-      }));
-      let pendingIndex = 0;
-      while (pendingIndex < pending.length) {
-        const current = pending[pendingIndex];
-        pendingIndex += 1;
-        const previous = distances.get(current.concept.viewId);
-        if (current.concept.viewId === viewId || (previous && previous.depth <= current.depth)) continue;
-        distances.set(current.concept.viewId, current);
-        hierarchyNeighbors(current.concept.viewId, index).forEach(item => {
-          pending.push({
-            concept: item.concept,
-            depth: current.depth + 1,
-            path: [...current.path, item.step]
-          });
-        });
-      }
-      return [...distances.values()].sort((left, right) => left.depth - right.depth
-        || left.concept.label.localeCompare(right.concept.label)
-        || left.concept.viewId.localeCompare(right.concept.viewId));
-    }
-    function hierarchyPathKinds(path) {
-      const kinds = new Set(path.map(step => step.kind === "mapping" ? "cross-release mapping" : "source-native hierarchy"));
-      return [...kinds].join(" + ");
-    }
-    function isLinkEligible(link) {
-      return link.kind === "mapping" ? isMappingEligible(link.edge) : isNativeRelationEligible(link.edge);
-    }
-    function conceptRadius(concept) {
-      if (concept.selectionReasons.includes("mappingEndpoint")) return 5.2;
-      if (concept.selectionReasons.includes("nativeRelationEndpoint")) return 4.4;
-      return 3.4;
-    }
-
-    function computeRenderedConcepts() {
-      const rendered = new Set();
-      const eligible = data.concepts
-        .map(concept => conceptByViewId.get(concept.viewId))
-        .filter(isConceptEligible);
-      const eligibleLinkCache = new Map();
-      const linksFor = viewId => {
-        if (!eligibleLinkCache.has(viewId)) {
-          eligibleLinkCache.set(viewId, adjacency.get(viewId).filter(isLinkEligible));
-        }
-        return eligibleLinkCache.get(viewId);
-      };
-      const add = viewId => {
-        if (rendered.size < state.renderLimit && conceptByViewId.has(viewId)) rendered.add(viewId);
-      };
-      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
-      if (selected && isConceptEligible(selected)) add(selected.viewId);
-
-      const degreeOrder = eligible.slice().sort((left, right) => {
-        const degreeDifference = linksFor(right.viewId).length - linksFor(left.viewId).length;
-        return degreeDifference
-          || left.label.localeCompare(right.label)
-          || left.viewId.localeCompare(right.viewId);
-      });
-      const searchSeeds = state.query
-        ? state.searchResults.slice(0, 12).map(result => result.document.concept)
-        : [];
-      const seeds = searchSeeds.length ? searchSeeds : degreeOrder.slice(0, 18);
-      seeds.forEach(concept => add(concept.viewId));
-      seeds.forEach(concept => linksFor(concept.viewId).forEach(link => add(link.other)));
-      degreeOrder.forEach(concept => add(concept.viewId));
-      return rendered;
-    }
-
-    function refreshRenderedEdges() {
-      state.renderedNativeGroups = [...nativeDisplayGroups.values()]
-        .map(relations => relations.filter(isNativeRelationVisible))
-        .filter(relations => relations.length);
-      state.renderedMappings = data.mappingAssertions.filter(isMappingVisible);
-    }
-
-    function layout() {
-      const visibleRows = data.concepts.filter(concept => state.renderedConceptIds.has(concept.viewId));
-      const visibleReleases = data.conceptReleases.filter(release =>
-        visibleRows.some(concept => concept.releaseId === release.releaseId)
-      );
-      const worldWidth = Math.max(920, visibleReleases.length * 310);
-      const worldHeight = 720;
-      visibleReleases.forEach((release, releaseIndex) => {
-        const members = visibleRows
-          .filter(concept => concept.releaseId === release.releaseId)
-          .sort((a, b) => a.label.localeCompare(b.label) || a.viewId.localeCompare(b.viewId));
-        const angle = visibleReleases.length === 1 ? 0 : (Math.PI * 2 * releaseIndex / visibleReleases.length) - Math.PI / 2;
-        const cx = visibleReleases.length <= 2
-          ? worldWidth * ((releaseIndex + 1) / (visibleReleases.length + 1))
-          : worldWidth / 2 + Math.cos(angle) * worldWidth * .31;
-        const cy = visibleReleases.length <= 2 ? worldHeight / 2 : worldHeight / 2 + Math.sin(angle) * worldHeight * .29;
-        members.forEach((value, index) => {
-          const concept = conceptByViewId.get(value.viewId);
-          const theta = index * 2.399963229728653;
-          const radius = 13.5 * Math.sqrt(index);
-          concept.x = cx + Math.cos(theta) * radius;
-          concept.y = cy + Math.sin(theta) * radius;
-        });
-      });
-    }
-
-    function bounds() {
-      const visible = [...state.renderedConceptIds]
-        .map(viewId => conceptByViewId.get(viewId))
-        .filter(isConceptVisible);
-      if (!visible.length) return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
-      return {
-        minX: Math.min(...visible.map(node => node.x)),
-        maxX: Math.max(...visible.map(node => node.x)),
-        minY: Math.min(...visible.map(node => node.y)),
-        maxY: Math.max(...visible.map(node => node.y))
-      };
-    }
-
-    function refreshGraph({ fit = false } = {}) {
-      state.renderedConceptIds = computeRenderedConcepts();
-      refreshRenderedEdges();
-      layout();
-      renderInspector();
-      updateGraphStatus();
-      if (fit) fitView();
-      else draw();
-    }
-
-    function fitView() {
-      const box = bounds();
-      const padding = 80;
-      const width = Math.max(1, box.maxX - box.minX);
-      const height = Math.max(1, box.maxY - box.minY);
-      const scale = Math.max(.18, Math.min(2.3, Math.min((state.width - padding * 2) / width, (state.height - padding * 2) / height)));
-      state.view.k = scale;
-      state.view.x = state.width / 2 - ((box.minX + box.maxX) / 2) * scale;
-      state.view.y = state.height / 2 - ((box.minY + box.maxY) / 2) * scale;
-      draw();
-    }
-
-    function resize() {
-      const rect = stage.getBoundingClientRect();
-      state.width = Math.max(1, rect.width);
-      state.height = Math.max(1, rect.height);
-      state.dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.round(state.width * state.dpr);
-      canvas.height = Math.round(state.height * state.dpr);
-      canvas.style.width = `${state.width}px`;
-      canvas.style.height = `${state.height}px`;
-      fitView();
-    }
-
-    function drawMapping(mapping, source, target, highlighted) {
-      const color = ringColors[mapping.semanticRing];
-      const subdued = state.selected && !highlighted;
-      const edgeColor = subdued ? subduedEdgeColor : color;
-      const edgeAlpha = highlighted ? .95 : subdued ? .72 : .52;
-      ctx.beginPath();
-      ctx.moveTo(source.x, source.y);
-      ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = edgeColor;
-      ctx.globalAlpha = edgeAlpha;
-      ctx.lineWidth = (highlighted ? 2.4 : 1.5) / state.view.k;
-      ctx.setLineDash([7 / state.view.k, 5 / state.view.k]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      if (mappingRelationKind(mapping).startsWith("directed")) {
-        const angle = Math.atan2(target.y - source.y, target.x - source.x);
-        const tipOffset = (conceptRadius(target) + 2.5) / state.view.k;
-        const arrowLength = 9 / state.view.k;
-        const arrowWidth = 4.5 / state.view.k;
-        const tipX = target.x - Math.cos(angle) * tipOffset;
-        const tipY = target.y - Math.sin(angle) * tipOffset;
-        const baseX = tipX - Math.cos(angle) * arrowLength;
-        const baseY = tipY - Math.sin(angle) * arrowLength;
-        ctx.beginPath();
-        ctx.moveTo(tipX, tipY);
-        ctx.lineTo(baseX + Math.sin(angle) * arrowWidth, baseY - Math.cos(angle) * arrowWidth);
-        ctx.lineTo(baseX - Math.sin(angle) * arrowWidth, baseY + Math.cos(angle) * arrowWidth);
-        ctx.closePath();
-        ctx.fillStyle = edgeColor;
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    function drawNativeRelations(relations, highlighted) {
-      const visible = relations.filter(isNativeRelationVisible);
-      if (!visible.length) return;
-      const relation = visible[0];
-      const source = conceptByViewId.get(relation.subjectViewId);
-      const target = conceptByViewId.get(relation.objectViewId);
-      const release = releaseById.get(relation.releaseId);
-      const subdued = state.selected && !highlighted;
-      ctx.beginPath();
-      ctx.moveTo(source.x, source.y);
-      ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = subdued
-        ? subduedEdgeColor
-        : release ? release.color : ringColors[relation.semanticRing];
-      ctx.globalAlpha = highlighted ? .92 : subdued ? .72 : .34;
-      ctx.lineWidth = (highlighted ? 2.2 : 1.15) / state.view.k;
-      ctx.setLineDash([]);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    function drawLabel(concept, radius) {
-      const release = releaseById.get(concept.releaseId);
-      ctx.font = `${11 / state.view.k}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textBaseline = "middle";
-      const textWidth = ctx.measureText(concept.label).width;
-      const x = concept.x + radius + 5 / state.view.k;
-      const y = concept.y;
-      ctx.fillStyle = "rgba(8, 13, 12, .9)";
-      ctx.fillRect(x - 2 / state.view.k, y - 8 / state.view.k, textWidth + 5 / state.view.k, 16 / state.view.k);
-      ctx.fillStyle = release ? release.color : "#edf1ed";
-      ctx.fillText(concept.label, x, y);
-    }
-
-    function drawConcept(concept) {
-      const release = releaseById.get(concept.releaseId);
-      const radius = conceptRadius(concept) / state.view.k;
-      const selected = state.selected === concept.viewId;
-      const hovered = state.hover === concept.viewId;
-      const searchDimmed = state.query && !state.matches.has(concept.viewId) && !selected;
-      ctx.globalAlpha = searchDimmed ? .14 : 1;
-      if (concept.selectionReasons.includes("mappingEndpoint")) {
-        ctx.beginPath();
-        ctx.arc(concept.x, concept.y, radius + 3 / state.view.k, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(233, 185, 95, .42)";
-        ctx.lineWidth = 1 / state.view.k;
-        ctx.stroke();
-      }
-      if (selected || hovered) {
-        ctx.beginPath();
-        ctx.arc(concept.x, concept.y, radius + 5 / state.view.k, 0, Math.PI * 2);
-        ctx.fillStyle = selected ? "rgba(233, 185, 95, .2)" : "rgba(140, 211, 199, .15)";
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(concept.x, concept.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = release ? release.color : "#edf1ed";
-      ctx.fill();
-      ctx.strokeStyle = selected ? "#fff3d9" : "rgba(7, 12, 11, .8)";
-      ctx.lineWidth = (selected ? 2 : 1) / state.view.k;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      if (selected || hovered || (state.matches.has(concept.viewId) && state.matches.size <= 12)) {
-        drawLabel(concept, radius);
-      }
-    }
-
-    function draw() {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.setTransform(
-        state.dpr * state.view.k, 0, 0, state.dpr * state.view.k,
-        state.dpr * state.view.x, state.dpr * state.view.y
-      );
-
-      const highlightedNativeGroups = [];
-      state.renderedNativeGroups.forEach(relations => {
-        const highlighted = state.selected && relations.some(
-          relation => relation.subjectViewId === state.selected || relation.objectViewId === state.selected
-        );
-        if (highlighted) highlightedNativeGroups.push(relations);
-        else drawNativeRelations(relations, false);
-      });
-      highlightedNativeGroups.forEach(relations => drawNativeRelations(relations, true));
-
-      const highlightedMappings = [];
-      state.renderedMappings.forEach(mapping => {
-        const source = conceptByViewId.get(mapping.sourceViewId);
-        const target = conceptByViewId.get(mapping.targetViewId);
-        const highlighted = state.selected && (mapping.sourceViewId === state.selected || mapping.targetViewId === state.selected);
-        if (highlighted) highlightedMappings.push({ mapping, source, target });
-        else drawMapping(mapping, source, target, false);
-      });
-      highlightedMappings.forEach(({ mapping, source, target }) => drawMapping(mapping, source, target, true));
-
-      state.renderedConceptIds.forEach(viewId => {
-        if (viewId === state.selected) return;
-        const concept = conceptByViewId.get(viewId);
-        if (!isConceptVisible(concept)) return;
-        drawConcept(concept);
-      });
-      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
-      if (selected && isConceptVisible(selected)) drawConcept(selected);
-    }
-
-    function hitTest(clientX, clientY) {
-      const rect = canvas.getBoundingClientRect();
-      const point = screenToWorld(clientX - rect.left, clientY - rect.top);
-      let found = null;
-      let distance = Infinity;
-      state.renderedConceptIds.forEach(viewId => {
-        const concept = conceptByViewId.get(viewId);
-        if (!isConceptVisible(concept)) return;
-        const dx = concept.x - point.x;
-        const dy = concept.y - point.y;
-        const candidate = Math.hypot(dx, dy);
-        const threshold = conceptRadius(concept) / state.view.k + 8 / state.view.k;
-        if (candidate <= threshold && candidate < distance) {
-          found = concept;
-          distance = candidate;
-        }
-      });
-      return found;
-    }
-
-    function zoomAt(factor, x = state.width / 2, y = state.height / 2) {
-      const before = screenToWorld(x, y);
-      state.view.k = Math.max(.15, Math.min(8, state.view.k * factor));
-      state.view.x = x - before.x * state.view.k;
-      state.view.y = y - before.y * state.view.k;
-      draw();
-    }
-
-    function roleLabel(concept) {
-      const role = concept.selectionReasons.includes("mappingEndpoint")
-        ? "Mapping assertion endpoint"
-        : concept.selectionReasons.includes("nativeRelationEndpoint")
-          ? "Source-native relation endpoint"
-        : concept.selectionReasons.includes("releaseRepresentative")
-          ? "Concept release sample"
-          : "Concept";
-      return `${role} · ${ringLabels[concept.semanticRing]} ring`;
-    }
-
-    function selectConcept(concept, { fit = false } = {}) {
-      state.selected = concept ? concept.viewId : null;
-      if (concept && !state.activeReleases.has(concept.releaseId)) state.activeReleases.add(concept.releaseId);
-      if (concept && !state.activeRings.has(concept.semanticRing)) state.activeRings.add(concept.semanticRing);
-      refreshGraph({ fit });
-    }
-
-    function nativeRelationFromSelected(item) {
-      if (item.direction === "outgoing") {
-        return item.edge.predicateLabel;
-      }
-      const inverseLabels = new Map([
-        ["broader", "narrower"],
-        ["narrower", "broader"],
-        ["related", "related"],
-        ["thesaurus use", "thesaurus used for"],
-        ["thesaurus used for", "thesaurus use"]
-      ]);
-      return inverseLabels.get(item.edge.predicateLabel) || item.edge.predicateLabel;
-    }
-
-    function inspectorRelationLabel(item) {
-      return item.kind === "native" ? nativeRelationFromSelected(item) : item.edge.relationLabel;
-    }
-
-    function groupInspectorLinks(links) {
-      const groups = new Map();
-      links.forEach(item => {
-        const key = item.kind === "native"
-          ? `native\u001f${item.other}\u001f${item.edge.releaseId}\u001f${nativeRelationFromSelected(item)}`
-          : `mapping\u001f${item.other}\u001f${item.edge.id}`;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(item);
-      });
-      return [...groups.values()].sort((left, right) => {
-        const leftItem = left[0];
-        const rightItem = right[0];
-        return leftItem.kind.localeCompare(rightItem.kind)
-          || inspectorRelationLabel(leftItem).localeCompare(inspectorRelationLabel(rightItem))
-          || conceptByViewId.get(leftItem.other).label.localeCompare(conceptByViewId.get(rightItem.other).label)
-          || leftItem.other.localeCompare(rightItem.other);
-      });
-    }
-
-    function appendMappingEndpoint(container, role, concept) {
-      const endpoint = document.createElement("small");
-      endpoint.className = "mapping-endpoint";
-      const roleLabel = document.createElement("strong");
-      roleLabel.textContent = `${role} endpoint — `;
-      endpoint.append(
-        roleLabel,
-        document.createTextNode(`${concept.label} · ${releaseById.get(concept.releaseId).label}`)
-      );
-      container.append(endpoint);
-    }
-
-    function appendReferenceGroup(container, label, values) {
-      if (!values.length) return;
-      const group = document.createElement("div");
-      group.className = "reference-group";
-      const heading = document.createElement("b");
-      heading.textContent = label;
-      group.append(heading);
-      values.forEach(value => {
-        const reference = document.createElement(/^https?:/.test(value) ? "a" : "code");
-        reference.textContent = value;
-        if (reference instanceof HTMLAnchorElement) {
-          reference.href = value;
-          reference.target = "_blank";
-          reference.rel = "noreferrer";
-        }
-        group.append(reference);
-      });
-      container.append(group);
-    }
-
-    function renderMappingReferences(mapping) {
-      const details = document.createElement("details");
-      details.className = "connection-evidence";
-      const summary = document.createElement("summary");
-      summary.textContent = "Evidence and proof references";
-      details.append(summary);
-      [
-        ["Mapping assertion", [mapping.id]],
-        ["Lifecycle status", [mapping.effectiveLifecycleStatus]],
-        ["Supersedes", mapping.supersedes],
-        ["Superseded by", mapping.supersededBy],
-        ["Direct evidence assertions", mapping.directEvidenceAssertions],
-        ["Complete evidence closure", mapping.evidenceAssertions],
-        ["External evidence", mapping.externalEvidence],
-        ["Candidate records", mapping.candidateIds],
-        ["Validation receipts", mapping.validationReceiptIds],
-        ["Machine proofs", mapping.machineProofs]
-      ].forEach(([label, values]) => appendReferenceGroup(details, label, values));
-      const referenceView = document.createElement("a");
-      referenceView.className = "evidence-resolver";
-      referenceView.href = "atlas-explorer.json";
-      referenceView.textContent = "View references in explorer data";
-      const canonicalEvidence = document.createElement("a");
-      canonicalEvidence.className = "evidence-resolver";
-      canonicalEvidence.href = "atlas.nq.gz";
-      canonicalEvidence.setAttribute("download", "");
-      canonicalEvidence.textContent = "Download canonical Atlas evidence";
-      details.append(referenceView, document.createTextNode(" · "), canonicalEvidence);
-      return details;
-    }
-
-    function hierarchyStepDescription(step) {
-      if (step.kind === "mapping") {
-        const source = conceptByViewId.get(step.edge.sourceViewId);
-        const target = conceptByViewId.get(step.edge.targetViewId);
-        return `Source ${source.label} (${releaseById.get(source.releaseId).label}) ${mappingConnector(step.edge)} Target ${target.label} (${releaseById.get(target.releaseId).label})`;
-      }
-      const subject = conceptByViewId.get(step.edge.subjectViewId);
-      const object = conceptByViewId.get(step.edge.objectViewId);
-      return `${subject.label} —${step.edge.predicateLabel}→ ${object.label} (${releaseById.get(step.edge.releaseId).label})`;
-    }
-
-    function renderHierarchySteps(path) {
-      const details = document.createElement("details");
-      details.className = "connection-evidence";
-      const summary = document.createElement("summary");
-      summary.textContent = `Inspect ${formatQuantity(path.length, "direct assertion")}`;
-      details.append(summary);
-      path.forEach((step, index) => {
-        appendReferenceGroup(
-          details,
-          `Step ${index + 1} · ${step.kind === "mapping" ? "cross-release mapping" : "source-native hierarchy"}`,
-          [hierarchyStepDescription(step), step.edge.id]
-        );
-      });
-      return details;
-    }
-
-    function renderInspector() {
-      const empty = document.getElementById("empty-inspector");
-      const content = document.getElementById("inspector-content");
-      const inspector = document.getElementById("inspector");
-      const concept = state.selected ? conceptByViewId.get(state.selected) : null;
-      empty.hidden = Boolean(concept);
-      content.hidden = !concept;
-      inspector.classList.toggle("open", Boolean(concept));
-      if (!concept) return;
-      const release = releaseById.get(concept.releaseId);
-      const links = adjacency.get(concept.viewId).filter(isLinkEligible);
-      const nativeLinks = links.filter(item => item.kind === "native");
-      const mappingLinks = links.filter(item => item.kind === "mapping");
-      const parents = hierarchyNeighbors(concept.viewId, hierarchyParents);
-      const children = hierarchyNeighbors(concept.viewId, hierarchyChildren);
-      const ancestors = hierarchyClosure(concept.viewId, hierarchyParents);
-      const descendants = hierarchyClosure(concept.viewId, hierarchyChildren);
-      const related = new Set(
-        nativeLinks
-          .filter(item => item.edge.predicateLabel === "related")
-          .map(item => item.other)
-      );
-      document.getElementById("node-role").textContent = roleLabel(concept);
-      document.getElementById("node-title").textContent = concept.label;
-      document.getElementById("node-release").textContent = release.label;
-      document.getElementById("node-swatch").style.setProperty("--node-color", release.color);
-      const iri = document.getElementById("node-iri");
-      iri.textContent = concept.conceptId;
-      if (/^https?:/.test(concept.conceptId)) {
-        iri.href = concept.conceptId;
-        iri.target = "_blank";
-        iri.rel = "noreferrer";
-      } else {
-        iri.removeAttribute("href");
-        iri.removeAttribute("target");
-      }
-      document.getElementById("node-native-count").textContent = formatNumber(nativeLinks.length);
-      document.getElementById("node-mapping-count").textContent = formatNumber(mappingLinks.length);
-      document.getElementById("node-parent-count").textContent = formatNumber(parents.length);
-      document.getElementById("node-child-count").textContent = formatNumber(children.length);
-      document.getElementById("node-ancestor-count").textContent = formatNumber(ancestors.length);
-      document.getElementById("node-descendant-count").textContent = formatNumber(descendants.length);
-      document.getElementById("node-related-count").textContent = formatNumber(related.size);
-      const notation = document.getElementById("notation-value");
-      document.getElementById("notation-term").hidden = notation.hidden = !concept.notation;
-      notation.textContent = concept.notation || "";
-      const definition = document.getElementById("node-definition");
-      definition.hidden = !concept.definition;
-      definition.textContent = concept.definition ? `Definition — ${concept.definition}` : "";
-      const scopeNote = document.getElementById("node-scope-note");
-      scopeNote.hidden = !concept.scopeNote;
-      scopeNote.textContent = concept.scopeNote ? `Scope note — ${concept.scopeNote}` : "";
-      document.getElementById("node-notes").hidden = !(concept.definition || concept.scopeNote);
-      const container = document.getElementById("connections");
-      container.replaceChildren();
-      if (!links.length) {
-        const note = document.createElement("p");
-        note.className = "hint";
-        note.textContent = "No relationships match the active filters.";
-        container.append(note);
-      }
-      groupInspectorLinks(links)
-        .forEach(group => {
-          const item = group[0];
-          const other = conceptByViewId.get(item.other);
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "connection";
-          button.dataset.sourceAssertionCount = String(group.length);
-          const edgeColor = item.kind === "native" ? release.color : ringColors[item.edge.semanticRing];
-          button.style.setProperty("--connection-color", edgeColor);
-          const name = document.createElement("b");
-          name.textContent = other.label;
-          const relation = document.createElement("small");
-          if (item.kind === "native") {
-            const equivalentAssertions = group.length > 1
-              ? ` · ${formatQuantity(group.length, "equivalent source assertion")}`
-              : "";
-            relation.textContent = `${nativeRelationFromSelected(item)} · source-native relationship${equivalentAssertions} · ${releaseById.get(other.releaseId).label}`;
-          } else {
-            const evidence = item.edge.evidenceClasses.join(", ") || "typed evidence";
-            const semantics = mappingRelationKind(item.edge) === "directedHierarchy"
-              ? "directed hierarchy source → target"
-              : mappingRelationKind(item.edge) === "directed"
-                ? "directed source → target"
-              : mappingRelationKind(item.edge) === "symmetric"
-                ? "symmetric relation with retained endpoint roles"
-                : "typed source and target roles";
-            relation.textContent = `${item.edge.relationLabel} · ${semantics} · ${ringLabels[item.edge.semanticRing]} mapping · ${evidence}`;
-          }
-          button.append(name, relation);
-          if (item.kind === "mapping") {
-            const source = conceptByViewId.get(item.edge.sourceViewId);
-            const target = conceptByViewId.get(item.edge.targetViewId);
-            appendMappingEndpoint(button, "Source", source);
-            const connector = document.createElement("small");
-            connector.className = "mapping-endpoint";
-            connector.textContent = mappingConnector(item.edge);
-            button.append(connector);
-            appendMappingEndpoint(button, "Target", target);
-          }
-          button.addEventListener("click", () => selectConcept(other, { fit: true }));
-          const wrapper = document.createElement("div");
-          wrapper.className = "connection-group";
-          wrapper.append(button);
-          if (item.kind === "mapping") wrapper.append(renderMappingReferences(item.edge));
-          container.append(wrapper);
-        });
-      const hierarchySection = document.getElementById("node-hierarchy");
-      const hierarchyContainer = document.getElementById("hierarchy-connections");
-      hierarchyContainer.replaceChildren();
-      const hierarchyRows = [
-        ...ancestors.map(item => ({ ...item, direction: "ancestor" })),
-        ...descendants.map(item => ({ ...item, direction: "descendant" }))
-      ];
-      hierarchySection.hidden = !hierarchyRows.length;
-      hierarchyRows.slice(0, 120).forEach(item => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "connection-group";
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "connection";
-        button.style.setProperty("--connection-color", release.color);
-        const name = document.createElement("b");
-        name.textContent = item.concept.label;
-        const path = document.createElement("small");
-        const direction = item.depth === 1
-          ? (item.direction === "ancestor" ? "parent" : "child")
-          : item.direction;
-        const routeKind = item.depth === 1 ? `direct ${direction}` : `inferred ${direction} route`;
-        path.textContent = `${routeKind} · ${formatQuantity(item.depth, "asserted step")} · ${hierarchyPathKinds(item.path)}`;
-        button.append(name, path);
-        button.addEventListener("click", () => selectConcept(item.concept, { fit: true }));
-        wrapper.append(button, renderHierarchySteps(item.path));
-        hierarchyContainer.append(wrapper);
-      });
-      if (hierarchyRows.length > 120) {
-        const note = document.createElement("p");
-        note.className = "hint";
-        note.textContent = `${formatNumber(hierarchyRows.length - 120)} additional path results remain searchable by concept.`;
-        hierarchyContainer.append(note);
-      }
-    }
-
-    /* explorer-search-ranking-core:start */
-    function editDistanceWithin(left, right, limit) {
-      if (Math.abs(left.length - right.length) > limit) return false;
-      let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-      for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-        const current = [leftIndex];
-        let rowMinimum = current[0];
-        for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-          const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
-          const value = Math.min(
-            previous[rightIndex] + 1,
-            current[rightIndex - 1] + 1,
-            previous[rightIndex - 1] + cost
-          );
-          current.push(value);
-          rowMinimum = Math.min(rowMinimum, value);
-        }
-        if (rowMinimum > limit) return false;
-        previous = current;
-      }
-      return previous[right.length] <= limit;
-    }
-
-    function scoreSearch(document, query, tokens) {
-      const exactLabel = document.labels.find(label => label.normalized === query);
-      if (document.displayLabel === query) return { score: 1000, match: "Exact preferred label" };
-      if (exactLabel) return { score: 960, match: `Exact label · ${exactLabel.value}` };
-      if (document.notation && document.notation === query) return { score: 940, match: "Exact notation" };
-      if (document.identifier === query || document.identifierTail === query) return { score: 920, match: "Exact identifier" };
-      if (document.displayLabel.startsWith(query)) return { score: 880, match: "Preferred label starts with query" };
-      const prefixLabel = document.labels.find(label => label.normalized.startsWith(query));
-      if (prefixLabel) return { score: 850, match: `Label starts with query · ${prefixLabel.value}` };
-      const tokenPrefixLabel = document.labels.find(label =>
-        tokens.every(token => label.tokens.some(value => value.startsWith(token)))
-      );
-      if (tokenPrefixLabel) {
-        const preferred = tokenPrefixLabel.normalized === document.displayLabel;
-        return {
-          score: preferred ? 820 : 790,
-          match: preferred
-            ? "All words match preferred-label prefixes"
-            : `All words match one label · ${tokenPrefixLabel.value}`
-        };
-      }
-      if (document.displayLabel.includes(query)) return { score: 760, match: "Preferred label contains query" };
-      const containedLabel = document.labels.find(label => label.normalized.includes(query));
-      if (containedLabel) return { score: 720, match: `Label contains query · ${containedLabel.value}` };
-      if (document.notation && document.notation.includes(query)) return { score: 680, match: "Notation contains query" };
-      if (document.identifier.includes(query) || document.identifierTail.includes(query)) {
-        return { score: 640, match: "Identifier contains query" };
-      }
-      if (tokens.every(token => document.sourceFacts.includes(token))) return { score: 520, match: "Source or release fact" };
-      if (tokens.every(token => document.notes.includes(token))) return { score: 420, match: "Definition or scope note" };
-      const fuzzyLabel = query.length >= 4
-        ? document.labels.find(label => tokens.every(token => label.tokens.some(value =>
-          editDistanceWithin(token, value, token.length >= 8 ? 2 : 1)
-        )))
-        : null;
-      if (fuzzyLabel) {
-        const preferred = fuzzyLabel.normalized === document.displayLabel;
-        return {
-          score: preferred ? 300 : 260,
-          match: preferred ? "Possible preferred-label spelling match" : `Possible label spelling match · ${fuzzyLabel.value}`
-        };
-      }
-      return null;
-    }
-
-    function rankSearchDocuments(documents, queryValue, semanticRing) {
-      const query = normalizeSearch(queryValue);
-      if (!query) return [];
-      const tokens = query.split(" ").filter(Boolean);
-      return documents
-        .filter(document => document.concept.semanticRing === semanticRing)
-        .map(document => {
-          const score = scoreSearch(document, query, tokens);
-          return score ? { document, ...score } : null;
-        })
-        .filter(Boolean)
-        .sort((left, right) => right.score - left.score
-          || (left.document.concept.viewId < right.document.concept.viewId ? -1
-            : left.document.concept.viewId > right.document.concept.viewId ? 1 : 0));
-    }
-    /* explorer-search-ranking-core:end */
-
-    function updateActiveSearchResult(index) {
-      const buttons = [...resultBox.querySelectorAll(".result")];
-      if (!buttons.length) {
-        state.activeSearchIndex = -1;
-        search.removeAttribute("aria-activedescendant");
-        return;
-      }
-      state.activeSearchIndex = Math.max(0, Math.min(index, buttons.length - 1));
-      buttons.forEach((button, buttonIndex) => {
-        const active = buttonIndex === state.activeSearchIndex;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-selected", String(active));
-      });
-      const active = buttons[state.activeSearchIndex];
-      search.setAttribute("aria-activedescendant", active.id);
-      active.scrollIntoView({ block: "nearest" });
-    }
-
-    function chooseSearchResult(index) {
-      const result = state.searchResults[index];
-      if (!result) return;
-      selectConcept(conceptByViewId.get(result.document.concept.viewId), { fit: true });
-      search.setAttribute("aria-expanded", "false");
-      resultBox.hidden = true;
-    }
-
-    function renderSearch({ focusMatches = false, refresh = true } = {}) {
-      const query = normalizeSearch(search.value);
-      state.query = query;
-      state.searchResults = rankSearchDocuments(
-        searchDocuments.filter(document => isConceptEligible(document.concept)),
-        query,
-        state.activeSearchRing
-      );
-      state.matches = new Set(state.searchResults.map(result => result.document.concept.viewId));
-      state.activeSearchIndex = -1;
-      if (focusMatches) state.selected = null;
-      resultBox.replaceChildren();
-      resultBox.hidden = !query;
-      const visibleResults = state.searchResults.slice(0, maxSearchResults);
-      visibleResults.forEach((result, index) => {
-        const row = result.document.concept;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "result";
-        button.id = `search-result-${index}`;
-        button.setAttribute("role", "option");
-        button.setAttribute("aria-selected", "false");
-        const label = document.createElement("span");
-        label.textContent = row.label;
-        const source = document.createElement("small");
-        source.textContent = `${releaseById.get(row.releaseId).label} · ${ringLabels[row.semanticRing]} ring`;
-        const match = document.createElement("small");
-        match.className = "match";
-        match.textContent = result.match;
-        button.append(label, source, match);
-        button.addEventListener("click", () => chooseSearchResult(index));
-        resultBox.append(button);
-      });
-      if (query) {
-        const note = document.createElement("small");
-        note.className = "result-summary";
-        note.textContent = state.searchResults.length
-          ? `${ringLabels[state.activeSearchRing]} ring · ${formatQuantity(state.searchResults.length, "matching concept")} · ${formatNumber(visibleResults.length)} listed`
-          : `No ${ringLabels[state.activeSearchRing].toLocaleLowerCase()}-ring concepts match the search and active filters.`;
-        resultBox.append(note);
-      }
-      search.setAttribute("aria-expanded", String(Boolean(query && visibleResults.length)));
-      if (refresh) refreshGraph({ fit: focusMatches });
-    }
-
-    function filtersChanged() {
-      const selected = state.selected ? conceptByViewId.get(state.selected) : null;
-      if (selected && !isConceptEligible(selected)) state.selected = null;
-      renderSearch({ refresh: false });
-      renderPlanningRows();
-      refreshGraph({ fit: true });
-    }
-
-    function compactFacetValue(value) {
-      if (value.length <= 52) return value;
-      return `${value.slice(0, 24)}…${value.slice(-22)}`;
-    }
-
-    function appendFacetSelect(container, field, labelText, values, onChange) {
-      if (!values.length) return null;
-      const label = document.createElement("label");
-      label.className = "facet-control";
-      const caption = document.createElement("span");
-      caption.textContent = labelText;
-      const select = document.createElement("select");
-      select.dataset.facet = field;
-      select.setAttribute("aria-label", `Filter by ${labelText.toLocaleLowerCase()}`);
-      const all = document.createElement("option");
-      all.value = "";
-      all.textContent = `All ${labelText.toLocaleLowerCase()} values`;
-      select.append(all);
-      values.forEach(value => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = compactFacetValue(value);
-        option.title = value;
-        select.append(option);
-      });
-      select.addEventListener("change", () => onChange(select.value));
-      label.append(caption, select);
-      container.append(label);
-      return select;
-    }
-
-    function renderSearchRingControl() {
-      availableSearchRings.forEach(ring => {
-        const option = document.createElement("option");
-        option.value = ring;
-        option.textContent = `${ringLabels[ring]} ring`;
-        searchRing.append(option);
-      });
-      searchRing.value = state.activeSearchRing;
-      searchRing.addEventListener("change", () => {
-        state.activeSearchRing = searchRing.value;
-        renderSearch({ focusMatches: true });
-      });
-    }
-
-    function planningRowEligible(row) {
-      return planningRowEligibleForState(row, state);
-    }
-
-    function renderPlanningRows() {
-      if (!("planningIndex" in data.releaseContext)) return;
-      const rows = data.releaseContext.planningRows.filter(planningRowEligible);
-      planningRows.replaceChildren();
-      rows.forEach(row => {
-        const item = document.createElement("div");
-        item.className = "planning-row";
-        const heading = document.createElement("b");
-        heading.textContent = `${row.resourceId} · ${row.disposition}`;
-        const source = document.createElement("small");
-        const participation = row.atlasParticipation ? ` · ${row.atlasParticipation}` : "";
-        source.textContent = `${row.sourceModule} · ${ringLabels[row.semanticRing]}${participation} · ${row.planningStatus}`;
-        const reason = document.createElement("small");
-        reason.textContent = row.reason;
-        item.append(heading, source, reason);
-        planningRows.append(item);
-      });
-      document.getElementById("planning-row-count").textContent = `${formatNumber(rows.length)} shown · ${formatNumber(data.releaseContext.planningRows.length)} exact planning rows`;
-    }
-
-    function renderFacetFilters() {
-      conceptFacetDefinitions.forEach(([field, label]) => {
-        appendFacetSelect(conceptFacetFilters, field, label, data.facets[field], value => {
-          state.activeConceptFacets[field] = value;
-          filtersChanged();
-        });
-      });
-      appendFacetSelect(
-        mappingFacetFilters,
-        "mappingPredicates",
-        "Mapping predicate",
-        data.facets.mappingPredicates,
-        value => {
-          state.activeMappingPredicate = value;
-          filtersChanged();
-        }
-      );
-      appendFacetSelect(
-        mappingFacetFilters,
-        "mappingLifecycleStatuses",
-        "Mapping lifecycle",
-        data.facets.mappingLifecycleStatuses,
-        value => {
-          state.activeMappingLifecycleStatus = value;
-          filtersChanged();
-        }
-      );
-      appendFacetSelect(
-        mappingFacetFilters,
-        "evidenceClasses",
-        "Evidence class",
-        data.facets.evidenceClasses,
-        value => {
-          state.activeEvidenceClass = value;
-          filtersChanged();
-        }
-      );
-    }
-
-    function renderReleaseContext() {
-      if (!("planningIndex" in data.releaseContext)) return;
-      document.getElementById("release-context-section").hidden = false;
-      document.getElementById("release-context-summary").textContent = `${formatQuantity(data.releaseContext.sourceApprovals.length, "approved source release")} · ${formatQuantity(data.releaseContext.planningRows.length, "disposed planning row")}`;
-      const approvals = document.getElementById("source-approvals");
-      data.releaseContext.sourceApprovals.forEach(approval => {
-        const item = document.createElement("div");
-        item.className = "planning-row";
-        const heading = document.createElement("b");
-        heading.textContent = `${releaseById.get(approval.releaseId)?.label || identifierTail(approval.releaseId)} · approved`;
-        const source = document.createElement("small");
-        source.textContent = `${ringLabels[approval.semanticRing]} · ${shortId(approval.manifestDigest)}`;
-        item.append(heading, source);
-        approvals.append(item);
-      });
-      appendFacetSelect(
-        planningFacetFilters,
-        "planningDispositions",
-        "Planning disposition",
-        data.facets.planningDispositions,
-        value => {
-          state.activePlanningDisposition = value;
-          renderPlanningRows();
-        }
-      );
-      renderPlanningRows();
-    }
-
-    function renderFilters() {
-      data.conceptReleases.forEach(release => {
-        const meta = releaseById.get(release.releaseId);
-        const supersessions = release.sourceReleaseSupersessions || [];
-        const publisherPriorVersions = release.publisherReleasePriorVersions || [];
-        const label = document.createElement("label");
-        label.className = "filter release-filter";
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = true;
-        input.dataset.release = release.releaseId;
-        input.setAttribute("aria-label", `${release.label} release, ${formatQuantity(release.shownConceptCount, "concept")}${supersessions.length ? `, supersedes ${formatQuantity(supersessions.length, "source release")}` : ""}${publisherPriorVersions.length ? `, publisher states ${formatQuantity(publisherPriorVersions.length, "prior version")}` : ""}`);
-        const swatch = document.createElement("span");
-        swatch.className = "swatch";
-        swatch.style.setProperty("--swatch", meta.color);
-        const text = document.createElement("span");
-        text.className = "label";
-        text.textContent = release.label;
-        const count = document.createElement("small");
-        count.textContent = `${formatQuantity(release.shownConceptCount, "concept")}${supersessions.length ? ` · supersedes ${formatQuantity(supersessions.length, "release")}` : ""}${publisherPriorVersions.length ? ` · publisher prior ${formatQuantity(publisherPriorVersions.length, "version")}` : ""}`;
-        const lineageDetails = [
-          ...supersessions.map(relation => `Exact predecessor: ${relation.supersededRelease.releaseId} · ${relation.supersededRelease.manifestDigest}`),
-          ...publisherPriorVersions.map(relation => `Publisher prior version: ${relation.publisherReleaseIri} → ${relation.priorVersionIri} · publisher IRI only`),
-        ];
-        if (lineageDetails.length) {
-          count.title = lineageDetails.join("\n");
-        }
-        label.append(input, swatch, text, count);
-        releaseFilters.append(label);
-        input.addEventListener("change", () => {
-          if (input.checked) state.activeReleases.add(release.releaseId);
-          else state.activeReleases.delete(release.releaseId);
-          filtersChanged();
-        });
-      });
-
-      const conceptCountByRing = new Map(ringOrder.map(ring => [
-        ring,
-        data.concepts.filter(concept => concept.semanticRing === ring).length
-      ]));
-      ringOrder.forEach(ring => {
-        const label = document.createElement("label");
-        label.className = "filter release-filter";
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = true;
-        input.dataset.ring = ring;
-        input.setAttribute("aria-label", `${ringLabels[ring]} ring, ${formatQuantity(conceptCountByRing.get(ring), "concept")}`);
-        const swatch = document.createElement("span");
-        swatch.className = "swatch";
-        swatch.style.setProperty("--swatch", ringColors[ring]);
-        const text = document.createElement("span");
-        text.className = "label";
-        text.textContent = ringLabels[ring];
-        const count = document.createElement("small");
-        count.textContent = formatQuantity(conceptCountByRing.get(ring), "concept");
-        label.append(input, swatch, text, count);
-        ringFilters.append(label);
-        input.addEventListener("change", () => {
-          if (input.checked) state.activeRings.add(ring);
-          else state.activeRings.delete(ring);
-          filtersChanged();
-        });
-      });
-
-      nativePredicateOrder.forEach(predicate => {
-        const rows = data.nativeRelations.filter(relation => relation.predicate === predicate);
-        const label = document.createElement("label");
-        label.className = "filter relation-filter";
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = true;
-        input.dataset.nativePredicate = predicate;
-        input.setAttribute("aria-label", `${rows[0] ? rows[0].predicateLabel : predicate.split("#").pop()}, ${formatQuantity(rows.length, "assertion")}`);
-        const key = document.createElement("span");
-        key.className = "edge-key";
-        key.style.setProperty("--edge-color", "#9ba8a2");
-        const text = document.createElement("span");
-        text.className = "filter-copy";
-        const name = document.createElement("span");
-        name.className = "label";
-        name.textContent = rows[0] ? rows[0].predicateLabel : predicate.split("#").pop();
-        const count = document.createElement("small");
-        count.textContent = formatQuantity(rows.length, "assertion");
-        text.append(name, count);
-        label.append(input, key, text);
-        nativeFilters.append(label);
-        input.addEventListener("change", () => {
-          if (input.checked) state.activeNativePredicates.add(predicate);
-          else state.activeNativePredicates.delete(predicate);
-          filtersChanged();
-        });
-      });
-
-      const mappingLabel = document.createElement("label");
-      mappingLabel.className = "filter relation-filter";
-      const mappingInput = document.createElement("input");
-      mappingInput.type = "checkbox";
-      mappingInput.checked = true;
-      mappingInput.dataset.mappingAssertions = "all";
-      mappingInput.setAttribute("aria-label", `Qualified mappings, ${formatQuantity(data.mappingAssertions.length, "assertion")}`);
-      const mappingKey = document.createElement("span");
-      mappingKey.className = "edge-key mapping";
-      mappingKey.style.setProperty("--edge-color", "#9ba8a2");
-      const mappingText = document.createElement("span");
-      mappingText.className = "filter-copy";
-      const mappingName = document.createElement("span");
-      mappingName.className = "label";
-      mappingName.textContent = "Qualified mappings";
-      const mappingCount = document.createElement("small");
-      mappingCount.textContent = formatQuantity(data.mappingAssertions.length, "assertion");
-      mappingText.append(mappingName, mappingCount);
-      mappingLabel.append(mappingInput, mappingKey, mappingText);
-      mappingFilters.append(mappingLabel);
-      mappingInput.addEventListener("change", () => {
-        state.mappingsActive = mappingInput.checked;
-        filtersChanged();
-      });
-    }
-
-    function updateGraphStatus() {
-      const renderedNativeAssertions = state.renderedNativeGroups.reduce(
-        (total, relations) => total + relations.length,
-        0
-      );
-      const renderedConceptCount = state.renderedConceptIds.size;
-      const mode = state.selected
-        ? `Selected ${conceptByViewId.get(state.selected).label}`
-        : state.query
-          ? "Search matches"
-          : "Relationship overview";
-      graphStatus.textContent = renderedConceptCount
-        ? `${mode} · ${formatQuantity(renderedConceptCount, "concept")} · ${formatQuantity(renderedNativeAssertions, "native assertion")} · ${formatQuantity(state.renderedMappings.length, "mapping")}`
-        : "No concepts match the active filters.";
-      document.getElementById("view-count").textContent = `${formatNumber(renderedConceptCount)} rendered · ${formatNumber(state.renderLimit)} limit · ${formatNumber(data.summary.shownConceptCount)} searchable concepts`;
-    }
-
-    function explorerScopeText() {
-      return data.summary.truncated
-        ? `This index contains ${formatNumber(data.summary.shownConceptCount)} of ${formatNumber(data.summary.availableConceptCount)} concepts.`
-        : `All ${formatNumber(data.summary.shownConceptCount)} concepts and ${formatNumber(data.summary.shownNativeRelationCount)} native assertions are searchable.`;
-    }
-
-    function syncRenderLimitControls() {
-      renderLimitRange.value = String(state.renderLimit);
-      renderLimitNumber.value = String(state.renderLimit);
-      renderLimitRange.setAttribute("aria-valuetext", `${formatQuantity(state.renderLimit, "concept")} maximum`);
-      document.getElementById("selection-note").textContent = `${explorerScopeText()} The graph draws at most ${formatNumber(state.renderLimit)} concepts; active filters may produce fewer.`;
-    }
-
-    function setRenderLimit(value, { refresh = true } = {}) {
-      const parsed = Number.parseInt(String(value), 10);
-      const next = Number.isFinite(parsed)
-        ? Math.max(1, Math.min(renderCapacity, parsed))
-        : state.renderLimit;
-      const changed = next !== state.renderLimit;
-      state.renderLimit = next;
-      syncRenderLimitControls();
-      if (!refresh || !changed) return;
-      if (renderLimitFrame !== null) cancelAnimationFrame(renderLimitFrame);
-      renderLimitFrame = requestAnimationFrame(() => {
-        renderLimitFrame = null;
-        refreshGraph({ fit: true });
-      });
-    }
-
-    function populateText() {
-      document.getElementById("short-id").textContent = shortId(data.atlas.assetId);
-      document.getElementById("metric-releases").textContent = formatNumber(data.atlas.counts.conceptReleases);
-      document.getElementById("metric-quads").textContent = formatNumber(data.atlas.quadCount);
-      document.getElementById("metric-native").textContent = formatNumber(data.summary.availableNativeRelationCount);
-      renderLimitRange.max = String(renderCapacity);
-      renderLimitNumber.max = String(renderCapacity);
-      document.getElementById("render-limit-max").textContent = formatNumber(data.summary.shownConceptCount);
-      syncRenderLimitControls();
-      document.getElementById("pin-id").textContent = data.atlas.assetId;
-      document.getElementById("pin-manifest").textContent = data.atlas.manifestDigest;
-      document.getElementById("pin-output").textContent = data.atlas.distributionDigest;
-      document.getElementById("pin-selection").textContent = data.selectionPolicy.id;
-      if ("planningIndex" in data.releaseContext) {
-        document.getElementById("pin-index-label").hidden = false;
-        document.getElementById("pin-index").hidden = false;
-        document.getElementById("pin-index").textContent = `${data.releaseContext.planningIndex.id} · ${data.releaseContext.planningIndex.fileDigest}`;
-        document.getElementById("pin-decision-label").hidden = false;
-        document.getElementById("pin-decision").hidden = false;
-        document.getElementById("pin-decision").textContent = `${data.releaseContext.publicationDecision.id} · ${data.releaseContext.publicationDecision.recordDigest}`;
-        document.getElementById("index-download").hidden = false;
-      }
-    }
-
-    canvas.addEventListener("pointerdown", event => {
-      canvas.setPointerCapture(event.pointerId);
-      const hit = hitTest(event.clientX, event.clientY);
-      if (hit) {
-        selectConcept(hit);
-      } else {
-        state.panning = true;
-        state.dragStart = { x: event.clientX, y: event.clientY, viewX: state.view.x, viewY: state.view.y };
-        canvas.classList.add("panning");
-      }
-    });
-    canvas.addEventListener("pointermove", event => {
-      if (state.panning && state.dragStart) {
-        state.view.x = state.dragStart.viewX + event.clientX - state.dragStart.x;
-        state.view.y = state.dragStart.viewY + event.clientY - state.dragStart.y;
-        draw();
-        return;
-      }
-      const hit = hitTest(event.clientX, event.clientY);
-      state.hover = hit ? hit.viewId : null;
-      if (hit) {
-        const rect = stage.getBoundingClientRect();
-        tooltip.replaceChildren();
-        const name = document.createTextNode(hit.label);
-        const source = document.createElement("small");
-        source.textContent = releaseById.get(hit.releaseId).label;
-        tooltip.append(name, source);
-        tooltip.style.left = `${event.clientX - rect.left}px`;
-        tooltip.style.top = `${event.clientY - rect.top}px`;
-        tooltip.hidden = false;
-      } else {
-        tooltip.hidden = true;
-      }
-      draw();
-    });
-    canvas.addEventListener("pointerup", event => {
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-      state.panning = false;
-      state.dragStart = null;
-      canvas.classList.remove("panning");
-    });
-    canvas.addEventListener("pointerleave", () => {
-      state.hover = null;
-      tooltip.hidden = true;
-      draw();
-    });
-    canvas.addEventListener("wheel", event => {
-      event.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      zoomAt(event.deltaY < 0 ? 1.12 : .89, event.clientX - rect.left, event.clientY - rect.top);
-    }, { passive: false });
-    canvas.addEventListener("keydown", event => {
-      const step = 32;
-      if (event.key === "+" || event.key === "=") zoomAt(1.2);
-      else if (event.key === "-") zoomAt(.83);
-      else if (event.key === "ArrowLeft") state.view.x += step;
-      else if (event.key === "ArrowRight") state.view.x -= step;
-      else if (event.key === "ArrowUp") state.view.y += step;
-      else if (event.key === "ArrowDown") state.view.y -= step;
-      else return;
-      event.preventDefault();
-      draw();
-    });
-    document.getElementById("zoom-in").addEventListener("click", () => zoomAt(1.25));
-    document.getElementById("zoom-out").addEventListener("click", () => zoomAt(.8));
-    document.getElementById("fit-view").addEventListener("click", fitView);
-    renderLimitRange.addEventListener("input", event => setRenderLimit(event.currentTarget.value));
-    renderLimitNumber.addEventListener("change", event => setRenderLimit(event.currentTarget.value));
-    renderLimitNumber.addEventListener("keydown", event => {
-      if (event.key !== "Enter") return;
-      event.preventDefault();
-      setRenderLimit(event.currentTarget.value);
-      event.currentTarget.select();
-    });
-    document.getElementById("toggle-controls").addEventListener("click", event => {
-      const controls = document.getElementById("controls");
-      controls.classList.toggle("open");
-      event.currentTarget.setAttribute("aria-label", controls.classList.contains("open") ? "Hide filters" : "Show filters");
-    });
-    document.getElementById("copy-iri").addEventListener("click", async event => {
-      if (!state.selected) return;
-      try {
-        await navigator.clipboard.writeText(conceptByViewId.get(state.selected).conceptId);
-        event.currentTarget.textContent = "Copied";
-        window.setTimeout(() => { event.currentTarget.textContent = "Copy IRI"; }, 1200);
-      } catch (_) {
-        event.currentTarget.textContent = "Copy unavailable";
-      }
-    });
-    search.addEventListener("input", () => renderSearch({ focusMatches: true }));
-    search.addEventListener("focus", () => {
-      if (state.query) {
-        resultBox.hidden = false;
-        search.setAttribute("aria-expanded", String(Boolean(state.searchResults.length)));
-      }
-    });
-    search.addEventListener("keydown", event => {
-      const visibleCount = Math.min(maxSearchResults, state.searchResults.length);
-      if (event.key === "ArrowDown" && visibleCount) {
-        event.preventDefault();
-        updateActiveSearchResult(state.activeSearchIndex + 1);
-      } else if (event.key === "ArrowUp" && visibleCount) {
-        event.preventDefault();
-        updateActiveSearchResult(state.activeSearchIndex <= 0 ? visibleCount - 1 : state.activeSearchIndex - 1);
-      } else if (event.key === "Enter" && visibleCount) {
-        event.preventDefault();
-        chooseSearchResult(state.activeSearchIndex < 0 ? 0 : state.activeSearchIndex);
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        search.value = "";
-        renderSearch({ focusMatches: true });
-      }
-    });
-    document.getElementById("reset-filters").addEventListener("click", () => {
-      state.activeReleases = new Set(data.conceptReleases.map(release => release.releaseId));
-      state.activeNativePredicates = new Set(nativePredicateOrder);
-      state.activeRings = new Set(ringOrder);
-      state.activeSearchRing = defaultSearchRing;
-      state.activeConceptFacets = Object.fromEntries(conceptFacetDefinitions.map(([field]) => [field, ""]));
-      state.activeMappingPredicate = "";
-      state.activeMappingLifecycleStatus = "";
-      state.activeEvidenceClass = "";
-      state.activePlanningDisposition = "";
-      state.mappingsActive = true;
-      state.selected = null;
-      search.value = "";
-      document.querySelectorAll("#controls input[type=checkbox]").forEach(input => { input.checked = true; });
-      document.querySelectorAll("#controls select:not(#search-ring)").forEach(select => { select.value = ""; });
-      searchRing.value = defaultSearchRing;
-      renderPlanningRows();
-      renderSearch({ focusMatches: true });
-    });
-    window.addEventListener("keydown", event => {
-      if (event.key === "/" && document.activeElement !== search) {
-        event.preventDefault();
-        search.focus();
-      }
-      if (event.key === "Escape") {
-        search.value = "";
-        renderSearch({ focusMatches: true });
-      }
-    });
-    new ResizeObserver(resize).observe(stage);
-
-    populateText();
-    renderSearchRingControl();
-    renderFacetFilters();
-    renderFilters();
-    renderReleaseContext();
-    renderSearch({ refresh: false });
-    refreshGraph();
-    resize();
-    requestAnimationFrame(() => canvas.classList.add("ready"));
-  })();
-  </script>
-</body>
-</html>
-"""
 
 
 def _safe_json(value: Mapping[str, Any]) -> str:
@@ -3487,43 +1487,379 @@ def _safe_json(value: Mapping[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-def _default_search_ring(model: Mapping[str, Any]) -> str:
-    concepts = cast(Sequence[Mapping[str, Any]], model["concepts"])
-    available = {cast(str, concept["semanticRing"]) for concept in concepts}
-    return next((ring for ring in _RING_ORDER if ring in available), "subject")
+class _Atlas3Template(Template):
+    delimiter = "@@"
 
 
-def render_atlas_explorer(model: Mapping[str, Any]) -> str:
-    """Validate Atlas 2.0 explorer data and return one self-contained HTML file."""
+_GRAPH_HTML = r"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="data:,">
+  <title>@@title · RefSpec Atlas 3 explorer</title>
+  <style>
+    :root {
+      --ink: #edf4f0; --muted: #9caaa4; --faint: #66756f; --paper: #09100e;
+      --raised: #101a17; --rule: #263530; --rule-strong: #3b4f48; --focus: #99ddd0;
+      --asserted: #70d29b; --projection: #68a9ff; --derived: #e7ad55;
+      --serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body { margin: 0; overflow: hidden; color: var(--ink); background: var(--paper); font: 14px/1.45 var(--sans); }
+    button, input, select { font: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible {
+      outline: 2px solid var(--focus); outline-offset: 2px;
+    }
+    .shell { display: grid; grid-template-rows: 68px minmax(0, 1fr) 34px; height: 100%; }
+    .appbar {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center;
+      padding: .75rem 1.1rem; border-bottom: 1px solid var(--rule); background: rgba(9, 16, 14, .96);
+    }
+    .eyebrow { color: var(--asserted); font: 600 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: .2rem 0 0; overflow: hidden; font: 500 1.35rem/1.1 var(--serif); text-overflow: ellipsis; white-space: nowrap; }
+    .metrics { display: flex; gap: 1.2rem; }
+    .metric { text-align: right; } .metric b { display: block; font: 600 .95rem/1 var(--mono); }
+    .metric span { color: var(--faint); font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; }
+    .workspace { display: grid; grid-template-columns: 272px minmax(0, 1fr) 330px; min-height: 0; }
+    .panel { min-height: 0; overflow: auto; background: rgba(14, 23, 20, .94); scrollbar-color: var(--rule-strong) transparent; }
+    .controls { padding: 1rem; border-right: 1px solid var(--rule); }
+    .inspector { padding: 1rem 1.05rem 1.5rem; border-left: 1px solid var(--rule); }
+    .panel h2, .panel h3 { margin: 0; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .panel h3 { color: var(--faint); }
+    .control-section { padding: .9rem 0; border-bottom: 1px solid var(--rule); }
+    .control-section:last-child { border-bottom: 0; }
+    .search-wrap { position: relative; margin-top: .65rem; }
+    #search, #ring-filter, #predicate-filter, #render-limit-number {
+      width: 100%; min-height: 38px; padding: .55rem .65rem; color: var(--ink);
+      border: 1px solid var(--rule-strong); border-radius: 4px; background: #080e0c;
+    }
+    #search { padding-right: 2rem; } .key { position: absolute; top: 50%; right: .65rem; color: var(--faint); transform: translateY(-50%); }
+    .results { display: grid; margin-top: .35rem; }
+    .result { padding: .42rem .3rem; overflow: hidden; color: var(--muted); border: 0; border-bottom: 1px solid var(--rule); background: transparent; text-align: left; cursor: pointer; }
+    .result:hover { color: var(--ink); background: rgba(112, 210, 155, .08); }
+    .result b, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .result small { color: var(--faint); font-size: .68rem; }
+    .filter-list { display: grid; gap: .48rem; margin-top: .65rem; }
+    .filter { display: grid; grid-template-columns: 14px 10px minmax(0, 1fr) auto; gap: .5rem; align-items: center; color: var(--muted); cursor: pointer; }
+    .filter input { width: 14px; height: 14px; margin: 0; accent-color: var(--asserted); }
+    .filter .swatch { width: 9px; height: 9px; border-radius: 50%; background: var(--swatch); }
+    .filter .label { overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
+    .filter small { color: var(--faint); font: 10px/1 var(--mono); }
+    .authority-filter { grid-template-columns: 14px 20px minmax(0, 1fr); }
+    .edge-key { width: 20px; height: 0; border-top: 2px solid var(--edge); }
+    .edge-key.projection { border-top-style: dashed; } .edge-key.derived { border-top-style: dotted; }
+    .hint { margin: .55rem 0 0; color: var(--faint); font-size: .72rem; }
+    .render-limit { display: grid; grid-template-columns: 1fr 66px; gap: .5rem; align-items: center; margin-top: .65rem; }
+    #render-limit-range { grid-column: 1 / -1; width: 100%; accent-color: var(--asserted); }
+    #render-limit-number { min-height: 30px; text-align: right; font: 11px/1 var(--mono); }
+    .actions { display: flex; gap: .5rem; margin-top: .75rem; }
+    .action { padding: .45rem .6rem; color: var(--muted); border: 1px solid var(--rule-strong); border-radius: 4px; background: transparent; cursor: pointer; }
+    .action:hover { color: var(--ink); border-color: var(--asserted); }
+    .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: radial-gradient(circle at 50% 42%, rgba(66, 112, 95, .12), transparent 34rem); }
+    #graph { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #graph.panning { cursor: grabbing; }
+    .graph-tools { position: absolute; top: .7rem; right: .7rem; display: flex; overflow: hidden; border: 1px solid var(--rule-strong); border-radius: 4px; background: rgba(9, 16, 14, .92); }
+    .graph-tools button { width: 38px; height: 38px; padding: 0; color: var(--muted); border: 0; border-right: 1px solid var(--rule); background: transparent; cursor: pointer; }
+    .graph-tools button:last-child { border-right: 0; } .graph-tools button:hover { color: var(--ink); background: rgba(112, 210, 155, .09); }
+    .legend { position: absolute; bottom: .75rem; left: .75rem; display: flex; flex-wrap: wrap; gap: .7rem; padding: .42rem .55rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; background: rgba(9, 16, 14, .9); font-size: .68rem; }
+    .legend span { display: flex; gap: .35rem; align-items: center; } .legend i { width: 18px; border-top: 2px solid var(--edge); }
+    .legend .projection i { border-top-style: dashed; } .legend .derived i { border-top-style: dotted; }
+    .graph-status { position: absolute; top: .75rem; left: .75rem; padding: .38rem .5rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; background: rgba(9, 16, 14, .9); font: 10px/1.3 var(--mono); pointer-events: none; }
+    .tooltip { position: absolute; z-index: 5; max-width: 250px; padding: .42rem .55rem; color: var(--ink); border: 1px solid var(--rule-strong); background: rgba(7, 12, 10, .97); box-shadow: 0 10px 28px rgba(0,0,0,.36); pointer-events: none; transform: translate(12px, 12px); }
+    .tooltip small { display: block; color: var(--faint); } .tooltip[hidden] { display: none; }
+    .empty { margin-top: 1.3rem; color: var(--muted); } .empty b { display: block; margin-bottom: .4rem; color: var(--ink); font: 500 1.15rem/1.2 var(--serif); }
+    .inspector-view[hidden], .empty[hidden] { display: none; }
+    .kicker { margin: 1rem 0 .25rem; color: var(--asserted); font: 10px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .inspector-title { margin: 0 0 .8rem; font: 500 1.25rem/1.2 var(--serif); overflow-wrap: anywhere; }
+    .badge { display: inline-block; margin: 0 .3rem .3rem 0; padding: .2rem .42rem; color: var(--muted); border: 1px solid var(--rule-strong); border-radius: 999px; font-size: .66rem; }
+    .badge.asserted { color: var(--asserted); } .badge.projection { color: var(--projection); } .badge.derived { color: var(--derived); }
+    .facts { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr); gap: .42rem .65rem; margin: .8rem 0; }
+    .facts dt { color: var(--faint); font-size: .7rem; } .facts dd { margin: 0; overflow-wrap: anywhere; color: var(--muted); }
+    .iri, pre { color: var(--muted); font: 10px/1.45 var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+    details { margin-top: .6rem; border-top: 1px solid var(--rule); padding-top: .55rem; } details summary { color: var(--muted); cursor: pointer; }
+    .relation-brief { margin-top: .75rem; border-top: 1px solid var(--rule-strong); }
+    .brief-block { padding: .68rem 0; border-bottom: 1px solid var(--rule); }
+    .brief-block h4, .supporting h4 { margin: 0 0 .32rem; color: var(--faint); font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; }
+    .brief-block p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .brief-block .brief-lead { color: var(--ink); font: 500 1rem/1.42 var(--serif); }
+    .supporting { padding: .78rem 0 .15rem; border-bottom: 1px solid var(--rule); }
+    .supporting-intro { margin: 0 0 .55rem; color: var(--muted); font-size: .75rem; line-height: 1.45; }
+    .support-list { display: grid; }
+    .support-link { width: 100%; padding: .62rem 0; color: var(--muted); border: 0; border-top: 1px solid var(--rule); background: transparent; text-align: left; cursor: pointer; }
+    .support-link:hover { color: var(--ink); }
+    .support-link b, .support-link span, .support-link small { display: block; }
+    .support-link b { color: var(--ink); font-weight: 600; line-height: 1.35; }
+    .support-link span { margin-top: .2rem; line-height: 1.42; }
+    .support-link small { margin-top: .28rem; color: var(--faint); font: 10px/1.4 var(--mono); }
+    .evidence-list { display: grid; }
+    .evidence-row { padding: .62rem 0; border-top: 1px solid var(--rule); }
+    .evidence-row:first-child { border-top: 0; }
+    .evidence-row b { display: block; color: var(--ink); font-size: .78rem; }
+    .evidence-row p { margin: .22rem 0 0; color: var(--muted); font-size: .74rem; line-height: 1.45; }
+    .inspector-back { margin: .65rem 0 .2rem; padding: .3rem 0; color: var(--asserted); border: 0; background: transparent; cursor: pointer; }
+    .inspector-back:hover { color: var(--ink); }
+    details.technical { margin-top: .75rem; }
+    details.technical summary { color: var(--faint); font-size: .7rem; }
+    .connections { display: grid; gap: .35rem; margin-top: .6rem; }
+    .connection { width: 100%; padding: .45rem .5rem; color: var(--muted); border: 0; border-left: 2px solid var(--edge); background: rgba(255,255,255,.025); text-align: left; cursor: pointer; }
+    .connection:hover { color: var(--ink); background: rgba(255,255,255,.055); }
+    .connection small { display: block; margin-top: .2rem; color: var(--faint); font: 10px/1.35 var(--mono); }
+    .footer { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: 0 1rem; overflow: hidden; color: var(--faint); border-top: 1px solid var(--rule); background: #080e0c; font: 10px/1 var(--mono); }
+    .footer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 1000px) { .workspace { grid-template-columns: 238px minmax(0,1fr); } .inspector { position: absolute; z-index: 8; top: 68px; right: 0; bottom: 34px; width: min(340px, 86vw); box-shadow: -12px 0 38px rgba(0,0,0,.4); } }
+    @media (max-width: 680px) { .workspace { grid-template-columns: 1fr; } .controls { position: absolute; z-index: 7; top: 68px; bottom: 34px; left: 0; width: min(272px, 88vw); } .metrics .metric:not(:last-child) { display: none; } }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="appbar">
+    <div><span class="eyebrow">RefSpec Atlas 3 · graph authority explorer</span><h1>@@title</h1></div>
+    <div class="metrics" aria-label="Atlas totals">
+      <div class="metric"><b id="metric-resources">—</b><span>resources</span></div>
+      <div class="metric"><b id="metric-asserted">—</b><span>asserted</span></div>
+      <div class="metric"><b id="metric-derived">—</b><span>derived</span></div>
+    </div>
+  </header>
+  <main class="workspace">
+    <aside class="panel controls" id="controls" aria-label="Graph controls">
+      <h2>Explore the graph</h2>
+      <section class="control-section">
+        <h3>Search</h3><div class="search-wrap"><input id="search" type="search" autocomplete="off" placeholder="English label, notation, or IRI" aria-label="Search Atlas resources"><span class="key">/</span></div>
+        <div class="results" id="search-results" aria-live="polite"></div>
+      </section>
+      <section class="control-section"><h3>Authority layers</h3><div class="filter-list">
+        <label class="filter authority-filter"><input id="authority-asserted" type="checkbox" checked><span class="edge-key" style="--edge:var(--asserted)"></span><span class="label">Asserted</span></label>
+        <label class="filter authority-filter"><input id="authority-projection" type="checkbox"><span class="edge-key projection" style="--edge:var(--projection)"></span><span class="label">Projection</span></label>
+        <label class="filter authority-filter"><input id="authority-derived" type="checkbox" checked><span class="edge-key derived" style="--edge:var(--derived)"></span><span class="label">Derived</span></label>
+        <label class="filter authority-filter"><input id="show-source-assignments" type="checkbox"><span class="edge-key" style="--edge:#8b9792"></span><span class="label">Source assignments</span></label>
+      </div><p class="hint">Projection duplicates and source assignments stay hidden until requested.</p></section>
+      <section class="control-section"><h3>Semantic ring</h3><select id="ring-filter" aria-label="Filter semantic ring"><option value="">All rings</option></select></section>
+      <section class="control-section"><h3>Atlas releases</h3><div class="filter-list" id="release-filters"></div></section>
+      <section class="control-section"><h3>Relation predicate</h3><select id="predicate-filter" aria-label="Filter relation predicate"><option value="">All predicates</option></select></section>
+      <section class="control-section"><h3>Rendered resources</h3><div class="render-limit"><span id="render-limit-label">—</span><input id="render-limit-number" type="number" min="1"><input id="render-limit-range" type="range" min="1"></div>
+        <p class="hint">Search matches and high-degree resources enter the graph first.</p><div class="actions"><button class="action" id="reset-view" type="button">Reset</button><button class="action" id="fit-view" type="button">Fit graph</button></div></section>
+    </aside>
+    <section class="stage" id="stage" aria-label="Atlas relation graph">
+      <canvas id="graph" tabindex="0" aria-label="Interactive Atlas 3 relation graph"></canvas>
+      <div class="graph-status" id="graph-status">Preparing graph…</div>
+      <div class="graph-tools"><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="fit-canvas" type="button" aria-label="Fit graph to view">⌂</button></div>
+      <div class="legend" aria-label="Relation authority legend"><span style="--edge:var(--asserted)"><i></i>Asserted</span><span class="projection" style="--edge:var(--projection)"><i></i>Projection</span><span class="derived" style="--edge:var(--derived)"><i></i>Derived</span></div>
+      <div class="tooltip" id="tooltip" hidden></div>
+    </section>
+    <aside class="panel inspector" id="inspector" aria-label="Provenance inspector"><h2>Provenance inspector</h2><div class="empty" id="empty-inspector"><b>Select a resource or relation</b>Click a node or relation.</div><div class="inspector-view" id="inspector-view" hidden></div></aside>
+  </main>
+  <footer class="footer"><span id="distribution-id"></span><span id="manifest-digest"></span></footer>
+</div>
+<script id="atlas-data" type="application/json">@@atlas_data</script>
+<script>
+(() => {
+  "use strict";
+  const data = JSON.parse(document.getElementById("atlas-data").textContent);
+  const canvas = document.getElementById("graph");
+  const stage = document.getElementById("stage");
+  const ctx = canvas.getContext("2d", {alpha:true});
+  const tooltip = document.getElementById("tooltip");
+  const search = document.getElementById("search");
+  const searchResults = document.getElementById("search-results");
+  const ringFilter = document.getElementById("ring-filter");
+  const predicateFilter = document.getElementById("predicate-filter");
+  const releaseColors = ["#78c7b6","#d8ad62","#83aee1","#d38fae","#9fca72","#c596e5","#e28b6f","#72c5d8"];
+  const layerColors = {asserted:"#70d29b", projection:"#68a9ff", derived:"#e7ad55"};
+  const sourceById = new Map(data.sourceRecords.map(row => [row.id, row]));
+  const sourceReleaseById = new Map(data.sourceReleases.map(row => [row.id, row]));
+  const releaseById = new Map(data.atlasReleases.map((row,index) => [row.id, {...row, color:releaseColors[index%releaseColors.length]}]));
+  const nodeById = new Map();
+  const assertedById = new Map(data.assertedRelations.map(row => [row.id,row]));
+  const allEdges = [];
+  const state = {width:1,height:1,dpr:1,view:{x:0,y:0,k:1},activeReleases:new Set(releaseById.keys()),layers:{asserted:true,projection:false,derived:true},showAssignments:false,ring:"",predicate:"",renderLimit:1,renderedNodes:[],renderedEdges:[],matches:new Set(),query:"",selected:null,inspectorReturn:null,hover:null,panning:false,drag:null,animation:null};
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+  const short = value => { const text=String(value); const hash=text.lastIndexOf("#"); return hash>=0?text.slice(hash+1):text.replace(/\/$/,"").split(/[/:]/).pop(); };
+  const format = value => new Intl.NumberFormat("en-US").format(value);
+  const hash = value => { let result=2166136261; for(const char of String(value)){result^=char.codePointAt(0);result=Math.imul(result,16777619);} return result>>>0; };
+  const searchText = node => [node.label,node.id,node.release,...node.rings,...(node.detail?.labels||[]).map(row=>row.value),...(node.detail?.notations||[])].join(" ").toLocaleLowerCase("en-US");
+  function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;}return node;}
+  data.resourceIndex.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,null,false));
+  data.resources.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,row,false));
+  function edgeFrom(row,layer){const sourceRelease=row.sourceRelease||"";const targetRelease=row.targetRelease||"";ensureNode(row.subject,row.subjectLabel,sourceRelease,row.semanticRing,null,row.kind==="sourceAssignment");ensureNode(row.object,row.objectLabel,targetRelease,row.semanticRing);return {...row,layer,color:layerColors[layer]};}
+  data.assertedRelations.forEach(row=>allEdges.push(edgeFrom(row,"asserted")));
+  data.projectedRelations.forEach(row=>allEdges.push(edgeFrom(row,"projection")));
+  data.derivedRelations.forEach(row=>allEdges.push(edgeFrom(row,"derived")));
+  const nodes=[...nodeById.values()];
+  const ringLabels={subject:"Subject",entity:"Entity",value:"Value",legalIdentity:"Legal identity"};
+  const rings=[...new Set(nodes.flatMap(node=>[...node.rings]))].sort((a,b)=>(ringLabels[a]||a).localeCompare(ringLabels[b]||b,"en"));
+  rings.forEach(value=>{const option=document.createElement("option");option.value=value;option.textContent=ringLabels[value]||value;ringFilter.append(option);});
+  const predicates=[...new Map(allEdges.map(edge=>[edge.predicate,edge.predicateLabel])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"en"));
+  predicates.forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;predicateFilter.append(option);});
+  const maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);state.renderLimit=Math.min(900,maxLimit);
+  const range=document.getElementById("render-limit-range"), number=document.getElementById("render-limit-number");range.max=number.max=String(maxLimit);range.value=number.value=String(state.renderLimit);
+  function releaseLabel(row){return row.title||row.identifier||short(row.id);}
+  function renderReleaseFilters(){const root=document.getElementById("release-filters");root.replaceChildren();releaseById.forEach(row=>{const label=document.createElement("label");label.className="filter";label.innerHTML=`<input type="checkbox" checked data-release="${esc(row.id)}"><span class="swatch" style="--swatch:${row.color}"></span><span class="label">${esc(releaseLabel(row))}</span><small>${format(row.memberCount||0)}</small>`;root.append(label);});root.querySelectorAll("input").forEach(input=>input.addEventListener("change",()=>{input.checked?state.activeReleases.add(input.dataset.release):state.activeReleases.delete(input.dataset.release);refresh(true);}));}
+  function layerEnabled(edge){if(edge.layer==="asserted"&&!state.layers.asserted)return false;if(edge.layer==="projection"&&!state.layers.projection)return false;if(edge.layer==="derived"&&!state.layers.derived)return false;if(edge.kind==="sourceAssignment"&&!state.showAssignments)return false;if(state.ring&&edge.semanticRing!==state.ring)return false;return !state.predicate||edge.predicate===state.predicate;}
+  function releaseEnabled(node){return !node.release||!releaseById.has(node.release)||state.activeReleases.has(node.release);}
+  function computeGraph(){nodes.forEach(node=>{node.degree=0;});const eligibleEdges=allEdges.filter(edge=>{if(!layerEnabled(edge))return false;const source=nodeById.get(edge.subject),target=nodeById.get(edge.object);if(!source||!target||!releaseEnabled(source)||!releaseEnabled(target))return false;source.degree++;target.degree++;return true;});const selectedNeighbors=selectedNodeNeighborIds(state.selected,eligibleEdges);const candidates=nodes.filter(node=>(!state.ring||node.rings.has(state.ring))&&releaseEnabled(node)&&(!node.isSource||state.showAssignments));candidates.sort((a,b)=>(state.matches.has(b.id)?1:0)-(state.matches.has(a.id)?1:0)||(state.selected?.kind==="node"&&state.selected.id===b.id?1:0)-(state.selected?.kind==="node"&&state.selected.id===a.id?1:0)||(selectedNeighbors.has(b.id)?1:0)-(selectedNeighbors.has(a.id)?1:0)||b.degree-a.degree||a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id));state.renderedNodes=candidates.slice(0,state.renderLimit);const ids=new Set(state.renderedNodes.map(node=>node.id));state.renderedEdges=eligibleEdges.filter(edge=>ids.has(edge.subject)&&ids.has(edge.object));}
+  function layout(animate=true){const groups=new Map();state.renderedNodes.forEach(node=>{const key=node.release||"unreleased";if(!groups.has(key))groups.set(key,[]);groups.get(key).push(node);});const ordered=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));const orbit=Math.max(220,Math.sqrt(state.renderedNodes.length)*28);const golden=2.399963229728653;ordered.forEach(([key,group],groupIndex)=>{group.sort((a,b)=>b.degree-a.degree||a.id.localeCompare(b.id));const angle=(Math.PI*2*groupIndex/Math.max(1,ordered.length))+((hash(key)%1000)/1000)*.3;const cx=ordered.length===1?0:Math.cos(angle)*orbit,cy=ordered.length===1?0:Math.sin(angle)*orbit;group.forEach((node,index)=>{const theta=index*golden+(hash(node.id)%628)/100;const radius=18*Math.sqrt(index);node.sx=Number.isFinite(node.x)?node.x:cx;node.sy=Number.isFinite(node.y)?node.y:cy;node.tx=cx+Math.cos(theta)*radius;node.ty=cy+Math.sin(theta)*radius;});});if(!animate||matchMedia("(prefers-reduced-motion: reduce)").matches){state.renderedNodes.forEach(node=>{node.x=node.tx;node.y=node.ty;});draw();return;}const started=performance.now();if(state.animation)cancelAnimationFrame(state.animation);const tick=now=>{const t=Math.min(1,(now-started)/360),ease=1-Math.pow(1-t,3);state.renderedNodes.forEach(node=>{node.x=node.sx+(node.tx-node.sx)*ease;node.y=node.sy+(node.ty-node.sy)*ease;});draw();if(t<1)state.animation=requestAnimationFrame(tick);};state.animation=requestAnimationFrame(tick);}
+  function bounds(){if(!state.renderedNodes.length)return{minX:-1,maxX:1,minY:-1,maxY:1};return{minX:Math.min(...state.renderedNodes.map(n=>n.x)),maxX:Math.max(...state.renderedNodes.map(n=>n.x)),minY:Math.min(...state.renderedNodes.map(n=>n.y)),maxY:Math.max(...state.renderedNodes.map(n=>n.y))};}
+  function fitView(){const box=bounds(),padding=80,width=Math.max(1,box.maxX-box.minX),height=Math.max(1,box.maxY-box.minY);state.view.k=Math.max(.08,Math.min(2.8,Math.min((state.width-padding*2)/width,(state.height-padding*2)/height)));state.view.x=state.width/2-(box.minX+box.maxX)/2*state.view.k;state.view.y=state.height/2-(box.minY+box.maxY)/2*state.view.k;draw();}
+  function refresh(fit=false,animate=true){computeGraph();layout(animate);renderInspector();document.getElementById("graph-status").textContent=`${format(state.renderedNodes.length)} nodes · ${format(state.renderedEdges.length)} relations`;document.getElementById("render-limit-label").textContent=`${format(state.renderLimit)} of ${format(maxLimit)}`;if(fit)setTimeout(fitView,380);}
+  function relationSelected(edge){return state.selected?.kind==="edge"&&state.selected.id===edge.id&&state.selected.layer===edge.layer;}
+  function nodeConnected(node,edge){return edge.subject===node.id||edge.object===node.id;}
+  /* atlas-selected-node-neighbors:start */
+  function selectedNodeNeighborIds(selection,edges){const neighbors=new Set();if(selection?.kind!=="node")return neighbors;neighbors.add(selection.id);edges.forEach(edge=>{if(edge.subject===selection.id)neighbors.add(edge.object);else if(edge.object===selection.id)neighbors.add(edge.subject);});return neighbors;}
+  /* atlas-selected-node-neighbors:end */
+  function drawArrow(source,target,color,alpha,lineWidth){const angle=Math.atan2(target.y-source.y,target.x-source.x),radius=8/state.view.k,tipX=target.x-Math.cos(angle)*radius,tipY=target.y-Math.sin(angle)*radius,len=7/state.view.k,w=3.5/state.view.k;ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(tipX-Math.cos(angle)*len+Math.sin(angle)*w,tipY-Math.sin(angle)*len-Math.cos(angle)*w);ctx.lineTo(tipX-Math.cos(angle)*len-Math.sin(angle)*w,tipY-Math.sin(angle)*len+Math.cos(angle)*w);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;}
+  function drawEdge(edge){const source=nodeById.get(edge.subject),target=nodeById.get(edge.object);if(!source||!target)return;const selected=relationSelected(edge),near=state.selected?.kind==="node"&&(nodeConnected(nodeById.get(state.selected.id),edge)),dim=state.selected&&!selected&&!near;const alpha=selected?.98:near?.82:dim?.08:edge.layer==="projection"?.3:.42;const offset=edge.layer==="projection"?3/state.view.k:0,dx=target.x-source.x,dy=target.y-source.y,length=Math.max(1,Math.hypot(dx,dy)),ox=-dy/length*offset,oy=dx/length*offset;ctx.beginPath();ctx.moveTo(source.x+ox,source.y+oy);ctx.lineTo(target.x+ox,target.y+oy);ctx.strokeStyle=edge.kind==="sourceAssignment"?"#8b9792":edge.color;ctx.globalAlpha=alpha;ctx.lineWidth=(selected?2.8:edge.layer==="asserted"?1.35:1.6)/state.view.k;ctx.setLineDash(edge.layer==="projection"?[7/state.view.k,5/state.view.k]:edge.layer==="derived"?[2/state.view.k,4/state.view.k]:[]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;drawArrow({x:source.x+ox,y:source.y+oy},{x:target.x+ox,y:target.y+oy},edge.kind==="sourceAssignment"?"#8b9792":edge.color,alpha,ctx.lineWidth);}
+  function nodeColor(node){return releaseById.get(node.release)?.color||"#a8b8b1";}
+  function drawNode(node,selectedNeighbors){const selected=state.selected?.kind==="node"&&state.selected.id===node.id,hovered=state.hover===node.id,connected=state.selected?.kind==="edge"&&(state.selected.edge.subject===node.id||state.selected.edge.object===node.id),dim=state.selected&&!selected&&!connected&&!selectedNeighbors.has(node.id);ctx.globalAlpha=dim?.18:1;const radius=(selected?8:node.degree>8?6.5:5)/state.view.k;if(selected||hovered){ctx.beginPath();ctx.arc(node.x,node.y,radius+5/state.view.k,0,Math.PI*2);ctx.fillStyle=selected?"rgba(112,210,155,.2)":"rgba(153,221,208,.14)";ctx.fill();}ctx.beginPath();if(node.isSource){ctx.rect(node.x-radius,node.y-radius,radius*2,radius*2);}else{ctx.arc(node.x,node.y,radius,0,Math.PI*2);}ctx.fillStyle=nodeColor(node);ctx.fill();ctx.strokeStyle=selected?"#fff":"rgba(4,8,7,.85)";ctx.lineWidth=(selected?2:1)/state.view.k;ctx.stroke();ctx.globalAlpha=1;if(selected||hovered||state.matches.has(node.id)||(state.view.k>1.15&&state.renderedNodes.length<260)){ctx.font=`${11/state.view.k}px ui-sans-serif,system-ui`;ctx.textBaseline="middle";const x=node.x+radius+5/state.view.k,width=ctx.measureText(node.label).width;ctx.fillStyle="rgba(5,10,8,.88)";ctx.fillRect(x-2/state.view.k,node.y-8/state.view.k,width+4/state.view.k,16/state.view.k);ctx.fillStyle=nodeColor(node);ctx.fillText(node.label,x,node.y);}}
+  function draw(){const selectedNeighbors=selectedNodeNeighborIds(state.selected,state.renderedEdges);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.setTransform(state.dpr*state.view.k,0,0,state.dpr*state.view.k,state.dpr*state.view.x,state.dpr*state.view.y);state.renderedEdges.filter(edge=>!relationSelected(edge)).forEach(drawEdge);state.renderedEdges.filter(relationSelected).forEach(drawEdge);state.renderedNodes.filter(node=>state.selected?.id!==node.id).forEach(node=>drawNode(node,selectedNeighbors));const selected=state.selected?.kind==="node"?nodeById.get(state.selected.id):null;if(selected)drawNode(selected,selectedNeighbors);}
+  function screenToWorld(x,y){return{x:(x-state.view.x)/state.view.k,y:(y-state.view.y)/state.view.k};}
+  function hitNode(clientX,clientY){const rect=canvas.getBoundingClientRect(),point=screenToWorld(clientX-rect.left,clientY-rect.top);let best=null,distance=Infinity;state.renderedNodes.forEach(node=>{const d=Math.hypot(node.x-point.x,node.y-point.y);if(d<12/state.view.k&&d<distance){best=node;distance=d;}});return best;}
+  function segmentDistance(point,a,b){const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy;if(!l2)return Math.hypot(point.x-a.x,point.y-a.y);const t=Math.max(0,Math.min(1,((point.x-a.x)*dx+(point.y-a.y)*dy)/l2));return Math.hypot(point.x-(a.x+t*dx),point.y-(a.y+t*dy));}
+  function hitEdge(clientX,clientY){const rect=canvas.getBoundingClientRect(),point=screenToWorld(clientX-rect.left,clientY-rect.top);let best=null,distance=Infinity;state.renderedEdges.forEach(edge=>{const a=nodeById.get(edge.subject),b=nodeById.get(edge.object),d=segmentDistance(point,a,b);if(d<7/state.view.k&&d<distance){best=edge;distance=d;}});return best;}
+  function zoomAt(factor,x=state.width/2,y=state.height/2){const before=screenToWorld(x,y);state.view.k=Math.max(.06,Math.min(8,state.view.k*factor));state.view.x=x-before.x*state.view.k;state.view.y=y-before.y*state.view.k;draw();}
+  function sourceDetails(ids){return ids.map(id=>sourceById.get(id)).filter(Boolean);}
+  function friendlySource(record){
+    if(!record)return "Pinned source record";
+    const token=record.nativePayload?.sourceIdentity?.namespaceToken;
+    const tokenNames={"loc-lst":"Library of Congress Legislative Subject Terms","loc-cgpa":"Library of Congress Policy Areas","icpsr-subject-thesaurus":"ICPSR Subject Thesaurus"};
+    if(tokenNames[token])return tokenNames[token];
+    const locator=String(record.sourceLocator||"").toLocaleLowerCase("en-US");
+    if(locator.includes("elsst"))return "ELSST";
+    if(locator.includes("icpsr"))return "ICPSR Subject Thesaurus";
+    if(locator.includes("federal-register")||locator.includes("federalregister"))return "Federal Register Thesaurus";
+    if(locator.includes("congress.gov"))return "Congress.gov / CRS";
+    const release=sourceReleaseById.get(record.sourceRelease);
+    return release?.title||release?.identifier||short(record.sourceRelease||record.sourceLocator||"source record");
+  }
+  function reviewMethod(method){
+    return ({
+      publisherAssertion:{title:"Publisher supplied",reason:"Supplied directly by the publisher."},
+      deterministicTransformation:{title:"Fixed-rule transformation",reason:"Atlas applied a fixed rule to publisher data."},
+      twoMachineAdjudication:{title:"Two-model agreement",reason:"Two independent models agreed."},
+      operatorAdoption:{title:"Operator adopted",reason:"An operator accepted it."},
+      humanReview:{title:"Human approved",reason:"A human reviewer approved it."},
+      trustedPipelineReview:{title:"Pipeline approved",reason:"A trusted pipeline approved it."}
+    })[method]||{title:String(method||"Reviewed"),reason:"The review method is recorded."};
+  }
+  function relationMeaning(edge){
+    const subject=edge.subjectLabel, object=edge.objectLabel;
+    if(edge.kind==="sourceAssignment")return `This source record contributed ${object}. It is provenance, not a topic relation.`;
+    return ({
+      broader:`${subject} is narrower than ${object}.`,
+      narrower:`${object} is narrower than ${subject}.`,
+      related:`${subject} ↔ ${object}: directly associated by the publisher.`,
+      exactMatch:`${subject} and ${object} are exact matches across vocabularies.`,
+      closeMatch:`${subject} and ${object} are similar enough for some cross-vocabulary uses.`,
+      broadMatch:`${subject} maps to the broader concept ${object}.`,
+      narrowMatch:`${subject} maps to the narrower concept ${object}.`,
+      relatedMatch:`${subject} and ${object} are associated across vocabularies.`,
+      thesaurusUse:`Use ${object}, the preferred term, instead of ${subject}.`,
+      thesaurusUsedFor:`${object} is a non-preferred term for ${subject}.`,
+      thesaurusRelated:`${subject} and ${object} are publisher-related despite also sharing a hierarchy.`
+    })[edge.predicateLabel]||`${subject} has relation “${edge.predicateLabel}” to ${object}.`;
+  }
+  function relationWhy(edge){
+    if(edge.layer==="projection")return `Query-friendly copy of ${format(edge.supportingAssertions.length)} assertion${edge.supportingAssertions.length===1?"":"s"}; no new claim.`;
+    if(edge.layer==="derived")return `Inferred from ${format(edge.derivedFromAssertions.length)} cited assertion${edge.derivedFromAssertions.length===1?"":"s"}; not editor-approved.`;
+    const evidence=edge.evidence||[];
+    const sources=[...new Set(evidence.map(item=>friendlySource(sourceById.get(item.sourceRecord))))];
+    const reasons=[...new Set(evidence.map(item=>reviewMethod(item.reviewMethod).reason))];
+    if(edge.kind==="sourceAssignment")return `Links ${sources.join(" and ")||"a pinned source"} to its Atlas resource.`;
+    return `${sources.join(" and ")||"Pinned evidence"}: ${reasons.join(" ")||"Approved source fact."}`;
+  }
+  function relationGuidance(edge){
+    if(edge.layer==="projection")return "Use for queries; audit the supporting assertion.";
+    if(edge.layer==="derived")return "Discovery only; review before publishing.";
+    if(edge.status&&edge.status!=="current")return "Historical; do not use as current.";
+    if(edge.kind==="sourceAssignment")return "Use for provenance only.";
+    if(edge.kind==="mapping")return "Apply your local mapping policy.";
+    return "";
+  }
+  function evidenceBrief(edge){
+    if(edge.layer!=="asserted"||!edge.evidence?.length)return "";
+    const rows=edge.evidence.map(item=>{const method=reviewMethod(item.reviewMethod),source=sourceById.get(item.sourceRecord),confidence=item.confidence?` · confidence ${item.confidence}`:"";return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decisionStatus)}${esc(confidence)} · digest pinned</p></div>`;}).join("");
+    return `<section class="supporting"><h4>Evidence</h4><div class="evidence-list">${rows}</div></section>`;
+  }
+  function supportingBrief(edge){
+    const ids=edge.layer==="projection"?edge.supportingAssertions:edge.layer==="derived"?edge.derivedFromAssertions:[];
+    if(!ids?.length)return "";
+    const rows=ids.map(id=>{const assertion=assertedById.get(id);if(!assertion)return `<div class="evidence-row"><b>Supporting assertion</b><p>${esc(id)}</p></div>`;const readable={...assertion,layer:"asserted"};const method=reviewMethod(assertion.evidence?.[0]?.reviewMethod).title;const meaning=edge.layer==="derived"?`<span>${esc(relationMeaning(readable))}</span>`:"";return `<button class="support-link" data-edge="asserted|${esc(id)}"><b>${esc(assertion.subjectLabel)} → ${esc(assertion.objectLabel)}</b>${meaning}<small>${esc(method)} · open</small></button>`;}).join("");
+    return `<section class="supporting"><h4>Supporting assertions</h4><div class="support-list">${rows}</div></section>`;
+  }
+  function technicalRecord(edge){const record={...edge};delete record.color;delete record.layer;return record;}
+  function renderInspector(){
+    const empty=document.getElementById("empty-inspector"),view=document.getElementById("inspector-view");
+    if(!state.selected){empty.hidden=false;view.hidden=true;return;}
+    empty.hidden=true;view.hidden=false;
+    if(state.selected.kind==="node"){
+      const node=nodeById.get(state.selected.id),detail=node.detail,connections=state.renderedEdges.filter(edge=>nodeConnected(node,edge)).slice(0,20);
+      view.innerHTML=`<p class="kicker">${node.isSource?"Source record":"Atlas resource"}</p><h3 class="inspector-title">${esc(node.label)}</h3><span class="badge">${esc(detail?.displayLabelRole||node.ring||"endpoint")}</span><h3 style="margin-top:1rem">Relations</h3><div class="connections">${connections.map(edge=>`<button class="connection" data-edge="${esc(edge.layer+"|"+edge.id)}" style="--edge:${edge.color}">${esc(relationMeaning(edge))}<small>${esc(edge.layer)} · ${esc(edge.predicateLabel)}</small></button>`).join("")||"<span class=\"hint\">No visible relations under current filters.</span>"}</div><details class="technical"><summary>About this resource</summary><dl class="facts"><dt>IRI</dt><dd class="iri">${esc(node.id)}</dd><dt>Release</dt><dd class="iri">${esc(node.release||"Not available in bounded view")}</dd>${detail?`<dt>Profile</dt><dd>${esc(detail.resourceProfile)}</dd><dt>Type</dt><dd>${esc(detail.resourceType)}</dd>`:""}</dl>${detail?`<details><summary>English labels</summary><pre>${esc(JSON.stringify(detail.labels,null,2))}</pre></details><details><summary>Source records</summary><pre>${esc(JSON.stringify(sourceDetails(detail.sourceRecords),null,2))}</pre></details>`:"<p class=\"hint\">Increase the resource limit for full details.</p>"}</details>`;
+    }else{
+      const edge=state.selected.edge;
+      const guidance=relationGuidance(edge),back=state.inspectorReturn?`<button class="inspector-back" id="inspector-back" type="button">← ${state.inspectorReturn.selection.kind==="node"?"Back to relations":"Back"}</button>`:"";
+      view.innerHTML=`${back}<p class="kicker">${esc(edge.layer)} relation</p><h3 class="inspector-title">${esc(edge.subjectLabel)} → ${esc(edge.objectLabel)}</h3><span class="badge ${esc(edge.layer)}">${esc(edge.layer)}</span><span class="badge">${esc(edge.predicateLabel)}</span><div class="relation-brief"><section class="brief-block"><h4>Meaning</h4><p class="brief-lead">${esc(relationMeaning(edge))}</p></section><section class="brief-block"><h4>Why it is here</h4><p>${esc(relationWhy(edge))}</p></section>${guidance?`<section class="brief-block"><h4>Use</h4><p>${esc(guidance)}</p></section>`:""}</div>${evidenceBrief(edge)}${supportingBrief(edge)}<details class="technical"><summary>Technical details</summary><pre>${esc(JSON.stringify(technicalRecord(edge),null,2))}</pre></details>`;
+    }
+    document.getElementById("inspector-back")?.addEventListener("click",()=>{const target=state.inspectorReturn;state.inspectorReturn=null;state.selected=target.selection;renderInspector();document.getElementById("inspector").scrollTop=target.scrollTop;draw();});
+    view.querySelectorAll("[data-edge]").forEach(button=>button.addEventListener("click",()=>{const [layer,...rest]=button.dataset.edge.split("|");const id=rest.join("|");const edge=allEdges.find(row=>row.layer===layer&&row.id===id);if(edge){if(!state.inspectorReturn)state.inspectorReturn={selection:state.selected,scrollTop:document.getElementById("inspector").scrollTop};state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();document.getElementById("inspector").scrollTop=0;draw();}}));
+  }
+  function selectNode(node,center=false){state.inspectorReturn=null;state.selected={kind:"node",id:node.id};refresh(false,false);if(center){state.view.x=state.width/2-node.x*state.view.k;state.view.y=state.height/2-node.y*state.view.k;draw();}}
+  function renderSearch(){state.query=search.value.trim().toLocaleLowerCase("en-US");state.matches=new Set(state.query?nodes.filter(node=>searchText(node).includes(state.query)).map(node=>node.id):[]);searchResults.replaceChildren();if(state.query){[...state.matches].slice(0,8).map(id=>nodeById.get(id)).forEach(node=>{const button=document.createElement("button");button.className="result";button.innerHTML=`<b>${esc(node.label)}</b><small>${esc(node.release||node.id)}</small>`;button.addEventListener("click",()=>{selectNode(node,true);searchResults.replaceChildren();});searchResults.append(button);});}refresh(false);}
+  function resize(){const rect=stage.getBoundingClientRect();state.width=Math.max(1,rect.width);state.height=Math.max(1,rect.height);state.dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(state.width*state.dpr);canvas.height=Math.round(state.height*state.dpr);canvas.style.width=`${state.width}px`;canvas.style.height=`${state.height}px`;fitView();}
+  canvas.addEventListener("pointerdown",event=>{canvas.setPointerCapture(event.pointerId);const node=hitNode(event.clientX,event.clientY);if(node){selectNode(node);return;}const edge=hitEdge(event.clientX,event.clientY);if(edge){state.inspectorReturn=null;state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();draw();return;}state.panning=true;state.drag={x:event.clientX,y:event.clientY,viewX:state.view.x,viewY:state.view.y};canvas.classList.add("panning");});
+  canvas.addEventListener("pointermove",event=>{if(state.panning){state.view.x=state.drag.viewX+event.clientX-state.drag.x;state.view.y=state.drag.viewY+event.clientY-state.drag.y;draw();return;}const node=hitNode(event.clientX,event.clientY);state.hover=node?.id||null;if(node){const rect=stage.getBoundingClientRect();tooltip.innerHTML=`${esc(node.label)}<small>${esc(node.release||node.id)}</small>`;tooltip.style.left=`${event.clientX-rect.left}px`;tooltip.style.top=`${event.clientY-rect.top}px`;tooltip.hidden=false;}else tooltip.hidden=true;draw();});
+  canvas.addEventListener("pointerup",event=>{if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);state.panning=false;state.drag=null;canvas.classList.remove("panning");});canvas.addEventListener("pointerleave",()=>{state.hover=null;tooltip.hidden=true;draw();});
+  canvas.addEventListener("wheel",event=>{event.preventDefault();const rect=canvas.getBoundingClientRect();zoomAt(event.deltaY<0?1.12:.89,event.clientX-rect.left,event.clientY-rect.top);},{passive:false});
+  canvas.addEventListener("keydown",event=>{if(event.key==="+"||event.key==="=")zoomAt(1.2);else if(event.key==="-")zoomAt(.83);else if(event.key==="ArrowLeft")state.view.x+=32;else if(event.key==="ArrowRight")state.view.x-=32;else if(event.key==="ArrowUp")state.view.y+=32;else if(event.key==="ArrowDown")state.view.y-=32;else return;event.preventDefault();draw();});
+  document.getElementById("authority-asserted").addEventListener("change",event=>{state.layers.asserted=event.currentTarget.checked;refresh(false);});document.getElementById("authority-projection").addEventListener("change",event=>{state.layers.projection=event.currentTarget.checked;refresh(false);});document.getElementById("authority-derived").addEventListener("change",event=>{state.layers.derived=event.currentTarget.checked;refresh(false);});document.getElementById("show-source-assignments").addEventListener("change",event=>{state.showAssignments=event.currentTarget.checked;refresh(false);});
+  ringFilter.addEventListener("change",event=>{state.ring=event.currentTarget.value;state.selected=null;state.inspectorReturn=null;refresh(true);});predicateFilter.addEventListener("change",event=>{state.predicate=event.currentTarget.value;refresh(true);});search.addEventListener("input",renderSearch);window.addEventListener("keydown",event=>{if(event.key==="/"&&document.activeElement!==search){event.preventDefault();search.focus();}if(event.key==="Escape"){state.inspectorReturn=null;state.selected=null;search.value="";renderSearch();}});
+  function setLimit(value){state.renderLimit=Math.max(1,Math.min(maxLimit,Number(value)||1));range.value=number.value=String(state.renderLimit);refresh(true);}range.addEventListener("input",event=>setLimit(event.currentTarget.value));number.addEventListener("change",event=>setLimit(event.currentTarget.value));
+  function reset(){state.activeReleases=new Set(releaseById.keys());state.layers={asserted:true,projection:false,derived:true};state.showAssignments=false;state.ring="";state.predicate="";state.selected=null;state.inspectorReturn=null;state.query="";state.matches.clear();search.value="";ringFilter.value="";predicateFilter.value="";document.getElementById("authority-asserted").checked=true;document.getElementById("authority-projection").checked=false;document.getElementById("authority-derived").checked=true;document.getElementById("show-source-assignments").checked=false;document.querySelectorAll("[data-release]").forEach(input=>{input.checked=true;});refresh(true);}
+  document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
+  document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
+  renderReleaseFilters();refresh(false);resize();
+})();
+</script>
+</body>
+</html>
+"""
+
+
+def render_atlas_v3_explorer(model: Mapping[str, Any]) -> str:
+    """Render one self-contained Atlas 3.0 explorer."""
 
     if not isinstance(model, Mapping):
-        raise AtlasExplorerError("atlas explorer must be an object")
+        raise Atlas3ExplorerError("Atlas 3.0 explorer must be an object")
     _validate_model(model)
-    title = cast(str, model["title"])
-    return _Template(_HTML).substitute(
-        title=html.escape(title, quote=True),
+    return _Atlas3Template(_GRAPH_HTML).substitute(
+        title=html.escape(cast(str, model["title"]), quote=True),
         atlas_data=_safe_json(model),
-        default_search_ring=_default_search_ring(model),
-        explorer_filter_semantics=json.dumps(
-            EXPLORER_FILTER_SEMANTICS,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ),
-        planning_filter_semantics=json.dumps(
-            PLANNING_FILTER_SEMANTICS,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ),
     )
 
 
+def render_atlas_explorer(model: Mapping[str, Any]) -> str:
+    """Render Atlas 3.0; the unversioned name no longer accepts Atlas 2 models."""
+
+    return render_atlas_v3_explorer(model)
+
+
 __all__ = [
+    "ATLAS_V3_EXPLORER_SCHEMA_VERSION",
+    "ATLAS_V3_EXPLORER_TYPE",
     "EXPLORER_FILTER_SEMANTICS",
     "EXPLORER_SCHEMA_VERSION",
     "EXPLORER_TYPE",
     "PLANNING_FILTER_SEMANTICS",
+    "Atlas3ExplorerDistribution",
+    "Atlas3ExplorerError",
     "AtlasExplorerError",
+    "atlas_v3_predicate_meaning",
+    "build_atlas_v3_explorer_model",
+    "open_atlas_v3_explorer_distribution",
     "render_atlas_explorer",
+    "render_atlas_v3_explorer",
 ]

@@ -1,0 +1,464 @@
+"""Atlas 3.0 explorer integrity and authority-boundary tests."""
+
+from __future__ import annotations
+
+import json
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+from rdflib import Dataset
+
+import refspec.atlas.explorer as explorer_module
+from refspec.atlas.explorer import (
+    ATLAS,
+    ATLAS_V3_EXPLORER_TYPE,
+    EXPLORER_TYPE,
+    Atlas3ExplorerError,
+    build_atlas_v3_explorer_model,
+    open_atlas_v3_explorer_distribution,
+    render_atlas_explorer,
+)
+from refspec.registry.infrastructure.artifact_serialization import (
+    canonical_json_bytes,
+    sha256_digest,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = ROOT / "bindings" / "atlas" / "3.0" / "fixtures" / "valid" / "source-native-thesaurus"
+
+
+def _canonical_digest_without_lf(value: object) -> str:
+    payload = canonical_json_bytes(value)
+    assert payload.endswith(b"\n")
+    return sha256_digest(payload[:-1])
+
+
+def _write_json(path: Path, value: object) -> None:
+    path.write_bytes(canonical_json_bytes(value))
+
+
+def _open_distribution(root: Path = FIXTURE):
+    return open_atlas_v3_explorer_distribution(
+        root,
+        trusted_manifest_digest=sha256_digest((root / "atlas-manifest.json").read_bytes()),
+    )
+
+
+def _reseal_changed_json_members(root: Path) -> None:
+    manifest_path = root / "atlas-manifest.json"
+    acceptance_path = root / "atlas-acceptance.json"
+    accounting_path = root / "atlas-source-accounting.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+
+    acceptance["inputs"]["sourceAccountingDigest"] = sha256_digest(accounting_path.read_bytes())
+    for gate in acceptance["gates"]:
+        gate["evidenceDigest"] = _canonical_digest_without_lf(
+            {
+                "inputs": acceptance["inputs"],
+                "name": gate["name"],
+                "status": "passed",
+                "validator": acceptance["validator"],
+            }
+        )
+    _write_json(acceptance_path, acceptance)
+
+    for member in manifest["members"]:
+        path = root / member["path"]
+        member["digest"] = sha256_digest(path.read_bytes())
+        member["byteLength"] = len(path.read_bytes())
+    basis = dict(manifest)
+    basis.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(basis)
+    _write_json(manifest_path, manifest)
+
+
+def test_opens_four_file_distribution_and_checks_trusted_manifest() -> None:
+    trusted_digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
+    distribution = open_atlas_v3_explorer_distribution(
+        FIXTURE,
+        trusted_manifest_digest=trusted_digest,
+    )
+
+    assert distribution.trusted_manifest
+    assert distribution.manifest_digest == trusted_digest
+    assert len(distribution.asserted_graph) == distribution.manifest["graphs"][0]["quadCount"]
+    assert len(distribution.projection_graph) == distribution.manifest["graphs"][1]["quadCount"]
+    assert len(distribution.derived_graph) == distribution.manifest["graphs"][2]["quadCount"]
+    with pytest.raises(Atlas3ExplorerError, match="unknown Atlas 3.0 graph role"):
+        distribution.graph("union")
+
+
+def test_model_preserves_authority_provenance_and_alternate_only_labels() -> None:
+    distribution = _open_distribution()
+    model = build_atlas_v3_explorer_model(distribution)
+
+    assert EXPLORER_TYPE == ATLAS_V3_EXPLORER_TYPE
+    assert model["authority"]["asserted"]["status"] == "authoritative"
+    assert model["authority"]["projection"]["status"] == "reproducibleConvenienceView"
+    assert model["authority"]["derived"]["status"] == "nonAuthoritative"
+    assert model["acceptance"]["receiptVerified"] is True
+    assert model["acceptance"]["bindingDigestChecked"] is True
+    assert model["acceptance"]["gatesReexecutedByExplorer"] is False
+    assert len(model["resourceIndex"]) == model["summary"]["availableResources"]
+    assert {row["id"] for row in model["resources"]} <= {
+        row["id"] for row in model["resourceIndex"]
+    }
+
+    alternate_only = next(row for row in model["resources"] if row["id"].endswith("subject-a-child"))
+    assert alternate_only["displayLabel"] == "Agency procedure"
+    assert alternate_only["displayLabelRole"] == "alternate"
+    assert {label["role"] for label in alternate_only["labels"]} == {"alternate"}
+    source_record = next(row for row in model["sourceRecords"] if row["id"] in alternate_only["sourceRecords"])
+    assert source_record["nativePayload"]["publisherOptionalValue"] is None
+
+    related = next(
+        row
+        for row in model["assertedRelations"]
+        if row["predicate"] == str(ATLAS.thesaurusRelated)
+    )
+    assert related["authority"] == "authoritative"
+    assert related["authoritative"] is True
+    assert "direct associative link" in related["predicateMeaning"]
+    assert "directly relevant" in related["predicateMeaning"]
+    evidence_source = next(
+        row for row in model["sourceRecords"] if row["id"] == related["evidence"][0]["sourceRecord"]
+    )
+    assert evidence_source["nativePayload"]
+    assert related["evidence"][0]["sourceRecordContentDigest"] == evidence_source["contentDigest"]
+    assert related["policy"]["payload"]
+
+    projected = next(
+        row for row in model["projectedRelations"] if related["id"] in row["supportingAssertions"]
+    )
+    assert projected["authoritative"] is False
+    assert projected["authority"] == "reproducibleProjection"
+
+    derived = model["derivedRelations"][0]
+    assert derived["authoritative"] is False
+    assert derived["authority"] == "nonAuthoritative"
+    assert len(derived["derivedFromAssertions"]) == 2
+    assert derived["rule"] == "urn:ref:rule:skos-exact-match-closure-path"
+
+    rendered = render_atlas_explorer(model)
+    assert '<canvas id="graph"' in rendered
+    assert 'id="authority-asserted"' in rendered
+    assert 'id="authority-projection"' in rendered
+    assert 'id="authority-derived"' in rendered
+    assert 'id="show-source-assignments"' in rendered
+    assert 'id="ring-filter"' in rendered
+    assert 'ringLabels={subject:"Subject",entity:"Entity"' in rendered
+    assert "data.resourceIndex.forEach" in rendered
+    assert 'id="inspector"' in rendered
+    assert "Projection duplicates and source assignments stay hidden" in rendered
+    assert "Meaning" in rendered
+    assert "Why it is here" in rendered
+    assert "Back to relations" in rendered
+    assert "Evidence" in rendered
+    assert "Supporting assertions" in rendered
+    assert "Technical details" in rendered
+    assert "It is provenance, not a topic relation" in rendered
+    assert rendered.index(">Relations</h3>") < rendered.index(">About this resource</summary>")
+    assert "Evidence and source records" not in rendered
+    assert "<summary>Policy</summary>" not in rendered
+    assert "requestAnimationFrame" in rendered
+    assert "<table" not in rendered
+
+
+def test_rendered_explorer_javascript_is_syntactically_valid() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+    scripts = re.findall(r"<script(?: [^>]*)?>(.*?)</script>", rendered, re.DOTALL)
+
+    assert len(scripts) == 2
+    subprocess.run(
+        ["node", "--check", "-"],
+        input=scripts[-1],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_renderer_rejects_an_incomplete_resource_index() -> None:
+    model = build_atlas_v3_explorer_model(_open_distribution())
+    model["resourceIndex"] = model["resourceIndex"][:-1]
+
+    with pytest.raises(Atlas3ExplorerError, match="resource index is incomplete"):
+        render_atlas_explorer(model)
+
+
+def test_model_limits_precede_detailed_views_and_preserve_full_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    distribution = _open_distribution()
+    full_model = build_atlas_v3_explorer_model(distribution)
+    function_names = (
+        "_resource_view",
+        "_assertion_view",
+        "_projected_view",
+        "_derived_view",
+        "_source_record_view",
+    )
+    calls = dict.fromkeys(function_names, 0)
+
+    for function_name in function_names:
+        original = getattr(explorer_module, function_name)
+
+        def counted(*args, _name=function_name, _original=original, **kwargs):
+            calls[_name] += 1
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(explorer_module, function_name, counted)
+
+    limited = build_atlas_v3_explorer_model(
+        distribution,
+        max_resources=1,
+        max_assertions=1,
+        max_projected_relations=1,
+        max_derived_relations=0,
+    )
+
+    assert limited["resources"] == full_model["resources"][:1]
+    assert limited["resourceIndex"] == full_model["resourceIndex"]
+    assert len(limited["resourceIndex"]) == limited["summary"]["availableResources"]
+    primary_assertion_id = full_model["assertedRelations"][0]["id"]
+    assert primary_assertion_id in {row["id"] for row in limited["assertedRelations"]}
+    assert limited["projectedRelations"] == full_model["projectedRelations"][:1]
+    assert limited["derivedRelations"] == []
+    assert calls["_resource_view"] == 1
+    assert calls["_assertion_view"] == limited["summary"]["shownAssertedRelations"]
+    assert limited["summary"]["provenanceClosureAssertedRelations"] >= 1
+    assert calls["_projected_view"] == 1
+    assert calls["_derived_view"] == 0
+    assert calls["_source_record_view"] == limited["summary"]["shownSourceRecords"]
+    assert calls["_source_record_view"] < limited["summary"]["availableSourceRecords"]
+    assert all("nativePayload" in row for row in limited["sourceRecords"])
+
+    for field in (
+        "availableResources",
+        "availableSourceRecords",
+        "availableAssertedRelations",
+        "currentAuthoritativeRelations",
+        "availableProjectedRelations",
+        "availableDerivedRelations",
+    ):
+        assert limited["summary"][field] == full_model["summary"][field]
+    assert limited["summary"]["truncated"] is True
+
+
+def test_open_streams_the_nquads_member_instead_of_reading_it_all(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = Path.read_bytes
+    original_open = Path.open
+    atlas_open_count = 0
+
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path.name == "atlas.nq":
+            raise AssertionError("atlas.nq must not be materialized as one bytes object")
+        return original(path)
+
+    def counted_open(path: Path, *args, **kwargs):
+        nonlocal atlas_open_count
+        if path.name == "atlas.nq":
+            atlas_open_count += 1
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    monkeypatch.setattr(Path, "open", counted_open)
+
+    distribution = _open_distribution()
+
+    assert len(distribution.asserted_graph) == distribution.manifest["graphs"][0]["quadCount"]
+    assert atlas_open_count == 1
+
+
+def test_selected_node_neighbor_lookup_is_linear_and_keeps_direct_neighbors_visible() -> None:
+    distribution = _open_distribution()
+    rendered = render_atlas_explorer(build_atlas_v3_explorer_model(distribution))
+    neighbor_core = re.search(
+        r"/\* atlas-selected-node-neighbors:start \*/(.*?)/\* atlas-selected-node-neighbors:end \*/",
+        rendered,
+        flags=re.DOTALL,
+    )
+
+    assert neighbor_core is not None
+    assert "state.renderedEdges.some(" not in rendered
+    assert "selectedNodeNeighborIds(state.selected,eligibleEdges)" in rendered
+    assert "selectedNeighbors.has(node.id)" in rendered
+    assert 'state.selected={kind:"node",id:node.id};refresh(false,false)' in rendered
+    script = "\n".join(
+        (
+            neighbor_core.group(1),
+            """
+const edges = [
+  {subject: "a", object: "b"},
+  {subject: "c", object: "a"},
+  {subject: "d", object: "e"}
+];
+const result = {
+  selectedNode: [...selectedNodeNeighborIds({kind: "node", id: "a"}, edges)].sort(),
+  selectedEdge: [...selectedNodeNeighborIds({kind: "edge", id: "edge-1"}, edges)].sort(),
+  noSelection: [...selectedNodeNeighborIds(null, edges)].sort()
+};
+process.stdout.write(JSON.stringify(result));
+""",
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == {
+        "selectedNode": ["a", "b", "c"],
+        "selectedEdge": [],
+        "noSelection": [],
+    }
+
+
+def test_bounded_model_adds_every_referenced_assertion_for_provenance() -> None:
+    distribution = _open_distribution()
+    projection = distribution.projection_graph
+    relation = next(projection.subjects(None, ATLAS.ProjectedRelation))
+    existing_support = set(projection.objects(relation, ATLAS.supportingAssertion))
+    extra_assertion = next(
+        assertion
+        for assertion in distribution.asserted_graph.subjects(None, ATLAS.RelationAssertion)
+        if assertion not in existing_support
+    )
+    projection.add((relation, ATLAS.supportingAssertion, extra_assertion))
+
+    model = build_atlas_v3_explorer_model(
+        distribution,
+        max_assertions=0,
+        max_derived_relations=1,
+    )
+    row = next(item for item in model["projectedRelations"] if item["id"] == str(relation))
+    assert str(extra_assertion) in row["supportingAssertions"]
+    assert row["supportingAssertions"] == sorted(row["supportingAssertions"])
+    shown_assertions = {item["id"] for item in model["assertedRelations"]}
+    assert set(row["supportingAssertions"]).issubset(shown_assertions)
+    assert set(model["derivedRelations"][0]["derivedFromAssertions"]).issubset(shown_assertions)
+    assert model["summary"]["provenanceClosureAssertedRelations"] == len(shown_assertions)
+
+    unclosed = dict(model)
+    unclosed["assertedRelations"] = []
+    with pytest.raises(Atlas3ExplorerError, match="not provenance-closed"):
+        render_atlas_explorer(unclosed)
+
+
+def test_rejects_dataset_path_replacement_during_parse(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raced = tmp_path / "raced"
+    shutil.copytree(FIXTURE, raced)
+    original_parse = Dataset.parse
+
+    def replacing_parse(dataset: Dataset, *args, **kwargs):
+        atlas_path = raced / "atlas.nq"
+        moved_path = raced / "opened-atlas.nq"
+        atlas_path.replace(moved_path)
+        shutil.copyfile(moved_path, atlas_path)
+        try:
+            return original_parse(dataset, *args, **kwargs)
+        finally:
+            moved_path.unlink()
+
+    monkeypatch.setattr(Dataset, "parse", replacing_parse)
+
+    with pytest.raises(Atlas3ExplorerError, match="changed while it was being read"):
+        _open_distribution(raced)
+
+
+def test_rejects_changed_dataset_and_forged_gate_receipt(tmp_path: Path) -> None:
+    changed_dataset = tmp_path / "changed-dataset"
+    shutil.copytree(FIXTURE, changed_dataset)
+    with (changed_dataset / "atlas.nq").open("ab") as stream:
+        stream.write(b"\n")
+    with pytest.raises(Atlas3ExplorerError, match="dataset lines must be non-empty"):
+        _open_distribution(changed_dataset)
+
+    forged_gate = tmp_path / "forged-gate"
+    shutil.copytree(FIXTURE, forged_gate)
+    acceptance_path = forged_gate / "atlas-acceptance.json"
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    acceptance["gates"][0]["evidenceDigest"] = "sha256:" + "0" * 64
+    _write_json(acceptance_path, acceptance)
+    manifest_path = forged_gate / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    acceptance_member = next(row for row in manifest["members"] if row["path"] == "atlas-acceptance.json")
+    acceptance_member["digest"] = sha256_digest(acceptance_path.read_bytes())
+    acceptance_member["byteLength"] = len(acceptance_path.read_bytes())
+    basis = dict(manifest)
+    basis.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(basis)
+    _write_json(manifest_path, manifest)
+    with pytest.raises(Atlas3ExplorerError, match="evidenceDigest differs"):
+        _open_distribution(forged_gate)
+
+
+def test_dataset_scan_bounds_each_physical_line_before_accumulating_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = tmp_path / "atlas.nq"
+    dataset.write_bytes(b"<urn:a> <urn:p> <urn:o> <urn:g> .\n")
+    monkeypatch.setattr(explorer_module, "_NQUADS_MAX_LINE_BYTES", 8)
+
+    with dataset.open("rb") as stream, pytest.raises(
+        Atlas3ExplorerError,
+        match="dataset line 1 exceeds 8 bytes",
+    ):
+        explorer_module._scan_dataset_member(stream)
+
+
+def test_rejects_receipt_for_a_different_atlas_v3_binding(tmp_path: Path) -> None:
+    altered = tmp_path / "different-binding"
+    shutil.copytree(FIXTURE, altered)
+    manifest_path = altered / "atlas-manifest.json"
+    acceptance_path = altered / "atlas-acceptance.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    forged_digest = "sha256:" + "0" * 64
+    manifest["binding"]["bindingBundleDigest"] = forged_digest
+    acceptance["inputs"]["bindingBundleDigest"] = forged_digest
+    _write_json(manifest_path, manifest)
+    _write_json(acceptance_path, acceptance)
+    _reseal_changed_json_members(altered)
+
+    with pytest.raises(Atlas3ExplorerError, match="authoritative v3 binding"):
+        _open_distribution(altered)
+
+
+def test_rejects_source_accounting_that_disagrees_with_rdf(tmp_path: Path) -> None:
+    altered = tmp_path / "altered-accounting"
+    shutil.copytree(FIXTURE, altered)
+    accounting_path = altered / "atlas-source-accounting.json"
+    accounting = json.loads(accounting_path.read_text(encoding="utf-8"))
+    disposition = accounting["inputs"][0]["dispositions"][0]
+    disposition["atlasResources"] = ["urn:ref:atlas-fixture:resource:not-this-record"]
+    _write_json(accounting_path, accounting)
+    _reseal_changed_json_members(altered)
+
+    with pytest.raises(Atlas3ExplorerError, match="bidirectional RDF resource links"):
+        _open_distribution(altered)
+
+
+def test_unversioned_renderer_rejects_retired_atlas_2_shape() -> None:
+    with pytest.raises(Atlas3ExplorerError, match="type or schemaVersion"):
+        render_atlas_explorer(
+            {
+                "type": "urn:ref:type:VocabularyAtlasExplorerView",
+                "schemaVersion": "4.0",
+                "title": "Retired Atlas 2 view",
+            }
+        )
