@@ -1,11 +1,11 @@
-"""Generate the full English Atlas 3.0 distribution from pinned registry sources.
+"""Generate the full English Atlas 3.0 distribution from pinned registry data.
 
-The generator reads exact publisher artifacts and source-native packages through
-the RefSpec registry parsers. It never consumes an Atlas 1.x or Atlas 2.x graph,
-and it does not import the archived generated mapping pairs under
-``research/evidence``. Publisher vocabularies, controlled values, entities, and
-legal identifiers retain separate release identities, semantic rings, source
-records, and direct authored relations.
+The generator runs the RefSpec registry parsers over every supported complete
+release or explicitly bounded capture whose exact bytes are available locally.
+It preserves publisher label roles, source identities, semantic rings, direct
+authored relations, and release-level provenance. It never consumes an Atlas
+1.x or Atlas 2.x graph, and it never imports the archived generated mapping
+pairs under ``research/evidence``.
 """
 
 from __future__ import annotations
@@ -151,9 +151,10 @@ class LoadedRelease:
     atlas_release_iri: str
     scheme_iri: str
     issued: str
-    resources: tuple[SourceResource, ...]
-    relations: tuple[SourceRelation, ...]
+    resources: Sequence[SourceResource]
+    relations: Sequence[SourceRelation]
     dropped_label_count: int = 0
+    metadata: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -1454,7 +1455,6 @@ def _validate_loaded_release(release: LoadedRelease) -> LoadedRelease:
 def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
     """Adapt one normalized registry release without source-specific branching."""
 
-    release.verify_inputs()
     primary = release.inputs[0]
     spec = SourceSpec(
         key=release.key,
@@ -1480,14 +1480,21 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
             atlas_release_iri=release.atlas_release_iri,
             scheme_iri=release.scheme_iri,
             issued=release.issued,
-            resources=tuple(release.resources),  # type: ignore[arg-type]
-            relations=tuple(release.relations),  # type: ignore[arg-type]
+            resources=release.resources,  # type: ignore[arg-type]
+            relations=release.relations,  # type: ignore[arg-type]
             dropped_label_count=release.dropped_label_count,
+            metadata=release.metadata,
         )
     )
 
 
 def load_releases() -> tuple[LoadedRelease, ...]:
+    from refspec.atlas.v3_registry_codes import load_registry_code_releases
+    from refspec.atlas.v3_registry_large import load_large_registry_releases
+    from refspec.atlas.v3_registry_vocabularies import (
+        load_all_registry_vocabulary_releases,
+    )
+
     loaders = {
         "sourceConceptRelease": _load_crs,
         "managedRelease": _load_elsst,
@@ -1495,12 +1502,63 @@ def load_releases() -> tuple[LoadedRelease, ...]:
     }
     releases: list[LoadedRelease] = []
     for spec in SOURCE_SPECS:
-        if spec.key == "federal-register-thesaurus-2025":
-            release = _load_federal_register(spec)
-        else:
-            release = loaders[spec.kind](spec)
+        if spec.key in {"elsst-r6", "federal-register-thesaurus-2025"}:
+            continue
+        release = loaders[spec.kind](spec)
         releases.append(_validate_loaded_release(release))
+
+    registry_releases = (
+        *load_all_registry_vocabulary_releases(),
+        *load_large_registry_releases(),
+        *load_registry_code_releases(ROOT),
+    )
+    _validate_registry_release_descriptors(registry_releases)
+    releases.extend(_adapt_registry_release(release) for release in registry_releases)
     return tuple(releases)
+
+
+def _validate_registry_release_descriptors(
+    releases: Sequence[RegistryRelease],
+) -> None:
+    """Require each normalized release to match the pinned registry policy."""
+
+    descriptors = _registry_asserted_graph()
+    index = json.loads((ROOT / "portfolio" / "atlas-index-v0.json").read_text())
+    index_rows = index.get("rows")
+    if not isinstance(index_rows, list):
+        raise TypeError("Atlas registry index has no rows")
+
+    for release in releases:
+        expected_scheme = URIRef(
+            "urn:ref:atlas-resource-scheme:" + release.resource_id
+        )
+        if URIRef(release.scheme_iri) != expected_scheme:
+            raise ValueError(
+                f"{release.key} scheme differs from registry descriptor: "
+                f"{release.scheme_iri} != {expected_scheme}"
+            )
+        if (expected_scheme, RDF.type, ATLAS.ResourceScheme) not in descriptors:
+            raise ValueError(
+                f"{release.key} names unknown registry resource {release.resource_id!r}"
+            )
+        if (expected_scheme, ATLAS.resourceProfile, ATLAS[release.profile]) not in descriptors:
+            raise ValueError(
+                f"{release.key} profile {release.profile!r} differs from its descriptor"
+            )
+        if (expected_scheme, ATLAS.supportedRing, ATLAS[release.ring]) not in descriptors:
+            raise ValueError(
+                f"{release.key} ring {release.ring!r} differs from its descriptor"
+            )
+        if not any(
+            isinstance(row, Mapping)
+            and row.get("resourceId") == release.resource_id
+            and row.get("semanticRing") == release.ring
+            and row.get("sourceModule") == release.source_module
+            for row in index_rows
+        ):
+            raise ValueError(
+                f"{release.key} source module/ring is absent from the Atlas index"
+            )
 
 
 def _node_iri(prefix: str, basis: Any) -> URIRef:
@@ -1623,10 +1681,10 @@ def _review_method_for_assertion(
     raise ValueError(f"unsupported assertion review method: {assertion_type}")
 
 
-def _icpsr_remap_evidence(
+def _transformed_relation_evidence(
     relation: SourceRelation,
 ) -> tuple[URIRef, str, Mapping[str, Any]]:
-    """Build the content-derived evidence locator and payload for one remap."""
+    """Build evidence for a source relation moved outside the SKOS projection."""
 
     publisher_relation = relation.source_payload.get("publisherRelation")
     transformation = relation.source_payload.get("editorialTransformation")
@@ -1651,7 +1709,7 @@ def _icpsr_remap_evidence(
         "publisherRelationDigest": publisher_relation_digest,
     }
     locator = URIRef(
-        "urn:ref:icpsr-publisher-relation:"
+        "urn:ref:publisher-relation:"
         + publisher_relation_digest.removeprefix("sha256:")
     )
     return locator, publisher_relation_digest, evidence_payload
@@ -1772,31 +1830,37 @@ def _registry_asserted_graph() -> Graph:
 
 def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
     release_keys = {release.spec.key for release in releases}
-    if len(release_keys) != len(releases):
-        raise ValueError("Atlas releases repeat a source key")
+    for label, values in {
+        "source key": [release.spec.key for release in releases],
+        "source release": [release.source_release_iri for release in releases],
+        "Atlas release": [release.atlas_release_iri for release in releases],
+    }.items():
+        if len(values) != len(set(values)):
+            raise ValueError(f"Atlas releases repeat a {label}")
     language_profiles = {
         key: SOURCE_LANGUAGE_PROFILES.get(key, "registryEnglishOnlyV1")
         for key in sorted(release_keys)
     }
-    labels = [
-        label
-        for release in releases
-        for resource in release.resources
-        for label in resource.labels
-    ]
-    non_english = [label for label in labels if label.language != "en"]
-    if non_english:
-        raise ValueError(
-            f"Atlas source normalization retained {len(non_english)} non-English labels"
-        )
+    label_count = 0
     language_map_count = 0
     explicit_language_tag_count = 0
     native_payload_count = 0
     relation_payload_count = 0
+    resource_iris: set[str] = set()
     violations: list[str] = []
     for release in releases:
         for resource in release.resources:
+            if resource.iri in resource_iris:
+                raise ValueError(f"Atlas releases repeat resource IRI {resource.iri}")
+            resource_iris.add(resource.iri)
             native_payload_count += 1
+            for label in resource.labels:
+                label_count += 1
+                if label.language != "en":
+                    raise ValueError(
+                        "Atlas source normalization retained a non-English label: "
+                        f"{release.spec.key}/{resource.iri}"
+                    )
             maps, tags, payload_violations = _audit_english_language_content(
                 resource.native_payload,
                 language_map_fields=(
@@ -1834,7 +1898,7 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
             + ", ".join(violations[:5])
         )
     return {
-        "emittedLabels": len(labels),
+        "emittedLabels": label_count,
         "explicitLanguageTagsChecked": explicit_language_tag_count,
         "languageMapsChecked": language_map_count,
         "nativePayloadsChecked": native_payload_count,
@@ -1876,8 +1940,8 @@ def _build_graphs(
 
     for release in releases:
         source_locator = URIRef(
-            "urn:ref:source-artifact:"
-            + _sha256_file(release.spec.path).removeprefix("sha256:")
+            "urn:ref:source-artifact-set:"
+            + release.source_release_digest.removeprefix("sha256:")
         )
         source_release = _add_source_release(
             asserted,
@@ -2042,7 +2106,7 @@ def _build_graphs(
                     evidence_locator,
                     publisher_relation_digest,
                     evidence_payload,
-                ) = _icpsr_remap_evidence(relation)
+                ) = _transformed_relation_evidence(relation)
                 evidence_record = _add_source_record(
                     asserted,
                     source_release=source_release_nodes[release.source_release_iri],
@@ -2212,8 +2276,47 @@ def _dataset_lines(graphs: BuildGraphs) -> Iterable[str]:
             yield ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
 
 
-def _write_sorted_lines(path: Path, lines: Iterable[str]) -> None:
+def _merge_sorted_chunks(
+    chunks: Sequence[Path],
+    directory: Path,
+    *,
+    fan_in: int,
+) -> list[Path]:
+    """Bound open files while reducing sorted chunks to one merge frontier."""
+
+    current = list(chunks)
+    generation = 0
+    while len(current) > fan_in:
+        merged: list[Path] = []
+        for position in range(0, len(current), fan_in):
+            group = current[position : position + fan_in]
+            target = directory / f"merge-{generation:03d}-{len(merged):05d}.nq"
+            streams = [chunk.open(encoding="utf-8", newline="") for chunk in group]
+            try:
+                with target.open("w", encoding="utf-8", newline="") as output:
+                    output.writelines(heapq.merge(*streams))
+            finally:
+                for stream in streams:
+                    stream.close()
+            for chunk in group:
+                chunk.unlink()
+            merged.append(target)
+        current = merged
+        generation += 1
+    return current
+
+
+def _write_sorted_lines(
+    path: Path,
+    lines: Iterable[str],
+    *,
+    chunk_line_count: int = 50_000,
+    merge_fan_in: int = 64,
+) -> None:
     """External merge-sort N-Quads without retaining the full dataset in RAM."""
+
+    if chunk_line_count < 1 or merge_fan_in < 2:
+        raise ValueError("external sort bounds must be positive")
 
     with tempfile.TemporaryDirectory(prefix="atlas3-sort-", dir=path.parent) as raw_temp:
         temp = Path(raw_temp)
@@ -2221,7 +2324,7 @@ def _write_sorted_lines(path: Path, lines: Iterable[str]) -> None:
         buffered: list[str] = []
         for line in lines:
             buffered.append(line)
-            if len(buffered) < 50_000:
+            if len(buffered) < chunk_line_count:
                 continue
             buffered.sort()
             chunk = temp / f"chunk-{len(chunks):05d}.nq"
@@ -2234,6 +2337,7 @@ def _write_sorted_lines(path: Path, lines: Iterable[str]) -> None:
             chunk.write_text("".join(buffered), encoding="utf-8", newline="")
             chunks.append(chunk)
 
+        chunks = _merge_sorted_chunks(chunks, temp, fan_in=merge_fan_in)
         streams = [chunk.open(encoding="utf-8", newline="") for chunk in chunks]
         try:
             with path.open("w", encoding="utf-8", newline="") as output:
@@ -2601,8 +2705,17 @@ def verify_inputs(
         if releases is None
         else tuple(release.spec for release in releases)
     )
+    verified_pins: dict[str, tuple[str, int]] = {}
     for source in sources:
         for pin in _source_input_pins(source):
+            identity = (pin.sha256, pin.byte_length)
+            previous = verified_pins.get(pin.logical_path)
+            if previous is not None:
+                if previous != identity:
+                    raise ValueError(
+                        f"pinned input identity conflicts for {pin.logical_path}"
+                    )
+                continue
             _verify_pinned_file(
                 pin.path,
                 logical_path=pin.logical_path,
@@ -2612,6 +2725,7 @@ def verify_inputs(
                 raise ValueError(
                     f"pinned input byte length differs for {pin.logical_path}"
                 )
+            verified_pins[pin.logical_path] = identity
     registry = Dataset(default_union=True)
     registry.parse(REGISTRY_DESCRIPTORS, format="nquads")
     descriptors = {
@@ -2634,7 +2748,12 @@ def verify_inputs(
         "sources": [
             {
                 "expectedResources": source.expected_resources,
-                "inputRole": "upstreamManagedRelease",
+                "expectedRelations": source.expected_relations,
+                "inputRole": (
+                    "registrySource"
+                    if source.kind == "registryRelease"
+                    else "upstreamManagedRelease"
+                ),
                 "key": source.key,
                 "kind": source.kind,
                 "path": source.logical_path,
@@ -2668,7 +2787,7 @@ def build_distribution(output: Path) -> None:
     english_only_scan = _english_only_scan(releases)
     dropped_label_count = sum(release.dropped_label_count for release in releases)
     observed_counts = {
-        "labels": sum(len(resource.labels) for release in releases for resource in release.resources),
+        "labels": english_only_scan["emittedLabels"],
         "nativeRelations": sum(len(release.relations) for release in releases),
         "resources": sum(len(release.resources) for release in releases),
     }
@@ -2701,6 +2820,19 @@ def build_distribution(output: Path) -> None:
             },
             "englishOnlyScan": english_only_scan,
             "inputInventory": inventory,
+            "sourceReleases": [
+                {
+                    "atlasRelease": release.atlas_release_iri,
+                    "key": release.spec.key,
+                    "metadata": _plain(release.metadata),
+                    "nativeRelations": len(release.relations),
+                    "resourceId": release.spec.resource_id,
+                    "resources": len(release.resources),
+                    "scope": release.spec.scope,
+                    "sourceRelease": release.source_release_iri,
+                }
+                for release in releases
+            ],
             "type": "AtlasGenerationReport",
             "version": "3.0-development",
         },
@@ -2718,7 +2850,8 @@ def main() -> int:
     )
     args = parser.parse_args()
     if args.check_inputs:
-        print(json.dumps(verify_inputs(), indent=2, sort_keys=True))
+        releases = load_releases()
+        print(json.dumps(verify_inputs(releases), indent=2, sort_keys=True))
         return 0
     build_distribution(args.output.resolve())
     print(args.output.resolve())

@@ -675,7 +675,7 @@ def test_active_editorial_policies_contain_no_serving_permission_language() -> N
         )
 
 
-def test_icpsr_remap_evidence_is_content_derived_and_preserves_publisher_row() -> None:
+def test_transformed_relation_evidence_is_content_derived_and_preserves_publisher_row() -> None:
     publisher_relation = {
         "relation": "related",
         "sourceLabel": "A",
@@ -698,14 +698,14 @@ def test_icpsr_remap_evidence_is_content_derived_and_preserves_publisher_row() -
         },
     )
 
-    locator, source_digest, payload = generator._icpsr_remap_evidence(relation)
+    locator, source_digest, payload = generator._transformed_relation_evidence(relation)
 
     assert source_digest == generator._native_digest(publisher_relation)
     assert str(locator).endswith(source_digest.removeprefix("sha256:"))
     assert payload["publisherRelation"] == publisher_relation
     assert payload["publisherRelationDigest"] == source_digest
     assert json.dumps(payload, sort_keys=True) == json.dumps(
-        generator._icpsr_remap_evidence(relation)[2],
+        generator._transformed_relation_evidence(relation)[2],
         sort_keys=True,
     )
 
@@ -761,3 +761,19 @@ def test_generation_report_uses_a_location_independent_distribution_path(
     assert generator._generation_report_distribution_path(first) == "distribution"
     assert generator._generation_report_distribution_path(second) == "distribution"
     assert not Path(generator._generation_report_distribution_path(first)).is_absolute()
+
+
+def test_external_sort_bounds_open_files_across_multiple_merge_rounds(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "sorted.nq"
+    rows = [f"row-{index:03d}\n" for index in reversed(range(41))]
+
+    generator._write_sorted_lines(
+        output,
+        rows,
+        chunk_line_count=2,
+        merge_fan_in=3,
+    )
+
+    assert output.read_text().splitlines() == sorted(row.strip() for row in rows)
