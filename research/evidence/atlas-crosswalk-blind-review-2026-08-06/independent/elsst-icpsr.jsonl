@@ -1,0 +1,365 @@
+{"row": 1, "verdict": "related", "directness": "direct_candidate", "why": "food aid is an aid programme delivered as food, not a food type"}
+{"row": 2, "verdict": "near_same", "directness": "direct_candidate", "why": "ELSST lists MARITAL STATUS as entry term; civil status adds civil partnership"}
+{"row": 3, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorder versus respiratory infection"}
+{"row": 4, "verdict": "same", "directness": "direct_candidate", "why": "identical occupational group, no divergent scope supplied"}
+{"row": 5, "verdict": "unrelated", "directness": "generic_thematic", "why": "school support staff versus women's health services"}
+{"row": 6, "verdict": "target_is_broader", "directness": "generic_thematic", "why": "ICPSR education is an umbrella instructing use of narrower terms"}
+{"row": 7, "verdict": "unrelated", "directness": "generic_thematic", "why": "public disturbance offence versus abduction offence"}
+{"row": 8, "verdict": "related", "directness": "direct_candidate", "why": "learning disabilities is an impairment of learning, not a learning process"}
+{"row": 9, "verdict": "unrelated", "directness": "generic_thematic", "why": "group membership versus veterans' benefits"}
+{"row": 10, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "mobile payments are payments initiated by mobile devices"}
+{"row": 11, "verdict": "unrelated", "directness": "generic_thematic", "why": "smuggling offence versus sworn witness evidence"}
+{"row": 12, "verdict": "same", "directness": "direct_candidate", "why": "identical label and referent: alliances between states"}
+{"row": 13, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "managing enterprises is one aspect of the wider business domain"}
+{"row": 14, "verdict": "related", "directness": "direct_candidate", "why": "regulation is an activity of government, not a type of government"}
+{"row": 15, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "global health is health issues crossing national boundaries"}
+{"row": 16, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "ICPSR vehicles covers any conveyance, not just road ones"}
+{"row": 17, "verdict": "same", "directness": "direct_candidate", "why": "identical label, same art-form domain"}
+{"row": 18, "verdict": "near_same", "directness": "direct_candidate", "why": "life stage versus persons in it; age spans overlap heavily"}
+{"row": 19, "verdict": "related", "directness": "generic_thematic", "why": "institution versus the activity it houses"}
+{"row": 20, "verdict": "unrelated", "directness": "generic_thematic", "why": "interstate cooperation versus political violence"}
+{"row": 21, "verdict": "same", "directness": "direct_candidate", "why": "definition matches label exactly: services offered by libraries"}
+{"row": 22, "verdict": "unrelated", "directness": "generic_thematic", "why": "ICPSR repression is political or military restraint, not a mood state"}
+{"row": 23, "verdict": "same", "directness": "direct_candidate", "why": "record of an individual's illnesses and treatments in both"}
+{"row": 24, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "racial integration is one species of social integration"}
+{"row": 25, "verdict": "unrelated", "directness": "generic_thematic", "why": "legislative proposals versus female children"}
+{"row": 26, "verdict": "same", "directness": "direct_candidate", "why": "number variant of one prominent-influential-persons concept"}
+{"row": 27, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "business administration is administration confined to commercial enterprises"}
+{"row": 28, "verdict": "unrelated", "directness": "generic_thematic", "why": "legislative proposal versus testamentary document"}
+{"row": 29, "verdict": "unrelated", "directness": "generic_thematic", "why": "combustion versus life"}
+{"row": 30, "verdict": "same", "directness": "direct_candidate", "why": "identical disease label"}
+{"row": 31, "verdict": "unrelated", "directness": "generic_thematic", "why": "joint disease versus parasitic infection"}
+{"row": 32, "verdict": "same", "directness": "direct_candidate", "why": "identical labour-market concept"}
+{"row": 33, "verdict": "unrelated", "directness": "generic_thematic", "why": "money supply policy versus environmental policy"}
+{"row": 34, "verdict": "same", "directness": "direct_candidate", "why": "definition matches: economic aid at international, national or regional level"}
+{"row": 35, "verdict": "target_is_broader", "directness": "generic_thematic", "why": "ISCED level 0 schooling under an explicit use-narrower umbrella"}
+{"row": 36, "verdict": "related", "directness": "generic_thematic", "why": "practitioner linked straight to the entire discipline"}
+{"row": 37, "verdict": "unrelated", "directness": "generic_thematic", "why": "costs of health care versus costs of construction"}
+{"row": 38, "verdict": "same", "directness": "direct_candidate", "why": "identical public-attitudes concept"}
+{"row": 39, "verdict": "same", "directness": "direct_candidate", "why": "scope matches: way of life of an individual or group"}
+{"row": 40, "verdict": "unrelated", "directness": "generic_thematic", "why": "classroom support staff versus respiratory illness"}
+{"row": 41, "verdict": "unrelated", "directness": "generic_thematic", "why": "price regulation versus crime suppression"}
+{"row": 42, "verdict": "same", "directness": "direct_candidate", "why": "both define protection of networks and data from attack"}
+{"row": 43, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "industrial injuries are injuries sustained at work"}
+{"row": 44, "verdict": "same", "directness": "direct_candidate", "why": "abilities and attainments fitting a person for positions"}
+{"row": 45, "verdict": "same", "directness": "direct_candidate", "why": "identical civil-disorder concept"}
+{"row": 46, "verdict": "same", "directness": "direct_candidate", "why": "identical social-stratum concept"}
+{"row": 47, "verdict": "same", "directness": "direct_candidate", "why": "identical label: women in employment"}
+{"row": 48, "verdict": "unrelated", "directness": "generic_thematic", "why": "watercourse versus married women"}
+{"row": 49, "verdict": "near_same", "directness": "direct_candidate", "why": "ELSST folds READING HABITS into the reading-activity concept"}
+{"row": 50, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "firms are entities within the wider commercial domain named by business"}
+{"row": 51, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "repetitive work is work characterised by routinization"}
+{"row": 52, "verdict": "near_same", "directness": "direct_candidate", "why": "EATING HABITS is an ELSST entry term for dietary habits"}
+{"row": 53, "verdict": "same", "directness": "direct_candidate", "why": "identical maltreatment-of-children concept"}
+{"row": 54, "verdict": "unrelated", "directness": "generic_thematic", "why": "racial separation versus regulatory bodies"}
+{"row": 55, "verdict": "near_same", "directness": "direct_candidate", "why": "COMPUTER LITERACY is an ELSST entry term for digital literacy"}
+{"row": 56, "verdict": "same", "directness": "direct_candidate", "why": "identical internal-trade concept"}
+{"row": 57, "verdict": "same", "directness": "direct_candidate", "why": "identical non-medicinal drug use concept"}
+{"row": 58, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "monetary policy is one field of public policy"}
+{"row": 59, "verdict": "same", "directness": "direct_candidate", "why": "identical ideology concept"}
+{"row": 60, "verdict": "near_same", "directness": "direct_candidate", "why": "TRADITIONS is an ELSST entry term for this compound concept"}
+{"row": 61, "verdict": "same", "directness": "direct_candidate", "why": "scope matches recall of what was learned or experienced"}
+{"row": 62, "verdict": "same", "directness": "direct_candidate", "why": "both define temporary relief care for a regular carer"}
+{"row": 63, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "online shopping is shopping conducted over the internet"}
+{"row": 64, "verdict": "same", "directness": "direct_candidate", "why": "identical self-killing concept"}
+{"row": 65, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "age groups are categories of the age attribute"}
+{"row": 66, "verdict": "unrelated", "directness": "generic_thematic", "why": "health professionals versus road vehicles"}
+{"row": 67, "verdict": "related", "directness": "direct_candidate", "why": "ICPSR morbidity is an incidence rate; ELSST assigns rates to MORBIDITY RATE"}
+{"row": 68, "verdict": "same", "directness": "direct_candidate", "why": "identical political-actor concept"}
+{"row": 69, "verdict": "unrelated", "directness": "generic_thematic", "why": "bodies of saltwater versus the metal lead"}
+{"row": 70, "verdict": "near_same", "directness": "direct_candidate", "why": "ENVIRONMENTAL DEGRADATION is an ELSST entry term here"}
+{"row": 71, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "ELSST node arrays workers by profession; ICPSR workers is unqualified"}
+{"row": 72, "verdict": "related", "directness": "generic_thematic", "why": "discrimination by age versus discrimination in housing; different axes"}
+{"row": 73, "verdict": "near_same", "directness": "direct_candidate", "why": "MUSLIMS is an ELSST entry term for the Islam concept"}
+{"row": 74, "verdict": "same", "directness": "direct_candidate", "why": "identical mortality-cause concept"}
+{"row": 75, "verdict": "unrelated", "directness": "generic_thematic", "why": "conflict resolution versus information generally"}
+{"row": 76, "verdict": "unrelated", "directness": "generic_thematic", "why": "woody plants versus levies"}
+{"row": 77, "verdict": "unrelated", "directness": "generic_thematic", "why": "acute viral infection versus chronic lung disease"}
+{"row": 78, "verdict": "unrelated", "directness": "generic_thematic", "why": "manual therapy versus crime figures"}
+{"row": 79, "verdict": "near_same", "directness": "direct_candidate", "why": "FAMILY BUSINESSES is an ELSST entry term for small businesses"}
+{"row": 80, "verdict": "same", "directness": "direct_candidate", "why": "identical domestic-political-conflict concept"}
+{"row": 81, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorders versus eating disorders"}
+{"row": 82, "verdict": "same", "directness": "direct_candidate", "why": "identical travel-by-air concept"}
+{"row": 83, "verdict": "unrelated", "directness": "generic_thematic", "why": "walking recreation versus shooting sport"}
+{"row": 84, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorder versus malignant disease"}
+{"row": 85, "verdict": "same", "directness": "direct_candidate", "why": "identical central-bank policy concept"}
+{"row": 86, "verdict": "same", "directness": "direct_candidate", "why": "identical body-of-law concept"}
+{"row": 87, "verdict": "same", "directness": "direct_candidate", "why": "both define applying biological processes to make products"}
+{"row": 88, "verdict": "unrelated", "directness": "generic_thematic", "why": "influenza versus HIV disease"}
+{"row": 89, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ICPSR restricts to degree-granting universities; ELSST covers all tertiary institutions"}
+{"row": 90, "verdict": "unrelated", "directness": "generic_thematic", "why": "apparitions versus expenditures"}
+{"row": 91, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "publishing is one industry among all industries"}
+{"row": 92, "verdict": "related", "directness": "generic_thematic", "why": "different victim classes of abuse; neither contains the other"}
+{"row": 93, "verdict": "related", "directness": "generic_thematic", "why": "academic field linked to the phenomenon it studies"}
+{"row": 94, "verdict": "same", "directness": "direct_candidate", "why": "identical female-children concept"}
+{"row": 95, "verdict": "near_same", "directness": "direct_candidate", "why": "PROTESTANTS is an ELSST entry term for Protestantism"}
+{"row": 96, "verdict": "same", "directness": "direct_candidate", "why": "identical wagering concept"}
+{"row": 97, "verdict": "near_same", "directness": "direct_candidate", "why": "INFORMATION TECHNOLOGY is an ELSST entry term for ICT"}
+{"row": 98, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary policy versus defence policy"}
+{"row": 99, "verdict": "same", "directness": "direct_candidate", "why": "identical named supranational body"}
+{"row": 100, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ICPSR NGOs are nonprofits independent of government, a subset"}
+{"row": 101, "verdict": "related", "directness": "direct_candidate", "why": "deliberative body versus its individual members"}
+{"row": 102, "verdict": "unrelated", "directness": "generic_thematic", "why": "organic fuel versus financial obligation"}
+{"row": 103, "verdict": "same", "directness": "direct_candidate", "why": "Nazism and National Socialism name one ideology"}
+{"row": 104, "verdict": "unrelated", "directness": "generic_thematic", "why": "parental attitudes versus energy policy"}
+{"row": 105, "verdict": "same", "directness": "direct_candidate", "why": "identical household-composition measure"}
+{"row": 106, "verdict": "unrelated", "directness": "generic_thematic", "why": "public disturbance versus unlawful killing"}
+{"row": 107, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "cultural participation is participation in cultural activities"}
+{"row": 108, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ICPSR restricts to adults; ELSST literacy covers all ages"}
+{"row": 109, "verdict": "same", "directness": "direct_candidate", "why": "identical cross-border organization concept"}
+{"row": 110, "verdict": "target_is_narrower", "directness": "generic_thematic", "why": "ELSST GROUPS is a use-narrower umbrella; church groups are membership-based"}
+{"row": 111, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "social participation is participation in social and community activity"}
+{"row": 112, "verdict": "same", "directness": "direct_candidate", "why": "identical governing-institution concept"}
+{"row": 113, "verdict": "same", "directness": "direct_candidate", "why": "identical psychiatric-illness concept"}
+{"row": 114, "verdict": "same", "directness": "direct_candidate", "why": "identical national-loyalty concept"}
+{"row": 115, "verdict": "unrelated", "directness": "generic_thematic", "why": "public disturbance versus corrupt payment"}
+{"row": 116, "verdict": "same", "directness": "direct_candidate", "why": "AGRARIAN REFORM is ELSST's own synonym for land reform"}
+{"row": 117, "verdict": "same", "directness": "direct_candidate", "why": "identical joint-disease concept"}
+{"row": 118, "verdict": "unrelated", "directness": "generic_thematic", "why": "credit advances versus objectives"}
+{"row": 119, "verdict": "unrelated", "directness": "generic_thematic", "why": "sexual health practice versus arts venues"}
+{"row": 120, "verdict": "same", "directness": "direct_candidate", "why": "spelling variant of one concept"}
+{"row": 121, "verdict": "unrelated", "directness": "generic_thematic", "why": "belief systems versus policing activity"}
+{"row": 122, "verdict": "unrelated", "directness": "generic_thematic", "why": "street rail vehicles versus commerce"}
+{"row": 123, "verdict": "same", "directness": "direct_candidate", "why": "number variant of one disease class"}
+{"row": 124, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "industrial location is a geographic aspect of industry"}
+{"row": 125, "verdict": "related", "directness": "generic_thematic", "why": "pretrial release versus short-term custodial facilities"}
+{"row": 126, "verdict": "same", "directness": "direct_candidate", "why": "MARIJUANA is ELSST's own synonym for cannabis"}
+{"row": 127, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "air travel is travel by aircraft"}
+{"row": 128, "verdict": "unrelated", "directness": "generic_thematic", "why": "educational access versus municipal elections"}
+{"row": 129, "verdict": "near_same", "directness": "direct_candidate", "why": "FOREIGN LANGUAGES is an ELSST entry term for second languages"}
+{"row": 130, "verdict": "same", "directness": "direct_candidate", "why": "identical disease concept"}
+{"row": 131, "verdict": "near_same", "directness": "direct_candidate", "why": "COMMUNICATIONS SYSTEMS is an ELSST entry term for telecommunications"}
+{"row": 132, "verdict": "unrelated", "directness": "generic_thematic", "why": "legislative proposals versus competencies"}
+{"row": 133, "verdict": "same", "directness": "direct_candidate", "why": "identical securities-offence concept"}
+{"row": 134, "verdict": "same", "directness": "direct_candidate", "why": "identical religion concept"}
+{"row": 135, "verdict": "same", "directness": "direct_candidate", "why": "NATIVE LANGUAGE is ELSST's own synonym for mother tongue"}
+{"row": 136, "verdict": "same", "directness": "direct_candidate", "why": "identical applied-ethics concept"}
+{"row": 137, "verdict": "unrelated", "directness": "generic_thematic", "why": "gender prejudice versus mapping software"}
+{"row": 138, "verdict": "near_same", "directness": "direct_candidate", "why": "BUSINESS CONDITIONS is an ELSST entry term for economic conditions"}
+{"row": 139, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "working women are women in employment"}
+{"row": 140, "verdict": "same", "directness": "direct_candidate", "why": "identical transfer-of-money concept"}
+{"row": 141, "verdict": "unrelated", "directness": "generic_thematic", "why": "school size versus a US presidency"}
+{"row": 142, "verdict": "near_same", "directness": "direct_candidate", "why": "EDUCATIONAL TESTING is an ELSST entry term; both concern attainment tests"}
+{"row": 143, "verdict": "unrelated", "directness": "generic_thematic", "why": "health insurance versus product safety"}
+{"row": 144, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "religious conflict is conflict on religious grounds"}
+{"row": 145, "verdict": "related", "directness": "generic_thematic", "why": "ICPSR adult children are adults; ELSST children are young persons"}
+{"row": 146, "verdict": "unrelated", "directness": "generic_thematic", "why": "ICPSR maintenance is opiate substitution therapy, not upkeep or repair"}
+{"row": 147, "verdict": "unrelated", "directness": "generic_thematic", "why": "family role versus money transfers"}
+{"row": 148, "verdict": "same", "directness": "direct_candidate", "why": "identical food-output concept"}
+{"row": 149, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "slang is one register of language"}
+{"row": 150, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "radio advertising is advertising in one medium"}
+{"row": 151, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ELSST folds golf together with many other ball games"}
+{"row": 152, "verdict": "unrelated", "directness": "generic_thematic", "why": "influenza versus undernutrition"}
+{"row": 153, "verdict": "related", "directness": "direct_candidate", "why": "actors versus the activity they carry out"}
+{"row": 154, "verdict": "related", "directness": "generic_thematic", "why": "ICT access versus information as such"}
+{"row": 155, "verdict": "related", "directness": "generic_thematic", "why": "institutions versus the process of accrediting them"}
+{"row": 156, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "primary teachers are teachers at one level"}
+{"row": 157, "verdict": "unrelated", "directness": "generic_thematic", "why": "two distinct religions"}
+{"row": 158, "verdict": "near_same", "directness": "direct_candidate", "why": "READING ABILITY is an ELSST entry term for reading skills"}
+{"row": 159, "verdict": "same", "directness": "direct_candidate", "why": "identical bereavement-emotion concept"}
+{"row": 160, "verdict": "unrelated", "directness": "generic_thematic", "why": "public disturbance versus political violence"}
+{"row": 161, "verdict": "unrelated", "directness": "generic_thematic", "why": "fastenings versus credit advances"}
+{"row": 162, "verdict": "unrelated", "directness": "generic_thematic", "why": "political ideology versus racial prejudice"}
+{"row": 163, "verdict": "unrelated", "directness": "generic_thematic", "why": "gallbladder disease versus social position"}
+{"row": 164, "verdict": "unrelated", "directness": "generic_thematic", "why": "aggregate income versus public attitudes"}
+{"row": 165, "verdict": "near_same", "directness": "direct_candidate", "why": "ARTS ORGANIZATIONS is an ELSST entry term for cultural organizations"}
+{"row": 166, "verdict": "same", "directness": "direct_candidate", "why": "identical walking-recreation concept"}
+{"row": 167, "verdict": "same", "directness": "direct_candidate", "why": "identical currency-conversion rate concept"}
+{"row": 168, "verdict": "same", "directness": "direct_candidate", "why": "identical wellbeing-assessment concept"}
+{"row": 169, "verdict": "near_same", "directness": "direct_candidate", "why": "SEXUAL EXPLOITATION is an ELSST entry term for sexual abuse"}
+{"row": 170, "verdict": "unrelated", "directness": "generic_thematic", "why": "policy formation versus completing a course"}
+{"row": 171, "verdict": "same", "directness": "direct_candidate", "why": "identical age-prejudice concept"}
+{"row": 172, "verdict": "unrelated", "directness": "generic_thematic", "why": "factory workers versus international law"}
+{"row": 173, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "educational television is one genre of television broadcasting"}
+{"row": 174, "verdict": "same", "directness": "direct_candidate", "why": "identical student financial award concept"}
+{"row": 175, "verdict": "unrelated", "directness": "generic_thematic", "why": "audience studies versus a US political action group"}
+{"row": 176, "verdict": "same", "directness": "direct_candidate", "why": "number variant of one direct-vote concept"}
+{"row": 177, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "sexual harassment is harassment of a sexual kind"}
+{"row": 178, "verdict": "target_is_narrower", "directness": "generic_thematic", "why": "emotional development is one specific process under a vague umbrella"}
+{"row": 179, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "coverage is output of the mass media, indexed under them"}
+{"row": 180, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "race riots are riots with a racial cause"}
+{"row": 181, "verdict": "unrelated", "directness": "generic_thematic", "why": "anti-war stance versus economic ideology"}
+{"row": 182, "verdict": "unrelated", "directness": "generic_thematic", "why": "public disturbance versus firearms offences"}
+{"row": 183, "verdict": "unrelated", "directness": "generic_thematic", "why": "state takeover of industry versus an ethnic population"}
+{"row": 184, "verdict": "unrelated", "directness": "generic_thematic", "why": "population statistics versus offence statistics"}
+{"row": 185, "verdict": "same", "directness": "direct_candidate", "why": "identical research-activity concept"}
+{"row": 186, "verdict": "unrelated", "directness": "generic_thematic", "why": "carbon sequestration versus alarms and locks"}
+{"row": 187, "verdict": "near_same", "directness": "direct_candidate", "why": "ETHNICITY is an ELSST entry term for ethnic groups"}
+{"row": 188, "verdict": "same", "directness": "direct_candidate", "why": "JUVENILE GANGS is ELSST's own synonym for youth gangs"}
+{"row": 189, "verdict": "same", "directness": "direct_candidate", "why": "identical dwelling-provision concept"}
+{"row": 190, "verdict": "same", "directness": "direct_candidate", "why": "identical hygiene-provision concept"}
+{"row": 191, "verdict": "target_is_narrower", "directness": "generic_thematic", "why": "adult prisons are one type under an explicit use-narrower umbrella"}
+{"row": 192, "verdict": "related", "directness": "generic_thematic", "why": "a disability versus health services generally"}
+{"row": 193, "verdict": "unrelated", "directness": "generic_thematic", "why": "play areas versus an insurance product"}
+{"row": 194, "verdict": "same", "directness": "direct_candidate", "why": "identical legal-custody concept"}
+{"row": 195, "verdict": "same", "directness": "direct_candidate", "why": "identical legislative-election concept"}
+{"row": 196, "verdict": "unrelated", "directness": "generic_thematic", "why": "locations versus married women"}
+{"row": 197, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorder versus undernutrition"}
+{"row": 198, "verdict": "unrelated", "directness": "generic_thematic", "why": "optical devices versus population enumeration"}
+{"row": 199, "verdict": "related", "directness": "generic_thematic", "why": "different offices contested; neither election type contains the other"}
+{"row": 200, "verdict": "near_same", "directness": "direct_candidate", "why": "AMBITION is an ELSST entry term for aspiration"}
+{"row": 201, "verdict": "same", "directness": "direct_candidate", "why": "identical urban-growth concept"}
+{"row": 202, "verdict": "same", "directness": "direct_candidate", "why": "both define commerce conducted over the internet"}
+{"row": 203, "verdict": "related", "directness": "generic_thematic", "why": "contestedness cuts across election type"}
+{"row": 204, "verdict": "unrelated", "directness": "generic_thematic", "why": "outlook on the future versus dropped prosecution"}
+{"row": 205, "verdict": "unrelated", "directness": "generic_thematic", "why": "love of country versus a political ideology"}
+{"row": 206, "verdict": "unrelated", "directness": "generic_thematic", "why": "livestock versus hereditary social stratum"}
+{"row": 207, "verdict": "same", "directness": "direct_candidate", "why": "identical weapons-commerce concept"}
+{"row": 208, "verdict": "unrelated", "directness": "generic_thematic", "why": "emotion versus armed conflict"}
+{"row": 209, "verdict": "near_same", "directness": "direct_candidate", "why": "HANDEDNESS is an ELSST entry term for laterality"}
+{"row": 210, "verdict": "unrelated", "directness": "generic_thematic", "why": "legislative proposals versus hand-rolled cigarettes"}
+{"row": 211, "verdict": "same", "directness": "direct_candidate", "why": "number variant of one social-influence concept"}
+{"row": 212, "verdict": "same", "directness": "direct_candidate", "why": "identical lone-mother concept"}
+{"row": 213, "verdict": "same", "directness": "direct_candidate", "why": "identical class-awareness concept"}
+{"row": 214, "verdict": "related", "directness": "direct_candidate", "why": "policy governing language use is not a kind of language"}
+{"row": 215, "verdict": "unrelated", "directness": "generic_thematic", "why": "childbirth labour versus courts abroad"}
+{"row": 216, "verdict": "same", "directness": "direct_candidate", "why": "identical failure-to-care concept"}
+{"row": 217, "verdict": "unrelated", "directness": "generic_thematic", "why": "anti-war stance versus national ideology"}
+{"row": 218, "verdict": "near_same", "directness": "direct_candidate", "why": "POLITICAL REFORM is an ELSST entry term for political change"}
+{"row": 219, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "cultural history is history of one domain"}
+{"row": 220, "verdict": "near_same", "directness": "direct_candidate", "why": "ENERGY SHORTAGES is an ELSST entry term for energy security"}
+{"row": 221, "verdict": "unrelated", "directness": "generic_thematic", "why": "racial prejudice versus failure to appear for trial"}
+{"row": 222, "verdict": "unrelated", "directness": "generic_thematic", "why": "walking recreation versus a bat-and-ball sport"}
+{"row": 223, "verdict": "same", "directness": "direct_candidate", "why": "identical legally recognized union concept"}
+{"row": 224, "verdict": "unrelated", "directness": "generic_thematic", "why": "decimal currency versus a criminal defence"}
+{"row": 225, "verdict": "same", "directness": "direct_candidate", "why": "identical mass-transit concept, spelling variant only"}
+{"row": 226, "verdict": "same", "directness": "direct_candidate", "why": "identical public-disturbance offence"}
+{"row": 227, "verdict": "same", "directness": "direct_candidate", "why": "identical currency-exchange concept"}
+{"row": 228, "verdict": "same", "directness": "direct_candidate", "why": "identical educational-goals concept"}
+{"row": 229, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ELSST also covers college and university libraries"}
+{"row": 230, "verdict": "same", "directness": "direct_candidate", "why": "identical head-of-state election concept"}
+{"row": 231, "verdict": "near_same", "directness": "direct_candidate", "why": "LEGISLATORS is an ELSST entry term for members of parliament"}
+{"row": 232, "verdict": "same", "directness": "direct_candidate", "why": "identical anti-war doctrine"}
+{"row": 233, "verdict": "same", "directness": "direct_candidate", "why": "identical daily-life concept"}
+{"row": 234, "verdict": "same", "directness": "direct_candidate", "why": "identical judicial-order concept"}
+{"row": 235, "verdict": "same", "directness": "direct_candidate", "why": "number and hyphenation variant of one concept"}
+{"row": 236, "verdict": "same", "directness": "direct_candidate", "why": "identical dependency concept"}
+{"row": 237, "verdict": "unrelated", "directness": "generic_thematic", "why": "age prejudice versus absence of belief in gods"}
+{"row": 238, "verdict": "target_is_narrower", "directness": "generic_thematic", "why": "NGOs are one type under an explicit use-narrower umbrella"}
+{"row": 239, "verdict": "unrelated", "directness": "generic_thematic", "why": "military alliance versus records or observations"}
+{"row": 240, "verdict": "unrelated", "directness": "generic_thematic", "why": "parent-child groups versus enslaved populations"}
+{"row": 241, "verdict": "same", "directness": "direct_candidate", "why": "identical leadership concept"}
+{"row": 242, "verdict": "unrelated", "directness": "generic_thematic", "why": "social rules versus weather events"}
+{"row": 243, "verdict": "unrelated", "directness": "generic_thematic", "why": "records versus end of life"}
+{"row": 244, "verdict": "related", "directness": "generic_thematic", "why": "discrimination on different grounds; neither contains the other"}
+{"row": 245, "verdict": "unrelated", "directness": "generic_thematic", "why": "leisure pursuits versus a tobacco product"}
+{"row": 246, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ELSST vascular diseases folds hypertension with strokes and phlebitis"}
+{"row": 247, "verdict": "same", "directness": "direct_candidate", "why": "spelling variant of one concept"}
+{"row": 248, "verdict": "same", "directness": "direct_candidate", "why": "CHARITIES is ELSST's own synonym for charitable organizations"}
+{"row": 249, "verdict": "same", "directness": "direct_candidate", "why": "identical managerial-role concept"}
+{"row": 250, "verdict": "same", "directness": "direct_candidate", "why": "spelling variant of one drug class"}
+{"row": 251, "verdict": "near_same", "directness": "direct_candidate", "why": "WAR CASUALTIES is an ELSST entry term for war victims"}
+{"row": 252, "verdict": "related", "directness": "generic_thematic", "why": "contestedness cuts across election type"}
+{"row": 253, "verdict": "same", "directness": "direct_candidate", "why": "identical legislator concept"}
+{"row": 254, "verdict": "same", "directness": "direct_candidate", "why": "identical environmental activism concept"}
+{"row": 255, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "class identity is identity with respect to social class"}
+{"row": 256, "verdict": "same", "directness": "direct_candidate", "why": "identical form-of-rule concept"}
+{"row": 257, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "group communication is communication within groups"}
+{"row": 258, "verdict": "near_same", "directness": "direct_candidate", "why": "FOOD PREFERENCES is an ELSST entry term for dietary habits"}
+{"row": 259, "verdict": "same", "directness": "direct_candidate", "why": "both define heat trapped in the lower atmosphere"}
+{"row": 260, "verdict": "target_is_narrower", "directness": "generic_thematic", "why": "one national chamber's elections under an explicit use-narrower umbrella"}
+{"row": 261, "verdict": "same", "directness": "direct_candidate", "why": "MEDIA USE is ELSST's own synonym for mass media use"}
+{"row": 262, "verdict": "same", "directness": "direct_candidate", "why": "identical industrial-transformation concept"}
+{"row": 263, "verdict": "same", "directness": "direct_candidate", "why": "identical workforce-management concept"}
+{"row": 264, "verdict": "same", "directness": "direct_candidate", "why": "hyphenation variant of one postwar-measures concept"}
+{"row": 265, "verdict": "unrelated", "directness": "generic_thematic", "why": "study of material remains versus corporate conduct"}
+{"row": 266, "verdict": "same", "directness": "direct_candidate", "why": "identical within-country migration concept"}
+{"row": 267, "verdict": "same", "directness": "direct_candidate", "why": "identical intimidating-behaviour concept"}
+{"row": 268, "verdict": "same", "directness": "direct_candidate", "why": "identical locks-alarms-CCTV concept"}
+{"row": 269, "verdict": "unrelated", "directness": "generic_thematic", "why": "steps versus a respiratory syndrome"}
+{"row": 270, "verdict": "unrelated", "directness": "generic_thematic", "why": "unpaid home carers versus tax avoidance vehicles"}
+{"row": 271, "verdict": "related", "directness": "generic_thematic", "why": "education field linked straight to the discipline of law"}
+{"row": 272, "verdict": "same", "directness": "direct_candidate", "why": "identical interstate-negotiation concept"}
+{"row": 273, "verdict": "near_same", "directness": "direct_candidate", "why": "CONTROLLED DRUGS is an ELSST entry term for illegal drugs"}
+{"row": 274, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "language families are groupings within language as a whole"}
+{"row": 275, "verdict": "same", "directness": "direct_candidate", "why": "identical urban regeneration concept"}
+{"row": 276, "verdict": "same", "directness": "direct_candidate", "why": "identical attainment concept"}
+{"row": 277, "verdict": "same", "directness": "direct_candidate", "why": "identical educational-buildings concept"}
+{"row": 278, "verdict": "same", "directness": "direct_candidate", "why": "identical captured-combatants concept"}
+{"row": 279, "verdict": "same", "directness": "direct_candidate", "why": "identical label, no divergent scope supplied"}
+{"row": 280, "verdict": "same", "directness": "direct_candidate", "why": "identical student-body organization concept"}
+{"row": 281, "verdict": "same", "directness": "direct_candidate", "why": "identical sleep-disorder concept"}
+{"row": 282, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "ICPSR caregivers includes professionals, which ELSST informal care excludes"}
+{"row": 283, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "synagogues are one kind among ELSST's places of worship"}
+{"row": 284, "verdict": "same", "directness": "direct_candidate", "why": "identical supplementary-instruction concept"}
+{"row": 285, "verdict": "unrelated", "directness": "generic_thematic", "why": "skilled tradesmen versus abduction by terrorists"}
+{"row": 286, "verdict": "unrelated", "directness": "generic_thematic", "why": "parental attitudes versus gang relocation"}
+{"row": 287, "verdict": "same", "directness": "direct_candidate", "why": "MARRIAGE CEREMONIES is ELSST's own synonym for weddings"}
+{"row": 288, "verdict": "same", "directness": "direct_candidate", "why": "identical monetary-value concept"}
+{"row": 289, "verdict": "unrelated", "directness": "generic_thematic", "why": "money supply policy versus population policy"}
+{"row": 290, "verdict": "unrelated", "directness": "generic_thematic", "why": "belligerent states versus email systems"}
+{"row": 291, "verdict": "near_same", "directness": "direct_candidate", "why": "same functional-capability measure; ICPSR notes use with older adults"}
+{"row": 292, "verdict": "unrelated", "directness": "generic_thematic", "why": "cognition versus walking recreation"}
+{"row": 293, "verdict": "same", "directness": "direct_candidate", "why": "word-order variant of one concept"}
+{"row": 294, "verdict": "insufficient_evidence", "directness": "direct_candidate", "why": "ICPSR gives no scope; holidays may mean vacations or festive days"}
+{"row": 295, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "single market is one 1986 programme within the European Union"}
+{"row": 296, "verdict": "unrelated", "directness": "generic_thematic", "why": "armed conflict versus a respiratory syndrome"}
+{"row": 297, "verdict": "unrelated", "directness": "generic_thematic", "why": "employment contracts versus South African racial system"}
+{"row": 298, "verdict": "unrelated", "directness": "generic_thematic", "why": "charges versus an emotion"}
+{"row": 299, "verdict": "unrelated", "directness": "generic_thematic", "why": "social roles versus male persons"}
+{"row": 300, "verdict": "related", "directness": "generic_thematic", "why": "family life is one sphere; everyday life is daily routine generally"}
+{"row": 301, "verdict": "same", "directness": "direct_candidate", "why": "identical non-national workers concept"}
+{"row": 302, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "married men are men in one marital state"}
+{"row": 303, "verdict": "same", "directness": "direct_candidate", "why": "identical city-development concept"}
+{"row": 304, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary penalties versus combustion events"}
+{"row": 305, "verdict": "unrelated", "directness": "generic_thematic", "why": "diplomas versus countries"}
+{"row": 306, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "child prostitution is prostitution involving minors"}
+{"row": 307, "verdict": "unrelated", "directness": "generic_thematic", "why": "joint disease versus metabolic disease"}
+{"row": 308, "verdict": "unrelated", "directness": "generic_thematic", "why": "children's conduct versus pest chemicals"}
+{"row": 309, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "pollution control is the abatement aspect of pollution"}
+{"row": 310, "verdict": "unrelated", "directness": "generic_thematic", "why": "undocumented migrants versus a socioeconomic stratum"}
+{"row": 311, "verdict": "related", "directness": "generic_thematic", "why": "two distinct social movements; neither contains the other"}
+{"row": 312, "verdict": "same", "directness": "direct_candidate", "why": "TAXES is ELSST's own synonym for taxation"}
+{"row": 313, "verdict": "same", "directness": "direct_candidate", "why": "spelling variant of one industrial-dispute concept"}
+{"row": 314, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "road traffic is traffic on roads only"}
+{"row": 315, "verdict": "related", "directness": "generic_thematic", "why": "legal belonging to a state versus an ideology of nation"}
+{"row": 316, "verdict": "near_same", "directness": "direct_candidate", "why": "LIVING ALONE is an ELSST entry term for single occupancy households"}
+{"row": 317, "verdict": "unrelated", "directness": "generic_thematic", "why": "childhood obesity versus firearm safety devices"}
+{"row": 318, "verdict": "unrelated", "directness": "generic_thematic", "why": "volition versus persons born in-country"}
+{"row": 319, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "ICPSR fishing is unqualified; ELSST restricts to the sport"}
+{"row": 320, "verdict": "same", "directness": "direct_candidate", "why": "identical male-parent concept"}
+{"row": 321, "verdict": "unrelated", "directness": "generic_thematic", "why": "bodies of saltwater versus an unrelated abbreviation"}
+{"row": 322, "verdict": "same", "directness": "direct_candidate", "why": "identical industrial-output concept"}
+{"row": 323, "verdict": "unrelated", "directness": "generic_thematic", "why": "student bodies versus commercial firms"}
+{"row": 324, "verdict": "unrelated", "directness": "generic_thematic", "why": "market rivalry versus attempted killings"}
+{"row": 325, "verdict": "unrelated", "directness": "generic_thematic", "why": "ethnic group versus an unrelated abbreviation"}
+{"row": 326, "verdict": "same", "directness": "direct_candidate", "why": "both define the cost of providing health care"}
+{"row": 327, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorder versus gallbladder disease"}
+{"row": 328, "verdict": "unrelated", "directness": "generic_thematic", "why": "law between states versus law's psychological impact"}
+{"row": 329, "verdict": "same", "directness": "direct_candidate", "why": "both define raw or barely processed goods for market"}
+{"row": 330, "verdict": "unrelated", "directness": "generic_thematic", "why": "end of life versus accumulated assets"}
+{"row": 331, "verdict": "unrelated", "directness": "generic_thematic", "why": "women's ordination versus bodily fitness"}
+{"row": 332, "verdict": "same", "directness": "direct_candidate", "why": "identical transmission-of-political-norms concept"}
+{"row": 333, "verdict": "unrelated", "directness": "generic_thematic", "why": "legal system versus armed conflict"}
+{"row": 334, "verdict": "near_same", "directness": "direct_candidate", "why": "TEACHING METHODS is an ELSST entry term for educational methods"}
+{"row": 335, "verdict": "near_same", "directness": "direct_candidate", "why": "SOCIAL ISOLATION is an ELSST entry term for loneliness"}
+{"row": 336, "verdict": "unrelated", "directness": "generic_thematic", "why": "property contracts versus persons who lead"}
+{"row": 337, "verdict": "near_same", "directness": "direct_candidate", "why": "RURAL MIGRATION is an ELSST entry term for rural-urban migration"}
+{"row": 338, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "nursery teachers are teachers at one level"}
+{"row": 339, "verdict": "same", "directness": "direct_candidate", "why": "identical sexual-abuse concept"}
+{"row": 340, "verdict": "same", "directness": "direct_candidate", "why": "identical will-proving concept"}
+{"row": 341, "verdict": "near_same", "directness": "direct_candidate", "why": "HOSPITALS is an ELSST entry term for hospital services"}
+{"row": 342, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ICPSR restricts to government-released falsehoods; ELSST covers fake news generally"}
+{"row": 343, "verdict": "same", "directness": "direct_candidate", "why": "identical psychological-consequences concept"}
+{"row": 344, "verdict": "unrelated", "directness": "generic_thematic", "why": "sleep disorder versus alcohol dependence"}
+{"row": 345, "verdict": "near_same", "directness": "direct_candidate", "why": "PUBLIC UTILITIES is an ELSST entry term for public services"}
+{"row": 346, "verdict": "same", "directness": "direct_candidate", "why": "CHILD REARING is ELSST's own synonym; definitions match"}
+{"row": 347, "verdict": "same", "directness": "direct_candidate", "why": "both define fathers' leave to care for a newborn"}
+{"row": 348, "verdict": "unrelated", "directness": "generic_thematic", "why": "two different cancer sites"}
+{"row": 349, "verdict": "same", "directness": "direct_candidate", "why": "identical publicly-debated-issues concept"}
+{"row": 350, "verdict": "related", "directness": "generic_thematic", "why": "discrimination on linguistic grounds is not a kind of language"}
+{"row": 351, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "hiking is one outdoor recreation activity"}
+{"row": 352, "verdict": "same", "directness": "direct_candidate", "why": "identical adult-persons concept"}
+{"row": 353, "verdict": "unrelated", "directness": "generic_thematic", "why": "joint disease versus eating disorders"}
+{"row": 354, "verdict": "unrelated", "directness": "generic_thematic", "why": "walking recreation versus a club-and-ball sport"}
+{"row": 355, "verdict": "same", "directness": "direct_candidate", "why": "identical population-statistics concept"}
+{"row": 356, "verdict": "unrelated", "directness": "generic_thematic", "why": "supernatural practices versus admission to hospital"}
+{"row": 357, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "legislative issues are political issues before a legislature"}
+{"row": 358, "verdict": "same", "directness": "direct_candidate", "why": "identical sport-involvement concept"}
+{"row": 359, "verdict": "near_same", "directness": "direct_candidate", "why": "FEMALES is an ELSST entry term for women"}
+{"row": 360, "verdict": "same", "directness": "direct_candidate", "why": "identical agricultural-holding concept"}
+{"row": 361, "verdict": "same", "directness": "direct_candidate", "why": "identical choice-making concept"}
+{"row": 362, "verdict": "unrelated", "directness": "generic_thematic", "why": "output of goods versus armed forces pensions"}
+{"row": 363, "verdict": "unrelated", "directness": "generic_thematic", "why": "school buildings versus armed forces installations"}
+{"row": 364, "verdict": "unrelated", "directness": "generic_thematic", "why": "agricultural holdings versus combustion events"}
+{"row": 365, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "energy consumption is consumption of one commodity class"}

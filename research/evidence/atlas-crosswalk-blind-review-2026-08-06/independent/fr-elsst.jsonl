@@ -1,0 +1,365 @@
+{"row": 1, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "renewable energy is one kind of the target's general energy concept"}
+{"row": 2, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source treats slum clearance as one facet of wider urban renewal"}
+{"row": 3, "verdict": "same", "directness": "direct_candidate", "why": "both label energy with power resources as synonym"}
+{"row": 4, "verdict": "same", "directness": "direct_candidate", "why": "target definition of business identifying signs matches trademarks exactly"}
+{"row": 5, "verdict": "near_same", "directness": "direct_candidate", "why": "bare identical label, no scope note distinguishing either sense"}
+{"row": 6, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "alcohol use/consumption covers abuse plus non-abusive drinking"}
+{"row": 7, "verdict": "unrelated", "directness": "generic_thematic", "why": "vaccination versus unmarried civil status share nothing"}
+{"row": 8, "verdict": "unrelated", "directness": "generic_thematic", "why": "electoral candidates versus anxiety disorders share nothing"}
+{"row": 9, "verdict": "related", "directness": "generic_thematic", "why": "telecom hardware and audio-video equipment overlap only partially"}
+{"row": 10, "verdict": "related", "directness": "direct_candidate", "why": "target scope note explicitly separates child care from child day care"}
+{"row": 11, "verdict": "unrelated", "directness": "generic_thematic", "why": "occupation versus ethnic-origin population group"}
+{"row": 12, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source bundles age discrimination as one of several elderly-related synonyms"}
+{"row": 13, "verdict": "unrelated", "directness": "generic_thematic", "why": "animals versus combustion share nothing"}
+{"row": 14, "verdict": "unrelated", "directness": "generic_thematic", "why": "food colourants versus retail self-service share nothing"}
+{"row": 15, "verdict": "unrelated", "directness": "generic_thematic", "why": "administrative delegation of authority versus pupils' educational expectations"}
+{"row": 16, "verdict": "related", "directness": "generic_thematic", "why": "target defines community development as educational self-help, not housing finance"}
+{"row": 17, "verdict": "near_same", "directness": "direct_candidate", "why": "same small-enterprise concept; target merely also admits family businesses"}
+{"row": 18, "verdict": "same", "directness": "direct_candidate", "why": "target scope note marks it the general terrorism concept"}
+{"row": 19, "verdict": "related", "directness": "generic_thematic", "why": "debt security versus deposit-and-lending institution, per target definition"}
+{"row": 20, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source lists birds among wildlife synonyms"}
+{"row": 21, "verdict": "unrelated", "directness": "generic_thematic", "why": "coherent light source versus refracting element; no supplied link"}
+{"row": 22, "verdict": "unrelated", "directness": "generic_thematic", "why": "armed forces personnel versus household domestic staff"}
+{"row": 23, "verdict": "same", "directness": "direct_candidate", "why": "target definition is exactly tobacco smoking"}
+{"row": 24, "verdict": "unrelated", "directness": "generic_thematic", "why": "substance misuse versus nuisance organisms"}
+{"row": 25, "verdict": "unrelated", "directness": "generic_thematic", "why": "atmospheric emissions versus the study of language"}
+{"row": 26, "verdict": "near_same", "directness": "direct_candidate", "why": "target definition of negotiable debt certificate matches source's savings-bonds sense"}
+{"row": 27, "verdict": "same", "directness": "direct_candidate", "why": "target definition is distance-communication technology, the source concept"}
+{"row": 28, "verdict": "unrelated", "directness": "generic_thematic", "why": "playthings versus a species of animal"}
+{"row": 29, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "additives and ingredients are constituents subsumed by the food concept"}
+{"row": 30, "verdict": "same", "directness": "direct_candidate", "why": "target equates employment with jobs and work"}
+{"row": 31, "verdict": "same", "directness": "direct_candidate", "why": "identical unambiguous institution concept"}
+{"row": 32, "verdict": "same", "directness": "direct_candidate", "why": "crude oil synonym confirms identical substance concept"}
+{"row": 33, "verdict": "same", "directness": "direct_candidate", "why": "target defines work by school-age children; spelling variant only"}
+{"row": 34, "verdict": "related", "directness": "generic_thematic", "why": "target is commerce generally; source is travel, linked only via tourist trade"}
+{"row": 35, "verdict": "near_same", "directness": "direct_candidate", "why": "target's voluntary birth regulation matches source, which also admits population control"}
+{"row": 36, "verdict": "same", "directness": "direct_candidate", "why": "target lists transportation as its own alternative label"}
+{"row": 37, "verdict": "unrelated", "directness": "generic_thematic", "why": "retirement income insurance versus school registration"}
+{"row": 38, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is research restricted to privately financed or performed work"}
+{"row": 39, "verdict": "same", "directness": "direct_candidate", "why": "identical unambiguous vehicle concept"}
+{"row": 40, "verdict": "same", "directness": "direct_candidate", "why": "target defines atmospheric state at a place and time"}
+{"row": 41, "verdict": "near_same", "directness": "direct_candidate", "why": "target names health care a synonym; source adds programme names but same care concept"}
+{"row": 42, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "consumption is one aspect of the source's general energy concept"}
+{"row": 43, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target covers any purpose-built structure, industrial ones included"}
+{"row": 44, "verdict": "related", "directness": "generic_thematic", "why": "target scope note restricts it to the science, excluding statistical data"}
+{"row": 45, "verdict": "related", "directness": "generic_thematic", "why": "sibling disease classes overlapping only at nervous-system tumours"}
+{"row": 46, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "part-time teachers are a subset of teachers"}
+{"row": 47, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "television advertising is one channel of advertising"}
+{"row": 48, "verdict": "related", "directness": "generic_thematic", "why": "target is attained education level of a person, not a form of provision"}
+{"row": 49, "verdict": "unrelated", "directness": "generic_thematic", "why": "target definition is student wellbeing, not income maintenance"}
+{"row": 50, "verdict": "same", "directness": "direct_candidate", "why": "target lists manpower as its own alternative label"}
+{"row": 51, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is ISCED level 5 undergraduate study, one level of education"}
+{"row": 52, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary charges versus plant propagules"}
+{"row": 53, "verdict": "same", "directness": "direct_candidate", "why": "identical concept; source's continuing-education synonym does not shift it"}
+{"row": 54, "verdict": "same", "directness": "direct_candidate", "why": "target defines negotiated agreements between political authorities"}
+{"row": 55, "verdict": "unrelated", "directness": "generic_thematic", "why": "household removals versus a manual therapy"}
+{"row": 56, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "tuition and school fees are one kind of fee"}
+{"row": 57, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is services delivered via the internet, a subset of the internet concept"}
+{"row": 58, "verdict": "unrelated", "directness": "generic_thematic", "why": "physical state of matter versus discarded material"}
+{"row": 59, "verdict": "unrelated", "directness": "generic_thematic", "why": "pay versus building structures"}
+{"row": 60, "verdict": "near_same", "directness": "direct_candidate", "why": "source names fringe benefits its synonym; target defines non-wage remuneration"}
+{"row": 61, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source lists heart diseases among its disease synonyms"}
+{"row": 62, "verdict": "related", "directness": "direct_candidate", "why": "medium versus the broadcasting industry that produces it"}
+{"row": 63, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source lists crops among its agricultural commodity synonyms"}
+{"row": 64, "verdict": "unrelated", "directness": "generic_thematic", "why": "two unrelated professions with no supplied connection"}
+{"row": 65, "verdict": "related", "directness": "direct_candidate", "why": "target defines impairments themselves, not their educational provision"}
+{"row": 66, "verdict": "unrelated", "directness": "generic_thematic", "why": "criminal pardon versus parties who hire labour"}
+{"row": 67, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is population-level disease prevention, one branch of health"}
+{"row": 68, "verdict": "related", "directness": "direct_candidate", "why": "target is the qualification awarded, not the education provided"}
+{"row": 69, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "married women are a marital subset of women"}
+{"row": 70, "verdict": "same", "directness": "direct_candidate", "why": "target defines a barrier built across a watercourse"}
+{"row": 71, "verdict": "same", "directness": "direct_candidate", "why": "identical unambiguous mineral fuel concept"}
+{"row": 72, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source explicitly indexes telework among government-employment synonyms"}
+{"row": 73, "verdict": "unrelated", "directness": "generic_thematic", "why": "passenger vehicles versus gaseous emissions, no supplied link"}
+{"row": 74, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary charges versus journalism"}
+{"row": 75, "verdict": "near_same", "directness": "direct_candidate", "why": "source names consular services its synonym; target admits diplomatic services"}
+{"row": 76, "verdict": "same", "directness": "direct_candidate", "why": "identical occupational group"}
+{"row": 77, "verdict": "same", "directness": "direct_candidate", "why": "target equates sports with sporting activities"}
+{"row": 78, "verdict": "same", "directness": "direct_candidate", "why": "identical learner population; target only asks for specificity"}
+{"row": 79, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary charges versus body parts"}
+{"row": 80, "verdict": "unrelated", "directness": "generic_thematic", "why": "commercial treaties versus remote teaching"}
+{"row": 81, "verdict": "near_same", "directness": "direct_candidate", "why": "rules governing road traffic in both; only activity/rules wording differs"}
+{"row": 82, "verdict": "unrelated", "directness": "generic_thematic", "why": "debt securities versus watercraft"}
+{"row": 83, "verdict": "same", "directness": "direct_candidate", "why": "target definition is stimulated-emission light amplification"}
+{"row": 84, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names debts a synonym while also covering credit provision"}
+{"row": 85, "verdict": "unrelated", "directness": "generic_thematic", "why": "two unrelated occupations with no supplied connection"}
+{"row": 86, "verdict": "same", "directness": "direct_candidate", "why": "identical vaccination concept"}
+{"row": 87, "verdict": "same", "directness": "direct_candidate", "why": "identical general animal concept"}
+{"row": 88, "verdict": "related", "directness": "generic_thematic", "why": "target is a permit market; gases enter only as the traded pollutant"}
+{"row": 89, "verdict": "near_same", "directness": "direct_candidate", "why": "bare labels; artificial-satellite reading fits both, natural sense unexcluded"}
+{"row": 90, "verdict": "same", "directness": "direct_candidate", "why": "both carry atomic energy as synonym"}
+{"row": 91, "verdict": "same", "directness": "direct_candidate", "why": "identical discrimination-on-religious-grounds concept"}
+{"row": 92, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "holding companies are one corporate form among the target's companies"}
+{"row": 93, "verdict": "same", "directness": "direct_candidate", "why": "identical petroleum contamination concept"}
+{"row": 94, "verdict": "same", "directness": "direct_candidate", "why": "identical research-on-education concept"}
+{"row": 95, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source also covers registration; target is only the licence/permit instrument"}
+{"row": 96, "verdict": "unrelated", "directness": "generic_thematic", "why": "alcoholic beverage versus monetary charges"}
+{"row": 97, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "electricity consumption is one slice of the general energy concept"}
+{"row": 98, "verdict": "same", "directness": "direct_candidate", "why": "identical captured-combatant concept"}
+{"row": 99, "verdict": "same", "directness": "direct_candidate", "why": "identical plant propagule concept"}
+{"row": 100, "verdict": "same", "directness": "direct_candidate", "why": "identical research-in-agriculture concept"}
+{"row": 101, "verdict": "unrelated", "directness": "generic_thematic", "why": "legal profession versus museum staff"}
+{"row": 102, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source also covers magazines; target is newspapers only"}
+{"row": 103, "verdict": "unrelated", "directness": "generic_thematic", "why": "visual impairment versus bodily fluid"}
+{"row": 104, "verdict": "unrelated", "directness": "generic_thematic", "why": "dried fodder versus pleasurable activity per target definition"}
+{"row": 105, "verdict": "unrelated", "directness": "generic_thematic", "why": "navigable waters versus volition"}
+{"row": 106, "verdict": "near_same", "directness": "direct_candidate", "why": "both carry school integration and segregation as their synonyms"}
+{"row": 107, "verdict": "same", "directness": "direct_candidate", "why": "target names occupational health and industrial safety as synonyms, matching source"}
+{"row": 108, "verdict": "related", "directness": "generic_thematic", "why": "target is the age variable; source is the older population group"}
+{"row": 109, "verdict": "unrelated", "directness": "generic_thematic", "why": "produce versus legal or financial trusts"}
+{"row": 110, "verdict": "same", "directness": "direct_candidate", "why": "both equate wages with pay and salaries"}
+{"row": 111, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "military justice is one body within law generally"}
+{"row": 112, "verdict": "same", "directness": "direct_candidate", "why": "both denote census enumeration data"}
+{"row": 113, "verdict": "same", "directness": "direct_candidate", "why": "identical educational institution concept"}
+{"row": 114, "verdict": "unrelated", "directness": "generic_thematic", "why": "veterinary pathology versus a psychological disposition"}
+{"row": 115, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target covers any result of foreign policy dealings, loan programmes included"}
+{"row": 116, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names accidents its synonym while also covering safety measures"}
+{"row": 117, "verdict": "unrelated", "directness": "generic_thematic", "why": "extraction sites versus monetary penalties"}
+{"row": 118, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "youth gangs are a compound narrowing of the youth population"}
+{"row": 119, "verdict": "near_same", "directness": "direct_candidate", "why": "same killing/capturing of wild animals; target only excludes hunter-gatherer subsistence"}
+{"row": 120, "verdict": "same", "directness": "direct_candidate", "why": "identical armed forces personnel concept"}
+{"row": 121, "verdict": "same", "directness": "direct_candidate", "why": "identical withdrawal-from-working-life concept"}
+{"row": 122, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names the UN as one of its international organisations"}
+{"row": 123, "verdict": "same", "directness": "direct_candidate", "why": "target defines schooling for specific trades, the source's technical education"}
+{"row": 124, "verdict": "near_same", "directness": "direct_candidate", "why": "same facility concept; source additionally bundles product testing"}
+{"row": 125, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "access is one aspect of the general education concept"}
+{"row": 126, "verdict": "same", "directness": "direct_candidate", "why": "identical mining occupation concept"}
+{"row": 127, "verdict": "unrelated", "directness": "generic_thematic", "why": "incarcerated people versus kinship groups"}
+{"row": 128, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "horse-riding and racing are one branch of sports"}
+{"row": 129, "verdict": "same", "directness": "direct_candidate", "why": "target names alcohol abuse and dependence as synonyms of alcoholism"}
+{"row": 130, "verdict": "unrelated", "directness": "generic_thematic", "why": "pay versus the age variable"}
+{"row": 131, "verdict": "unrelated", "directness": "generic_thematic", "why": "dairy product versus grinding or industrial mills"}
+{"row": 132, "verdict": "unrelated", "directness": "generic_thematic", "why": "cadavers versus document telecommunication"}
+{"row": 133, "verdict": "same", "directness": "direct_candidate", "why": "identical falsification offence"}
+{"row": 134, "verdict": "unrelated", "directness": "generic_thematic", "why": "leaving working life versus belief in lucky charms"}
+{"row": 135, "verdict": "same", "directness": "direct_candidate", "why": "target defines a large natural watercourse"}
+{"row": 136, "verdict": "near_same", "directness": "direct_candidate", "why": "same communications concept; source additionally bundles media productions"}
+{"row": 137, "verdict": "unrelated", "directness": "generic_thematic", "why": "pigs versus a dimension measure"}
+{"row": 138, "verdict": "unrelated", "directness": "generic_thematic", "why": "river barriers versus recorded facts"}
+{"row": 139, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "medical radiography is one application of x-rays"}
+{"row": 140, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names archaeology among its heritage-preservation synonyms"}
+{"row": 141, "verdict": "same", "directness": "direct_candidate", "why": "identical violence-in-the-home concept"}
+{"row": 142, "verdict": "near_same", "directness": "direct_candidate", "why": "target lists environmental protection as its own synonym"}
+{"row": 143, "verdict": "unrelated", "directness": "generic_thematic", "why": "calcium compound or fruit versus shared child custody"}
+{"row": 144, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary charges versus anxiety at a real threat"}
+{"row": 145, "verdict": "unrelated", "directness": "generic_thematic", "why": "target defines domestic household amenities, not school buildings"}
+{"row": 146, "verdict": "unrelated", "directness": "generic_thematic", "why": "dwelling renovation versus separation of racial groups"}
+{"row": 147, "verdict": "unrelated", "directness": "generic_thematic", "why": "mining workers versus port workers, distinct occupations"}
+{"row": 148, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source lists smallpox among its disease synonyms"}
+{"row": 149, "verdict": "related", "directness": "direct_candidate", "why": "target is the donating act, not the bodily substance"}
+{"row": 150, "verdict": "unrelated", "directness": "generic_thematic", "why": "calcium compound or fruit versus a privileged social stratum"}
+{"row": 151, "verdict": "related", "directness": "generic_thematic", "why": "target definition restricts it to holdings of a library service"}
+{"row": 152, "verdict": "unrelated", "directness": "generic_thematic", "why": "financial swaps versus vessels"}
+{"row": 153, "verdict": "unrelated", "directness": "generic_thematic", "why": "energy efficiency versus juvenile gangs"}
+{"row": 154, "verdict": "unrelated", "directness": "generic_thematic", "why": "companion animals versus enclosed saltwater bodies"}
+{"row": 155, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "forging documents is one species of fraudulent deception"}
+{"row": 156, "verdict": "same", "directness": "direct_candidate", "why": "target defines physical structures for education provision"}
+{"row": 157, "verdict": "unrelated", "directness": "generic_thematic", "why": "two disjoint fuel substances; neither contains the other"}
+{"row": 158, "verdict": "same", "directness": "direct_candidate", "why": "target lists veterinarians as its own alternative label"}
+{"row": 159, "verdict": "same", "directness": "direct_candidate", "why": "target lists over-the-counter drugs as its alternative label"}
+{"row": 160, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names collective bargaining one facet of labour-management relations"}
+{"row": 161, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "national parks are one kind of park"}
+{"row": 162, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target covers any non-replaced energy resource, nuclear fuel included"}
+{"row": 163, "verdict": "same", "directness": "direct_candidate", "why": "target lists pets as its own alternative label"}
+{"row": 164, "verdict": "unrelated", "directness": "generic_thematic", "why": "technical standards versus systems of political doctrine"}
+{"row": 165, "verdict": "insufficient_evidence", "directness": "generic_thematic", "why": "bare target label leaves economic-supply versus provision sense undetermined"}
+{"row": 166, "verdict": "related", "directness": "generic_thematic", "why": "target is skills training in IT, not information itself"}
+{"row": 167, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "life cover is one line of insurance generally"}
+{"row": 168, "verdict": "same", "directness": "direct_candidate", "why": "identical incarcerated-persons concept"}
+{"row": 169, "verdict": "near_same", "directness": "direct_candidate", "why": "singular/plural variant of the same athletic-activity concept"}
+{"row": 170, "verdict": "unrelated", "directness": "generic_thematic", "why": "two unrelated occupations with no supplied connection"}
+{"row": 171, "verdict": "unrelated", "directness": "generic_thematic", "why": "companion animals versus nuisance organisms; near-homograph only"}
+{"row": 172, "verdict": "unrelated", "directness": "generic_thematic", "why": "goods brought into a country versus aviation terminals"}
+{"row": 173, "verdict": "same", "directness": "direct_candidate", "why": "identical road passenger vehicle concept"}
+{"row": 174, "verdict": "same", "directness": "direct_candidate", "why": "identical accounting profession concept"}
+{"row": 175, "verdict": "same", "directness": "direct_candidate", "why": "target scope note governs data usage only, not concept extent"}
+{"row": 176, "verdict": "unrelated", "directness": "generic_thematic", "why": "oral health versus psychological health; near-homograph only"}
+{"row": 177, "verdict": "related", "directness": "generic_thematic", "why": "target is health status data; source is the medical record document"}
+{"row": 178, "verdict": "unrelated", "directness": "generic_thematic", "why": "monetary charges versus woody plants"}
+{"row": 179, "verdict": "same", "directness": "direct_candidate", "why": "identical edible plant food concept"}
+{"row": 180, "verdict": "unrelated", "directness": "generic_thematic", "why": "temporal dimension versus the science of poisons"}
+{"row": 181, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names birth control and sterilization among its family-planning synonyms"}
+{"row": 182, "verdict": "near_same", "directness": "direct_candidate", "why": "target admits social insurance as synonym though defining it means-tested"}
+{"row": 183, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "access is one aspect of the general information concept"}
+{"row": 184, "verdict": "unrelated", "directness": "generic_thematic", "why": "commercial conduct versus non-marital birth counts"}
+{"row": 185, "verdict": "same", "directness": "direct_candidate", "why": "target defines entering a country to reside, the source concept"}
+{"row": 186, "verdict": "related", "directness": "direct_candidate", "why": "work-motivated migration also covers emigration, so neither contains the other"}
+{"row": 187, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is the physical condition of dwellings, one aspect of housing"}
+{"row": 188, "verdict": "related", "directness": "generic_thematic", "why": "contests for office versus political groupings that contest them"}
+{"row": 189, "verdict": "same", "directness": "direct_candidate", "why": "identical botanical concept; source keeps industrial facilities separate"}
+{"row": 190, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source also covers motorcycles; target is cars and vans"}
+{"row": 191, "verdict": "unrelated", "directness": "generic_thematic", "why": "legal claims versus kinship groups"}
+{"row": 192, "verdict": "same", "directness": "direct_candidate", "why": "identical safeguarding-of-consumers concept"}
+{"row": 193, "verdict": "related", "directness": "direct_candidate", "why": "faith schools are defined by religious sponsorship, not private ownership"}
+{"row": 194, "verdict": "same", "directness": "direct_candidate", "why": "identical financial record-keeping concept in both"}
+{"row": 195, "verdict": "related", "directness": "generic_thematic", "why": "target is household money management; insurance is only one instrument within it"}
+{"row": 196, "verdict": "related", "directness": "generic_thematic", "why": "blood is a bodily substance, not one of the organ systems listed"}
+{"row": 197, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "assisted dying is one form of the target's general suicide concept"}
+{"row": 198, "verdict": "same", "directness": "direct_candidate", "why": "identical spousal maintenance concept"}
+{"row": 199, "verdict": "unrelated", "directness": "generic_thematic", "why": "target is planning generally; birth regulation is not a planning domain"}
+{"row": 200, "verdict": "same", "directness": "direct_candidate", "why": "identical inter-state body concept"}
+{"row": 201, "verdict": "same", "directness": "direct_candidate", "why": "identical negotiated commercial accord concept"}
+{"row": 202, "verdict": "same", "directness": "direct_candidate", "why": "identical milk-derived foods concept"}
+{"row": 203, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names ships one of several vessel types it covers"}
+{"row": 204, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names deportation a facet of its aliens concept"}
+{"row": 205, "verdict": "unrelated", "directness": "generic_thematic", "why": "a government gazette versus parties who hire labour"}
+{"row": 206, "verdict": "same", "directness": "direct_candidate", "why": "identical pulmonary disease concept"}
+{"row": 207, "verdict": "near_same", "directness": "direct_candidate", "why": "target lists vocational rehabilitation as its own alternative label"}
+{"row": 208, "verdict": "related", "directness": "direct_candidate", "why": "target definition is payment for a child, not spousal maintenance"}
+{"row": 209, "verdict": "same", "directness": "direct_candidate", "why": "target defines medicines requiring a prescription"}
+{"row": 210, "verdict": "same", "directness": "direct_candidate", "why": "identical musical art concept"}
+{"row": 211, "verdict": "near_same", "directness": "direct_candidate", "why": "same flying-machine concept; source additionally bundles rockets and parachutes"}
+{"row": 212, "verdict": "same", "directness": "direct_candidate", "why": "identical bodily fluid concept"}
+{"row": 213, "verdict": "unrelated", "directness": "generic_thematic", "why": "coherent light devices versus inland water bodies"}
+{"row": 214, "verdict": "near_same", "directness": "direct_candidate", "why": "target defines a periodic gathering of buyers and sellers, the source's trade fairs"}
+{"row": 215, "verdict": "related", "directness": "generic_thematic", "why": "target is house moving between residences, not cross-border settlement"}
+{"row": 216, "verdict": "same", "directness": "direct_candidate", "why": "source names air safety its own synonym"}
+{"row": 217, "verdict": "same", "directness": "direct_candidate", "why": "target defines heat energy from Earth's crust"}
+{"row": 218, "verdict": "same", "directness": "direct_candidate", "why": "identical collecting institution concept"}
+{"row": 219, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source covers inventions as well as the patents the target names"}
+{"row": 220, "verdict": "unrelated", "directness": "generic_thematic", "why": "unqualified target label reads botanically; power stations would need a qualifier"}
+{"row": 221, "verdict": "same", "directness": "direct_candidate", "why": "identical lending-and-borrowing concept"}
+{"row": 222, "verdict": "unrelated", "directness": "generic_thematic", "why": "maritime crew versus media workers, distinct occupations"}
+{"row": 223, "verdict": "same", "directness": "direct_candidate", "why": "identical civilian emergency protection concept; spelling variant only"}
+{"row": 224, "verdict": "unrelated", "directness": "generic_thematic", "why": "road vehicles versus nursing staff"}
+{"row": 225, "verdict": "unrelated", "directness": "generic_thematic", "why": "telegraphy versus people with impairments"}
+{"row": 226, "verdict": "unrelated", "directness": "generic_thematic", "why": "extraction sites versus religious ceremonies"}
+{"row": 227, "verdict": "unrelated", "directness": "generic_thematic", "why": "mass-casualty arms versus industrial vocational study fields"}
+{"row": 228, "verdict": "same", "directness": "direct_candidate", "why": "identical concept of contests for public office"}
+{"row": 229, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "school travel is one segment of transport"}
+{"row": 230, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is students not native to the country of study, a subset"}
+{"row": 231, "verdict": "unrelated", "directness": "generic_thematic", "why": "solid mineral fuel versus liquid petroleum fuel, disjoint substances"}
+{"row": 232, "verdict": "same", "directness": "direct_candidate", "why": "source names ports and waterfront facilities its synonyms, matching target"}
+{"row": 233, "verdict": "same", "directness": "direct_candidate", "why": "identical dwelling/accommodation concept"}
+{"row": 234, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "unions fit the target's definition of persons combined for a common cause"}
+{"row": 235, "verdict": "related", "directness": "generic_thematic", "why": "target is a field of study, not the farming sector itself"}
+{"row": 236, "verdict": "related", "directness": "generic_thematic", "why": "target is economic workforce reduction, not withdrawal at pensionable age"}
+{"row": 237, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source covers adoption as well as the foster care the target names"}
+{"row": 238, "verdict": "unrelated", "directness": "generic_thematic", "why": "a metal versus saltwater bodies"}
+{"row": 239, "verdict": "unrelated", "directness": "generic_thematic", "why": "target is recreational activity; source is time itself"}
+{"row": 240, "verdict": "unrelated", "directness": "generic_thematic", "why": "signage versus a literature study field"}
+{"row": 241, "verdict": "related", "directness": "generic_thematic", "why": "risk pooling versus provision of funds; distinct financial functions"}
+{"row": 242, "verdict": "related", "directness": "generic_thematic", "why": "charge for a service versus monetary penalty"}
+{"row": 243, "verdict": "unrelated", "directness": "generic_thematic", "why": "cereal crops versus financial allowances"}
+{"row": 244, "verdict": "related", "directness": "generic_thematic", "why": "food categories cut on different axes, overlapping only at organic dairy"}
+{"row": 245, "verdict": "near_same", "directness": "direct_candidate", "why": "same military establishment; source additionally bundles service organizations"}
+{"row": 246, "verdict": "unrelated", "directness": "generic_thematic", "why": "maritime crew versus welfare practitioners"}
+{"row": 247, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names hours of work among its wage-related synonyms"}
+{"row": 248, "verdict": "unrelated", "directness": "generic_thematic", "why": "research on education versus craft making"}
+{"row": 249, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "employer schemes are one kind of pension"}
+{"row": 250, "verdict": "unrelated", "directness": "generic_thematic", "why": "airlines versus bribery"}
+{"row": 251, "verdict": "unrelated", "directness": "generic_thematic", "why": "maternal and child health versus wage regulation policy"}
+{"row": 252, "verdict": "related", "directness": "generic_thematic", "why": "quality is an evaluative dimension applying to all education, not a type"}
+{"row": 253, "verdict": "unrelated", "directness": "generic_thematic", "why": "underwater activity versus performance venues"}
+{"row": 254, "verdict": "unrelated", "directness": "generic_thematic", "why": "countryside settlement versus infection-free sexual practice"}
+{"row": 255, "verdict": "same", "directness": "direct_candidate", "why": "target defines any water source useful to people, the source concept"}
+{"row": 256, "verdict": "same", "directness": "direct_candidate", "why": "target lists public housing as its own alternative label"}
+{"row": 257, "verdict": "same", "directness": "direct_candidate", "why": "target defines provision of water within an area"}
+{"row": 258, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "male health is a sex-restricted slice of health"}
+{"row": 259, "verdict": "unrelated", "directness": "generic_thematic", "why": "companion animals versus print journalism"}
+{"row": 260, "verdict": "same", "directness": "direct_candidate", "why": "target defines fee-funded non-state schools, the source concept"}
+{"row": 261, "verdict": "unrelated", "directness": "generic_thematic", "why": "housing tenure form versus judicial bodies"}
+{"row": 262, "verdict": "same", "directness": "direct_candidate", "why": "identical replenishable-energy concept"}
+{"row": 263, "verdict": "same", "directness": "direct_candidate", "why": "target defines coerced movement of people for servitude"}
+{"row": 264, "verdict": "unrelated", "directness": "generic_thematic", "why": "meat foods versus property brokers"}
+{"row": 265, "verdict": "same", "directness": "direct_candidate", "why": "identical urban regeneration concept"}
+{"row": 266, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names coal miners one kind of miner"}
+{"row": 267, "verdict": "unrelated", "directness": "generic_thematic", "why": "source is pinned to crude oil; target is gaseous fuel, a disjoint substance"}
+{"row": 268, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target confines privacy to control of personal data"}
+{"row": 269, "verdict": "unrelated", "directness": "generic_thematic", "why": "displaced persons versus the right to vote"}
+{"row": 270, "verdict": "near_same", "directness": "direct_candidate", "why": "both denote centre-based care in the carer's absence; target also admits adults"}
+{"row": 271, "verdict": "unrelated", "directness": "generic_thematic", "why": "extraction sites versus grinding works"}
+{"row": 272, "verdict": "unrelated", "directness": "generic_thematic", "why": "aviation terminals versus artificial watercourses"}
+{"row": 273, "verdict": "same", "directness": "direct_candidate", "why": "identical retirement income payment concept"}
+{"row": 274, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names blood diseases and haemophilia among its disease synonyms"}
+{"row": 275, "verdict": "same", "directness": "direct_candidate", "why": "target lists health insurance as its own alternative label"}
+{"row": 276, "verdict": "related", "directness": "generic_thematic", "why": "target is defined by charitable purpose, not by youth membership"}
+{"row": 277, "verdict": "unrelated", "directness": "generic_thematic", "why": "electrical cells versus games of chance"}
+{"row": 278, "verdict": "same", "directness": "direct_candidate", "why": "identical general education concept; scope note only urges specificity"}
+{"row": 279, "verdict": "unrelated", "directness": "generic_thematic", "why": "tribal land claims versus contracts of employment"}
+{"row": 280, "verdict": "unrelated", "directness": "generic_thematic", "why": "companion animals versus tenancy payments"}
+{"row": 281, "verdict": "same", "directness": "direct_candidate", "why": "target defines an artificially controlled stored water body"}
+{"row": 282, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target covers any purpose-built structure, medical ones included"}
+{"row": 283, "verdict": "unrelated", "directness": "generic_thematic", "why": "two distinct body tissues with no supplied link"}
+{"row": 284, "verdict": "unrelated", "directness": "generic_thematic", "why": "official documents versus gall-bladder pathology"}
+{"row": 285, "verdict": "same", "directness": "direct_candidate", "why": "identical oral health concept"}
+{"row": 286, "verdict": "same", "directness": "direct_candidate", "why": "identical health occupations concept"}
+{"row": 287, "verdict": "same", "directness": "direct_candidate", "why": "identical property loan concept"}
+{"row": 288, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "source names economic development its synonym; target covers it at any scale"}
+{"row": 289, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "pension cover is one line of insurance generally"}
+{"row": 290, "verdict": "same", "directness": "direct_candidate", "why": "identical adult female population concept"}
+{"row": 291, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is heat insulation only; source is unrestricted insulation"}
+{"row": 292, "verdict": "related", "directness": "generic_thematic", "why": "target is defined by social disadvantage, not by incarceration"}
+{"row": 293, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "illicit tobacco trade documents fall inside the tobacco concept"}
+{"row": 294, "verdict": "same", "directness": "direct_candidate", "why": "identical risk-pooling concept"}
+{"row": 295, "verdict": "same", "directness": "direct_candidate", "why": "identical non-urban land category"}
+{"row": 296, "verdict": "related", "directness": "generic_thematic", "why": "curriculum is course content, applying across all education types"}
+{"row": 297, "verdict": "unrelated", "directness": "generic_thematic", "why": "a river designation programme versus policy formation generally"}
+{"row": 298, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is systematic conditioning for athletic performance, one facet of sport"}
+{"row": 299, "verdict": "same", "directness": "direct_candidate", "why": "identical farm animal concept"}
+{"row": 300, "verdict": "unrelated", "directness": "generic_thematic", "why": "an occupation versus leisure pursuits"}
+{"row": 301, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names construction industry one of the industries it covers"}
+{"row": 302, "verdict": "same", "directness": "direct_candidate", "why": "identical malignant neoplasm concept"}
+{"row": 303, "verdict": "near_same", "directness": "direct_candidate", "why": "same vehicle class; target definition tilts to ownership and use of them"}
+{"row": 304, "verdict": "unrelated", "directness": "generic_thematic", "why": "assisted dying versus lending"}
+{"row": 305, "verdict": "near_same", "directness": "direct_candidate", "why": "source names crafts and handicrafts its own synonyms"}
+{"row": 306, "verdict": "near_same", "directness": "direct_candidate", "why": "target lists freedom of information as its own alternative label"}
+{"row": 307, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target definition confines it to community self-help education, one strand of source"}
+{"row": 308, "verdict": "related", "directness": "generic_thematic", "why": "end of life versus health status; neither contains the other"}
+{"row": 309, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "control activity is one aspect of air traffic documents"}
+{"row": 310, "verdict": "unrelated", "directness": "generic_thematic", "why": "a metal versus deliberate fire-setting"}
+{"row": 311, "verdict": "same", "directness": "direct_candidate", "why": "identical member-owned enterprise concept"}
+{"row": 312, "verdict": "same", "directness": "direct_candidate", "why": "identical legal profession concept"}
+{"row": 313, "verdict": "same", "directness": "direct_candidate", "why": "identical tax-on-income concept; number variant only"}
+{"row": 314, "verdict": "unrelated", "directness": "generic_thematic", "why": "public transport operators versus nuptial agreements"}
+{"row": 315, "verdict": "related", "directness": "generic_thematic", "why": "maritime crew overlaps the target only at naval personnel"}
+{"row": 316, "verdict": "unrelated", "directness": "generic_thematic", "why": "medical cover versus testing procedures"}
+{"row": 317, "verdict": "same", "directness": "direct_candidate", "why": "identical science-and-technology domain concept"}
+{"row": 318, "verdict": "related", "directness": "generic_thematic", "why": "a levy on earnings versus the earnings themselves"}
+{"row": 319, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target is diseases caused by employment factors, a subset of diseases"}
+{"row": 320, "verdict": "unrelated", "directness": "generic_thematic", "why": "playthings versus medical cover"}
+{"row": 321, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names antiquities one facet of historic preservation"}
+{"row": 322, "verdict": "unrelated", "directness": "generic_thematic", "why": "edible substances versus water inundation"}
+{"row": 323, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names hydroelectric power one source of electric power"}
+{"row": 324, "verdict": "same", "directness": "direct_candidate", "why": "identical farm animal species"}
+{"row": 325, "verdict": "same", "directness": "direct_candidate", "why": "identical judicial body concept"}
+{"row": 326, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "teaching of social sciences is one subject field within education"}
+{"row": 327, "verdict": "same", "directness": "direct_candidate", "why": "identical prize-draw gambling concept"}
+{"row": 328, "verdict": "same", "directness": "direct_candidate", "why": "identical general health concept; scope note governs data usage only"}
+{"row": 329, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target covers any minimally processed marketable material, not just farm output"}
+{"row": 330, "verdict": "related", "directness": "generic_thematic", "why": "pollution of different media; oil contamination is not airborne"}
+{"row": 331, "verdict": "unrelated", "directness": "generic_thematic", "why": "chartered banks versus protected landscapes"}
+{"row": 332, "verdict": "related", "directness": "generic_thematic", "why": "sibling disease classes meeting only at ocular tumours"}
+{"row": 333, "verdict": "same", "directness": "direct_candidate", "why": "identical naturally occurring resource concept"}
+{"row": 334, "verdict": "unrelated", "directness": "generic_thematic", "why": "accounting occupation versus medical occupations"}
+{"row": 335, "verdict": "unrelated", "directness": "generic_thematic", "why": "an alcoholic drink versus temporal duration"}
+{"row": 336, "verdict": "related", "directness": "generic_thematic", "why": "target is a class of political measures, not the electoral contest"}
+{"row": 337, "verdict": "unrelated", "directness": "generic_thematic", "why": "mining workers versus natural watercourses"}
+{"row": 338, "verdict": "same", "directness": "direct_candidate", "why": "target equates seamen with sailors and seafarers"}
+{"row": 339, "verdict": "unrelated", "directness": "generic_thematic", "why": "state-owned assets versus bulk distribution trade"}
+{"row": 340, "verdict": "unrelated", "directness": "generic_thematic", "why": "insects versus saltwater bodies"}
+{"row": 341, "verdict": "same", "directness": "direct_candidate", "why": "identical antibacterial medicine concept"}
+{"row": 342, "verdict": "target_is_broader", "directness": "generic_thematic", "why": "target is the top-level products class; edge would pull in all manufactures"}
+{"row": 343, "verdict": "same", "directness": "direct_candidate", "why": "target lists gasoline as its own alternative label"}
+{"row": 344, "verdict": "near_same", "directness": "direct_candidate", "why": "target lists hospitals as its own alternative label"}
+{"row": 345, "verdict": "unrelated", "directness": "generic_thematic", "why": "atmospheric conditions versus the built urban setting"}
+{"row": 346, "verdict": "related", "directness": "generic_thematic", "why": "two research fields with disjoint subject matter"}
+{"row": 347, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "foreign currency is a subset of currencies generally"}
+{"row": 348, "verdict": "same", "directness": "direct_candidate", "why": "identical youth association concept"}
+{"row": 349, "verdict": "related", "directness": "generic_thematic", "why": "pay versus discretion over one's work; distinct job dimensions"}
+{"row": 350, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target names land sales one topic within land economics"}
+{"row": 351, "verdict": "same", "directness": "direct_candidate", "why": "identical teaching occupation concept"}
+{"row": 352, "verdict": "related", "directness": "direct_candidate", "why": "both carry technology, but source adds science and target adds innovation"}
+{"row": 353, "verdict": "same", "directness": "direct_candidate", "why": "target lists aged as its own alternative label"}
+{"row": 354, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "national forests are a designated subset of forests"}
+{"row": 355, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "source names child health one half of its maternal-and-child concept"}
+{"row": 356, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "ethics teaching is one subject field within education"}
+{"row": 357, "verdict": "related", "directness": "generic_thematic", "why": "malignancy versus infectious disease; distinct aetiological classes"}
+{"row": 358, "verdict": "same", "directness": "direct_candidate", "why": "identical aviation terminal concept"}
+{"row": 359, "verdict": "unrelated", "directness": "generic_thematic", "why": "insects versus body parts"}
+{"row": 360, "verdict": "same", "directness": "direct_candidate", "why": "identical global network concept"}
+{"row": 361, "verdict": "unrelated", "directness": "generic_thematic", "why": "a beverage crop versus athletic conditioning"}
+{"row": 362, "verdict": "same", "directness": "direct_candidate", "why": "identical enforcement-of-law concept"}
+{"row": 363, "verdict": "target_is_narrower", "directness": "direct_candidate", "why": "target definition restricts it to advertising from commercial sources only"}
+{"row": 364, "verdict": "target_is_broader", "directness": "direct_candidate", "why": "target is the aviation mode, of which the source's airlines are operators"}
+{"row": 365, "verdict": "same", "directness": "direct_candidate", "why": "identical telecommunication hardware concept"}

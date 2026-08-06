@@ -1,0 +1,331 @@
+{
+  "results": [
+    {
+      "byGenerationClass": {
+        "alternateLabelEquality": {
+          "exactAgree": 27,
+          "rows": 55,
+          "supportAgree": 53
+        },
+        "editDistanceNearMiss": {
+          "exactAgree": 44,
+          "rows": 55,
+          "supportAgree": 52
+        },
+        "normalizedLabelEquality": {
+          "exactAgree": 31,
+          "rows": 110,
+          "supportAgree": 106
+        },
+        "randomNegativeControl": {
+          "exactAgree": 43,
+          "rows": 45,
+          "supportAgree": 43
+        },
+        "siblingDistractor": {
+          "exactAgree": 27,
+          "rows": 45,
+          "supportAgree": 34
+        },
+        "substringNearMiss": {
+          "exactAgree": 42,
+          "rows": 55,
+          "supportAgree": 52
+        }
+      },
+      "controls": {
+        "judgeRejected": 118,
+        "judgeVerdicts": 180,
+        "reviewerRejected": 62,
+        "rows": 90
+      },
+      "crosswalk": "fr-elsst",
+      "directnessOnAdmitted": {
+        "direct_candidate": 181,
+        "generic_thematic": 9
+      },
+      "exactAgreement": {
+        "differ": 187,
+        "match": 543
+      },
+      "independentDigest": "sha256:1d3b02f94c7dc8e1810a22ed87d70befcb917c3120746ec8457227bf7f6c08b2",
+      "recoverable": {
+        "examples": [
+          {
+            "independent": "related",
+            "judges": [
+              "target_is_broader",
+              "related"
+            ],
+            "row": 16
+          },
+          {
+            "independent": "same",
+            "judges": [
+              "same",
+              "target_is_narrower"
+            ],
+            "row": 33
+          },
+          {
+            "independent": "related",
+            "judges": [
+              "target_is_broader",
+              "related"
+            ],
+            "row": 34
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "target_is_narrower",
+              "near_same"
+            ],
+            "row": 41
+          },
+          {
+            "independent": "related",
+            "judges": [
+              "target_is_broader",
+              "related"
+            ],
+            "row": 62
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "related",
+              "near_same"
+            ],
+            "row": 75
+          }
+        ],
+        "reviewerSupports": 33,
+        "rows": 34
+      },
+      "rowsMissing": 0,
+      "supportAgreement": {
+        "differ": 35,
+        "match": 695
+      }
+    },
+    {
+      "byGenerationClass": {
+        "alternateLabelEquality": {
+          "exactAgree": 38,
+          "rows": 55,
+          "supportAgree": 53
+        },
+        "editDistanceNearMiss": {
+          "exactAgree": 49,
+          "rows": 55,
+          "supportAgree": 53
+        },
+        "normalizedLabelEquality": {
+          "exactAgree": 36,
+          "rows": 110,
+          "supportAgree": 107
+        },
+        "randomNegativeControl": {
+          "exactAgree": 43,
+          "rows": 45,
+          "supportAgree": 43
+        },
+        "siblingDistractor": {
+          "exactAgree": 35,
+          "rows": 45,
+          "supportAgree": 39
+        },
+        "substringNearMiss": {
+          "exactAgree": 41,
+          "rows": 55,
+          "supportAgree": 53
+        }
+      },
+      "controls": {
+        "judgeRejected": 118,
+        "judgeVerdicts": 180,
+        "reviewerRejected": 61,
+        "rows": 90
+      },
+      "crosswalk": "fr-icpsr",
+      "directnessOnAdmitted": {
+        "direct_candidate": 188,
+        "generic_thematic": 13
+      },
+      "exactAgreement": {
+        "differ": 155,
+        "match": 575
+      },
+      "independentDigest": "sha256:f74ac1a0c54b91f3018e365bbc6d99be54db65e2ca46de7b5e178d20a7a4f40f",
+      "recoverable": {
+        "examples": [
+          {
+            "independent": "same",
+            "judges": [
+              "same",
+              "target_is_broader"
+            ],
+            "row": 18
+          },
+          {
+            "independent": "target_is_narrower",
+            "judges": [
+              "related",
+              "target_is_narrower"
+            ],
+            "row": 37
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "target_is_broader",
+              "near_same"
+            ],
+            "row": 45
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "near_same",
+              "target_is_broader"
+            ],
+            "row": 46
+          },
+          {
+            "independent": "target_is_narrower",
+            "judges": [
+              "target_is_narrower",
+              "related"
+            ],
+            "row": 81
+          },
+          {
+            "independent": "target_is_narrower",
+            "judges": [
+              "target_is_narrower",
+              "related"
+            ],
+            "row": 104
+          }
+        ],
+        "reviewerSupports": 19,
+        "rows": 19
+      },
+      "rowsMissing": 0,
+      "supportAgreement": {
+        "differ": 20,
+        "match": 710
+      }
+    },
+    {
+      "byGenerationClass": {
+        "alternateLabelEquality": {
+          "exactAgree": 16,
+          "rows": 55,
+          "supportAgree": 53
+        },
+        "editDistanceNearMiss": {
+          "exactAgree": 44,
+          "rows": 55,
+          "supportAgree": 52
+        },
+        "normalizedLabelEquality": {
+          "exactAgree": 49,
+          "rows": 110,
+          "supportAgree": 102
+        },
+        "randomNegativeControl": {
+          "exactAgree": 41,
+          "rows": 45,
+          "supportAgree": 43
+        },
+        "siblingDistractor": {
+          "exactAgree": 32,
+          "rows": 45,
+          "supportAgree": 33
+        },
+        "substringNearMiss": {
+          "exactAgree": 40,
+          "rows": 55,
+          "supportAgree": 52
+        }
+      },
+      "controls": {
+        "judgeRejected": 138,
+        "judgeVerdicts": 180,
+        "reviewerRejected": 77,
+        "rows": 90
+      },
+      "crosswalk": "elsst-icpsr",
+      "directnessOnAdmitted": {
+        "direct_candidate": 178,
+        "generic_thematic": 13
+      },
+      "exactAgreement": {
+        "differ": 169,
+        "match": 561
+      },
+      "independentDigest": "sha256:bda01fd835885c7b70c53a0abf00bf88f085ea69e2d7ec9ffebd2bfe577264bd",
+      "recoverable": {
+        "examples": [
+          {
+            "independent": "related",
+            "judges": [
+              "related",
+              "target_is_narrower"
+            ],
+            "row": 1
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "target_is_narrower",
+              "near_same"
+            ],
+            "row": 2
+          },
+          {
+            "independent": "related",
+            "judges": [
+              "target_is_narrower",
+              "related"
+            ],
+            "row": 14
+          },
+          {
+            "independent": "near_same",
+            "judges": [
+              "near_same",
+              "related"
+            ],
+            "row": 18
+          },
+          {
+            "independent": "related",
+            "judges": [
+              "target_is_broader",
+              "related"
+            ],
+            "row": 19
+          },
+          {
+            "independent": "target_is_broader",
+            "judges": [
+              "target_is_broader",
+              "near_same"
+            ],
+            "row": 50
+          }
+        ],
+        "reviewerSupports": 33,
+        "rows": 33
+      },
+      "rowsMissing": 0,
+      "supportAgreement": {
+        "differ": 37,
+        "match": 693
+      }
+    }
+  ]
+}
