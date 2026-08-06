@@ -201,6 +201,65 @@ def test_source_label_roles_fail_closed() -> None:
         generator._source_label_predicate("future-role")
 
 
+@pytest.mark.parametrize(
+    ("ring_name", "resource_class", "assignment_predicate"),
+    (
+        ("subject", generator.ATLAS.SubjectConcept, generator.ATLAS.assignedSubject),
+        ("entity", generator.ATLAS.EntityResource, generator.ATLAS.assignedEntity),
+        ("value", generator.ATLAS.ValueResource, generator.ATLAS.assignedValue),
+        (
+            "legalIdentity",
+            generator.ATLAS.LegalIdentityResource,
+            generator.ATLAS.assignedLegalIdentity,
+        ),
+    ),
+)
+def test_ring_dispatch_uses_binding_policy(
+    ring_name: str,
+    resource_class: URIRef,
+    assignment_predicate: URIRef,
+) -> None:
+    ring, observed_class, observed_predicate = generator._ring_dispatch(ring_name)
+
+    assert ring == generator.ATLAS[ring_name]
+    assert observed_class == resource_class
+    assert observed_predicate == assignment_predicate
+
+
+def test_ring_dispatch_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unsupported Atlas semantic ring"):
+        generator._ring_dispatch("futureRing")
+
+
+def test_loaded_release_counts_fail_closed(tmp_path: Path) -> None:
+    source = tmp_path / "source.json"
+    source.write_text("{}", encoding="utf-8")
+    spec = generator.SourceSpec(
+        key="count-test",
+        kind="test",
+        path=source,
+        logical_path="source.json",
+        expected_digest="sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
+        expected_resources=1,
+        expected_relations=1,
+        profile="codeScheme",
+        ring="value",
+    )
+    release = generator.LoadedRelease(
+        spec=spec,
+        source_release_iri="urn:test:source-release",
+        source_release_digest=spec.expected_digest,
+        atlas_release_iri="urn:test:atlas-release",
+        scheme_iri="urn:ref:atlas-resource-scheme:count-test",
+        issued="2026-08-05",
+        resources=(),
+        relations=(),
+    )
+
+    with pytest.raises(ValueError, match="source counts differ"):
+        generator._validate_loaded_release(release)
+
+
 def test_crs_loader_preserves_source_label_roles(
     tmp_path: Path,
     monkeypatch,

@@ -99,6 +99,7 @@ class SourceSpec:
     expected_resources: int
     profile: str
     ring: str
+    expected_relations: int = 0
     fallback_namespace_token: str | None = None
 
 
@@ -123,6 +124,8 @@ class SourceResource:
     source_digest: str
     definition: str | None = None
     notes: tuple[str, ...] = ()
+    notations: tuple[str, ...] = ()
+    status: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,6 +296,7 @@ SOURCE_SPECS = (
         expected_resources=3470,
         profile="conceptScheme",
         ring="subject",
+        expected_relations=12_482,
     ),
     SourceSpec(
         key="federal-register-thesaurus-2025",
@@ -308,6 +312,7 @@ SOURCE_SPECS = (
         expected_resources=705,
         profile="conceptScheme",
         ring="subject",
+        expected_relations=1_451,
     ),
     SourceSpec(
         key="icpsr-subject-thesaurus",
@@ -323,6 +328,7 @@ SOURCE_SPECS = (
         expected_resources=3810,
         profile="conceptScheme",
         ring="subject",
+        expected_relations=18_761,
         fallback_namespace_token="icpsr-subject-thesaurus",
     ),
 )
@@ -358,6 +364,7 @@ def _load_validator() -> Any:
 ATLAS_VALIDATE = _load_validator()
 ATLAS = ATLAS_VALIDATE.ATLAS
 SKOSXL = ATLAS_VALIDATE.SKOSXL
+_RING_RELATION_POLICIES = ATLAS_VALIDATE._relation_policies()
 _SOURCE_LABEL_PREDICATES = MappingProxyType(
     {
         "alternate": SKOSXL.altLabel,
@@ -365,6 +372,20 @@ _SOURCE_LABEL_PREDICATES = MappingProxyType(
         "preferred": SKOSXL.prefLabel,
     }
 )
+
+
+def _ring_dispatch(ring_name: str) -> tuple[URIRef, URIRef, URIRef]:
+    """Resolve one ring through the binding's canonical class/predicate policy."""
+
+    ring = ATLAS[ring_name]
+    resource_class = ATLAS_VALIDATE.RING_RESOURCE_CLASSES.get(ring)
+    assignment_predicates = _RING_RELATION_POLICIES.get(ring, {}).get(
+        ATLAS.SourceAssignment,
+        frozenset(),
+    )
+    if resource_class is None or len(assignment_predicates) != 1:
+        raise ValueError(f"unsupported Atlas semantic ring: {ring_name!r}")
+    return ring, resource_class, next(iter(assignment_predicates))
 
 
 def _source_label_role(value: object, *, context: str) -> SourceLabelRole:
@@ -1406,6 +1427,23 @@ def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
     )
 
 
+def _validate_loaded_release(release: LoadedRelease) -> LoadedRelease:
+    observed = {
+        "relations": len(release.relations),
+        "resources": len(release.resources),
+    }
+    expected = {
+        "relations": release.spec.expected_relations,
+        "resources": release.spec.expected_resources,
+    }
+    if observed != expected:
+        raise ValueError(
+            f"{release.spec.key} source counts differ: "
+            f"expected={expected}, observed={observed}"
+        )
+    return release
+
+
 def load_releases() -> tuple[LoadedRelease, ...]:
     loaders = {
         "sourceConceptRelease": _load_crs,
@@ -1418,7 +1456,7 @@ def load_releases() -> tuple[LoadedRelease, ...]:
             release = _load_federal_register(spec)
         else:
             release = loaders[spec.kind](spec)
-        releases.append(release)
+        releases.append(_validate_loaded_release(release))
     return tuple(releases)
 
 
@@ -1804,7 +1842,9 @@ def _build_graphs(
         source_release_nodes[release.source_release_iri] = source_release
         atlas_release = URIRef(release.atlas_release_iri)
         profile = ATLAS[release.spec.profile]
-        ring = ATLAS[release.spec.ring]
+        ring, resource_class, assignment_predicate = _ring_dispatch(
+            release.spec.ring
+        )
         scheme = URIRef(release.scheme_iri)
         asserted.add((atlas_release, RDF.type, ATLAS.AtlasRelease))
         asserted.add((atlas_release, ATLAS.resourceProfile, profile))
@@ -1835,14 +1875,10 @@ def _build_graphs(
             resource_record[resource_row.iri] = record
             resource_release[resource_row.iri] = atlas_release
             asserted.add((resource, RDF.type, ATLAS.AtlasResource))
+            asserted.add((resource, RDF.type, resource_class))
             if ring == ATLAS.subject:
-                asserted.add((resource, RDF.type, ATLAS.SubjectConcept))
                 asserted.add((resource, RDF.type, SKOS.Concept))
                 asserted.add((resource, SKOS.inScheme, scheme))
-            elif ring == ATLAS.entity:
-                asserted.add((resource, RDF.type, ATLAS.EntityResource))
-            else:  # pragma: no cover - six-source scope has two rings
-                raise ValueError(f"unsupported full-generator ring: {ring}")
             asserted.add((resource, ATLAS.inRelease, atlas_release))
             asserted.add((resource, ATLAS.inScheme, scheme))
             asserted.add((resource, ATLAS.semanticRing, ring))
@@ -1879,12 +1915,29 @@ def _build_graphs(
                 asserted.add((label, ATLAS.inRelease, atlas_release))
                 asserted.add((label, ATLAS.sourceRecord, record))
                 _add_content_digest(asserted, label)
+            if resource_row.definition is not None:
+                asserted.add(
+                    (
+                        resource,
+                        ATLAS.definition,
+                        Literal(resource_row.definition, lang="en"),
+                    )
+                )
+            for note in resource_row.notes:
+                asserted.add((resource, ATLAS.note, Literal(note, lang="en")))
+            for notation in resource_row.notations:
+                asserted.add(
+                    (resource, ATLAS.notation, Literal(notation, datatype=XSD.string))
+                )
+            if resource_row.status is not None:
+                asserted.add(
+                    (
+                        resource,
+                        ATLAS.recordStatus,
+                        Literal(resource_row.status, datatype=XSD.string),
+                    )
+                )
             _add_content_digest(asserted, resource)
-            assignment_predicate = (
-                ATLAS.assignedSubject
-                if ring == ATLAS.subject
-                else ATLAS.assignedEntity
-            )
             _add_assertion(
                 asserted,
                 assertion_type=ATLAS.SourceAssignment,
@@ -1923,6 +1976,7 @@ def _build_graphs(
     native_count = 0
     remap_evidence_count = 0
     for release in releases:
+        relation_ring, _, _ = _ring_dispatch(release.spec.ring)
         for relation in release.relations:
             try:
                 source_atlas_release = resource_release[relation.subject]
@@ -1971,7 +2025,7 @@ def _build_graphs(
             _add_assertion(
                 asserted,
                 assertion_type=ATLAS.NativeRelationAssertion,
-                ring=ATLAS.subject,
+                ring=relation_ring,
                 subject=URIRef(relation.subject),
                 predicate=URIRef(relation.predicate),
                 obj=URIRef(relation.object),
@@ -1985,11 +2039,20 @@ def _build_graphs(
                 confidence="1",
             )
             native_count += 1
-    if native_count != 32_694:
-        raise ValueError(f"expected 32,694 native assertions; emitted {native_count}")
-    if remap_evidence_count != 22:
+    expected_native_count = sum(len(release.relations) for release in releases)
+    expected_remap_count = sum(
+        relation.predicate == str(ATLAS.thesaurusRelated)
+        for release in releases
+        for relation in release.relations
+    )
+    if native_count != expected_native_count:
         raise ValueError(
-            f"expected 22 ICPSR remap evidence records; emitted {remap_evidence_count}"
+            f"expected {expected_native_count} native assertions; emitted {native_count}"
+        )
+    if remap_evidence_count != expected_remap_count:
+        raise ValueError(
+            f"expected {expected_remap_count} remap evidence records; "
+            f"emitted {remap_evidence_count}"
         )
 
     if any(asserted.subjects(RDF.type, ATLAS.MappingAssertion)):
@@ -2519,8 +2582,10 @@ def build_distribution(output: Path) -> None:
         "resources": sum(len(release.resources) for release in releases),
     }
     expected_counts = {
-        "nativeRelations": 32_694,
-        "resources": 9_060,
+        "nativeRelations": sum(
+            release.spec.expected_relations for release in releases
+        ),
+        "resources": sum(release.spec.expected_resources for release in releases),
     }
     if {key: observed_counts[key] for key in expected_counts} != expected_counts:
         raise ValueError(
