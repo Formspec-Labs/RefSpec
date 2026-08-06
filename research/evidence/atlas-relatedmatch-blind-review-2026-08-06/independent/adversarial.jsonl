@@ -1,0 +1,95 @@
+{"row": 1, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "learning disabilities are defined by impaired learning; related, not equivalent"}
+{"row": 2, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "identical concept, British versus American spelling"}
+{"row": 3, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'agrarian reform' is exactly the target label"}
+{"row": 4, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; cooperation between states is not terrorism"}
+{"row": 5, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; education access versus municipal elections"}
+{"row": 6, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept; hyphen and plural variation only"}
+{"row": 7, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, singular versus plural form"}
+{"row": 8, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "nursing education is a form of education"}
+{"row": 9, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST conflates religion with adherents; alt label is 'MUSLIMS'"}
+{"row": 10, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "ELSST routes morbidity statistics elsewhere; overlapping but not equivalent"}
+{"row": 11, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "workers by profession is a grouping facet of workers"}
+{"row": 12, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "global health is health scoped to transnational issues"}
+{"row": 13, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "prisoners are persons confined in prisons; distinct entity types"}
+{"row": 14, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "compound term whose alt label is exactly 'traditions'"}
+{"row": 15, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "industrial injuries are injuries sustained at work"}
+{"row": 16, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different diseases; only shared parent is 'disease'"}
+{"row": 17, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; segregation versus regulatory bodies"}
+{"row": 18, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "age groups are categories derived from age"}
+{"row": 19, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'NAZISM' is exactly the target label"}
+{"row": 20, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "FR indexes long term care under Aged; preferred concepts still differ"}
+{"row": 21, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "similar spelling, distinct ideologies; fascism is not racism"}
+{"row": 22, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "near-identical strings, different US programmes; target warns against confusion"}
+{"row": 23, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "sibling policy domains; monetary policy is not environmental policy"}
+{"row": 24, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; doctrines versus policing activity"}
+{"row": 25, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "gasoline prices is a narrower economic aspect of gasoline"}
+{"row": 26, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; sexual health versus cultural venues"}
+{"row": 27, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different recreational activities; sibling terms only"}
+{"row": 28, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; diplomacy versus information as such"}
+{"row": 29, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label is exactly the target preferred label"}
+{"row": 30, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "mobile payments are a type of payment"}
+{"row": 31, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'MARIJUANA' is exactly the target label"}
+{"row": 32, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "spelling proximity only; bonds are instruments, banks institutions"}
+{"row": 33, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, singular versus plural form"}
+{"row": 34, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "sleep disorder versus infectious disease; no relationship"}
+{"row": 35, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "business management is an activity within business"}
+{"row": 36, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, closed versus spaced compound; definitions agree"}
+{"row": 37, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "blood donation is a specific practice concerning blood"}
+{"row": 38, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "same referent, singular versus plural of radio"}
+{"row": 39, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "ELSST alt label 'FOREIGN LANGUAGES' is exactly the target label"}
+{"row": 40, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "repetitive work is a form of work"}
+{"row": 41, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "economists practise economics; profession versus discipline"}
+{"row": 42, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "certificates awarded in vocational education, not the education itself"}
+{"row": 43, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "low", "why": "racial integration is one species of social integration"}
+{"row": 44, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; school staff versus womens health services"}
+{"row": 45, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; parental attitudes versus energy policy"}
+{"row": 46, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "unrelated conditions; only shared parent is disease"}
+{"row": 47, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "FR indexes floods under disaster assistance; hazard versus response"}
+{"row": 48, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, British versus American spelling"}
+{"row": 49, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "language policy is governance of language, not language itself"}
+{"row": 50, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "FR alt label carries hours of work; wages and hours are paired conditions"}
+{"row": 51, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "terrorists are the agents of terrorism; distinct entity types"}
+{"row": 52, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "shared letters only; health is not death"}
+{"row": 53, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "high", "why": "golf is listed as an ELSST alt label under ball games"}
+{"row": 54, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "ELSST alt label 'FAMILY BUSINESSES' is exactly the target label"}
+{"row": 55, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "the discipline studies conflict; field versus phenomenon"}
+{"row": 56, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; classroom staff versus respiratory illness"}
+{"row": 57, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "target is education in agriculture, not agriculture itself"}
+{"row": 58, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different discrimination grounds; sibling terms only"}
+{"row": 59, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; smuggling versus courtroom evidence"}
+{"row": 60, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "pre-primary education is a level of education"}
+{"row": 61, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "publishing industry is a sector of industry"}
+{"row": 62, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "information users are people who use information; distinct concepts"}
+{"row": 63, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; membership versus veterans entitlements"}
+{"row": 64, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different cost domains; sibling terms only"}
+{"row": 65, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "online shopping is a channel of shopping"}
+{"row": 66, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'NATIVE LANGUAGE' is exactly the target label"}
+{"row": 67, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, British versus American spelling"}
+{"row": 68, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "road vehicles are a subset of vehicles"}
+{"row": 69, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "fear of crime is a perception concept, not crime itself"}
+{"row": 70, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "special education presupposes disabilities but is a different concept"}
+{"row": 71, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'UNIVERSITIES' is exactly the target label"}
+{"row": 72, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "near-identical strings; fees are charges, fines are penalties"}
+{"row": 73, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different diseases with nothing in common but illness"}
+{"row": 74, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "both respiratory, but influenza and COPD are distinct diseases"}
+{"row": 75, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'READING ABILITY' is exactly the target label"}
+{"row": 76, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "no relationship; manual therapy versus crime statistics"}
+{"row": 77, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "near-anagram; bail is release, jails are facilities"}
+{"row": 78, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "income tax is levied on income; a tax is not income"}
+{"row": 79, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'READING HABITS' is exactly the target label"}
+{"row": 80, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, singular versus plural form"}
+{"row": 81, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "homograph; target sanctions means social control, not trade sanctions"}
+{"row": 82, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "alcohol abuse is problematic alcohol use"}
+{"row": 83, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "legislators are the members composing a legislature"}
+{"row": 84, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "monetary policy is a kind of public policy"}
+{"row": 85, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "FR alt label 'Mail'; postal service and mail coextensive in indexing"}
+{"row": 86, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "match runs through parenthetical qualifier; accreditation is a process"}
+{"row": 87, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "child care is broader; ELSST scope note warns off child day care"}
+{"row": 88, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, singular versus plural form"}
+{"row": 89, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "same concept, singular versus plural; definitions agree"}
+{"row": 90, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "near-identical strings; citizenship status is not an ideology"}
+{"row": 91, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different disorders; only the word 'disorders' is shared"}
+{"row": 92, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different offences; disorderly conduct is not kidnapping"}
+{"row": 93, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'EATING HABITS' is exactly the target label"}
+{"row": 94, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "different pollution media; sibling terms only"}
+{"row": 95, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "ELSST alt label 'HOSPITALS' is exactly the source preferred label"}

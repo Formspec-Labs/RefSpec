@@ -1,0 +1,373 @@
+{
+  "experiments": [
+    "E-V4 (judged half)",
+    "E-V2 (framing and agreement half)"
+  ],
+  "framingSensitivity": {
+    "agreementRate": {
+      "basisOfAssociation": 0.7473684210526316,
+      "bestRelation": 0.8631578947368421,
+      "relationExists": 0.8947368421052632
+    },
+    "basisFlipExamples": [
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 4
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 5
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 16
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 17
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 21
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 22
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 24
+      },
+      {
+        "adversarial": "orthographic",
+        "neutral": "conceptual",
+        "row": 26
+      }
+    ],
+    "basisFlips": 24,
+    "exactRelationAgreementWithPriorReviewer": {
+      "adversarial": 0.8,
+      "neutral": 0.8526315789473684
+    },
+    "rowsCompared": 95
+  },
+  "limitation": "Both passes use the same model family. Agreement here measures framing sensitivity and annotator stability, not cross-family agreement. Sibling distractors are not clean negatives and their rejection rate is not an error rate.",
+  "passes": {
+    "adversarial": {
+      "assertedOrthographicGapRelatedVsOther": 0.0,
+      "byStratum": {
+        "otherAdmission": {
+          "asserted": 36,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "highConfidence": 21,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 36,
+          "supportRate": 1.0,
+          "supportsRelation": 36,
+          "survivalRate": 1.0,
+          "survivalRate95": [
+            0.9035781695514236,
+            1.0
+          ],
+          "survives": 36
+        },
+        "randomNegativeControl": {
+          "asserted": 0,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": null,
+          "highConfidence": 12,
+          "orthographic": 12,
+          "orthographicRate": 1.0,
+          "rows": 12,
+          "supportRate": 0.0,
+          "supportsRelation": 0,
+          "survivalRate": 0.0,
+          "survivalRate95": [
+            0.0,
+            0.2425007574992425
+          ],
+          "survives": 0
+        },
+        "relatedMatchAdmission": {
+          "asserted": 25,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "highConfidence": 10,
+          "orthographic": 10,
+          "orthographicRate": 0.2857142857142857,
+          "rows": 35,
+          "supportRate": 0.7142857142857143,
+          "supportsRelation": 25,
+          "survivalRate": 0.7142857142857143,
+          "survivalRate95": [
+            0.5494475193017891,
+            0.8367363660170444
+          ],
+          "survives": 25
+        },
+        "siblingDistractor": {
+          "asserted": 1,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "highConfidence": 11,
+          "orthographic": 11,
+          "orthographicRate": 0.9166666666666666,
+          "rows": 12,
+          "supportRate": 0.08333333333333333,
+          "supportsRelation": 1,
+          "survivalRate": 0.08333333333333333,
+          "survivalRate95": [
+            0.014864709450773478,
+            0.35388592179859524
+          ],
+          "survives": 1
+        }
+      },
+      "byVariantClass": {
+        "numberVariant": {
+          "asserted": 6,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 6
+        },
+        "spellingVariant": {
+          "asserted": 3,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 3
+        },
+        "unprincipled": {
+          "asserted": 8,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "orthographic": 8,
+          "orthographicRate": 0.5,
+          "rows": 16
+        }
+      },
+      "digest": "sha256:f2ef6cd63d11eeb531f1b7b143a8a7f6f47f5c7ca312bea12b3cde1a8c291ab8",
+      "orthographicGapRelatedVsOther": 0.2857142857142857,
+      "orthographicRelatedMatchExamples": [
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 21,
+          "why": "similar spelling, distinct ideologies; fascism is not racism"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 22,
+          "why": "near-identical strings, different US programmes; target warns against confusion"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 32,
+          "why": "spelling proximity only; bonds are instruments, banks institutions"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 52,
+          "why": "shared letters only; health is not death"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 72,
+          "why": "near-identical strings; fees are charges, fines are penalties"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 77,
+          "why": "near-anagram; bail is release, jails are facilities"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "alternateLabelEquality",
+          "row": 81,
+          "why": "homograph; target sanctions means social control, not trade sanctions"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "substringNearMiss",
+          "row": 86,
+          "why": "match runs through parenthetical qualifier; accreditation is a process"
+        }
+      ],
+      "rowsMissing": 0,
+      "survivalTest": {
+        "fisherP": 0.0003975834239701768,
+        "otherAdmissions": {
+          "rows": 36,
+          "survives": 36
+        },
+        "relatedMatch": {
+          "rows": 35,
+          "survives": 25
+        }
+      }
+    },
+    "neutral": {
+      "assertedOrthographicGapRelatedVsOther": 0.09090909090909091,
+      "byStratum": {
+        "otherAdmission": {
+          "asserted": 36,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "highConfidence": 34,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 36,
+          "supportRate": 1.0,
+          "supportsRelation": 36,
+          "survivalRate": 1.0,
+          "survivalRate95": [
+            0.9035781695514236,
+            1.0
+          ],
+          "survives": 36
+        },
+        "randomNegativeControl": {
+          "asserted": 0,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": null,
+          "highConfidence": 12,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 12,
+          "supportRate": 0.0,
+          "supportsRelation": 0,
+          "survivalRate": 0.0,
+          "survivalRate95": [
+            0.0,
+            0.2425007574992425
+          ],
+          "survives": 0
+        },
+        "relatedMatchAdmission": {
+          "asserted": 33,
+          "assertedOrthographic": 3,
+          "assertedOrthographicRate": 0.09090909090909091,
+          "highConfidence": 13,
+          "orthographic": 5,
+          "orthographicRate": 0.14285714285714285,
+          "rows": 35,
+          "supportRate": 0.9428571428571428,
+          "supportsRelation": 33,
+          "survivalRate": 0.8571428571428571,
+          "survivalRate95": [
+            0.7062411969132573,
+            0.9373986119514649
+          ],
+          "survives": 30
+        },
+        "siblingDistractor": {
+          "asserted": 3,
+          "assertedOrthographic": 1,
+          "assertedOrthographicRate": 0.3333333333333333,
+          "highConfidence": 6,
+          "orthographic": 4,
+          "orthographicRate": 0.3333333333333333,
+          "rows": 12,
+          "supportRate": 0.25,
+          "supportsRelation": 3,
+          "survivalRate": 0.16666666666666666,
+          "survivalRate95": [
+            0.04696414761482223,
+            0.44803635738467273
+          ],
+          "survives": 2
+        }
+      },
+      "byVariantClass": {
+        "numberVariant": {
+          "asserted": 6,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 6
+        },
+        "spellingVariant": {
+          "asserted": 3,
+          "assertedOrthographic": 0,
+          "assertedOrthographicRate": 0.0,
+          "orthographic": 0,
+          "orthographicRate": 0.0,
+          "rows": 3
+        },
+        "unprincipled": {
+          "asserted": 15,
+          "assertedOrthographic": 3,
+          "assertedOrthographicRate": 0.2,
+          "orthographic": 4,
+          "orthographicRate": 0.25,
+          "rows": 16
+        }
+      },
+      "digest": "sha256:229ed13a2dd93ceb5e0e4b0f6d2c30b2304cbde645543b2dd2f5325d8c311014",
+      "orthographicGapRelatedVsOther": 0.14285714285714285,
+      "orthographicRelatedMatchExamples": [
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "editDistanceNearMiss",
+          "row": 32,
+          "why": "debt instrument versus deposit institution; labels merely look alike"
+        },
+        {
+          "assertedRelation": "related",
+          "generationClass": "editDistanceNearMiss",
+          "row": 72,
+          "why": "service charge versus penalty; near-identical spelling drives the pairing"
+        },
+        {
+          "assertedRelation": "unrelated",
+          "generationClass": "alternateLabelEquality",
+          "row": 81,
+          "why": "target uses the sociological sense, not the trade-restriction sense"
+        },
+        {
+          "assertedRelation": "related",
+          "generationClass": "editDistanceNearMiss",
+          "row": 90,
+          "why": "legal citizenship status versus ideology; shared root drives the pairing"
+        },
+        {
+          "assertedRelation": "related",
+          "generationClass": "editDistanceNearMiss",
+          "row": 94,
+          "why": "different environmental media; shared head noun drives the pairing"
+        }
+      ],
+      "rowsMissing": 0,
+      "survivalTest": {
+        "fisherP": 0.02493350759978505,
+        "otherAdmissions": {
+          "rows": 36,
+          "survives": 36
+        },
+        "relatedMatch": {
+          "rows": 35,
+          "survives": 30
+        }
+      }
+    }
+  },
+  "type": "AtlasRelatedMatchBlindReviewComparison"
+}

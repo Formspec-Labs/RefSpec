@@ -1,0 +1,95 @@
+{"row": 1, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "impairment of the learning process, not a kind of learning"}
+{"row": 2, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "British and American spelling of one concept"}
+{"row": 3, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "agrarian reform is the source's own declared synonym"}
+{"row": 4, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "counter-terror cooperation link is too remote to assert"}
+{"row": 5, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "schooling access and municipal elections share no subject matter"}
+{"row": 6, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "hyphen and plural variants of one perinatal death concept"}
+{"row": 7, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "plural variant of the same activity domain"}
+{"row": 8, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "nursing training is one branch of education"}
+{"row": 9, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "source term explicitly covers adherents alongside the religion"}
+{"row": 10, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "morbidity is a source synonym though target scopes it as incidence"}
+{"row": 11, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "occupational breakdown of the general worker population"}
+{"row": 12, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "global health is health restricted to transnational issues"}
+{"row": 13, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "inmates and the institutions that confine them"}
+{"row": 14, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "traditions is one half of the compound and a declared synonym"}
+{"row": 15, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "workplace injuries are a subset of injuries"}
+{"row": 16, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "distinct diseases with no shared aetiology or clinical interaction"}
+{"row": 17, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "segregation and administrative regulators share no subject matter"}
+{"row": 18, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "age groups are bandings of the age attribute"}
+{"row": 19, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "nazism is the source's own declared synonym"}
+{"row": 20, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "long-term care is a service predominantly serving older people"}
+{"row": 21, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "fascist ideology characteristically incorporates racial doctrine"}
+{"row": 22, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "sibling US public health insurance programmes, deliberately distinguished"}
+{"row": 23, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "only the shared head noun joins two unconnected policy domains"}
+{"row": 24, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "belief systems and patrol operations share no subject matter"}
+{"row": 25, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "high", "why": "price is one aspect of the commodity"}
+{"row": 26, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "disease prevention and cultural venues share no subject matter"}
+{"row": 27, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "co-hyponyms of recreation with no substantive link"}
+{"row": 28, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "diplomacy and generic information share no subject matter"}
+{"row": 29, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "declared synonym; target arguably spans non-telecom channels too"}
+{"row": 30, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "mobile payment is one payment channel"}
+{"row": 31, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "marijuana is the source's own declared synonym"}
+{"row": 32, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "debt instrument versus deposit institution; labels merely look alike"}
+{"row": 33, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "singular and plural of one concept"}
+{"row": 34, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "sleep pathology and respiratory infection share no subject matter"}
+{"row": 35, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "management is one aspect of business"}
+{"row": 36, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "spacing variant with matching definitions"}
+{"row": 37, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "high", "why": "donation is one activity involving the substance"}
+{"row": 38, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "same medium; source stresses service, target stresses receivers"}
+{"row": 39, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "foreign languages is the source's own declared synonym"}
+{"row": 40, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "repetitiveness is one character of work"}
+{"row": 41, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "practitioners of the named discipline"}
+{"row": 42, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "high", "why": "certificates are one credential output of that education"}
+{"row": 43, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "racial integration is one form of social integration"}
+{"row": 44, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "school staffing and women's health share no subject matter"}
+{"row": 45, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "parental attitudes and energy policy share no subject matter"}
+{"row": 46, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "distinct conditions with no shared mechanism"}
+{"row": 47, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "relief programmes respond to such events; source lists it as lead-in"}
+{"row": 48, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "British and American spelling of one concept"}
+{"row": 49, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "governance of language, not a kind of language"}
+{"row": 50, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "pay and working time are jointly regulated employment terms"}
+{"row": 51, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the actors versus the phenomenon"}
+{"row": 52, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "mortality is a core health outcome, but the concepts differ"}
+{"row": 53, "relationExists": true, "bestRelation": "target_is_narrower", "basisOfAssociation": "conceptual", "confidence": "high", "why": "one of the sports the source enumerates"}
+{"row": 54, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "source declares synonymy though the two sets only partly overlap"}
+{"row": 55, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "an academic field and the phenomenon it studies"}
+{"row": 56, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "classroom staffing and respiratory illness share no subject matter"}
+{"row": 57, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "training for the sector, though it also spans forestry and fisheries"}
+{"row": 58, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "different discrimination axes; the shared head noun drives the pairing"}
+{"row": 59, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "contraband trade and courtroom evidence share no subject matter"}
+{"row": 60, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the initial stage within the whole education system"}
+{"row": 61, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "publishing is one industrial sector"}
+{"row": 62, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "people who consume it, not a kind of it"}
+{"row": 63, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "group belonging and veterans' entitlements share no subject matter"}
+{"row": 64, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "high", "why": "unconnected cost domains joined only by the shared head noun"}
+{"row": 65, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "online is one channel of the broader activity"}
+{"row": 66, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "native language is the source's own declared synonym"}
+{"row": 67, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "British and American spelling of one concept"}
+{"row": 68, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "road-going is one class within all conveyances"}
+{"row": 69, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "a public attitude towards offending, not an offence"}
+{"row": 70, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "provision aimed at the population the target defines"}
+{"row": 71, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "both denote degree-granting tertiary institutions"}
+{"row": 72, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "service charge versus penalty; near-identical spelling drives the pairing"}
+{"row": 73, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "distinct diseases with no shared mechanism"}
+{"row": 74, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "low", "why": "both respiratory illnesses; infection commonly triggers exacerbations"}
+{"row": 75, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "reading ability is the source's own declared synonym"}
+{"row": 76, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "high", "why": "manual therapy and offence statistics share no subject matter"}
+{"row": 77, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the release decision determines pretrial custody in these facilities"}
+{"row": 78, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the levy is assessed on the base it names"}
+{"row": 79, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "declared synonym; target emphasises patterns of the activity"}
+{"row": 80, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "singular and plural of one disease class"}
+{"row": 81, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "target uses the sociological sense, not the trade-restriction sense"}
+{"row": 82, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "abuse is a harmful pattern of the broader consumption concept"}
+{"row": 83, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the members composing the deliberative body"}
+{"row": 84, "relationExists": true, "bestRelation": "target_is_broader", "basisOfAssociation": "conceptual", "confidence": "high", "why": "one policy field within government policy generally"}
+{"row": 85, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "the carrier system and what it carries, treated as synonyms"}
+{"row": 86, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "a quality-assurance process applied to such bodies"}
+{"row": 87, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "target scopes to parental care and explicitly excludes day care"}
+{"row": 88, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "singular and plural of one concept"}
+{"row": 89, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "singular and plural of one concept, matching definitions"}
+{"row": 90, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "legal citizenship status versus ideology; shared root drives the pairing"}
+{"row": 91, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "different clinical domains joined only by the shared head noun"}
+{"row": 92, "relationExists": false, "bestRelation": "unrelated", "basisOfAssociation": "conceptual", "confidence": "medium", "why": "both offences but of wholly different character and gravity"}
+{"row": 93, "relationExists": true, "bestRelation": "same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "eating habits is the source's own declared synonym"}
+{"row": 94, "relationExists": true, "bestRelation": "related", "basisOfAssociation": "orthographic", "confidence": "medium", "why": "different environmental media; shared head noun drives the pairing"}
+{"row": 95, "relationExists": true, "bestRelation": "near_same", "basisOfAssociation": "conceptual", "confidence": "high", "why": "declared synonym; services versus the institutions providing them"}
