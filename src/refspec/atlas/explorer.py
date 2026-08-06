@@ -10,11 +10,17 @@ import os
 import re
 import stat
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from string import Template
 from typing import Any, BinaryIO, TypeVar, cast
+
+try:  # Python 3.14+
+    from compression import zstd
+except ImportError:  # pragma: no cover - exercised on supported Python 3.10-3.13
+    from backports import zstd
 
 from rdflib import Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS
@@ -37,14 +43,10 @@ EXPLORER_SCHEMA_VERSION = ATLAS_V3_EXPLORER_SCHEMA_VERSION
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 
-EXPECTED_FILES = frozenset(
-    {
-        "atlas-manifest.json",
-        "atlas.nq",
-        "atlas-source-accounting.json",
-        "atlas-acceptance.json",
-    }
-)
+_ROOT_MANIFEST = "atlas-manifest.json"
+_SOURCE_ACCOUNTING_MEMBER = "atlas-source-accounting.json"
+_ACCEPTANCE_MEMBER = "atlas-acceptance.json"
+_PRODUCER_VALIDATION_MEMBER = "atlas-producer-validation.json"
 REQUIRED_ACCEPTANCE_GATES = frozenset(
     {
         "canonical-json",
@@ -164,11 +166,63 @@ _MANIFEST_FIELDS = frozenset(
         "createdAt",
         "binding",
         "graphs",
+        "packs",
         "members",
         "counts",
         "canonicalPayloadDigest",
     }
 )
+_GRAPH_FIELDS = frozenset(
+    {"role", "id", "quadCount", "packCount", "inventoryDigest"}
+)
+_PRODUCER_VALIDATION_FIELDS = frozenset(
+    {
+        "assertedInventoryDigest",
+        "binding",
+        "checks",
+        "constructorProfile",
+        "counts",
+        "implementationDigest",
+        "mode",
+        "shaclDataProof",
+        "shaclMetaValidation",
+        "sourceAccountingDigest",
+        "sourceReleaseCount",
+        "status",
+        "type",
+        "version",
+    }
+)
+_PACK_FIELDS = frozenset(
+    {
+        "packId",
+        "kind",
+        "path",
+        "transport",
+        "content",
+        "graphCounts",
+        "dependencies",
+        "sourceReleases",
+        "rings",
+        "partition",
+        "inputAssertedDigest",
+    }
+)
+_PACK_REQUIRED_FIELDS = frozenset(
+    {
+        "packId",
+        "kind",
+        "path",
+        "transport",
+        "content",
+        "graphCounts",
+        "dependencies",
+        "sourceReleases",
+        "rings",
+    }
+)
+_PACK_KINDS = frozenset({"catalog", "sourceRelease", "mapping", "view", "aggregate"})
+_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 _BINDING_FIELDS = frozenset(
     {
         "version",
@@ -556,6 +610,28 @@ class _StreamedAtlasIndex:
     derived_relation_ids: tuple[bytes, ...]
     current_authoritative_relations: int
     oversized_relations_skipped: int
+
+
+@dataclass(frozen=True, slots=True)
+class _PackContentEvidence:
+    """Exact uncompressed identity and graph counts observed for one pack."""
+
+    byte_length: int
+    digest: str
+    quad_count: int
+    graph_quad_counts: Mapping[str, int]
+
+
+@dataclass(frozen=True, slots=True)
+class _PackPlan:
+    """One verified physical pack and the metadata needed to reopen it safely."""
+
+    pack_id: str
+    path: Path
+    relative_path: str
+    compression: str
+    identity: tuple[int, int, int, int, int, int]
+    manifest_row: Mapping[str, Any]
 
 
 def _binding_digests() -> dict[str, str]:
@@ -1024,10 +1100,15 @@ class _StreamingIndexBuilder:
         )
 
 
-def _scan_dataset_member(
+def _scan_pack_content(
     stream: BinaryIO,
     graph_ids: Mapping[str, URIRef],
-) -> _StreamedAtlasIndex:
+    builder: _StreamingIndexBuilder,
+    *,
+    label: str,
+) -> _PackContentEvidence:
+    """Verify and index one canonical uncompressed pack in bounded memory."""
+
     digest = hashlib.sha256()
     byte_length = 0
     previous: bytes | None = None
@@ -1037,7 +1118,6 @@ def _scan_dataset_member(
         for role, graph_id in graph_ids.items()
     }
     graph_counts: Counter[str] = Counter()
-    builder = _StreamingIndexBuilder()
     current_subject: bytes | None = None
     types: set[bytes] = set()
     values: dict[bytes, bytes] = {}
@@ -1068,12 +1148,12 @@ def _scan_dataset_member(
         line_count += 1
         if len(line) > _NQUADS_MAX_LINE_BYTES:
             raise Atlas3ExplorerError(
-                f"Atlas 3.0 dataset line {line_count} exceeds {_NQUADS_MAX_LINE_BYTES} bytes"
+                f"Atlas 3.0 {label} line {line_count} exceeds {_NQUADS_MAX_LINE_BYTES} bytes"
             )
         digest.update(line)
         byte_length += len(line)
         if not line.endswith(b"\n") or b"\r" in line:
-            raise Atlas3ExplorerError("Atlas 3.0 dataset must use canonical LF lines")
+            raise Atlas3ExplorerError(f"Atlas 3.0 {label} must use canonical LF lines")
         if (
             len(line) <= 1
             or line[0] != ord("<")
@@ -1081,13 +1161,15 @@ def _scan_dataset_member(
             or (previous is not None and line <= previous)
         ):
             raise Atlas3ExplorerError(
-                "Atlas 3.0 dataset lines must be non-empty, unique, sorted IRI-subject N-Quads"
+                f"Atlas 3.0 {label} lines must be non-empty, unique, sorted IRI-subject N-Quads"
             )
         previous = line
 
         role = next((name for name, suffix in graph_suffixes.items() if line.endswith(suffix)), None)
         if role is None:
-            raise Atlas3ExplorerError("Atlas 3.0 dataset uses an undeclared or malformed graph")
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 {label} uses an undeclared or malformed graph"
+            )
         graph_counts[role] += 1
 
         if current_subject is None or not (
@@ -1096,7 +1178,9 @@ def _scan_dataset_member(
             finish_subject()
             subject_end = line.find(b"> ", 1)
             if subject_end < 0:
-                raise Atlas3ExplorerError(f"Atlas 3.0 dataset line {line_count} has a malformed subject")
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 {label} line {line_count} has a malformed subject"
+                )
             current_subject = line[: subject_end + 1]
             types = set()
             values = {}
@@ -1115,11 +1199,11 @@ def _scan_dataset_member(
             or graph_start <= predicate_end + 2
             or line[predicate_start : predicate_start + 1] != b"<"
         ):
-            raise Atlas3ExplorerError(f"Atlas 3.0 dataset line {line_count} is malformed")
+            raise Atlas3ExplorerError(f"Atlas 3.0 {label} line {line_count} is malformed")
         predicate = line[predicate_start : predicate_end + 1]
         object_value = line[predicate_end + 2 : graph_start - 1]
         if not object_value or object_value.startswith(b"_:"):
-            raise Atlas3ExplorerError("Atlas 3.0 dataset must not contain blank nodes")
+            raise Atlas3ExplorerError(f"Atlas 3.0 {label} must not contain blank nodes")
         if predicate == _RDF_TYPE_TOKEN:
             types.add(object_value)
         elif predicate in _FIRST_PASS_VALUE_PREDICATES:
@@ -1139,11 +1223,27 @@ def _scan_dataset_member(
 
     finish_subject()
     if line_count == 0:
-        raise Atlas3ExplorerError("Atlas 3.0 dataset must not be empty")
-    return builder.finish(
+        raise Atlas3ExplorerError(f"Atlas 3.0 {label} must not be empty")
+    return _PackContentEvidence(
         byte_length=byte_length,
         digest="sha256:" + digest.hexdigest(),
+        quad_count=line_count,
         graph_quad_counts=graph_counts,
+    )
+
+
+def _scan_dataset_member(
+    stream: BinaryIO,
+    graph_ids: Mapping[str, URIRef],
+) -> _StreamedAtlasIndex:
+    """Compatibility helper for tests and one-pack callers."""
+
+    builder = _StreamingIndexBuilder()
+    evidence = _scan_pack_content(stream, graph_ids, builder, label="dataset")
+    return builder.finish(
+        byte_length=evidence.byte_length,
+        digest=evidence.digest,
+        graph_quad_counts=evidence.graph_quad_counts,
     )
 
 
@@ -1158,6 +1258,203 @@ def _file_identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]
     )
 
 
+def _iri_text(value: object, label: str) -> str:
+    result = _text(value, label)
+    if ":" not in result or any(character.isspace() for character in result):
+        raise Atlas3ExplorerError(f"{label} must be an absolute IRI")
+    return result
+
+
+def _safe_relative_path(value: object, label: str) -> str:
+    result = _text(value, label)
+    path = PurePosixPath(result)
+    if (
+        path.is_absolute()
+        or result != path.as_posix()
+        or not path.parts
+        or any(part in {"", ".", ".."} for part in path.parts)
+        or "\\" in result
+    ):
+        raise Atlas3ExplorerError(f"{label} must be a normalized safe relative path")
+    return result
+
+
+def _sorted_unique_texts(
+    value: object,
+    label: str,
+    *,
+    iri: bool = False,
+) -> list[str]:
+    rows = [
+        _iri_text(item, f"{label} item") if iri else _text(item, f"{label} item")
+        for item in _sequence(value, label)
+    ]
+    if rows != sorted(rows) or len(rows) != len(set(rows)):
+        raise Atlas3ExplorerError(f"{label} must be sorted and unique")
+    return rows
+
+
+def _graph_inventory_digest(
+    packs: Sequence[Mapping[str, Any]],
+    role: str,
+) -> str:
+    rows = sorted(
+        (
+            {
+                "contentDigest": cast(Mapping[str, Any], pack["content"])["digest"],
+                "packId": pack["packId"],
+                "quadCount": cast(Mapping[str, Any], pack["graphCounts"])[role],
+            }
+            for pack in packs
+            if cast(Mapping[str, Any], pack["graphCounts"])[role]
+        ),
+        key=lambda row: cast(str, row["packId"]),
+    )
+    return _canonical_digest_without_lf(rows)
+
+
+def _verify_pack_rows(
+    manifest: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], ...]:
+    graph_rows = _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")
+    if not graph_rows:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest has no asserted graph")
+    asserted_inventory_digest = _digest(
+        _mapping(graph_rows[0], "Atlas 3.0 asserted graph").get("inventoryDigest"),
+        "Atlas 3.0 asserted graph inventoryDigest",
+    )
+    raw_packs = _sequence(manifest.get("packs"), "Atlas 3.0 manifest packs")
+    if not raw_packs:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest must declare at least one pack")
+    packs: list[Mapping[str, Any]] = []
+    pack_ids: list[str] = []
+    paths: list[str] = []
+    for position, raw_pack in enumerate(raw_packs):
+        label = f"Atlas 3.0 pack {position}"
+        pack = _mapping(raw_pack, label)
+        fields = frozenset(pack)
+        if not _PACK_REQUIRED_FIELDS.issubset(fields) or not fields.issubset(_PACK_FIELDS):
+            raise Atlas3ExplorerError(
+                f"{label} fields differ; missing={sorted(_PACK_REQUIRED_FIELDS - fields)}, "
+                f"extra={sorted(fields - _PACK_FIELDS)}"
+            )
+        pack_id = _iri_text(pack.get("packId"), f"{label} packId")
+        kind = _text(pack.get("kind"), f"{label} kind")
+        if kind not in _PACK_KINDS:
+            raise Atlas3ExplorerError(f"{label} kind is unsupported")
+        path = _safe_relative_path(pack.get("path"), f"{label} path")
+
+        transport = _mapping(pack.get("transport"), f"{label} transport")
+        _exact_fields(
+            transport,
+            frozenset({"compression", "mediaType", "digest", "byteLength"}),
+            f"{label} transport",
+        )
+        compression = _text(transport.get("compression"), f"{label} compression")
+        expected_media_type = {
+            "none": "application/n-quads",
+            "zstd": "application/zstd",
+        }.get(compression)
+        if expected_media_type is None or transport.get("mediaType") != expected_media_type:
+            raise Atlas3ExplorerError(f"{label} transport compression or media type is unsupported")
+        if not path.endswith(".nq.zst" if compression == "zstd" else ".nq"):
+            raise Atlas3ExplorerError(f"{label} path does not match its compression")
+        _digest(transport.get("digest"), f"{label} transport digest")
+        if _count(transport.get("byteLength"), f"{label} transport byteLength") <= 0:
+            raise Atlas3ExplorerError(f"{label} transport must not be empty")
+
+        content = _mapping(pack.get("content"), f"{label} content")
+        _exact_fields(
+            content,
+            frozenset({"mediaType", "digest", "byteLength", "quadCount"}),
+            f"{label} content",
+        )
+        if content.get("mediaType") != "application/n-quads":
+            raise Atlas3ExplorerError(f"{label} content media type is unsupported")
+        _digest(content.get("digest"), f"{label} content digest")
+        if (
+            _count(content.get("byteLength"), f"{label} content byteLength") <= 0
+            or _count(content.get("quadCount"), f"{label} content quadCount") <= 0
+        ):
+            raise Atlas3ExplorerError(f"{label} content must not be empty")
+
+        graph_counts = _mapping(pack.get("graphCounts"), f"{label} graphCounts")
+        _exact_fields(
+            graph_counts,
+            frozenset({"asserted", "projection", "derived"}),
+            f"{label} graphCounts",
+        )
+        for role in ("asserted", "projection", "derived"):
+            _count(graph_counts.get(role), f"{label} graphCounts.{role}")
+        if sum(cast(int, graph_counts[role]) for role in graph_counts) != content["quadCount"]:
+            raise Atlas3ExplorerError(f"{label} graph counts do not reconcile with content")
+
+        dependencies = _sorted_unique_texts(
+            pack.get("dependencies"), f"{label} dependencies", iri=True
+        )
+        source_releases = _sorted_unique_texts(
+            pack.get("sourceReleases"), f"{label} sourceReleases", iri=True
+        )
+        rings = _sorted_unique_texts(pack.get("rings"), f"{label} rings")
+        if not set(rings).issubset(_RINGS):
+            raise Atlas3ExplorerError(f"{label} declares an unsupported semantic ring")
+
+        has_view_quads = bool(graph_counts["projection"] or graph_counts["derived"])
+        if kind == "sourceRelease":
+            if len(source_releases) != 1 or graph_counts["asserted"] <= 0 or has_view_quads:
+                raise Atlas3ExplorerError(f"{label} is not a valid source-release pack")
+        elif kind in {"catalog", "mapping"}:
+            if graph_counts["asserted"] <= 0 or has_view_quads:
+                raise Atlas3ExplorerError(f"{label} is not a valid asserted pack")
+            if kind == "mapping" and not dependencies:
+                raise Atlas3ExplorerError(f"{label} mapping pack has no dependency")
+        elif kind == "view" and (
+            graph_counts["asserted"] or not has_view_quads or not dependencies
+        ):
+            raise Atlas3ExplorerError(f"{label} is not a valid view pack")
+        if has_view_quads:
+            if (
+                _digest(pack.get("inputAssertedDigest"), f"{label} inputAssertedDigest")
+                != asserted_inventory_digest
+            ):
+                raise Atlas3ExplorerError(f"{label} view pins the wrong asserted inventory")
+        elif "inputAssertedDigest" in pack:
+            raise Atlas3ExplorerError(f"{label} has an unnecessary asserted-input pin")
+
+        partition = pack.get("partition")
+        if partition is not None:
+            partition_row = _mapping(partition, f"{label} partition")
+            _exact_fields(
+                partition_row,
+                frozenset({"strategy", "prefix"}),
+                f"{label} partition",
+            )
+            prefix = _text(partition_row.get("prefix"), f"{label} partition prefix")
+            if (
+                kind != "sourceRelease"
+                or partition_row.get("strategy") != "sha256-subject-iri-prefix"
+                or re.fullmatch(r"[0-9a-f]{1,8}", prefix) is None
+            ):
+                raise Atlas3ExplorerError(f"{label} has an invalid partition")
+
+        packs.append(pack)
+        pack_ids.append(pack_id)
+        paths.append(path)
+
+    if pack_ids != sorted(pack_ids) or len(pack_ids) != len(set(pack_ids)):
+        raise Atlas3ExplorerError("Atlas 3.0 packs must be ordered by unique packId")
+    if len(paths) != len(set(paths)):
+        raise Atlas3ExplorerError("Atlas 3.0 pack paths must be unique")
+    known_pack_ids = set(pack_ids)
+    for pack in packs:
+        dependencies = cast(Sequence[str], pack["dependencies"])
+        if pack["packId"] in dependencies or not set(dependencies).issubset(known_pack_ids):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 pack {pack['packId']} has an invalid dependency"
+            )
+    return tuple(packs)
+
+
 def _verify_manifest(
     manifest: Mapping[str, Any],
     manifest_payload: bytes,
@@ -1168,7 +1465,7 @@ def _verify_manifest(
     if (
         manifest.get("type") != "AtlasManifest"
         or manifest.get("schemaVersion") != "3.0"
-        or manifest.get("format") != "refspec-atlas-nquads-3.0"
+        or manifest.get("format") != "refspec-atlas-packed-nquads-3.0"
     ):
         raise Atlas3ExplorerError("Atlas 3.0 manifest type, schemaVersion, or format is unsupported")
     _text(manifest.get("distributionId"), "Atlas 3.0 manifest distributionId")
@@ -1200,22 +1497,30 @@ def _verify_manifest(
     graph_ids: dict[str, URIRef] = {}
     for position, role in enumerate(("asserted", "projection", "derived")):
         row = _mapping(graph_rows[position], f"Atlas 3.0 {role} graph")
-        _exact_fields(row, frozenset({"role", "id", "quadCount"}), f"Atlas 3.0 {role} graph")
+        _exact_fields(row, _GRAPH_FIELDS, f"Atlas 3.0 {role} graph")
         if row.get("role") != role:
             raise Atlas3ExplorerError("Atlas 3.0 manifest graph roles are out of order")
         graph_ids[role] = URIRef(_text(row.get("id"), f"Atlas 3.0 {role} graph id"))
         _count(row.get("quadCount"), f"Atlas 3.0 {role} graph quadCount")
+        _count(row.get("packCount"), f"Atlas 3.0 {role} graph packCount")
+        _digest(row.get("inventoryDigest"), f"Atlas 3.0 {role} graph inventoryDigest")
     if len(set(graph_ids.values())) != 3:
         raise Atlas3ExplorerError("Atlas 3.0 graph role IRIs must be distinct")
 
-    expected_members = (
-        ("atlasDataset", "atlas.nq", "application/n-quads"),
-        ("sourceAccounting", "atlas-source-accounting.json", "application/json"),
-        ("acceptance", "atlas-acceptance.json", "application/json"),
-    )
+    expected_members = [
+        ("sourceAccounting", _SOURCE_ACCOUNTING_MEMBER, "application/json"),
+        ("acceptance", _ACCEPTANCE_MEMBER, "application/json"),
+    ]
+    if _PRODUCER_VALIDATION_MEMBER in member_evidence:
+        expected_members.append(
+            ("producerValidation", _PRODUCER_VALIDATION_MEMBER, "application/json")
+        )
     members = _sequence(manifest.get("members"), "Atlas 3.0 manifest members")
     if len(members) != len(expected_members):
-        raise Atlas3ExplorerError("Atlas 3.0 manifest must pin exactly three non-manifest members")
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 manifest must pin source accounting, acceptance, and only "
+            "the optional producer proof"
+        )
     for position, (role, path, media_type) in enumerate(expected_members):
         row = _mapping(members[position], f"Atlas 3.0 member {path}")
         _exact_fields(
@@ -1230,6 +1535,18 @@ def _verify_manifest(
             raise Atlas3ExplorerError(f"Atlas 3.0 member {path} digest differs")
         if _count(row.get("byteLength"), f"Atlas 3.0 member {path} byteLength") != byte_length:
             raise Atlas3ExplorerError(f"Atlas 3.0 member {path} byte length differs")
+
+    packs = _verify_pack_rows(manifest)
+    for graph_row in cast(Sequence[Mapping[str, Any]], graph_rows):
+        role = cast(str, graph_row["role"])
+        role_packs = [pack for pack in packs if cast(Mapping[str, int], pack["graphCounts"])[role]]
+        if (
+            graph_row["quadCount"]
+            != sum(cast(Mapping[str, int], pack["graphCounts"])[role] for pack in role_packs)
+            or graph_row["packCount"] != len(role_packs)
+            or graph_row["inventoryDigest"] != _graph_inventory_digest(packs, role)
+        ):
+            raise Atlas3ExplorerError(f"Atlas 3.0 {role} graph inventory does not reconcile")
 
     counts = _mapping(manifest.get("counts"), "Atlas 3.0 manifest counts")
     _exact_fields(counts, _COUNT_FIELDS, "Atlas 3.0 manifest counts")
@@ -1265,9 +1582,13 @@ def _verify_acceptance(
 
     inputs = _mapping(acceptance.get("inputs"), "Atlas 3.0 acceptance inputs")
     binding = _mapping(manifest.get("binding"), "Atlas 3.0 manifest binding")
+    asserted_graph = _mapping(
+        _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")[0],
+        "Atlas 3.0 asserted graph",
+    )
     expected = {
-        "atlasDigest": member_digests["atlas.nq"],
-        "sourceAccountingDigest": member_digests["atlas-source-accounting.json"],
+        "atlasDigest": asserted_graph["inventoryDigest"],
+        "sourceAccountingDigest": member_digests[_SOURCE_ACCOUNTING_MEMBER],
         "bindingBundleDigest": binding["bindingBundleDigest"],
         "ontologyDigest": binding["ontologyDigest"],
         "shapesDigest": binding["shapesDigest"],
@@ -1275,6 +1596,10 @@ def _verify_acceptance(
         "sourceAccountingSchemaDigest": binding["sourceAccountingSchemaDigest"],
         "acceptanceSchemaDigest": binding["acceptanceSchemaDigest"],
     }
+    if _PRODUCER_VALIDATION_MEMBER in member_digests:
+        expected["producerValidationDigest"] = member_digests[
+            _PRODUCER_VALIDATION_MEMBER
+        ]
     if dict(inputs) != expected:
         raise Atlas3ExplorerError("Atlas 3.0 acceptance inputs differ from the sealed distribution")
     for raw in cast(Sequence[Mapping[str, Any]], acceptance["gates"]):
@@ -1288,6 +1613,71 @@ def _verify_acceptance(
         )
         if raw["evidenceDigest"] != expected_gate_digest:
             raise Atlas3ExplorerError(f"Atlas 3.0 gate {raw['name']} evidenceDigest differs")
+
+
+def _verify_producer_validation(
+    manifest: Mapping[str, Any],
+    producer_validation: Mapping[str, Any] | None,
+    member_digests: Mapping[str, str],
+) -> None:
+    """Verify the optional compiled producer proof used by large builds."""
+
+    if producer_validation is None:
+        return
+    _exact_fields(
+        producer_validation,
+        _PRODUCER_VALIDATION_FIELDS,
+        "Atlas 3.0 producer validation",
+    )
+    expected_identity = {
+        "constructorProfile": "atlas-3-source-only-compiled-shacl-v1",
+        "mode": "compiledSourceProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "status": "passed",
+        "type": "AtlasProducerValidation",
+        "version": "3.0",
+    }
+    if any(
+        producer_validation.get(field) != value
+        for field, value in expected_identity.items()
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 producer validation identity differs")
+    _digest(
+        producer_validation.get("implementationDigest"),
+        "Atlas 3.0 producer implementationDigest",
+    )
+    if producer_validation.get("binding") != manifest.get("binding"):
+        raise Atlas3ExplorerError("Atlas 3.0 producer validation binding differs")
+    asserted_graph = _mapping(
+        _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")[0],
+        "Atlas 3.0 asserted graph",
+    )
+    if (
+        producer_validation.get("assertedInventoryDigest")
+        != asserted_graph.get("inventoryDigest")
+        or producer_validation.get("counts") != manifest.get("counts")
+        or producer_validation.get("sourceReleaseCount")
+        != _mapping(manifest.get("counts"), "Atlas 3.0 manifest counts").get(
+            "releases"
+        )
+        or producer_validation.get("sourceAccountingDigest")
+        != member_digests.get(_SOURCE_ACCOUNTING_MEMBER)
+    ):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 producer validation does not describe this distribution"
+        )
+    checks = [
+        _text(row, "Atlas 3.0 producer validation check")
+        for row in _sequence(
+            producer_validation.get("checks"),
+            "Atlas 3.0 producer validation checks",
+        )
+    ]
+    if not checks or len(checks) != len(set(checks)):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 producer validation checks are empty or duplicated"
+        )
 
 
 def _verify_streamed_dataset(
@@ -1386,8 +1776,20 @@ def _visual_index_is_complete(index: _StreamedAtlasIndex) -> bool:
     )
 
 
+def _iter_pack_content_lines(plans: Sequence[_PackPlan]) -> Iterator[bytes]:
+    for plan in plans:
+        with _open_pack_content(plan) as stream:
+            while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+                if len(line) > _NQUADS_MAX_LINE_BYTES:
+                    raise Atlas3ExplorerError(
+                        f"Atlas 3.0 pack {plan.relative_path} line exceeds "
+                        f"{_NQUADS_MAX_LINE_BYTES} bytes"
+                    )
+                yield line
+
+
 def _materialize_visual_dataset(
-    stream: BinaryIO,
+    plans: Sequence[_PackPlan],
     index: _StreamedAtlasIndex,
     graph_ids: Mapping[str, URIRef],
 ) -> Dataset:
@@ -1414,8 +1816,7 @@ def _materialize_visual_dataset(
     policy_ids: set[bytes] = set()
     source_record_ids: set[bytes] = set()
     scheme_ids: set[bytes] = set()
-    stream.seek(0)
-    while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+    for line in _iter_pack_content_lines(plans):
         subject, predicate, object_value, role = _nquad_fields(line, graph_suffixes)
         if predicate == _ATLAS_BINDS_ASSERTION_TOKEN and object_value in assertion_ids:
             evidence_ids.add(subject)
@@ -1439,19 +1840,18 @@ def _materialize_visual_dataset(
         elif predicate == _ATLAS_IDENTIFIER_SCHEME_TOKEN:
             scheme_ids.add(object_value)
 
+    if complete_small_distribution:
+        return dataset
+
     processed_dependencies: set[bytes] = set()
     for _pass in range(3):
         dependency_ids = label_ids | evidence_ids | policy_ids | source_record_ids | scheme_ids
         pending_ids = dependency_ids - processed_dependencies
         if not pending_ids:
             break
-        last_pending_id = max(pending_ids)
         seen_ids: set[bytes] = set()
-        stream.seek(0)
-        while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+        for line in _iter_pack_content_lines(plans):
             subject, predicate, object_value, role = _nquad_fields(line, graph_suffixes)
-            if subject > last_pending_id:
-                break
             if subject not in pending_ids:
                 continue
             seen_ids.add(subject)
@@ -1685,13 +2085,263 @@ def _coverage_view(index: _StreamedAtlasIndex) -> dict[str, Any]:
 
 
 def _scan_binary_member(path: Path) -> tuple[int, str]:
+    with path.open("rb") as stream:
+        return _scan_binary_stream(stream)
+
+
+def _scan_binary_stream(stream: BinaryIO) -> tuple[int, str]:
     digest = hashlib.sha256()
     byte_length = 0
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-            byte_length += len(chunk)
+    while chunk := stream.read(1024 * 1024):
+        digest.update(chunk)
+        byte_length += len(chunk)
     return byte_length, "sha256:" + digest.hexdigest()
+
+
+class _DigestingReader:
+    """Hash compressed bytes while the decoder consumes them."""
+
+    def __init__(self, stream: BinaryIO) -> None:
+        self._stream = stream
+        self._digest = hashlib.sha256()
+        self._byte_length = 0
+
+    def read(self, size: int = -1) -> bytes:
+        chunk = self._stream.read(size)
+        if chunk:
+            self._digest.update(chunk)
+            self._byte_length += len(chunk)
+        return chunk
+
+    def readable(self) -> bool:
+        return True
+
+    def finish(self) -> tuple[tuple[int, str], bool]:
+        trailing = self.read(1024 * 1024)
+        had_trailing = bool(trailing)
+        while trailing:
+            trailing = self.read(1024 * 1024)
+        return (
+            (self._byte_length, "sha256:" + self._digest.hexdigest()),
+            had_trailing,
+        )
+
+
+@contextmanager
+def _open_pack_raw(plan: _PackPlan) -> Iterator[BinaryIO]:
+    """Open one exact transport and reject path replacement around the read."""
+
+    try:
+        with plan.path.open("rb") as raw_stream:
+            opened_status = os.fstat(raw_stream.fileno())
+            if not stat.S_ISREG(opened_status.st_mode) or _file_identity(opened_status) != plan.identity:
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 pack {plan.relative_path} changed while it was being opened"
+                )
+            yield raw_stream
+            final_status = os.fstat(raw_stream.fileno())
+        current_status = plan.path.lstat()
+    except Atlas3ExplorerError:
+        raise
+    except OSError as error:
+        raise Atlas3ExplorerError(
+            f"Atlas 3.0 pack {plan.relative_path} changed while it was being read"
+        ) from error
+    if (
+        _file_identity(final_status) != plan.identity
+        or stat.S_ISLNK(current_status.st_mode)
+        or _file_identity(current_status) != plan.identity
+    ):
+        raise Atlas3ExplorerError(
+            f"Atlas 3.0 pack {plan.relative_path} changed while it was being read"
+        )
+
+
+@contextmanager
+def _open_pack_content(plan: _PackPlan) -> Iterator[BinaryIO]:
+    """Yield one uncompressed pack stream without materializing its bytes."""
+
+    with _open_pack_raw(plan) as raw_stream:
+        if plan.compression == "none":
+            yield raw_stream
+            return
+        try:
+            with zstd.open(raw_stream, "rb") as content_stream:
+                yield cast(BinaryIO, content_stream)
+        except (OSError, EOFError, zstd.ZstdError) as error:
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 pack {plan.relative_path} is not valid Zstandard content"
+            ) from error
+
+
+def _distribution_pack_plans(
+    root: Path,
+    manifest: Mapping[str, Any],
+) -> tuple[_PackPlan, ...]:
+    """Check recursive closed membership and freeze every pack file identity."""
+
+    pack_rows = tuple(
+        _mapping(raw, "Atlas 3.0 manifest pack")
+        for raw in _sequence(manifest.get("packs"), "Atlas 3.0 manifest packs")
+    )
+    expected_files = {
+        _ROOT_MANIFEST,
+    }
+    for raw_member in _sequence(
+        manifest.get("members"),
+        "Atlas 3.0 manifest members",
+    ):
+        member = _mapping(raw_member, "Atlas 3.0 manifest member")
+        expected_files.add(
+            _safe_relative_path(
+                member.get("path"),
+                "Atlas 3.0 manifest member path",
+            )
+        )
+    for pack in pack_rows:
+        expected_files.add(_safe_relative_path(pack.get("path"), "Atlas 3.0 pack path"))
+    expected_directories = {
+        parent.as_posix()
+        for relative in expected_files
+        for parent in PurePosixPath(relative).parents
+        if parent.as_posix() != "."
+    }
+
+    observed_files: set[str] = set()
+    observed_directories: set[str] = set()
+    statuses: dict[str, os.stat_result] = {}
+    for directory, directory_names, file_names in os.walk(root, followlinks=False):
+        directory_path = Path(directory)
+        for name in directory_names:
+            path = directory_path / name
+            relative = path.relative_to(root).as_posix()
+            path_status = path.lstat()
+            if stat.S_ISLNK(path_status.st_mode) or not stat.S_ISDIR(path_status.st_mode):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 distribution member {relative} is an unsafe directory"
+                )
+            observed_directories.add(relative)
+        for name in file_names:
+            path = directory_path / name
+            relative = path.relative_to(root).as_posix()
+            path_status = path.lstat()
+            if stat.S_ISLNK(path_status.st_mode) or not stat.S_ISREG(path_status.st_mode):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 distribution member {relative} must be a regular non-symlink file"
+                )
+            observed_files.add(relative)
+            statuses[relative] = path_status
+    if observed_files != expected_files or observed_directories != expected_directories:
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 distribution paths differ; "
+            f"missingFiles={sorted(expected_files - observed_files)}, "
+            f"extraFiles={sorted(observed_files - expected_files)}, "
+            f"missingDirectories={sorted(expected_directories - observed_directories)}, "
+            f"extraDirectories={sorted(observed_directories - expected_directories)}"
+        )
+
+    plans: list[_PackPlan] = []
+    for pack in pack_rows:
+        relative = cast(str, pack["path"])
+        transport = _mapping(pack.get("transport"), f"Atlas 3.0 pack {relative} transport")
+        plans.append(
+            _PackPlan(
+                pack_id=cast(str, pack["packId"]),
+                path=root / PurePosixPath(relative),
+                relative_path=relative,
+                compression=cast(str, transport["compression"]),
+                identity=_file_identity(statuses[relative]),
+                manifest_row=pack,
+            )
+        )
+    return tuple(plans)
+
+
+def _scan_packs(
+    plans: Sequence[_PackPlan],
+    graph_ids: Mapping[str, URIRef],
+    manifest: Mapping[str, Any],
+) -> _StreamedAtlasIndex:
+    """Verify all pack pins and build one deterministic bounded global index."""
+
+    builder = _StreamingIndexBuilder()
+    graph_quad_counts: Counter[str] = Counter()
+    total_content_bytes = 0
+    for plan in plans:
+        row = plan.manifest_row
+        transport = _mapping(row["transport"], f"Atlas 3.0 pack {plan.relative_path} transport")
+        content = _mapping(row["content"], f"Atlas 3.0 pack {plan.relative_path} content")
+        with _open_pack_raw(plan) as raw_stream:
+            if plan.compression == "zstd":
+                transport_reader = _DigestingReader(raw_stream)
+                try:
+                    with zstd.open(transport_reader, "rb") as content_stream:
+                        content_evidence = _scan_pack_content(
+                            cast(BinaryIO, content_stream),
+                            graph_ids,
+                            builder,
+                            label=f"pack {plan.relative_path}",
+                        )
+                except (OSError, EOFError, zstd.ZstdError) as error:
+                    transport_evidence, _ = transport_reader.finish()
+                    if transport_evidence != (
+                        transport["byteLength"],
+                        transport["digest"],
+                    ):
+                        raise Atlas3ExplorerError(
+                            f"Atlas 3.0 pack {plan.relative_path} transport pin differs"
+                        ) from error
+                    raise Atlas3ExplorerError(
+                        f"Atlas 3.0 pack {plan.relative_path} is not valid Zstandard content"
+                    ) from error
+                transport_evidence, had_trailing = transport_reader.finish()
+                if had_trailing:
+                    raise Atlas3ExplorerError(
+                        f"Atlas 3.0 pack {plan.relative_path} contains bytes not consumed by its decoder"
+                    )
+            else:
+                content_evidence = _scan_pack_content(
+                    raw_stream,
+                    graph_ids,
+                    builder,
+                    label=f"pack {plan.relative_path}",
+                )
+                transport_evidence = (
+                    content_evidence.byte_length,
+                    content_evidence.digest,
+                )
+        if transport_evidence != (
+            transport["byteLength"],
+            transport["digest"],
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 pack {plan.relative_path} transport pin differs"
+            )
+        observed_graph_counts = {
+            role: content_evidence.graph_quad_counts.get(role, 0)
+            for role in ("asserted", "projection", "derived")
+        }
+        if (
+            content_evidence.byte_length != content["byteLength"]
+            or content_evidence.digest != content["digest"]
+            or content_evidence.quad_count != content["quadCount"]
+            or observed_graph_counts != dict(cast(Mapping[str, int], row["graphCounts"]))
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 pack {plan.relative_path} content pin or counts differ"
+            )
+        total_content_bytes += content_evidence.byte_length
+        graph_quad_counts.update(observed_graph_counts)
+
+    asserted_graph = _mapping(
+        _sequence(manifest["graphs"], "Atlas 3.0 manifest graphs")[0],
+        "Atlas 3.0 asserted graph",
+    )
+    return builder.finish(
+        byte_length=total_content_bytes,
+        digest=cast(str, asserted_graph["inventoryDigest"]),
+        graph_quad_counts=graph_quad_counts,
+    )
 
 
 def _provisional_graph_ids(manifest: Mapping[str, Any]) -> dict[str, URIRef]:
@@ -1733,7 +2383,7 @@ class Atlas3ExplorerDistribution:
         *,
         trusted_manifest_digest: str,
     ) -> Atlas3ExplorerDistribution:
-        """Verify four exact files and materialize a bounded visual index."""
+        """Verify exact packed members and materialize a bounded visual index."""
 
         requested_root = Path(root)
         try:
@@ -1743,94 +2393,96 @@ class Atlas3ExplorerDistribution:
         if stat.S_ISLNK(root_status.st_mode) or not stat.S_ISDIR(root_status.st_mode):
             raise Atlas3ExplorerError("Atlas 3.0 distribution root must be a real directory")
         resolved_root = requested_root.resolve(strict=True)
-        children = {child.name: child for child in resolved_root.iterdir()}
-        if set(children) != EXPECTED_FILES:
-            raise Atlas3ExplorerError(
-                "Atlas 3.0 distribution files differ; "
-                f"missing={sorted(EXPECTED_FILES - set(children))}, "
-                f"extra={sorted(set(children) - EXPECTED_FILES)}"
-            )
-        member_statuses: dict[str, os.stat_result] = {}
-        for name, path in children.items():
-            file_status = path.lstat()
-            if stat.S_ISLNK(file_status.st_mode) or not stat.S_ISREG(file_status.st_mode):
-                raise Atlas3ExplorerError(f"Atlas 3.0 member {name} must be a regular non-symlink file")
-            member_statuses[name] = file_status
-
-        manifest_payload = children["atlas-manifest.json"].read_bytes()
-        acceptance_payload = children["atlas-acceptance.json"].read_bytes()
+        manifest_path = resolved_root / _ROOT_MANIFEST
+        try:
+            manifest_status = manifest_path.lstat()
+            manifest_payload = manifest_path.read_bytes()
+        except OSError as error:
+            raise Atlas3ExplorerError("Atlas 3.0 manifest is unavailable") from error
+        if stat.S_ISLNK(manifest_status.st_mode) or not stat.S_ISREG(manifest_status.st_mode):
+            raise Atlas3ExplorerError("Atlas 3.0 manifest must be a regular non-symlink file")
         if sha256_digest(manifest_payload) != _digest(
             trusted_manifest_digest,
             "trusted Atlas 3.0 manifest digest",
         ):
             raise Atlas3ExplorerError("Atlas 3.0 manifest differs from the trusted digest")
         manifest = _read_canonical_json(manifest_payload, "Atlas 3.0 manifest")
-        acceptance = _read_canonical_json(acceptance_payload, "Atlas 3.0 acceptance")
         graph_ids = _provisional_graph_ids(manifest)
+        _verify_pack_rows(manifest)
+        plans = _distribution_pack_plans(resolved_root, manifest)
 
-        accounting_path = children["atlas-source-accounting.json"]
+        acceptance_path = resolved_root / _ACCEPTANCE_MEMBER
+        accounting_path = resolved_root / _SOURCE_ACCOUNTING_MEMBER
+        acceptance_payload = acceptance_path.read_bytes()
+        acceptance = _read_canonical_json(acceptance_payload, "Atlas 3.0 acceptance")
+
         accounting_payload: bytes | None = None
         source_accounting: Mapping[str, Any] | None = None
-        if member_statuses["atlas-source-accounting.json"].st_size <= _SOURCE_ACCOUNTING_INLINE_MAX_BYTES:
+        if accounting_path.stat().st_size <= _SOURCE_ACCOUNTING_INLINE_MAX_BYTES:
             accounting_payload = accounting_path.read_bytes()
             accounting_evidence = (len(accounting_payload), sha256_digest(accounting_payload))
             source_accounting = _read_canonical_json(accounting_payload, "Atlas 3.0 source accounting")
         else:
             accounting_evidence = _scan_binary_member(accounting_path)
         member_evidence = {
-            "atlas-source-accounting.json": accounting_evidence,
-            "atlas-acceptance.json": (len(acceptance_payload), sha256_digest(acceptance_payload)),
+            _SOURCE_ACCOUNTING_MEMBER: accounting_evidence,
+            _ACCEPTANCE_MEMBER: (len(acceptance_payload), sha256_digest(acceptance_payload)),
         }
-        atlas_path = children["atlas.nq"]
-        with atlas_path.open("rb") as atlas_stream:
-            opened_status = os.fstat(atlas_stream.fileno())
-            if (
-                not stat.S_ISREG(opened_status.st_mode)
-                or (opened_status.st_dev, opened_status.st_ino)
-                != (
-                    member_statuses["atlas.nq"].st_dev,
-                    member_statuses["atlas.nq"].st_ino,
-                )
-            ):
-                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being opened")
-            opened_identity = _file_identity(opened_status)
-            streamed_index = _scan_dataset_member(atlas_stream, graph_ids)
-            member_evidence["atlas.nq"] = (streamed_index.byte_length, streamed_index.digest)
-
-            manifest_digest, verified_graph_ids = _verify_manifest(
-                manifest,
-                manifest_payload,
-                member_evidence,
-                trusted_manifest_digest,
-            )
-            _verify_acceptance(
-                manifest,
-                acceptance,
-                {name: digest for name, (_size, digest) in member_evidence.items()},
-            )
-            _verify_binding_evidence(manifest, acceptance)
-            if verified_graph_ids != graph_ids:
-                raise Atlas3ExplorerError("Atlas 3.0 graph roles changed during verification")
-            _verify_streamed_dataset(manifest, streamed_index)
-            dataset = _materialize_visual_dataset(atlas_stream, streamed_index, graph_ids)
+        producer_validation: Mapping[str, Any] | None = None
+        member_rows = _sequence(
+            manifest.get("members"),
+            "Atlas 3.0 manifest members",
+        )
+        if any(
+            _mapping(row, "Atlas 3.0 manifest member").get("role")
+            == "producerValidation"
+            for row in member_rows
+        ):
+            producer_validation_path = resolved_root / _PRODUCER_VALIDATION_MEMBER
             try:
-                current_path_status = atlas_path.lstat()
-                final_status = os.fstat(atlas_stream.fileno())
+                producer_validation_payload = producer_validation_path.read_bytes()
             except OSError as error:
-                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being read") from error
-            if (
-                _file_identity(final_status) != opened_identity
-                or stat.S_ISLNK(current_path_status.st_mode)
-                or _file_identity(current_path_status) != opened_identity
-            ):
-                raise Atlas3ExplorerError("Atlas 3.0 dataset changed while it was being read")
-            complete_small_distribution = _visual_index_is_complete(streamed_index)
-            if source_accounting is not None and complete_small_distribution:
-                _verify_source_accounting(
-                    manifest,
-                    source_accounting,
-                    dataset.graph(graph_ids["asserted"]),
-                )
+                raise Atlas3ExplorerError(
+                    "Atlas 3.0 producer validation is unavailable"
+                ) from error
+            producer_validation = _read_canonical_json(
+                producer_validation_payload,
+                "Atlas 3.0 producer validation",
+            )
+            member_evidence[_PRODUCER_VALIDATION_MEMBER] = (
+                len(producer_validation_payload),
+                sha256_digest(producer_validation_payload),
+            )
+        manifest_digest, verified_graph_ids = _verify_manifest(
+            manifest,
+            manifest_payload,
+            member_evidence,
+            trusted_manifest_digest,
+        )
+        _verify_acceptance(
+            manifest,
+            acceptance,
+            {name: digest for name, (_size, digest) in member_evidence.items()},
+        )
+        _verify_producer_validation(
+            manifest,
+            producer_validation,
+            {name: digest for name, (_size, digest) in member_evidence.items()},
+        )
+        _verify_binding_evidence(manifest, acceptance)
+        if verified_graph_ids != graph_ids:
+            raise Atlas3ExplorerError("Atlas 3.0 graph roles changed during verification")
+
+        streamed_index = _scan_packs(plans, graph_ids, manifest)
+        _verify_streamed_dataset(manifest, streamed_index)
+        dataset = _materialize_visual_dataset(plans, streamed_index, graph_ids)
+        complete_small_distribution = _visual_index_is_complete(streamed_index)
+        if source_accounting is not None and complete_small_distribution:
+            _verify_source_accounting(
+                manifest,
+                source_accounting,
+                dataset.graph(graph_ids["asserted"]),
+            )
         accounting_summary = _source_accounting_summary(
             manifest,
             streamed_index,
@@ -1858,6 +2510,7 @@ class Atlas3ExplorerDistribution:
                 "derivedRelations": len(streamed_index.derived_relation_ids),
             },
             "oversizedRelationsSkipped": streamed_index.oversized_relations_skipped,
+            "packCount": len(plans),
             "fullDatasetRdfLibParsed": False,
             "sourceRecordPayloadMode": (
                 "complete" if _visual_index_is_complete(streamed_index) else "metadataOnly"

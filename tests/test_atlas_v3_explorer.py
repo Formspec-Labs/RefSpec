@@ -21,13 +21,17 @@ from refspec.atlas.explorer import (
     open_atlas_v3_explorer_distribution,
     render_atlas_explorer,
 )
+from refspec.atlas.explorer_cli import build_preview
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = ROOT / "bindings" / "atlas" / "3.0" / "fixtures" / "valid" / "source-native-thesaurus"
+FIXTURE_SOURCE = (
+    ROOT / "bindings" / "atlas" / "3.0" / "fixtures" / "valid" / "source-native-thesaurus"
+)
+FIXTURE = FIXTURE_SOURCE
 
 
 def _canonical_digest_without_lf(value: object) -> str:
@@ -40,7 +44,211 @@ def _write_json(path: Path, value: object) -> None:
     path.write_bytes(canonical_json_bytes(value))
 
 
-def _open_distribution(root: Path = FIXTURE):
+def _source_fixture_lines(source: Path, manifest: dict[str, object]) -> list[bytes]:
+    if manifest["format"] == "refspec-atlas-nquads-3.0":
+        return (source / "atlas.nq").read_bytes().splitlines(keepends=True)
+    lines: list[bytes] = []
+    for raw_pack in manifest["packs"]:  # type: ignore[index]
+        pack = dict(raw_pack)
+        path = source / str(pack["path"])
+        if pack["transport"]["compression"] == "zstd":  # type: ignore[index]
+            with explorer_module.zstd.open(path, "rb") as stream:
+                lines.extend(stream.readlines())
+        else:
+            lines.extend(path.read_bytes().splitlines(keepends=True))
+    return sorted(set(lines))
+
+
+def _write_current_packed_fixture(
+    source: Path,
+    target: Path,
+    *,
+    include_views: bool = True,
+    compression: str = "none",
+    split_asserted_packs: bool = False,
+) -> None:
+    source_manifest = json.loads((source / "atlas-manifest.json").read_text(encoding="utf-8"))
+    graph_ids = {row["role"]: row["id"] for row in source_manifest["graphs"]}
+    suffixes = {
+        role: f" <{graph_id}> .\n".encode()
+        for role, graph_id in graph_ids.items()
+    }
+    lines = _source_fixture_lines(source, source_manifest)
+    if not include_views:
+        lines = [line for line in lines if line.endswith(suffixes["asserted"])]
+    lines.sort()
+    if split_asserted_packs:
+        assert not include_views
+        subjects = sorted({line.split(b" ", 1)[0] for line in lines})
+        midpoint = len(subjects) // 2
+        first_subjects = set(subjects[:midpoint])
+        pack_line_groups = [
+            [line for line in lines if line.split(b" ", 1)[0] in first_subjects],
+            [line for line in lines if line.split(b" ", 1)[0] not in first_subjects],
+        ]
+        assert all(pack_line_groups)
+    else:
+        pack_line_groups = [lines]
+
+    target.mkdir()
+    (target / "packs").mkdir()
+    shutil.copyfile(
+        source / "atlas-source-accounting.json",
+        target / "atlas-source-accounting.json",
+    )
+    packs = []
+    for index, pack_lines in enumerate(pack_line_groups):
+        payload = b"".join(pack_lines)
+        graph_counts = {
+            role: sum(line.endswith(suffix) for line in pack_lines)
+            for role, suffix in suffixes.items()
+        }
+        suffix = ".nq.zst" if compression == "zstd" else ".nq"
+        stem = "aggregate" if len(pack_line_groups) == 1 else f"aggregate-{index}"
+        relative_pack_path = f"packs/{stem}{suffix}"
+        pack_path = target / relative_pack_path
+        if compression == "zstd":
+            with explorer_module.zstd.open(pack_path, "wb", level=1) as stream:
+                stream.write(payload)
+            transport_media_type = "application/zstd"
+        else:
+            pack_path.write_bytes(payload)
+            transport_media_type = "application/n-quads"
+        content_digest = sha256_digest(payload)
+        pack_id = "urn:ref:atlas-test:pack:" + content_digest.removeprefix("sha256:")
+        packs.append(
+            {
+                "content": {
+                    "byteLength": len(payload),
+                    "digest": content_digest,
+                    "mediaType": "application/n-quads",
+                    "quadCount": len(pack_lines),
+                },
+                "dependencies": [],
+                "graphCounts": graph_counts,
+                "kind": "aggregate",
+                "packId": pack_id,
+                "path": relative_pack_path,
+                "rings": [],
+                "sourceReleases": [],
+                "transport": {
+                    "byteLength": pack_path.stat().st_size,
+                    "compression": compression,
+                    "digest": sha256_digest(pack_path.read_bytes()),
+                    "mediaType": transport_media_type,
+                },
+            }
+        )
+    packs.sort(key=lambda row: row["packId"])
+
+    graph_rows = []
+    for role in ("asserted", "projection", "derived"):
+        inventory_rows = [
+            {
+                "contentDigest": pack["content"]["digest"],
+                "packId": pack["packId"],
+                "quadCount": pack["graphCounts"][role],
+            }
+            for pack in packs
+            if pack["graphCounts"][role]
+        ]
+        graph_rows.append(
+            {
+                "id": graph_ids[role],
+                "inventoryDigest": _canonical_digest_without_lf(inventory_rows),
+                "packCount": len(inventory_rows),
+                "quadCount": sum(row["quadCount"] for row in inventory_rows),
+                "role": role,
+            }
+        )
+    for pack in packs:
+        if pack["graphCounts"]["projection"] or pack["graphCounts"]["derived"]:
+            pack["inputAssertedDigest"] = graph_rows[0]["inventoryDigest"]
+
+    binding = {"validatorVersion": "3.0", "version": "3.0", **explorer_module._binding_digests()}
+    accounting_path = target / "atlas-source-accounting.json"
+    acceptance_inputs = {
+        "atlasDigest": graph_rows[0]["inventoryDigest"],
+        "sourceAccountingDigest": sha256_digest(accounting_path.read_bytes()),
+        **explorer_module._binding_digests(),
+    }
+    validator = {"name": "refspec-atlas-conformance", "version": "3.0"}
+    acceptance = {
+        "distributionId": source_manifest["distributionId"],
+        "evaluatedAt": source_manifest["createdAt"],
+        "gates": [
+            {
+                "evidenceDigest": _canonical_digest_without_lf(
+                    {
+                        "inputs": acceptance_inputs,
+                        "name": gate,
+                        "status": "passed",
+                        "validator": validator,
+                    }
+                ),
+                "name": gate,
+                "status": "passed",
+            }
+            for gate in sorted(explorer_module.REQUIRED_ACCEPTANCE_GATES)
+        ],
+        "inputs": acceptance_inputs,
+        "type": "AtlasAcceptance",
+        "validator": validator,
+        "verdict": "passed",
+        "version": "3.0",
+    }
+    acceptance_path = target / "atlas-acceptance.json"
+    _write_json(acceptance_path, acceptance)
+
+    counts = dict(source_manifest["counts"])
+    if not include_views:
+        counts["projectedRelations"] = 0
+        counts["derivedRelations"] = 0
+    manifest = {
+        "binding": binding,
+        "counts": counts,
+        "createdAt": source_manifest["createdAt"],
+        "distributionId": source_manifest["distributionId"],
+        "format": "refspec-atlas-packed-nquads-3.0",
+        "graphs": graph_rows,
+        "members": [
+            {
+                "byteLength": accounting_path.stat().st_size,
+                "digest": sha256_digest(accounting_path.read_bytes()),
+                "mediaType": "application/json",
+                "path": "atlas-source-accounting.json",
+                "role": "sourceAccounting",
+            },
+            {
+                "byteLength": acceptance_path.stat().st_size,
+                "digest": sha256_digest(acceptance_path.read_bytes()),
+                "mediaType": "application/json",
+                "path": "atlas-acceptance.json",
+                "role": "acceptance",
+            },
+        ],
+        "packs": packs,
+        "schemaVersion": "3.0",
+        "type": "AtlasManifest",
+    }
+    manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(manifest)
+    _write_json(target / "atlas-manifest.json", manifest)
+
+
+@pytest.fixture(autouse=True)
+def _packed_fixture(tmp_path: Path) -> None:
+    global FIXTURE
+    previous = FIXTURE
+    FIXTURE = tmp_path / "source-native-thesaurus"
+    _write_current_packed_fixture(FIXTURE_SOURCE, FIXTURE)
+    try:
+        yield
+    finally:
+        FIXTURE = previous
+
+
+def _open_distribution(root: Path | None = None):
+    root = FIXTURE if root is None else root
     return open_atlas_v3_explorer_distribution(
         root,
         trusted_manifest_digest=sha256_digest((root / "atlas-manifest.json").read_bytes()),
@@ -76,7 +284,66 @@ def _reseal_changed_json_members(root: Path) -> None:
     _write_json(manifest_path, manifest)
 
 
-def test_opens_four_file_distribution_and_checks_trusted_manifest() -> None:
+def _install_producer_validation(root: Path) -> None:
+    manifest_path = root / "atlas-manifest.json"
+    acceptance_path = root / "atlas-acceptance.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    proof = {
+        "assertedInventoryDigest": manifest["graphs"][0]["inventoryDigest"],
+        "binding": dict(manifest["binding"]),
+        "checks": ["unit-test compiled producer proof"],
+        "constructorProfile": "atlas-3-source-only-compiled-shacl-v1",
+        "counts": dict(manifest["counts"]),
+        "implementationDigest": "sha256:" + "1" * 64,
+        "mode": "compiledSourceProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "sourceAccountingDigest": sha256_digest(
+            (root / "atlas-source-accounting.json").read_bytes()
+        ),
+        "sourceReleaseCount": manifest["counts"]["releases"],
+        "status": "passed",
+        "type": "AtlasProducerValidation",
+        "version": "3.0",
+    }
+    proof_path = root / "atlas-producer-validation.json"
+    _write_json(proof_path, proof)
+    proof_payload = proof_path.read_bytes()
+    proof_digest = sha256_digest(proof_payload)
+    manifest["members"].append(
+        {
+            "byteLength": len(proof_payload),
+            "digest": proof_digest,
+            "mediaType": "application/json",
+            "path": "atlas-producer-validation.json",
+            "role": "producerValidation",
+        }
+    )
+    acceptance["inputs"]["producerValidationDigest"] = proof_digest
+    for gate in acceptance["gates"]:
+        gate["evidenceDigest"] = _canonical_digest_without_lf(
+            {
+                "inputs": acceptance["inputs"],
+                "name": gate["name"],
+                "status": "passed",
+                "validator": acceptance["validator"],
+            }
+        )
+    _write_json(acceptance_path, acceptance)
+    acceptance_member = next(
+        row for row in manifest["members"] if row["role"] == "acceptance"
+    )
+    acceptance_payload = acceptance_path.read_bytes()
+    acceptance_member["byteLength"] = len(acceptance_payload)
+    acceptance_member["digest"] = sha256_digest(acceptance_payload)
+    basis = dict(manifest)
+    basis.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(basis)
+    _write_json(manifest_path, manifest)
+
+
+def test_opens_packed_distribution_and_checks_trusted_manifest() -> None:
     trusted_digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
     distribution = open_atlas_v3_explorer_distribution(
         FIXTURE,
@@ -94,6 +361,129 @@ def test_opens_four_file_distribution_and_checks_trusted_manifest() -> None:
     assert distribution.visual_index["fullDatasetRdfLibParsed"] is False
     with pytest.raises(Atlas3ExplorerError, match="unknown Atlas 3.0 graph role"):
         distribution.graph("union")
+
+
+def test_opens_distribution_with_compiled_producer_proof(tmp_path: Path) -> None:
+    target = tmp_path / "with-producer-proof"
+    shutil.copytree(FIXTURE, target)
+    _install_producer_validation(target)
+
+    distribution = _open_distribution(target)
+
+    assert distribution.trusted_manifest
+    assert distribution.manifest["members"][2]["role"] == "producerValidation"
+
+
+def test_build_preview_writes_one_self_contained_html_file(tmp_path: Path) -> None:
+    output = tmp_path / "atlas-preview.html"
+    digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
+
+    assert build_preview(FIXTURE, output, manifest_digest=digest) == output
+    rendered = output.read_text(encoding="utf-8")
+    assert "RefSpec Atlas 3.0 explorer" in rendered
+    assert "<canvas" in rendered
+
+
+def test_opens_zstd_multi_pack_distribution_without_projection(tmp_path: Path) -> None:
+    asserted_only = tmp_path / "asserted-only"
+    _write_current_packed_fixture(
+        FIXTURE_SOURCE,
+        asserted_only,
+        include_views=False,
+        compression="zstd",
+        split_asserted_packs=True,
+    )
+
+    first = _open_distribution(asserted_only)
+    second = _open_distribution(asserted_only)
+    first_model = build_atlas_v3_explorer_model(first)
+    second_model = build_atlas_v3_explorer_model(second)
+
+    assert first.visual_index["packCount"] == 2
+    assert first.dataset_quad_counts["projection"] == 0
+    assert len(first.projection_graph) == 0
+    assert first_model["projectedRelations"] == []
+    assert first_model["assertedRelations"]
+    assert first_model["assertedRelations"][0]["id"] in render_atlas_explorer(first_model)
+    assert first_model["resources"] == second_model["resources"]
+    assert first_model["assertedRelations"] == second_model["assertedRelations"]
+    assert [pack["packId"] for pack in first.manifest["packs"]] == sorted(
+        pack["packId"] for pack in first.manifest["packs"]
+    )
+
+
+def test_zstd_pack_transport_is_hashed_during_decode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asserted_only = tmp_path / "asserted-only"
+    _write_current_packed_fixture(
+        FIXTURE_SOURCE,
+        asserted_only,
+        include_views=False,
+        compression="zstd",
+        split_asserted_packs=True,
+    )
+    original = explorer_module._scan_binary_stream
+
+    def reject_compressed_prescan(stream):
+        if str(getattr(stream, "name", "")).endswith(".zst"):
+            raise AssertionError("compressed packs must be read only by the decoder")
+        return original(stream)
+
+    monkeypatch.setattr(
+        explorer_module,
+        "_scan_binary_stream",
+        reject_compressed_prescan,
+    )
+
+    distribution = _open_distribution(asserted_only)
+
+    assert distribution.visual_index["packCount"] == 2
+
+
+def test_rejects_zstd_transport_or_uncompressed_content_drift(tmp_path: Path) -> None:
+    transport_drift = tmp_path / "transport-drift"
+    _write_current_packed_fixture(
+        FIXTURE_SOURCE,
+        transport_drift,
+        include_views=False,
+        compression="zstd",
+    )
+    manifest_path = transport_drift / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    pack_path = transport_drift / manifest["packs"][0]["path"]
+    with pack_path.open("ab") as stream:
+        stream.write(b"\x00")
+    with pytest.raises(Atlas3ExplorerError, match="transport pin differs"):
+        _open_distribution(transport_drift)
+
+    content_drift = tmp_path / "content-drift"
+    _write_current_packed_fixture(
+        FIXTURE_SOURCE,
+        content_drift,
+        include_views=False,
+        compression="zstd",
+    )
+    manifest_path = content_drift / "atlas-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    pack = manifest["packs"][0]
+    pack_path = content_drift / pack["path"]
+    with explorer_module.zstd.open(pack_path, "rb") as stream:
+        payload = stream.read()
+    marker = payload.index(b"sha256:") + len(b"sha256:")
+    replacement = b"0" if payload[marker : marker + 1] != b"0" else b"1"
+    payload = payload[:marker] + replacement + payload[marker + 1 :]
+    with explorer_module.zstd.open(pack_path, "wb", level=1) as stream:
+        stream.write(payload)
+    pack["transport"]["byteLength"] = pack_path.stat().st_size
+    pack["transport"]["digest"] = sha256_digest(pack_path.read_bytes())
+    basis = dict(manifest)
+    basis.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(basis)
+    _write_json(manifest_path, manifest)
+    with pytest.raises(Atlas3ExplorerError, match="content pin or counts differ"):
+        _open_distribution(content_drift)
 
 
 def test_model_preserves_authority_provenance_and_alternate_only_labels() -> None:
@@ -422,22 +812,22 @@ def test_model_limits_precede_detailed_views_and_preserve_full_counts(
     assert limited["summary"]["truncated"] is True
 
 
-def test_open_streams_the_nquads_member_instead_of_reading_it_all(
+def test_open_streams_nquads_packs_instead_of_reading_them_all(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     original = Path.read_bytes
     original_open = Path.open
-    atlas_open_count = 0
+    pack_open_count = 0
 
     def guarded_read_bytes(path: Path) -> bytes:
-        if path.name == "atlas.nq":
-            raise AssertionError("atlas.nq must not be materialized as one bytes object")
+        if path.is_relative_to(FIXTURE / "packs") and path.name.endswith((".nq", ".nq.zst")):
+            raise AssertionError("an Atlas pack must not be materialized as one bytes object")
         return original(path)
 
     def counted_open(path: Path, *args, **kwargs):
-        nonlocal atlas_open_count
-        if path.name == "atlas.nq":
-            atlas_open_count += 1
+        nonlocal pack_open_count
+        if path.is_relative_to(FIXTURE / "packs") and path.name.endswith((".nq", ".nq.zst")):
+            pack_open_count += 1
         return original_open(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
@@ -454,7 +844,7 @@ def test_open_streams_the_nquads_member_instead_of_reading_it_all(
 
     assert distribution.dataset_quad_counts["asserted"] == distribution.manifest["graphs"][0]["quadCount"]
     assert len(distribution.asserted_graph) <= distribution.dataset_quad_counts["asserted"]
-    assert atlas_open_count == 1
+    assert pack_open_count == 2
 
 
 def test_streaming_index_is_deterministic_and_resource_bounded() -> None:
@@ -577,28 +967,31 @@ def test_rejects_dataset_path_replacement_during_streaming_materialization(
     shutil.copytree(FIXTURE, raced)
     original_materialize = explorer_module._materialize_visual_dataset
 
-    def replacing_materialize(stream, index, graph_ids):
-        atlas_path = raced / "atlas.nq"
-        moved_path = raced / "opened-atlas.nq"
-        atlas_path.replace(moved_path)
-        shutil.copyfile(moved_path, atlas_path)
+    def replacing_materialize(plans, index, graph_ids):
+        pack_path = plans[0].path
+        moved_path = pack_path.with_name("opened-" + pack_path.name)
+        pack_path.replace(moved_path)
+        shutil.copyfile(moved_path, pack_path)
         try:
-            return original_materialize(stream, index, graph_ids)
+            return original_materialize(plans, index, graph_ids)
         finally:
             moved_path.unlink()
 
     monkeypatch.setattr(explorer_module, "_materialize_visual_dataset", replacing_materialize)
 
-    with pytest.raises(Atlas3ExplorerError, match="changed while it was being read"):
+    with pytest.raises(Atlas3ExplorerError, match="changed while it was being (?:opened|read)"):
         _open_distribution(raced)
 
 
 def test_rejects_changed_dataset_and_forged_gate_receipt(tmp_path: Path) -> None:
     changed_dataset = tmp_path / "changed-dataset"
     shutil.copytree(FIXTURE, changed_dataset)
-    with (changed_dataset / "atlas.nq").open("ab") as stream:
+    changed_manifest = json.loads(
+        (changed_dataset / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    with (changed_dataset / changed_manifest["packs"][0]["path"]).open("ab") as stream:
         stream.write(b"\n")
-    with pytest.raises(Atlas3ExplorerError, match="dataset lines must be non-empty"):
+    with pytest.raises(Atlas3ExplorerError, match="pack .* lines must be non-empty"):
         _open_distribution(changed_dataset)
 
     forged_gate = tmp_path / "forged-gate"
