@@ -23,6 +23,7 @@ import csv
 import hashlib
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.source_controlled_resource import (
@@ -87,6 +88,24 @@ _CCN_SHAPE = re.compile(r"^\d{2}[0-9A-Z]{4}$|^\d{2}[0-9A-Z]{8}$")
 
 class NppesIdentifierError(ValueError):
     """An NPI, CCN, or NPPES file-layout capture fails its published shape."""
+
+
+@dataclass(frozen=True, slots=True)
+class NppesProviderRecord:
+    """One complete row from the bounded public NPPES provider sample."""
+
+    identifier: ControlledIdentifier
+    entity_type_code: str
+    publisher_label: str
+    fields: tuple[tuple[str, str], ...]
+
+    def native_payload(self) -> dict[str, object]:
+        return {
+            "entityTypeCode": self.entity_type_code,
+            "identifier": self.identifier.as_dict(),
+            "publisherLabel": self.publisher_label,
+            "fields": {name: value for name, value in self.fields},
+        }
 
 
 def _sha256(payload: bytes) -> str:
@@ -325,6 +344,65 @@ def parse_npi_sample(
     return tuple(identifiers)
 
 
+def parse_npi_provider_sample(
+    payload: bytes,
+    fileheader_columns: Sequence[str],
+    *,
+    source_uri: str = NPPES_WEEKLY_CAPTURE_URL,
+    observed_at: str = NPPES_CAPTURED_AT,
+    expected_sha256: str | None = None,
+    expected_byte_length: int | None = None,
+) -> tuple[NppesProviderRecord, ...]:
+    """Parse every field of the bounded public provider sample.
+
+    This is the entity-preserving companion to :func:`parse_npi_sample`. It
+    enforces the same exact header, digest, row ceiling, NPI validation, and
+    entity-type checks, then retains all 330 publisher fields instead of
+    discarding the provider rows after extracting their identifiers.
+    """
+
+    identifiers = parse_npi_sample(
+        payload,
+        fileheader_columns,
+        source_uri=source_uri,
+        observed_at=observed_at,
+        expected_sha256=expected_sha256,
+        expected_byte_length=expected_byte_length,
+    )
+    text = payload.decode("utf-8")
+    rows = [row for row in csv.reader(text.splitlines()) if row]
+    header, *data_rows = rows
+    entity_type_index = header.index("Entity Type Code")
+    records: list[NppesProviderRecord] = []
+    for identifier, row in zip(identifiers, data_rows, strict=True):
+        if row[entity_type_index] == "1":
+            name_parts = (
+                row[header.index("Provider Name Prefix Text")],
+                row[header.index("Provider First Name")],
+                row[header.index("Provider Middle Name")],
+                row[header.index("Provider Last Name (Legal Name)")],
+                row[header.index("Provider Credential Text")],
+            )
+        else:
+            name_parts = (
+                row[header.index("Provider Organization Name (Legal Business Name)")],
+            )
+        label = " ".join(value.strip() for value in name_parts if value.strip())
+        if not label:
+            raise NppesIdentifierError(
+                f"NPI provider {identifier.value!r} has no public legal name"
+            )
+        records.append(
+            NppesProviderRecord(
+                identifier=identifier,
+                entity_type_code=row[entity_type_index],
+                publisher_label=label,
+                fields=tuple(zip(header, row, strict=True)),
+            )
+        )
+    return tuple(records)
+
+
 __all__ = [
     "MAX_NPI_SAMPLE_ROWS",
     "NPPES_AUTHORITY_URL",
@@ -343,9 +421,11 @@ __all__ = [
     "NPPES_WEEKLY_CAPTURE_URL",
     "NUCC_PROVIDER_TAXONOMY_REFERENCE_URL",
     "NppesIdentifierError",
+    "NppesProviderRecord",
     "build_nppes_file_layout_bundle",
     "npi_check_digit",
     "parse_fileheader_columns",
+    "parse_npi_provider_sample",
     "parse_npi_sample",
     "validate_ccn",
     "validate_npi",

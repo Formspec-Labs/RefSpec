@@ -83,6 +83,8 @@ GSDM_DATA_DICTIONARY_RETRIEVED_AT = "2026-08-03T19:25:21Z"
 GSDM_DATA_DICTIONARY_SHA256 = "sha256:3d0f2e3a952297050db5c2a4addf40765460a49d499427da1b57ef3c7edea3c3"
 GSDM_DATA_DICTIONARY_BYTE_LENGTH = 358_054
 GSDM_DATA_DICTIONARY_ROW_COUNT = 457
+GSDM_DATA_DICTIONARY_COLUMN_COUNT = 17
+GSDM_DATA_DICTIONARY_ROW_WIDTH = 18
 
 ResourceName = Literal["awardTypes"]
 ResourceUse = Literal["deterministicMetadata"]
@@ -539,6 +541,138 @@ class GSDMCrosswalkElement:
         return {value.code: value for value in self.domain_values if value.domain_group == domain_group}
 
 
+@dataclass(frozen=True, slots=True)
+class GSDMDataDictionaryRow:
+    """One complete row from the pinned USAspending data dictionary."""
+
+    ordinal: int
+    element: str
+    cells: tuple[object, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedGSDMDataDictionary:
+    """All structural rows and headings from one exact dictionary response."""
+
+    source_sha256: str
+    source_byte_length: int
+    retrieved_at: str
+    headers: tuple[tuple[str, str], ...]
+    sections: tuple[Mapping[str, object], ...]
+    metadata: Mapping[str, object]
+    rows: tuple[GSDMDataDictionaryRow, ...]
+
+
+def parse_gsdm_data_dictionary(
+    payload: bytes,
+    *,
+    expected_sha256: str = GSDM_DATA_DICTIONARY_SHA256,
+    expected_byte_length: int = GSDM_DATA_DICTIONARY_BYTE_LENGTH,
+) -> ParsedGSDMDataDictionary:
+    """Parse every row of the pinned online GSDM data dictionary.
+
+    The publisher reports 17 named columns but supplies 18 cells in each row.
+    The final unnamed cell is retained exactly instead of being discarded or
+    assigned an invented meaning.
+    """
+
+    if not isinstance(payload, bytes) or not payload:
+        raise USASpendingSourceDriftError("GSDM data dictionary must be non-empty bytes")
+    if len(payload) != expected_byte_length:
+        raise USASpendingSourceDriftError(
+            "GSDM data dictionary byte length drift: "
+            f"expected {expected_byte_length}, got {len(payload)}"
+        )
+    digest = sha256_digest(payload)
+    if digest != expected_sha256:
+        raise USASpendingSourceDriftError(
+            f"GSDM data dictionary digest drift: expected {expected_sha256}, got {digest}"
+        )
+    try:
+        root = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise USASpendingSourceDriftError("GSDM data dictionary is not valid UTF-8 JSON") from error
+    if not isinstance(root, Mapping) or set(root) != {"document"}:
+        raise USASpendingSourceDriftError("GSDM data dictionary root shape drifted")
+    document = root["document"]
+    if not isinstance(document, Mapping) or set(document) != {
+        "headers",
+        "metadata",
+        "rows",
+        "sections",
+    }:
+        raise USASpendingSourceDriftError("GSDM data dictionary document shape drifted")
+
+    raw_headers = document["headers"]
+    if not isinstance(raw_headers, list) or len(raw_headers) != GSDM_DATA_DICTIONARY_COLUMN_COUNT:
+        raise USASpendingSourceDriftError("GSDM data dictionary header count drifted")
+    headers: list[tuple[str, str]] = []
+    for ordinal, header in enumerate(raw_headers):
+        if (
+            not isinstance(header, Mapping)
+            or set(header) != {"display", "raw"}
+            or not isinstance(header["raw"], str)
+            or not header["raw"]
+            or not isinstance(header["display"], str)
+            or not header["display"]
+        ):
+            raise USASpendingSourceDriftError(
+                f"GSDM data dictionary header {ordinal} shape drifted"
+            )
+        headers.append((header["raw"], header["display"]))
+
+    metadata = document["metadata"]
+    if not isinstance(metadata, Mapping) or metadata.get("total_rows") != GSDM_DATA_DICTIONARY_ROW_COUNT:
+        raise USASpendingSourceDriftError("GSDM data dictionary metadata row count drifted")
+    raw_sections = document["sections"]
+    if not isinstance(raw_sections, list) or not all(isinstance(row, Mapping) for row in raw_sections):
+        raise USASpendingSourceDriftError("GSDM data dictionary sections shape drifted")
+    raw_rows = document["rows"]
+    if not isinstance(raw_rows, list) or len(raw_rows) != GSDM_DATA_DICTIONARY_ROW_COUNT:
+        raise USASpendingSourceDriftError("GSDM data dictionary row count drifted")
+
+    rows: list[GSDMDataDictionaryRow] = []
+    seen_elements: set[str] = set()
+    for ordinal, row in enumerate(raw_rows):
+        if not isinstance(row, list) or len(row) != GSDM_DATA_DICTIONARY_ROW_WIDTH:
+            raise USASpendingSourceDriftError(
+                f"GSDM data dictionary row {ordinal} width drifted"
+            )
+        element = row[0]
+        if not isinstance(element, str) or not element.strip() or element != element.strip():
+            raise USASpendingSourceDriftError(
+                f"GSDM data dictionary row {ordinal} has an invalid element name"
+            )
+        if element in seen_elements:
+            raise USASpendingSourceDriftError(
+                f"GSDM data dictionary repeats element {element!r}"
+            )
+        seen_elements.add(element)
+        if not all(
+            cell is None or isinstance(cell, (str, int, float, bool))
+            for cell in row
+        ):
+            raise USASpendingSourceDriftError(
+                f"GSDM data dictionary row {ordinal} contains a non-scalar cell"
+            )
+        rows.append(
+            GSDMDataDictionaryRow(
+                ordinal=ordinal,
+                element=element,
+                cells=tuple(row),
+            )
+        )
+    return ParsedGSDMDataDictionary(
+        source_sha256=digest,
+        source_byte_length=len(payload),
+        retrieved_at=GSDM_DATA_DICTIONARY_RETRIEVED_AT,
+        headers=tuple(headers),
+        sections=tuple(dict(row) for row in raw_sections),
+        metadata=dict(metadata),
+        rows=tuple(rows),
+    )
+
+
 # The following three constants are reviewed, hardcoded transcriptions of the
 # ActionType, AssistanceType, and ContractAwardType rows in the USAspending
 # online data dictionary (GSDM_DATA_DICTIONARY_URL, pinned above). They are
@@ -704,10 +838,10 @@ GSDM_DOCUMENT = GSDMDocumentPin(
 USASPENDING_GSDM_PORTFOLIO_GAPS = (
     (
         "The USAspending online data dictionary publishes 457 GSDM/DAIMS crosswalk "
-        "elements; RefSpec pins the full document's digest but curates only "
-        "ActionType, AssistanceType, and ContractAwardType, the elements this "
-        "catalog entry scopes in. The remaining elements are out of scope, not "
-        "merely unparsed."
+        "elements. RefSpec retains every structural row and gives typed domain-value "
+        "treatment to ActionType, AssistanceType, and ContractAwardType; domain text "
+        "on other rows remains exact source data until a reviewed generic domain parser "
+        "can interpret it without changing publisher meaning."
     ),
     (
         "Award type and assistance type codes are published twice with independent "

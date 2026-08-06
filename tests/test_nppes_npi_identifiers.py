@@ -27,6 +27,7 @@ from refspec.registry.nppes_npi_identifiers import (
     build_nppes_file_layout_bundle,
     npi_check_digit,
     parse_fileheader_columns,
+    parse_npi_provider_sample,
     parse_npi_sample,
     validate_ccn,
     validate_npi,
@@ -239,6 +240,25 @@ def test_parse_npi_sample_validates_real_captured_rows() -> None:
         assert identifier.authority_uri == "https://nppes.cms.hhs.gov/"
         assert identifier.observed_at == NPPES_CAPTURED_AT
         assert identifier.source_digest == NPPES_SAMPLE_SHA256
+
+
+def test_parse_npi_provider_sample_retains_every_publisher_field() -> None:
+    columns = parse_fileheader_columns(FILEHEADER_PAYLOAD)
+    providers = parse_npi_provider_sample(
+        SAMPLE_PAYLOAD,
+        columns,
+        expected_sha256=NPPES_SAMPLE_SHA256,
+        expected_byte_length=NPPES_SAMPLE_BYTE_LENGTH,
+    )
+
+    assert [provider.identifier.value for provider in providers] == list(REAL_NPIS)
+    assert all(len(provider.fields) == NPPES_EXPECTED_FIELD_COUNT for provider in providers)
+    assert [provider.publisher_label for provider in providers] == [
+        "MR. NICHOLAS MICHAEL POTTER MA",
+        "ALISON SNEDEGAR PHARMD",
+        "TANISHA CARAVEO",
+    ]
+    assert all(provider.native_payload()["fields"]["NPI"] == provider.identifier.value for provider in providers)
 
 
 def test_parse_npi_sample_verifies_its_pin() -> None:
