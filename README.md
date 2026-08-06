@@ -11,8 +11,9 @@ permission beyond rights supplied by applicable law.
 
 ## Documents
 
-- [Vocabulary Atlas Distribution 2.0 — normative consumer format](bindings/atlas/2.0/README.md)
-- [Publish and inspect a vocabulary atlas](docs/atlas-publication.md)
+- [Vocabulary Atlas Distribution 3.0 — normative consumer format](bindings/atlas/3.0/README.md)
+- [Atlas in the United States and Europe — landscape comparison](ATLAS_US_EU_COMPARISON.md)
+- [Historical Atlas 2.0 publication and inspection path](docs/atlas-publication.md)
 - [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
 - [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
@@ -80,63 +81,21 @@ Published, digest-pinned files connect these products. Each consumer verifies
 the files and may build a disposable local index. It does not import another
 product's source tree or depend on that product's mutable database.
 
-Atlas 2.0 construction is programmatic. A producer first opens the exact atlas
-index, concept releases, relation bundles, and machine-proof sources, then
-creates a `PinnedVocabularyAtlasScope` that retains those verified inputs:
+Atlas 3.0 is the current, greenfield binding. It publishes exact source
+releases, normalized resources, labels, identifiers, evidence, and assertions
+in immutable, digest-pinned packs. The manifest keeps authoritative assertions,
+reproducible projections, and non-authoritative derived relations in distinct
+graph roles.
 
-```python
-from refspec.atlas import build_vocabulary_atlas
+The full-development generator reads pinned publisher distributions and
+versioned registry caches. It does not consume an Atlas 1.0 or 2.0 graph. See
+the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) for the distribution,
+validation, and consumer requirements.
 
-asset = build_vocabulary_atlas(pinned_scope)
-asset.write("build/vocabulary-atlas")
-```
-
-The producer writes `atlas-manifest.json`, `atlas-scope.json`, and `atlas.nq`.
-The portable scope records content identities and digests, but it omits the
-local paths and trusted reader choices needed to reopen every input. RefSpec
-will add an Atlas 2.0 build command only after it defines one pinned build-input
-file that records those paths and choices explicitly.
-
-`refspec-build-vocabulary-atlas-projection` cuts a verified atlas down to a
-named policy's keep rule and publishes the result as a **separate distribution
-kind**, `refspec-vocabulary-atlas-projection-nquads-2.0`
-([REF-011](docs/decisions.md#ref-011-publish-a-consumer-shaped-projection-as-its-own-distribution-kind)).
-A projection pins its parent's atlas identifier, manifest digest, and N-Quads
-digest in `derivedFrom`. Its registered policy selects either one complete ring
-or one subject specialist module plus every subject-core release. It reproduces
-from that verified parent and policy rather than from source releases:
-
-```sh
-uv run refspec-build-vocabulary-atlas-projection \
-  --atlas build/vocabulary-atlas \
-  --atlas-manifest-digest sha256:<manifest digest> \
-  --ring subject \
-  --output build/vocabulary-atlas-projection
-```
-
-Atlas 2.0 consumers call `VocabularyAtlasAsset.open` with the atlas directory
-and one independently trusted manifest digest. The manifest pins the scope and
-N-Quads files. Producers may call `reproduce_from_scope` with
-the exact `PinnedVocabularyAtlasScope` to reopen every source and rebuild all
-three files byte for byte.
-
-`refspec-publish-vocabulary-atlas` verifies a canonical atlas or projection and
-its immutable `VocabularyAtlasPublicationDecision`. It produces a static
-directory with a deterministic gzip download, bounded explorer data, an
-offline explorer, and a manifest that pins every payload. It neither acquires
-source files nor changes atlas semantics:
-
-```sh
-uv run refspec-publish-vocabulary-atlas \
-  --distribution build/vocabulary-atlas \
-  --distribution-manifest-digest sha256:<manifest digest> \
-  --decision decisions/atlas-publication-decision.json \
-  --decision-file-digest sha256:<decision file digest> \
-  --output build/vocabulary-atlas-publication
-```
-
-See [Publish and inspect a vocabulary atlas](docs/atlas-publication.md) for the
-canonical and projection publication paths and their exact checks.
+Atlas 1.0 and 2.0 remain historical formats. New producers and consumers must
+target Atlas 3.0. The
+[U.S. and European landscape comparison](ATLAS_US_EU_COMPARISON.md) explains
+Atlas's intended public role and the systems it complements.
 
 The dated research snapshots used to develop the editor's draft are archived
 under [`research/`](research/README.md). They are nonnormative except where the
