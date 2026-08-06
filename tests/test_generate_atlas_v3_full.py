@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import importlib
 import json
@@ -23,55 +24,316 @@ sys.path.insert(0, str(ROOT / "tools"))
 generator = importlib.import_module("generate_atlas_v3_full")
 
 
-def test_candidate_releases_build_graphs_before_semantic_validation(
+def _compiled_test_report(
+    graphs: generator.BuildGraphs,
+) -> dict[str, object]:
+    if isinstance(graphs.asserted, generator._MutationTrackedGraph):
+        graphs.sealed_asserted_revision = graphs.asserted.revision
+    return {
+        "bindingProfile": dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+        "checks": ["unit-test compiled producer proof"],
+        "constructorProfile": generator._COMPILED_PRODUCER_PROFILE,
+        "counts": generator._counts(graphs),
+        "mode": "compiledSourceProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "sourceAccountingDigest": generator._canonical_digest(graphs.accounting),
+        "sourceReleaseCount": generator._counts(graphs)["releases"],
+        "status": "passed",
+    }
+
+
+def _compiled_test_accounting() -> dict[str, object]:
+    return {
+        "distributionId": generator.DISTRIBUTION_ID,
+        "inputs": [
+            {
+                "declaredMemberCount": 0,
+                "dispositions": [],
+                "membershipMode": "complete",
+                "sourceRelease": "urn:test:source-release",
+            }
+        ],
+        "totals": {
+            "excluded": 0,
+            "represented": 0,
+            "sourceRecords": 0,
+            "sourceReleases": 1,
+            "unresolved": 0,
+        },
+        "type": "AtlasSourceAccounting",
+        "version": "3.0",
+    }
+
+
+def test_release_pack_paths_are_readable_safe_and_deterministic() -> None:
+    release = generator.ReleasePackPlan(
+        key="gemet-4.2.3",
+        source_release_iri="urn:test:source-release:gemet",
+        atlas_release_iri="urn:test:atlas-release:gemet",
+        ring="subject",
+        resource_count=1,
+    )
+
+    assert generator._release_pack_token(release) == "gemet-4-2-3"
+
+
+def test_release_pack_path_collisions_fail_before_graph_construction() -> None:
+    first = SimpleNamespace(
+        spec=SimpleNamespace(key="gemet-4.2", ring="subject"),
+        source_release_iri="urn:test:source-release:one",
+        atlas_release_iri="urn:test:atlas-release:one",
+        resources=(object(),),
+    )
+    second = SimpleNamespace(
+        spec=SimpleNamespace(key="gemet-4-2", ring="subject"),
+        source_release_iri="urn:test:source-release:two",
+        atlas_release_iri="urn:test:atlas-release:two",
+        resources=(object(),),
+    )
+
+    with pytest.raises(ValueError, match="collide after safe pack-path"):
+        generator._release_pack_plans((first, second))
+
+
+def test_same_release_cross_partition_reference_pins_target_pack(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = generator.ReleasePackPlan(
+        key="same-release",
+        source_release_iri="urn:test:source-release:same",
+        atlas_release_iri="urn:test:atlas-release:0",
+        ring="subject",
+        resource_count=generator._PACK_LARGE_RELEASE_RESOURCE_THRESHOLD,
+    )
+    source = URIRef("urn:test:resource:1")
+    target = URIRef("urn:test:resource:2")
+    source_partition = generator._release_pack_partition(release, source)
+    target_partition = generator._release_pack_partition(release, target)
+    assert source_partition is not None
+    assert target_partition is not None
+    assert source_partition != target_partition
+
+    asserted = generator._new_build_graph()
+    asserted.add(
+        (
+            URIRef("urn:test:catalog"),
+            RDF.type,
+            generator.ATLAS.RegistrySource,
+        )
+    )
+    asserted.add(
+        (
+            URIRef(release.atlas_release_iri),
+            RDF.type,
+            generator.ATLAS.AtlasRelease,
+        )
+    )
+    for resource in (source, target):
+        asserted.add((resource, RDF.type, generator.ATLAS.AtlasResource))
+        asserted.add(
+            (
+                resource,
+                generator.ATLAS.inRelease,
+                URIRef(release.atlas_release_iri),
+            )
+        )
+    asserted.add((source, URIRef("urn:test:relation"), target))
+
+    original_partition = generator._release_pack_partition
+    partition_calls: dict[URIRef, int] = {}
+
+    def counted_partition(
+        release_plan: generator.ReleasePackPlan,
+        subject: URIRef,
+    ) -> str | None:
+        partition_calls[subject] = partition_calls.get(subject, 0) + 1
+        return original_partition(release_plan, subject)
+
+    monkeypatch.setattr(
+        generator,
+        "_release_pack_partition",
+        counted_partition,
+    )
+    packs = generator._write_asserted_packs(tmp_path, asserted, (release,))
+    release_packs = [pack for pack in packs if pack["kind"] == "sourceRelease"]
+    source_pack = next(
+        pack
+        for pack in packs
+        if pack.get("partition", {}).get("prefix") == source_partition
+    )
+    target_pack = next(
+        pack
+        for pack in packs
+        if pack.get("partition", {}).get("prefix") == target_partition
+    )
+
+    assert len(release_packs) == 2
+    assert source_pack["sourceReleases"] == [release.source_release_iri]
+    assert target_pack["sourceReleases"] == [release.source_release_iri]
+    assert target_pack["packId"] in source_pack["dependencies"]
+    assert source_pack["packId"] not in source_pack["dependencies"]
+    assert all((tmp_path / pack["path"]).is_file() for pack in packs)
+    assert partition_calls[source] == 1
+
+
+def test_candidate_binds_compiled_proof_before_releasing_graphs(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     graphs = generator.BuildGraphs(
-        asserted=Graph(),
-        projection=Graph(),
-        derived=Graph(),
-        accounting={"sentinel": "large source ledger"},
+        asserted=generator._new_build_graph(),
+        projection=generator._new_build_graph(),
+        derived=generator._new_build_graph(),
+        accounting=_compiled_test_accounting(),
     )
-    for graph, suffix in (
-        (graphs.asserted, "asserted"),
-        (graphs.projection, "projection"),
-        (graphs.derived, "derived"),
-    ):
-        graph.add(
-            (
-                URIRef(f"urn:test:{suffix}:subject"),
-                URIRef("urn:test:predicate"),
-                URIRef("urn:test:object"),
-            )
+    graphs.asserted.add(
+        (
+            URIRef("urn:test:release"),
+            RDF.type,
+            generator.ATLAS.AtlasRelease,
         )
+    )
 
     events: list[str] = []
 
-    def collect() -> int:
-        events.append("collect")
-        return 0
+    compiled_validation = _compiled_test_report(graphs)
+    original_check = generator._check_compiled_validation_report
 
-    def validate_distribution(output: Path) -> dict[str, str]:
-        events.append("validate")
-        assert output == tmp_path
-        assert not graphs.asserted
-        assert not graphs.projection
-        assert not graphs.derived
-        assert graphs.accounting == {}
-        return {"status": "passed"}
+    def checked(*args, **kwargs) -> None:
+        events.append("compiled")
+        original_check(*args, **kwargs)
 
-    monkeypatch.setattr(generator.gc, "collect", collect)
+    monkeypatch.setattr(generator, "_check_compiled_validation_report", checked)
     monkeypatch.setattr(
         generator.ATLAS_VALIDATE,
-        "validate_distribution",
-        validate_distribution,
+        "validate_preparsed_distribution",
+        lambda *args, **kwargs: pytest.fail(
+            "trusted producer must not run resident-graph RDF validation"
+        ),
     )
 
-    result, _ = generator._write_candidate_distribution(tmp_path, graphs)
+    result, manifest = generator._write_candidate_distribution(
+        tmp_path,
+        graphs,
+        compiled_validation=compiled_validation,
+    )
 
-    assert events == ["collect", "validate"]
-    assert result["semantic"] == {"status": "passed"}
+    assert events == ["compiled"]
+    assert not graphs.asserted
+    assert not graphs.projection
+    assert not graphs.derived
+    assert graphs.accounting == {}
+    assert result["compiledProducerValidation"]["type"] == (
+        "AtlasProducerValidation"
+    )
+    assert result["compiledProducerValidation"]["binding"] == manifest["binding"]
+    assert result["compiledProducerValidation"]["implementationDigest"] == (
+        generator._COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
+    )
+    assert result["trustedWriterReceiptChecks"]["mode"] == "trustedWriterReceipts"
+    assert result["independentFileConsumerValidation"] == {
+        "performedByGenerator": False,
+        "requiredForIndependentConsumers": True,
+        "validator": "bindings/atlas/3.0/tools/validate.py:validate_distribution",
+    }
+
+
+def test_pack_write_receipt_matches_both_exact_byte_forms(tmp_path: Path) -> None:
+    content = (
+        b"<urn:test:a> <urn:test:p> <urn:test:o> <urn:test:graph> .\n"
+        b"<urn:test:b> <urn:test:p> <urn:test:o> <urn:test:graph> .\n"
+    )
+    source = tmp_path / "source.nq"
+    target = tmp_path / "pack.nq.zst"
+    source.write_bytes(content)
+
+    receipt = generator._compress_nquads(source, target)
+
+    with generator.zstd.open(target, "rb") as stream:
+        assert stream.read() == content
+    stored = target.read_bytes()
+    assert receipt == generator.PackWriteReceipt(
+        content_byte_length=len(content),
+        content_digest="sha256:" + hashlib.sha256(content).hexdigest(),
+        content_quad_count=2,
+        transport_byte_length=len(stored),
+        transport_digest="sha256:" + hashlib.sha256(stored).hexdigest(),
+    )
+
+
+def _write_receipted_test_candidate(tmp_path: Path, monkeypatch) -> dict:
+    asserted = generator._new_build_graph()
+    asserted.add(
+        (
+            URIRef("urn:test:subject"),
+            URIRef("urn:test:predicate"),
+            URIRef("urn:test:object"),
+        )
+    )
+    asserted.add(
+        (
+            URIRef("urn:test:release"),
+            RDF.type,
+            generator.ATLAS.AtlasRelease,
+        )
+    )
+    graphs = generator.BuildGraphs(
+        asserted=asserted,
+        projection=generator._new_build_graph(),
+        derived=generator._new_build_graph(),
+        accounting=_compiled_test_accounting(),
+    )
+    _, manifest = generator._write_candidate_distribution(
+        tmp_path,
+        graphs,
+        compiled_validation=_compiled_test_report(graphs),
+    )
+    return manifest
+
+
+def test_trusted_writer_receipts_reject_same_size_stored_pack_tampering(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    manifest = _write_receipted_test_candidate(tmp_path, monkeypatch)
+    pack_path = tmp_path / manifest["packs"][0]["path"]
+    payload = bytearray(pack_path.read_bytes())
+    payload[len(payload) // 2] ^= 1
+    pack_path.write_bytes(payload)
+
+    with pytest.raises(ValueError, match="stored pack transport differs"):
+        generator._trusted_writer_receipt_checks(tmp_path, manifest=manifest)
+
+
+@pytest.mark.parametrize(
+    ("mismatch", "message"),
+    (
+        ("contentQuadCount", "graph counts differ from content quadCount"),
+        ("graphQuadCount", "asserted graph quadCount differs"),
+        ("graphPackCount", "asserted graph packCount differs"),
+        ("graphInventoryDigest", "asserted graph inventoryDigest differs"),
+    ),
+)
+def test_trusted_writer_receipts_reject_manifest_inventory_mismatches(
+    tmp_path: Path,
+    monkeypatch,
+    mismatch: str,
+    message: str,
+) -> None:
+    manifest = _write_receipted_test_candidate(tmp_path, monkeypatch)
+    if mismatch == "contentQuadCount":
+        manifest["packs"][0]["content"]["quadCount"] += 1
+    elif mismatch == "graphQuadCount":
+        manifest["graphs"][0]["quadCount"] += 1
+    elif mismatch == "graphPackCount":
+        manifest["graphs"][0]["packCount"] += 1
+    else:
+        manifest["graphs"][0]["inventoryDigest"] = "sha256:" + "0" * 64
+
+    with pytest.raises(ValueError, match=message):
+        generator._trusted_writer_receipt_checks(tmp_path, manifest=manifest)
 
 
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
@@ -85,6 +347,7 @@ def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
     }
     assert all(not row["path"].startswith("/") for row in inventory["sources"])
     assert all(row["usesPriorAtlasGraph"] is False for row in inventory["sources"])
+    assert all(None not in row.values() for row in inventory["sources"])
     assert "mapping-evidence" not in json.dumps(inventory, sort_keys=True)
     assert not hasattr(generator, "PROOF_BUNDLES")
     assert not hasattr(generator, "load_proof_bundles")
@@ -236,6 +499,365 @@ def test_ring_dispatch_uses_binding_policy(
 def test_ring_dispatch_fails_closed() -> None:
     with pytest.raises(ValueError, match="unsupported Atlas semantic ring"):
         generator._ring_dispatch("futureRing")
+
+
+def _compiled_descriptor_graph() -> Graph:
+    graph = generator._new_build_graph()
+    scheme = URIRef("urn:test:scheme:subjects")
+    graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
+    graph.add((scheme, RDF.type, generator.SKOS.ConceptScheme))
+    graph.add(
+        (scheme, generator.ATLAS.resourceProfile, generator.ATLAS.conceptScheme)
+    )
+    graph.add((scheme, generator.ATLAS.supportedRing, generator.ATLAS.subject))
+    return graph
+
+
+def _compiled_source_release(
+    tmp_path: Path,
+    *,
+    labels: tuple[generator.SourceLabel, ...] | None = None,
+    predicate: str | None = None,
+) -> generator.LoadedRelease:
+    source = tmp_path / "compiled-source.json"
+    source.write_text("{}", encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    first = generator.SourceResource(
+        iri="urn:test:resource:first",
+        labels=labels
+        or (
+            generator.SourceLabel(
+                value="First",
+                language="en",
+                role="preferred",
+                source_path="source.json#first.label",
+            ),
+        ),
+        native_payload={"id": "first"},
+        source_locator="urn:test:source-row:first",
+        source_digest=digest,
+    )
+    second = generator.SourceResource(
+        iri="urn:test:resource:second",
+        labels=(
+            generator.SourceLabel(
+                value="Second",
+                language="en",
+                role="preferred",
+                source_path="source.json#second.label",
+            ),
+        ),
+        native_payload={"id": "second"},
+        source_locator="urn:test:source-row:second",
+        source_digest=digest,
+    )
+    relations = (
+        generator.SourceRelation(
+            subject=first.iri,
+            predicate=predicate or str(generator.SKOS.related),
+            object=second.iri,
+            source_payload={"sourcePath": "source.json#first.related"},
+        ),
+    )
+    spec = generator.SourceSpec(
+        key="compiled-source",
+        kind="test",
+        path=source,
+        logical_path="compiled-source.json",
+        expected_digest=digest,
+        expected_resources=2,
+        expected_relations=1,
+        profile="conceptScheme",
+        ring="subject",
+    )
+    return generator.LoadedRelease(
+        spec=spec,
+        source_release_iri="urn:test:source-release:compiled",
+        source_release_digest=digest,
+        atlas_release_iri="urn:test:atlas-release:compiled",
+        scheme_iri="urn:test:scheme:subjects",
+        issued="2026-08-06",
+        resources=(first, second),
+        relations=relations,
+    )
+
+
+def test_compiled_source_producer_validates_rows_and_constructor_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    release = _compiled_source_release(tmp_path)
+
+    source_receipt = generator._validate_compiled_source_rows((release,))
+    graphs = generator._build_graphs((release,), include_projection=False)
+    report = generator._validate_compiled_producer_output(
+        (release,),
+        graphs,
+        source_receipt,
+    )
+
+    assert report["mode"] == "compiledSourceProducerValidation"
+    assert report["shaclDataProof"] == "compiledAgainstPinnedOntologyAndShapes"
+    assert report["counts"] == {
+        "crossRingRelationAssertions": 0,
+        "derivedRelations": 0,
+        "identifiers": 0,
+        "labels": 2,
+        "mappingAssertions": 0,
+        "nativeRelationAssertions": 1,
+        "projectedRelations": 0,
+        "relationAssertions": 3,
+        "releases": 1,
+        "resources": 2,
+        "sourceAssignments": 2,
+        "sourceRecords": 2,
+    }
+
+
+def test_compiled_source_producer_fails_closed_when_shape_profile_drifts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = generator.ATLAS_VALIDATE._binding_digests()
+    monkeypatch.setattr(
+        generator.ATLAS_VALIDATE,
+        "_binding_digests",
+        lambda: {**observed, "shapesDigest": "sha256:" + "0" * 64},
+    )
+
+    with pytest.raises(ValueError, match="validation profile drifted"):
+        generator._validate_compiled_binding_profile()
+
+
+def test_compiled_source_producer_implementation_pin_is_current() -> None:
+    assert generator._compiled_producer_implementation_digest() == (
+        generator._COMPILED_PRODUCER_IMPLEMENTATION_DIGEST
+    )
+
+
+def test_compiled_source_producer_rejects_empty_release(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    release = _compiled_source_release(tmp_path)
+    release = dataclasses.replace(
+        release,
+        spec=dataclasses.replace(
+            release.spec,
+            expected_resources=0,
+            expected_relations=0,
+        ),
+        resources=(),
+        relations=(),
+    )
+
+    with pytest.raises(ValueError, match="has no Atlas resources"):
+        generator._validate_compiled_source_rows((release,))
+
+
+def test_compiled_source_producer_rejects_subject_scheme_without_skos_type(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    descriptor = _compiled_descriptor_graph()
+    descriptor.remove(
+        (
+            URIRef("urn:test:scheme:subjects"),
+            RDF.type,
+            generator.SKOS.ConceptScheme,
+        )
+    )
+    monkeypatch.setattr(generator, "_registry_asserted_graph", lambda: descriptor)
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+
+    with pytest.raises(ValueError, match="not a SKOS ConceptScheme"):
+        generator._validate_compiled_source_rows(
+            (_compiled_source_release(tmp_path),)
+        )
+
+
+def test_asserted_pack_writer_rejects_oversized_nquads_line(
+    tmp_path: Path,
+) -> None:
+    asserted = generator._new_build_graph()
+    asserted.add(
+        (
+            URIRef("urn:test:subject"),
+            URIRef("urn:test:predicate"),
+            generator.Literal(
+                "x" * generator.ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES
+            ),
+        )
+    )
+
+    with pytest.raises(ValueError, match="exceeds the binding limit"):
+        generator._write_asserted_packs(tmp_path, asserted, ())
+
+
+def test_candidate_rejects_asserted_mutation_after_compiled_validation(
+    tmp_path: Path,
+) -> None:
+    asserted = generator._new_build_graph()
+    asserted.add(
+        (
+            URIRef("urn:test:subject"),
+            URIRef("urn:test:predicate"),
+            URIRef("urn:test:object"),
+        )
+    )
+    graphs = generator.BuildGraphs(
+        asserted,
+        generator._new_build_graph(),
+        generator._new_build_graph(),
+        {},
+    )
+    report = _compiled_test_report(graphs)
+    asserted.add(
+        (
+            URIRef("urn:test:subject"),
+            URIRef("urn:test:extra"),
+            URIRef("urn:test:value"),
+        )
+    )
+
+    with pytest.raises(ValueError, match="changed after compiled"):
+        generator._write_candidate_distribution(
+            tmp_path,
+            graphs,
+            compiled_validation=report,
+        )
+
+
+@pytest.mark.parametrize(
+    ("labels", "predicate", "message"),
+    (
+        (
+            (
+                generator.SourceLabel(
+                    "First",
+                    "en",
+                    "preferred",
+                    "source.json#first.label",
+                ),
+                generator.SourceLabel(
+                    "First alternate spelling",
+                    "en",
+                    "preferred",
+                    "source.json#first.label-2",
+                ),
+            ),
+            None,
+            "more than one preferred",
+        ),
+        (
+            (
+                generator.SourceLabel(
+                    "First",
+                    "en",
+                    "preferred",
+                    "source.json#first.label",
+                ),
+                generator.SourceLabel(
+                    "First",
+                    "en",
+                    "alternate",
+                    "source.json#first.alt-label",
+                ),
+            ),
+            None,
+            "across SKOS-XL roles",
+        ),
+        (
+            None,
+            "urn:test:not-allowed",
+            "predicate is not allowed",
+        ),
+    ),
+)
+def test_compiled_source_producer_rejects_compact_row_mutations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    labels: tuple[generator.SourceLabel, ...] | None,
+    predicate: str | None,
+    message: str,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    release = _compiled_source_release(
+        tmp_path,
+        labels=labels,
+        predicate=predicate,
+    )
+
+    with pytest.raises(ValueError, match=message):
+        generator._validate_compiled_source_rows((release,))
+
+
+def test_compiled_source_producer_rejects_projection_and_accounting_mutations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    release = _compiled_source_release(tmp_path)
+    source_receipt = generator._validate_compiled_source_rows((release,))
+    graphs = generator._build_graphs((release,), include_projection=False)
+    graphs.projection.add(
+        (
+            URIRef("urn:test:projection"),
+            RDF.type,
+            generator.ATLAS.ProjectedRelation,
+        )
+    )
+    with pytest.raises(ValueError, match="empty projection"):
+        generator._validate_compiled_producer_output(
+            (release,),
+            graphs,
+            source_receipt,
+        )
+
+    graphs.projection.remove((None, None, None))
+    graphs.accounting["inputs"][0]["dispositions"].pop()
+    with pytest.raises(ValueError, match="member count differs"):
+        generator._validate_compiled_producer_output(
+            (release,),
+            graphs,
+            source_receipt,
+        )
 
 
 def test_loaded_release_counts_fail_closed(tmp_path: Path) -> None:
@@ -453,6 +1075,26 @@ def icpsr_release():
     return generator._load_icpsr(_source_spec("icpsr-subject-thesaurus"))
 
 
+@pytest.fixture(scope="module")
+def document_releases():
+    from refspec.atlas.v3_registry_documents import load_registry_document_releases
+
+    return tuple(
+        generator._adapt_registry_release(release)
+        for release in load_registry_document_releases(ROOT)
+    )
+
+
+@pytest.fixture(scope="module")
+def registry_code_releases():
+    from refspec.atlas.v3_registry_codes import load_registry_code_releases
+
+    return tuple(
+        generator._adapt_registry_release(release)
+        for release in load_registry_code_releases(ROOT)
+    )
+
+
 def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
     icpsr_release,
 ) -> None:
@@ -509,6 +1151,140 @@ def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
         for relation in icpsr_release.relations
         for endpoint in (relation.subject, relation.object)
     )
+
+
+def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
+    icpsr_release,
+    document_releases,
+) -> None:
+    native_relation = icpsr_release.relations[0]
+    native_resources = {
+        resource.iri: resource for resource in icpsr_release.resources
+    }
+    sampled_native_resources = tuple(
+        native_resources[iri]
+        for iri in dict.fromkeys(
+            (native_relation.subject, native_relation.object)
+        )
+    )
+    native_spec = dataclasses.replace(
+        icpsr_release.spec,
+        expected_resources=len(sampled_native_resources),
+        expected_relations=1,
+    )
+    sampled_native = dataclasses.replace(
+        icpsr_release,
+        spec=native_spec,
+        resources=sampled_native_resources,
+        relations=(native_relation,),
+    )
+
+    cross_owner = next(
+        release for release in document_releases if release.cross_ring_relations
+    )
+    cross_relation = cross_owner.cross_ring_relations[0]
+    endpoint_iris = {cross_relation.subject, cross_relation.object}
+    sampled_documents: list[generator.LoadedRelease] = []
+    for release in document_releases:
+        resources = tuple(
+            resource for resource in release.resources if resource.iri in endpoint_iris
+        )
+        if not resources:
+            continue
+        cross_relations = (cross_relation,) if release is cross_owner else ()
+        sampled_documents.append(
+            dataclasses.replace(
+                release,
+                spec=dataclasses.replace(
+                    release.spec,
+                    expected_resources=len(resources),
+                    expected_relations=0,
+                    expected_cross_ring_relations=len(cross_relations),
+                ),
+                resources=resources,
+                relations=(),
+                cross_ring_relations=cross_relations,
+            )
+        )
+    releases = (sampled_native, *sampled_documents)
+
+    source_receipt = generator._validate_compiled_source_rows(releases)
+    graphs = generator._build_graphs(releases, include_projection=False)
+    producer_report = generator._validate_compiled_producer_output(
+        releases,
+        graphs,
+        source_receipt,
+    )
+    ontology, shapes = generator.ATLAS_VALIDATE._parse_binding_graphs()
+    try:
+        generator.ATLAS_VALIDATE._lint_ontology(ontology)
+        generator.ATLAS_VALIDATE._run_shacl(
+            {
+                "asserted": graphs.asserted,
+                "projection": graphs.projection,
+                "derived": graphs.derived,
+            },
+            ontology,
+            shapes,
+        )
+    finally:
+        ontology.close()
+        shapes.close()
+        graphs.release()
+
+    assert producer_report["status"] == "passed"
+    assert producer_report["counts"]["sourceAssignments"] >= 1
+    assert producer_report["counts"]["nativeRelationAssertions"] == 1
+    assert producer_report["counts"]["crossRingRelationAssertions"] == 1
+
+
+def test_grants_subject_codes_use_a_skos_concept_scheme(
+    registry_code_releases,
+) -> None:
+    releases = tuple(
+        release
+        for release in registry_code_releases
+        if release.spec.key
+        in {
+            "grants-gov-eligibilities",
+            "grants-gov-funding-categories",
+        }
+    )
+    assert {release.spec.key for release in releases} == {
+        "grants-gov-eligibilities",
+        "grants-gov-funding-categories",
+    }
+
+    source_receipt = generator._validate_compiled_source_rows(releases)
+    graphs = generator._build_graphs(releases, include_projection=False)
+    ontology, shapes = generator.ATLAS_VALIDATE._parse_binding_graphs()
+    try:
+        scheme = generator.URIRef(
+            "urn:ref:atlas-resource-scheme:grants-gov-status-codes"
+        )
+        assert (
+            scheme,
+            generator.RDF.type,
+            generator.SKOS.ConceptScheme,
+        ) in graphs.asserted
+        generator._validate_compiled_producer_output(
+            releases,
+            graphs,
+            source_receipt,
+        )
+        generator.ATLAS_VALIDATE._run_shacl(
+            {
+                "asserted": graphs.asserted,
+                "projection": graphs.projection,
+                "derived": graphs.derived,
+            },
+            ontology,
+            shapes,
+        )
+    finally:
+        ontology.close()
+        shapes.close()
+        graphs.release()
 
 
 def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
@@ -638,6 +1414,116 @@ def test_source_record_rejects_nested_non_english_tagged_content() -> None:
             native_payload={"proofDetails": {"language": "fr", "value": "preuve"}},
             represents_resource=None,
         )
+
+
+def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = Graph()
+    source_release = URIRef("urn:test:release")
+    source_locator = URIRef("urn:test:locator")
+    source_digest = "sha256:" + "1" * 64
+    native_payload = {"nested": {"rows": ["one", {"ordinal": 2}]}}
+    plain_payload = generator._plain(native_payload)
+    original = generator.ATLAS_VALIDATE.canonical_native_json_bytes
+    expected_bytes = original(plain_payload)
+    calls = 0
+
+    def counted(value: object) -> bytes:
+        nonlocal calls
+        calls += 1
+        return original(value)
+
+    monkeypatch.setattr(
+        generator.ATLAS_VALIDATE,
+        "canonical_native_json_bytes",
+        counted,
+    )
+    record = generator._add_source_record(
+        graph,
+        source_release=source_release,
+        source_locator=source_locator,
+        source_digest=source_digest,
+        native_payload=native_payload,
+        represents_resource=None,
+    )
+
+    native_digest = "sha256:" + hashlib.sha256(expected_bytes).hexdigest()
+    assert calls == 1
+    assert record == generator._node_iri(
+        "atlas-source-record",
+        {
+            "nativePayloadDigest": native_digest,
+            "sourceDigest": source_digest,
+            "sourceLocator": str(source_locator),
+            "sourceRelease": str(source_release),
+        },
+    )
+    assert str(graph.value(record, generator.ATLAS.nativePayload)) == expected_bytes.decode(
+        "utf-8"
+    )
+    assert str(graph.value(record, generator.ATLAS.contentDigest)) == (
+        generator.ATLAS_VALIDATE.rdf_node_digest(graph, record)
+    )
+
+
+def test_add_assertion_mints_evidence_without_temporary_graph_mutations() -> None:
+    class RemoveRejectingGraph(Graph):
+        def remove(self, triple: object) -> Graph:
+            raise AssertionError(f"evidence construction must not remove {triple}")
+
+    graph = RemoveRejectingGraph()
+    policy = URIRef("urn:test:policy")
+    evidence_record = URIRef("urn:test:evidence-record")
+    graph.add(
+        (
+            policy,
+            generator.ATLAS.contentDigest,
+            generator.Literal("sha256:" + "2" * 64),
+        )
+    )
+    graph.add(
+        (
+            evidence_record,
+            generator.ATLAS.contentDigest,
+            generator.Literal("sha256:" + "3" * 64),
+        )
+    )
+
+    generator._add_assertion(
+        graph,
+        assertion_type=generator.ATLAS.NativeRelationAssertion,
+        ring=generator.ATLAS.subject,
+        subject=URIRef("urn:test:subject"),
+        predicate=generator.SKOS.related,
+        obj=URIRef("urn:test:object"),
+        source_release=URIRef("urn:test:source-release"),
+        target_release=URIRef("urn:test:source-release"),
+        policy=policy,
+        asserted_at="2026-08-06T00:00:00Z",
+        evidence_record=evidence_record,
+        reviewer=URIRef("urn:test:reviewer"),
+        review_method=generator.ATLAS.publisherAssertion,
+        confidence=None,
+    )
+
+    bindings = set(
+        graph.subjects(RDF.type, generator.ATLAS.EvidenceBinding)
+    )
+    assert len(bindings) == 1
+    binding = next(iter(bindings))
+    stored_digest = str(graph.value(binding, generator.ATLAS.contentDigest))
+    assert binding == URIRef(
+        "urn:ref:atlas-evidence:" + stored_digest.removeprefix("sha256:")
+    )
+    assert stored_digest == generator.ATLAS_VALIDATE.rdf_node_digest(
+        graph,
+        binding,
+    )
+    assert not any(
+        str(subject).startswith("urn:ref:atlas-evidence:pending:")
+        for subject in graph.subjects()
+    )
 
 
 def test_review_methods_match_assertion_provenance_without_operator_adoption() -> None:
@@ -865,6 +1751,9 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
     ):
         descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
         descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
+    descriptor_graph.add(
+        (resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value)
+    )
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -977,6 +1866,9 @@ def test_build_graphs_rejects_one_authority_identifier_for_two_resources(
     ):
         descriptor_graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
         descriptor_graph.add((scheme, generator.ATLAS.resourceProfile, profile))
+    descriptor_graph.add(
+        (resource_scheme, generator.ATLAS.supportedRing, generator.ATLAS.value)
+    )
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -1070,13 +1962,10 @@ def test_identifier_emission_rejects_non_identifier_schemes(
         )
 
 
-def test_real_document_releases_emit_identifiers_and_cross_ring_assignment() -> None:
-    from refspec.atlas.v3_registry_documents import load_registry_document_releases
-
-    releases = tuple(
-        generator._adapt_registry_release(release)
-        for release in load_registry_document_releases(ROOT)
-    )
+def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
+    document_releases,
+) -> None:
+    releases = document_releases
     assert generator._direct_source_counts(releases, label_count=1_060) == {
         "crossRingRelations": 1,
         "identifiers": 1_059,
