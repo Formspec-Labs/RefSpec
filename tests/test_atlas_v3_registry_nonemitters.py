@@ -23,12 +23,15 @@ def test_bounded_subject_sources_emit_every_pinned_concept_without_claiming_comp
 def test_epa_label_tree_emits_every_row_without_inventing_concept_identity() -> None:
     (release,) = adapters._epa_vocabulary_releases(ROOT)
 
-    assert release.profile == "structureScheme"
-    assert release.ring == "value"
+    assert release.profile == "conceptScheme"
+    assert release.ring == "subject"
     assert len(release.resources) == 3
     assert len(release.relations) == 1
     assert release.metadata["publisherConceptIdentityAvailable"] is False
     assert all(resource.status == "sourcePositionObservation" for resource in release.resources)
+    assert {relation.predicate for relation in release.relations} == {
+        "http://www.w3.org/2004/02/skos/core#broader"
+    }
 
 
 def test_gao_cra_emits_every_visible_priority_and_type_value() -> None:
@@ -122,6 +125,7 @@ def test_nrc_emits_observed_controls_and_definitions_without_promoting_examples(
 def test_treasury_emits_every_unique_account_and_retains_the_duplicate_row() -> None:
     accounts, fund_types = adapters._treasury_releases(ROOT)
 
+    assert accounts.ring == "entity"
     assert len(accounts.resources) == 3_581
     assert sum(resource.native_payload["duplicatePublisherRowCount"] for resource in accounts.resources) == 1
     assert len(fund_types.resources) == 11

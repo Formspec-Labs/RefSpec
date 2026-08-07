@@ -32,10 +32,10 @@
 <urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <http://purl.org/dc/terms/identifier> "census-acs-geography-identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <http://purl.org/dc/terms/title> "Census ACS geography identifier fields" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:1f925cc0b1cf718f0756f96db0df79cd5d8a33d9c5e3d8d30e1d541e37d4dc11" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:02ca7063c449d9597a2b7f90227fae36ff1c6e1e4dc5d0f714aa400e959a00fa" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:census-acs-geography-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:census-acs-geography-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-aspep-data-flags> <http://purl.org/dc/terms/identifier> "census-aspep-data-flags" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-aspep-data-flags> <http://purl.org/dc/terms/title> "Census ASPEP data flags" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-aspep-data-flags> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -53,10 +53,10 @@
 <urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <http://purl.org/dc/terms/identifier> "census-tiger-geoid-structure" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <http://purl.org/dc/terms/title> "Census TIGER/Line GEOID structure" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:f5f4cd27564ef53277ecb6cb56153b26501624a1f5f715f7744310cebc651391" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:19bb32712a5a39325a69849f092a8383169d2a7fe5c53bc5ccec538871c0d931" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:census-tiger-geoid-structure> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:census-tiger-geoid-structure> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cfr-list-of-subjects> <http://purl.org/dc/terms/identifier> "cfr-list-of-subjects" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cfr-list-of-subjects> <http://purl.org/dc/terms/title> "CFR List of Subjects assignments" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:cfr-list-of-subjects> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -209,10 +209,10 @@
 <urn:ref:atlas-resource-scheme:fec-native-controls> <http://purl.org/dc/terms/identifier> "fec-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:fec-native-controls> <http://purl.org/dc/terms/title> "Federal Election Commission native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:fec-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:ae0249486e6e156640be39573ef8f18f7fdf1dbc561677262f4e0abe543f6146" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:fe1dcff7aba6ef92398a243b7267022fcdaa8471d62b14d533f6d52ae8faaa05" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:fec-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:fec-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-hierarchy> <http://purl.org/dc/terms/identifier> "federal-hierarchy" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-hierarchy> <http://purl.org/dc/terms/title> "Federal Hierarchy" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-hierarchy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -238,10 +238,9 @@
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <http://purl.org/dc/terms/title> "Federal Register native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:9f95c15fea51a30158b7526c1053d7c09eb87662d915bb382d5f79d781a1bdb4" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:f3a9bb1d3e97f8f21bb5de20cfa07bfdc1663fc5337f52180485732087985a49" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:federal-register-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-thesaurus-1995> <http://purl.org/dc/terms/identifier> "federal-register-thesaurus-1995" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:federal-register-thesaurus-1995> <http://purl.org/dc/terms/title> "Federal Register Thesaurus of Indexing Terms, 1995" <urn:ref:atlas-v3:registry-descriptors> .
@@ -261,10 +260,10 @@
 <urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <http://purl.org/dc/terms/identifier> "ferc-elibrary-identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <http://purl.org/dc/terms/title> "FERC eLibrary filing identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:6c451aaf13ed5dfb1dafc9814be4641ca3b5bda95e3eb44979b3de030bd1cd04" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:784799d0c0171da3b6dcfd26824f9b833d55eee5a3ea475d1a6d77bbea203afa" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:ferc-elibrary-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#legalIdentity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:ferc-elibrary-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-native-controls> <http://purl.org/dc/terms/identifier> "ferc-elibrary-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-native-controls> <http://purl.org/dc/terms/title> "FERC eLibrary native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:ferc-elibrary-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -353,12 +352,10 @@
 <urn:ref:atlas-resource-scheme:govinfo-collections> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://purl.org/dc/terms/identifier> "grants-gov-status-codes" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://purl.org/dc/terms/title> "Grants.gov eligibility and funding category codes" <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#ConceptScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:8168f5e3e7e46ffbe7b03ca6782151d413108e0e6f515f2a5f4f39d421fd4514" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:edf00f56b0de3581e5f139cd6b5cf5cc7834c0e9d7b8a1d7c7f4f91e67587635" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:grants-gov-status-codes> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:grants-gov-status-codes> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:icpsr-subject-thesaurus> <http://purl.org/dc/terms/identifier> "icpsr-subject-thesaurus" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:icpsr-subject-thesaurus> <http://purl.org/dc/terms/title> "ICPSR Subject Thesaurus" <urn:ref:atlas-v3:registry-descriptors> .
@@ -475,10 +472,11 @@
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <http://purl.org/dc/terms/identifier> "nrc-adams-identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <http://purl.org/dc/terms/title> "NRC ADAMS docket and accession identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:c26fb0e6d3ee4ceb5805b9100b257b0d798f3b46549051e9328d49934e32ee1c" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:f22fa047e7f4fd5cc3f75432ccb491584ea29d65ec3657152e83cf19dda449ed" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:nrc-adams-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#legalIdentity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:nrc-adams-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://purl.org/dc/terms/identifier> "nrc-adams-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://purl.org/dc/terms/title> "NRC ADAMS public-search controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:nrc-adams-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -538,10 +536,9 @@
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <http://purl.org/dc/terms/identifier> "regulations-gov-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <http://purl.org/dc/terms/title> "Regulations.gov native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:9eef34772901bbc5c722d0d04fcc54b67ec96ab48959d89fcd962968c494dcbc" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:f988698c2511f8358f6bad2f1741c83f41f6f72a6c38b1d3597f74562251955c" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#structureScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:regulations-gov-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:regulations-gov-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:rin-authority> <http://purl.org/dc/terms/identifier> "rin-authority" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:rin-authority> <http://purl.org/dc/terms/title> "Regulation Identifier Number authority" <urn:ref:atlas-v3:registry-descriptors> .
@@ -586,10 +583,10 @@
 <urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <http://purl.org/dc/terms/identifier> "treasury-account-symbol-structure" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <http://purl.org/dc/terms/title> "Treasury Account Symbol structure" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:94c9c5bc88ab9e493673264a0ad990313e3b736423cc967e705bf4177980e3f2" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:bc145e52cfeeeb062805888a62e1e1907b52a8bb5c36f4896188e3a7176d1c95" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:treasury-account-symbol-structure> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#legalIdentity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:treasury-account-symbol-structure> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-fast-book> <http://purl.org/dc/terms/identifier> "treasury-fast-book" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-fast-book> <http://purl.org/dc/terms/title> "Federal Account Symbols and Titles Book" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:treasury-fast-book> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
@@ -607,17 +604,16 @@
 <urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <http://purl.org/dc/terms/identifier> "unified-agenda-legal-authority-citations" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <http://purl.org/dc/terms/title> "Unified Agenda legal authority citations" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:e912c0518f0c613154b60d9cee3cfb5ae97d63ccdb8cf95391b2a77e8cf1b001" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:e10a2f324051ab043a12d77a695a3ae2348c46112e98b24f3438d4879af14c7b" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:unified-agenda-legal-authority-citations> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#legalIdentity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:unified-agenda-legal-authority-citations> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <http://purl.org/dc/terms/identifier> "unified-agenda-native-controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <http://purl.org/dc/terms/title> "Unified Agenda native controls" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:f7ef160954e6d77eb02397a0a8a725599618ce01bb9a5eb18bd0abf5697bd240" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:484b53fd49438b2db9289c15fb0ecad4b561fc71d8a5fdf0f1e91edd11b935ad" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:unified-agenda-native-controls> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:unified-agenda-native-controls> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usaspending-award-type-codes> <http://purl.org/dc/terms/identifier> "usaspending-award-type-codes" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usaspending-award-type-codes> <http://purl.org/dc/terms/title> "USAspending award and assistance type codes" <urn:ref:atlas-v3:registry-descriptors> .
@@ -629,10 +625,10 @@
 <urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <http://purl.org/dc/terms/identifier> "usgs-gnis-identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <http://purl.org/dc/terms/title> "USGS GNIS feature identifiers" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:10455cc7210c74a79ec881cb016753b506f4579c03a96cdc67255f5363446e62" <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:4756bf02ebcf0770f5e1ba8c8d9326abc985b015d751b4c7aecef9ace58b0967" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#identifierScheme> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#sourceDescriptor> <urn:ref:atlas-source-descriptor:usgs-gnis-identifiers> <urn:ref:atlas-v3:registry-descriptors> .
-<urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#entity> <urn:ref:atlas-v3:registry-descriptors> .
+<urn:ref:atlas-resource-scheme:usgs-gnis-identifiers> <https://refspec.org/ns/atlas/v3#supportedRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:uslm> <http://purl.org/dc/terms/identifier> "uslm" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:uslm> <http://purl.org/dc/terms/title> "United States Legislative Markup" <urn:ref:atlas-v3:registry-descriptors> .
 <urn:ref:atlas-resource-scheme:uslm> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#ResourceScheme> <urn:ref:atlas-v3:registry-descriptors> .

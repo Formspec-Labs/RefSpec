@@ -279,7 +279,7 @@ def _epa_vocabulary_releases(root: Path) -> tuple[RegistryRelease, ...]:
             relations.append(
                 RegistryRelation(
                     subject="urn:ref:epa-enterprise-vocabulary-row:" + quote(child.source_path, safe=""),
-                    predicate=ATLAS + "broaderValue",
+                    predicate=SKOS + "broader",
                     object="urn:ref:epa-enterprise-vocabulary-row:" + quote(parent.source_path, safe=""),
                     source_payload=_frozen(
                         {
@@ -295,8 +295,8 @@ def _epa_vocabulary_releases(root: Path) -> tuple[RegistryRelease, ...]:
             key="epa-enterprise-vocabulary-label-tree-2026-08-03",
             resource_id="epa-enterprise-vocabulary",
             source_module="refspec.registry.epa_enterprise_vocabulary",
-            profile="structureScheme",
-            ring="value",
+            profile="conceptScheme",
+            ring="subject",
             scope="completeCapture",
             issued="2026-08-03",
             inputs=(pin,),
@@ -1047,7 +1047,7 @@ def _treasury_releases(root: Path) -> tuple[RegistryRelease, ...]:
             resource_id="treasury-account-symbol-structure",
             source_module="refspec.registry.treasury_tas_fast_book",
             profile="identifierScheme",
-            ring="legalIdentity",
+            ring="entity",
             scope="completeCapture",
             issued="2026-07-31",
             inputs=(workbook_pin,),

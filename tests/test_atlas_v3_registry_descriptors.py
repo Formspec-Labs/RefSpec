@@ -100,11 +100,11 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     }
     resource_ids = sorted(resource["resourceId"] for resource in catalog["resources"])
     assert len(resource_ids) == len(set(resource_ids)) == 89
-    assert len(index["rows"]) == 90
+    assert len(index["rows"]) == 89
     assert proof["resourceIdSetDigest"] == _canonical_sha256(resource_ids)
     assert proof["counts"] == {
-        "atlasIndexPlacementCount": 90,
-        "conceptSchemeCount": 30,
+            "atlasIndexPlacementCount": 89,
+            "conceptSchemeCount": 29,
         "memberDispositionCounts": {
             "assignmentEvidenceOnly": 4,
             "childReleaseOnly": 6,
@@ -116,10 +116,10 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-        "quadCount": 1175,
+            "quadCount": 1171,
         "registrySourceCount": 89,
         "resourceSchemeCount": 88,
-        "supportedRingStatementCount": 83,
+            "supportedRingStatementCount": 80,
     }
 
 
@@ -174,7 +174,7 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
     rings_by_resource: dict[str, set[str]] = defaultdict(set)
     for row in index["rows"]:
         rings_by_resource[row["resourceId"]].add(row["semanticRing"])
-    assert sum(len(rings) for rings in rings_by_resource.values()) == 84
+    assert sum(len(rings) for rings in rings_by_resource.values()) == 81
 
     resources = {resource["resourceId"]: resource for resource in catalog["resources"]}
     scheme_nodes = set(graph.subjects(RDF.type, ATLAS.ResourceScheme))
@@ -233,8 +233,8 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
             assert list(graph.objects(node, ATLAS.contentDigest)) == [Literal(_node_digest(graph, node))]
         assert list(graph.objects(source, ATLAS.contentDigest)) == [Literal(_node_digest(graph, source))]
 
-    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 30
-    assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 83
+    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 29
+    assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 80
 
 
 def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
@@ -261,7 +261,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.0 registry descriptors are current: 88 schemes, 90 index placements, 1175 quads\n"
+        "Atlas 3.0 registry descriptors are current: 88 schemes, 89 index placements, 1171 quads\n"
     )
 
 

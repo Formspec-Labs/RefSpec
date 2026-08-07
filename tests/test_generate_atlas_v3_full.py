@@ -1718,7 +1718,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 ) -> None:
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 90
+    assert len(generator._validated_registry_index_rows(index, proof)) == 89
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(
@@ -2711,7 +2711,7 @@ def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
     assert producer_report["counts"]["crossRingRelationAssertions"] == 1
 
 
-def test_grants_subject_codes_use_a_skos_concept_scheme(
+def test_grants_filter_codes_use_the_value_ring(
     registry_code_releases,
 ) -> None:
     releases = tuple(
@@ -2735,11 +2735,12 @@ def test_grants_subject_codes_use_a_skos_concept_scheme(
         scheme = generator.URIRef(
             "urn:ref:atlas-resource-scheme:grants-gov-status-codes"
         )
+        assert all(release.spec.ring == "value" for release in releases)
         assert (
             scheme,
             generator.RDF.type,
             generator.SKOS.ConceptScheme,
-        ) in graphs.asserted
+        ) not in graphs.asserted
         generator._validate_compiled_producer_output(
             releases,
             graphs,

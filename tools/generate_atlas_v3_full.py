@@ -167,14 +167,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:b991ad6aeb064423ac7eb7a0a3d294de723181d2d7b556dc2e6b53b8a5e80344"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:655d5cb542b749ebfd7de94c204826063e61b80ec8ca2c365517bf0b7eef445a"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:16f099c3f602e53e871116581e7dba3f57328243e555a70e776233543dc44288"
+            "sha256:5753e984db088c8443d268840e0f98db94d023d09e74cdf55e77d6ca991f13be"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -680,14 +680,14 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.0/tests/registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = (
-    "sha256:c6cfcabe32e5f61dc0d889b0d6a408640546653549ec7340e49a257df2c562de"
+    "sha256:12e215f0f8d2c1eb770527c64d4e01fc233c7a09354259df1c2739f635196e8e"
 )
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:d17777258ce897ec1a8a0df8648a9a4090b97378db5b8c7c1c5cb035d3ba9b07"
+    "sha256:887907ddfa17bd18c50bc5226d46eddfa0a4179b49280bc474503db85ce5119c"
 )
 
 
@@ -2482,10 +2482,11 @@ def _validate_registry_release_descriptors(
             isinstance(row, Mapping)
             and row.get("resourceId") == release.resource_id
             and row.get("sourceModule") == release.source_module
+            and row.get("semanticRing") == release.ring
             for row in index_rows
         ):
             raise ValueError(
-                f"{release.key} source module is absent from the Atlas index"
+                f"{release.key} source module/ring differs from the Atlas index"
             )
 
 

@@ -511,7 +511,7 @@ def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
                 source_module="refspec.registry.census_geo_codes",
                 source_token=token,
                 profile="identifierScheme",
-                ring="entity",
+                ring="value",
                 scope="captureSubset",
                 issued=str(bundle.resource_manifest["capturedAt"]),
                 inputs=inputs,
@@ -688,7 +688,7 @@ def _load_fec(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
             source_module="refspec.registry.fec_committee_codes",
             source_token=f"fec-{_token_fragment(resource_name)}",
             profile="codeScheme",
-            ring="entity",
+            ring="value",
             scope="completeCapture",
             inputs=(inputs[input_name],),
             expected_count=count,
@@ -767,7 +767,7 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
         source_module="refspec.registry.ferc_elibrary_codes",
         source_token="ferc-docket-prefixes",
         profile="identifierScheme",
-        ring="legalIdentity",
+        ring="value",
         scope="publisherRelease",
         issued=issued,
         inputs=(docket_input,),
@@ -843,7 +843,7 @@ def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
             source_module="refspec.registry.ferc_elibrary_codes",
             source_token="ferc-accession-formats",
             profile="identifierScheme",
-            ring="legalIdentity",
+            ring="value",
             scope="completeCapture",
             issued=issued,
             inputs=(accessibility_input,),
@@ -874,7 +874,7 @@ def _load_grants(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
         temporary / "grants",
     )
     portfolio = source.parse_grants_gov_status_codes(acquired)
-    rows = (("eligibilities", 17, "value"), ("fundingCategories", 26, "subject"))
+    rows = (("eligibilities", 17, "value"), ("fundingCategories", 26, "value"))
     return tuple(
         _bundle_release(
             source.build_grants_gov_code_package(resource_name, portfolio, acquired),
@@ -1437,7 +1437,9 @@ def _load_regulatory_native_controls(repo_root: Path) -> tuple[RegistryRelease, 
             )
             for ordinal, value in enumerate(control.values)
         )
-        ring = "entity" if control.spec.facet == "urn:ref:facet:entity" else "value"
+        # These releases contain publisher field values, including agency codes
+        # and unresolved agency-name strings. They do not identify the agencies.
+        ring = "value"
         profiles_by_resource = {
             "federal-register-native-controls": "conceptScheme",
             "regulations-gov-native-controls": "structureScheme",
@@ -1721,7 +1723,7 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
             source_module="refspec.registry.unified_agenda_codes",
             source_token="unified-agenda-legal-authority",
             profile="identifierScheme",
-            ring="legalIdentity",
+            ring="value",
             scope="captureSubset",
             issued=evidence.retrieved_at,
             inputs=(preamble_input,),

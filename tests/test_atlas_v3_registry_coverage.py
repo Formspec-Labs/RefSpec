@@ -45,13 +45,13 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
-        "atlasIndexRowCount": 90,
+        "atlasIndexRowCount": 89,
         "catalogOnlyDescriptorCount": 14,
         "catalogResourceCount": 89,
         "implementationModuleCount": 21,
         "indexedResourceCount": 75,
         "indexedWithoutExactReleaseCount": 70,
-        "registryModuleCount": 76,
+        "registryModuleCount": 77,
         "releaseReadyIndexedResourceCount": 5,
         "resourceKindCounts": {
             "classification": 5,
@@ -64,7 +64,7 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
             "structuralSchema": 9,
             "subjectVocabulary": 7,
         },
-        "sourceModuleCount": 55,
+        "sourceModuleCount": 56,
     }
     assert all(values == [] for values in generated["unsupported"].values())
 

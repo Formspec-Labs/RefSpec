@@ -91,6 +91,32 @@ def test_releases_use_catalog_resource_ids_profiles_rings_and_scheme_iris(
         assert release.scheme_iri == f"urn:ref:atlas-resource-scheme:{release.resource_id}"
 
 
+def test_field_values_formats_and_code_domains_use_the_value_ring(
+    releases: tuple[RegistryRelease, ...],
+) -> None:
+    by_key = {release.key: release for release in releases}
+    value_release_keys = {
+        "census-acs-geography-identifiers",
+        "census-tiger-geoid-structure",
+        "usgs-gnis-identifiers",
+        "fec-committee-designation",
+        "fec-committee-type",
+        "fec-filing-frequency",
+        "fec-organization-type",
+        "fec-party",
+        "ferc-docket-prefixes",
+        "ferc-accession-number-formats",
+        "grants-gov-funding-categories",
+        "unified-agenda-legal-authority-citation-types",
+    }
+    value_release_keys.update(
+        key for key in by_key if key.startswith("regulatory-native-")
+    )
+
+    assert value_release_keys <= by_key.keys()
+    assert {by_key[key].ring for key in value_release_keys} == {"value"}
+
+
 def test_resources_have_english_labels_readable_uuid7_ids_and_exact_provenance(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
