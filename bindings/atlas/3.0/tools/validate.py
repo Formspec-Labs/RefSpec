@@ -18,6 +18,7 @@ import re
 import secrets
 import stat
 import sys
+import time
 from collections import Counter, defaultdict, deque
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -27,7 +28,7 @@ from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, NoReturn, TextIO
 
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from jsonschema import _utils as jsonschema_utils
@@ -261,6 +262,75 @@ COMPACT_SUMMARY_PROJECTION_FIELDS = {
         "toRelease",
     ),
 }
+
+
+class _StatusReporter:
+    """Write rate-limited validation progress outside canonical result data."""
+
+    def __init__(
+        self,
+        *,
+        enabled: bool,
+        stream: TextIO = sys.stderr,
+        interval_seconds: float = 15.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.enabled = enabled
+        self.stream = stream
+        self.interval_seconds = interval_seconds
+        self.clock = clock
+        self.started_at = clock()
+        self.last_emitted_at: float | None = None
+
+    def _write(
+        self,
+        phase: str,
+        *,
+        current: str | None = None,
+        progress: tuple[int, int] | None = None,
+        force: bool = False,
+    ) -> None:
+        if not self.enabled:
+            return
+        now = self.clock()
+        if (
+            not force
+            and self.last_emitted_at is not None
+            and now - self.last_emitted_at < self.interval_seconds
+        ):
+            return
+        fields = [
+            "atlas-validate",
+            f"elapsed={max(0.0, now - self.started_at):.1f}s",
+            f"phase={json.dumps(phase, ensure_ascii=True)}",
+        ]
+        if progress is not None:
+            fields.append(f"progress={progress[0]}/{progress[1]}")
+        if current is not None:
+            fields.append(f"current={json.dumps(current, ensure_ascii=True)}")
+        print(" ".join(fields), file=self.stream, flush=True)
+        self.last_emitted_at = now
+
+    def phase(self, phase: str, *, current: str | None = None) -> None:
+        self._write(phase, current=current, force=True)
+
+    def progress(
+        self,
+        phase: str,
+        completed: int,
+        total: int,
+        *,
+        current: str | None = None,
+    ) -> None:
+        self._write(
+            phase,
+            current=current,
+            progress=(completed, total),
+            force=completed == total,
+        )
+
+
+_STATUS = _StatusReporter(enabled=False)
 ASSERTION_TYPES = frozenset(
     {
         ATLAS.CrossRingRelationAssertion,
@@ -2181,7 +2251,14 @@ def _parse_packed_dataset(
         role: {} for role in graph_ids
     }
     aggregate_counts: Counter[URIRef] = Counter()
-    for pack in manifest["packs"]:
+    packs = manifest["packs"]
+    for pack_position, pack in enumerate(packs, start=1):
+        _STATUS.progress(
+            "parse-rdf-packs",
+            pack_position - 1,
+            len(packs),
+            current=pack["path"],
+        )
         counts = _parse_pack_into_dataset(
             dataset,
             root,
@@ -2190,6 +2267,12 @@ def _parse_packed_dataset(
             subject_owners,
         )
         aggregate_counts.update(counts)
+        _STATUS.progress(
+            "parse-rdf-packs",
+            pack_position,
+            len(packs),
+            current=pack["path"],
+        )
     for graph_row in manifest["graphs"]:
         graph_id = graph_ids[graph_row["role"]]
         if aggregate_counts[graph_id] != graph_row["quadCount"]:
@@ -5842,12 +5925,17 @@ def _check_compact_rdf_parity(
             )
         return str(candidates[0]["packId"])
 
+    descriptors = construction_summary["compactPacks"]
+    total_records = sum(
+        descriptor["content"]["recordCount"] for descriptor in descriptors
+    )
+    processed_records = 0
     seen_subjects: set[URIRef] = set()
     expected_dependencies: dict[str, set[str]] = {
         descriptor["packId"]: set()
-        for descriptor in construction_summary["compactPacks"]
+        for descriptor in descriptors
     }
-    for descriptor in construction_summary["compactPacks"]:
+    for descriptor in descriptors:
         descriptor_role = descriptor["role"]
         descriptor_pack_id = descriptor["packId"]
         descriptor_owner = path_owners[descriptor["path"]]
@@ -5858,7 +5946,17 @@ def _check_compact_rdf_parity(
             descriptor_role: str = descriptor_role,
             descriptor_pack_id: str = descriptor_pack_id,
             descriptor_owner: str = descriptor_owner,
+            descriptor_path: str = descriptor["path"],
         ) -> None:
+            nonlocal processed_records
+            processed_records += 1
+            if processed_records % 100_000 == 0:
+                _STATUS.progress(
+                    "check-compact-rdf-parity",
+                    processed_records,
+                    total_records,
+                    current=descriptor_path,
+                )
             subject = URIRef(row["id"])
             if subject in seen_subjects:
                 _fail(
@@ -5911,6 +6009,12 @@ def _check_compact_rdf_parity(
             retain_rows=False,
             row_consumer=consume,
         )
+        _STATUS.progress(
+            "check-compact-rdf-parity",
+            processed_records,
+            total_records,
+            current=descriptor["path"],
+        )
 
     missing: list[str] = []
     rdf_subject_count = 0
@@ -5940,7 +6044,7 @@ def _check_compact_rdf_parity(
         )
 
     _check_compact_dependency_closure(
-        construction_summary["compactPacks"],
+        descriptors,
         expected_dependencies,
     )
 
@@ -6340,22 +6444,31 @@ def _validate_semantic_graphs(
         isinstance(graph, Graph) for graph in graphs.values()
     ):
         _fail("dataset.graph", "preparsed validation requires the three Atlas graph roles")
+    _STATUS.phase("load-binding-graphs")
     ontology, shapes = _parse_binding_graphs()
     _lint_ontology(ontology)
+    _STATUS.phase("run-shacl")
     _run_shacl(graphs, ontology, shapes)
+    _STATUS.phase("check-graph-roles")
     inventory = _check_graph_roles(graphs)
+    _STATUS.phase("check-profile-and-identifier-semantics")
     _check_profile_conformance(graphs["asserted"], inventory)
     _check_identifier_uniqueness(graphs["asserted"], inventory)
+    _STATUS.phase("check-release-and-label-semantics")
     _check_release_membership(graphs["asserted"], inventory)
     _check_label_integrity(graphs["asserted"], inventory)
+    _STATUS.phase("check-evidence-and-assertions")
     _check_evidence_bindings(graphs["asserted"], inventory)
     current_assertions = _validate_assertions(graphs["asserted"], inventory)
+    _STATUS.phase("check-skos-semantics")
     exact_index = _check_skos_integrity(current_assertions)
     projection_quad_count = next(
         row["quadCount"] for row in manifest["graphs"] if row["role"] == "projection"
     )
     if projection_quad_count:
+        _STATUS.phase("check-projection")
         _check_projection(graphs["asserted"], graphs["projection"], current_assertions)
+    _STATUS.phase("check-derived-graph")
     _check_derived(
         graphs["asserted"],
         graphs["projection"],
@@ -6363,20 +6476,24 @@ def _validate_semantic_graphs(
         current_assertions,
         inventory.derived_nodes,
     )
+    _STATUS.phase("check-payload-and-node-digests")
     precomputed_node_digests = _check_native_payloads(graphs["asserted"], inventory)
     _check_node_digests(
         graphs,
         inventory,
         precomputed=precomputed_node_digests,
     )
+    _STATUS.phase("check-accounting-and-counts")
     _check_source_accounting(graphs["asserted"], accounting, inventory)
     _check_counts(manifest, graphs, inventory)
+    _STATUS.phase("check-reasoning-isolation")
     inferred_mapping_count = _check_reasoning_isolation(
         graphs["derived"],
         current_assertions,
         exact_index,
         inventory.derived_nodes,
     )
+    _STATUS.phase("check-acceptance")
     _check_acceptance(manifest, accounting, acceptance, member_digests)
     return {
         "counts": manifest["counts"],
@@ -6486,6 +6603,7 @@ def validate_distribution(
     pack bytes are unchanged.
     """
 
+    _STATUS.phase("load-manifest")
     if cache_dir is not None:
         cache_dir = _cache_location(root, cache_dir)
     schemas, registry = _schema_registry()
@@ -6515,6 +6633,7 @@ def validate_distribution(
         registry=registry,
         label="construction summary",
     )
+    _STATUS.phase("check-closed-distribution")
     member_digests = _check_distribution_files(root, manifest, construction_summary)
 
     accounting_path = _safe_distribution_path(root, accounting_member["path"])
@@ -6544,14 +6663,17 @@ def validate_distribution(
         member_digests,
     )
     if cache_dir is not None:
+        _STATUS.phase("check-validation-cache")
         cached_result = _read_validation_receipt(cache_dir, manifest)
         if cached_result is not None:
             if file_sha256(accounting_path) != member_digests[accounting_member["path"]]:
                 _fail("distribution.digest", f"{accounting_path.name} digest differs")
             _check_cached_pack_transports(root, manifest, construction_summary)
             _check_acceptance_metadata(manifest, acceptance, member_digests)
+            _STATUS.phase("complete-from-cache")
             return cached_result
 
+    _STATUS.phase("check-source-accounting")
     accounting = _load_json(
         accounting_path,
         require_canonical=True,
@@ -6572,7 +6694,9 @@ def validate_distribution(
         member_digests,
         accounting,
     )
+    _STATUS.phase("parse-rdf-packs")
     dataset, graphs = _parse_packed_dataset(root, manifest, graph_ids)
+    _STATUS.phase("validate-semantic-graphs")
     result = _validate_semantics_then_compact_parity(
         root,
         manifest,
@@ -6585,6 +6709,7 @@ def validate_distribution(
     # Keep the shared Dataset store alive for every graph view through the last check.
     del dataset
     if cache_dir is not None:
+        _STATUS.phase("write-validation-cache")
         _write_validation_receipt(cache_dir, manifest, result)
     return result
 
@@ -7145,11 +7270,23 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help="private local receipt cache for repeated --distribution validation",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="suppress human-facing status lines on stderr",
+    )
     return parser
 
 
 def main(argv: Iterable[str] | None = None) -> int:
+    global _STATUS
+
     args = _parser().parse_args(list(argv) if argv is not None else None)
+    _STATUS = _StatusReporter(
+        enabled=not args.quiet and args.distribution is not None,
+    )
+    if args.distribution is not None:
+        _STATUS.phase("validate-distribution")
     try:
         if args.cache_dir is not None and args.distribution is None:
             _fail("cache.path", "--cache-dir requires --distribution")
@@ -7159,8 +7296,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             else validate_binding()
         )
     except AtlasValidationError as exc:
+        _STATUS.phase("failed", current=exc.code)
         print(str(exc), file=sys.stderr)
         return 1
+    _STATUS.phase("complete")
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0
 

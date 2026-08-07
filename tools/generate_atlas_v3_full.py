@@ -39,9 +39,10 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 import unicodedata
 from collections import ChainMap, Counter, defaultdict, deque
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
@@ -167,14 +168,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:655d5cb542b749ebfd7de94c204826063e61b80ec8ca2c365517bf0b7eef445a"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:ad5456c13e29fd32a1a62fbbea1aa83cfab2a32bb037b841525893138221ae30"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:5753e984db088c8443d268840e0f98db94d023d09e74cdf55e77d6ca991f13be"
+            "sha256:51c4268da463130578cbc18f4a9c650ec7bf04115bf89e57efda98b012e06a0a"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -213,6 +214,75 @@ _FALLBACK_SOURCE_NAMESPACES = MappingProxyType(
 )
 SourceLabelRole = TypeLiteral["preferred", "alternate", "hidden"]
 SOURCE_LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
+
+
+class _StatusReporter:
+    """Write rate-limited, artifact-neutral progress to a human-facing stream."""
+
+    def __init__(
+        self,
+        *,
+        enabled: bool,
+        stream: TextIO = sys.stderr,
+        interval_seconds: float = 15.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.enabled = enabled
+        self.stream = stream
+        self.interval_seconds = interval_seconds
+        self.clock = clock
+        self.started_at = clock()
+        self.last_emitted_at: float | None = None
+
+    def _write(
+        self,
+        phase: str,
+        *,
+        current: str | None = None,
+        progress: tuple[int, int] | None = None,
+        force: bool = False,
+    ) -> None:
+        if not self.enabled:
+            return
+        now = self.clock()
+        if (
+            not force
+            and self.last_emitted_at is not None
+            and now - self.last_emitted_at < self.interval_seconds
+        ):
+            return
+        fields = [
+            "atlas-build",
+            f"elapsed={max(0.0, now - self.started_at):.1f}s",
+            f"phase={json.dumps(phase, ensure_ascii=True)}",
+        ]
+        if progress is not None:
+            fields.append(f"progress={progress[0]}/{progress[1]}")
+        if current is not None:
+            fields.append(f"current={json.dumps(current, ensure_ascii=True)}")
+        print(" ".join(fields), file=self.stream, flush=True)
+        self.last_emitted_at = now
+
+    def phase(self, phase: str, *, current: str | None = None) -> None:
+        self._write(phase, current=current, force=True)
+
+    def progress(
+        self,
+        phase: str,
+        completed: int,
+        total: int,
+        *,
+        current: str | None = None,
+    ) -> None:
+        self._write(
+            phase,
+            current=current,
+            progress=(completed, total),
+            force=completed == total,
+        )
+
+
+_STATUS = _StatusReporter(enabled=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -2225,15 +2295,30 @@ def load_releases(
         "managedReleaseWithCoverageUnion": _load_icpsr,
     }
     releases: list[LoadedRelease] = []
-    for spec in SOURCE_SPECS:
-        if spec.key in {"elsst-r6", "federal-register-thesaurus-2025"}:
-            continue
-        if include_keys is not None and spec.key not in include_keys:
-            continue
+    selected_specs = tuple(
+        spec
+        for spec in SOURCE_SPECS
+        if spec.key not in {"elsst-r6", "federal-register-thesaurus-2025"}
+        and (include_keys is None or spec.key in include_keys)
+    )
+    for position, spec in enumerate(selected_specs, start=1):
+        _STATUS.progress(
+            "load-direct-releases",
+            position - 1,
+            len(selected_specs),
+            current=spec.key,
+        )
         release = loaders[spec.kind](spec)
         releases.append(_validate_loaded_release(release))
+        _STATUS.progress(
+            "load-direct-releases",
+            position,
+            len(selected_specs),
+            current=spec.key,
+        )
 
     selected = None if include_keys is None else include_keys
+    _STATUS.phase("load-registry-releases")
     registry_releases = (
         *load_all_registry_vocabulary_releases(
             only_keys=None if selected is None else selected & REGISTRY_VOCABULARY_RELEASE_KEYS
@@ -2261,6 +2346,11 @@ def load_releases(
     )
     _validate_registry_release_descriptors(registry_releases)
     releases.extend(_adapt_registry_release(release) for release in registry_releases)
+    _STATUS.progress(
+        "load-registry-releases",
+        len(registry_releases),
+        len(registry_releases),
+    )
     if include_keys is not None:
         observed = {release.spec.key for release in releases}
         missing = sorted(include_keys - observed)
@@ -2280,10 +2370,12 @@ def load_mapping_releases(
 
     if include_keys is not None and not include_keys:
         return ()
+    _STATUS.phase("load-mapping-releases")
     releases = tuple(load_all_registry_mapping_releases(only_keys=include_keys))
     if include_keys is not None and {release.key for release in releases} != set(include_keys):
         raise ValueError("selective Atlas mapping loaders do not know every dirty key")
     _validate_registry_mapping_release_descriptors(releases)
+    _STATUS.progress("load-mapping-releases", len(releases), len(releases))
     return releases
 
 
@@ -4417,7 +4509,13 @@ def _build_graphs(
     accounting_inputs: list[dict[str, Any]] = []
     source_accounting_by_release: dict[str, dict[str, Any]] = {}
 
-    for release in releases:
+    for release_position, release in enumerate(releases, start=1):
+        _STATUS.progress(
+            "construct-source-graphs",
+            release_position - 1,
+            len(releases),
+            current=release.spec.key,
+        )
         emit_release = release.spec.key in emitted_keys
         source_locator = URIRef(
             "urn:ref:source-artifact-set:"
@@ -4459,7 +4557,20 @@ def _build_graphs(
             )
 
         dispositions: list[dict[str, Any]] = []
-        for resource_row in release.resources:
+        for resource_position, resource_row in enumerate(
+            release.resources,
+            start=1,
+        ):
+            if resource_position % 25_000 == 0:
+                _STATUS.progress(
+                    "construct-source-graphs",
+                    release_position - 1,
+                    len(releases),
+                    current=(
+                        f"{release.spec.key} resources="
+                        f"{resource_position}/{len(release.resources)}"
+                    ),
+                )
             if (
                 resource_row.iri in resource_facts
                 or resource_row.iri in clean_resources
@@ -4624,8 +4735,20 @@ def _build_graphs(
                 ) from error
         accounting_inputs.append(accounting_row)
         source_accounting_by_release[release.source_release_iri] = accounting_row
+        _STATUS.progress(
+            "construct-source-graphs",
+            release_position,
+            len(releases),
+            current=release.spec.key,
+        )
 
-    for mapping_release in mapping_releases:
+    for mapping_position, mapping_release in enumerate(mapping_releases, start=1):
+        _STATUS.progress(
+            "construct-mapping-graphs",
+            mapping_position - 1,
+            len(mapping_releases),
+            current=mapping_release.key,
+        )
         emit_release = mapping_release.key in emitted_keys
         source_release = (
             _add_source_release(
@@ -4659,6 +4782,12 @@ def _build_graphs(
         source_accounting_by_release[
             mapping_release.source_release_iri
         ] = accounting_row
+        _STATUS.progress(
+            "construct-mapping-graphs",
+            mapping_position,
+            len(mapping_releases),
+            current=mapping_release.key,
+        )
 
     for key in sorted(reused_keys):
         source_release_iri = source_release_by_key[key]
@@ -7450,6 +7579,7 @@ def _write_candidate_distribution(
         if reused_material is None
         else dict(reused_material.compact_path_owners)
     )
+    _STATUS.phase("write-rdf-and-compact-packs")
     packs, graph_descriptors = _write_graph_packs(
         output,
         graphs,
@@ -7493,6 +7623,7 @@ def _write_candidate_distribution(
         ]
     if graphs.asserted.revision != graphs.sealed_asserted_revision:
         raise ValueError("asserted graph changed while writing Atlas packs")
+    _STATUS.phase("write-receipts-and-manifest")
     accounting_path.write_bytes(
         ATLAS_VALIDATE.canonical_json_bytes(graphs.accounting)
     )
@@ -7614,6 +7745,7 @@ def _write_candidate_distribution(
     )
     manifest_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(manifest))
 
+    _STATUS.phase("validate-candidate-metadata")
     schemas, registry = ATLAS_VALIDATE._schema_registry()
     for value, schema_name, label in (
         (manifest, "manifest", "manifest"),
@@ -8819,6 +8951,7 @@ def _write_distribution(
             raise FileExistsError(
                 f"generation report path is not replaceable: {report_path}"
             )
+        _STATUS.phase("promote-validated-distribution")
         _promote_validated_distribution(
             candidate,
             output,
@@ -9413,12 +9546,14 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
+    _STATUS.phase("plan-reuse")
     prior_root = reuse_from
     if prior_root is None and output.exists():
         prior_root = output
     incremental_plan = _plan_incremental_construction(prior_root)
     if incremental_plan is not None:
         reuse, provisional_seeds = incremental_plan
+        _STATUS.phase("build-incremental-distribution")
         result = _build_incremental_distribution(
             output,
             reuse=reuse,
@@ -9431,11 +9566,15 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
         reuse_from=reuse_from,
     )
     if exact_reuse is not None:
+        _STATUS.phase("reuse-exact-distribution")
         print(json.dumps(exact_reuse, indent=2, sort_keys=True))
         return
+    _STATUS.phase("load-source-releases")
     releases = load_releases()
     mapping_releases = load_mapping_releases()
+    _STATUS.phase("verify-pinned-inputs")
     inventory = verify_inputs(releases, mapping_releases)
+    _STATUS.phase("validate-normalized-rows")
     producer_validation = _validate_compiled_producer_rows(
         releases,
         mapping_releases,
@@ -9517,11 +9656,13 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
     generation_report["semanticConstruction"] = semantic_construction
     # Fail on nulls or non-interoperable numbers before constructing the large graph.
     ATLAS_VALIDATE.canonical_json_bytes(generation_report)
+    _STATUS.phase("construct-graphs")
     graphs = _build_graphs(
         releases,
         mapping_releases=mapping_releases,
         include_projection=False,
     )
+    _STATUS.phase("validate-constructed-graphs")
     compiled_validation = _validate_compiled_producer_output(
         releases,
         graphs,
@@ -9530,6 +9671,7 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
     )
     del releases
     del mapping_releases
+    _STATUS.phase("write-distribution")
     result = _write_distribution(
         output,
         graphs,
@@ -9543,6 +9685,8 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
 
 
 def main() -> int:
+    global _STATUS
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
@@ -9558,22 +9702,37 @@ def main() -> int:
             "distribution; an existing --output is used automatically"
         ),
     )
-    args = parser.parse_args()
-    if args.check_inputs:
-        releases = load_releases()
-        mapping_releases = load_mapping_releases()
-        print(
-            json.dumps(
-                verify_inputs(releases, mapping_releases),
-                indent=2,
-                sort_keys=True,
-            )
-        )
-        return 0
-    build_distribution(
-        args.output.resolve(),
-        reuse_from=(args.reuse_from.resolve() if args.reuse_from else None),
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="suppress human-facing status lines on stderr",
     )
+    args = parser.parse_args()
+    _STATUS = _StatusReporter(enabled=not args.quiet)
+    operation = "check-inputs" if args.check_inputs else "build-distribution"
+    _STATUS.phase(operation)
+    try:
+        if args.check_inputs:
+            releases = load_releases()
+            mapping_releases = load_mapping_releases()
+            _STATUS.phase("verify-pinned-inputs")
+            print(
+                json.dumps(
+                    verify_inputs(releases, mapping_releases),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+            _STATUS.phase("complete")
+            return 0
+        build_distribution(
+            args.output.resolve(),
+            reuse_from=(args.reuse_from.resolve() if args.reuse_from else None),
+        )
+    except BaseException as error:
+        _STATUS.phase("failed", current=type(error).__name__)
+        raise
+    _STATUS.phase("complete")
     print(args.output.resolve())
     return 0
 

@@ -41,7 +41,6 @@
           },
           "required": [
             "entity",
-            "subject",
             "value"
           ],
           "type": "object"
@@ -145,11 +144,16 @@
             "legalIdentity": {
               "$ref": "common.schema.json#/$defs/nonnegativeInteger",
               "minimum": 1
+            },
+            "value": {
+              "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+              "minimum": 1
             }
           },
           "required": [
             "entity",
-            "legalIdentity"
+            "legalIdentity",
+            "value"
           ],
           "type": "object"
         }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import importlib
+import io
 import json
 import sys
 from collections.abc import Mapping
@@ -26,6 +27,29 @@ from refspec.atlas.v3_source_data import (
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 generator = importlib.import_module("generate_atlas_v3_full")
+
+
+def test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries() -> None:
+    ticks = iter((100.0, 100.0, 101.0, 116.0, 117.0))
+    stream = io.StringIO()
+    reporter = generator._StatusReporter(
+        enabled=True,
+        stream=stream,
+        interval_seconds=15.0,
+        clock=lambda: next(ticks),
+    )
+
+    reporter.phase("load")
+    reporter.progress("construct", 1, 3, current="release-one")
+    reporter.progress("construct", 2, 3, current="release-two")
+    reporter.progress("construct", 3, 3, current="release-three")
+
+    lines = stream.getvalue().splitlines()
+    assert len(lines) == 3
+    assert lines[0] == 'atlas-build elapsed=0.0s phase="load"'
+    assert "progress=1/3" not in stream.getvalue()
+    assert 'progress=2/3 current="release-two"' in lines[1]
+    assert 'progress=3/3 current="release-three"' in lines[2]
 
 
 def _compiled_test_report(

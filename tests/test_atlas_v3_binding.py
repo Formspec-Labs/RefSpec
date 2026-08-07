@@ -76,7 +76,7 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
         "caseCount": 57,
         "invalidCount": 52,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 1175,
+        "registryDescriptorQuadCount": 1171,
         "schemaCount": 10,
     }
 

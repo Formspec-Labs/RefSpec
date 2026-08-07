@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import shutil
 import sys
@@ -22,6 +23,30 @@ SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import build_fixtures as atlas_fixtures
 import validate as atlas_validate
+
+
+def test_validator_status_reporter_is_rate_limited_and_quiet_is_supported() -> None:
+    ticks = iter((20.0, 20.0, 21.0, 36.0, 37.0))
+    stream = io.StringIO()
+    reporter = atlas_validate._StatusReporter(
+        enabled=True,
+        stream=stream,
+        interval_seconds=15.0,
+        clock=lambda: next(ticks),
+    )
+
+    reporter.phase("load")
+    reporter.progress("compact", 1, 3, current="packs/one")
+    reporter.progress("compact", 2, 3, current="packs/two")
+    reporter.progress("compact", 3, 3, current="packs/three")
+
+    lines = stream.getvalue().splitlines()
+    assert len(lines) == 3
+    assert lines[0] == 'atlas-validate elapsed=0.0s phase="load"'
+    assert "progress=1/3" not in stream.getvalue()
+    assert 'progress=2/3 current="packs/two"' in lines[1]
+    assert 'progress=3/3 current="packs/three"' in lines[2]
+    assert atlas_validate._parser().parse_args(["--quiet"]).quiet is True
 
 
 def _sha256(payload: bytes) -> str:
