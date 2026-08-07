@@ -13,12 +13,17 @@ import hashlib
 import json
 import re
 import tempfile
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
 
+from refspec.atlas.v3_registry_selection import (
+    normalize_only_keys,
+    select_declared_group,
+    wants_group,
+)
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryLabel,
@@ -1728,46 +1733,240 @@ def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRele
     return tuple(releases)
 
 
-def load_registry_code_releases(repo_root: Path) -> tuple[RegistryRelease, ...]:
-    """Load every exact, supported small registry code/value release.
+REGISTRY_CODE_RELEASE_GROUPS = (
+    (
+        "billstatus",
+        frozenset(
+            {
+                "billstatus-action-codes",
+                "billstatus-bill-types",
+                "billstatus-summary-version-codes",
+            }
+        ),
+    ),
+    (
+        "census",
+        frozenset(
+            {"census-data-flags", "census-function-items", "nasbo-program-areas"}
+        ),
+    ),
+    (
+        "census-geo",
+        frozenset(
+            {
+                "census-acs-geography-identifiers",
+                "census-tiger-geoid-structure",
+                "usgs-gnis-identifiers",
+            }
+        ),
+    ),
+    (
+        "fcc",
+        frozenset(
+            {
+                "fcc-ecfs-access-statuses",
+                "fcc-ecfs-bureaus",
+                "fcc-ecfs-filing-types",
+                "fcc-ecfs-proceedings",
+            }
+        ),
+    ),
+    (
+        "fec",
+        frozenset(
+            {
+                "fec-committee-designation",
+                "fec-committee-type",
+                "fec-filing-frequency",
+                "fec-organization-type",
+                "fec-party",
+            }
+        ),
+    ),
+    (
+        "ferc",
+        frozenset(
+            {
+                "ferc-accession-number-formats",
+                "ferc-docket-prefixes",
+                "ferc-document-class-types",
+                "ferc-sectors",
+                "ferc-security-levels",
+            }
+        ),
+    ),
+    ("govinfo", frozenset({"ecfr-cfr-titles", "govinfo-collections"})),
+    (
+        "grants",
+        frozenset(
+            {"grants-gov-eligibilities", "grants-gov-funding-categories"}
+        ),
+    ),
+    ("lda", frozenset({"lda-filing-types", "lda-general-issue-codes"})),
+    ("nasa-technology", frozenset({"nasa-technology-taxonomy-8817"})),
+    ("nature-of-suit", frozenset({"uscourts-nature-of-suit"})),
+    ("oira", frozenset({"oira-review-controls"})),
+    (
+        "omb-a11",
+        frozenset(
+            {
+                "omb-a11-apportionment-categories",
+                "omb-a11-functional-classification",
+                "omb-a11-object-classification",
+            }
+        ),
+    ),
+    ("oversight", frozenset({"oversight-report-types"})),
+    ("pra", frozenset({"pra-icr-controls"})),
+    (
+        "regulatory-native",
+        frozenset(
+            {
+                "regulatory-native-federal-register-agency-slug",
+                "regulatory-native-federal-register-document-type",
+                "regulatory-native-federal-register-presidential-subtype",
+                "regulatory-native-federal-register-unresolved-agency-name",
+                "regulatory-native-regulations-gov-attachment-format",
+                "regulatory-native-regulations-gov-docket-agency-code",
+                "regulatory-native-regulations-gov-docket-type",
+                "regulatory-native-regulations-gov-document-agency-code",
+                "regulatory-native-regulations-gov-document-type",
+                "regulatory-native-unified-agenda-agency-code",
+                "regulatory-native-unified-agenda-major-flag",
+                "regulatory-native-unified-agenda-priority-category",
+                "regulatory-native-unified-agenda-rin-status",
+                "regulatory-native-unified-agenda-rule-stage",
+            }
+        ),
+    ),
+    (
+        "regulations-gov",
+        frozenset(
+            {
+                "regulations-gov-docket-type",
+                "regulations-gov-document-type",
+                "regulations-gov-submitter-type",
+            }
+        ),
+    ),
+    (
+        "sam-assistance",
+        frozenset(
+            {
+                "sam-assistance-assistance-types",
+                "sam-assistance-eligible-applicant-types",
+                "sam-assistance-eligible-beneficiary-types",
+            }
+        ),
+    ),
+    (
+        "sam-opportunities",
+        frozenset(
+            {
+                "sam-opportunities-notice-types",
+                "sam-opportunities-opportunity-statuses",
+                "sam-opportunities-set-aside-codes",
+            }
+        ),
+    ),
+    ("scotus", frozenset({"scotus-opinion-types"})),
+    ("sec", frozenset({"sec-series-categories"})),
+    (
+        "unified-agenda",
+        frozenset(
+            {
+                "unified-agenda-legal-authority-citation-types",
+                "unified-agenda-priority-category",
+                "unified-agenda-rule-stage",
+                "unified-agenda-timetable-action",
+            }
+        ),
+    ),
+    ("usaspending", frozenset({"usaspending-award-types"})),
+)
+REGISTRY_CODE_RELEASE_KEYS = frozenset(
+    key
+    for _group_name, group_keys in REGISTRY_CODE_RELEASE_GROUPS
+    for key in group_keys
+)
+
+
+def load_registry_code_releases(
+    repo_root: Path,
+    *,
+    only_keys: Collection[str] | None = None,
+) -> tuple[RegistryRelease, ...]:
+    """Load selected exact, supported small registry code/value releases.
 
     The returned order is stable.  Every parser executes against the pinned
-    local bytes on each call, so stale pins and count drift fail before graph
-    generation begins.
+    local bytes for a selected source group, so stale pins and count drift fail
+    before graph generation begins.
     """
 
+    requested = normalize_only_keys(
+        only_keys,
+        allowed_keys=REGISTRY_CODE_RELEASE_KEYS,
+        loader_name="load_registry_code_releases",
+    )
+    if requested == frozenset():
+        return ()
     root = Path(repo_root)
+    loaders: dict[
+        str,
+        tuple[Callable[..., tuple[RegistryRelease, ...]], bool],
+    ] = {
+        "billstatus": (_load_billstatus, True),
+        "census": (_load_census, True),
+        "census-geo": (_load_census_geo, True),
+        "fcc": (_load_fcc, False),
+        "fec": (_load_fec, True),
+        "ferc": (_load_ferc, False),
+        "govinfo": (_load_govinfo, True),
+        "grants": (_load_grants, True),
+        "lda": (_load_lda, True),
+        "nasa-technology": (_load_nasa_technology, False),
+        "nature-of-suit": (_load_nature_of_suit, False),
+        "oira": (_load_oira, True),
+        "omb-a11": (_load_omb_a11, True),
+        "oversight": (_load_oversight, True),
+        "pra": (_load_pra, False),
+        "regulatory-native": (_load_regulatory_native_controls, False),
+        "regulations-gov": (_load_regulations_gov, True),
+        "sam-assistance": (_load_sam_assistance, True),
+        "sam-opportunities": (_load_sam_opportunities, True),
+        "scotus": (_load_scotus, True),
+        "sec": (_load_sec, True),
+        "unified-agenda": (_load_unified_agenda, True),
+        "usaspending": (_load_usaspending, True),
+    }
+    releases: list[RegistryRelease] = []
     with tempfile.TemporaryDirectory(prefix="refspec-atlas-v3-registry-") as directory:
         temporary = Path(directory)
-        releases = (
-            *_load_billstatus(root, temporary),
-            *_load_census(root, temporary),
-            *_load_census_geo(root, temporary),
-            *_load_fcc(root),
-            *_load_fec(root, temporary),
-            *_load_ferc(root),
-            *_load_govinfo(root, temporary),
-            *_load_grants(root, temporary),
-            *_load_lda(root, temporary),
-            *_load_nasa_technology(root),
-            *_load_nature_of_suit(root),
-            *_load_oira(root, temporary),
-            *_load_omb_a11(root, temporary),
-            *_load_oversight(root, temporary),
-            *_load_pra(root),
-            *_load_regulatory_native_controls(root),
-            *_load_regulations_gov(root, temporary),
-            *_load_sam_assistance(root, temporary),
-            *_load_sam_opportunities(root, temporary),
-            *_load_scotus(root, temporary),
-            *_load_sec(root, temporary),
-            *_load_unified_agenda(root, temporary),
-            *_load_usaspending(root, temporary),
-        )
+        for group_name, group_keys in REGISTRY_CODE_RELEASE_GROUPS:
+            if not wants_group(requested, group_keys):
+                continue
+            loader, needs_temporary = loaders[group_name]
+            loaded = (
+                loader(root, temporary)
+                if needs_temporary
+                else loader(root)
+            )
+            releases.extend(
+                select_declared_group(
+                    loaded,
+                    declared_keys=group_keys,
+                    requested_keys=requested,
+                    loader_name=loader.__name__,
+                )
+            )
     keys = [release.key for release in releases]
     if len(keys) != len(set(keys)):
         raise ValueError("small registry loaders produced duplicate release keys")
     return tuple(sorted(releases, key=lambda release: release.key))
 
 
-__all__ = ["load_registry_code_releases"]
+__all__ = [
+    "REGISTRY_CODE_RELEASE_GROUPS",
+    "REGISTRY_CODE_RELEASE_KEYS",
+    "load_registry_code_releases",
+]

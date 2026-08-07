@@ -26,9 +26,11 @@ from refspec.registry.lcsh_topical import (
     LcshTopicalError,
     LcshTopicalLabel,
     build_lcsh_topical_snapshot,
+    capture_lcsh_authorities_by_iri,
     capture_lcsh_topical_subset,
     capture_lcsh_topical_subset_from_gzip_path,
     open_pinned_lcsh_topical_mini_fixture,
+    parse_lcsh_authority_ndjson_line,
     parse_lcsh_topical_ndjson_line,
 )
 
@@ -183,13 +185,51 @@ def test_parser_rejects_a_missing_graph() -> None:
         parse_lcsh_topical_ndjson_line(json.dumps(document).encode("utf-8"), source_url=SOURCE_URL, line_number=1)
 
 
-def test_parser_rejects_zero_or_multiple_authority_nodes() -> None:
+def test_parser_selects_the_top_level_authority_when_graph_contains_other_authorities() -> None:
     document = json.loads(_line(0))
     duplicate = dict(document["@graph"][0])
     duplicate["@id"] = "http://id.loc.gov/authorities/subjects/sh99999999"
     document["@graph"].append(duplicate)
+
+    record = parse_lcsh_topical_ndjson_line(
+        json.dumps(document).encode("utf-8"),
+        source_url=SOURCE_URL,
+        line_number=1,
+    )
+
+    assert record is not None
+    assert record.concept_iri == ACTIONSCRIPT
+
+
+def test_parser_rejects_a_graph_without_its_top_level_authority() -> None:
+    document = json.loads(_line(0))
+    document["@graph"][0]["@id"] = (
+        "http://id.loc.gov/authorities/subjects/sh99999999"
+    )
     with pytest.raises(LcshTopicalError, match="exactly one"):
         parse_lcsh_topical_ndjson_line(json.dumps(document).encode("utf-8"), source_url=SOURCE_URL, line_number=1)
+
+
+def test_generic_authority_parser_keeps_non_topic_and_does_not_mint_missing_lccn() -> None:
+    document = json.loads(_line(3))
+    authority = next(
+        node
+        for node in document["@graph"]
+        if node.get("@id") == CHANCHERA_LAKE
+    )
+    authority.pop("identifiers:lccn", None)
+
+    record = parse_lcsh_authority_ndjson_line(
+        json.dumps(document).encode("utf-8"),
+        source_url=SOURCE_URL,
+        line_number=4,
+    )
+
+    assert record is not None
+    assert record.concept_iri == CHANCHERA_LAKE
+    assert record.lccn is None
+    assert "madsrdf:Geographic" in record.authority_types
+    assert "madsrdf:Topic" not in record.authority_types
 
 
 def test_parser_rejects_a_record_missing_its_authoritative_label() -> None:
@@ -262,6 +302,35 @@ def test_capture_rejects_a_repeated_concept_iri_within_one_stream() -> None:
     lines = [_line(0), _line(0)]
     with pytest.raises(LcshTopicalError, match="repeats"):
         capture_lcsh_topical_subset(lines, source_url=SOURCE_URL)
+
+
+def test_uri_selection_scans_once_and_keeps_every_requested_authority_class() -> None:
+    capture = capture_lcsh_authorities_by_iri(
+        _fixture_lines(),
+        source_url=SOURCE_URL,
+        concept_iris=(CHANCHERA_LAKE, ACTIONSCRIPT),
+    )
+
+    assert capture.lines_scanned == 6
+    assert capture.requested_iris == tuple(sorted((ACTIONSCRIPT, CHANCHERA_LAKE)))
+    assert [record.concept_iri for record in capture.records] == list(
+        capture.requested_iris
+    )
+    assert {record.concept_iri: record.authority_types for record in capture.records} == {
+        ACTIONSCRIPT: ("madsrdf:Authority", "madsrdf:Topic"),
+        CHANCHERA_LAKE: ("madsrdf:Authority", "madsrdf:Geographic"),
+    }
+
+
+def test_uri_selection_fails_closed_when_a_requested_authority_is_absent() -> None:
+    with pytest.raises(LcshTopicalError, match="lacks 1 requested authorities"):
+        capture_lcsh_authorities_by_iri(
+            _fixture_lines(),
+            source_url=SOURCE_URL,
+            concept_iris=(
+                "http://id.loc.gov/authorities/subjects/sh99999999",
+            ),
+        )
 
 
 def test_capture_from_gzip_path_streams_a_bounded_prefix(tmp_path: Path) -> None:

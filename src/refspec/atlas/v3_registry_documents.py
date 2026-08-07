@@ -11,9 +11,15 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from collections.abc import Collection
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from refspec.atlas.v3_registry_selection import (
+    normalize_only_keys,
+    select_declared_group,
+    wants_group,
+)
 from refspec.atlas.v3_source_data import (
     RegistryCrossRingRelation,
     RegistryIdentifier,
@@ -406,21 +412,52 @@ def load_gao_topic_release(repo_root: Path = ROOT) -> RegistryRelease:
     )
 
 
+REGISTRY_DOCUMENT_RELEASE_KEYS = frozenset(
+    {
+        "cbo-119th-congress-publications",
+        "gao-report-gao-26-108505",
+        "gao-topics-observed-on-gao-26-108505",
+    }
+)
+
+
 def load_registry_document_releases(
     repo_root: Path = ROOT,
+    *,
+    only_keys: Collection[str] | None = None,
 ) -> tuple[RegistryRelease, ...]:
-    """Load every supported exact document-identifier release."""
+    """Load selected supported exact document-identifier releases."""
 
-    return (
-        load_cbo_publication_release(repo_root),
-        load_gao_report_release(repo_root),
-        load_gao_topic_release(repo_root),
+    requested = normalize_only_keys(
+        only_keys,
+        allowed_keys=REGISTRY_DOCUMENT_RELEASE_KEYS,
+        loader_name="load_registry_document_releases",
     )
+    loaders = (
+        ("cbo-119th-congress-publications", load_cbo_publication_release),
+        ("gao-report-gao-26-108505", load_gao_report_release),
+        ("gao-topics-observed-on-gao-26-108505", load_gao_topic_release),
+    )
+    releases: list[RegistryRelease] = []
+    for key, loader in loaders:
+        group_keys = frozenset({key})
+        if not wants_group(requested, group_keys):
+            continue
+        releases.extend(
+            select_declared_group(
+                (loader(repo_root),),
+                declared_keys=group_keys,
+                requested_keys=requested,
+                loader_name=loader.__name__,
+            )
+        )
+    return tuple(releases)
 
 
 __all__ = [
     "CBO_CAPTURE",
     "GAO_CAPTURE",
+    "REGISTRY_DOCUMENT_RELEASE_KEYS",
     "load_cbo_publication_release",
     "load_gao_report_release",
     "load_gao_topic_release",

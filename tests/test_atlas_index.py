@@ -88,25 +88,25 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["summary"] == {
         "exactReleaseCount": 6,
         "implementationModuleCount": 21,
-        "participationCounts": {"bridge": 10, "core": 1, "specialist": 4},
+        "participationCounts": {"bridge": 11, "core": 1, "specialist": 4},
         "semanticRingCounts": {
             "entity": 18,
             "legalIdentity": 7,
-            "subject": 24,
+            "subject": 25,
             "value": 40,
         },
-        "rowCount": 89,
-        "sourceModuleCount": 54,
+        "rowCount": 90,
+        "sourceModuleCount": 55,
         "statusCounts": {
             "deferred": 2,
             "notApplicable": 42,
-            "planned": 45,
+            "planned": 46,
             "rejected": 0,
             "superseded": 0,
             "unassessed": 0,
         },
     }
-    assert len(atlas_index_rows(index, semantic_ring="subject")) == 24
+    assert len(atlas_index_rows(index, semantic_ring="subject")) == 25
 
 
 def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(

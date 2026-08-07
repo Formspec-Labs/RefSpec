@@ -14,16 +14,10 @@ REAL_DATA = ROOT / "output" / "registry-real-data-sources"
 
 def test_bounded_subject_sources_emit_every_pinned_concept_without_claiming_completeness() -> None:
     (agrovoc,) = adapters._agrovoc_releases(ROOT)
-    (eurovoc,) = adapters._eurovoc_releases(ROOT)
-    (lcsh,) = adapters._lcsh_releases(ROOT)
 
     assert len(agrovoc.resources) == 1
-    assert len(eurovoc.resources) == 4
-    assert len(lcsh.resources) == 3
-    assert all(
-        release.scope == "captureSubset" and release.metadata["completePublisherRelease"] is False
-        for release in (agrovoc, eurovoc, lcsh)
-    )
+    assert agrovoc.scope == "captureSubset"
+    assert agrovoc.metadata["completePublisherRelease"] is False
 
 
 def test_epa_label_tree_emits_every_row_without_inventing_concept_identity() -> None:
@@ -170,8 +164,9 @@ def test_gsdm_emits_all_dictionary_rows_and_reviewed_domain_values() -> None:
     or not (REAL_DATA / "gsdm-architecture-v1.0.1.pdf").is_file(),
     reason="all exact local publisher captures are required for the complete adapter set",
 )
-def test_complete_nonemitter_adapter_set_emits_4651_resources() -> None:
+def test_complete_nonemitter_adapter_set_emits_4644_resources() -> None:
     releases = adapters.load_registry_nonemitter_releases(ROOT)
 
-    assert len(releases) == 20
-    assert sum(len(release.resources) for release in releases) == 4_651
+    assert len(releases) == 18
+    assert sum(len(release.resources) for release in releases) == 4_644
+    assert all(not release.key.startswith(("eurovoc-", "lcsh-")) for release in releases)

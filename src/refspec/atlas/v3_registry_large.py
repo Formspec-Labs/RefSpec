@@ -8,13 +8,18 @@ Atlas 3 source-data boundary.  It never creates cross-source mappings.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Collection, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from itertools import islice
 from pathlib import Path
 from typing import TypeVar
 from urllib.parse import quote
 
+from refspec.atlas.v3_registry_selection import (
+    normalize_only_keys,
+    select_declared_group,
+    wants_group,
+)
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryLabel,
@@ -1092,21 +1097,76 @@ def load_opm_plum_release(
     return _opm_plum_release_from_export(export, input_pin, issued=issued)
 
 
+LARGE_REGISTRY_RELEASE_KEYS = frozenset(
+    {
+        "courtlistener-jurisdictions-2026-08-03",
+        "fast-topical-current",
+        "federal-register-api-topics-2026-08-03",
+        "naics-2022",
+        "opm-ehri-data-standards-2026-08-04",
+        "opm-plum-position-status-codes-2026-08-04",
+        "psc-april-2025",
+    }
+)
+
+def _large_registry_loader_specs() -> tuple[
+    tuple[str, Callable[[Path], RegistryRelease], str | None], ...
+]:
+    return (
+        ("fast-topical-current", load_fast_topical_release, None),
+        ("naics-2022", load_naics_release, "2-6-digit_2022_Codes.xlsx"),
+        ("psc-april-2025", load_psc_release, "PSC-April-2025-wayback.xlsx"),
+        (
+            "courtlistener-jurisdictions-2026-08-03",
+            load_courtlistener_jurisdictions_release,
+            "courtlistener-jurisdictions-zyte.html",
+        ),
+        (
+            "federal-register-api-topics-2026-08-03",
+            load_federal_register_topics_release,
+            "federal-register-topics-zyte.json",
+        ),
+        (
+            "opm-ehri-data-standards-2026-08-04",
+            load_opm_ehri_release,
+            "EHRI-Data-Standards-20260804.xlsx",
+        ),
+        (
+            "opm-plum-position-status-codes-2026-08-04",
+            load_opm_plum_release,
+            "OPM-PLUM-all-data-20260804.csv",
+        ),
+    )
+
+
 def load_large_registry_releases(
     source_root: Path = DEFAULT_SOURCE_ROOT,
+    *,
+    only_keys: Collection[str] | None = None,
 ) -> tuple[RegistryRelease, ...]:
-    """Load all seven full cached releases normalized by this module."""
+    """Load the selected full cached releases normalized by this module."""
 
-    root = Path(source_root)
-    return (
-        load_fast_topical_release(root),
-        load_naics_release(root / "2-6-digit_2022_Codes.xlsx"),
-        load_psc_release(root / "PSC-April-2025-wayback.xlsx"),
-        load_courtlistener_jurisdictions_release(root / "courtlistener-jurisdictions-zyte.html"),
-        load_federal_register_topics_release(root / "federal-register-topics-zyte.json"),
-        load_opm_ehri_release(root / "EHRI-Data-Standards-20260804.xlsx"),
-        load_opm_plum_release(root / "OPM-PLUM-all-data-20260804.csv"),
+    requested = normalize_only_keys(
+        only_keys,
+        allowed_keys=LARGE_REGISTRY_RELEASE_KEYS,
+        loader_name="load_large_registry_releases",
     )
+    root = Path(source_root)
+    releases: list[RegistryRelease] = []
+    for key, loader, filename in _large_registry_loader_specs():
+        group_keys = frozenset({key})
+        if not wants_group(requested, group_keys):
+            continue
+        source = root if filename is None else root / filename
+        releases.extend(
+            select_declared_group(
+                (loader(source),),
+                declared_keys=group_keys,
+                requested_keys=requested,
+                loader_name=loader.__name__,
+            )
+        )
+    return tuple(releases)
 
 
 __all__ = [
@@ -1115,6 +1175,7 @@ __all__ = [
     "FEDERAL_REGISTER_TOPICS_BYTE_LENGTH",
     "FEDERAL_REGISTER_TOPICS_SHA256",
     "LARGE_REGISTRY_BINDINGS",
+    "LARGE_REGISTRY_RELEASE_KEYS",
     "OPM_EHRI_BYTE_LENGTH",
     "OPM_EHRI_SHA256",
     "OPM_PLUM_BYTE_LENGTH",

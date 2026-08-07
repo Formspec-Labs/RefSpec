@@ -24,12 +24,12 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:4d71f33d1909f707623c29c637bfb3dca0954f278b77c0a7207d97f6818a2449",
-  "indexId": "urn:ref:atlas-index:4d71f33d1909f707623c29c637bfb3dca0954f278b77c0a7207d97f6818a2449",
+  "indexDigest": "sha256:4e3307ae83e0d3ff41d22a50dd5a6f92d5227ba0348436a60c29f3f69f890595",
+  "indexId": "urn:ref:atlas-index:4e3307ae83e0d3ff41d22a50dd5a6f92d5227ba0348436a60c29f3f69f890595",
   "nonAuthorizing": true,
-  "recordedAt": "2026-08-04T10:18:54Z",
-  "resourceCatalogDigest": "sha256:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
-  "resourceCatalogId": "urn:ref:resource-catalog:0b96d7126180118a58c56bddfb6784016f567b69bbc12397aced91216925b508",
+  "recordedAt": "2026-08-06T18:42:39Z",
+  "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
+  "resourceCatalogId": "urn:ref:resource-catalog:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
@@ -708,6 +708,43 @@
       "atlasParticipation": "bridge",
       "facet": "urn:ref:facet:general-subject",
       "intendedUses": [
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py",
+          "sha256": "sha256:6a77a6e5298090d156262709ea88e51bcd9db13d2e89b1d841a7b44a9d7d1ce0"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_eurovoc_lcsh_alignment.py",
+          "sha256": "sha256:add2eec1bea1f19b6a82c763ca39128c2df4a2284e7d8a30bc3407d52750a68d"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py",
+          "sha256": "sha256:79317aaee7dae27dba3276aa45a5089eb653accd686e5d2f88a81b551f0bef6a"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/eurovoc_lcsh_alignment.py",
+          "sha256": "sha256:5abf2ef599f4e8c73511217b6fb92ff6d5a973e950631e35efb817356f8cbfb7"
+        }
+      ],
+      "release": null,
+      "resourceId": "eurovoc-lcsh-alignment",
+      "rowDigest": "sha256:7ec405fead750070446f251ec215a8a8961a325ef355f14fdfec375caff4bbd9",
+      "rowId": "urn:ref:atlas-index-row:7ec405fead750070446f251ec215a8a8961a325ef355f14fdfec375caff4bbd9",
+      "semanticRing": "subject",
+      "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
+      "atlasParticipation": "bridge",
+      "facet": "urn:ref:facet:general-subject",
+      "intendedUses": [
         "mappingReference",
         "searchExpansion"
       ],
@@ -715,19 +752,29 @@
       "readinessEvidence": [
         {
           "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_vocabularies.py",
+          "sha256": "sha256:155ce8d859b294295d35069ab41e7e7190ab59cbe5bc67d27fee5ed6ed14991c"
+        },
+        {
+          "kind": "parserTest",
           "path": "tests/test_eurovoc_thesaurus.py",
-          "sha256": "sha256:af2b60ea7aa7109a9778cde9b24378cdf6508c2565b2fd8d981c437be6bd76b9"
+          "sha256": "sha256:3715675e45e3cbbd3d49adf844d734c1fc5da8599d545fa84ee5acf1363f7050"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_vocabularies.py",
+          "sha256": "sha256:611a045e8d98f80ea051417fa08ffb0a22b3e42cc126eb7a169bcd07aeb21557"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/eurovoc_thesaurus.py",
-          "sha256": "sha256:0f11e8c4b3b8fe25305abeabc972ebdd5adc6e012a4ad9338e2e4863ecc0651b"
+          "sha256": "sha256:1151f00a020cd69f58de928a7e82ce3a132c664d483296b01e619fe6c0506c05"
         }
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:ad12ba2cf8f5cc6984894a454672f505f94c8dd4ac232c410bb448202b158cb4",
-      "rowId": "urn:ref:atlas-index-row:ad12ba2cf8f5cc6984894a454672f505f94c8dd4ac232c410bb448202b158cb4",
+      "rowDigest": "sha256:4ae9fa1d86a7d3be2e1aa47bdcd8e5e550d1a70d29cfdd7ad0193f291c8d2214",
+      "rowId": "urn:ref:atlas-index-row:4ae9fa1d86a7d3be2e1aa47bdcd8e5e550d1a70d29cfdd7ad0193f291c8d2214",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },
@@ -1380,19 +1427,29 @@
       "readinessEvidence": [
         {
           "kind": "parserTest",
+          "path": "tests/test_atlas_v3_registry_alignments.py",
+          "sha256": "sha256:6a77a6e5298090d156262709ea88e51bcd9db13d2e89b1d841a7b44a9d7d1ce0"
+        },
+        {
+          "kind": "parserTest",
           "path": "tests/test_lcsh_topical.py",
-          "sha256": "sha256:b87f27478b8df532d08a009100552771ffe2dac8cc6e1c40edf03197b086aa1a"
+          "sha256": "sha256:b1c024180c583024ee6243f0cebecf47d94e6ddbf8e3bf82639ff7c6503da5ec"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments.py",
+          "sha256": "sha256:79317aaee7dae27dba3276aa45a5089eb653accd686e5d2f88a81b551f0bef6a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lcsh_topical.py",
-          "sha256": "sha256:dc03ab77ec710575ebd4ef8a5bc1ebddf69932e1c0bd20042ec65f5358bf51cd"
+          "sha256": "sha256:04c1843c76ac09cc15832c4a634403f3308de8af77e5ecd79a803355a91d3f31"
         }
       ],
       "release": null,
-      "resourceId": "lcsh-topical",
-      "rowDigest": "sha256:baf60474581cbf29fc8af72ba0f8913244b88da5a82332eeb1290f016999da26",
-      "rowId": "urn:ref:atlas-index-row:baf60474581cbf29fc8af72ba0f8913244b88da5a82332eeb1290f016999da26",
+      "resourceId": "lcsh-subjects",
+      "rowDigest": "sha256:a90f2cb78c980f29e59f4fd63eff51efd5dc05d59bceedcd66c524835cf22bbd",
+      "rowId": "urn:ref:atlas-index-row:a90f2cb78c980f29e59f4fd63eff51efd5dc05d59bceedcd66c524835cf22bbd",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },
@@ -1666,18 +1723,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nppes_npi_identifiers.py",
-          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+          "sha256": "sha256:9c46797a2ed5d59b2c9d2837977a0b52120987a4f475ca2a6c193e66ceb540fb"
         }
       ],
       "release": null,
       "resourceId": "cms-certification-number-authority",
-      "rowDigest": "sha256:37499a17642e2cef4e7ff1ce22e1d61d326bf32d4cd28b0a86c581776719ee6b",
-      "rowId": "urn:ref:atlas-index-row:37499a17642e2cef4e7ff1ce22e1d61d326bf32d4cd28b0a86c581776719ee6b",
+      "rowDigest": "sha256:4ff3dd3cff3feab37a1da869740c8e25b0a7695ad04a98d000c7c0ac2ea40ca6",
+      "rowId": "urn:ref:atlas-index-row:4ff3dd3cff3feab37a1da869740c8e25b0a7695ad04a98d000c7c0ac2ea40ca6",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -1694,18 +1751,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nppes_npi_identifiers.py",
-          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+          "sha256": "sha256:9c46797a2ed5d59b2c9d2837977a0b52120987a4f475ca2a6c193e66ceb540fb"
         }
       ],
       "release": null,
       "resourceId": "nppes-data-dissemination-layout",
-      "rowDigest": "sha256:a341340227e01ac250924d624d3c8aabc9894f8c614939284352a3867f6a0d2e",
-      "rowId": "urn:ref:atlas-index-row:a341340227e01ac250924d624d3c8aabc9894f8c614939284352a3867f6a0d2e",
+      "rowDigest": "sha256:401575f1225bcf6db372ae392c1efef453ddae88639b719654b5b1dc32a9f101",
+      "rowId": "urn:ref:atlas-index-row:401575f1225bcf6db372ae392c1efef453ddae88639b719654b5b1dc32a9f101",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -1722,18 +1779,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:38b354b2beebeab663df7f27e6e2f1c3f2d1a74ad4ce49710bb8de0550e31148"
+          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nppes_npi_identifiers.py",
-          "sha256": "sha256:ff7a0d87592c1d9aa319d6dc99a6fc1e6529cb33fb916149bf1a0244db683662"
+          "sha256": "sha256:9c46797a2ed5d59b2c9d2837977a0b52120987a4f475ca2a6c193e66ceb540fb"
         }
       ],
       "release": null,
       "resourceId": "nppes-npi-authority",
-      "rowDigest": "sha256:6dcb6f7b8b6e18cf5b0f538663393a2c0849f818c1652b1e78a469e41caca4cf",
-      "rowId": "urn:ref:atlas-index-row:6dcb6f7b8b6e18cf5b0f538663393a2c0849f818c1652b1e78a469e41caca4cf",
+      "rowDigest": "sha256:5b8ecac36bcf2e8039949b23a0a4f34b6672dcf750135ba730d79d0124673772",
+      "rowId": "urn:ref:atlas-index-row:5b8ecac36bcf2e8039949b23a0a4f34b6672dcf750135ba730d79d0124673772",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -2567,13 +2624,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/usaspending_gsdm_codes.py",
-          "sha256": "sha256:55f97de90133e500862febe6c1c6e3a8c91e015a598d8cc9dc7883e3191ce672"
+          "sha256": "sha256:633b0871a34b3f573096f2b151a402cfd2c9ef99bed3e036cf8e38943496f576"
         }
       ],
       "release": null,
       "resourceId": "governmentwide-spending-data-model",
-      "rowDigest": "sha256:fd53bd2a2f4c57138340f19e22f8ed8cdd3948976780ff48c7e1984571ac8f80",
-      "rowId": "urn:ref:atlas-index-row:fd53bd2a2f4c57138340f19e22f8ed8cdd3948976780ff48c7e1984571ac8f80",
+      "rowDigest": "sha256:08a11e4d53f65b7111ede2707b995280f4efb5b1bfe41187a94f46bc3c952ea4",
+      "rowId": "urn:ref:atlas-index-row:08a11e4d53f65b7111ede2707b995280f4efb5b1bfe41187a94f46bc3c952ea4",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     },
@@ -2595,13 +2652,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/usaspending_gsdm_codes.py",
-          "sha256": "sha256:55f97de90133e500862febe6c1c6e3a8c91e015a598d8cc9dc7883e3191ce672"
+          "sha256": "sha256:633b0871a34b3f573096f2b151a402cfd2c9ef99bed3e036cf8e38943496f576"
         }
       ],
       "release": null,
       "resourceId": "usaspending-award-type-codes",
-      "rowDigest": "sha256:7b9c0fe64a0d884940db961f52f1fc91a1db90d5778accf0202a9677e4b1223a",
-      "rowId": "urn:ref:atlas-index-row:7b9c0fe64a0d884940db961f52f1fc91a1db90d5778accf0202a9677e4b1223a",
+      "rowDigest": "sha256:6647dece07c8e0984a09bee10e12fbb5a1963a0b6410828f9c60744d18887d8a",
+      "rowId": "urn:ref:atlas-index-row:6647dece07c8e0984a09bee10e12fbb5a1963a0b6410828f9c60744d18887d8a",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     }
@@ -2610,22 +2667,22 @@
     "exactReleaseCount": 6,
     "implementationModuleCount": 21,
     "participationCounts": {
-      "bridge": 10,
+      "bridge": 11,
       "core": 1,
       "specialist": 4
     },
-    "rowCount": 89,
+    "rowCount": 90,
     "semanticRingCounts": {
       "entity": 18,
       "legalIdentity": 7,
-      "subject": 24,
+      "subject": 25,
       "value": 40
     },
-    "sourceModuleCount": 54,
+    "sourceModuleCount": 55,
     "statusCounts": {
       "deferred": 2,
       "notApplicable": 42,
-      "planned": 45,
+      "planned": 46,
       "rejected": 0,
       "superseded": 0,
       "unassessed": 0

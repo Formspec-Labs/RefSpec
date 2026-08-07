@@ -1,4 +1,4 @@
-"""Bounded streaming reader for the LCSH topical subset.
+"""Streaming readers for bounded or URI-selected LCSH authority subsets.
 
 The Library of Congress publishes every LCSH authority (topical, geographic,
 corporate name, complex subject, and more) as one MADS/SKOS JSON-LD graph per
@@ -6,19 +6,18 @@ line in a single bulk ndjson.gz distribution
 (id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz, linked from
 https://id.loc.gov/authorities/subjects.html). The catalog marks LCSH mapping
 only: its bibliographic scope and size make it unsuitable as a candidate pool.
-This module never assembles a RefSpec concept scheme from it. It streams the
-ndjson one line at a time, retains only records whose madsrdf:Authority type
-set also contains madsrdf:Topic, and packages a bounded topical subset as a
-source-controlled resource (see source_controlled_resource.py) that carries
-the publisher's own concept IRI and LCCN but explicitly claims no concept
-identity and is not authorized as a classifier candidate pool.
+This module never assembles a RefSpec concept scheme from it. It can either
+retain a bounded topical subset or select an explicit set of publisher IRIs
+in one bounded-memory scan. The latter supports official alignment endpoints,
+which legitimately include non-topical authority classes and a few records
+without an LCCN. Every retained record keeps the publisher concept IRI and
+exact source line.
 
 Every entry point takes bytes, an iterable of lines, or an explicit local
-path; importing this module never opens a network connection. Records that
-claim to be topical but omit a required field are refused rather than
-guessed; non-topical lines are simply skipped, since most of the bulk file is
-out of this subset's scope by design. No concept identity is minted: every
-identifier retained here is a value the publisher itself assigned.
+path; importing this module never opens a network connection. The topical
+reader still requires an LCCN and skips non-topical lines. The URI-selected
+reader requires only source fields common to every aligned authority and
+never mints a replacement identifier when an LCCN is absent.
 """
 
 from __future__ import annotations
@@ -139,13 +138,14 @@ def _require_label(value: object, *, label: str) -> LcshTopicalLabel:
 
 @dataclass(frozen=True, slots=True)
 class LcshTopicalRecord:
-    """One retained madsrdf:Topic authority, with its exact source line."""
+    """One retained LCSH authority, with its exact source line."""
 
     concept_iri: str
-    lccn: str
+    lccn: str | None
     preferred_label: LcshTopicalLabel
     variant_labels: tuple[LcshTopicalLabel, ...]
     broader_iris: tuple[str, ...]
+    authority_types: tuple[str, ...]
     source_url: str
     line_number: int
     raw_line: bytes
@@ -161,13 +161,15 @@ class LcshTopicalRecord:
         return len(self.raw_line)
 
 
-def parse_lcsh_topical_ndjson_line(
+def _parse_lcsh_authority_ndjson_line(
     line: bytes,
     *,
     source_url: str,
     line_number: int,
+    require_topic: bool,
+    require_lccn: bool,
 ) -> LcshTopicalRecord | None:
-    """Parse one ndjson line; return None for a non-topical or blank line.
+    """Parse one authority line, optionally retaining only topical headings.
 
     Only the exact input bytes are retained as source evidence: a trailing
     newline (the ndjson line separator, not JSON-LD content) is stripped
@@ -209,18 +211,33 @@ def parse_lcsh_topical_ndjson_line(
     authorities = [
         node for node in graph if _AUTHORITY_TYPE_TERM in _term_set(node.get("@type"), label=f"line {line_number} node")
     ]
+    document_id = document.get("@id")
+    expected_prefix = "/authorities/subjects/"
+    if not isinstance(document_id, str) or not document_id.startswith(expected_prefix):
+        raise LcshTopicalError(
+            f"line {line_number} has an invalid top-level LCSH authority @id"
+        )
+    expected_authority_iri = (
+        LCSH_SUBJECTS_SCHEME_IRI + "/" + document_id.removeprefix(expected_prefix)
+    )
+    authorities = [
+        node for node in authorities if node.get("@id") == expected_authority_iri
+    ]
     if len(authorities) != 1:
         raise LcshTopicalError(
-            f"line {line_number} must contain exactly one {_AUTHORITY_TYPE_TERM} node, found {len(authorities)}"
+            f"line {line_number} must contain exactly one top-level {_AUTHORITY_TYPE_TERM} node, "
+            f"found {len(authorities)}"
         )
     authority = authorities[0]
     types = _term_set(authority.get("@type"), label=f"line {line_number} authority")
-    if _TOPIC_TYPE_TERM not in types:
+    if require_topic and _TOPIC_TYPE_TERM not in types:
         return None
 
     concept_iri = _require_absolute_iri(authority.get("@id"), f"line {line_number} authority @id")
     lccn = authority.get(_LCCN_FIELD)
-    if not isinstance(lccn, str) or not lccn.strip():
+    if lccn is not None and (not isinstance(lccn, str) or not lccn.strip()):
+        raise LcshTopicalError(f"{concept_iri} has an invalid {_LCCN_FIELD}")
+    if require_lccn and lccn is None:
         raise LcshTopicalError(f"{concept_iri} lacks a non-empty {_LCCN_FIELD}")
 
     preferred_label = _require_label(
@@ -259,9 +276,44 @@ def parse_lcsh_topical_ndjson_line(
         preferred_label=preferred_label,
         variant_labels=deduplicated_variants,
         broader_iris=broader_iris,
+        authority_types=tuple(sorted(types)),
         source_url=source_url,
         line_number=line_number,
         raw_line=raw,
+    )
+
+
+def parse_lcsh_topical_ndjson_line(
+    line: bytes,
+    *,
+    source_url: str,
+    line_number: int,
+) -> LcshTopicalRecord | None:
+    """Parse one ndjson line; return None for a non-topical or blank line."""
+
+    return _parse_lcsh_authority_ndjson_line(
+        line,
+        source_url=source_url,
+        line_number=line_number,
+        require_topic=True,
+        require_lccn=True,
+    )
+
+
+def parse_lcsh_authority_ndjson_line(
+    line: bytes,
+    *,
+    source_url: str,
+    line_number: int,
+) -> LcshTopicalRecord | None:
+    """Parse any LCSH authority class while retaining the exact source line."""
+
+    return _parse_lcsh_authority_ndjson_line(
+        line,
+        source_url=source_url,
+        line_number=line_number,
+        require_topic=False,
+        require_lccn=False,
     )
 
 
@@ -278,6 +330,112 @@ class LcshTopicalSubsetCapture:
         """Lines that were read and parsed but were not a topical heading."""
 
         return self.lines_scanned - len(self.records)
+
+
+@dataclass(frozen=True, slots=True)
+class LcshAuthoritySelectionCapture:
+    """An exact URI-selected authority subset from one complete bulk scan."""
+
+    source_url: str
+    lines_scanned: int
+    requested_iris: tuple[str, ...]
+    records: tuple[LcshTopicalRecord, ...]
+
+
+def capture_lcsh_authorities_by_iri(
+    lines: Iterable[bytes],
+    *,
+    source_url: str,
+    concept_iris: Iterable[str],
+) -> LcshAuthoritySelectionCapture:
+    """Select every requested authority in one bounded-memory bulk scan.
+
+    The top-level document identifier is checked before the more detailed
+    authority parser runs.  This avoids expanding half a million unrelated
+    JSON-LD graphs while still parsing and validating every selected record.
+    """
+
+    requested = frozenset(concept_iris)
+    if not requested:
+        raise LcshTopicalError("concept_iris must contain at least one LCSH IRI")
+    path_to_iri: dict[str, str] = {}
+    for concept_iri in requested:
+        _require_absolute_iri(concept_iri, "requested LCSH concept IRI")
+        prefix = LCSH_SUBJECTS_SCHEME_IRI + "/"
+        if not concept_iri.startswith(prefix):
+            raise LcshTopicalError(
+                f"requested concept is outside the LCSH subjects scheme: {concept_iri}"
+            )
+        path = "/authorities/subjects/" + concept_iri.removeprefix(prefix)
+        if path in path_to_iri:
+            raise LcshTopicalError(f"requested LCSH document path repeats: {path}")
+        path_to_iri[path] = concept_iri
+
+    selected: dict[str, LcshTopicalRecord] = {}
+    lines_scanned = 0
+    for line_number, line in enumerate(lines, start=1):
+        lines_scanned = line_number
+        if not isinstance(line, bytes):
+            raise LcshTopicalError("an ndjson line must be bytes")
+        raw = line.rstrip(b"\r\n")
+        if not raw.strip():
+            continue
+        try:
+            document = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise LcshTopicalError(
+                f"line {line_number} is not valid UTF-8 JSON: {error}"
+            ) from error
+        if not isinstance(document, dict):
+            raise LcshTopicalError(f"line {line_number} must decode to a JSON object")
+        concept_iri = path_to_iri.get(document.get("@id"))
+        if concept_iri is None:
+            continue
+        if concept_iri in selected:
+            raise LcshTopicalError(
+                f"line {line_number} repeats selected concept {concept_iri!r}"
+            )
+        record = parse_lcsh_authority_ndjson_line(
+            raw,
+            source_url=source_url,
+            line_number=line_number,
+        )
+        if record is None or record.concept_iri != concept_iri:
+            raise LcshTopicalError(
+                f"line {line_number} does not contain requested authority {concept_iri}"
+            )
+        selected[concept_iri] = record
+
+    missing = sorted(requested - selected.keys())
+    if missing:
+        raise LcshTopicalError(
+            f"LCSH bulk source lacks {len(missing)} requested authorities: {missing[:10]}"
+        )
+    return LcshAuthoritySelectionCapture(
+        source_url=source_url,
+        lines_scanned=lines_scanned,
+        requested_iris=tuple(sorted(requested)),
+        records=tuple(selected[iri] for iri in sorted(selected)),
+    )
+
+
+def capture_lcsh_authorities_by_iri_from_gzip_path(
+    path: Path,
+    *,
+    source_url: str,
+    concept_iris: Iterable[str],
+) -> LcshAuthoritySelectionCapture:
+    """Select requested authorities from a local gzip NDJSON source."""
+
+    source_path = Path(path)
+    if source_path.is_symlink() or not source_path.is_file():
+        raise LcshTopicalError(f"LCSH ndjson source is not a regular file: {source_path}")
+    with gzip.open(source_path, "rb") as handle:
+        return capture_lcsh_authorities_by_iri(
+            handle,
+            source_url=source_url,
+            concept_iris=concept_iris,
+        )
 
 
 def capture_lcsh_topical_subset(
@@ -467,13 +625,17 @@ __all__ = [
     "LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH",
     "LCSH_TOPICAL_MINI_FIXTURE_SHA256",
     "MAX_TOPICAL_SUBSET_RECORDS",
+    "LcshAuthoritySelectionCapture",
     "LcshTopicalError",
     "LcshTopicalLabel",
     "LcshTopicalRecord",
     "LcshTopicalSubsetCapture",
     "build_lcsh_topical_snapshot",
+    "capture_lcsh_authorities_by_iri",
+    "capture_lcsh_authorities_by_iri_from_gzip_path",
     "capture_lcsh_topical_subset",
     "capture_lcsh_topical_subset_from_gzip_path",
     "open_pinned_lcsh_topical_mini_fixture",
+    "parse_lcsh_authority_ndjson_line",
     "parse_lcsh_topical_ndjson_line",
 ]

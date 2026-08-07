@@ -10,12 +10,18 @@ They never import SKOS mapping relations or infer hierarchy from path strings.
 from __future__ import annotations
 
 import hashlib
+import tempfile
 from collections import defaultdict, deque
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from refspec.atlas.v3_registry_selection import (
+    normalize_only_keys,
+    select_declared_group,
+    wants_group,
+)
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryLabel,
@@ -23,6 +29,7 @@ from refspec.atlas.v3_source_data import (
     RegistryRelease,
     RegistryResource,
     ReleaseScope,
+    canonical_digest,
 )
 from refspec.registry.adapters.elsst_acquisition import ELSST_R6
 from refspec.registry.doe_osti_thesaurus import (
@@ -42,6 +49,12 @@ from refspec.registry.elsst import (
 from refspec.registry.elsst import (
     ElsstVocabulary,
     parse_elsst_file,
+)
+from refspec.registry.eurovoc_thesaurus import (
+    EUROVOC_RELEASE_4_24,
+    EuroVocVocabulary,
+    acquire_eurovoc_release,
+    parse_acquired_eurovoc_release,
 )
 from refspec.registry.federal_register_thesaurus_2025 import (
     FEDERAL_REGISTER_THESAURUS_2025_BYTE_LENGTH,
@@ -95,6 +108,8 @@ GEMET_DEFINITION = "http://www.w3.org/2004/02/skos/core#definition"
 EXPECTED_RESOURCE_COUNTS = {
     "doe-osti-semantic-thesaurus-2020": 23_626,
     "elsst-r6": 3_470,
+    "eurovoc-4.24": 7_515,
+    "eurovoc-domains-4.24": 21,
     "federal-register-thesaurus-2025": 705,
     "gcmd-science-keywords-24-4": 3_774,
     "gemet-4.2.3": 5_573,
@@ -104,6 +119,8 @@ EXPECTED_RESOURCE_COUNTS = {
 EXPECTED_RELATION_COUNTS = {
     "doe-osti-semantic-thesaurus-2020": 127_256,
     "elsst-r6": 12_482,
+    "eurovoc-4.24": 26_429,
+    "eurovoc-domains-4.24": 0,
     "federal-register-thesaurus-2025": 1_451,
     "gcmd-science-keywords-24-4": 0,
     "gemet-4.2.3": 14_764,
@@ -113,6 +130,8 @@ EXPECTED_RELATION_COUNTS = {
 EXPECTED_LABEL_COUNTS = {
     "doe-osti-semantic-thesaurus-2020": 23_626,
     "elsst-r6": 6_234,
+    "eurovoc-4.24": 17_431,
+    "eurovoc-domains-4.24": 21,
     "federal-register-thesaurus-2025": 1_138,
     "gcmd-science-keywords-24-4": 3_774,
     "gemet-4.2.3": 5_645,
@@ -350,6 +369,8 @@ def _release(
     atlas_release_iri: str,
     scheme_iri: str,
     source: RegistryInputPin,
+    inputs: Sequence[RegistryInputPin] | None = None,
+    source_release_digest: str | None = None,
     resources: Sequence[RegistryResource],
     relations: Sequence[RegistryRelation] = (),
     dropped_label_count: int = 0,
@@ -365,10 +386,10 @@ def _release(
         scope=scope,
         issued=issued,
         source_release_iri=source_release_iri,
-        source_release_digest=source.sha256,
+        source_release_digest=source_release_digest or source.sha256,
         atlas_release_iri=atlas_release_iri,
         scheme_iri=scheme_iri,
-        inputs=(source,),
+        inputs=tuple(inputs or (source,)),
         resources=tuple(resources),
         relations=_preserve_s27_conflicts(tuple(relations)),
         dropped_label_count=dropped_label_count,
@@ -550,6 +571,204 @@ def load_elsst_r6_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRe
         expected_byte_length=ELSST_R6.expected_byte_length,
     )
     return _normalize_elsst(parsed, source)
+
+
+def _normalize_eurovoc(
+    parsed: EuroVocVocabulary,
+    archive: RegistryInputPin,
+    metadata: RegistryInputPin,
+) -> tuple[RegistryRelease, RegistryRelease]:
+    """Split the complete source into its thesaurus and domain schemes."""
+
+    concept_iris = {concept.concept_iri for concept in parsed.concepts}
+    domain_iris = {domain.domain_iri for domain in parsed.domains}
+    memberships: dict[str, list[str]] = defaultdict(list)
+    for row in parsed.scheme_memberships:
+        memberships[row.subject_iri].append(row.object_iri)
+    top_concept_of: dict[str, list[str]] = defaultdict(list)
+    for row in parsed.top_concept_of_relations:
+        top_concept_of[row.subject_iri].append(row.object_iri)
+
+    labels: dict[str, list[RegistryLabel]] = defaultdict(list)
+    dropped_by_kind = {"concept": 0, "domain": 0}
+    for row in parsed.labels:
+        kind = (
+            "concept"
+            if row.subject_iri in concept_iris
+            else "domain"
+            if row.subject_iri in domain_iris
+            else None
+        )
+        if kind is None:
+            continue
+        if not _english(row.value.language_tag):
+            dropped_by_kind[kind] += 1
+            continue
+        labels[row.subject_iri].append(
+            RegistryLabel(
+                value=row.value.lexical_form.strip(),
+                role=row.role,
+                source_path=f"{row.subject_iri}::{row.property_iri}",
+            )
+        )
+
+    label_conflict_count = 0
+
+    def normalized_labels(iri: str) -> tuple[RegistryLabel, ...]:
+        nonlocal label_conflict_count
+        retained, conflicts = _normalize_skos_label_roles(labels[iri])
+        label_conflict_count += len(conflicts)
+        return retained
+
+    common_payload = {
+        "attribution": EUROVOC_RELEASE_4_24.attribution,
+        "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+        "publisher": EUROVOC_RELEASE_4_24.publisher,
+        "releaseVersion": EUROVOC_RELEASE_4_24.version,
+    }
+    concept_resources = tuple(
+        RegistryResource(
+            iri=concept.concept_iri,
+            labels=normalized_labels(concept.concept_iri),
+            native_payload={
+                **common_payload,
+                "publisherConceptIri": concept.concept_iri,
+                "publisherResourceKind": "ThesaurusConcept",
+                "schemeIris": sorted(memberships[concept.concept_iri]),
+                "topConceptOfIris": sorted(top_concept_of[concept.concept_iri]),
+            },
+            source_locator=concept.concept_iri,
+            source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
+            notations=(concept.notation,),
+            status="active",
+        )
+        for concept in parsed.concepts
+    )
+    domain_resources = tuple(
+        RegistryResource(
+            iri=domain.domain_iri,
+            labels=normalized_labels(domain.domain_iri),
+            native_payload={
+                **common_payload,
+                "publisherConceptIri": domain.domain_iri,
+                "publisherResourceKind": "Domain",
+                "schemeIris": sorted(memberships[domain.domain_iri]),
+                "topConceptOfIris": sorted(top_concept_of[domain.domain_iri]),
+            },
+            source_locator=domain.domain_iri,
+            source_digest=EUROVOC_RELEASE_4_24.expected_member_sha256,
+            notations=(domain.code,),
+            status="active",
+        )
+        for domain in parsed.domains
+    )
+    if label_conflict_count:
+        raise ValueError(
+            "EuroVoc 4.24 contains English labels assigned to multiple SKOS roles"
+        )
+
+    inputs = (archive, metadata)
+    release_digest_basis = {
+        "archiveDigest": archive.sha256,
+        "memberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+        "metadataDigest": metadata.sha256,
+        "version": EUROVOC_RELEASE_4_24.version,
+    }
+    concepts = _release(
+        key="eurovoc-4.24",
+        resource_id="eurovoc",
+        source_module="refspec.registry.eurovoc_thesaurus",
+        scope="publisherRelease",
+        issued=EUROVOC_RELEASE_4_24.issued,
+        source_release_iri=(
+            "http://publications.europa.eu/resource/dataset/"
+            "eurovoc/20260708-0#thesaurus-concepts"
+        ),
+        atlas_release_iri="urn:ref:atlas-release:3:eurovoc:4.24",
+        scheme_iri="urn:ref:atlas-resource-scheme:eurovoc",
+        source=archive,
+        inputs=inputs,
+        source_release_digest=canonical_digest(
+            {**release_digest_basis, "memberPartition": "thesaurusConcepts"}
+        ),
+        resources=concept_resources,
+        relations=_direct_relations(parsed.semantic_relations, concept_iris),
+        dropped_label_count=dropped_by_kind["concept"],
+        metadata={
+            "completePublisherRelease": True,
+            "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+            "memberPartition": "thesaurusConcepts",
+            "publisherConceptCount": len(concept_resources),
+            "sourceArchiveDigest": archive.sha256,
+            "sourceMemberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+            "sourceMetadataDigest": metadata.sha256,
+            "thesaurusVersion": parsed.thesaurus_version,
+        },
+    )
+    domains = _release(
+        key="eurovoc-domains-4.24",
+        resource_id="eurovoc",
+        source_module="refspec.registry.eurovoc_thesaurus",
+        scope="publisherRelease",
+        issued=EUROVOC_RELEASE_4_24.issued,
+        source_release_iri=(
+            "http://publications.europa.eu/resource/dataset/"
+            "eurovoc/20260708-0#domains"
+        ),
+        atlas_release_iri="urn:ref:atlas-release:3:eurovoc-domains:4.24",
+        scheme_iri="urn:ref:atlas-resource-scheme:eurovoc:domains",
+        source=archive,
+        inputs=inputs,
+        source_release_digest=canonical_digest(
+            {**release_digest_basis, "memberPartition": "domains"}
+        ),
+        resources=domain_resources,
+        dropped_label_count=dropped_by_kind["domain"],
+        metadata={
+            "completePublisherRelease": True,
+            "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+            "memberPartition": "domains",
+            "publisherConceptCount": len(domain_resources),
+            "sourceArchiveDigest": archive.sha256,
+            "sourceMemberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+            "sourceMetadataDigest": metadata.sha256,
+            "thesaurusVersion": parsed.thesaurus_version,
+        },
+    )
+    return concepts, domains
+
+
+def load_eurovoc_4_24_releases(
+    source_root: Path = DEFAULT_SOURCE_ROOT,
+) -> tuple[RegistryRelease, RegistryRelease]:
+    """Load the complete pinned English EuroVoc 4.24 knowledge base."""
+
+    archive = _input_pin(
+        source_root,
+        filename="eurovoc-4.24-skos-core.zip",
+        sha256=EUROVOC_RELEASE_4_24.expected_sha256,
+        byte_length=EUROVOC_RELEASE_4_24.expected_byte_length,
+        source_iri=EUROVOC_RELEASE_4_24.source_url,
+    )
+    metadata_source = EUROVOC_RELEASE_4_24.metadata_source
+    if metadata_source is None:
+        raise ValueError("EuroVoc 4.24 has no pinned publisher metadata")
+    metadata = _input_pin(
+        source_root,
+        filename="eurovoc-4.24-metadata.ttl",
+        sha256=metadata_source.expected_sha256,
+        byte_length=metadata_source.expected_byte_length,
+        source_iri=metadata_source.source_url,
+    )
+    with tempfile.TemporaryDirectory(prefix="refspec-eurovoc-4.24-") as directory:
+        acquired = acquire_eurovoc_release(
+            EUROVOC_RELEASE_4_24,
+            Path(directory),
+            source_path=archive.path,
+            metadata_path=metadata.path,
+        )
+        parsed = parse_acquired_eurovoc_release(acquired)
+    return _normalize_eurovoc(parsed, archive, metadata)
 
 
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
@@ -1027,13 +1246,54 @@ REGISTRY_VOCABULARY_LOADERS = (
     load_nasa_thesaurus_release,
 )
 
+REGISTRY_VOCABULARY_RELEASE_KEYS = frozenset(EXPECTED_RESOURCE_COUNTS)
+
 
 def load_all_registry_vocabulary_releases(
     source_root: Path = DEFAULT_SOURCE_ROOT,
+    *,
+    only_keys: Collection[str] | None = None,
 ) -> tuple[RegistryRelease, ...]:
-    """Load all complete cached vocabulary releases in stable key order."""
+    """Load selected complete cached vocabulary releases in stable key order."""
 
-    return tuple(loader(source_root) for loader in REGISTRY_VOCABULARY_LOADERS)
+    requested = normalize_only_keys(
+        only_keys,
+        allowed_keys=REGISTRY_VOCABULARY_RELEASE_KEYS,
+        loader_name="load_all_registry_vocabulary_releases",
+    )
+    individual_loaders = (
+        ("doe-osti-semantic-thesaurus-2020", load_doe_osti_release),
+        ("elsst-r6", load_elsst_r6_release),
+        ("federal-register-thesaurus-2025", load_federal_register_2025_release),
+        ("gcmd-science-keywords-24-4", load_gcmd_24_4_release),
+        ("gemet-4.2.3", load_gemet_release),
+        ("mesh-descriptors-2026", load_mesh_2026_release),
+        ("nasa-thesaurus-skos", load_nasa_thesaurus_release),
+    )
+    releases: list[RegistryRelease] = []
+    for key, loader in individual_loaders:
+        group_keys = frozenset({key})
+        if not wants_group(requested, group_keys):
+            continue
+        releases.extend(
+            select_declared_group(
+                (loader(source_root),),
+                declared_keys=group_keys,
+                requested_keys=requested,
+                loader_name=loader.__name__,
+            )
+        )
+    eurovoc_keys = frozenset({"eurovoc-4.24", "eurovoc-domains-4.24"})
+    if wants_group(requested, eurovoc_keys):
+        releases.extend(
+            select_declared_group(
+                load_eurovoc_4_24_releases(source_root),
+                declared_keys=eurovoc_keys,
+                requested_keys=requested,
+                loader_name="load_eurovoc_4_24_releases",
+            )
+        )
+    return tuple(sorted(releases, key=lambda release: release.key))
 
 
 __all__ = [
@@ -1045,9 +1305,11 @@ __all__ = [
     "MESH_2026_SHA256",
     "MESH_2026_SOURCE_URL",
     "REGISTRY_VOCABULARY_LOADERS",
+    "REGISTRY_VOCABULARY_RELEASE_KEYS",
     "load_all_registry_vocabulary_releases",
     "load_doe_osti_release",
     "load_elsst_r6_release",
+    "load_eurovoc_4_24_releases",
     "load_federal_register_2025_release",
     "load_gcmd_24_4_release",
     "load_gemet_release",

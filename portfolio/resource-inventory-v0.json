@@ -1,6 +1,6 @@
 {
   "format": "refspec-resource-catalog-input/experimental-v0",
-  "recordedAt": "2026-08-04T08:01:00Z",
+  "recordedAt": "2026-08-06T18:42:39Z",
   "resources": [
     {
       "accessOrReproducibilityGap": "The official styled PDF is packaged with a pinned digest, a checked semantic extract, and explicit source anomalies.",
@@ -473,14 +473,24 @@
       "versionRepresentation": "Pin each source endpoint or documentation capture, observation time, digest, identifier-shape revision, and bounded sample coverage."
     },
     {
-      "accessOrReproducibilityGap": "The registry contains a pinned mapping sample, not a reconciled complete EuroVoc release, and search-expansion use remains evaluation-gated.",
-      "distributionStatus": "partial",
-      "identifierRepresentation": "Preserve EuroVoc domain, micro-thesaurus, and concept identifiers exactly; keep domain records distinct even when the source also types them as SKOS concepts.",
-      "officialLocator": "https://op.europa.eu/en/web/eu-vocabularies/concept-scheme/-/resource?uri=http://eurovoc.europa.eu/100141",
+      "accessOrReproducibilityGap": "Atlas imports the complete EuroVoc 4.24 SKOS Core release and retains English labels. Source pins preserve the multilingual archive and metadata.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve every EuroVoc IRI and notation. Put the 7,515 thesaurus concepts and 21 domains in separate Atlas releases and schemes.",
+      "officialLocator": "https://op.europa.eu/en/web/eu-vocabularies/eurovoc",
       "resourceId": "eurovoc",
+      "resourceKind": "subjectVocabulary",
+      "title": "EuroVoc 4.24 thesaurus and domains",
+      "versionRepresentation": "Pin release 20260708-0, the SKOS Core archive and RDF member, publisher metadata, byte digests, license, and English-label selection."
+    },
+    {
+      "accessOrReproducibilityGap": "The 2024 alignment names EuroVoc 4.20 and omits the LCSH release. EuroVoc 4.24 metadata still advertises its 1,904 exact matches and 99 close matches but does not requalify them.",
+      "distributionStatus": "available",
+      "identifierRepresentation": "Preserve each publisher-authored EuroVoc IRI, LCSH IRI, and SKOS predicate in a separately evidenced assertion. Infer neither inverse nor transitive mappings.",
+      "officialLocator": "http://publications.europa.eu/resource/dataset/eurovoc_alignment_lcsh/20240711-0",
+      "resourceId": "eurovoc-lcsh-alignment",
       "resourceKind": "mappingReference",
-      "title": "EuroVoc multilingual thesaurus",
-      "versionRepresentation": "Pin the exact EuroVoc release or export version, source artifact, digest, language coverage, and selected mapping scope."
+      "title": "Official EuroVoc-LCSH alignment",
+      "versionRepresentation": "Pin the 20240711-0 alignment and current EuroVoc 4.24 linkset metadata independently, including artifact digests, assertion counts, and the unspecified LCSH release."
     },
     {
       "accessOrReproducibilityGap": "The data dictionary documents fields and legacy mappings but does not publish the enumerated values those fields may contain.",
@@ -593,14 +603,14 @@
       "versionRepresentation": "Pin the exact page capture, observation time, artifact digest, complete scoped table counts, parser version, and declared absent-list gaps."
     },
     {
-      "accessOrReproducibilityGap": "The publisher bulk distribution is much larger than an atlas bridge; RefSpec has only a bounded development sample and still needs the reproducible two-pass frontier release.",
+      "accessOrReproducibilityGap": "Atlas captures the 1,966 authorities referenced by the EuroVoc alignment, not all LCSH. The publisher omits the alignment's LCSH release.",
       "distributionStatus": "available",
-      "identifierRepresentation": "Preserve each Library of Congress Subject Heading concept IRI and LCCN; retain only topical authorities selected by a declared frontier rule.",
+      "identifierRepresentation": "Preserve every selected authority IRI and any published LCCN. Retain all referenced authority types; mint no identifier for the six records without LCCNs.",
       "officialLocator": "https://id.loc.gov/authorities/subjects.html",
-      "resourceId": "lcsh-topical",
+      "resourceId": "lcsh-subjects",
       "resourceKind": "mappingReference",
-      "title": "Library of Congress Subject Headings, topical authorities",
-      "versionRepresentation": "Pin the exact bulk distribution, source digest, observed topical count, frontier policy and inputs, selected membership, coverage receipt, and parser version."
+      "title": "Library of Congress Subject Headings alignment endpoints",
+      "versionRepresentation": "Pin the exact bulk bytes and capture date, alignment digest, selected IRI set, record digests, coverage counts, and parser version."
     },
     {
       "accessOrReproducibilityGap": "The API publishes no named code-list release; retrieval time and exact response digest are the revision evidence.",

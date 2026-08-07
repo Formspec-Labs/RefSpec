@@ -13,11 +13,16 @@ import dataclasses
 import hashlib
 import tempfile
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import quote
 
+from refspec.atlas.v3_registry_selection import (
+    normalize_only_keys,
+    select_declared_group,
+    wants_group,
+)
 from refspec.atlas.v3_source_data import (
     RegistryIdentifier,
     RegistryInputPin,
@@ -31,12 +36,10 @@ from refspec.immutable import deep_freeze_json
 from refspec.registry import agrovoc_thesaurus as agrovoc
 from refspec.registry import epa_enterprise_vocabulary as epa_vocabulary
 from refspec.registry import epa_srs_substances as epa
-from refspec.registry import eurovoc_thesaurus as eurovoc
 from refspec.registry import fac_dictionary as fac
 from refspec.registry import federal_hierarchy_orgs as fh
 from refspec.registry import gao_cra_facets as gao_cra
 from refspec.registry import govinfo_collections as govinfo
-from refspec.registry import lcsh_topical as lcsh
 from refspec.registry import nalt_core
 from refspec.registry import nppes_npi_identifiers as nppes
 from refspec.registry import nrc_adams_codes as nrc
@@ -229,86 +232,6 @@ def _agrovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def _eurovoc_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    sample = eurovoc.EUROVOC_SAMPLE_2026_08_03
-    pin = _pin(
-        root,
-        f"tests/fixtures/eurovoc_thesaurus/{sample.filename}",
-        sha256=sample.expected_sha256,
-        byte_length=sample.expected_byte_length,
-        source_iri=sample.source_url,
-        role="boundedPublisherConcepts",
-    )
-    parsed = eurovoc.parse_eurovoc_file(
-        pin.path,
-        source_url=sample.source_url,
-        accepted_use="mappingReference",
-        expected_sha256=sample.expected_sha256,
-        expected_byte_length=sample.expected_byte_length,
-    )
-    concept_iris = {concept.concept_iri for concept in parsed.concepts}
-    resources: list[RegistryResource] = []
-    dropped_labels = 0
-    for concept in parsed.concepts:
-        source_labels = [item for item in parsed.labels if item.subject_iri == concept.concept_iri]
-        english_labels = [item for item in source_labels if item.value.language_tag in {None, "en"}]
-        dropped_labels += len(source_labels) - len(english_labels)
-        resources.append(
-            RegistryResource(
-                iri=concept.concept_iri,
-                labels=tuple(_label(item.value.lexical_form, pin.logical_path, item.role) for item in english_labels),
-                native_payload=_frozen(
-                    {
-                        "concept": concept,
-                        "schemeMemberships": [
-                            item for item in parsed.scheme_memberships if item.subject_iri == concept.concept_iri
-                        ],
-                        "statusAssertions": [
-                            item for item in parsed.status_assertions if item.subject_iri == concept.concept_iri
-                        ],
-                        "captureRole": parsed.role,
-                        "thesaurusVersion": parsed.thesaurus_version,
-                    }
-                ),
-                source_locator=pin.source_iri,
-                source_digest=pin.sha256,
-                notations=(concept.notation,),
-                status="boundedMappingReference",
-            )
-        )
-    relations = tuple(
-        RegistryRelation(
-            subject=item.subject_iri,
-            predicate=item.predicate_iri,
-            object=item.object_iri,
-            source_payload=_frozen({"publisherRelation": item}),
-        )
-        for item in parsed.hierarchy_relations
-        if item.subject_iri in concept_iris and item.object_iri in concept_iris
-    )
-    return (
-        _release(
-            key="eurovoc-bounded-concepts-2026-08-03",
-            resource_id="eurovoc",
-            source_module="refspec.registry.eurovoc_thesaurus",
-            profile="conceptScheme",
-            ring="subject",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(pin,),
-            resources=resources,
-            relations=relations,
-            dropped_label_count=dropped_labels,
-            metadata={
-                "completePublisherRelease": False,
-                "mappingReferenceOnly": True,
-                "publisherConceptCount": len(resources),
-                "thesaurusVersion": parsed.thesaurus_version,
-            },
-        ),
-    )
-
-
 def _epa_vocabulary_releases(root: Path) -> tuple[RegistryRelease, ...]:
     """Emit every captured row as structure, without inventing concept IDs."""
 
@@ -441,88 +364,6 @@ def _gao_cra_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "facetValueCount": len(resources),
                 "publisherReleaseUnavailable": True,
                 "sourceGaps": parsed.gaps,
-            },
-        ),
-    )
-
-
-def _lcsh_releases(root: Path) -> tuple[RegistryRelease, ...]:
-    logical_path = "tests/fixtures/lcsh_topical/lcsh-topical-mini.ndjson"
-    pin = _pin(
-        root,
-        logical_path,
-        sha256=lcsh.LCSH_TOPICAL_MINI_FIXTURE_SHA256,
-        byte_length=lcsh.LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH,
-        source_iri=lcsh.LCSH_TOPICAL_MADS_NDJSON_URL + "#bounded-byte-range",
-        role="boundedPublisherRecords",
-    )
-    payload = lcsh.open_pinned_lcsh_topical_mini_fixture(pin.path)
-    captured = lcsh.capture_lcsh_topical_subset(
-        payload.splitlines(keepends=True),
-        source_url=lcsh.LCSH_TOPICAL_MADS_NDJSON_URL,
-        max_records=3,
-    )
-    record_iris = {record.concept_iri for record in captured.records}
-    resources = tuple(
-        RegistryResource(
-            iri=record.concept_iri,
-            labels=(
-                _label(record.preferred_label.value, f"{logical_path}#line-{record.line_number}"),
-                *(
-                    _label(
-                        label.value,
-                        f"{logical_path}#line-{record.line_number}",
-                        "alternate",
-                    )
-                    for label in record.variant_labels
-                ),
-            ),
-            native_payload=_frozen(
-                {
-                    "lccn": record.lccn,
-                    "broaderIris": record.broader_iris,
-                    "lineNumber": record.line_number,
-                    "recordDigest": record.source_sha256,
-                    "recordByteLength": record.source_byte_length,
-                    "captureRole": "mappingReference",
-                }
-            ),
-            source_locator=f"{record.source_url}#line-{record.line_number}",
-            source_digest=record.source_sha256,
-            notations=(record.lccn,),
-            status="boundedMappingReference",
-        )
-        for record in captured.records
-    )
-    relations = tuple(
-        RegistryRelation(
-            subject=record.concept_iri,
-            predicate=SKOS + "broader",
-            object=broader,
-            source_payload=_frozen({"lineNumber": record.line_number, "publisherBroader": broader}),
-        )
-        for record in captured.records
-        for broader in record.broader_iris
-        if broader in record_iris
-    )
-    return (
-        _release(
-            key="lcsh-topical-bounded-2026-08-03",
-            resource_id="lcsh-topical",
-            source_module="refspec.registry.lcsh_topical",
-            profile="conceptScheme",
-            ring="subject",
-            scope="captureSubset",
-            issued="2026-08-03",
-            inputs=(pin,),
-            resources=resources,
-            relations=relations,
-            metadata={
-                "completePublisherRelease": False,
-                "mappingReferenceOnly": True,
-                "linesScanned": captured.lines_scanned,
-                "excludedNonTopicalRows": captured.excluded_count,
-                "topicalRecordCount": len(resources),
             },
         ),
     )
@@ -1447,31 +1288,128 @@ def _gsdm_releases(root: Path) -> tuple[RegistryRelease, ...]:
     )
 
 
-def load_registry_nonemitter_releases(repo_root: Path) -> tuple[RegistryRelease, ...]:
-    """Load every real record recovered from descriptor-only registry sources."""
+REGISTRY_NONEMITTER_RELEASE_GROUPS = (
+    ("agrovoc", frozenset({"agrovoc-c330-bounded-2026-08-03"})),
+    (
+        "epa-vocabulary",
+        frozenset({"epa-enterprise-vocabulary-label-tree-2026-08-03"}),
+    ),
+    ("gao-cra", frozenset({"gao-cra-database-facets-2026-08-04"})),
+    ("fac", frozenset({"fac-api-field-dictionary-2026-08-03"})),
+    (
+        "epa-substance",
+        frozenset({"epa-comptox-substance-bounded-2026-08-03"}),
+    ),
+    (
+        "federal-hierarchy",
+        frozenset({"federal-hierarchy-orgs-bounded-2026-08-03"}),
+    ),
+    (
+        "govinfo-package",
+        frozenset({"govinfo-cfr-package-bounded-2026-08-03"}),
+    ),
+    ("nalt", frozenset({"nalt-core-bounded-concepts-2026-08-03"})),
+    (
+        "nppes",
+        frozenset(
+            {
+                "nppes-data-dissemination-layout-v2-2026-08-03",
+                "nppes-npi-provider-sample-2026-08-03",
+            }
+        ),
+    ),
+    (
+        "nrc",
+        frozenset(
+            {
+                "nrc-adams-identifier-shapes-2026-08-03",
+                "nrc-adams-native-controls-bounded-2026-08-03",
+            }
+        ),
+    ),
+    (
+        "treasury",
+        frozenset(
+            {
+                "treasury-fast-book-accounts-parts-ii-iii-2026-07",
+                "treasury-fast-book-fund-types-parts-ii-iii-2026-07",
+            }
+        ),
+    ),
+    (
+        "sam",
+        frozenset(
+            {
+                "sam-cage-bounded-public-facility-2026-08-03",
+                "sam-uei-bounded-public-entity-2026-08-03",
+            }
+        ),
+    ),
+    (
+        "gsdm",
+        frozenset(
+            {
+                "gsdm-online-data-dictionary-2026-08-03",
+                "gsdm-reviewed-domain-values-2026-08-03",
+            }
+        ),
+    ),
+)
+REGISTRY_NONEMITTER_RELEASE_KEYS = frozenset(
+    key
+    for _group_name, group_keys in REGISTRY_NONEMITTER_RELEASE_GROUPS
+    for key in group_keys
+)
 
-    root = Path(repo_root)
-    releases = (
-        *_agrovoc_releases(root),
-        *_eurovoc_releases(root),
-        *_epa_vocabulary_releases(root),
-        *_gao_cra_releases(root),
-        *_lcsh_releases(root),
-        *_fac_releases(root),
-        *_epa_substance_releases(root),
-        *_federal_hierarchy_releases(root),
-        *_govinfo_package_releases(root),
-        *_nalt_releases(root),
-        *_nppes_releases(root),
-        *_nrc_releases(root),
-        *_treasury_releases(root),
-        *_sam_releases(root),
-        *_gsdm_releases(root),
+
+def load_registry_nonemitter_releases(
+    repo_root: Path,
+    *,
+    only_keys: Collection[str] | None = None,
+) -> tuple[RegistryRelease, ...]:
+    """Load selected records recovered from descriptor-only registry sources."""
+
+    requested = normalize_only_keys(
+        only_keys,
+        allowed_keys=REGISTRY_NONEMITTER_RELEASE_KEYS,
+        loader_name="load_registry_nonemitter_releases",
     )
+    root = Path(repo_root)
+    loaders = {
+        "agrovoc": _agrovoc_releases,
+        "epa-vocabulary": _epa_vocabulary_releases,
+        "gao-cra": _gao_cra_releases,
+        "fac": _fac_releases,
+        "epa-substance": _epa_substance_releases,
+        "federal-hierarchy": _federal_hierarchy_releases,
+        "govinfo-package": _govinfo_package_releases,
+        "nalt": _nalt_releases,
+        "nppes": _nppes_releases,
+        "nrc": _nrc_releases,
+        "treasury": _treasury_releases,
+        "sam": _sam_releases,
+        "gsdm": _gsdm_releases,
+    }
+    releases: list[RegistryRelease] = []
+    for group_name, group_keys in REGISTRY_NONEMITTER_RELEASE_GROUPS:
+        if not wants_group(requested, group_keys):
+            continue
+        releases.extend(
+            select_declared_group(
+                loaders[group_name](root),
+                declared_keys=group_keys,
+                requested_keys=requested,
+                loader_name=loaders[group_name].__name__,
+            )
+        )
     keys = [release.key for release in releases]
     if len(keys) != len(set(keys)):
         raise ValueError("registry non-emitter adapters produced duplicate release keys")
-    return releases
+    return tuple(releases)
 
 
-__all__ = ["load_registry_nonemitter_releases"]
+__all__ = [
+    "REGISTRY_NONEMITTER_RELEASE_GROUPS",
+    "REGISTRY_NONEMITTER_RELEASE_KEYS",
+    "load_registry_nonemitter_releases",
+]

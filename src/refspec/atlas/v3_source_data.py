@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
@@ -16,9 +17,11 @@ from pathlib import Path
 from typing import Any, Literal
 
 LabelRole = Literal["preferred", "alternate", "hidden"]
+MappingReviewMethod = Literal["operatorAdoption", "publisherAssertion"]
 ReleaseScope = Literal["publisherRelease", "completeCapture", "captureSubset"]
 
 LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
+MAPPING_REVIEW_METHODS = frozenset({"operatorAdoption", "publisherAssertion"})
 RELEASE_SCOPES = frozenset(
     {"publisherRelease", "completeCapture", "captureSubset"}
 )
@@ -26,6 +29,8 @@ SEMANTIC_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 RESOURCE_PROFILES = frozenset(
     {"conceptScheme", "codeScheme", "identifierScheme", "structureScheme"}
 )
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+_ABSOLUTE_IRI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:\S+$")
 
 
 def _canonical_json_bytes(value: Any) -> bytes:
@@ -42,6 +47,23 @@ def canonical_digest(value: Any) -> str:
     """Return the stable digest used for normalized release identities."""
 
     return "sha256:" + hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
+
+
+def mapping_triple_digest(
+    *,
+    subject_iri: str,
+    predicate_iri: str,
+    object_iri: str,
+) -> str:
+    """Digest one mapping triple with the registry adapter's canonical profile."""
+
+    return canonical_digest(
+        {
+            "object": object_iri,
+            "predicate": predicate_iri,
+            "subject": subject_iri,
+        }
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +218,107 @@ class RegistryCrossRingRelation:
 
 
 @dataclass(frozen=True, slots=True)
+class RegistryPublisherMapping:
+    """One direct publisher-authored mapping between loaded Atlas resources."""
+
+    subject: str
+    predicate: str
+    object: str
+    source_locator: str
+    source_digest: str
+    source_payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        for endpoint in (self.subject, self.predicate, self.object):
+            if not endpoint or ":" not in endpoint:
+                raise ValueError("publisher mapping terms must be absolute IRIs")
+        if not self.source_locator or ":" not in self.source_locator:
+            raise ValueError("publisher mapping source locator must be an absolute IRI")
+        if not self.source_digest.startswith("sha256:"):
+            raise ValueError("publisher mapping source digest must be SHA-256")
+
+
+@dataclass(frozen=True, slots=True)
+class RegistryMappingRelease:
+    """A separately pinned publisher release whose members are mapping claims."""
+
+    key: str
+    resource_id: str
+    source_module: str
+    ring: str
+    issued: str
+    source_release_iri: str
+    source_release_digest: str
+    inputs: Sequence[RegistryInputPin]
+    mappings: Sequence[RegistryPublisherMapping]
+    decision_date: str
+    review_method: MappingReviewMethod
+    reviewer_iri: str
+    confidence: str | None = None
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.resource_id or self.resource_id != self.resource_id.strip():
+            raise ValueError(
+                f"mapping release {self.key} has no canonical registry resource id"
+            )
+        if self.ring not in SEMANTIC_RINGS:
+            raise ValueError(f"unsupported mapping semantic ring: {self.ring!r}")
+        if not self.inputs:
+            raise ValueError(f"mapping release {self.key} has no source inputs")
+        if (
+            self.source_release_iri != self.source_release_iri.strip()
+            or _ABSOLUTE_IRI.fullmatch(self.source_release_iri) is None
+        ):
+            raise ValueError(
+                f"mapping release {self.key} source release is not an absolute IRI"
+            )
+        if _SHA256.fullmatch(self.source_release_digest) is None:
+            raise ValueError(
+                f"mapping release {self.key} source release digest is not SHA-256"
+            )
+        if self.source_release_digest != self.inputs[0].sha256:
+            raise ValueError(
+                f"mapping release {self.key} source release digest differs from "
+                "its primary mapping input"
+            )
+        if not self.mappings:
+            raise ValueError(f"mapping release {self.key} has no mappings")
+        if self.review_method not in MAPPING_REVIEW_METHODS:
+            raise ValueError(
+                f"mapping release {self.key} has unsupported review method "
+                f"{self.review_method!r}"
+            )
+        if not self.reviewer_iri or ":" not in self.reviewer_iri:
+            raise ValueError(f"mapping release {self.key} reviewer is not an IRI")
+        parsed_dates: dict[str, date] = {}
+        for field_name, value in (
+            ("issued", self.issued),
+            ("decision_date", self.decision_date),
+        ):
+            try:
+                parsed = date.fromisoformat(value)
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    f"mapping release {self.key} {field_name} must be an ISO 8601 date"
+                ) from error
+            if parsed.isoformat() != value:
+                raise ValueError(
+                    f"mapping release {self.key} {field_name} must use canonical "
+                    "YYYY-MM-DD"
+                )
+            parsed_dates[field_name] = parsed
+        if parsed_dates["decision_date"] < parsed_dates["issued"]:
+            raise ValueError(
+                f"mapping release {self.key} decision date predates its release"
+            )
+
+    def verify_inputs(self) -> None:
+        for source in self.inputs:
+            source.verify()
+
+
+@dataclass(frozen=True, slots=True)
 class RegistryRelease:
     """A complete declared publisher release or exact bounded capture."""
 
@@ -268,9 +391,12 @@ __all__ = [
     "RegistryIdentifier",
     "RegistryInputPin",
     "RegistryLabel",
+    "RegistryMappingRelease",
+    "RegistryPublisherMapping",
     "RegistryRelation",
     "RegistryRelease",
     "RegistryResource",
     "ReleaseScope",
     "canonical_digest",
+    "mapping_triple_digest",
 ]
