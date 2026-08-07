@@ -90,6 +90,7 @@ atlas:RegistrySourceShape
       "childReleaseOnly"
       "definitionOnly"
       "historicalEvidenceOnly"
+      "mappingAssertionsOnly"
       "memberRelease"
       "noPublisherRecord"
       "resourceFamily"

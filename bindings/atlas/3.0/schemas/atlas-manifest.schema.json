@@ -198,7 +198,8 @@
           "enum": [
             "sourceAccounting",
             "acceptance",
-            "producerValidation"
+            "producerValidation",
+            "constructionSummary"
           ]
         }
       },
@@ -662,8 +663,8 @@
     },
     "members": {
       "items": false,
-      "maxItems": 3,
-      "minItems": 2,
+      "maxItems": 4,
+      "minItems": 4,
       "prefixItems": [
         {
           "allOf": [
@@ -711,6 +712,23 @@
                 },
                 "role": {
                   "const": "producerValidation"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/jsonMember"
+            },
+            {
+              "properties": {
+                "path": {
+                  "const": "atlas-construction-summary.json"
+                },
+                "role": {
+                  "const": "constructionSummary"
                 }
               }
             }

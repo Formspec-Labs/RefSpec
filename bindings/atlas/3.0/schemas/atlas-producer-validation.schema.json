@@ -18,7 +18,45 @@
       "uniqueItems": true
     },
     "constructorProfile": {
-      "const": "atlas-3-source-only-compiled-shacl-v1"
+      "const": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1"
+    },
+    "constructionSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "compactPackCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "compactPackInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "path": {
+          "const": "atlas-construction-summary.json"
+        },
+        "profile": {
+          "const": "atlas-3-authenticated-construction-summary-v1"
+        },
+        "releaseCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "releaseInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "profile",
+        "path",
+        "digest",
+        "releaseCount",
+        "releaseInventoryDigest",
+        "compactPackCount",
+        "compactPackInventoryDigest"
+      ],
+      "type": "object"
     },
     "counts": {
       "$ref": "atlas-manifest.schema.json#/$defs/aggregateCounts"
@@ -27,7 +65,36 @@
       "$ref": "common.schema.json#/$defs/digest"
     },
     "mode": {
-      "const": "compiledSourceProducerValidation"
+      "const": "compiledSourceAndPublisherMappingProducerValidation"
+    },
+    "semanticConstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "inputFileCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "inputInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "profile": {
+          "const": "atlas-3-exact-input-whole-distribution-reuse-v1"
+        },
+        "recipeDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "reuseScope": {
+          "const": "wholeDistributionExactInputsOnly"
+        }
+      },
+      "required": [
+        "profile",
+        "reuseScope",
+        "recipeDigest",
+        "inputInventoryDigest",
+        "inputFileCount"
+      ],
+      "type": "object"
     },
     "shaclDataProof": {
       "const": "compiledAgainstPinnedOntologyAndShapes"
@@ -58,6 +125,7 @@
     "status",
     "mode",
     "constructorProfile",
+    "constructionSummary",
     "implementationDigest",
     "binding",
     "assertedInventoryDigest",
@@ -68,6 +136,6 @@
     "shaclDataProof",
     "shaclMetaValidation"
   ],
-  "title": "RefSpec Atlas 3.0 compiled producer validation",
+  "title": "RefSpec Atlas 3.0 compiled source and publisher-mapping validation",
   "type": "object"
 }

@@ -48,6 +48,7 @@ NON_MEMBER_DISPOSITIONS: Mapping[str, str] = {
     "crs-native-controls": "childReleaseOnly",
     "ecfr-govinfo-cfr-structure": "childReleaseOnly",
     "entity-identifier-authorities": "childReleaseOnly",
+    "eurovoc-lcsh-alignment": "mappingAssertionsOnly",
     "federal-legislative-identifiers": "childReleaseOnly",
     "federal-register-thesaurus-1995": "historicalEvidenceOnly",
     "frn-authority": "noPublisherRecord",
@@ -344,6 +345,11 @@ def build_registry_descriptors(
         )
         graph.add((source_node, ATLAS.contentDigest, Literal(rdf_node_digest(graph, source_node))))
 
+        # A mapping-only source owns evidence-bearing assertions, not members.
+        # REF-014 allows a registry source to supply no ResourceScheme.
+        if disposition == "mappingAssertionsOnly":
+            continue
+
         graph.add((node, RDF.type, ATLAS.ResourceScheme))
         # A code list may still supply subject concepts. SKOS requires the
         # object of skos:inScheme to be a skos:ConceptScheme, independently of
@@ -365,7 +371,8 @@ def build_registry_descriptors(
     dataset = serialize_nquads(graph)
     resource_ids = sorted(resources)
     index_rows = _list(index.get("rows"), "atlas index.rows")
-    supported_ring_statement_count = sum(len(rings) for rings in rings_by_resource.values())
+    resource_scheme_count = len(set(graph.subjects(RDF.type, ATLAS.ResourceScheme)))
+    supported_ring_statement_count = len(list(graph.triples((None, ATLAS.supportedRing, None))))
     proof: dict[str, Any] = {
         "artifact": {
             "byteLength": len(dataset),
@@ -378,7 +385,7 @@ def build_registry_descriptors(
             "memberDispositionCounts": dict(sorted(disposition_counts.items())),
             "quadCount": len(graph),
             "registrySourceCount": len(resources),
-            "resourceSchemeCount": len(resources),
+            "resourceSchemeCount": resource_scheme_count,
             "supportedRingStatementCount": supported_ring_statement_count,
         },
         "format": EXPORT_FORMAT,

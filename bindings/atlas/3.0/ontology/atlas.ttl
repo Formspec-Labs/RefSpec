@@ -538,7 +538,7 @@ atlas:memberDisposition
   rdfs:domain atlas:RegistrySource ;
   rdfs:range xsd:string ;
   rdfs:label "member disposition"@en ;
-  rdfs:comment "How Atlas represents, defers, or declines member data from this cataloged source."@en .
+  rdfs:comment "How Atlas represents, defers, or declines member data from this cataloged source, including sources represented only by mapping assertions."@en .
 
 atlas:notation
   a owl:DatatypeProperty ;

@@ -33,7 +33,7 @@ admissible, terminal-current, digest-checked, evidence-bearing
 
 ## Distribution
 
-A release is one self-contained directory. It contains one root manifest, two
+A release is one self-contained directory. It contains one root manifest, four
 supporting JSON files, one or more N-Quads packs, and no symlinks:
 
 | File | Role | Purpose |
@@ -42,6 +42,9 @@ supporting JSON files, one or more N-Quads packs, and no symlinks:
 | one or more `*.nq` or `*.nq.zst` files | packs | Partitioned asserted data and optional reproducible views |
 | `atlas-source-accounting.json` | source accounting | One disposition for every enumerated source member |
 | `atlas-acceptance.json` | acceptance | Passed validation gates and their evidence |
+| `atlas-producer-validation.json` | producer validation | Compiled producer checks pinned to this binding and release |
+| `atlas-construction-summary.json` | construction summary | Authenticated release-local build keys, inputs, dependencies, and pack receipts |
+| `packs/compact/**/*.jsonl.zst` | compact construction records | Non-authoritative logical records used to verify and reuse unchanged release units |
 
 The manifest MUST validate against
 [`schemas/atlas-manifest.schema.json`](schemas/atlas-manifest.schema.json).
@@ -49,7 +52,8 @@ The other JSON files MUST validate against their correspondingly named schemas.
 Every schema uses JSON Schema Draft 2020-12 and is closed to unknown fields.
 
 The manifest pins the exact ontology, SHACL shapes, core JSON Schemas, validator
-version, every pack, and both supporting JSON files. Its
+version, every RDF pack, and all four supporting JSON files. The construction
+summary transitively pins every compact construction pack. Its
 `bindingBundleDigest` additionally covers a sorted path, length, and digest
 inventory of the README, ontology, shapes, every schema, registry profile map,
 requirements, conformance-corpus declaration, coverage proof, real-registry
@@ -74,6 +78,26 @@ uncompressed length, and require the resulting bytes to match `content`. The
 transport digest makes the release byte-exact; the content digest keeps pack
 identity independent from compression settings.
 
+The construction summary is not another semantic authority. It is a sealed
+index of how the authoritative RDF was built. For each source or mapping
+release it records the exact input pins, adapter recipe, endpoint dependencies,
+build key, source-accounting digest, owned RDF packs, compact logical-record
+packs, and role counts. An incremental producer MAY reuse a unit only after it
+verifies those receipts and independently recomputes the current pre-parse input
+pins and build key. A changed source invalidates its unit, every mapping unit
+that names it as an endpoint, and the shared catalog. Clean units bypass their
+source parser and graph constructors. The merged candidate MUST still pass the
+complete producer checks and reproduce the same bytes as a cold build for the
+same inputs.
+
+Compact construction packs use closed `Resource`, `Label`, `Statement`,
+`EvidenceBinding`, `SourceRecord`, `Release`, `Identifier`, and
+`LifecycleEvent` roles. Their canonical rows, defaults, dependencies, logical
+digest, uncompressed receipt, and stored-byte receipt are all authenticated by
+the construction summary. They remain non-authoritative until the separate
+compact-record cutover in REF-015; consumers continue to treat the RDF packs as
+the Atlas 3.0 knowledge base.
+
 The manifest's `graphs` rows reconcile aggregate quad and pack counts. A graph
 `inventoryDigest` is SHA-256 over REF-canonical JSON containing the sorted list
 of `{packId, contentDigest, quadCount}` rows for packs with a nonzero count for
@@ -86,11 +110,11 @@ source release. A large release MAY use stable subject buckets: hash the UTF-8
 subject IRI with SHA-256 and select the declared lowercase hexadecimal prefix.
 All asserted outgoing facts for one subject MUST remain in one pack. This rule
 applies per graph role, so the same resource may also be a subject in a separate
-projection pack. `catalog` packs hold descriptor-only shared data. Future
-Atlas-authored mappings belong in `mapping` packs that depend on the exact
-endpoint release packs. Publisher-native and cross-ring relation assertions
-belong to the source endpoint's release pack. A small distribution or fixture
-MAY use one uncompressed `aggregate` pack.
+projection pack. `catalog` packs hold descriptor-only shared data. Cross-release
+`MappingAssertion` records belong in `mapping` packs that depend
+on the exact endpoint release packs. Publisher-native and cross-ring relation
+assertions belong to the evidence source's release pack. A small distribution
+or fixture MAY use one uncompressed `aggregate` pack.
 
 Pack dependencies refer to `packId` values in the same root manifest. Pack IDs,
 paths, and dependency entries MUST be unique. Arrays and packs MUST be ordered
@@ -256,8 +280,9 @@ publisher edition used by source records.
 It is not itself a concept scheme, code list, identifier authority, or
 structural schema. Its `atlas:memberDisposition` states whether Atlas emits a
 member release, uses child releases or assignment evidence, retains only a
-definition or historical evidence, withholds unreviewed mappings, records a
-source with no publisher rows, or describes a resource family. This prevents a
+definition or historical evidence, emits only mapping assertions, withholds
+unreviewed mappings, records a source with no publisher rows, or describes a
+resource family. This prevents a
 descriptor-only source from looking like a silently unfinished adapter.
 `atlas:ResourceScheme` identifies one stable governed
 resource supplied by that source, independently from any edition. Every scheme
@@ -403,6 +428,17 @@ with the two keys `sourceRing` and `targetRing`. The result is both
 timestamps, lifecycle status, and supersession. The separate
 `atlas:contentDigest` covers the assertion's complete outgoing RDF state.
 
+Publisher provenance and Atlas version adoption are separate facts. A mapping
+source release pins the exact publisher alignment artifact it identifies;
+supporting version metadata remains a separate pinned input and MUST NOT be
+folded into that source-release digest. If Atlas applies a publisher mapping to
+different loaded editions, the evidence binding uses `atlas:operatorAdoption`
+and the assertion names those exact endpoint releases. A newer publisher
+linkset count does not by itself establish pairwise re-review, and a producer
+MUST NOT infer confidence from publication alone. Each later source version or
+adoption creates immutable new evidence rather than rewriting an existing
+binding.
+
 Every distribution is immutable. A later distribution may retain the same
 stable claim IRI while changing its lifecycle state and therefore its content
 digest. `atlas:supersedes` connects a later, distinct claim to its predecessor.
@@ -481,11 +517,15 @@ hierarchy/association conflicts.
 
 The source-accounting ledger states whether each captured member was
 `represented`, `excluded`, or `unresolved`. Represented members identify one or
-more normalized Atlas resources. Excluded and unresolved members carry a
-reason. Totals MUST reconcile exactly, and a validator MUST reject duplicate,
-missing, unknown, or falsely linked source-record dispositions. The ledger's
-resource list MUST exactly equal each record's `atlas:representsResource`
-links. `notEnumerated` sources record
+more normalized Atlas resources or evidence-backed assertions. Excluded and
+unresolved members carry a reason. Totals MUST reconcile exactly, and a
+validator MUST reject duplicate, missing, unknown, or falsely linked
+source-record dispositions. The ledger's resource list MUST exactly equal each
+record's `atlas:representsResource` links; when `atlasAssertions` is present it
+MUST exactly name the assertions whose evidence bindings use that record. A
+represented disposition MUST name at least one resource or assertion. Excluded
+and unresolved dispositions omit both fields and carry a reason.
+`notEnumerated` sources record
 that completeness cannot be claimed; they do not silently pass a complete
 membership gate.
 
@@ -568,15 +608,16 @@ validator reparses the complete graph because the global checks above still
 need the cross-pack facts; compact per-pack receipts cannot safely replace
 those facts.
 
-A trusted source-only writer MAY satisfy `shacl-data` with a compiled producer
-proof instead of running general SHACL over its own generated RDF. The proof
-MUST pin the exact ontology and SHACL-shape digests it implements, run
-meta-SHACL, validate the normalized source rows and their joins, and reconcile
+A trusted writer MAY satisfy `shacl-data` with a compiled producer proof instead
+of running general SHACL over its own generated RDF. The proof MUST pin the
+exact ontology and SHACL-shape digests it implements, run meta-SHACL, validate
+the normalized source and publisher-mapping rows and their joins, and reconcile
 the fixed constructor counts with source accounting and exact pack receipts. It
 MUST fail closed when either binding pin changes. The current compiled profile
-admits only publisher-source resources, English labels, identifiers, native and
-cross-ring relations, and source assignments; mappings, projections, derived
-relations, and supersession are all zero.
+admits publisher-source resources, English labels, identifiers, native and
+cross-ring relations, source assignments, and separately pinned explicit
+publisher mappings. Projections, derived relations, inferred mappings, and
+supersession remain absent.
 
 The generation report distinguishes this compiled producer proof from
 independent consumer validation. A consumer does not inherit the writer's trust

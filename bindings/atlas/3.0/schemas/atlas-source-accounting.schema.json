@@ -75,11 +75,28 @@
                         "reason"
                       ]
                     },
-                    "properties": {
-                      "atlasResources": {
-                        "minItems": 1
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "atlasResources": {
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "atlasResources"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "atlasAssertions": {
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "atlasAssertions"
+                        ]
                       }
-                    }
+                    ]
                   }
                 },
                 {
@@ -97,10 +114,19 @@
                     ]
                   },
                   "then": {
-                    "properties": {
-                      "atlasResources": {
-                        "maxItems": 0
-                      }
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "atlasAssertions"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "atlasResources"
+                          ]
+                        }
+                      ]
                     },
                     "required": [
                       "reason"
@@ -109,6 +135,13 @@
                 }
               ],
               "properties": {
+                "atlasAssertions": {
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/absoluteIri"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
                 "atlasResources": {
                   "items": {
                     "$ref": "common.schema.json#/$defs/absoluteIri"
@@ -131,10 +164,9 @@
                 }
               },
               "required": [
-                "sourceRecord",
-                "status",
-                "atlasResources"
-              ],
+                            "sourceRecord",
+                            "status"
+                          ],
               "type": "object"
             },
             "type": "array",

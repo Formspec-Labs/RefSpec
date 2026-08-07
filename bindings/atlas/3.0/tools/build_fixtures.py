@@ -8,7 +8,7 @@ import hashlib
 import json
 import shutil
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,9 +21,31 @@ ATLAS = atlas_validate.ATLAS
 SKOSXL = atlas_validate.SKOSXL
 FIXTURE_ROOT = atlas_validate.FIXTURE_ROOT
 GENERATED_ROOTS = (FIXTURE_ROOT / "valid", FIXTURE_ROOT / "invalid")
-SOURCE_RELEASE = URIRef("urn:ref:atlas-fixture:source-release:2026")
 REVIEWER = URIRef("urn:ref:agent:atlas-fixture-reviewer")
 CREATED_AT = "2026-08-05T12:00:00+00:00"
+CONSTRUCTION_PROFILE = "atlas-3-release-local-construction-v1"
+CONSTRUCTION_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
+CONSTRUCTOR_PROFILE = "atlas-3-source-and-publisher-mapping-compiled-shacl-v1"
+COMPACT_ROLE_ORDER = (
+    "Release",
+    "SourceRecord",
+    "Resource",
+    "Label",
+    "Statement",
+    "EvidenceBinding",
+    "Identifier",
+    "LifecycleEvent",
+)
+COMPACT_ROLE_COUNT_FIELDS = {
+    "Resource": "resources",
+    "Label": "labels",
+    "Statement": "statements",
+    "EvidenceBinding": "evidenceBindings",
+    "SourceRecord": "sourceRecords",
+    "Release": "releases",
+    "Identifier": "identifiers",
+    "LifecycleEvent": "lifecycleEvents",
+}
 
 
 @dataclass(slots=True)
@@ -36,6 +58,17 @@ class Fixture:
     manifest_patch: dict[str, Any]
     omitted_gate: str | None = None
     post_write: Callable[[Path], None] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConstructionUnit:
+    key: str
+    atlas_release: URIRef
+    source_release: URIRef
+    scheme: URIRef
+    registry_source: URIRef
+    ring: str
+    resource_profile: str
 
 
 def _add_registry_source(graph: Graph, scheme: URIRef, *, name: str) -> URIRef:
@@ -72,9 +105,10 @@ def _add_release(
     ring: URIRef,
     resources: list[tuple[str, URIRef, str]],
     scheme: URIRef | None = None,
-) -> tuple[URIRef, URIRef, list[tuple[URIRef, URIRef]]]:
+) -> tuple[URIRef, URIRef, URIRef, list[tuple[URIRef, URIRef]]]:
     scheme = scheme or URIRef(f"urn:ref:atlas-fixture:scheme:{name}")
     release = URIRef(f"urn:ref:atlas-fixture:release:{name}:2026")
+    source_release = URIRef(f"urn:ref:atlas-fixture:source-release:{name}:2026")
     graph.add((scheme, RDF.type, ATLAS.ResourceScheme))
     _add_registry_source(graph, scheme, name=name)
     if profile == ATLAS.conceptScheme or any(
@@ -90,6 +124,23 @@ def _add_release(
     graph.add((release, ATLAS.membershipMode, ATLAS.completeMembership))
     graph.add((release, DCTERMS.identifier, Literal(name)))
     graph.add((release, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
+    graph.add((source_release, RDF.type, ATLAS.SourceRelease))
+    graph.add((source_release, DCTERMS.identifier, Literal(f"fixture-{name}-2026")))
+    graph.add((source_release, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
+    graph.add(
+        (
+            source_release,
+            ATLAS.sourceDigest,
+            Literal("sha256:" + hashlib.sha256(name.encode("utf-8")).hexdigest()),
+        )
+    )
+    graph.add(
+        (
+            source_release,
+            ATLAS.sourceLocator,
+            URIRef(f"urn:ref:atlas-fixture:source-release-file:{name}"),
+        )
+    )
 
     result: list[tuple[URIRef, URIRef]] = []
     for local_name, resource_type, label_text in resources:
@@ -115,7 +166,7 @@ def _add_release(
         graph.add((label, ATLAS.sourceRecord, source_record))
 
         graph.add((source_record, RDF.type, ATLAS.SourceRecord))
-        graph.add((source_record, ATLAS.inSourceRelease, SOURCE_RELEASE))
+        graph.add((source_record, ATLAS.inSourceRelease, source_release))
         graph.add((source_record, ATLAS.representsResource, resource))
         graph.add(
             (
@@ -140,7 +191,7 @@ def _add_release(
             )
         )
         result.append((resource, source_record))
-    return release, scheme, result
+    return release, scheme, source_release, result
 
 
 def _add_policy(graph: Graph, *, version: str) -> URIRef:
@@ -299,13 +350,8 @@ def _base_fixture() -> Fixture:
     asserted = Graph()
     derived = Graph()
     _add_policy(asserted, version="1")
-    asserted.add((SOURCE_RELEASE, RDF.type, ATLAS.SourceRelease))
-    asserted.add((SOURCE_RELEASE, DCTERMS.identifier, Literal("fixture-source-2026")))
-    asserted.add((SOURCE_RELEASE, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
-    asserted.add((SOURCE_RELEASE, ATLAS.sourceDigest, Literal("sha256:" + "0" * 64)))
-    asserted.add((SOURCE_RELEASE, ATLAS.sourceLocator, URIRef("urn:ref:atlas-fixture:source-release-file")))
 
-    subject_a_release, subject_a_scheme, subject_a_rows = _add_release(
+    subject_a_release, subject_a_scheme, _subject_a_source_release, subject_a_rows = _add_release(
         asserted,
         name="subject-a",
         profile=ATLAS.conceptScheme,
@@ -315,21 +361,21 @@ def _base_fixture() -> Fixture:
             ("subject-a-child", ATLAS.SubjectConcept, "Agency procedure"),
         ],
     )
-    subject_b_release, subject_b_scheme, subject_b_rows = _add_release(
+    subject_b_release, subject_b_scheme, _subject_b_source_release, subject_b_rows = _add_release(
         asserted,
         name="subject-b",
         profile=ATLAS.conceptScheme,
         ring=ATLAS.subject,
         resources=[("subject-b", ATLAS.SubjectConcept, "Administrative law")],
     )
-    subject_c_release, subject_c_scheme, subject_c_rows = _add_release(
+    subject_c_release, subject_c_scheme, subject_c_source_release, subject_c_rows = _add_release(
         asserted,
         name="subject-c",
         profile=ATLAS.conceptScheme,
         ring=ATLAS.subject,
         resources=[("subject-c", ATLAS.SubjectConcept, "Administrative law")],
     )
-    value_release, value_scheme, value_rows = _add_release(
+    value_release, value_scheme, _value_source_release, value_rows = _add_release(
         asserted,
         name="values",
         profile=ATLAS.codeScheme,
@@ -339,14 +385,14 @@ def _base_fixture() -> Fixture:
             ("value-child", ATLAS.ValueResource, "Proposed rule"),
         ],
     )
-    entity_release, entity_scheme, entity_rows = _add_release(
+    entity_release, entity_scheme, entity_source_release, entity_rows = _add_release(
         asserted,
         name="entities",
         profile=ATLAS.identifierScheme,
         ring=ATLAS.entity,
         resources=[("entity-agency", ATLAS.EntityResource, "Example Agency")],
     )
-    legal_release, legal_scheme, legal_rows = _add_release(
+    legal_release, legal_scheme, legal_source_release, legal_rows = _add_release(
         asserted,
         name="legal-structure",
         profile=ATLAS.structureScheme,
@@ -510,7 +556,7 @@ def _base_fixture() -> Fixture:
         subject=source_c,
         predicate=ATLAS.assignedSubject,
         obj=subject_c,
-        source_release=SOURCE_RELEASE,
+        source_release=subject_c_source_release,
         target_release=subject_c_release,
         evidence_record=source_c,
         evidence_name="assignment-subject",
@@ -523,7 +569,7 @@ def _base_fixture() -> Fixture:
         subject=entity_rows[0][1],
         predicate=ATLAS.assignedEntity,
         obj=entity,
-        source_release=SOURCE_RELEASE,
+        source_release=entity_source_release,
         target_release=entity_release,
         evidence_record=entity_rows[0][1],
         evidence_name="assignment-entity",
@@ -535,7 +581,7 @@ def _base_fixture() -> Fixture:
         subject=source_legal,
         predicate=ATLAS.assignedLegalIdentity,
         obj=legal,
-        source_release=SOURCE_RELEASE,
+        source_release=legal_source_release,
         target_release=legal_release,
         evidence_record=source_legal,
         evidence_name="assignment-legal",
@@ -667,29 +713,38 @@ def _base_fixture() -> Fixture:
                 for record in asserted.objects(label, ATLAS.sourceRecord):
                     resource_by_record[str(record)].append(str(resource))
     source_records = sorted(str(row) for row in asserted.subjects(RDF.type, ATLAS.SourceRecord))
-    dispositions = [
-        {
-            "atlasResources": sorted(resource_by_record[record]),
-            "sourceRecord": record,
-            "status": "represented",
-        }
-        for record in source_records
-    ]
-    accounting = {
-        "distributionId": "urn:ref:atlas-fixture:distribution:all-resource-profiles",
-        "inputs": [
+    records_by_release: dict[str, list[str]] = defaultdict(list)
+    for record in source_records:
+        source_release = asserted.value(URIRef(record), ATLAS.inSourceRelease)
+        if not isinstance(source_release, URIRef):
+            raise TypeError(f"fixture source record {record} has no source release")
+        records_by_release[str(source_release)].append(record)
+    accounting_inputs = []
+    for source_release, release_records in sorted(records_by_release.items()):
+        dispositions = [
+            {
+                "atlasResources": sorted(resource_by_record[record]),
+                "sourceRecord": record,
+                "status": "represented",
+            }
+            for record in sorted(release_records)
+        ]
+        accounting_inputs.append(
             {
                 "declaredMemberCount": len(dispositions),
                 "dispositions": dispositions,
                 "membershipMode": "complete",
-                "sourceRelease": str(SOURCE_RELEASE),
+                "sourceRelease": source_release,
             }
-        ],
+        )
+    accounting = {
+        "distributionId": "urn:ref:atlas-fixture:distribution:all-resource-profiles",
+        "inputs": accounting_inputs,
         "totals": {
             "excluded": 0,
-            "represented": len(dispositions),
-            "sourceRecords": len(dispositions),
-            "sourceReleases": 1,
+            "represented": len(source_records),
+            "sourceRecords": len(source_records),
+            "sourceReleases": len(accounting_inputs),
             "unresolved": 0,
         },
         "type": "AtlasSourceAccounting",
@@ -714,44 +769,6 @@ def _nquad_line(triple: tuple[Any, Any, Any], graph_id: URIRef) -> str:
         ]
         return " ".join((*rendered, "."))
     return atlas_validate.nquads_line(subject, predicate, obj, graph_id)
-
-
-def _dataset_bytes(fixture: Fixture, distribution_id: str) -> tuple[bytes, list[dict[str, Any]]]:
-    graph_ids = {
-        "asserted": URIRef(distribution_id + ":asserted"),
-        "projection": URIRef(distribution_id + ":projection"),
-        "derived": URIRef(distribution_id + ":derived"),
-    }
-    graphs = {
-        "asserted": fixture.asserted,
-        "projection": fixture.projection,
-        "derived": fixture.derived,
-    }
-    lines = sorted(
-        _nquad_line(triple, graph_ids[role])
-        for role, graph in graphs.items()
-        for triple in graph
-    )
-    payload = ("\n".join(lines) + "\n").encode("utf-8")
-    graph_rows = [
-        {"id": str(graph_ids[role]), "quadCount": len(graphs[role]), "role": role}
-        for role in ("asserted", "projection", "derived")
-    ]
-    return payload, graph_rows
-
-
-def _graph_inventory_digest(pack: dict[str, Any], role: str) -> str:
-    rows = []
-    quad_count = pack["graphCounts"][role]
-    if quad_count:
-        rows.append(
-            {
-                "contentDigest": pack["content"]["digest"],
-                "packId": pack["packId"],
-                "quadCount": quad_count,
-            }
-        )
-    return atlas_validate.canonical_sha256(rows, terminal_lf=False)
 
 
 def _counts(fixture: Fixture) -> dict[str, int]:
@@ -783,54 +800,791 @@ def _counts(fixture: Fixture) -> dict[str, int]:
     }
 
 
+def _sha256(payload: bytes) -> str:
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def _atlas_name(value: URIRef) -> str:
+    iri = str(value)
+    namespace = str(ATLAS)
+    if not iri.startswith(namespace) or len(iri) == len(namespace):
+        raise ValueError(f"fixture value is not an Atlas term: {value}")
+    return iri[len(namespace) :]
+
+
+def _construction_units(graph: Graph) -> tuple[ConstructionUnit, ...]:
+    units: list[ConstructionUnit] = []
+    for atlas_release in sorted(
+        graph.subjects(RDF.type, ATLAS.AtlasRelease), key=str
+    ):
+        identifier = graph.value(atlas_release, DCTERMS.identifier)
+        scheme = graph.value(atlas_release, ATLAS.inScheme)
+        ring = graph.value(atlas_release, ATLAS.semanticRing)
+        profile = graph.value(atlas_release, ATLAS.resourceProfile)
+        if (
+            not isinstance(identifier, Literal)
+            or not isinstance(scheme, URIRef)
+            or not isinstance(ring, URIRef)
+            or not isinstance(profile, URIRef)
+        ):
+            raise TypeError(f"fixture Atlas release is incomplete: {atlas_release}")
+        source_releases = {
+            source_release
+            for resource in graph.objects(atlas_release, PROV.hadMember)
+            for source_record in graph.objects(resource, ATLAS.sourceRecord)
+            for source_release in graph.objects(source_record, ATLAS.inSourceRelease)
+            if isinstance(source_release, URIRef)
+        }
+        registry_sources = {
+            source
+            for source in graph.objects(scheme, ATLAS.sourceDescriptor)
+            if isinstance(source, URIRef)
+        }
+        if len(source_releases) != 1 or len(registry_sources) != 1:
+            raise ValueError(
+                f"fixture release {atlas_release} does not resolve to one source release and registry source"
+            )
+        units.append(
+            ConstructionUnit(
+                key=f"source-{identifier}",
+                atlas_release=atlas_release,
+                source_release=next(iter(source_releases)),
+                scheme=scheme,
+                registry_source=next(iter(registry_sources)),
+                ring=_atlas_name(ring),
+                resource_profile=_atlas_name(profile),
+            )
+        )
+    units.sort(key=lambda unit: unit.key)
+    if len({unit.key for unit in units}) != len(units):
+        raise ValueError("fixture construction unit keys are not unique")
+    return tuple(units)
+
+
+def _unit_owner_maps(
+    units: Sequence[ConstructionUnit],
+) -> tuple[dict[URIRef, str], dict[URIRef, str]]:
+    return (
+        {unit.atlas_release: unit.key for unit in units},
+        {unit.source_release: unit.key for unit in units},
+    )
+
+
+def _record_role(graph: Graph, subject: URIRef) -> str | None:
+    return atlas_validate._construction_record_role_or_none(graph, subject)
+
+
+def _logical_owner(
+    graph: Graph,
+    subject: URIRef,
+    role: str,
+    *,
+    atlas_owner: Mapping[URIRef, str],
+    source_owner: Mapping[URIRef, str],
+) -> str | None:
+    def iri(predicate: URIRef) -> URIRef | None:
+        value = graph.value(subject, predicate)
+        return value if isinstance(value, URIRef) else None
+
+    if role in {"Resource", "Label"}:
+        return atlas_owner.get(iri(ATLAS.inRelease))
+    if role == "SourceRecord":
+        return source_owner.get(iri(ATLAS.inSourceRelease))
+    if role == "Release":
+        if (subject, RDF.type, ATLAS.SourceRelease) in graph:
+            return source_owner.get(subject)
+        return atlas_owner.get(subject)
+    if role == "Identifier":
+        resource = iri(ATLAS.identifies)
+        release = graph.value(resource, ATLAS.inRelease) if resource is not None else None
+        return atlas_owner.get(release) if isinstance(release, URIRef) else None
+    if role == "EvidenceBinding":
+        source_record = iri(ATLAS.evidenceSourceRecord)
+        source_release = (
+            graph.value(source_record, ATLAS.inSourceRelease)
+            if source_record is not None
+            else None
+        )
+        return source_owner.get(source_release) if isinstance(source_release, URIRef) else None
+    if role == "Statement":
+        bindings = [
+            binding
+            for binding in graph.subjects(ATLAS.bindsAssertion, subject)
+            if isinstance(binding, URIRef)
+        ]
+        if len(bindings) == 1:
+            source_record = graph.value(bindings[0], ATLAS.evidenceSourceRecord)
+            if isinstance(source_record, URIRef):
+                source_release = graph.value(source_record, ATLAS.inSourceRelease)
+                if isinstance(source_release, URIRef) and source_release in source_owner:
+                    return source_owner[source_release]
+        endpoint_release = iri(ATLAS.sourceRelease)
+        if endpoint_release is not None:
+            return atlas_owner.get(endpoint_release) or source_owner.get(endpoint_release)
+        return None
+    if role == "LifecycleEvent":
+        owners = {
+            source_owner[source_release]
+            for source_record in graph.objects(subject, ATLAS.sourceRecord)
+            for source_release in graph.objects(source_record, ATLAS.inSourceRelease)
+            if isinstance(source_release, URIRef) and source_release in source_owner
+        }
+        return next(iter(owners)) if len(owners) == 1 else None
+    return None
+
+
+def _rdf_pack(
+    *,
+    path: str,
+    kind: str,
+    lines: Sequence[str],
+    graph_counts: Mapping[str, int],
+    source_releases: Sequence[str] = (),
+    rings: Sequence[str] = (),
+) -> tuple[dict[str, Any], bytes]:
+    payload = ("\n".join(sorted(lines)) + "\n").encode("utf-8")
+    digest = _sha256(payload)
+    pack = {
+        "content": {
+            "byteLength": len(payload),
+            "digest": digest,
+            "mediaType": "application/n-quads",
+            "quadCount": len(lines),
+        },
+        "dependencies": [],
+        "graphCounts": dict(graph_counts),
+        "kind": kind,
+        "packId": "urn:ref:atlas:pack:" + digest.removeprefix("sha256:"),
+        "path": path,
+        "rings": sorted(rings),
+        "sourceReleases": sorted(source_releases),
+        "transport": {
+            "byteLength": len(payload),
+            "compression": "none",
+            "digest": digest,
+            "mediaType": "application/n-quads",
+        },
+    }
+    return pack, payload
+
+
+def _write_rdf_packs(
+    root: Path,
+    fixture: Fixture,
+    units: Sequence[ConstructionUnit],
+    *,
+    distribution_id: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    graph_ids = {
+        "asserted": URIRef(distribution_id + ":asserted"),
+        "projection": URIRef(distribution_id + ":projection"),
+        "derived": URIRef(distribution_id + ":derived"),
+    }
+    atlas_owner, source_owner = _unit_owner_maps(units)
+    asserted_subject_owner: dict[Any, str] = {}
+    asserted_groups: dict[str, list[tuple[Any, Any, Any]]] = defaultdict(list)
+    for subject in set(fixture.asserted.subjects()):
+        owner = "catalog"
+        if isinstance(subject, URIRef):
+            role = _record_role(fixture.asserted, subject)
+            if role is not None:
+                owner = _logical_owner(
+                    fixture.asserted,
+                    subject,
+                    role,
+                    atlas_owner=atlas_owner,
+                    source_owner=source_owner,
+                ) or "catalog"
+        asserted_subject_owner[subject] = owner
+        asserted_groups[owner].extend(fixture.asserted.triples((subject, None, None)))
+
+    unit_by_key = {unit.key: unit for unit in units}
+    packs_with_payloads: list[tuple[dict[str, Any], bytes, str]] = []
+    for owner in sorted(asserted_groups):
+        triples = asserted_groups[owner]
+        lines = [_nquad_line(triple, graph_ids["asserted"]) for triple in triples]
+        if owner == "catalog":
+            path = "packs/rdf/catalog.nq"
+            kind = "catalog"
+            source_releases: list[str] = []
+            rings: list[str] = []
+        else:
+            unit = unit_by_key[owner]
+            path = f"packs/rdf/{owner}.nq"
+            kind = "sourceRelease"
+            source_releases = [str(unit.source_release)]
+            rings = [unit.ring]
+        pack, payload = _rdf_pack(
+            path=path,
+            kind=kind,
+            lines=lines,
+            graph_counts={"asserted": len(lines), "projection": 0, "derived": 0},
+            source_releases=source_releases,
+            rings=rings,
+        )
+        packs_with_payloads.append((pack, payload, owner))
+
+    view_lines = [
+        *(_nquad_line(triple, graph_ids["projection"]) for triple in fixture.projection),
+        *(_nquad_line(triple, graph_ids["derived"]) for triple in fixture.derived),
+    ]
+    if view_lines:
+        view_pack, view_payload = _rdf_pack(
+            path="packs/rdf/view.nq",
+            kind="view",
+            lines=view_lines,
+            graph_counts={
+                "asserted": 0,
+                "projection": len(fixture.projection),
+                "derived": len(fixture.derived),
+            },
+        )
+        packs_with_payloads.append((view_pack, view_payload, "view"))
+
+    pack_by_owner = {owner: pack for pack, _, owner in packs_with_payloads}
+    for subject, owner in asserted_subject_owner.items():
+        if owner not in pack_by_owner:
+            raise ValueError(f"fixture subject owner has no RDF pack: {subject}")
+    for owner, pack in pack_by_owner.items():
+        if owner == "view":
+            continue
+        dependencies = {
+            pack_by_owner[target_owner]["packId"]
+            for subject, _, obj in fixture.asserted
+            if asserted_subject_owner.get(subject) == owner
+            and isinstance(obj, URIRef)
+            and (target_owner := asserted_subject_owner.get(obj)) is not None
+            and target_owner != owner
+        }
+        pack["dependencies"] = sorted(dependencies)
+
+    packs = [pack for pack, _, _ in packs_with_payloads]
+    asserted_inventory = atlas_validate._graph_inventory_digest(packs, "asserted")
+    asserted_pack_ids = sorted(
+        pack["packId"] for pack in packs if pack["graphCounts"]["asserted"]
+    )
+    for pack in packs:
+        if pack["kind"] == "view":
+            pack["dependencies"] = asserted_pack_ids
+            pack["inputAssertedDigest"] = asserted_inventory
+    packs.sort(key=lambda pack: pack["packId"])
+    graph_rows = [
+        {
+            "id": str(graph_ids[role]),
+            "inventoryDigest": atlas_validate._graph_inventory_digest(packs, role),
+            "packCount": sum(bool(pack["graphCounts"][role]) for pack in packs),
+            "quadCount": sum(pack["graphCounts"][role] for pack in packs),
+            "role": role,
+        }
+        for role in ("asserted", "projection", "derived")
+    ]
+    for pack, payload, _ in packs_with_payloads:
+        target = root / pack["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+    return packs, graph_rows, {
+        owner: pack for pack, _, owner in packs_with_payloads if owner not in {"catalog", "view"}
+    }
+
+
+def _compact_logical_rows(
+    fixture: Fixture,
+    baseline: Graph,
+    units: Sequence[ConstructionUnit],
+) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    atlas_owner, source_owner = _unit_owner_maps(units)
+    baseline_units = _construction_units(baseline)
+    baseline_atlas_owner, baseline_source_owner = _unit_owner_maps(baseline_units)
+    markers = {
+        "Resource": ATLAS.AtlasResource,
+        "Label": SKOSXL.Label,
+        "Statement": ATLAS.RelationAssertion,
+        "EvidenceBinding": ATLAS.EvidenceBinding,
+        "SourceRecord": ATLAS.SourceRecord,
+        "Release": (ATLAS.AtlasRelease, ATLAS.SourceRelease),
+        "Identifier": ATLAS.Identifier,
+        "LifecycleEvent": ATLAS.LifecycleEvent,
+    }
+    expected = {
+        "Resource": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasResource))),
+        "Label": len(set(fixture.asserted.subjects(RDF.type, SKOSXL.Label))),
+        "Statement": _counts(fixture)["relationAssertions"],
+        "EvidenceBinding": _counts(fixture)["relationAssertions"],
+        "SourceRecord": _counts(fixture)["sourceRecords"],
+        "Release": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease)))
+        + len(set(fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease))),
+        "Identifier": _counts(fixture)["identifiers"],
+        "LifecycleEvent": len(set(fixture.asserted.subjects(RDF.type, ATLAS.LifecycleEvent))),
+    }
+    rows_by_owner_role: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    seen_by_role: dict[str, set[URIRef]] = defaultdict(set)
+
+    def subjects(graph: Graph, role: str) -> set[URIRef]:
+        marker = markers[role]
+        values = (
+            {subject for item in marker for subject in graph.subjects(RDF.type, item)}
+            if isinstance(marker, tuple)
+            else set(graph.subjects(RDF.type, marker))
+        )
+        return {subject for subject in values if isinstance(subject, URIRef)}
+
+    def append_row(graph: Graph, subject: URIRef, role: str, *, fallback: bool) -> bool:
+        try:
+            row = atlas_validate._construction_record_from_rdf(graph, subject, role)
+        except atlas_validate.AtlasValidationError:
+            return False
+        owner = _logical_owner(
+            graph,
+            subject,
+            role,
+            atlas_owner=baseline_atlas_owner if fallback else atlas_owner,
+            source_owner=baseline_source_owner if fallback else source_owner,
+        )
+        if owner is None:
+            return False
+        rows_by_owner_role[(owner, role)].append(row)
+        seen_by_role[role].add(subject)
+        return True
+
+    for role in COMPACT_ROLE_ORDER:
+        for subject in sorted(subjects(fixture.asserted, role), key=str):
+            if append_row(fixture.asserted, subject, role, fallback=False):
+                continue
+            if subject in subjects(baseline, role):
+                append_row(baseline, subject, role, fallback=True)
+        if len(seen_by_role[role]) < expected[role]:
+            for subject in sorted(subjects(baseline, role) - seen_by_role[role], key=str):
+                if append_row(baseline, subject, role, fallback=True) and len(
+                    seen_by_role[role]
+                ) == expected[role]:
+                    break
+        if len(seen_by_role[role]) != expected[role]:
+            raise ValueError(
+                f"fixture compact {role} rows differ: expected {expected[role]}, found {len(seen_by_role[role])}"
+            )
+    for rows in rows_by_owner_role.values():
+        rows.sort(key=lambda row: row["id"])
+    return dict(rows_by_owner_role)
+
+
+def _write_compact_packs(
+    root: Path,
+    rows_by_owner_role: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    descriptors: list[dict[str, Any]] = []
+    path_owners: dict[str, str] = {}
+    subject_pack_ids: dict[str, str] = {}
+    all_subjects = {
+        row["id"]
+        for rows in rows_by_owner_role.values()
+        for row in rows
+    }
+    for role in COMPACT_ROLE_ORDER:
+        for owner in sorted(
+            key_owner
+            for key_owner, key_role in rows_by_owner_role
+            if key_role == role
+        ):
+            rows = [dict(row) for row in rows_by_owner_role[(owner, role)]]
+            row_ids = {row["id"] for row in rows}
+            dependency_ids: set[str] = set()
+            for row in rows:
+                for dependency_subject in atlas_validate._compact_direct_dependency_subjects(
+                    role, row
+                ):
+                    if dependency_subject in row_ids or dependency_subject not in all_subjects:
+                        continue
+                    dependency_pack_id = subject_pack_ids.get(dependency_subject)
+                    if dependency_pack_id is None:
+                        raise ValueError(
+                            f"compact fixture build order missed {dependency_subject} for {role}"
+                        )
+                    dependency_ids.add(dependency_pack_id)
+            dependencies = sorted(dependency_ids)
+            summary = atlas_validate._compact_full_summary(role, rows)
+            summary_receipt = atlas_validate._compact_summary_receipt(summary)
+            header = {
+                "defaults": {},
+                "dependencies": dependencies,
+                "globalInvariantSummaryDigest": summary_receipt["digest"],
+                "recordSchemaVersion": "1.0",
+                "role": role,
+                "schemaVersion": "1.0",
+                "type": "AtlasCompactPackHeader",
+            }
+            row_bytes = [atlas_validate._compact_canonical_json_bytes(row) for row in rows]
+            content = atlas_validate._compact_canonical_json_bytes(header) + b"".join(row_bytes)
+            content_digest = _sha256(content)
+            transport = atlas_validate.zstd.compress(content)
+            path = f"packs/compact/{owner}/{role.lower()}.jsonl.zst"
+            descriptor = {
+                "content": {
+                    "byteLength": len(content),
+                    "digest": content_digest,
+                    "mediaType": "application/x-ndjson",
+                    "recordCount": len(rows),
+                },
+                "defaults": {},
+                "dependencies": dependencies,
+                "globalInvariantSummary": summary_receipt,
+                "logicalRowsDigest": _sha256(b"".join(row_bytes)),
+                "packId": "urn:ref:atlas:compact-pack:"
+                + content_digest.removeprefix("sha256:"),
+                "path": path,
+                "recordSchemaVersion": "1.0",
+                "role": role,
+                "transport": {
+                    "byteLength": len(transport),
+                    "compression": "zstd",
+                    "digest": _sha256(transport),
+                    "mediaType": "application/zstd",
+                },
+            }
+            target = root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(transport)
+            descriptors.append(descriptor)
+            path_owners[path] = owner
+            for row in rows:
+                subject_pack_ids[row["id"]] = descriptor["packId"]
+    descriptors.sort(key=lambda descriptor: descriptor["path"])
+    return descriptors, path_owners
+
+
+def _file_pin(path: Path, *, logical_path: str, role: str, source_iri: str) -> dict[str, Any]:
+    payload = path.read_bytes()
+    return {
+        "byteLength": len(payload),
+        "path": logical_path,
+        "role": role,
+        "sha256": _sha256(payload),
+        "sourceIri": source_iri,
+    }
+
+
+def _construction_summary(
+    *,
+    fixture: Fixture,
+    units: Sequence[ConstructionUnit],
+    binding: Mapping[str, Any],
+    counts: Mapping[str, int],
+    distribution_id: str,
+    accounting_digest: str,
+    graph_rows: Sequence[Mapping[str, Any]],
+    rdf_packs: Sequence[Mapping[str, Any]],
+    rdf_by_unit: Mapping[str, Mapping[str, Any]],
+    compact_packs: Sequence[Mapping[str, Any]],
+    compact_path_owners: Mapping[str, str],
+    compact_rows: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
+) -> dict[str, Any]:
+    del counts
+    builder_path = Path(__file__).resolve()
+    recipe_digest = atlas_validate.canonical_sha256(
+        {
+            "builderDigest": _sha256(builder_path.read_bytes()),
+            "constructionProfile": CONSTRUCTION_PROFILE,
+        }
+    )
+    adapter_path = atlas_validate.REPOSITORY_ROOT / "src/refspec/atlas/v3_source_data.py"
+    adapter_pin = {
+        "byteLength": adapter_path.stat().st_size,
+        "path": "src/refspec/atlas/v3_source_data.py",
+        "sha256": atlas_validate.file_sha256(adapter_path),
+    }
+    accounting_rows = {row["sourceRelease"]: row for row in fixture.accounting["inputs"]}
+    compact_by_path = {pack["path"]: pack for pack in compact_packs}
+    atlas_owner, source_owner = _unit_owner_maps(units)
+    base_rows: dict[str, dict[str, Any]] = {}
+    for unit in units:
+        input_payload = atlas_validate.canonical_json_bytes(
+            {"key": unit.key, "sourceRelease": str(unit.source_release)}
+        )
+        inputs = [
+            {
+                "byteLength": len(input_payload),
+                "path": f"fixture-inputs/{unit.key}.json",
+                "role": "fixtureSource",
+                "sha256": _sha256(input_payload),
+                "sourceIri": f"urn:ref:atlas-fixture:input:{unit.key}",
+            }
+        ]
+        adapter_inputs = [dict(adapter_pin)]
+        adapter_digest = atlas_validate.canonical_sha256(
+            {
+                "constructionProfile": CONSTRUCTION_PROFILE,
+                "inputs": adapter_inputs,
+                "kind": "sourceRelease",
+                "sharedRecipeDigest": recipe_digest,
+            }
+        )
+        base_payload = {
+            "adapterRecipeDigest": adapter_digest,
+            "atlasRelease": str(unit.atlas_release),
+            "bindingBundleDigest": binding["bindingBundleDigest"],
+            "constructionProfile": CONSTRUCTION_PROFILE,
+            "inputInventoryDigest": atlas_validate.canonical_sha256(inputs),
+            "key": unit.key,
+            "kind": "sourceRelease",
+            "registrySource": str(unit.registry_source),
+            "resourceProfile": unit.resource_profile,
+            "scheme": str(unit.scheme),
+            "semanticRing": unit.ring,
+            "sourceRelease": str(unit.source_release),
+        }
+        base_rows[unit.key] = {
+            "adapterRecipeDigest": adapter_digest,
+            "adapterRecipeInputCount": 1,
+            "adapterRecipeInputs": adapter_inputs,
+            "baseBuildKey": atlas_validate.canonical_sha256(base_payload),
+            "inputFileCount": 1,
+            "inputInventoryDigest": atlas_validate.canonical_sha256(inputs),
+            "inputs": inputs,
+        }
+
+    unit_by_key = {unit.key: unit for unit in units}
+    release_rows: list[dict[str, Any]] = []
+    for unit in units:
+        dependency_keys: set[str] = set()
+        for statement in compact_rows.get((unit.key, "Statement"), ()):
+            for field in ("sourceRelease", "targetRelease"):
+                endpoint = URIRef(statement[field])
+                endpoint_owner = atlas_owner.get(endpoint) or source_owner.get(endpoint)
+                if endpoint_owner is not None and endpoint_owner != unit.key:
+                    dependency_keys.add(endpoint_owner)
+        endpoint_dependencies = [
+            {
+                "baseBuildKey": base_rows[key]["baseBuildKey"],
+                "releaseKey": key,
+                "sourceRelease": str(unit_by_key[key].source_release),
+            }
+            for key in sorted(dependency_keys)
+        ]
+        compact_paths = sorted(
+            path for path, owner in compact_path_owners.items() if owner == unit.key
+        )
+        record_counts = {field: 0 for field in COMPACT_ROLE_COUNT_FIELDS.values()}
+        logical_inventory = []
+        for path in compact_paths:
+            descriptor = compact_by_path[path]
+            record_counts[COMPACT_ROLE_COUNT_FIELDS[descriptor["role"]]] += descriptor[
+                "content"
+            ]["recordCount"]
+            logical_inventory.append(
+                {
+                    "logicalRowsDigest": descriptor["logicalRowsDigest"],
+                    "packId": descriptor["packId"],
+                    "path": path,
+                    "recordCount": descriptor["content"]["recordCount"],
+                    "role": descriptor["role"],
+                }
+            )
+        rdf_pack = rdf_by_unit[unit.key]
+        release_rows.append(
+            {
+                "accountingRowDigest": atlas_validate.canonical_sha256(
+                    accounting_rows[str(unit.source_release)]
+                ),
+                **base_rows[unit.key],
+                "atlasRelease": str(unit.atlas_release),
+                "buildKey": atlas_validate.canonical_sha256(
+                    {
+                        "baseBuildKey": base_rows[unit.key]["baseBuildKey"],
+                        "constructionProfile": CONSTRUCTION_PROFILE,
+                        "endpointDependencies": endpoint_dependencies,
+                    }
+                ),
+                "compactPackPaths": compact_paths,
+                "endpointDependencies": endpoint_dependencies,
+                "key": unit.key,
+                "kind": "sourceRelease",
+                "logicalRecordInventoryDigest": atlas_validate.canonical_sha256(
+                    logical_inventory
+                ),
+                "rdfPacks": [
+                    {
+                        "contentDigest": rdf_pack["content"]["digest"],
+                        "packId": rdf_pack["packId"],
+                        "path": rdf_pack["path"],
+                    }
+                ],
+                "recordCounts": record_counts,
+                "registrySource": str(unit.registry_source),
+                "resourceProfile": unit.resource_profile,
+                "scheme": str(unit.scheme),
+                "semanticRing": unit.ring,
+                "sourceRelease": str(unit.source_release),
+            }
+        )
+    release_rows.sort(key=lambda row: row["key"])
+
+    catalog_pack = next(pack for pack in rdf_packs if pack["kind"] == "catalog")
+    descriptor_dataset = atlas_validate.REGISTRY_DESCRIPTOR_DATASET_PATH
+    descriptor_proof = atlas_validate.REGISTRY_DESCRIPTOR_PROOF_PATH
+    catalog_inputs = sorted(
+        [
+            _file_pin(
+                descriptor_dataset,
+                logical_path="bindings/atlas/3.0/tests/registry-descriptors.nq",
+                role="registryDescriptors",
+                source_iri="urn:ref:atlas:registry-descriptors:3.0",
+            ),
+            _file_pin(
+                descriptor_proof,
+                logical_path="bindings/atlas/3.0/tests/registry-descriptors.json",
+                role="registryDescriptorProof",
+                source_iri="urn:ref:atlas:registry-descriptor-proof:3.0",
+            ),
+        ],
+        key=lambda pin: (pin["path"], pin["role"], pin["sha256"]),
+    )
+    catalog_input_digest = atlas_validate.canonical_sha256(catalog_inputs)
+    scheme_inventory = [
+        {
+            "atlasRelease": row["atlasRelease"],
+            "key": row["key"],
+            "registrySource": row["registrySource"],
+            "resourceProfile": row["resourceProfile"],
+            "semanticRing": row["semanticRing"],
+            "scheme": row["scheme"],
+        }
+        for row in release_rows
+    ]
+    scheme_digest = atlas_validate.canonical_sha256(scheme_inventory)
+    catalog = {
+        "buildKey": atlas_validate.canonical_sha256(
+            {
+                "bindingBundleDigest": binding["bindingBundleDigest"],
+                "catalogInputInventoryDigest": catalog_input_digest,
+                "constructionProfile": CONSTRUCTION_PROFILE,
+                "releaseSchemeInventoryDigest": scheme_digest,
+                "recipeDigest": recipe_digest,
+            }
+        ),
+        "inputInventoryDigest": catalog_input_digest,
+        "inputs": catalog_inputs,
+        "releaseSchemeInventoryDigest": scheme_digest,
+        "rdfPack": {
+            "contentDigest": catalog_pack["content"]["digest"],
+            "packId": catalog_pack["packId"],
+            "path": catalog_pack["path"],
+        },
+    }
+    compact_inventory = sorted(
+        (dict(pack) for pack in compact_packs), key=lambda pack: pack["path"]
+    )
+    asserted_inventory = next(
+        row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted"
+    )
+    summary = {
+        "assertedInventoryDigest": asserted_inventory,
+        "bindingBundleDigest": binding["bindingBundleDigest"],
+        "catalog": catalog,
+        "compactPackCount": len(compact_inventory),
+        "compactPackInventoryDigest": atlas_validate.canonical_sha256(
+            compact_inventory
+        ),
+        "compactPacks": compact_inventory,
+        "distributionId": distribution_id,
+        "profile": CONSTRUCTION_PROFILE,
+        "recipeDigest": recipe_digest,
+        "releaseCount": len(release_rows),
+        "releaseInventoryDigest": atlas_validate.canonical_sha256(release_rows),
+        "releases": release_rows,
+        "sourceAccountingDigest": accounting_digest,
+        "type": "AtlasConstructionSummary",
+        "version": "3.0",
+    }
+    summary["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
+        summary, terminal_lf=False
+    )
+    return summary
+
+
+def _json_member(payload: bytes, *, path: str, role: str) -> dict[str, Any]:
+    return {
+        "byteLength": len(payload),
+        "digest": _sha256(payload),
+        "mediaType": "application/json",
+        "path": path,
+        "role": role,
+    }
+
+
 def _write_case(
     path: Path,
     fixture: Fixture,
     *,
+    baseline_asserted: Graph,
     binding_digests: dict[str, str],
     distribution_id: str,
 ) -> None:
     path.mkdir(parents=True, exist_ok=True)
     fixture.accounting["distributionId"] = distribution_id
-    dataset_bytes, graph_rows = _dataset_bytes(fixture, distribution_id)
-    dataset_digest = "sha256:" + hashlib.sha256(dataset_bytes).hexdigest()
-    graph_counts = {row["role"]: row["quadCount"] for row in graph_rows}
-    pack = {
-        "content": {
-            "byteLength": len(dataset_bytes),
-            "digest": dataset_digest,
-            "mediaType": "application/n-quads",
-            "quadCount": sum(graph_counts.values()),
-        },
-        "dependencies": [],
-        "graphCounts": graph_counts,
-        "kind": "aggregate",
-        "packId": "urn:ref:atlas-fixture:pack:" + dataset_digest.removeprefix("sha256:"),
-        "path": "atlas.nq",
-        "rings": [],
-        "sourceReleases": [],
-        "transport": {
-            "byteLength": len(dataset_bytes),
-            "compression": "none",
-            "digest": dataset_digest,
-            "mediaType": "application/n-quads",
-        },
-    }
-    graph_rows = [
-        {
-            **row,
-            "inventoryDigest": _graph_inventory_digest(pack, row["role"]),
-            "packCount": int(row["quadCount"] > 0),
-        }
-        for row in graph_rows
-    ]
-    if graph_counts["projection"] or graph_counts["derived"]:
-        pack["inputAssertedDigest"] = graph_rows[0]["inventoryDigest"]
+    units = _construction_units(fixture.asserted)
+    packs, graph_rows, rdf_by_unit = _write_rdf_packs(
+        path, fixture, units, distribution_id=distribution_id
+    )
+    compact_rows = _compact_logical_rows(fixture, baseline_asserted, units)
+    compact_packs, compact_path_owners = _write_compact_packs(path, compact_rows)
     accounting_bytes = atlas_validate.canonical_json_bytes(fixture.accounting)
-    acceptance_inputs = {
-        "atlasDigest": graph_rows[0]["inventoryDigest"],
+    accounting_digest = _sha256(accounting_bytes)
+    binding = {
+        "validatorVersion": "3.0",
+        "version": "3.0",
         **binding_digests,
-        "sourceAccountingDigest": "sha256:" + hashlib.sha256(accounting_bytes).hexdigest(),
+    }
+    counts = dict(fixture.manifest_patch.get("counts", _counts(fixture)))
+    construction = _construction_summary(
+        fixture=fixture,
+        units=units,
+        binding=binding,
+        counts=counts,
+        distribution_id=distribution_id,
+        accounting_digest=accounting_digest,
+        graph_rows=graph_rows,
+        rdf_packs=packs,
+        rdf_by_unit=rdf_by_unit,
+        compact_packs=compact_packs,
+        compact_path_owners=compact_path_owners,
+        compact_rows=compact_rows,
+    )
+    construction_bytes = atlas_validate.canonical_json_bytes(construction)
+    construction_digest = _sha256(construction_bytes)
+    asserted_inventory = next(
+        row["inventoryDigest"] for row in graph_rows if row["role"] == "asserted"
+    )
+    producer = {
+        "assertedInventoryDigest": asserted_inventory,
+        "binding": binding,
+        "checks": ["deterministic authenticated fixture construction"],
+        "constructionSummary": {
+            "compactPackCount": construction["compactPackCount"],
+            "compactPackInventoryDigest": construction["compactPackInventoryDigest"],
+            "digest": construction_digest,
+            "path": "atlas-construction-summary.json",
+            "profile": CONSTRUCTION_RECEIPT_PROFILE,
+            "releaseCount": construction["releaseCount"],
+            "releaseInventoryDigest": construction["releaseInventoryDigest"],
+        },
+        "constructorProfile": CONSTRUCTOR_PROFILE,
+        "counts": counts,
+        "implementationDigest": _sha256(Path(__file__).resolve().read_bytes()),
+        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "sourceAccountingDigest": accounting_digest,
+        "sourceReleaseCount": fixture.accounting["totals"]["sourceReleases"],
+        "status": "passed",
+        "type": "AtlasProducerValidation",
+        "version": "3.0",
+    }
+    producer_bytes = atlas_validate.canonical_json_bytes(producer)
+    producer_digest = _sha256(producer_bytes)
+    acceptance_inputs = {
+        "atlasDigest": asserted_inventory,
+        **binding_digests,
+        "producerValidationDigest": producer_digest,
+        "sourceAccountingDigest": accounting_digest,
     }
     validator_identity = {"name": "refspec-atlas-conformance", "version": "3.0"}
     acceptance = {
@@ -858,29 +1612,35 @@ def _write_case(
     acceptance.update(fixture.acceptance)
     acceptance_bytes = atlas_validate.canonical_json_bytes(acceptance)
     manifest = {
-        "binding": {"validatorVersion": "3.0", "version": "3.0", **binding_digests},
-        "counts": _counts(fixture),
+        "binding": binding,
+        "counts": counts,
         "createdAt": CREATED_AT,
         "distributionId": distribution_id,
         "format": "refspec-atlas-packed-nquads-3.0",
         "graphs": graph_rows,
         "members": [
-            {
-                "byteLength": len(accounting_bytes),
-                "digest": "sha256:" + hashlib.sha256(accounting_bytes).hexdigest(),
-                "mediaType": "application/json",
-                "path": "atlas-source-accounting.json",
-                "role": "sourceAccounting",
-            },
-            {
-                "byteLength": len(acceptance_bytes),
-                "digest": "sha256:" + hashlib.sha256(acceptance_bytes).hexdigest(),
-                "mediaType": "application/json",
-                "path": "atlas-acceptance.json",
-                "role": "acceptance",
-            },
+            _json_member(
+                accounting_bytes,
+                path="atlas-source-accounting.json",
+                role="sourceAccounting",
+            ),
+            _json_member(
+                acceptance_bytes,
+                path="atlas-acceptance.json",
+                role="acceptance",
+            ),
+            _json_member(
+                producer_bytes,
+                path="atlas-producer-validation.json",
+                role="producerValidation",
+            ),
+            _json_member(
+                construction_bytes,
+                path="atlas-construction-summary.json",
+                role="constructionSummary",
+            ),
         ],
-        "packs": [pack],
+        "packs": packs,
         "schemaVersion": "3.0",
         "type": "AtlasManifest",
     }
@@ -888,9 +1648,10 @@ def _write_case(
     manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
         manifest, terminal_lf=False
     )
-    (path / "atlas.nq").write_bytes(dataset_bytes)
     (path / "atlas-source-accounting.json").write_bytes(accounting_bytes)
     (path / "atlas-acceptance.json").write_bytes(acceptance_bytes)
+    (path / "atlas-producer-validation.json").write_bytes(producer_bytes)
+    (path / "atlas-construction-summary.json").write_bytes(construction_bytes)
     (path / "atlas-manifest.json").write_bytes(atlas_validate.canonical_json_bytes(manifest))
     if fixture.post_write is not None:
         fixture.post_write(path)
@@ -1086,9 +1847,15 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def digest_mismatch(fixture: Fixture) -> None:
         def mutate(path: Path) -> None:
-            dataset = path / "atlas.nq"
-            payload = dataset.read_bytes()
-            dataset.write_bytes(payload.replace(b"fixture", b"fixturf", 1))
+            for dataset in sorted((path / "packs" / "rdf").glob("*.nq")):
+                payload = dataset.read_bytes()
+                changed = payload.replace(b"fixture", b"fixturf", 1)
+                if changed != payload:
+                    # Keep the payload valid canonical N-Quads so the fixture
+                    # isolates the authenticated-pack digest check.
+                    dataset.write_bytes(b"\n".join(sorted(changed.splitlines())) + b"\n")
+                    return
+            raise ValueError("fixture digest mutation found no RDF payload to change")
 
         fixture.post_write = mutate
 
@@ -1308,7 +2075,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.accounting["totals"]["represented"] -= 1
 
     def count_mismatch(fixture: Fixture) -> None:
-        fixture.manifest_patch["counts"] = {**_counts(fixture), "resources": _counts(fixture)["resources"] + 1}
+        counts = _counts(fixture)
+        fixture.manifest_patch["counts"] = {
+            **counts,
+            "projectedRelations": counts["projectedRelations"] + 1,
+        }
 
     def missing_acceptance_gate(fixture: Fixture) -> None:
         fixture.omitted_gate = "reasoning-isolation"
@@ -1433,7 +2204,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _refresh_node_digest(fixture.asserted, policy)
 
     def source_accounting_swap(fixture: Fixture) -> None:
-        dispositions = fixture.accounting["inputs"][0]["dispositions"]
+        dispositions = next(
+            source["dispositions"]
+            for source in fixture.accounting["inputs"]
+            if len(source["dispositions"]) >= 2
+        )
         dispositions[0]["atlasResources"], dispositions[1]["atlasResources"] = (
             dispositions[1]["atlasResources"],
             dispositions[0]["atlasResources"],
@@ -1494,8 +2269,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def wrong_derived_endpoint(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
+        source_release = next(
+            fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease)
+        )
         _remove_subject_predicate(fixture.derived, derived, ATLAS.relationSubject)
-        fixture.derived.add((derived, ATLAS.relationSubject, SOURCE_RELEASE))
+        fixture.derived.add((derived, ATLAS.relationSubject, source_release))
 
     def wrong_profile_ring(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -1839,6 +2617,7 @@ def build(*, check: bool) -> None:
     _write_case(
         temporary_root / "valid" / "all-resource-profiles",
         copy.deepcopy(base),
+        baseline_asserted=base.asserted,
         binding_digests=binding_digests,
         distribution_id="urn:ref:atlas-fixture:distribution:all-resource-profiles",
     )
@@ -1854,6 +2633,7 @@ def build(*, check: bool) -> None:
         _write_case(
             case_root,
             fixture,
+            baseline_asserted=base.asserted,
             binding_digests=binding_digests,
             distribution_id=f"urn:ref:atlas-fixture:distribution:{name}",
         )

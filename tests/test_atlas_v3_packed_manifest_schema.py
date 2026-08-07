@@ -76,6 +76,20 @@ def _members() -> list[dict[str, Any]]:
             "path": "atlas-acceptance.json",
             "role": "acceptance",
         },
+        {
+            "byteLength": 10,
+            "digest": DIGEST,
+            "mediaType": "application/json",
+            "path": "atlas-producer-validation.json",
+            "role": "producerValidation",
+        },
+        {
+            "byteLength": 10,
+            "digest": DIGEST,
+            "mediaType": "application/json",
+            "path": "atlas-construction-summary.json",
+            "role": "constructionSummary",
+        },
     ]
 
 

@@ -99,11 +99,11 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
         "sha256": _file_sha256(dataset_bytes),
     }
     resource_ids = sorted(resource["resourceId"] for resource in catalog["resources"])
-    assert len(resource_ids) == len(set(resource_ids)) == 88
-    assert len(index["rows"]) == 89
+    assert len(resource_ids) == len(set(resource_ids)) == 89
+    assert len(index["rows"]) == 90
     assert proof["resourceIdSetDigest"] == _canonical_sha256(resource_ids)
     assert proof["counts"] == {
-        "atlasIndexPlacementCount": 89,
+        "atlasIndexPlacementCount": 90,
         "conceptSchemeCount": 30,
         "memberDispositionCounts": {
             "assignmentEvidenceOnly": 4,
@@ -111,12 +111,13 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
             "definitionOnly": 1,
             "historicalEvidenceOnly": 2,
             "memberRelease": 70,
+            "mappingAssertionsOnly": 1,
             "noPublisherRecord": 3,
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-        "quadCount": 1169,
-        "registrySourceCount": 88,
+        "quadCount": 1175,
+        "registrySourceCount": 89,
         "resourceSchemeCount": 88,
         "supportedRingStatementCount": 83,
     }
@@ -141,7 +142,7 @@ def test_descriptor_canonicalization_inspects_terms_not_literal_text() -> None:
     )
 
 
-def test_every_catalog_row_has_one_source_and_one_profiled_resource_scheme() -> None:
+def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> None:
     catalog = _load(CATALOG)
     index = _load(INDEX)
     profiles = _load(PROFILES)
@@ -173,42 +174,49 @@ def test_every_catalog_row_has_one_source_and_one_profiled_resource_scheme() -> 
     rings_by_resource: dict[str, set[str]] = defaultdict(set)
     for row in index["rows"]:
         rings_by_resource[row["resourceId"]].add(row["semanticRing"])
-    assert sum(len(rings) for rings in rings_by_resource.values()) == 83
+    assert sum(len(rings) for rings in rings_by_resource.values()) == 84
 
     resources = {resource["resourceId"]: resource for resource in catalog["resources"]}
     scheme_nodes = set(graph.subjects(RDF.type, ATLAS.ResourceScheme))
     source_nodes = set(graph.subjects(RDF.type, ATLAS.RegistrySource))
-    assert len(scheme_nodes) == len(resources) == 88
-    assert len(source_nodes) == len(resources) == 88
+    assert len(scheme_nodes) == len(resources) - 1 == 88
+    assert len(source_nodes) == len(resources) == 89
     for resource_id, resource in resources.items():
         node = URIRef("urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~"))
         source = URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
-        assert node in scheme_nodes
         assert source in source_nodes
         profile = profile_for_kind[resource["resourceKind"]]
         expected_rings = rings_by_resource.get(resource_id, set())
         assert expected_rings <= supported_by_profile[profile]
 
-        assert list(graph.objects(node, DCTERMS.identifier)) == [Literal(resource_id)]
-        assert list(graph.objects(node, DCTERMS.title)) == [Literal(resource["title"])]
-        assert list(graph.objects(node, ATLAS.resourceProfile)) == [ATLAS[profile]]
-        assert list(graph.objects(node, ATLAS.sourceDescriptor)) == [source]
-        assert set(graph.objects(node, ATLAS.supportedRing)) == {ATLAS[ring] for ring in expected_rings}
+        if resource_id == "eurovoc-lcsh-alignment":
+            assert node not in scheme_nodes
+        else:
+            assert node in scheme_nodes
 
-        types = set(graph.objects(node, RDF.type))
-        assert ATLAS.ResourceScheme in types
-        assert (SKOS.ConceptScheme in types) is (
-            profile == "conceptScheme" or "subject" in expected_rings
-        )
+        if node in scheme_nodes:
+            assert list(graph.objects(node, DCTERMS.identifier)) == [Literal(resource_id)]
+            assert list(graph.objects(node, DCTERMS.title)) == [Literal(resource["title"])]
+            assert list(graph.objects(node, ATLAS.resourceProfile)) == [ATLAS[profile]]
+            assert list(graph.objects(node, ATLAS.sourceDescriptor)) == [source]
+            assert set(graph.objects(node, ATLAS.supportedRing)) == {
+                ATLAS[ring] for ring in expected_rings
+            }
+
+            types = set(graph.objects(node, RDF.type))
+            assert ATLAS.ResourceScheme in types
+            assert (SKOS.ConceptScheme in types) is (
+                profile == "conceptScheme" or "subject" in expected_rings
+            )
 
         assert not list(graph.objects(node, ATLAS.descriptorPayload))
         assert list(graph.objects(source, DCTERMS.identifier)) == [Literal(resource_id)]
         assert list(graph.objects(source, DCTERMS.title)) == [Literal(resource["title"])]
-        disposition = (
-            "historicalEvidenceOnly"
-            if resource_id in {"federal-register-thesaurus-1995", "gao-thesaurus-historical"}
-            else None
-        )
+        disposition = {
+            "eurovoc-lcsh-alignment": "mappingAssertionsOnly",
+            "federal-register-thesaurus-1995": "historicalEvidenceOnly",
+            "gao-thesaurus-historical": "historicalEvidenceOnly",
+        }.get(resource_id)
         observed_dispositions = list(graph.objects(source, ATLAS.memberDisposition))
         assert len(observed_dispositions) == 1
         if disposition is not None:
@@ -221,7 +229,8 @@ def test_every_catalog_row_has_one_source_and_one_profiled_resource_scheme() -> 
         assert str(payload).encode("utf-8") == _canonical_json_bytes(resource)
         assert json.loads(str(payload)) == resource
 
-        assert list(graph.objects(node, ATLAS.contentDigest)) == [Literal(_node_digest(graph, node))]
+        if node in scheme_nodes:
+            assert list(graph.objects(node, ATLAS.contentDigest)) == [Literal(_node_digest(graph, node))]
         assert list(graph.objects(source, ATLAS.contentDigest)) == [Literal(_node_digest(graph, source))]
 
     assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 30
@@ -252,7 +261,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.0 registry descriptors are current: 88 schemes, 89 index placements, 1169 quads\n"
+        "Atlas 3.0 registry descriptors are current: 88 schemes, 90 index placements, 1175 quads\n"
     )
 
 

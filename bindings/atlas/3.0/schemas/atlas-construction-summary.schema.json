@@ -1,0 +1,627 @@
+{
+  "$id": "https://refspec.org/bindings/atlas/3.0/schemas/atlas-construction-summary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "compactContent": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "mediaType": {
+          "const": "application/x-ndjson"
+        },
+        "recordCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "mediaType",
+        "digest",
+        "byteLength",
+        "recordCount"
+      ],
+      "type": "object"
+    },
+    "compactPack": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/compactContent"
+        },
+        "defaults": {
+          "type": "object"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/absoluteIri"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "globalInvariantSummary": {
+          "$ref": "#/$defs/globalInvariantSummary"
+        },
+        "logicalRowsDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "packId": {
+          "pattern": "^urn:ref:atlas:compact-pack:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "partition": {
+          "additionalProperties": false,
+          "properties": {
+            "prefix": {
+              "pattern": "^[0-9a-f]+$",
+              "type": "string"
+            },
+            "strategy": {
+              "const": "sha256-subject-iri-prefix"
+            }
+          },
+          "required": [
+            "strategy",
+            "prefix"
+          ],
+          "type": "object"
+        },
+        "path": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/safeRelativePath"
+            },
+            {
+              "pattern": "^packs/compact/.+\\.jsonl\\.zst$"
+            }
+          ]
+        },
+        "recordSchemaVersion": {
+          "const": "1.0"
+        },
+        "role": {
+          "$ref": "#/$defs/recordRole"
+        },
+        "transport": {
+          "$ref": "#/$defs/compactTransport"
+        }
+      },
+      "required": [
+        "packId",
+        "role",
+        "path",
+        "dependencies",
+        "defaults",
+        "logicalRowsDigest",
+        "recordSchemaVersion",
+        "globalInvariantSummary",
+        "content",
+        "transport"
+      ],
+      "type": "object"
+    },
+    "compactTransport": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "compression": {
+          "const": "zstd"
+        },
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "mediaType": {
+          "const": "application/zstd"
+        }
+      },
+      "required": [
+        "compression",
+        "mediaType",
+        "digest",
+        "byteLength"
+      ],
+      "type": "object"
+    },
+    "endpointDependency": {
+      "additionalProperties": false,
+      "properties": {
+        "baseBuildKey": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "releaseKey": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "sourceRelease": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        }
+      },
+      "required": [
+        "releaseKey",
+        "sourceRelease",
+        "baseBuildKey"
+      ],
+      "type": "object"
+    },
+    "fieldCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "evidenceLinks": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "identifierClaims": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "labelClaims": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "lifecycleEvents": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "recordIds": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releaseRecords": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "resourceOwnership": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceRecordLinks": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "statementEndpoints": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "recordIds",
+        "resourceOwnership",
+        "labelClaims",
+        "statementEndpoints",
+        "evidenceLinks",
+        "sourceRecordLinks",
+        "releaseRecords",
+        "identifierClaims",
+        "lifecycleEvents"
+      ],
+      "type": "object"
+    },
+    "globalInvariantSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "fieldCounts": {
+          "$ref": "#/$defs/fieldCounts"
+        },
+        "recordCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "recordRole": {
+          "$ref": "#/$defs/recordRole"
+        },
+        "schemaVersion": {
+          "const": "1.0"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordRole",
+        "recordCount",
+        "fieldCounts",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "ownedRdfPack": {
+      "additionalProperties": false,
+      "properties": {
+        "contentDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "packId": {
+          "pattern": "^urn:ref:atlas:pack:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/safeRelativePath"
+        }
+      },
+      "required": [
+        "packId",
+        "path",
+        "contentDigest"
+      ],
+      "type": "object"
+    },
+    "inputPin": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "path": {
+          "$ref": "common.schema.json#/$defs/safeRelativePath"
+        },
+        "role": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "sourceIri": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "sha256",
+        "byteLength",
+        "sourceIri"
+      ],
+      "type": "object"
+    },
+    "adapterRecipeInput": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "path": {
+          "allOf": [
+            {"$ref": "common.schema.json#/$defs/safeRelativePath"},
+            {"pattern": "^src/refspec/.+\\.py$"}
+          ]
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "byteLength"
+      ],
+      "type": "object"
+    },
+    "recordCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "evidenceBindings": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "identifiers": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "labels": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "lifecycleEvents": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "releases": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "resources": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "sourceRecords": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        },
+        "statements": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger"
+        }
+      },
+      "required": [
+        "resources",
+        "labels",
+        "statements",
+        "evidenceBindings",
+        "sourceRecords",
+        "releases",
+        "identifiers",
+        "lifecycleEvents"
+      ],
+      "type": "object"
+    },
+    "recordRole": {
+      "enum": [
+        "Resource",
+        "Label",
+        "Statement",
+        "EvidenceBinding",
+        "SourceRecord",
+        "Release",
+        "Identifier",
+        "LifecycleEvent"
+      ]
+    },
+    "releaseConstruction": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "sourceRelease"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "atlasRelease",
+              "resourceProfile",
+              "scheme"
+            ]
+          },
+          "else": {
+            "allOf": [
+              {"not": {"required": ["atlasRelease"]}},
+              {"not": {"required": ["resourceProfile"]}},
+              {"not": {"required": ["registrySource"]}},
+              {"not": {"required": ["scheme"]}}
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "accountingRowDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "adapterRecipeDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "adapterRecipeInputCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "adapterRecipeInputs": {
+          "items": {
+            "$ref": "#/$defs/adapterRecipeInput"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "atlasRelease": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "baseBuildKey": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "buildKey": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "compactPackPaths": {
+          "items": {
+            "$ref": "common.schema.json#/$defs/safeRelativePath"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "endpointDependencies": {
+          "items": {
+            "$ref": "#/$defs/endpointDependency"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "inputFileCount": {
+          "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+          "minimum": 1
+        },
+        "inputInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/inputPin"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "key": {
+          "$ref": "common.schema.json#/$defs/nonEmptyString"
+        },
+        "kind": {
+          "enum": [
+            "sourceRelease",
+            "mapping"
+          ]
+        },
+        "logicalRecordInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "rdfPacks": {
+          "items": {
+            "$ref": "#/$defs/ownedRdfPack"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "recordCounts": {
+          "$ref": "#/$defs/recordCounts"
+        },
+        "resourceProfile": {
+          "enum": [
+            "conceptScheme",
+            "codeScheme",
+            "identifierScheme",
+            "structureScheme",
+            "resourceCollection"
+          ]
+        },
+        "registrySource": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "scheme": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "semanticRing": {
+          "enum": [
+            "subject",
+            "entity",
+            "value",
+            "legalIdentity"
+          ]
+        },
+        "sourceRelease": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        }
+      },
+      "required": [
+        "key",
+        "kind",
+        "sourceRelease",
+        "semanticRing",
+        "inputInventoryDigest",
+        "inputFileCount",
+        "inputs",
+        "adapterRecipeDigest",
+        "adapterRecipeInputCount",
+        "adapterRecipeInputs",
+        "baseBuildKey",
+        "endpointDependencies",
+        "buildKey",
+        "accountingRowDigest",
+        "rdfPacks",
+        "compactPackPaths",
+        "logicalRecordInventoryDigest",
+        "recordCounts"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assertedInventoryDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "bindingBundleDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "catalog": {
+      "additionalProperties": false,
+      "properties": {
+        "buildKey": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "inputInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/inputPin"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "releaseSchemeInventoryDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "rdfPack": {
+          "$ref": "#/$defs/ownedRdfPack"
+        }
+      },
+      "required": [
+        "buildKey",
+        "inputInventoryDigest",
+        "inputs",
+        "releaseSchemeInventoryDigest",
+        "rdfPack"
+      ],
+      "type": "object"
+    },
+    "compactPackCount": {
+      "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+      "minimum": 1
+    },
+    "compactPackInventoryDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "compactPacks": {
+      "items": {
+        "$ref": "#/$defs/compactPack"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "distributionId": {
+      "$ref": "common.schema.json#/$defs/absoluteIri"
+    },
+    "profile": {
+      "const": "atlas-3-release-local-construction-v1"
+    },
+    "recipeDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "releaseCount": {
+      "$ref": "common.schema.json#/$defs/nonnegativeInteger",
+      "minimum": 1
+    },
+    "releaseInventoryDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "releases": {
+      "items": {
+        "$ref": "#/$defs/releaseConstruction"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "sourceAccountingDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "type": {
+      "const": "AtlasConstructionSummary"
+    },
+    "version": {
+      "const": "3.0"
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "profile",
+    "distributionId",
+    "bindingBundleDigest",
+    "recipeDigest",
+    "assertedInventoryDigest",
+    "sourceAccountingDigest",
+    "catalog",
+    "releases",
+    "releaseCount",
+    "releaseInventoryDigest",
+    "compactPacks",
+    "compactPackCount",
+    "compactPackInventoryDigest",
+    "canonicalPayloadDigest"
+  ],
+  "title": "RefSpec Atlas 3.0 authenticated construction summary",
+  "type": "object"
+}

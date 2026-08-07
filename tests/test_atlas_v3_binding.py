@@ -22,6 +22,34 @@ sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import validate as atlas_validate
 
 
+def _load_distribution(
+    distribution: Path = VALID_DISTRIBUTION,
+) -> tuple[Dataset, dict[str, Graph], dict[str, object]]:
+    manifest = json.loads(
+        (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    graph_ids = atlas_validate._check_pack_manifest(manifest)
+    dataset, graphs = atlas_validate._parse_packed_dataset(
+        distribution, manifest, graph_ids
+    )
+    return dataset, graphs, manifest
+
+
+def _rdf_pack_text(distribution: Path = VALID_DISTRIBUTION) -> str:
+    manifest = json.loads(
+        (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
+    )
+    payloads: list[bytes] = []
+    for pack in manifest["packs"]:
+        stored = (distribution / pack["path"]).read_bytes()
+        payloads.append(
+            atlas_validate.zstd.decompress(stored)
+            if pack["transport"]["compression"] == "zstd"
+            else stored
+        )
+    return b"".join(payloads).decode("utf-8")
+
+
 def _standalone(*arguments: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
@@ -48,8 +76,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
         "caseCount": 57,
         "invalidCount": 52,
         "registryDescriptorCount": 88,
-        "registryDescriptorQuadCount": 1169,
-        "schemaCount": 9,
+        "registryDescriptorQuadCount": 1175,
+        "schemaCount": 10,
     }
 
 
@@ -72,26 +100,12 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 769
+    assert result["quadCount"] == 811
     assert result["inferredMappingCount"] == 7
 
 
 def test_cross_ring_assertions_project_with_both_ring_directions() -> None:
-    manifest = json.loads(
-        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
-    )
-    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
-    dataset = Dataset()
-    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
-    graphs = {
-        role: Graph(identifier=graph_id)
-        for role, graph_id in graph_ids.items()
-    }
-    for role, graph in graphs.items():
-        for subject, predicate, obj, _ in dataset.quads(
-            (None, None, None, graph_ids[role])
-        ):
-            graph.add((subject, predicate, obj))
+    _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
     projection = graphs["projection"]
     assertions = set(
@@ -132,16 +146,7 @@ def test_cross_ring_assertions_project_with_both_ring_directions() -> None:
 
 
 def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None:
-    manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
-    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
-    dataset = Dataset()
-    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
-    graphs: dict[str, Graph] = {}
-    for role, graph_id in graph_ids.items():
-        graph = Graph(identifier=graph_id)
-        for subject, predicate, obj, _ in dataset.quads((None, None, None, graph_id)):
-            graph.add((subject, predicate, obj))
-        graphs[role] = graph
+    _dataset, graphs, _manifest = _load_distribution()
     source = URIRef("urn:ref:atlas-fixture:resource:subject-a")
     target = URIRef("urn:ref:atlas-fixture:resource:subject-c")
 
@@ -210,24 +215,15 @@ def test_canonical_rdf_renderer_escapes_terms_without_false_blank_nodes() -> Non
     assert atlas_validate.ntriples_term(literal) == (
         '"line one\\nline\\ttwo \\"quoted\\" — café _:not-a-node"@en'
     )
-    dataset_text = (VALID_DISTRIBUTION / "atlas.nq").read_text(encoding="utf-8")
+    dataset_text = _rdf_pack_text()
     assert "\\nline\\ttwo" in dataset_text
     assert '\\"quoted\\"' in dataset_text
     assert "_:not-a-node" in dataset_text
 
 
 def test_multi_ring_scheme_is_selected_by_ring_specific_releases() -> None:
-    manifest = json.loads(
-        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
-    )
-    asserted_id = URIRef(
-        next(row["id"] for row in manifest["graphs"] if row["role"] == "asserted")
-    )
-    dataset = Dataset()
-    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
-    asserted = Graph(identifier=asserted_id)
-    for subject, predicate, obj, _ in dataset.quads((None, None, None, asserted_id)):
-        asserted.add((subject, predicate, obj))
+    _dataset, graphs, _manifest = _load_distribution()
+    asserted = graphs["asserted"]
     scheme = URIRef("urn:ref:atlas-fixture:scheme:mixed-code")
 
     assert set(asserted.objects(scheme, ATLAS.supportedRing)) == {
@@ -250,17 +246,9 @@ def test_supersession_projects_only_the_terminal_current_claim() -> None:
     )
     completed = _standalone("--distribution", str(distribution))
     assert completed.returncode == 0, completed.stderr
-    manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
-    graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
-    dataset = Dataset()
-    dataset.parse(distribution / "atlas.nq", format="nquads")
-    asserted = Graph(identifier=graph_ids["asserted"])
-    projection = Graph(identifier=graph_ids["projection"])
-    for role, graph in (("asserted", asserted), ("projection", projection)):
-        for subject, predicate, obj, _ in dataset.quads(
-            (None, None, None, graph_ids[role])
-        ):
-            graph.add((subject, predicate, obj))
+    _dataset, graphs, _manifest = _load_distribution(distribution)
+    asserted = graphs["asserted"]
+    projection = graphs["projection"]
     old = next(asserted.subjects(ATLAS.assertionStatus, ATLAS.superseded))
     successor = next(asserted.subjects(ATLAS.supersedes, old))
 
@@ -270,17 +258,8 @@ def test_supersession_projects_only_the_terminal_current_claim() -> None:
 
 
 def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> None:
-    manifest = json.loads(
-        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
-    )
-    asserted_id = URIRef(
-        next(row["id"] for row in manifest["graphs"] if row["role"] == "asserted")
-    )
-    dataset = Dataset()
-    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
-    asserted = Graph(identifier=asserted_id)
-    for subject, predicate, obj, _ in dataset.quads((None, None, None, asserted_id)):
-        asserted.add((subject, predicate, obj))
+    _dataset, graphs, _manifest = _load_distribution()
+    asserted = graphs["asserted"]
     assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
     policy = asserted.value(assertion, ATLAS.governedByPolicy)
     basis = {
@@ -312,17 +291,8 @@ def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> N
 
 
 def test_cross_ring_assertion_identity_uses_both_directed_rings() -> None:
-    manifest = json.loads(
-        (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
-    )
-    asserted_id = URIRef(
-        next(row["id"] for row in manifest["graphs"] if row["role"] == "asserted")
-    )
-    dataset = Dataset()
-    dataset.parse(VALID_DISTRIBUTION / "atlas.nq", format="nquads")
-    asserted = Graph(identifier=asserted_id)
-    for subject, predicate, obj, _ in dataset.quads((None, None, None, asserted_id)):
-        asserted.add((subject, predicate, obj))
+    _dataset, graphs, _manifest = _load_distribution()
+    asserted = graphs["asserted"]
     assertion = next(
         asserted.subjects(RDF.type, ATLAS.CrossRingRelationAssertion)
     )
