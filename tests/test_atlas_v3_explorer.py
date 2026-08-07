@@ -16,8 +16,8 @@ import pytest
 from rdflib import Dataset, Literal, URIRef
 from rdflib.namespace import RDF
 
-import refspec.atlas.explorer as explorer_module
-from refspec.atlas.explorer import (
+import refspec.atlas.explorer_rdf as explorer_module
+from refspec.atlas.explorer_rdf import (
     ATLAS,
     ATLAS_V3_EXPLORER_TYPE,
     EXPLORER_TYPE,
@@ -26,7 +26,7 @@ from refspec.atlas.explorer import (
     open_atlas_v3_explorer_distribution,
     render_atlas_explorer,
 )
-from refspec.atlas.explorer_cli import build_preview
+from refspec.atlas.explorer_rdf_cli import build_preview
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -1353,6 +1353,128 @@ def test_rendered_explorer_javascript_is_syntactically_valid() -> None:
     assert "index.assertedInventoryDigest!==data.distribution.assertedInventoryDigest" in scripts[-1]
     assert 'location.protocol!=="file:"' in scripts[-1]
     assert 'typeof DecompressionStream==="function"' in scripts[-1]
+
+
+def test_release_controls_hide_other_rings_and_clear_only_visible_releases() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+    controls = re.search(
+        r"/\* atlas-release-filter-controls:start \*/(.*?)/\* atlas-release-filter-controls:end \*/",
+        rendered,
+        flags=re.DOTALL,
+    )
+
+    assert controls is not None
+    assert 'id="select-no-releases"' in rendered
+    script = "\n".join(
+        (
+            """
+const state={ring:"subject",activeReleases:new Set(["subject-a","value-a"]),selected:{},inspectorReturn:{}};
+const releaseById=new Map([
+  ["subject-a",{id:"subject-a",title:"Subject A",semanticRing:"subject",color:"#111",memberCount:2}],
+  ["value-a",{id:"value-a",title:"Value A",semanticRing:"value",color:"#222",memberCount:3}]
+]);
+const appended=[];
+const root={replaceChildren(){appended.length=0;},append(value){appended.push(value);},querySelectorAll(){return[];}};
+const clearButton={disabled:false};
+const document={getElementById(id){return id==="release-filters"?root:clearButton;},createElement(){return{className:"",innerHTML:""};}};
+const search={value:""};
+const releaseLabel=row=>row.title;
+const esc=value=>String(value);
+const format=value=>String(value);
+let refreshed=0;
+function refresh(){refreshed++;}
+async function renderSearch(){}
+""",
+            controls.group(1),
+            """
+const before={visible:visibleReleaseRows().map(row=>row.id),active:[...activeVisibleReleases()]};
+selectNoReleases();
+const after={active:[...state.activeReleases],selected:state.selected,inspectorReturn:state.inspectorReturn,refreshed};
+state.ring="";
+renderReleaseFilters();
+process.stdout.write(JSON.stringify({before,after,allRows:appended.map(row=>row.innerHTML)}));
+""",
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = json.loads(completed.stdout)
+    assert result["before"] == {"visible": ["subject-a"], "active": ["subject-a"]}
+    assert result["after"] == {
+        "active": ["value-a"],
+        "selected": None,
+        "inspectorReturn": None,
+        "refreshed": 1,
+    }
+    assert 'data-release="subject-a"' in result["allRows"][0]
+    assert " checked" not in result["allRows"][0]
+    assert 'data-release="value-a"' in result["allRows"][1]
+    assert " checked" in result["allRows"][1]
+
+
+def test_left_control_column_supports_pointer_and_keyboard_resize() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+    controls = re.search(
+        r"/\* atlas-controls-resize:start \*/(.*?)/\* atlas-controls-resize:end \*/",
+        rendered,
+        flags=re.DOTALL,
+    )
+
+    assert controls is not None
+    assert 'id="controls-resizer"' in rendered
+    script = "\n".join(
+        (
+            """
+globalThis.innerWidth=1440;
+let width=272,captured=false;
+const classes=new Set(),attributes={},handlers={};
+const workspace={clientWidth:1400,style:{setProperty(_name,value){width=Number.parseInt(value,10);}},classList:{add(value){classes.add(value);},remove(value){classes.delete(value);}}};
+const controlsPanel={getBoundingClientRect(){return{width};}};
+const controlsResizer={
+  addEventListener(name,handler){handlers[name]=handler;},
+  setAttribute(name,value){attributes[name]=value;},
+  setPointerCapture(){captured=true;},
+  hasPointerCapture(){return captured;},
+  releasePointerCapture(){captured=false;}
+};
+""",
+            controls.group(1),
+            """
+handlers.pointerdown({button:0,pointerId:7,clientX:100,preventDefault(){}});
+handlers.pointermove({pointerId:7,clientX:180});
+const dragged=width;
+handlers.pointerup({pointerId:7});
+handlers.keydown({key:"ArrowRight",preventDefault(){}});
+const keyboard=width;
+handlers.dblclick();
+process.stdout.write(JSON.stringify({dragged,keyboard,reset:width,captured,resizing:classes.has("resizing"),attributes}));
+""",
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == {
+        "dragged": 352,
+        "keyboard": 368,
+        "reset": 272,
+        "captured": False,
+        "resizing": False,
+        "attributes": {"aria-valuemax": "520", "aria-valuenow": "272"},
+    }
 
 
 def test_browser_shard_loader_rejects_transport_and_content_tampering(

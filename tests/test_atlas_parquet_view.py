@@ -1,0 +1,352 @@
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+
+import pyarrow.parquet as pq
+import pytest
+
+from refspec.atlas.compact_pack import CompactPackHeader, CompactRecordRole, write_compact_record_pack
+from refspec.atlas.explorer import (
+    atlas_explorer_facets,
+    atlas_parquet_resource,
+    build_atlas_explorer_model,
+    build_atlas_explorer_static_shards,
+    open_atlas_explorer,
+    render_atlas_v3_explorer,
+    search_atlas_parquet,
+)
+from refspec.atlas.parquet_search_view import (
+    AtlasParquetSearchViewError,
+    build_atlas_parquet_search_view,
+    verify_atlas_parquet_search_view,
+)
+from refspec.atlas.parquet_view import (
+    AtlasParquetViewError,
+    build_atlas_parquet_view,
+    verify_atlas_parquet_view,
+)
+from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
+
+_D1 = "sha256:" + "1" * 64
+_D2 = "sha256:" + "2" * 64
+_D3 = "sha256:" + "3" * 64
+_D4 = "sha256:" + "4" * 64
+
+
+def _payload_digest(value: object) -> str:
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(value)[:-1]).hexdigest()
+
+
+def _write_json(path: Path, value: dict[str, object]) -> bytes:
+    payload = canonical_json_bytes(value)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+    return payload
+
+
+def _fixture_distribution(root: Path) -> str:
+    release = "urn:test:atlas-release"
+    source_record = "urn:ref:atlas-source-record:" + "5" * 64
+    statement = "urn:ref:atlas-assertion:" + "3" * 64
+    rows = {
+        CompactRecordRole.RESOURCE: {
+            "id": "urn:test:resource",
+            "release": release,
+            "scheme": "urn:test:scheme",
+            "semanticRing": "subject",
+            "resourceProfile": "conceptScheme",
+            "sourceRecord": source_record,
+            "definition": "A test resource.",
+            "notes": ["A note."],
+            "notations": ["T-1"],
+            "recordStatus": "active",
+            "contentDigest": _D1,
+        },
+        CompactRecordRole.LABEL: {
+            "id": "urn:ref:atlas-label:" + "7" * 64,
+            "resource": "urn:test:resource",
+            "labelRole": "preferred",
+            "value": "Test resource",
+            "language": "en",
+            "release": release,
+            "sourceRecord": source_record,
+            "contentDigest": _D2,
+        },
+        CompactRecordRole.STATEMENT: {
+            "id": statement,
+            "statementType": "NativeRelationAssertion",
+            "subject": "urn:test:resource",
+            "predicate": "http://www.w3.org/2004/02/skos/core#broader",
+            "object": "urn:test:parent",
+            "sourceRelease": release,
+            "targetRelease": release,
+            "policy": "urn:ref:atlas-policy:" + "6" * 64,
+            "assertedAt": "2026-08-07T00:00:00+00:00",
+            "assertionStatus": "current",
+            "assertionIdentityDigest": _D3,
+            "semanticRing": "subject",
+            "contentDigest": _D4,
+        },
+        CompactRecordRole.EVIDENCE_BINDING: {
+            "id": "urn:ref:atlas-evidence:" + "2" * 64,
+            "statement": statement,
+            "sourceRecord": source_record,
+            "evidenceSourceDigest": _D1,
+            "reviewedBy": "urn:test:reviewer",
+            "reviewMethod": "urn:test:method",
+            "decisionStatus": "urn:test:approved",
+            "decidedAt": "2026-08-07T00:00:00+00:00",
+            "confidence": "1.0",
+            "contentDigest": _D2,
+        },
+        CompactRecordRole.SOURCE_RECORD: {
+            "id": source_record,
+            "sourceRelease": "urn:test:source-release",
+            "sourceDigest": _D3,
+            "sourceLocator": "https://example.test/source",
+            "nativePayload": {"publisher": "Example", "values": [1, 2]},
+            "representsResource": "urn:test:resource",
+            "contentDigest": _D4,
+        },
+        CompactRecordRole.RELEASE: {
+            "id": release,
+            "releaseType": "AtlasRelease",
+            "identifier": "test-release",
+            "issued": "2026-08-07",
+            "resourceProfile": "conceptScheme",
+            "semanticRing": "subject",
+            "scheme": "urn:test:scheme",
+            "membershipMode": "complete",
+            "contentDigest": _D1,
+        },
+        CompactRecordRole.IDENTIFIER: {
+            "id": "urn:ref:atlas-identifier:" + "8" * 64,
+            "identifierValue": "T-1",
+            "identifierScheme": "urn:test:identifier-scheme",
+            "identifies": "urn:test:resource",
+            "sourceRecord": source_record,
+            "contentDigest": _D2,
+        },
+        CompactRecordRole.LIFECYCLE_EVENT: {
+            "id": "urn:test:event",
+            "eventSubject": "urn:test:resource",
+            "eventType": "urn:test:created",
+            "eventAt": "2026-08-07T00:00:00+00:00",
+            "sourceRecords": [source_record],
+            "toRelease": release,
+            "contentDigest": _D3,
+        },
+    }
+    compact_packs = []
+    for role, row in rows.items():
+        inventory = write_compact_record_pack(
+            root,
+            CompactPackHeader(role=role.value, path=f"packs/compact/{role.value.casefold()}.jsonl.zst"),
+            [row],
+            compression_level=1,
+        )
+        compact_packs.append(inventory.to_dict())
+    compact_packs.sort(key=lambda row: row["path"])
+    empty_inventory_digest = _payload_digest([])
+    binding_digest = "sha256:" + "a" * 64
+    summary: dict[str, object] = {
+        "assertedInventoryDigest": empty_inventory_digest,
+        "bindingBundleDigest": binding_digest,
+        "compactPackCount": len(compact_packs),
+        "compactPackInventoryDigest": sha256_digest(canonical_json_bytes(compact_packs)),
+        "compactPacks": compact_packs,
+        "distributionId": "urn:test:atlas-distribution",
+        "type": "AtlasConstructionSummary",
+        "version": "3.0",
+    }
+    summary["canonicalPayloadDigest"] = _payload_digest(summary)
+    summary_raw = _write_json(root / "atlas-construction-summary.json", summary)
+    member = {
+        "byteLength": len(summary_raw),
+        "digest": sha256_digest(summary_raw),
+        "mediaType": "application/json",
+        "path": "atlas-construction-summary.json",
+        "role": "constructionSummary",
+    }
+    manifest: dict[str, object] = {
+        "binding": {
+            "bindingBundleDigest": binding_digest,
+            "ontologyDigest": "sha256:" + "b" * 64,
+        },
+        "counts": {},
+        "createdAt": "2026-08-07T00:00:00+00:00",
+        "distributionId": "urn:test:atlas-distribution",
+        "format": "refspec-atlas-packed-nquads-3.0",
+        "graphs": [
+            {
+                "id": "urn:ref:atlas:graph:v3:asserted",
+                "inventoryDigest": empty_inventory_digest,
+                "packCount": 0,
+                "quadCount": 0,
+                "role": "asserted",
+            },
+            {
+                "id": "urn:ref:atlas:graph:v3:projection",
+                "inventoryDigest": empty_inventory_digest,
+                "packCount": 0,
+                "quadCount": 0,
+                "role": "projection",
+            },
+            {
+                "id": "urn:ref:atlas:graph:v3:derived",
+                "inventoryDigest": empty_inventory_digest,
+                "packCount": 0,
+                "quadCount": 0,
+                "role": "derived",
+            },
+        ],
+        "members": [member],
+        "packs": [],
+        "schemaVersion": "3.0",
+        "type": "AtlasManifest",
+    }
+    manifest["canonicalPayloadDigest"] = _payload_digest(manifest)
+    manifest_raw = _write_json(root / "atlas-manifest.json", manifest)
+    return sha256_digest(manifest_raw)
+
+
+def test_builds_and_verifies_typed_lossless_logical_view(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    output = tmp_path / "view"
+
+    manifest = build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+
+    assert set(manifest["counts"]) == {role.value for role in CompactRecordRole}
+    assert set(manifest["counts"].values()) == {1}
+    assert manifest["status"] == {
+        "canonicalAtlas": False,
+        "containsExactRdfTable": False,
+        "derivedView": True,
+        "expansion": "not_used",
+        "logicalRecordsPreserved": True,
+    }
+    resources = pq.read_table(output / "tables/resources.parquet").to_pylist()
+    assert resources[0]["id"] == "urn:test:resource"
+    assert resources[0]["content_digest"] == bytes.fromhex("1" * 64)
+    source_records = pq.read_table(output / "tables/source-records.parquet").to_pylist()
+    assert source_records[0]["native_payload"] == b'{"publisher":"Example","values":[1,2]}'
+    view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_view(output, expected_manifest_digest=view_pin) == manifest
+
+
+def test_rebuild_is_byte_stable(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    first = build_atlas_parquet_view(source, tmp_path / "first", expected_manifest_digest=source_pin)
+    second = build_atlas_parquet_view(source, tmp_path / "second", expected_manifest_digest=source_pin)
+    assert first == second
+    assert [row["sha256"] for row in first["members"]] == [row["sha256"] for row in second["members"]]
+
+
+def test_refuses_input_manifest_drift_and_output_tampering(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    with pytest.raises(AtlasParquetViewError, match="digest differs"):
+        build_atlas_parquet_view(source, tmp_path / "wrong", expected_manifest_digest=_D1)
+
+    output = tmp_path / "view"
+    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
+    with (output / "tables/resources.parquet").open("ab") as stream:
+        stream.write(b"tamper")
+    with pytest.raises(AtlasParquetViewError, match="member bytes differ"):
+        verify_atlas_parquet_view(output, expected_manifest_digest=view_pin)
+
+
+def test_refuses_extra_input_or_view_member(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    (source / "extra.txt").write_text("extra")
+    with pytest.raises(AtlasParquetViewError, match="membership is not closed"):
+        build_atlas_parquet_view(source, tmp_path / "view", expected_manifest_digest=source_pin)
+
+    source = tmp_path / "atlas-2"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    output = tmp_path / "view-2"
+    build_atlas_parquet_view(source, output, expected_manifest_digest=source_pin)
+    view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
+    (output / "extra.txt").write_text("extra")
+    with pytest.raises(AtlasParquetViewError, match="membership is not closed"):
+        verify_atlas_parquet_view(output, expected_manifest_digest=view_pin)
+
+
+def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+
+    assert "SourceRecord.nativePayload" in manifest["status"]["omittedFields"]
+    assert manifest["status"]["graphFactsPreserved"] is True
+    source_schema = pq.read_schema(compact / "tables/source-records.parquet")
+    assert "native_payload" not in source_schema.names
+    statement_row = pq.read_table(compact / "tables/statements.parquet").to_pylist()[0]
+    assert statement_row["id"] == "urn:ref:atlas-assertion:" + "3" * 64
+    assert statement_row["subject"] == "urn:test:resource"
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == manifest
+
+
+def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+    with (compact / "tables/statements.parquet").open("ab") as stream:
+        stream.write(b"tamper")
+    with pytest.raises(AtlasParquetSearchViewError, match="member bytes differ"):
+        verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
+
+
+def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None:
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    opened = open_atlas_explorer(compact, trusted_manifest_digest=compact_pin)
+    bundle = build_atlas_explorer_static_shards(
+        opened,
+        tmp_path / "shards",
+        url_prefix="shards",
+    )
+    model = build_atlas_explorer_model(opened, full_corpus=bundle)
+    rendered = render_atlas_v3_explorer(model)
+
+    assert model["distribution"]["manifestDigest"] == compact_pin
+    assert model["summary"]["availableResources"] == 1
+    assert model["resources"][0]["displayLabel"] == "Test resource"
+    assert model["assertedRelations"][0]["predicateLabel"] == "broader"
+    assert bundle["counts"]["resources"] == 1
+    assert "Test resource" in rendered
+    assert search_atlas_parquet(opened, "test")[0]["id"] == "urn:test:resource"
+    assert atlas_explorer_facets(opened)["rings"] == [{"count": 1, "id": "subject"}]
+    detail = atlas_parquet_resource(opened, "urn:test:resource")
+    assert detail["relations"][0]["evidence_count"] == 1
