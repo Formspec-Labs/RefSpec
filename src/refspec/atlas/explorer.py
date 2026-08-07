@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import heapq
 import html
@@ -9,10 +10,13 @@ import json
 import os
 import re
 import stat
-from collections import Counter, defaultdict
+import tempfile
+import unicodedata
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path, PurePosixPath
 from string import Template
 from typing import Any, BinaryIO, TypeVar, cast
@@ -47,6 +51,7 @@ _ROOT_MANIFEST = "atlas-manifest.json"
 _SOURCE_ACCOUNTING_MEMBER = "atlas-source-accounting.json"
 _ACCEPTANCE_MEMBER = "atlas-acceptance.json"
 _PRODUCER_VALIDATION_MEMBER = "atlas-producer-validation.json"
+_CONSTRUCTION_SUMMARY_MEMBER = "atlas-construction-summary.json"
 REQUIRED_ACCEPTANCE_GATES = frozenset(
     {
         "canonical-json",
@@ -145,8 +150,26 @@ _SAFE_INTEGER = 9_007_199_254_740_991
 _NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
 _SOURCE_ACCOUNTING_INLINE_MAX_BYTES = 16 * 1024 * 1024
 
-# A static visual graph remains useful well below the full Atlas cardinality.
-# These are hard materialization bounds, not claims about the sealed dataset.
+_MAPPING_PROVENANCE_PAYLOAD_FIELDS = frozenset(
+    {
+        "currentEuroVocRelease",
+        "currentMetadataRequalifiesIndividualPairs",
+        "objectIri",
+        "predicateIri",
+        "publisherAlignmentDigest",
+        "publisherAlignmentIssued",
+        "publisherAlignmentRelease",
+        "publisherAlignmentVersion",
+        "publisherEuroVocRelease",
+        "publisherEuroVocVersion",
+        "publisherLcshRelease",
+        "subjectIri",
+    }
+)
+
+# The HTML keeps a small, self-contained visual fallback for file:// review.
+# Full-corpus HTTP browsing uses verified static shards and is not bounded by
+# these fallback materialization limits.
 _VISUAL_RESOURCE_LIMIT = 2_000
 _VISUAL_IDENTIFIER_LIMIT = 500
 _VISUAL_TOPIC_ASSERTION_LIMIT = 2_000
@@ -157,6 +180,16 @@ _VISUAL_RELATION_RESOURCE_BUDGET = 1_500
 _VISUAL_PROVENANCE_ASSERTION_LIMIT = 4_000
 _VISUAL_CANDIDATE_MULTIPLIER = 4
 _VISUAL_MAX_RELATION_REFERENCES = 64
+_EXPLORER_RECORD_PREFIX_LENGTH = 3
+_EXPLORER_JOIN_PREFIX_LENGTH = 3
+_EXPLORER_PAGE_SIZE = 500
+_EXPLORER_SPOOL_HANDLE_LIMIT = 64
+_EXPLORER_SHARD_TYPE = "AtlasExplorerStaticShard"
+_EXPLORER_SHARD_INDEX_TYPE = "AtlasExplorerStaticShardIndex"
+_EXPLORER_SHARD_BUNDLE_TYPE = "AtlasExplorerStaticShardBundle"
+_EXPLORER_SHARD_VERSION = "2"
+ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE = "atlas-3-static-full-corpus-shards-gzip-v2"
+_EXPLORER_SHARD_SCHEMA = "https://refspec.org/schema/atlas-explorer-static-shards/v2"
 _MANIFEST_FIELDS = frozenset(
     {
         "type",
@@ -180,6 +213,7 @@ _PRODUCER_VALIDATION_FIELDS = frozenset(
         "assertedInventoryDigest",
         "binding",
         "checks",
+        "constructionSummary",
         "constructorProfile",
         "counts",
         "implementationDigest",
@@ -191,6 +225,54 @@ _PRODUCER_VALIDATION_FIELDS = frozenset(
         "status",
         "type",
         "version",
+    }
+)
+_CONSTRUCTION_SUMMARY_FIELDS = frozenset(
+    {
+        "assertedInventoryDigest",
+        "bindingBundleDigest",
+        "canonicalPayloadDigest",
+        "catalog",
+        "compactPackCount",
+        "compactPackInventoryDigest",
+        "compactPacks",
+        "distributionId",
+        "profile",
+        "recipeDigest",
+        "releaseCount",
+        "releaseInventoryDigest",
+        "releases",
+        "sourceAccountingDigest",
+        "type",
+        "version",
+    }
+)
+_COMPACT_PACK_FIELDS = frozenset(
+    {
+        "packId",
+        "role",
+        "path",
+        "dependencies",
+        "defaults",
+        "logicalRowsDigest",
+        "recordSchemaVersion",
+        "globalInvariantSummary",
+        "content",
+        "transport",
+        "partition",
+    }
+)
+_COMPACT_PACK_REQUIRED_FIELDS = _COMPACT_PACK_FIELDS - {"partition"}
+_COMPACT_RECORD_ROLES = frozenset(
+    {
+        "Resource",
+        "Label",
+        "Statement",
+        "EvidenceBinding",
+        "SourceRecord",
+        "Release",
+        "Identifier",
+        "LifecycleEvent",
     }
 )
 _PACK_FIELDS = frozenset(
@@ -431,6 +513,12 @@ def _canonical_digest_without_lf(value: object) -> str:
     if not payload.endswith(b"\n"):
         raise Atlas3ExplorerError("canonical JSON encoder omitted its expected terminal LF")
     return sha256_digest(payload[:-1])
+
+
+def _canonical_digest(value: object) -> str:
+    """Digest the binding's newline-terminated canonical JSON form."""
+
+    return sha256_digest(canonical_json_bytes(value))
 
 
 def _nquad_iri_token(value: object) -> bytes:
@@ -1455,6 +1543,300 @@ def _verify_pack_rows(
     return tuple(packs)
 
 
+def _verify_construction_summary(
+    manifest: Mapping[str, Any],
+    construction_summary: Mapping[str, Any],
+    member_digests: Mapping[str, str],
+) -> tuple[Mapping[str, Any], ...]:
+    """Authenticate the compact-pack inventory without decoding logical rows."""
+
+    _exact_fields(
+        construction_summary,
+        _CONSTRUCTION_SUMMARY_FIELDS,
+        "Atlas 3.0 construction summary",
+    )
+    if (
+        construction_summary.get("type") != "AtlasConstructionSummary"
+        or construction_summary.get("version") != "3.0"
+        or construction_summary.get("profile")
+        != "atlas-3-release-local-construction-v1"
+    ):
+        raise Atlas3ExplorerError("Atlas 3.0 construction summary identity differs")
+    payload = dict(construction_summary)
+    declared_payload_digest = _digest(
+        payload.pop("canonicalPayloadDigest"),
+        "Atlas 3.0 construction summary canonicalPayloadDigest",
+    )
+    if declared_payload_digest != _canonical_digest_without_lf(payload):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 construction summary canonicalPayloadDigest is stale"
+        )
+    asserted_inventory = _mapping(
+        _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")[0],
+        "Atlas 3.0 asserted graph",
+    )["inventoryDigest"]
+    expected_identity = {
+        "assertedInventoryDigest": asserted_inventory,
+        "bindingBundleDigest": _mapping(
+            manifest.get("binding"), "Atlas 3.0 manifest binding"
+        )["bindingBundleDigest"],
+        "distributionId": manifest.get("distributionId"),
+        "sourceAccountingDigest": member_digests[_SOURCE_ACCOUNTING_MEMBER],
+    }
+    if any(
+        construction_summary.get(field) != expected
+        for field, expected in expected_identity.items()
+    ):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 construction summary does not describe this distribution"
+        )
+    _digest(
+        construction_summary.get("recipeDigest"),
+        "Atlas 3.0 construction summary recipeDigest",
+    )
+
+    releases = [
+        _mapping(raw, "Atlas 3.0 construction release")
+        for raw in _sequence(
+            construction_summary.get("releases"),
+            "Atlas 3.0 construction releases",
+        )
+    ]
+    release_keys = [
+        _text(release.get("key"), "Atlas 3.0 construction release key")
+        for release in releases
+    ]
+    if (
+        not releases
+        or release_keys != sorted(release_keys)
+        or len(release_keys) != len(set(release_keys))
+        or _count(
+            construction_summary.get("releaseCount"),
+            "Atlas 3.0 construction releaseCount",
+        )
+        != len(releases)
+        or _digest(
+            construction_summary.get("releaseInventoryDigest"),
+            "Atlas 3.0 construction releaseInventoryDigest",
+        )
+        != _canonical_digest(releases)
+    ):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 construction release inventory does not reconcile"
+        )
+
+    compact_packs = [
+        _mapping(raw, "Atlas 3.0 compact pack")
+        for raw in _sequence(
+            construction_summary.get("compactPacks"),
+            "Atlas 3.0 compact packs",
+        )
+    ]
+    paths: list[str] = []
+    pack_ids: list[str] = []
+    for pack in compact_packs:
+        fields = frozenset(pack)
+        if fields not in {
+            _COMPACT_PACK_REQUIRED_FIELDS,
+            _COMPACT_PACK_FIELDS,
+        }:
+            expected = (
+                _COMPACT_PACK_FIELDS
+                if "partition" in fields
+                else _COMPACT_PACK_REQUIRED_FIELDS
+            )
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 compact pack fields differ; "
+                f"missing={sorted(expected - fields)}, extra={sorted(fields - expected)}"
+            )
+        content = _mapping(pack.get("content"), "Atlas 3.0 compact pack content")
+        _exact_fields(
+            content,
+            frozenset({"byteLength", "digest", "mediaType", "recordCount"}),
+            "Atlas 3.0 compact pack content",
+        )
+        content_digest = _digest(
+            content.get("digest"), "Atlas 3.0 compact pack content digest"
+        )
+        if (
+            content.get("mediaType") != "application/x-ndjson"
+            or _count(
+                content.get("byteLength"),
+                "Atlas 3.0 compact pack content byteLength",
+            )
+            < 1
+        ):
+            raise Atlas3ExplorerError("Atlas 3.0 compact pack content identity differs")
+        record_count = _count(
+            content.get("recordCount"), "Atlas 3.0 compact pack recordCount"
+        )
+        pack_id = _text(pack.get("packId"), "Atlas 3.0 compact pack packId")
+        if pack_id != (
+            "urn:ref:atlas:compact-pack:" + content_digest.removeprefix("sha256:")
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 compact pack ID does not derive from its content"
+            )
+        role = _text(pack.get("role"), "Atlas 3.0 compact pack role")
+        if role not in _COMPACT_RECORD_ROLES:
+            raise Atlas3ExplorerError("Atlas 3.0 compact pack role is unsupported")
+        path = _safe_relative_path(pack.get("path"), "Atlas 3.0 compact pack path")
+        if not path.startswith("packs/compact/") or not path.endswith(".jsonl.zst"):
+            raise Atlas3ExplorerError("Atlas 3.0 compact pack path is unsupported")
+        _sorted_unique_texts(
+            pack.get("dependencies"),
+            f"Atlas 3.0 compact pack {path} dependencies",
+            iri=True,
+        )
+        _mapping(pack.get("defaults"), f"Atlas 3.0 compact pack {path} defaults")
+        _digest(
+            pack.get("logicalRowsDigest"),
+            f"Atlas 3.0 compact pack {path} logicalRowsDigest",
+        )
+        if pack.get("recordSchemaVersion") != "1.0":
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 compact pack {path} record schema is unsupported"
+            )
+        summary = _mapping(
+            pack.get("globalInvariantSummary"),
+            f"Atlas 3.0 compact pack {path} globalInvariantSummary",
+        )
+        _exact_fields(
+            summary,
+            frozenset(
+                {"schemaVersion", "recordRole", "recordCount", "fieldCounts", "digest"}
+            ),
+            f"Atlas 3.0 compact pack {path} globalInvariantSummary",
+        )
+        if (
+            summary.get("schemaVersion") != "1.0"
+            or summary.get("recordRole") != role
+            or _count(
+                summary.get("recordCount"),
+                f"Atlas 3.0 compact pack {path} summary recordCount",
+            )
+            != record_count
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 compact pack {path} summary identity differs"
+            )
+        _mapping(
+            summary.get("fieldCounts"),
+            f"Atlas 3.0 compact pack {path} summary fieldCounts",
+        )
+        _digest(
+            summary.get("digest"),
+            f"Atlas 3.0 compact pack {path} summary digest",
+        )
+        transport = _mapping(
+            pack.get("transport"), f"Atlas 3.0 compact pack {path} transport"
+        )
+        _exact_fields(
+            transport,
+            frozenset({"compression", "mediaType", "digest", "byteLength"}),
+            f"Atlas 3.0 compact pack {path} transport",
+        )
+        if (
+            transport.get("compression") != "zstd"
+            or transport.get("mediaType") != "application/zstd"
+            or _count(
+                transport.get("byteLength"),
+                f"Atlas 3.0 compact pack {path} transport byteLength",
+            )
+            < 1
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 compact pack {path} transport identity differs"
+            )
+        _digest(
+            transport.get("digest"),
+            f"Atlas 3.0 compact pack {path} transport digest",
+        )
+        if "partition" in pack:
+            partition = _mapping(
+                pack["partition"], f"Atlas 3.0 compact pack {path} partition"
+            )
+            _exact_fields(
+                partition,
+                frozenset({"strategy", "prefix"}),
+                f"Atlas 3.0 compact pack {path} partition",
+            )
+            if (
+                partition.get("strategy") != "sha256-subject-iri-prefix"
+                or re.fullmatch(
+                    r"[0-9a-f]+",
+                    _text(
+                        partition.get("prefix"),
+                        f"Atlas 3.0 compact pack {path} partition prefix",
+                    ),
+                )
+                is None
+            ):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 compact pack {path} partition differs"
+                )
+        paths.append(path)
+        pack_ids.append(pack_id)
+
+    if (
+        not compact_packs
+        or paths != sorted(paths)
+        or len(paths) != len(set(paths))
+        or len(pack_ids) != len(set(pack_ids))
+        or _count(
+            construction_summary.get("compactPackCount"),
+            "Atlas 3.0 construction compactPackCount",
+        )
+        != len(compact_packs)
+        or _digest(
+            construction_summary.get("compactPackInventoryDigest"),
+            "Atlas 3.0 construction compactPackInventoryDigest",
+        )
+        != _canonical_digest(compact_packs)
+    ):
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 compact pack inventory does not reconcile"
+        )
+    known_pack_ids = set(pack_ids)
+    for pack in compact_packs:
+        dependencies = cast(Sequence[str], pack["dependencies"])
+        if pack["packId"] in dependencies or not set(dependencies).issubset(
+            known_pack_ids
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 compact pack {pack['path']} has an invalid dependency"
+            )
+
+    owned_paths: list[str] = []
+    known_paths = set(paths)
+    for release in releases:
+        release_paths = [
+            _safe_relative_path(
+                raw,
+                f"Atlas 3.0 construction release {release['key']} compact path",
+            )
+            for raw in _sequence(
+                release.get("compactPackPaths"),
+                f"Atlas 3.0 construction release {release['key']} compactPackPaths",
+            )
+        ]
+        if (
+            not release_paths
+            or release_paths != sorted(release_paths)
+            or len(release_paths) != len(set(release_paths))
+            or not set(release_paths).issubset(known_paths)
+        ):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 construction release {release['key']} compact ownership differs"
+            )
+        owned_paths.extend(release_paths)
+    if len(owned_paths) != len(set(owned_paths)) or set(owned_paths) != known_paths:
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 construction compact-pack ownership is not exact"
+        )
+    return tuple(compact_packs)
+
+
 def _verify_manifest(
     manifest: Mapping[str, Any],
     manifest_payload: bytes,
@@ -1510,16 +1892,14 @@ def _verify_manifest(
     expected_members = [
         ("sourceAccounting", _SOURCE_ACCOUNTING_MEMBER, "application/json"),
         ("acceptance", _ACCEPTANCE_MEMBER, "application/json"),
+        ("producerValidation", _PRODUCER_VALIDATION_MEMBER, "application/json"),
+        ("constructionSummary", _CONSTRUCTION_SUMMARY_MEMBER, "application/json"),
     ]
-    if _PRODUCER_VALIDATION_MEMBER in member_evidence:
-        expected_members.append(
-            ("producerValidation", _PRODUCER_VALIDATION_MEMBER, "application/json")
-        )
     members = _sequence(manifest.get("members"), "Atlas 3.0 manifest members")
     if len(members) != len(expected_members):
         raise Atlas3ExplorerError(
-            "Atlas 3.0 manifest must pin source accounting, acceptance, and only "
-            "the optional producer proof"
+            "Atlas 3.0 manifest must pin source accounting, acceptance, producer "
+            "validation, and the construction summary"
         )
     for position, (role, path, media_type) in enumerate(expected_members):
         row = _mapping(members[position], f"Atlas 3.0 member {path}")
@@ -1617,21 +1997,32 @@ def _verify_acceptance(
 
 def _verify_producer_validation(
     manifest: Mapping[str, Any],
-    producer_validation: Mapping[str, Any] | None,
+    producer_validation: Mapping[str, Any],
+    construction_summary: Mapping[str, Any],
     member_digests: Mapping[str, str],
+    source_release_count: int,
 ) -> None:
-    """Verify the optional compiled producer proof used by large builds."""
+    """Verify the required compiled proof and its construction-summary receipt."""
 
-    if producer_validation is None:
-        return
-    _exact_fields(
-        producer_validation,
+    producer_fields = frozenset(producer_validation)
+    allowed_field_sets = {
         _PRODUCER_VALIDATION_FIELDS,
-        "Atlas 3.0 producer validation",
-    )
+        _PRODUCER_VALIDATION_FIELDS | {"semanticConstruction"},
+    }
+    if producer_fields not in allowed_field_sets:
+        expected = (
+            _PRODUCER_VALIDATION_FIELDS
+            if "semanticConstruction" not in producer_fields
+            else _PRODUCER_VALIDATION_FIELDS | {"semanticConstruction"}
+        )
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 producer validation fields differ; "
+            f"missing={sorted(expected - producer_fields)}, "
+            f"extra={sorted(producer_fields - expected)}"
+        )
     expected_identity = {
-        "constructorProfile": "atlas-3-source-only-compiled-shacl-v1",
-        "mode": "compiledSourceProducerValidation",
+        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        "mode": "compiledSourceAndPublisherMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "status": "passed",
@@ -1658,9 +2049,7 @@ def _verify_producer_validation(
         != asserted_graph.get("inventoryDigest")
         or producer_validation.get("counts") != manifest.get("counts")
         or producer_validation.get("sourceReleaseCount")
-        != _mapping(manifest.get("counts"), "Atlas 3.0 manifest counts").get(
-            "releases"
-        )
+        != source_release_count
         or producer_validation.get("sourceAccountingDigest")
         != member_digests.get(_SOURCE_ACCOUNTING_MEMBER)
     ):
@@ -1678,6 +2067,84 @@ def _verify_producer_validation(
         raise Atlas3ExplorerError(
             "Atlas 3.0 producer validation checks are empty or duplicated"
         )
+    expected_construction_receipt = {
+        "compactPackCount": construction_summary["compactPackCount"],
+        "compactPackInventoryDigest": construction_summary[
+            "compactPackInventoryDigest"
+        ],
+        "digest": member_digests[_CONSTRUCTION_SUMMARY_MEMBER],
+        "path": _CONSTRUCTION_SUMMARY_MEMBER,
+        "profile": "atlas-3-authenticated-construction-summary-v1",
+        "releaseCount": construction_summary["releaseCount"],
+        "releaseInventoryDigest": construction_summary["releaseInventoryDigest"],
+    }
+    if producer_validation.get("constructionSummary") != expected_construction_receipt:
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 producer construction-summary receipt differs"
+        )
+    if "semanticConstruction" in producer_validation:
+        construction = _mapping(
+            producer_validation["semanticConstruction"],
+            "Atlas 3.0 producer semanticConstruction",
+        )
+        _exact_fields(
+            construction,
+            frozenset(
+                {
+                    "inputFileCount",
+                    "inputInventoryDigest",
+                    "profile",
+                    "recipeDigest",
+                    "reuseScope",
+                }
+            ),
+            "Atlas 3.0 producer semanticConstruction",
+        )
+        if (
+            _count(
+                construction.get("inputFileCount"),
+                "Atlas 3.0 producer semanticConstruction inputFileCount",
+            )
+            < 1
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 producer semanticConstruction inputFileCount must be positive"
+            )
+        _digest(
+            construction.get("inputInventoryDigest"),
+            "Atlas 3.0 producer semanticConstruction inputInventoryDigest",
+        )
+        _digest(
+            construction.get("recipeDigest"),
+            "Atlas 3.0 producer semanticConstruction recipeDigest",
+        )
+        expected_semantic_recipe = _canonical_digest(
+            {
+                "adapterRecipes": [
+                    {
+                        "adapterRecipeDigest": release["adapterRecipeDigest"],
+                        "key": release["key"],
+                    }
+                    for release in _sequence(
+                        construction_summary.get("releases"),
+                        "Atlas 3.0 construction releases",
+                    )
+                ],
+                "profile": construction["profile"],
+                "sharedRecipeDigest": construction_summary["recipeDigest"],
+            }
+        )
+        if (
+            construction.get("profile")
+            != "atlas-3-exact-input-whole-distribution-reuse-v1"
+            or construction.get("reuseScope")
+            != "wholeDistributionExactInputsOnly"
+            or construction.get("recipeDigest")
+            != expected_semantic_recipe
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 producer semanticConstruction identity differs"
+            )
 
 
 def _verify_streamed_dataset(
@@ -1914,7 +2381,7 @@ def _verify_source_accounting(
             if URIRef(source_release) not in asserted.objects(URIRef(record), ATLAS.inSourceRelease):
                 raise Atlas3ExplorerError("Atlas 3.0 source record is assigned to the wrong source release")
             atlas_resources = _sequence(
-                disposition.get("atlasResources"),
+                disposition.get("atlasResources", []),
                 f"Atlas 3.0 disposition {record} atlasResources",
             )
             ledger_resources = {str(value) for value in atlas_resources}
@@ -1933,15 +2400,68 @@ def _verify_source_accounting(
                 raise Atlas3ExplorerError(
                     f"Atlas 3.0 disposition {record} differs from its bidirectional RDF resource links"
                 )
-            if status_value == "represented":
-                if not ledger_resources or "reason" in disposition:
+            atlas_assertions = _sequence(
+                disposition.get("atlasAssertions", []),
+                f"Atlas 3.0 disposition {record} atlasAssertions",
+            )
+            ledger_assertions = {str(value) for value in atlas_assertions}
+            if len(ledger_assertions) != len(atlas_assertions):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 disposition {record} repeats an Atlas assertion"
+                )
+            evidence_bindings = set(
+                asserted.subjects(ATLAS.evidenceSourceRecord, URIRef(record))
+            )
+            graph_assertions = {
+                str(assertion)
+                for evidence in evidence_bindings
+                for assertion in asserted.objects(evidence, ATLAS.bindsAssertion)
+            }
+            mapping_assertions = {
+                assertion
+                for assertion in graph_assertions
+                if (
+                    URIRef(assertion),
+                    RDF.type,
+                    ATLAS.MappingAssertion,
+                ) in asserted
+            }
+            if "atlasAssertions" in disposition and ledger_assertions != graph_assertions:
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 disposition {record} differs from its evidence-backed assertions"
+                )
+            if (
+                mapping_assertions
+                and not ledger_resources
+                and ledger_assertions != mapping_assertions
+            ):
+                raise Atlas3ExplorerError(
+                    f"Atlas 3.0 disposition {record} does not exactly account for its mappings"
+                )
+            for assertion in ledger_assertions:
+                if (
+                    URIRef(assertion),
+                    RDF.type,
+                    ATLAS.RelationAssertion,
+                ) not in asserted:
                     raise Atlas3ExplorerError(
-                        f"represented Atlas 3.0 disposition {record} needs resources and no reason"
+                        f"Atlas 3.0 disposition {record} names an unknown assertion"
+                    )
+            if status_value == "represented":
+                if not (ledger_resources or ledger_assertions) or "reason" in disposition:
+                    raise Atlas3ExplorerError(
+                        f"represented Atlas 3.0 disposition {record} needs resources or assertions and no reason"
                     )
             else:
-                if ledger_resources or "reason" not in disposition:
+                if (
+                    ledger_resources
+                    or ledger_assertions
+                    or "atlasResources" in disposition
+                    or "atlasAssertions" in disposition
+                    or "reason" not in disposition
+                ):
                     raise Atlas3ExplorerError(
-                        f"{status_value} Atlas 3.0 disposition {record} needs a reason and no resources"
+                        f"{status_value} Atlas 3.0 disposition {record} needs a reason and no resources or assertions"
                     )
                 _text(disposition["reason"], f"Atlas 3.0 disposition {record} reason")
             for resource in ledger_resources:
@@ -2001,12 +2521,22 @@ def _source_accounting_summary(
         source = _mapping(raw_source, "Atlas 3.0 source accounting input")
         status_counts: Counter[str] = Counter()
         represented_resources = 0
+        represented_assertions = 0
         dispositions = _sequence(source.get("dispositions"), "Atlas 3.0 source dispositions")
         for raw_disposition in dispositions:
             disposition = _mapping(raw_disposition, "Atlas 3.0 source disposition")
             status_counts[_text(disposition.get("status"), "Atlas 3.0 source status")] += 1
             represented_resources += len(
-                _sequence(disposition.get("atlasResources"), "Atlas 3.0 disposition resources")
+                _sequence(
+                    disposition.get("atlasResources", []),
+                    "Atlas 3.0 disposition resources",
+                )
+            )
+            represented_assertions += len(
+                _sequence(
+                    disposition.get("atlasAssertions", []),
+                    "Atlas 3.0 disposition assertions",
+                )
             )
         input_summaries.append(
             {
@@ -2015,6 +2545,7 @@ def _source_accounting_summary(
                 "declaredMemberCount": source.get("declaredMemberCount"),
                 "sourceRecords": len(dispositions),
                 "representedResources": represented_resources,
+                "representedAssertions": represented_assertions,
                 "statusCounts": dict(sorted(status_counts.items())),
             }
         )
@@ -2177,8 +2708,9 @@ def _open_pack_content(plan: _PackPlan) -> Iterator[BinaryIO]:
 def _distribution_pack_plans(
     root: Path,
     manifest: Mapping[str, Any],
-) -> tuple[_PackPlan, ...]:
-    """Check recursive closed membership and freeze every pack file identity."""
+    compact_packs: Sequence[Mapping[str, Any]],
+) -> tuple[tuple[_PackPlan, ...], tuple[_PackPlan, ...]]:
+    """Close the transitive inventory and freeze RDF and compact transports."""
 
     pack_rows = tuple(
         _mapping(raw, "Atlas 3.0 manifest pack")
@@ -2200,6 +2732,19 @@ def _distribution_pack_plans(
         )
     for pack in pack_rows:
         expected_files.add(_safe_relative_path(pack.get("path"), "Atlas 3.0 pack path"))
+    compact_paths = {
+        _safe_relative_path(
+            pack.get("path"),
+            "Atlas 3.0 compact pack path",
+        )
+        for pack in compact_packs
+    }
+    rdf_paths = {cast(str, pack["path"]) for pack in pack_rows}
+    if compact_paths & expected_files:
+        raise Atlas3ExplorerError(
+            "Atlas 3.0 compact paths overlap manifest-owned files"
+        )
+    expected_files.update(compact_paths)
     expected_directories = {
         parent.as_posix()
         for relative in expected_files
@@ -2254,7 +2799,36 @@ def _distribution_pack_plans(
                 manifest_row=pack,
             )
         )
-    return tuple(plans)
+    compact_plans = tuple(
+        _PackPlan(
+            pack_id=cast(str, pack["packId"]),
+            path=root / PurePosixPath(cast(str, pack["path"])),
+            relative_path=cast(str, pack["path"]),
+            compression="zstd",
+            identity=_file_identity(statuses[cast(str, pack["path"])]),
+            manifest_row=pack,
+        )
+        for pack in compact_packs
+    )
+    if rdf_paths & {plan.relative_path for plan in compact_plans}:
+        raise Atlas3ExplorerError("Atlas 3.0 RDF and compact pack paths overlap")
+    return tuple(plans), compact_plans
+
+
+def _verify_compact_transports(plans: Sequence[_PackPlan]) -> None:
+    """Hash each compact transport without decoding or parsing its JSONL rows."""
+
+    for plan in plans:
+        transport = _mapping(
+            plan.manifest_row.get("transport"),
+            f"Atlas 3.0 compact pack {plan.relative_path} transport",
+        )
+        with _open_pack_raw(plan) as stream:
+            evidence = _scan_binary_stream(stream)
+        if evidence != (transport["byteLength"], transport["digest"]):
+            raise Atlas3ExplorerError(
+                f"Atlas 3.0 compact pack {plan.relative_path} transport pin differs"
+            )
 
 
 def _scan_packs(
@@ -2361,13 +2935,14 @@ def _provisional_graph_ids(manifest: Mapping[str, Any]) -> dict[str, URIRef]:
 
 @dataclass(frozen=True, slots=True)
 class Atlas3ExplorerDistribution:
-    """A verified distribution with an exact summary and bounded visual graph."""
+    """A verified distribution with an exact summary and local fallback graph."""
 
     root: Path
     manifest_digest: str
     manifest: Mapping[str, Any]
     source_accounting: Mapping[str, Any]
     acceptance: Mapping[str, Any]
+    construction_summary: Mapping[str, Any]
     trusted_manifest: bool
     binding_verified: bool
     coverage: Mapping[str, Any]
@@ -2375,6 +2950,7 @@ class Atlas3ExplorerDistribution:
     _dataset: Dataset
     _graph_ids: Mapping[str, URIRef]
     _streamed_index: _StreamedAtlasIndex
+    _plans: tuple[_PackPlan, ...]
 
     @classmethod
     def open(
@@ -2409,7 +2985,37 @@ class Atlas3ExplorerDistribution:
         manifest = _read_canonical_json(manifest_payload, "Atlas 3.0 manifest")
         graph_ids = _provisional_graph_ids(manifest)
         _verify_pack_rows(manifest)
-        plans = _distribution_pack_plans(resolved_root, manifest)
+
+        construction_summary_path = resolved_root / _CONSTRUCTION_SUMMARY_MEMBER
+        try:
+            construction_summary_status = construction_summary_path.lstat()
+            construction_summary_payload = construction_summary_path.read_bytes()
+        except OSError as error:
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 construction summary is unavailable"
+            ) from error
+        if stat.S_ISLNK(construction_summary_status.st_mode) or not stat.S_ISREG(
+            construction_summary_status.st_mode
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 construction summary must be a regular non-symlink file"
+            )
+        construction_summary = _read_canonical_json(
+            construction_summary_payload,
+            "Atlas 3.0 construction summary",
+        )
+        provisional_compact_packs = tuple(
+            _mapping(raw, "Atlas 3.0 compact pack")
+            for raw in _sequence(
+                construction_summary.get("compactPacks"),
+                "Atlas 3.0 compact packs",
+            )
+        )
+        plans, compact_plans = _distribution_pack_plans(
+            resolved_root,
+            manifest,
+            provisional_compact_packs,
+        )
 
         acceptance_path = resolved_root / _ACCEPTANCE_MEMBER
         accounting_path = resolved_root / _SOURCE_ACCOUNTING_MEMBER
@@ -2427,32 +3033,26 @@ class Atlas3ExplorerDistribution:
         member_evidence = {
             _SOURCE_ACCOUNTING_MEMBER: accounting_evidence,
             _ACCEPTANCE_MEMBER: (len(acceptance_payload), sha256_digest(acceptance_payload)),
+            _CONSTRUCTION_SUMMARY_MEMBER: (
+                len(construction_summary_payload),
+                sha256_digest(construction_summary_payload),
+            ),
         }
-        producer_validation: Mapping[str, Any] | None = None
-        member_rows = _sequence(
-            manifest.get("members"),
-            "Atlas 3.0 manifest members",
+        producer_validation_path = resolved_root / _PRODUCER_VALIDATION_MEMBER
+        try:
+            producer_validation_payload = producer_validation_path.read_bytes()
+        except OSError as error:
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 producer validation is unavailable"
+            ) from error
+        producer_validation = _read_canonical_json(
+            producer_validation_payload,
+            "Atlas 3.0 producer validation",
         )
-        if any(
-            _mapping(row, "Atlas 3.0 manifest member").get("role")
-            == "producerValidation"
-            for row in member_rows
-        ):
-            producer_validation_path = resolved_root / _PRODUCER_VALIDATION_MEMBER
-            try:
-                producer_validation_payload = producer_validation_path.read_bytes()
-            except OSError as error:
-                raise Atlas3ExplorerError(
-                    "Atlas 3.0 producer validation is unavailable"
-                ) from error
-            producer_validation = _read_canonical_json(
-                producer_validation_payload,
-                "Atlas 3.0 producer validation",
-            )
-            member_evidence[_PRODUCER_VALIDATION_MEMBER] = (
-                len(producer_validation_payload),
-                sha256_digest(producer_validation_payload),
-            )
+        member_evidence[_PRODUCER_VALIDATION_MEMBER] = (
+            len(producer_validation_payload),
+            sha256_digest(producer_validation_payload),
+        )
         manifest_digest, verified_graph_ids = _verify_manifest(
             manifest,
             manifest_payload,
@@ -2464,14 +3064,20 @@ class Atlas3ExplorerDistribution:
             acceptance,
             {name: digest for name, (_size, digest) in member_evidence.items()},
         )
-        _verify_producer_validation(
-            manifest,
-            producer_validation,
-            {name: digest for name, (_size, digest) in member_evidence.items()},
-        )
         _verify_binding_evidence(manifest, acceptance)
         if verified_graph_ids != graph_ids:
             raise Atlas3ExplorerError("Atlas 3.0 graph roles changed during verification")
+
+        verified_compact_packs = _verify_construction_summary(
+            manifest,
+            construction_summary,
+            {name: digest for name, (_size, digest) in member_evidence.items()},
+        )
+        if verified_compact_packs != provisional_compact_packs:
+            raise Atlas3ExplorerError(
+                "Atlas 3.0 compact-pack inventory changed during verification"
+            )
+        _verify_compact_transports(compact_plans)
 
         streamed_index = _scan_packs(plans, graph_ids, manifest)
         _verify_streamed_dataset(manifest, streamed_index)
@@ -2488,6 +3094,20 @@ class Atlas3ExplorerDistribution:
             streamed_index,
             source_accounting,
             directly_verified=source_accounting is not None and complete_small_distribution,
+        )
+        accounting_totals = _mapping(
+            accounting_summary.get("totals"),
+            "Atlas 3.0 source accounting summary totals",
+        )
+        _verify_producer_validation(
+            manifest,
+            producer_validation,
+            construction_summary,
+            {name: digest for name, (_size, digest) in member_evidence.items()},
+            _count(
+                accounting_totals.get("sourceReleases"),
+                "Atlas 3.0 source accounting summary sourceReleases",
+            ),
         )
         coverage = _coverage_view(streamed_index)
         visual_index = {
@@ -2522,6 +3142,9 @@ class Atlas3ExplorerDistribution:
             manifest=cast(Mapping[str, Any], deep_freeze_json(manifest)),
             source_accounting=cast(Mapping[str, Any], deep_freeze_json(accounting_summary)),
             acceptance=cast(Mapping[str, Any], deep_freeze_json(acceptance)),
+            construction_summary=cast(
+                Mapping[str, Any], deep_freeze_json(construction_summary)
+            ),
             trusted_manifest=True,
             binding_verified=True,
             coverage=cast(Mapping[str, Any], deep_freeze_json(coverage)),
@@ -2529,6 +3152,7 @@ class Atlas3ExplorerDistribution:
             _dataset=dataset,
             _graph_ids=cast(Mapping[str, URIRef], deep_freeze_json(graph_ids)),
             _streamed_index=streamed_index,
+            _plans=plans,
         )
 
     def graph(self, role: str) -> Graph:
@@ -2568,6 +3192,810 @@ def open_atlas_v3_explorer_distribution(
     return Atlas3ExplorerDistribution.open(root, trusted_manifest_digest=trusted_manifest_digest)
 
 
+class _JsonlSpool:
+    """Bound open files while partitioning deterministic build rows."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+        self.root.mkdir(parents=True, exist_ok=True)
+        self._handles: OrderedDict[str, BinaryIO] = OrderedDict()
+
+    def append(self, key: str, value: Mapping[str, Any]) -> None:
+        if re.fullmatch(r"[0-9a-z_]+", key) is None:
+            raise Atlas3ExplorerError(f"unsafe explorer spool key {key!r}")
+        handle = self._handles.pop(key, None)
+        if handle is None:
+            handle = (self.root / f"{key}.jsonl").open("ab")
+        self._handles[key] = handle
+        handle.write(canonical_json_bytes(value))
+        if len(self._handles) > _EXPLORER_SPOOL_HANDLE_LIMIT:
+            _old_key, old_handle = self._handles.popitem(last=False)
+            old_handle.close()
+
+    def close(self) -> None:
+        while self._handles:
+            _key, handle = self._handles.popitem(last=False)
+            handle.close()
+
+    def partition_keys(self) -> tuple[str, ...]:
+        self.close()
+        return tuple(path.stem for path in sorted(self.root.glob("*.jsonl")))
+
+
+def _explorer_hash_prefix(value: str, length: int) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:length]
+
+
+def _nquad_iri_text_fast(token: bytes, label: str) -> str:
+    if len(token) < 3 or not token.startswith(b"<") or not token.endswith(b">"):
+        raise Atlas3ExplorerError(f"Atlas explorer {label} must be an IRI token")
+    try:
+        value = token[1:-1].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise Atlas3ExplorerError(f"Atlas explorer {label} is not UTF-8") from error
+    if not value or any(character.isspace() for character in value):
+        raise Atlas3ExplorerError(f"Atlas explorer {label} is not an absolute IRI")
+    return value
+
+
+def _raw_object_iri(value: str, label: str) -> str:
+    if len(value) < 3 or not value.startswith("<") or not value.endswith(">"):
+        raise Atlas3ExplorerError(f"Atlas explorer {label} must be an IRI")
+    return value[1:-1]
+
+
+def _raw_object_literal(value: str, label: str) -> Literal:
+    try:
+        parsed = from_n3(value)
+    except ValueError as error:
+        raise Atlas3ExplorerError(f"Atlas explorer {label} is not an RDF literal") from error
+    if not isinstance(parsed, Literal):
+        raise Atlas3ExplorerError(f"Atlas explorer {label} is not an RDF literal")
+    return parsed
+
+
+def _record_fact_values(
+    record: Mapping[str, Any],
+    predicate: str,
+    *,
+    role: str = "asserted",
+) -> list[str]:
+    return [
+        cast(str, fact[1])
+        for fact in cast(Sequence[Sequence[str]], record.get("facts", ()))
+        if len(fact) == 3 and fact[0] == predicate and fact[2] == role
+    ]
+
+
+def _record_iri_values(
+    record: Mapping[str, Any],
+    predicate: str,
+    *,
+    role: str = "asserted",
+) -> list[str]:
+    return [
+        _raw_object_iri(value, f"{record['id']} {predicate}")
+        for value in _record_fact_values(record, predicate, role=role)
+    ]
+
+
+def _one_record_iri(
+    record: Mapping[str, Any],
+    predicate: str,
+    *,
+    role: str = "asserted",
+) -> str:
+    values = _record_iri_values(record, predicate, role=role)
+    if len(values) != 1:
+        raise Atlas3ExplorerError(
+            f"Atlas explorer record {record['id']} needs one {predicate} value"
+        )
+    return values[0]
+
+
+def _record_types(record: Mapping[str, Any], *, role: str = "asserted") -> set[str]:
+    return set(_record_iri_values(record, str(RDF.type), role=role))
+
+
+def _iter_merged_spool_records(path: Path) -> Iterator[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    with path.open("rb") as stream:
+        for line_number, line in enumerate(stream, start=1):
+            try:
+                raw = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise Atlas3ExplorerError(
+                    f"Atlas explorer spool {path.name} line {line_number} is invalid"
+                ) from error
+            row = _mapping(raw, f"Atlas explorer spool {path.name} row")
+            record_id = _iri_text(row.get("id"), "Atlas explorer spool record id")
+            merged = rows.setdefault(record_id, {"id": record_id, "facts": []})
+            merged["facts"].extend(_sequence(row.get("facts", []), "Atlas explorer facts"))
+    for record_id in sorted(rows):
+        row = rows[record_id]
+        row["facts"] = [list(fact) for fact in sorted({tuple(fact) for fact in row["facts"]})]
+        yield row
+
+
+def _spool_raw_explorer_records(
+    distribution: Atlas3ExplorerDistribution,
+    spool: _JsonlSpool,
+) -> None:
+    graph_suffixes = {
+        role: b" " + _nquad_iri_token(graph_id) + b" .\n"
+        for role, graph_id in distribution._graph_ids.items()
+    }
+    for plan in distribution._plans:
+        current_subject: bytes | None = None
+        facts: list[list[str]] = []
+
+        with _open_pack_content(plan) as stream:
+            while line := stream.readline(_NQUADS_MAX_LINE_BYTES + 1):
+                if len(line) > _NQUADS_MAX_LINE_BYTES:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer pack {plan.relative_path} has an oversized line"
+                    )
+                subject, predicate, object_value, role = _nquad_fields(
+                    line,
+                    graph_suffixes,
+                )
+                if current_subject != subject:
+                    if current_subject is not None:
+                        record_id = _nquad_iri_text_fast(
+                            current_subject,
+                            "record id",
+                        )
+                        spool.append(
+                            _explorer_hash_prefix(
+                                record_id,
+                                _EXPLORER_RECORD_PREFIX_LENGTH,
+                            ),
+                            {"facts": facts, "id": record_id},
+                        )
+                    current_subject = subject
+                    facts = []
+                try:
+                    object_text = object_value.decode("utf-8")
+                except UnicodeDecodeError as error:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer pack {plan.relative_path} has a non-UTF-8 object"
+                    ) from error
+                facts.append(
+                    [
+                        _nquad_iri_text_fast(predicate, "predicate"),
+                        object_text,
+                        role,
+                    ]
+                )
+        if current_subject is not None:
+            record_id = _nquad_iri_text_fast(current_subject, "record id")
+            spool.append(
+                _explorer_hash_prefix(
+                    record_id,
+                    _EXPLORER_RECORD_PREFIX_LENGTH,
+                ),
+                {"facts": facts, "id": record_id},
+            )
+    spool.close()
+
+
+def _append_record_augmentation(
+    spool: _JsonlSpool,
+    record_id: str,
+    field: str,
+    value: object,
+) -> None:
+    spool.append(
+        _explorer_hash_prefix(record_id, _EXPLORER_RECORD_PREFIX_LENGTH),
+        {field: value, "id": record_id},
+    )
+
+
+def _derive_explorer_record_joins(
+    raw_spool: _JsonlSpool,
+    merged_root: Path,
+    augmentation_spool: _JsonlSpool,
+    label_join_spool: _JsonlSpool,
+) -> None:
+    merged_root.mkdir(parents=True, exist_ok=True)
+    relation_types = {
+        str(ATLAS.RelationAssertion): (str(RDF.subject), str(RDF.object)),
+        str(ATLAS.ProjectedRelation): (
+            str(ATLAS.relationSubject),
+            str(ATLAS.relationObject),
+        ),
+        str(ATLAS.DerivedRelation): (
+            str(ATLAS.relationSubject),
+            str(ATLAS.relationObject),
+        ),
+    }
+    for prefix in raw_spool.partition_keys():
+        merged_path = merged_root / f"{prefix}.jsonl"
+        with merged_path.open("wb") as output:
+            for record in _iter_merged_spool_records(raw_spool.root / f"{prefix}.jsonl"):
+                output.write(canonical_json_bytes(record))
+                types = _record_types(record)
+                record_id = cast(str, record["id"])
+                if str(ATLAS.AtlasResource) in types:
+                    release = _one_record_iri(record, str(ATLAS.inRelease))
+                    ring = _one_record_iri(record, str(ATLAS.semanticRing)).rsplit("#", 1)[-1]
+                    for predicate, role in LABEL_ROLES:
+                        for label_id in _record_iri_values(record, str(predicate)):
+                            label_join_spool.append(
+                                _explorer_hash_prefix(
+                                    label_id,
+                                    _EXPLORER_JOIN_PREFIX_LENGTH,
+                                ),
+                                {
+                                    "id": label_id,
+                                    "kind": "reference",
+                                    "release": release,
+                                    "resource": record_id,
+                                    "ring": ring,
+                                    "role": role,
+                                },
+                            )
+                if str(SKOSXL.Label) in types:
+                    literals = _record_fact_values(record, str(SKOSXL.literalForm))
+                    if len(literals) != 1:
+                        raise Atlas3ExplorerError(
+                            f"Atlas explorer label {record_id} needs one literal form"
+                        )
+                    literal = _raw_object_literal(literals[0], f"label {record_id}")
+                    if not _english_display_literal(literal):
+                        continue
+                    label_row: dict[str, Any] = {
+                        "id": record_id,
+                        "kind": "label",
+                        "value": str(literal),
+                    }
+                    if literal.language:
+                        label_row["language"] = literal.language
+                    label_join_spool.append(
+                        _explorer_hash_prefix(
+                            record_id,
+                            _EXPLORER_JOIN_PREFIX_LENGTH,
+                        ),
+                        label_row,
+                    )
+                if str(ATLAS.EvidenceBinding) in types:
+                    assertion_id = _one_record_iri(record, str(ATLAS.bindsAssertion))
+                    _append_record_augmentation(
+                        augmentation_spool,
+                        assertion_id,
+                        "evidenceBindings",
+                        [record_id],
+                    )
+                if str(ATLAS.Identifier) in types:
+                    resource_id = _one_record_iri(record, str(ATLAS.identifies))
+                    _append_record_augmentation(
+                        augmentation_spool,
+                        resource_id,
+                        "identifiers",
+                        [record_id],
+                    )
+                for relation_type, endpoint_predicates in relation_types.items():
+                    if relation_type not in types:
+                        continue
+                    endpoint_ids = {
+                        _one_record_iri(record, endpoint_predicates[0]),
+                        _one_record_iri(record, endpoint_predicates[1]),
+                    }
+                    for endpoint_id in endpoint_ids:
+                        _append_record_augmentation(
+                            augmentation_spool,
+                            endpoint_id,
+                            "relations",
+                            [record_id],
+                        )
+                    break
+    augmentation_spool.close()
+    label_join_spool.close()
+
+
+def _normalized_search_words(values: Sequence[str]) -> set[str]:
+    words: set[str] = set()
+    for value in values:
+        normalized = unicodedata.normalize("NFKD", value.casefold()).encode(
+            "ascii", "ignore"
+        ).decode("ascii")
+        words.update(re.findall(r"[a-z0-9]+", normalized))
+    return words
+
+
+def _search_key(word: str) -> str:
+    return (word + "__")[:2]
+
+
+def _derive_explorer_resource_summaries(
+    label_join_spool: _JsonlSpool,
+    summary_spool: _JsonlSpool,
+) -> None:
+    for prefix in label_join_spool.partition_keys():
+        labels: dict[str, dict[str, Any]] = {}
+        references: list[Mapping[str, Any]] = []
+        with (label_join_spool.root / f"{prefix}.jsonl").open("rb") as stream:
+            for line in stream:
+                row = _mapping(json.loads(line), "Atlas explorer label join row")
+                if row.get("kind") == "label":
+                    labels[cast(str, row["id"])] = dict(row)
+                elif row.get("kind") == "reference":
+                    references.append(row)
+                else:
+                    raise Atlas3ExplorerError("Atlas explorer label join kind is invalid")
+        for reference in references:
+            label = labels.get(cast(str, reference["id"]))
+            if label is None:
+                raise Atlas3ExplorerError(
+                    f"Atlas explorer resource {reference['resource']} has no English label record"
+                )
+            row = {
+                "id": reference["resource"],
+                "label": {
+                    **({"language": label["language"]} if "language" in label else {}),
+                    "role": reference["role"],
+                    "value": label["value"],
+                },
+                "release": reference["release"],
+                "ring": reference["ring"],
+            }
+            summary_spool.append(
+                _explorer_hash_prefix(
+                    cast(str, reference["resource"]),
+                    _EXPLORER_RECORD_PREFIX_LENGTH,
+                ),
+                row,
+            )
+    summary_spool.close()
+
+
+def _finalize_explorer_resource_summaries(
+    summary_spool: _JsonlSpool,
+    augmentation_spool: _JsonlSpool,
+    catalog_spool: _JsonlSpool,
+    search_spool: _JsonlSpool,
+) -> int:
+    role_order = {"preferred": 0, "alternate": 1, "hidden": 2}
+    resource_count = 0
+    for prefix in summary_spool.partition_keys():
+        rows: dict[str, dict[str, Any]] = {}
+        with (summary_spool.root / f"{prefix}.jsonl").open("rb") as stream:
+            for line in stream:
+                raw = _mapping(json.loads(line), "Atlas explorer resource summary row")
+                resource_id = cast(str, raw["id"])
+                row = rows.setdefault(
+                    resource_id,
+                    {
+                        "id": resource_id,
+                        "labels": [],
+                        "release": raw["release"],
+                        "ring": raw["ring"],
+                    },
+                )
+                if row["release"] != raw["release"] or row["ring"] != raw["ring"]:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer resource {resource_id} has inconsistent summary facts"
+                    )
+                row["labels"].append(dict(cast(Mapping[str, Any], raw["label"])))
+        for resource_id in sorted(rows):
+            row = rows[resource_id]
+            labels = sorted(
+                {
+                    (
+                        cast(str, label["role"]),
+                        cast(str, label["value"]),
+                        cast(str, label.get("language", "")),
+                    )
+                    for label in row["labels"]
+                },
+                key=lambda value: (
+                    role_order.get(value[0], 99),
+                    value[1].casefold(),
+                    value,
+                ),
+            )
+            if not labels:
+                raise Atlas3ExplorerError(
+                    f"Atlas explorer resource {resource_id} has no display label"
+                )
+            display = labels[0]
+            summary = {
+                "displayLabel": display[1],
+                "displayLabelRole": display[0],
+                "id": resource_id,
+                "labels": [
+                    {
+                        **({"language": language} if language else {}),
+                        "role": role,
+                        "value": value,
+                    }
+                    for role, value, language in labels
+                ],
+                "release": row["release"],
+                "ring": row["ring"],
+                "searchText": " ".join(value for _role, value, _language in labels),
+            }
+            _append_record_augmentation(
+                augmentation_spool,
+                resource_id,
+                "summary",
+                summary,
+            )
+            normalized_words = _normalized_search_words(
+                [value for _role, value, _language in labels]
+            )
+            display_words = sorted(_normalized_search_words([display[1]]))
+            catalog_key = _search_key(display_words[0] if display_words else "_")
+            catalog_spool.append(catalog_key, summary)
+            for key in sorted({_search_key(word) for word in normalized_words}):
+                search_spool.append(key, summary)
+            resource_count += 1
+    augmentation_spool.close()
+    catalog_spool.close()
+    search_spool.close()
+    return resource_count
+
+
+def _read_augmentations(path: Path) -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    if not path.exists():
+        return rows
+    with path.open("rb") as stream:
+        for line in stream:
+            raw = _mapping(json.loads(line), "Atlas explorer augmentation row")
+            record_id = cast(str, raw["id"])
+            row = rows.setdefault(record_id, {})
+            for field in ("evidenceBindings", "identifiers", "relations"):
+                if field in raw:
+                    row.setdefault(field, []).extend(
+                        _sequence(raw[field], f"Atlas explorer {field}")
+                    )
+            if "summary" in raw:
+                if "summary" in row and row["summary"] != raw["summary"]:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer record {record_id} repeats a different summary"
+                    )
+                row["summary"] = dict(_mapping(raw["summary"], "Atlas explorer summary"))
+    return rows
+
+
+def _write_explorer_shard(
+    root: Path,
+    kind: str,
+    payload: Mapping[str, Any],
+    *,
+    url_prefix: str,
+) -> dict[str, Any]:
+    content = canonical_json_bytes(payload)
+    compressed_buffer = BytesIO()
+    with gzip.GzipFile(
+        fileobj=compressed_buffer,
+        mode="wb",
+        filename="",
+        compresslevel=9,
+        mtime=0,
+    ) as compressed_stream:
+        compressed_stream.write(content)
+    transport = compressed_buffer.getvalue()
+    transport_digest = sha256_digest(transport)
+    filename = f"{kind}-{transport_digest.removeprefix('sha256:')}.json.gz"
+    path = root / filename
+    path.write_bytes(transport)
+    return {
+        "count": len(cast(Sequence[Any], payload.get("records", payload.get("entries", ())))),
+        "content": {
+            "byteLength": len(content),
+            "digest": sha256_digest(content),
+            "mediaType": "application/json",
+        },
+        "transport": {
+            "byteLength": len(transport),
+            "compression": "gzip",
+            "digest": transport_digest,
+        },
+        "url": f"{url_prefix}{filename}",
+    }
+
+
+def _explorer_shard_ref(value: object, label: str) -> Mapping[str, Any]:
+    ref = _mapping(value, label)
+    _exact_fields(ref, frozenset({"content", "count", "transport", "url"}), label)
+    _count(ref.get("count"), f"{label} count")
+    url = _safe_relative_path(ref.get("url"), f"{label} URL")
+    if not url.endswith(".json.gz"):
+        raise Atlas3ExplorerError(f"{label} URL must name a gzip JSON shard")
+    content = _mapping(ref.get("content"), f"{label} content")
+    _exact_fields(
+        content,
+        frozenset({"byteLength", "digest", "mediaType"}),
+        f"{label} content",
+    )
+    if (
+        content.get("mediaType") != "application/json"
+        or _count(content.get("byteLength"), f"{label} content byteLength") <= 0
+    ):
+        raise Atlas3ExplorerError(f"{label} content receipt is unsupported")
+    _digest(content.get("digest"), f"{label} content digest")
+    transport = _mapping(ref.get("transport"), f"{label} transport")
+    _exact_fields(
+        transport,
+        frozenset({"byteLength", "compression", "digest"}),
+        f"{label} transport",
+    )
+    if (
+        transport.get("compression") != "gzip"
+        or _count(transport.get("byteLength"), f"{label} transport byteLength") <= 0
+    ):
+        raise Atlas3ExplorerError(f"{label} transport receipt is unsupported")
+    _digest(transport.get("digest"), f"{label} transport digest")
+    return ref
+
+
+def _finalize_explorer_record_shards(
+    merged_root: Path,
+    augmentation_spool: _JsonlSpool,
+    target_root: Path,
+    manifest_digest: str,
+    url_prefix: str,
+) -> tuple[dict[str, dict[str, Any]], int]:
+    result: dict[str, dict[str, Any]] = {}
+    record_count = 0
+    prefixes = sorted(
+        {path.stem for path in merged_root.glob("*.jsonl")}
+        | set(augmentation_spool.partition_keys())
+    )
+    for prefix in prefixes:
+        merged_path = merged_root / f"{prefix}.jsonl"
+        records = (
+            {cast(str, row["id"]): row for row in _iter_merged_spool_records(merged_path)}
+            if merged_path.exists()
+            else {}
+        )
+        for record_id, augmentation in _read_augmentations(
+            augmentation_spool.root / f"{prefix}.jsonl"
+        ).items():
+            record = records.setdefault(record_id, {"facts": [], "id": record_id})
+            for field in ("evidenceBindings", "identifiers", "relations"):
+                if field in augmentation:
+                    record[field] = sorted(set(cast(Sequence[str], augmentation[field])))
+            if "summary" in augmentation:
+                record["summary"] = augmentation["summary"]
+        rows = [records[record_id] for record_id in sorted(records)]
+        ref = _write_explorer_shard(
+            target_root,
+            "records",
+            {
+                "key": prefix,
+                "kind": "records",
+                "manifestDigest": manifest_digest,
+                "records": rows,
+                "type": _EXPLORER_SHARD_TYPE,
+                "version": _EXPLORER_SHARD_VERSION,
+            },
+            url_prefix=url_prefix,
+        )
+        ref["key"] = prefix
+        result[prefix] = ref
+        record_count += len(rows)
+    return result, record_count
+
+
+def _finalize_explorer_page_shards(
+    spool: _JsonlSpool,
+    target_root: Path,
+    kind: str,
+    manifest_digest: str,
+    url_prefix: str,
+) -> dict[str, list[dict[str, Any]]]:
+    result: dict[str, list[dict[str, Any]]] = {}
+    for key in spool.partition_keys():
+        entries_by_id: dict[str, dict[str, Any]] = {}
+        with (spool.root / f"{key}.jsonl").open("rb") as stream:
+            for line in stream:
+                row = dict(_mapping(json.loads(line), f"Atlas explorer {kind} row"))
+                entries_by_id[cast(str, row["id"])] = row
+        entries = sorted(
+            entries_by_id.values(),
+            key=lambda row: (
+                cast(str, row["displayLabel"]).casefold(),
+                cast(str, row["displayLabel"]),
+                cast(str, row["id"]),
+            ),
+        )
+        refs: list[dict[str, Any]] = []
+        for offset in range(0, len(entries), _EXPLORER_PAGE_SIZE):
+            page = entries[offset : offset + _EXPLORER_PAGE_SIZE]
+            ref = _write_explorer_shard(
+                target_root,
+                kind,
+                {
+                    "entries": page,
+                    "key": key,
+                    "kind": kind,
+                    "manifestDigest": manifest_digest,
+                    "type": _EXPLORER_SHARD_TYPE,
+                    "version": _EXPLORER_SHARD_VERSION,
+                },
+                url_prefix=url_prefix,
+            )
+            ref.update(
+                {
+                    "firstLabel": page[0]["displayLabel"],
+                    "key": key,
+                    "lastLabel": page[-1]["displayLabel"],
+                    "releases": sorted({cast(str, row["release"]) for row in page}),
+                    "rings": sorted({cast(str, row["ring"]) for row in page}),
+                }
+            )
+            refs.append(ref)
+        result[key] = refs
+    return result
+
+
+def _safe_existing_shard_directory(path: Path) -> dict[str, bytes]:
+    payloads: dict[str, bytes] = {}
+    if not path.exists():
+        return payloads
+    status = path.lstat()
+    if stat.S_ISLNK(status.st_mode) or not stat.S_ISDIR(status.st_mode):
+        raise Atlas3ExplorerError("Atlas explorer shard target is not a real directory")
+    for child in path.iterdir():
+        child_status = child.lstat()
+        if stat.S_ISLNK(child_status.st_mode) or not stat.S_ISREG(child_status.st_mode):
+            raise Atlas3ExplorerError("Atlas explorer shard directory has an unsafe member")
+        payloads[child.name] = child.read_bytes()
+    return payloads
+
+
+def _asserted_inventory_digest(manifest: Mapping[str, Any]) -> str:
+    graph_rows = _sequence(manifest.get("graphs"), "Atlas 3.0 manifest graphs")
+    asserted = next(
+        (
+            _mapping(row, "Atlas 3.0 asserted graph")
+            for row in graph_rows
+            if isinstance(row, Mapping) and row.get("role") == "asserted"
+        ),
+        None,
+    )
+    if asserted is None:
+        raise Atlas3ExplorerError("Atlas 3.0 manifest has no asserted graph")
+    return _digest(
+        asserted.get("inventoryDigest"),
+        "Atlas 3.0 asserted graph inventoryDigest",
+    )
+
+
+def build_atlas_v3_explorer_static_shards(
+    distribution: Atlas3ExplorerDistribution,
+    target: Path,
+    *,
+    url_prefix: str,
+) -> dict[str, Any]:
+    """Build immutable, digest-pinned JSON shards for complete HTTP browsing."""
+
+    if not isinstance(distribution, Atlas3ExplorerDistribution):
+        raise Atlas3ExplorerError("Atlas explorer shards require an opened distribution")
+    target = Path(target).resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    normalized_prefix = PurePosixPath(url_prefix.rstrip("/"))
+    if (
+        normalized_prefix.is_absolute()
+        or not normalized_prefix.parts
+        or any(part in {"", ".", ".."} for part in normalized_prefix.parts)
+    ):
+        raise Atlas3ExplorerError("Atlas explorer shard URL prefix must be safe and relative")
+    url_prefix = normalized_prefix.as_posix() + "/"
+    manifest_digest = distribution.manifest_digest
+    asserted_inventory_digest = _asserted_inventory_digest(distribution.manifest)
+    with tempfile.TemporaryDirectory(
+        dir=target.parent,
+        prefix=f".{target.name}.building-",
+    ) as temporary_name:
+        workspace = Path(temporary_name)
+        raw_spool = _JsonlSpool(workspace / "raw")
+        merged_root = workspace / "merged"
+        augmentation_spool = _JsonlSpool(workspace / "augment")
+        label_join_spool = _JsonlSpool(workspace / "labels")
+        summary_spool = _JsonlSpool(workspace / "summaries")
+        catalog_spool = _JsonlSpool(workspace / "catalog")
+        search_spool = _JsonlSpool(workspace / "search")
+        published = workspace / "published"
+        published.mkdir()
+
+        _spool_raw_explorer_records(distribution, raw_spool)
+        _derive_explorer_record_joins(
+            raw_spool,
+            merged_root,
+            augmentation_spool,
+            label_join_spool,
+        )
+        _derive_explorer_resource_summaries(label_join_spool, summary_spool)
+        resource_count = _finalize_explorer_resource_summaries(
+            summary_spool,
+            augmentation_spool,
+            catalog_spool,
+            search_spool,
+        )
+        record_shards, record_count = _finalize_explorer_record_shards(
+            merged_root,
+            augmentation_spool,
+            published,
+            manifest_digest,
+            url_prefix,
+        )
+        catalog_shards = _finalize_explorer_page_shards(
+            catalog_spool,
+            published,
+            "catalog",
+            manifest_digest,
+            url_prefix,
+        )
+        search_shards = _finalize_explorer_page_shards(
+            search_spool,
+            published,
+            "search",
+            manifest_digest,
+            url_prefix,
+        )
+        expected_resources = _count(
+            _mapping(distribution.manifest["counts"], "Atlas manifest counts").get(
+                "resources"
+            ),
+            "Atlas manifest resource count",
+        )
+        if resource_count != expected_resources:
+            raise Atlas3ExplorerError(
+                "Atlas explorer resource summaries do not cover the full corpus"
+            )
+        index_payload = {
+            "assertedInventoryDigest": asserted_inventory_digest,
+            "builderRecipe": ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE,
+            "catalog": {"shards": catalog_shards},
+            "counts": {
+                "records": record_count,
+                "resources": resource_count,
+            },
+            "manifestDigest": manifest_digest,
+            "records": {
+                "prefixLength": _EXPLORER_RECORD_PREFIX_LENGTH,
+                "shards": record_shards,
+            },
+            "search": {"keyLength": 2, "shards": search_shards},
+            "schema": _EXPLORER_SHARD_SCHEMA,
+            "type": _EXPLORER_SHARD_INDEX_TYPE,
+            "version": _EXPLORER_SHARD_VERSION,
+        }
+        index_ref = _write_explorer_shard(
+            published,
+            "index",
+            index_payload,
+            url_prefix=url_prefix,
+        )
+        generated = {
+            child.name: child.read_bytes()
+            for child in sorted(published.iterdir())
+        }
+        target_exists = target.exists()
+        existing = _safe_existing_shard_directory(target)
+        if target_exists:
+            if existing != generated:
+                raise Atlas3ExplorerError(
+                    "immutable Atlas explorer shard directory differs for this manifest"
+                )
+        else:
+            published.replace(target)
+        return {
+            "assertedInventoryDigest": asserted_inventory_digest,
+            "builderRecipe": ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE,
+            "counts": dict(index_payload["counts"]),
+            "index": index_ref,
+            "manifestDigest": manifest_digest,
+            "schema": _EXPLORER_SHARD_SCHEMA,
+            "type": _EXPLORER_SHARD_BUNDLE_TYPE,
+            "version": _EXPLORER_SHARD_VERSION,
+        }
+
+
 def _compact_native_payload_metadata(value: object | None) -> object | None:
     if not isinstance(value, Mapping):
         return value
@@ -2576,6 +4004,7 @@ def _compact_native_payload_metadata(value: object | None) -> object | None:
         normalized = key.casefold()
         if not (
             key == "sourceIdentity"
+            or key in _MAPPING_PROVENANCE_PAYLOAD_FIELDS
             or "status" in normalized
             or "tombstone" in normalized
             or "replacement" in normalized
@@ -3023,6 +4452,7 @@ def build_atlas_v3_explorer_model(
     distribution: Atlas3ExplorerDistribution,
     *,
     title: str = "RefSpec Atlas 3.0 explorer",
+    full_corpus: Mapping[str, Any] | None = None,
     max_resources: int | None = None,
     max_assertions: int | None = None,
     max_projected_relations: int | None = None,
@@ -3199,13 +4629,14 @@ def build_atlas_v3_explorer_model(
         cast(str, row["role"]): cast(str, row["id"])
         for row in cast(Sequence[Mapping[str, Any]], distribution.manifest["graphs"])
     }
-    return {
+    model = {
         "type": ATLAS_V3_EXPLORER_TYPE,
         "schemaVersion": ATLAS_V3_EXPLORER_SCHEMA_VERSION,
         "title": title,
         "distribution": {
             "id": distribution.manifest["distributionId"],
             "manifestDigest": distribution.manifest_digest,
+            "assertedInventoryDigest": _asserted_inventory_digest(distribution.manifest),
             "trustedManifestDigestChecked": distribution.trusted_manifest,
             "createdAt": distribution.manifest["createdAt"],
             "counts": dict(cast(Mapping[str, Any], distribution.manifest["counts"])),
@@ -3308,12 +4739,83 @@ def build_atlas_v3_explorer_model(
         "projectedRelations": projected,
         "derivedRelations": derived_rows,
     }
+    if full_corpus is not None:
+        bundle = _mapping(full_corpus, "Atlas explorer static shard bundle")
+        expected_fields = frozenset(
+            {
+                "assertedInventoryDigest",
+                "builderRecipe",
+                "counts",
+                "index",
+                "manifestDigest",
+                "schema",
+                "type",
+                "version",
+            }
+        )
+        _exact_fields(bundle, expected_fields, "Atlas explorer static shard bundle")
+        if (
+            bundle.get("type") != _EXPLORER_SHARD_BUNDLE_TYPE
+            or bundle.get("version") != _EXPLORER_SHARD_VERSION
+            or bundle.get("manifestDigest") != distribution.manifest_digest
+            or bundle.get("assertedInventoryDigest")
+            != _asserted_inventory_digest(distribution.manifest)
+            or bundle.get("builderRecipe") != ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE
+            or bundle.get("schema") != _EXPLORER_SHARD_SCHEMA
+            or _mapping(bundle.get("counts"), "Atlas explorer shard counts").get(
+                "resources"
+            )
+            != full_counts["resources"]
+        ):
+            raise Atlas3ExplorerError(
+                "Atlas explorer static shards describe a different corpus"
+            )
+        _explorer_shard_ref(bundle.get("index"), "Atlas explorer shard index")
+        model["fullCorpus"] = _json_copy(bundle)
+    return model
 
 
 def _validate_model(model: Mapping[str, Any]) -> None:
     if model.get("type") != ATLAS_V3_EXPLORER_TYPE or model.get("schemaVersion") != ATLAS_V3_EXPLORER_SCHEMA_VERSION:
         raise Atlas3ExplorerError("Atlas 3.0 explorer type or schemaVersion is unsupported")
     _text(model.get("title"), "Atlas 3.0 explorer title")
+    distribution = _mapping(model.get("distribution"), "Atlas 3.0 explorer distribution")
+    manifest_digest = _digest(
+        distribution.get("manifestDigest"),
+        "Atlas 3.0 explorer manifest digest",
+    )
+    asserted_inventory_digest = _digest(
+        distribution.get("assertedInventoryDigest"),
+        "Atlas 3.0 explorer asserted inventory digest",
+    )
+    if "fullCorpus" in model:
+        bundle = _mapping(model["fullCorpus"], "Atlas explorer static shard bundle")
+        _exact_fields(
+            bundle,
+            frozenset(
+                {
+                    "assertedInventoryDigest",
+                    "builderRecipe",
+                    "counts",
+                    "index",
+                    "manifestDigest",
+                    "schema",
+                    "type",
+                    "version",
+                }
+            ),
+            "Atlas explorer static shard bundle",
+        )
+        if (
+            bundle.get("type") != _EXPLORER_SHARD_BUNDLE_TYPE
+            or bundle.get("version") != _EXPLORER_SHARD_VERSION
+            or bundle.get("manifestDigest") != manifest_digest
+            or bundle.get("assertedInventoryDigest") != asserted_inventory_digest
+            or bundle.get("builderRecipe") != ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE
+            or bundle.get("schema") != _EXPLORER_SHARD_SCHEMA
+        ):
+            raise Atlas3ExplorerError("Atlas explorer static shard identity differs")
+        _explorer_shard_ref(bundle.get("index"), "Atlas explorer shard index")
     authority = _mapping(model.get("authority"), "Atlas 3.0 explorer authority")
     if set(authority) != {"asserted", "projection", "derived"}:
         raise Atlas3ExplorerError("Atlas 3.0 explorer must keep all three graph roles distinct")
@@ -3592,6 +5094,7 @@ _GRAPH_HTML = r"""<!doctype html>
     .edge-key { width: 20px; height: 0; border-top: 2px solid var(--edge); }
     .edge-key.projection { border-top-style: dashed; } .edge-key.derived { border-top-style: dotted; }
     .hint { margin: .55rem 0 0; color: var(--faint); font-size: .72rem; }
+    .hint.error { color: #e89b8a; }
     .render-limit { display: grid; grid-template-columns: 1fr 66px; gap: .5rem; align-items: center; margin-top: .65rem; }
     #render-limit-range { grid-column: 1 / -1; width: 100%; accent-color: var(--asserted); }
     #render-limit-number { min-height: 30px; text-align: right; font: 11px/1 var(--mono); }
@@ -3671,6 +5174,7 @@ _GRAPH_HTML = r"""<!doctype html>
         <h3>Search</h3><div class="search-wrap"><input id="search" type="search" autocomplete="off" placeholder="English label, notation, or IRI" aria-label="Search Atlas resources"><span class="key">/</span></div>
         <div class="results" id="search-results" aria-live="polite"></div>
         <p class="hint" id="search-coverage"></p>
+        <p class="hint" id="corpus-mode" aria-live="polite"></p>
       </section>
       <section class="control-section"><h3>Authority layers</h3><div class="filter-list">
         <label class="filter authority-filter"><input id="authority-asserted" type="checkbox" checked><span class="edge-key" style="--edge:var(--asserted)"></span><span class="label">Asserted</span></label>
@@ -3682,7 +5186,7 @@ _GRAPH_HTML = r"""<!doctype html>
       <section class="control-section"><h3>Atlas releases</h3><div class="filter-list" id="release-filters"></div></section>
       <section class="control-section"><h3>Relation predicate</h3><select id="predicate-filter" aria-label="Filter relation predicate"><option value="">All predicates</option></select></section>
       <section class="control-section"><h3>Rendered resources</h3><div class="render-limit"><span id="render-limit-label">—</span><input id="render-limit-number" type="number" min="1"><input id="render-limit-range" type="range" min="1"></div>
-        <p class="hint">Search matches and high-degree resources enter the graph first.</p><div class="actions"><button class="action" id="reset-view" type="button">Reset</button><button class="action" id="fit-view" type="button">Fit graph</button></div></section>
+        <p class="hint">Search matches and high-degree resources enter the graph first.</p><div class="actions"><button class="action" id="browse-more" type="button">Browse more</button><button class="action" id="reset-view" type="button">Reset</button><button class="action" id="fit-view" type="button">Fit graph</button></div></section>
     </aside>
     <section class="stage" id="stage" aria-label="Atlas relation graph">
       <canvas id="graph" tabindex="0" aria-label="Interactive Atlas 3 relation graph"></canvas>
@@ -3708,36 +5212,156 @@ _GRAPH_HTML = r"""<!doctype html>
   const searchResults = document.getElementById("search-results");
   const ringFilter = document.getElementById("ring-filter");
   const predicateFilter = document.getElementById("predicate-filter");
+  const corpusMode = document.getElementById("corpus-mode");
+  const fullBundle = data.fullCorpus||null;
+  const gzipStreamSupported = typeof DecompressionStream==="function";
+  const fullMode = Boolean(fullBundle)&&location.protocol!=="file:"&&gzipStreamSupported;
   const releaseColors = ["#78c7b6","#d8ad62","#83aee1","#d38fae","#9fca72","#c596e5","#e28b6f","#72c5d8"];
   const layerColors = {asserted:"#70d29b", projection:"#68a9ff", derived:"#e7ad55"};
   const sourceById = new Map(data.sourceRecords.map(row => [row.id, row]));
   const sourceReleaseById = new Map(data.sourceReleases.map(row => [row.id, row]));
   const releaseById = new Map(data.atlasReleases.map((row,index) => [row.id, {...row, color:releaseColors[index%releaseColors.length]}]));
   const nodeById = new Map();
+  const nodes = [];
   const assertedById = new Map(data.assertedRelations.map(row => [row.id,row]));
   const allEdges = [];
+  const edgeIds = new Set();
+  const predicateLabels = new Map();
+  let predicateOptionsReady = false;
   const state = {width:1,height:1,dpr:1,view:{x:0,y:0,k:1},activeReleases:new Set(releaseById.keys()),layers:{asserted:true,projection:false,derived:true},showAssignments:false,ring:"",predicate:"",renderLimit:1,renderedNodes:[],renderedEdges:[],matches:new Set(),query:"",selected:null,inspectorReturn:null,hover:null,panning:false,drag:null,animation:null};
   const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const short = value => { const text=String(value); const hash=text.lastIndexOf("#"); return hash>=0?text.slice(hash+1):text.replace(/\/$/,"").split(/[/:]/).pop(); };
   const format = value => new Intl.NumberFormat("en-US").format(value);
   const hash = value => { let result=2166136261; for(const char of String(value)){result^=char.codePointAt(0);result=Math.imul(result,16777619);} return result>>>0; };
   const searchText = node => [node.label,node.id,node.release,...node.rings,...(node.detail?.labels||[]).map(row=>row.value),...(node.detail?.notations||[]),...(node.detail?.identifiers||[]).flatMap(row=>[row.value,row.schemeLabel])].join(" ").toLocaleLowerCase("en-US");
-  function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;}return node;}
+  function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);nodes.push(node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;if(label&&node.label===short(node.id))node.label=label;}return node;}
   data.resourceIndex.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,null,false));
   data.resources.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,row,false));
   function edgeFrom(row,layer){const sourceRelease=row.sourceRelease||"";const targetRelease=row.targetRelease||"";const rings=row.semanticRings||[row.semanticRing].filter(Boolean);const sourceRing=row.sourceRing||row.semanticRing||"";const targetRing=row.targetRing||row.semanticRing||"";ensureNode(row.subject,row.subjectLabel,sourceRelease,sourceRing,null,row.kind==="sourceAssignment");ensureNode(row.object,row.objectLabel,targetRelease,targetRing);return {...row,semanticRings:rings,layer,color:layerColors[layer]};}
-  data.assertedRelations.forEach(row=>allEdges.push(edgeFrom(row,"asserted")));
-  data.projectedRelations.forEach(row=>allEdges.push(edgeFrom(row,"projection")));
-  data.derivedRelations.forEach(row=>allEdges.push(edgeFrom(row,"derived")));
-  const nodes=[...nodeById.values()];
+  function addEdge(row,layer){const key=`${layer}|${row.id}`;if(edgeIds.has(key))return;edgeIds.add(key);const edge=edgeFrom(row,layer);allEdges.push(edge);if(layer==="asserted")assertedById.set(row.id,row);if(!predicateLabels.has(row.predicate)){predicateLabels.set(row.predicate,row.predicateLabel);if(predicateOptionsReady){const option=document.createElement("option");option.value=row.predicate;option.textContent=row.predicateLabel;predicateFilter.append(option);}}}
+  data.assertedRelations.forEach(row=>addEdge(row,"asserted"));
+  data.projectedRelations.forEach(row=>addEdge(row,"projection"));
+  data.derivedRelations.forEach(row=>addEdge(row,"derived"));
   const ringLabels={subject:"Subject",entity:"Entity",value:"Value",legalIdentity:"Legal identity"};
   const ringCounts=data.coverage.resourcesByRing||{};
   const rings=[...new Set([...Object.keys(ringCounts),...nodes.flatMap(node=>[...node.rings])])].sort((a,b)=>(ringLabels[a]||a).localeCompare(ringLabels[b]||b,"en"));
   rings.forEach(value=>{const option=document.createElement("option");option.value=value;option.textContent=`${ringLabels[value]||value} · ${format(ringCounts[value]||0)}`;ringFilter.append(option);});
-  const predicates=[...new Map(allEdges.map(edge=>[edge.predicate,edge.predicateLabel])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"en"));
+  const predicates=[...predicateLabels.entries()].sort((a,b)=>a[1].localeCompare(b[1],"en"));
   predicates.forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;predicateFilter.append(option);});
-  const maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);state.renderLimit=Math.min(900,maxLimit);
+  predicateOptionsReady=true;
+  const shardPayloads=new Map(),recordCache=new Map(),recordShardPromises=new Map(),loadedCatalogShards=new Set();
+  let fullIndex=null,fullIndexPromise=null,catalogRefs=[],catalogCursor=0,searchEpoch=0;
+  const rdf={
+    type:"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",subject:"http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",predicate:"http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",object:"http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+    atlas:"https://refspec.org/ns/atlas/v3#",skosxl:"http://www.w3.org/2008/05/skos-xl#"
+  };
+  const textEncoder=new TextEncoder(),textDecoder=new TextDecoder("utf-8",{fatal:true});
+  /* atlas-verified-shard-load:start */
+  function hex(bytes){return [...bytes].map(value=>value.toString(16).padStart(2,"0")).join("");}
+  async function sha256Bytes(bytes){return `sha256:${hex(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))}`;}
+  function shardCacheKey(ref){return `${ref.transport.digest}|${ref.content.digest}`;}
+  async function decompressGzip(bytes){
+    if(typeof DecompressionStream!=="function")throw new Error("This browser cannot decompress verified Atlas shards");
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).arrayBuffer();
+  }
+  async function fetchVerifiedShard(ref){
+    if(ref.transport?.compression!=="gzip"||ref.content?.mediaType!=="application/json")throw new Error("Shard receipt uses an unsupported transport or content type");
+    const cacheKey=shardCacheKey(ref);
+    if(shardPayloads.has(cacheKey))return shardPayloads.get(cacheKey);
+    const response=await fetch(ref.url,{cache:"force-cache",credentials:"same-origin"});
+    if(!response.ok)throw new Error(`Shard request failed (${response.status})`);
+    const transportBytes=await response.arrayBuffer();
+    if(transportBytes.byteLength!==ref.transport.byteLength)throw new Error("Shard transport byte length does not match its pin");
+    const observedTransportDigest=await sha256Bytes(transportBytes);
+    if(observedTransportDigest!==ref.transport.digest)throw new Error("Shard transport digest does not match its pin");
+    const contentBytes=await decompressGzip(transportBytes);
+    if(contentBytes.byteLength!==ref.content.byteLength)throw new Error("Shard content byte length does not match its pin");
+    const observedContentDigest=await sha256Bytes(contentBytes);
+    if(observedContentDigest!==ref.content.digest)throw new Error("Shard content digest does not match its pin");
+    const payload=JSON.parse(textDecoder.decode(contentBytes));
+    if(payload.manifestDigest!==data.distribution.manifestDigest)throw new Error("Shard belongs to another Atlas distribution");
+    shardPayloads.set(cacheKey,payload);
+    return payload;
+  }
+  /* atlas-verified-shard-load:end */
+  async function loadFullIndex(){
+    if(fullIndex)return fullIndex;
+    if(!fullIndexPromise)fullIndexPromise=(async()=>{
+      const index=await fetchVerifiedShard(fullBundle.index);
+      if(index.type!=="AtlasExplorerStaticShardIndex"||index.version!=="2"||index.schema!==fullBundle.schema||index.builderRecipe!==fullBundle.builderRecipe||index.assertedInventoryDigest!==fullBundle.assertedInventoryDigest||index.assertedInventoryDigest!==data.distribution.assertedInventoryDigest||index.counts.resources!==data.summary.availableResources)throw new Error("Static shard index identity or counts differ");
+      fullIndex=index;
+      catalogRefs=Object.values(index.catalog.shards).flat().sort((a,b)=>a.key.localeCompare(b.key,"en")||a.firstLabel.localeCompare(b.firstLabel,"en")||a.transport.digest.localeCompare(b.transport.digest));
+      return index;
+    })();
+    return fullIndexPromise;
+  }
+  async function recordPrefix(id,length){const digest=await crypto.subtle.digest("SHA-256",textEncoder.encode(id));return hex(new Uint8Array(digest)).slice(0,length);}
+  async function loadRecord(id){
+    if(recordCache.has(id))return recordCache.get(id);
+    const index=await loadFullIndex(),prefix=await recordPrefix(id,index.records.prefixLength),ref=index.records.shards[prefix];
+    if(!ref)throw new Error(`No static record shard covers ${id}`);
+    const cacheKey=shardCacheKey(ref);if(!recordShardPromises.has(cacheKey))recordShardPromises.set(cacheKey,(async()=>{const shard=await fetchVerifiedShard(ref);if(shard.type!=="AtlasExplorerStaticShard"||shard.version!=="2"||shard.kind!=="records"||shard.key!==prefix)throw new Error("Record shard identity differs");shard.records.forEach(record=>recordCache.set(record.id,record));return shard;})());
+    await recordShardPromises.get(cacheKey);
+    const record=recordCache.get(id);if(!record)throw new Error(`Static record shard omits ${id}`);return record;
+  }
+  function rawObject(token){
+    if(token.startsWith("<")&&token.endsWith(">"))return {type:"iri",value:token.slice(1,-1)};
+    if(!token.startsWith('"'))throw new Error("Unsupported RDF object token");
+    let escaped=false,end=-1;for(let index=1;index<token.length;index++){const char=token[index];if(char==='"'&&!escaped){end=index;break;}if(char==='\\'&&!escaped)escaped=true;else escaped=false;}
+    if(end<0)throw new Error("Malformed RDF literal token");
+    const result={type:"literal",value:JSON.parse(token.slice(0,end+1))},suffix=token.slice(end+1);
+    if(suffix.startsWith("@"))result.language=suffix.slice(1);else if(suffix.startsWith("^^<")&&suffix.endsWith(">"))result.datatype=suffix.slice(3,-1);else if(suffix)throw new Error("Malformed RDF literal suffix");
+    return result;
+  }
+  function factObjects(record,predicate,role="asserted"){return (record.facts||[]).filter(fact=>fact[0]===predicate&&fact[2]===role).map(fact=>rawObject(fact[1]));}
+  function iriFacts(record,predicate,role="asserted"){return factObjects(record,predicate,role).filter(value=>value.type==="iri").map(value=>value.value);}
+  function literalFacts(record,predicate,role="asserted"){return factObjects(record,predicate,role).filter(value=>value.type==="literal");}
+  function oneIri(record,predicate,role="asserted"){return iriFacts(record,predicate,role)[0]||"";}
+  function oneLiteral(record,predicate,role="asserted"){return literalFacts(record,predicate,role)[0]?.value??"";}
+  function recordTypes(record,role="asserted"){return new Set(iriFacts(record,rdf.type,role));}
+  function summaryNode(summary){const node=ensureNode(summary.id,summary.displayLabel,summary.release,summary.ring,null,false);node.corpusSearchText=summary.searchText||summary.displayLabel;return node;}
+  function normalizeSourceRecord(record){
+    const native=oneLiteral(record,`${rdf.atlas}nativePayload`);let nativePayload={};try{nativePayload=native?JSON.parse(native):{};}catch{nativePayload={unparsed:true};}
+    const row={id:record.id,sourceRelease:oneIri(record,`${rdf.atlas}inSourceRelease`),sourceLocator:oneIri(record,`${rdf.atlas}sourceLocator`),sourceDigest:oneLiteral(record,`${rdf.atlas}sourceDigest`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),nativePayload,representsResources:iriFacts(record,`${rdf.atlas}representsResource`)};
+    sourceById.set(row.id,row);return row;
+  }
+  async function normalizeIdentifier(id){const record=await loadRecord(id),sourceRecords=iriFacts(record,`${rdf.atlas}sourceRecord`);return {id,value:oneLiteral(record,`${rdf.atlas}identifierValue`),scheme:oneIri(record,`${rdf.atlas}identifierScheme`),schemeLabel:short(oneIri(record,`${rdf.atlas}identifierScheme`)),identifies:oneIri(record,`${rdf.atlas}identifies`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),sourceRecordCount:sourceRecords.length,...(sourceRecords.length===1?{sourceRecord:sourceRecords[0]}:{})};}
+  async function normalizeEvidence(id){
+    const record=await loadRecord(id),sourceRecord=oneIri(record,`${rdf.atlas}evidenceSourceRecord`),source=normalizeSourceRecord(await loadRecord(sourceRecord));
+    return {id,sourceRecord:source.id,sourceRecordContentDigest:source.contentDigest,sourceDigest:oneLiteral(record,`${rdf.atlas}evidenceSourceDigest`),decisionStatus:short(oneIri(record,`${rdf.atlas}decisionStatus`)),reviewMethod:short(oneIri(record,`${rdf.atlas}reviewMethod`)),decidedAt:oneLiteral(record,`${rdf.atlas}decidedAt`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),...(oneIri(record,`${rdf.atlas}reviewedBy`)?{reviewedBy:oneIri(record,`${rdf.atlas}reviewedBy`)}:{}),...(oneLiteral(record,`${rdf.atlas}confidence`)!==""?{confidence:oneLiteral(record,`${rdf.atlas}confidence`)}:{})};
+  }
+  async function endpointLabel(id){try{return (await loadRecord(id)).summary?.displayLabel||short(id);}catch{return short(id);}}
+  async function normalizeRelation(id){
+    const record=await loadRecord(id),assertedTypes=recordTypes(record,"asserted"),projectionTypes=recordTypes(record,"projection"),derivedTypes=recordTypes(record,"derived");let types=assertedTypes,layer="asserted",subjectPredicate=rdf.subject,predicatePredicate=rdf.predicate,objectPredicate=rdf.object;
+    if(projectionTypes.has(`${rdf.atlas}ProjectedRelation`)){types=projectionTypes;layer="projection";subjectPredicate=`${rdf.atlas}relationSubject`;predicatePredicate=`${rdf.atlas}relationPredicate`;objectPredicate=`${rdf.atlas}relationObject`;}
+    else if(derivedTypes.has(`${rdf.atlas}DerivedRelation`)){types=derivedTypes;layer="derived";subjectPredicate=`${rdf.atlas}relationSubject`;predicatePredicate=`${rdf.atlas}relationPredicate`;objectPredicate=`${rdf.atlas}relationObject`;}
+    const subject=oneIri(record,subjectPredicate,layer),predicate=oneIri(record,predicatePredicate,layer),object=oneIri(record,objectPredicate,layer);
+    const semanticRing=short(oneIri(record,`${rdf.atlas}semanticRing`,layer)),sourceRing=short(oneIri(record,`${rdf.atlas}sourceRing`,layer)),targetRing=short(oneIri(record,`${rdf.atlas}targetRing`,layer));
+    const kind=types.has(`${rdf.atlas}MappingAssertion`)?"mapping":types.has(`${rdf.atlas}NativeRelationAssertion`)?"native":types.has(`${rdf.atlas}SourceAssignment`)?"sourceAssignment":types.has(`${rdf.atlas}CrossRingRelationAssertion`)?"crossRing":layer;
+    const status=short(oneIri(record,`${rdf.atlas}assertionStatus`));
+    const evidence=layer==="asserted"?await Promise.all((record.evidenceBindings||[]).map(normalizeEvidence)):[];
+    const row={id,kind,authority:layer==="asserted"?(status==="current"?"authoritative":"historicalEditorialRecord"):layer==="projection"?"reproducibleProjection":"nonAuthoritative",authoritative:layer==="asserted"&&status==="current",subject,subjectLabel:await endpointLabel(subject),predicate,predicateLabel:short(predicate),object,objectLabel:await endpointLabel(object),sourceRelease:oneIri(record,`${rdf.atlas}sourceRelease`)||oneIri(record,`${rdf.atlas}sourceRelease`,layer),targetRelease:oneIri(record,`${rdf.atlas}targetRelease`)||oneIri(record,`${rdf.atlas}targetRelease`,layer),...(semanticRing?{semanticRing,semanticRings:[semanticRing]}:{sourceRing,targetRing,semanticRings:[sourceRing,targetRing]}),...(status?{status}:{}),evidence};
+    if(layer==="projection")row.supportingAssertions=iriFacts(record,`${rdf.atlas}supportingAssertion`,layer);if(layer==="derived"){row.derivedFromAssertions=iriFacts(record,`${rdf.atlas}derivedFromAssertion`,layer);row.rule=oneIri(record,`${rdf.atlas}appliedRule`,layer);row.engine=oneIri(record,`${rdf.atlas}reasoningEngine`,layer);}return {layer,row};
+  }
+  async function addRelationWithSupport(id){const relation=await normalizeRelation(id);addEdge(relation.row,relation.layer);const supporting=[...(relation.row.supportingAssertions||[]),...(relation.row.derivedFromAssertions||[])];for(const assertionId of supporting){const assertion=await normalizeRelation(assertionId);if(assertion.layer!=="asserted")throw new Error("A derived relation cites a non-asserted supporting record");addEdge(assertion.row,assertion.layer);}}
+  async function hydrateNode(node,more=false){
+    if(!fullMode)return;
+    if(node.hydrating)return node.hydrating;
+    node.hydrating=(async()=>{try{node.loading=true;renderInspector();const record=await loadRecord(node.id);if(record.summary){const identifiers=await Promise.all((record.identifiers||[]).map(normalizeIdentifier));const sourceRecords=iriFacts(record,`${rdf.atlas}sourceRecord`);for(const sourceId of sourceRecords){normalizeSourceRecord(await loadRecord(sourceId));}node.detail={id:record.id,resourceType:short([...recordTypes(record)].find(value=>value!==`${rdf.atlas}AtlasResource`)||"AtlasResource"),release:record.summary.release,scheme:oneIri(record,`${rdf.atlas}inScheme`),semanticRing:record.summary.ring,resourceProfile:short(oneIri(record,`${rdf.atlas}resourceProfile`)),displayLabel:record.summary.displayLabel,displayLabelRole:record.summary.displayLabelRole,labels:record.summary.labels,sourceRecords,contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),notations:literalFacts(record,`${rdf.atlas}notation`).map(value=>value.value),definitions:literalFacts(record,`${rdf.atlas}definition`),notes:literalFacts(record,`${rdf.atlas}note`),identifiers};}
+      node.relationIds=record.relations||[];const start=more?(node.loadedRelationCount||0):0,end=Math.min(node.relationIds.length,start+100);for(const relationId of node.relationIds.slice(start,end)){await addRelationWithSupport(relationId);}node.loadedRelationCount=end;node.loading=false;syncRenderCapacity();refresh(false);}
+      catch(error){node.loading=false;node.loadError=String(error?.message||error);corpusMode.textContent=`Full-corpus detail error: ${node.loadError}`;corpusMode.classList.add("error");renderInspector();}})();try{await node.hydrating;}finally{node.hydrating=null;}}
+  function selectedCatalogRef(){
+    for(let attempts=0;attempts<catalogRefs.length;attempts++){const ref=catalogRefs[catalogCursor%catalogRefs.length];catalogCursor++;if(loadedCatalogShards.has(shardCacheKey(ref)))continue;if(state.ring&&!ref.rings.includes(state.ring))continue;if(state.activeReleases.size&&![...state.activeReleases].some(release=>ref.releases.includes(release)))continue;return ref;}return null;
+  }
+  async function browseMore(){
+    if(!fullMode)return;const button=document.getElementById("browse-more");button.disabled=true;
+    try{await loadFullIndex();const ref=selectedCatalogRef();if(!ref){corpusMode.textContent="All matching catalog pages are loaded.";return;}corpusMode.textContent="Loading a verified catalog page…";const shard=await fetchVerifiedShard(ref);if(shard.version!=="2"||shard.kind!=="catalog"||shard.key!==ref.key)throw new Error("Catalog shard identity differs");loadedCatalogShards.add(shardCacheKey(ref));shard.entries.forEach(summaryNode);syncRenderCapacity();corpusMode.textContent=`Full corpus · verified shards · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(true);}
+    catch(error){corpusMode.textContent=`Full corpus unavailable: ${String(error?.message||error)}. Bounded fallback remains.`;corpusMode.classList.add("error");}finally{button.disabled=false;}
+  }
+  let maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);state.renderLimit=Math.min(900,maxLimit);
   const range=document.getElementById("render-limit-range"), number=document.getElementById("render-limit-number");range.max=number.max=String(maxLimit);range.value=number.value=String(state.renderLimit);
+  function syncRenderCapacity(){maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);range.max=number.max=String(maxLimit);state.renderLimit=Math.min(maxLimit,Math.max(1,state.renderLimit));range.value=number.value=String(state.renderLimit);}
   function releaseLabel(row){return row.title||row.identifier||short(row.id);}
   function renderReleaseFilters(){const root=document.getElementById("release-filters");root.replaceChildren();releaseById.forEach(row=>{const label=document.createElement("label");label.className="filter";label.innerHTML=`<input type="checkbox" checked data-release="${esc(row.id)}"><span class="swatch" style="--swatch:${row.color}"></span><span class="label">${esc(releaseLabel(row))}</span><small>${format(row.memberCount||0)}</small>`;root.append(label);});root.querySelectorAll("input").forEach(input=>input.addEventListener("change",()=>{input.checked?state.activeReleases.add(input.dataset.release):state.activeReleases.delete(input.dataset.release);refresh(true);}));}
   /* atlas-edge-ring-filter:start */
@@ -3795,6 +5419,28 @@ _GRAPH_HTML = r"""<!doctype html>
       trustedPipelineReview:{title:"Pipeline approved",reason:"A trusted pipeline approved it."}
     })[method]||{title:String(method||"Reviewed"),reason:"The review method is recorded."};
   }
+  /* atlas-mapping-provenance:start */
+  function mappingContext(edge){
+    if(edge.kind!=="mapping")return null;
+    for(const evidence of edge.evidence||[]){
+      const record=sourceById.get(evidence.sourceRecord),payload=record?.nativePayload;
+      if(payload?.publisherAlignmentVersion)return {evidence,payload};
+    }
+    return null;
+  }
+  function mappingEvidenceBrief(edge){
+    const context=mappingContext(edge);
+    if(!context)return "";
+    const {evidence,payload}=context;
+    const alignmentIssued=payload.publisherAlignmentIssued?` · issued ${payload.publisherAlignmentIssued}`:"";
+    const euroVoc=payload.publisherEuroVocVersion?`EuroVoc ${payload.publisherEuroVocVersion}`:"EuroVoc version not stated";
+    const lcsh=payload.publisherLcshRelease==="unspecifiedByPublisher"?"LCSH release not stated":`LCSH ${payload.publisherLcshRelease||"release not stated"}`;
+    const method=evidence.reviewMethod==="operatorAdoption"?"Operator adoption":reviewMethod(evidence.reviewMethod).title;
+    const adoptionDate=String(evidence.decidedAt||"").slice(0,10)||"date not recorded";
+    const caveat=payload.currentMetadataRequalifiesIndividualPairs===false?`<p class="supporting-intro">EuroVoc ${esc(payload.currentEuroVocRelease||"current")} aggregate metadata does not re-review individual pairs.</p>`:"";
+    return `<section class="supporting"><h4>Mapping source</h4><div class="evidence-list"><div class="evidence-row"><b>Official alignment ${esc(payload.publisherAlignmentVersion)}${esc(alignmentIssued)}</b><p>${esc(euroVoc)} · ${esc(lcsh)}</p></div><div class="evidence-row"><b>Atlas decision ${esc(adoptionDate)} · ${esc(method)}</b><p>Exact Atlas releases</p><p class="iri">${esc(edge.sourceRelease)} → ${esc(edge.targetRelease)}</p></div></div>${caveat}</section>`;
+  }
+  /* atlas-mapping-provenance:end */
   function relationMeaning(edge){
     const subject=edge.subjectLabel, object=edge.objectLabel;
     if(edge.kind==="sourceAssignment")return `This source record contributed ${object}. It is provenance, not a topic relation.`;
@@ -3817,6 +5463,8 @@ _GRAPH_HTML = r"""<!doctype html>
   function relationWhy(edge){
     if(edge.layer==="projection")return `Query-friendly copy of ${format(edge.supportingAssertions.length)} assertion${edge.supportingAssertions.length===1?"":"s"}; no new claim.`;
     if(edge.layer==="derived")return `Inferred from ${format(edge.derivedFromAssertions.length)} cited assertion${edge.derivedFromAssertions.length===1?"":"s"}; not editor-approved.`;
+    const mapping=mappingContext(edge);
+    if(mapping)return `Official alignment ${mapping.payload.publisherAlignmentVersion}, adopted for these exact releases.`;
     const evidence=edge.evidence||[];
     const sources=[...new Set(evidence.map(item=>friendlySource(sourceById.get(item.sourceRecord))))];
     const reasons=[...new Set(evidence.map(item=>reviewMethod(item.reviewMethod).reason))];
@@ -3833,6 +5481,10 @@ _GRAPH_HTML = r"""<!doctype html>
   }
   function evidenceBrief(edge){
     if(edge.layer!=="asserted"||!edge.evidence?.length)return "";
+    if(edge.kind==="mapping"){
+      const mapping=mappingEvidenceBrief(edge);
+      if(mapping)return mapping;
+    }
     const rows=edge.evidence.map(item=>{const method=reviewMethod(item.reviewMethod),source=sourceById.get(item.sourceRecord),confidence=item.confidence?` · confidence ${item.confidence}`:"";return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decisionStatus)}${esc(confidence)} · digest pinned</p></div>`;}).join("");
     return `<section class="supporting"><h4>Evidence</h4><div class="evidence-list">${rows}</div></section>`;
   }
@@ -3849,17 +5501,28 @@ _GRAPH_HTML = r"""<!doctype html>
     empty.hidden=true;view.hidden=false;
     if(state.selected.kind==="node"){
       const node=nodeById.get(state.selected.id),detail=node.detail,connections=state.renderedEdges.filter(edge=>nodeConnected(node,edge)).slice(0,20);
-      view.innerHTML=`<p class="kicker">${node.isSource?"Source record":"Atlas resource"}</p><h3 class="inspector-title">${esc(node.label)}</h3><span class="badge">${esc(detail?.displayLabelRole||node.ring||"endpoint")}</span>${identifierBrief(detail)}<h3 style="margin-top:1rem">Relations</h3><div class="connections">${connections.map(edge=>`<button class="connection" data-edge="${esc(edge.layer+"|"+edge.id)}" style="--edge:${edge.color}">${esc(relationMeaning(edge))}<small>${esc(edge.layer)} · ${esc(edge.predicateLabel)}</small></button>`).join("")||"<span class=\"hint\">No visible relations under current filters.</span>"}</div><details class="technical"><summary>About this resource</summary><dl class="facts"><dt>IRI</dt><dd class="iri">${esc(node.id)}</dd><dt>Release</dt><dd class="iri">${esc(node.release||"Not available in bounded view")}</dd>${detail?`<dt>Profile</dt><dd>${esc(detail.resourceProfile)}</dd><dt>Type</dt><dd>${esc(detail.resourceType)}</dd>`:""}</dl>${detail?`<details><summary>English labels</summary><pre>${esc(JSON.stringify(detail.labels,null,2))}</pre></details><details><summary>Source records</summary><pre>${esc(JSON.stringify(sourceDetails(detail.sourceRecords),null,2))}</pre></details>`:"<p class=\"hint\">Increase the resource limit for full details.</p>"}</details>`;
+      const pending=(node.relationIds?.length||0)-(node.loadedRelationCount||0),loading=node.loading?"<p class=\"hint\">Loading verified details…</p>":node.loadError?`<p class="hint error">${esc(node.loadError)}</p>`:"",more=pending>0?`<button class="action" id="more-relations" type="button">Load ${format(Math.min(100,pending))} more relations</button>`:"";
+      view.innerHTML=`<p class="kicker">${node.isSource?"Source record":"Atlas resource"}</p><h3 class="inspector-title">${esc(node.label)}</h3><span class="badge">${esc(detail?.displayLabelRole||node.ring||"endpoint")}</span>${loading}${identifierBrief(detail)}<h3 style="margin-top:1rem">Relations</h3><div class="connections">${connections.map(edge=>`<button class="connection" data-edge="${esc(edge.layer+"|"+edge.id)}" style="--edge:${edge.color}">${esc(relationMeaning(edge))}<small>${esc(edge.layer)} · ${esc(edge.predicateLabel)}</small></button>`).join("")||"<span class=\"hint\">No visible relations under current filters.</span>"}</div>${more}<details class="technical"><summary>About this resource</summary><dl class="facts"><dt>IRI</dt><dd class="iri">${esc(node.id)}</dd><dt>Release</dt><dd class="iri">${esc(node.release||"Not available in fallback view")}</dd>${detail?`<dt>Profile</dt><dd>${esc(detail.resourceProfile)}</dd><dt>Type</dt><dd>${esc(detail.resourceType)}</dd>`:""}</dl>${detail?`<details><summary>English labels</summary><pre>${esc(JSON.stringify(detail.labels,null,2))}</pre></details><details><summary>Source records</summary><pre>${esc(JSON.stringify(sourceDetails(detail.sourceRecords),null,2))}</pre></details>`:"<p class=\"hint\">Full details load when served over HTTP.</p>"}</details>`;
     }else{
       const edge=state.selected.edge;
       const guidance=relationGuidance(edge),back=state.inspectorReturn?`<button class="inspector-back" id="inspector-back" type="button">← ${state.inspectorReturn.selection.kind==="node"?"Back to relations":"Back"}</button>`:"";
       view.innerHTML=`${back}<p class="kicker">${esc(edge.layer)} relation</p><h3 class="inspector-title">${esc(edge.subjectLabel)} → ${esc(edge.objectLabel)}</h3><span class="badge ${esc(edge.layer)}">${esc(edge.layer)}</span><span class="badge">${esc(edge.predicateLabel)}</span><div class="relation-brief"><section class="brief-block"><h4>Meaning</h4><p class="brief-lead">${esc(relationMeaning(edge))}</p></section><section class="brief-block"><h4>Why it is here</h4><p>${esc(relationWhy(edge))}</p></section>${guidance?`<section class="brief-block"><h4>Use</h4><p>${esc(guidance)}</p></section>`:""}</div>${evidenceBrief(edge)}${supportingBrief(edge)}<details class="technical"><summary>Technical details</summary><pre>${esc(JSON.stringify(technicalRecord(edge),null,2))}</pre></details>`;
     }
     document.getElementById("inspector-back")?.addEventListener("click",()=>{const target=state.inspectorReturn;state.inspectorReturn=null;state.selected=target.selection;renderInspector();document.getElementById("inspector").scrollTop=target.scrollTop;draw();});
+    document.getElementById("more-relations")?.addEventListener("click",()=>{const node=nodeById.get(state.selected.id);void hydrateNode(node,true);});
     view.querySelectorAll("[data-edge]").forEach(button=>button.addEventListener("click",()=>{const [layer,...rest]=button.dataset.edge.split("|");const id=rest.join("|");const edge=allEdges.find(row=>row.layer===layer&&row.id===id);if(edge){if(!state.inspectorReturn)state.inspectorReturn={selection:state.selected,scrollTop:document.getElementById("inspector").scrollTop};state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();document.getElementById("inspector").scrollTop=0;draw();}}));
   }
-  function selectNode(node,center=false){state.inspectorReturn=null;state.selected={kind:"node",id:node.id};refresh(false,false);if(center){state.view.x=state.width/2-node.x*state.view.k;state.view.y=state.height/2-node.y*state.view.k;draw();}}
-  function renderSearch(){state.query=search.value.trim().toLocaleLowerCase("en-US");state.matches=new Set(state.query?nodes.filter(node=>searchText(node).includes(state.query)).map(node=>node.id):[]);searchResults.replaceChildren();if(state.query){[...state.matches].slice(0,8).map(id=>nodeById.get(id)).forEach(node=>{const button=document.createElement("button");button.className="result";button.innerHTML=`<b>${esc(node.label)}</b><small>${esc(node.release||node.id)}</small>`;button.addEventListener("click",()=>{selectNode(node,true);searchResults.replaceChildren();});searchResults.append(button);});}refresh(false);}
+  function selectNode(node,center=false){state.inspectorReturn=null;state.selected={kind:"node",id:node.id};refresh(false,false);if(fullMode)void hydrateNode(node);if(center){state.view.x=state.width/2-node.x*state.view.k;state.view.y=state.height/2-node.y*state.view.k;draw();}}
+  function normalizedQuery(value){return value.normalize("NFKD").replace(/\p{M}/gu,"").toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g," ").trim();}
+  function showSearchResults(){searchResults.replaceChildren();[...state.matches].map(id=>nodeById.get(id)).filter(Boolean).sort((a,b)=>a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id)).slice(0,8).forEach(node=>{const button=document.createElement("button");button.className="result";button.innerHTML=`<b>${esc(node.label)}</b><small>${esc(node.release||node.id)}</small>`;button.addEventListener("click",()=>{selectNode(node,true);searchResults.replaceChildren();});searchResults.append(button);});}
+  async function renderSearch(){
+    const epoch=++searchEpoch;state.query=normalizedQuery(search.value);const localMatches=new Set(state.query?nodes.filter(node=>normalizedQuery(`${node.corpusSearchText||""} ${searchText(node)}`).includes(state.query)).map(node=>node.id):[]);state.matches=localMatches;showSearchResults();refresh(false);
+    if(!fullMode||!state.query)return;
+    try{const index=await loadFullIndex(),firstWord=state.query.split(" ")[0],key=(firstWord+"__").slice(0,2),refs=firstWord.length===1?Object.entries(index.search.shards).filter(([candidate])=>candidate.startsWith(firstWord)).flatMap(([,rows])=>rows):index.search.shards[key]||[];corpusMode.textContent="Searching verified shards…";
+      for(const ref of refs){const shard=await fetchVerifiedShard(ref);if(epoch!==searchEpoch)return;if(shard.version!=="2"||shard.kind!=="search"||shard.key!==ref.key)throw new Error("Search shard identity differs");for(const summary of shard.entries){if(normalizedQuery(summary.searchText).includes(state.query)&&(!state.ring||summary.ring===state.ring)&&(!state.activeReleases.size||state.activeReleases.has(summary.release)))localMatches.add(summaryNode(summary).id);}if(localMatches.size>=24)break;}
+      if(epoch!==searchEpoch)return;state.matches=localMatches;syncRenderCapacity();showSearchResults();corpusMode.textContent=`Full corpus · verified search · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(false);
+    }catch(error){if(epoch!==searchEpoch)return;corpusMode.textContent=`Full-corpus search error: ${String(error?.message||error)}`;corpusMode.classList.add("error");}
+  }
   function resize(){const rect=stage.getBoundingClientRect();state.width=Math.max(1,rect.width);state.height=Math.max(1,rect.height);state.dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(state.width*state.dpr);canvas.height=Math.round(state.height*state.dpr);canvas.style.width=`${state.width}px`;canvas.style.height=`${state.height}px`;fitView();}
   canvas.addEventListener("pointerdown",event=>{canvas.setPointerCapture(event.pointerId);const node=hitNode(event.clientX,event.clientY);if(node){selectNode(node);return;}const edge=hitEdge(event.clientX,event.clientY);if(edge){state.inspectorReturn=null;state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();draw();return;}state.panning=true;state.drag={x:event.clientX,y:event.clientY,viewX:state.view.x,viewY:state.view.y};canvas.classList.add("panning");});
   canvas.addEventListener("pointermove",event=>{if(state.panning){state.view.x=state.drag.viewX+event.clientX-state.drag.x;state.view.y=state.drag.viewY+event.clientY-state.drag.y;draw();return;}const node=hitNode(event.clientX,event.clientY);state.hover=node?.id||null;if(node){const rect=stage.getBoundingClientRect();tooltip.innerHTML=`${esc(node.label)}<small>${esc(node.release||node.id)}</small>`;tooltip.style.left=`${event.clientX-rect.left}px`;tooltip.style.top=`${event.clientY-rect.top}px`;tooltip.hidden=false;}else tooltip.hidden=true;draw();});
@@ -3867,12 +5530,13 @@ _GRAPH_HTML = r"""<!doctype html>
   canvas.addEventListener("wheel",event=>{event.preventDefault();const rect=canvas.getBoundingClientRect();zoomAt(event.deltaY<0?1.12:.89,event.clientX-rect.left,event.clientY-rect.top);},{passive:false});
   canvas.addEventListener("keydown",event=>{if(event.key==="+"||event.key==="=")zoomAt(1.2);else if(event.key==="-")zoomAt(.83);else if(event.key==="ArrowLeft")state.view.x+=32;else if(event.key==="ArrowRight")state.view.x-=32;else if(event.key==="ArrowUp")state.view.y+=32;else if(event.key==="ArrowDown")state.view.y-=32;else return;event.preventDefault();draw();});
   document.getElementById("authority-asserted").addEventListener("change",event=>{state.layers.asserted=event.currentTarget.checked;refresh(false);});document.getElementById("authority-projection").addEventListener("change",event=>{state.layers.projection=event.currentTarget.checked;refresh(false);});document.getElementById("authority-derived").addEventListener("change",event=>{state.layers.derived=event.currentTarget.checked;refresh(false);});document.getElementById("show-source-assignments").addEventListener("change",event=>{state.showAssignments=event.currentTarget.checked;refresh(false);});
-  ringFilter.addEventListener("change",event=>{state.ring=event.currentTarget.value;state.selected=null;state.inspectorReturn=null;refresh(true);});predicateFilter.addEventListener("change",event=>{state.predicate=event.currentTarget.value;refresh(true);});search.addEventListener("input",renderSearch);window.addEventListener("keydown",event=>{if(event.key==="/"&&document.activeElement!==search){event.preventDefault();search.focus();}if(event.key==="Escape"){state.inspectorReturn=null;state.selected=null;search.value="";renderSearch();}});
+  ringFilter.addEventListener("change",event=>{state.ring=event.currentTarget.value;state.selected=null;state.inspectorReturn=null;if(search.value)void renderSearch();else refresh(true);});predicateFilter.addEventListener("change",event=>{state.predicate=event.currentTarget.value;refresh(true);});search.addEventListener("input",()=>{void renderSearch();});window.addEventListener("keydown",event=>{if(event.key==="/"&&document.activeElement!==search){event.preventDefault();search.focus();}if(event.key==="Escape"){state.inspectorReturn=null;state.selected=null;search.value="";void renderSearch();}});
   function setLimit(value){state.renderLimit=Math.max(1,Math.min(maxLimit,Number(value)||1));range.value=number.value=String(state.renderLimit);refresh(true);}range.addEventListener("input",event=>setLimit(event.currentTarget.value));number.addEventListener("change",event=>setLimit(event.currentTarget.value));
   function reset(){state.activeReleases=new Set(releaseById.keys());state.layers={asserted:true,projection:false,derived:true};state.showAssignments=false;state.ring="";state.predicate="";state.selected=null;state.inspectorReturn=null;state.query="";state.matches.clear();search.value="";ringFilter.value="";predicateFilter.value="";document.getElementById("authority-asserted").checked=true;document.getElementById("authority-projection").checked=false;document.getElementById("authority-derived").checked=true;document.getElementById("show-source-assignments").checked=false;document.querySelectorAll("[data-release]").forEach(input=>{input.checked=true;});refresh(true);}
-  document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
-  document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("search-coverage").textContent=`English search covers ${format(data.summary.indexedResources)} deterministic visual-index resources out of ${format(data.summary.availableResources)} sealed resources.`;document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
-  renderReleaseFilters();refresh(false);resize();
+  document.getElementById("browse-more").addEventListener("click",()=>{void browseMore();});document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
+  document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("search-coverage").textContent=fullMode?"English search pages load only when queried.":`English search covers ${format(data.summary.indexedResources)} fallback resources out of ${format(data.summary.availableResources)} sealed resources.`;document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
+  if(fullMode)corpusMode.textContent="Full corpus · loading verified index…";else if(fullBundle&&location.protocol==="file:")corpusMode.textContent="Bounded local view · serve this folder over HTTP for the full corpus.";else if(fullBundle&&!gzipStreamSupported)corpusMode.textContent="Bounded fallback · this browser cannot open verified gzip shards.";else corpusMode.textContent="Bounded fallback view.";
+  renderReleaseFilters();refresh(false);resize();if(fullMode)void browseMore();
 })();
 </script>
 </body>
@@ -3900,6 +5564,7 @@ def render_atlas_explorer(model: Mapping[str, Any]) -> str:
 
 __all__ = [
     "ATLAS_V3_EXPLORER_SCHEMA_VERSION",
+    "ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE",
     "ATLAS_V3_EXPLORER_TYPE",
     "EXPLORER_FILTER_SEMANTICS",
     "EXPLORER_SCHEMA_VERSION",
@@ -3910,6 +5575,7 @@ __all__ = [
     "AtlasExplorerError",
     "atlas_v3_predicate_meaning",
     "build_atlas_v3_explorer_model",
+    "build_atlas_v3_explorer_static_shards",
     "open_atlas_v3_explorer_distribution",
     "render_atlas_explorer",
     "render_atlas_v3_explorer",

@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import base64
+import gzip
+import hashlib
 import json
 import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
-from rdflib import Dataset, URIRef
+from rdflib import Dataset, Literal, URIRef
+from rdflib.namespace import RDF
 
 import refspec.atlas.explorer as explorer_module
 from refspec.atlas.explorer import (
@@ -34,6 +39,33 @@ FIXTURE_SOURCE = (
 FIXTURE = FIXTURE_SOURCE
 
 
+def _mapping_adoption_payload() -> dict[str, object]:
+    return {
+        "currentEuroVocLinksetCounts": {
+            "http://www.w3.org/2004/02/skos/core#closeMatch": 99,
+            "http://www.w3.org/2004/02/skos/core#exactMatch": 1_904,
+        },
+        "currentEuroVocLinksetMetadataDigest": "sha256:" + "4" * 64,
+        "currentEuroVocRelease": "4.24",
+        "currentMetadataRequalifiesIndividualPairs": False,
+        "objectIri": "http://id.loc.gov/authorities/subjects/sh85000001",
+        "predicateIri": "http://www.w3.org/2004/02/skos/core#exactMatch",
+        "publisherAlignmentDigest": "sha256:" + "1" * 64,
+        "publisherAlignmentIssued": "2024-07-11",
+        "publisherAlignmentRelease": (
+            "http://publications.europa.eu/resource/dataset/"
+            "eurovoc_alignment_lcsh/20240711-0"
+        ),
+        "publisherAlignmentVersion": "20240711-0",
+        "publisherEuroVocRelease": (
+            "http://publications.europa.eu/resource/dataset/eurovoc/20240711-0"
+        ),
+        "publisherEuroVocVersion": "4.20",
+        "publisherLcshRelease": "unspecifiedByPublisher",
+        "subjectIri": "http://eurovoc.europa.eu/100141",
+    }
+
+
 def _canonical_digest_without_lf(value: object) -> str:
     payload = canonical_json_bytes(value)
     assert payload.endswith(b"\n")
@@ -42,6 +74,16 @@ def _canonical_digest_without_lf(value: object) -> str:
 
 def _write_json(path: Path, value: object) -> None:
     path.write_bytes(canonical_json_bytes(value))
+
+
+def _read_static_shard(root: Path, reference: dict[str, Any]) -> tuple[bytes, dict[str, Any]]:
+    transport = (root / reference["url"]).read_bytes()
+    assert len(transport) == reference["transport"]["byteLength"]
+    assert sha256_digest(transport) == reference["transport"]["digest"]
+    content = gzip.decompress(transport)
+    assert len(content) == reference["content"]["byteLength"]
+    assert sha256_digest(content) == reference["content"]["digest"]
+    return transport, json.loads(content)
 
 
 def _source_fixture_lines(source: Path, manifest: dict[str, object]) -> list[bytes]:
@@ -231,6 +273,154 @@ def _write_current_packed_fixture(
         "schemaVersion": "3.0",
         "type": "AtlasManifest",
     }
+
+    compact_content = b'{"fixture":"explorer-transport-only"}\n'
+    compact_transport = explorer_module.zstd.compress(compact_content)
+    compact_content_digest = sha256_digest(compact_content)
+    compact_path = "packs/compact/fixture/release.jsonl.zst"
+    compact_target = target / compact_path
+    compact_target.parent.mkdir(parents=True)
+    compact_target.write_bytes(compact_transport)
+    compact_pack = {
+        "content": {
+            "byteLength": len(compact_content),
+            "digest": compact_content_digest,
+            "mediaType": "application/x-ndjson",
+            "recordCount": 1,
+        },
+        "defaults": {},
+        "dependencies": [],
+        "globalInvariantSummary": {
+            "digest": sha256_digest(b"fixture-global-invariant-summary"),
+            "fieldCounts": {},
+            "recordCount": 1,
+            "recordRole": "Release",
+            "schemaVersion": "1.0",
+        },
+        "logicalRowsDigest": sha256_digest(b"fixture-logical-row"),
+        "packId": (
+            "urn:ref:atlas:compact-pack:"
+            + compact_content_digest.removeprefix("sha256:")
+        ),
+        "path": compact_path,
+        "recordSchemaVersion": "1.0",
+        "role": "Release",
+        "transport": {
+            "byteLength": len(compact_transport),
+            "compression": "zstd",
+            "digest": sha256_digest(compact_transport),
+            "mediaType": "application/zstd",
+        },
+    }
+    construction_releases = [
+        {
+            "adapterRecipeDigest": sha256_digest(b"explorer-fixture-adapter"),
+            "compactPackPaths": [compact_path],
+            "key": "explorer-fixture",
+        }
+    ]
+    construction_summary = {
+        "assertedInventoryDigest": graph_rows[0]["inventoryDigest"],
+        "bindingBundleDigest": binding["bindingBundleDigest"],
+        "catalog": {},
+        "compactPackCount": 1,
+        "compactPackInventoryDigest": sha256_digest(
+            canonical_json_bytes([compact_pack])
+        ),
+        "compactPacks": [compact_pack],
+        "distributionId": source_manifest["distributionId"],
+        "profile": "atlas-3-release-local-construction-v1",
+        "recipeDigest": sha256_digest(b"explorer-fixture-recipe"),
+        "releaseCount": 1,
+        "releaseInventoryDigest": sha256_digest(
+            canonical_json_bytes(construction_releases)
+        ),
+        "releases": construction_releases,
+        "sourceAccountingDigest": sha256_digest(accounting_path.read_bytes()),
+        "type": "AtlasConstructionSummary",
+        "version": "3.0",
+    }
+    construction_summary["canonicalPayloadDigest"] = _canonical_digest_without_lf(
+        construction_summary
+    )
+    construction_path = target / "atlas-construction-summary.json"
+    _write_json(construction_path, construction_summary)
+    construction_digest = sha256_digest(construction_path.read_bytes())
+
+    accounting = json.loads(accounting_path.read_text(encoding="utf-8"))
+    proof = {
+        "assertedInventoryDigest": graph_rows[0]["inventoryDigest"],
+        "binding": binding,
+        "checks": ["unit-test compiled producer proof"],
+        "constructionSummary": {
+            "compactPackCount": 1,
+            "compactPackInventoryDigest": construction_summary[
+                "compactPackInventoryDigest"
+            ],
+            "digest": construction_digest,
+            "path": "atlas-construction-summary.json",
+            "profile": "atlas-3-authenticated-construction-summary-v1",
+            "releaseCount": 1,
+            "releaseInventoryDigest": construction_summary[
+                "releaseInventoryDigest"
+            ],
+        },
+        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        "counts": counts,
+        "implementationDigest": sha256_digest(b"explorer-fixture-producer"),
+        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
+        "shaclMetaValidation": "pySHACL",
+        "sourceAccountingDigest": sha256_digest(accounting_path.read_bytes()),
+        "sourceReleaseCount": accounting["totals"]["sourceReleases"],
+        "status": "passed",
+        "type": "AtlasProducerValidation",
+        "version": "3.0",
+    }
+    proof_path = target / "atlas-producer-validation.json"
+    _write_json(proof_path, proof)
+    proof_digest = sha256_digest(proof_path.read_bytes())
+    acceptance["inputs"]["producerValidationDigest"] = proof_digest
+    for gate in acceptance["gates"]:
+        gate["evidenceDigest"] = _canonical_digest_without_lf(
+            {
+                "inputs": acceptance["inputs"],
+                "name": gate["name"],
+                "status": "passed",
+                "validator": acceptance["validator"],
+            }
+        )
+    _write_json(acceptance_path, acceptance)
+    manifest["members"] = [
+        {
+            "byteLength": accounting_path.stat().st_size,
+            "digest": sha256_digest(accounting_path.read_bytes()),
+            "mediaType": "application/json",
+            "path": "atlas-source-accounting.json",
+            "role": "sourceAccounting",
+        },
+        {
+            "byteLength": acceptance_path.stat().st_size,
+            "digest": sha256_digest(acceptance_path.read_bytes()),
+            "mediaType": "application/json",
+            "path": "atlas-acceptance.json",
+            "role": "acceptance",
+        },
+        {
+            "byteLength": proof_path.stat().st_size,
+            "digest": proof_digest,
+            "mediaType": "application/json",
+            "path": "atlas-producer-validation.json",
+            "role": "producerValidation",
+        },
+        {
+            "byteLength": construction_path.stat().st_size,
+            "digest": construction_digest,
+            "mediaType": "application/json",
+            "path": "atlas-construction-summary.json",
+            "role": "constructionSummary",
+        },
+    ]
     manifest["canonicalPayloadDigest"] = _canonical_digest_without_lf(manifest)
     _write_json(target / "atlas-manifest.json", manifest)
 
@@ -259,10 +449,38 @@ def _reseal_changed_json_members(root: Path) -> None:
     manifest_path = root / "atlas-manifest.json"
     acceptance_path = root / "atlas-acceptance.json"
     accounting_path = root / "atlas-source-accounting.json"
+    construction_path = root / "atlas-construction-summary.json"
+    proof_path = root / "atlas-producer-validation.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    construction = json.loads(construction_path.read_text(encoding="utf-8"))
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
 
-    acceptance["inputs"]["sourceAccountingDigest"] = sha256_digest(accounting_path.read_bytes())
+    accounting_digest = sha256_digest(accounting_path.read_bytes())
+    construction["sourceAccountingDigest"] = accounting_digest
+    construction_basis = dict(construction)
+    construction_basis.pop("canonicalPayloadDigest")
+    construction["canonicalPayloadDigest"] = _canonical_digest_without_lf(
+        construction_basis
+    )
+    _write_json(construction_path, construction)
+    construction_digest = sha256_digest(construction_path.read_bytes())
+
+    proof["sourceAccountingDigest"] = accounting_digest
+    proof["constructionSummary"] = {
+        "compactPackCount": construction["compactPackCount"],
+        "compactPackInventoryDigest": construction["compactPackInventoryDigest"],
+        "digest": construction_digest,
+        "path": "atlas-construction-summary.json",
+        "profile": "atlas-3-authenticated-construction-summary-v1",
+        "releaseCount": construction["releaseCount"],
+        "releaseInventoryDigest": construction["releaseInventoryDigest"],
+    }
+    _write_json(proof_path, proof)
+    proof_digest = sha256_digest(proof_path.read_bytes())
+
+    acceptance["inputs"]["sourceAccountingDigest"] = accounting_digest
+    acceptance["inputs"]["producerValidationDigest"] = proof_digest
     for gate in acceptance["gates"]:
         gate["evidenceDigest"] = _canonical_digest_without_lf(
             {
@@ -284,40 +502,62 @@ def _reseal_changed_json_members(root: Path) -> None:
     _write_json(manifest_path, manifest)
 
 
-def _install_producer_validation(root: Path) -> None:
+def _install_producer_validation(root: Path, **overrides: Any) -> None:
     manifest_path = root / "atlas-manifest.json"
     acceptance_path = root / "atlas-acceptance.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+    accounting = json.loads(
+        (root / "atlas-source-accounting.json").read_text(encoding="utf-8")
+    )
+    construction = json.loads(
+        (root / "atlas-construction-summary.json").read_text(encoding="utf-8")
+    )
     proof = {
         "assertedInventoryDigest": manifest["graphs"][0]["inventoryDigest"],
         "binding": dict(manifest["binding"]),
         "checks": ["unit-test compiled producer proof"],
-        "constructorProfile": "atlas-3-source-only-compiled-shacl-v1",
+        "constructionSummary": {
+            "compactPackCount": construction["compactPackCount"],
+            "compactPackInventoryDigest": construction[
+                "compactPackInventoryDigest"
+            ],
+            "digest": sha256_digest(
+                (root / "atlas-construction-summary.json").read_bytes()
+            ),
+            "path": "atlas-construction-summary.json",
+            "profile": "atlas-3-authenticated-construction-summary-v1",
+            "releaseCount": construction["releaseCount"],
+            "releaseInventoryDigest": construction["releaseInventoryDigest"],
+        },
+        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
         "counts": dict(manifest["counts"]),
         "implementationDigest": "sha256:" + "1" * 64,
-        "mode": "compiledSourceProducerValidation",
+        "mode": "compiledSourceAndPublisherMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": sha256_digest(
             (root / "atlas-source-accounting.json").read_bytes()
         ),
-        "sourceReleaseCount": manifest["counts"]["releases"],
+        "sourceReleaseCount": accounting["totals"]["sourceReleases"],
         "status": "passed",
         "type": "AtlasProducerValidation",
         "version": "3.0",
     }
+    proof.update(overrides)
     proof_path = root / "atlas-producer-validation.json"
     _write_json(proof_path, proof)
     proof_payload = proof_path.read_bytes()
     proof_digest = sha256_digest(proof_payload)
-    manifest["members"].append(
+    producer_member = next(
+        row for row in manifest["members"] if row["role"] == "producerValidation"
+    )
+    producer_member.update(
         {
             "byteLength": len(proof_payload),
             "digest": proof_digest,
             "mediaType": "application/json",
             "path": "atlas-producer-validation.json",
-            "role": "producerValidation",
         }
     )
     acceptance["inputs"]["producerValidationDigest"] = proof_digest
@@ -343,6 +583,18 @@ def _install_producer_validation(root: Path) -> None:
     _write_json(manifest_path, manifest)
 
 
+def _semantic_construction(**overrides: Any) -> dict[str, Any]:
+    construction = {
+        "inputFileCount": 37,
+        "inputInventoryDigest": "sha256:" + "2" * 64,
+        "profile": "atlas-3-exact-input-whole-distribution-reuse-v1",
+        "recipeDigest": "sha256:" + "3" * 64,
+        "reuseScope": "wholeDistributionExactInputsOnly",
+    }
+    construction.update(overrides)
+    return construction
+
+
 def test_opens_packed_distribution_and_checks_trusted_manifest() -> None:
     trusted_digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
     distribution = open_atlas_v3_explorer_distribution(
@@ -363,6 +615,41 @@ def test_opens_packed_distribution_and_checks_trusted_manifest() -> None:
         distribution.graph("union")
 
 
+def test_requires_authenticated_construction_summary_and_hashes_compact_transport(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "compact-transport-tamper"
+    shutil.copytree(FIXTURE, target)
+    summary = json.loads(
+        (target / "atlas-construction-summary.json").read_text(encoding="utf-8")
+    )
+    compact_path = target / summary["compactPacks"][0]["path"]
+    damaged = bytearray(compact_path.read_bytes())
+    damaged[len(damaged) // 2] ^= 1
+    compact_path.write_bytes(damaged)
+
+    with pytest.raises(Atlas3ExplorerError, match="compact pack .* transport pin"):
+        _open_distribution(target)
+
+
+def test_compact_pack_rows_are_not_decoded_for_visualization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = explorer_module.zstd.open
+
+    def reject_compact_decode(path_or_stream, *args, **kwargs):
+        name = str(getattr(path_or_stream, "name", path_or_stream))
+        if "/packs/compact/" in name:
+            raise AssertionError("the explorer must not decode compact logical rows")
+        return original(path_or_stream, *args, **kwargs)
+
+    monkeypatch.setattr(explorer_module.zstd, "open", reject_compact_decode)
+
+    distribution = _open_distribution()
+
+    assert distribution.construction_summary["compactPackCount"] == 1
+
+
 def test_opens_distribution_with_compiled_producer_proof(tmp_path: Path) -> None:
     target = tmp_path / "with-producer-proof"
     shutil.copytree(FIXTURE, target)
@@ -374,7 +661,136 @@ def test_opens_distribution_with_compiled_producer_proof(tmp_path: Path) -> None
     assert distribution.manifest["members"][2]["role"] == "producerValidation"
 
 
-def test_build_preview_writes_one_self_contained_html_file(tmp_path: Path) -> None:
+def test_opens_producer_proof_with_closed_semantic_construction_receipt(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "with-semantic-construction"
+    shutil.copytree(FIXTURE, target)
+    construction_summary = json.loads(
+        (target / "atlas-construction-summary.json").read_text(encoding="utf-8")
+    )
+    recipe_digest = explorer_module._canonical_digest(
+        {
+            "adapterRecipes": [
+                {
+                    "adapterRecipeDigest": release["adapterRecipeDigest"],
+                    "key": release["key"],
+                }
+                for release in construction_summary["releases"]
+            ],
+            "profile": "atlas-3-exact-input-whole-distribution-reuse-v1",
+            "sharedRecipeDigest": construction_summary["recipeDigest"],
+        }
+    )
+    _install_producer_validation(
+        target,
+        semanticConstruction=_semantic_construction(recipeDigest=recipe_digest),
+    )
+
+    distribution = _open_distribution(target)
+
+    assert distribution.trusted_manifest
+
+
+@pytest.mark.parametrize(
+    "semantic_construction, message",
+    [
+        (_semantic_construction(inputFileCount=0), "inputFileCount must be positive"),
+        (_semantic_construction(inputFileCount=True), "non-negative integer"),
+        (_semantic_construction(inputInventoryDigest="sha256:bad"), "inputInventoryDigest"),
+        (_semantic_construction(recipeDigest="sha256:bad"), "recipeDigest"),
+        (_semantic_construction(profile="another-profile"), "identity differs"),
+        (_semantic_construction(reuseScope="partialInputs"), "identity differs"),
+        (_semantic_construction(unexpected=True), "fields differ"),
+        ("not-an-object", "must be an object"),
+    ],
+)
+def test_rejects_invalid_semantic_construction_receipts(
+    tmp_path: Path,
+    semantic_construction: object,
+    message: str,
+) -> None:
+    target = tmp_path / "invalid-semantic-construction"
+    shutil.copytree(FIXTURE, target)
+    _install_producer_validation(
+        target,
+        semanticConstruction=semantic_construction,
+    )
+
+    with pytest.raises(Atlas3ExplorerError, match=message):
+        _open_distribution(target)
+
+
+def test_rejects_unknown_producer_validation_field_with_semantic_construction(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "unknown-producer-field"
+    shutil.copytree(FIXTURE, target)
+    _install_producer_validation(
+        target,
+        semanticConstruction=_semantic_construction(),
+        unexpectedProducerField=True,
+    )
+
+    with pytest.raises(Atlas3ExplorerError, match="producer validation fields differ"):
+        _open_distribution(target)
+
+
+def test_compiled_producer_source_release_count_uses_accounting_total(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "producer-proof-source-count"
+    shutil.copytree(FIXTURE, target)
+    manifest_release_count = json.loads(
+        (target / "atlas-manifest.json").read_text(encoding="utf-8")
+    )["counts"]["releases"]
+    expected = manifest_release_count + 1
+    _install_producer_validation(target, sourceReleaseCount=expected)
+
+    original_summary = explorer_module._source_accounting_summary
+
+    def accounting_summary(*args, **kwargs):
+        summary = original_summary(*args, **kwargs)
+        summary["totals"]["sourceReleases"] = expected
+        return summary
+
+    monkeypatch.setattr(
+        explorer_module,
+        "_source_accounting_summary",
+        accounting_summary,
+    )
+    observed: list[int] = []
+    original = explorer_module._verify_producer_validation
+
+    def capture(*args, **kwargs):
+        observed.append(args[4])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(explorer_module, "_verify_producer_validation", capture)
+
+    distribution = _open_distribution(target)
+
+    assert observed == [expected]
+    assert expected != distribution.manifest["counts"]["releases"]
+
+
+def test_rejects_legacy_source_only_compiled_producer_identity(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "legacy-producer-proof"
+    shutil.copytree(FIXTURE, target)
+    _install_producer_validation(
+        target,
+        constructorProfile="atlas-3-source-only-compiled-shacl-v1",
+        mode="compiledSourceProducerValidation",
+    )
+
+    with pytest.raises(Atlas3ExplorerError, match="producer validation identity"):
+        _open_distribution(target)
+
+
+def test_build_preview_writes_digest_pinned_full_corpus_shards(tmp_path: Path) -> None:
     output = tmp_path / "atlas-preview.html"
     digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
 
@@ -382,6 +798,58 @@ def test_build_preview_writes_one_self_contained_html_file(tmp_path: Path) -> No
     rendered = output.read_text(encoding="utf-8")
     assert "RefSpec Atlas 3.0 explorer" in rendered
     assert "<canvas" in rendered
+    embedded_match = re.search(
+        r'<script id="atlas-data" type="application/json">(.*?)</script>',
+        rendered,
+        re.DOTALL,
+    )
+    assert embedded_match is not None
+    embedded = json.loads(embedded_match.group(1))
+    bundle = embedded["fullCorpus"]
+    asserted_inventory = next(
+        row["inventoryDigest"]
+        for row in _open_distribution().manifest["graphs"]
+        if row["role"] == "asserted"
+    )
+    assert bundle["manifestDigest"] == digest
+    assert bundle["assertedInventoryDigest"] == asserted_inventory
+    assert bundle["builderRecipe"] == "atlas-3-static-full-corpus-shards-gzip-v2"
+    assert bundle["schema"] == (
+        "https://refspec.org/schema/atlas-explorer-static-shards/v2"
+    )
+
+    index_path = output.parent / bundle["index"]["url"]
+    index_transport, index = _read_static_shard(output.parent, bundle["index"])
+    assert index_transport[:4] == b"\x1f\x8b\x08\x00"
+    assert index_transport[4:8] == b"\x00\x00\x00\x00"
+    assert index["manifestDigest"] == bundle["manifestDigest"]
+    assert index["assertedInventoryDigest"] == bundle["assertedInventoryDigest"]
+    assert index["builderRecipe"] == bundle["builderRecipe"]
+    assert index["schema"] == bundle["schema"]
+    assert index["counts"]["resources"] == embedded["summary"]["availableResources"]
+
+    records: list[dict[str, Any]] = []
+    for prefix, reference in index["records"]["shards"].items():
+        assert len(prefix) == index["records"]["prefixLength"]
+        _transport, shard = _read_static_shard(output.parent, reference)
+        assert shard["key"] == prefix
+        assert shard["kind"] == "records"
+        assert all(
+            hashlib.sha256(record["id"].encode()).hexdigest().startswith(prefix)
+            for record in shard["records"]
+        )
+        records.extend(shard["records"])
+    assert len(records) == index["counts"]["records"]
+    summaries = [record["summary"] for record in records if "summary" in record]
+    assert len(summaries) == index["counts"]["resources"]
+    assert any(record.get("relations") for record in records)
+    assert all(path.name.endswith(".json.gz") for path in index_path.parent.iterdir())
+
+    # Rebuilding the same manifest at the same location is byte-identical.
+    before = {path.name: path.read_bytes() for path in index_path.parent.iterdir()}
+    assert build_preview(FIXTURE, output, manifest_digest=digest) == output
+    after = {path.name: path.read_bytes() for path in index_path.parent.iterdir()}
+    assert after == before
 
 
 def test_opens_zstd_multi_pack_distribution_without_projection(tmp_path: Path) -> None:
@@ -427,8 +895,8 @@ def test_zstd_pack_transport_is_hashed_during_decode(
     original = explorer_module._scan_binary_stream
 
     def reject_compressed_prescan(stream):
-        if str(getattr(stream, "name", "")).endswith(".zst"):
-            raise AssertionError("compressed packs must be read only by the decoder")
+        if str(getattr(stream, "name", "")).endswith(".nq.zst"):
+            raise AssertionError("compressed RDF packs must be read only by the decoder")
         return original(stream)
 
     monkeypatch.setattr(
@@ -502,6 +970,10 @@ def test_model_preserves_authority_provenance_and_alternate_only_labels() -> Non
     assert sum(model["coverage"]["resourcesByRing"].values()) == model["summary"]["availableResources"]
     assert sum(row["count"] for row in model["coverage"]["resourcesByRelease"]) == model["summary"]["availableResources"]
     assert sum(row["sourceRecords"] for row in model["coverage"]["sourceRecordsByRelease"]) == model["summary"]["availableSourceRecords"]
+    assert all(
+        "representedAssertions" in row
+        for row in model["sourceAccounting"]["inputs"]
+    )
     assert {row["id"] for row in model["resources"]} <= {
         row["id"] for row in model["resourceIndex"]
     }
@@ -569,6 +1041,127 @@ def test_model_preserves_authority_provenance_and_alternate_only_labels() -> Non
     assert "<summary>Policy</summary>" not in rendered
     assert "requestAnimationFrame" in rendered
     assert "<table" not in rendered
+
+
+def test_mapping_provenance_survives_full_and_compact_source_record_views() -> None:
+    distribution = _open_distribution()
+    graph = distribution.asserted_graph
+    assertion = next(graph.subjects(RDF.type, ATLAS.MappingAssertion))
+    binding = next(graph.subjects(ATLAS.bindsAssertion, assertion))
+    record = graph.value(binding, ATLAS.evidenceSourceRecord)
+    assert isinstance(record, URIRef)
+    payload = _mapping_adoption_payload()
+    graph.remove((record, ATLAS.nativePayload, None))
+    graph.add(
+        (
+            record,
+            ATLAS.nativePayload,
+            Literal(json.dumps(payload, sort_keys=True, separators=(",", ":"))),
+        )
+    )
+
+    full = explorer_module._source_record_view(graph, record)
+    compact = explorer_module._source_record_view(
+        graph,
+        record,
+        compact_native_payload=True,
+    )
+
+    assert full["nativePayload"] == payload
+    assert compact["nativePayload"] == {
+        key: value
+        for key, value in payload.items()
+        if key in explorer_module._MAPPING_PROVENANCE_PAYLOAD_FIELDS
+    }
+    assert compact["nativePayloadMetadataOnly"] is True
+
+
+def test_mapping_inspector_explains_versioned_operator_adoption() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+    provenance = re.search(
+        r"/\* atlas-mapping-provenance:start \*/(.*?)"
+        r"/\* atlas-mapping-provenance:end \*/",
+        rendered,
+        flags=re.DOTALL,
+    )
+    assert provenance is not None
+    payload = json.dumps(_mapping_adoption_payload(), separators=(",", ":"))
+    script = "\n".join(
+        (
+            (
+                "const esc=value=>String(value??'').replace(/[&<>\"']/g, char=>"
+                "({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]));"
+            ),
+            "const reviewMethod=method=>({title:String(method)});",
+            f"const sourceById=new Map([['urn:test:record',{{nativePayload:{payload}}}]]);",
+            provenance.group(1),
+            (
+                "process.stdout.write(mappingEvidenceBrief({"
+                "kind:'mapping',sourceRelease:'urn:ref:atlas-release:3:eurovoc:4.24',"
+                "targetRelease:'urn:ref:atlas-release:3:lcsh:2026-08-06',"
+                "evidence:[{sourceRecord:'urn:test:record',reviewMethod:'operatorAdoption',"
+                "decidedAt:'2026-08-06T00:00:00Z'}]}));"
+            ),
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "Official alignment 20240711-0 · issued 2024-07-11" in completed.stdout
+    assert "EuroVoc 4.20 · LCSH release not stated" in completed.stdout
+    assert "Atlas decision 2026-08-06 · Operator adoption" in completed.stdout
+    assert "urn:ref:atlas-release:3:eurovoc:4.24" in completed.stdout
+    assert "urn:ref:atlas-release:3:lcsh:2026-08-06" in completed.stdout
+    assert (
+        "EuroVoc 4.24 aggregate metadata does not re-review individual pairs."
+        in completed.stdout
+    )
+
+
+def test_source_accounting_summary_counts_assertion_only_representation() -> None:
+    distribution = _open_distribution()
+    accounting = {
+        "type": "AtlasSourceAccounting",
+        "version": "3.0",
+        "distributionId": distribution.manifest["distributionId"],
+        "inputs": [
+            {
+                "sourceRelease": "urn:test:alignment-release",
+                "membershipMode": "complete",
+                "declaredMemberCount": 1,
+                "dispositions": [
+                    {
+                        "sourceRecord": "urn:test:mapping-row",
+                        "status": "represented",
+                        "atlasAssertions": ["urn:test:mapping-assertion"],
+                    }
+                ],
+            }
+        ],
+        "totals": {
+            "sourceReleases": 1,
+            "sourceRecords": 1,
+            "represented": 1,
+            "excluded": 0,
+            "unresolved": 0,
+        },
+    }
+
+    summary = explorer_module._source_accounting_summary(
+        distribution.manifest,
+        distribution._streamed_index,
+        accounting,
+        directly_verified=True,
+    )
+
+    assert summary["inputs"][0]["representedResources"] == 0
+    assert summary["inputs"][0]["representedAssertions"] == 1
 
 
 def test_identifier_records_are_attached_to_their_resource_with_readable_authority() -> None:
@@ -741,6 +1334,95 @@ def test_rendered_explorer_javascript_is_syntactically_valid() -> None:
         capture_output=True,
         text=True,
     )
+    verified_load = re.search(
+        r"/\* atlas-verified-shard-load:start \*/(.*?)/\* atlas-verified-shard-load:end \*/",
+        scripts[-1],
+        re.DOTALL,
+    )
+    assert verified_load is not None
+    verification = verified_load.group(1)
+    transport_digest = verification.index(
+        "observedTransportDigest=await sha256Bytes(transportBytes)"
+    )
+    decompression = verification.index("contentBytes=await decompressGzip(transportBytes)")
+    content_digest = verification.index(
+        "observedContentDigest=await sha256Bytes(contentBytes)"
+    )
+    parsing = verification.index("JSON.parse")
+    assert transport_digest < decompression < content_digest < parsing
+    assert "index.assertedInventoryDigest!==data.distribution.assertedInventoryDigest" in scripts[-1]
+    assert 'location.protocol!=="file:"' in scripts[-1]
+    assert 'typeof DecompressionStream==="function"' in scripts[-1]
+
+
+def test_browser_shard_loader_rejects_transport_and_content_tampering(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "verified-shards.html"
+    manifest_digest = sha256_digest((FIXTURE / "atlas-manifest.json").read_bytes())
+    build_preview(FIXTURE, output, manifest_digest=manifest_digest)
+    rendered = output.read_text(encoding="utf-8")
+    embedded_match = re.search(
+        r'<script id="atlas-data" type="application/json">(.*?)</script>',
+        rendered,
+        re.DOTALL,
+    )
+    verified_load = re.search(
+        r"/\* atlas-verified-shard-load:start \*/(.*?)/\* atlas-verified-shard-load:end \*/",
+        rendered,
+        re.DOTALL,
+    )
+    assert embedded_match is not None
+    assert verified_load is not None
+    embedded = json.loads(embedded_match.group(1))
+    reference = embedded["fullCorpus"]["index"]
+    transport = (output.parent / reference["url"]).read_bytes()
+
+    transport_tamper = bytearray(transport)
+    transport_tamper[-1] ^= 1
+    content = gzip.decompress(transport)
+    modified_content = content.replace(b'"type"', b'"tyPe"', 1)
+    assert modified_content != content
+    modified_transport = gzip.compress(modified_content, compresslevel=9, mtime=0)
+    content_tamper_reference = json.loads(json.dumps(reference))
+    content_tamper_reference["transport"] = {
+        "byteLength": len(modified_transport),
+        "compression": "gzip",
+        "digest": sha256_digest(modified_transport),
+    }
+
+    script = "\n".join(
+        (
+            f"const data={json.dumps({'distribution': {'manifestDigest': manifest_digest}})};",
+            "const shardPayloads=new Map();",
+            'const textDecoder=new TextDecoder("utf-8",{fatal:true});',
+            verified_load.group(1),
+            "let responseBody;",
+            "globalThis.fetch=async()=>new Response(responseBody,{status:200});",
+            "async function attempt(encoded,ref){",
+            "  shardPayloads.clear();",
+            '  responseBody=Buffer.from(encoded,"base64");',
+            "  try{await fetchVerifiedShard(ref);return 'accepted';}",
+            "  catch(error){return String(error.message||error);}",
+            "}",
+            "(async()=>console.log(JSON.stringify({",
+            f"  good:await attempt('{base64.b64encode(transport).decode()}',{json.dumps(reference)}),",
+            f"  transport:await attempt('{base64.b64encode(transport_tamper).decode()}',{json.dumps(reference)}),",
+            f"  content:await attempt('{base64.b64encode(modified_transport).decode()}',{json.dumps(content_tamper_reference)})",
+            "})))();",
+        )
+    )
+    completed = subprocess.run(
+        ["node", "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    results = json.loads(completed.stdout)
+    assert results["good"] == "accepted"
+    assert "transport digest" in results["transport"]
+    assert "content digest" in results["content"]
 
 
 def test_renderer_rejects_an_incomplete_resource_index() -> None:

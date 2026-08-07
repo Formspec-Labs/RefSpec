@@ -1,4 +1,4 @@
-"""Build a self-contained visual preview from an Atlas 3.0 distribution."""
+"""Build a static full-corpus explorer from an Atlas 3.0 distribution."""
 
 from __future__ import annotations
 
@@ -8,7 +8,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from refspec.atlas.explorer import (
+    ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE,
     build_atlas_v3_explorer_model,
+    build_atlas_v3_explorer_static_shards,
     open_atlas_v3_explorer_distribution,
     render_atlas_v3_explorer,
 )
@@ -21,7 +23,7 @@ def build_preview(
     *,
     manifest_digest: str | None = None,
 ) -> Path:
-    """Verify the packed inputs and atomically write one bounded HTML preview."""
+    """Write an HTTP full-corpus explorer with a self-contained file fallback."""
 
     distribution = distribution.resolve(strict=True)
     manifest_path = distribution / "atlas-manifest.json"
@@ -30,9 +32,28 @@ def build_preview(
         distribution,
         trusted_manifest_digest=trusted_digest,
     )
-    preview = render_atlas_v3_explorer(build_atlas_v3_explorer_model(opened))
     output = output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
+    shard_parent_name = f"{output.stem}.shards"
+    manifest_key = trusted_digest.removeprefix("sha256:")
+    shard_directory = (
+        output.parent
+        / shard_parent_name
+        / manifest_key
+        / ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE
+    )
+    shard_url_prefix = (
+        f"{shard_parent_name}/{manifest_key}/"
+        f"{ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE}"
+    )
+    full_corpus = build_atlas_v3_explorer_static_shards(
+        opened,
+        shard_directory,
+        url_prefix=shard_url_prefix,
+    )
+    preview = render_atlas_v3_explorer(
+        build_atlas_v3_explorer_model(opened, full_corpus=full_corpus)
+    )
     temporary = output.with_name(f".{output.name}.tmp")
     temporary.write_text(preview, encoding="utf-8", newline="")
     temporary.replace(output)
