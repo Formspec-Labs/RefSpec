@@ -413,10 +413,11 @@ reference source. A source may supply zero, one, or several
 one scheme, one resource profile, and one semantic ring.
 
 Every source also records a closed `atlas:memberDisposition`. Seventy cataloged
-sources currently have member releases. The remaining eighteen explicitly name
-why they do not: their facts live in child releases or source assignments, they
-are definition-only, historical-only, review-withheld, source-empty, or a
-resource family. Descriptor-only no longer means "adapter status unknown."
+sources currently have member releases. The remaining nineteen explicitly name
+why they do not: their facts live in child releases, source assignments, or
+mapping assertions; they are definition-only, historical-only,
+review-withheld, source-empty, or a resource family. Descriptor-only no longer
+means "adapter status unknown."
 
 This corrects a category error in the first registry-wide implementation. The
 catalog rows describe sources: they carry an official locator, availability,
@@ -498,3 +499,142 @@ direct view must contain only triples licensed by current authoritative
 statements. Cut over only after those checks pass and complete-release
 measurements confirm that compact generation and validation materially reduce
 time and memory. Until then, rollback is simply omission of the sidecars.
+
+### REF-016: Apply publisher mappings across versions through explicit adoption
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+
+Atlas accepts versioned publisher alignment artifacts through one generic
+mapping-release boundary. A source adapter pins the exact mapping bytes, release
+metadata, source versions, direct triples, and any missing publisher version
+facts. The core generator does not contain source-specific version or input-role
+rules. This lets later or parallel alignment versions use the same build path
+without weakening provenance checks.
+
+A publisher mapping is `atlas:publisherAssertion` only for the release context
+the publisher actually states. When Atlas applies the same pinned triple to a
+different loaded edition, it records `atlas:operatorAdoption`, the Atlas decision
+date and reviewer, and the exact normalized endpoint releases. Aggregate counts
+in newer publisher metadata may corroborate that a linkset still exists; they do
+not prove that every older pair was re-reviewed. Atlas therefore records that
+limit and does not invent a confidence value.
+
+Every mapping source release keeps the digest and locator of the mapping artifact
+it identifies. Supporting release metadata remains separately pinned input; it
+is not folded into the publisher release digest. A new source version or Atlas
+adoption creates new immutable evidence against exact endpoint releases instead
+of rewriting an existing evidence binding. Missing endpoints, unexpected
+predicates, or unrecognized version facts fail closed.
+
+The portable Atlas 3.0 binding continues to support the five SKOS mapping
+predicates: `exactMatch`, `closeMatch`, `broadMatch`, `narrowMatch`, and
+`relatedMatch`. Each source adapter admits only predicates present in its pinned
+publisher profile. The EuroVoc--LCSH 20240711-0 artifact contains only
+`exactMatch` and `closeMatch`; its adapter rejects an unexpected predicate rather
+than silently discarding it. Subject mappings do not normalize `owl:sameAs`
+because RDF individual identity is stronger than a SKOS concept mapping.
+
+### REF-017: Reuse only verified pack transports during Atlas rebuilds
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+
+Atlas rebuilds may reuse compressed pack bytes from a prior Atlas 3
+distribution, but only after reconstructing, sorting, and receipting the current
+canonical N-Quads. Reuse requires the current and prior content digest, byte
+length, and quad count to match exactly. The producer copies the prior transport
+into a new candidate and verifies both its stored-byte receipt and decompressed
+content receipt before promotion. A missing prior distribution is a clean
+build; an unsafe or internally inconsistent reuse source fails closed.
+
+This is `incrementalPackMaterialization`, not incremental semantic construction.
+The current compiled producer proof still requires every normalized source row,
+global join, complete graph, source-accounting row, and canonical pack stream to
+be rebuilt and checked. The generation report records reused and rebuilt packs
+and states that boundary directly. Source-level incremental construction needs a
+new producer-proof profile or the independently accepted compact-record cutover
+in [REF-015](#ref-015-make-compact-managed-records-the-eventual-atlas-source-of-truth);
+pack reuse must not pretend that work is complete.
+
+### REF-018: Serve full-corpus exploration as a verified static view
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+
+The full-corpus explorer is a reproducible view beside an Atlas distribution,
+not another authoritative Atlas format. Its small root index pins the exact
+Atlas manifest and asserted inventory, the explorer recipe, every shard's
+relative path, byte length, SHA-256 digest, role, and record count. Stable hash
+prefixes route resource detail and adjacency reads; compact label pages support
+English search and browsing. The browser fetches a needed shard, verifies its
+digest, and only then parses or displays it.
+
+Ordinary static HTTP hosting is the complete mode and requires no database
+service. Direct `file://` viewing retains a clearly labeled, self-contained
+bounded fallback because browsers do not reliably allow sibling-file fetch and
+verification. Explorer shards remain disposable: they may be rebuilt from the
+pinned Atlas release, transfer no authority, and never change the asserted,
+projection, or derived graph roles.
+
+### REF-019: Reuse an exact Atlas distribution before source parsing
+
+- **Date:** 2026-08-06
+- **Status:** Accepted for the unreleased Atlas 3.0 implementation
+
+An Atlas build first checks whether a prior distribution is an exact reusable
+result. Its producer proof authenticates the complete raw-input inventory and a
+recipe digest covering the generator, registry parsers, Atlas source adapters,
+shared normalization code, and relevant Python, Unicode, RDF, SHACL, and
+Zstandard runtime versions. Reuse also requires the current binding, producer
+identity, manifest and member closure, source accounting, acceptance proof,
+every current raw input byte receipt, every stored pack receipt, and every
+decompressed pack receipt to match.
+
+When all checks pass, `exactDistributionReuse` keeps or copies the byte-identical
+distribution and skips source parsing, normalized-row validation and global
+joins, RDF graph construction, canonical sorting, and compression. A missing or
+incompatible receipt is a cache miss and runs the complete semantic build. A
+changed input or malformed artifact that claims compatibility fails closed.
+Verified compressed-pack reuse remains available during that complete rebuild.
+
+This is not incremental Atlas construction and does not claim partial per-source
+reuse. The current release packs do not carry pack-local producer proofs or the
+compact summaries needed to replay global resource uniqueness, endpoint-release
+membership, ring and predicate policy, SKOS conflicts, and source-accounting
+closure without reconstructing the full graph. Safe partial rebuilding requires
+immutable per-release build keys and packs, authenticated global-invariant
+summaries, a deterministic summary merge that reruns those checks, dependency
+invalidation for mappings and the catalog, and cold-build byte-parity tests. The
+compact-record cutover in REF-015 remains the preferred place to add that
+capability rather than treating compressed RDF as an unverified cache.
+
+### REF-020: Authenticate release-local Atlas construction for safe incremental builds
+
+- **Date:** 2026-08-06
+- **Status:** Accepted for the unreleased Atlas 3.0 implementation
+
+Atlas distributions include a required `atlas-construction-summary.json`
+member. It authenticates one construction unit per source or mapping release:
+the exact raw-input pins, adapter recipe, source release and ring, endpoint
+dependencies, deterministic build keys, source-accounting row, owned RDF packs,
+compact logical-record packs, and role counts. The producer proof pins the
+summary, and the manifest pins both files. Compact packs are transitively inside
+the closed distribution even though they are indexed by the summary instead of
+listed as RDF packs.
+
+Before parsing source data, an incremental build inventories the current raw
+inputs and compares their release-local build keys with a verified prior
+summary. It reuses clean construction units and their authenticated RDF,
+accounting, and compact records. A changed source rebuilds that source, every
+mapping whose endpoint dependency changed, and the catalog. Unknown roles,
+missing inputs, changed recipes, inconsistent receipts, and incomplete
+dependency closure fail closed. Exact whole-distribution reuse remains the
+fastest unchanged path; release-local reuse is the changed-input path.
+
+This summary is construction evidence, not a second knowledge model. Atlas 3.0
+RDF remains authoritative until REF-015's compact-record cutover passes full
+cold-versus-incremental parity, tamper, fixture, and independent-validation
+acceptance. A successful incremental build must produce the same authoritative
+distribution as a cold build from identical inputs; reuse changes work, never
+meaning.

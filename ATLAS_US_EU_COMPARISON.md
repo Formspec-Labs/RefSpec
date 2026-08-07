@@ -79,21 +79,22 @@ the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) and the
 
 The local full-development build reviewed on August 6, 2026 contained:
 
-- 108 source releases;
-- 578,914 resources;
-- 959,158 English labels; and
-- 531,068 assertions.
+- 110 source releases represented by 109 normalized Atlas releases;
+- 588,409 resources;
+- 984,114 English labels; and
+- 560,429 relationship assertions.
 
-It also contained zero cross-source mappings, zero projected relations, zero
-derived relations, and one cross-ring relation. Most resources belonged to the
-subject ring. These dated figures describe the ignored local build at
+It also contained 2,003 separately evidenced EuroVoc--LCSH mappings, zero
+projected relations, zero derived relations, and one cross-ring relation. Most
+resources belonged to the subject ring. These dated figures describe the ignored local build at
 `output/atlas-3.0-full-2026-08-06/`; they do not describe a published release.
 
 Atlas has therefore reached a specific stage:
 
 - The binding and release machinery are strong.
 - The current artifact faithfully federates source data.
-- Cross-source semantic reconciliation remains future work.
+- Cross-source semantic reconciliation has begun with one official alignment;
+  broader qualification remains future work.
 - Public stable URLs, APIs, editorial workflows, and service operations remain
   future work.
 
