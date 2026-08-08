@@ -2339,6 +2339,7 @@ class _CapAction(argparse.Action):
         values: Any,
         option_string: str | None = None,
     ) -> None:
+        del option_string  # Required by argparse.Action.__call__.
         caps = dict(getattr(namespace, self.dest) or {})
         name, _, value = str(values).partition("=")
         if name not in qual.VALIDATOR_FAMILIES:
