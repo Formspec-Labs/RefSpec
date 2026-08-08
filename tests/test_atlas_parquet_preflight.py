@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 
 import pyarrow as pa
 import pytest
 
+from refspec.atlas import parquet_preflight
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_preflight import (
     APPROVED,
     AtlasParquetPreflightError,
+    validate_atlas_parquet_preflight,
     validate_atlas_parquet_tables,
 )
+from refspec.atlas.parquet_view import VerifiedAtlasParquetInput
 
 
 def _tables() -> dict[str, pa.Table]:
@@ -121,6 +125,30 @@ def _replace_column(table: pa.Table, name: str, values: list[object]) -> pa.Tabl
     return table.set_column(table.schema.get_field_index(name), name, pa.array(values))
 
 
+def _digest(value: str) -> str:
+    return "sha256:" + value * 64
+
+
+def _verified_parquet_input() -> VerifiedAtlasParquetInput:
+    return VerifiedAtlasParquetInput(
+        root=Path("/test/distribution"),
+        manifest={
+            "binding": {
+                "bindingBundleDigest": _digest("1"),
+                "ontologyDigest": _digest("2"),
+            },
+            "canonicalPayloadDigest": _digest("3"),
+            "counts": {},
+            "distributionId": "urn:test:distribution",
+            "graphs": [{"inventoryDigest": _digest("4"), "role": "asserted"}],
+            "members": [{"digest": _digest("5"), "role": "constructionSummary"}],
+        },
+        manifest_digest=_digest("6"),
+        construction_summary={"compactPackInventoryDigest": _digest("7")},
+        compact_packs=(),
+    )
+
+
 def test_columnar_preflight_accepts_closed_relational_view() -> None:
     tables = _tables()
 
@@ -224,3 +252,74 @@ def test_columnar_preflight_checks_each_role_identity_once() -> None:
             view_counts=_counts(tables),
             distribution_counts=_distribution_counts(),
         )
+
+
+def test_authenticated_preflight_rejects_drift_in_any_input_pin(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    verified_input = _verified_parquet_input()
+    view_input_pin = verified_input.view_input_pin
+    view_input_pin["ontologyDigest"] = _digest("8")
+    view_manifest = {
+        "counts": {},
+        "input": view_input_pin,
+        "members": [],
+        "viewId": "urn:test:view",
+    }
+    monkeypatch.setattr(
+        parquet_preflight,
+        "verify_atlas_parquet_input",
+        lambda *_args, **_kwargs: verified_input,
+    )
+    monkeypatch.setattr(
+        parquet_preflight,
+        "verify_atlas_parquet_view",
+        lambda *_args, **_kwargs: view_manifest,
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.input-pin"):
+        validate_atlas_parquet_preflight(
+            tmp_path / "distribution",
+            tmp_path / "view",
+            expected_distribution_manifest_digest=_digest("6"),
+            expected_view_manifest_digest=_digest("9"),
+        )
+
+
+def test_authenticated_preflight_normalizes_returned_view_digest(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    verified_input = _verified_parquet_input()
+    view_manifest = {
+        "counts": {},
+        "input": verified_input.view_input_pin,
+        "members": [],
+        "viewId": "urn:test:view",
+    }
+    monkeypatch.setattr(
+        parquet_preflight,
+        "verify_atlas_parquet_input",
+        lambda *_args, **_kwargs: verified_input,
+    )
+    monkeypatch.setattr(
+        parquet_preflight,
+        "verify_atlas_parquet_view",
+        lambda *_args, **_kwargs: view_manifest,
+    )
+    monkeypatch.setattr(
+        parquet_preflight,
+        "validate_atlas_parquet_tables",
+        lambda *_args, **_kwargs: {"status": "passed"},
+    )
+
+    view_digest = "9" * 64
+    result = validate_atlas_parquet_preflight(
+        tmp_path / "distribution",
+        tmp_path / "view",
+        expected_distribution_manifest_digest=_digest("6"),
+        expected_view_manifest_digest=view_digest,
+    )
+
+    assert result["viewManifestDigest"] == "sha256:" + view_digest

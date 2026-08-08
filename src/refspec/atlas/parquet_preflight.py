@@ -19,7 +19,7 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_view import (
-    _verify_input,
+    verify_atlas_parquet_input,
     verify_atlas_parquet_view,
 )
 
@@ -560,20 +560,13 @@ def validate_atlas_parquet_preflight(
     # The view builder uses this same closed-distribution verifier before it
     # reads compact packs. Keeping one implementation prevents trust-chain
     # drift while the preflight API is still experimental.
-    verified_input = _verify_input(distribution, expected_distribution_manifest_digest)
+    verified_input = verify_atlas_parquet_input(distribution, expected_distribution_manifest_digest)
     view_manifest = verify_atlas_parquet_view(
         view,
         expected_manifest_digest=expected_view_manifest_digest,
     )
-    if view_manifest["input"]["manifestSha256"] != verified_input.manifest_digest:
-        _fail("preflight.input-pin", "Parquet view does not pin the supplied Atlas distribution")
-    if view_manifest["input"]["distributionId"] != verified_input.manifest["distributionId"]:
-        _fail("preflight.input-pin", "Parquet view distribution identifier differs")
-    if (
-        view_manifest["input"]["compactPackInventoryDigest"]
-        != verified_input.construction_summary["compactPackInventoryDigest"]
-    ):
-        _fail("preflight.input-pin", "Parquet view compact-pack inventory differs")
+    if view_manifest["input"] != verified_input.view_input_pin:
+        _fail("preflight.input-pin", "Parquet view does not pin the complete supplied Atlas input")
 
     tables: dict[str, pa.Table] = {}
     for member in view_manifest["members"]:
@@ -588,7 +581,11 @@ def validate_atlas_parquet_preflight(
         "distributionId": verified_input.manifest["distributionId"],
         "distributionManifestDigest": verified_input.manifest_digest,
         "viewId": view_manifest["viewId"],
-        "viewManifestDigest": expected_view_manifest_digest,
+        "viewManifestDigest": (
+            expected_view_manifest_digest
+            if expected_view_manifest_digest.startswith("sha256:")
+            else "sha256:" + expected_view_manifest_digest
+        ),
     }
 
 

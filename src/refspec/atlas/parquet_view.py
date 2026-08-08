@@ -312,9 +312,7 @@ def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
             "policy": row["policy"],
             "asserted_at": row["assertedAt"],
             "assertion_status": row["assertionStatus"],
-            "assertion_identity_digest": _digest_bytes(
-                row["assertionIdentityDigest"], "assertionIdentityDigest"
-            ),
+            "assertion_identity_digest": _digest_bytes(row["assertionIdentityDigest"], "assertionIdentityDigest"),
             "semantic_ring": row.get("semanticRing"),
             "source_ring": row.get("sourceRing"),
             "target_ring": row.get("targetRing"),
@@ -381,15 +379,41 @@ def _chunks(rows: Sequence[Mapping[str, Any]], size: int = ROW_GROUP_SIZE) -> It
 
 
 @dataclass(frozen=True, slots=True)
-class _VerifiedInput:
+class VerifiedAtlasParquetInput:
+    """Verified Atlas metadata needed to derive a Parquet view."""
+
     root: Path
     manifest: Mapping[str, Any]
     manifest_digest: str
     construction_summary: Mapping[str, Any]
     compact_packs: tuple[Mapping[str, Any], ...]
 
+    @property
+    def view_input_pin(self) -> dict[str, Any]:
+        """Return the complete authenticated input identity for a derived view."""
 
-def _verify_input(root: Path, expected_manifest_digest: str) -> _VerifiedInput:
+        asserted = next(graph for graph in self.manifest["graphs"] if graph["role"] == "asserted")
+        construction = next(member for member in self.manifest["members"] if member["role"] == "constructionSummary")
+        return {
+            "assertedInventoryDigest": asserted["inventoryDigest"],
+            "bindingBundleDigest": self.manifest["binding"]["bindingBundleDigest"],
+            "canonicalPayloadDigest": self.manifest["canonicalPayloadDigest"],
+            "compactPackInventoryDigest": self.construction_summary["compactPackInventoryDigest"],
+            "constructionSummaryDigest": construction["digest"],
+            "distributionId": self.manifest["distributionId"],
+            "manifestSha256": self.manifest_digest,
+            "ontologyDigest": self.manifest["binding"]["ontologyDigest"],
+        }
+
+
+def verify_atlas_parquet_input(root: Path, expected_manifest_digest: str) -> VerifiedAtlasParquetInput:
+    """Verify the Atlas manifest, supporting members, and pack inventory.
+
+    Compact-pack bytes are authenticated when the builder reads them. This
+    check is not an Atlas release-conformance verdict; call the independent
+    Atlas validator for that verdict.
+    """
+
     if root.is_symlink() or not root.is_dir():
         raise AtlasParquetViewError("Atlas distribution root must be a regular directory")
     expected_manifest_digest = (
@@ -510,13 +534,11 @@ def _verify_input(root: Path, expected_manifest_digest: str) -> _VerifiedInput:
     if compact_paths != sorted(compact_paths) or len(compact_paths) != len(set(compact_paths)):
         raise AtlasParquetViewError("compact pack paths must be unique and sorted")
     observed_files = {
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.is_file() or path.is_symlink()
+        path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file() or path.is_symlink()
     }
     if observed_files != expected_files:
         raise AtlasParquetViewError("Atlas distribution file membership is not closed")
-    return _VerifiedInput(
+    return VerifiedAtlasParquetInput(
         root=root.resolve(),
         manifest=manifest,
         manifest_digest=expected_manifest_digest,
@@ -525,10 +547,11 @@ def _verify_input(root: Path, expected_manifest_digest: str) -> _VerifiedInput:
     )
 
 
-def _write_tables(input_: _VerifiedInput, output: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    descriptors_by_role: dict[CompactRecordRole, list[Mapping[str, Any]]] = {
-        role: [] for role in CompactRecordRole
-    }
+def _write_tables(
+    input_: VerifiedAtlasParquetInput,
+    output: Path,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    descriptors_by_role: dict[CompactRecordRole, list[Mapping[str, Any]]] = {role: [] for role in CompactRecordRole}
     for descriptor in input_.compact_packs:
         try:
             role = CompactRecordRole(str(descriptor.get("role")))
@@ -600,11 +623,10 @@ def build_atlas_parquet_view(
     if output.is_symlink() or output.exists():
         raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
-    input_ = _verify_input(distribution, expected_manifest_digest)
+    input_ = verify_atlas_parquet_input(distribution, expected_manifest_digest)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
         members, counts = _write_tables(input_, temporary)
-        asserted = next(graph for graph in input_.manifest["graphs"] if graph["role"] == "asserted")
         construction = {
             "compression": COMPRESSION,
             "compressionLevel": COMPRESSION_LEVEL,
@@ -615,20 +637,7 @@ def build_atlas_parquet_view(
             "rowGroupSize": ROW_GROUP_SIZE,
             "sourceRepresentation": "authenticatedAtlasCompactLogicalRecords",
         }
-        input_pin = {
-            "assertedInventoryDigest": asserted["inventoryDigest"],
-            "bindingBundleDigest": input_.manifest["binding"]["bindingBundleDigest"],
-            "canonicalPayloadDigest": input_.manifest["canonicalPayloadDigest"],
-            "compactPackInventoryDigest": input_.construction_summary["compactPackInventoryDigest"],
-            "constructionSummaryDigest": next(
-                member["digest"]
-                for member in input_.manifest["members"]
-                if member["role"] == "constructionSummary"
-            ),
-            "distributionId": input_.manifest["distributionId"],
-            "manifestSha256": input_.manifest_digest,
-            "ontologyDigest": input_.manifest["binding"]["ontologyDigest"],
-        }
+        input_pin = input_.view_input_pin
         identity = _payload_digest({"construction": construction, "input": input_pin})
         manifest: dict[str, Any] = {
             "construction": construction,
@@ -726,9 +735,7 @@ def verify_atlas_parquet_view(
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
     observed_files = {
-        path.relative_to(directory).as_posix()
-        for path in directory.rglob("*")
-        if path.is_file() or path.is_symlink()
+        path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
     }
     if observed_files != expected_files:
         raise AtlasParquetViewError("Atlas Parquet view file membership is not closed")
@@ -737,6 +744,8 @@ def verify_atlas_parquet_view(
 
 __all__ = [
     "AtlasParquetViewError",
+    "VerifiedAtlasParquetInput",
     "build_atlas_parquet_view",
+    "verify_atlas_parquet_input",
     "verify_atlas_parquet_view",
 ]
