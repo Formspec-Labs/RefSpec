@@ -12,11 +12,12 @@
 > [REF-001 through REF-006](../docs/decisions.md). **It is not a normative specification and
 > it does not describe the implemented release model.**
 >
-> **The implemented model is `ManagedVocabularyBundle` plus `VocabularyAtlasAsset`.** The
-> active consumer format is the
-> [Vocabulary Atlas Distribution 2.0 binding](../bindings/atlas/2.0/README.md). The
-> implementation is [`src/refspec/atlas/`](../src/refspec/atlas) and
-> [`src/refspec/managed_release.py`](../src/refspec/managed_release.py).
+> **The historical implementation referenced here used `ManagedVocabularyBundle` plus
+> `VocabularyAtlasAsset`.** Those Atlas 2.0 APIs are now legacy surfaces. The active consumer
+> format is the
+> [Vocabulary Atlas Distribution 3.0 binding](../bindings/atlas/3.0/README.md). Current code is
+> under [`src/refspec/atlas/`](../src/refspec/atlas); managed-release compatibility code remains
+> in [`src/refspec/managed_release.py`](../src/refspec/managed_release.py).
 >
 > **What was retired.** The compact `VocabularyRelease` object, the release digest taken over
 > that object, the `urn:refspec:vocabulary-release:<hex>` identifier, the required root-section

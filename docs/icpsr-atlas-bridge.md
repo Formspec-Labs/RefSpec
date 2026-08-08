@@ -185,10 +185,9 @@ outside the retired set consumers filter on. The Federal Register adapter says
 
 The measurements below came from the retired Atlas 1.0 command and two-graph
 format. Treat them as evidence about the verified ICPSR capture and its size,
-not as current build instructions. Atlas 2.0 construction accepts an opened
-`PinnedVocabularyAtlasScope` through the programmatic API. RefSpec will add a
-producer command after it defines a pinned build-input file for the scope's
-path-backed inputs and trusted readers.
+not as current build instructions. The later Atlas 2.0 path accepted an opened
+`PinnedVocabularyAtlasScope` through the programmatic API. Current producers
+target the [Atlas 3.0 binding](../bindings/atlas/3.0/README.md).
 
 **ICPSR alone**, from the real capture:
 
@@ -216,9 +215,9 @@ itself.
 
 The retired `VocabularyAtlasAsset.reproduce_from_inputs` path rebuilt this
 distribution byte for byte from the pinned bundle and Rulespec Core release.
-That result establishes the historical measurement; current Atlas 2.0 producer
-reproduction uses `VocabularyAtlasAsset.reproduce_from_scope` with the exact
-path-backed scope.
+That result establishes the historical measurement. The later Atlas 2.0
+producer used `VocabularyAtlasAsset.reproduce_from_scope` with the exact
+path-backed scope; neither path defines current Atlas 3 construction.
 
 **All three vocabularies**, the acid test: Federal Register 2025 + ELSST R5/R6
 + ICPSR, one retired build, no crosswalk.

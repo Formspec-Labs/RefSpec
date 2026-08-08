@@ -1,5 +1,10 @@
 # Publish and inspect Atlas 2.0
 
+> **Historical:** This runbook preserves the retired Atlas 2.0 publication
+> path. New producers and consumers use the
+> [Atlas 3.0 binding](../bindings/atlas/3.0/README.md) and its independent
+> validator.
+
 The Atlas 2.0 publisher turns one authorized canonical atlas or closed
 projection into a static directory. It preserves the source distribution and
 the publication decision exactly. The added gzip download and bounded explorer
