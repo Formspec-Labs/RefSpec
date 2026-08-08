@@ -6,15 +6,16 @@ import json
 import tempfile
 from collections import Counter, defaultdict
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, cast
+from typing import Any
 
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
+from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
 from refspec.atlas.explorer_rdf import (
     _EXPLORER_RECORD_PREFIX_LENGTH,
     _EXPLORER_SHARD_BUNDLE_TYPE,
@@ -28,7 +29,6 @@ from refspec.atlas.explorer_rdf import (
     EXPLORER_SCHEMA_VERSION,
     EXPLORER_TYPE,
     PLANNING_FILTER_SEMANTICS,
-    Atlas3ExplorerError,
     AtlasExplorerError,
     _explorer_hash_prefix,
     _finalize_explorer_page_shards,
@@ -40,60 +40,14 @@ from refspec.atlas.explorer_rdf import (
     render_atlas_explorer,
     render_atlas_v3_explorer,
 )
-from refspec.atlas.parquet_search_view import verify_atlas_parquet_search_view
 
-AtlasParquetExplorerError = Atlas3ExplorerError
+AtlasParquetExplorer = AtlasDuckDBView
+AtlasParquetExplorerError = AtlasDuckDBViewError
 
 _ATLAS = "https://refspec.org/ns/atlas/v3#"
 _RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 _DEFAULT_RESOURCE_LIMIT = 2_000
 _DEFAULT_RELATION_LIMIT = 750
-
-
-@dataclass(frozen=True)
-class AtlasParquetExplorer:
-    """One verified compact Parquet view opened for browsing."""
-
-    root: Path
-    manifest_digest: str
-    manifest: Mapping[str, Any]
-    tables: Mapping[CompactRecordRole, Path]
-
-    @classmethod
-    def open(
-        cls,
-        root: str | Path,
-        *,
-        trusted_manifest_digest: str,
-    ) -> AtlasParquetExplorer:
-        resolved = Path(root).resolve(strict=True)
-        digest = _digest(trusted_manifest_digest)
-        manifest = verify_atlas_parquet_search_view(
-            resolved,
-            expected_manifest_digest=digest,
-        )
-        tables = {
-            CompactRecordRole(member["role"]): resolved / member["path"]
-            for member in manifest["members"]
-        }
-        return cls(resolved, digest, manifest, tables)
-
-    @property
-    def atlas_input(self) -> Mapping[str, Any]:
-        return cast(Mapping[str, Any], self.manifest["input"]["atlas"])
-
-    @property
-    def counts(self) -> Mapping[str, int]:
-        return cast(Mapping[str, int], self.manifest["counts"])
-
-
-def _digest(value: str) -> str:
-    normalized = value if value.startswith("sha256:") else f"sha256:{value}"
-    suffix = normalized.removeprefix("sha256:")
-    if len(suffix) != 64 or any(character not in "0123456789abcdef" for character in suffix):
-        raise AtlasParquetExplorerError("Parquet explorer manifest digest is invalid")
-    return normalized
-
 
 def _short(value: str | None) -> str:
     if not value:
@@ -170,28 +124,9 @@ def open_atlas_explorer(
 
 
 def atlas_explorer_facets(view: AtlasParquetExplorer) -> dict[str, Any]:
-    """Return release and ring filters without loading RDF or browser shards."""
+    """Return release and ring filters through the reusable query view."""
 
-    member_counts = _group_counts(view.tables[CompactRecordRole.RESOURCE], "release")
-    ring_counts = _group_counts(view.tables[CompactRecordRole.RESOURCE], "semantic_ring")
-    releases = [
-        {
-            "count": member_counts[row["id"]],
-            "id": row["id"],
-            "identifier": row["identifier"],
-            "ring": row["semantic_ring"],
-        }
-        for row in _iter_rows(view.tables[CompactRecordRole.RELEASE])
-        if row["release_type"] == "AtlasRelease"
-    ]
-    return {
-        "counts": {
-            "resources": view.counts[CompactRecordRole.RESOURCE.value],
-            "statements": view.counts[CompactRecordRole.STATEMENT.value],
-        },
-        "releases": sorted(releases, key=lambda row: (row["identifier"].casefold(), row["id"])),
-        "rings": [{"count": count, "id": ring} for ring, count in sorted(ring_counts.items())],
-    }
+    return view.facets()
 
 
 def search_atlas_parquet(
@@ -199,159 +134,35 @@ def search_atlas_parquet(
     query: str = "",
     *,
     release: str = "",
+    releases: Sequence[str] = (),
     ring: str = "",
     limit: int = 100,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
-    """Search useful resource text and apply release and ring filters."""
+    """Search useful resource text with DuckDB BM25 and stable paging."""
 
-    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 500:
-        raise AtlasParquetExplorerError("search limit must be between 1 and 500")
-    normalized = query.strip()
-    candidate_ids: set[str] | None = None
-    if normalized:
-        candidate_ids = set()
-        for batch in pq.ParquetFile(view.tables[CompactRecordRole.LABEL]).iter_batches(
-            batch_size=50_000,
-            columns=["resource", "value"],
-        ):
-            matches = batch.filter(pc.match_substring(batch.column("value"), normalized, ignore_case=True))
-            candidate_ids.update(matches.column("resource").to_pylist())
-        for batch in pq.ParquetFile(view.tables[CompactRecordRole.IDENTIFIER]).iter_batches(
-            batch_size=50_000,
-            columns=["identifier_value", "identifies"],
-        ):
-            matches = batch.filter(
-                pc.match_substring(batch.column("identifier_value"), normalized, ignore_case=True)
-            )
-            candidate_ids.update(matches.column("identifies").to_pylist())
-        for batch in pq.ParquetFile(view.tables[CompactRecordRole.RESOURCE]).iter_batches(
-            batch_size=50_000,
-            columns=["id"],
-        ):
-            matches = batch.filter(pc.match_substring(batch.column("id"), normalized, ignore_case=True))
-            candidate_ids.update(matches.column("id").to_pylist())
-
-    rows: list[dict[str, Any]] = []
-    for row in _iter_rows(
-        view.tables[CompactRecordRole.RESOURCE],
-        columns=["id", "release", "semantic_ring", "resource_profile", "definition", "notations"],
-    ):
-        if candidate_ids is not None and row["id"] not in candidate_ids:
-            continue
-        if release and row["release"] != release:
-            continue
-        if ring and row["semantic_ring"] != ring:
-            continue
-        rows.append(row)
-        if candidate_ids is None and len(rows) >= limit * 4:
-            break
-    labels = _labels_for(view, {row["id"] for row in rows})
-    results = [
-        {
-            "definition": row["definition"],
-            "id": row["id"],
-            "label": (labels.get(row["id"]) or [{"value": _short(row["id"])}])[0]["value"],
-            "notations": row["notations"] or [],
-            "profile": row["resource_profile"],
-            "release": row["release"],
-            "ring": row["semantic_ring"],
-        }
-        for row in rows
-    ]
-    query_key = normalized.casefold()
-
-    def result_order(row: Mapping[str, Any]) -> tuple[int, int, str, str]:
-        label = cast(str, row["label"])
-        label_key = label.casefold()
-        if not query_key or label_key == query_key:
-            rank = 0
-        elif label_key.startswith(query_key):
-            rank = 1
-        elif any(word.startswith(query_key) for word in label_key.split()):
-            rank = 2
-        elif query_key in label_key:
-            rank = 3
-        else:
-            rank = 4
-        return rank, len(label), label_key, cast(str, row["id"])
-
-    results.sort(key=result_order)
-    return results[:limit]
+    return view.search(
+        query,
+        release=release,
+        releases=releases,
+        ring=ring,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def atlas_parquet_resource(view: AtlasParquetExplorer, resource_id: str) -> dict[str, Any]:
-    """Return one resource and its directly useful relations and evidence."""
+    """Return one resource neighborhood through the reusable query view."""
 
-    resources = _table_rows_for_values(view.tables[CompactRecordRole.RESOURCE], "id", {resource_id})
-    if len(resources) != 1:
-        raise AtlasParquetExplorerError("resource is not present in the Parquet view")
-    resource = resources[0]
-    labels = _labels_for(view, {resource_id}).get(resource_id, [])
-    identifiers = _table_rows_for_values(
-        view.tables[CompactRecordRole.IDENTIFIER],
-        "identifies",
-        {resource_id},
-    )
-    relations: list[dict[str, Any]] = []
-    for batch in pq.ParquetFile(view.tables[CompactRecordRole.STATEMENT]).iter_batches(batch_size=50_000):
-        matches = batch.filter(
-            pc.or_(pc.equal(batch.column("subject"), resource_id), pc.equal(batch.column("object"), resource_id))
-        )
-        relations.extend(matches.to_pylist())
-    statement_ids = {row["id"] for row in relations}
-    evidence = _table_rows_for_values(
-        view.tables[CompactRecordRole.EVIDENCE_BINDING],
-        "statement",
-        statement_ids,
-    )
-    evidence_counts = Counter(row["statement"] for row in evidence)
-    for row in relations:
-        row["evidence_count"] = evidence_counts[row["id"]]
-    return {
-        "definition": resource["definition"],
-        "id": resource_id,
-        "identifiers": [
-            {"scheme": row["identifier_scheme"], "value": row["identifier_value"]}
-            for row in identifiers
-        ],
-        "labels": labels,
-        "notations": resource["notations"] or [],
-        "notes": resource["notes"] or [],
-        "profile": resource["resource_profile"],
-        "relations": relations,
-        "release": resource["release"],
-        "ring": resource["semantic_ring"],
-        "scheme": resource["scheme"],
-        "sourceRecord": resource["source_record"],
-        "status": resource["record_status"],
-    }
+    return view.resource(resource_id)
 
 
-_PARQUET_EXPLORER_HTML = r"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RefSpec Atlas explorer</title><style>
-:root{color-scheme:dark;font-family:ui-sans-serif,system-ui;background:#09100e;color:#edf4f0}*{box-sizing:border-box}
-body{margin:0}header{padding:18px 24px;border-bottom:1px solid #2b3c36}h1{margin:0;font-size:22px}header p{margin:5px 0 0;color:#9caaa4}
-main{display:grid;grid-template-columns:minmax(340px,42%) 1fr;min-height:calc(100vh - 82px)}aside,article{padding:20px;overflow:auto}aside{border-right:1px solid #2b3c36}
-.filters{display:grid;grid-template-columns:1fr 170px 130px;gap:8px;position:sticky;top:0;background:#09100e;padding-bottom:14px}input,select{width:100%;padding:10px;border:1px solid #3b4f48;border-radius:5px;background:#101a17;color:inherit}
-button.result{display:block;width:100%;padding:12px 0;text-align:left;border:0;border-top:1px solid #263530;background:transparent;color:inherit;cursor:pointer}.result b{display:block}.result small,.muted{color:#9caaa4}
-h2{margin-top:0}.tag{display:inline-block;margin:0 5px 5px 0;padding:3px 7px;border-radius:10px;background:#1b2b26;color:#99ddd0;font-size:12px}.relation{padding:10px 0;border-top:1px solid #263530}.iri{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px;color:#9caaa4}
-@media(max-width:800px){main{display:block}.filters{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #2b3c36}}
-</style></head><body><header><h1>RefSpec Atlas explorer</h1><p id="counts">Loading Parquet data…</p></header><main><aside><div class="filters"><input id="q" type="search" placeholder="Search labels, identifiers, or IRIs"><select id="release"><option value="">All releases</option></select><select id="ring"><option value="">All rings</option></select></div><div id="results"></div></aside><article id="detail"><p class="muted">Choose a resource to see its labels, identifiers, and relationships.</p></article></main><script>
-const q=document.querySelector('#q'),release=document.querySelector('#release'),ring=document.querySelector('#ring'),results=document.querySelector('#results'),detail=document.querySelector('#detail');
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let timer;
-async function get(path){const r=await fetch(path);if(!r.ok)throw new Error(await r.text());return r.json()}
-async function search(){const p=new URLSearchParams({q:q.value,release:release.value,ring:ring.value,limit:'100'});const rows=await get('/api/search?'+p);results.innerHTML=rows.map((r,i)=>`<button class="result" data-i="${i}"><b>${esc(r.label)}</b><small>${esc(r.ring)} · ${esc(r.profile)}</small></button>`).join('')||'<p class="muted">No matches.</p>';results.querySelectorAll('button').forEach(b=>b.onclick=()=>show(rows[Number(b.dataset.i)].id))}
-async function show(id){const r=await get('/api/resource?id='+encodeURIComponent(id)),label=r.labels[0]?.value||r.id;detail.innerHTML=`<h2>${esc(label)}</h2><p class="iri">${esc(r.id)}</p><p>${esc(r.definition||'')}</p><p>${r.labels.map(x=>`<span class="tag">${esc(x.role)}: ${esc(x.value)}</span>`).join('')}</p><p>${r.identifiers.map(x=>`<span class="tag">${esc(x.value)}</span>`).join('')}</p><h3>${r.relations.length} relationships</h3>${r.relations.map(x=>`<div class="relation"><b>${esc(x.subject===r.id?'outgoing':'incoming')} · ${esc(x.predicate.split(/[#/]/).pop())}</b><div class="iri">${esc(x.subject)} → ${esc(x.object)}</div><small>${esc(x.statement_type)} · ${x.evidence_count} evidence record(s)</small></div>`).join('')}`}
-q.oninput=()=>{clearTimeout(timer);timer=setTimeout(search,180)};release.onchange=ring.onchange=search;
-(async()=>{const f=await get('/api/facets');document.querySelector('#counts').textContent=`${f.counts.resources.toLocaleString()} resources · ${f.counts.statements.toLocaleString()} relationships`;f.releases.forEach(x=>release.add(new Option(`${x.identifier} (${x.count.toLocaleString()})`,x.id)));f.rings.forEach(x=>ring.add(new Option(`${x.id} (${x.count.toLocaleString()})`,x.id)));await search()})().catch(e=>{results.textContent=e.message});
-</script></body></html>"""
 
 
 def render_atlas_parquet_explorer() -> str:
-    """Return the small browser application served beside the Parquet API."""
+    """Return the storage-neutral browser served beside the Parquet API."""
 
-    return _PARQUET_EXPLORER_HTML
+    return render_atlas_explorer_frontend()
 
 
 def _resource_record(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -969,9 +780,13 @@ __all__ = [
     "AtlasExplorerError",
     "AtlasParquetExplorer",
     "AtlasParquetExplorerError",
+    "atlas_explorer_facets",
+    "atlas_parquet_resource",
     "build_atlas_explorer_model",
     "build_atlas_explorer_static_shards",
     "open_atlas_explorer",
     "render_atlas_explorer",
+    "render_atlas_parquet_explorer",
     "render_atlas_v3_explorer",
+    "search_atlas_parquet",
 ]

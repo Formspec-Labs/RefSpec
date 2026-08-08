@@ -37,6 +37,13 @@ from .concept_staging import (
     build_concept_authoring_transition,
     read_concept_authoring_transition,
 )
+from .duckdb_view import (
+    ATLAS_DUCKDB_TABLES,
+    ATLAS_SEARCH_DOCUMENTS_TABLE,
+    AtlasDuckDBView,
+    AtlasDuckDBViewError,
+    open_atlas_duckdb_view,
+)
 from .frontier_release import (
     FrontierReleaseError,
     cut_subject_frontier_release,
@@ -167,11 +174,13 @@ from .subject_emission import (
 
 __all__ = [
     "ATLAS",
+    "ATLAS_DUCKDB_TABLES",
     "ATLAS_INDEX",
     "ATLAS_RELEASE_SNAPSHOT_TYPE",
     "ATLAS_RELEASE_SNAPSHOT_VERSION",
     "ATLAS_SCOPE_TYPE",
     "ATLAS_SCOPE_VERSION",
+    "ATLAS_SEARCH_DOCUMENTS_TABLE",
     "CONCEPT_AUTHORING_TRANSITION_TYPE",
     "CONCEPT_AUTHORING_TRANSITION_VERSION",
     "CROSSWALK_MACHINE_PROOF_ADAPTER",
@@ -196,6 +205,8 @@ __all__ = [
     "SUBJECT_EMISSION_POLICY_TYPE",
     "SUBJECT_EMISSION_POLICY_VERSION",
     "AcceptanceCheckStatus",
+    "AtlasDuckDBView",
+    "AtlasDuckDBViewError",
     "AtlasIndexClassification",
     "AtlasPublication",
     "AtlasPublicationError",
@@ -280,6 +291,7 @@ __all__ = [
     "machine_evidence_class_for_proof_kind",
     "module_projection_policy",
     "normalize_concept_release_pin",
+    "open_atlas_duckdb_view",
     "publish_vocabulary_atlas",
     "read_concept_authoring_transition",
     "read_vocabulary_atlas_publication_decision",

@@ -638,3 +638,30 @@ cold-versus-incremental parity, tamper, fixture, and independent-validation
 acceptance. A successful incremental build must produce the same authoritative
 distribution as a cold build from identical inputs; reuse changes work, never
 meaning.
+
+### REF-021: Use DuckDB as a reusable local Atlas query layer
+
+- **Date:** 2026-08-08
+- **Status:** Accepted for local query and explorer use
+
+RefSpec supplies `refspec.atlas.duckdb_view` as the reusable query boundary over
+an externally digest-pinned compact Atlas Parquet view. It verifies the closed
+input before opening stable SQL views for every compact record role. Consumers
+may run parameterized row or Arrow queries through that session. The explorer
+depends on the same small `facets`, `search`, and `resource` interface rather
+than owning DuckDB setup or Atlas query rules.
+
+Nonblank text search materializes one local resource-search table and builds a
+native DuckDB BM25 index lazily. The writable DuckDB file lives in a temporary
+directory outside the closed Parquet artifact, serves only the pinned immutable
+input, serializes access through one local session, and is removed on close. It
+is neither an Atlas release member nor a competing knowledge model. Failure to
+load DuckDB's official `fts` extension is explicit; RefSpec does not silently
+restore the former hand-written ranking.
+
+This decision does not replace REF-018. The full RDF explorer still uses
+verified static shards for graph authority layers, adjacency, and evidence; a
+local server may delegate only ranked search to the matching DuckDB view. The
+static explorer remains usable without DuckDB. Canonical Atlas authority stays
+with the accepted release representation, and SpicySearch continues to own
+product retrieval, ranking, and agent-facing search behavior.

@@ -119,9 +119,39 @@ manifest SHA-256 is
 
 ## Explore the data
 
-The Atlas explorer reads this compact view directly. It searches labels and
-identifiers, filters resources and relations, and opens provenance details from
-the Parquet-derived browser files. It does not reopen or parse the RDF packs.
+The reusable `refspec.atlas.duckdb_view` package verifies the compact view and
+then opens named DuckDB views over its Parquet members:
+
+- `atlas_resources`;
+- `atlas_labels`;
+- `atlas_statements`;
+- `atlas_evidence_bindings`;
+- `atlas_source_records`;
+- `atlas_releases`;
+- `atlas_identifiers`; and
+- `atlas_lifecycle_events`.
+
+The package exposes parameterized row and Arrow queries as well as the
+`facets()`, `search()`, and `resource()` operations used by the explorer. This
+keeps DuckDB independent of the user interface, so a notebook or another local
+consumer can use the same verified tables without importing explorer code.
+
+```python
+from refspec.atlas import open_atlas_duckdb_view
+
+with open_atlas_duckdb_view(
+    "output/atlas-3.0-parquet-search-view-2026-08-07",
+    trusted_manifest_digest="sha256:b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c",
+) as atlas:
+    rows = atlas.query_rows(
+        "SELECT id, definition FROM atlas_resources WHERE semantic_ring = ? LIMIT 20",
+        ("subject",),
+    )
+```
+
+The explorer searches labels, aliases, notations, identifiers, definitions,
+and resource IRIs; filters resources and relations; and opens provenance
+details without parsing the RDF packs.
 
 ```sh
 uv run refspec-atlas-explorer \
@@ -129,10 +159,35 @@ uv run refspec-atlas-explorer \
   --manifest-digest b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c
 ```
 
-The command opens `http://127.0.0.1:8000/` and queries the Parquet tables in
-place. It does not create another full-corpus copy. Use `--no-browser` when the
-caller manages the browser, and use `--port 0` to select an available port.
+The command opens `http://127.0.0.1:8000/`. DuckDB reads ordinary graph queries
+from Parquet. On the first nonblank search, it creates a disposable local table
+and a native BM25 full-text index outside the verified directory. The measured
+588,409-resource development view produced a roughly 117 MiB temporary DuckDB
+file. The server removes that file when it closes; it is not a released Atlas
+member or another source of truth.
 
-The former RDF-backed implementation remains in
-`refspec.atlas.explorer_rdf` for compatibility tests. It is not used by the
-normal `refspec-atlas-explorer` command.
+DuckDB full-text search uses its official `fts` extension. DuckDB may download
+that extension on first use, after which the local cache supports offline use.
+The explorer reports a clear error if the extension is unavailable; it does not
+silently substitute a different ranking rule.
+
+The full RDF graph explorer can retain its asserted, projection, and derived
+authority layers while delegating only ranked text search to this query package:
+
+```sh
+uv run refspec-atlas-explorer \
+  output/atlas-3.0-full-2026-08-06/atlas-explorer-preview.html \
+  --search-view output/atlas-3.0-parquet-search-view-2026-08-07 \
+  --manifest-digest b2a8144a462a206ef283af44a5fdcd46449d15044a702c8dc0c77f07427f0d1c
+```
+
+The server rejects an RDF preview and compact view that pin different Atlas
+distribution IDs or manifest digests. Omitting `--search-view` retains the
+verified static-shard search from REF-018 and requires no database service.
+
+Use `--no-browser` when the caller manages the browser, and use `--port 0` to
+select an available port.
+
+DuckDB is a local query implementation, not an Atlas publication format.
+Canonical RDF, the verified Parquet input, and SpicySearch's product search and
+ranking responsibilities remain unchanged.

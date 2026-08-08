@@ -8,15 +8,19 @@ import pyarrow.parquet as pq
 import pytest
 
 from refspec.atlas.compact_pack import CompactPackHeader, CompactRecordRole, write_compact_record_pack
+from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
 from refspec.atlas.explorer import (
     atlas_explorer_facets,
     atlas_parquet_resource,
     build_atlas_explorer_model,
     build_atlas_explorer_static_shards,
     open_atlas_explorer,
+    render_atlas_parquet_explorer,
     render_atlas_v3_explorer,
     search_atlas_parquet,
 )
+from refspec.atlas.explorer_data import AtlasExplorerData
+from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
 from refspec.atlas.parquet_search_view import (
     AtlasParquetSearchViewError,
     build_atlas_parquet_search_view,
@@ -61,6 +65,7 @@ def _fixture_distribution(
     *,
     source_native_payload: Mapping[str, object] | None = None,
     source_digest: str = _D3,
+    include_alias: bool = False,
 ) -> str:
     release = "urn:test:atlas-release"
     source_record = "urn:ref:atlas-source-record:" + "5" * 64
@@ -160,10 +165,24 @@ def _fixture_distribution(
     }
     compact_packs = []
     for role, row in rows.items():
+        records = [row]
+        if include_alias and role is CompactRecordRole.LABEL:
+            records.append(
+                {
+                    "id": "urn:ref:atlas-label:" + "9" * 64,
+                    "resource": "urn:test:resource",
+                    "labelRole": "alternate",
+                    "value": "Fixture alias",
+                    "language": "en",
+                    "release": release,
+                    "sourceRecord": source_record,
+                    "contentDigest": _D3,
+                }
+            )
         inventory = write_compact_record_pack(
             root,
             CompactPackHeader(role=role.value, path=f"packs/compact/{role.value.casefold()}.jsonl.zst"),
-            [row],
+            records,
             compression_level=1,
         )
         compact_packs.append(inventory.to_dict())
@@ -415,7 +434,7 @@ def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
 def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None:
     source = tmp_path / "atlas"
     source.mkdir()
-    source_pin = _fixture_distribution(source)
+    source_pin = _fixture_distribution(source, include_alias=True)
     full = tmp_path / "full"
     build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
     full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
@@ -424,6 +443,14 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
 
     opened = open_atlas_explorer(compact, trusted_manifest_digest=compact_pin)
+    assert isinstance(opened, AtlasExplorerData)
+    assert isinstance(opened, AtlasDuckDBView)
+    assert opened.database_path.parent != compact
+    assert opened.table_name(CompactRecordRole.RESOURCE) == "atlas_resources"
+    assert opened.query_rows("SELECT count(*) AS count FROM atlas_resources") == [{"count": 1}]
+    assert opened.query_arrow("SELECT id FROM atlas_resources").to_pylist() == [
+        {"id": "urn:test:resource"}
+    ]
     bundle = build_atlas_explorer_static_shards(
         opened,
         tmp_path / "shards",
@@ -438,7 +465,86 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     assert model["assertedRelations"][0]["predicateLabel"] == "broader"
     assert bundle["counts"]["resources"] == 1
     assert "Test resource" in rendered
-    assert search_atlas_parquet(opened, "test")[0]["id"] == "urn:test:resource"
+    search_result = search_atlas_parquet(opened, "test")[0]
+    assert search_result["id"] == "urn:test:resource"
+    assert isinstance(search_result["score"], float)
+    assert search_atlas_parquet(opened, "fixture alias")[0]["id"] == "urn:test:resource"
+    assert search_atlas_parquet(opened, "T-1")[0]["id"] == "urn:test:resource"
+    assert search_atlas_parquet(
+        opened,
+        "test",
+        releases=("urn:test:atlas-release",),
+    )[0]["id"] == "urn:test:resource"
+    assert search_atlas_parquet(opened, "test", releases=("urn:test:other-release",)) == []
+    assert search_atlas_parquet(opened, "test", offset=1) == []
+    assert search_atlas_parquet(opened, "", offset=1) == []
+    with pytest.raises(AtlasDuckDBViewError, match="offset"):
+        search_atlas_parquet(opened, "test", offset=-1)
     assert atlas_explorer_facets(opened)["rings"] == [{"count": 1, "id": "subject"}]
+    assert atlas_explorer_facets(opened)["graphs"] == [
+        {
+            "authority": "Verified Atlas relation records",
+            "description": "All relations retained by the compact search view.",
+            "relationCount": 1,
+            "role": "asserted",
+        }
+    ]
     detail = atlas_parquet_resource(opened, "urn:test:resource")
     assert detail["relations"][0]["evidence_count"] == 1
+    assert detail["relations"][0]["evidence"][0]["decisionStatus"] == "urn:test:approved"
+    assert detail["relations"][0]["evidence"][0]["sourceLocator"] == "https://example.test/source"
+    assert detail["relations"][0]["subject_label"] == "Test resource"
+    assert detail["relations"][0]["object_label"] == "parent"
+    assert atlas_explorer_facets(opened)["start"] == "urn:test:resource"
+    database_path = opened.database_path
+    opened.close()
+    assert not database_path.exists()
+
+
+def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
+    rendered = render_atlas_parquet_explorer()
+
+    assert rendered == render_atlas_explorer_frontend()
+    assert 'id="graph-workspace"' in rendered
+    assert "class GraphView" in rendered
+    assert 'this.canvas=this.element.querySelector("canvas")' in rendered
+    assert "this.nodes=new Map()" in rendered
+    assert "async function addGraph(id)" in rendered
+    assert "function removeGraph(id)" in rendered
+    assert "layout(){" in rendered
+    assert "drawnEdges(){" in rendered
+    assert "lineTo(to.x,to.y)" in rendered
+    assert "Browse every resource or narrow the list" in rendered
+    assert 'id="more-results"' not in rendered
+    assert "Show more" not in rendered
+    assert 'id="search-status"' in rendered
+    assert 'searchResults.addEventListener("scroll"' in rendered
+    assert "app.searchHasMore" in rendered
+    assert "offset:String(app.searchOffset)" in rendered
+    assert 'input type="checkbox" data-resource=' in rendered
+    assert 'input.checked?addGraph(input.dataset.resource):removeGraph(input.dataset.resource)' in rendered
+    assert "await addGraph(app.startId)" not in rendered
+    assert "[hidden]{display:none!important}" in rendered
+    assert 'id="graph-catalog"' in rendered
+    assert 'data-graph-role="${esc(row.role)}"' in rendered
+    assert "Empty in this release" in rendered
+    assert "Fit all views" in rendered
+    assert 'id="clear-graphs"' in rendered
+    assert 'aria-label="Remove ${esc(labelOf(this.root))} view"' in rendered
+    assert "RefSpec vocabulary Atlas" in rendered
+    assert "Explore the Atlas" in rendered
+    assert "Concept inspector" in rendered
+    assert "equivalent assertions" in rendered
+    assert "Vocabulary relations" in rendered
+    assert "Cross-vocabulary mappings" in rendered
+    assert "Source assignments" in rendered
+    assert "function relationMeaning(edge)" in rendered
+    assert "function relationWhy(edge)" in rendered
+    assert "controls-resizer" in rendered
+    assert 'placeholder="Label, alias, notation, or IRI"' in rendered
+    assert "Relation ID" in rendered
+    assert "Property ID" in rendered
+    assert "Federal Register topics" in rendered
+    assert "compact Parquet" not in rendered
+    assert ">NativeRelationAssertion<" not in rendered
+    assert "<table" not in rendered

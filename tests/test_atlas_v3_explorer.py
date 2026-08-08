@@ -365,10 +365,10 @@ def _write_current_packed_fixture(
                 "releaseInventoryDigest"
             ],
         },
-        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
         "counts": counts,
         "implementationDigest": sha256_digest(b"explorer-fixture-producer"),
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": sha256_digest(accounting_path.read_bytes()),
@@ -530,10 +530,10 @@ def _install_producer_validation(root: Path, **overrides: Any) -> None:
             "releaseCount": construction["releaseCount"],
             "releaseInventoryDigest": construction["releaseInventoryDigest"],
         },
-        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
         "counts": dict(manifest["counts"]),
         "implementationDigest": "sha256:" + "1" * 64,
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": sha256_digest(
@@ -813,7 +813,7 @@ def test_build_preview_writes_digest_pinned_full_corpus_shards(tmp_path: Path) -
     )
     assert bundle["manifestDigest"] == digest
     assert bundle["assertedInventoryDigest"] == asserted_inventory
-    assert bundle["builderRecipe"] == "atlas-3-static-full-corpus-shards-gzip-v2"
+    assert bundle["builderRecipe"] == "atlas-3-static-full-corpus-shards-gzip-v3"
     assert bundle["schema"] == (
         "https://refspec.org/schema/atlas-explorer-static-shards/v2"
     )
@@ -843,6 +843,54 @@ def test_build_preview_writes_digest_pinned_full_corpus_shards(tmp_path: Path) -
     summaries = [record["summary"] for record in records if "summary" in record]
     assert len(summaries) == index["counts"]["resources"]
     assert any(record.get("relations") for record in records)
+    release_resource_entries: list[dict[str, Any]] = []
+    for release, references in index["releaseResources"]["shards"].items():
+        observed = 0
+        for reference in references:
+            assert reference["release"] == release
+            _transport, shard = _read_static_shard(output.parent, reference)
+            assert shard["kind"] == "releaseResources"
+            assert shard["release"] == release
+            assert all(row["release"] == release for row in shard["entries"])
+            observed += len(shard["entries"])
+            release_resource_entries.extend(shard["entries"])
+        assert observed == index["releaseResources"]["counts"][release]
+    assert len(release_resource_entries) == index["counts"]["releaseResourceEntries"]
+    assert len(release_resource_entries) == index["counts"]["resources"]
+    release_graph_entries: list[dict[str, Any]] = []
+    for release, references in index["releaseGraphs"]["shards"].items():
+        observed = 0
+        for reference in references:
+            assert reference["release"] == release
+            _transport, shard = _read_static_shard(output.parent, reference)
+            assert shard["kind"] == "releaseGraph"
+            assert shard["release"] == release
+            assert all(
+                row["layer"] in {"asserted", "projection", "derived"}
+                for row in shard["entries"]
+            )
+            assert all(row["subjectLabel"] for row in shard["entries"])
+            assert all(row["objectLabel"] for row in shard["entries"])
+            observed += len(shard["entries"])
+            release_graph_entries.extend(shard["entries"])
+        assert observed == index["releaseGraphs"]["counts"][release]
+    assert release_graph_entries
+    assert len(release_graph_entries) == index["counts"]["releaseGraphEntries"]
+    relation_ids_by_layer = {
+        layer: {
+            row["id"] for row in release_graph_entries if row["layer"] == layer
+        }
+        for layer in ("asserted", "projection", "derived")
+    }
+    assert len(relation_ids_by_layer["asserted"]) == embedded["summary"][
+        "availableAssertedRelations"
+    ]
+    assert len(relation_ids_by_layer["projection"]) == embedded["summary"][
+        "availableProjectedRelations"
+    ]
+    assert len(relation_ids_by_layer["derived"]) == embedded["summary"][
+        "availableDerivedRelations"
+    ]
     assert all(path.name.endswith(".json.gz") for path in index_path.parent.iterdir())
 
     # Rebuilding the same manifest at the same location is byte-identical.
@@ -1355,6 +1403,49 @@ def test_rendered_explorer_javascript_is_syntactically_valid() -> None:
     assert 'typeof DecompressionStream==="function"' in scripts[-1]
 
 
+def test_render_limit_loads_verified_catalog_pages_without_a_second_action() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+
+    assert 'id="browse-more"' not in rendered
+    assert "function browseMore()" not in rendered
+    assert "async function loadCatalogToLimit()" in rendered
+    assert "const target=visibleResourceTarget()" in rendered
+    assert "while(loaded<target)" in rendered
+    assert "limitLoadTimer=setTimeout(applyRenderLimit,140)" in rendered
+    assert "if(!fullIndex?.releaseResources)await loadCatalogToLimit()" in rendered
+    assert "if(fullMode)void loadSelectedReleaseGraphs()" in rendered
+    assert "Move the slider to load more resources." in rendered
+    assert "async function loadReleaseGraph(release)" in rendered
+    assert "async function loadReleaseResources(release)" in rendered
+    assert "active.size>8" not in rendered
+    assert "Math.max(1,fullBundle.counts.resources)" in rendered
+    assert "state.renderedNodes.length<=5000" in rendered
+    assert "let requestedRenderLimit=state.renderLimit" in rendered
+    assert 'shard.kind!=="releaseResources"' in rendered
+    assert 'shard.kind!=="releaseGraph"' in rendered
+    assert "visible relations" in rendered
+
+
+def test_search_results_scroll_through_ranked_matches() -> None:
+    rendered = render_atlas_explorer(
+        build_atlas_v3_explorer_model(_open_distribution())
+    )
+
+    assert 'id="search-pagination"' not in rendered
+    assert 'id="search-previous"' not in rendered
+    assert 'id="search-next"' not in rendered
+    assert 'id="search-result-status"' in rendered
+    assert "const searchPageSize=40" in rendered
+    assert "state.searchRows.slice(0,state.searchVisible)" in rendered
+    assert "if(localMatches.size>=24)break" not in rendered
+    assert 'searchResults.addEventListener("scroll"' in rendered
+    assert 'fetch("/api/capabilities"' in rendered
+    assert "Ranking results with DuckDB BM25" in rendered
+    assert "offset:String(state.searchOffset)" in rendered
+
+
 def test_release_controls_hide_other_rings_and_clear_only_visible_releases() -> None:
     rendered = render_atlas_explorer(
         build_atlas_v3_explorer_model(_open_distribution())
@@ -1385,6 +1476,7 @@ const esc=value=>String(value);
 const format=value=>String(value);
 let refreshed=0;
 function refresh(){refreshed++;}
+function syncRenderCapacity(){}
 async function renderSearch(){}
 """,
             controls.group(1),

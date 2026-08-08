@@ -188,11 +188,15 @@ _EXPLORER_SHARD_TYPE = "AtlasExplorerStaticShard"
 _EXPLORER_SHARD_INDEX_TYPE = "AtlasExplorerStaticShardIndex"
 _EXPLORER_SHARD_BUNDLE_TYPE = "AtlasExplorerStaticShardBundle"
 _EXPLORER_SHARD_VERSION = "2"
-ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE = "atlas-3-static-full-corpus-shards-gzip-v2"
+ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE = "atlas-3-static-full-corpus-shards-gzip-v3"
+_ATLAS_V3_EXPLORER_LEGACY_SHARD_BUILDER_RECIPE = (
+    "atlas-3-static-full-corpus-shards-gzip-v2"
+)
 ATLAS_PARQUET_EXPLORER_SHARD_BUILDER_RECIPE = "atlas-parquet-static-full-corpus-shards-gzip-v1"
 _EXPLORER_SHARD_BUILDER_RECIPES = frozenset(
     {
         ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE,
+        _ATLAS_V3_EXPLORER_LEGACY_SHARD_BUILDER_RECIPE,
         ATLAS_PARQUET_EXPLORER_SHARD_BUILDER_RECIPE,
     }
 )
@@ -2028,8 +2032,10 @@ def _verify_producer_validation(
             f"extra={sorted(producer_fields - expected)}"
         )
     expected_identity = {
-        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "constructorProfile": (
+            "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
+        ),
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "status": "passed",
@@ -3398,20 +3404,175 @@ def _append_record_augmentation(
     )
 
 
+def _optional_record_iri(
+    record: Mapping[str, Any],
+    predicate: str,
+    *,
+    role: str = "asserted",
+) -> str:
+    values = _record_iri_values(record, predicate, role=role)
+    if len(values) > 1:
+        raise Atlas3ExplorerError(
+            f"Atlas explorer record {record['id']} repeats {predicate}"
+        )
+    return values[0] if values else ""
+
+
+def _explorer_relation_ring_summary(
+    record: Mapping[str, Any],
+    *,
+    role: str,
+) -> dict[str, str]:
+    semantic_ring = _optional_record_iri(record, str(ATLAS.semanticRing), role=role)
+    source_ring = _optional_record_iri(record, str(ATLAS.sourceRing), role=role)
+    target_ring = _optional_record_iri(record, str(ATLAS.targetRing), role=role)
+    if semantic_ring and not source_ring and not target_ring:
+        return {
+            "semanticRing": semantic_ring.rsplit("#", 1)[-1],
+        }
+    if not semantic_ring and source_ring and target_ring:
+        return {
+            "sourceRing": source_ring.rsplit("#", 1)[-1],
+            "targetRing": target_ring.rsplit("#", 1)[-1],
+        }
+    raise Atlas3ExplorerError(
+        f"Atlas explorer relation {record['id']} has invalid ring facts"
+    )
+
+
+def _explorer_relation_summary(
+    record: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    asserted_types = _record_types(record)
+    projection_types = _record_types(record, role="projection")
+    derived_types = _record_types(record, role="derived")
+    if str(ATLAS.RelationAssertion) in asserted_types:
+        kinds = [
+            label
+            for relation_type, label in RELATION_TYPES
+            if str(relation_type) in asserted_types
+        ]
+        if len(kinds) != 1:
+            raise Atlas3ExplorerError(
+                f"Atlas explorer relation {record['id']} needs one specialization"
+            )
+        status = _one_record_iri(record, str(ATLAS.assertionStatus)).rsplit(
+            "#", 1
+        )[-1]
+        predicate = _one_record_iri(record, str(RDF.predicate))
+        return {
+            "authoritative": status == "current",
+            "authority": (
+                "authoritative"
+                if status == "current"
+                else "historicalEditorialRecord"
+            ),
+            "id": record["id"],
+            "kind": kinds[0],
+            "layer": "asserted",
+            "object": _one_record_iri(record, str(RDF.object)),
+            "predicate": predicate,
+            "predicateLabel": predicate.rstrip("/").rsplit("/", 1)[-1].rsplit(
+                "#", 1
+            )[-1],
+            "sourceRelease": _one_record_iri(record, str(ATLAS.sourceRelease)),
+            "status": status,
+            "subject": _one_record_iri(record, str(RDF.subject)),
+            "targetRelease": _one_record_iri(record, str(ATLAS.targetRelease)),
+            **_explorer_relation_ring_summary(record, role="asserted"),
+        }
+    if str(ATLAS.ProjectedRelation) in projection_types:
+        role = "projection"
+        predicate = _one_record_iri(
+            record,
+            str(ATLAS.relationPredicate),
+            role=role,
+        )
+        return {
+            "authoritative": False,
+            "authority": "reproducibleProjection",
+            "id": record["id"],
+            "kind": "projection",
+            "layer": role,
+            "object": _one_record_iri(
+                record,
+                str(ATLAS.relationObject),
+                role=role,
+            ),
+            "predicate": predicate,
+            "predicateLabel": predicate.rstrip("/").rsplit("/", 1)[-1].rsplit(
+                "#", 1
+            )[-1],
+            "subject": _one_record_iri(
+                record,
+                str(ATLAS.relationSubject),
+                role=role,
+            ),
+            "supportingAssertions": _record_iri_values(
+                record,
+                str(ATLAS.supportingAssertion),
+                role=role,
+            ),
+            **_explorer_relation_ring_summary(record, role=role),
+        }
+    if str(ATLAS.DerivedRelation) in derived_types:
+        role = "derived"
+        predicate = _one_record_iri(
+            record,
+            str(ATLAS.relationPredicate),
+            role=role,
+        )
+        return {
+            "authoritative": False,
+            "authority": "nonAuthoritative",
+            "id": record["id"],
+            "kind": "derived",
+            "layer": role,
+            "object": _one_record_iri(
+                record,
+                str(ATLAS.relationObject),
+                role=role,
+            ),
+            "predicate": predicate,
+            "predicateLabel": predicate.rstrip("/").rsplit("/", 1)[-1].rsplit(
+                "#", 1
+            )[-1],
+            "subject": _one_record_iri(
+                record,
+                str(ATLAS.relationSubject),
+                role=role,
+            ),
+            "derivedFromAssertions": _record_iri_values(
+                record,
+                str(ATLAS.derivedFromAssertion),
+                role=role,
+            ),
+            **_explorer_relation_ring_summary(record, role=role),
+        }
+    return None
+
+
 def _derive_explorer_record_joins(
     raw_spool: _JsonlSpool,
     merged_root: Path,
     augmentation_spool: _JsonlSpool,
     label_join_spool: _JsonlSpool,
+    relation_spool: _JsonlSpool,
 ) -> None:
     merged_root.mkdir(parents=True, exist_ok=True)
     relation_types = {
-        str(ATLAS.RelationAssertion): (str(RDF.subject), str(RDF.object)),
+        str(ATLAS.RelationAssertion): (
+            "asserted",
+            str(RDF.subject),
+            str(RDF.object),
+        ),
         str(ATLAS.ProjectedRelation): (
+            "projection",
             str(ATLAS.relationSubject),
             str(ATLAS.relationObject),
         ),
         str(ATLAS.DerivedRelation): (
+            "derived",
             str(ATLAS.relationSubject),
             str(ATLAS.relationObject),
         ),
@@ -3481,12 +3642,13 @@ def _derive_explorer_record_joins(
                         "identifiers",
                         [record_id],
                     )
-                for relation_type, endpoint_predicates in relation_types.items():
-                    if relation_type not in types:
+                for relation_type, relation_config in relation_types.items():
+                    role, subject_predicate, object_predicate = relation_config
+                    if relation_type not in _record_types(record, role=role):
                         continue
                     endpoint_ids = {
-                        _one_record_iri(record, endpoint_predicates[0]),
-                        _one_record_iri(record, endpoint_predicates[1]),
+                        _one_record_iri(record, subject_predicate, role=role),
+                        _one_record_iri(record, object_predicate, role=role),
                     }
                     for endpoint_id in endpoint_ids:
                         _append_record_augmentation(
@@ -3495,9 +3657,16 @@ def _derive_explorer_record_joins(
                             "relations",
                             [record_id],
                         )
+                    relation_summary = _explorer_relation_summary(record)
+                    if relation_summary is not None:
+                        relation_spool.append(
+                            _explorer_hash_prefix(record_id, 2),
+                            relation_summary,
+                        )
                     break
     augmentation_spool.close()
     label_join_spool.close()
+    relation_spool.close()
 
 
 def _normalized_search_words(values: Sequence[str]) -> set[str]:
@@ -3561,6 +3730,7 @@ def _finalize_explorer_resource_summaries(
     augmentation_spool: _JsonlSpool,
     catalog_spool: _JsonlSpool,
     search_spool: _JsonlSpool,
+    release_resource_spool: _JsonlSpool | None = None,
 ) -> int:
     role_order = {"preferred": 0, "alternate": 1, "hidden": 2}
     resource_count = 0
@@ -3634,12 +3804,19 @@ def _finalize_explorer_resource_summaries(
             display_words = sorted(_normalized_search_words([display[1]]))
             catalog_key = _search_key(display_words[0] if display_words else "_")
             catalog_spool.append(catalog_key, summary)
+            if release_resource_spool is not None:
+                release_resource_spool.append(
+                    _explorer_hash_prefix(cast(str, row["release"]), 64),
+                    summary,
+                )
             for key in sorted({_search_key(word) for word in normalized_words}):
                 search_spool.append(key, summary)
             resource_count += 1
     augmentation_spool.close()
     catalog_spool.close()
     search_spool.close()
+    if release_resource_spool is not None:
+        release_resource_spool.close()
     return resource_count
 
 
@@ -3664,6 +3841,95 @@ def _read_augmentations(path: Path) -> dict[str, dict[str, Any]]:
                     )
                 row["summary"] = dict(_mapping(raw["summary"], "Atlas explorer summary"))
     return rows
+
+
+def _explorer_resource_metadata(
+    augmentation_spool: _JsonlSpool,
+) -> dict[str, dict[str, str]]:
+    resources: dict[str, dict[str, str]] = {}
+    for prefix in augmentation_spool.partition_keys():
+        for resource_id, augmentation in _read_augmentations(
+            augmentation_spool.root / f"{prefix}.jsonl"
+        ).items():
+            summary = augmentation.get("summary")
+            if isinstance(summary, Mapping):
+                resources[resource_id] = {
+                    "displayLabel": _text(
+                        summary.get("displayLabel"),
+                        f"Atlas explorer resource {resource_id} display label",
+                    ),
+                    "release": _iri_text(
+                        summary.get("release"),
+                        f"Atlas explorer resource {resource_id} release",
+                    ),
+                    "ring": _text(
+                        summary.get("ring"),
+                        f"Atlas explorer resource {resource_id} ring",
+                    ),
+                }
+    return resources
+
+
+def _route_explorer_release_relations(
+    relation_spool: _JsonlSpool,
+    release_graph_spool: _JsonlSpool,
+    resource_metadata: Mapping[str, Mapping[str, str]],
+) -> None:
+    atlas_releases = {
+        metadata["release"]
+        for metadata in resource_metadata.values()
+        if metadata.get("release")
+    }
+    for key in relation_spool.partition_keys():
+        with (relation_spool.root / f"{key}.jsonl").open("rb") as stream:
+            for line in stream:
+                row = dict(
+                    _mapping(json.loads(line), "Atlas explorer relation summary row")
+                )
+                subject = cast(str, row["subject"])
+                object_id = cast(str, row["object"])
+                subject_resource = resource_metadata.get(subject)
+                object_resource = resource_metadata.get(object_id)
+                subject_release = (subject_resource or {}).get("release")
+                object_release = (object_resource or {}).get("release")
+                source_release = cast(
+                    str,
+                    row.get("sourceRelease")
+                    or subject_release
+                    or object_release,
+                )
+                target_release = cast(
+                    str,
+                    row.get("targetRelease")
+                    or object_release
+                    or subject_release,
+                )
+                if not source_release or not target_release:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer relation {row['id']} has an endpoint without a release"
+                    )
+                enriched = {
+                    **row,
+                    "objectLabel": (object_resource or {}).get(
+                        "displayLabel", object_id
+                    ),
+                    "sourceRelease": source_release,
+                    "subjectLabel": (subject_resource or {}).get(
+                        "displayLabel", subject
+                    ),
+                    "targetRelease": target_release,
+                }
+                releases = {source_release, target_release} & atlas_releases
+                if not releases:
+                    raise Atlas3ExplorerError(
+                        f"Atlas explorer relation {row['id']} does not belong to an Atlas release"
+                    )
+                for release in releases:
+                    release_graph_spool.append(
+                        _explorer_hash_prefix(release, 64),
+                        {"release": release, **enriched},
+                    )
+    release_graph_spool.close()
 
 
 def _write_explorer_shard(
@@ -3839,6 +4105,100 @@ def _finalize_explorer_page_shards(
     return result
 
 
+def _finalize_explorer_release_graph_shards(
+    spool: _JsonlSpool,
+    target_root: Path,
+    manifest_digest: str,
+    url_prefix: str,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
+    result: dict[str, list[dict[str, Any]]] = {}
+    counts: dict[str, int] = {}
+    for key in spool.partition_keys():
+        entries_by_release: defaultdict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+        with (spool.root / f"{key}.jsonl").open("rb") as stream:
+            for line in stream:
+                row = dict(_mapping(json.loads(line), "Atlas explorer release graph row"))
+                release = cast(str, row.pop("release"))
+                entries_by_release[release][cast(str, row["id"])] = row
+        for release in sorted(entries_by_release):
+            entries = [
+                entries_by_release[release][relation_id]
+                for relation_id in sorted(entries_by_release[release])
+            ]
+            refs: list[dict[str, Any]] = []
+            for offset in range(0, len(entries), _EXPLORER_PAGE_SIZE):
+                page = entries[offset : offset + _EXPLORER_PAGE_SIZE]
+                ref = _write_explorer_shard(
+                    target_root,
+                    "release-graph",
+                    {
+                        "entries": page,
+                        "kind": "releaseGraph",
+                        "manifestDigest": manifest_digest,
+                        "release": release,
+                        "type": _EXPLORER_SHARD_TYPE,
+                        "version": _EXPLORER_SHARD_VERSION,
+                    },
+                    url_prefix=url_prefix,
+                )
+                ref["release"] = release
+                refs.append(ref)
+            result[release] = refs
+            counts[release] = len(entries)
+    return result, counts
+
+
+def _finalize_explorer_release_resource_shards(
+    spool: _JsonlSpool,
+    target_root: Path,
+    manifest_digest: str,
+    url_prefix: str,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, int]]:
+    result: dict[str, list[dict[str, Any]]] = {}
+    counts: dict[str, int] = {}
+    for key in spool.partition_keys():
+        entries_by_release: defaultdict[str, dict[str, dict[str, Any]]] = defaultdict(
+            dict
+        )
+        with (spool.root / f"{key}.jsonl").open("rb") as stream:
+            for line in stream:
+                row = dict(
+                    _mapping(json.loads(line), "Atlas explorer release resource row")
+                )
+                release = cast(str, row["release"])
+                entries_by_release[release][cast(str, row["id"])] = row
+        for release in sorted(entries_by_release):
+            entries = sorted(
+                entries_by_release[release].values(),
+                key=lambda row: (
+                    cast(str, row["displayLabel"]).casefold(),
+                    cast(str, row["displayLabel"]),
+                    cast(str, row["id"]),
+                ),
+            )
+            refs: list[dict[str, Any]] = []
+            for offset in range(0, len(entries), _EXPLORER_PAGE_SIZE):
+                page = entries[offset : offset + _EXPLORER_PAGE_SIZE]
+                ref = _write_explorer_shard(
+                    target_root,
+                    "release-resources",
+                    {
+                        "entries": page,
+                        "kind": "releaseResources",
+                        "manifestDigest": manifest_digest,
+                        "release": release,
+                        "type": _EXPLORER_SHARD_TYPE,
+                        "version": _EXPLORER_SHARD_VERSION,
+                    },
+                    url_prefix=url_prefix,
+                )
+                ref["release"] = release
+                refs.append(ref)
+            result[release] = refs
+            counts[release] = len(entries)
+    return result, counts
+
+
 def _safe_existing_shard_directory(path: Path) -> dict[str, bytes]:
     payloads: dict[str, bytes] = {}
     if not path.exists():
@@ -3906,6 +4266,9 @@ def build_atlas_v3_explorer_static_shards(
         summary_spool = _JsonlSpool(workspace / "summaries")
         catalog_spool = _JsonlSpool(workspace / "catalog")
         search_spool = _JsonlSpool(workspace / "search")
+        relation_spool = _JsonlSpool(workspace / "relations")
+        release_graph_spool = _JsonlSpool(workspace / "release-graphs")
+        release_resource_spool = _JsonlSpool(workspace / "release-resources")
         published = workspace / "published"
         published.mkdir()
 
@@ -3915,6 +4278,7 @@ def build_atlas_v3_explorer_static_shards(
             merged_root,
             augmentation_spool,
             label_join_spool,
+            relation_spool,
         )
         _derive_explorer_resource_summaries(label_join_spool, summary_spool)
         resource_count = _finalize_explorer_resource_summaries(
@@ -3922,6 +4286,13 @@ def build_atlas_v3_explorer_static_shards(
             augmentation_spool,
             catalog_spool,
             search_spool,
+            release_resource_spool,
+        )
+        resource_metadata = _explorer_resource_metadata(augmentation_spool)
+        _route_explorer_release_relations(
+            relation_spool,
+            release_graph_spool,
+            resource_metadata,
         )
         record_shards, record_count = _finalize_explorer_record_shards(
             merged_root,
@@ -3944,6 +4315,22 @@ def build_atlas_v3_explorer_static_shards(
             manifest_digest,
             url_prefix,
         )
+        release_resource_shards, release_resource_counts = (
+            _finalize_explorer_release_resource_shards(
+                release_resource_spool,
+                published,
+                manifest_digest,
+                url_prefix,
+            )
+        )
+        release_graph_shards, release_graph_counts = (
+            _finalize_explorer_release_graph_shards(
+                release_graph_spool,
+                published,
+                manifest_digest,
+                url_prefix,
+            )
+        )
         expected_resources = _count(
             _mapping(distribution.manifest["counts"], "Atlas manifest counts").get(
                 "resources"
@@ -3954,18 +4341,32 @@ def build_atlas_v3_explorer_static_shards(
             raise Atlas3ExplorerError(
                 "Atlas explorer resource summaries do not cover the full corpus"
             )
+        if sum(release_resource_counts.values()) != resource_count:
+            raise Atlas3ExplorerError(
+                "Atlas explorer release resource pages do not cover the full corpus"
+            )
         index_payload = {
             "assertedInventoryDigest": asserted_inventory_digest,
             "builderRecipe": ATLAS_V3_EXPLORER_SHARD_BUILDER_RECIPE,
             "catalog": {"shards": catalog_shards},
             "counts": {
                 "records": record_count,
+                "releaseGraphEntries": sum(release_graph_counts.values()),
+                "releaseResourceEntries": sum(release_resource_counts.values()),
                 "resources": resource_count,
             },
             "manifestDigest": manifest_digest,
             "records": {
                 "prefixLength": _EXPLORER_RECORD_PREFIX_LENGTH,
                 "shards": record_shards,
+            },
+            "releaseGraphs": {
+                "counts": release_graph_counts,
+                "shards": release_graph_shards,
+            },
+            "releaseResources": {
+                "counts": release_resource_counts,
+                "shards": release_resource_shards,
             },
             "search": {"keyLength": 2, "shards": search_shards},
             "schema": _EXPLORER_SHARD_SCHEMA,
@@ -5094,7 +5495,7 @@ _GRAPH_HTML = r"""<!doctype html>
       border: 1px solid var(--rule-strong); border-radius: 4px; background: #080e0c;
     }
     #search { padding-right: 2rem; } .key { position: absolute; top: 50%; right: .65rem; color: var(--faint); transform: translateY(-50%); }
-    .results { display: grid; margin-top: .35rem; }
+    .results { display: grid; max-height: min(42vh, 30rem); margin-top: .35rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--rule-strong) transparent; }
     .result { padding: .42rem .3rem; overflow: hidden; color: var(--muted); border: 0; border-bottom: 1px solid var(--rule); background: transparent; text-align: left; cursor: pointer; }
     .result:hover { color: var(--ink); background: rgba(112, 210, 155, .08); }
     .result b, .result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -5188,6 +5589,7 @@ _GRAPH_HTML = r"""<!doctype html>
       <section class="control-section">
         <h3>Search</h3><div class="search-wrap"><input id="search" type="search" autocomplete="off" placeholder="English label, notation, or IRI" aria-label="Search Atlas resources"><span class="key">/</span></div>
         <div class="results" id="search-results" aria-live="polite"></div>
+        <p class="hint" id="search-result-status" aria-live="polite"></p>
         <p class="hint" id="search-coverage"></p>
         <p class="hint" id="corpus-mode" aria-live="polite"></p>
       </section>
@@ -5201,7 +5603,7 @@ _GRAPH_HTML = r"""<!doctype html>
       <section class="control-section"><div class="control-heading"><h3>Atlas releases</h3><button class="section-action" id="select-no-releases" type="button">Select none</button></div><div class="filter-list" id="release-filters"></div></section>
       <section class="control-section"><h3>Relation predicate</h3><select id="predicate-filter" aria-label="Filter relation predicate"><option value="">All predicates</option></select></section>
       <section class="control-section"><h3>Rendered resources</h3><div class="render-limit"><span id="render-limit-label">—</span><input id="render-limit-number" type="number" min="1"><input id="render-limit-range" type="range" min="1"></div>
-        <p class="hint">Search matches and high-degree resources enter the graph first.</p><div class="actions"><button class="action" id="browse-more" type="button">Browse more</button><button class="action" id="reset-view" type="button">Reset</button><button class="action" id="fit-view" type="button">Fit graph</button></div></section>
+        <p class="hint">Move the slider to load more resources. Search matches and high-degree resources enter the graph first.</p><div class="actions"><button class="action" id="reset-view" type="button">Reset</button><button class="action" id="fit-view" type="button">Fit graph</button></div></section>
     </aside>
     <div class="controls-resizer" id="controls-resizer" role="separator" aria-label="Resize graph controls" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="520" aria-valuenow="272" tabindex="0"></div>
     <section class="stage" id="stage" aria-label="Atlas relation graph">
@@ -5229,6 +5631,7 @@ _GRAPH_HTML = r"""<!doctype html>
   const tooltip = document.getElementById("tooltip");
   const search = document.getElementById("search");
   const searchResults = document.getElementById("search-results");
+  const searchResultStatus = document.getElementById("search-result-status");
   const ringFilter = document.getElementById("ring-filter");
   const predicateFilter = document.getElementById("predicate-filter");
   const corpusMode = document.getElementById("corpus-mode");
@@ -5244,20 +5647,20 @@ _GRAPH_HTML = r"""<!doctype html>
   const nodes = [];
   const assertedById = new Map(data.assertedRelations.map(row => [row.id,row]));
   const allEdges = [];
-  const edgeIds = new Set();
+  const edgeByKey = new Map();
   const predicateLabels = new Map();
   let predicateOptionsReady = false;
-  const state = {width:1,height:1,dpr:1,view:{x:0,y:0,k:1},activeReleases:new Set(releaseById.keys()),layers:{asserted:true,projection:false,derived:true},showAssignments:false,ring:"",predicate:"",renderLimit:1,renderedNodes:[],renderedEdges:[],matches:new Set(),query:"",selected:null,inspectorReturn:null,hover:null,panning:false,drag:null,animation:null};
+  const state = {width:1,height:1,dpr:1,view:{x:0,y:0,k:1},activeReleases:new Set(releaseById.keys()),layers:{asserted:true,projection:false,derived:true},showAssignments:false,ring:"",predicate:"",renderLimit:1,renderedNodes:[],renderedEdges:[],matches:new Set(),query:"",searchRows:[],searchVisible:0,searchOffset:0,searchHasMore:false,searchLoading:false,searchMode:"local",selected:null,inspectorReturn:null,hover:null,panning:false,drag:null,animation:null};
   const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const short = value => { const text=String(value); const hash=text.lastIndexOf("#"); return hash>=0?text.slice(hash+1):text.replace(/\/$/,"").split(/[/:]/).pop(); };
   const format = value => new Intl.NumberFormat("en-US").format(value);
   const hash = value => { let result=2166136261; for(const char of String(value)){result^=char.codePointAt(0);result=Math.imul(result,16777619);} return result>>>0; };
   const searchText = node => [node.label,node.id,node.release,...node.rings,...(node.detail?.labels||[]).map(row=>row.value),...(node.detail?.notations||[]),...(node.detail?.identifiers||[]).flatMap(row=>[row.value,row.schemeLabel])].join(" ").toLocaleLowerCase("en-US");
-  function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);nodes.push(node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;if(label&&node.label===short(node.id))node.label=label;}return node;}
-  data.resourceIndex.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,null,false));
-  data.resources.forEach(row=>ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,row,false));
+  function ensureNode(id,label,release="",ring="",detail=null,isSource=false){let node=nodeById.get(id);if(!node){node={id,label:label||short(id),release,ring,rings:new Set(ring?[ring]:[]),detail,isSource,hasSummary:false,x:0,y:0,tx:0,ty:0,degree:0};nodeById.set(id,node);nodes.push(node);}else{if(!node.release&&release)node.release=release;if(ring){node.rings.add(ring);if(!node.ring)node.ring=ring;}if(detail)node.detail=detail;if(label&&node.label===short(node.id))node.label=label;}return node;}
+  data.resourceIndex.forEach(row=>{const node=ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,null,false);node.hasSummary=true;});
+  data.resources.forEach(row=>{const node=ensureNode(row.id,row.displayLabel,row.release,row.semanticRing,row,false);node.hasSummary=true;});
   function edgeFrom(row,layer){const sourceRelease=row.sourceRelease||"";const targetRelease=row.targetRelease||"";const rings=row.semanticRings||[row.semanticRing].filter(Boolean);const sourceRing=row.sourceRing||row.semanticRing||"";const targetRing=row.targetRing||row.semanticRing||"";ensureNode(row.subject,row.subjectLabel,sourceRelease,sourceRing,null,row.kind==="sourceAssignment");ensureNode(row.object,row.objectLabel,targetRelease,targetRing);return {...row,semanticRings:rings,layer,color:layerColors[layer]};}
-  function addEdge(row,layer){const key=`${layer}|${row.id}`;if(edgeIds.has(key))return;edgeIds.add(key);const edge=edgeFrom(row,layer);allEdges.push(edge);if(layer==="asserted")assertedById.set(row.id,row);if(!predicateLabels.has(row.predicate)){predicateLabels.set(row.predicate,row.predicateLabel);if(predicateOptionsReady){const option=document.createElement("option");option.value=row.predicate;option.textContent=row.predicateLabel;predicateFilter.append(option);}}}
+  function addEdge(row,layer){const key=`${layer}|${row.id}`,edge=edgeFrom(row,layer),existing=edgeByKey.get(key);if(existing){Object.assign(existing,edge);if(layer==="asserted")assertedById.set(row.id,row);return existing;}edgeByKey.set(key,edge);allEdges.push(edge);if(layer==="asserted")assertedById.set(row.id,row);if(!predicateLabels.has(row.predicate)){predicateLabels.set(row.predicate,row.predicateLabel);if(predicateOptionsReady){const option=document.createElement("option");option.value=row.predicate;option.textContent=row.predicateLabel;predicateFilter.append(option);}}return edge;}
   data.assertedRelations.forEach(row=>addEdge(row,"asserted"));
   data.projectedRelations.forEach(row=>addEdge(row,"projection"));
   data.derivedRelations.forEach(row=>addEdge(row,"derived"));
@@ -5268,7 +5671,7 @@ _GRAPH_HTML = r"""<!doctype html>
   const predicates=[...predicateLabels.entries()].sort((a,b)=>a[1].localeCompare(b[1],"en"));
   predicates.forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;predicateFilter.append(option);});
   predicateOptionsReady=true;
-  const shardPayloads=new Map(),recordCache=new Map(),recordShardPromises=new Map(),loadedCatalogShards=new Set();
+  const shardPayloads=new Map(),recordCache=new Map(),recordShardPromises=new Map(),loadedCatalogShards=new Set(),loadedReleaseResources=new Set(),releaseResourcePromises=new Map(),loadedReleaseGraphs=new Set(),releaseGraphPromises=new Map();
   let fullIndex=null,fullIndexPromise=null,catalogRefs=[],catalogCursor=0,searchEpoch=0;
   const rdf={
     type:"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",subject:"http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",predicate:"http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",object:"http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
@@ -5339,7 +5742,7 @@ _GRAPH_HTML = r"""<!doctype html>
   function oneIri(record,predicate,role="asserted"){return iriFacts(record,predicate,role)[0]||"";}
   function oneLiteral(record,predicate,role="asserted"){return literalFacts(record,predicate,role)[0]?.value??"";}
   function recordTypes(record,role="asserted"){return new Set(iriFacts(record,rdf.type,role));}
-  function summaryNode(summary){const node=ensureNode(summary.id,summary.displayLabel,summary.release,summary.ring,null,false);node.corpusSearchText=summary.searchText||summary.displayLabel;return node;}
+  function summaryNode(summary){const node=ensureNode(summary.id,summary.displayLabel,summary.release,summary.ring,null,false);node.corpusSearchText=summary.searchText||summary.displayLabel;node.hasSummary=true;return node;}
   function normalizeSourceRecord(record){
     const native=oneLiteral(record,`${rdf.atlas}nativePayload`);let nativePayload={};try{nativePayload=native?JSON.parse(native):{};}catch{nativePayload={unparsed:true};}
     const row={id:record.id,sourceRelease:oneIri(record,`${rdf.atlas}inSourceRelease`),sourceLocator:oneIri(record,`${rdf.atlas}sourceLocator`),sourceDigest:oneLiteral(record,`${rdf.atlas}sourceDigest`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),nativePayload,representsResources:iriFacts(record,`${rdf.atlas}representsResource`)};
@@ -5364,6 +5767,14 @@ _GRAPH_HTML = r"""<!doctype html>
     if(layer==="projection")row.supportingAssertions=iriFacts(record,`${rdf.atlas}supportingAssertion`,layer);if(layer==="derived"){row.derivedFromAssertions=iriFacts(record,`${rdf.atlas}derivedFromAssertion`,layer);row.rule=oneIri(record,`${rdf.atlas}appliedRule`,layer);row.engine=oneIri(record,`${rdf.atlas}reasoningEngine`,layer);}return {layer,row};
   }
   async function addRelationWithSupport(id){const relation=await normalizeRelation(id);addEdge(relation.row,relation.layer);const supporting=[...(relation.row.supportingAssertions||[]),...(relation.row.derivedFromAssertions||[])];for(const assertionId of supporting){const assertion=await normalizeRelation(assertionId);if(assertion.layer!=="asserted")throw new Error("A derived relation cites a non-asserted supporting record");addEdge(assertion.row,assertion.layer);}}
+  async function hydrateEdge(edge){
+    if(!fullMode||edge.hydrated)return;
+    if(edge.hydrating)return edge.hydrating;
+    edge.hydrating=(async()=>{try{const relation=await normalizeRelation(edge.id),hydrated=addEdge(relation.row,relation.layer);hydrated.hydrated=true;if(state.selected?.kind==="edge"&&state.selected.id===hydrated.id&&state.selected.layer===hydrated.layer)state.selected.edge=hydrated;renderInspector();draw();}
+      catch(error){corpusMode.textContent=`Relation detail unavailable: ${String(error?.message||error)}`;corpusMode.classList.add("error");}
+      finally{edge.hydrating=null;}})();
+    return edge.hydrating;
+  }
   async function hydrateNode(node,more=false){
     if(!fullMode)return;
     if(node.hydrating)return node.hydrating;
@@ -5374,21 +5785,79 @@ _GRAPH_HTML = r"""<!doctype html>
     const activeReleases=activeVisibleReleases();if(!activeReleases.size)return null;
     for(let attempts=0;attempts<catalogRefs.length;attempts++){const ref=catalogRefs[catalogCursor%catalogRefs.length];catalogCursor++;if(loadedCatalogShards.has(shardCacheKey(ref)))continue;if(state.ring&&!ref.rings.includes(state.ring))continue;if(![...activeReleases].some(release=>ref.releases.includes(release)))continue;return ref;}return null;
   }
-  async function browseMore(){
-    if(!fullMode)return;const button=document.getElementById("browse-more");button.disabled=true;
-    try{if(!activeVisibleReleases().size){corpusMode.textContent="Select at least one Atlas release.";return;}await loadFullIndex();const ref=selectedCatalogRef();if(!ref){corpusMode.textContent="All matching catalog pages are loaded.";return;}corpusMode.textContent="Loading a verified catalog page…";const shard=await fetchVerifiedShard(ref);if(shard.version!=="2"||shard.kind!=="catalog"||shard.key!==ref.key)throw new Error("Catalog shard identity differs");loadedCatalogShards.add(shardCacheKey(ref));shard.entries.forEach(summaryNode);syncRenderCapacity();corpusMode.textContent=`Full corpus · verified shards · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(true);}
-    catch(error){corpusMode.textContent=`Full corpus unavailable: ${String(error?.message||error)}. Bounded fallback remains.`;corpusMode.classList.add("error");}finally{button.disabled=false;}
+  async function loadReleaseResources(release){
+    if(!fullMode||loadedReleaseResources.has(release))return;
+    if(releaseResourcePromises.has(release))return releaseResourcePromises.get(release);
+    const promise=(async()=>{
+      const index=await loadFullIndex(),collection=index.releaseResources;
+      if(!collection){loadedReleaseResources.add(release);return;}
+      const refs=collection.shards?.[release]||[],total=collection.counts?.[release]||0,row=releaseById.get(release);let loaded=0;
+      for(const ref of refs){
+        if(activeVisibleReleases().has(release))corpusMode.textContent=`Loading ${releaseLabel(row||{id:release})} · ${format(loaded)} of ${format(total)} concepts…`;
+        const shard=await fetchVerifiedShard(ref);
+        if(shard.type!=="AtlasExplorerStaticShard"||shard.version!=="2"||shard.kind!=="releaseResources"||shard.release!==release||ref.release!==release)throw new Error("Release resource shard identity differs");
+        for(const entry of shard.entries){if(entry.release!==release)throw new Error("Release resource belongs to another release");summaryNode(entry);}
+        loaded+=shard.entries.length;
+      }
+      if(loaded!==total)throw new Error("Release resource count differs");
+      if(Number.isInteger(row?.memberCount)&&loaded!==row.memberCount)throw new Error("Release resource count differs from the Atlas release");
+      loadedReleaseResources.add(release);
+    })();
+    releaseResourcePromises.set(release,promise);try{await promise;}finally{releaseResourcePromises.delete(release);}
   }
-  let maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);state.renderLimit=Math.min(900,maxLimit);
+  async function loadReleaseGraph(release){
+    if(!fullMode||loadedReleaseGraphs.has(release))return;
+    if(releaseGraphPromises.has(release))return releaseGraphPromises.get(release);
+    const promise=(async()=>{await loadReleaseResources(release);const index=await loadFullIndex(),refs=index.releaseGraphs?.shards?.[release]||[],total=index.releaseGraphs?.counts?.[release]||0,row=releaseById.get(release);if(row)row.relationCount=total;let loaded=0;for(const ref of refs){if(activeVisibleReleases().has(release))corpusMode.textContent=`Loading ${releaseLabel(row||{id:release})} graph · ${format(loaded)} of ${format(total)} relations…`;const shard=await fetchVerifiedShard(ref);if(shard.type!=="AtlasExplorerStaticShard"||shard.version!=="2"||shard.kind!=="releaseGraph"||shard.release!==release||ref.release!==release)throw new Error("Release graph shard identity differs");for(const entry of shard.entries){addEdge({...entry,subjectLabel:entry.subjectLabel||nodeById.get(entry.subject)?.label||short(entry.subject),objectLabel:entry.objectLabel||nodeById.get(entry.object)?.label||short(entry.object)},entry.layer);}loaded+=shard.entries.length;}if(loaded!==total)throw new Error("Release graph relation count differs");loadedReleaseGraphs.add(release);if(activeVisibleReleases().has(release)){corpusMode.textContent=`${releaseLabel(row||{id:release})} · complete graph · ${format(total)} relations`;corpusMode.classList.remove("error");}})();
+    releaseGraphPromises.set(release,promise);try{await promise;}finally{releaseGraphPromises.delete(release);}
+  }
+  let selectedReleaseLoadPromise=null;
+  async function loadSelectedReleaseGraphs(){
+    if(!fullMode||!activeVisibleReleases().size)return;
+    if(selectedReleaseLoadPromise)return selectedReleaseLoadPromise;
+    selectedReleaseLoadPromise=(async()=>{
+      try{
+        while(true){
+          const pending=[...activeVisibleReleases()].filter(release=>!loadedReleaseGraphs.has(release));
+          if(!pending.length)break;
+          let cursor=0;
+          const worker=async()=>{while(cursor<pending.length){const release=pending[cursor++];if(activeVisibleReleases().has(release))await loadReleaseGraph(release);}};
+          await Promise.all(Array.from({length:Math.min(4,pending.length)},worker));
+        }
+        if(!fullIndex?.releaseResources)await loadCatalogToLimit();
+        const active=activeVisibleReleases();syncRenderCapacity();refresh(true,state.renderLimit<=5000);
+        if(!active.size)corpusMode.textContent="Select at least one Atlas release.";
+        else if(active.size===1){const release=releaseById.get([...active][0]);corpusMode.textContent=`${releaseLabel(release)} · complete graph · ${format(release.relationCount||0)} relations`;}
+        else corpusMode.textContent=`${format(active.size)} selected releases · complete graphs`;
+        corpusMode.classList.remove("error");
+      }
+      catch(error){corpusMode.textContent=`Release graph unavailable: ${String(error?.message||error)}`;corpusMode.classList.add("error");}
+      finally{selectedReleaseLoadPromise=null;}
+    })();
+    return selectedReleaseLoadPromise;
+  }
+  let catalogLoadPromise=null;
+  async function loadCatalogToLimit(){
+    if(!fullMode)return;
+    if(catalogLoadPromise)return catalogLoadPromise;
+    catalogLoadPromise=(async()=>{try{if(!activeVisibleReleases().size){corpusMode.textContent="Select at least one Atlas release.";return;}await loadFullIndex();const target=visibleResourceTarget();let loaded=visibleLoadedResourceCount();while(loaded<target){const ref=selectedCatalogRef();if(!ref){corpusMode.textContent="All matching catalog pages are loaded.";break;}corpusMode.textContent=`Loading verified resources · ${format(loaded)} of ${format(target)} ready…`;const shard=await fetchVerifiedShard(ref);if(shard.version!=="2"||shard.kind!=="catalog"||shard.key!==ref.key)throw new Error("Catalog shard identity differs");loadedCatalogShards.add(shardCacheKey(ref));shard.entries.forEach(summaryNode);loaded=visibleLoadedResourceCount();refresh(false,false);}syncRenderCapacity();corpusMode.textContent=`Full corpus · verified shards · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(true);}
+      catch(error){corpusMode.textContent=`Full corpus unavailable: ${String(error?.message||error)}. Bounded fallback remains.`;corpusMode.classList.add("error");}
+      finally{catalogLoadPromise=null;}})();
+    return catalogLoadPromise;
+  }
+  const loadedResourceCount=()=>Math.max(1,nodes.filter(node=>!node.isSource).length);
+  let maxLimit=fullMode?Math.max(1,fullBundle.counts.resources):loadedResourceCount();state.renderLimit=Math.min(900,maxLimit);let requestedRenderLimit=state.renderLimit;
   const range=document.getElementById("render-limit-range"), number=document.getElementById("render-limit-number");range.max=number.max=String(maxLimit);range.value=number.value=String(state.renderLimit);
-  function syncRenderCapacity(){maxLimit=Math.max(1,nodes.filter(node=>!node.isSource).length);range.max=number.max=String(maxLimit);state.renderLimit=Math.min(maxLimit,Math.max(1,state.renderLimit));range.value=number.value=String(state.renderLimit);}
+  function syncRenderCapacity(){const selectedCapacity=[...activeVisibleReleases()].reduce((total,id)=>total+(releaseById.get(id)?.memberCount||0),0);maxLimit=fullMode?Math.max(1,Math.min(fullBundle.counts.resources,selectedCapacity||1)):loadedResourceCount();range.max=number.max=String(maxLimit);state.renderLimit=Math.min(maxLimit,Math.max(1,requestedRenderLimit));range.value=number.value=String(state.renderLimit);document.getElementById("render-limit-label").textContent=`${format(state.renderLimit)} of ${format(maxLimit)}`;}
   function releaseLabel(row){return row.title||row.identifier||short(row.id);}
   /* atlas-release-filter-controls:start */
   function releaseMatchesRing(row){return !state.ring||row.semanticRing===state.ring;}
   function visibleReleaseRows(){return [...releaseById.values()].filter(releaseMatchesRing);}
   function activeVisibleReleases(){return new Set(visibleReleaseRows().filter(row=>state.activeReleases.has(row.id)).map(row=>row.id));}
-  function renderReleaseFilters(){const root=document.getElementById("release-filters"),rows=visibleReleaseRows();root.replaceChildren();rows.forEach(row=>{const label=document.createElement("label"),checked=state.activeReleases.has(row.id)?" checked":"";label.className="filter";label.innerHTML=`<input type="checkbox"${checked} data-release="${esc(row.id)}"><span class="swatch" style="--swatch:${row.color}"></span><span class="label">${esc(releaseLabel(row))}</span><small>${format(row.memberCount||0)}</small>`;root.append(label);});root.querySelectorAll("input").forEach(input=>input.addEventListener("change",()=>{input.checked?state.activeReleases.add(input.dataset.release):state.activeReleases.delete(input.dataset.release);refresh(true);}));document.getElementById("select-no-releases").disabled=!rows.length;}
-  function selectNoReleases(){visibleReleaseRows().forEach(row=>state.activeReleases.delete(row.id));state.selected=null;state.inspectorReturn=null;renderReleaseFilters();if(search.value)void renderSearch();else refresh(true);}
+  function visibleResourceTarget(){const active=activeVisibleReleases(),available=[...active].reduce((total,id)=>total+(releaseById.get(id)?.memberCount||0),0);return Math.min(state.renderLimit,available);}
+  function visibleLoadedResourceCount(){const active=activeVisibleReleases();return nodes.filter(node=>node.hasSummary&&!node.isSource&&active.has(node.release)&&(!state.ring||node.rings.has(state.ring))).length;}
+  function renderReleaseFilters(){const root=document.getElementById("release-filters"),rows=visibleReleaseRows();root.replaceChildren();rows.forEach(row=>{const label=document.createElement("label"),checked=state.activeReleases.has(row.id)?" checked":"";label.className="filter";label.innerHTML=`<input type="checkbox"${checked} data-release="${esc(row.id)}"><span class="swatch" style="--swatch:${row.color}"></span><span class="label">${esc(releaseLabel(row))}</span><small>${format(row.memberCount||0)}</small>`;root.append(label);});root.querySelectorAll("input").forEach(input=>input.addEventListener("change",()=>{input.checked?state.activeReleases.add(input.dataset.release):state.activeReleases.delete(input.dataset.release);syncRenderCapacity();refresh(true,state.renderLimit<=5000);void loadSelectedReleaseGraphs();}));document.getElementById("select-no-releases").disabled=!rows.length;}
+  function selectNoReleases(){visibleReleaseRows().forEach(row=>state.activeReleases.delete(row.id));state.selected=null;state.inspectorReturn=null;renderReleaseFilters();syncRenderCapacity();if(search.value)void renderSearch();else refresh(true);}
   /* atlas-release-filter-controls:end */
   /* atlas-edge-ring-filter:start */
   function edgeMatchesRing(edge,ring){return !ring||(edge.semanticRings||[edge.semanticRing].filter(Boolean)).includes(ring);}
@@ -5399,7 +5868,8 @@ _GRAPH_HTML = r"""<!doctype html>
   function layout(animate=true){const groups=new Map();state.renderedNodes.forEach(node=>{const key=node.release||"unreleased";if(!groups.has(key))groups.set(key,[]);groups.get(key).push(node);});const ordered=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));const orbit=Math.max(220,Math.sqrt(state.renderedNodes.length)*28);const golden=2.399963229728653;ordered.forEach(([key,group],groupIndex)=>{group.sort((a,b)=>b.degree-a.degree||a.id.localeCompare(b.id));const angle=(Math.PI*2*groupIndex/Math.max(1,ordered.length))+((hash(key)%1000)/1000)*.3;const cx=ordered.length===1?0:Math.cos(angle)*orbit,cy=ordered.length===1?0:Math.sin(angle)*orbit;group.forEach((node,index)=>{const theta=index*golden+(hash(node.id)%628)/100;const radius=18*Math.sqrt(index);node.sx=Number.isFinite(node.x)?node.x:cx;node.sy=Number.isFinite(node.y)?node.y:cy;node.tx=cx+Math.cos(theta)*radius;node.ty=cy+Math.sin(theta)*radius;});});if(!animate||matchMedia("(prefers-reduced-motion: reduce)").matches){state.renderedNodes.forEach(node=>{node.x=node.tx;node.y=node.ty;});draw();return;}const started=performance.now();if(state.animation)cancelAnimationFrame(state.animation);const tick=now=>{const t=Math.min(1,(now-started)/360),ease=1-Math.pow(1-t,3);state.renderedNodes.forEach(node=>{node.x=node.sx+(node.tx-node.sx)*ease;node.y=node.sy+(node.ty-node.sy)*ease;});draw();if(t<1)state.animation=requestAnimationFrame(tick);};state.animation=requestAnimationFrame(tick);}
   function bounds(){if(!state.renderedNodes.length)return{minX:-1,maxX:1,minY:-1,maxY:1};return{minX:Math.min(...state.renderedNodes.map(n=>n.x)),maxX:Math.max(...state.renderedNodes.map(n=>n.x)),minY:Math.min(...state.renderedNodes.map(n=>n.y)),maxY:Math.max(...state.renderedNodes.map(n=>n.y))};}
   function fitView(){const box=bounds(),padding=80,width=Math.max(1,box.maxX-box.minX),height=Math.max(1,box.maxY-box.minY);state.view.k=Math.max(.08,Math.min(2.8,Math.min((state.width-padding*2)/width,(state.height-padding*2)/height)));state.view.x=state.width/2-(box.minX+box.maxX)/2*state.view.k;state.view.y=state.height/2-(box.minY+box.maxY)/2*state.view.k;draw();}
-  function refresh(fit=false,animate=true){computeGraph();layout(animate);renderInspector();document.getElementById("graph-status").textContent=`${format(state.renderedNodes.length)} nodes · ${format(state.renderedEdges.length)} relations`;document.getElementById("render-limit-label").textContent=`${format(state.renderLimit)} of ${format(maxLimit)}`;if(fit)setTimeout(fitView,380);}
+  function selectedReleaseRelationTotal(){const active=activeVisibleReleases();if(active.size!==1)return null;const release=releaseById.get([...active][0]);return Number.isInteger(release?.relationCount)?release.relationCount:null;}
+  function refresh(fit=false,animate=true){computeGraph();const useAnimation=animate&&state.renderedNodes.length<=5000;layout(useAnimation);renderInspector();const total=selectedReleaseRelationTotal(),releaseTotal=total===null?"":` · ${format(total)} in selected release`;document.getElementById("graph-status").textContent=`${format(state.renderedNodes.length)} nodes · ${format(state.renderedEdges.length)} visible relations${releaseTotal}`;document.getElementById("render-limit-label").textContent=`${format(state.renderLimit)} of ${format(maxLimit)}`;if(fit)setTimeout(fitView,useAnimation?380:0);}
   function relationSelected(edge){return state.selected?.kind==="edge"&&state.selected.id===edge.id&&state.selected.layer===edge.layer;}
   function nodeConnected(node,edge){return edge.subject===node.id||edge.object===node.id;}
   /* atlas-selected-node-neighbors:start */
@@ -5468,7 +5938,7 @@ _GRAPH_HTML = r"""<!doctype html>
   }
   /* atlas-mapping-provenance:end */
   function relationMeaning(edge){
-    const subject=edge.subjectLabel, object=edge.objectLabel;
+    const subject=nodeById.get(edge.subject)?.label||edge.subjectLabel, object=nodeById.get(edge.object)?.label||edge.objectLabel;
     if(edge.kind==="sourceAssignment")return `This source record contributed ${object}. It is provenance, not a topic relation.`;
     return ({
       broader:`${subject} is narrower than ${object}.`,
@@ -5487,8 +5957,8 @@ _GRAPH_HTML = r"""<!doctype html>
     })[edge.predicateLabel]||`${subject} has relation “${edge.predicateLabel}” to ${object}.`;
   }
   function relationWhy(edge){
-    if(edge.layer==="projection")return `Query-friendly copy of ${format(edge.supportingAssertions.length)} assertion${edge.supportingAssertions.length===1?"":"s"}; no new claim.`;
-    if(edge.layer==="derived")return `Inferred from ${format(edge.derivedFromAssertions.length)} cited assertion${edge.derivedFromAssertions.length===1?"":"s"}; not editor-approved.`;
+    if(edge.layer==="projection"){const count=edge.supportingAssertions?.length||0;return `Query-friendly copy of ${format(count)} assertion${count===1?"":"s"}; no new claim.`;}
+    if(edge.layer==="derived"){const count=edge.derivedFromAssertions?.length||0;return `Inferred from ${format(count)} cited assertion${count===1?"":"s"}; not editor-approved.`;}
     const mapping=mappingContext(edge);
     if(mapping)return `Official alignment ${mapping.payload.publisherAlignmentVersion}, adopted for these exact releases.`;
     const evidence=edge.evidence||[];
@@ -5536,20 +6006,60 @@ _GRAPH_HTML = r"""<!doctype html>
     }
     document.getElementById("inspector-back")?.addEventListener("click",()=>{const target=state.inspectorReturn;state.inspectorReturn=null;state.selected=target.selection;renderInspector();document.getElementById("inspector").scrollTop=target.scrollTop;draw();});
     document.getElementById("more-relations")?.addEventListener("click",()=>{const node=nodeById.get(state.selected.id);void hydrateNode(node,true);});
-    view.querySelectorAll("[data-edge]").forEach(button=>button.addEventListener("click",()=>{const [layer,...rest]=button.dataset.edge.split("|");const id=rest.join("|");const edge=allEdges.find(row=>row.layer===layer&&row.id===id);if(edge){if(!state.inspectorReturn)state.inspectorReturn={selection:state.selected,scrollTop:document.getElementById("inspector").scrollTop};state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();document.getElementById("inspector").scrollTop=0;draw();}}));
+    view.querySelectorAll("[data-edge]").forEach(button=>button.addEventListener("click",()=>{const [layer,...rest]=button.dataset.edge.split("|");const id=rest.join("|");const edge=allEdges.find(row=>row.layer===layer&&row.id===id);if(edge){if(!state.inspectorReturn)state.inspectorReturn={selection:state.selected,scrollTop:document.getElementById("inspector").scrollTop};state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();document.getElementById("inspector").scrollTop=0;draw();void hydrateEdge(edge);}}));
   }
   function selectNode(node,center=false){state.inspectorReturn=null;state.selected={kind:"node",id:node.id};refresh(false,false);if(fullMode)void hydrateNode(node);if(center){state.view.x=state.width/2-node.x*state.view.k;state.view.y=state.height/2-node.y*state.view.k;draw();}}
   function normalizedQuery(value){return value.normalize("NFKD").replace(/\p{M}/gu,"").toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g," ").trim();}
-  function showSearchResults(){searchResults.replaceChildren();[...state.matches].map(id=>nodeById.get(id)).filter(Boolean).sort((a,b)=>a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id)).slice(0,8).forEach(node=>{const button=document.createElement("button");button.className="result";button.innerHTML=`<b>${esc(node.label)}</b><small>${esc(node.release||node.id)}</small>`;button.addEventListener("click",()=>{selectNode(node,true);searchResults.replaceChildren();});searchResults.append(button);});}
+  const searchPageSize=40;
+  let duckdbSearch=null,duckdbSearchPromise=null,searchTimer=null;
+  async function hasDuckdbSearch(){
+    if(duckdbSearch!==null)return duckdbSearch;
+    if(location.protocol==="file:"){duckdbSearch=false;return false;}
+    if(!duckdbSearchPromise)duckdbSearchPromise=(async()=>{try{const response=await fetch("/api/capabilities",{cache:"no-store"});if(!response.ok)return false;const capabilities=await response.json();return capabilities.search?.available===true&&capabilities.search?.engine==="duckdb-fts";}catch{return false;}})();
+    duckdbSearch=await duckdbSearchPromise;return duckdbSearch;
+  }
+  function showSearchResults(){
+    const rows=state.searchRows.slice(0,state.searchVisible);
+    const priorScroll=searchResults.scrollTop;
+    searchResults.replaceChildren();
+    rows.forEach(node=>{const button=document.createElement("button");button.className="result";button.innerHTML=`<b>${esc(node.label)}</b><small>${esc(node.release||node.id)}</small>`;button.addEventListener("click",()=>selectNode(node,true));searchResults.append(button);});
+    searchResults.scrollTop=priorScroll;
+    if(!state.query)searchResultStatus.textContent="";
+    else if(!rows.length&&!state.searchLoading)searchResultStatus.textContent="No matching resources.";
+    else searchResultStatus.textContent=`${format(rows.length)} loaded${state.searchHasMore||state.searchVisible<state.searchRows.length?" · keep scrolling":""}`;
+  }
+  function orderedLocalSearchRows(ids){return[...ids].map(id=>nodeById.get(id)).filter(Boolean).sort((a,b)=>a.label.localeCompare(b.label,"en")||a.id.localeCompare(b.id));}
+  async function loadMoreSearch(epoch=searchEpoch){
+    if(state.searchLoading||!state.query)return;
+    if(state.searchMode!=="duckdb"){
+      if(state.searchVisible<state.searchRows.length){state.searchVisible=Math.min(state.searchRows.length,state.searchVisible+searchPageSize);state.searchHasMore=state.searchVisible<state.searchRows.length;showSearchResults();}
+      return;
+    }
+    if(!state.searchHasMore)return;
+    state.searchLoading=true;searchResultStatus.textContent=state.searchOffset?`${format(state.searchOffset)} loaded · loading more…`:"Ranking results with DuckDB BM25…";
+    try{
+      const active=activeVisibleReleases(),visible=visibleReleaseRows();
+      const params=new URLSearchParams({q:search.value.trim(),ring:state.ring,limit:String(searchPageSize),offset:String(state.searchOffset)});
+      if(active.size<visible.length)for(const release of active)params.append("release",release);
+      const response=await fetch(`/api/search?${params}`,{cache:"no-store"});if(!response.ok){const payload=await response.json().catch(()=>({}));throw new Error(payload.error||`Search request failed (${response.status})`);}
+      const rows=await response.json();if(epoch!==searchEpoch)return;
+      const known=new Set(state.searchRows.map(node=>node.id));
+      for(const row of rows){if(known.has(row.id))continue;const node=summaryNode({id:row.id,displayLabel:row.label,release:row.release,ring:row.ring,searchText:[row.label,...(row.notations||[]),row.id].join(" ")});state.searchRows.push(node);state.matches.add(node.id);known.add(node.id);}
+      state.searchOffset+=rows.length;state.searchVisible=state.searchRows.length;state.searchHasMore=rows.length===searchPageSize;syncRenderCapacity();showSearchResults();refresh(false);
+    }finally{if(epoch===searchEpoch)state.searchLoading=false;}
+  }
   async function renderSearch(){
-    const epoch=++searchEpoch,activeReleases=activeVisibleReleases();state.query=normalizedQuery(search.value);const localMatches=new Set(state.query?nodes.filter(node=>activeReleases.has(node.release)&&(!state.ring||node.rings.has(state.ring))&&normalizedQuery(`${node.corpusSearchText||""} ${searchText(node)}`).includes(state.query)).map(node=>node.id):[]);state.matches=localMatches;showSearchResults();refresh(false);
-    if(!fullMode||!state.query)return;
+    const epoch=++searchEpoch,activeReleases=activeVisibleReleases(),query=normalizedQuery(search.value);state.query=query;state.searchRows=[];state.searchVisible=0;state.searchOffset=0;state.searchHasMore=false;state.searchLoading=false;state.searchMode="local";searchResults.scrollTop=0;const localMatches=new Set(state.query?nodes.filter(node=>activeReleases.has(node.release)&&(!state.ring||node.rings.has(state.ring))&&normalizedQuery(`${node.corpusSearchText||""} ${searchText(node)}`).includes(state.query)).map(node=>node.id):[]);state.matches=localMatches;state.searchRows=orderedLocalSearchRows(localMatches);state.searchVisible=Math.min(searchPageSize,state.searchRows.length);state.searchHasMore=state.searchVisible<state.searchRows.length;showSearchResults();refresh(false);
+    if(!state.query)return;
     if(!activeReleases.size){corpusMode.textContent="Select at least one Atlas release.";return;}
+    if(await hasDuckdbSearch()){if(epoch!==searchEpoch)return;state.searchMode="duckdb";state.searchRows=[];state.searchVisible=0;state.searchOffset=0;state.searchHasMore=true;state.matches.clear();showSearchResults();try{await loadMoreSearch(epoch);corpusMode.textContent=`Full graph · DuckDB BM25 search · ${format(data.summary.availableResources)} resources`;corpusMode.classList.remove("error");return;}catch(error){if(epoch!==searchEpoch)return;duckdbSearch=false;state.searchMode="local";corpusMode.textContent=`DuckDB search unavailable; using verified label shards. ${String(error?.message||error)}`;corpusMode.classList.add("error");}}
+    if(!fullMode)return;
     try{const index=await loadFullIndex(),firstWord=state.query.split(" ")[0],key=(firstWord+"__").slice(0,2),refs=firstWord.length===1?Object.entries(index.search.shards).filter(([candidate])=>candidate.startsWith(firstWord)).flatMap(([,rows])=>rows):index.search.shards[key]||[];corpusMode.textContent="Searching verified shards…";
-      for(const ref of refs){const shard=await fetchVerifiedShard(ref);if(epoch!==searchEpoch)return;if(shard.version!=="2"||shard.kind!=="search"||shard.key!==ref.key)throw new Error("Search shard identity differs");for(const summary of shard.entries){if(normalizedQuery(summary.searchText).includes(state.query)&&(!state.ring||summary.ring===state.ring)&&activeReleases.has(summary.release))localMatches.add(summaryNode(summary).id);}if(localMatches.size>=24)break;}
-      if(epoch!==searchEpoch)return;state.matches=localMatches;syncRenderCapacity();showSearchResults();corpusMode.textContent=`Full corpus · verified search · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(false);
+      for(const ref of refs){const shard=await fetchVerifiedShard(ref);if(epoch!==searchEpoch)return;if(shard.version!=="2"||shard.kind!=="search"||shard.key!==ref.key)throw new Error("Search shard identity differs");for(const summary of shard.entries){if(normalizedQuery(summary.searchText).includes(state.query)&&(!state.ring||summary.ring===state.ring)&&activeReleases.has(summary.release))localMatches.add(summaryNode(summary).id);}}
+      if(epoch!==searchEpoch)return;state.matches=localMatches;state.searchRows=orderedLocalSearchRows(localMatches);state.searchVisible=Math.min(searchPageSize,state.searchRows.length);state.searchHasMore=state.searchVisible<state.searchRows.length;syncRenderCapacity();showSearchResults();corpusMode.textContent=`Full corpus · verified search · ${format(fullBundle.counts.resources)} resources`;corpusMode.classList.remove("error");refresh(false);
     }catch(error){if(epoch!==searchEpoch)return;corpusMode.textContent=`Full-corpus search error: ${String(error?.message||error)}`;corpusMode.classList.add("error");}
   }
+  searchResults.addEventListener("scroll",()=>{if(searchResults.scrollHeight-searchResults.scrollTop-searchResults.clientHeight<80)void loadMoreSearch();});
   /* atlas-controls-resize:start */
   const controlsWidthMinimum=210,controlsWidthMaximum=520;
   let controlsResize=null;
@@ -5563,19 +6073,21 @@ _GRAPH_HTML = r"""<!doctype html>
   controlsResizer.addEventListener("keydown",event=>{const current=controlsPanel.getBoundingClientRect().width,bounds=controlsWidthBounds();let next;if(event.key==="ArrowLeft")next=current-16;else if(event.key==="ArrowRight")next=current+16;else if(event.key==="Home")next=bounds.min;else if(event.key==="End")next=bounds.max;else return;setControlsWidth(next);event.preventDefault();});
   /* atlas-controls-resize:end */
   function resize(){if(innerWidth>680)setControlsWidth(controlsPanel.getBoundingClientRect().width);const rect=stage.getBoundingClientRect();state.width=Math.max(1,rect.width);state.height=Math.max(1,rect.height);state.dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(state.width*state.dpr);canvas.height=Math.round(state.height*state.dpr);canvas.style.width=`${state.width}px`;canvas.style.height=`${state.height}px`;fitView();}
-  canvas.addEventListener("pointerdown",event=>{canvas.setPointerCapture(event.pointerId);const node=hitNode(event.clientX,event.clientY);if(node){selectNode(node);return;}const edge=hitEdge(event.clientX,event.clientY);if(edge){state.inspectorReturn=null;state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();draw();return;}state.panning=true;state.drag={x:event.clientX,y:event.clientY,viewX:state.view.x,viewY:state.view.y};canvas.classList.add("panning");});
+  canvas.addEventListener("pointerdown",event=>{canvas.setPointerCapture(event.pointerId);const node=hitNode(event.clientX,event.clientY);if(node){selectNode(node);return;}const edge=hitEdge(event.clientX,event.clientY);if(edge){state.inspectorReturn=null;state.selected={kind:"edge",id:edge.id,layer:edge.layer,edge};renderInspector();draw();void hydrateEdge(edge);return;}state.panning=true;state.drag={x:event.clientX,y:event.clientY,viewX:state.view.x,viewY:state.view.y};canvas.classList.add("panning");});
   canvas.addEventListener("pointermove",event=>{if(state.panning){state.view.x=state.drag.viewX+event.clientX-state.drag.x;state.view.y=state.drag.viewY+event.clientY-state.drag.y;draw();return;}const node=hitNode(event.clientX,event.clientY);state.hover=node?.id||null;if(node){const rect=stage.getBoundingClientRect();tooltip.innerHTML=`${esc(node.label)}<small>${esc(node.release||node.id)}</small>`;tooltip.style.left=`${event.clientX-rect.left}px`;tooltip.style.top=`${event.clientY-rect.top}px`;tooltip.hidden=false;}else tooltip.hidden=true;draw();});
   canvas.addEventListener("pointerup",event=>{if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);state.panning=false;state.drag=null;canvas.classList.remove("panning");});canvas.addEventListener("pointerleave",()=>{state.hover=null;tooltip.hidden=true;draw();});
   canvas.addEventListener("wheel",event=>{event.preventDefault();const rect=canvas.getBoundingClientRect();zoomAt(event.deltaY<0?1.12:.89,event.clientX-rect.left,event.clientY-rect.top);},{passive:false});
   canvas.addEventListener("keydown",event=>{if(event.key==="+"||event.key==="=")zoomAt(1.2);else if(event.key==="-")zoomAt(.83);else if(event.key==="ArrowLeft")state.view.x+=32;else if(event.key==="ArrowRight")state.view.x-=32;else if(event.key==="ArrowUp")state.view.y+=32;else if(event.key==="ArrowDown")state.view.y-=32;else return;event.preventDefault();draw();});
   document.getElementById("authority-asserted").addEventListener("change",event=>{state.layers.asserted=event.currentTarget.checked;refresh(false);});document.getElementById("authority-projection").addEventListener("change",event=>{state.layers.projection=event.currentTarget.checked;refresh(false);});document.getElementById("authority-derived").addEventListener("change",event=>{state.layers.derived=event.currentTarget.checked;refresh(false);});document.getElementById("show-source-assignments").addEventListener("change",event=>{state.showAssignments=event.currentTarget.checked;refresh(false);});
-  ringFilter.addEventListener("change",event=>{state.ring=event.currentTarget.value;state.selected=null;state.inspectorReturn=null;renderReleaseFilters();if(search.value)void renderSearch();else refresh(true);});predicateFilter.addEventListener("change",event=>{state.predicate=event.currentTarget.value;refresh(true);});search.addEventListener("input",()=>{void renderSearch();});window.addEventListener("keydown",event=>{if(event.key==="/"&&document.activeElement!==search){event.preventDefault();search.focus();}if(event.key==="Escape"){state.inspectorReturn=null;state.selected=null;search.value="";void renderSearch();}});
-  function setLimit(value){state.renderLimit=Math.max(1,Math.min(maxLimit,Number(value)||1));range.value=number.value=String(state.renderLimit);refresh(true);}range.addEventListener("input",event=>setLimit(event.currentTarget.value));number.addEventListener("change",event=>setLimit(event.currentTarget.value));
-  function reset(){state.activeReleases=new Set(releaseById.keys());state.layers={asserted:true,projection:false,derived:true};state.showAssignments=false;state.ring="";state.predicate="";state.selected=null;state.inspectorReturn=null;state.query="";state.matches.clear();search.value="";ringFilter.value="";predicateFilter.value="";document.getElementById("authority-asserted").checked=true;document.getElementById("authority-projection").checked=false;document.getElementById("authority-derived").checked=true;document.getElementById("show-source-assignments").checked=false;renderReleaseFilters();refresh(true);}
-  document.getElementById("select-no-releases").addEventListener("click",selectNoReleases);document.getElementById("browse-more").addEventListener("click",()=>{void browseMore();});document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
+  ringFilter.addEventListener("change",event=>{state.ring=event.currentTarget.value;state.selected=null;state.inspectorReturn=null;renderReleaseFilters();syncRenderCapacity();void loadSelectedReleaseGraphs();if(search.value)void renderSearch();else refresh(true);});predicateFilter.addEventListener("change",event=>{state.predicate=event.currentTarget.value;refresh(true);});search.addEventListener("input",()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{void renderSearch();},180);});window.addEventListener("keydown",event=>{if(event.key==="/"&&document.activeElement!==search){event.preventDefault();search.focus();}if(event.key==="Escape"){state.inspectorReturn=null;state.selected=null;search.value="";void renderSearch();}});
+  let limitLoadTimer=null;
+  function applyRenderLimit(){refresh(true,state.renderLimit<=5000);if(fullMode)void loadSelectedReleaseGraphs();}
+  function setLimit(value,defer=false){requestedRenderLimit=Math.max(1,Number(value)||1);state.renderLimit=Math.min(maxLimit,requestedRenderLimit);range.value=number.value=String(state.renderLimit);document.getElementById("render-limit-label").textContent=`${format(state.renderLimit)} of ${format(maxLimit)}`;clearTimeout(limitLoadTimer);if(defer)limitLoadTimer=setTimeout(applyRenderLimit,140);else applyRenderLimit();}range.addEventListener("input",event=>setLimit(event.currentTarget.value,true));number.addEventListener("change",event=>setLimit(event.currentTarget.value));
+  function reset(){state.activeReleases=new Set(releaseById.keys());state.layers={asserted:true,projection:false,derived:true};state.showAssignments=false;state.ring="";state.predicate="";state.selected=null;state.inspectorReturn=null;state.query="";state.matches.clear();state.searchRows=[];state.searchVisible=0;state.searchOffset=0;state.searchHasMore=false;search.value="";ringFilter.value="";predicateFilter.value="";document.getElementById("authority-asserted").checked=true;document.getElementById("authority-projection").checked=false;document.getElementById("authority-derived").checked=true;document.getElementById("show-source-assignments").checked=false;renderReleaseFilters();showSearchResults();syncRenderCapacity();refresh(true);void loadSelectedReleaseGraphs();}
+  document.getElementById("select-no-releases").addEventListener("click",selectNoReleases);document.getElementById("reset-view").addEventListener("click",reset);document.getElementById("fit-view").addEventListener("click",fitView);document.getElementById("fit-canvas").addEventListener("click",fitView);document.getElementById("zoom-in").addEventListener("click",()=>zoomAt(1.25));document.getElementById("zoom-out").addEventListener("click",()=>zoomAt(.8));new ResizeObserver(resize).observe(stage);
   document.getElementById("metric-resources").textContent=format(data.summary.availableResources);document.getElementById("metric-asserted").textContent=format(data.summary.availableAssertedRelations);document.getElementById("metric-derived").textContent=format(data.summary.availableDerivedRelations);document.getElementById("search-coverage").textContent=fullMode?"English search pages load only when queried.":`English search covers ${format(data.summary.indexedResources)} fallback resources out of ${format(data.summary.availableResources)} sealed resources.`;document.getElementById("distribution-id").textContent=data.distribution.id;document.getElementById("manifest-digest").textContent=data.distribution.manifestDigest;
-  if(fullMode)corpusMode.textContent="Full corpus · loading verified index…";else if(fullBundle&&location.protocol==="file:")corpusMode.textContent="Bounded local view · serve this folder over HTTP for the full corpus.";else if(fullBundle&&!gzipStreamSupported)corpusMode.textContent="Bounded fallback · this browser cannot open verified gzip shards.";else corpusMode.textContent="Bounded fallback view.";
-  renderReleaseFilters();refresh(false);resize();if(fullMode)void browseMore();
+  if(fullMode)corpusMode.textContent="Full corpus · move the slider to load verified resources.";else if(fullBundle&&location.protocol==="file:")corpusMode.textContent="Bounded local view · serve this folder over HTTP for the full corpus.";else if(fullBundle&&!gzipStreamSupported)corpusMode.textContent="Bounded fallback · this browser cannot open verified gzip shards.";else corpusMode.textContent="Bounded fallback view.";
+  renderReleaseFilters();syncRenderCapacity();refresh(false);resize();
 })();
 </script>
 </body>
