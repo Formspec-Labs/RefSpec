@@ -8,7 +8,6 @@ full logical-record view and canonical RDF remain the audit sources.
 
 from __future__ import annotations
 
-import hashlib
 import importlib.metadata
 import os
 import shutil
@@ -21,8 +20,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.parquet_artifact import (
+    arrow_schema_sha256,
+    canonical_payload_sha256,
+    file_sha256,
+)
 from refspec.atlas.parquet_view import verify_atlas_parquet_view
-from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
+from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 
 SEARCH_VIEW_RECORD_TYPE = "AtlasParquetSearchViewManifest"
 SEARCH_VIEW_SCHEMA_VERSION = "1.0"
@@ -71,18 +75,6 @@ _MANIFEST_FIELDS = frozenset(
 
 class AtlasParquetSearchViewError(ValueError):
     """The full view or compact search view is unsafe or inconsistent."""
-
-
-def _sha_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
-
-
-def _payload_digest(value: object) -> str:
-    return "sha256:" + hashlib.sha256(canonical_json_bytes(value)[:-1]).hexdigest()
 
 
 def _safe_member_path(directory: Path, relative: object) -> Path:
@@ -249,11 +241,7 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
     if role is CompactRecordRole.STATEMENT:
         if _suffix(row["id"], "assertion") != row["assertion_identity_digest"]:
             raise AtlasParquetSearchViewError("statement identifier differs from assertionIdentityDigest")
-        return {
-            key: value
-            for key, value in row.items()
-            if key not in {"assertion_identity_digest", "content_digest"}
-        }
+        return {key: value for key, value in row.items() if key not in {"assertion_identity_digest", "content_digest"}}
     if role is CompactRecordRole.EVIDENCE_BINDING:
         evidence_id = _suffix(row["id"], "evidence")
         if evidence_id != row["content_digest"]:
@@ -284,10 +272,6 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
     if role is CompactRecordRole.LIFECYCLE_EVENT:
         return {key: value for key, value in row.items() if key != "content_digest"}
     raise AssertionError(role)
-
-
-def _schema_digest(schema: pa.Schema) -> str:
-    return sha256_digest(schema.serialize().to_pybytes())
 
 
 def _write_role(source: Path, target: Path, role: CompactRecordRole) -> int:
@@ -354,8 +338,8 @@ def build_atlas_parquet_search_view(
                     "path": relative,
                     "role": role.value,
                     "rowCount": row_count,
-                    "schemaDigest": _schema_digest(stored_schema),
-                    "sha256": _sha_file(target),
+                    "schemaDigest": arrow_schema_sha256(stored_schema),
+                    "sha256": file_sha256(target),
                 }
             )
         construction = {
@@ -378,7 +362,7 @@ def build_atlas_parquet_search_view(
             ),
             "fullViewPayloadDigest": full_manifest["canonicalPayloadDigest"],
         }
-        identity = _payload_digest({"construction": construction, "input": input_pin})
+        identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
         manifest: dict[str, Any] = {
             "construction": construction,
             "counts": counts,
@@ -396,11 +380,11 @@ def build_atlas_parquet_search_view(
             },
             "viewId": SEARCH_VIEW_ID_PREFIX + identity.removeprefix("sha256:"),
         }
-        manifest["canonicalPayloadDigest"] = _payload_digest(manifest)
+        manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
         (temporary / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
         verify_atlas_parquet_search_view(
             temporary,
-            expected_manifest_digest=_sha_file(temporary / MANIFEST_FILE),
+            expected_manifest_digest=file_sha256(temporary / MANIFEST_FILE),
         )
         os.rename(temporary, output)
         return manifest
@@ -418,9 +402,13 @@ def verify_atlas_parquet_search_view(
 
     if directory.is_symlink() or not directory.is_dir():
         raise AtlasParquetSearchViewError("compact Atlas view must be a regular directory")
-    expected = expected_manifest_digest if expected_manifest_digest.startswith("sha256:") else "sha256:" + expected_manifest_digest
+    expected = (
+        expected_manifest_digest
+        if expected_manifest_digest.startswith("sha256:")
+        else "sha256:" + expected_manifest_digest
+    )
     manifest_path = directory / MANIFEST_FILE
-    if manifest_path.is_symlink() or not manifest_path.is_file() or _sha_file(manifest_path) != expected:
+    if manifest_path.is_symlink() or not manifest_path.is_file() or file_sha256(manifest_path) != expected:
         raise AtlasParquetSearchViewError("compact view manifest bytes differ from the external pin")
     try:
         import json
@@ -434,9 +422,12 @@ def verify_atlas_parquet_search_view(
         raise AtlasParquetSearchViewError("compact view manifest fields are unsupported")
     payload = dict(manifest)
     actual_digest = payload.pop("canonicalPayloadDigest", None)
-    if actual_digest != _payload_digest(payload):
+    if actual_digest != canonical_payload_sha256(payload):
         raise AtlasParquetSearchViewError("compact view manifest payload digest differs")
-    if manifest.get("recordType") != SEARCH_VIEW_RECORD_TYPE or manifest.get("schemaVersion") != SEARCH_VIEW_SCHEMA_VERSION:
+    if (
+        manifest.get("recordType") != SEARCH_VIEW_RECORD_TYPE
+        or manifest.get("schemaVersion") != SEARCH_VIEW_SCHEMA_VERSION
+    ):
         raise AtlasParquetSearchViewError("compact view type or version is unsupported")
     if manifest.get("status") != {
         "canonicalAtlas": False,
@@ -469,10 +460,13 @@ def verify_atlas_parquet_search_view(
         expected_files.add(member["path"])
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetSearchViewError(f"compact view member is missing or unsafe: {member['path']}")
-        if path.stat().st_size != member["byteLength"] or _sha_file(path) != member["sha256"]:
+        if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetSearchViewError(f"compact view member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
-        if parquet.schema_arrow != _SCHEMAS[role] or _schema_digest(parquet.schema_arrow) != member["schemaDigest"]:
+        if (
+            parquet.schema_arrow != _SCHEMAS[role]
+            or arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]
+        ):
             raise AtlasParquetSearchViewError(f"compact view schema differs: {member['path']}")
         if parquet.metadata.num_rows != member["rowCount"]:
             raise AtlasParquetSearchViewError(f"compact view row count differs: {member['path']}")
@@ -480,9 +474,7 @@ def verify_atlas_parquet_search_view(
     if seen != set(CompactRecordRole) or counts != manifest["counts"]:
         raise AtlasParquetSearchViewError("compact view roles or aggregate counts differ")
     observed_files = {
-        path.relative_to(directory).as_posix()
-        for path in directory.rglob("*")
-        if path.is_file() or path.is_symlink()
+        path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
     }
     if observed_files != expected_files:
         raise AtlasParquetSearchViewError("compact view file membership is not closed")

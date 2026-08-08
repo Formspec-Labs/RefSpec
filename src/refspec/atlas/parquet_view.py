@@ -8,7 +8,6 @@ digest, but does not duplicate the 30-million-row N-Quads serialization.
 
 from __future__ import annotations
 
-import hashlib
 import importlib.metadata
 import json
 import os
@@ -28,6 +27,11 @@ from refspec.atlas.compact_pack import (
     CompactPackInventory,
     CompactRecordRole,
     read_compact_record_pack,
+)
+from refspec.atlas.parquet_artifact import (
+    arrow_schema_sha256,
+    canonical_payload_sha256,
+    file_sha256,
 )
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -93,18 +97,6 @@ def _digest_text(value: object, label: str) -> str:
     return value
 
 
-def _file_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
-
-
-def _payload_digest(value: object) -> str:
-    return "sha256:" + hashlib.sha256(canonical_json_bytes(value)[:-1]).hexdigest()
-
-
 def _strict_json(path: Path, *, expected_digest: str | None = None) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise AtlasParquetViewError(f"JSON input is missing or unsafe: {path}")
@@ -141,10 +133,6 @@ def _safe_path(root: Path, relative: object) -> Path:
     if path.is_symlink():
         raise AtlasParquetViewError(f"artifact path cannot be a symlink: {relative}")
     return path
-
-
-def _schema_digest(schema: pa.Schema) -> str:
-    return sha256_digest(schema.serialize().to_pybytes())
 
 
 def _binary_digest_field(name: str, *, nullable: bool = True) -> pa.Field:
@@ -437,7 +425,7 @@ def verify_atlas_parquet_source_metadata(
         raise AtlasParquetViewError("Atlas root manifest type, version, or format is unsupported")
     payload = dict(manifest)
     declared_payload_digest = _digest_text(payload.pop("canonicalPayloadDigest"), "canonicalPayloadDigest")
-    if _payload_digest(payload) != declared_payload_digest:
+    if canonical_payload_sha256(payload) != declared_payload_digest:
         raise AtlasParquetViewError("Atlas root canonicalPayloadDigest differs")
 
     members = manifest["members"]
@@ -458,7 +446,7 @@ def verify_atlas_parquet_source_metadata(
         raise AtlasParquetViewError("construction summary byte length differs")
     summary_payload = dict(construction_summary)
     summary_digest = _digest_text(summary_payload.pop("canonicalPayloadDigest", None), "summary payload digest")
-    if _payload_digest(summary_payload) != summary_digest:
+    if canonical_payload_sha256(summary_payload) != summary_digest:
         raise AtlasParquetViewError("construction summary canonicalPayloadDigest differs")
     compact_packs = construction_summary.get("compactPacks")
     if not isinstance(compact_packs, list) or not compact_packs:
@@ -495,7 +483,7 @@ def verify_atlas_parquet_source_metadata(
             ),
             key=lambda row: row["packId"],
         )
-        if _payload_digest(inventory) != role_graph.get("inventoryDigest"):
+        if canonical_payload_sha256(inventory) != role_graph.get("inventoryDigest"):
             raise AtlasParquetViewError(f"Atlas {role} graph inventory digest differs")
         if role_graph.get("packCount") != len(inventory) or role_graph.get("quadCount") != sum(
             row["quadCount"] for row in inventory
@@ -512,7 +500,7 @@ def verify_atlas_parquet_source_metadata(
             continue
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetViewError(f"Atlas member is missing or unsafe: {member.get('path')}")
-        if path.stat().st_size != member.get("byteLength") or _file_digest(path) != member.get("digest"):
+        if path.stat().st_size != member.get("byteLength") or file_sha256(path) != member.get("digest"):
             raise AtlasParquetViewError(f"Atlas member bytes differ: {member.get('path')}")
     for pack in packs:
         path = _safe_path(root, pack.get("path"))
@@ -523,7 +511,7 @@ def verify_atlas_parquet_source_metadata(
             raise AtlasParquetViewError("Atlas RDF pack descriptor is malformed")
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetViewError(f"Atlas RDF pack is missing or unsafe: {pack.get('path')}")
-        if path.stat().st_size != transport.get("byteLength") or _file_digest(path) != transport.get("digest"):
+        if path.stat().st_size != transport.get("byteLength") or file_sha256(path) != transport.get("digest"):
             raise AtlasParquetViewError(f"Atlas RDF pack transport differs: {pack.get('path')}")
         expected_id = "urn:ref:atlas:pack:" + str(content.get("digest", "")).removeprefix("sha256:")
         if pack.get("packId") != expected_id:
@@ -605,8 +593,8 @@ def _write_tables(
                 "rowCount": counts[role.value],
                 # Pin the schema as serialized by Parquet. PyArrow restores the
                 # same logical schema but may normalize nested-field metadata.
-                "schemaDigest": _schema_digest(pq.ParquetFile(target).schema_arrow),
-                "sha256": _file_digest(target),
+                "schemaDigest": arrow_schema_sha256(pq.ParquetFile(target).schema_arrow),
+                "sha256": file_sha256(target),
             }
         )
     expected_counts = Counter()
@@ -645,7 +633,7 @@ def build_atlas_parquet_view(
             "sourceRepresentation": "authenticatedAtlasCompactLogicalRecords",
         }
         input_pin = input_.view_input_pin
-        identity = _payload_digest({"construction": construction, "input": input_pin})
+        identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
         manifest: dict[str, Any] = {
             "construction": construction,
             "counts": counts,
@@ -662,9 +650,9 @@ def build_atlas_parquet_view(
             },
             "viewId": VIEW_ID_PREFIX + identity.removeprefix("sha256:"),
         }
-        manifest["canonicalPayloadDigest"] = _payload_digest(manifest)
+        manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
         (temporary / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
-        verify_atlas_parquet_view(temporary, expected_manifest_digest=_file_digest(temporary / MANIFEST_FILE))
+        verify_atlas_parquet_view(temporary, expected_manifest_digest=file_sha256(temporary / MANIFEST_FILE))
         os.rename(temporary, output)
         return manifest
     except BaseException:
@@ -694,7 +682,7 @@ def verify_atlas_parquet_view(
         raise AtlasParquetViewError("Atlas Parquet view type or version is unsupported")
     payload = dict(manifest)
     actual_payload_digest = _digest_text(payload.pop("canonicalPayloadDigest"), "view payload digest")
-    if _payload_digest(payload) != actual_payload_digest:
+    if canonical_payload_sha256(payload) != actual_payload_digest:
         raise AtlasParquetViewError("Atlas Parquet view canonicalPayloadDigest differs")
     status = manifest["status"]
     if status != {
@@ -728,12 +716,12 @@ def verify_atlas_parquet_view(
         expected_files.add(path.relative_to(directory).as_posix())
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetViewError(f"Parquet member is missing or unsafe: {member['path']}")
-        if path.stat().st_size != member["byteLength"] or _file_digest(path) != member["sha256"]:
+        if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetViewError(f"Parquet member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
         if parquet.schema_arrow != _SCHEMAS[role]:
             raise AtlasParquetViewError(f"Parquet schema differs: {member['path']}")
-        if _schema_digest(parquet.schema_arrow) != member["schemaDigest"]:
+        if arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]:
             raise AtlasParquetViewError(f"Parquet schema digest differs: {member['path']}")
         row_count = parquet.metadata.num_rows
         if row_count != member["rowCount"]:
