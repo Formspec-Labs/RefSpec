@@ -25,7 +25,9 @@ REVIEWER = URIRef("urn:ref:agent:atlas-fixture-reviewer")
 CREATED_AT = "2026-08-05T12:00:00+00:00"
 CONSTRUCTION_PROFILE = "atlas-3-release-local-construction-v1"
 CONSTRUCTION_RECEIPT_PROFILE = "atlas-3-authenticated-construction-summary-v1"
-CONSTRUCTOR_PROFILE = "atlas-3-source-and-publisher-mapping-compiled-shacl-v1"
+CONSTRUCTOR_PROFILE = (
+    "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
+)
 COMPACT_ROLE_ORDER = (
     "Release",
     "SourceRecord",
@@ -1569,7 +1571,7 @@ def _write_case(
         "constructorProfile": CONSTRUCTOR_PROFILE,
         "counts": counts,
         "implementationDigest": _sha256(Path(__file__).resolve().read_bytes()),
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": accounting_digest,

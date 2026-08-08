@@ -17,8 +17,9 @@ from rdflib.namespace import RDF
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryLabel,
+    RegistryMapping,
+    RegistryMappingEvidence,
     RegistryMappingRelease,
-    RegistryPublisherMapping,
     RegistryRelease,
     RegistryResource,
     RegistrySupplementalSourceRecord,
@@ -418,7 +419,7 @@ def _write_exact_reuse_test_distribution(
     source_pin = pin("tests/exact-reuse/source.txt")
     inventory = {
         "expectedResources": 1,
-        "publisherMappingSources": [],
+        "mappingSources": [],
         "registryDescriptors": 1,
         "registryDescriptorsPin": {
             "byteLength": descriptor_pin["byteLength"],
@@ -822,6 +823,16 @@ def test_release_local_incremental_construction_skips_clean_parser_and_matches_c
         )
 
     initial_releases = tuple(release_for_source(release) for release in base_releases)
+    mapping_release = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping_release.mappings[0],
+                subject_atlas_release_iri=initial_releases[0].atlas_release_iri,
+                object_atlas_release_iri=initial_releases[1].atlas_release_iri,
+            ),
+        ),
+    )
     all_keys = frozenset(
         {
             *(release.spec.key for release in initial_releases),
@@ -997,6 +1008,61 @@ def test_release_local_incremental_construction_skips_clean_parser_and_matches_c
     } == declared_paths
 
 
+def test_incremental_generation_report_accounts_for_mapping_releases() -> None:
+    source_plan = generator.ReleasePackPlan(
+        key="source-release",
+        source_release_iri="urn:test:source-release:source",
+        atlas_release_iri="urn:test:atlas-release:source",
+        ring="subject",
+        resource_count=3,
+    )
+    mapping_plan = generator.ReleasePackPlan(
+        key="mapping-release",
+        source_release_iri="urn:test:source-release:mapping",
+        atlas_release_iri=None,
+        ring="subject",
+        resource_count=2,
+        kind="mapping",
+    )
+    report = generator._incremental_generation_report(
+        counts={
+            "crossRingRelationAssertions": 0,
+            "identifiers": 0,
+            "labels": 3,
+            "mappingAssertions": 2,
+            "nativeRelationAssertions": 0,
+            "resources": 3,
+        },
+        english_only_scan={},
+        inventory={"mappingSources": [], "sources": []},
+        plans=(source_plan, mapping_plan),
+        reuse=SimpleNamespace(
+            prior_summary={
+                "releases": [
+                    {
+                        "key": "mapping-release",
+                        "recordCounts": {
+                            "evidenceBindings": 3,
+                            "statements": 2,
+                        },
+                    }
+                ]
+            },
+            report=lambda: {"status": "passed"},
+        ),
+        semantic_construction={},
+    )
+
+    assert len(report["mappingReleases"]) == 1
+    assert report["mappingReleases"][0] == {
+        "evidenceBindingCount": 3,
+        "key": "mapping-release",
+        "mappingCount": 2,
+        "sourceRelease": "urn:test:source-release:mapping",
+    }
+    assert [row["key"] for row in report["sourceReleases"]] == ["source-release"]
+
+
 def test_incremental_pack_materialization_rebuilds_changed_content(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1133,13 +1199,13 @@ def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
 
     assert set(inventory) == {
         "expectedResources",
-        "publisherMappingSources",
+        "mappingSources",
         "registryDescriptors",
         "registryDescriptorsPin",
         "registryDescriptorsProofPin",
         "sources",
     }
-    assert inventory["publisherMappingSources"] == []
+    assert inventory["mappingSources"] == []
     assert all(not row["path"].startswith("/") for row in inventory["sources"])
     assert all(row["usesPriorAtlasGraph"] is False for row in inventory["sources"])
     assert all(None not in row.values() for row in inventory["sources"])
@@ -1324,6 +1390,7 @@ def _clean_validation_state(
         compact_subject_pack_ids={},
         rdf_subject_owners={},
         statement_type_counts={},
+        mapping_policy_iris=frozenset(),
         relation_triples={},
     )
 
@@ -1573,33 +1640,44 @@ def _compiled_mapping_case(
         predicate_iri=str(generator.SKOS.exactMatch),
         object_iri=base.resources[1].iri,
     )
-    mapping = RegistryPublisherMapping(
+    mapping = RegistryMapping(
         subject=base.resources[0].iri,
         predicate=str(generator.SKOS.exactMatch),
         object=base.resources[1].iri,
-        source_locator=pins[0].source_iri,
-        source_digest=alignment_digest,
-        source_payload={
-            "mappingTripleDigest": triple_digest,
-            "objectIri": base.resources[1].iri,
-            "predicateIri": str(generator.SKOS.exactMatch),
-            "subjectIri": base.resources[0].iri,
-        },
+        subject_atlas_release_iri=releases[0].atlas_release_iri,
+        object_atlas_release_iri=releases[1].atlas_release_iri,
+        asserted_at="2026-08-06T01:00:00+00:00",
+        evidence=(
+            RegistryMappingEvidence(
+                source_locator=pins[0].source_iri,
+                source_digest=alignment_digest,
+                native_payload={
+                    "mappingTripleDigest": triple_digest,
+                    "objectIri": base.resources[1].iri,
+                    "predicateIri": str(generator.SKOS.exactMatch),
+                    "subjectIri": base.resources[0].iri,
+                },
+                review_method="operatorAdoption",
+                reviewer_iri="urn:ref:actor:atlas-3-test-operator-adoption",
+                decided_at="2026-08-06T00:00:00+00:00",
+            ),
+        ),
     )
     mapping_release = RegistryMappingRelease(
         key="eurovoc-lcsh-alignment-20240711",
         resource_id="synthetic-publisher-alignment",
         source_module="refspec.registry.synthetic_alignment",
         ring="subject",
+        scope="publisherRelease",
         issued="2024-07-11",
         source_release_iri=mapping_source_release,
         source_release_digest=alignment_digest,
         inputs=pins,
         mappings=(mapping,),
-        decision_date="2026-08-06",
-        review_method="operatorAdoption",
-        reviewer_iri="urn:ref:actor:atlas-3-test-operator-adoption",
-        confidence=None,
+        editorial_policy={
+            "admission": "exact evidence-backed test mapping",
+            "profile": "test-mapping-policy-v1",
+        },
         metadata={"adoptionDecision": "atlasOperatorAdoption"},
     )
     return releases, mapping_release
@@ -1683,6 +1761,7 @@ def test_mapping_release_matches_mapping_only_registry_policy(tmp_path: Path) ->
 def test_mapping_evidence_uses_shared_registry_triple_digest(tmp_path: Path) -> None:
     _, mapping_release = _compiled_mapping_case(tmp_path)
     mapping = mapping_release.mappings[0]
+    evidence = mapping.evidence[0]
     expected_digest = mapping_triple_digest(
         subject_iri=mapping.subject,
         predicate_iri=mapping.predicate,
@@ -1692,21 +1771,36 @@ def test_mapping_evidence_uses_shared_registry_triple_digest(tmp_path: Path) -> 
     locator, source_digest, payload = generator._mapping_evidence(
         mapping_release,
         mapping,
+        evidence,
     )
 
-    assert locator == URIRef(mapping.source_locator)
-    assert source_digest == mapping.source_digest
+    assert locator == URIRef(evidence.source_locator)
+    assert source_digest == evidence.source_digest
     assert payload["mappingTripleDigest"] == expected_digest
 
     tampered = dataclasses.replace(
-        mapping,
-        source_payload={
-            **mapping.source_payload,
+        evidence,
+        native_payload={
+            **evidence.native_payload,
             "mappingTripleDigest": "sha256:" + "0" * 64,
         },
     )
     with pytest.raises(ValueError, match="wrong triple digest"):
-        generator._mapping_evidence(mapping_release, tampered)
+        generator._mapping_evidence(mapping_release, mapping, tampered)
+
+    secondary_pin = mapping_release.inputs[1]
+    secondary = dataclasses.replace(
+        evidence,
+        source_locator=secondary_pin.source_iri,
+        source_digest=secondary_pin.sha256,
+    )
+    locator, source_digest, _ = generator._mapping_evidence(
+        mapping_release,
+        mapping,
+        secondary,
+    )
+    assert locator == URIRef(secondary_pin.source_iri)
+    assert source_digest == secondary_pin.sha256
 
 
 def test_mapping_policy_accepts_multiple_versioned_releases_for_one_source(
@@ -1722,6 +1816,17 @@ def test_mapping_policy_accepts_multiple_versioned_releases_for_one_source(
         source_release_iri="urn:test:source-release:publisher-alignment:next",
         source_release_digest=next_digest,
         inputs=(next_primary, *first.inputs[1:]),
+        mappings=(
+            dataclasses.replace(
+                first.mappings[0],
+                evidence=(
+                    dataclasses.replace(
+                        first.mappings[0].evidence[0],
+                        source_digest=next_digest,
+                    ),
+                ),
+            ),
+        ),
     )
     monkeypatch.setattr(
         generator,
@@ -1782,8 +1887,8 @@ def test_mapping_release_pins_its_primary_source_artifact(tmp_path: Path) -> Non
             mapping_release,
             source_release_digest="sha256:" + "0" * 64,
         )
-    with pytest.raises(ValueError, match="decision date predates its release"):
-        dataclasses.replace(mapping_release, decision_date="2024-07-10")
+    with pytest.raises(ValueError, match="unsupported mapping release scope"):
+        dataclasses.replace(mapping_release, scope="unknown")
 
 
 def test_mapping_release_rejects_unknown_or_member_registry_source(
@@ -1887,7 +1992,7 @@ def test_mapping_release_rejects_index_module_ring_or_intended_use_drift(
         )
 
 
-def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
+def test_mapping_emits_evidence_accounting_and_dedicated_pack(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1896,17 +2001,26 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
         "_registry_asserted_graph",
         _compiled_descriptor_graph,
     )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping_releases = (mapping_release,)
 
     inventory = generator.verify_inputs(releases, mapping_releases)
     assert inventory["expectedResources"] == 2
     assert inventory["registryDescriptors"] == 88
-    assert [row["role"] for row in inventory["publisherMappingSources"][0]["inputs"]] == [
+    mapping_source = inventory["mappingSources"][0]
+    assert [row["role"] for row in mapping_source["inputs"]] == [
         "publisherAlignment",
         "currentPublisherLinksetMetadata",
     ]
-    assert inventory["publisherMappingSources"][0]["expectedMappings"] == 1
+    assert mapping_source["mappingCount"] == 1
+    assert mapping_source["evidenceBindingCount"] == 1
+    assert mapping_source["reviewMethods"] == ["operatorAdoption"]
+    assert mapping_source["scope"] == "publisherRelease"
 
     producer_receipt = generator._validate_compiled_producer_rows(
         releases,
@@ -1950,11 +2064,21 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
             RDF.type,
             generator.ATLAS.SkosMappingAssertion,
         ) in graphs.asserted
+        mapping_row = mapping_release.mappings[0]
+        assert graphs.asserted.value(
+            assertion,
+            generator.ATLAS.sourceRelease,
+        ) == URIRef(mapping_row.subject_atlas_release_iri)
+        assert graphs.asserted.value(
+            assertion,
+            generator.ATLAS.targetRelease,
+        ) == URIRef(mapping_row.object_atlas_release_iri)
         evidence_bindings = set(
             graphs.asserted.subjects(generator.ATLAS.bindsAssertion, assertion)
         )
         assert len(evidence_bindings) == 1
         evidence = next(iter(evidence_bindings))
+        evidence_row = mapping_release.mappings[0].evidence[0]
         assert (
             evidence,
             generator.ATLAS.reviewMethod,
@@ -1963,8 +2087,13 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
         assert (
             evidence,
             generator.ATLAS.reviewedBy,
-            URIRef(mapping_release.reviewer_iri),
+            URIRef(evidence_row.reviewer_iri),
         ) in graphs.asserted
+        expected_assertion_time = Literal(
+            "2026-08-06T01:00:00+00:00",
+            datatype=generator.XSD.dateTime,
+            normalize=False,
+        )
         expected_decision_time = Literal(
             "2026-08-06T00:00:00+00:00",
             datatype=generator.XSD.dateTime,
@@ -1973,7 +2102,7 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
         assert (
             assertion,
             generator.ATLAS.assertedAt,
-            expected_decision_time,
+            expected_assertion_time,
         ) in graphs.asserted
         assert (
             evidence,
@@ -1989,7 +2118,7 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
         assert graphs.asserted.value(
             evidence_source_record,
             generator.ATLAS.sourceLocator,
-        ) == URIRef(mapping_release.inputs[0].source_iri)
+        ) == URIRef(evidence_row.source_locator)
 
         accounting_row = next(
             row
@@ -2061,6 +2190,268 @@ def test_publisher_mapping_emits_evidence_accounting_and_dedicated_pack(
         )
     finally:
         graphs.release()
+
+
+def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping = mapping_release.mappings[0]
+    secondary_pin = mapping_release.inputs[1]
+    secondary_evidence = RegistryMappingEvidence(
+        source_locator=secondary_pin.source_iri,
+        source_digest=secondary_pin.sha256,
+        native_payload={
+            **mapping.evidence[0].native_payload,
+            "reviewRecord": "independent-human-review",
+        },
+        review_method="humanReview",
+        reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
+        decided_at="2026-08-06T02:00:00+00:00",
+        confidence="0.9",
+    )
+    expanded_release = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(*mapping.evidence, secondary_evidence),
+            ),
+        ),
+    )
+
+    producer_receipt = generator._validate_compiled_producer_rows(
+        releases,
+        (expanded_release,),
+    )
+    base_graphs = generator._build_graphs(
+        releases,
+        mapping_releases=(mapping_release,),
+        include_projection=False,
+    )
+    expanded_graphs = generator._build_graphs(
+        releases,
+        mapping_releases=(expanded_release,),
+        include_projection=False,
+    )
+    try:
+        base_assertions = set(
+            base_graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
+        )
+        expanded_assertions = set(
+            expanded_graphs.asserted.subjects(
+                RDF.type,
+                generator.ATLAS.MappingAssertion,
+            )
+        )
+        assert expanded_assertions == base_assertions
+        assertion = next(iter(expanded_assertions))
+        bindings = set(
+            expanded_graphs.asserted.subjects(
+                generator.ATLAS.bindsAssertion,
+                assertion,
+            )
+        )
+        assert len(bindings) == 2
+        assert set(
+            expanded_graphs.asserted.objects(
+                None,
+                generator.ATLAS.reviewMethod,
+            )
+        ) >= {
+            generator.ATLAS.humanReview,
+            generator.ATLAS.operatorAdoption,
+        }
+        assert producer_receipt.expected_counts["sourceRecords"] == 4
+        report = generator._validate_compiled_producer_output(
+            releases,
+            expanded_graphs,
+            producer_receipt,
+            (expanded_release,),
+        )
+        assert report["counts"]["sourceRecords"] == 4
+        summary = generator._mapping_release_summary(expanded_release)
+        assert summary["mappingCount"] == 1
+        assert summary["evidenceBindingCount"] == 2
+        assert summary["reviewMethods"] == ["humanReview", "operatorAdoption"]
+        accounting_row = next(
+            row
+            for row in expanded_graphs.accounting["inputs"]
+            if row["sourceRelease"] == expanded_release.source_release_iri
+        )
+        assert accounting_row["declaredMemberCount"] == 2
+        assert all(
+            disposition["atlasAssertions"] == [str(assertion)]
+            for disposition in accounting_row["dispositions"]
+        )
+    finally:
+        base_graphs.release()
+        expanded_graphs.release()
+
+
+def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping = mapping_release.mappings[0]
+    second_approval = dataclasses.replace(
+        mapping.evidence[0],
+        review_method="humanReview",
+        reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
+        decided_at="2026-08-06T02:00:00+00:00",
+        confidence="0.9",
+    )
+    expanded_release = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(*mapping.evidence, second_approval),
+            ),
+        ),
+    )
+    producer_receipt = generator._validate_compiled_producer_rows(
+        releases,
+        (expanded_release,),
+    )
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=(expanded_release,),
+        include_projection=False,
+    )
+    try:
+        assertion = next(
+            graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
+        )
+        bindings = list(
+            graphs.asserted.subjects(generator.ATLAS.bindsAssertion, assertion)
+        )
+        assert len(bindings) == 2
+        graphs.asserted.remove((bindings[-1], None, None))
+
+        with pytest.raises(ValueError):
+            generator._validate_compiled_producer_output(
+                releases,
+                graphs,
+                producer_receipt,
+                (expanded_release,),
+            )
+    finally:
+        graphs.release()
+
+
+def test_compiled_output_rejects_wrong_mapping_assertion_in_source_accounting(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    mapping_releases = (mapping_release,)
+    producer_receipt = generator._validate_compiled_producer_rows(
+        releases,
+        mapping_releases,
+    )
+    graphs = generator._build_graphs(
+        releases,
+        mapping_releases=mapping_releases,
+        include_projection=False,
+    )
+    try:
+        accounting_row = next(
+            row
+            for row in graphs.accounting["inputs"]
+            if row["sourceRelease"] == mapping_release.source_release_iri
+        )
+        accounting_row["dispositions"][0]["atlasAssertions"] = [
+            "urn:ref:atlas-assertion:" + "0" * 64
+        ]
+
+        with pytest.raises(ValueError):
+            generator._validate_compiled_producer_output(
+                releases,
+                graphs,
+                producer_receipt,
+                mapping_releases,
+            )
+    finally:
+        graphs.release()
+
+
+@pytest.mark.parametrize(
+    ("release_field", "message"),
+    (
+        (
+            "subject_atlas_release_iri",
+            "subject endpoint release differs from its exact pin",
+        ),
+        (
+            "object_atlas_release_iri",
+            "object endpoint release differs from its exact pin",
+        ),
+    ),
+)
+def test_mapping_rejects_endpoint_release_version_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    release_field: str,
+    message: str,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    releases, mapping_release = _compiled_mapping_case(tmp_path)
+    drifted_mapping = dataclasses.replace(
+        mapping_release.mappings[0],
+        **{release_field: f"urn:test:atlas-release:stale-{release_field}"},
+    )
+    drifted_release = dataclasses.replace(
+        mapping_release,
+        mappings=(drifted_mapping,),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        generator._validate_compiled_producer_rows(
+            releases,
+            (drifted_release,),
+        )
 
 
 def test_compiled_producer_validates_rows_and_constructor_output(
@@ -2894,7 +3285,7 @@ def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() 
     assert generator._production_relation_scope(clean) == {
         "derivedRelations": 0,
         "mappingAssertions": 0,
-        "mode": "publisherSourcesAndPinnedMappings",
+        "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
 
     mapping = generator.BuildGraphs(Graph(), Graph(), Graph(), {})
@@ -2908,7 +3299,7 @@ def test_production_relation_scope_allows_pinned_mappings_and_rejects_derived() 
     assert generator._production_relation_scope(mapping) == {
         "derivedRelations": 0,
         "mappingAssertions": 1,
-        "mode": "publisherSourcesAndPinnedMappings",
+        "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
 
     derived = generator.BuildGraphs(Graph(), Graph(), Graph(), {})
@@ -3030,7 +3421,7 @@ def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
     )
 
 
-def test_add_assertion_mints_evidence_without_temporary_graph_mutations() -> None:
+def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() -> None:
     class RemoveRejectingGraph(Graph):
         def remove(self, triple: object) -> Graph:
             raise AssertionError(f"evidence construction must not remove {triple}")
@@ -3053,7 +3444,7 @@ def test_add_assertion_mints_evidence_without_temporary_graph_mutations() -> Non
         )
     )
 
-    generator._add_assertion(
+    generator._add_evidenced_assertion(
         graph,
         assertion_type=generator.ATLAS.NativeRelationAssertion,
         ring=generator.ATLAS.subject,
@@ -3067,6 +3458,7 @@ def test_add_assertion_mints_evidence_without_temporary_graph_mutations() -> Non
         evidence_record=evidence_record,
         reviewer=URIRef("urn:test:reviewer"),
         review_method=generator.ATLAS.publisherAssertion,
+        decided_at="2026-08-06T00:00:00Z",
         confidence=None,
     )
 
@@ -3089,7 +3481,7 @@ def test_add_assertion_mints_evidence_without_temporary_graph_mutations() -> Non
     )
 
 
-def test_review_methods_match_assertion_provenance_and_fail_closed() -> None:
+def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> None:
     observed = {
         generator._review_method_for_assertion(generator.ATLAS.SourceAssignment),
         generator._review_method_for_assertion(
@@ -3106,19 +3498,26 @@ def test_review_methods_match_assertion_provenance_and_fail_closed() -> None:
         generator.ATLAS.deterministicTransformation,
     }
     assert generator.ATLAS.operatorAdoption not in observed
-    assert generator._review_method_for_assertion(
-        generator.ATLAS.MappingAssertion,
-        operator_adopted=True,
-    ) == generator.ATLAS.operatorAdoption
     with pytest.raises(ValueError, match="unsupported assertion"):
         generator._review_method_for_assertion(generator.ATLAS.MappingAssertion)
 
+    for method in generator.MAPPING_REVIEW_METHODS:
+        assert generator._mapping_review_method(method) == generator.ATLAS[method]
+    with pytest.raises(ValueError, match="unsupported mapping review method"):
+        generator._mapping_review_method("inventedReview")
 
-def test_active_editorial_policies_contain_no_serving_permission_language() -> None:
+
+def test_active_editorial_policies_contain_no_serving_permission_language(
+    tmp_path: Path,
+) -> None:
     graph = Graph()
     emitted_payloads = []
+    _, mapping_release = _compiled_mapping_case(tmp_path)
 
-    for payload in generator.EDITORIAL_POLICY_PAYLOADS.values():
+    for payload in (
+        *generator.EDITORIAL_POLICY_PAYLOADS.values(),
+        mapping_release.editorial_policy,
+    ):
         policy = generator._add_policy(graph, payload)
         encoded = graph.value(policy, generator.ATLAS.policyPayload)
         assert encoded is not None
@@ -3127,7 +3526,8 @@ def test_active_editorial_policies_contain_no_serving_permission_language() -> N
         assert emitted_payload == generator._plain(payload)
         assert generator._portable_policy_term_violations(emitted_payload) == ()
 
-    assert len(emitted_payloads) == len(generator.EDITORIAL_POLICY_PAYLOADS) == 2
+    assert len(emitted_payloads) == 2
+    assert len(set(graph.subjects(RDF.type, generator.ATLAS.EditorialPolicy))) == 2
     with pytest.raises(ValueError, match="serving eligibility or permission"):
         generator._add_policy(
             Graph(),

@@ -965,10 +965,10 @@ def _install_producer_validation(
             "releaseCount": construction["releaseCount"],
             "releaseInventoryDigest": construction["releaseInventoryDigest"],
         },
-        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
         "counts": dict(manifest["counts"]),
         "implementationDigest": _sha256(b"unit-test-producer-implementation"),
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "sourceAccountingDigest": accounting_digest,
@@ -1833,14 +1833,14 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
     assert result["quadCount"] == 811
 
 
-def test_legacy_source_only_compiled_producer_identity_is_rejected(
+def test_publisher_only_compiled_producer_identity_is_rejected(
     tmp_path: Path,
 ) -> None:
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(
         distribution,
-        constructorProfile="atlas-3-source-only-compiled-shacl-v1",
-        mode="compiledSourceProducerValidation",
+        constructorProfile="atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
+        mode="compiledSourceAndPublisherMappingProducerValidation",
     )
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:

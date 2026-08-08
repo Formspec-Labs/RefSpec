@@ -52,24 +52,47 @@ def eurovoc_releases():
     return load_eurovoc_4_24_releases(Path(SOURCE_ROOT))
 
 
-def test_mapping_release_is_separately_pinned_publisher_evidence(mapping_release) -> None:
+def test_mapping_release_is_separately_pinned_evidence_backed_input(
+    mapping_release,
+) -> None:
     assert mapping_release.key == "eurovoc-lcsh-alignment-20240711"
     assert mapping_release.resource_id == "eurovoc-lcsh-alignment"
     assert mapping_release.issued == "2024-07-11"
     assert mapping_release.ring == "subject"
+    assert mapping_release.scope == "publisherRelease"
     assert mapping_release.source_release_digest == EUROVOC_LCSH_ALIGNMENT_SHA256
+    assert mapping_release.editorial_policy == (
+        alignments.EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD
+    )
     assert [source.role for source in mapping_release.inputs] == [
         "publisherAlignment",
         "publisherAlignmentReleaseMetadata",
         "publisherSourceReleaseMetadata",
         "currentPublisherLinksetMetadata",
     ]
-    assert mapping_release.reviewer_iri == (
-        alignments.ATLAS_MAPPING_ADOPTION_REVIEWER_IRI
+    assert {
+        row.asserted_at for row in mapping_release.mappings
+    } == {alignments.ATLAS_MAPPING_ADOPTION_DECIDED_AT}
+    assert {
+        evidence.review_method
+        for row in mapping_release.mappings
+        for evidence in row.evidence
+    } == {"operatorAdoption"}
+    assert {
+        evidence.reviewer_iri
+        for row in mapping_release.mappings
+        for evidence in row.evidence
+    } == {alignments.ATLAS_MAPPING_ADOPTION_REVIEWER_IRI}
+    assert {
+        evidence.decided_at
+        for row in mapping_release.mappings
+        for evidence in row.evidence
+    } == {alignments.ATLAS_MAPPING_ADOPTION_DECIDED_AT}
+    assert all(
+        evidence.confidence is None
+        for row in mapping_release.mappings
+        for evidence in row.evidence
     )
-    assert mapping_release.decision_date == "2026-08-06"
-    assert mapping_release.review_method == "operatorAdoption"
-    assert mapping_release.confidence is None
     assert mapping_release.metadata["adoptionDecision"] == "atlasOperatorAdoption"
     assert mapping_release.metadata["currentEuroVocRelease"] == "4.24"
     assert mapping_release.metadata["publisherEuroVocVersion"] == "4.20"
@@ -100,7 +123,8 @@ def test_mapping_release_preserves_only_the_2003_direct_publisher_triples(
         str(SKOS.exactMatch),
     }
     assert all(
-        row.source_payload == {
+        len(row.evidence) == 1
+        and row.evidence[0].native_payload == {
             "currentEuroVocLinksetCounts": dict(EXPECTED_PREDICATE_COUNTS),
             "currentEuroVocLinksetMetadataDigest": mapping_release.inputs[3].sha256,
             "currentEuroVocRelease": "4.24",
@@ -121,10 +145,19 @@ def test_mapping_release_preserves_only_the_2003_direct_publisher_triples(
             "publisherLcshRelease": "unspecifiedByPublisher",
             "subjectIri": row.subject,
         }
-        and row.source_digest == EUROVOC_LCSH_ALIGNMENT_SHA256
-        and row.source_locator == mapping_release.inputs[0].source_iri
+        and row.evidence[0].source_digest == EUROVOC_LCSH_ALIGNMENT_SHA256
+        and row.evidence[0].source_locator == mapping_release.inputs[0].source_iri
         for row in mapping_release.mappings
     )
+
+
+def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) -> None:
+    assert {
+        row.subject_atlas_release_iri for row in mapping_release.mappings
+    } == {alignments.EUROVOC_ATLAS_RELEASE_IRI}
+    assert {
+        row.object_atlas_release_iri for row in mapping_release.mappings
+    } == {alignments.LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI}
 
 
 def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -> None:

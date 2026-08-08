@@ -117,9 +117,9 @@ parity for all 3,302,340 compact records. Its final resource, source-record,
 label, relation, mapping, assignment, identifier, and release counts matched
 the producer output. The cold independent run took 4,466.6 seconds. This exact
 proof applies to the distribution's pinned binding bundle digest shown above.
-The subsequent compact-sampling performance change moved current `HEAD` to
-binding bundle digest
-`sha256:8692855421355ee89429771457dfe2b8fa47a54828f819979622f79724351b90`;
+The subsequent compact-sampling performance change and evidence-backed mapping
+profile reseal moved current `HEAD` to binding bundle digest
+`sha256:80646fe0ce428ff91f2641ef2ab27591ddba9955b9ab3c1d665239db1ccae4fd`;
 the distribution has not been rebuilt against that newer binding.
 
 ## Source-unit admission authority

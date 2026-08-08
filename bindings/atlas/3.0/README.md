@@ -611,13 +611,13 @@ those facts.
 A trusted writer MAY satisfy `shacl-data` with a compiled producer proof instead
 of running general SHACL over its own generated RDF. The proof MUST pin the
 exact ontology and SHACL-shape digests it implements, run meta-SHACL, validate
-the normalized source and publisher-mapping rows and their joins, and reconcile
+the normalized source and evidence-backed mapping rows and their joins, and reconcile
 the fixed constructor counts with source accounting and exact pack receipts. It
 MUST fail closed when either binding pin changes. The current compiled profile
-admits publisher-source resources, English labels, identifiers, native and
-cross-ring relations, source assignments, and separately pinned explicit
-publisher mappings. Projections, derived relations, inferred mappings, and
-supersession remain absent.
+admits source resources, English labels, identifiers, native and cross-ring
+relations, source assignments, and separately pinned explicit mappings with
+one or more approved evidence bindings. Projections, derived relations,
+inferred mappings, and supersession remain absent.
 
 The generation report distinguishes this compiled producer proof from
 independent consumer validation. A consumer does not inherit the writer's trust

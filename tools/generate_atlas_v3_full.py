@@ -4,8 +4,8 @@ The generator reads every supported complete release or explicitly bounded
 capture whose exact bytes are available locally. It preserves publisher label
 roles, authority-scoped identifiers, globally reusable document identities,
 semantic rings, direct authored relations, release provenance, and separately
-evidenced publisher alignments. It never invents inverse, transitive, or
-similarity mappings.
+evidenced mapping releases. It never invents inverse, transitive, or similarity
+mappings.
 
 Before invoking a parser, the incremental planner authenticates a prior Atlas
 3.0 distribution and re-receipts each release's raw inputs and adapter recipe.
@@ -46,7 +46,6 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, InvalidOperation
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from pathlib import Path, PurePosixPath
@@ -76,11 +75,14 @@ from refspec.atlas.registry_claim_input import (
     AtlasRegistryClaimInput,
 )
 from refspec.atlas.v3_source_data import (
+    MAPPING_REVIEW_METHODS,
+    MappingReviewMethod,
     RegistryCrossRingRelation,
     RegistryIdentifier,
     RegistryInputPin,
+    RegistryMapping,
+    RegistryMappingEvidence,
     RegistryMappingRelease,
-    RegistryPublisherMapping,
     RegistryRelease,
     RegistrySupplementalSourceRecord,
     mapping_triple_digest,
@@ -124,23 +126,8 @@ SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD = MappingProxyType(
         "version": "atlas-3.0-source-native-v1",
     }
 )
-PUBLISHER_MAPPING_EDITORIAL_POLICY_PAYLOAD = MappingProxyType(
-    {
-        "admission": (
-            "explicit mapping triple in an exact publisher alignment artifact, "
-            "adopted by Atlas for the pinned current endpoint releases"
-        ),
-        "artifactStatus": "developmentBaseline",
-        "evidence": (
-            "one separately pinned mapping SourceRecord per assertion; no inverse, "
-            "transitive, or similarity-generated mappings"
-        ),
-        "version": "atlas-3.0-operator-adopted-publisher-mapping-v1",
-    }
-)
 EDITORIAL_POLICY_PAYLOADS = MappingProxyType(
     {
-        "publisherMapping": PUBLISHER_MAPPING_EDITORIAL_POLICY_PAYLOAD,
         "sourceNative": SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD,
     }
 )
@@ -155,10 +142,10 @@ _PACK_LARGE_RELEASE_BUCKETS = 16
 _PACK_ZSTD_LEVEL = 1
 _COMPACT_PARTITION_RESOURCE_THRESHOLD = 5_000
 _COMPILED_PRODUCER_PROFILE = (
-    "atlas-3-source-and-publisher-mapping-compiled-shacl-v1"
+    "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1"
 )
 _COMPILED_PRODUCER_MODE = (
-    "compiledSourceAndPublisherMappingProducerValidation"
+    "compiledSourceAndEvidenceBackedMappingProducerValidation"
 )
 _EXACT_DISTRIBUTION_REUSE_PROFILE = (
     "atlas-3-exact-input-whole-distribution-reuse-v1"
@@ -174,14 +161,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0251f8a67ee89ea5d4a336d398f48d277f8eda2c6ccde1d6f07a45a2e9bc8c0f"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:1cdeac3938e89dbaa666fb3019b06b060d9257e9904f2d69c84bf11060e56c93"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:8692855421355ee89429771457dfe2b8fa47a54828f819979622f79724351b90"
+            "sha256:80646fe0ce428ff91f2641ef2ab27591ddba9955b9ab3c1d665239db1ccae4fd"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -502,6 +489,7 @@ class CleanConstructionState:
     compact_subject_pack_ids: Mapping[URIRef, str]
     rdf_subject_owners: Mapping[URIRef, tuple[str, str | None]]
     statement_type_counts: Mapping[str, int]
+    mapping_policy_iris: frozenset[URIRef]
     relation_triples: Mapping[
         tuple[URIRef, URIRef, URIRef],
         tuple[URIRef, ...],
@@ -510,7 +498,7 @@ class CleanConstructionState:
 
 @dataclass(frozen=True, slots=True)
 class CompiledProducerValidationReceipt:
-    """Compact-row proof for pinned source and publisher-mapping rows."""
+    """Compact-row proof for pinned source and evidence-backed mapping rows."""
 
     binding_profile: Mapping[str, str]
     english_only_scan: Mapping[str, Any]
@@ -1204,7 +1192,7 @@ def _semantic_input_pin_rows(
                 "sha256": pin.get("digest"),
             }
         )
-    for collection in ("sources", "publisherMappingSources"):
+    for collection in ("sources", "mappingSources"):
         sources = inventory.get(collection)
         if not isinstance(sources, list):
             raise TypeError(f"input inventory {collection} is not an array")
@@ -2428,7 +2416,7 @@ def load_releases(
 def load_mapping_releases(
     include_keys: frozenset[str] | None = None,
 ) -> tuple[RegistryMappingRelease, ...]:
-    """Load direct publisher mapping artifacts independently from vocabularies."""
+    """Load evidence-backed mapping artifacts independently from vocabularies."""
 
     from refspec.atlas.v3_registry_alignments import (
         load_all_registry_mapping_releases,
@@ -2585,7 +2573,7 @@ def _validate_registry_mapping_release_policy(
 def _validate_registry_mapping_release_descriptors(
     releases: Sequence[RegistryMappingRelease],
 ) -> None:
-    """Require every publisher mapping release to pass registry policy."""
+    """Require every mapping release to pass registry admission policy."""
 
     descriptors = _registry_asserted_graph()
     index_rows = _registry_index_rows()
@@ -2827,10 +2815,8 @@ def _review_method_for_assertion(
     assertion_type: URIRef,
     *,
     deterministic_transformation: bool = False,
-    operator_adopted: bool = False,
-    publisher_asserted: bool = False,
 ) -> URIRef:
-    """Select the narrow review method supported by an assertion's provenance."""
+    """Select the source-native method supported by an assertion's provenance."""
 
     if assertion_type in {
         ATLAS.CrossRingRelationAssertion,
@@ -2842,16 +2828,15 @@ def _review_method_for_assertion(
             if deterministic_transformation
             else ATLAS.publisherAssertion
         )
-    if assertion_type == ATLAS.MappingAssertion and not deterministic_transformation:
-        if operator_adopted and publisher_asserted:
-            raise ValueError(
-                "mapping assertion requires exactly one publisher or operator warrant"
-            )
-        if operator_adopted:
-            return ATLAS.operatorAdoption
-        if publisher_asserted:
-            return ATLAS.publisherAssertion
     raise ValueError(f"unsupported assertion review method: {assertion_type}")
+
+
+def _mapping_review_method(review_method: MappingReviewMethod) -> URIRef:
+    """Resolve one explicit, binding-approved mapping warrant to its RDF term."""
+
+    if review_method not in MAPPING_REVIEW_METHODS:
+        raise ValueError(f"unsupported mapping review method: {review_method!r}")
+    return ATLAS[review_method]
 
 
 def _transformed_relation_evidence(
@@ -2890,28 +2875,23 @@ def _transformed_relation_evidence(
 
 def _mapping_evidence(
     release: RegistryMappingRelease,
-    mapping: RegistryPublisherMapping,
+    mapping: RegistryMapping,
+    evidence: RegistryMappingEvidence,
 ) -> tuple[URIRef, str, Mapping[str, Any]]:
-    """Return one source-authored mapping row without source-specific guesses."""
+    """Return one pinned mapping evidence row without source-specific guesses."""
 
     matching_pins = [
         pin
         for pin in release.inputs
-        if pin.sha256 == mapping.source_digest
-        and pin.source_iri == mapping.source_locator
+        if pin.sha256 == evidence.source_digest
+        and pin.source_iri == evidence.source_locator
     ]
-    if not matching_pins:
+    if len(matching_pins) != 1:
         raise ValueError(
-            f"{release.key} mapping locator and digest do not identify a pinned input"
+            f"{release.key} mapping evidence locator and digest must identify "
+            "exactly one pinned input"
         )
-    if (
-        mapping.source_digest != release.source_release_digest
-        or mapping.source_locator != release.inputs[0].source_iri
-    ):
-        raise ValueError(
-            f"{release.key} mapping evidence does not belong to its primary source release"
-        )
-    payload = _plain(mapping.source_payload)
+    payload = _plain(evidence.native_payload)
     if not isinstance(payload, Mapping):
         raise TypeError(f"{release.key} mapping payload must be an object")
     expected_triple = {
@@ -2933,7 +2913,7 @@ def _mapping_evidence(
             f"{release.key} mapping payload has the wrong triple digest"
         )
     ATLAS_VALIDATE.canonical_native_json_bytes(payload)
-    return URIRef(mapping.source_locator), mapping.source_digest, payload
+    return URIRef(evidence.source_locator), evidence.source_digest, payload
 
 
 def _add_assertion(
@@ -2948,10 +2928,6 @@ def _add_assertion(
     target_release: URIRef,
     policy: URIRef,
     asserted_at: str,
-    evidence_record: URIRef,
-    reviewer: URIRef,
-    review_method: URIRef,
-    confidence: str | None,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
@@ -3012,6 +2988,20 @@ def _add_assertion(
     graph.add((assertion, ATLAS.assertionStatus, ATLAS.current))
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(identity_digest)))
     _add_content_digest(graph, assertion)
+    return assertion
+
+
+def _add_evidence_binding(
+    graph: Graph,
+    *,
+    assertion: URIRef,
+    evidence_record: URIRef,
+    reviewer: URIRef,
+    review_method: URIRef,
+    decided_at: str,
+    confidence: str | None,
+) -> URIRef:
+    """Attach one immutable approval to an existing assertion."""
 
     evidence_source_digest = graph.value(
         evidence_record,
@@ -3032,7 +3022,7 @@ def _add_assertion(
         (
             ATLAS.decidedAt,
             Literal(
-                _rdf_datetime(asserted_at),
+                _rdf_datetime(decided_at),
                 datatype=XSD.dateTime,
                 normalize=False,
             ),
@@ -3049,10 +3039,249 @@ def _add_assertion(
     evidence = URIRef(
         "urn:ref:atlas-evidence:" + evidence_digest.removeprefix("sha256:")
     )
+    if (evidence, RDF.type, None) in graph:
+        raise ValueError(
+            f"evidence decisions collapse to one binding: {evidence}"
+        )
     for evidence_predicate, evidence_object in evidence_facts:
         graph.add((evidence, evidence_predicate, evidence_object))
     graph.add((evidence, ATLAS.contentDigest, Literal(evidence_digest)))
+    return evidence
+
+
+def _add_evidenced_assertion(
+    graph: Graph,
+    *,
+    assertion_type: URIRef,
+    ring: URIRef | None,
+    subject: URIRef,
+    predicate: URIRef,
+    obj: URIRef,
+    source_release: URIRef,
+    target_release: URIRef,
+    policy: URIRef,
+    asserted_at: str,
+    evidence_record: URIRef,
+    reviewer: URIRef,
+    review_method: URIRef,
+    decided_at: str,
+    confidence: str | None,
+    source_ring: URIRef | None = None,
+    target_ring: URIRef | None = None,
+) -> URIRef:
+    """Construct one assertion with its single source-native approval."""
+
+    assertion = _add_assertion(
+        graph,
+        assertion_type=assertion_type,
+        ring=ring,
+        subject=subject,
+        predicate=predicate,
+        obj=obj,
+        source_release=source_release,
+        target_release=target_release,
+        policy=policy,
+        asserted_at=asserted_at,
+        source_ring=source_ring,
+        target_ring=target_ring,
+    )
+    _add_evidence_binding(
+        graph,
+        assertion=assertion,
+        evidence_record=evidence_record,
+        reviewer=reviewer,
+        review_method=review_method,
+        decided_at=decided_at,
+        confidence=confidence,
+    )
     return assertion
+
+
+def _expected_mapping_asserted_graph(
+    mapping_releases: Sequence[RegistryMappingRelease],
+) -> Graph:
+    """Reconstruct the exact mapping claims, evidence, records, and policies."""
+
+    graph = _new_build_graph()
+    for release in mapping_releases:
+        policy = _add_policy(graph, release.editorial_policy)
+        source_release = URIRef(release.source_release_iri)
+        for mapping in release.mappings:
+            assertion = _add_assertion(
+                graph,
+                assertion_type=ATLAS.MappingAssertion,
+                ring=ATLAS[release.ring],
+                subject=URIRef(mapping.subject),
+                predicate=URIRef(mapping.predicate),
+                obj=URIRef(mapping.object),
+                source_release=URIRef(mapping.subject_atlas_release_iri),
+                target_release=URIRef(mapping.object_atlas_release_iri),
+                policy=policy,
+                asserted_at=mapping.asserted_at,
+            )
+            for evidence in mapping.evidence:
+                locator, digest, payload = _mapping_evidence(
+                    release,
+                    mapping,
+                    evidence,
+                )
+                record = _add_source_record(
+                    graph,
+                    source_release=source_release,
+                    source_locator=locator,
+                    source_digest=digest,
+                    native_payload=payload,
+                    represents_resource=None,
+                )
+                _add_evidence_binding(
+                    graph,
+                    assertion=assertion,
+                    evidence_record=record,
+                    reviewer=URIRef(evidence.reviewer_iri),
+                    review_method=_mapping_review_method(evidence.review_method),
+                    decided_at=evidence.decided_at,
+                    confidence=evidence.confidence,
+                )
+    return graph
+
+
+def _mapping_accounting_expectations(
+    mapping_releases: Sequence[RegistryMappingRelease],
+) -> dict[str, dict[str, set[str]]]:
+    """Group exact mapping assertion identities by evidence SourceRecord."""
+
+    graph = _expected_mapping_asserted_graph(mapping_releases)
+    expected: dict[str, dict[str, set[str]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
+    try:
+        for binding in graph.subjects(RDF.type, ATLAS.EvidenceBinding):
+            assertion = graph.value(binding, ATLAS.bindsAssertion)
+            record = graph.value(binding, ATLAS.evidenceSourceRecord)
+            source_release = (
+                graph.value(record, ATLAS.inSourceRelease)
+                if isinstance(record, URIRef)
+                else None
+            )
+            if not all(
+                isinstance(value, URIRef)
+                for value in (assertion, record, source_release)
+            ):
+                raise AssertionError(
+                    "expected mapping evidence lacks assertion or release ownership"
+                )
+            expected[str(source_release)][str(record)].add(str(assertion))
+        return {
+            release: {
+                record: set(assertions)
+                for record, assertions in records.items()
+            }
+            for release, records in expected.items()
+        }
+    finally:
+        graph.close()
+
+
+def _validate_compiled_evidence_output(
+    asserted: Graph,
+    expected_counts: Mapping[str, int],
+    mapping_releases: Sequence[RegistryMappingRelease],
+) -> None:
+    """Reconcile every approval and the exact evidence-backed mapping subgraph."""
+
+    expected_mapping = _expected_mapping_asserted_graph(mapping_releases)
+    try:
+        expected_assertions = set(
+            expected_mapping.subjects(RDF.type, ATLAS.MappingAssertion)
+        )
+        actual_assertions = set(
+            asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+        )
+        if actual_assertions != expected_assertions:
+            raise ValueError("compiled mapping assertion identities differ")
+
+        def mapping_subjects(graph: Graph) -> set[URIRef]:
+            bindings = {
+                URIRef(binding)
+                for assertion in expected_assertions
+                for binding in graph.subjects(ATLAS.bindsAssertion, assertion)
+            }
+            records = {
+                URIRef(record)
+                for binding in bindings
+                for record in graph.objects(binding, ATLAS.evidenceSourceRecord)
+                if isinstance(record, URIRef)
+            }
+            policies = {
+                URIRef(policy)
+                for assertion in expected_assertions
+                for policy in graph.objects(assertion, ATLAS.governedByPolicy)
+                if isinstance(policy, URIRef)
+            }
+            return expected_assertions | bindings | records | policies
+
+        expected_subjects = mapping_subjects(expected_mapping)
+        actual_subjects = mapping_subjects(asserted)
+        if actual_subjects != expected_subjects:
+            raise ValueError("compiled mapping evidence identities differ")
+        for subject in expected_subjects:
+            if set(asserted.predicate_objects(subject)) != set(
+                expected_mapping.predicate_objects(subject)
+            ):
+                raise ValueError(
+                    f"compiled mapping evidence facts differ: {subject}"
+                )
+
+        all_assertions = {
+            URIRef(assertion)
+            for assertion_type in ATLAS_VALIDATE.ASSERTION_TYPES
+            for assertion in asserted.subjects(RDF.type, assertion_type)
+        }
+        typed_bindings = set(
+            asserted.subjects(RDF.type, ATLAS.EvidenceBinding)
+        )
+        bound_bindings: set[URIRef] = set()
+        for assertion in all_assertions:
+            bindings = {
+                URIRef(binding)
+                for binding in asserted.subjects(ATLAS.bindsAssertion, assertion)
+            }
+            expected_count = (
+                len(
+                    set(
+                        expected_mapping.subjects(
+                            ATLAS.bindsAssertion,
+                            assertion,
+                        )
+                    )
+                )
+                if assertion in expected_assertions
+                else 1
+            )
+            if len(bindings) != expected_count:
+                raise ValueError(
+                    f"compiled assertion evidence count differs: {assertion}"
+                )
+            bound_bindings.update(bindings)
+        expected_binding_count = (
+            expected_counts["relationAssertions"]
+            - expected_counts["mappingAssertions"]
+            + len(
+                set(
+                    expected_mapping.subjects(
+                        RDF.type,
+                        ATLAS.EvidenceBinding,
+                    )
+                )
+            )
+        )
+        if (
+            typed_bindings != bound_bindings
+            or len(typed_bindings) != expected_binding_count
+        ):
+            raise ValueError("compiled evidence binding inventory differs")
+    finally:
+        expected_mapping.close()
 
 
 def _registry_asserted_graph() -> Graph:
@@ -3376,7 +3605,7 @@ def _validate_compiled_producer_rows(
     clean_state: CleanConstructionState | None = None,
     clean_seeds: Sequence[ReleaseConstructionSeed] = (),
 ) -> CompiledProducerValidationReceipt:
-    """Validate source and publisher-mapping rows against compiled SHACL.
+    """Validate source and evidence-backed mapping rows against compiled SHACL.
 
     This is deliberately narrower than the independent RDF validator. The
     fixed constructors cover carrier shape and datatype rules; this pass proves
@@ -3809,7 +4038,7 @@ def _validate_compiled_producer_rows(
         mapping_evidence_records: set[URIRef] = set()
         for mapping_release in mapping_releases:
             if not mapping_release.key:
-                raise ValueError("publisher mapping release key must be non-empty")
+                raise ValueError("mapping release key must be non-empty")
             if (
                 ATLAS_VALIDATE.DIGEST_RE.fullmatch(
                     mapping_release.source_release_digest
@@ -3829,40 +4058,10 @@ def _validate_compiled_producer_rows(
                 raise ValueError(
                     f"{mapping_release.key} issued date is not canonical YYYY-MM-DD"
                 )
-            try:
-                parsed_decision = date.fromisoformat(mapping_release.decision_date)
-            except (TypeError, ValueError) as error:
-                raise ValueError(
-                    f"{mapping_release.key} decision date is not canonical YYYY-MM-DD"
-                ) from error
-            if parsed_decision.isoformat() != mapping_release.decision_date:
-                raise ValueError(
-                    f"{mapping_release.key} decision date is not canonical YYYY-MM-DD"
-                )
-            _require_absolute_iri(
-                mapping_release.reviewer_iri,
-                context=f"{mapping_release.key} reviewer",
+            _accounting_membership_mode(mapping_release.scope)
+            _assert_portable_editorial_policy_payload(
+                mapping_release.editorial_policy
             )
-            review_method = _review_method_for_assertion(
-                ATLAS.MappingAssertion,
-                operator_adopted=(
-                    mapping_release.review_method == "operatorAdoption"
-                ),
-                publisher_asserted=(
-                    mapping_release.review_method == "publisherAssertion"
-                ),
-            )
-            if mapping_release.confidence is not None:
-                try:
-                    confidence = Decimal(mapping_release.confidence)
-                except (InvalidOperation, ValueError) as error:
-                    raise ValueError(
-                        f"{mapping_release.key} confidence is not a decimal"
-                    ) from error
-                if not confidence.is_finite() or not Decimal(0) <= confidence <= Decimal(1):
-                    raise ValueError(
-                        f"{mapping_release.key} confidence is outside 0..1"
-                    )
             release_ring = ATLAS[mapping_release.ring]
             allowed = relation_policies.get(release_ring, {}).get(
                 ATLAS.MappingAssertion,
@@ -3873,6 +4072,14 @@ def _validate_compiled_producer_rows(
                     ("subject", mapping.subject),
                     ("predicate", mapping.predicate),
                     ("object", mapping.object),
+                    (
+                        "subject Atlas release",
+                        mapping.subject_atlas_release_iri,
+                    ),
+                    (
+                        "object Atlas release",
+                        mapping.object_atlas_release_iri,
+                    ),
                 ):
                     _require_absolute_iri(
                         value,
@@ -3882,40 +4089,55 @@ def _validate_compiled_producer_rows(
                 target = resource_facts(mapping.object)
                 if source is None or target is None:
                     raise ValueError(
-                        f"publisher mapping endpoint is outside loaded releases: {mapping}"
+                        f"mapping endpoint is outside loaded releases: {mapping}"
                     )
                 if source[1] == target[1]:
                     raise ValueError(
-                        f"publisher mapping endpoints use one release: {mapping}"
+                        f"mapping endpoints use one release: {mapping}"
+                    )
+                if source[1] != URIRef(mapping.subject_atlas_release_iri):
+                    raise ValueError(
+                        "mapping subject endpoint release differs from its exact pin: "
+                        f"{mapping}"
+                    )
+                if target[1] != URIRef(mapping.object_atlas_release_iri):
+                    raise ValueError(
+                        "mapping object endpoint release differs from its exact pin: "
+                        f"{mapping}"
                     )
                 if source[2] != release_ring or target[2] != release_ring:
                     raise ValueError(
-                        f"publisher mapping endpoint ring differs: {mapping}"
+                        f"mapping endpoint ring differs: {mapping}"
                     )
                 predicate = URIRef(mapping.predicate)
                 if predicate not in allowed:
                     raise ValueError(
-                        f"publisher mapping predicate is not allowed for "
+                        f"mapping predicate is not allowed for "
                         f"{mapping_release.ring}: {predicate}"
                     )
-                locator, digest, payload = _mapping_evidence(
-                    mapping_release,
-                    mapping,
-                )
-                evidence_record, _ = _source_record_constructor(
-                    source_release=URIRef(mapping_release.source_release_iri),
-                    source_locator=locator,
-                    source_digest=digest,
-                    native_payload=payload,
-                )
-                if evidence_record in mapping_evidence_records:
-                    raise ValueError(
-                        f"publisher mapping evidence SourceRecord repeats: {evidence_record}"
+                _rdf_datetime(mapping.asserted_at)
+                for evidence in mapping.evidence:
+                    _require_absolute_iri(
+                        evidence.reviewer_iri,
+                        context=f"{mapping_release.key} mapping evidence reviewer",
                     )
-                mapping_evidence_records.add(evidence_record)
+                    _mapping_review_method(evidence.review_method)
+                    _rdf_datetime(evidence.decided_at)
+                    locator, digest, payload = _mapping_evidence(
+                        mapping_release,
+                        mapping,
+                        evidence,
+                    )
+                    evidence_record, _ = _source_record_constructor(
+                        source_release=URIRef(mapping_release.source_release_iri),
+                        source_locator=locator,
+                        source_digest=digest,
+                        native_payload=payload,
+                    )
+                    mapping_evidence_records.add(evidence_record)
                 claim = (mapping.subject, mapping.predicate, mapping.object)
                 if claim in mapping_claims:
-                    raise ValueError(f"publisher mapping claim repeats: {claim}")
+                    raise ValueError(f"mapping claim repeats: {claim}")
                 mapping_claims.add(claim)
                 triple = (
                     URIRef(mapping.subject),
@@ -3924,15 +4146,9 @@ def _validate_compiled_producer_rows(
                 )
                 if triple in current_relations:
                     raise ValueError(
-                        f"publisher mapping duplicates another relation: {triple}"
+                        f"mapping duplicates another relation: {triple}"
                     )
                 current_relations[triple] = ()
-
-            if review_method not in {
-                ATLAS.operatorAdoption,
-                ATLAS.publisherAssertion,
-            }:
-                raise AssertionError("publisher mapping review method did not resolve")
 
         if relation_payload_count != english_only_scan["relationPayloadsChecked"]:
             raise ValueError("relation payload validation count differs")
@@ -3962,7 +4178,7 @@ def _validate_compiled_producer_rows(
             "sourceRecords": (
                 resource_count
                 + remap_evidence_count
-                + mapping_count
+                + len(mapping_evidence_records)
                 + sum(
                     len(release.supplemental_source_records)
                     for release in releases
@@ -4020,6 +4236,7 @@ def _validate_compiled_source_accounting(
     if set(rows_by_release) != expected_releases:
         raise ValueError("compiled producer source accounting release set differs")
 
+    mapping_expectations = _mapping_accounting_expectations(mapping_releases)
     source_records: set[str] = set()
     represented_total = 0
     excluded_total = 0
@@ -4124,32 +4341,23 @@ def _validate_compiled_source_accounting(
 
     for mapping_release in mapping_releases:
         row = rows_by_release[mapping_release.source_release_iri]
-        if row["membershipMode"] != "complete":
+        if row["membershipMode"] != _accounting_membership_mode(
+            mapping_release.scope
+        ):
             raise ValueError(
-                f"{mapping_release.key} mapping source accounting is not complete"
+                f"{mapping_release.key} mapping source accounting membership mode differs"
             )
         dispositions = row["dispositions"]
-        if (
-            not isinstance(dispositions, list)
-            or row["declaredMemberCount"] != len(dispositions)
-            or len(dispositions) != len(mapping_release.mappings)
-        ):
+        if not isinstance(dispositions, list) or row[
+            "declaredMemberCount"
+        ] != len(dispositions):
             raise ValueError(
                 f"{mapping_release.key} mapping source accounting count differs"
             )
-        expected_records: set[str] = set()
-        for mapping in mapping_release.mappings:
-            locator, digest, payload = _mapping_evidence(
-                mapping_release,
-                mapping,
-            )
-            record, _ = _source_record_constructor(
-                source_release=URIRef(mapping_release.source_release_iri),
-                source_locator=locator,
-                source_digest=digest,
-                native_payload=payload,
-            )
-            expected_records.add(str(record))
+        expected_records = mapping_expectations.get(
+            mapping_release.source_release_iri,
+            {},
+        )
         observed_records: set[str] = set()
         for disposition in dispositions:
             if (
@@ -4162,7 +4370,6 @@ def _validate_compiled_source_accounting(
                 }
                 or disposition.get("status") != "represented"
                 or not isinstance(disposition.get("atlasAssertions"), list)
-                or len(disposition["atlasAssertions"]) != 1
             ):
                 raise ValueError(
                     f"{mapping_release.key} represented mapping disposition differs"
@@ -4176,8 +4383,19 @@ def _validate_compiled_source_accounting(
                 raise ValueError(
                     f"{mapping_release.key} mapping SourceRecord is invalid or repeated"
                 )
+            assertions = disposition["atlasAssertions"]
+            expected_assertions = expected_records.get(source_record)
+            if (
+                expected_assertions is None
+                or any(not isinstance(assertion, str) for assertion in assertions)
+                or len(assertions) != len(set(assertions))
+                or set(assertions) != expected_assertions
+            ):
+                raise ValueError(
+                    f"{mapping_release.key} represented mapping assertions differ"
+                )
             observed_records.add(source_record)
-        if observed_records != expected_records:
+        if observed_records != set(expected_records):
             raise ValueError(
                 f"{mapping_release.key} mapping SourceRecord membership differs"
             )
@@ -4200,7 +4418,7 @@ _COMPILED_PRODUCER_CHECKS = (
     "normalized resource, English SKOS-XL label, and identifier rows",
     "release, scheme, profile, and semantic-ring ownership",
     "native and cross-ring relation endpoints, policies, and source payloads",
-    "publisher mapping endpoints, exact source payloads, and separate evidence records",
+    "mapping endpoints, exact source payloads, and independent evidence decisions",
     "SKOS hierarchy and associative-relation integrity",
     "fixed source-record, label, identifier, assertion, and evidence constructors",
     "source-accounting membership and counts",
@@ -4233,6 +4451,11 @@ def _validate_compiled_producer_output(
             f"expected={dict(producer_validation.expected_counts)}, "
             f"observed={observed_counts}"
         )
+    _validate_compiled_evidence_output(
+        graphs.asserted,
+        producer_validation.expected_counts,
+        mapping_releases,
+    )
     accounting_digest = _validate_compiled_source_accounting(
         releases,
         graphs.accounting,
@@ -4271,6 +4494,22 @@ def _expected_dirty_constructor_counts(
     native = sum(len(release.relations) for release in releases)
     cross = sum(len(release.cross_ring_relations) for release in releases)
     mappings = sum(len(release.mappings) for release in mapping_releases)
+    mapping_records: set[URIRef] = set()
+    for mapping_release in mapping_releases:
+        for mapping in mapping_release.mappings:
+            for evidence in mapping.evidence:
+                locator, digest, payload = _mapping_evidence(
+                    mapping_release,
+                    mapping,
+                    evidence,
+                )
+                record, _ = _source_record_constructor(
+                    source_release=URIRef(mapping_release.source_release_iri),
+                    source_locator=locator,
+                    source_digest=digest,
+                    native_payload=payload,
+                )
+                mapping_records.add(record)
     assignments = sum(
         len(release.resources)
         for release in releases
@@ -4291,11 +4530,15 @@ def _expected_dirty_constructor_counts(
         "sourceAssignments": assignments,
         "sourceRecords": (
             resources
-            + mappings
+            + len(mapping_records)
             + sum(
                 relation.predicate == str(ATLAS.thesaurusRelated)
                 for release in releases
                 for relation in release.relations
+            )
+            + sum(
+                len(release.supplemental_source_records)
+                for release in releases
             )
         ),
     }
@@ -4469,6 +4712,11 @@ def _validate_incremental_producer_output(
             "incremental dirty constructor counts differ: "
             f"expected={expected_dirty_counts}, observed={observed_dirty_counts}"
         )
+    _validate_compiled_evidence_output(
+        graphs.asserted,
+        expected_dirty_counts,
+        mapping_releases,
+    )
     dirty_source_releases = frozenset(
         {
             *(release.source_release_iri for release in releases),
@@ -4581,12 +4829,10 @@ def _build_graphs(
     )
     _ensure_release_schemes(asserted, releases)
     native_policy = _add_policy(asserted, SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD)
-    mapping_policy = (
-        _add_policy(asserted, PUBLISHER_MAPPING_EDITORIAL_POLICY_PAYLOAD)
-        if mapping_releases
-        or any(plan.kind == "mapping" for plan in plans_by_key.values())
-        else None
-    )
+    mapping_policies = {
+        release.key: _add_policy(asserted, release.editorial_policy)
+        for release in mapping_releases
+    }
 
     source_release_nodes: dict[str, URIRef] = {}
     clean_resources: Mapping[str, tuple[str, URIRef, URIRef]] = (
@@ -4796,7 +5042,7 @@ def _build_graphs(
                 )
             _add_content_digest(asserted, resource)
             if release.spec.emit_source_assignments:
-                _add_assertion(
+                _add_evidenced_assertion(
                     asserted,
                     assertion_type=ATLAS.SourceAssignment,
                     ring=ring,
@@ -4812,6 +5058,7 @@ def _build_graphs(
                     review_method=_review_method_for_assertion(
                         ATLAS.SourceAssignment
                     ),
+                    decided_at=CREATED_AT,
                     confidence="1",
                 )
             dispositions.append(
@@ -4901,7 +5148,9 @@ def _build_graphs(
             accounting_row = {
                 "declaredMemberCount": 0,
                 "dispositions": [],
-                "membershipMode": "complete",
+                "membershipMode": _accounting_membership_mode(
+                    mapping_release.scope
+                ),
                 "sourceRelease": str(source_release),
             }
         else:
@@ -4980,7 +5229,7 @@ def _build_graphs(
                     ATLAS.NativeRelationAssertion,
                     deterministic_transformation=True,
                 )
-            _add_assertion(
+            _add_evidenced_assertion(
                 asserted,
                 assertion_type=ATLAS.NativeRelationAssertion,
                 ring=relation_ring,
@@ -4994,6 +5243,7 @@ def _build_graphs(
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
                 review_method=review_method,
+                decided_at=CREATED_AT,
                 confidence="1",
             )
             native_count += 1
@@ -5049,7 +5299,7 @@ def _build_graphs(
                 raise ValueError(
                     f"cross-ring relation endpoint ring differs: {relation}"
                 )
-            _add_assertion(
+            _add_evidenced_assertion(
                 asserted,
                 assertion_type=ATLAS.CrossRingRelationAssertion,
                 ring=None,
@@ -5065,6 +5315,7 @@ def _build_graphs(
                 review_method=_review_method_for_assertion(
                     ATLAS.CrossRingRelationAssertion
                 ),
+                decided_at=CREATED_AT,
                 confidence="1",
                 source_ring=source_ring,
                 target_ring=target_ring,
@@ -5086,12 +5337,17 @@ def _build_graphs(
     for mapping_release in mapping_releases:
         if mapping_release.key not in emitted_keys:
             continue
-        if mapping_policy is None:
-            raise AssertionError("publisher mapping policy was not constructed")
+        try:
+            mapping_policy = mapping_policies[mapping_release.key]
+        except KeyError as error:
+            raise AssertionError(
+                "mapping editorial policy was not constructed"
+            ) from error
         mapping_ring = ATLAS[mapping_release.ring]
         accounting_row = source_accounting_by_release[
             mapping_release.source_release_iri
         ]
+        mapping_dispositions: dict[str, set[str]] = defaultdict(set)
         for mapping in mapping_release.mappings:
             try:
                 source_facts = facts_for(mapping.subject)
@@ -5102,32 +5358,29 @@ def _build_graphs(
                 observed_target_ring = target_facts[2]
             except KeyError as error:
                 raise ValueError(
-                    f"publisher mapping endpoint is outside loaded releases: {mapping}"
+                    f"mapping endpoint is outside loaded releases: {mapping}"
                 ) from error
             if source_atlas_release == target_atlas_release:
                 raise ValueError(
-                    f"publisher mapping endpoints use one release: {mapping}"
+                    f"mapping endpoints use one release: {mapping}"
+                )
+            if source_atlas_release != URIRef(mapping.subject_atlas_release_iri):
+                raise ValueError(
+                    "mapping subject endpoint release differs from its exact pin: "
+                    f"{mapping}"
+                )
+            if target_atlas_release != URIRef(mapping.object_atlas_release_iri):
+                raise ValueError(
+                    "mapping object endpoint release differs from its exact pin: "
+                    f"{mapping}"
                 )
             if (observed_source_ring, observed_target_ring) != (
                 mapping_ring,
                 mapping_ring,
             ):
                 raise ValueError(
-                    f"publisher mapping endpoint ring differs: {mapping}"
+                    f"mapping endpoint ring differs: {mapping}"
                 )
-            evidence_locator, evidence_digest, evidence_payload = (
-                _mapping_evidence(mapping_release, mapping)
-            )
-            evidence_record = _add_source_record(
-                asserted,
-                source_release=source_release_nodes[
-                    mapping_release.source_release_iri
-                ],
-                source_locator=evidence_locator,
-                source_digest=evidence_digest,
-                native_payload=evidence_payload,
-                represents_resource=None,
-            )
             assertion = _add_assertion(
                 asserted,
                 assertion_type=ATLAS.MappingAssertion,
@@ -5138,28 +5391,43 @@ def _build_graphs(
                 source_release=source_atlas_release,
                 target_release=target_atlas_release,
                 policy=mapping_policy,
-                asserted_at=mapping_release.decision_date + "T00:00:00+00:00",
-                evidence_record=evidence_record,
-                reviewer=URIRef(mapping_release.reviewer_iri),
-                review_method=_review_method_for_assertion(
-                    ATLAS.MappingAssertion,
-                    operator_adopted=(
-                        mapping_release.review_method == "operatorAdoption"
-                    ),
-                    publisher_asserted=(
-                        mapping_release.review_method == "publisherAssertion"
-                    ),
-                ),
-                confidence=mapping_release.confidence,
+                asserted_at=mapping.asserted_at,
             )
-            accounting_row["dispositions"].append(
-                {
-                    "atlasAssertions": [str(assertion)],
-                    "sourceRecord": str(evidence_record),
-                    "status": "represented",
-                }
-            )
+            for evidence in mapping.evidence:
+                evidence_locator, evidence_digest, evidence_payload = (
+                    _mapping_evidence(mapping_release, mapping, evidence)
+                )
+                evidence_record = _add_source_record(
+                    asserted,
+                    source_release=source_release_nodes[
+                        mapping_release.source_release_iri
+                    ],
+                    source_locator=evidence_locator,
+                    source_digest=evidence_digest,
+                    native_payload=evidence_payload,
+                    represents_resource=None,
+                )
+                _add_evidence_binding(
+                    asserted,
+                    assertion=assertion,
+                    evidence_record=evidence_record,
+                    reviewer=URIRef(evidence.reviewer_iri),
+                    review_method=_mapping_review_method(
+                        evidence.review_method
+                    ),
+                    decided_at=evidence.decided_at,
+                    confidence=evidence.confidence,
+                )
+                mapping_dispositions[str(evidence_record)].add(str(assertion))
             mapping_count += 1
+        accounting_row["dispositions"].extend(
+            {
+                "atlasAssertions": sorted(assertions),
+                "sourceRecord": source_record,
+                "status": "represented",
+            }
+            for source_record, assertions in sorted(mapping_dispositions.items())
+        )
     expected_mapping_count = sum(
         len(release.mappings)
         for release in mapping_releases
@@ -5167,7 +5435,7 @@ def _build_graphs(
     )
     if mapping_count != expected_mapping_count:
         raise ValueError(
-            f"expected {expected_mapping_count} publisher mappings; emitted {mapping_count}"
+            f"expected {expected_mapping_count} mappings; emitted {mapping_count}"
         )
     projection = (
         _expected_projection_graph(asserted) if include_projection else _new_build_graph()
@@ -5255,7 +5523,7 @@ def _counts(graphs: BuildGraphs) -> dict[str, int]:
 
 
 def _production_relation_scope(graphs: BuildGraphs) -> dict[str, Any]:
-    """Close the writer to publisher relations and separately pinned mappings."""
+    """Close the writer to source claims and evidence-backed mappings."""
 
     return _production_relation_scope_from_counts(_counts(graphs))
 
@@ -5263,16 +5531,16 @@ def _production_relation_scope(graphs: BuildGraphs) -> dict[str, Any]:
 def _production_relation_scope_from_counts(
     counts: Mapping[str, int],
 ) -> dict[str, Any]:
-    """Close a receipted writer to publisher relations and mappings."""
+    """Close a receipted writer to source claims and evidence-backed mappings."""
 
     scope = {
         "derivedRelations": counts["derivedRelations"],
         "mappingAssertions": counts["mappingAssertions"],
-        "mode": "publisherSourcesAndPinnedMappings",
+        "mode": "sourceClaimsAndEvidenceBackedMappings",
     }
     if scope["derivedRelations"]:
         raise ValueError(
-            "publisher-only Atlas build must contain zero derived relations"
+            "evidence-backed Atlas build must contain zero derived relations"
         )
     return scope
 
@@ -5648,24 +5916,31 @@ def _release_subject_owners(
         evidence_bindings = list(
             asserted.subjects(ATLAS.bindsAssertion, assertion)
         )
-        if len(evidence_bindings) != 1:
+        if not evidence_bindings:
             raise ValueError(
-                f"relation assertion {assertion} does not have one evidence binding"
+                f"relation assertion {assertion} has no evidence binding"
             )
-        evidence_record = asserted.value(
-            evidence_bindings[0],
-            ATLAS.evidenceSourceRecord,
-        )
-        owner = (
-            owners.get(evidence_record)
-            if isinstance(evidence_record, URIRef)
-            else None
-        )
-        if owner is None:
+        evidence_owners = set()
+        for binding in evidence_bindings:
+            evidence_record = asserted.value(
+                binding,
+                ATLAS.evidenceSourceRecord,
+            )
+            owner = (
+                owners.get(evidence_record)
+                if isinstance(evidence_record, URIRef)
+                else None
+            )
+            if owner is None:
+                raise ValueError(
+                    f"relation assertion {assertion} has no evidence release owner"
+                )
+            evidence_owners.add(owner)
+        if len(evidence_owners) != 1:
             raise ValueError(
-                f"relation assertion {assertion} has no evidence release owner"
+                f"relation assertion {assertion} has evidence from multiple releases"
             )
-        owners[URIRef(assertion)] = owner
+        owners[URIRef(assertion)] = next(iter(evidence_owners))
 
     own_from_object(
         ATLAS.EvidenceBinding,
@@ -8453,6 +8728,7 @@ def _load_clean_construction_state(
         {} if reuse.clean_state is None else dict(reuse.clean_state.rdf_subject_owners)
     )
     statement_type_counts: Counter[str] = Counter()
+    mapping_policy_iris: set[URIRef] = set()
     relation_triples: dict[
         tuple[URIRef, URIRef, URIRef],
         tuple[URIRef, ...],
@@ -8525,6 +8801,8 @@ def _load_clean_construction_state(
                         )
                 elif role == CompactRecordRole.STATEMENT.value:
                     statement_type_counts[logical_row["statementType"]] += 1
+                    if logical_row["statementType"] == "MappingAssertion":
+                        mapping_policy_iris.add(URIRef(logical_row["policy"]))
                     if logical_row["statementType"] in {
                         "NativeRelationAssertion",
                         "MappingAssertion",
@@ -8545,8 +8823,53 @@ def _load_clean_construction_state(
         compact_subject_pack_ids=MappingProxyType(compact_subject_pack_ids),
         rdf_subject_owners=MappingProxyType(rdf_subject_owners),
         statement_type_counts=MappingProxyType(dict(statement_type_counts)),
+        mapping_policy_iris=frozenset(mapping_policy_iris),
         relation_triples=MappingProxyType(relation_triples),
     )
+
+
+def _add_clean_mapping_policies(
+    graph: Graph,
+    reuse: IncrementalConstructionReuse,
+) -> None:
+    """Restore only policies referenced by authenticated clean mapping rows."""
+
+    if reuse.clean_state is None:
+        raise ValueError("clean mapping policies require clean construction state")
+    policies = reuse.clean_state.mapping_policy_iris
+    if not policies:
+        return
+    catalog_packs = [
+        pack for pack in reuse.prior_manifest["packs"] if pack["kind"] == "catalog"
+    ]
+    if len(catalog_packs) != 1:
+        raise ValueError("prior distribution does not have one catalog pack")
+    graph_ids = {
+        row["role"]: URIRef(row["id"])
+        for row in reuse.prior_manifest["graphs"]
+    }
+    dataset = Dataset(default_union=True)
+    try:
+        ATLAS_VALIDATE._parse_pack_into_dataset(
+            dataset,
+            reuse.prior_root,
+            catalog_packs[0],
+            graph_ids,
+            defaultdict(dict),
+        )
+        asserted = dataset.graph(graph_ids["asserted"])
+        for policy in sorted(policies, key=str):
+            if (policy, RDF.type, ATLAS.EditorialPolicy) not in asserted:
+                raise ValueError(
+                    f"clean mapping policy is absent from the prior catalog: {policy}"
+                )
+            triples = tuple(asserted.triples((policy, None, None)))
+            if not triples:
+                raise ValueError(f"clean mapping policy has no facts: {policy}")
+            for triple in triples:
+                graph.add(triple)
+    finally:
+        dataset.close()
 
 
 def _verify_exact_distribution_compact_contents(
@@ -9122,6 +9445,30 @@ def _source_input_pins(source: SourceSpec) -> tuple[RegistryInputPin, ...]:
     )
 
 
+def _mapping_release_summary(
+    release: RegistryMappingRelease,
+) -> dict[str, Any]:
+    """Summarize one mapping collection without inventing a shared decision."""
+
+    return {
+        "editorialPolicyDigest": _canonical_digest(release.editorial_policy),
+        "evidenceBindingCount": sum(
+            len(mapping.evidence) for mapping in release.mappings
+        ),
+        "key": release.key,
+        "mappingCount": len(release.mappings),
+        "reviewMethods": sorted(
+            {
+                evidence.review_method
+                for mapping in release.mappings
+                for evidence in mapping.evidence
+            }
+        ),
+        "scope": release.scope,
+        "sourceRelease": release.source_release_iri,
+    }
+
+
 def verify_inputs(
     releases: tuple[LoadedRelease, ...] | None = None,
     mapping_releases: Sequence[RegistryMappingRelease] = (),
@@ -9196,11 +9543,9 @@ def verify_inputs(
             "digest": REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST,
             "path": REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
         },
-        "publisherMappingSources": [
-            _omit_absent_fields({
-                "confidence": release.confidence,
-                "decisionDate": release.decision_date,
-                "expectedMappings": len(release.mappings),
+        "mappingSources": [
+            {
+                **_mapping_release_summary(release),
                 "inputs": [
                     {
                         "byteLength": pin.byte_length,
@@ -9211,11 +9556,7 @@ def verify_inputs(
                     }
                     for pin in release.inputs
                 ],
-                "key": release.key,
-                "reviewMethod": release.review_method,
-                "reviewer": release.reviewer_iri,
-                "sourceRelease": release.source_release_iri,
-            })
+            }
             for release in mapping_releases
         ],
         "sources": [
@@ -9498,7 +9839,7 @@ def _input_inventory_from_construction_seeds(
             "digest": REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST,
             "path": REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
         },
-        "publisherMappingSources": mapping_rows,
+        "mappingSources": mapping_rows,
         "sources": source_rows,
     }
 
@@ -9511,9 +9852,12 @@ def _incremental_generation_report(
     plans: Sequence[ReleasePackPlan],
     reuse: IncrementalConstructionReuse,
     semantic_construction: Mapping[str, Any],
+    mapping_releases: Sequence[RegistryMappingRelease] = (),
 ) -> dict[str, Any]:
     """Describe a complete build while naming the units actually reconstructed."""
 
+    dirty_mappings = {release.key: release for release in mapping_releases}
+    prior_rows = {row["key"]: row for row in reuse.prior_summary["releases"]}
     return {
         "createdAt": CREATED_AT,
         "directSourceCounts": {
@@ -9531,6 +9875,23 @@ def _incremental_generation_report(
         "englishOnlyScan": _plain(english_only_scan),
         "incrementalConstruction": reuse.report(),
         "inputInventory": _plain(inventory),
+        "mappingReleases": [
+            {
+                "evidenceBindingCount": (
+                    sum(
+                        len(mapping.evidence)
+                        for mapping in dirty_mappings[plan.key].mappings
+                    )
+                    if plan.key in dirty_mappings
+                    else prior_rows[plan.key]["recordCounts"]["evidenceBindings"]
+                ),
+                "key": plan.key,
+                "mappingCount": plan.resource_count,
+                "sourceRelease": plan.source_release_iri,
+            }
+            for plan in sorted(plans, key=lambda item: item.key)
+            if plan.kind == "mapping"
+        ],
         "semanticConstruction": _plain(semantic_construction),
         "sourceReleases": [
             {
@@ -9637,6 +9998,7 @@ def _build_incremental_distribution(
     current_catalog = _registry_asserted_graph()
     try:
         _ensure_construction_seed_schemes(current_catalog, seeds)
+        _add_clean_mapping_policies(current_catalog, reuse)
         graphs = _build_graphs(
             releases,
             mapping_releases=mapping_releases,
@@ -9670,6 +10032,7 @@ def _build_incremental_distribution(
         plans=plans,
         reuse=reuse,
         semantic_construction=semantic_construction,
+        mapping_releases=mapping_releases,
     )
     ATLAS_VALIDATE.canonical_json_bytes(generation_report)
     result = _write_distribution(
@@ -9779,17 +10142,11 @@ def build_distribution(
         },
         "englishOnlyScan": english_only_scan,
         "inputInventory": inventory,
-        "publisherMappingReleases": [
-            _omit_absent_fields({
-                "confidence": release.confidence,
-                "decisionDate": release.decision_date,
-                "key": release.key,
-                "mappingCount": len(release.mappings),
+        "mappingReleases": [
+            {
+                **_mapping_release_summary(release),
                 "metadata": _plain(release.metadata),
-                "reviewMethod": release.review_method,
-                "reviewer": release.reviewer_iri,
-                "sourceRelease": release.source_release_iri,
-            })
+            }
             for release in mapping_releases
         ],
         "sourceReleases": [

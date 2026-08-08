@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Collection
 from pathlib import Path
+from types import MappingProxyType
 
 from refspec.atlas.v3_registry_selection import (
     normalize_only_keys,
@@ -14,8 +15,9 @@ from refspec.atlas.v3_registry_selection import (
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryLabel,
+    RegistryMapping,
+    RegistryMappingEvidence,
     RegistryMappingRelease,
-    RegistryPublisherMapping,
     RegistryRelation,
     RegistryRelease,
     RegistryResource,
@@ -63,7 +65,26 @@ EUROVOC_LCSH_MAPPING_COUNT = sum(EXPECTED_PREDICATE_COUNTS.values())
 ATLAS_MAPPING_ADOPTION_REVIEWER_IRI = (
     "urn:ref:actor:atlas-3-eurovoc-lcsh-operator-adoption"
 )
-ATLAS_MAPPING_ADOPTION_DECISION_DATE = "2026-08-06"
+ATLAS_MAPPING_ADOPTION_DECIDED_AT = "2026-08-06T00:00:00+00:00"
+EUROVOC_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:eurovoc:4.24"
+LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI = (
+    "urn:ref:atlas-release:3:lcsh-subjects:"
+    "eurovoc-alignment-endpoints:2026-08-06"
+)
+EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD = MappingProxyType(
+    {
+        "admission": (
+            "explicit mapping triple in the exact publisher alignment artifact, "
+            "adopted by Atlas for the pinned endpoint releases"
+        ),
+        "artifactStatus": "developmentBaseline",
+        "evidence": (
+            "one exact mapping SourceRecord per assertion; no inverse, transitive, "
+            "or similarity-generated mappings"
+        ),
+        "version": "atlas-3.0-eurovoc-lcsh-operator-adoption-v1",
+    }
+)
 REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS = frozenset(
     {"lcsh-eurovoc-alignment-endpoints-2026-08-06"}
 )
@@ -167,33 +188,43 @@ def load_eurovoc_lcsh_mapping_release(
             f"parsed {len(alignment.mappings)}"
         )
     mappings = tuple(
-        RegistryPublisherMapping(
+        RegistryMapping(
             subject=row.subject_iri,
             predicate=row.predicate_iri,
             object=row.object_iri,
-            source_locator=alignment_pin.source_iri,
-            source_digest=alignment_pin.sha256,
-            source_payload={
-                "currentEuroVocLinksetCounts": dict(EXPECTED_PREDICATE_COUNTS),
-                "currentEuroVocLinksetMetadataDigest": current_metadata_pin.sha256,
-                "currentEuroVocRelease": "4.24",
-                "currentMetadataRequalifiesIndividualPairs": False,
-                "mappingTripleDigest": mapping_triple_digest(
-                    subject_iri=row.subject_iri,
-                    predicate_iri=row.predicate_iri,
-                    object_iri=row.object_iri,
+            subject_atlas_release_iri=EUROVOC_ATLAS_RELEASE_IRI,
+            object_atlas_release_iri=LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
+            asserted_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
+            evidence=(
+                RegistryMappingEvidence(
+                    source_locator=alignment_pin.source_iri,
+                    source_digest=alignment_pin.sha256,
+                    native_payload={
+                        "currentEuroVocLinksetCounts": dict(EXPECTED_PREDICATE_COUNTS),
+                        "currentEuroVocLinksetMetadataDigest": current_metadata_pin.sha256,
+                        "currentEuroVocRelease": "4.24",
+                        "currentMetadataRequalifiesIndividualPairs": False,
+                        "mappingTripleDigest": mapping_triple_digest(
+                            subject_iri=row.subject_iri,
+                            predicate_iri=row.predicate_iri,
+                            object_iri=row.object_iri,
+                        ),
+                        "objectIri": row.object_iri,
+                        "predicateIri": row.predicate_iri,
+                        "publisherAlignmentDigest": alignment_pin.sha256,
+                        "publisherAlignmentIssued": EUROVOC_LCSH_ALIGNMENT_ISSUED,
+                        "publisherAlignmentRelease": EUROVOC_LCSH_ALIGNMENT_RELEASE_IRI,
+                        "publisherAlignmentVersion": "20240711-0",
+                        "publisherEuroVocRelease": EUROVOC_4_20_RELEASE_IRI,
+                        "publisherEuroVocVersion": "4.20",
+                        "publisherLcshRelease": "unspecifiedByPublisher",
+                        "subjectIri": row.subject_iri,
+                    },
+                    review_method="operatorAdoption",
+                    reviewer_iri=ATLAS_MAPPING_ADOPTION_REVIEWER_IRI,
+                    decided_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
                 ),
-                "objectIri": row.object_iri,
-                "predicateIri": row.predicate_iri,
-                "publisherAlignmentDigest": alignment_pin.sha256,
-                "publisherAlignmentIssued": EUROVOC_LCSH_ALIGNMENT_ISSUED,
-                "publisherAlignmentRelease": EUROVOC_LCSH_ALIGNMENT_RELEASE_IRI,
-                "publisherAlignmentVersion": "20240711-0",
-                "publisherEuroVocRelease": EUROVOC_4_20_RELEASE_IRI,
-                "publisherEuroVocVersion": "4.20",
-                "publisherLcshRelease": "unspecifiedByPublisher",
-                "subjectIri": row.subject_iri,
-            },
+            ),
         )
         for row in alignment.mappings
     )
@@ -202,15 +233,13 @@ def load_eurovoc_lcsh_mapping_release(
         resource_id="eurovoc-lcsh-alignment",
         source_module="refspec.registry.eurovoc_lcsh_alignment",
         ring="subject",
+        scope="publisherRelease",
         issued=EUROVOC_LCSH_ALIGNMENT_ISSUED,
         source_release_iri=EUROVOC_LCSH_ALIGNMENT_RELEASE_IRI,
         source_release_digest=alignment_pin.sha256,
         inputs=pins,
         mappings=mappings,
-        decision_date=ATLAS_MAPPING_ADOPTION_DECISION_DATE,
-        review_method="operatorAdoption",
-        reviewer_iri=ATLAS_MAPPING_ADOPTION_REVIEWER_IRI,
-        confidence=None,
+        editorial_policy=EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD,
         metadata={
             "adoptionDecision": "atlasOperatorAdoption",
             "adoptionNote": (
@@ -407,7 +436,7 @@ def load_all_registry_mapping_releases(
     *,
     only_keys: Collection[str] | None = None,
 ) -> tuple[RegistryMappingRelease, ...]:
-    """Load selected separately pinned publisher mapping releases."""
+    """Load selected separately pinned evidence-backed mapping releases."""
 
     requested = normalize_only_keys(
         only_keys,
@@ -425,10 +454,13 @@ def load_all_registry_mapping_releases(
 
 
 __all__ = [
-    "ATLAS_MAPPING_ADOPTION_DECISION_DATE",
+    "ATLAS_MAPPING_ADOPTION_DECIDED_AT",
     "ATLAS_MAPPING_ADOPTION_REVIEWER_IRI",
     "DEFAULT_SOURCE_ROOT",
+    "EUROVOC_ATLAS_RELEASE_IRI",
     "EUROVOC_LCSH_MAPPING_COUNT",
+    "EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD",
+    "LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI",
     "LCSH_ALIGNMENT_ENDPOINT_COUNT",
     "LCSH_BULK_BYTE_LENGTH",
     "LCSH_BULK_CAPTURED_AT",

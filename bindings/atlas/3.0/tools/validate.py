@@ -6049,8 +6049,8 @@ def _check_producer_validation(
     ):
         _fail("producer.validation", "producer source release count differs")
     expected_identity = {
-        "constructorProfile": "atlas-3-source-and-publisher-mapping-compiled-shacl-v1",
-        "mode": "compiledSourceAndPublisherMappingProducerValidation",
+        "constructorProfile": "atlas-3-source-and-evidence-backed-mapping-compiled-shacl-v1",
+        "mode": "compiledSourceAndEvidenceBackedMappingProducerValidation",
         "shaclDataProof": "compiledAgainstPinnedOntologyAndShapes",
         "shaclMetaValidation": "pySHACL",
         "status": "passed",
