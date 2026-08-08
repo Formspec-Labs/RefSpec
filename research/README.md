@@ -71,3 +71,10 @@ These snapshots preserve the experiments that led to the two-graph static
 asset. Their document-oriented projections predate the four-product split.
 Current RefSpec code retains only managed-vocabulary, crosswalk, and static
 atlas behavior; SpicyRegs and SpicySearch own document data and retrieval.
+
+## Archived implementation evidence
+
+- [Atlas 3.0 exhaustive compact-to-RDF parity](archive/atlas-3.0-exhaustive-compact-parity-2026-08-08.md)
+
+This note identifies the exact Git snapshot for the retired exhaustive parity
+check. The current Atlas 3 binding and decision ledger remain authoritative.
