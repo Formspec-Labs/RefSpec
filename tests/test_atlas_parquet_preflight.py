@@ -14,7 +14,7 @@ from refspec.atlas.parquet_preflight import (
     validate_atlas_parquet_preflight,
     validate_atlas_parquet_tables,
 )
-from refspec.atlas.parquet_view import VerifiedAtlasParquetInput
+from refspec.atlas.parquet_view import VerifiedAtlasParquetSourceMetadata
 
 
 def _tables() -> dict[str, pa.Table]:
@@ -129,8 +129,8 @@ def _digest(value: str) -> str:
     return "sha256:" + value * 64
 
 
-def _verified_parquet_input() -> VerifiedAtlasParquetInput:
-    return VerifiedAtlasParquetInput(
+def _verified_parquet_input() -> VerifiedAtlasParquetSourceMetadata:
+    return VerifiedAtlasParquetSourceMetadata(
         root=Path("/test/distribution"),
         manifest={
             "binding": {
@@ -237,7 +237,7 @@ def test_columnar_preflight_rejects_cross_role_identity() -> None:
         )
 
 
-def test_columnar_preflight_checks_each_role_identity_once() -> None:
+def test_columnar_preflight_rejects_duplicate_identity_within_role() -> None:
     tables = _tables()
     labels = tables[CompactRecordRole.LABEL.value]
     tables[CompactRecordRole.LABEL.value] = _replace_column(
@@ -252,6 +252,94 @@ def test_columnar_preflight_checks_each_role_identity_once() -> None:
             view_counts=_counts(tables),
             distribution_counts=_distribution_counts(),
         )
+
+
+def test_columnar_preflight_handles_same_and_cross_ring_relations_together() -> None:
+    tables = _tables()
+    resources = tables[CompactRecordRole.RESOURCE.value]
+    tables[CompactRecordRole.RESOURCE.value] = pa.concat_tables(
+        [
+            resources,
+            pa.table(
+                {
+                    "id": ["urn:test:resource:third"],
+                    "release": ["urn:test:atlas-release:entity"],
+                    "scheme": ["urn:test:scheme:entity"],
+                    "semantic_ring": ["entity"],
+                    "resource_profile": ["conceptScheme"],
+                    "source_record": ["urn:test:source-record"],
+                }
+            ),
+        ]
+    )
+    releases = tables[CompactRecordRole.RELEASE.value]
+    tables[CompactRecordRole.RELEASE.value] = pa.concat_tables(
+        [
+            releases,
+            pa.table(
+                {
+                    "id": ["urn:test:atlas-release:entity"],
+                    "release_type": ["AtlasRelease"],
+                    "resource_profile": ["conceptScheme"],
+                    "semantic_ring": ["entity"],
+                    "scheme": ["urn:test:scheme:entity"],
+                }
+            ),
+        ]
+    )
+    statements = tables[CompactRecordRole.STATEMENT.value]
+    tables[CompactRecordRole.STATEMENT.value] = pa.concat_tables(
+        [
+            statements,
+            pa.table(
+                {
+                    "id": ["urn:test:statement:cross-ring"],
+                    "statement_type": ["CrossRingRelationAssertion"],
+                    "subject": ["urn:test:resource:first"],
+                    "predicate": ["urn:test:related"],
+                    "object": ["urn:test:resource:third"],
+                    "source_release": ["urn:test:atlas-release"],
+                    "target_release": ["urn:test:atlas-release:entity"],
+                    "semantic_ring": pa.array([None], type=pa.string()),
+                    "source_ring": ["subject"],
+                    "target_ring": ["entity"],
+                    "supersedes": pa.array([None], type=pa.string()),
+                }
+            ),
+        ]
+    )
+    evidence = tables[CompactRecordRole.EVIDENCE_BINDING.value]
+    tables[CompactRecordRole.EVIDENCE_BINDING.value] = pa.concat_tables(
+        [
+            evidence,
+            pa.table(
+                {
+                    "id": ["urn:test:evidence:cross-ring"],
+                    "statement": ["urn:test:statement:cross-ring"],
+                    "source_record": ["urn:test:source-record"],
+                    "evidence_source_digest": [b"1" * 32],
+                    "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
+                    "decision_status": [APPROVED],
+                    "confidence": ["1.0"],
+                }
+            ),
+        ]
+    )
+    distribution_counts = {
+        **_distribution_counts(),
+        "crossRingRelationAssertions": 1,
+        "relationAssertions": 2,
+        "releases": 2,
+        "resources": 3,
+    }
+
+    result = validate_atlas_parquet_tables(
+        tables,
+        view_counts=_counts(tables),
+        distribution_counts=distribution_counts,
+    )
+
+    assert result["status"] == "passed"
 
 
 def test_authenticated_preflight_rejects_drift_in_any_input_pin(
@@ -269,7 +357,7 @@ def test_authenticated_preflight_rejects_drift_in_any_input_pin(
     }
     monkeypatch.setattr(
         parquet_preflight,
-        "verify_atlas_parquet_input",
+        "verify_atlas_parquet_source_metadata",
         lambda *_args, **_kwargs: verified_input,
     )
     monkeypatch.setattr(
@@ -300,7 +388,7 @@ def test_authenticated_preflight_normalizes_returned_view_digest(
     }
     monkeypatch.setattr(
         parquet_preflight,
-        "verify_atlas_parquet_input",
+        "verify_atlas_parquet_source_metadata",
         lambda *_args, **_kwargs: verified_input,
     )
     monkeypatch.setattr(

@@ -8,6 +8,7 @@ repeatedly walking a large RDFLib graph.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -19,7 +20,7 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_view import (
-    verify_atlas_parquet_input,
+    verify_atlas_parquet_source_metadata,
     verify_atlas_parquet_view,
 )
 
@@ -106,6 +107,38 @@ def _require_unique(table: pa.Table, columns: list[str], code: str) -> None:
         _fail(code, f"duplicate values for {columns}: {row}")
 
 
+def _validate_record_identities(tables: Mapping[str, pa.Table]) -> None:
+    """Check all logical-record identifiers with one success-path count."""
+
+    all_ids = pa.concat_arrays([table["id"].combine_chunks() for table in tables.values()])
+    counts = pc.value_counts(all_ids)
+    values = counts.field("values")
+    if _has_true(pc.is_null(values)):
+        for role, table in tables.items():
+            if _has_true(pc.is_null(table["id"])):
+                _fail(f"preflight.{role.casefold()}-identity", "logical record identifier is null")
+
+    duplicate_mask = pc.greater(counts.field("counts"), 1)
+    if not _has_true(duplicate_mask):
+        return
+
+    duplicate_ids = pc.filter(values, duplicate_mask)
+    for role, table in tables.items():
+        role_duplicates = Counter(
+            pc.filter(
+                table["id"],
+                pc.is_in(table["id"], value_set=duplicate_ids),
+            ).to_pylist()
+        )
+        repeated = next((identifier for identifier, count in role_duplicates.items() if count > 1), None)
+        if repeated is not None:
+            _fail(
+                f"preflight.{role.casefold()}-identity",
+                f"duplicate logical record identifier {repeated!r}",
+            )
+    _fail("preflight.cross-role-identity", "one logical record identifier occurs in multiple table roles")
+
+
 def _foreign_indices(
     table: pa.Table,
     column: str,
@@ -143,10 +176,6 @@ def _only(table: pa.Table, column: str, value: str) -> pa.Table:
     return table.filter(pc.equal(table[column], value))
 
 
-def _without(table: pa.Table, column: str, value: str) -> pa.Table:
-    return table.filter(pc.not_equal(table[column], value))
-
-
 def _statement_counts(statements: pa.Table) -> dict[str, int]:
     grouped = statements.group_by(["statement_type"]).aggregate([("id", "count")])
     return {str(row["statement_type"]): int(row["id_count"]) for row in grouped.to_pylist()}
@@ -156,14 +185,13 @@ def _validate_manifest_counts(
     tables: Mapping[str, pa.Table],
     view_counts: Mapping[str, Any],
     distribution_counts: Mapping[str, Any],
+    statement_counts: Mapping[str, int],
 ) -> None:
     observed = {role: table.num_rows for role, table in tables.items()}
     if observed != dict(view_counts):
         _fail("preflight.counts", f"view counts differ: expected={dict(view_counts)}, actual={observed}")
 
-    statements = tables[CompactRecordRole.STATEMENT.value]
     releases = tables[CompactRecordRole.RELEASE.value]
-    statement_counts = _statement_counts(statements)
     atlas_releases = _only(releases, "release_type", "AtlasRelease").num_rows
     expected = {
         "resources": observed[CompactRecordRole.RESOURCE.value],
@@ -414,12 +442,14 @@ def _validate_statements(
     statements: pa.Table,
     resources: pa.Table,
     source_records: pa.Table,
+    statement_counts: Mapping[str, int],
 ) -> None:
-    observed_types = set(pc.unique(statements["statement_type"]).to_pylist())
+    observed_types = set(statement_counts)
     if observed_types - STATEMENT_TYPES:
         _fail("preflight.statement-type", f"unsupported statement types: {sorted(observed_types)}")
-    assignments = _only(statements, "statement_type", "SourceAssignment")
-    relations = _without(statements, "statement_type", "SourceAssignment")
+    assignment_mask = pc.equal(statements["statement_type"], "SourceAssignment")
+    assignments = statements.filter(assignment_mask)
+    relations = statements.filter(pc.invert(assignment_mask))
     if relations.num_rows:
         _validate_relation_statements(relations, resources)
     if assignments.num_rows:
@@ -512,11 +542,7 @@ def validate_atlas_parquet_tables(
     expected_roles = {role.value for role in CompactRecordRole}
     if set(tables) != expected_roles:
         _fail("preflight.tables", f"table roles differ: expected={sorted(expected_roles)}, actual={sorted(tables)}")
-    for role, table in tables.items():
-        _require_unique(table, ["id"], f"preflight.{role.casefold()}-identity")
-    all_ids = pa.concat_arrays([table["id"].combine_chunks() for table in tables.values()])
-    if pc.count_distinct(all_ids).as_py() != len(all_ids):
-        _fail("preflight.cross-role-identity", "one logical record identifier occurs in multiple table roles")
+    _validate_record_identities(tables)
 
     resources = tables[CompactRecordRole.RESOURCE.value]
     labels = tables[CompactRecordRole.LABEL.value]
@@ -525,8 +551,14 @@ def validate_atlas_parquet_tables(
     source_records = tables[CompactRecordRole.SOURCE_RECORD.value]
     releases = tables[CompactRecordRole.RELEASE.value]
     identifiers = tables[CompactRecordRole.IDENTIFIER.value]
+    statement_counts = _statement_counts(statements)
 
-    _validate_manifest_counts(tables, view_counts, distribution_counts)
+    _validate_manifest_counts(
+        tables,
+        view_counts,
+        distribution_counts,
+        statement_counts,
+    )
     _foreign_indices(
         resources,
         "source_record",
@@ -536,7 +568,7 @@ def validate_atlas_parquet_tables(
     _validate_releases(releases, resources, source_records)
     _validate_labels(labels, resources, source_records)
     _validate_identifiers(identifiers, resources, source_records)
-    _validate_statements(statements, resources, source_records)
+    _validate_statements(statements, resources, source_records, statement_counts)
     _validate_evidence(evidence, statements, source_records)
 
     return {
@@ -557,10 +589,10 @@ def validate_atlas_parquet_preflight(
 ) -> dict[str, Any]:
     """Run the authenticated columnar preflight for one exact distribution."""
 
-    # The view builder uses this same closed-distribution verifier before it
-    # reads compact packs. Keeping one implementation prevents trust-chain
-    # drift while the preflight API is still experimental.
-    verified_input = verify_atlas_parquet_input(distribution, expected_distribution_manifest_digest)
+    # The view builder uses this same source-metadata verifier before it reads
+    # and authenticates compact packs. Keeping one implementation prevents
+    # trust-chain drift while the preflight API is still experimental.
+    verified_input = verify_atlas_parquet_source_metadata(distribution, expected_distribution_manifest_digest)
     view_manifest = verify_atlas_parquet_view(
         view,
         expected_manifest_digest=expected_view_manifest_digest,

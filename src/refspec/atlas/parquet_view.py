@@ -379,8 +379,8 @@ def _chunks(rows: Sequence[Mapping[str, Any]], size: int = ROW_GROUP_SIZE) -> It
 
 
 @dataclass(frozen=True, slots=True)
-class VerifiedAtlasParquetInput:
-    """Verified Atlas metadata needed to derive a Parquet view."""
+class VerifiedAtlasParquetSourceMetadata:
+    """Verified Atlas source metadata needed to derive a Parquet view."""
 
     root: Path
     manifest: Mapping[str, Any]
@@ -406,7 +406,10 @@ class VerifiedAtlasParquetInput:
         }
 
 
-def verify_atlas_parquet_input(root: Path, expected_manifest_digest: str) -> VerifiedAtlasParquetInput:
+def verify_atlas_parquet_source_metadata(
+    root: Path,
+    expected_manifest_digest: str,
+) -> VerifiedAtlasParquetSourceMetadata:
     """Verify the Atlas manifest, supporting members, and pack inventory.
 
     Compact-pack bytes are authenticated when the builder reads them. This
@@ -503,6 +506,10 @@ def verify_atlas_parquet_input(root: Path, expected_manifest_digest: str) -> Ver
     for member in members:
         path = _safe_path(root, member.get("path"))
         expected_files.add(path.relative_to(root).as_posix())
+        if path == construction_path:
+            # _strict_json and the preceding length check already authenticated
+            # this member and its canonical JSON form.
+            continue
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetViewError(f"Atlas member is missing or unsafe: {member.get('path')}")
         if path.stat().st_size != member.get("byteLength") or _file_digest(path) != member.get("digest"):
@@ -538,7 +545,7 @@ def verify_atlas_parquet_input(root: Path, expected_manifest_digest: str) -> Ver
     }
     if observed_files != expected_files:
         raise AtlasParquetViewError("Atlas distribution file membership is not closed")
-    return VerifiedAtlasParquetInput(
+    return VerifiedAtlasParquetSourceMetadata(
         root=root.resolve(),
         manifest=manifest,
         manifest_digest=expected_manifest_digest,
@@ -548,7 +555,7 @@ def verify_atlas_parquet_input(root: Path, expected_manifest_digest: str) -> Ver
 
 
 def _write_tables(
-    input_: VerifiedAtlasParquetInput,
+    input_: VerifiedAtlasParquetSourceMetadata,
     output: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     descriptors_by_role: dict[CompactRecordRole, list[Mapping[str, Any]]] = {role: [] for role in CompactRecordRole}
@@ -623,7 +630,7 @@ def build_atlas_parquet_view(
     if output.is_symlink() or output.exists():
         raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
-    input_ = verify_atlas_parquet_input(distribution, expected_manifest_digest)
+    input_ = verify_atlas_parquet_source_metadata(distribution, expected_manifest_digest)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     try:
         members, counts = _write_tables(input_, temporary)
@@ -744,8 +751,8 @@ def verify_atlas_parquet_view(
 
 __all__ = [
     "AtlasParquetViewError",
-    "VerifiedAtlasParquetInput",
+    "VerifiedAtlasParquetSourceMetadata",
     "build_atlas_parquet_view",
-    "verify_atlas_parquet_input",
+    "verify_atlas_parquet_source_metadata",
     "verify_atlas_parquet_view",
 ]

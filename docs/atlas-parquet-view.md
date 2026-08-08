@@ -71,11 +71,15 @@ uv run refspec-validate-atlas-parquet \
   --view-manifest-digest 1b0839f51a80e8d66cff31905b87306127aefebe6f936107850f1e9677700197
 ```
 
-It authenticates both inputs, then checks manifest counts, unique logical
+It authenticates the Parquet view and verifies the supplied Atlas manifest,
+supporting members, RDF transports, and pack inventory. It then confirms that
+the view pins that source metadata before checking manifest counts, logical
 record identities, release and source-record closure, label provenance and
 uniqueness, identifier uniqueness, statement endpoints and ring context, and
-immutable evidence coverage. A full development view with 3,302,340 logical
-records completed the columnar semantic checks in 8.4 seconds.
+immutable evidence coverage. Compact-pack bytes are authenticated while the
+view is built; this preflight does not reread them. A full development view
+with 3,302,340 logical records completed the columnar semantic checks in 7.8
+seconds after the 2026-08-08 scan consolidation.
 
 This command is a fast development gate, not the Atlas 3 release verdict. Its
 JSON result lists the remaining release-only checks: closed JSON schemas and
