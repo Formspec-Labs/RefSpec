@@ -78,12 +78,18 @@ immutable evidence coverage. A full development view with 3,302,340 logical
 records completed the columnar semantic checks in 8.4 seconds.
 
 This command is a fast development gate, not the Atlas 3 release verdict. Its
-JSON result lists the remaining release-only checks: normative SHACL, RDF
-lexical and graph-role rules, RDF node-digest recomputation, projection and
-derived-graph replay, transitive SKOS conflict analysis, source-accounting
-ledger reconciliation, and authenticated compact shape, size, and RDF sample
-checks. Run the independent Atlas validator before calling a distribution
-conformant.
+JSON result lists the remaining release-only checks: closed JSON schemas and
+binding pins; producer and acceptance receipts; normative SHACL; RDF lexical,
+graph-role, dependency, and node-digest rules; assertion policy, identity, and
+lifecycle semantics; projection and derived replay; transitive SKOS conflict
+analysis; source-accounting reconciliation; compact-to-RDF sampling; and
+reasoning isolation. Run the independent Atlas validator before calling a
+distribution conformant.
+
+The retired exhaustive compact-to-RDF parity implementation remains available
+through the [dated archive note](../research/archive/atlas-3.0-exhaustive-compact-parity-2026-08-08.md).
+The active release validator authenticates every compact row, reconciles exact
+record counts, and compares a bounded deterministic sample with RDF.
 
 ## Compact search profile
 

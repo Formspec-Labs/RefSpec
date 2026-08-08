@@ -132,7 +132,13 @@ def test_columnar_preflight_accepts_closed_relational_view() -> None:
 
     assert result["status"] == "passed"
     assert result["mode"] == "authenticatedColumnarPreflight"
-    assert "normative-shacl" in result["releaseOnlyChecks"]
+    assert {
+        "assertion-policy-identity-and-lifecycle-semantics",
+        "closed-json-schema-and-binding-pins",
+        "normative-shacl",
+        "producer-proof-and-acceptance-receipts",
+        "reasoning-isolation",
+    } <= set(result["releaseOnlyChecks"])
 
 
 def test_columnar_preflight_rejects_dangling_statement_endpoint() -> None:
@@ -196,6 +202,23 @@ def test_columnar_preflight_rejects_cross_role_identity() -> None:
     )
 
     with pytest.raises(AtlasParquetPreflightError, match="preflight.cross-role-identity"):
+        validate_atlas_parquet_tables(
+            tables,
+            view_counts=_counts(tables),
+            distribution_counts=_distribution_counts(),
+        )
+
+
+def test_columnar_preflight_checks_each_role_identity_once() -> None:
+    tables = _tables()
+    labels = tables[CompactRecordRole.LABEL.value]
+    tables[CompactRecordRole.LABEL.value] = _replace_column(
+        labels,
+        "id",
+        ["urn:test:label:duplicate", "urn:test:label:duplicate"],
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.label-identity"):
         validate_atlas_parquet_tables(
             tables,
             view_counts=_counts(tables),

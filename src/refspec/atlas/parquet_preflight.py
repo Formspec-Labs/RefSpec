@@ -57,14 +57,18 @@ PREFLIGHT_CHECKS = (
 )
 
 RELEASE_ONLY_CHECKS = (
+    "closed-json-schema-and-binding-pins",
+    "producer-proof-and-acceptance-receipts",
     "normative-shacl",
     "rdf-canonical-lexical-profile",
     "rdf-graph-role-and-pack-dependencies",
     "rdf-node-digest-recomputation",
+    "assertion-policy-identity-and-lifecycle-semantics",
     "projection-and-derived-graph-replay",
     "skos-transitive-conflict-analysis",
     "source-accounting-ledger-reconciliation",
     "compact-shape-size-and-rdf-sample",
+    "reasoning-isolation",
 )
 
 
@@ -183,7 +187,6 @@ def _validate_releases(
     resources: pa.Table,
     source_records: pa.Table,
 ) -> None:
-    _require_unique(releases, ["id"], "preflight.release-identity")
     release_types = set(pc.unique(releases["release_type"]).to_pylist())
     if release_types - {"AtlasRelease", "SourceRelease"}:
         _fail("preflight.release-type", f"unsupported release types: {sorted(release_types)}")
@@ -221,7 +224,6 @@ def _validate_labels(
     resources: pa.Table,
     source_records: pa.Table,
 ) -> None:
-    _require_unique(labels, ["id"], "preflight.label-identity")
     resource_indices = _foreign_indices(
         labels,
         "resource",
@@ -269,7 +271,6 @@ def _validate_identifiers(
     resources: pa.Table,
     source_records: pa.Table,
 ) -> None:
-    _require_unique(identifiers, ["id"], "preflight.identifier-identity")
     _foreign_indices(
         identifiers,
         "identifies",
@@ -316,31 +317,20 @@ def _validate_relation_statements(statements: pa.Table, resources: pa.Table) -> 
             detail=f"{endpoint} release does not contain its endpoint",
         )
 
-    cross_ring = _only(statements, "statement_type", "CrossRingRelationAssertion")
+    cross_mask = pc.equal(statements["statement_type"], "CrossRingRelationAssertion")
+    cross_ring = statements.filter(cross_mask)
     if cross_ring.num_rows:
-        cross_subject_indices = _foreign_indices(
-            cross_ring,
-            "subject",
-            resources,
-            code="preflight.cross-ring-subject",
-        )
-        cross_object_indices = _foreign_indices(
-            cross_ring,
-            "object",
-            resources,
-            code="preflight.cross-ring-object",
-        )
         _require_columns_equal(
             cross_ring,
             "source_ring",
-            _take(resources, "semantic_ring", cross_subject_indices),
+            pc.filter(_take(resources, "semantic_ring", subject_indices), cross_mask),
             code="preflight.statement-ring",
             detail="source ring differs from its endpoint",
         )
         _require_columns_equal(
             cross_ring,
             "target_ring",
-            _take(resources, "semantic_ring", cross_object_indices),
+            pc.filter(_take(resources, "semantic_ring", object_indices), cross_mask),
             code="preflight.statement-ring",
             detail="target ring differs from its endpoint",
         )
@@ -353,28 +343,17 @@ def _validate_relation_statements(statements: pa.Table, resources: pa.Table) -> 
         if _has_true(pc.is_valid(cross_ring["semantic_ring"])):
             _fail("preflight.statement-ring", "cross-ring assertion also has semantic_ring")
 
-    same_ring = _without(statements, "statement_type", "CrossRingRelationAssertion")
+    same_mask = pc.invert(cross_mask)
+    same_ring = statements.filter(same_mask)
     if same_ring.num_rows:
-        same_subject_indices = _foreign_indices(
-            same_ring,
-            "subject",
-            resources,
-            code="preflight.statement-subject",
-        )
-        same_object_indices = _foreign_indices(
-            same_ring,
-            "object",
-            resources,
-            code="preflight.statement-object",
-        )
         for indices, endpoint in (
-            (same_subject_indices, "subject"),
-            (same_object_indices, "object"),
+            (subject_indices, "subject"),
+            (object_indices, "object"),
         ):
             _require_columns_equal(
                 same_ring,
                 "semantic_ring",
-                _take(resources, "semantic_ring", indices),
+                pc.filter(_take(resources, "semantic_ring", indices), same_mask),
                 code="preflight.statement-ring",
                 detail=f"semantic ring differs from its {endpoint}",
             )
@@ -436,7 +415,6 @@ def _validate_statements(
     resources: pa.Table,
     source_records: pa.Table,
 ) -> None:
-    _require_unique(statements, ["id"], "preflight.statement-identity")
     observed_types = set(pc.unique(statements["statement_type"]).to_pylist())
     if observed_types - STATEMENT_TYPES:
         _fail("preflight.statement-type", f"unsupported statement types: {sorted(observed_types)}")
@@ -476,7 +454,6 @@ def _validate_evidence(
     statements: pa.Table,
     source_records: pa.Table,
 ) -> None:
-    _require_unique(evidence, ["id"], "preflight.evidence-identity")
     _foreign_indices(
         evidence,
         "statement",
