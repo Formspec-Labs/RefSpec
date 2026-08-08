@@ -103,14 +103,6 @@ def _family_summary(
     }
 
 
-def _relation_counts(
-    pairs: frozenset[int],
-    *,
-    gold_by_relation: Mapping[str, frozenset[int]],
-) -> dict[str, int]:
-    return {relation: len(pairs & gold_by_relation[relation]) for relation in RELATION_TYPES}
-
-
 def summarize_combination(
     *,
     lexical_depth: int,

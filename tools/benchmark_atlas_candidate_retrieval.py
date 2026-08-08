@@ -40,9 +40,6 @@ from refspec.atlas.candidate_retrieval import (
 from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
 from refspec.storage import canonical_json
 
-ALIGNMENT = "http://knowledgeweb.semanticweb.org/heterogeneity/alignment#"
-ENTITY_ONE = URIRef(ALIGNMENT + "entity1")
-ENTITY_TWO = URIRef(ALIGNMENT + "entity2")
 CONFERENCE_REFERENCE_NAMES = (
     "cmt-confOf.rdf",
     "cmt-conference.rdf",

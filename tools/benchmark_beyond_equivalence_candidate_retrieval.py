@@ -213,7 +213,6 @@ RAPIDFUZZ_SPECS = (
 )
 
 PairKey = tuple[str, str, str]
-RelationKey = tuple[str, str, str, str]
 
 
 def _sha256_bytes(value: bytes) -> str:

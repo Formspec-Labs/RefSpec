@@ -56,10 +56,6 @@ CROSSWALKS = ("fr-elsst", "fr-icpsr", "elsst-icpsr")
 #: Verdicts that assert some relation exists.
 SUPPORT = frozenset({"same", "near_same", "target_is_broader", "target_is_narrower", "related"})
 
-#: Compatible pairs under the production v2 agreement lattice: identical
-#: verdicts, plus ``same``/``near_same`` which both resolve to closeMatch.
-COMPATIBLE = frozenset({frozenset({"same", "near_same"})})
-
 
 def _digest(path: Path) -> str:
     return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
@@ -67,10 +63,6 @@ def _digest(path: Path) -> str:
 
 def _supports(verdict: str | None) -> bool:
     return verdict in SUPPORT
-
-
-def _compatible(left: str, right: str) -> bool:
-    return left == right or frozenset({left, right}) in COMPATIBLE
 
 
 def load(directory: Path, crosswalk: str) -> tuple[list[dict], list[dict], dict[int, dict]]:
