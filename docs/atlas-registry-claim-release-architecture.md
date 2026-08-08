@@ -89,27 +89,33 @@ pins. It retained 7,771 EuroVoc and 5,739 GEMET supplemental source records
 beside the existing normalized releases. A focused fixture additionally passed
 the complete bundle-to-Atlas-compact-to-Atlas-Parquet-to-comparator path.
 
-The full cold build then injected both bundles through the production command
-line. The compiled-producer gate passed against Atlas 3 binding bundle digest
-`sha256:533e2490a7b9f96e6b85e3468c91d87904c0c0490be45f8ab96ceaac331b5313`.
+The fresh full cold build injected both bundles through the production command
+line after the EuroVoc compatibility releases moved to artifact-derived
+construction. The compiled-producer gate passed against Atlas 3 binding bundle
+digest `sha256:533e2490a7b9f96e6b85e3468c91d87904c0c0490be45f8ab96ceaac331b5313`.
 The resulting local distribution contains 604,071 source records, 588,409
 resources, 560,429 relation assertions, and 30,970,068 asserted RDF quads. Its
 authenticated manifest digest is
-`sha256:26aa0ddbe132c0d1a68f4ed6df4d353e892264bf8e058608b09916b176bf780f`.
+`sha256:863220c802cae3db1cb54790cf80766ae51630fb32c8c6f066e325e6074f549d`.
 
-The derived Atlas Parquet view also passed its build and verification gates.
+The schema-1.1 Atlas Parquet view also passed its build and verification gates.
 Its manifest digest is
-`sha256:a8747e8c4d350573c478ec36846d39b5c2cb8bae8b26ff46fcd6c8a74f3daace`.
+`sha256:afd7d0095a97048b7c0f61c1f69f8e79620ad8e091b21a2107c79f73efe9f8db`.
 The generic streaming reader recovered both injected releases in one scan of
 the 604,071 source records. The exact comparisons found 78,713 of 78,713
 EuroVoc claims and 86,932 of 86,932 GEMET claims, with no added, missing, or
 changed rows.
 
+The authenticated columnar preflight checked counts, identities, release and
+source closure, label and identifier uniqueness, relation endpoints and rings,
+and evidence coverage in 9.0 seconds. It remains a development gate and names
+the RDF-only checks it does not perform.
+
 The independent Atlas 3 validator then passed the complete distribution. It
 checked all 30,970,068 asserted RDF quads, every semantic gate, and compact-RDF
 parity for all 3,302,340 compact records. Its final resource, source-record,
 label, relation, mapping, assignment, identifier, and release counts matched
-the producer output.
+the producer output. The cold independent run took 4,466.6 seconds.
 
 ## Failure coverage
 
@@ -139,10 +145,9 @@ This is not a full Atlas migration or a full source-fidelity result.
   derived Parquet build, and exact Parquet comparison. These results prove the
   new path for the two injected releases; they do not establish parity for the
   remaining construction units.
-- The full distribution result above predates the artifact-derived EuroVoc
-  compatibility views. Focused parity, selective-loader, and generator tests
-  cover that follow-on change; a new full distribution has not yet been built
-  from it.
+- The full distribution above includes the artifact-derived EuroVoc and
+  EuroVoc-domain compatibility releases. The independent validator and exact
+  claim comparisons therefore cover the follow-on construction change.
 - Existing normalized construction must remain until each registry passes the
   same artifact-to-Atlas comparison and the full distribution gates pass.
 
@@ -151,7 +156,9 @@ This is not a full Atlas migration or a full source-fidelity result.
 - Local: implementation, schemas, tests, architecture note, and ignored
   development bundles, full distribution, and Parquet view exist in this
   worktree. The full build is under
-  `output/atlas-3.0-registry-claim-proof-2026-08-07/`.
-- Committed: no.
+  `output/atlas-3.0-registry-claim-derived-eurovoc-2026-08-08/`.
+- Committed: the registry claim boundary, EuroVoc artifact-derived
+  compatibility releases, focused tests, architecture notes, and fast Parquet
+  preflight are committed locally on this branch.
 - Pushed: no.
 - Published or deployed: no.
