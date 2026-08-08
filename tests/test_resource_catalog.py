@@ -9,8 +9,6 @@ from typing import Any
 
 import pytest
 
-import refspec.resource_catalog as resource_catalog_module
-from refspec.atlas.model import VocabularyAtlasError
 from refspec.resource_catalog import (
     ResourceCatalogError,
     build_resource_catalog,
@@ -105,30 +103,6 @@ def _portable_row_for_directory(
     return result
 
 
-def _temporary_atlas_distribution(
-    package_root: Path,
-    repository_root: Path,
-) -> dict[str, Any]:
-    package_root.mkdir()
-    (package_root / "atlas-manifest.json").write_text("{}\n", encoding="utf-8")
-    (package_root / "atlas.nq").write_text(
-        "<urn:test:s> <urn:test:p> <urn:test:o> <urn:test:g> .\n",
-        encoding="utf-8",
-    )
-    (package_root / "atlas-scope.json").write_text("{}\n", encoding="utf-8")
-    return _portable_row_for_directory(
-        {
-            "distributionKind": "refspec-vocabulary-atlas-nquads-2.0",
-            "files": [],
-            "manifestPath": "atlas-manifest.json",
-            "packageResourceId": "federal-register-thesaurus-2025",
-            "resourceId": "federal-register-thesaurus-2025",
-        },
-        package_root,
-        repository_root,
-    )
-
-
 def test_checked_catalog_is_exact_and_two_tier() -> None:
     inventory, completed, distributions = _inputs()
     catalog = build_resource_catalog(
@@ -171,6 +145,15 @@ def test_source_catalog_input_excludes_atlas_outputs() -> None:
     # outputs belong in a downstream publication catalog, not back in this
     # source inventory where they would create a digest cycle.
     assert atlas_rows == []
+
+
+def test_catalog_rejects_retired_atlas_2_distributions() -> None:
+    inventory, completed, distributions = _inputs()
+    changed = copy.deepcopy(distributions)
+    changed["distributions"][0]["distributionKind"] = "refspec-vocabulary-atlas-nquads-2.0"  # type: ignore[index]
+
+    with pytest.raises(ResourceCatalogError, match="distributionKind is unsupported"):
+        build_resource_catalog(inventory, completed, changed, repository_root=ROOT)
 
 
 def test_catalog_generation_is_relocatable(tmp_path: Path) -> None:
@@ -335,124 +318,6 @@ def test_source_concept_distribution_reader_rejects_reinventoried_payload_tamper
     }
 
     with pytest.raises(ResourceCatalogError, match="not a valid closed source-concept release"):
-        build_resource_catalog(
-            minimal_inventory,
-            minimal_completed,
-            minimal_distributions,
-            repository_root=tmp_path,
-        )
-
-
-def test_atlas_2_distribution_inventories_all_three_files_and_uses_one_trusted_pin(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    inventory, completed, distributions = _inputs()
-    package_root = tmp_path / "atlas"
-    distribution = _temporary_atlas_distribution(package_root, tmp_path)
-    minimal_inventory = {
-        "format": inventory["format"],
-        "recordedAt": inventory["recordedAt"],
-        "resources": [_resource_row(inventory, "federal-register-thesaurus-2025")],
-    }
-    minimal_completed = _completed_subset(completed, ("federal-register-thesaurus-2025",), tmp_path)
-    minimal_distributions = {
-        "format": distributions["format"],
-        "distributions": [distribution],
-    }
-    calls: list[tuple[Path, str]] = []
-
-    def verified_open(
-        directory: Path,
-        *,
-        expected_manifest_digest: str,
-    ) -> object:
-        calls.append((Path(directory), expected_manifest_digest))
-        return object()
-
-    monkeypatch.setattr(
-        resource_catalog_module.VocabularyAtlasAsset,
-        "open",
-        staticmethod(verified_open),
-    )
-
-    catalog = build_resource_catalog(
-        minimal_inventory,
-        minimal_completed,
-        minimal_distributions,
-        repository_root=tmp_path,
-    )
-
-    atlas = catalog["resources"][0]["distributions"][0]
-    assert atlas["distributionKind"] == "refspec-vocabulary-atlas-nquads-2.0"
-    assert {Path(row["path"]).name for row in atlas["files"]} == {
-        "atlas-manifest.json",
-        "atlas.nq",
-        "atlas-scope.json",
-    }
-    manifest_path = package_root / "atlas-manifest.json"
-    assert calls == [(package_root, _file_digest(manifest_path))]
-
-
-def test_atlas_2_distribution_requires_the_scope_file(tmp_path: Path) -> None:
-    inventory, completed, distributions = _inputs()
-    package_root = tmp_path / "atlas"
-    distribution = _temporary_atlas_distribution(package_root, tmp_path)
-    (package_root / "atlas-scope.json").unlink()
-    distribution["files"] = [row for row in distribution["files"] if not row["path"].endswith("atlas-scope.json")]
-    minimal_inventory = {
-        "format": inventory["format"],
-        "recordedAt": inventory["recordedAt"],
-        "resources": [_resource_row(inventory, "federal-register-thesaurus-2025")],
-    }
-    minimal_completed = _completed_subset(completed, ("federal-register-thesaurus-2025",), tmp_path)
-    minimal_distributions = {
-        "format": distributions["format"],
-        "distributions": [distribution],
-    }
-
-    with pytest.raises(ResourceCatalogError, match="must contain atlas-manifest.json, atlas.nq, and atlas-scope.json"):
-        build_resource_catalog(
-            minimal_inventory,
-            minimal_completed,
-            minimal_distributions,
-            repository_root=tmp_path,
-        )
-
-
-def test_atlas_2_distribution_wraps_file_only_verification_failure(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    inventory, completed, distributions = _inputs()
-    package_root = tmp_path / "atlas"
-    distribution = _temporary_atlas_distribution(package_root, tmp_path)
-    minimal_inventory = {
-        "format": inventory["format"],
-        "recordedAt": inventory["recordedAt"],
-        "resources": [_resource_row(inventory, "federal-register-thesaurus-2025")],
-    }
-    minimal_completed = _completed_subset(completed, ("federal-register-thesaurus-2025",), tmp_path)
-    minimal_distributions = {
-        "format": distributions["format"],
-        "distributions": [distribution],
-    }
-
-    def rejected_open(
-        directory: Path,
-        *,
-        expected_manifest_digest: str,
-    ) -> None:
-        del directory, expected_manifest_digest
-        raise VocabularyAtlasError("atlas output digest differs")
-
-    monkeypatch.setattr(
-        resource_catalog_module.VocabularyAtlasAsset,
-        "open",
-        staticmethod(rejected_open),
-    )
-
-    with pytest.raises(ResourceCatalogError, match="not a valid closed vocabulary atlas"):
         build_resource_catalog(
             minimal_inventory,
             minimal_completed,

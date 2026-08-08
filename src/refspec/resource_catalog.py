@@ -15,7 +15,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from refspec.atlas.model import VocabularyAtlasAsset, VocabularyAtlasError
 from refspec.binding import canonical_sha256
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
@@ -53,7 +52,6 @@ SOURCE_AVAILABILITY_STATES = {
 }
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
-_ATLAS_DISTRIBUTION_KIND = "refspec-vocabulary-atlas-nquads-2.0"
 _SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND = "refspec-source-concept-release-1.0"
 _SOURCE_CONTROLLED_RESOURCE_DISTRIBUTION_KIND = "refspec-source-controlled-resource-2.0"
 
@@ -238,51 +236,6 @@ def _verify_source_concept_release_distribution(
     )
     if view.logical_digest != completed_row.get("packageDigest"):
         raise ResourceCatalogError(f"{location} logical digest differs from completed evidence")
-
-
-def _verify_atlas_distribution(
-    *,
-    manifest_file: Path,
-    inventory_paths: set[str],
-    inventory_digests: Mapping[str, str],
-    repository_root: Path,
-    location: str,
-) -> None:
-    if manifest_file.name != "atlas-manifest.json":
-        raise ResourceCatalogError(f"{location} must name atlas-manifest.json")
-    package_paths = _repository_relative_file_set(
-        manifest_file.parent,
-        repository_root=repository_root,
-        location=location,
-    )
-    manifest_relative = manifest_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
-    output_file = manifest_file.parent / "atlas.nq"
-    scope_file = manifest_file.parent / "atlas-scope.json"
-    try:
-        output_relative = output_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
-        scope_relative = scope_file.resolve(strict=True).relative_to(repository_root.resolve(strict=True)).as_posix()
-    except (FileNotFoundError, ValueError) as error:
-        raise ResourceCatalogError(
-            f"{location} must contain atlas-manifest.json, atlas.nq, and atlas-scope.json inside the repository"
-        ) from error
-    expected_paths = {manifest_relative, output_relative, scope_relative}
-    if package_paths != expected_paths:
-        raise ResourceCatalogError(
-            f"{location} directory is not a closed three-file Atlas 2.0 package; "
-            f"missing={sorted(expected_paths - package_paths)}, extra={sorted(package_paths - expected_paths)}"
-        )
-    _require_complete_file_inventory(
-        inventory_paths,
-        expected_paths,
-        location=location,
-    )
-    try:
-        VocabularyAtlasAsset.open(
-            manifest_file.parent,
-            expected_manifest_digest=inventory_digests[manifest_relative],
-        )
-    except (KeyError, VocabularyAtlasError) as error:
-        raise ResourceCatalogError(f"{location} is not a valid closed vocabulary atlas: {error}") from error
 
 
 def _validate_inventory(value: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -492,14 +445,6 @@ def _validate_distributions(
                 inventory_paths=seen_paths,
                 inventory_digests=checked_digests,
                 completed_row=completed_row,
-                repository_root=repository_root,
-                location=location,
-            )
-        elif distribution_kind == _ATLAS_DISTRIBUTION_KIND:
-            _verify_atlas_distribution(
-                manifest_file=manifest_file,
-                inventory_paths=seen_paths,
-                inventory_digests=checked_digests,
                 repository_root=repository_root,
                 location=location,
             )
