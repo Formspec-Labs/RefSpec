@@ -285,15 +285,6 @@ def real_data_evidence_failures(rows: Sequence[Mapping[str, Any]]) -> tuple[str,
     return tuple(failures)
 
 
-def verify_real_data_evidence(rows: Sequence[Mapping[str, Any]]) -> None:
-    """Reject audit claims that were not produced from publisher-origin bytes."""
-
-    failures = real_data_evidence_failures(rows)
-    if failures:
-        details = "\n  - ".join(failures)
-        raise RegistryAuditError(f"real-data gate failed:\n  - {details}")
-
-
 def execution_receipt_failures(
     source_manifest: Mapping[str, Any],
     receipts: Mapping[str, Any],
