@@ -81,8 +81,9 @@ This command is a fast development gate, not the Atlas 3 release verdict. Its
 JSON result lists the remaining release-only checks: normative SHACL, RDF
 lexical and graph-role rules, RDF node-digest recomputation, projection and
 derived-graph replay, transitive SKOS conflict analysis, source-accounting
-ledger reconciliation, and exact compact-to-RDF parity. Run the independent
-Atlas validator before calling a distribution conformant.
+ledger reconciliation, and authenticated compact shape, size, and RDF sample
+checks. Run the independent Atlas validator before calling a distribution
+conformant.
 
 ## Compact search profile
 

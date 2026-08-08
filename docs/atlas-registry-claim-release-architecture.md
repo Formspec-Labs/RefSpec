@@ -115,7 +115,12 @@ The independent Atlas 3 validator then passed the complete distribution. It
 checked all 30,970,068 asserted RDF quads, every semantic gate, and compact-RDF
 parity for all 3,302,340 compact records. Its final resource, source-record,
 label, relation, mapping, assignment, identifier, and release counts matched
-the producer output. The cold independent run took 4,466.6 seconds.
+the producer output. The cold independent run took 4,466.6 seconds. This exact
+proof applies to the distribution's pinned binding bundle digest shown above.
+The subsequent compact-sampling performance change moved current `HEAD` to
+binding bundle digest
+`sha256:8692855421355ee89429771457dfe2b8fa47a54828f819979622f79724351b90`;
+the distribution has not been rebuilt against that newer binding.
 
 ## Failure coverage
 

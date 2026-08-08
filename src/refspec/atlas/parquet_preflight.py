@@ -64,7 +64,7 @@ RELEASE_ONLY_CHECKS = (
     "projection-and-derived-graph-replay",
     "skos-transitive-conflict-analysis",
     "source-accounting-ledger-reconciliation",
-    "compact-rdf-exact-parity",
+    "compact-shape-size-and-rdf-sample",
 )
 
 
