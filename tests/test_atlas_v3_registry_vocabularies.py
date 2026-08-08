@@ -143,7 +143,7 @@ def test_direct_relations_keep_only_unique_member_triples() -> None:
     ).is_file(),
     reason="verified EuroVoc source and claim bundle are not available",
 )
-def test_eurovoc_domains_claim_view_matches_parser_compatibility_release() -> None:
+def test_eurovoc_claim_views_match_parser_compatibility_releases() -> None:
     manifest = EUROVOC_CLAIM_ROOT / "release-manifest.json"
     claim_input = AtlasRegistryClaimInput(
         path=EUROVOC_CLAIM_ROOT,
@@ -151,25 +151,28 @@ def test_eurovoc_domains_claim_view_matches_parser_compatibility_release() -> No
             "sha256:" + hashlib.sha256(manifest.read_bytes()).hexdigest()
         ),
     )
-    parser_release = vocabularies.load_eurovoc_4_24_releases()[1]
-    claim_release = (
-        vocabularies.load_eurovoc_4_24_domain_release_from_claims(
-            claim_input
-        )
+    parser_releases = vocabularies.load_eurovoc_4_24_releases()
+    claim_releases = vocabularies.load_eurovoc_4_24_releases_from_claims(
+        claim_input
     )
 
-    assert replace(claim_release, inputs=parser_release.inputs) == parser_release
-    assert [
-        (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
-        for pin in claim_release.inputs
-    ] == [
-        (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
-        for pin in parser_release.inputs
-    ]
-    assert all(
-        pin.path.is_relative_to(EUROVOC_CLAIM_ROOT)
-        for pin in claim_release.inputs
-    )
+    for claim_release, parser_release in zip(
+        claim_releases,
+        parser_releases,
+        strict=True,
+    ):
+        assert replace(claim_release, inputs=parser_release.inputs) == parser_release
+        assert [
+            (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
+            for pin in claim_release.inputs
+        ] == [
+            (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
+            for pin in parser_release.inputs
+        ]
+        assert all(
+            pin.path.is_relative_to(EUROVOC_CLAIM_ROOT)
+            for pin in claim_release.inputs
+        )
 
 
 def test_s27_conflict_keeps_publisher_relation_as_transformation_evidence() -> None:

@@ -107,6 +107,39 @@ def test_eurovoc_domains_claim_input_skips_the_source_parser(
     ]
 
 
+def test_main_eurovoc_claim_input_skips_the_source_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    claim_input = object()
+    monkeypatch.setattr(
+        vocabularies,
+        "acquire_eurovoc_release",
+        lambda *_args, **_kwargs: pytest.fail(
+            "the main claim view opened the EuroVoc source parser"
+        ),
+    )
+    monkeypatch.setattr(
+        vocabularies,
+        "load_eurovoc_4_24_releases_from_claims",
+        lambda input_: (
+            (
+                _release("eurovoc-4.24"),
+                _release("eurovoc-domains-4.24"),
+            )
+            if input_ is claim_input
+            else pytest.fail("the EuroVoc loader received a different claim input")
+        ),
+    )
+
+    releases = vocabularies.load_all_registry_vocabulary_releases(
+        Path("/unused"),
+        only_keys={"eurovoc-4.24"},
+        registry_claim_inputs={"eurovoc-4.24": claim_input},  # type: ignore[dict-item]
+    )
+
+    assert [release.key for release in releases] == ["eurovoc-4.24"]
+
+
 def test_document_loader_calls_only_requested_release(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

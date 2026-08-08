@@ -13,6 +13,7 @@ from refspec.atlas.registry_claim_input import (
     RegistryClaimResourceRules,
     adapt_registry_claim_release,
     inject_registry_claim_release,
+    registry_relations_from_claim_release,
     registry_resources_from_claim_release,
     validate_atlas_registry_claims,
 )
@@ -216,6 +217,24 @@ def test_declarative_resource_rules_build_a_normalized_subset(
         "publisher": "Example",
         "publisherConceptIri": SUBJECT,
         "publisherResourceKind": "Concept",
+    }
+    relations = registry_relations_from_claim_release(
+        input_.open(),
+        member_iris={SUBJECT, TARGET},
+        predicate_map={
+            "http://www.w3.org/2004/02/skos/core#broader": (
+                "http://www.w3.org/2004/02/skos/core#broader"
+            )
+        },
+    )
+    assert len(relations) == 1
+    assert relations[0].source_payload == {
+        "normalizedPredicateIri": (
+            "http://www.w3.org/2004/02/skos/core#broader"
+        ),
+        "objectIri": TARGET,
+        "predicateIri": "http://www.w3.org/2004/02/skos/core#broader",
+        "subjectIri": SUBJECT,
     }
 
 

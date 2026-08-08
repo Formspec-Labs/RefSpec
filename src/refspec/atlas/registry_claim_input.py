@@ -16,6 +16,7 @@ from refspec.atlas.v3_source_data import (
     LabelRole,
     RegistryInputPin,
     RegistryLabel,
+    RegistryRelation,
     RegistryRelease,
     RegistryResource,
     RegistrySupplementalSourceRecord,
@@ -81,6 +82,7 @@ class RegistryClaimResourceRules:
     member_object_iri: str
     resource_kind: str
     label_roles: Mapping[str, LabelRole]
+    excluded_member_claims: Collection[tuple[str, str]] = ()
     notation_predicates: Collection[str] = ()
     native_iri_predicates: Mapping[str, str] = field(default_factory=dict)
     common_native_payload: Mapping[str, Any] = field(default_factory=dict)
@@ -152,6 +154,15 @@ def registry_resources_from_claim_release(
             and claim.object_iri == rules.member_object_iri
         ):
             membership_claims[claim.subject].append(claim)
+    excluded_subjects = {
+        claim.subject
+        for claim in view.claims
+        if claim.object_kind == "iri"
+        and (claim.predicate, cast(str, claim.object_iri))
+        in rules.excluded_member_claims
+    }
+    for subject in excluded_subjects:
+        membership_claims.pop(subject, None)
     if not membership_claims:
         raise AtlasRegistryClaimError(
             "claim resource rules selected no release members"
@@ -207,6 +218,60 @@ def registry_resources_from_claim_release(
             )
         )
     return tuple(resources)
+
+
+def registry_relations_from_claim_release(
+    view: RegistryClaimReleaseView,
+    *,
+    member_iris: Collection[str],
+    predicate_map: Mapping[str, str],
+) -> tuple[RegistryRelation, ...]:
+    """Retain direct IRI relations whose endpoints are selected members."""
+
+    members = frozenset(member_iris)
+    relations: list[RegistryRelation] = []
+    seen: set[tuple[str, str, str]] = set()
+    for claim in view.claims:
+        if (
+            claim.object_kind != "iri"
+            or claim.predicate not in predicate_map
+            or claim.subject not in members
+            or claim.object_iri not in members
+        ):
+            continue
+        publisher_predicate = claim.predicate
+        normalized_predicate = predicate_map[publisher_predicate]
+        key = (
+            claim.subject,
+            normalized_predicate,
+            cast(str, claim.object_iri),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        relations.append(
+            RegistryRelation(
+                subject=key[0],
+                predicate=key[1],
+                object=key[2],
+                source_payload={
+                    "normalizedPredicateIri": normalized_predicate,
+                    "objectIri": key[2],
+                    "predicateIri": publisher_predicate,
+                    "subjectIri": key[0],
+                },
+            )
+        )
+    return tuple(
+        sorted(
+            relations,
+            key=lambda relation: (
+                relation.subject,
+                relation.predicate,
+                relation.object,
+            ),
+        )
+    )
 
 
 def _record_key(claim: RegistryClaim) -> tuple[str, str, str]:
@@ -710,6 +775,7 @@ __all__ = [
     "claims_from_atlas_records",
     "compare_registry_claims",
     "inject_registry_claim_release",
+    "registry_relations_from_claim_release",
     "registry_resources_from_claim_release",
     "validate_atlas_parquet_registry_claims",
     "validate_atlas_registry_claims",
