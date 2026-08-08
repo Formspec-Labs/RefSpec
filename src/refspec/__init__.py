@@ -1,21 +1,13 @@
 """Executable interfaces for the Regulatory Evidence Framework."""
 
+import importlib
 from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING, Any
 
 from refspec.accepted_output import (
     AcceptedOutputAuthorization,
     AcceptedOutputAuthorizationError,
     authorize_accepted_assignment,
-)
-from refspec.atlas.release_acceptance import (
-    RELEASE_ACCEPTANCE_TYPE,
-    RELEASE_ACCEPTANCE_VERSION,
-    AcceptanceCheckStatus,
-    ReleaseAcceptanceError,
-    ReproducibilityStatus,
-    VocabularyAtlasReleaseAcceptance,
-    build_vocabulary_atlas_release_acceptance,
-    read_vocabulary_atlas_release_acceptance,
 )
 from refspec.generated_rulespec_dependency import load_rulespec_dependency
 from refspec.managed_release import (
@@ -78,10 +70,52 @@ from refspec.vocabulary import (
     seal_payload,
 )
 
+if TYPE_CHECKING:
+    from refspec.atlas.release_acceptance import (
+        RELEASE_ACCEPTANCE_TYPE,
+        RELEASE_ACCEPTANCE_VERSION,
+        AcceptanceCheckStatus,
+        ReleaseAcceptanceError,
+        ReproducibilityStatus,
+        VocabularyAtlasReleaseAcceptance,
+        build_vocabulary_atlas_release_acceptance,
+        read_vocabulary_atlas_release_acceptance,
+    )
+
+_LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS = frozenset(
+    {
+        "RELEASE_ACCEPTANCE_TYPE",
+        "RELEASE_ACCEPTANCE_VERSION",
+        "AcceptanceCheckStatus",
+        "ReleaseAcceptanceError",
+        "ReproducibilityStatus",
+        "VocabularyAtlasReleaseAcceptance",
+        "build_vocabulary_atlas_release_acceptance",
+        "read_vocabulary_atlas_release_acceptance",
+    }
+)
+
 try:
     __version__ = version("refspec")
 except PackageNotFoundError:  # pragma: no cover - direct source-tree import
     __version__ = "0.1.0.dev0"
+
+
+def __getattr__(name: str) -> Any:
+    """Load legacy Atlas release-acceptance exports only when requested."""
+
+    if name not in _LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS:
+        raise AttributeError(name)
+    value = getattr(importlib.import_module("refspec.atlas.release_acceptance"), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    """Expose lazy compatibility names to introspection tools."""
+
+    return sorted(set(globals()) | _LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS)
+
 
 __all__ = [
     "CANDIDATE_EXCLUDED_SOURCE_STATUSES",
