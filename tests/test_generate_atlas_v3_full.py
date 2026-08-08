@@ -21,6 +21,7 @@ from refspec.atlas.v3_source_data import (
     RegistryPublisherMapping,
     RegistryRelease,
     RegistryResource,
+    RegistrySupplementalSourceRecord,
     mapping_triple_digest,
 )
 
@@ -596,7 +597,7 @@ def test_exact_distribution_reuse_incompatibility_enters_full_build(
             lambda: changed_binding,
         )
 
-    def full_build_entered():
+    def full_build_entered(**_kwargs: object) -> None:
         raise RuntimeError("full semantic rebuild entered")
 
     monkeypatch.setattr(generator, "load_releases", full_build_entered)
@@ -2097,6 +2098,67 @@ def test_compiled_producer_validates_rows_and_constructor_output(
         "sourceAssignments": 2,
         "sourceRecords": 2,
     }
+
+
+def test_compiled_producer_retains_supplemental_source_claim_records(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_registry_asserted_graph",
+        _compiled_descriptor_graph,
+    )
+    monkeypatch.setattr(
+        generator,
+        "_validate_compiled_binding_profile",
+        lambda: dict(generator._COMPILED_PRODUCER_BINDING_PINS),
+    )
+    release = _compiled_source_release(tmp_path)
+    supplemental = RegistrySupplementalSourceRecord(
+        source_record_id="urn:test:source-record:claim-one",
+        source_locator="https://example.test/source.ttl",
+        source_digest=release.source_release_digest,
+        native_payload={
+            "claimRelease": "urn:test:registry-claim-release",
+            "claimReleaseManifestDigest": "sha256:" + "1" * 64,
+            "claims": [
+                {
+                    "language": "en",
+                    "lexical_value": "First",
+                    "source_record_id": "urn:test:source-record:claim-one",
+                }
+            ],
+            "schemaVersion": "1.0",
+            "type": "RegistryClaimRecord",
+        },
+    )
+    release = dataclasses.replace(
+        release,
+        supplemental_source_records=(supplemental,),
+    )
+
+    producer_receipt = generator._validate_compiled_producer_rows((release,))
+    graphs = generator._build_graphs((release,), include_projection=False)
+    report = generator._validate_compiled_producer_output(
+        (release,),
+        graphs,
+        producer_receipt,
+    )
+
+    assert report["counts"]["sourceRecords"] == 3
+    assert graphs.accounting["totals"]["excluded"] == 1
+    supplemental_nodes = {
+        subject
+        for subject in graphs.asserted.subjects(
+            RDF.type,
+            generator.ATLAS.SourceRecord,
+        )
+        if not list(
+            graphs.asserted.objects(subject, generator.ATLAS.representsResource)
+        )
+    }
+    assert len(supplemental_nodes) == 1
 
 
 def test_compiled_producer_fails_closed_when_shape_profile_drifts(

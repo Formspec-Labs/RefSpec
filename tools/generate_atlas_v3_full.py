@@ -70,6 +70,11 @@ from refspec.atlas.compact_pack import (
     read_compact_record_pack,
     write_compact_record_pack,
 )
+from refspec.atlas.registry_claim_input import (
+    ATLAS_CLAIM_RECORD_TYPE,
+    ATLAS_CLAIM_RECORD_VERSION,
+    AtlasRegistryClaimInput,
+)
 from refspec.atlas.v3_source_data import (
     RegistryCrossRingRelation,
     RegistryIdentifier,
@@ -77,6 +82,7 @@ from refspec.atlas.v3_source_data import (
     RegistryMappingRelease,
     RegistryPublisherMapping,
     RegistryRelease,
+    RegistrySupplementalSourceRecord,
     mapping_triple_digest,
 )
 from refspec.binding import canonical_sha256 as refspec_canonical_sha256
@@ -168,14 +174,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:ad5456c13e29fd32a1a62fbbea1aa83cfab2a32bb037b841525893138221ae30"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0cf156e692629f424497fa545491efcf8b9655e3284a81eeabedc2faa963af6c"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:51c4268da463130578cbc18f4a9c650ec7bf04115bf89e57efda98b012e06a0a"
+            "sha256:533e2490a7b9f96e6b85e3468c91d87904c0c0490be45f8ab96ceaac331b5313"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -203,6 +209,7 @@ _TRANSFORMED_RELATION_ACCOUNTING_REASON = (
     "Evidence-only publisher relation plus deterministic "
     "SKOS S27-preserving transformation."
 )
+_SOURCE_CLAIM_ACCOUNTING_REASON = "source-fidelity-claim-record-v1"
 _FALLBACK_SOURCE_NAMESPACES = MappingProxyType(
     {
         "loc-lst": "http://id.loc.gov/vocabulary/subjectSchemes/lst",
@@ -350,6 +357,7 @@ class LoadedRelease:
     resources: Sequence[SourceResource]
     relations: Sequence[SourceRelation]
     cross_ring_relations: Sequence[RegistryCrossRingRelation] = ()
+    supplemental_source_records: Sequence[RegistrySupplementalSourceRecord] = ()
     dropped_label_count: int = 0
     metadata: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
@@ -757,7 +765,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:887907ddfa17bd18c50bc5226d46eddfa0a4179b49280bc474503db85ce5119c"
+    "sha256:857b4edb5bef52734c192899eba4caa833a9192e409929c75927dca86f19e712"
 )
 
 
@@ -940,12 +948,17 @@ def _shared_semantic_recipe_files() -> tuple[Path, ...]:
     source_root = ROOT / "src" / "refspec"
     files = {
         source_root / "atlas" / "compact_pack.py",
+        source_root / "atlas" / "registry_claim_input.py",
         source_root / "atlas" / "v3_registry_selection.py",
         source_root / "atlas" / "v3_source_data.py",
         source_root / "binding.py",
         source_root / "immutable.py",
         source_root / "managed_release.py",
         source_root / "registry" / "infrastructure" / "source_identity.py",
+        source_root
+        / "registry"
+        / "infrastructure"
+        / "registry_claim_release.py",
         source_root / "storage.py",
         source_root / "vocabulary.py",
     }
@@ -1280,6 +1293,16 @@ _LANGUAGE_TAG_RE = re.compile(
 _EXPLICIT_LANGUAGE_KEYS = frozenset(
     {"@language", "lang", "language", "languagetag"}
 )
+
+
+def _is_registry_claim_payload(value: object) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and value.get("type") == ATLAS_CLAIM_RECORD_TYPE
+        and value.get("schemaVersion") == ATLAS_CLAIM_RECORD_VERSION
+        and isinstance(value.get("claims"), Sequence)
+        and not isinstance(value.get("claims"), (str, bytes))
+    )
 ELSST_LANGUAGE_MAP_FIELDS = frozenset(
     {
         "skos:altLabel",
@@ -1430,6 +1453,7 @@ def _audit_english_language_content(
     value: object,
     *,
     language_map_fields: frozenset[str] = frozenset(),
+    allow_untagged_explicit_language: bool = False,
 ) -> tuple[int, int, tuple[str, ...]]:
     """Audit every nested language map and explicit language tag."""
 
@@ -1444,8 +1468,22 @@ def _audit_english_language_content(
             for raw_key, child in item.items():
                 key = str(raw_key)
                 if key.lower() in _EXPLICIT_LANGUAGE_KEYS:
-                    explicit_tags += 1
-                    if not isinstance(child, str) or child.lower() != "en":
+                    if child is None and allow_untagged_explicit_language:
+                        pass
+                    else:
+                        explicit_tags += 1
+                    if not (
+                        child is None and allow_untagged_explicit_language
+                    ) and not (
+                        isinstance(child, str)
+                        and (
+                            child.lower() == "en"
+                            or (
+                                allow_untagged_explicit_language
+                                and child.lower().startswith("en-")
+                            )
+                        )
+                    ):
                         violations.append(f"{location}/{key}:tag={child!r}")
                 child_path = (*path, key)
                 if key in language_map_fields:
@@ -2224,6 +2262,7 @@ def _adapt_registry_release(release: RegistryRelease) -> LoadedRelease:
             resources=release.resources,  # type: ignore[arg-type]
             relations=release.relations,  # type: ignore[arg-type]
             cross_ring_relations=release.cross_ring_relations,
+            supplemental_source_records=release.supplemental_source_records,
             dropped_label_count=release.dropped_label_count,
             metadata=release.metadata,
         )
@@ -2264,7 +2303,17 @@ def _declared_construction_unit_keys() -> frozenset[str]:
 
 def load_releases(
     include_keys: frozenset[str] | None = None,
+    *,
+    registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
 ) -> tuple[LoadedRelease, ...]:
+    """Load normalized releases and optionally add lossless claim bundles.
+
+    ``registry_claim_inputs`` is keyed by the existing release key. Each value
+    supplies an artifact path and external manifest digest; the generic Atlas
+    adapter verifies both before the release enters construction.
+    """
+
+    from refspec.atlas.registry_claim_input import inject_registry_claim_release
     from refspec.atlas.v3_registry_alignments import (
         REGISTRY_ALIGNMENT_ENDPOINT_RELEASE_KEYS,
         load_all_registry_alignment_endpoint_releases,
@@ -2345,6 +2394,20 @@ def load_releases(
         ),
     )
     _validate_registry_release_descriptors(registry_releases)
+    claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
+    registry_keys = {release.key for release in registry_releases}
+    unknown_claim_inputs = sorted(set(claim_inputs) - registry_keys)
+    if unknown_claim_inputs:
+        raise ValueError(
+            "registry claim inputs do not match loaded registry releases: "
+            f"{unknown_claim_inputs}"
+        )
+    registry_releases = tuple(
+        inject_registry_claim_release(release, claim_inputs[release.key])
+        if release.key in claim_inputs
+        else release
+        for release in registry_releases
+    )
     releases.extend(_adapt_registry_release(release) for release in registry_releases)
     _STATUS.progress(
         "load-registry-releases",
@@ -2688,6 +2751,9 @@ def _source_record_constructor(
     _, _, language_violations = _audit_english_language_content(
         native_payload,
         language_map_fields=language_map_fields,
+        allow_untagged_explicit_language=(
+            _is_registry_claim_payload(native_payload)
+        ),
     )
     if language_violations:
         raise ValueError(
@@ -3182,6 +3248,20 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
             violations.extend(
                 f"{release.spec.key}/{relation.subject}/{relation.predicate}/"
                 f"{relation.object}/{violation}"
+                for violation in payload_violations
+            )
+        for record in release.supplemental_source_records:
+            native_payload_count += 1
+            maps, tags, payload_violations = _audit_english_language_content(
+                record.native_payload,
+                allow_untagged_explicit_language=(
+                    _is_registry_claim_payload(record.native_payload)
+                ),
+            )
+            language_map_count += maps
+            explicit_language_tag_count += tags
+            violations.extend(
+                f"{release.spec.key}/{record.source_record_id}/{violation}"
                 for violation in payload_violations
             )
     if violations:
@@ -3877,7 +3957,13 @@ def _validate_compiled_producer_rows(
             "resources": resource_count,
             "sourceAssignments": source_assignment_count,
             "sourceRecords": (
-                resource_count + remap_evidence_count + mapping_count
+                resource_count
+                + remap_evidence_count
+                + mapping_count
+                + sum(
+                    len(release.supplemental_source_records)
+                    for release in releases
+                )
             ),
         }
     finally:
@@ -3951,6 +4037,7 @@ def _validate_compiled_source_accounting(
         expected_resources = {resource.iri for resource in release.resources}
         represented_resources: set[str] = set()
         excluded = 0
+        supplemental_records: set[str] = set()
         for disposition in dispositions:
             if not isinstance(disposition, Mapping):
                 raise TypeError(
@@ -3988,15 +4075,16 @@ def _validate_compiled_source_accounting(
                     )
                 represented_resources.add(resource)
             elif status == "excluded":
-                if (
-                    set(disposition)
-                    != {"reason", "sourceRecord", "status"}
-                    or disposition.get("reason")
-                    != _TRANSFORMED_RELATION_ACCOUNTING_REASON
-                ):
+                reason = disposition.get("reason")
+                if set(disposition) != {"reason", "sourceRecord", "status"} or reason not in {
+                    _TRANSFORMED_RELATION_ACCOUNTING_REASON,
+                    _SOURCE_CLAIM_ACCOUNTING_REASON,
+                }:
                     raise ValueError(
                         f"{release.spec.key} excluded disposition differs"
                     )
+                if reason == _SOURCE_CLAIM_ACCOUNTING_REASON:
+                    supplemental_records.add(source_record)
                 excluded += 1
             else:
                 raise ValueError(
@@ -4006,10 +4094,24 @@ def _validate_compiled_source_accounting(
             raise ValueError(
                 f"{release.spec.key} source accounting resource membership differs"
             )
-        expected_excluded = sum(
+        expected_transformed = sum(
             relation.predicate == str(ATLAS.thesaurusRelated)
             for relation in release.relations
         )
+        expected_supplemental = set()
+        for supplemental in release.supplemental_source_records:
+            record, _ = _source_record_constructor(
+                source_release=URIRef(release.source_release_iri),
+                source_locator=URIRef(supplemental.source_locator),
+                source_digest=supplemental.source_digest,
+                native_payload=supplemental.native_payload,
+            )
+            expected_supplemental.add(str(record))
+        if supplemental_records != expected_supplemental:
+            raise ValueError(
+                f"{release.spec.key} supplemental SourceRecord membership differs"
+            )
+        expected_excluded = expected_transformed + len(expected_supplemental)
         if excluded != expected_excluded:
             raise ValueError(
                 f"{release.spec.key} source accounting excluded count differs"
@@ -4714,6 +4816,36 @@ def _build_graphs(
                     "atlasResources": [resource_row.iri],
                     "sourceRecord": str(record),
                     "status": "represented",
+                }
+            )
+        for supplemental in release.supplemental_source_records:
+            expected_record, _ = _source_record_constructor(
+                source_release=source_release,
+                source_locator=URIRef(supplemental.source_locator),
+                source_digest=supplemental.source_digest,
+                native_payload=supplemental.native_payload,
+            )
+            if (expected_record, RDF.type, ATLAS.SourceRecord) in asserted:
+                raise ValueError(
+                    f"supplemental source record is repeated: {expected_record}"
+                )
+            record = _add_source_record(
+                asserted,
+                source_release=source_release,
+                source_locator=URIRef(supplemental.source_locator),
+                source_digest=supplemental.source_digest,
+                native_payload=supplemental.native_payload,
+                represents_resource=None,
+            )
+            if record != expected_record:
+                raise ValueError(
+                    f"supplemental source record identity changed: {record}"
+                )
+            dispositions.append(
+                {
+                    "reason": _SOURCE_CLAIM_ACCOUNTING_REASON,
+                    "sourceRecord": str(record),
+                    "status": "excluded",
                 }
             )
         if emit_release:
@@ -9119,12 +9251,17 @@ def verify_inputs(
 def _release_direct_source_counts(release: LoadedRelease) -> dict[str, int]:
     """Count direct normalized records emitted from one source release."""
 
-    return {
+    counts = {
         "crossRingRelations": len(release.cross_ring_relations),
         "identifiers": sum(len(resource.identifiers) for resource in release.resources),
         "nativeRelations": len(release.relations),
         "resources": len(release.resources),
     }
+    if release.supplemental_source_records:
+        counts["supplementalSourceRecords"] = len(
+            release.supplemental_source_records
+        )
+    return counts
 
 
 def _release_label_role_conflict_count(release: LoadedRelease) -> int:
@@ -9304,10 +9441,13 @@ def _direct_source_counts(
         "labels": label_count,
         "nativeRelations": 0,
         "resources": 0,
+        "supplementalSourceRecords": 0,
     }
     for release in releases:
         for key, value in _release_direct_source_counts(release).items():
             counts[key] += value
+    if not counts["supplementalSourceRecords"]:
+        del counts["supplementalSourceRecords"]
     return counts
 
 
@@ -9542,15 +9682,28 @@ def _build_incremental_distribution(
     return {**result, "incrementalConstruction": reuse.report()}
 
 
-def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
+def build_distribution(
+    output: Path,
+    *,
+    reuse_from: Path | None = None,
+    registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
+) -> None:
     """Build, validate, and atomically promote the Atlas 3 distribution."""
 
     output.parent.mkdir(parents=True, exist_ok=True)
+    claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
+    if claim_inputs and (reuse_from is not None or output.exists()):
+        raise ValueError(
+            "injected registry claim builds currently require a new output and "
+            "do not reuse a prior distribution"
+        )
     _STATUS.phase("plan-reuse")
     prior_root = reuse_from
     if prior_root is None and output.exists():
         prior_root = output
-    incremental_plan = _plan_incremental_construction(prior_root)
+    incremental_plan = (
+        None if claim_inputs else _plan_incremental_construction(prior_root)
+    )
     if incremental_plan is not None:
         reuse, provisional_seeds = incremental_plan
         _STATUS.phase("build-incremental-distribution")
@@ -9561,16 +9714,20 @@ def build_distribution(output: Path, *, reuse_from: Path | None = None) -> None:
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return
-    exact_reuse = _try_exact_distribution_reuse(
-        output,
-        reuse_from=reuse_from,
+    exact_reuse = (
+        None
+        if claim_inputs
+        else _try_exact_distribution_reuse(
+            output,
+            reuse_from=reuse_from,
+        )
     )
     if exact_reuse is not None:
         _STATUS.phase("reuse-exact-distribution")
         print(json.dumps(exact_reuse, indent=2, sort_keys=True))
         return
     _STATUS.phase("load-source-releases")
-    releases = load_releases()
+    releases = load_releases(registry_claim_inputs=claim_inputs)
     mapping_releases = load_mapping_releases()
     _STATUS.phase("verify-pinned-inputs")
     inventory = verify_inputs(releases, mapping_releases)
@@ -9707,13 +9864,33 @@ def main() -> int:
         action="store_true",
         help="suppress human-facing status lines on stderr",
     )
+    parser.add_argument(
+        "--registry-claim-input",
+        action="append",
+        nargs=3,
+        metavar=("RELEASE_KEY", "BUNDLE_PATH", "MANIFEST_SHA256"),
+        help=(
+            "inject one verified registry claim bundle; repeat for additional "
+            "release keys"
+        ),
+    )
     args = parser.parse_args()
+    registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
+    for key, path, digest in args.registry_claim_input or ():
+        if key in registry_claim_inputs:
+            parser.error(f"registry claim input repeats release key {key!r}")
+        registry_claim_inputs[key] = AtlasRegistryClaimInput(
+            path=Path(path).resolve(),
+            expected_manifest_digest=digest,
+        )
     _STATUS = _StatusReporter(enabled=not args.quiet)
     operation = "check-inputs" if args.check_inputs else "build-distribution"
     _STATUS.phase(operation)
     try:
         if args.check_inputs:
-            releases = load_releases()
+            releases = load_releases(
+                registry_claim_inputs=registry_claim_inputs,
+            )
             mapping_releases = load_mapping_releases()
             _STATUS.phase("verify-pinned-inputs")
             print(
@@ -9728,6 +9905,7 @@ def main() -> int:
         build_distribution(
             args.output.resolve(),
             reuse_from=(args.reuse_from.resolve() if args.reuse_from else None),
+            registry_claim_inputs=registry_claim_inputs,
         )
     except BaseException as error:
         _STATUS.phase("failed", current=type(error).__name__)

@@ -634,7 +634,7 @@ all five registry profiles, the four semantic rings, SKOS and SKOS-XL
 integrity, native-payload preservation, source accounting, immutable evidence,
 graph-role isolation, projection parity, and inference isolation. The separate
 registry proofs establish both inventory/profile coverage and lossless
-descriptor serialization for all 86 resources. They do not pretend that a
+descriptor serialization for all 89 catalog resources. They do not pretend that a
 descriptor is a complete production release or that the synthetic fixture
 members came from those resources.
 

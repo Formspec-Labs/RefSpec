@@ -163,7 +163,7 @@ def test_input_pins_fail_closed_on_digest_drift(releases: tuple[RegistryRelease,
     source = releases[0].inputs[0]
     drifted = replace(source, sha256="sha256:" + "0" * 64)
 
-    with pytest.raises(ValueError, match="registry input pin differs"):
+    with pytest.raises(ValueError, match="pinned input differs"):
         drifted.verify()
 
 

@@ -16,6 +16,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+from refspec.input_pin import verify_file_pin
+
 LabelRole = Literal["preferred", "alternate", "hidden"]
 MappingReviewMethod = Literal["operatorAdoption", "publisherAssertion"]
 ReleaseScope = Literal["publisherRelease", "completeCapture", "captureSubset"]
@@ -78,20 +80,12 @@ class RegistryInputPin:
     role: str = "publisherSource"
 
     def verify(self) -> None:
-        if not self.path.is_file() or self.path.is_symlink():
-            raise ValueError(f"registry input is missing or unsafe: {self.logical_path}")
-        observed_size = self.path.stat().st_size
-        digest = hashlib.sha256()
-        with self.path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(block)
-        observed = "sha256:" + digest.hexdigest()
-        if observed_size != self.byte_length or observed != self.sha256:
-            raise ValueError(
-                f"registry input pin differs for {self.logical_path}: "
-                f"expected=({self.byte_length}, {self.sha256}), "
-                f"observed=({observed_size}, {observed})"
-            )
+        verify_file_pin(
+            self.path,
+            expected_sha256=self.sha256,
+            expected_byte_length=self.byte_length,
+            logical_path=self.logical_path,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,6 +186,32 @@ class RegistryRelation:
     predicate: str
     object: str
     source_payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class RegistrySupplementalSourceRecord:
+    """One exact source-evidence record retained beside normalized members."""
+
+    source_record_id: str
+    source_locator: str
+    source_digest: str
+    native_payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        for field_name, value in (
+            ("source_record_id", self.source_record_id),
+            ("source_locator", self.source_locator),
+        ):
+            if _ABSOLUTE_IRI.fullmatch(value) is None:
+                raise ValueError(
+                    f"supplemental source record {field_name} must be an absolute IRI"
+                )
+        if _SHA256.fullmatch(self.source_digest) is None:
+            raise ValueError(
+                "supplemental source record source_digest must be SHA-256"
+            )
+        if not isinstance(self.native_payload, Mapping):
+            raise TypeError("supplemental source record native_payload must be an object")
 
 
 @dataclass(frozen=True, slots=True)
@@ -337,6 +357,7 @@ class RegistryRelease:
     resources: Sequence[RegistryResource]
     relations: Sequence[RegistryRelation] = ()
     cross_ring_relations: Sequence[RegistryCrossRingRelation] = ()
+    supplemental_source_records: Sequence[RegistrySupplementalSourceRecord] = ()
     dropped_label_count: int = 0
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
@@ -353,6 +374,18 @@ class RegistryRelease:
             raise ValueError(f"registry release {self.key} has no members")
         if self.dropped_label_count < 0:
             raise ValueError("dropped label count must be non-negative")
+        supplemental_keys = [
+            (
+                record.source_record_id,
+                record.source_locator,
+                record.source_digest,
+            )
+            for record in self.supplemental_source_records
+        ]
+        if len(set(supplemental_keys)) != len(supplemental_keys):
+            raise ValueError(
+                f"registry release {self.key} repeats a supplemental source record"
+            )
         try:
             parsed_issued = date.fromisoformat(self.issued)
         except (TypeError, ValueError) as error:
@@ -396,6 +429,7 @@ __all__ = [
     "RegistryRelation",
     "RegistryRelease",
     "RegistryResource",
+    "RegistrySupplementalSourceRecord",
     "ReleaseScope",
     "canonical_digest",
     "mapping_triple_digest",

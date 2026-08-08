@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -26,7 +27,17 @@ from refspec.atlas.parquet_view import (
     build_atlas_parquet_view,
     verify_atlas_parquet_view,
 )
+from refspec.atlas.registry_claim_input import (
+    AtlasRegistryClaimInput,
+    adapt_registry_claim_release,
+    validate_atlas_parquet_registry_claims,
+)
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes, sha256_digest
+from refspec.registry.infrastructure.registry_claim_release import (
+    RegistryClaim,
+    RegistryRawInput,
+    build_registry_claim_release,
+)
 
 _D1 = "sha256:" + "1" * 64
 _D2 = "sha256:" + "2" * 64
@@ -45,7 +56,12 @@ def _write_json(path: Path, value: dict[str, object]) -> bytes:
     return payload
 
 
-def _fixture_distribution(root: Path) -> str:
+def _fixture_distribution(
+    root: Path,
+    *,
+    source_native_payload: Mapping[str, object] | None = None,
+    source_digest: str = _D3,
+) -> str:
     release = "urn:test:atlas-release"
     source_record = "urn:ref:atlas-source-record:" + "5" * 64
     statement = "urn:ref:atlas-assertion:" + "3" * 64
@@ -103,9 +119,13 @@ def _fixture_distribution(root: Path) -> str:
         CompactRecordRole.SOURCE_RECORD: {
             "id": source_record,
             "sourceRelease": "urn:test:source-release",
-            "sourceDigest": _D3,
+            "sourceDigest": source_digest,
             "sourceLocator": "https://example.test/source",
-            "nativePayload": {"publisher": "Example", "values": [1, 2]},
+            "nativePayload": (
+                {"publisher": "Example", "values": [1, 2]}
+                if source_native_payload is None
+                else source_native_payload
+            ),
             "representsResource": "urn:test:resource",
             "contentDigest": _D4,
         },
@@ -235,6 +255,78 @@ def test_builds_and_verifies_typed_lossless_logical_view(tmp_path: Path) -> None
     assert source_records[0]["native_payload"] == b'{"publisher":"Example","values":[1,2]}'
     view_pin = sha256_digest((output / "view-manifest.json").read_bytes())
     assert verify_atlas_parquet_view(output, expected_manifest_digest=view_pin) == manifest
+
+
+def test_registry_claim_bundle_round_trips_through_atlas_parquet(
+    tmp_path: Path,
+) -> None:
+    raw = tmp_path / "claim-source.ttl"
+    raw.write_bytes(b"claim source\n")
+    source_digest = sha256_digest(raw.read_bytes())
+    release_id = "urn:test:registry-claim-release"
+    recipe_id = "urn:test:registry-claim-recipe"
+    claim = RegistryClaim(
+        release_id=release_id,
+        subject="https://example.test/concept",
+        predicate="http://www.w3.org/2004/02/skos/core#prefLabel",
+        object_kind="literal",
+        lexical_value=" Exact label ",
+        language="en",
+        source_record_id="https://example.test/concept",
+        source_locator="https://example.test/source",
+        source_path="raw/source.ttl#claim=1",
+        source_digest=source_digest,
+        origin="observed",
+        recipe_id=recipe_id,
+    )
+    bundle = build_registry_claim_release(
+        tmp_path / "claim-release",
+        release_id=release_id,
+        release_key="claim-test",
+        issued="2026-08-07",
+        release_scope={"complete": True, "mode": "completeCapture"},
+        language_scope={"included": ["en"], "mode": "englishOnly"},
+        recipes=({"id": recipe_id},),
+        claims=(claim,),
+        raw_inputs=(
+            RegistryRawInput(
+                path=raw,
+                logical_path="raw/source.ttl",
+                source_locator="https://example.test/source",
+            ),
+        ),
+    )
+    input_ = AtlasRegistryClaimInput(
+        path=bundle.root,
+        expected_manifest_digest=bundle.manifest_digest,
+    )
+    payload = adapt_registry_claim_release(input_).records[0].native_payload
+    source = tmp_path / "atlas"
+    source.mkdir()
+    atlas_pin = _fixture_distribution(
+        source,
+        source_native_payload=payload,
+        source_digest=source_digest,
+    )
+    atlas_view = tmp_path / "atlas-parquet"
+    manifest = build_atlas_parquet_view(
+        source,
+        atlas_view,
+        expected_manifest_digest=atlas_pin,
+    )
+    view_pin = sha256_digest(
+        (atlas_view / "view-manifest.json").read_bytes()
+    )
+
+    report = validate_atlas_parquet_registry_claims(
+        input_,
+        atlas_view,
+        expected_atlas_view_manifest_digest=view_pin,
+    )
+
+    assert manifest["counts"]["SourceRecord"] == 1
+    assert report.passed is True
+    assert report.exact_count == 1
 
 
 def test_rebuild_is_byte_stable(tmp_path: Path) -> None:
