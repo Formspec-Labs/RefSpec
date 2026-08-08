@@ -122,6 +122,44 @@ binding bundle digest
 `sha256:8692855421355ee89429771457dfe2b8fa47a54828f819979622f79724351b90`;
 the distribution has not been rebuilt against that newer binding.
 
+## Source-unit admission authority
+
+Source-fidelity validation should make one decision for each construction
+unit: whether that exact source release may enter an Atlas build for its
+declared scope. A passing `completeCapture`, `captureSubset`, or test fixture is
+release-ready only for the scope it declares. Failed, incomplete, or uncovered
+units remain outside a release distribution.
+
+This admission decision does not replace validation of the assembled Atlas
+distribution. Atlas-owned facts such as rings, profiles, schemes, class
+assignments, named-graph placement, and derived relations are outside the
+publisher comparison. The final candidate must still pass its manifest,
+binding, JSON Schema, RDF, graph-placement, SHACL, lifecycle,
+source-accounting, reasoning-isolation, and acceptance checks.
+
+The next migration step is a generated `validated-release-inventory.json`,
+keyed by construction-unit key and authenticated by the construction summary
+and independent source-fidelity receipt. Initially, this is a check-only
+reconciliation: loader keys, construction units, and fidelity rows must match
+one for one. A mapping can pass only when its own fidelity comparison and both
+endpoint source units pass admission. The inventory must not filter the build
+until coverage is sufficient and the admission rule has parity tests.
+
+After that reconciliation is stable, the builder can select source units from
+the validated inventory. The Atlas index release fields, registry descriptor
+dispositions, loader plan, and manifest accounting can derive from the same
+result. At that point the repository can retire manually maintained readiness
+signals and hard-coded admission decisions while retaining loader dispatch as
+an implementation detail.
+
+The 2026-08-08 local candidate shows why the check-only step comes first. Its
+construction summary contains 110 units: 109 source releases and one mapping.
+The independent fidelity receipt covers 23 units, marks 14 exact, leaves 87
+uncovered, and fails overall. The experimental index separately contains six
+exact-release rows for five distinct resources. Neither count currently
+authorizes admission; the generated inventory must reconcile the exact units
+instead of comparing aggregate totals.
+
 ## Failure coverage
 
 Tests fail on raw-member drift, external manifest drift, closed-set drift,
