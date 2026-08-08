@@ -1,8 +1,11 @@
 # Experiment designs against the native-relation Atlas dataset
 
 **Date:** 2026-08-06
-**Companion to:** `vocabulary-atlas-native-relation-experiments-2026-08-06.md`
-**Dataset:** `research/evidence/atlas-v3-native-relation-testsets-2026-08-06/`
+**Last reviewed:** 2026-08-08
+**Companion to:** [Native-relation experiment results](vocabulary-atlas-native-relation-experiments-2026-08-06.md)
+**Dataset:** [`atlas-v3-native-relation-testsets-2026-08-06`](evidence/atlas-v3-native-relation-testsets-2026-08-06/)
+**Product synthesis:** [Atlas spine and rings](vocabulary-atlas-spine-and-rings-takeaways-2026-08-06.md)
+**Follow-up plan:** [Safe agentic graph search](atlas-agentic-graph-search-next-steps-2026-08-07.md)
 
 Concrete designs for every scenario in the catalogue, written against the data
 already compiled. Each entry states what is held, what is varied, what number
@@ -15,7 +18,7 @@ RefSpec is the knowledge graph powering **SpicyRegs** (metadata), **DocSpec**
 (rule extraction and core ontology). The Atlas carries four semantic rings, and
 the split of work below is heavily uneven across them:
 
-| Ring | Relations in committed evidence | Designs that serve it |
+| Ring | Relations in tracked experiment evidence | Designs that serve it |
 | --- | ---: | --- |
 | `subject` | **582** | Parts 1–7 and E-V1…E-V8 — nearly this entire document |
 | `entity` | **0** (478 concepts, no edges) | V-2, V-7, V-9, E-S20 |
@@ -60,7 +63,7 @@ from "longer-horizon vertical" to near the top of the runnable list.
 | Crosswalk archive | 1,095 cross-vocabulary candidates, 2 sealed judges, 582 admitted / 513 rejected, generation class per row | Precision, direction, agreement, calibration — **not recall** |
 | Blind review | 1,095 independent verdicts + directness, sealed key withheld | Third-opinion agreement, lattice validation |
 | Benchmark sets | 582 positives / 157 hard negatives / 270 controls / 86 disputed / 1,095 directness, each with `usableFor` + `notUsableFor` | Scoped evaluation; **`disputed` is the adjudication-policy benchmark and stays unresolved** |
-| `relatedMatch` blind review | 95-row sealed sample, two independent passes, comparison; survival by stratum and variant class | E-V4 judged half; framing sensitivity; a third calibration reading |
+| `relatedMatch` blind review | 95-row sealed sample, two independent passes, comparison; survival by stratum and variant class | E-V4 completed; framing sensitivity; a third calibration reading |
 | Admission replay | Five lattice variants scored over all 1,095 rows; the v2 rule reconstructed and reproduced exactly (582/582, 0 mismatches); relation share, variant hygiene, order independence | E-V1, E-V4, E-V5, E-V7 answered; any further lattice proposal drops straight in |
 
 **Scoring convention held constant everywhere:** exact full-pairwise similarity,
@@ -425,11 +428,11 @@ used at all**, and most are specific to government documents rather than to
 retrieval in general.
 
 Wave 1 makes the case for them concrete. Retrieval fails hardest on the
-token-disjoint half (36–44% recall), precision collapses with depth (92.8%
-unexplained at K100) and compounds across hops, and 15–48% of concepts have no
-edge of any kind. Those are three different holes, and none of them closes by
-tuning a text matcher. What they need is evidence that is **orthogonal to label
-text**.
+token-disjoint half (36–44% recall), and precision collapses with depth (92.8%
+unexplained at K100) and compounds across hops. Genuinely edgeless concepts are
+more limited than first reported: 79 in ICPSR (2.1%) and 139 in Federal Register
+(19.7%). These are distinct problems, and none closes by tuning a text matcher.
+They need evidence **orthogonal to label text**.
 
 ## V-1 · Co-assignment PMI — usage evidence
 
@@ -493,7 +496,7 @@ ancestors).
 
 ## V-6 · Orphan rescue — coverage, not recall
 
-Take the 589 ICPSR and 139 FR concepts with no edge of any kind. Ask which
+Take the 79 ICPSR and 139 FR concepts with no edge of any kind. Ask which
 signals — dense, co-assignment, citation, generation — propose *any* plausible
 edge. Measure the fraction made reachable.
 *Why it is a different target:* recall measures whether known edges are found.
@@ -535,7 +538,7 @@ The crosswalk blind review produced four claims that now sit under decisions.
 Each was measured once, by one method, and each deserves a check before it
 configures anything.
 
-## E-V1 · Does the class-conditioned lattice actually recover 85 mappings? — **run, answer is 37**
+## E-V1 · Does the class-conditioned lattice actually recover 85 mappings? — **run: 37 under the designed rule, 39 eligible under R4**
 
 **Claim under test:** 86 rejections died on relation-type disagreement, and
 collapsing `same`/`near_same`/granularity for label-equality candidates recovers
@@ -551,8 +554,8 @@ sibling distractors is not a fix.
 *Decision rule:* ship if control admissions stay at zero and newly admitted rows
 survive a spot re-review. Free, replay only.
 
-**Result (`replay_atlas_crosswalk_admission.py`).** The designed rule recovers
-**37 rows, +6.4%** — not 85. It adds **zero** control admissions, and an
+**Result (`replay_atlas_crosswalk_admission.py`).** The designed rule makes
+**37 rows (+6.4%)** eligible — not 85. It adds **zero** control admissions, and an
 independent reviewer supports all 37, calls all 37 `direct_candidate`, and names
 one of the two judges' relations in 35. Extending the collapse to every
 generation class adds 3 more on no principle. Reaching 85 requires treating
@@ -564,7 +567,7 @@ design's own bar.
 produced **R4**: R1, plus edit-distance candidates whose labels differ only by
 number agreement, diacritics, or a known US/UK spelling. The granularity collapse
 is safe wherever two labels denote the same term, and an orthographic variant
-qualifies as squarely as an alias does. R4 recovers **39 rows (+6.7%)**, still
+qualifies as squarely as an alias does. R4 makes **39 rows (+6.7%)** eligible, still
 zero controls, and the two extra rows are `BUSINESSES`/`business` and `Child
 labor`/`CHILD LABOUR`.
 
@@ -579,6 +582,12 @@ two extra edit-distance rows are R4's two principled variants — and is withdra
 called orthographic a single `numberVariant` or `spellingVariant` (0 of 6 and 0
 of 3, both passes), which is the eligibility test R4 turns on, judged by reviewers
 who had never seen it.
+
+**Release boundary.** The replay determines eligibility but assigns no SKOS
+predicate to the 39 rows. Those rows also make up 45% of the deliberately
+unresolved adjudication benchmark. R4 is therefore experiment evidence, not a
+shippable mapping rule. The edit-distance generator restriction remains useful
+independently of any mapping-promotion decision.
 
 Two amendments the run forced on the design itself:
 
@@ -633,13 +642,12 @@ reviewer's 3.7%), and on sibling distractors they sit at 25.0% and 8.3% against
 the judges' 55.6% and 57.0%. Three independent Opus reviewers have now been
 measured on seeded negatives and all three sit below both sealed judges.
 
-*Say only what the counts support.* On the earlier reviewer's full 135-row
-classes the gap is not significant — Fisher exact gives p = 0.77 on random
-negatives and p = 0.27 / 0.18 on siblings. The new passes are on 12 rows per
-class and resolve less still. What survives is the negative claim, which is the
-one that mattered: the reviewer did not fail a calibration the judges passed,
-because the judges' 100% was a class exclusion and their measured rate is no
-better than the reviewer's.
+*Say only what the design supports.* The observations are paired because each
+reviewer scored the same rows; Fisher's exact test was wrong. Exact McNemar tests
+on siblings give unadjusted p = 0.0414 and 0.0169, but multiplicity correction
+removes significance at 0.05. No noninferiority margin was declared. The durable
+finding is mechanical: the reviewer did not fail a 100% judgment baseline because
+the 100% came from a class exclusion, not judgments.
 
 *Framing sensitivity, which is the number nobody had.* Identical bytes, one
 neutral prompt and one adversarial: agreement is **89.5%** on whether a relation
@@ -675,7 +683,7 @@ stratified to the same relation-class mix.
 cross-vocabulary admission at all. If the asymmetry survives class matching, the
 rubric can be dropped from the cross-vocabulary path and its cost with it.
 
-## E-V4 · Does `relatedMatch` absorb noise from every weak generator, or only edit distance? — **measurement half run**
+## E-V4 · Does `relatedMatch` absorb noise from every weak generator, or only edit distance? — **both halves run**
 
 **Claim under test:** `relatedMatch` is a sink — edit-distance candidates produce
 it at seven times the base rate, with a plausible association attached after the
@@ -833,6 +841,78 @@ not a quality one.
 
 ---
 
+# Part 10 — External hubs and sparse junctions
+
+The earlier version of this part assumed that Atlas must choose one spine. The
+newer product plan keeps four options open: direct source concepts, publisher
+organization, one external hub at a time, and a sparse reviewed junction
+registry. The original **5,778-pair** figure was an upper bound that treated all
+108 construction-era source units as crosswalk candidates; many are not subject
+vocabularies. A governed inventory must define the real denominator.
+
+## The selection criteria
+
+Concept overlap alone is insufficient. Compare each option on:
+
+- source fidelity and preservation of publisher predicates;
+- semantic composability, with `closeMatch` kept non-transitive;
+- node shape and suitability for traversal;
+- coverage across independently selected subject vocabularies;
+- stewardship and requalification cost; and
+- measured search value over direct source concepts and mappings.
+
+FAST's 248,521 strictly 1:1 `schema:sameAs` links are substantial publisher
+evidence, but LC describes the reciprocal relationship as close rather than
+exact. Cardinality does not resolve that disagreement. FAST and LCSH also retain
+many compound headings, which limits their use as universal navigation nodes.
+
+## E-H1 · Structural fidelity
+
+Take the 16,449 publisher-asserted FR, ELSST, and ICPSR relations. Project both
+endpoints through each external-hub candidate and measure how many source
+relations the hub reproduces at one, two, and three hops. Report hierarchy and
+association separately. *Decides* whether routing through a hub preserves the
+structure users would otherwise traverse directly.
+
+## E-H2 · Cross-vocabulary semantic recall
+
+Run E-S4a over the complete CRS Policy Areas × Federal Register pair space. Use
+the result to measure how many true cross-vocabulary relations have dissimilar
+labels and how many each direct-mapping, external-hub, and sparse-junction arm
+recovers. *Decides* whether a hub adds semantic coverage beyond string joins.
+
+## E-H3 · External-hub comparison
+
+Evaluate EuroVoc, FAST, LCSH, and Wikidata one at a time. Preserve every source
+node and publisher predicate; routing through a hub does not create Atlas
+identity. Compare coverage, structural fidelity, ambiguity, abstention, and
+source dominance. *Decides* whether any external hub beats qualified direct
+mappings without hiding disagreement.
+
+## E-H4 · Published-alignment inventory
+
+Enumerate exact publisher distributions before generating mappings. ELSST's zero
+has been validated across its complete distribution list. GEMET, EuroVoc, NALT,
+FAST, and TheSoz publish usable alignment evidence. *Decides* which links Atlas
+can adopt with provenance and which gaps genuinely require judgment.
+
+## E-H5 · Sparse-junction test
+
+Build candidate junctions only where at least two source vocabularies need to
+meet. Keep source concepts first-class; a junction is a proposed Atlas identity,
+not a replacement lexicalization. Compare this arm with direct mappings and the
+best external hub. *Decides* whether a shared identity earns its semantic review,
+versioning, and stewardship burden.
+
+## New tooling this part needs
+
+| Need | Extends | Effort | Status |
+| --- | --- | --- | --- |
+| Governed subject-vocabulary inventory | registry coverage | small | needed |
+| Hub structural-fidelity scorer | evidence analyzer | medium | needed |
+| External-hub comparison harness | SpicySearch evaluation | medium | needed downstream |
+| Sparse-junction candidate builder | mapping evidence | medium | defer until E-H1–E-H3 |
+
 # Sequencing
 
 Wave 0 and Wave 1 are complete; results are recorded in the companion document.
@@ -840,27 +920,26 @@ Wave 0 and Wave 1 are complete; results are recorded in the companion document.
 | Wave | Experiments | Status | Cost |
 | --- | --- | --- | ---: |
 | 1 | E-S1a, E-S2, E-S5, E-S6, E-S10, E-T1–E-T4 | **done** — closure inverted the recall reading, arm ordering changed, `maxOverLabels` won, casing null | free |
-| 2 | Crosswalk extraction + blind review | **done** — 86 recoverable rejections, 85 confirmed; typing is the bottleneck | free |
-| 3 | **E-V1, E-V2** | **done** — the prize is 37 not 85, and the reviewer outperformed the judges it was doubted against | free |
-| 4 | **E-S11** | Unblocks V-1, V-2, V-6, V-9 | free |
+| 2 | Crosswalk extraction + blind review | **done** — 86 type-disputed rows; existence support does not resolve relation type | free |
+| 3 | **E-V1, E-V2** | **done** — R1 makes 37 rows eligible; the supposed 100% reviewer baseline was a class exclusion | free |
+| 4 | **E-S11** | Document phase; unblocks V-1, V-2, V-6, V-9 | free |
 | 5 | **E-V4**, E-V5, **E-V7** | **done** — `relatedMatch` localised to unprincipled edit distance; variant rule drops 149 of 165 candidates; admission is order-independent and stateless | free |
-| 5b | **E-V4 judged half, E-V2 framing arm** | **done** — 71.4% of `relatedMatch` survives blind review; failures are 8/10 unprincipled edit distance; framing moves ~10% of verdicts | free |
-| 6a | E-V3, E-V2 cross-family pass | The two that still need judging; cross-family is now the binding limitation | ~$1 |
-| 6 | E-S1b / E-V6, E-S8 | Edge precision on non-string candidates; direction accuracy | ~$4 |
+| 5b | **E-V4 judged review, E-V2 framing arm** | **done** — 71.4% of `relatedMatch` survives blind review; failures are 8/10 unprincipled edit distance; framing moves ~10% of verdicts | free |
+| 6a | E-V3, E-V2 cross-family pass | The two remaining review experiments; cross-family is now the binding limitation | ~$1 |
+| 6 | E-S1b / E-V6, E-S8, V-7 | Edge precision, direction accuracy, and vocabulary-side legal anchoring | ~$4 + source work |
 | 7 | **V-1**, V-3, V-6 | Text-orthogonal signal and coverage | ~$2 |
-| 8 | E-S4a, E-S4b, **E-V8** | Cross-vocabulary transfer, delta-judged; and depth on a corrected cost basis | ~$20–150 |
+| 8 | E-S4a, E-S4b, **E-V8** | Exhaustive small-pair cross-vocabulary gold, transfer, and corrected depth cost | ~$120–200 |
 | 9 | V-2, V-4, V-9 | Citation, generation, lineage | ~$3 + plumbing |
 | 10 | E-S12 → E-S14 | Tagging, once its gold exists | — |
-| 11 | E-S15 → E-S18, V-5, V-7, V-8 | Search, geometry, anchoring, domain encoder | — |
+| 11 | E-S15 → E-S18, V-5, V-8 | Search, geometry, and domain encoder | — |
 | 12 | E-S19, E-S20, E-S21, E-S22, E-S23 | Longitudinal and hygiene | — |
 
-**E-V1 and E-V2 went first, and both moved.** The prize is **37 mappings
-(+6.4%)**, not 85 and +14.6%; the gap is 40 rows where the judges disagree about
-associative versus hierarchical, which is a real question and not a rule defect.
-The reviewer that was supposedly disqualified turned out to be more conservative
-than both sealed judges on both control classes — the 100% baseline it failed
-against was a control-class exclusion, not a judgment. Net effect: a smaller,
-better-evidenced prize, and one fewer reason to distrust the blind review.
+**E-V1 and E-V2 went first, and both moved.** R1 makes **37 rows (+6.4%)**
+eligible, not 85; R4 makes 39 eligible but assigns no SKOS predicate. The gap is
+40 rows where the judges disagree about associative versus hierarchical, which
+is a real question and not a rule defect. The reviewer's supposed 100% comparison
+was a control-class exclusion, not a judgment result. Comparative calibration
+remains unresolved.
 
 **E-V4, E-V5 and E-V7 followed, and two of them changed a rule.** `relatedMatch`
 is a sink, but only for the *unprincipled* half of edit distance — 149 candidates
@@ -870,10 +949,9 @@ generator change on its own, and it also produced R4 in E-V1. Admission turned o
 to be order-independent because it keeps no cross-row state, so E-V7's concern
 belongs to future rules rather than to this one.
 
-**What is left in this Part needs judging, not replay.** E-V3 (directness
-asymmetry), E-V4's reviewer half (are the surviving 35 `relatedMatch` admissions
-genuine?), E-V2's second and third passes, and E-V6 all require someone to look at
-rows. Everything answerable from recorded bytes has now been answered.
+**What remains needs new evidence, not replay.** E-V3 needs a class-matched
+directness review, E-V2 needs a cross-family pass, and E-V6 needs review of
+dense-only candidates. E-V4's judged half is complete.
 
 **E-S7 and E-S23 are now partly answered.** Directness keeps 93–95% of admitted
 cross-vocabulary mappings, against 80% cut intra-vocabulary — E-V3 tests whether
@@ -881,13 +959,13 @@ that asymmetry is real. Inter-annotator agreement is measured at 95–97% suppor
 and 74–79% exact on 1,095 rows, and E-V2 has now settled the calibration half:
 the remaining gap is that every row still carries one opinion, not three.
 
-**E-S4 got cheaper and sharper.** Its precision half is free against the archive's
-157 real hard negatives. Its recall half no longer needs 22,560 exhaustive pairs
-— judge only what new arms find beyond the old generator, since that generator's
-population provably contains no semantic-only pair. And the prediction is now
-specific: exact and alias anchors are structurally dead intra-vocabulary and
-admit at 91.5% cross-vocabulary, so "dense beats lexical by 20–40 points" should
-shrink substantially.
+**E-S4 is sharper, not cheaper.** The archive's 157 hard negatives support a
+string-derived precision check, but they cannot establish cross-vocabulary recall.
+Known recall still requires the complete 22,560-pair E-S4a population. A smaller
+delta-only review can compare incremental yield, but it cannot replace the gold
+set. The prediction is specific: exact and alias anchors are structurally absent
+intra-vocabulary and admit at 91.5% cross-vocabulary, so "dense beats lexical by
+20–40 points" should shrink substantially.
 
 # New tooling required
 
@@ -906,7 +984,7 @@ shrink substantially.
 | Orthographic variant classifier | admission rule | small | **built** |
 | Sealed blind-sample builder + comparer | new | medium | **built** |
 | Variant-classifier blind audit + comparer | new | small | **built** |
-| Wilson intervals + Fisher exact on every reported proportion | replay harness | small | **built** |
+| Wilson intervals; Fisher exact for independent tables; McNemar for paired verdicts | replay harness | small | **built** |
 | Tagging gold builder | mirrors test-set builder | medium | needed |
 | Co-assignment PMI arm | reads tagging gold, emits rank artifact | small | needed |
 | Citation extractor | new | medium | needed |

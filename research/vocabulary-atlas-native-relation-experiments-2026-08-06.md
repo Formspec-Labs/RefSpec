@@ -1,6 +1,7 @@
 # Vocabulary Atlas native-relation test sets and E3 retrieval experiments
 
 **Date:** 2026-08-06
+**Last reviewed:** 2026-08-08
 **Status:** Test sets built and reproducible. E3 retrieval measured across six arm
 families. Wave 1 structural experiments executed. Cross-vocabulary crosswalk
 archive recovered and independently blind-reviewed. The five free replay
@@ -9,8 +10,10 @@ figure is corrected from 85 to 39, the reviewer calibration finding is reversed,
 and the edit-distance arm splits into a working tenth and a `relatedMatch` sink.
 Google hosted arms unresolved. No mapping asserted, no release artifact changed,
 no qualification policy touched.
-**Dataset:** `research/evidence/atlas-v3-native-relation-testsets-2026-08-06/`
-**Designs:** `vocabulary-atlas-native-relation-experiment-designs-2026-08-06.md`
+**Dataset:** [`atlas-v3-native-relation-testsets-2026-08-06`](evidence/atlas-v3-native-relation-testsets-2026-08-06/)
+**Designs:** [Native-relation experiment designs](vocabulary-atlas-native-relation-experiment-designs-2026-08-06.md)
+**Product synthesis:** [Atlas spine and rings](vocabulary-atlas-spine-and-rings-takeaways-2026-08-06.md)
+**Follow-up plan:** [Safe agentic graph search](atlas-agentic-graph-search-next-steps-2026-08-07.md)
 
 ## Handoff — read this first
 
@@ -42,16 +45,13 @@ unmatched triage and view ablation now live at
 and the analysis steps run immediately — the ~1 hour arm sweep is only needed if
 you change an arm or a corpus.
 
-**Two caveats a 2026-08-06 peer review found, and both are real.**
+**A 2026-08-06 peer review found two evidence-custody problems. Both are now
+closed.** The evidence directories and promotion manifest named above are tracked
+in Git. The large rank artifacts remain deliberately ignored under `output/` and
+are authenticated by the tracked promotion manifest.
 
-*"Committed" above means "written to `research/evidence/`", not "in git."*
-`git ls-files research/` returns 140 files and **none of them is from this
-programme** — every artifact this document cites is untracked in the working
-tree. It survives a `/tmp` sweep; it does not survive a clean checkout. Run
-`git add research/evidence/` before relying on the word durable.
-
-*Two wave-1 artifacts were cited but never written — now regenerated, and E-S5
-survives intact.* `pareto-closure.json` did not exist, and `wave1-evidence.json`
+Two wave-1 artifacts were cited but never written. They are now regenerated, and
+E-S5 survives intact. `pareto-closure.json` did not exist, and `wave1-evidence.json`
 contained **no ELSST block at all**: it was a stale two-source file, written
 before the ELSST rank artifacts landed. The tool was never at fault — a fresh run
 emits all three sources. Both artifacts have been regenerated into
@@ -144,13 +144,15 @@ archive or produced by local subagent review at no provider cost.
 
 ```sh
 uv run python tools/verify_atlas_crosswalk_benchmarks.py   # expect 10/10 pass
-uv run pytest -q tests/test_build_atlas_native_relation_testsets.py   tests/test_verify_atlas_crosswalk_benchmarks.py          # expect all pass
+uv run pytest -q \
+  tests/test_build_atlas_native_relation_testsets.py \
+  tests/test_verify_atlas_crosswalk_benchmarks.py  # expect all pass
 ```
 
 ## What this programme is for
 
-**RefSpec is the core vocabulary/entity/subject/concept knowledge graph that
-powers everything else.** It is one component of five:
+**RefSpec publishes the vocabulary, entity, subject, and concept graph that the
+other products can consume.** It is one component of five:
 
 | Component | Role | What it needs from RefSpec |
 | --- | --- | --- |
@@ -168,9 +170,8 @@ many thesauri across many document types into comprehensive coverage**, and
 
 ### That requirement already has an architecture, and it is four rings
 
-On 2026-08-04 the Atlas adopted four semantic rings, and they are implemented
-consistently across `atlas_index`, `publication_decision`, `v1_release`,
-`release_acceptance`, `explorer_acceptance`, `projection` and `v3_source_data`:
+Atlas 3.0 uses four semantic rings consistently across its binding, source data,
+release acceptance, projection, and explorer paths:
 
 | Ring | What it holds | The product requirement it serves |
 | --- | --- | --- |
@@ -202,7 +203,7 @@ of 4, and the ring that carries the stated traceability requirement is empty.**
 
 | | Before | After |
 | --- | --- | --- |
-| Cross-vocabulary subject mappings | 582 admitted | 582 + **39 recoverable free** (R4) |
+| Cross-vocabulary subject mappings | 582 admitted | 582 + **39 newly eligible candidates** under R4; relation typing remains unresolved |
 | Confidence in those mappings | two machine judges, unaudited | **36/36 non-`relatedMatch` admissions survive independent blind review**, under two framings |
 | `relatedMatch` edges | 35, quality unknown | **25–30 of 35 survive**; failures are 8/10 unprincipled edit distance |
 | Edit-distance candidate arm | 165 candidates, 18.2% admit | restrict to orthographic variants: **16 candidates, 81% admit**; blind linguistic audit confirms **0 false promotions in 16** |
@@ -494,11 +495,12 @@ recovers is **37 (+6.4%)** as designed, **39 (+6.7%)** under R4 — E-V1. Reachi
 as disqualifying.
 
 **"The reviewer flunked its control calibration" is withdrawn.** The 100%
-sealed-judge baseline it was measured against was never measured; it was a
-control-class exclusion applied ahead of the lattice. The judges name a relation
-on 55.6%/57.0% of sibling distractors against the reviewer's 48.1% — E-V2. The
-withdrawal stands on that mechanism; the residual gap is **not** significant
-(Fisher p = 0.77 and 0.18–0.27), so "no worse" is the claim, not "better".
+sealed-judge baseline was a control-class exclusion applied ahead of the lattice,
+not a measured reviewer result. The observations are paired because each reviewer
+scored the same rows. Exact McNemar tests point toward lower sibling support by the
+reviewer before multiplicity correction, but the study declared neither a
+comparison family nor a noninferiority margin. The durable finding is narrower:
+the reviewer did not fail a 100% judgment baseline because none existed.
 
 **"R2 admits a substring row and two coincidences" is withdrawn.** R4 ⊂ R2 by
 construction and they differ by one row. The two edit-distance rows R2 adds
@@ -531,20 +533,14 @@ stale evidence file, not a wrong finding.
   with per-line keys so ordering cannot drift. Currently valid:
   `gemini-001-sim` on all three sources, `gemini-001-ret` on FR only.
 - **WordNet** never run against these sets.
-- **`git add research/evidence/`.** Nothing in this programme is tracked.
-- **E-V4 is closed on both halves.** The judged half ran as two blind passes;
-  71.4% of admitted `relatedMatch` survives, and the failures are 8/10
-  unprincipled edit-distance rows.
 - **A three-value `basisOfAssociation` instrument** is the fix for the next blind
   sample. This one was analysed on a restricted denominator, not re-asked.
 - **E-V3 is buildable now.** The 65-row intra-vocabulary re-review survives as
   `atlas-candidate-path-evidence-65.json` in the sealed archive; it needs one
   blind pass over a cross-vocabulary sample stratified to the same class mix.
-- **E-V2's second half is still open.** The calibration question is answered from
-  recorded bytes; the design's *other* half — a second independent pass from a
-  different model family, and a third with controls flagged adversarial — has not
-  been run. It is now a lower priority: the reviewer it was meant to check turned
-  out to be the conservative one in the room.
+- **E-V2 still needs a cross-family pass.** Neutral and adversarial framings have
+  run within one model family. They measure prompt sensitivity, not independent
+  replication across model families.
 - **`/tmp` promotion is done** — see the section below. The 4.6 GB
   `learned-sparse` model cache was deliberately left behind as regenerable.
 
@@ -972,14 +968,12 @@ Two roughly equal halves. Only the first is a lattice defect. The second is a
 genuine open question about whether a pair is associative or hierarchical, and
 `disputed.jsonl` keeps it open on purpose.
 
-**Decision.** R3 fails the stated bar and is out. Among the rest, R4 is the
-recommendation, and the reason is stated honestly: it is not that R4 measures
-better than R2 — it cannot, at one row of difference — but that R4 can name why
-every row it admits denotes the same term, and R2 cannot. Every row either
-recovers is supported and called `direct_candidate` by an independent reviewer,
-and all come from the disputed set by construction. Promotion into the graph
-remains a release decision under its own authority; this sizes the prize, it does
-not grant it.
+**Decision.** R3 fails the stated bar and is out. R4 is the best-motivated
+*eligibility* rule, but the replay does not assign a SKOS predicate to its 39
+rows. Promoting them would also consume 39 of the 86 deliberately unresolved
+adjudication rows. Keep R4 as experiment evidence until a typed-emission rule and
+an independent evaluation set exist. The separate edit-distance generator
+restriction does not depend on that promotion decision.
 
 ### E-V2 · The reviewer was not worse calibrated — and the 100% baseline never existed
 
@@ -997,14 +991,13 @@ reviewer against a filter, not against a judge.
 
 **How far to push that.** The *reversal* is a fact about mechanism and does not
 depend on statistics: the 100% was a control-class exclusion, so the reviewer was
-never measured against a judge at all. The *direction* of the remaining gap is
-not significant. Fisher exact on the raw counts gives **p = 0.77** on random
-negatives (7/135 and 7/135 against 5/135) and **p = 0.27 / 0.18** on sibling
-distractors (75/135 and 77/135 against 65/135). At n=135 per class this archive
-cannot resolve a difference this size. The supportable claim is that the reviewer
-is **not worse** than the judges, and that the finding it was used to discredit
-therefore stands — not that it is better. An earlier draft of this heading said
-"better calibrated"; that overstated the evidence and is withdrawn.
+never measured against a judge at all. The observations are paired because each
+reviewer scored the same rows; Fisher's exact test was therefore the wrong test.
+Exact McNemar tests on siblings give unadjusted p = 0.0414 and 0.0169, pointing
+toward lower support by the reviewer. Holm or Bonferroni correction across the
+four paired comparisons removes significance at 0.05. No noninferiority margin
+was declared, so "no worse" is also unsupported. The mechanism finding survives;
+the comparative calibration claim does not.
 
 Put on the same basis —
 `compare_atlas_crosswalk_blind_review.py` now computes the baseline instead of
@@ -1148,9 +1141,11 @@ and stays open for any future one that adds such a step.
 - The edit-distance arm should be **restricted to orthographic variants**. That
   removes 149 of 165 candidates, 12 of the archive's 35 `relatedMatch`
   admissions, and buys two correct disputed rows back.
-- `relatedMatch` is a real sink but it has one owner: the unprincipled half of
-  edit distance. Label equality never produces it. Whether the surviving 35 are
-  genuine associations still needs a reviewer — that half of E-V4 has not run.
+- `relatedMatch` noise is concentrated in the unprincipled half of edit distance.
+  The judged half of E-V4 found that 25 of 35 `relatedMatch` admissions survive
+  both passes; 8 of the 10 failures are unprincipled edit-distance rows. Because
+  the comparator is crosswalk-confounded, this localizes the observed failures
+  without proving a universal relation-class effect.
 
 ## E-V4's judged half — two blind passes over a sealed sample (2026-08-06)
 
@@ -1219,10 +1214,10 @@ Does a pass assert a relation on a seeded negative?
 | `randomNegativeControl` | **0%** | **0%** | 3.7% | 5.2% | 5.2% |
 | `siblingDistractor` | 25.0% | **8.3%** | 48.1% | 55.6% | 57.0% |
 
-Both new passes are more conservative than the sealed judges *and* than the
-reviewer the earlier draft accused of over-generosity. Three independent Opus
-reviewers have now been measured against the same seeded negatives and all three
-sit below both judges. The permissive party in this archive is the judge pair.
+The new passes use only 12 controls per class, while the prior reviewer rates use
+135. On the matched 12 sibling rows, Gemini, OpenAI, and the neutral pass each
+support 3/12; the adversarial pass supports 1/12. The table therefore measures
+framing sensitivity, not a general ordering of reviewers.
 
 ### Framing moves about a tenth of the answers
 
@@ -1319,6 +1314,156 @@ methods agree that a plural-looking edit is not a plural.
 *Bound honestly:* 16 principled rows gives a 95% interval of 80.6–100%. The
 classifier could be as low as 4-in-5 on a larger population; what this rules out
 is that it is careless.
+
+## Spine feasibility — can a hub replace pairwise crosswalking? (2026-08-06)
+
+All measurements below are read-only against bytes already on disk. They were
+prompted by one architectural question: can a bounded hub reduce pairwise
+crosswalking? The original calculation treated all 108 construction-era source
+units as crosswalk candidates, producing an upper bound of **5,778 pairs**. That
+population includes non-vocabulary sources and should not be used as a work-plan
+denominator. A governed inventory of subject vocabularies must set the real scope.
+
+### Shared labels are evidence, not a relation
+
+330 candidates whose labels normalise to the same string:
+
+| | Count |
+| --- | ---: |
+| Admitted | **302 (91.5%)** |
+| Rejected outright | 15 |
+| Disputed | 13 |
+
+And when admitted, the relation the judges assigned:
+
+| Relation | Count | Share |
+| --- | ---: | ---: |
+| `closeMatch` | 193 | **63.9%** |
+| `exactMatch` | 106 | **35.1%** |
+| `narrowMatch` | 3 | 1.0% |
+
+**This is the number that governs hub design.** `closeMatch` is not transitive, so
+a spine whose spokes are built from label agreement is ~64% non-composable. Chained
+through a hub, only **40.6%** of two-hop compositions are SKOS-licensed; 59.4%
+would be unlicensed inference, `closeMatch ∘ closeMatch` alone accounting for 15.9%.
+
+### FAST covers a lot and composes almost not at all
+
+Deterministic normalised-label coverage of FAST Topical (441,127 concepts):
+
+| Vocabulary | Concepts | Exact label hit | + token-set |
+| --- | ---: | ---: | ---: |
+| Federal Register Thesaurus | 566 | **71.7%** | 72.1% |
+| ELSST R6 | 3,427 | 58.1% | 58.6% |
+| ICPSR Subject Thesaurus | 3,731 | 51.8% | 51.9% |
+| **All three** | **7,724** | **56.0%** | 56.3% |
+
+*A correction worth recording:* an intermediate analysis used RapidFuzz `WRatio`
+and reported 98.4% "recoverable" coverage. That was wrong, and wrong in the way
+this document has already documented twice — `Renewable energy`→`energy` (90.0),
+`Lie detector tests`→`est` (90.0), `Railroad safety`→`abandoned coal mines safety
+measures` (85.5). Broader terms and noise scoring as near-misses. Under a
+defensible identity criterion (same token set) the headroom above exact match is
+**0.1–0.5 points**. There is no cheap deterministic recovery above the exact-match
+number.
+
+### FAST's published mappings, and why they are all `relatedMatch`
+
+FAST Topical ships **468,479 outbound mappings** in the bytes already on disk:
+
+| Target | Links |
+| --- | ---: |
+| `id.loc.gov` (LCSH) | **356,356** |
+| Wikidata | **75,375** |
+| GND (`d-nb.info`) | 33,570 |
+| NALT (`lod.nal.usda.gov`) | 2,650 |
+| Wikipedia / AGROVOC | 528 |
+
+Every one is `skos:relatedMatch` — and the fan-out shows why that is *correct*
+rather than lazy:
+
+| | Value |
+| --- | ---: |
+| FAST concepts linked to LCSH | 179,369 |
+| Distinct LCSH headings linked | 42,047 |
+| FAST concepts with exactly **2** LCSH targets | **165,836 (92%)** |
+| LCSH headings with exactly one FAST source | 17,797 (42.3%) |
+| **Strictly 1:1 in both directions** | **995 (0.6%)** |
+
+This is the pre-/post-coordination mismatch measured. LCSH is pre-coordinated —
+one heading fuses topic, place, period and form. FAST represents separate
+faceted headings, so the correspondence is genuinely many-to-many and neither
+`exactMatch` nor `broadMatch` would be true. On *this predicate* at most 0.6%
+could bear `exactMatch` without lying.
+
+> **⚠️ SUPERSEDED 2026-08-06.** This section scanned `skos:*Match` only and missed
+> `schema:sameAs`. FAST asserts **259,401 `sameAs` links to LCSH, 248,521 strictly
+> 1:1 (95.8%)** — `relatedMatch` carries the pre-coordination decomposition,
+> `sameAs` carries OCLC's identity assertion. The conclusion "FAST cannot carry a
+> composable spine" is withdrawn. A later reciprocal-source check found that LC
+> classifies the corresponding links as close rather than exact, and the node-shape
+> review found that FAST remains dominated by compound headings. FAST is therefore
+> an external-hub candidate, not an adopted or universal spine. See
+> `vocabulary-atlas-spine-and-rings-takeaways-2026-08-06.md` §§2 and 10.
+
+### FAST's own structure is sparse
+
+| Predicate | Count |
+| --- | ---: |
+| `prefLabel` | 486,765 |
+| `broader` | 190,105 |
+| `related` | 62,103 |
+| `broaderMatch` | 41 |
+| `exactMatch` / `closeMatch` / `narrowMatch` | **0** |
+
+**0.518 hierarchy+associative edges per concept**, against ELSST's corrected 1.80. A hub
+that is half as densely connected as the vocabularies it is meant to join is a
+weak traversal spine even where coverage is good.
+
+### ELSST publishes no outbound mappings at all
+
+Verified against the pinned source bytes, `ELSST_R6.ttl` (19 MB):
+
+| Predicate | Count |
+| --- | ---: |
+| `exactMatch`/`closeMatch`/`broadMatch`/`narrowMatch`/`relatedMatch`/`mappingRelation` | **0** |
+| `skos:broader` | 3,221 |
+| `skos:related` | 2,210 |
+| `skos:prefLabel` | 3,471 |
+
+Internal relations are intact, so this is not a parse failure. CESSDA publishes
+ELSST as a self-contained thesaurus. **That spoke must be generated; it cannot be
+adopted.**
+
+### What the registry already holds
+
+| Asset | State |
+| --- | --- |
+| LCSH bulk authorities (`lcsh_topical.py`) | reader exists, IRI-selective, all authority classes |
+| FAST Topical, 441k concepts | on disk |
+| FAST→LCSH, 356k links | ingested, marked `lcsh-fast-mapping-references: reviewWithheld` |
+| FAST→Wikidata, 75k links | on disk, unexamined |
+| EuroVoc↔LCSH, 2,003 mappings at **95.1% `exactMatch`** | reader exists, `mappingAssertionsOnly` |
+| Readers already parsing mapping predicates | AGROVOC, GEMET, NALT, ELSST |
+| **USC / USLM** | local extraction now exists: 1,342,167 occurrences, 1,172,307 unique keys; relation type, direction, deduplication, and release admission remain open |
+
+### What this means for the spine
+
+The right selection metric is **not** concept overlap, which is what an earlier
+draft of this section used. It is **relation overlap weighted by composability**:
+a hub sharing 70% of concepts via `closeMatch` is a retrieval aid; one sharing
+30% via `exactMatch` is a spine you can traverse.
+
+FAST has broad published links, but neither 1:1 topology nor OCLC's predicate
+settles the semantics when LC records closeness in the reverse direction. Its
+compound-heading shape also limits its use as a universal traversal layer.
+EuroVoc↔LCSH remains a useful publisher alignment at 95.1% `exactMatch`; it is
+evidence for bounded routing, not proof of a global hub.
+
+**Wikidata remains an unscored external-hub candidate.** The 75,375 FAST links on
+disk justify an experiment, not an identity decision. The current cross-product
+plan therefore compares direct source concepts, publisher organization, external
+hubs, and sparse reviewed junctions without presuming a spine.
 
 ## Evidence promoted out of `/tmp` (2026-08-06)
 
@@ -1522,13 +1667,12 @@ discarded over *which* relation. Support agreement runs 95–97% while
 exact-relation agreement runs 74–79%, and the worst cell is the easiest candidate
 class.
 
-**A pipeline built to find relations is losing correct answers it already paid to
-find, to a mechanical tie-break rule.** E-V1 sizes that loss at **39 rows,
-+6.7%**, recoverable free by collapsing `same`/`near_same`/granularity wherever
-the two labels denote the same term. The other ~40 disputed rows are a real
+**The lattice rejects pairs that every reviewer considers related, but support is
+not relation typing.** E-V1 identifies **39 rows (+6.7%)** eligible for further
+typed adjudication under R4. It does not make them shippable mappings because the
+replay assigns no SKOS predicate. The other ~40 disputed rows are a real
 associative-versus-hierarchical disagreement, not a rule defect, and no lattice
-should silently resolve them. A third judge would not help either way — it adds a
-fourth opinion on relation type, not a tiebreak on existence.
+should silently resolve them.
 
 ### The graph is more fragile than the product bet assumes
 
@@ -1587,14 +1731,12 @@ function codes are published, already-hierarchical, vocabulary-side spines.
 
 ### Ranked, vocabulary-only
 
-1. **Apply the fixes that are already measured.** R4 recovers **39 mappings
-   (+6.7%)**; R2 recovers 40 and differs by one row, so either is defensible and
-   R4 is the one that can state a reason for every admission. Both add zero
-   control admissions. Restricting edit distance to orthographic variants drops
-   149 of 165 candidates, blind linguistic audit confirms **0 false promotions in
-   16**, and blind relation review confirms the aim — 8 of the 10 admitted
-   `relatedMatch` rows that fail are unprincipled edit distance. What remains is a
-   release decision. Do **not** extend the collapse to `related`.
+1. **Apply the measured candidate-generation fix.** Restrict edit distance to
+   orthographic variants. It drops 149 of 165 candidates; the blind linguistic
+   audit found **0 false promotions in 16**, and 8 of the 10 admitted
+   `relatedMatch` rows that fail review are unprincipled edit distance. Keep R4's
+   39 rows as adjudication-policy evidence until a typed-emission rule and a new
+   evaluation set exist. Do **not** extend the collapse to `related`.
 2. **`E-S4a` — the coverage question, and now the top experiment.** "Comprehensive
    coverage" is the stated goal and it is the one thing this archive provably
    cannot measure: every candidate came from a string matcher, so no
