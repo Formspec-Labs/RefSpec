@@ -26,6 +26,7 @@ from refspec.atlas.parquet_artifact import (
     artifact_file_paths,
     canonical_payload_sha256,
     file_sha256,
+    normalize_sha256_prefix,
 )
 from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
@@ -357,11 +358,7 @@ def build_atlas_parquet_search_view(
         input_pin = {
             "atlas": full_manifest["input"],
             "fullViewId": full_manifest["viewId"],
-            "fullViewManifestSha256": (
-                expected_manifest_digest
-                if expected_manifest_digest.startswith("sha256:")
-                else "sha256:" + expected_manifest_digest
-            ),
+            "fullViewManifestSha256": normalize_sha256_prefix(expected_manifest_digest),
             "fullViewPayloadDigest": full_manifest["canonicalPayloadDigest"],
         }
         identity = canonical_payload_sha256({"construction": construction, "input": input_pin})
@@ -404,11 +401,7 @@ def verify_atlas_parquet_search_view(
 
     if directory.is_symlink() or not directory.is_dir():
         raise AtlasParquetSearchViewError("compact Atlas view must be a regular directory")
-    expected = (
-        expected_manifest_digest
-        if expected_manifest_digest.startswith("sha256:")
-        else "sha256:" + expected_manifest_digest
-    )
+    expected = normalize_sha256_prefix(expected_manifest_digest)
     manifest_path = directory / MANIFEST_FILE
     if manifest_path.is_symlink() or not manifest_path.is_file() or file_sha256(manifest_path) != expected:
         raise AtlasParquetSearchViewError("compact view manifest bytes differ from the external pin")

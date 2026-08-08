@@ -49,6 +49,12 @@ def canonical_payload_sha256(value: object) -> str:
     return sha256_digest(canonical_json_bytes(value)[:-1])
 
 
+def normalize_sha256_prefix(digest: str) -> str:
+    """Add the standard algorithm prefix when a caller supplies bare hex."""
+
+    return digest if digest.startswith("sha256:") else "sha256:" + digest
+
+
 def arrow_schema_sha256(schema: pa.Schema) -> str:
     """Hash Arrow's stable binary schema serialization."""
 
@@ -61,4 +67,5 @@ __all__ = [
     "artifact_file_paths",
     "canonical_payload_sha256",
     "file_sha256",
+    "normalize_sha256_prefix",
 ]

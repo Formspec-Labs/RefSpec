@@ -19,6 +19,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.parquet_artifact import normalize_sha256_prefix
 from refspec.atlas.parquet_view import (
     verify_atlas_parquet_source_metadata,
     verify_atlas_parquet_view,
@@ -613,11 +614,7 @@ def validate_atlas_parquet_preflight(
         "distributionId": verified_input.manifest["distributionId"],
         "distributionManifestDigest": verified_input.manifest_digest,
         "viewId": view_manifest["viewId"],
-        "viewManifestDigest": (
-            expected_view_manifest_digest
-            if expected_view_manifest_digest.startswith("sha256:")
-            else "sha256:" + expected_view_manifest_digest
-        ),
+        "viewManifestDigest": normalize_sha256_prefix(expected_view_manifest_digest),
     }
 
 

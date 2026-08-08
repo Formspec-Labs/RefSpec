@@ -34,6 +34,7 @@ from refspec.atlas.parquet_artifact import (
     artifact_file_paths,
     canonical_payload_sha256,
     file_sha256,
+    normalize_sha256_prefix,
 )
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -409,11 +410,7 @@ def verify_atlas_parquet_source_metadata(
 
     if root.is_symlink() or not root.is_dir():
         raise AtlasParquetViewError("Atlas distribution root must be a regular directory")
-    expected_manifest_digest = (
-        expected_manifest_digest
-        if expected_manifest_digest.startswith("sha256:")
-        else "sha256:" + expected_manifest_digest
-    )
+    expected_manifest_digest = normalize_sha256_prefix(expected_manifest_digest)
     _digest_text(expected_manifest_digest, "expected manifest digest")
     manifest_path = root / "atlas-manifest.json"
     manifest = _strict_json(manifest_path, expected_digest=expected_manifest_digest)
@@ -668,11 +665,7 @@ def verify_atlas_parquet_view(
 
     if directory.is_symlink() or not directory.is_dir():
         raise AtlasParquetViewError("Atlas Parquet view must be a regular directory")
-    expected_manifest_digest = (
-        expected_manifest_digest
-        if expected_manifest_digest.startswith("sha256:")
-        else "sha256:" + expected_manifest_digest
-    )
+    expected_manifest_digest = normalize_sha256_prefix(expected_manifest_digest)
     _digest_text(expected_manifest_digest, "expected view manifest digest")
     manifest = _strict_json(directory / MANIFEST_FILE, expected_digest=expected_manifest_digest)
     if set(manifest) != _VIEW_MANIFEST_FIELDS:
