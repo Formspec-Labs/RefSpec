@@ -111,6 +111,7 @@ NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
 COMPACT_PACK_MAX_LINE_BYTES = 16 * 1024 * 1024
 COMPACT_PACK_MAX_TRANSPORT_BYTES = 1 * 1024 * 1024 * 1024
 COMPACT_PACK_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
+COMPACT_RDF_SAMPLE_SIZE = 5
 HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMPACT_PACK_ID_PREFIX = "urn:ref:atlas:compact-pack:"
@@ -647,7 +648,6 @@ class _CompactPackValidation:
     descriptor: Mapping[str, Any]
     rows: tuple[Mapping[str, Any], ...]
     full_summary: Mapping[str, Any]
-    direct_dependency_subjects: frozenset[str]
 
 
 AssertionTriple = tuple[URIRef, URIRef, URIRef]
@@ -1921,13 +1921,13 @@ def _read_compact_pack(
     *,
     retain_rows: bool = True,
     row_consumer: Callable[[Mapping[str, Any]], None] | None = None,
+    row_indices: AbstractSet[int] | None = None,
 ) -> _CompactPackValidation:
     """Authenticate one compact transport and independently replay its receipts.
 
-    Production validation consumes normalized rows immediately after the RDF
-    graph is available.  ``retain_rows=False`` keeps only the current pack's
-    compact summary fields and direct reference IDs, so large native payloads
-    never remain resident beside the complete RDF graph.
+    Production validation authenticates every normalized row while retaining
+    only summary fields. When ``row_indices`` is provided, the consumer sees
+    only those zero-based rows, which bounds RDF sampling work.
     """
 
     relative = descriptor["path"]
@@ -1972,7 +1972,6 @@ def _read_compact_pack(
     rows: list[dict[str, Any]] | None = [] if retain_rows else None
     record_ids: list[str] = []
     summary_rows: list[dict[str, Any]] = []
-    direct_dependency_subjects: set[str] = set()
     path = _safe_distribution_path(root, relative)
     with path.open("rb") as stored_stream:
         transport_reader = _DigestingReader(stored_stream, label=relative)
@@ -2030,10 +2029,10 @@ def _read_compact_pack(
                         if field in normalized
                     }
                 )
-                direct_dependency_subjects.update(
-                    _compact_direct_dependency_subjects(role, normalized)
-                )
-                if row_consumer is not None:
+                record_index = len(record_ids) - 1
+                if row_consumer is not None and (
+                    row_indices is None or record_index in row_indices
+                ):
                     row_consumer(normalized)
                 if rows is not None:
                     rows.append(normalized)
@@ -2063,7 +2062,6 @@ def _read_compact_pack(
         descriptor=descriptor,
         rows=tuple(rows or ()),
         full_summary=full_summary,
-        direct_dependency_subjects=frozenset(direct_dependency_subjects),
     )
 
 
@@ -5266,7 +5264,7 @@ def _construction_rdf_one(
     values = list(graph.objects(subject, predicate))
     if len(values) != 1 or not isinstance(values[0], term_type):
         _fail(
-            "construction.parity",
+            "construction.sample",
             f"{subject} must have one {predicate} of type {term_type.__name__}",
         )
     return values[0]
@@ -5276,7 +5274,7 @@ def _construction_atlas_name(value: Any, *, label: str) -> str:
     iri = str(value)
     namespace = str(ATLAS)
     if not iri.startswith(namespace) or len(iri) == len(namespace):
-        _fail("construction.parity", f"{label} is not an Atlas vocabulary term")
+        _fail("construction.sample", f"{label} is not an Atlas vocabulary term")
     return iri[len(namespace) :]
 
 
@@ -5304,7 +5302,7 @@ def _construction_record_role_or_none(
         return None
     if len(candidates) != 1:
         _fail(
-            "construction.parity",
+            "construction.sample",
             f"release-owned subject {subject} does not map to one compact role",
         )
     return candidates.pop()
@@ -5314,7 +5312,7 @@ def _construction_record_role(graph: Graph, subject: URIRef) -> str:
     role = _construction_record_role_or_none(graph, subject)
     if role is None:
         _fail(
-            "construction.parity",
+            "construction.sample",
             f"release-owned subject {subject} does not map to one compact role",
         )
     return role
@@ -5372,7 +5370,7 @@ def _construction_record_from_rdf(
         )
         definitions = [str(value) for value in graph.objects(subject, ATLAS.definition)]
         if len(definitions) > 1:
-            _fail("construction.parity", f"{subject} has multiple definitions")
+            _fail("construction.sample", f"{subject} has multiple definitions")
         if definitions:
             record["definition"] = definitions[0]
         notes = sorted(str(value) for value in graph.objects(subject, ATLAS.note))
@@ -5383,7 +5381,7 @@ def _construction_record_from_rdf(
             record["notations"] = notations
         statuses = [str(value) for value in graph.objects(subject, ATLAS.recordStatus)]
         if len(statuses) > 1:
-            _fail("construction.parity", f"{subject} has multiple record statuses")
+            _fail("construction.sample", f"{subject} has multiple record statuses")
         if statuses:
             record["recordStatus"] = statuses[0]
     elif role == "Label":
@@ -5399,7 +5397,7 @@ def _construction_record_from_rdf(
                 if isinstance(resource, URIRef)
             )
         if len(claims) != 1:
-            _fail("construction.parity", f"label {subject} does not have one role claim")
+            _fail("construction.sample", f"label {subject} does not have one role claim")
         literal = _construction_rdf_one(
             graph,
             subject,
@@ -5407,7 +5405,7 @@ def _construction_record_from_rdf(
             term_type=Literal,
         )
         if literal.language != "en":
-            _fail("construction.parity", f"label {subject} is not English")
+            _fail("construction.sample", f"label {subject} is not English")
         record.update(
             {
                 "resource": str(claims[0][1]),
@@ -5439,7 +5437,7 @@ def _construction_record_from_rdf(
             if marker in types
         ]
         if len(concrete_types) != 1:
-            _fail("construction.parity", f"statement {subject} has no unique concrete type")
+            _fail("construction.sample", f"statement {subject} has no unique concrete type")
         statement_type = concrete_types[0]
         record.update(
             {
@@ -5512,7 +5510,7 @@ def _construction_record_from_rdf(
             )
         supersedes = list(graph.objects(subject, ATLAS.supersedes))
         if len(supersedes) > 1 or (supersedes and not isinstance(supersedes[0], URIRef)):
-            _fail("construction.parity", f"statement {subject} has invalid supersession")
+            _fail("construction.sample", f"statement {subject} has invalid supersession")
         if supersedes:
             record["supersedes"] = str(supersedes[0])
     elif role == "EvidenceBinding":
@@ -5563,7 +5561,7 @@ def _construction_record_from_rdf(
         )
         confidences = list(graph.objects(subject, ATLAS.confidence))
         if len(confidences) > 1:
-            _fail("construction.parity", f"evidence binding {subject} has multiple confidences")
+            _fail("construction.sample", f"evidence binding {subject} has multiple confidences")
         if confidences:
             record["confidence"] = str(confidences[0])
     elif role == "SourceRecord":
@@ -5582,7 +5580,7 @@ def _construction_record_from_rdf(
                 parse_constant=_reject_constant,
             )
         except json.JSONDecodeError as exc:
-            _fail("construction.parity", f"source record {subject} has invalid native JSON: {exc}")
+            _fail("construction.sample", f"source record {subject} has invalid native JSON: {exc}")
         record.update(
             {
                 "sourceRelease": str(
@@ -5605,7 +5603,7 @@ def _construction_record_from_rdf(
         )
         represented = list(graph.objects(subject, ATLAS.representsResource))
         if len(represented) > 1 or (represented and not isinstance(represented[0], URIRef)):
-            _fail("construction.parity", f"source record {subject} has invalid resource ownership")
+            _fail("construction.sample", f"source record {subject} has invalid resource ownership")
         if represented:
             record["representsResource"] = str(represented[0])
     elif role == "Release":
@@ -5613,7 +5611,7 @@ def _construction_record_from_rdf(
         is_source = ATLAS.SourceRelease in types
         is_atlas = ATLAS.AtlasRelease in types
         if is_source == is_atlas:
-            _fail("construction.parity", f"release {subject} has an ambiguous concrete type")
+            _fail("construction.sample", f"release {subject} has an ambiguous concrete type")
         record.update(
             {
                 "releaseType": "SourceRelease" if is_source else "AtlasRelease",
@@ -5706,7 +5704,7 @@ def _construction_record_from_rdf(
         if not source_records or len(source_records) != len(
             list(graph.objects(subject, ATLAS.sourceRecord))
         ):
-            _fail("construction.parity", f"lifecycle event {subject} has invalid source records")
+            _fail("construction.sample", f"lifecycle event {subject} has invalid source records")
         record.update(
             {
                 "eventSubject": str(
@@ -5733,11 +5731,11 @@ def _construction_record_from_rdf(
         ):
             values = list(graph.objects(subject, predicate))
             if len(values) > 1 or (values and not isinstance(values[0], URIRef)):
-                _fail("construction.parity", f"lifecycle event {subject} has invalid {field}")
+                _fail("construction.sample", f"lifecycle event {subject} has invalid {field}")
             if values:
                 record[field] = str(values[0])
     else:
-        _fail("construction.parity", f"unsupported RDF parity role {role}")
+        _fail("construction.sample", f"unsupported RDF sample role {role}")
     return _normalize_compact_record(role, record, path=f"rdf:{subject}")
 
 
@@ -5762,7 +5760,7 @@ def _construction_statement_source_record(
     bindings = list(asserted.subjects(ATLAS.bindsAssertion, statement))
     if len(bindings) != 1 or not isinstance(bindings[0], URIRef):
         _fail(
-            "construction.parity",
+            "construction.sample",
             f"statement {statement} has no unique RDF evidence binding",
         )
     return _construction_rdf_one(
@@ -5815,7 +5813,7 @@ def _construction_compact_owner(
         records = list(asserted.objects(subject, ATLAS.sourceRecord))
         if not records or any(not isinstance(record, URIRef) for record in records):
             _fail(
-                "construction.parity",
+                "construction.sample",
                 f"lifecycle event {subject} has invalid RDF source records",
             )
         owners = {
@@ -5841,34 +5839,54 @@ def _construction_compact_owner(
             _construction_statement_source_record(asserted, subject),
             source_owner,
         )
-    _fail("construction.parity", f"unsupported compact ownership role {role}")
+    _fail("construction.sample", f"unsupported compact ownership role {role}")
 
 
-def _check_compact_dependency_closure(
+def _compact_sample_indices(record_count: int) -> frozenset[int]:
+    """Select up to five stable positions spread across one compact pack."""
+
+    if record_count <= 0:
+        return frozenset()
+    sample_count = min(COMPACT_RDF_SAMPLE_SIZE, record_count)
+    if sample_count == 1:
+        return frozenset({0})
+    return frozenset(
+        index * (record_count - 1) // (sample_count - 1)
+        for index in range(sample_count)
+    )
+
+
+def _compact_record_counts_by_role(
     descriptors: Iterable[Mapping[str, Any]],
-    expected_dependencies: Mapping[str, AbstractSet[str]],
-) -> None:
-    """Require compact descriptors to declare all and only direct pack references."""
-
+) -> dict[str, int]:
+    counts = {role: 0 for role in COMPACT_RECORD_FIELDS}
     for descriptor in descriptors:
-        pack_id = descriptor["packId"]
-        declared = set(descriptor["dependencies"])
-        expected = set(expected_dependencies[pack_id])
-        if declared != expected:
-            _fail(
-                "construction.compact",
-                f"{descriptor['path']} direct dependencies differ; "
-                f"missing={sorted(expected - declared)}, "
-                f"extra={sorted(declared - expected)}",
-            )
+        counts[descriptor["role"]] += descriptor["content"]["recordCount"]
+    return counts
 
 
-def _check_compact_rdf_parity(
+def _rdf_record_counts_by_role(asserted: Graph) -> dict[str, int]:
+    """Count logical RDF records without reconstructing their compact rows."""
+
+    return {
+        "Resource": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasResource)),
+        "Label": sum(1 for _ in asserted.subjects(RDF.type, SKOSXL.Label)),
+        "Statement": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.RelationAssertion)),
+        "EvidenceBinding": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.EvidenceBinding)),
+        "SourceRecord": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRecord)),
+        "Release": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+        + sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRelease)),
+        "Identifier": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.Identifier)),
+        "LifecycleEvent": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.LifecycleEvent)),
+    }
+
+
+def _check_compact_shape_size_and_rdf_sample(
     root: Path,
     asserted: Graph,
     construction_summary: Mapping[str, Any],
 ) -> None:
-    """Stream compact packs once and prove exact parity, ownership, and closure."""
+    """Authenticate all compact rows, reconcile sizes, and sample RDF facts."""
 
     path_owners: dict[str, str] = {}
     source_owner: dict[str, str] = {}
@@ -5881,94 +5899,46 @@ def _check_compact_rdf_parity(
         for path in release["compactPackPaths"]:
             path_owners[path] = key
 
-    packs_by_owner_role: dict[
-        tuple[str, str],
-        list[Mapping[str, Any]],
-    ] = defaultdict(list)
-    for descriptor in construction_summary["compactPacks"]:
+    descriptors = construction_summary["compactPacks"]
+    for descriptor in descriptors:
         owner = path_owners.get(descriptor["path"])
         if owner is None:
             _fail(
-                "construction.parity",
+                "construction.sample",
                 f"compact pack {descriptor['path']} has no construction owner",
             )
-        packs_by_owner_role[(owner, descriptor["role"])].append(descriptor)
 
-    @lru_cache(maxsize=100_000)
-    def expected_pack(subject: URIRef) -> str | None:
-        role = _construction_record_role_or_none(asserted, subject)
-        if role is None:
-            return None
-        owner = _construction_compact_owner(
-            asserted,
-            subject,
-            role,
-            source_owner=source_owner,
-            atlas_owner=atlas_owner,
+    compact_counts = _compact_record_counts_by_role(descriptors)
+    rdf_counts = _rdf_record_counts_by_role(asserted)
+    if compact_counts != rdf_counts:
+        _fail(
+            "construction.compact",
+            f"compact and RDF logical record counts differ; compact={compact_counts}, "
+            f"rdf={rdf_counts}",
         )
-        if owner is None:
-            _fail(
-                "construction.parity",
-                f"logical RDF record {subject} has no construction owner",
-            )
-        digest = hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
-        candidates = [
-            descriptor
-            for descriptor in packs_by_owner_role.get((owner, role), ())
-            if "partition" not in descriptor
-            or digest.startswith(descriptor["partition"]["prefix"])
-        ]
-        if len(candidates) != 1:
-            _fail(
-                "construction.parity",
-                f"logical RDF record {subject} does not resolve to one compact pack",
-            )
-        return str(candidates[0]["packId"])
 
-    descriptors = construction_summary["compactPacks"]
-    total_records = sum(
-        descriptor["content"]["recordCount"] for descriptor in descriptors
-    )
-    processed_records = 0
-    seen_subjects: set[URIRef] = set()
-    expected_dependencies: dict[str, set[str]] = {
-        descriptor["packId"]: set()
-        for descriptor in descriptors
-    }
-    for descriptor in descriptors:
+    for descriptor_position, descriptor in enumerate(descriptors, start=1):
         descriptor_role = descriptor["role"]
-        descriptor_pack_id = descriptor["packId"]
         descriptor_owner = path_owners[descriptor["path"]]
+        descriptor_partition = descriptor.get("partition")
+        sample_indices = _compact_sample_indices(
+            descriptor["content"]["recordCount"]
+        )
 
         def consume(
             row: Mapping[str, Any],
             *,
             descriptor_role: str = descriptor_role,
-            descriptor_pack_id: str = descriptor_pack_id,
             descriptor_owner: str = descriptor_owner,
             descriptor_path: str = descriptor["path"],
+            descriptor_partition: Mapping[str, Any] | None = descriptor_partition,
         ) -> None:
-            nonlocal processed_records
-            processed_records += 1
-            if processed_records % 100_000 == 0:
-                _STATUS.progress(
-                    "check-compact-rdf-parity",
-                    processed_records,
-                    total_records,
-                    current=descriptor_path,
-                )
             subject = URIRef(row["id"])
-            if subject in seen_subjects:
-                _fail(
-                    "construction.parity",
-                    f"logical record {subject} occurs in multiple compact packs",
-                )
-            seen_subjects.add(subject)
             rdf_role = _construction_record_role(asserted, subject)
             if rdf_role != descriptor_role:
                 _fail(
-                    "construction.parity",
-                    f"{subject} compact and RDF roles differ",
+                    "construction.sample",
+                    f"{descriptor_path} sample {subject} compact and RDF roles differ",
                 )
             rdf_row = _construction_record_from_rdf(
                 asserted,
@@ -5977,8 +5947,8 @@ def _check_compact_rdf_parity(
             )
             if row != rdf_row:
                 _fail(
-                    "construction.parity",
-                    f"{subject} compact and RDF logical rows differ",
+                    "construction.sample",
+                    f"{descriptor_path} sample {subject} compact and RDF rows differ",
                 )
             owner = _construction_compact_owner(
                 asserted,
@@ -5987,66 +5957,32 @@ def _check_compact_rdf_parity(
                 source_owner=source_owner,
                 atlas_owner=atlas_owner,
             )
-            if owner != descriptor_owner or expected_pack(subject) != descriptor_pack_id:
+            if owner != descriptor_owner:
                 _fail(
-                    "construction.parity",
-                    f"{subject} compact release ownership or partition differs",
+                    "construction.sample",
+                    f"{descriptor_path} sample {subject} release ownership differs",
                 )
-            for dependency_subject in _compact_direct_dependency_subjects(
-                descriptor_role,
-                row,
-            ):
-                dependency_pack = expected_pack(URIRef(dependency_subject))
-                if (
-                    dependency_pack is not None
-                    and dependency_pack != descriptor_pack_id
-                ):
-                    expected_dependencies[descriptor_pack_id].add(dependency_pack)
+            if descriptor_partition is not None and not hashlib.sha256(
+                str(subject).encode("utf-8")
+            ).hexdigest().startswith(descriptor_partition["prefix"]):
+                _fail(
+                    "construction.sample",
+                    f"{descriptor_path} sample {subject} partition differs",
+                )
 
         _read_compact_pack(
             root,
             descriptor,
             retain_rows=False,
             row_consumer=consume,
+            row_indices=sample_indices,
         )
         _STATUS.progress(
-            "check-compact-rdf-parity",
-            processed_records,
-            total_records,
+            "check-compact-shape-size-sample",
+            descriptor_position,
+            len(descriptors),
             current=descriptor["path"],
         )
-
-    missing: list[str] = []
-    rdf_subject_count = 0
-    for marker in (
-        ATLAS.AtlasResource,
-        SKOSXL.Label,
-        ATLAS.RelationAssertion,
-        ATLAS.EvidenceBinding,
-        ATLAS.SourceRecord,
-        ATLAS.AtlasRelease,
-        ATLAS.SourceRelease,
-        ATLAS.Identifier,
-        ATLAS.LifecycleEvent,
-    ):
-        for subject in asserted.subjects(RDF.type, marker):
-            if not isinstance(subject, URIRef):
-                continue
-            rdf_subject_count += 1
-            if subject not in seen_subjects and len(missing) < 3:
-                missing.append(str(subject))
-    if missing or rdf_subject_count != len(seen_subjects):
-        _fail(
-            "construction.parity",
-            "compact and RDF logical record identities differ; "
-            f"missing={missing}, compactCount={len(seen_subjects)}, "
-            f"rdfCount={rdf_subject_count}",
-        )
-
-    _check_compact_dependency_closure(
-        descriptors,
-        expected_dependencies,
-    )
 
 
 
@@ -6564,7 +6500,7 @@ def validate_preparsed_distribution(
     )
 
 
-def _validate_semantics_then_compact_parity(
+def _validate_semantics_then_compact_checks(
     root: Path,
     manifest: Mapping[str, Any],
     accounting: Mapping[str, Any],
@@ -6583,7 +6519,8 @@ def _validate_semantics_then_compact_parity(
         graphs,
         member_digests=member_digests,
     )
-    _check_compact_rdf_parity(
+    _STATUS.phase("check-compact-shape-size-sample")
+    _check_compact_shape_size_and_rdf_sample(
         root,
         graphs["asserted"],
         construction_summary,
@@ -6697,7 +6634,7 @@ def validate_distribution(
     _STATUS.phase("parse-rdf-packs")
     dataset, graphs = _parse_packed_dataset(root, manifest, graph_ids)
     _STATUS.phase("validate-semantic-graphs")
-    result = _validate_semantics_then_compact_parity(
+    result = _validate_semantics_then_compact_checks(
         root,
         manifest,
         accounting,

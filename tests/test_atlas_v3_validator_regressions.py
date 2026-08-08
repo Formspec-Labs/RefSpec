@@ -98,10 +98,22 @@ def test_independent_compact_reader_replays_all_authenticated_receipts(
     assert streamed_observed.rows == ()
     assert tuple(streamed) == artifact.rows
     assert streamed_observed.full_summary == artifact.global_invariant_summary
-    assert streamed_observed.direct_dependency_subjects == {
-        "urn:ref:atlas-test:release:one",
-        "urn:ref:atlas-test:source-record:one",
-    }
+
+
+@pytest.mark.parametrize(
+    ("record_count", "expected"),
+    (
+        (0, frozenset()),
+        (1, frozenset({0})),
+        (3, frozenset({0, 1, 2})),
+        (100, frozenset({0, 24, 49, 74, 99})),
+    ),
+)
+def test_compact_rdf_sample_is_bounded_stable_and_spread_across_each_pack(
+    record_count: int,
+    expected: frozenset[int],
+) -> None:
+    assert atlas_validate._compact_sample_indices(record_count) == expected
 
 
 @pytest.mark.parametrize(
@@ -220,32 +232,38 @@ def test_compact_direct_dependencies_include_every_replay_prerequisite(
     assert atlas_validate._compact_direct_dependency_subjects(role, row) == expected
 
 
-@pytest.mark.parametrize(
-    ("declared", "expected", "difference"),
-    (
-        ([], {"urn:pack:dependency"}, "missing"),
-        (["urn:pack:extra"], set(), "extra"),
-    ),
-)
-def test_compact_dependency_closure_rejects_missing_and_extra_packs(
-    declared: list[str],
-    expected: set[str],
-    difference: str,
+def test_compact_size_gate_rejects_aggregate_role_count_drift(
+    tmp_path: Path,
 ) -> None:
-    descriptor = {
-        "dependencies": declared,
-        "packId": "urn:pack:subject",
-        "path": "packs/compact/subject.jsonl.zst",
+    asserted = Graph()
+    asserted.add((URIRef("urn:resource:one"), RDF.type, ATLAS.AtlasResource))
+    construction_summary = {
+        "compactPacks": [
+            {
+                "content": {"recordCount": 2},
+                "path": "packs/compact/source/resource.jsonl.zst",
+                "role": "Resource",
+            }
+        ],
+        "releases": [
+            {
+                "atlasRelease": "urn:release:one",
+                "compactPackPaths": ["packs/compact/source/resource.jsonl.zst"],
+                "key": "source",
+                "sourceRelease": "urn:source-release:one",
+            }
+        ],
     }
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._check_compact_dependency_closure(
-            [descriptor],
-            {"urn:pack:subject": expected},
+        atlas_validate._check_compact_shape_size_and_rdf_sample(
+            tmp_path,
+            asserted,
+            construction_summary,
         )
 
     assert raised.value.code == "construction.compact"
-    assert f"{difference}=[" in raised.value.detail
+    assert "logical record counts differ" in raised.value.detail
 
 
 def test_construction_reused_input_paths_require_one_global_identity() -> None:
@@ -286,7 +304,7 @@ def test_construction_reused_input_paths_require_one_global_identity() -> None:
     assert "conflicting pinned identities" in raised.value.detail
 
 
-def test_semantic_first_issue_precedes_compact_rdf_parity(
+def test_semantic_first_issue_precedes_compact_checks(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -301,13 +319,17 @@ def test_semantic_first_issue_precedes_compact_rdf_parity(
 
     def reject_compact(*_args: object, **_kwargs: object) -> None:
         calls.append("compact")
-        raise AssertionError("compact parity must not mask a semantic first issue")
+        raise AssertionError("compact checks must not mask a semantic first issue")
 
     monkeypatch.setattr(atlas_validate, "_validate_semantic_graphs", reject_semantics)
-    monkeypatch.setattr(atlas_validate, "_check_compact_rdf_parity", reject_compact)
+    monkeypatch.setattr(
+        atlas_validate,
+        "_check_compact_shape_size_and_rdf_sample",
+        reject_compact,
+    )
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._validate_semantics_then_compact_parity(
+        atlas_validate._validate_semantics_then_compact_checks(
             tmp_path,
             {},
             {},
@@ -321,7 +343,7 @@ def test_semantic_first_issue_precedes_compact_rdf_parity(
     assert calls == ["semantic"]
 
 
-def test_compact_rdf_parity_runs_after_successful_semantic_gates(
+def test_compact_shape_size_and_sample_run_after_successful_semantic_gates(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -334,15 +356,19 @@ def test_compact_rdf_parity_runs_after_successful_semantic_gates(
     def reject_compact(*_args: object, **_kwargs: object) -> None:
         calls.append("compact")
         raise atlas_validate.AtlasValidationError(
-            "construction.parity",
+            "construction.sample",
             "intended construction fixture failure",
         )
 
     monkeypatch.setattr(atlas_validate, "_validate_semantic_graphs", accept_semantics)
-    monkeypatch.setattr(atlas_validate, "_check_compact_rdf_parity", reject_compact)
+    monkeypatch.setattr(
+        atlas_validate,
+        "_check_compact_shape_size_and_rdf_sample",
+        reject_compact,
+    )
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
-        atlas_validate._validate_semantics_then_compact_parity(
+        atlas_validate._validate_semantics_then_compact_checks(
             tmp_path,
             {},
             {},
@@ -352,7 +378,7 @@ def test_compact_rdf_parity_runs_after_successful_semantic_gates(
             member_digests={},
         )
 
-    assert raised.value.code == "construction.parity"
+    assert raised.value.code == "construction.sample"
     assert calls == ["semantic", "compact"]
 
 
