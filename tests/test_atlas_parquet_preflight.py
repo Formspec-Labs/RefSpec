@@ -1,0 +1,203 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+import pyarrow as pa
+import pytest
+
+from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.parquet_preflight import (
+    APPROVED,
+    AtlasParquetPreflightError,
+    validate_atlas_parquet_tables,
+)
+
+
+def _tables() -> dict[str, pa.Table]:
+    source_release = "urn:test:source-release"
+    atlas_release = "urn:test:atlas-release"
+    source_record = "urn:test:source-record"
+    first_resource = "urn:test:resource:first"
+    second_resource = "urn:test:resource:second"
+    statement = "urn:test:statement"
+    digest = b"1" * 32
+    return {
+        CompactRecordRole.RESOURCE.value: pa.table(
+            {
+                "id": [first_resource, second_resource],
+                "release": [atlas_release, atlas_release],
+                "scheme": ["urn:test:scheme", "urn:test:scheme"],
+                "semantic_ring": ["subject", "subject"],
+                "resource_profile": ["conceptScheme", "conceptScheme"],
+                "source_record": [source_record, source_record],
+            }
+        ),
+        CompactRecordRole.LABEL.value: pa.table(
+            {
+                "id": ["urn:test:label:first", "urn:test:label:second"],
+                "resource": [first_resource, second_resource],
+                "label_role": ["preferred", "preferred"],
+                "value": ["First", "Second"],
+                "language": ["en", "en"],
+                "release": [atlas_release, atlas_release],
+                "source_record": [source_record, source_record],
+            }
+        ),
+        CompactRecordRole.STATEMENT.value: pa.table(
+            {
+                "id": [statement],
+                "statement_type": ["NativeRelationAssertion"],
+                "subject": [first_resource],
+                "predicate": ["http://www.w3.org/2004/02/skos/core#broader"],
+                "object": [second_resource],
+                "source_release": [atlas_release],
+                "target_release": [atlas_release],
+                "semantic_ring": ["subject"],
+                "source_ring": pa.array([None], type=pa.string()),
+                "target_ring": pa.array([None], type=pa.string()),
+                "supersedes": pa.array([None], type=pa.string()),
+            }
+        ),
+        CompactRecordRole.EVIDENCE_BINDING.value: pa.table(
+            {
+                "id": ["urn:test:evidence"],
+                "statement": [statement],
+                "source_record": [source_record],
+                "evidence_source_digest": [digest],
+                "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
+                "decision_status": [APPROVED],
+                "confidence": ["1.0"],
+            }
+        ),
+        CompactRecordRole.SOURCE_RECORD.value: pa.table(
+            {
+                "id": [source_record],
+                "source_release": [source_release],
+                "content_digest": [digest],
+            }
+        ),
+        CompactRecordRole.RELEASE.value: pa.table(
+            {
+                "id": [source_release, atlas_release],
+                "release_type": ["SourceRelease", "AtlasRelease"],
+                "resource_profile": [None, "conceptScheme"],
+                "semantic_ring": [None, "subject"],
+                "scheme": [None, "urn:test:scheme"],
+            }
+        ),
+        CompactRecordRole.IDENTIFIER.value: pa.table(
+            {
+                "id": ["urn:test:identifier"],
+                "identifier_value": ["FIRST"],
+                "identifier_scheme": ["urn:test:identifier-scheme"],
+                "identifies": [first_resource],
+                "source_record": [source_record],
+            }
+        ),
+        CompactRecordRole.LIFECYCLE_EVENT.value: pa.table({"id": pa.array([], type=pa.string())}),
+    }
+
+
+def _counts(tables: Mapping[str, pa.Table]) -> dict[str, int]:
+    return {role: table.num_rows for role, table in tables.items()}
+
+
+def _distribution_counts() -> dict[str, int]:
+    return {
+        "crossRingRelationAssertions": 0,
+        "identifiers": 1,
+        "labels": 2,
+        "mappingAssertions": 0,
+        "nativeRelationAssertions": 1,
+        "relationAssertions": 1,
+        "releases": 1,
+        "resources": 2,
+        "sourceAssignments": 0,
+        "sourceRecords": 1,
+    }
+
+
+def _replace_column(table: pa.Table, name: str, values: list[object]) -> pa.Table:
+    return table.set_column(table.schema.get_field_index(name), name, pa.array(values))
+
+
+def test_columnar_preflight_accepts_closed_relational_view() -> None:
+    tables = _tables()
+
+    result = validate_atlas_parquet_tables(
+        tables,
+        view_counts=_counts(tables),
+        distribution_counts=_distribution_counts(),
+    )
+
+    assert result["status"] == "passed"
+    assert result["mode"] == "authenticatedColumnarPreflight"
+    assert "normative-shacl" in result["releaseOnlyChecks"]
+
+
+def test_columnar_preflight_rejects_dangling_statement_endpoint() -> None:
+    tables = _tables()
+    statements = tables[CompactRecordRole.STATEMENT.value]
+    tables[CompactRecordRole.STATEMENT.value] = _replace_column(
+        statements,
+        "object",
+        ["urn:test:missing"],
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.statement-object"):
+        validate_atlas_parquet_tables(
+            tables,
+            view_counts=_counts(tables),
+            distribution_counts=_distribution_counts(),
+        )
+
+
+def test_columnar_preflight_rejects_duplicate_preferred_language() -> None:
+    tables = _tables()
+    labels = tables[CompactRecordRole.LABEL.value]
+    tables[CompactRecordRole.LABEL.value] = _replace_column(
+        labels,
+        "resource",
+        ["urn:test:resource:first", "urn:test:resource:first"],
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.label-preferred-language"):
+        validate_atlas_parquet_tables(
+            tables,
+            view_counts=_counts(tables),
+            distribution_counts=_distribution_counts(),
+        )
+
+
+def test_columnar_preflight_rejects_stale_evidence_digest() -> None:
+    tables = _tables()
+    evidence = tables[CompactRecordRole.EVIDENCE_BINDING.value]
+    tables[CompactRecordRole.EVIDENCE_BINDING.value] = _replace_column(
+        evidence,
+        "evidence_source_digest",
+        [b"2" * 32],
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.evidence-digest"):
+        validate_atlas_parquet_tables(
+            tables,
+            view_counts=_counts(tables),
+            distribution_counts=_distribution_counts(),
+        )
+
+
+def test_columnar_preflight_rejects_cross_role_identity() -> None:
+    tables = _tables()
+    identifiers = tables[CompactRecordRole.IDENTIFIER.value]
+    tables[CompactRecordRole.IDENTIFIER.value] = _replace_column(
+        identifiers,
+        "id",
+        ["urn:test:resource:first"],
+    )
+
+    with pytest.raises(AtlasParquetPreflightError, match="preflight.cross-role-identity"):
+        validate_atlas_parquet_tables(
+            tables,
+            view_counts=_counts(tables),
+            distribution_counts=_distribution_counts(),
+        )
