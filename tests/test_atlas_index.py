@@ -87,7 +87,7 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
     assert index["nonAuthorizing"] is True
     assert index["summary"] == {
         "exactReleaseCount": 6,
-        "implementationModuleCount": 21,
+        "implementationModuleCount": 24,
         "participationCounts": {"bridge": 12, "core": 1, "specialist": 4},
         "semanticRingCounts": {
             "entity": 12,

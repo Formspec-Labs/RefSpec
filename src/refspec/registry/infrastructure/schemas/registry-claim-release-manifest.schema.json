@@ -1,0 +1,191 @@
+{
+  "$id": "https://refspec.org/schemas/registry-claim-release-manifest/1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claimTable": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": { "$ref": "#/$defs/nonnegativeInteger" },
+        "logicalDigest": { "$ref": "#/$defs/digest" },
+        "mediaType": { "const": "application/vnd.apache.parquet" },
+        "objectKindCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "iri": { "$ref": "#/$defs/nonnegativeInteger" },
+            "literal": { "$ref": "#/$defs/nonnegativeInteger" }
+          },
+          "type": "object"
+        },
+        "originCounts": {
+          "additionalProperties": false,
+          "properties": {
+            "extrapolated": { "$ref": "#/$defs/nonnegativeInteger" },
+            "inferred": { "$ref": "#/$defs/nonnegativeInteger" },
+            "normalized": { "$ref": "#/$defs/nonnegativeInteger" },
+            "observed": { "$ref": "#/$defs/nonnegativeInteger" },
+            "scraped": { "$ref": "#/$defs/nonnegativeInteger" }
+          },
+          "type": "object"
+        },
+        "path": { "const": "claims.parquet" },
+        "rowCount": { "$ref": "#/$defs/nonnegativeInteger" },
+        "schema": {
+          "items": { "$ref": "#/$defs/parquetField" },
+          "minItems": 1,
+          "type": "array"
+        },
+        "schemaDigest": { "$ref": "#/$defs/digest" },
+        "sha256": { "$ref": "#/$defs/digest" }
+      },
+      "required": [
+        "byteLength",
+        "logicalDigest",
+        "mediaType",
+        "objectKindCounts",
+        "originCounts",
+        "path",
+        "rowCount",
+        "schema",
+        "schemaDigest",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "issued": { "format": "date", "type": "string" },
+    "languageScope": { "type": "object" },
+    "limitations": {
+      "items": { "$ref": "#/$defs/namedMethod" },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mediaType": {
+      "const": "application/vnd.refspec.registry-claim-release+json"
+    },
+    "metadata": { "type": "object" },
+    "packageKind": { "const": "registryClaimRelease" },
+    "rawInputs": {
+      "items": { "$ref": "#/$defs/rawInput" },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "recipes": {
+      "items": { "$ref": "#/$defs/namedMethod" },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "releaseId": { "$ref": "#/$defs/iri" },
+    "releaseKey": { "minLength": 1, "type": "string" },
+    "releaseScope": { "type": "object" },
+    "schemaVersion": { "const": "1.0" },
+    "schemas": {
+      "items": { "$ref": "#/$defs/schemaMember" },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "claimTable",
+    "issued",
+    "languageScope",
+    "limitations",
+    "mediaType",
+    "metadata",
+    "packageKind",
+    "rawInputs",
+    "recipes",
+    "releaseId",
+    "releaseKey",
+    "releaseScope",
+    "schemaVersion",
+    "schemas"
+  ],
+  "type": "object",
+  "$defs": {
+    "archiveMember": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": { "$ref": "#/$defs/nonnegativeInteger" },
+        "path": { "$ref": "#/$defs/safePath" },
+        "sha256": { "$ref": "#/$defs/digest" }
+      },
+      "required": ["byteLength", "path", "sha256"],
+      "type": "object"
+    },
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "iri": {
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:\\S+$",
+      "type": "string"
+    },
+    "namedMethod": {
+      "properties": {
+        "id": { "$ref": "#/$defs/iri" }
+      },
+      "required": ["id"],
+      "type": "object"
+    },
+    "nonnegativeInteger": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "parquetField": {
+      "additionalProperties": false,
+      "properties": {
+        "name": { "minLength": 1, "type": "string" },
+        "nullable": { "type": "boolean" },
+        "type": { "minLength": 1, "type": "string" }
+      },
+      "required": ["name", "nullable", "type"],
+      "type": "object"
+    },
+    "rawInput": {
+      "additionalProperties": false,
+      "properties": {
+        "archiveMembers": {
+          "items": { "$ref": "#/$defs/archiveMember" },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "byteLength": { "$ref": "#/$defs/nonnegativeInteger" },
+        "mediaType": { "const": "application/octet-stream" },
+        "path": { "$ref": "#/$defs/safePath" },
+        "role": { "minLength": 1, "type": "string" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "sourceLocator": { "$ref": "#/$defs/iri" }
+      },
+      "required": [
+        "byteLength",
+        "mediaType",
+        "path",
+        "role",
+        "sha256",
+        "sourceLocator"
+      ],
+      "type": "object"
+    },
+    "safePath": {
+      "minLength": 1,
+      "not": { "pattern": "(^/|\\\\|(^|/)\\.\\.?(/|$))" },
+      "type": "string"
+    },
+    "schemaMember": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": { "$ref": "#/$defs/nonnegativeInteger" },
+        "mediaType": { "const": "application/schema+json" },
+        "path": { "$ref": "#/$defs/safePath" },
+        "role": { "enum": ["claimRecord", "manifest"] },
+        "sha256": { "$ref": "#/$defs/digest" }
+      },
+      "required": ["byteLength", "mediaType", "path", "role", "sha256"],
+      "type": "object"
+    }
+  }
+}

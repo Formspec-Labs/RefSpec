@@ -48,10 +48,10 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         "atlasIndexRowCount": 89,
         "catalogOnlyDescriptorCount": 14,
         "catalogResourceCount": 89,
-        "implementationModuleCount": 21,
+        "implementationModuleCount": 24,
         "indexedResourceCount": 75,
         "indexedWithoutExactReleaseCount": 70,
-        "registryModuleCount": 77,
+        "registryModuleCount": 80,
         "releaseReadyIndexedResourceCount": 5,
         "resourceKindCounts": {
             "classification": 5,

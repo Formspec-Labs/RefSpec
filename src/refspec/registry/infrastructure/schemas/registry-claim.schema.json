@@ -1,0 +1,104 @@
+{
+  "$id": "https://refspec.org/schemas/registry-claim/1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "object_kind": { "const": "iri" } } },
+      "then": {
+        "properties": {
+          "datatype": { "type": "null" },
+          "language": { "type": "null" },
+          "lexical_value": { "type": "null" },
+          "object_iri": { "$ref": "#/$defs/iri" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "object_kind": { "const": "literal" } } },
+      "then": {
+        "properties": {
+          "lexical_value": { "type": "string" },
+          "object_iri": { "type": "null" }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "datatype": { "type": "null" },
+              "language": { "type": ["string", "null"] }
+            }
+          },
+          {
+            "properties": {
+              "datatype": { "$ref": "#/$defs/iri" },
+              "language": { "type": "null" }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "confidence": { "type": ["string", "null"] },
+    "datatype": {
+      "anyOf": [
+        { "$ref": "#/$defs/iri" },
+        { "type": "null" }
+      ]
+    },
+    "language": { "type": ["string", "null"] },
+    "lexical_value": { "type": ["string", "null"] },
+    "limitation_ids": {
+      "items": { "$ref": "#/$defs/iri" },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "object_iri": {
+      "anyOf": [
+        { "$ref": "#/$defs/iri" },
+        { "type": "null" }
+      ]
+    },
+    "object_kind": { "enum": ["iri", "literal"] },
+    "origin": {
+      "enum": ["observed", "scraped", "normalized", "inferred", "extrapolated"]
+    },
+    "predicate": { "$ref": "#/$defs/iri" },
+    "recipe_id": { "$ref": "#/$defs/iri" },
+    "release_id": { "$ref": "#/$defs/iri" },
+    "source_digest": { "$ref": "#/$defs/digest" },
+    "source_locator": { "$ref": "#/$defs/iri" },
+    "source_path": { "minLength": 1, "type": "string" },
+    "source_record_id": { "$ref": "#/$defs/iri" },
+    "subject": { "$ref": "#/$defs/iri" }
+  },
+  "required": [
+    "release_id",
+    "subject",
+    "predicate",
+    "object_kind",
+    "object_iri",
+    "lexical_value",
+    "language",
+    "datatype",
+    "source_record_id",
+    "source_locator",
+    "source_path",
+    "source_digest",
+    "origin",
+    "recipe_id",
+    "confidence",
+    "limitation_ids"
+  ],
+  "type": "object",
+  "$defs": {
+    "digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "iri": {
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:\\S+$",
+      "type": "string"
+    }
+  }
+}
