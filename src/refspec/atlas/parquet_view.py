@@ -29,7 +29,9 @@ from refspec.atlas.compact_pack import (
     read_compact_record_pack,
 )
 from refspec.atlas.parquet_artifact import (
+    PARQUET_MEMBER_FIELDS,
     arrow_schema_sha256,
+    artifact_file_paths,
     canonical_payload_sha256,
     file_sha256,
 )
@@ -528,10 +530,7 @@ def verify_atlas_parquet_source_metadata(
         compact_ids.add(inventory.pack_id)
     if compact_paths != sorted(compact_paths) or len(compact_paths) != len(set(compact_paths)):
         raise AtlasParquetViewError("compact pack paths must be unique and sorted")
-    observed_files = {
-        path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file() or path.is_symlink()
-    }
-    if observed_files != expected_files:
+    if artifact_file_paths(root) != expected_files:
         raise AtlasParquetViewError("Atlas distribution file membership is not closed")
     return VerifiedAtlasParquetSourceMetadata(
         root=root.resolve(),
@@ -698,15 +697,7 @@ def verify_atlas_parquet_view(
     expected_roles = {role.value for role in CompactRecordRole}
     observed_roles: set[str] = set()
     for member in manifest["members"]:
-        if set(member) != {
-            "byteLength",
-            "mediaType",
-            "path",
-            "role",
-            "rowCount",
-            "schemaDigest",
-            "sha256",
-        }:
+        if set(member) != PARQUET_MEMBER_FIELDS:
             raise AtlasParquetViewError("Atlas Parquet member fields are unsupported")
         role = CompactRecordRole(member["role"])
         if role.value in observed_roles:
@@ -729,10 +720,7 @@ def verify_atlas_parquet_view(
         counts[role.value] = row_count
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
-    observed_files = {
-        path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
-    }
-    if observed_files != expected_files:
+    if artifact_file_paths(directory) != expected_files:
         raise AtlasParquetViewError("Atlas Parquet view file membership is not closed")
     return manifest
 

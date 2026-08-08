@@ -12,6 +12,26 @@ from refspec.registry.infrastructure.artifact_serialization import (
     sha256_digest,
 )
 
+PARQUET_MEMBER_FIELDS = frozenset(
+    {
+        "byteLength",
+        "mediaType",
+        "path",
+        "role",
+        "rowCount",
+        "schemaDigest",
+        "sha256",
+    }
+)
+
+
+def artifact_file_paths(directory: Path) -> set[str]:
+    """Return every regular-file and symlink path below an artifact root."""
+
+    return {
+        path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
+    }
+
 
 def file_sha256(path: Path) -> str:
     """Hash one file without loading it into memory."""
@@ -36,7 +56,9 @@ def arrow_schema_sha256(schema: pa.Schema) -> str:
 
 
 __all__ = [
+    "PARQUET_MEMBER_FIELDS",
     "arrow_schema_sha256",
+    "artifact_file_paths",
     "canonical_payload_sha256",
     "file_sha256",
 ]

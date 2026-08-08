@@ -21,7 +21,9 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import (
+    PARQUET_MEMBER_FIELDS,
     arrow_schema_sha256,
+    artifact_file_paths,
     canonical_payload_sha256,
     file_sha256,
 )
@@ -442,15 +444,7 @@ def verify_atlas_parquet_search_view(
     counts = {}
     seen = set()
     for member in manifest["members"]:
-        if set(member) != {
-            "byteLength",
-            "mediaType",
-            "path",
-            "role",
-            "rowCount",
-            "schemaDigest",
-            "sha256",
-        }:
+        if set(member) != PARQUET_MEMBER_FIELDS:
             raise AtlasParquetSearchViewError("compact view member fields are unsupported")
         role = CompactRecordRole(member["role"])
         if role in seen:
@@ -473,10 +467,7 @@ def verify_atlas_parquet_search_view(
         counts[role.value] = parquet.metadata.num_rows
     if seen != set(CompactRecordRole) or counts != manifest["counts"]:
         raise AtlasParquetSearchViewError("compact view roles or aggregate counts differ")
-    observed_files = {
-        path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file() or path.is_symlink()
-    }
-    if observed_files != expected_files:
+    if artifact_file_paths(directory) != expected_files:
         raise AtlasParquetSearchViewError("compact view file membership is not closed")
     return manifest
 
