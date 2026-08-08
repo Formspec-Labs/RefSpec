@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections import Counter, defaultdict
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -13,8 +13,11 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.atlas.v3_source_data import (
+    LabelRole,
     RegistryInputPin,
+    RegistryLabel,
     RegistryRelease,
+    RegistryResource,
     RegistrySupplementalSourceRecord,
 )
 from refspec.registry.infrastructure.registry_claim_release import (
@@ -68,6 +71,142 @@ class AtlasRegistryClaimRelease:
     release_key: str
     manifest_digest: str
     records: tuple[AtlasSourceClaimRecord, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RegistryClaimResourceRules:
+    """Declarative rules for one normalized resource subset of a claim release."""
+
+    member_predicate: str
+    member_object_iri: str
+    resource_kind: str
+    label_roles: Mapping[str, LabelRole]
+    notation_predicates: Collection[str] = ()
+    native_iri_predicates: Mapping[str, str] = field(default_factory=dict)
+    common_native_payload: Mapping[str, Any] = field(default_factory=dict)
+    strip_label_whitespace: bool = False
+
+
+_LABEL_ROLE_ORDER = {"preferred": 0, "alternate": 1, "hidden": 2}
+
+
+def _compatibility_labels(
+    subject: str,
+    claims: Sequence[RegistryClaim],
+    rules: RegistryClaimResourceRules,
+) -> tuple[RegistryLabel, ...]:
+    labels = sorted(
+        (
+            RegistryLabel(
+                value=(
+                    cast(str, claim.lexical_value).strip()
+                    if rules.strip_label_whitespace
+                    else cast(str, claim.lexical_value)
+                ),
+                role=rules.label_roles[claim.predicate],
+                source_path=f"{subject}::{claim.predicate}",
+            )
+            for claim in claims
+            if claim.predicate in rules.label_roles
+            and claim.object_kind == "literal"
+            and claim.language == "en"
+        ),
+        key=lambda label: (
+            _LABEL_ROLE_ORDER[label.role],
+            label.value.casefold(),
+            label.value,
+            label.source_path,
+        ),
+    )
+    retained: list[RegistryLabel] = []
+    retained_by_value: dict[str, RegistryLabel] = {}
+    for label in labels:
+        previous = retained_by_value.get(label.value)
+        if previous is None:
+            retained_by_value[label.value] = label
+            retained.append(label)
+        elif previous.role == label.role:
+            raise AtlasRegistryClaimError(
+                f"claim resource {subject} repeats {label.role} label {label.value!r}"
+            )
+    if not retained:
+        raise AtlasRegistryClaimError(
+            f"claim resource {subject} has no selected English label"
+        )
+    return tuple(retained)
+
+
+def registry_resources_from_claim_release(
+    view: RegistryClaimReleaseView,
+    rules: RegistryClaimResourceRules,
+) -> tuple[RegistryResource, ...]:
+    """Build normalized resources from exact claims using declarative rules."""
+
+    claims_by_subject: dict[str, list[RegistryClaim]] = defaultdict(list)
+    membership_claims: dict[str, list[RegistryClaim]] = defaultdict(list)
+    for claim in view.claims:
+        claims_by_subject[claim.subject].append(claim)
+        if (
+            claim.predicate == rules.member_predicate
+            and claim.object_kind == "iri"
+            and claim.object_iri == rules.member_object_iri
+        ):
+            membership_claims[claim.subject].append(claim)
+    if not membership_claims:
+        raise AtlasRegistryClaimError(
+            "claim resource rules selected no release members"
+        )
+
+    resources: list[RegistryResource] = []
+    for subject in sorted(membership_claims):
+        subject_claims = claims_by_subject[subject]
+        source_digests = {
+            claim.source_digest for claim in membership_claims[subject]
+        }
+        if len(source_digests) != 1:
+            raise AtlasRegistryClaimError(
+                f"claim resource {subject} membership evidence differs"
+            )
+        notations = tuple(
+            sorted(
+                {
+                    cast(str, claim.lexical_value)
+                    for claim in subject_claims
+                    if claim.predicate in rules.notation_predicates
+                    and claim.object_kind == "literal"
+                }
+            )
+        )
+        if rules.notation_predicates and not notations:
+            raise AtlasRegistryClaimError(
+                f"claim resource {subject} has no selected notation"
+            )
+        native_payload = {
+            **rules.common_native_payload,
+            "publisherConceptIri": subject,
+            "publisherResourceKind": rules.resource_kind,
+        }
+        for payload_key, predicate in sorted(rules.native_iri_predicates.items()):
+            native_payload[payload_key] = sorted(
+                {
+                    cast(str, claim.object_iri)
+                    for claim in subject_claims
+                    if claim.predicate == predicate
+                    and claim.object_kind == "iri"
+                }
+            )
+        resources.append(
+            RegistryResource(
+                iri=subject,
+                labels=_compatibility_labels(subject, subject_claims, rules),
+                native_payload=native_payload,
+                source_locator=subject,
+                source_digest=next(iter(source_digests)),
+                notations=notations,
+                status="active",
+            )
+        )
+    return tuple(resources)
 
 
 def _record_key(claim: RegistryClaim) -> tuple[str, str, str]:
@@ -564,12 +703,14 @@ __all__ = [
     "AtlasSourceClaimRecord",
     "ClaimComparisonReport",
     "ClaimDifference",
+    "RegistryClaimResourceRules",
     "adapt_registry_claim_release",
     "claim_records_by_release_from_atlas_parquet_view",
     "claim_records_from_atlas_parquet_view",
     "claims_from_atlas_records",
     "compare_registry_claims",
     "inject_registry_claim_release",
+    "registry_resources_from_claim_release",
     "validate_atlas_parquet_registry_claims",
     "validate_atlas_registry_claims",
 ]

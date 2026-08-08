@@ -126,19 +126,23 @@ This is not a full Atlas migration or a full source-fidelity result.
 
 - Only `eurovoc-4.24` and `gemet-4.2.3` have claim-release exporters and real
   parity results.
-- The EuroVoc bundle contains domain and scheme claims, but the separate
-  `eurovoc-domains-4.24` normalized construction unit still uses the old path.
-- Every other key returned by
-  `tools.generate_atlas_v3_full._declared_construction_unit_keys()` remains on
-  its existing parser-to-`RegistryRelease` path. At this revision that is 108
-  of 110 declared construction units, including direct releases, vocabulary
-  releases, large registries, code and document registries, non-emitters,
-  alignment endpoints, and mapping releases.
+- When the EuroVoc claim bundle is injected, `eurovoc-domains-4.24` now derives
+  its 21 normalized resources from declarative claim rules without calling the
+  EuroVoc parser. An exact parity test matches the previous parser-built
+  compatibility release except for the physical location of identical pinned
+  input bytes.
+- The other 109 normalized construction units still use their existing source
+  parsers, including the main `eurovoc-4.24` and `gemet-4.2.3` compatibility
+  releases. Their claim bundles remain supplemental source evidence.
 - The real bundles passed the generic adapter, production loader, full cold
   distribution build, compiled-producer gate, independent Atlas validator,
   derived Parquet build, and exact Parquet comparison. These results prove the
   new path for the two injected releases; they do not establish parity for the
   remaining construction units.
+- The full distribution result above predates the artifact-derived EuroVoc
+  domains compatibility view. Focused parity, selective-loader, and generator
+  tests cover that follow-on change; a new full distribution has not yet been
+  built from it.
 - Existing normalized construction must remain until each registry passes the
   same artifact-to-Atlas comparison and the full distribution gates pass.
 

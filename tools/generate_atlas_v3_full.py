@@ -174,7 +174,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0cf156e692629f424497fa545491efcf8b9655e3284a81eeabedc2faa963af6c"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:86363b8a94ccb6e0264419d1580c097dbcf391de8d7c2b662f659ff7be55e44b"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -2343,6 +2343,7 @@ def load_releases(
         "managedRelease": _load_elsst,
         "managedReleaseWithCoverageUnion": _load_icpsr,
     }
+    claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
     releases: list[LoadedRelease] = []
     selected_specs = tuple(
         spec
@@ -2370,7 +2371,10 @@ def load_releases(
     _STATUS.phase("load-registry-releases")
     registry_releases = (
         *load_all_registry_vocabulary_releases(
-            only_keys=None if selected is None else selected & REGISTRY_VOCABULARY_RELEASE_KEYS
+            only_keys=None
+            if selected is None
+            else selected & REGISTRY_VOCABULARY_RELEASE_KEYS,
+            registry_claim_inputs=claim_inputs,
         ),
         *load_large_registry_releases(
             only_keys=None if selected is None else selected & LARGE_REGISTRY_RELEASE_KEYS
@@ -2394,7 +2398,6 @@ def load_releases(
         ),
     )
     _validate_registry_release_descriptors(registry_releases)
-    claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
     registry_keys = {release.key for release in registry_releases}
     unknown_claim_inputs = sorted(set(claim_inputs) - registry_keys)
     if unknown_claim_inputs:

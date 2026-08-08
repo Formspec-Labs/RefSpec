@@ -15,8 +15,13 @@ from collections import defaultdict, deque
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from refspec.atlas.registry_claim_input import (
+    AtlasRegistryClaimInput,
+    RegistryClaimResourceRules,
+    registry_resources_from_claim_release,
+)
 from refspec.atlas.v3_registry_selection import (
     normalize_only_keys,
     select_declared_group,
@@ -80,6 +85,9 @@ from refspec.registry.gemet_thesaurus import (
     GemetVocabulary,
     parse_gemet_file,
 )
+from refspec.registry.infrastructure.registry_claim_release import (
+    RegistryClaimReleaseView,
+)
 from refspec.registry.infrastructure.source_identity import derive_uuid7
 from refspec.registry.mesh_descriptors import (
     MESH_2026_DESCRIPTOR_COUNT,
@@ -104,6 +112,7 @@ MESH_2026_SOURCE_URL = "https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xml
 MESH_2026_SHA256 = "sha256:9b034cad8bbd4d8d1ef43816d6fd78d33fada52eddff2a0b4455b1fca35cc5ba"
 MESH_2026_BYTE_LENGTH = 312_952_703
 GEMET_DEFINITION = "http://www.w3.org/2004/02/skos/core#definition"
+_EUROVOC_DOMAIN_OMITTED_NON_ENGLISH_LABEL_COUNT = 546
 
 EXPECTED_RESOURCE_COUNTS = {
     "doe-osti-semantic-thesaurus-2020": 23_626,
@@ -738,8 +747,145 @@ def _normalize_eurovoc(
     return concepts, domains
 
 
+def _claim_release_input_pin(
+    view: RegistryClaimReleaseView,
+    filename: str,
+) -> RegistryInputPin:
+    """Restore the established Atlas logical pin for one verified raw member."""
+
+    matching = [
+        row
+        for row in cast(Sequence[Mapping[str, Any]], view.manifest["rawInputs"])
+        if Path(cast(str, row["path"])).name == filename
+    ]
+    if len(matching) != 1:
+        raise ValueError(
+            f"EuroVoc claim release must contain one raw input named {filename}"
+        )
+    row = matching[0]
+    return RegistryInputPin(
+        path=view.root / cast(str, row["path"]),
+        logical_path=f"refspec/output/registry-real-data-sources/{filename}",
+        sha256=cast(str, row["sha256"]),
+        byte_length=cast(int, row["byteLength"]),
+        source_iri=cast(str, row["sourceLocator"]),
+    )
+
+
+def load_eurovoc_4_24_domain_release_from_claims(
+    input_: AtlasRegistryClaimInput,
+) -> RegistryRelease:
+    """Build the EuroVoc domains compatibility view without its source parser."""
+
+    view = input_.open()
+    if (
+        view.manifest["releaseKey"] != "eurovoc-4.24"
+        or view.manifest["issued"] != EUROVOC_RELEASE_4_24.issued
+    ):
+        raise ValueError(
+            "EuroVoc domains require the EuroVoc 4.24 claim release"
+        )
+    archive = _claim_release_input_pin(view, "eurovoc-4.24-skos-core.zip")
+    metadata = _claim_release_input_pin(view, "eurovoc-4.24-metadata.ttl")
+    metadata_source = EUROVOC_RELEASE_4_24.metadata_source
+    if metadata_source is None:
+        raise ValueError("EuroVoc 4.24 has no pinned publisher metadata")
+    if (
+        archive.sha256 != EUROVOC_RELEASE_4_24.expected_sha256
+        or archive.byte_length != EUROVOC_RELEASE_4_24.expected_byte_length
+        or archive.source_iri != EUROVOC_RELEASE_4_24.source_url
+        or metadata.sha256 != metadata_source.expected_sha256
+        or metadata.byte_length != metadata_source.expected_byte_length
+        or metadata.source_iri != metadata_source.source_url
+    ):
+        raise ValueError("EuroVoc claim release raw pins differ from release 4.24")
+    manifest_metadata = cast(Mapping[str, Any], view.manifest["metadata"])
+    expected_metadata = {
+        "attribution": EUROVOC_RELEASE_4_24.attribution,
+        "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+        "publisher": EUROVOC_RELEASE_4_24.publisher,
+        "version": EUROVOC_RELEASE_4_24.version,
+    }
+    if any(
+        manifest_metadata.get(key) != value
+        for key, value in expected_metadata.items()
+    ):
+        raise ValueError("EuroVoc claim release metadata differs from release 4.24")
+
+    resources = registry_resources_from_claim_release(
+        view,
+        RegistryClaimResourceRules(
+            member_predicate="http://www.w3.org/2004/02/skos/core#inScheme",
+            member_object_iri="http://eurovoc.europa.eu/domains",
+            resource_kind="Domain",
+            label_roles={
+                "http://www.w3.org/2004/02/skos/core#altLabel": "alternate",
+                "http://www.w3.org/2004/02/skos/core#hiddenLabel": "hidden",
+                "http://www.w3.org/2004/02/skos/core#prefLabel": "preferred",
+            },
+            notation_predicates={
+                "http://www.w3.org/2004/02/skos/core#notation"
+            },
+            native_iri_predicates={
+                "schemeIris": "http://www.w3.org/2004/02/skos/core#inScheme",
+                "topConceptOfIris": (
+                    "http://www.w3.org/2004/02/skos/core#topConceptOf"
+                ),
+            },
+            common_native_payload={
+                "attribution": EUROVOC_RELEASE_4_24.attribution,
+                "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+                "publisher": EUROVOC_RELEASE_4_24.publisher,
+                "releaseVersion": EUROVOC_RELEASE_4_24.version,
+            },
+            strip_label_whitespace=True,
+        ),
+    )
+    source_digests = {resource.source_digest for resource in resources}
+    if source_digests != {EUROVOC_RELEASE_4_24.expected_member_sha256}:
+        raise ValueError("EuroVoc domain claims do not use the pinned RDF member")
+    release_digest_basis = {
+        "archiveDigest": archive.sha256,
+        "memberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+        "metadataDigest": metadata.sha256,
+        "version": EUROVOC_RELEASE_4_24.version,
+    }
+    return _release(
+        key="eurovoc-domains-4.24",
+        resource_id="eurovoc",
+        source_module="refspec.registry.eurovoc_thesaurus",
+        scope="publisherRelease",
+        issued=EUROVOC_RELEASE_4_24.issued,
+        source_release_iri=(
+            "http://publications.europa.eu/resource/dataset/"
+            "eurovoc/20260708-0#domains"
+        ),
+        atlas_release_iri="urn:ref:atlas-release:3:eurovoc-domains:4.24",
+        scheme_iri="urn:ref:atlas-resource-scheme:eurovoc:domains",
+        source=archive,
+        inputs=(archive, metadata),
+        source_release_digest=canonical_digest(
+            {**release_digest_basis, "memberPartition": "domains"}
+        ),
+        resources=resources,
+        dropped_label_count=_EUROVOC_DOMAIN_OMITTED_NON_ENGLISH_LABEL_COUNT,
+        metadata={
+            "completePublisherRelease": True,
+            "licenseIri": EUROVOC_RELEASE_4_24.license_iri,
+            "memberPartition": "domains",
+            "publisherConceptCount": len(resources),
+            "sourceArchiveDigest": archive.sha256,
+            "sourceMemberDigest": EUROVOC_RELEASE_4_24.expected_member_sha256,
+            "sourceMetadataDigest": metadata.sha256,
+            "thesaurusVersion": EUROVOC_RELEASE_4_24.version,
+        },
+    )
+
+
 def load_eurovoc_4_24_releases(
     source_root: Path = DEFAULT_SOURCE_ROOT,
+    *,
+    claim_input: AtlasRegistryClaimInput | None = None,
 ) -> tuple[RegistryRelease, RegistryRelease]:
     """Load the complete pinned English EuroVoc 4.24 knowledge base."""
 
@@ -768,7 +914,10 @@ def load_eurovoc_4_24_releases(
             metadata_path=metadata.path,
         )
         parsed = parse_acquired_eurovoc_release(acquired)
-    return _normalize_eurovoc(parsed, archive, metadata)
+    concepts, domains = _normalize_eurovoc(parsed, archive, metadata)
+    if claim_input is not None:
+        domains = load_eurovoc_4_24_domain_release_from_claims(claim_input)
+    return concepts, domains
 
 
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
@@ -1253,6 +1402,7 @@ def load_all_registry_vocabulary_releases(
     source_root: Path = DEFAULT_SOURCE_ROOT,
     *,
     only_keys: Collection[str] | None = None,
+    registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
 ) -> tuple[RegistryRelease, ...]:
     """Load selected complete cached vocabulary releases in stable key order."""
 
@@ -1285,14 +1435,35 @@ def load_all_registry_vocabulary_releases(
         )
     eurovoc_keys = frozenset({"eurovoc-4.24", "eurovoc-domains-4.24"})
     if wants_group(requested, eurovoc_keys):
-        releases.extend(
-            select_declared_group(
-                load_eurovoc_4_24_releases(source_root),
-                declared_keys=eurovoc_keys,
-                requested_keys=requested,
-                loader_name="load_eurovoc_4_24_releases",
-            )
+        claim_inputs = (
+            {} if registry_claim_inputs is None else registry_claim_inputs
         )
+        eurovoc_claim_input = claim_inputs.get("eurovoc-4.24")
+        if requested == frozenset({"eurovoc-domains-4.24"}) and (
+            eurovoc_claim_input is not None
+        ):
+            releases.append(
+                load_eurovoc_4_24_domain_release_from_claims(
+                    eurovoc_claim_input
+                )
+            )
+        else:
+            releases.extend(
+                select_declared_group(
+                    load_eurovoc_4_24_releases(
+                        source_root,
+                        claim_input=(
+                            eurovoc_claim_input
+                            if requested is None
+                            or "eurovoc-domains-4.24" in requested
+                            else None
+                        ),
+                    ),
+                    declared_keys=eurovoc_keys,
+                    requested_keys=requested,
+                    loader_name="load_eurovoc_4_24_releases",
+                )
+            )
     return tuple(sorted(releases, key=lambda release: release.key))
 
 
@@ -1309,6 +1480,7 @@ __all__ = [
     "load_all_registry_vocabulary_releases",
     "load_doe_osti_release",
     "load_elsst_r6_release",
+    "load_eurovoc_4_24_domain_release_from_claims",
     "load_eurovoc_4_24_releases",
     "load_federal_register_2025_release",
     "load_gcmd_24_4_release",

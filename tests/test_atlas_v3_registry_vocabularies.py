@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import hashlib
 import os
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from refspec.atlas import v3_registry_vocabularies as vocabularies
+from refspec.atlas.registry_claim_input import AtlasRegistryClaimInput
 from refspec.registry.infrastructure.source_identity import validate_uuid7
+
+EUROVOC_CLAIM_ROOT = (
+    Path(__file__).parents[1]
+    / "output"
+    / "registry-claim-releases"
+    / "eurovoc-4.24"
+)
 
 
 def _assert_native_payload_is_english(value: object) -> None:
@@ -123,6 +133,42 @@ def test_direct_relations_keep_only_unique_member_triples() -> None:
         member.subject_iri,
         member.predicate_iri,
         member.object_iri,
+    )
+
+
+@pytest.mark.skipif(
+    not EUROVOC_CLAIM_ROOT.is_dir()
+    or not (
+        vocabularies.DEFAULT_SOURCE_ROOT / "eurovoc-4.24-skos-core.zip"
+    ).is_file(),
+    reason="verified EuroVoc source and claim bundle are not available",
+)
+def test_eurovoc_domains_claim_view_matches_parser_compatibility_release() -> None:
+    manifest = EUROVOC_CLAIM_ROOT / "release-manifest.json"
+    claim_input = AtlasRegistryClaimInput(
+        path=EUROVOC_CLAIM_ROOT,
+        expected_manifest_digest=(
+            "sha256:" + hashlib.sha256(manifest.read_bytes()).hexdigest()
+        ),
+    )
+    parser_release = vocabularies.load_eurovoc_4_24_releases()[1]
+    claim_release = (
+        vocabularies.load_eurovoc_4_24_domain_release_from_claims(
+            claim_input
+        )
+    )
+
+    assert replace(claim_release, inputs=parser_release.inputs) == parser_release
+    assert [
+        (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
+        for pin in claim_release.inputs
+    ] == [
+        (pin.logical_path, pin.sha256, pin.byte_length, pin.source_iri, pin.role)
+        for pin in parser_release.inputs
+    ]
+    assert all(
+        pin.path.is_relative_to(EUROVOC_CLAIM_ROOT)
+        for pin in claim_release.inputs
     )
 
 

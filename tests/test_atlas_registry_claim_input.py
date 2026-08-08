@@ -10,8 +10,10 @@ from refspec.atlas.registry_claim_input import (
     ATLAS_CLAIM_RECORD_VERSION,
     AtlasRegistryClaimInput,
     AtlasSourceClaimRecord,
+    RegistryClaimResourceRules,
     adapt_registry_claim_release,
     inject_registry_claim_release,
+    registry_resources_from_claim_release,
     validate_atlas_registry_claims,
 )
 from refspec.atlas.v3_source_data import (
@@ -173,6 +175,48 @@ def test_parser_free_adapter_round_trips_every_claim(tmp_path: Path) -> None:
     source = module.read_text(encoding="utf-8")
     assert "eurovoc" not in source.casefold()
     assert "gemet" not in source.casefold()
+
+
+def test_declarative_resource_rules_build_a_normalized_subset(
+    tmp_path: Path,
+) -> None:
+    input_, _expected = _input(tmp_path)
+
+    resources = registry_resources_from_claim_release(
+        input_.open(),
+        RegistryClaimResourceRules(
+            member_predicate=(
+                "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+            ),
+            member_object_iri=(
+                "http://www.w3.org/2004/02/skos/core#Concept"
+            ),
+            resource_kind="Concept",
+            label_roles={
+                "http://www.w3.org/2004/02/skos/core#prefLabel": "preferred"
+            },
+            notation_predicates={
+                "http://www.w3.org/2004/02/skos/core#notation"
+            },
+            native_iri_predicates={
+                "broaderIris": "http://www.w3.org/2004/02/skos/core#broader"
+            },
+            common_native_payload={"publisher": "Example"},
+            strip_label_whitespace=True,
+        ),
+    )
+
+    assert len(resources) == 1
+    resource = resources[0]
+    assert resource.iri == SUBJECT
+    assert resource.labels[0].value == "One"
+    assert resource.notations == ("1",)
+    assert resource.native_payload == {
+        "broaderIris": [TARGET],
+        "publisher": "Example",
+        "publisherConceptIri": SUBJECT,
+        "publisherResourceKind": "Concept",
+    }
 
 
 def test_injection_adds_authenticated_inputs_without_replacing_compatibility_view(
