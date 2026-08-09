@@ -16,13 +16,13 @@
 >
 > **Passing development baseline:** Rulespec `0.2.0-pre.9`
 >
-> **Passing baseline revision:** `2c66a85daab30a4869db08d21cea13cfc865b3a0`
+> **Passing baseline revision:** `882d12fd85c1a334d492e481cf46edbe8e235ac7`
 >
 > **Passing baseline constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 >
 > **Vocabulary-closure Rulespec version:** `0.2.0-pre.9`
 >
-> **Vocabulary-closure revision:** `2c66a85daab30a4869db08d21cea13cfc865b3a0`
+> **Vocabulary-closure revision:** `882d12fd85c1a334d492e481cf46edbe8e235ac7`
 >
 > **Vocabulary-closure constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 >
@@ -50,7 +50,7 @@ authority for those definitions.
 ## 2. Dependency and pin status
 
 The passing vocabulary-closure baseline is Rulespec `0.2.0-pre.9` at local
-revision `2c66a85daab30a4869db08d21cea13cfc865b3a0`, with constraint digest
+revision `882d12fd85c1a334d492e481cf46edbe8e235ac7`, with constraint digest
 `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
 That clean revision contains the authoritative source, generated artifacts,
 positive and negative fixtures, and conformance evidence. The complete
@@ -81,7 +81,7 @@ claim, its immutable REF `PublicationReleaseManifest` MUST contain:
 | Application profile | This profile's immutable identifier, version, and digest |
 
 **REF-RKAF-PIN-002:** A development build MAY identify `0.2.0-pre.9`, revision
-`2c66a85daab30a4869db08d21cea13cfc865b3a0`, and constraint digest
+`882d12fd85c1a334d492e481cf46edbe8e235ac7`, and constraint digest
 `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
 as its compatibility target while that revision remains unpublished. It MUST
 mark the Rulespec release availability and RefSpec conformance result
@@ -666,7 +666,7 @@ and scope, and assignment and mapping release-pin property names in this draft
 are implemented in the authoritative Rulespec CUE and generated artifacts at
 tested contract revision
 `0eb94257b70783688b55220e7a84dcc61bbd7507`. Evidence revision
-`2c66a85daab30a4869db08d21cea13cfc865b3a0` records the corresponding local
+`882d12fd85c1a334d492e481cf46edbe8e235ac7` records the corresponding local
 certification. The
 [machine-readable dependency manifest](rulespec-dependency.json) binds both
 revisions, the constraint and conformance-corpus digests, the validator, and

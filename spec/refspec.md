@@ -942,7 +942,7 @@ MUST copy the other's canonical fields.
 The passing local development baseline for this draft is Rulespec
 `0.2.0-pre.9`. The tested contract revision is
 `0eb94257b70783688b55220e7a84dcc61bbd7507`; the later evidence revision is
-`2c66a85daab30a4869db08d21cea13cfc865b3a0`; and the constraint digest is
+`882d12fd85c1a334d492e481cf46edbe8e235ac7`; and the constraint digest is
 `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
 The application profile and its machine-readable dependency manifest record
 the authoritative sources, conformance corpus, validator, generated

@@ -4,7 +4,7 @@
   "releaseAvailability": "localUnpublished",
   "productionConformanceEligible": false,
   "contractRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
-  "evidenceRevision": "2c66a85daab30a4869db08d21cea13cfc865b3a0",
+  "evidenceRevision": "882d12fd85c1a334d492e481cf46edbe8e235ac7",
   "constraintDigest": "sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c",
   "constraintDigestScope": "globalRulespecContract",
   "conformanceCorpusDigest": "sha256:a16ddbf58996dc1e136a99ebf37abbeed0a3adfef724b203347c301cdd5972b2",
@@ -51,7 +51,6 @@
     "crates/rkaf-core/src/generated/vocabulary_text.rs": "87d923608683e631b42b7fd737690da144cbc3a7fe538c8e4c719a083e667069",
     "crates/rkaf-core/src/generated/lifecycle_event.rs": "9d72564354bfd13f717d63e05e0b46fbe389c51d037c562162af140f9368d355",
     "crates/rkaf-core/src/generated/concept_resolution_result.rs": "d19546e32fc59d553ecb55bae372b5cf12cac5a631ed9657aca45d6a66a3ec32",
-    "crates/rkaf-core/src/generated/profiles/refspec/open_label.rs": "28133ee461308402eea7e86ec07ab6e1a06b3112b03e90f006a58b5bf430fac7",
     "context/rkaf-context.jsonld": "be984a9a4c2e47ae6a37327afc72ca57e1bf4771c017b8abf90680aa8f6b55ff",
     "compiled/rego/core/lifecycle-event.rego": "b8e7be096e750fb243c9d24bce79d8d3533520c3057cbdb22e9834b49c05b6ea"
   }
