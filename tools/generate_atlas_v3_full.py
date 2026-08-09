@@ -161,14 +161,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:1cdeac3938e89dbaa666fb3019b06b060d9257e9904f2d69c84bf11060e56c93"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:e2d3f51c6c7c61a5c6879dd3611ff9ffc0cb16f02edf800878d5856fc12b9bb5"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:80646fe0ce428ff91f2641ef2ab27591ddba9955b9ab3c1d665239db1ccae4fd"
+            "sha256:3492990ef10e23eeb5e41284f291d68f8918147e61c0c9a31ae500bbc8a704ec"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -753,7 +753,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:857b4edb5bef52734c192899eba4caa833a9192e409929c75927dca86f19e712"
+    "sha256:3e083f1409553c46ccf722f098e3b2a845534a8e87e43c27844e01faa093c202"
 )
 
 
