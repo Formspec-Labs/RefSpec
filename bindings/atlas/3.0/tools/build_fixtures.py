@@ -60,6 +60,8 @@ class Fixture:
     manifest_patch: dict[str, Any]
     omitted_gate: str | None = None
     post_write: Callable[[Path], None] | None = None
+    rdf_zstd_all: bool = False
+    rdf_partition_owner: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +169,8 @@ def _add_release(
         graph.add((label, ATLAS.inRelease, release))
         graph.add((label, ATLAS.sourceRecord, source_record))
 
+        native_payload_value = {"identifier": local_name, "label": label_text}
+        native_payload_bytes = atlas_validate.canonical_native_json_bytes(native_payload_value)
         graph.add((source_record, RDF.type, ATLAS.SourceRecord))
         graph.add((source_record, ATLAS.inSourceRelease, source_release))
         graph.add((source_record, ATLAS.representsResource, resource))
@@ -174,7 +178,10 @@ def _add_release(
             (
                 source_record,
                 ATLAS.sourceDigest,
-                Literal("sha256:" + hashlib.sha256(local_name.encode("utf-8")).hexdigest()),
+                # atlas:sourceDigest is sha256 over this record's own canonical
+                # nativePayload bytes -- it must be derived from the same
+                # payload emitted below, not from an unrelated fixture label.
+                Literal("sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()),
             )
         )
         graph.add((source_record, ATLAS.sourceLocator, URIRef(f"urn:ref:atlas-fixture:locator:{local_name}")))
@@ -183,10 +190,7 @@ def _add_release(
                 source_record,
                 ATLAS.nativePayload,
                 Literal(
-                    atlas_validate.canonical_json_bytes(
-                        {"identifier": local_name, "label": label_text},
-                        terminal_lf=False,
-                    ).decode("utf-8"),
+                    native_payload_bytes.decode("utf-8"),
                     datatype=RDF.JSON,
                     normalize=False,
                 ),
@@ -242,6 +246,7 @@ def _add_assertion(
     review_method: URIRef = ATLAS.humanReview,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
+    adopted_evidence: URIRef | None = None,
 ) -> URIRef:
     if assertion_type == ATLAS.CrossRingRelationAssertion:
         if ring is not None or source_ring is None or target_ring is None:
@@ -250,6 +255,10 @@ def _add_assertion(
             )
     elif ring is None or source_ring is not None or target_ring is not None:
         raise ValueError("same-ring assertions require ring only")
+    if review_method == ATLAS.operatorAdoption and adopted_evidence is None:
+        raise ValueError("operatorAdoption review method requires adopted_evidence")
+    if review_method != ATLAS.operatorAdoption and adopted_evidence is not None:
+        raise ValueError("adopted_evidence is only valid for operatorAdoption")
     if policy is None:
         policies = list(graph.subjects(RDF.type, ATLAS.EditorialPolicy))
         if len(policies) != 1:
@@ -317,6 +326,8 @@ def _add_assertion(
     graph.add((evidence, ATLAS.reviewedBy, REVIEWER))
     graph.add((evidence, ATLAS.decisionStatus, ATLAS.approved))
     graph.add((evidence, ATLAS.reviewMethod, review_method))
+    if adopted_evidence is not None:
+        graph.add((evidence, ATLAS.adoptedEvidence, adopted_evidence))
     graph.add(
         (
             evidence,
@@ -525,6 +536,7 @@ def _base_fixture() -> Fixture:
         evidence_name="exact-ab",
         review_method=ATLAS.twoMachineAdjudication,
     )
+    exact_ab_evidence = next(asserted.subjects(ATLAS.bindsAssertion, exact_ab))
     exact_bc = _add_assertion(
         asserted,
         assertion_type=ATLAS.MappingAssertion,
@@ -537,6 +549,7 @@ def _base_fixture() -> Fixture:
         evidence_record=source_b,
         evidence_name="exact-bc",
         review_method=ATLAS.operatorAdoption,
+        adopted_evidence=exact_ab_evidence,
     )
     _add_assertion(
         asserted,
@@ -943,9 +956,30 @@ def _rdf_pack(
     graph_counts: Mapping[str, int],
     source_releases: Sequence[str] = (),
     rings: Sequence[str] = (),
+    compression: str = "none",
+    partition: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, Any], bytes]:
     payload = ("\n".join(sorted(lines)) + "\n").encode("utf-8")
     digest = _sha256(payload)
+    if compression == "none":
+        transport_bytes = payload
+        transport = {
+            "byteLength": len(payload),
+            "compression": "none",
+            "digest": digest,
+            "mediaType": "application/n-quads",
+        }
+    elif compression == "zstd":
+        transport_bytes = atlas_validate.zstd.compress(payload)
+        transport = {
+            "byteLength": len(transport_bytes),
+            "compression": "zstd",
+            "digest": _sha256(transport_bytes),
+            "mediaType": "application/zstd",
+        }
+        path = path + ".zst"
+    else:
+        raise ValueError(f"unsupported rdf pack compression: {compression!r}")
     pack = {
         "content": {
             "byteLength": len(payload),
@@ -960,14 +994,47 @@ def _rdf_pack(
         "path": path,
         "rings": sorted(rings),
         "sourceReleases": sorted(source_releases),
-        "transport": {
-            "byteLength": len(payload),
-            "compression": "none",
-            "digest": digest,
-            "mediaType": "application/n-quads",
-        },
+        "transport": transport,
     }
-    return pack, payload
+    if partition is not None:
+        pack["partition"] = dict(partition)
+    return pack, transport_bytes
+
+
+def _partition_triples_by_subject(
+    triples: Sequence[tuple[Any, Any, Any]],
+) -> list[tuple[str, list[tuple[Any, Any, Any]]]]:
+    """Split one pack's triples into >=2 buckets keyed by a real, shared
+    sha256(subject IRI) hex prefix -- long enough that every subject in a
+    bucket actually starts with that prefix (never a synthetic label)."""
+
+    subjects = sorted({subject for subject, _, _ in triples}, key=str)
+    if len(subjects) < 2:
+        raise ValueError("cannot partition an RDF pack with fewer than two subjects")
+    digests = {
+        subject: hashlib.sha256(str(subject).encode("utf-8")).hexdigest()
+        for subject in subjects
+    }
+    prefix_len = 1
+    buckets: dict[str, list[Any]] = defaultdict(list)
+    while prefix_len <= 8:
+        buckets = defaultdict(list)
+        for subject in subjects:
+            buckets[digests[subject][:prefix_len]].append(subject)
+        if len(buckets) > 1:
+            break
+        prefix_len += 1
+    else:
+        raise ValueError("subjects share a sha256 prefix through 8 hex characters")
+    subject_bucket = {
+        subject: prefix
+        for prefix, bucket_subjects in buckets.items()
+        for subject in bucket_subjects
+    }
+    grouped: dict[str, list[tuple[Any, Any, Any]]] = defaultdict(list)
+    for triple in triples:
+        grouped[subject_bucket[triple[0]]].append(triple)
+    return sorted(grouped.items())
 
 
 def _write_rdf_packs(
@@ -976,7 +1043,9 @@ def _write_rdf_packs(
     units: Sequence[ConstructionUnit],
     *,
     distribution_id: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    zstd_all: bool = False,
+    partition_owner: str | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     graph_ids = {
         "asserted": URIRef(distribution_id + ":asserted"),
         "projection": URIRef(distribution_id + ":projection"),
@@ -1001,30 +1070,54 @@ def _write_rdf_packs(
         asserted_groups[owner].extend(fixture.asserted.triples((subject, None, None)))
 
     unit_by_key = {unit.key: unit for unit in units}
-    packs_with_payloads: list[tuple[dict[str, Any], bytes, str]] = []
+    compression = "zstd" if zstd_all else "none"
+    # (pack, payload, owner, triples) -- "triples" is the exact set of
+    # asserted triples physically written into this pack, which is what lets
+    # dependency computation below work uniformly whether or not an owner's
+    # facts were split across more than one partitioned pack.
+    packs_with_payloads: list[
+        tuple[dict[str, Any], bytes, str, list[tuple[Any, Any, Any]]]
+    ] = []
     for owner in sorted(asserted_groups):
         triples = asserted_groups[owner]
-        lines = [_nquad_line(triple, graph_ids["asserted"]) for triple in triples]
         if owner == "catalog":
-            path = "packs/rdf/catalog.nq"
+            base_path = "packs/rdf/catalog.nq"
             kind = "catalog"
             source_releases: list[str] = []
             rings: list[str] = []
         else:
             unit = unit_by_key[owner]
-            path = f"packs/rdf/{owner}.nq"
+            base_path = f"packs/rdf/{owner}.nq"
             kind = "sourceRelease"
             source_releases = [str(unit.source_release)]
             rings = [unit.ring]
-        pack, payload = _rdf_pack(
-            path=path,
-            kind=kind,
-            lines=lines,
-            graph_counts={"asserted": len(lines), "projection": 0, "derived": 0},
-            source_releases=source_releases,
-            rings=rings,
-        )
-        packs_with_payloads.append((pack, payload, owner))
+
+        if owner == partition_owner:
+            for bucket_prefix, bucket_triples in _partition_triples_by_subject(triples):
+                lines = [_nquad_line(triple, graph_ids["asserted"]) for triple in bucket_triples]
+                pack, payload = _rdf_pack(
+                    path=f"packs/rdf/{owner}.{bucket_prefix}.nq",
+                    kind=kind,
+                    lines=lines,
+                    graph_counts={"asserted": len(lines), "projection": 0, "derived": 0},
+                    source_releases=source_releases,
+                    rings=rings,
+                    compression=compression,
+                    partition={"strategy": "sha256-subject-iri-prefix", "prefix": bucket_prefix},
+                )
+                packs_with_payloads.append((pack, payload, owner, bucket_triples))
+        else:
+            lines = [_nquad_line(triple, graph_ids["asserted"]) for triple in triples]
+            pack, payload = _rdf_pack(
+                path=base_path,
+                kind=kind,
+                lines=lines,
+                graph_counts={"asserted": len(lines), "projection": 0, "derived": 0},
+                source_releases=source_releases,
+                rings=rings,
+                compression=compression,
+            )
+            packs_with_payloads.append((pack, payload, owner, triples))
 
     view_lines = [
         *(_nquad_line(triple, graph_ids["projection"]) for triple in fixture.projection),
@@ -1040,27 +1133,35 @@ def _write_rdf_packs(
                 "projection": len(fixture.projection),
                 "derived": len(fixture.derived),
             },
+            compression=compression,
         )
-        packs_with_payloads.append((view_pack, view_payload, "view"))
+        packs_with_payloads.append((view_pack, view_payload, "view", []))
 
-    pack_by_owner = {owner: pack for pack, _, owner in packs_with_payloads}
-    for subject, owner in asserted_subject_owner.items():
-        if owner not in pack_by_owner:
-            raise ValueError(f"fixture subject owner has no RDF pack: {subject}")
-    for owner, pack in pack_by_owner.items():
+    subject_pack_id: dict[Any, str] = {}
+    for pack, _, owner, triples in packs_with_payloads:
+        if owner == "view":
+            continue
+        for subject, _, _ in triples:
+            subject_pack_id[subject] = pack["packId"]
+    missing = sorted(
+        (str(subject) for subject in asserted_subject_owner if subject not in subject_pack_id),
+    )
+    if missing:
+        raise ValueError(f"fixture subjects have no RDF pack: {missing}")
+
+    for pack, _, owner, triples in packs_with_payloads:
         if owner == "view":
             continue
         dependencies = {
-            pack_by_owner[target_owner]["packId"]
-            for subject, _, obj in fixture.asserted
-            if asserted_subject_owner.get(subject) == owner
-            and isinstance(obj, URIRef)
-            and (target_owner := asserted_subject_owner.get(obj)) is not None
-            and target_owner != owner
+            subject_pack_id[obj]
+            for _, _, obj in triples
+            if isinstance(obj, URIRef)
+            and subject_pack_id.get(obj) is not None
+            and subject_pack_id[obj] != pack["packId"]
         }
         pack["dependencies"] = sorted(dependencies)
 
-    packs = [pack for pack, _, _ in packs_with_payloads]
+    packs = [pack for pack, _, _, _ in packs_with_payloads]
     asserted_inventory = atlas_validate._graph_inventory_digest(packs, "asserted")
     asserted_pack_ids = sorted(
         pack["packId"] for pack in packs if pack["graphCounts"]["asserted"]
@@ -1080,13 +1181,19 @@ def _write_rdf_packs(
         }
         for role in ("asserted", "projection", "derived")
     ]
-    for pack, payload, _ in packs_with_payloads:
+    for pack, payload, _, _ in packs_with_payloads:
         target = root / pack["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(payload)
-    return packs, graph_rows, {
-        owner: pack for pack, _, owner in packs_with_payloads if owner not in {"catalog", "view"}
-    }
+
+    rdf_by_unit: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for pack, _, owner, _ in packs_with_payloads:
+        if owner in {"catalog", "view"}:
+            continue
+        rdf_by_unit[owner].append(pack)
+    for owner_packs in rdf_by_unit.values():
+        owner_packs.sort(key=lambda pack: pack["path"])
+    return packs, graph_rows, dict(rdf_by_unit)
 
 
 def _compact_logical_rows(
@@ -1274,7 +1381,7 @@ def _construction_summary(
     accounting_digest: str,
     graph_rows: Sequence[Mapping[str, Any]],
     rdf_packs: Sequence[Mapping[str, Any]],
-    rdf_by_unit: Mapping[str, Mapping[str, Any]],
+    rdf_by_unit: Mapping[str, Sequence[Mapping[str, Any]]],
     compact_packs: Sequence[Mapping[str, Any]],
     compact_path_owners: Mapping[str, str],
     compact_rows: Mapping[tuple[str, str], Sequence[Mapping[str, Any]]],
@@ -1380,7 +1487,7 @@ def _construction_summary(
                     "role": descriptor["role"],
                 }
             )
-        rdf_pack = rdf_by_unit[unit.key]
+        unit_rdf_packs = sorted(rdf_by_unit[unit.key], key=lambda pack: pack["path"])
         release_rows.append(
             {
                 "accountingRowDigest": atlas_validate.canonical_sha256(
@@ -1408,6 +1515,7 @@ def _construction_summary(
                         "packId": rdf_pack["packId"],
                         "path": rdf_pack["path"],
                     }
+                    for rdf_pack in unit_rdf_packs
                 ],
                 "recordCounts": record_counts,
                 "registrySource": str(unit.registry_source),
@@ -1524,7 +1632,12 @@ def _write_case(
     fixture.accounting["distributionId"] = distribution_id
     units = _construction_units(fixture.asserted)
     packs, graph_rows, rdf_by_unit = _write_rdf_packs(
-        path, fixture, units, distribution_id=distribution_id
+        path,
+        fixture,
+        units,
+        distribution_id=distribution_id,
+        zstd_all=fixture.rdf_zstd_all,
+        partition_owner=fixture.rdf_partition_owner,
     )
     compact_rows = _compact_logical_rows(fixture, baseline_asserted, units)
     compact_packs, compact_path_owners = _write_compact_packs(path, compact_rows)
@@ -1682,7 +1795,59 @@ def _refresh_evidence_for_source(graph: Graph, source_record: URIRef) -> None:
         for _, predicate, obj in list(graph.triples((evidence, None, None))):
             graph.remove((evidence, predicate, obj))
             graph.add((replacement, predicate, obj))
+        # Re-minting the binding IRI orphans anything pointing AT it -- an
+        # atlas:adoptedEvidence chain link, for one -- so redirect inbound
+        # references too rather than leaving a dangling subject.
+        for subject, predicate, _ in list(graph.triples((None, None, evidence))):
+            graph.remove((subject, predicate, evidence))
+            graph.add((subject, predicate, replacement))
         graph.add((replacement, ATLAS.contentDigest, Literal(digest)))
+    _reseal_evidence_to_fixed_point(graph)
+
+
+def _reseal_evidence_to_fixed_point(graph: Graph) -> None:
+    """Re-mint evidence bindings until every contentDigest matches its content.
+
+    Redirecting an inbound reference changes the referring binding's content, so
+    resealing one binding can stale another that adopts it. An acyclic chain
+    settles by resealing terminals first and working outward; iterate rather
+    than assume a depth. A cycle cannot settle -- two bindings would each need
+    to contain the other's digest -- so bound the passes and leave any residue
+    for the validator's adoption-cycle check to report as what it is.
+    """
+
+    for _ in range(16):
+        stale = [
+            evidence
+            for evidence in set(graph.subjects(RDF.type, ATLAS.EvidenceBinding))
+            if isinstance(evidence, URIRef)
+            and str(graph.value(evidence, ATLAS.contentDigest) or "")
+            != _evidence_digest_without_pin(graph, evidence)
+        ]
+        if not stale:
+            return
+        for evidence in stale:
+            _remove_subject_predicate(graph, evidence, ATLAS.contentDigest)
+            digest = atlas_validate.rdf_node_digest(graph, evidence)
+            replacement = URIRef("urn:ref:atlas-evidence:" + digest.removeprefix("sha256:"))
+            for _, predicate, obj in list(graph.triples((evidence, None, None))):
+                graph.remove((evidence, predicate, obj))
+                graph.add((replacement, predicate, obj))
+            for subject, predicate, _ in list(graph.triples((None, None, evidence))):
+                graph.remove((subject, predicate, evidence))
+                graph.add((subject, predicate, replacement))
+            graph.add((replacement, ATLAS.contentDigest, Literal(digest)))
+
+
+def _evidence_digest_without_pin(graph: Graph, evidence: URIRef) -> str:
+    pinned = graph.value(evidence, ATLAS.contentDigest)
+    if pinned is not None:
+        graph.remove((evidence, ATLAS.contentDigest, pinned))
+    try:
+        return atlas_validate.rdf_node_digest(graph, evidence)
+    finally:
+        if pinned is not None:
+            graph.add((evidence, ATLAS.contentDigest, pinned))
 
 
 def _remove_assertion_with_evidence(graph: Graph, assertion: URIRef) -> None:
@@ -1732,22 +1897,31 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
         fixture.asserted.remove((resource, SKOSXL.prefLabel, label))
         fixture.asserted.add((resource, SKOSXL.altLabel, label))
+        native_payload_bytes = atlas_validate.canonical_native_json_bytes(
+            {
+                "identifier": "subject-a-child",
+                "label": "Agency procedure",
+                "publisherOptionalValue": None,
+            }
+        )
         _remove_subject_predicate(fixture.asserted, source_record, ATLAS.nativePayload)
         fixture.asserted.add(
             (
                 source_record,
                 ATLAS.nativePayload,
                 Literal(
-                    atlas_validate.canonical_native_json_bytes(
-                        {
-                            "identifier": "subject-a-child",
-                            "label": "Agency procedure",
-                            "publisherOptionalValue": None,
-                        }
-                    ).decode("utf-8"),
+                    native_payload_bytes.decode("utf-8"),
                     datatype=RDF.JSON,
                     normalize=False,
                 ),
+            )
+        )
+        _remove_subject_predicate(fixture.asserted, source_record, ATLAS.sourceDigest)
+        fixture.asserted.add(
+            (
+                source_record,
+                ATLAS.sourceDigest,
+                Literal("sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()),
             )
         )
         _refresh_node_digest(fixture.asserted, source_record)
@@ -2182,6 +2356,42 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             (evidence, ATLAS.reviewedBy, URIRef("urn:ref:agent:unreviewed-replacement"))
         )
 
+    def _operator_adopted_evidence(fixture: Fixture) -> URIRef:
+        return next(
+            subject
+            for subject in fixture.asserted.subjects(RDF.type, ATLAS.EvidenceBinding)
+            if fixture.asserted.value(subject, ATLAS.reviewMethod) == ATLAS.operatorAdoption
+        )
+
+    def adoption_without_referent(fixture: Fixture) -> None:
+        # operatorAdoption evidence that names nothing it adopted: the exact
+        # regression this shape and check exist to reject. Reidentify the
+        # binding after the removal so this fixture's only defect is the
+        # missing adoptedEvidence, not an incidentally stale contentDigest.
+        evidence = _operator_adopted_evidence(fixture)
+        _remove_subject_predicate(fixture.asserted, evidence, ATLAS.adoptedEvidence)
+        _remove_subject_predicate(fixture.asserted, evidence, ATLAS.contentDigest)
+        digest = atlas_validate.rdf_node_digest(fixture.asserted, evidence)
+        replacement = URIRef("urn:ref:atlas-evidence:" + digest.removeprefix("sha256:"))
+        for _, predicate, obj in list(fixture.asserted.triples((evidence, None, None))):
+            fixture.asserted.remove((evidence, predicate, obj))
+            fixture.asserted.add((replacement, predicate, obj))
+        fixture.asserted.add((replacement, ATLAS.contentDigest, Literal(digest)))
+
+    def adoption_chain_cycle(fixture: Fixture) -> None:
+        # Two operatorAdoption bindings adopt each other. Each binding's own
+        # content-derived identity is left untouched (a real mutual reference
+        # cycle can never itself be content-addressed consistently), because
+        # the adoption chain resolver runs before identity checks and must
+        # reject the cycle on its own terms.
+        later_evidence = _operator_adopted_evidence(fixture)
+        earlier_evidence = next(
+            fixture.asserted.objects(later_evidence, ATLAS.adoptedEvidence)
+        )
+        _remove_subject_predicate(fixture.asserted, earlier_evidence, ATLAS.reviewMethod)
+        fixture.asserted.add((earlier_evidence, ATLAS.reviewMethod, ATLAS.operatorAdoption))
+        fixture.asserted.add((earlier_evidence, ATLAS.adoptedEvidence, later_evidence))
+
     def policy_payload_changed(fixture: Fixture) -> None:
         policy = next(fixture.asserted.subjects(RDF.type, ATLAS.EditorialPolicy))
         _remove_subject_predicate(fixture.asserted, policy, ATLAS.policyPayload)
@@ -2461,6 +2671,83 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _refresh_node_digest(fixture.asserted, record)
         _refresh_evidence_for_source(fixture.asserted, record)
 
+    def zstd_packs(fixture: Fixture) -> None:
+        # Content is identical to the base fixture; only the RDF pack
+        # transport changes, so every pack -- catalog, each source-release
+        # pack, and the view pack -- is written zstd-compressed instead of
+        # raw. This is the only path that exercises validate.py's
+        # `compression == "zstd"` branch (~2199-2206) with a passing case.
+        fixture.rdf_zstd_all = True
+
+    def partitioned_packs(fixture: Fixture) -> None:
+        # Split the (self-contained, unreferenced-elsewhere) mixed-code-value
+        # release across more than one RDF pack, bucketed by a real
+        # sha256(subject IRI) prefix, so the partition-bucket check
+        # (~2190-2193) and the co-location/overlap check (~1492-1515) both
+        # run against a passing case instead of only ever seeing one pack
+        # per source release.
+        fixture.rdf_partition_owner = "source-mixed-code-value"
+
+    def withdrawn_lifecycle(fixture: Fixture) -> None:
+        # Reuse an existing, otherwise-inert cross-ring assertion (entity
+        # references legal-identity) rather than inventing a new
+        # distribution: withdraw it terminally (no successor, so it is
+        # legitimately excluded from the projection) and record the
+        # withdrawal as a LifecycleEvent, mirroring the "admitted" event the
+        # base fixture already carries for exact-ab.
+        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.legalIdentity)
+        _remove_subject_predicate(fixture.asserted, assertion, ATLAS.assertionStatus)
+        fixture.asserted.add((assertion, ATLAS.assertionStatus, ATLAS.withdrawn))
+        _refresh_node_digest(fixture.asserted, assertion)
+
+        entity = URIRef("urn:ref:atlas-fixture:resource:entity-agency")
+        entity_release = next(fixture.asserted.objects(entity, ATLAS.inRelease))
+        source_record = next(fixture.asserted.objects(entity, ATLAS.sourceRecord))
+        lifecycle = URIRef("urn:ref:atlas-fixture:lifecycle:entity-references-legal-withdrawn")
+        fixture.asserted.add((lifecycle, RDF.type, ATLAS.LifecycleEvent))
+        fixture.asserted.add((lifecycle, ATLAS.eventSubject, assertion))
+        fixture.asserted.add((lifecycle, ATLAS.eventType, URIRef("urn:ref:atlas-event:withdrawn")))
+        fixture.asserted.add(
+            (
+                lifecycle,
+                ATLAS.eventAt,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        fixture.asserted.add((lifecycle, ATLAS.fromRelease, entity_release))
+        fixture.asserted.add((lifecycle, ATLAS.sourceRecord, source_record))
+        _refresh_node_digest(fixture.asserted, lifecycle)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def skosxl_hidden_label(fixture: Fixture) -> None:
+        # Add a genuine skosxl:hiddenLabel to an existing resource, disjoint
+        # in both node and literal text from its prefLabel, so the
+        # projection's skosxl:hiddenLabel -> skos:hiddenLabel path and the
+        # compact "hidden" labelRole (~5392) both run against a passing case.
+        resource = URIRef("urn:ref:atlas-fixture:resource:subject-c")
+        release = next(fixture.asserted.objects(resource, ATLAS.inRelease))
+        source_record = next(fixture.asserted.objects(resource, ATLAS.sourceRecord))
+        label = URIRef("urn:ref:atlas-fixture:label:subject-c:hidden:en")
+        fixture.asserted.add((resource, SKOSXL.hiddenLabel, label))
+        fixture.asserted.add((label, RDF.type, SKOSXL.Label))
+        fixture.asserted.add(
+            (label, SKOSXL.literalForm, Literal("Admin law (deprecated term)", lang="en"))
+        )
+        fixture.asserted.add((label, ATLAS.inRelease, release))
+        fixture.asserted.add((label, ATLAS.sourceRecord, source_record))
+        _refresh_node_digest(fixture.asserted, label)
+        _refresh_node_digest(fixture.asserted, resource)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def native_payload_digest_mismatch(fixture: Fixture) -> None:
+        record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
+        _remove_subject_predicate(fixture.asserted, record, ATLAS.sourceDigest)
+        fixture.asserted.add(
+            (record, ATLAS.sourceDigest, Literal("sha256:" + "9" * 64))
+        )
+        _refresh_node_digest(fixture.asserted, record)
+        _refresh_evidence_for_source(fixture.asserted, record)
+
     return [
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
@@ -2531,6 +2818,8 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("asserted-untyped-statement", ["dataset"], "dataset.graph-placement", untyped_asserted_statement),
         ("evidence-retargeted", ["rdf", "dataset"], "dataset.evidence-identity", evidence_retargeted),
         ("evidence-reviewer-retargeted", ["rdf", "dataset"], "dataset.evidence-identity", evidence_reviewer_retargeted),
+        ("adoption-without-referent", ["shacl", "dataset"], "shacl.data", adoption_without_referent),
+        ("adoption-chain-cycle", ["rdf", "dataset"], "dataset.evidence-adoption", adoption_chain_cycle),
         ("policy-payload-changed", ["rdf", "dataset"], "dataset.assertion-identity", policy_payload_changed),
         ("supersession-old-still-current", ["dataset", "lifecycle"], "dataset.supersession", invalid_supersession_keeps_old_current),
         ("source-accounting-resource-swap", ["json", "dataset"], "source.accounting", source_accounting_swap),
@@ -2573,6 +2862,16 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("validator-identity-mismatch", ["json", "dataset"], "json.schema", wrong_validator_identity),
         ("subject-scheme-disagreement", ["shacl", "rdf"], "shacl.data", subject_scheme_disagreement),
         ("native-payload-noncanonical", ["rdf", "dataset"], "dataset.native-payload", noncanonical_native_payload),
+        (
+            "native-payload-digest-mismatch",
+            ["rdf", "dataset"],
+            "dataset.native-payload-digest",
+            native_payload_digest_mismatch,
+        ),
+        ("zstd-packs", ["dataset"], "valid", zstd_packs),
+        ("partitioned-packs", ["dataset"], "valid", partitioned_packs),
+        ("withdrawn-lifecycle", ["dataset", "lifecycle"], "valid", withdrawn_lifecycle),
+        ("skosxl-hidden-label", ["shacl", "dataset"], "valid", skosxl_hidden_label),
     ]
 
 

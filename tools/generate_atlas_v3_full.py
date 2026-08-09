@@ -161,23 +161,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:d3f5ac82ebd6740b49439ea13bd01a6afefc0f6aec55edbfb1b871ff44474122"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:10f5e1e4c38f8f3e18eeb5651b87bec76ca0d9b15c6b2dbfa4871b2c7b616946"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:06dc61914a1d8f9cee6c008b75177094d9877919a9c6e2575016c00d53431582"
+            "sha256:a14556f4176bcb5849a019cf03c67b81d7a28fa29e0710ed2ac97e0dc6139fdb"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:f18b055e029cb0df70b9cb393b8de8ef48f8f37c7fd3ae8f07afd0ec633a55fa"
+            "sha256:f3439376a6097075fa2853f3367eba705e6e7e07651cdbcf151e5d31417cfb9d"
         ),
         "shapesDigest": (
-            "sha256:f8a3c1ddf90ad05bdb782b878c6288cfaf0cc96a027c54c78a7a672e650fc3c6"
+            "sha256:23244c20bd6f1b9f4cf50f1a64e40713d801cf646b47e33fcd1ab825b6ee84bf"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -2708,9 +2708,20 @@ def _add_source_record(
         native_payload=native_payload,
         language_map_fields=language_map_fields,
     )
+    # atlas:sourceDigest on a SourceRecord is defined as sha256 over this
+    # record's own canonical nativePayload bytes -- never the caller-supplied
+    # ``source_digest`` (which, for several producers, pins an upstream
+    # observation/file digest instead). Asserting anything other than the
+    # payload's own digest here is exactly the gap that let a record's
+    # sourceDigest go unverified against the bytes it claims to represent;
+    # the validator now recomputes and checks this same digest in
+    # ``_check_native_payloads``. The caller-supplied ``source_digest`` still
+    # feeds the node-identity basis above so existing SourceRecord IRIs are
+    # unaffected by this change.
+    content_source_digest = "sha256:" + hashlib.sha256(native_payload_bytes).hexdigest()
     graph.add((node, RDF.type, ATLAS.SourceRecord))
     graph.add((node, ATLAS.inSourceRelease, source_release))
-    graph.add((node, ATLAS.sourceDigest, Literal(source_digest)))
+    graph.add((node, ATLAS.sourceDigest, Literal(content_source_digest)))
     graph.add((node, ATLAS.sourceLocator, source_locator))
     graph.add(
         (

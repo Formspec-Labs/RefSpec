@@ -1,0 +1,9 @@
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <http://purl.org/dc/terms/identifier> "mixed-code-value" <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <http://purl.org/dc/terms/issued> "2026-08-05"^^<http://www.w3.org/2001/XMLSchema#date> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#AtlasRelease> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <http://www.w3.org/ns/prov#hadMember> <urn:ref:atlas-fixture:resource:mixed-code-value> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:c542b14ecdd391f03f959c4a87f87f9308f680812bd7e24b659d67dff84690fd" <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <https://refspec.org/ns/atlas/v3#inScheme> <urn:ref:atlas-fixture:scheme:mixed-code> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <https://refspec.org/ns/atlas/v3#membershipMode> <https://refspec.org/ns/atlas/v3#completeMembership> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#codeScheme> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .
+<urn:ref:atlas-fixture:release:mixed-code-value:2026> <https://refspec.org/ns/atlas/v3#semanticRing> <https://refspec.org/ns/atlas/v3#value> <urn:ref:atlas-fixture:distribution:partitioned-packs:asserted> .

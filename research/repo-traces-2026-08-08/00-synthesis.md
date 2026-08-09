@@ -76,12 +76,67 @@ digest-pinned copy of a contract nobody re-verifies.**
 consumer's reader would accept `schemaVersion: 3.0`. RefSpec never published a 2.0
 example, so SpicySearch's 2.0 reader has never run against real data.
 
-**One environment variable gates every cross-repo freshness check in the workspace, and
-it is set nowhere** — not in either Makefile, not in CI. `REFSPEC_CHECKOUT` disables
-RuleSpec's drift test and SpicySearch's live-atlas comparison simultaneously. Separately,
-RefSpec's resource catalog grew 33 → 89 resources and the test that should have caught it
-*skips* rather than fails, because an upstream policy file still pins the old digest and
-the test classifies that state as torn.
+### ⚠️ Superseded 2026-08-09 — Atlas 1.0 and 2.0 were retired
+
+Commit `5c6d889` *"refactor(atlas): retire Atlas 1.0 and 2.0"* — **307 files, 20,711
+deletions** — removed `bindings/atlas/2.0/` entirely and reduced `bindings/atlas/1.0/`
+to a single `README.md`. `bindings/atlas/1.0/examples/` and `.../fixtures/` are gone, as
+is `build_vocabulary_atlas` from `src/refspec/atlas/__init__.py`. HEAD is now `21b662a`.
+
+Its message reads **"Greenfield, no consumers."** That is defensible for RefSpec's own
+live code paths and false for the workspace: **SpicySearch and RuleSpec both vendored
+byte-copies from those exact deleted paths and pin their digests.** Their local copies
+survive, so nothing breaks at runtime — but **the upstream those pins point at no longer
+exists, so they can no longer be re-derived.** A digest pin whose source has been deleted
+is worse than a stale one: staleness is detectable, absence is not.
+
+The version-skew row above therefore resolves not by the consumers catching up but by the
+producer deleting the contract underneath them. Both consumers now hold copies of a
+format with no upstream at all.
+
+### The `REFSPEC_CHECKOUT` claim was wrong in both directions
+
+Corrected 2026-08-09 by an independent check that actually **set the variable and ran the
+tests**. My "one variable gates every cross-repo freshness check" oversimplified in one
+direction and undersold in the other:
+
+- **RuleSpec** `tools/test_refspec_atlas_cross_repository.py:24` — `skipUnless` gates the
+  *whole TestCase class*, all three methods. Genuinely inert, and now **triply dead**:
+  unset → skip; set → `FileNotFoundError` on the deleted
+  `bindings/atlas/1.0/fixtures/corpus.json`; and even with fixtures restored it imports
+  `build_vocabulary_atlas`, which no longer exists.
+- **SpicySearch** `tests/search/test_refspec_atlas_cross_repository.py:20-21` — **not
+  `skipUnless` at all.** Unset, it falls back to a vendored fixture and runs normally.
+  The variable swaps the data source; it does not gate the test.
+- **SpicySearch** `tests/search/test_policy_inputs_cross_repository.py` — bypasses the
+  variable entirely, defaulting to sibling-checkout paths (`ROOT.parent/"spicy-regs"`).
+  All three upstream targets exist on this machine, so it is **live right now**, doing a
+  real cross-repo byte comparison. Not dormant.
+- Same vendored-fallback pattern, also not gated:
+  `tests/search/test_refspec_atlas_conformance.py`,
+  `tests/search/test_sealed_fixture_results.py`, and the CLI
+  `src/spicysearch/validation/cli_seal_fixtures.py`.
+
+What survives the correction: **`REFSPEC_CHECKOUT` is set nowhere** — no Makefile, no
+workflow, no `.env` or `.envrc`, in any of the four repos.
+
+Separately and still standing: RefSpec's resource catalog grew 33 → 89 resources and the
+test that should have caught it *skips* rather than fails, because an upstream policy
+file still pins the old digest and the test classifies that state as torn.
+
+### A previously uncatalogued edge, in the opposite direction
+
+**RefSpec → RuleSpec, by subprocess.** `src/refspec/release_graph.py`
+`load_pinned_rulespec_validator()`, called from `release_graph.py:1727` and
+`tools/reseal_elsst_managed_release.py:494`, both behind a required `--rulespec-dir` flag
+(never hardcoded). It verifies the RuleSpec checkout's `git rev-parse HEAD` against a
+pinned evidence revision, requires a clean tree, then subprocess-runs RuleSpec's
+`tools/ci_validate.py` and `tools/reference_release_digest.py` with `cwd=rulespec_dir`.
+
+This is the **mirror image of DocSpec→SpicyRegs and materially healthier**: git-SHA
+pinned, dirty-tree guarded, path supplied by an explicit flag — versus a hardcoded
+absolute developer path invoking a private function. Two subprocess edges, one careful
+and one not; the contrast is the useful part.
 
 ---
 
@@ -217,10 +272,16 @@ Ranked by ratio of value to work, given that everything below needs no new machi
 
 1. **Point the live one-hop expander at the real thesaurus and measure it.** Both halves
    exist. This is the only unanswered question that changes the product thesis.
-2. **Set `REFSPEC_CHECKOUT` in both CIs.** One variable currently disables every
-   cross-repo freshness check in the workspace.
-3. **Decide whether Atlas 3.0 is meant to be consumed.** If yes, someone must write a
-   reader; if no, the 2.6 GB build has no audience and should be labelled as such.
+2. **Decide whether Atlas 3.0 is meant to be consumed — this is now urgent.** With 1.0
+   and 2.0 retired, the only format RefSpec publishes has **no reader anywhere**, and the
+   only format its two consumers can read has **no producer anywhere**. That is not
+   version skew any more; it is a severed contract. Either someone writes a 3.0 reader or
+   the 2.6 GB build has no audience and should be labelled as such.
+3. **Do *not* simply set `REFSPEC_CHECKOUT` in CI.** ~~One variable disables every
+   cross-repo check~~ — corrected above. RuleSpec's gated tests would now *error* rather
+   than pass, since the fixtures and the imported API are both gone. Either restore the
+   1.0 fixtures, retarget those tests at 3.0, or delete them; leaving a test that can
+   only skip or crash is the worst of the three.
 4. **Fix the coordinate-system split before more than 8.2M records carry it.** Bytes
    versus codepoints is a silent corruption in non-ASCII text, not a naming disagreement.
 5. **Re-derive, never re-quote.** Three of six figures failed because a receipt outlived

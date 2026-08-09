@@ -856,6 +856,12 @@ atlas:EvidenceBindingShape
     )
   ] ;
   sh:property [
+    sh:path atlas:adoptedEvidence ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:EvidenceBinding
+  ] ;
+  sh:property [
     sh:path atlas:decidedAt ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -873,7 +879,17 @@ atlas:EvidenceBindingShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
-  ] .
+  ] ;
+  sh:or (
+    [
+      sh:not [ sh:property [ sh:path atlas:reviewMethod ; sh:hasValue atlas:operatorAdoption ] ] ;
+      sh:property [ sh:path atlas:adoptedEvidence ; sh:maxCount 0 ]
+    ]
+    [
+      sh:property [ sh:path atlas:reviewMethod ; sh:hasValue atlas:operatorAdoption ] ;
+      sh:property [ sh:path atlas:adoptedEvidence ; sh:minCount 1 ]
+    ]
+  ) .
 
 atlas:LifecycleEventShape
   a sh:NodeShape ;

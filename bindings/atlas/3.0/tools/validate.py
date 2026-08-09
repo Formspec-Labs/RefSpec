@@ -470,6 +470,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.evidenceSourceDigest,
         ATLAS.reviewedBy,
         ATLAS.decisionStatus,
+        ATLAS.adoptedEvidence,
         ATLAS.reviewMethod,
         ATLAS.bindsAssertion,
         ATLAS.eventSubject,
@@ -522,6 +523,8 @@ REQUIRED_GATES = frozenset(
 REQUIRED_CORPUS_CASES = frozenset(
     {
         "acceptance-missing-gate",
+        "adoption-chain-cycle",
+        "adoption-without-referent",
         "all-resource-profiles",
         "asserted-naked-mapping",
         "asserted-auxiliary-type-only",
@@ -554,10 +557,12 @@ REQUIRED_CORPUS_CASES = frozenset(
         "manifest-unknown-field",
         "mapping-missing-evidence",
         "mapping-wrong-endpoint-release",
+        "native-payload-digest-mismatch",
         "native-payload-noncanonical",
         "naked-projected-mapping",
         "no-derived",
         "non-english-label",
+        "partitioned-packs",
         "profile-ring-mismatch",
         "policy-payload-changed",
         "rdf-literal-escaping",
@@ -568,6 +573,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "skos-mapping-hierarchy-conflict",
         "skos-mapping-reverse-conflict",
         "skos-mapping-transitive-conflict",
+        "skosxl-hidden-label",
         "skosxl-label-role-overlap",
         "source-accounting-false-inverse",
         "source-accounting-missing-disposition",
@@ -577,7 +583,9 @@ REQUIRED_CORPUS_CASES = frozenset(
         "supersession-old-still-current",
         "unjustified-thesaurus-related",
         "validator-identity-mismatch",
+        "withdrawn-lifecycle",
         "wrong-ring-relation",
+        "zstd-packs",
     }
 )
 
@@ -3510,6 +3518,54 @@ def _check_evidence_bindings(
     )
     source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
     bindings = _carrier_nodes(asserted, ATLAS.EvidenceBinding, inventory)
+
+    # An operatorAdoption binding must name what it adopted, and the adoption
+    # chain it starts must resolve to a non-adoption terminal without cycling.
+    # This is purely a property of the reviewMethod/adoptedEvidence graph, so it
+    # is resolved before any content-identity check below: a cycle or a dangling
+    # reference is diagnosed on its own terms rather than masked by an unrelated
+    # stale-digest failure on one of the bindings it touches.
+    adopted_evidence_by_binding: dict[URIRef, URIRef] = {}
+    for binding in sorted(bindings):
+        review_method = asserted.value(binding, ATLAS.reviewMethod)
+        adopted_values = list(asserted.objects(binding, ATLAS.adoptedEvidence))
+        if len(adopted_values) > 1:
+            _fail("dataset.evidence-adoption", f"{binding} has more than one adoptedEvidence")
+        adopted_evidence = adopted_values[0] if adopted_values else None
+        if review_method == ATLAS.operatorAdoption:
+            if adopted_evidence is None:
+                _fail(
+                    "dataset.evidence-adoption",
+                    f"{binding} uses operatorAdoption but names no adoptedEvidence",
+                )
+            adopted_evidence_by_binding[binding] = _iri(
+                adopted_evidence,
+                code="dataset.evidence-adoption",
+                label="adoptedEvidence",
+            )
+        elif adopted_evidence is not None:
+            _fail(
+                "dataset.evidence-adoption",
+                f"{binding} names adoptedEvidence but its reviewMethod is not operatorAdoption",
+            )
+    for start in sorted(adopted_evidence_by_binding):
+        chain = [start]
+        current = start
+        while current in adopted_evidence_by_binding:
+            target = adopted_evidence_by_binding[current]
+            if target not in bindings:
+                _fail(
+                    "dataset.evidence-adoption",
+                    f"{start} adoptedEvidence chain cites unknown evidence binding {target}",
+                )
+            if target in chain:
+                _fail(
+                    "dataset.evidence-adoption",
+                    f"{start} adoptedEvidence chain cycles back to {target}",
+                )
+            chain.append(target)
+            current = target
+
     bound_assertions: set[URIRef] = set()
     source_digests: dict[URIRef, str] = {}
     for binding in sorted(bindings):
@@ -4402,6 +4458,31 @@ def _check_native_payloads(
             label="nativePayload",
             source_native=True,
         )
+        # atlas:sourceDigest ties a SourceRecord to the exact source bytes it
+        # claims to represent: it must equal sha256 over this record's own
+        # canonical nativePayload. Without this check, a record could carry a
+        # payload copied from a different source record while still passing
+        # every other gate.
+        native_value = json.loads(
+            str(literal),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_reject_float,
+            parse_int=_parse_int,
+            parse_constant=_reject_constant,
+        )
+        expected_source_digest = (
+            "sha256:" + hashlib.sha256(canonical_native_json_bytes(native_value)).hexdigest()
+        )
+        stored_source_digest = _literal_text(
+            _one(asserted, record, ATLAS.sourceDigest, code="dataset.native-payload"),
+            code="dataset.native-payload",
+            label="sourceDigest",
+        )
+        if stored_source_digest != expected_source_digest:
+            _fail(
+                "dataset.native-payload-digest",
+                f"{record} sourceDigest does not match the sha256 of its nativePayload",
+            )
     for scheme in _carrier_nodes(asserted, ATLAS.ResourceScheme, inventory):
         payloads = list(asserted.objects(scheme, ATLAS.descriptorPayload))
         if len(payloads) > 1:

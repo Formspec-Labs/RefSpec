@@ -10,3 +10,4 @@ output/
 .playwright-mcp/
 test-results/
 .env
+.claude/worktrees/

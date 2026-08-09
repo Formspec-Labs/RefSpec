@@ -73,8 +73,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 57,
-        "invalidCount": 52,
+        "caseCount": 64,
+        "invalidCount": 55,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 1171,
         "schemaCount": 10,
@@ -100,7 +100,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 811
+    assert result["quadCount"] == 812
     assert result["inferredMappingCount"] == 7
 
 

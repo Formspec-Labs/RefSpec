@@ -419,6 +419,13 @@ atlas:reviewMethod
   rdfs:range atlas:ReviewMethod ;
   rdfs:label "review method"@en .
 
+atlas:adoptedEvidence
+  a owl:ObjectProperty ;
+  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:range atlas:EvidenceBinding ;
+  rdfs:label "adopted evidence"@en ;
+  rdfs:comment "The prior EvidenceBinding an atlas:operatorAdoption review method directly adopted without changing its underlying provenance. Required exactly when reviewMethod is atlas:operatorAdoption; the chain MUST resolve to a non-operatorAdoption terminal and MUST NOT cycle."@en .
+
 atlas:relationSubject
   a owl:ObjectProperty ;
   rdfs:label "relation subject"@en .
