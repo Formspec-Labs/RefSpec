@@ -665,3 +665,34 @@ local server may delegate only ranked search to the matching DuckDB view. The
 static explorer remains usable without DuckDB. Canonical Atlas authority stays
 with the accepted release representation, and SpicySearch continues to own
 product retrieval, ranking, and agent-facing search behavior.
+
+### REF-022: Adopt the cross-product search topology and approve the agentic graph search direction
+
+- **Date:** 2026-08-09
+- **Status:** Accepted; closes Stage 0 of the agentic graph search plan
+
+The product topology is fixed: RefSpec owns vocabulary — sources, concepts,
+related terms, and sealed Atlas releases. DocSpec owns files at scale.
+SpicySearch is the only junction: it consumes Atlas releases from RefSpec and
+files from DocSpec, and tagging executes there, applying RefSpec vocabulary to
+DocSpec-managed files. RefSpec and DocSpec share no direct edge, and no work
+may introduce one.
+
+This closes Stage 0 of
+[the agentic graph search plan](../research/atlas-agentic-graph-search-next-steps-2026-08-07.md)
+and approves its direction. Three Stage 0 decisions land with it. The proposed
+DocSpec exclusion is reversed: DocSpec participates in the pilot, mediated
+solely through SpicySearch. The experiment is registered in the experiment lane
+of [the managed-vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md).
+Ownership collapses to the single portfolio decision-maker with the
+product-boundary roles above; no responsibility matrix is produced, because a
+seven-role matrix for one decision-maker is structure nothing reads.
+
+Stage 1 — SpicySearch as a verified Atlas 3.0 consumer with expansion disabled
+— is queued after the Atlas 1.0/2.0 retirement and rkaf adoption steps in
+[plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md). Its consumer
+seam should be built as RuleSpec bridge contracts rather than a minted seam,
+and its sealed input must be re-observed at start: the manifest digest recorded
+in the plan on 2026-08-07 predates the retirement's digest-chain regeneration
+and is stale. Later-stage gates — hub choice, meta-subjects, any binding
+change — remain open by design and are not decided here.

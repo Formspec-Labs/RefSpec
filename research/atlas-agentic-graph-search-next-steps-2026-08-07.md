@@ -10,6 +10,20 @@ The `EuroVocOrganizationExperiment` described in Stage 2 has since been built an
 verified locally as reversible experiment evidence. That implementation does not
 approve this plan or resolve its downstream adoption gates.
 
+> **Status annotation (2026-08-09, in place — nothing above is rewritten):**
+> Stage 0 is closed and the direction is approved by REF-022 in
+> [docs/decisions.md](../docs/decisions.md). The topology is fixed: RefSpec
+> owns vocabulary, DocSpec owns files at scale, SpicySearch is the only
+> junction and executes tagging there. DocSpec participates in the pilot —
+> reversing the exclusion proposed below — mediated solely through
+> SpicySearch; RefSpec and DocSpec share no direct edge. The experiment is
+> registered in the experiment lane of the
+> [managed-vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md).
+> Stage 1 is queued after the Atlas 1.0/2.0 retirement and rkaf adoption steps
+> in [plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md), with its
+> consumer seam built as RuleSpec bridge contracts. Later-stage gates — hub
+> choice, meta-subjects, any binding change — remain open by design.
+
 **Decision owner:** The portfolio architecture owner, with separate acceptance
 by the owners of each affected repository and decision ledger.
 
@@ -257,6 +271,15 @@ responsibility matrix.
 
 **Stop:** Do not start cross-product implementation without these decisions.
 
+> **Resolution (2026-08-09):** Closed by REF-022. Ownership collapses to the
+> single portfolio decision-maker with product-boundary roles: RefSpec owns
+> vocabulary, DocSpec owns files at scale, SpicySearch owns indexing, tagging,
+> and evaluation. The proposed DocSpec exclusion is reversed — DocSpec is in
+> the pilot, used only through SpicySearch. The experiment is registered in the
+> experiment lane. No responsibility matrix is produced: a seven-role matrix
+> for one decision-maker is structure nothing reads (AGENTS.md rule). No
+> Stage 0 questions remain open.
+
 ### Stage 1 — Build the Atlas 3.0 consumer seam with expansion off
 
 **Input:** A sealed copy of the exact validator-conforming local Atlas 3.0
@@ -264,6 +287,11 @@ distribution. The current observed manifest-file SHA-256 is
 `9b5d6392a993815070471734e8fea77f60e0973bdba6d05f66be11af805a1f24`;
 it becomes trusted only when an approved handoff records it outside the copied
 distribution.
+
+> **Input annotation (2026-08-09):** That observed digest predates the Atlas
+> 1.0/2.0 retirement and the digest-chain regeneration in `bd57d1f`; treat it
+> as stale. Re-observe and re-seal the distribution when Stage 1 starts. Do
+> not record the 2026-08-07 value as the trusted handoff.
 
 **Work:** Add an independent SpicySearch Atlas 3.0 reader. Prefer direct reading
 of canonical RDF. Add a compact `AtlasSearchView` only if measured consumer cost
