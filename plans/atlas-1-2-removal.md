@@ -414,6 +414,35 @@ synthetic fixtures deliberately, and `tests/test_registry_real_data_audit.py`
 reads the committed receipt rather than a fixture — the repository's one clean
 example of the pattern the rule is asking for.
 
+## The cost of touching an indexed file
+
+Worth knowing before planning any Tier 3 edit, because it was measured the hard
+way. `portfolio/atlas-index-v0.json` pins the sha256 of source *and test* files.
+Changing three lines in `tests/test_atlas_v3_registry_vocabularies.py` moved its
+digest, which moved the index digest, which moved the registry coverage and
+descriptor proofs, which moved the binding bundle digest carried by every
+conformance fixture — **234 files**, plus three hand-maintained constants in
+`tools/generate_atlas_v3_full.py` that must be repinned in order, the last of
+which covers the other two and so has to go last.
+
+None of it is optional and none of it is wrong: the chain is doing exactly what
+it was built to do. But the fixed cost of any edit to an indexed file is a full
+`make generate` plus a manual three-step repin, and the failure it produces
+first (`compiled producer validation profile drifted`) does not look like
+"you edited a test."
+
+Two mitigations worth considering, neither attempted here:
+
+- Only `bindingBundleDigest` has drifted on both occasions this happened;
+  `ontologyDigest`, `shapesDigest`, and the three schema digests stayed put. The
+  guard demands a human "review the ontology and SHACL changes" every time, when
+  the thing that actually changed was a test file. Splitting the genuinely
+  normative pins from the derived bundle digest would keep the review where it
+  belongs.
+- Test-file digests in the index arguably buy little. Pinning implementation
+  sources is provenance; pinning the tests that exercise them mostly manufactures
+  cascades.
+
 ## Verification
 
 Run after each tier, not only at the end:

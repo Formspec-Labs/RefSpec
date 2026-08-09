@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:35da49ad8ea18a41f0f4e771152267436ef4a01075dbb080068f983a1d559006",
-  "indexId": "urn:ref:atlas-index:35da49ad8ea18a41f0f4e771152267436ef4a01075dbb080068f983a1d559006",
+  "indexDigest": "sha256:f16e00d204f15647e808e704ec9ecef1a40ba066f418f06e646b8709fb038bba",
+  "indexId": "urn:ref:atlas-index:f16e00d204f15647e808e704ec9ecef1a40ba066f418f06e646b8709fb038bba",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -784,7 +784,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_vocabularies.py",
-          "sha256": "sha256:7a075987d01efdb07e625f98f54492dbc9e0ff8119dbe8b7a04f76bca17d910f"
+          "sha256": "sha256:a193a914abf272191427a06adc98e03d32540d43cd253921c990423a299672c4"
         },
         {
           "kind": "parserTest",
@@ -804,8 +804,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:9e006e49c0f93ce50d97611bd2e4c93c4dc69732658591c5c2cf525c31b9905e",
-      "rowId": "urn:ref:atlas-index-row:9e006e49c0f93ce50d97611bd2e4c93c4dc69732658591c5c2cf525c31b9905e",
+      "rowDigest": "sha256:530ddfc4c547b981c1ab1c2f4ce82a799905b4ecd4d0e357213ef6a469d07e7e",
+      "rowId": "urn:ref:atlas-index-row:530ddfc4c547b981c1ab1c2f4ce82a799905b4ecd4d0e357213ef6a469d07e7e",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },

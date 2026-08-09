@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -234,8 +233,17 @@ def test_federal_register_cache_reads_pdf_without_managed_release_dependency() -
 
 
 @pytest.mark.skipif(
-    os.environ.get("REFSPEC_ATLAS_V3_FULL_VOCABULARY_SOURCES") != "1",
-    reason="set REFSPEC_ATLAS_V3_FULL_VOCABULARY_SOURCES=1 for all large cached sources",
+    not all(
+        (vocabularies.DEFAULT_SOURCE_ROOT / filename).is_file()
+        for filename in (
+            "osti-semantic-thesaurus-2020.rdf",
+            "ELSST_R6.ttl",
+            "gemet.rdf",
+            "desc2026.xml",
+            "thesaurus-SKOS.xml",
+        )
+    ),
+    reason="exact cached large-vocabulary publisher sources are not available",
 )
 @pytest.mark.parametrize(
     "loader",

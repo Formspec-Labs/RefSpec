@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -14,6 +16,7 @@ from refspec.release_graph import (
     RulespecValidatorPin,
     ValidatorCommand,
     issue_release_graph_validation_receipt,
+    load_pinned_rulespec_validator,
     load_rulespec_dependency_manifest,
     rulespec_graph_digest,
     validate_release_graph_bundle,
@@ -1359,3 +1362,209 @@ def test_failure_channels_remain_separate(
     assert report.ref_failures == ("REF-TEST: invalid REF record",)
     assert any("exit code 4" in failure for failure in report.rulespec_failures)
     assert any("cannot resolve Rulespec identifier" in failure for failure in report.cross_boundary_failures)
+
+
+# --- load_pinned_rulespec_validator: real git-checkout verification ---
+#
+# The tests above hand-build RulespecValidatorPin objects and never exercise
+# load_pinned_rulespec_validator itself, so nothing here mocks git. Each test
+# builds a real, throwaway Rulespec checkout under tmp_path with `git init`
+# and real commits, then points the loader at it.
+
+_REAL_CHECKOUT_GIT_IDENTITY = (
+    "-c",
+    "user.email=refspec-test@example.com",
+    "-c",
+    "user.name=RefSpec Test",
+)
+
+
+def _run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *_REAL_CHECKOUT_GIT_IDENTITY, *args],
+        cwd=cwd,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+
+def _sha256_hex(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def real_rulespec_checkout(tmp_path: Path) -> tuple[Path, str, str, str, str]:
+    """Build a real git checkout with a validator-source and evidence commit.
+
+    Returns (rulespec_dir, source_revision, evidence_revision,
+    certification_sha256, generated_sha256).
+    """
+
+    rulespec_dir = tmp_path / "rulespec-checkout"
+    rulespec_dir.mkdir()
+    _run_git(rulespec_dir, "init", "-q")
+    (rulespec_dir / "README.md").write_text("Rulespec checkout root.\n", encoding="utf-8")
+    _run_git(rulespec_dir, "add", "README.md")
+    _run_git(rulespec_dir, "commit", "-q", "-m", "initial commit")
+    source_revision = _run_git(rulespec_dir, "rev-parse", "HEAD").stdout.strip()
+
+    certification_dir = rulespec_dir / "conformance" / "partners"
+    certification_dir.mkdir(parents=True)
+    certification_path = certification_dir / "rulespec-reference.yaml"
+    certification_path.write_text("selfCertification: true\n", encoding="utf-8")
+    certification_sha256 = _sha256_hex(certification_path)
+
+    generated_dir = rulespec_dir / "compiled" / "json-schema"
+    generated_dir.mkdir(parents=True)
+    generated_path = generated_dir / "concept.schema.json"
+    generated_path.write_text('{"type": "object"}\n', encoding="utf-8")
+    generated_sha256 = _sha256_hex(generated_path)
+
+    _run_git(rulespec_dir, "add", "-A")
+    _run_git(rulespec_dir, "commit", "-q", "-m", "add validator pins")
+    evidence_revision = _run_git(rulespec_dir, "rev-parse", "HEAD").stdout.strip()
+
+    return (
+        rulespec_dir,
+        source_revision,
+        evidence_revision,
+        certification_sha256,
+        generated_sha256,
+    )
+
+
+def write_real_checkout_dependency_manifest(
+    path: Path,
+    *,
+    source_revision: str,
+    evidence_revision: str,
+    certification_sha256: str,
+    generated_sha256: str,
+) -> None:
+    manifest = {
+        "schemaVersion": "1.0",
+        "rulespecVersion": "0.0.0-test",
+        "evidenceRevision": evidence_revision,
+        "validator": {
+            "identity": VALIDATOR_IDENTITY,
+            "sourceRevision": source_revision,
+            "selfCertificationPath": "conformance/partners/rulespec-reference.yaml",
+            "selfCertificationSha256": certification_sha256,
+        },
+        "generatedArtifacts": {
+            "compiled/json-schema/concept.schema.json": generated_sha256,
+        },
+    }
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+
+
+def test_load_pinned_rulespec_validator_loads_a_real_checkout_matching_its_pin(
+    tmp_path: Path,
+) -> None:
+    (
+        rulespec_dir,
+        source_revision,
+        evidence_revision,
+        certification_sha256,
+        generated_sha256,
+    ) = real_rulespec_checkout(tmp_path)
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=source_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256=certification_sha256,
+        generated_sha256=generated_sha256,
+    )
+
+    pin = load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
+
+    assert pin.identity == VALIDATOR_IDENTITY
+    assert pin.source_revision == source_revision
+    assert pin.evidence_revision == evidence_revision
+    assert pin.working_directory == rulespec_dir.resolve()
+    assert pin.commands
+    assert pin.behavior_command is not None
+
+
+def test_load_pinned_rulespec_validator_rejects_a_dirty_working_tree(
+    tmp_path: Path,
+) -> None:
+    (
+        rulespec_dir,
+        source_revision,
+        evidence_revision,
+        certification_sha256,
+        generated_sha256,
+    ) = real_rulespec_checkout(tmp_path)
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=source_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256=certification_sha256,
+        generated_sha256=generated_sha256,
+    )
+    (rulespec_dir / "README.md").write_text("dirtied after the pinned commit\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Rulespec checkout is dirty"):
+        load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
+
+
+def test_load_pinned_rulespec_validator_rejects_a_non_ancestor_source_revision(
+    tmp_path: Path,
+) -> None:
+    (
+        rulespec_dir,
+        _source_revision,
+        evidence_revision,
+        certification_sha256,
+        generated_sha256,
+    ) = real_rulespec_checkout(tmp_path)
+
+    # A commit that exists in the same repository but shares no history with
+    # evidence_revision: a real commit, but not an ancestor of it.
+    _run_git(rulespec_dir, "checkout", "-q", "--orphan", "unrelated-history")
+    (rulespec_dir / "UNRELATED.md").write_text("not part of trunk history\n", encoding="utf-8")
+    _run_git(rulespec_dir, "add", "-A")
+    _run_git(rulespec_dir, "commit", "-q", "-m", "unrelated commit")
+    non_ancestor_revision = _run_git(rulespec_dir, "rev-parse", "HEAD").stdout.strip()
+    _run_git(rulespec_dir, "checkout", "-q", evidence_revision)
+
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=non_ancestor_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256=certification_sha256,
+        generated_sha256=generated_sha256,
+    )
+
+    with pytest.raises(ValueError, match="is not an ancestor of the evidence revision"):
+        load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
+
+
+def test_load_pinned_rulespec_validator_rejects_a_mismatched_digest(
+    tmp_path: Path,
+) -> None:
+    (
+        rulespec_dir,
+        source_revision,
+        evidence_revision,
+        _certification_sha256,
+        generated_sha256,
+    ) = real_rulespec_checkout(tmp_path)
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=source_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256="0" * 64,
+        generated_sha256=generated_sha256,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Rulespec validator self-certification digest does not match",
+    ):
+        load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
