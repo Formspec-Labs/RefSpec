@@ -1,10 +1,21 @@
 # Remove Atlas 1.0 and 2.0
 
 Delete the Atlas 1.0 and 2.0 producer code, then remove the 1.0/2.0 concepts
-still embedded in modules shared with Atlas 3.0. Keep the format bindings and
-historical documents: Tier 2 below explains why deleting them was the wrong
-call. Scope is this repository only. Downstream consumers are out of scope for
-this plan and must not shape its decisions.
+still embedded in modules shared with Atlas 3.0. Scope is this repository only.
+Downstream consumers are out of scope for this plan and must not shape its
+decisions.
+
+Read `plans/refspec-on-rulespec.md` alongside this. The two are one sequence:
+that plan decides *what replaces* each retired capability — rkaf contracts,
+each landing with a validator and a negative fixture — while this one tracks
+*what is removed and in what order*. Its governing rule applies throughout:
+
+> A structure may be added or retained only if a running validator or a real
+> consumer breaks when it is violated. If nothing breaks, it is prose: delete
+> it or don't merge it.
+
+Where this plan says "keep", read it as "keep until the enforcement that
+replaces it is green", not as permanent preservation.
 
 ## Why now
 
@@ -136,8 +147,14 @@ every conformance fixture named in `fixtures/corpus.json`. Deleting the 1.0
 binding does not merely break a test; it violates a commitment this repository
 wrote down and gated.
 
-Treat both bindings as frozen evidence. The work in this tier is therefore
-additive:
+Freeze both bindings for now, but not forever. `plans/refspec-on-rulespec.md`
+sets the criterion that governs when they go: **an artifact may be deleted once
+every capability it uniquely specifies is enforced elsewhere by a running
+check, and the deletion commit names those checks.** Git history is the
+archive. So the freeze below is the interim guard, and step 5 of that plan's
+sequence retires it once the P0 adjudication and P1 temporal enforcement land.
+
+The work in this tier is therefore additive:
 
 - Extend `tests/test_versioned_atlas_bindings.py` to pin the Atlas 2.0 surface
   as well. It currently pins only 1.0, so the 2.0 `README.md` and its three
@@ -215,7 +232,21 @@ which is the mistake this list exists to stop repeating.
    3.0 ontology, shapes, and validator, but what the proof *means* — independent
    machines, sealed identical requests, distinct providers, the verdict lattice,
    complete support closure — is written down only in
-   `bindings/atlas/1.0/README.md`. Migrate that prose into the 3.0 binding.
+   `bindings/atlas/1.0/README.md` (see `:91`, `:184`). Per
+   `plans/refspec-on-rulespec.md` this should land as an rkaf `attestation.cue`
+   shape with a `validate.py` closure check and a negative fixture per
+   condition, not as a transcription of the v1 prose.
+
+   **Do not delete the 1.0 binding before that check is green.** It was
+   suggested that the protocol is already specified in
+   `rulespec/spec/rkaf-refspec.md` §1, which would make the v1 README
+   redundant. Checked against the only copy of that spec in this repository,
+   `output/rulespec-pinned/spec/rkaf-refspec.md`, and it is not: the file is
+   142 lines, its §1 is "Purpose and ownership", and it contains no occurrence
+   of adjudication, attestor, two-machine, verdict, independence group, or
+   provider. That path is also gitignored and untracked, so it is a local
+   working artifact rather than a durable specification. The v1 README remains
+   the only statement of this protocol inside RefSpec.
 
 Suggested order:
 
