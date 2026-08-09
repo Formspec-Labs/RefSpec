@@ -273,6 +273,25 @@ Port first, then retire — never the reverse.
 | `atlas_index.py` and its JSON | Still required by `generate_atlas_v3_full.py:2487-2635`, `generate_atlas_v3_registry_descriptors.py:171-398`, and `generate_atlas_v3_registry_coverage.py:17-20`. Replace with the validated v3 release inventory before removal. |
 | `model.py` (ring temporal context) | Atlas 2.0's ring-specific temporal fields — `sourceEdition`, `targetEdition`, and effective dates for value mappings, `effectiveAt` for legal identity (`semantic_foundation.py:278`) — have no v3 equivalent. Do not retire the model carrying them until v3 identity, SHACL, and pack forms grow those fields. |
 
+### Which side a capability belongs on
+
+User direction, 2026-08-09, and it decides where each owed port lands:
+
+> RuleSpec owns decision-making — schema and rules. RefSpec owns structure and
+> taxonomy.
+
+So a retired capability is not automatically RefSpec's to re-implement. Sort it
+first. Adjudication protocols, attestation, confidence, conflict, and refusal
+are decision rules and belong upstream in rkaf. Releases, packs, digests,
+semantic rings, resource profiles, concept schemes, labels, and relations are
+structure and stay here.
+
+This changes the second port below. Migrating the two-machine prose *into the
+Atlas 3.0 binding* would put a decision rule on the structure side. The right
+destination is rulespec, with RefSpec consuming it through the pin and
+enforcing the closure in `validate.py` — enforcement of a rule is structure's
+job; authoring the rule is not.
+
 ### Ports owed to Atlas 3.0
 
 Distinct from the preserve-list: these are capabilities the retired generations
