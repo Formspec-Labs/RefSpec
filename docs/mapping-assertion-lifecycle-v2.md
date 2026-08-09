@@ -21,20 +21,25 @@ while reserving content-addressed supersession links for a later Atlas.
 ## Migration
 
 Relation-assertion bundle 1.0 records do not carry lifecycle facts and fail
-closed at the 2.0 reader. The baseline preparation command reads each pinned
-1.0 bundle, adds `current` and an empty supersession list to every mapping,
-recomputes all content-derived mapping and bundle identities, verifies the
-result, and writes a new `relation-assertions-v2` directory. It preserves the
-original `relation-assertions` and `.pre-source-records` directories byte for
-byte.
+closed at the 2.0 reader. Atlas 1.0/2.0 baseline-release tooling has since been
+removed from this repository, so the commands below no longer exist — running
+them fails with "No such file or directory." This section stays as a record of
+what the migration did.
 
-Run:
+The baseline preparation command read each pinned 1.0 bundle, added `current`
+and an empty supersession list to every mapping, recomputed all
+content-derived mapping and bundle identities, verified the result, and wrote
+a new `relation-assertions-v2` directory. It preserved the original
+`relation-assertions` and `.pre-source-records` directories byte for byte.
+
+It ran as:
 
 ```text
 uv run python tools/prepare_vocabulary_atlas_v1_baseline_release.py
 uv run python tools/prepare_vocabulary_atlas_v1_baseline_release.py --check
 ```
 
-The prepared release definition pins the new 2.0 manifests. Provider evidence,
-qualification receipts, machine-proof pins, endpoint releases, predicates, and
-the 582 admitted baseline mappings remain unchanged in meaning.
+The prepared release definition pinned the new 2.0 manifests. Provider
+evidence, qualification receipts, machine-proof pins, endpoint releases,
+predicates, and the 582 admitted baseline mappings remained unchanged in
+meaning.

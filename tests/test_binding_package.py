@@ -16,16 +16,6 @@ REFSPEC_ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = REFSPEC_ROOT / "bindings" / "json" / "1.0"
 VALID_FIXTURE = BINDING_ROOT / "fixtures" / "valid" / "vocabulary-closure.json"
 LEGACY_CLI = BINDING_ROOT / "tools" / "validate.py"
-LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS = {
-    "RELEASE_ACCEPTANCE_TYPE",
-    "RELEASE_ACCEPTANCE_VERSION",
-    "AcceptanceCheckStatus",
-    "ReleaseAcceptanceError",
-    "ReproducibilityStatus",
-    "VocabularyAtlasReleaseAcceptance",
-    "build_vocabulary_atlas_release_acceptance",
-    "read_vocabulary_atlas_release_acceptance",
-}
 
 
 def test_public_package_version_matches_project_metadata() -> None:
@@ -46,24 +36,32 @@ def test_retired_atlas_builder_is_not_a_packaged_command() -> None:
         )
         is None
     )
+    assert (
+        re.search(
+            r"(?m)^refspec-publish-vocabulary-atlas\s*=",
+            project_text,
+        )
+        is None
+    )
     assert not (REFSPEC_ROOT / "src" / "refspec" / "atlas" / "cli.py").exists()
 
 
-def test_root_package_loads_legacy_atlas_acceptance_exports_lazily() -> None:
-    script = f"""
-import importlib
+def test_root_package_import_does_not_load_atlas_subpackage() -> None:
+    """Guard import isolation: `import refspec` must not drag in `refspec.atlas`.
+
+    `refspec.atlas` costs roughly as much import time as the rest of the
+    `refspec` package combined, so every `refspec` console script pays for it
+    unless the subpackage stays lazily loaded. This must run in a fresh
+    interpreter: asserting on `sys.modules` inside the pytest process proves
+    nothing, since other tests will already have imported `refspec.atlas`.
+    """
+
+    script = """
 import sys
 
 import refspec
 
-names = {sorted(LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS)!r}
 assert not any(name == "refspec.atlas" or name.startswith("refspec.atlas.") for name in sys.modules)
-assert set(names) <= set(refspec.__all__)
-assert set(names) <= set(dir(refspec))
-
-acceptance = importlib.import_module("refspec.atlas.release_acceptance")
-for name in names:
-    assert getattr(refspec, name) is getattr(acceptance, name)
 """
 
     result = subprocess.run(

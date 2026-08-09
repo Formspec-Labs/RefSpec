@@ -1,7 +1,9 @@
 # Publish and inspect Atlas 2.0
 
-> **Historical:** This runbook preserves the retired Atlas 2.0 publication
-> path. New producers and consumers use the
+> **Historical:** The Atlas 2.0 publication path this runbook describes has
+> since been removed from this repository; the commands and imports below no
+> longer run. It is retained only as a record of how that path worked. New
+> producers and consumers use the
 > [Atlas 3.0 binding](../bindings/atlas/3.0/README.md) and its independent
 > validator.
 

@@ -23,7 +23,6 @@ refspec-build-atlas-parquet-view = "refspec.atlas.parquet_view_cli:main"
 refspec-build-atlas-search-view = "refspec.atlas.parquet_search_view_cli:main"
 refspec-validate-atlas-parquet = "refspec.atlas.parquet_preflight_cli:main"
 refspec-build-vocabulary-atlas-projection = "refspec.atlas.projection_cli:main"
-refspec-publish-vocabulary-atlas = "refspec.atlas.publication:main"
 refspec-validate = "refspec.binding:main"
 refspec-release-graph-gate = "refspec.release_graph:main"
 

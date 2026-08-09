@@ -1,8 +1,6 @@
 """Executable interfaces for the Regulatory Evidence Framework."""
 
-import importlib
 from importlib.metadata import PackageNotFoundError, version
-from typing import TYPE_CHECKING, Any
 
 from refspec.accepted_output import (
     AcceptedOutputAuthorization,
@@ -70,51 +68,10 @@ from refspec.vocabulary import (
     seal_payload,
 )
 
-if TYPE_CHECKING:
-    from refspec.atlas.release_acceptance import (
-        RELEASE_ACCEPTANCE_TYPE,
-        RELEASE_ACCEPTANCE_VERSION,
-        AcceptanceCheckStatus,
-        ReleaseAcceptanceError,
-        ReproducibilityStatus,
-        VocabularyAtlasReleaseAcceptance,
-        build_vocabulary_atlas_release_acceptance,
-        read_vocabulary_atlas_release_acceptance,
-    )
-
-_LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS = frozenset(
-    {
-        "RELEASE_ACCEPTANCE_TYPE",
-        "RELEASE_ACCEPTANCE_VERSION",
-        "AcceptanceCheckStatus",
-        "ReleaseAcceptanceError",
-        "ReproducibilityStatus",
-        "VocabularyAtlasReleaseAcceptance",
-        "build_vocabulary_atlas_release_acceptance",
-        "read_vocabulary_atlas_release_acceptance",
-    }
-)
-
 try:
     __version__ = version("refspec")
 except PackageNotFoundError:  # pragma: no cover - direct source-tree import
     __version__ = "0.1.0.dev0"
-
-
-def __getattr__(name: str) -> Any:
-    """Load legacy Atlas release-acceptance exports only when requested."""
-
-    if name not in _LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS:
-        raise AttributeError(name)
-    value = getattr(importlib.import_module("refspec.atlas.release_acceptance"), name)
-    globals()[name] = value
-    return value
-
-
-def __dir__() -> list[str]:
-    """Expose lazy compatibility names to introspection tools."""
-
-    return sorted(set(globals()) | _LAZY_ATLAS_RELEASE_ACCEPTANCE_EXPORTS)
 
 
 __all__ = [
@@ -124,10 +81,7 @@ __all__ = [
     "CONCEPT_LABEL_COLUMNS",
     "CONCEPT_RELATION_COLUMNS",
     "MAPPING_IMPORT_REQUIRED_FEATURES",
-    "RELEASE_ACCEPTANCE_TYPE",
-    "RELEASE_ACCEPTANCE_VERSION",
     "REQUIRED_IMPORT_FEATURES",
-    "AcceptanceCheckStatus",
     "AcceptedOutputAuthorization",
     "AcceptedOutputAuthorizationError",
     "ConceptEventParticipant",
@@ -158,16 +112,12 @@ __all__ = [
     "RegistryDeploymentDecision",
     "RegistryImportCoverageReport",
     "RegistryReconciliationReport",
-    "ReleaseAcceptanceError",
-    "ReproducibilityStatus",
-    "VocabularyAtlasReleaseAcceptance",
     "VocabularyUniverseFreeze",
     "__version__",
     "adapt_source_terms_for_migration",
     "assert_managed_vocabulary_row_integrity",
     "authorize_accepted_assignment",
     "bind_ranked_candidates",
-    "build_vocabulary_atlas_release_acceptance",
     "canonical_payload_digest",
     "canonical_text_digest",
     "indexed_expression_corpus_digest",
@@ -180,7 +130,6 @@ __all__ = [
     "materialize_open_label_value_assertion",
     "migrate_legacy_concepts",
     "normalize_unicode_text",
-    "read_vocabulary_atlas_release_acceptance",
     "reject_legacy_conforming_payload",
     "require_language_tag",
     "require_payload_digest",
