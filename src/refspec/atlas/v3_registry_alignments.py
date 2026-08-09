@@ -67,6 +67,15 @@ ATLAS_MAPPING_ADOPTION_REVIEWER_IRI = (
 )
 ATLAS_MAPPING_ADOPTION_DECIDED_AT = "2026-08-06T00:00:00+00:00"
 EUROVOC_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:eurovoc:4.24"
+EUROVOC_DOMAINS_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:eurovoc-domains:4.24"
+# One of the 1,703 EuroVoc subjects the publisher aligned to LCSH is a domain
+# rather than a thesaurus concept: 100162 "76 INTERNATIONAL ORGANISATIONS" is
+# skos:inScheme <http://eurovoc.europa.eu/domains>. Atlas loads domains as their
+# own release, so that subject's endpoint pin has to name the domains release or
+# it asserts against a release the graph never puts it in. Both inputs are
+# digest-pinned, so this set is fixed; test_eurovoc_lcsh_alignment verifies it
+# against the source and fails if the publisher ever aligns another domain.
+EUROVOC_DOMAIN_SUBJECT_IRIS = frozenset({"http://eurovoc.europa.eu/100162"})
 LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI = (
     "urn:ref:atlas-release:3:lcsh-subjects:"
     "eurovoc-alignment-endpoints:2026-08-06"
@@ -192,7 +201,11 @@ def load_eurovoc_lcsh_mapping_release(
             subject=row.subject_iri,
             predicate=row.predicate_iri,
             object=row.object_iri,
-            subject_atlas_release_iri=EUROVOC_ATLAS_RELEASE_IRI,
+            subject_atlas_release_iri=(
+                EUROVOC_DOMAINS_ATLAS_RELEASE_IRI
+                if row.subject_iri in EUROVOC_DOMAIN_SUBJECT_IRIS
+                else EUROVOC_ATLAS_RELEASE_IRI
+            ),
             object_atlas_release_iri=LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI,
             asserted_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
             evidence=(
@@ -458,6 +471,8 @@ __all__ = [
     "ATLAS_MAPPING_ADOPTION_REVIEWER_IRI",
     "DEFAULT_SOURCE_ROOT",
     "EUROVOC_ATLAS_RELEASE_IRI",
+    "EUROVOC_DOMAINS_ATLAS_RELEASE_IRI",
+    "EUROVOC_DOMAIN_SUBJECT_IRIS",
     "EUROVOC_LCSH_MAPPING_COUNT",
     "EUROVOC_LCSH_MAPPING_POLICY_PAYLOAD",
     "LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI",

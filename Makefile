@@ -4,7 +4,10 @@
 
 ATLAS_V3_AUDIT_ROOT ?= output/atlas-3.0-full-2026-08-07-ring-audit
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_V3_AUDIT_RECEIPT ?= $(ATLAS_V3_AUDIT_ROOT)/atlas-source-fidelity-receipt.json
+# Beside the distribution, never inside it. A distribution validates its own
+# membership as a closed set, so a receipt written into that directory makes
+# the audited artifact fail its own walk -- which is exactly what happened.
+ATLAS_V3_AUDIT_RECEIPT ?= $(ATLAS_V3_AUDIT_ROOT)-source-fidelity-receipt.json
 
 generate:
 	python3 tools/generate_model.py

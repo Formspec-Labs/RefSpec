@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from rdflib.namespace import SKOS
 
+from refspec.atlas import v3_registry_alignments as alignments
 from refspec.registry.eurovoc_lcsh_alignment import (
     EUROVOC_4_20_METADATA_BYTE_LENGTH,
     EUROVOC_4_20_METADATA_FILENAME,
@@ -133,3 +134,42 @@ def test_pinned_file_reader_rejects_tampered_alignment_bytes(tmp_path: Path) -> 
 
     with pytest.raises(EuroVocLcshAlignmentError, match="pin differs"):
         parse_eurovoc_lcsh_alignment_file(tampered)
+
+
+@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+def test_declared_domain_subjects_match_the_publisher_scheme() -> None:
+    """The domain-subject set must be derived from the source, not remembered.
+
+    Atlas loads EuroVoc domains as a separate release, so an aligned subject
+    that is a domain needs its endpoint pinned to that release. The set is
+    hard-declared because both inputs are digest-pinned, which makes it fixed --
+    but only as long as this check proves it still matches the publisher.
+    """
+
+    import re
+    import zipfile
+
+    alignment_text = ALIGNMENT_PATH.read_text(encoding="utf-8", errors="replace")
+    aligned = set(re.findall(r"http://eurovoc\.europa\.eu/\d+", alignment_text))
+    assert aligned, "no EuroVoc subjects parsed from the alignment"
+
+    archive = SOURCE_ROOT / "eurovoc-4.24-skos-core.zip"
+    if not archive.is_file():
+        pytest.skip("the EuroVoc SKOS core archive is not cached")
+
+    domains: set[str] = set()
+    with zipfile.ZipFile(archive) as bundle:
+        member = next(name for name in bundle.namelist() if name.endswith(".rdf"))
+        with bundle.open(member) as handle:
+            current: str | None = None
+            for raw in handle:
+                line = raw.decode("utf-8", "replace")
+                match = re.search(r'rdf:about="(http://eurovoc\.europa\.eu/\d+)"', line)
+                if match:
+                    current = match.group(1)
+                elif current and 'resource="http://eurovoc.europa.eu/domains"' in line:
+                    domains.add(current)
+                    current = None
+
+    assert domains, "no domain memberships parsed from the EuroVoc archive"
+    assert aligned & domains == set(alignments.EUROVOC_DOMAIN_SUBJECT_IRIS)

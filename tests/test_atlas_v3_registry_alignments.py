@@ -152,9 +152,20 @@ def test_mapping_release_preserves_only_the_2003_direct_publisher_triples(
 
 
 def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) -> None:
-    assert {
-        row.subject_atlas_release_iri for row in mapping_release.mappings
-    } == {alignments.EUROVOC_ATLAS_RELEASE_IRI}
+    # The publisher aligned one EuroVoc domain alongside 1,702 thesaurus
+    # concepts, and Atlas loads domains as their own release, so both endpoint
+    # releases legitimately appear. Assert the split rather than a single value.
+    subject_releases = {row.subject_atlas_release_iri for row in mapping_release.mappings}
+    assert subject_releases == {
+        alignments.EUROVOC_ATLAS_RELEASE_IRI,
+        alignments.EUROVOC_DOMAINS_ATLAS_RELEASE_IRI,
+    }
+    domain_rows = {
+        row.subject
+        for row in mapping_release.mappings
+        if row.subject_atlas_release_iri == alignments.EUROVOC_DOMAINS_ATLAS_RELEASE_IRI
+    }
+    assert domain_rows == set(alignments.EUROVOC_DOMAIN_SUBJECT_IRIS)
     assert {
         row.object_atlas_release_iri for row in mapping_release.mappings
     } == {alignments.LCSH_ALIGNMENT_ENDPOINT_ATLAS_RELEASE_IRI}
