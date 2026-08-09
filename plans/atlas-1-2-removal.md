@@ -238,15 +238,35 @@ which is the mistake this list exists to stop repeating.
    condition, not as a transcription of the v1 prose.
 
    **Do not delete the 1.0 binding before that check is green.** It was
-   suggested that the protocol is already specified in
-   `rulespec/spec/rkaf-refspec.md` §1, which would make the v1 README
-   redundant. Checked against the only copy of that spec in this repository,
-   `output/rulespec-pinned/spec/rkaf-refspec.md`, and it is not: the file is
-   142 lines, its §1 is "Purpose and ownership", and it contains no occurrence
-   of adjudication, attestor, two-machine, verdict, independence group, or
-   provider. That path is also gitignored and untracked, so it is a local
-   working artifact rather than a durable specification. The v1 README remains
-   the only statement of this protocol inside RefSpec.
+   suggested that the protocol is already specified in rulespec's
+   `spec/rkaf-refspec.md`, which would make the v1 README redundant. That is
+   true of the current rulespec, and false of anything RefSpec can see.
+
+   Resolved account. The rule does exist upstream, added in rulespec commit
+   `939b93c` on 2026-08-02. RefSpec's tracked pin,
+   `profiles/rulespec-dependency.json`, sits at `contractRevision`
+   `0eb94257b70783688b55220e7a84dcc61bbd7507` from 2026-07-29 — an ancestor of
+   that commit, so the pin predates the rule by four days. The materialized
+   copy at `output/rulespec-pinned/spec/rkaf-refspec.md` correspondingly does
+   not contain it: 142 lines, §1 "Purpose and ownership", no occurrence of
+   adjudication, attestor, two-machine, verdict, independence group, or
+   provider. Until RefSpec re-pins, the only in-repo carrier of this protocol
+   is `bindings/atlas/1.0/README.md:91,184` — which is also where rulespec
+   took it from.
+
+   **The pin gap is the real finding, and it gates this work.** Verified here:
+   `pinTextFiles` covers exactly `spec/refspec.md`,
+   `profiles/rulespec-application-profile.md`, and
+   `plans/implementation-plan.md`. It does **not** cover `spec/rkaf-refspec.md`
+   or `spec/rkaf-core.md`, the two files the rkaf adoption depends on, and
+   `output/` is gitignored. Those specs are therefore materialized but
+   digest-covered by nothing, so upstream drift in them is invisible to any
+   check — which fails this plan's own rule that structure must be enforced by
+   something that breaks. Re-pinning at or past `939b93c` and extending pin
+   coverage to both spec files, with a check that the materialized copy
+   matches, is step 0 of `plans/refspec-on-rulespec.md`. No adoption step may
+   cite unpinned rulespec text. Verify protocol content on re-pin, not the line
+   anchors above, which will move.
 
 Suggested order:
 
