@@ -127,9 +127,18 @@ Measure these once Tier 1 has landed, rather than assuming them now:
   callers when Tier 1 lands. Re-run the importer check afterwards to see what
   actually remains rather than deleting on the strength of their names.
 - `tests/test_federal_register_thesaurus_2025.py` and
-  `tests/test_icpsr_managed_release.py` each mix legacy-snapshot cases with
-  current behaviour. Trim only the old-snapshot portions; do not delete either
-  file.
+  `tests/test_icpsr_managed_release.py` were flagged as mixing legacy cases
+  with current behaviour. Measured: **neither imports any Tier 1-deleted
+  module**, so nothing here is Atlas 1.0/2.0 residue and no trim is owed. The
+  sibling that did import one, `tests/test_federal_register_vocabulary_atlas.py`,
+  was already deleted in `176a085`, well before Tier 1. What these two actually
+  mix is tests pinned to dated real-world captures against tests using
+  synthetic fixtures — a different concern, and a legitimate one:
+  `test_packaged_extract_pins_complete_current_source_interpretation:209` and
+  `test_complete_2025_release_builds_an_atlas_snapshot:224` pin literal counts
+  from the committed extraction and always run; the ICPSR capture pins skip
+  unless `output/refspec-vocabulary-portfolio/icpsr/2026-07-30` exists. Leave
+  both files alone.
 
 ## Tier 2 — reversed: keep the bindings, strengthen the freeze
 
@@ -196,11 +205,58 @@ These modules serve both generations and cannot simply be removed:
 publication path calls `render_atlas_v3_explorer`, so Atlas 3.0 code is reached
 *through* legacy code today.
 
-The atlas package holds 53 modules. A dependency closure seeded from the known
-Atlas 3.0 entry points reached only 9 of them, which means the wiring is partly
-registry-driven or dynamic and a static import graph will not settle the
-boundary on its own. Establishing that boundary is the first task, not an
-assumption to carry in.
+### Measured after Tier 1
+
+The boundary is now measured rather than guessed. 47 non-`__init__` modules
+remain in `src/refspec/atlas/`, matrixed across `src/`, `tools/`, `tests/`, and
+`bindings/`, cross-checked with an AST closure seeded from every
+`[project.scripts]` entry and every top-level tool.
+
+**Nothing is dead.** Every module has at least a test importer. Seven are
+test-only: `queries.py`, `concept_staging.py`, `frontier_release.py`,
+`subject_admission.py`, `subject_emission.py`, `explorer_rdf_cli.py`, and
+`relation_sssom.py` — the last of which is preserve-listed and stays regardless.
+
+**The static graph is authoritative here**, contrary to the earlier assumption.
+Every dynamic import in the repository (`registry/__init__.py:389`,
+`build_registry_source_manifest.py:1159`, `verify_registry_audit.py:247`,
+`registry_real_data_pytest_plugin.py:272`) is hardcoded to a
+`refspec.registry.` prefix and never reaches `refspec.atlas`; there are no
+`__import__` calls. The only channel invisible to an import grep is
+`[project.scripts]`.
+
+**The real finding is a cluster, not a list.** Tier 1 removed the only producer
+of Atlas 2.0-format assets, and three separate symptoms follow from that one
+fact:
+
+- `model.py` is live by import count, but its asset constructor
+  `build_vocabulary_atlas()` and `VocabularyAtlasAsset.open()` have **zero
+  production callers** — only three test files.
+- `projection_cli.py` is a registered console script
+  (`pyproject.toml:26`) that opens a `VocabularyAtlasAsset` at `:58`. Nothing
+  produces one. It is a registered entry point over an artifact type nothing
+  makes, and no Makefile target or doc invokes it.
+- `queries.py` is test-only for the same reason.
+
+So Tier 3 is not "untangle five shared modules". It is one decision: **does
+RefSpec still need the Atlas 2.0 asset type?** If not, that cluster retires
+together. Two format identifiers are the load-bearing carriers and are still
+exercised — `model.py:44` `refspec-vocabulary-atlas-nquads-2.0` (written and
+validated at `:2157,2184,2736,2783`) and `projection.py:62`
+`refspec-vocabulary-atlas-projection-nquads-2.0` (`:608,772,798`).
+
+Live and confirmed correct to preserve: `frontier.py` via the lazy import at
+`source_concept_release.py:466`, and the whole qualification family plus
+`machine_evidence.py` and `relation_proof.py` via
+`tools/run_atlas_qualification.py` and five benchmark tools.
+
+Two citations in this plan have drifted and are corrected here:
+`generate_atlas_v3_full.py` now imports **eight** atlas modules, not one; and
+the preserve-list's `atlas_index.py` references to
+`generate_atlas_v3_full.py:2487-2635` and the two
+`generate_atlas_v3_registry_*.py` scripts no longer hold — those files contain
+no `atlas_index` reference today. `atlas_index.py` remains live via
+`atlas_scope.py`, `model.py`, and `tools/generate_atlas_index.py`.
 
 ### Preserve-list
 
