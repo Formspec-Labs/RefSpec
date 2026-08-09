@@ -262,11 +262,40 @@ which is the mistake this list exists to stop repeating.
    `output/` is gitignored. Those specs are therefore materialized but
    digest-covered by nothing, so upstream drift in them is invisible to any
    check — which fails this plan's own rule that structure must be enforced by
-   something that breaks. Re-pinning at or past `939b93c` and extending pin
-   coverage to both spec files, with a check that the materialized copy
-   matches, is step 0 of `plans/refspec-on-rulespec.md`. No adoption step may
-   cite unpinned rulespec text. Verify protocol content on re-pin, not the line
-   anchors above, which will move.
+   something that breaks. Re-pinning at or past `939b93c` is step 0 of
+   `plans/refspec-on-rulespec.md`. No adoption step may cite unpinned rulespec
+   text. Verify protocol content on re-pin, not the line anchors above, which
+   will move.
+
+   **Three corrections to how step 0 should be built.** It proposes extending
+   "the tracked pin (`pinTextFiles` or digest coverage) to the two spec files".
+   Measured against the code, that mechanism does not do what the step needs:
+
+   - `pinTextFiles` does not pin upstream text. All three entries —
+     `spec/refspec.md`, `profiles/rulespec-application-profile.md`,
+     `plans/implementation-plan.md` — are **RefSpec-side** files, and none
+     exists under `output/rulespec-pinned/`. The gate resolves them against
+     `REFSPEC_ROOT` and checks that RefSpec's own documents do not quote a
+     stale rulespec version. Adding `spec/rkaf-refspec.md` would gate the wrong
+     thing, against a path RefSpec does not have.
+   - `output/rulespec-pinned/` is wired to nothing. Searching `src/`, `tools/`,
+     `tests/`, and the `Makefile` for `rulespec-pinned` returns no hits. The
+     materialized copy the adoption depends on is produced outside the
+     repository and consumed by no check inside it.
+   - The closure-pin gate never sees a real checkout.
+     `validate_closure_pin(rulespec_dir, ...)` at
+     `bindings/json/1.0/tools/validate_rulespec_gate.py:219` is genuine — it
+     shells git into `rulespec_dir` for contract and corpus digests. But its
+     only caller is `tests/test_rulespec_dependency_gate.py`, whose
+     `rulespec_dir` fixture at `:35-47` fabricates a `tmp_path` tree of
+     `"test input\n"` files. The gate is exercised only against synthetic
+     inputs and has never compared RefSpec's pin against real rulespec. That is
+     why a pin four days stale went unnoticed.
+
+   This is the third gate in this repository disabled by a missing input, after
+   `REFSPEC_CHECKOUT` and `REFSPEC_REGISTRY_CLAIM_REAL_DATA`. Step 0 needs a
+   digest manifest over the materialized files and a check that runs against a
+   real checkout — not an addition to `pinTextFiles`.
 
 Suggested order:
 
