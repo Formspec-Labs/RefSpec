@@ -540,6 +540,7 @@ def audit_summary(
     rows: Sequence[Mapping[str, Any]],
     *,
     real_data_failures: Sequence[str] = (),
+    gate_evaluated: bool = True,
     direct_test_result: Mapping[str, int | float] | None = None,
     full_suite_result: Mapping[str, int | float] | None = None,
     execution_receipts: Mapping[str, Any] | None = None,
@@ -554,8 +555,10 @@ def audit_summary(
         "execution": dict(direct_test_result) if direct_test_result is not None else None,
         "fullSuiteExecution": dict(full_suite_result) if full_suite_result is not None else None,
         "executionReceipts": dict(execution_receipts) if execution_receipts is not None else None,
+        # Never report "passed" for a gate this run did not evaluate; an inventory-only
+        # run says so explicitly rather than implying the evidence was checked.
         "realDataGate": {
-            "status": "failed" if real_data_failures else "passed",
+            "status": ("failed" if real_data_failures else "passed") if gate_evaluated else "notEvaluated",
             "failures": list(real_data_failures),
         },
         "classifications": dict(sorted(classifications.items())),
@@ -614,6 +617,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     audit_summary(
                         rows,
                         real_data_failures=evidence_failures,
+                        gate_evaluated=args.require_real_data,
                         direct_test_result=direct_test_result,
                         full_suite_result=full_suite_result,
                         execution_receipts=execution_receipts,
