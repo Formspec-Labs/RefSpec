@@ -93,6 +93,34 @@ versioned registry caches. It does not consume an Atlas 1.0 or 2.0 graph. See
 the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) for the distribution,
 validation, and consumer requirements.
 
+### Atlas source-fidelity development audit
+
+`make audit-atlas-v3-source-fidelity` compares selected Atlas asserted packs
+directly with immutable snapshots of their exact, digest-pinned publisher bytes
+and writes a receipt beside the distribution. It uses stock RDF and Parquet
+readers, plus the shared byte-pin checker; it does not import the producer's
+semantic readers or builders. Narrow inverse rules convert recorded Atlas source
+evidence back into publisher-shaped claims before direct comparison. Every
+independent input and check that can still run continues after an error, so the
+receipt retains all recoverable findings.
+
+The audit compares only data attributable to publisher inputs: identifiers,
+literals in every language and datatype, source-native memberships and scheme
+claims, top-concept claims, relations, reified statements, provenance, and direct
+native-control values. It accounts in both directions: an unhandled publisher
+claim and an unowned source-shaped Atlas claim both fail. Atlas-owned release
+nodes, semantic rings, resource profiles, governed schemes, class assignments,
+and named-graph placement are outside its scope. Publisher defects are reported
+separately and do not fail fidelity when Atlas preserves them unchanged.
+
+The current verifier covers 23 of the default candidate's 110 construction
+units. All 14 covered native-control units match exactly; all nine covered RDF
+vocabulary or mapping units have differences. The remaining 87 units are
+explicit failures, not assumed matches. Set `ATLAS_V3_AUDIT_ROOT` to audit
+another completed build. Do not claim full Atlas source fidelity until
+`uncoveredUnits` is empty, every construction unit has `"status": "exact"`,
+every check passes, and the receipt records `"passed": true`.
+
 Atlas 1.0 and 2.0 remain historical formats. New producers and consumers must
 target Atlas 3.0. The
 [U.S. and European landscape comparison](ATLAS_US_EU_COMPARISON.md) explains
