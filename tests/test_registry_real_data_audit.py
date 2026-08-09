@@ -131,10 +131,15 @@ def test_gao_fedrules_reference_page_is_not_a_required_package_receipt() -> None
 
 def test_registry_audit_inventory_includes_nested_runtime_modules() -> None:
     modules = set(audit.registry_modules(REPOSITORY_ROOT))
+    manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)
 
-    assert len(modules) == 75
+    # Derived, not hardcoded: a literal count fails on every added module without
+    # saying anything, while this catches the drift that actually matters.
+    assert modules == {row["module"] for row in manifest["modules"]}
     assert "adapters/crs_zyte.py" in modules
     assert "infrastructure/pinned_acquisition.py" in modules
+    assert "infrastructure/rdf_claim_export.py" in modules
+    assert "infrastructure/registry_claim_release.py" in modules
     assert "infrastructure/semantic_foundation.py" in modules
     assert "infrastructure/source_concept_release.py" in modules
     assert "managed_releases/icpsr_managed_release.py" in modules

@@ -256,7 +256,9 @@ def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) 
         module = str(row["module"])
         test_name = module.rsplit("/", 1)[-1].removesuffix(".py")
         relative_paths = {
+            "claim_release_exports.py": ("tests/test_registry_claim_exports.py",),
             "infrastructure/pinned_acquisition.py": ("tests/test_elsst_acquisition.py",),
+            "infrastructure/rdf_claim_export.py": ("tests/test_registry_claim_exports.py",),
             "managed_releases/federal_register_thesaurus_2025_managed_release.py": (
                 "tests/test_federal_register_thesaurus_2025.py",
             ),

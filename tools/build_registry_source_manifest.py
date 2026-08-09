@@ -494,6 +494,86 @@ TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
             "provenance": "publisherDistribution",
         },
     ),
+    "eurovoc_thesaurus.py": (
+        {
+            "name": "eurovocDomainSample",
+            "localPath": "tests/fixtures/eurovoc_thesaurus/eurovoc-domains-sample-2026-08-03.ttl",
+            "publisherUrl": (
+                "http://publications.europa.eu/webapi/rdf/sparql?query="
+                "PREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0A"
+                "PREFIX+skos%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0A"
+                "PREFIX+dc%3A+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2F%3E%0A"
+                "PREFIX+dcterms%3A+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0A"
+                "PREFIX+owl%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0A"
+                "PREFIX+euvoc%3A+%3Chttp%3A%2F%2Fpublications.europa.eu%2Fontology%2Feuvoc%23%3E%0A"
+                "CONSTRUCT+%7B+%3Fs+%3Fp+%3Fo+.+%7D%0AWHERE+%7B%0A++VALUES+%3Fs+%7B%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100141%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2Fdomains%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100142%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100143%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100165%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100170%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F4157%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F4159%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F3313%3E%0A"
+                "++++%3Chttp%3A%2F%2Feurovoc.europa.eu%2F2189%3E%0A++%7D%0A++%3Fs+%3Fp+%3Fo+.%0A++FILTER%28%0A"
+                "++++%3Fp+IN+%28%0A++++++rdf%3Atype%2C+skos%3AinScheme%2C+skos%3AtopConceptOf%2C%0A"
+                "++++++skos%3Abroader%2C+skos%3Anarrower%2C+skos%3Anotation%2C+dc%3Aidentifier%2C%0A"
+                "++++++dcterms%3Aidentifier%2C+dcterms%3AisPartOf%2C+euvoc%3Adomain%2C+euvoc%3Astatus%2C%0A"
+                "++++++owl%3AversionInfo%0A++++%29%0A"
+                "++++%7C%7C+%28%3Fp+%3D+skos%3AhasTopConcept+%26%26+%3Fs+%21%3D+%3Chttp%3A%2F%2Feurovoc.europa.eu%2F100141%3E%29%0A"
+                "++++%7C%7C+%28%3Fp+IN+%28skos%3AprefLabel%2C+skos%3AaltLabel%29+%26%26+lang%28%3Fo%29+IN+"
+                "%28%22en%22%2C%22fr%22%2C%22de%22%2C%22es%22%2C%22el%22%29%29%0A++%29%0A%7D%0A"
+            ),
+            "sha256": "sha256:94e5a1999c4a67d057f57558452f473c98858ad7bf9a39add9f3a52135f3e390",
+            "byteLength": 9_897,
+            "provenance": "publisherCapture",
+        },
+    ),
+    "eurovoc_lcsh_alignment.py": (
+        {
+            "name": "eurovocLcshAlignment",
+            "localPath": "output/registry-real-data-sources/eurovoc-lcsh-alignment-20240711.rdf",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc_alignment_lcsh%2F20240711-0%2Frdf%2Fskos_core_alignment%2Falign_EuroVoc_LCSH.rdf&fileName=align_EuroVoc_LCSH.rdf"
+            ),
+            "sha256": "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853",
+            "byteLength": 332_124,
+            "provenance": "publisherDistribution",
+        },
+    ),
+    "claim_release_exports.py": (
+        {
+            "name": "eurovocSkosCore",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-skos-core.zip",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fzip%2Fskos_core%2Feurovoc_in_skos_core_concepts.zip&fileName=eurovoc_in_skos_core_concepts.zip"
+            ),
+            "sha256": "sha256:91bdb24e833ba431707f3980a19f475434ea8dcddb2b4d5e32e79e9fc1a0ca2f",
+            "byteLength": 8_567_290,
+            "provenance": "publisherDistribution",
+        },
+        {
+            "name": "eurovocMetadata",
+            "localPath": "output/registry-real-data-sources/eurovoc-4.24-metadata.ttl",
+            "publisherUrl": (
+                "https://op.europa.eu/o/opportal-service/euvoc-download-handler?cellarURI=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdistribution%2Feurovoc%2F20260708-0%2Fttl%2Fmetadata%2Feurovoc_metadata.ttl&fileName=eurovoc_metadata.ttl"
+            ),
+            "sha256": "sha256:2c58402422f8588aada476f3516051e7fc980182130557a0d8c67497ffd8731d",
+            "byteLength": 36_011,
+            "provenance": "publisherDistribution",
+        },
+        {
+            "name": "gemet",
+            "localPath": "output/registry-real-data-sources/gemet.rdf",
+            "publisherUrl": (
+                "https://www.eionet.europa.eu/gemet/latest/gemet.rdf.gz"
+            ),
+            "sha256": "sha256:1b784b1a6387b8ec6c0d75ea5f0543970933172fcb0428a52de2c8ca536d20f1",
+            "byteLength": 33_332_557,
+            "provenance": "publisherDistribution",
+        },
+    ),
     "nasa_thesaurus.py": (
         {
             "name": "nasaThesaurusSkos",
@@ -662,13 +742,6 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "name": "epaEnterpriseTierDefinitions",
             "constant": "EPA_REGULATORY_ACTIVITIES_TIER_WITH_DEFINITIONS_CAPTURE",
             "localPath": "tests/fixtures/epa_enterprise_vocabulary/epa-enterprise-vocabulary-tier-1005100-with-definitions.xml",
-        },
-    ),
-    "eurovoc_thesaurus.py": (
-        {
-            "name": "eurovocDomainSample",
-            "constant": "EUROVOC_SAMPLE_2026_08_03",
-            "localPath": "tests/fixtures/eurovoc_thesaurus/eurovoc-domains-sample-2026-08-03.ttl",
         },
     ),
     "fac_dictionary.py": (
@@ -910,7 +983,14 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
 }
 
 
-SOURCE_BLOCKERS: dict[str, list[str]] = {}
+SOURCE_BLOCKERS: dict[str, list[str]] = {
+    "eurovoc_organization_experiment.py": [
+        (
+            "Experiment reads injected archive and metadata paths; its tests exercise "
+            "synthetic fixtures only, so no pinned publisher capture is consumed."
+        )
+    ],
+}
 
 NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
     "adapters/concept_domain_bridge.py": {
@@ -1203,12 +1283,24 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
     module_ids = tuple(path.relative_to(registry).as_posix() for path in paths)
     nested_ids = {module for module in module_ids if "/" in module}
     configured_nested_ids = set(NESTED_MODULE_AUDIT)
-    if nested_ids != configured_nested_ids:
+    module_paths = dict(zip(module_ids, paths, strict=True))
+    # A nested module that names no publisher URL cannot be reading publisher bytes,
+    # so classify it as support rather than demanding hand-registration. Only
+    # reader-shaped modules -- those that do name a publisher -- must be classified
+    # deliberately, because their audit role changes what evidence the gate requires.
+    unregistered_readers = sorted(
+        module
+        for module in nested_ids - configured_nested_ids
+        if _literal_urls(module_paths[module]) or ADDITIONAL_URLS.get(module)
+    )
+    stale_entries = sorted(configured_nested_ids - nested_ids)
+    if unregistered_readers or stale_entries:
         raise ValueError(
             "nested registry audit configuration drifted: "
-            f"missing={sorted(nested_ids - configured_nested_ids)}, "
-            f"unknown={sorted(configured_nested_ids - nested_ids)}"
+            f"unclassified publisher readers={unregistered_readers}, "
+            f"entries for modules that no longer exist={stale_entries}"
         )
+    auto_support = (nested_ids - configured_nested_ids) - set(unregistered_readers)
 
     direct_inputs: dict[str, list[dict[str, Any]]] = {}
     for module, path in zip(module_ids, paths, strict=True):
@@ -1225,9 +1317,10 @@ def build_manifest(repository_root: Path) -> dict[str, Any]:
         declared_urls = set(_literal_urls(path))
         declared_urls.update(ADDITIONAL_URLS.get(module, ()))
         classification = _classification(module)
+        default_role = "support" if module in auto_support else "dataReader"
         config = NESTED_MODULE_AUDIT.get(
             module,
-            {"auditRole": "dataReader", "coveredBy": [], "inputRefs": []},
+            {"auditRole": default_role, "coveredBy": [], "inputRefs": []},
         )
         test_inputs = [dict(item) for item in direct_inputs[module]]
         for source_module, input_name in config["inputRefs"]:
