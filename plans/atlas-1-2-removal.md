@@ -308,7 +308,8 @@ Smaller gap: multi-hop hierarchy closure (`native_ancestors`/`native_descendants
 > `projection.py`, the carriers named in two rows of the table above; their
 > cited line ranges now resolve at `5c6d889^`. The capabilities remain
 > unported and owed. Ring temporal context's enforcement survives at
-> `semantic_foundation.py:278-328` with a negative at
+> `src/refspec/registry/infrastructure/semantic_foundation.py:278-328`
+> (registry infrastructure, not the atlas package) with a negative at
 > `tests/test_semantic_foundation.py:362`, but `validate_ring_relation` now
 > has zero callers and `validate_mapping_supersession` lost both live call
 > sites — re-wire or retire each explicitly in step 2.

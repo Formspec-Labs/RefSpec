@@ -50,16 +50,18 @@ anywhere). This list grows only when a validator demands it.
 
 ## Sequence
 
-0. Re-pin rulespec at or past `939b93c` and gate the spec text this plan
-   relies on. Corrected mechanism (measured in `plans/atlas-1-2-removal.md`,
-   commit `e9c171d` — the original `pinTextFiles` idea cannot work:
-   `pinTextFiles` pins RefSpec-side documents, `output/rulespec-pinned/` is
-   consumed by no check, and the closure-pin gate only ever runs against
-   synthetic fixtures, which is why a four-day-stale pin went unnoticed):
-   a digest manifest over the materialized spec files (`spec/rkaf-core.md`,
-   `spec/rkaf-refspec.md`) plus a check that runs against a real rulespec
-   checkout. No adoption step may cite unpinned rulespec text.
-   (Tier 1 of `plans/atlas-1-2-removal.md` is committed; suite green.)
+0. Pin upstream rulespec prose and shapes. Twice-corrected mechanism, final
+   form (2026-08-09): bumping `contractRevision` is NOT the fix — verified
+   `git diff 0eb9425 882d12f -- constraints/` touches no `.cue` file, the
+   contract surface did not move, and `audit-rulespec-pin` verifies the
+   constraint closure live against a real checkout since `a43c8e3`. What is
+   actually unpinned is upstream *prose*: `spec/rkaf-refspec.md` (+81 lines
+   including the two-validator rule at :39-42) is covered by no mechanism —
+   `pinTextFiles` covers RefSpec-side prose, `generatedArtifacts` covers
+   compiled tooling, neither covers `spec/*.md`. The fix is a
+   `pinUpstreamTextFiles` digest map over `spec/rkaf-{core,refspec,analysis}.md`
+   plus the `compiled/shacl/core/*.ttl` that adoption will cite, verified by
+   `audit-rulespec-pin`. No adoption step may cite unpinned rulespec text.
 1. P0 adjudication per the map. When its negative fixtures are green,
    `machine_evidence.py` and `relation_proof.py` become deletable.
 2. P1 temporal context. Then the v2 temporal model becomes deletable.
