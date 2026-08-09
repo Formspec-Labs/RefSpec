@@ -77,9 +77,10 @@ The Atlas 3.0 binding already defines a strong authority and release model. See
 the [Atlas 3.0 binding](bindings/atlas/3.0/README.md) and the
 [decision ledger](docs/decisions.md).
 
-The local full-development build reviewed on August 6, 2026 contained:
+The local development candidate reviewed on August 7, 2026 contained:
 
-- 110 source releases represented by 109 normalized Atlas releases;
+- 110 construction units: 109 source releases and one mapping release;
+- 109 normalized Atlas releases;
 - 588,409 resources;
 - 984,114 English labels; and
 - 560,429 relationship assertions.
@@ -87,12 +88,23 @@ The local full-development build reviewed on August 6, 2026 contained:
 It also contained 2,003 separately evidenced EuroVoc--LCSH mappings, zero
 projected relations, zero derived relations, and one cross-ring relation. Most
 resources belonged to the subject ring. These dated figures describe the ignored local build at
-`output/atlas-3.0-full-2026-08-06/`; they do not describe a published release.
+`output/atlas-3.0-full-2026-08-07-ring-audit/`; they do not describe a published
+release.
 
 Atlas has therefore reached a specific stage:
 
 - The binding and release machinery are strong.
-- The current artifact faithfully federates source data.
+- The candidate records all 11 artifact-internal acceptance gates as passed.
+  Those gates inspect the built artifact; they do not compare it with publisher
+  bytes.
+- Independent source fidelity is not established. The source-only development
+  audit covers 23 of 110 construction units; 87 remain uncovered. The covered
+  set contains 14 direct native-control comparisons and nine RDF comparisons.
+  All 14 native-control comparisons match; all nine RDF comparisons have
+  differences.
+  It compares all publisher languages and RDF datatypes in both directions and
+  excludes Atlas-only rings, profiles, classes, governed schemes, releases, and
+  named-graph placement from that source-data verdict.
 - Cross-source semantic reconciliation has begun with one official alignment;
   broader qualification remains future work.
 - Public stable URLs, APIs, editorial workflows, and service operations remain

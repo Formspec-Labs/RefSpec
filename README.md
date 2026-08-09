@@ -13,6 +13,7 @@ permission beyond rights supplied by applicable law.
 
 - [Vocabulary Atlas Distribution 3.0 — normative consumer format](bindings/atlas/3.0/README.md)
 - [Atlas Parquet view and explorer](docs/atlas-parquet-view.md)
+- [Atlas source-fidelity issues and priorities](docs/atlas-source-fidelity-issues.md)
 - [Atlas in the United States and Europe — landscape comparison](ATLAS_US_EU_COMPARISON.md)
 - [Historical Atlas 2.0 publication and inspection path](docs/atlas-publication.md)
 - [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
