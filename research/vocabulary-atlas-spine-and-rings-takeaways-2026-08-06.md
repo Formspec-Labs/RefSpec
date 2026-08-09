@@ -178,9 +178,18 @@ RefSpec is the knowledge graph powering four other components:
 | Component | Role | Needs from RefSpec |
 | --- | --- | --- |
 | **SpicyRegs** | metadata source | stable concept and entity identifiers |
-| **DocSpec** | document management, segmentation, tagging | a taggable concept set with reliable identity |
+| **DocSpec** | document management, segmentation, ~~tagging~~ | a taggable concept set with reliable identity |
 | **SpicySearch** | indexing and querying | traversable relations with a *known* precision at depth |
 | **RuleSpec** | rule extraction, core ontology | entities and legal identifiers to hang rules on |
+
+⚠️ **Roles above are as stated by the user, not as traced.** A code trace on
+2026-08-08 (`.md` files excluded by instruction) found two of them overstated —
+see [§ Ownership, traced](#ownership-traced). **DocSpec does no tagging**: grepping
+`tag|classif|taxonom|ontolog|label` across `DocSpec/src/docspec/` returns only
+`label=` error-message kwargs, and its one processor's docstring says it works
+"without assigning document meaning". **RuleSpec extracts nothing**: it has no
+HTML/XML/PDF parser, no network client, and exactly one non-JSON text file on
+disk (`requirements.txt`).
 
 **Current phase: knowledge-graph relations. Documents come after.** Everything
 that reads document text or topic assignments is deferred.
@@ -1050,6 +1059,289 @@ any of today's surveys.
 **None of the three addresses the unmarked-prose gap** — Title 26's ~16,400
 unlinked `section 501`-style mentions. All three either inherit the publisher's
 markup or predate markup entirely.
+
+---
+
+<a id="ownership-traced"></a>
+
+## Ownership, traced
+
+Three blind agents traced SpicyRegs, RuleSpec, DocSpec, SpicySearch and RefSpec on
+2026-08-08 under one instruction: **ignore every `.md` file, follow entry points,
+imports, schemas and tests instead.** The ownership split proposed earlier in this
+document rested on `docs/product-boundary-and-api-disposition.md` and an unapproved
+plan — prose on both sides.
+
+📁 **Full verbatim agent reports:
+[`research/repo-traces-2026-08-08/`](repo-traces-2026-08-08/00-synthesis.md)** —
+synthesis plus one file per trace. The section below is the condensed version.
+
+What the code says:
+
+| Piece | Claimed owner | Traced verdict |
+| --- | --- | --- |
+| USC identifier scheme, popular names, Table III | RefSpec | ❌ **document-shaped — stays in SpicyRegs** |
+| 88,000 sections, marked-up `<ref href>` citations | SpicyRegs | ⚠️ **nothing reads `<ref>` at all** |
+| ~16,400 unmarked prose citations | RuleSpec | ❌ **no repo attempts them; refusal is deliberate** |
+| Traversal at query time | SpicySearch | ✅ **already implemented and live** — one hop, unmeasured on real data |
+| DocSpec as infrastructure, not an owner | — | ✅ **confirmed, more strongly than claimed** |
+
+**The USC output is document-shaped, not vocabulary-shaped.** `usc-act-sections.parquet`
+holds 10,976 rows over 9,916 distinct `(table3_key, act_section)` pairs — 471 repeat,
+up to 26×, and two rows are byte-identical across all seven columns. A row's identity
+is "the *n*-th `<tr>` on page X.htm". 3,702 of 3,721 `usc_identifier` values in
+`usc-source-credits.parquet` are distinct: one row per document location. There is
+**no lifecycle anywhere in the path** — no deprecation, supersession, `replaced_by`,
+`broader`, or preferred-label column — and versioning is per-directory
+(`usc-act-index-2026-08-02`), not per-term. Coverage is **24 of the ~8,400 acts**
+OLRC lists, because the act set comes from `acts_cited_by()` over whichever corpus
+happened to cite them. Compare SpicyRegs' own genuinely vocabulary-shaped artifact,
+`ontology/concepts.py:49-62`: `pref_label`, `definition`, `broader_id`, `status`,
+`replaced_by`, plus lifecycle `EVENT_TYPES`. **Captured observations, not a
+controlled vocabulary. It belongs where it already is.**
+
+**Nobody consumes USC cross-references, in either direction.**
+`spicy_regs/sources/uscode_uslm.py:205-207` parses only `<section>` identifiers and
+`<sourceCredit>` elements — it never opens a `<ref>` element and never reads section
+body prose. So the 539 marked-up operative cross-references are unconsumed and the
+~16,400 unmarked mentions are unattempted. **Both figures appear in no code in any
+of the four repos** — they are measurements made in this research programme, not
+implemented behaviour.
+
+**The unmarked-prose gap is a documented refusal, not an oversight.**
+`spicy_regs/ontology/citations.py:724` `find_act_relative_citations()` resolves only
+the act-relative subclass: it finds a `sec. 111` token, then requires a *known* OLRC
+popular name adjacent. Its docstring — "**The index is the grammar** […] inferring
+which acts those abbreviate is precisely the guess the identity fence exists to
+stop." The shape-based alternative was measured and rejected: matching "capitalized
+words ending in Act" hit `U.S.C.` 108 times across 4,777 sealed authority strings.
+`spicysearch/src/spicysearch/identifiers.py:186-190` states the same rule for the
+other spelling — a bare "section 553" with no "of title" tail "**stays undetected
+rather than guessed**". Assigning this to RuleSpec would overturn a decision two
+repos took deliberately and wrote down in code.
+
+**RuleSpec's evidence vocabulary is fully specified and entirely inert.**
+`crates/rkaf-core/src/generated/source_fragment.rs:113-132` defines
+`TextPositionSelector` with `oa:start`/`oa:end`/`rkaf:coordinateSystem`; `:86-105`
+defines `TextQuoteSelector`; `extraction_activity.rs:31-77` records
+`rkaf:extractionMethod`, `rkaf:extractorVersion`, `rkaf:inputDigest`. **No code
+produces or dereferences any of it.** Every reference outside `src/generated/` is
+schema-shape validation. It is a provenance receipt for an extractor that lives in
+another repo — `spicy_regs/docpipeline/rkaf_projection.py`, which emits
+`rkaf:ConceptAssignment` bound by `rkaf:bindsSourceFragment` and verifies every
+offset by re-slicing stored text and SHA-256-comparing the region.
+
+**Three incompatible evidence-coordinate vocabularies — differing on the *unit*.**
+
+| Repo | Shape | Value | Unit |
+| --- | --- | --- | --- |
+| RuleSpec `source_fragment.rs:50-69` | closed Rust enum | `rkaf:utf8-byte`, `rkaf:unicode-codepoint` | either |
+| DocSpec `domain/content.py:384-390` | free-form `str` | `utf8-byte-range` | UTF-8 bytes |
+| SpicyRegs `docpipeline/source.py:132-133` | 2 fields, validated `:423-426` | `unicode-codepoints` + `half-open` | codepoints |
+
+DocSpec has already emitted **8,232,356 records** carrying a `coordinateSystem`
+string absent from RuleSpec's closed enum — RuleSpec's validator would reject every
+one. And because DocSpec counts bytes where SpicyRegs counts codepoints, **the same
+span in non-ASCII text yields different integers.** Only `rkaf_projection.py:202`
+speaks RuleSpec's vocabulary correctly. This is the concrete cost of the identifier
+divergence, and it is already in the data.
+
+**RefSpec's own consumer contract is stale with its drift gate switched off.**
+RuleSpec pins RefSpec's Atlas conformance corpus at **7 of 21 cases** — missing all
+hierarchy and relation-adjudication cases plus 4 amendments — and hard-codes format
+`1.0` at all five call sites (`refspec_atlas.py:28-29`,
+`vendor_refspec_atlas_conformance.py:27`, `test_refspec_atlas_cross_repository.py:33,49`)
+while RefSpec ships 2.0 and 3.0. The test that would catch it is
+`skipUnless(REFSPEC_CHECKOUT)`, and `REFSPEC_CHECKOUT` is set **nowhere** — not in
+the Makefile, not in CI. It silently skips every run. **Publishing ring 3 or 4 today
+would not reach the one repo that consumes rings at all.**
+
+### Corrections to earlier claims in this document
+
+- **`tools/test_refspec_atlas.py` is RuleSpec's, not DocSpec's.** DocSpec never reads
+  Atlas: a case-insensitive grep for `refspec|atlas` across its live `src/` and
+  `tools/` returns **zero files**. Every hit is inside quarantined `archive/`.
+  RuleSpec's file is a hermetic tempdir unit test, but the reader it exercises
+  (`tools/refspec_atlas.py`) is production, imported by three release tools.
+- **`rulespec`/`RuleSpec` and `DocSpec`/`docspec` are one repo each** — inodes
+  `257555276` and `280359625` on a case-insensitive filesystem. `Formspec-Labs/rulespec`
+  and `Formspec-Labs/DocSpec`. Note SpicyRegs is a **different org**
+  (`civictechdc/spicy-regs`) from RefSpec (`Formspec-Labs/RefSpec`).
+- **DocSpec is not isolated.** `tools/fr_mirrulations_qualification.py:55-58` hard-codes
+  `Path("/Users/mikewolfd/Work/spicy-regs")` and shells into it, calling the *private*
+  `_draw_documents`. Its `src/` is genuinely clean (`dependencies = []`, no
+  cross-repo reference); the coupling lives entirely in `tools/` and `conformance/`.
+- **Both repos execute** — RuleSpec 157 Rust tests pass, DocSpec 264 pytest pass
+  against a sealed gate receipt. Neither is scaffolding. DocSpec's "353 source files"
+  is 67 live `src` + 34 tests + 4 tools + **248 quarantined archive**, with the
+  quarantine enforced by `tests/test_package_boundary.py:110,134,217`.
+
+### Receipts that no longer match their inputs
+
+Three of six identifier-edge figures previously quoted here were read out of
+receipts whose inputs had since been rebuilt:
+
+| Figure | Quoted | Actual |
+| --- | ---: | ---: |
+| `authority_edges` | 10,618 | **11,793** (13-column artifact vs 16-column current schema) |
+| `fr_docket_links` | 715,080 | **893,766** (file rebuilt *after* two receipts pinned its digest) |
+| citation parser false positives | 1 in 4,777 | **1 in 620** (only disagreement cells adjudicated) |
+
+Verified unchanged: `rule_targets` 39,516; CFR references across 205,255 documents
+(*Federal Register* documents, not the 1.99M `documents.parquet`); 34,612
+CFR-part↔agency rows (only 9,284 rank-1, and its quarantine of 35,662 is larger
+than its output). The citation figure additionally came from `gemini-3.6-flash` at
+k=1 whose own receipt records `"determinism": "NOT deterministic"` — quoting it
+under a *deterministic* edge budget is a category error.
+
+**The pattern is the finding.** Every figure that survived was recomputable from a
+file whose digest still matched. Every figure that failed was read from a receipt
+whose input had been rebuilt underneath it. This is the same failure mode as the
+[eleven Atlas acceptance gates](#) that read only the built artifact: **a receipt
+proves what was computed, never that its inputs still exist in that form.**
+
+### The consumer seam, traced
+
+Both consuming repos are **two majors behind**. SpicySearch reads Atlas **1.0**
+(`vocabulary_atlas.py:25`, `ATLAS_FORMAT = "refspec-vocabulary-atlas-nquads-1.0"`);
+every `atlas-manifest.json` on its disk declares `schemaVersion: 1.0`, and there are
+zero non-`.md` references to `atlas-2.0` or `atlas-3.0` anywhere in the repo. An
+Atlas 2.0 reader exists (`vocabulary_atlas_v2.py:24`) and the whole snapshot
+subsystem imports it — but it requires `atlas-scope.json`, **which exists nowhere in
+SpicySearch**, so `VocabularyAtlasV2.open()` has never run against real data. RefSpec
+never published a 2.0 example: `bindings/atlas/2.0/` holds schemas and a README.
+
+**Nothing reads `output/atlas-3.0-full-2026-08-06/`.** It exists, at 2.6 GB, written
+by `tools/generate_atlas_v3_full.py:113`. Neither SpicySearch reader would accept it.
+
+Everything crossing the boundary is **vendored as byte-copies and digest-pinned,
+never read live** — the atlas (twice) and `portfolio/resource-catalog-v0.json`. The
+RefSpec checkout is consulted only when `REFSPEC_CHECKOUT` is exported. **That is the
+same unset variable that disables RuleSpec's drift gate** — one environment variable
+gates every cross-repo freshness check in the workspace, and it is set nowhere.
+
+**The catalog seam is already torn and failing silently.** RefSpec's catalog grew
+**33 → 89 resources** (56 added, none removed). The drift test does not fail — it
+*skips*, because `spicy-regs/policies/profile-resource-applicability-v0.json` still
+pins the old digest and the test classifies that state as "UPSTREAM TORN"
+(`test_policy_inputs_cross_repository.py:38-64`). Policy pins `sha256:c0bcce73…`;
+RefSpec now states `sha256:a731fef9…`.
+
+### `_SUPPORTED_RINGS` is not a blocker
+
+Traced to consumers, the two-ring restriction at `relation_sssom.py:86` gates
+**nothing that ships**:
+
+- **Zero production callers.** The only importers are `refspec/atlas/__init__.py`
+  (a re-export) and two test files. `generate_atlas_v3_full.py` never invokes it —
+  it loads the module as a side effect of importing `compact_pack`.
+- **It has never produced an artifact.** No `mappings.sssom.tsv` exists under any of
+  49 `output/` directories. The nine `.sssom.tsv` files on disk came from external
+  SEMRA/OAK spikes.
+- **No consumer exists.** `grep -ri sssom` across all of SpicySearch: **zero hits.**
+  Its reader wants `{atlas-manifest.json, atlas-scope.json, atlas.nq}`.
+
+The sharpest detail: RefSpec's shipped `statements.parquet` (560,429 rows) holds
+**481 `entity`-ring statements and zero `value`-ring statements**. *The allowlist
+permits a ring with no data and forbids one with data.* Adding `entity` and
+`legalIdentity` would break nothing downstream — the module below the gate is
+ring-agnostic. The real risks are semantic, not structural: RefSpec-minted
+predicates like `cites`/`amends` have no SSSOM meaning, and CURIE compaction would
+degrade to opaque `ns1:`/`ns2:` prefixes. Meanwhile the actual crosswalk (2,003
+EuroVoc→LCSH mappings) ships through an entirely separate pipeline. **Earlier drafts
+of this document treated this constant as the thing standing between us and a
+four-ring graph. It is a design assertion guarding an exporter nobody calls.**
+
+SpicySearch already supports all four rings end-to-end
+(`vocabulary_atlas_v2.py:26`, `search_snapshot_runtime.py:726-730` maps each ring to
+a filter field) — exercised only by fabricated fixtures, because no four-ring data
+has ever crossed the boundary.
+
+### Traversal already exists, and has never been measured on real data
+
+Three paths, one live:
+
+1. **`expand_within_vocabulary` — live on every concept query.**
+   `concept_resolution.py:114`, called at `engine.py:2060`. One hop over
+   `skos:related`, non-recursive, 1,451 edges over 705 concepts, results admitted at
+   a deliberately weaker precedence (`engine.py:2078-2093`).
+   `test_within_vocabulary_expansion.py:102-119` proves a document reachable *only*
+   via the related hop is returned. **No hop cap, no predicate allowlist, no fan-out
+   cap** — boundedness comes only from the shape of the code.
+2. **`ConceptExpander.expand` — a real BFS with depth, predicate allowlist,
+   `maximum_hops`, `maximum_fan_out` (`concept_policy.py:361-416`) — structurally
+   dead.** The only production constructor is `ConceptPolicy.without_expansion`
+   (`cli.py:333`), hardcoding `expansion_policy_id="not_used"` and
+   `admitted_predicates=()`; `concept_policy.py:169-170` raises on any snapshot whose
+   policy differs. Called only from tests.
+3. **Build-time cross-vocabulary expansion** (`snapshot.py:1754`) — moot: the
+   vendored atlas has `searchOnlyMappings: 0`.
+
+Transitive closure and multi-hop are absent, and multi-hop *document* traversal is
+explicitly refused (`relation_scope="two_hop_any"` raises `invalid_relation_controls`).
+
+**The caveat that governs everything downstream:** the concept-lane measurements ran
+over a **synthesised** atlas whose edges mean "two concepts are co-assigned to one
+document". The benchmark says so itself at `search_quality_benchmark.py:543-547` —
+*"It is not, and cannot stand in for, a RefSpec-generated managed-vocabulary
+atlas"* — and at `:112-116`, *"a measurement over these derived edges says nothing
+about that vocabulary's own relatedness."* **Graph expansion has never been measured
+against a real RefSpec thesaurus.** That is the single largest open question for
+this programme, and it is answerable with data that already exists on both sides.
+
+### Retrieval figures, re-derived
+
+Every figure previously quoted here for SpicySearch was wrong, and they failed in one
+direction — understating the machinery, overstating the measurement.
+
+| Claim | Verdict | Actual |
+| --- | --- | --- |
+| 35 gold queries | ❌ | **78 queries / 114 scored variants / 867 qrels**, plus 657 holdout queries and 37 capability cases |
+| dense-only nDCG@10 = 0.661 | ❌ | `0.661` appears in **zero files**. Dense-only = **0.5002** |
+| cross-encoder adds +0.001 | ❌ | **No cross-encoder or neural reranker exists** |
+| BM25 loses its ablation | ❌ **inverted** | BM25 is the **largest single win**: 0.5002 dense-only → 0.7644 with BM25 spine → **0.8592** fused. Removing it costs **−0.359** |
+| tagging micro F1 = 0.085 | ❌ | **No F1 is implemented anywhere.** The only `0.085` on disk is `"assumed_cost_usd": 0.085608` — a dollar figure |
+| `services/search/` has 0 files | ❌ | No `services/` in either repo. It existed on a git lineage that **is not an ancestor of HEAD** |
+
+**The number that matters more than any of them:** the headline 0.7644 is the
+`harness` arm, which hand-feeds structured identifiers and relation controls that no
+typed question carries. The real product path is `front_door` — **nDCG@10 0.3589,
+9 of 114 passing**. Less than half the headline.
+
+Scope, from the data rather than the docs: the only real corpus is **722 Federal
+Register documents**, indexed as **title + abstract only**
+(`extraction_method_and_version = "title-abstract-concatenation:1"`, ~626
+chars/document). **No document bodies exist in any indexed corpus.** And the only
+real-corpus snapshot **no longer opens** — `open_published_snapshot(snapshots/holdout-exam-2026-08-01)`
+raises `IntegrityError`, because three schema fields were added after it was built.
+No test catches this, because no test reads `snapshots/`.
+
+### Duplication across the seam
+
+Four capabilities exist twice, invented independently on both sides:
+
+| Capability | SpicySearch | RefSpec |
+| --- | --- | --- |
+| Label normalisation | `concept_resolution.py:26-30` | `atlas/model.py:320-322`, `binding.py:341`, `vocabulary.py:478`, + `registry/federal_register_thesaurus_2025.py:288-291` — *normalising the same vocabulary* |
+| Sparse retrieval | `lexical_postings.py` (BM25 + trigram, DuckDB) | `atlas/candidate_retrieval.py` — a full independent sparse engine with its own character-ngram features |
+| Graph expansion | `expand_within_vocabulary` | `candidate_retrieval.graph_neighborhood_neighbors:335`, `queries.ConceptNeighborhood` |
+| The ring set | `vocabulary_atlas_v2.py:26`, + hardcoded in SQL at `concept_index.py:323` | **duplicated 14 times inside RefSpec alone** — canonical at `registry/infrastructure/semantic_foundation.py:26,55`, re-declared rather than imported in 13 others |
+
+Both sides independently invented character-gram matching. **Sixteen copies of the
+ring set exist across the workspace**, which is the mechanical reason a ring change
+is believed to be expensive.
+
+### One build-identity defect worth fixing now
+
+`generate_atlas_v3_full.py:116` hardcodes
+`DISTRIBUTION_ID = "urn:ref:atlas:distribution:3.0-full-development:2026-08-06"`.
+**Every on-disk build carries that identity, including the `…-2026-08-08` directory.**
+Directory naming is human convention, unenforced by code. Packs are otherwise
+rigorous — dual content/transport digests computed in one pass
+(`:5662-5682`), atomic publication by candidate-dir rename.
+
+*(Note: `tools/generate_atlas_v3_full.py` is under active refactor by another
+session; recorded here, not edited.)*
 
 **Open and load-bearing:**
 
