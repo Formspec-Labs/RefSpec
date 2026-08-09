@@ -457,3 +457,41 @@ def test_evidence_byte_drift_changes_the_index_identity(tmp_path: Path) -> None:
 
     with pytest.raises(AtlasIndexError, match="differs"):
         validate_atlas_index(built, index_input, catalog, repository_root=tmp_path)
+
+
+def test_offline_tooling_stays_outside_the_pinned_index_closure() -> None:
+    """Qualification never runs inside a build, so it must never pin into one.
+
+    The index pins the digest of every source the build depends on. An offline
+    module listed there would move the Atlas identity whenever the runner
+    changed, which is the coupling the offline-tool idiom exists to prevent.
+    """
+
+    index = json.loads(
+        (Path(__file__).resolve().parents[1] / "portfolio/atlas-index-v0.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    pinned: set[str] = set()
+
+    def collect(node: object) -> None:
+        if isinstance(node, dict):
+            path = node.get("path")
+            if isinstance(path, str):
+                pinned.add(path)
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                collect(value)
+
+    collect(index)
+    assert pinned, "the atlas index pins no source paths; this guard would be vacuous"
+
+    offline = sorted(
+        path
+        for path in pinned
+        if "qualification" in path or "benchmark" in path or "candidate_retrieval" in path
+    )
+    assert not offline, f"offline tooling entered the pinned index closure: {offline}"

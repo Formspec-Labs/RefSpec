@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from dataclasses import replace
@@ -1380,12 +1381,20 @@ _REAL_CHECKOUT_GIT_IDENTITY = (
 
 
 def _run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    # Neutralize *all* global and system git config, not just identity: a
+    # user's global commit.gpgsign=true, a blocking core.hooksPath, or any
+    # other ambient config can make `git commit` exit non-zero and turn this
+    # into a hard test failure instead of exercising the throwaway checkout.
+    env = dict(os.environ)
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    env["GIT_CONFIG_SYSTEM"] = os.devnull
     return subprocess.run(
         ["git", *_REAL_CHECKOUT_GIT_IDENTITY, *args],
         cwd=cwd,
         check=True,
         text=True,
         capture_output=True,
+        env=env,
     )
 
 
@@ -1566,5 +1575,90 @@ def test_load_pinned_rulespec_validator_rejects_a_mismatched_digest(
     with pytest.raises(
         ValueError,
         match="Rulespec validator self-certification digest does not match",
+    ):
+        load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
+
+
+def test_load_pinned_rulespec_validator_rejects_a_changed_pinned_validator_source(
+    tmp_path: Path,
+) -> None:
+    """A PINNED_VALIDATOR_PATHS file edited after validator.sourceRevision must fail.
+
+    real_rulespec_checkout() never creates anything under
+    PINNED_VALIDATOR_PATHS, so it can never exercise this guard: the
+    `git diff --quiet` over those paths is trivially empty. Build a checkout
+    that puts a file under one of those paths (tools/ci_validate.py) in the
+    source-revision commit, then modifies it in the evidence-revision commit.
+    """
+
+    rulespec_dir = tmp_path / "rulespec-checkout"
+    rulespec_dir.mkdir()
+    _run_git(rulespec_dir, "init", "-q")
+    (rulespec_dir / "README.md").write_text("Rulespec checkout root.\n", encoding="utf-8")
+    validator_source_path = rulespec_dir / "tools" / "ci_validate.py"
+    validator_source_path.parent.mkdir(parents=True)
+    validator_source_path.write_text("original validator source\n", encoding="utf-8")
+    _run_git(rulespec_dir, "add", "-A")
+    _run_git(rulespec_dir, "commit", "-q", "-m", "initial commit")
+    source_revision = _run_git(rulespec_dir, "rev-parse", "HEAD").stdout.strip()
+
+    certification_dir = rulespec_dir / "conformance" / "partners"
+    certification_dir.mkdir(parents=True)
+    certification_path = certification_dir / "rulespec-reference.yaml"
+    certification_path.write_text("selfCertification: true\n", encoding="utf-8")
+    certification_sha256 = _sha256_hex(certification_path)
+
+    generated_dir = rulespec_dir / "compiled" / "json-schema"
+    generated_dir.mkdir(parents=True)
+    generated_path = generated_dir / "concept.schema.json"
+    generated_path.write_text('{"type": "object"}\n', encoding="utf-8")
+    generated_sha256 = _sha256_hex(generated_path)
+
+    # Change a PINNED_VALIDATOR_PATHS file after source_revision: this is the
+    # supply-chain drift the guard exists to catch.
+    validator_source_path.write_text("modified validator source\n", encoding="utf-8")
+
+    _run_git(rulespec_dir, "add", "-A")
+    _run_git(rulespec_dir, "commit", "-q", "-m", "add validator pins and modify validator source")
+    evidence_revision = _run_git(rulespec_dir, "rev-parse", "HEAD").stdout.strip()
+
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=source_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256=certification_sha256,
+        generated_sha256=generated_sha256,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Rulespec validator sources changed after validator.sourceRevision",
+    ):
+        load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)
+
+
+def test_load_pinned_rulespec_validator_rejects_a_mismatched_generated_artifact_digest(
+    tmp_path: Path,
+) -> None:
+    (
+        rulespec_dir,
+        source_revision,
+        evidence_revision,
+        certification_sha256,
+        _generated_sha256,
+    ) = real_rulespec_checkout(tmp_path)
+    dependency_manifest = tmp_path / "rulespec-dependency.json"
+    write_real_checkout_dependency_manifest(
+        dependency_manifest,
+        source_revision=source_revision,
+        evidence_revision=evidence_revision,
+        certification_sha256=certification_sha256,
+        generated_sha256="0" * 64,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="pinned Rulespec validator artifact digest does not match",
     ):
         load_pinned_rulespec_validator(rulespec_dir, dependency_manifest)

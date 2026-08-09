@@ -19,7 +19,6 @@ import pytest
 
 from refspec.atlas import CrosswalkBundle, VocabularyAtlasError
 from refspec.atlas import qualification as qual
-from refspec.atlas.model import _IMPLEMENTATION_SOURCE_PATHS
 from refspec.storage import canonical_json
 
 GENERATED_AT = "2026-08-02T12:00:00Z"
@@ -1374,20 +1373,3 @@ def test_the_adapter_carries_labels_definitions_and_language() -> None:
     assert concept.pref_label == "PRIMARY"
     assert concept.alt_labels == ("Secondary",)
     assert concept.definition == "What it means."
-
-
-# ---------------------------------------------------------------------------
-# the offline boundary
-# ---------------------------------------------------------------------------
-
-
-def test_the_runner_is_outside_the_pinned_atlas_build_closure() -> None:
-    """Qualification never runs inside a build, so it never pins into one.
-
-    The atlas manifest pins the digest of every module the build depends on.
-    A qualification module listed there would make an atlas identity move
-    whenever the offline runner changed, which is exactly the coupling the
-    offline-tool idiom exists to prevent.
-    """
-
-    assert "atlas/qualification.py" not in _IMPLEMENTATION_SOURCE_PATHS

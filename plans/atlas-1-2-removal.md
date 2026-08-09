@@ -238,12 +238,48 @@ fact:
   makes, and no Makefile target or doc invokes it.
 - `queries.py` is test-only for the same reason.
 
-So Tier 3 is not "untangle five shared modules". It is one decision: **does
-RefSpec still need the Atlas 2.0 asset type?** If not, that cluster retires
-together. Two format identifiers are the load-bearing carriers and are still
-exercised — `model.py:44` `refspec-vocabulary-atlas-nquads-2.0` (written and
-validated at `:2157,2184,2736,2783`) and `projection.py:62`
-`refspec-vocabulary-atlas-projection-nquads-2.0` (`:608,772,798`).
+That looked like one decision — does RefSpec still need the Atlas 2.0 asset
+type, and if not the cluster retires together. **A capability audit says no:
+the cluster is not a cluster, and it is not retirable yet.**
+
+`model.py` is two independent bundles sharing one file, and only one of them is
+in question:
+
+- **Bucket A, the 2.0 asset type** — `build_vocabulary_atlas`,
+  `VocabularyAtlasAsset`, the ring-crossing invariant, the N-Quads↔JSON-record
+  codec. Zero production callers. This is what the question was about.
+- **Bucket B, crosswalk and qualification primitives** — `CrosswalkBundle`,
+  `MappingCandidate`, `MachineValidation`, `_agreed_relation_for`,
+  `_independent_agreements`, `PinnedManagedRelease`,
+  `closed_reference_release_digest`, and shared helpers. **Live**, imported by
+  `tools/run_atlas_qualification.py:60`, `qualification.py:59-66`,
+  `machine_evidence.py:41`, `qualification_batch.py:88`, `icpsr.py:80-86`, and
+  `federal_register.py:43-48` — all preserve-listed or feeding it.
+
+So `model.py` cannot be deleted, and **splitting it is a prerequisite rather
+than a consequence**. Bucket B does not call into Bucket A, so the split is
+mechanical.
+
+Three capabilities are UNPORTED and block deletion under the port-first rule:
+
+| Capability | Lives at | v3 |
+| --- | --- | --- |
+| Ring temporal context (`sourceEdition`, `targetEdition`, `effectiveFrom`/`Through`, `effectiveAt`) | `semantic_foundation.py:275-326`, closed at `model.py:1936,2691` | Nothing. Zero occurrences across the v3 ontology, shapes, schemas, validator, or any `v3_registry_*`. |
+| Whole-release lineage (`source_release_supersessions`, `publisher_release_prior_versions`) | `queries.py:1047-1126` | Nothing, and deeper than a missing query — v3 never imports `atlas_scope.py` or `release_snapshot.py`, so it does not compute the fact. `ATLAS.supersedes` is per-assertion, a different concept. |
+| Scoped standalone redistribution with a parent digest pin | `projection.py:140-825` | Nothing. `v3_registry_selection.py` filters ingestion; the Parquet and DuckDB views query the whole corpus. Neither exports a subset product. |
+
+Smaller gap: multi-hop hierarchy closure (`native_ancestors`/`native_descendants`,
+`queries.py:1198-1251`) — v3's `resource()` returns one hop only. DuckDB has
+`WITH RECURSIVE`; this is additive.
+
+Genuinely superseded and retirable once separated: building and verifying a
+sealed distribution, the ring-crossing invariant (v3 enforces it harder — four
+dedicated corpus cases at `validate.py:507-585`), and the canonical record
+codec.
+
+No committed artifact declares either 2.0 format. Real 2.0 artifacts exist only
+under gitignored `output/` as local benchmark runs, so retirement costs nothing
+tracked.
 
 Live and confirmed correct to preserve: `frontier.py` via the lazy import at
 `source_concept_release.py:466`, and the whole qualification family plus
@@ -440,7 +476,7 @@ way. `portfolio/atlas-index-v0.json` pins the sha256 of source *and test* files.
 Changing three lines in `tests/test_atlas_v3_registry_vocabularies.py` moved its
 digest, which moved the index digest, which moved the registry coverage and
 descriptor proofs, which moved the binding bundle digest carried by every
-conformance fixture — **234 files**, plus three hand-maintained constants in
+conformance fixture — **231 generated files**, plus three hand-maintained constants in
 `tools/generate_atlas_v3_full.py` that must be repinned in order, the last of
 which covers the other two and so has to go last.
 

@@ -15,8 +15,6 @@ permission beyond rights supplied by applicable law.
 - [Atlas Parquet view and explorer](docs/atlas-parquet-view.md)
 - [Atlas source-fidelity issues and priorities](docs/atlas-source-fidelity-issues.md)
 - [Atlas in the United States and Europe — landscape comparison](ATLAS_US_EU_COMPARISON.md)
-- [Historical Atlas 2.0 publication and inspection path](docs/atlas-publication.md)
-- [Historical managed vocabulary release decision record](spec/managed-vocabulary-release.md)
 - [Historical RefSpec 1.0 editor's draft](spec/refspec.md)
 - [Rulespec application profile](profiles/rulespec-application-profile.md)
 - [Core enrichment profile](profiles/enrichment-profile.md)

@@ -337,8 +337,8 @@ product decision. This document does not propose one.
 
 ## Provenance
 
-The nine generator-built conformance fixtures under
-`bindings/atlas/1.0/fixtures/` changed digests, because `atlas/icpsr.py`,
+The nine generator-built conformance fixtures, since removed with the Atlas 1.0
+binding, changed digests at the time, because `atlas/icpsr.py`,
 `registry/managed_releases/icpsr_managed_release.py`, and `registry/icpsr_subject.py` joined
 `_IMPLEMENTATION_SOURCE_PATHS` — for the same reason the Federal Register
 modules are already there. A specialized producer computes the closed release

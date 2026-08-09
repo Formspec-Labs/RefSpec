@@ -33,9 +33,7 @@
 > The active consumer format is the
 > [Vocabulary Atlas Distribution 3.0 binding](../bindings/atlas/3.0/README.md), which defines
 > the published boundary that other products verify. The
-> [managed vocabulary release decision record](managed-vocabulary-release.md) records the
-> retired standalone design behind REF-001…REF-006; it is not a specification and it is not
-> implemented.
+> retired standalone design behind REF-001…REF-006 has been removed.
 
 ## Abstract
 

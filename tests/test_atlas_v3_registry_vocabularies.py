@@ -232,27 +232,36 @@ def test_federal_register_cache_reads_pdf_without_managed_release_dependency() -
     assert all(label.language == "en" for resource in release.resources for label in resource.labels)
 
 
-@pytest.mark.skipif(
-    not all(
-        (vocabularies.DEFAULT_SOURCE_ROOT / filename).is_file()
-        for filename in (
-            "osti-semantic-thesaurus-2020.rdf",
-            "ELSST_R6.ttl",
-            "gemet.rdf",
-            "desc2026.xml",
-            "thesaurus-SKOS.xml",
-        )
-    ),
-    reason="exact cached large-vocabulary publisher sources are not available",
-)
+def _skip_unless_source_present(filename: str) -> pytest.MarkDecorator:
+    return pytest.mark.skipif(
+        not (vocabularies.DEFAULT_SOURCE_ROOT / filename).is_file(),
+        reason=f"exact cached large-vocabulary publisher source is not available: {filename}",
+    )
+
+
 @pytest.mark.parametrize(
     "loader",
     (
-        vocabularies.load_doe_osti_release,
-        vocabularies.load_elsst_r6_release,
-        vocabularies.load_gemet_release,
-        vocabularies.load_mesh_2026_release,
-        vocabularies.load_nasa_thesaurus_release,
+        pytest.param(
+            vocabularies.load_doe_osti_release,
+            marks=_skip_unless_source_present("osti-semantic-thesaurus-2020.rdf"),
+        ),
+        pytest.param(
+            vocabularies.load_elsst_r6_release,
+            marks=_skip_unless_source_present("ELSST_R6.ttl"),
+        ),
+        pytest.param(
+            vocabularies.load_gemet_release,
+            marks=_skip_unless_source_present("gemet.rdf"),
+        ),
+        pytest.param(
+            vocabularies.load_mesh_2026_release,
+            marks=_skip_unless_source_present("desc2026.xml"),
+        ),
+        pytest.param(
+            vocabularies.load_nasa_thesaurus_release,
+            marks=_skip_unless_source_present("thesaurus-SKOS.xml"),
+        ),
     ),
 )
 def test_large_pinned_vocabulary_normalizes_complete_source(loader: object) -> None:
