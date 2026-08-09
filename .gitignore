@@ -7,4 +7,6 @@ build/
 dist/
 output/
 .playwright-cli/
+.playwright-mcp/
+test-results/
 .env
