@@ -368,6 +368,52 @@ Do not begin Tier 3 until Tiers 1 and 2 are committed and the suite is green,
 because a green baseline is the only way to attribute a new failure to the
 refactor.
 
+## Inert gates
+
+The governing rule says a structure is only real if something breaks when it is
+violated. A sweep for checks that cannot break found four, beyond the three
+already noted above. There is no CI in this repository, so `make test` run by a
+human is the only automatic gate that exists — which makes "is it in `test`?"
+the whole question.
+
+Two are being fixed alongside this plan:
+
+- `load_pinned_rulespec_validator` (`src/refspec/release_graph.py:666-762`) had
+  **no test at all**, not even a synthetic one. It shells git, requires a clean
+  tree, and verifies ancestor-revision and digest pins against a real Rulespec
+  checkout — and it guards the validator identity that the P0 adjudication step
+  depends on. `tests/test_release_graph_gate.py` hand-builds fake
+  `RulespecValidatorPin` objects and never calls it.
+- `REFSPEC_ATLAS_V3_FULL_VOCABULARY_SOURCES`
+  (`tests/test_atlas_v3_registry_vocabularies.py:236-238`) gates five large
+  loaders on a variable set nowhere, and the file is not selected by the
+  registry audit either, so even the audit cannot set it. Its two sibling tests
+  gate on file presence instead; this one should match them.
+
+Two are decisions rather than defects, and are left for a human:
+
+- **The registry real-data family is conditional by design.** Roughly 80
+  modules and 1,388 tests across 77 files gate on inputs that only
+  `make audit-registry-real-data` materializes, and that target is not a
+  prerequisite of `test`. It works when invoked —
+  `research/evidence/registry-real-data-audit-2026-08-03/summary.json` records
+  `skipped: 0, passed: 1388`. Wiring it into `test` costs roughly four minutes
+  and a network round trip on every run. The subtler risk is that a workspace
+  where the target has already run keeps passing from a warm gitignored cache,
+  so a fresh clone would behave differently from the machine that vouched for
+  it.
+- **`audit-atlas-v3-source-fidelity` can go stale silently.** Its default input
+  is a dated, gitignored distribution that nothing regenerates. The full audit
+  is legitimately too heavy for every `test` run; a cheap presence-and-staleness
+  check on `$(ATLAS_V3_AUDIT_RECEIPT)` would give the same protection for
+  almost nothing.
+
+Not a defect: the fault-injection suite in
+`tests/test_verify_atlas_source_fidelity.py` runs under `make test` against
+synthetic fixtures deliberately, and `tests/test_registry_real_data_audit.py`
+reads the committed receipt rather than a fixture — the repository's one clean
+example of the pattern the rule is asking for.
+
 ## Verification
 
 Run after each tier, not only at the end:
