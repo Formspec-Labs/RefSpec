@@ -291,7 +291,24 @@ distribution.
 > **Input annotation (2026-08-09):** That observed digest predates the Atlas
 > 1.0/2.0 retirement and the digest-chain regeneration in `bd57d1f`; treat it
 > as stale. Re-observe and re-seal the distribution when Stage 1 starts. Do
-> not record the 2026-08-07 value as the trusted handoff.
+> not record the 2026-08-07 value as the trusted handoff. (Identified: it is
+> the 2026-08-06 distribution's manifest digest, pinned as `input.atlas.
+> manifestSha256` by the Parquet search view built from it.)
+>
+> **Consumption-format decision (2026-08-09, user):** SpicySearch consumes the
+> **Parquet search view**, not canonical RDF — overriding this stage's "prefer
+> direct reading of canonical RDF." The hypothetical `AtlasSearchView` already
+> exists as `AtlasParquetSearchViewManifest`: it pins the parent distribution
+> (`manifestSha256`, `canonicalPayloadDigest`, `assertedInventoryDigest`,
+> `bindingBundleDigest`, `ontologyDigest`, `constructionSummaryDigest`,
+> `distributionId`), its sibling full view (`fullViewId`), per-table sha256 +
+> schema digests, and seals `"expansion": "not_used"`, `"canonicalAtlas":
+> false`, `"consumerViewOnly": true` with an explicit `omittedFields` list.
+> The intake receipt pins the view-manifest digest plus the parent chain;
+> assertion identifiers (omitted from the search view) remain available
+> through the pinned full view when tagging evidence needs them. The sealed
+> handoff becomes the search-view manifest digest, re-sealed from a fresh
+> post-retirement distribution.
 
 **Work:** Add an independent SpicySearch Atlas 3.0 reader. Prefer direct reading
 of canonical RDF. Add a compact `AtlasSearchView` only if measured consumer cost
