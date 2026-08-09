@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ATLAS_V1 = ROOT / "bindings" / "atlas" / "1.0"
+ATLAS_V2 = ROOT / "bindings" / "atlas" / "2.0"
 
 
 def test_atlas_1_0_remains_available_for_pinned_consumers() -> None:
@@ -32,3 +33,16 @@ def test_atlas_1_0_remains_available_for_pinned_consumers() -> None:
     ]
     missing_fixtures = [str(path.relative_to(ROOT)) for path in fixture_files if not path.is_file()]
     assert not missing_fixtures, f"published Atlas 1.0 conformance fixtures were removed: {missing_fixtures}"
+
+
+def test_atlas_2_0_remains_available_for_pinned_consumers() -> None:
+    """Publishing a successor version must not delete the 2.0 surface."""
+
+    required_files = [
+        ATLAS_V2 / "README.md",
+        ATLAS_V2 / "schemas" / "vocabulary-atlas-manifest.schema.json",
+        ATLAS_V2 / "schemas" / "vocabulary-atlas-projection-manifest.schema.json",
+        ATLAS_V2 / "schemas" / "vocabulary-atlas-scope.schema.json",
+    ]
+    missing = [str(path.relative_to(ROOT)) for path in required_files if not path.is_file()]
+    assert not missing, f"published Atlas 2.0 files were removed: {missing}"
