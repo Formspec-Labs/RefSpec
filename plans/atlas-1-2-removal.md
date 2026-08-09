@@ -142,6 +142,38 @@ Measure these once Tier 1 has landed, rather than assuming them now:
 
 ## Tier 2 — reversed: keep the bindings, strengthen the freeze
 
+> **Execution record (2026-08-09, annotation in place — the tier text below is
+> the plan as written before commit `5c6d889`):** `5c6d889` deleted both
+> binding directories, `docs/atlas-publication.md`,
+> `spec/managed-vocabulary-release.md`, and
+> `tests/test_versioned_atlas_bindings.py`, against this tier's instructions —
+> while text *added by that same commit* (the unported-capabilities table
+> below) said deletion was blocked. An adversarial audit (2026-08-09) returned
+> VIOLATION: the one enforcing check the commit named
+> (`tests/test_atlas_index.py:462`) guards the offline-tooling closure, not
+> anything the bindings uniquely specified, and no check — committed or
+> in flight — enforces the machine-proof protocol. Arbitration outcome:
+>
+> - `bindings/atlas/1.0/README.md` is **restored byte-exact** as the sole
+>   in-repo carrier of the machine-proof protocol (lines 89–96 and 184–185)
+>   until step 1 of `plans/refspec-on-rulespec.md` lands its enforcement.
+>   Delete it again in that same commit, naming the checks.
+> - The other deletions **stand, now recorded**: the 1.0/2.0 schemas, worked
+>   example, conformance corpus, the freeze test, and both historical docs
+>   live in git history at `5c6d889^`. The eight adjudication conformance
+>   cases (`same-provider-model`, `disagreeing-verdict-relations`,
+>   `adjudication-without-verdicts`, `unstated-adjudication`,
+>   `missing-input-context`, `tampered-input-context`,
+>   `mapping-relation-not-adjudicated`, `qualified-three-machine-support`) and
+>   the six lattice negatives (`tests/test_vocabulary_atlas_v2.py:194-275` at
+>   `5c6d889^`) are the required fixture sources for the step 1 port.
+> - Surviving runtime enforcement, for the record: the verdict lattice at
+>   `model.py:89-114` and five-way independence at `model.py:969-1035`, with
+>   running negatives at `tests/test_atlas_qualification.py:727-792`. These
+>   cover the qualification path only — the published binding boundary
+>   (`validate.py`) still validates `twoMachineAdjudication` as a bare enum
+>   with zero corpus cases, which is what step 1 must fix.
+
 **Do not delete `bindings/atlas/1.0/` or `bindings/atlas/2.0/.`** The original
 plan called for removing them. That was wrong, and the repository already says
 so in a test.
@@ -271,6 +303,15 @@ Three capabilities are UNPORTED and block deletion under the port-first rule:
 Smaller gap: multi-hop hierarchy closure (`native_ancestors`/`native_descendants`,
 `queries.py:1198-1251`) — v3's `resource()` returns one hop only. DuckDB has
 `WITH RECURSIVE`; this is additive.
+
+> **Annotation (2026-08-09):** `5c6d889` deleted `queries.py` and
+> `projection.py`, the carriers named in two rows of the table above; their
+> cited line ranges now resolve at `5c6d889^`. The capabilities remain
+> unported and owed. Ring temporal context's enforcement survives at
+> `semantic_foundation.py:278-328` with a negative at
+> `tests/test_semantic_foundation.py:362`, but `validate_ring_relation` now
+> has zero callers and `validate_mapping_supersession` lost both live call
+> sites — re-wire or retire each explicitly in step 2.
 
 Genuinely superseded and retirable once separated: building and verifying a
 sealed distribution, the ring-crossing invariant (v3 enforces it harder — four
