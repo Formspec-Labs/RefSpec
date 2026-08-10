@@ -26,7 +26,6 @@ VALIDATOR_IDENTITY = (
     "rkaf-behavior-validate@test"
 )
 VALIDATOR_REVISION = "a" * 40
-EVIDENCE_REVISION = "b" * 40
 RULESPEC_IDENTIFIER = "urn:rulespec:concept:example"
 RULESPEC_GRAPH_IDENTIFIER = "urn:rulespec:graph:example"
 REF_IDENTIFIER = "urn:ref:record:example"
@@ -100,7 +99,6 @@ raise SystemExit(0 if passed else 1)
     return RulespecValidatorPin(
         identity=VALIDATOR_IDENTITY,
         source_revision=VALIDATOR_REVISION,
-        evidence_revision=EVIDENCE_REVISION,
         working_directory=tmp_path,
         commands=(
             ValidatorCommand(
@@ -154,7 +152,6 @@ raise SystemExit(
     return RulespecValidatorPin(
         identity=VALIDATOR_IDENTITY,
         source_revision=VALIDATOR_REVISION,
-        evidence_revision=EVIDENCE_REVISION,
         working_directory=tmp_path,
         commands=(
             ValidatorCommand(
@@ -1281,10 +1278,6 @@ def test_publication_dependency_must_match_the_validator_manifest(
     publication["type"] = "urn:ref:type:PublicationReleaseManifest"
     publication["rulespecDependency"] = {
         "version": "wrong",
-        "contractRevision": "0" * 40,
-        "evidenceRevision": "0" * 40,
-        "constraintDigest": "sha256:" + "0" * 64,
-        "conformanceCorpusDigest": "sha256:" + "0" * 64,
         "releaseAvailability": "published",
         "validator": {
             "id": "urn:rulespec:validator:wrong",
@@ -1297,10 +1290,6 @@ def test_publication_dependency_must_match_the_validator_manifest(
     )
     dependency = {
         "rulespecVersion": "0.2.0-pre.9",
-        "contractRevision": "1" * 40,
-        "evidenceRevision": "2" * 40,
-        "constraintDigest": "sha256:" + "1" * 64,
-        "conformanceCorpusDigest": "sha256:" + "2" * 64,
         "releaseAvailability": "localUnpublished",
     }
     validator = replace(
@@ -1344,8 +1333,7 @@ def test_installed_package_can_load_embedded_dependency_manifest(
     # truth -- rather than a hardcoded literal -- is the actual invariant:
     # this test then survives every future re-pin instead of failing on each
     # one, and only breaks when the embedded copy really has drifted.
-    assert manifest["rulespecVersion"] == source_of_truth["rulespecVersion"]
-    assert manifest["contractRevision"] == source_of_truth["contractRevision"]
+    assert manifest == source_of_truth
 
 
 def test_failure_channels_remain_separate(

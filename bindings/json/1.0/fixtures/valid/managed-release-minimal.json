@@ -235,7 +235,7 @@
       "recordedBy": "urn:ref:agent:reference-runtime",
       "schemaVersion": "1.0",
       "operationalState": "published",
-      "canonicalPayloadDigest": "sha256:553000e81676c98da9d27da03a7ed8cc2a73016f3710b14e9a00dca6b252aed9",
+      "canonicalPayloadDigest": "sha256:6a3e282cab879b0ad3249d3173b384fc42914f7732430f840f90cc5d6333a733",
       "version": "1.0.0-development",
       "refspecVersion": "0.1.0.dev0",
       "operationalSerializationProfile": {
@@ -245,10 +245,6 @@
       },
       "rulespecDependency": {
         "version": "0.2.0-pre.9",
-        "contractRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
-        "evidenceRevision": "2c66a85daab30a4869db08d21cea13cfc865b3a0",
-        "constraintDigest": "sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c",
-        "conformanceCorpusDigest": "sha256:a16ddbf58996dc1e136a99ebf37abbeed0a3adfef724b203347c301cdd5972b2",
         "adoptedProfiles": [
           "urn:rulespec:profile:refspec"
         ],

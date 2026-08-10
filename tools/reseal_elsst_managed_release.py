@@ -254,10 +254,6 @@ def _current_rulespec_dependency(
         raise ElsstManagedReleaseResealError("publication adoptedProfiles is missing")
     return {
         "version": str(manifest["rulespecVersion"]),
-        "contractRevision": str(manifest["contractRevision"]),
-        "evidenceRevision": str(manifest["evidenceRevision"]),
-        "constraintDigest": str(manifest["constraintDigest"]),
-        "conformanceCorpusDigest": str(manifest["conformanceCorpusDigest"]),
         "adoptedProfiles": plain_json(adopted_profiles),
         "validator": {
             "id": validator.component_id,

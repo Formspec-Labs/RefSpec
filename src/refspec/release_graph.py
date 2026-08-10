@@ -331,7 +331,6 @@ class RulespecValidatorPin:
 
     identity: str
     source_revision: str
-    evidence_revision: str
     working_directory: Path
     commands: tuple[ValidatorCommand, ...]
     behavior_command: ValidatorCommand | None = None
@@ -663,7 +662,6 @@ def load_pinned_rulespec_validator(
 
     identity = validator.get("identity")
     source_revision = validator.get("sourceRevision")
-    evidence_revision = manifest.get("evidenceRevision")
     if not isinstance(identity, str) or not identity.strip():
         raise ValueError("Rulespec validator identity is missing")
     if (
@@ -676,8 +674,6 @@ def load_pinned_rulespec_validator(
         )
     if not isinstance(source_revision, str) or not REVISION_PATTERN.fullmatch(source_revision):
         raise ValueError("Rulespec validator source revision is not an exact Git revision")
-    if not isinstance(evidence_revision, str) or not REVISION_PATTERN.fullmatch(evidence_revision):
-        raise ValueError("Rulespec evidence revision is not an exact Git revision")
     if not rulespec_dir.is_dir():
         raise ValueError(f"Rulespec checkout does not exist: {rulespec_dir}")
 
@@ -743,7 +739,6 @@ def load_pinned_rulespec_validator(
         {
             "identity": "rkaf-behavior-validate",
             "sourceRevision": source_revision,
-            "evidenceRevision": evidence_revision,
             "sourcePaths": [
                 "crates/rkaf-runtime",
                 "crates/rkaf-runtime-cli",
@@ -753,7 +748,6 @@ def load_pinned_rulespec_validator(
     return RulespecValidatorPin(
         identity=identity,
         source_revision=source_revision,
-        evidence_revision=evidence_revision,
         working_directory=rulespec_dir,
         commands=commands,
         behavior_command=behavior_command,
@@ -1445,10 +1439,6 @@ def validate_release_graph_bundle(
                 continue
             expected_fields = {
                 "version": dependency.get("rulespecVersion"),
-                "contractRevision": dependency.get("contractRevision"),
-                "evidenceRevision": dependency.get("evidenceRevision"),
-                "constraintDigest": dependency.get("constraintDigest"),
-                "conformanceCorpusDigest": dependency.get("conformanceCorpusDigest"),
                 "releaseAvailability": dependency.get("releaseAvailability"),
             }
             for field_name, expected in expected_fields.items():
@@ -1546,7 +1536,6 @@ def issue_release_graph_validation_receipt(
         {
             "identity": validator.identity,
             "sourceRevision": validator.source_revision,
-            "evidenceRevision": validator.evidence_revision,
         }
     )
     behavior_runtime_digest = validator.behavior_component_digest or canonical_value_digest(

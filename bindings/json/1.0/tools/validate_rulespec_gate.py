@@ -16,7 +16,6 @@ MANIFEST_PATH = BINDING_ROOT / "tests" / "requirement-to-test-manifest.json"
 DEPENDENCY_MANIFEST_PATH = REFSPEC_ROOT / "profiles" / "rulespec-dependency.json"
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40}$")
-DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -63,22 +62,10 @@ def validate_paths(rulespec_dir: Path) -> list[str]:
 def validate_manifest_shape(manifest: dict[str, object]) -> list[str]:
     errors: list[str] = []
     version = manifest.get("rulespecVersion")
-    contract_revision = manifest.get("contractRevision")
-    evidence_revision = manifest.get("evidenceRevision")
-    constraint_digest = manifest.get("constraintDigest")
-    corpus_digest = manifest.get("conformanceCorpusDigest")
     if manifest.get("schemaVersion") != "1.0":
         errors.append("Rulespec dependency manifest must use schemaVersion '1.0'")
     if not isinstance(version, str) or not VERSION_PATTERN.fullmatch(version):
         errors.append("Rulespec dependency manifest has no exact semantic version")
-    if not isinstance(contract_revision, str) or not REVISION_PATTERN.fullmatch(contract_revision):
-        errors.append("Rulespec dependency manifest has no exact tested contract revision")
-    if not isinstance(evidence_revision, str) or not REVISION_PATTERN.fullmatch(evidence_revision):
-        errors.append("Rulespec dependency manifest has no exact evidence revision")
-    if not isinstance(constraint_digest, str) or not DIGEST_PATTERN.fullmatch(constraint_digest):
-        errors.append("Rulespec dependency manifest has no exact constraint digest")
-    if not isinstance(corpus_digest, str) or not DIGEST_PATTERN.fullmatch(corpus_digest):
-        errors.append("Rulespec dependency manifest has no exact conformance-corpus digest")
     if manifest.get("releaseAvailability") not in {"localUnpublished", "published"}:
         errors.append("Rulespec dependency manifest has an unknown releaseAvailability")
     if manifest.get("productionConformanceEligible") is not (manifest.get("releaseAvailability") == "published"):

@@ -1887,10 +1887,6 @@
           "type": "object",
           "required": [
             "version",
-            "contractRevision",
-            "evidenceRevision",
-            "constraintDigest",
-            "conformanceCorpusDigest",
             "adoptedProfiles",
             "validator",
             "conformanceResult",
@@ -1899,20 +1895,6 @@
           "properties": {
             "version": {
               "$ref": "common.schema.json#/$defs/nonEmptyString"
-            },
-            "contractRevision": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
-            },
-            "evidenceRevision": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
-            },
-            "constraintDigest": {
-              "$ref": "common.schema.json#/$defs/digest"
-            },
-            "conformanceCorpusDigest": {
-              "$ref": "common.schema.json#/$defs/digest"
             },
             "adoptedProfiles": {
               "$ref": "common.schema.json#/$defs/iriList"

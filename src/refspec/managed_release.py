@@ -596,13 +596,7 @@ def _dependency_behavior_runtime_pin(
             "rulespecDependencyManifest.validator must be an object"
         )
     revision = validator.get("sourceRevision")
-    evidence_revision = dependency.get("evidenceRevision")
-    if (
-        not isinstance(revision, str)
-        or not _GIT_REVISION.fullmatch(revision)
-        or not isinstance(evidence_revision, str)
-        or not _GIT_REVISION.fullmatch(evidence_revision)
-    ):
+    if not isinstance(revision, str) or not _GIT_REVISION.fullmatch(revision):
         raise ManagedReleaseError(
             "rulespecDependencyManifest behavior runtime revisions are invalid"
         )
@@ -613,7 +607,6 @@ def _dependency_behavior_runtime_pin(
             {
                 "identity": "rkaf-behavior-validate",
                 "sourceRevision": revision,
-                "evidenceRevision": evidence_revision,
                 "sourcePaths": [
                     "crates/rkaf-runtime",
                     "crates/rkaf-runtime-cli",
@@ -1718,12 +1711,6 @@ class ManagedReleaseView:
         )
         expected_dependency_fields = {
             "version": dependency_manifest.get("rulespecVersion"),
-            "contractRevision": dependency_manifest.get("contractRevision"),
-            "evidenceRevision": dependency_manifest.get("evidenceRevision"),
-            "constraintDigest": dependency_manifest.get("constraintDigest"),
-            "conformanceCorpusDigest": dependency_manifest.get(
-                "conformanceCorpusDigest"
-            ),
             "releaseAvailability": dependency_manifest.get("releaseAvailability"),
         }
         for field_name, expected in expected_dependency_fields.items():

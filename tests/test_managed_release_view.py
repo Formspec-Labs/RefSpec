@@ -381,7 +381,6 @@ def build_bundle(
             {
                 "identity": "rkaf-behavior-validate",
                 "sourceRevision": dependency_manifest["validator"]["sourceRevision"],
-                "evidenceRevision": dependency_manifest["evidenceRevision"],
                 "sourcePaths": [
                     "crates/rkaf-runtime",
                     "crates/rkaf-runtime-cli",
@@ -526,12 +525,6 @@ def build_bundle(
             },
             "rulespecDependency": {
                 "version": dependency_manifest["rulespecVersion"],
-                "contractRevision": dependency_manifest["contractRevision"],
-                "evidenceRevision": dependency_manifest["evidenceRevision"],
-                "constraintDigest": dependency_manifest["constraintDigest"],
-                "conformanceCorpusDigest": dependency_manifest[
-                    "conformanceCorpusDigest"
-                ],
                 "adoptedProfiles": ["urn:rulespec:profile:refspec"],
                 "validator": validator_pin,
                 "conformanceResult": {

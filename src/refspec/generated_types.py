@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:8eb2426ff4ec4a1a067a3e5649bc3d93d7cb511d4fb72ebbbcdc3b90aa18d9c4"
+MODEL_SHA256 = "sha256:c7e8630e27ec6c2acca475d7a4e94765a7ef18b0480bf0f79129af281c822e57"
 
 
 class REFRecordData(TypedDict, total=False):
