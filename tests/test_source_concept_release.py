@@ -260,6 +260,53 @@ def test_release_requires_exact_digest_pinned_rights_coverage() -> None:
         )
 
 
+def test_policy_frontier_selection_policy_is_refused() -> None:
+    """policyFrontier is retired (REF-023 item 8): the selection-receipt
+    machinery it depended on (refspec.atlas.frontier / frontier_release) was
+    never exercised outside its own unit tests -- no output/, fixture, or
+    tool consumer ever constructed one. This is the running check that keeps
+    it retired: even a well-formed policyFrontier policy, receipt pin
+    included, is refused before any receipt is examined."""
+
+    source = _source(
+        (
+            _observation(
+                1,
+                label="Frontier-refused concept",
+                local_record_id=_local_record_id(1),
+            ),
+        )
+    )
+    selected_ids = tuple(str(row["id"]) for row in source.observations)
+    rights_metadata = (
+        {
+            "type": "RightsMetadata",
+            "rightsStatus": "notStated",
+            "sourceArtifact": SOURCE_ID,
+            "sourceDigest": "sha256:" + hashlib.sha256(source.source_artifacts[SOURCE_ID]).hexdigest(),
+        },
+    )
+
+    with pytest.raises(SourceConceptReleaseError, match="must be explicitObservationSet"):
+        build_source_concept_release_bundle(
+            source,
+            semantic_ring="subject",
+            selected_observation_ids=selected_ids,
+            selection_policy={
+                "id": "urn:ref:test:source-concept-selection:v1",
+                "type": "policyFrontier",
+                "selectionReceipt": {
+                    "role": "SelectionReceipt",
+                    "id": "urn:ref:test:selection-receipt:v1",
+                    "scopeKind": "policyFrontier",
+                    "contentDigest": "sha256:" + "0" * 64,
+                    "fileDigest": "sha256:" + "0" * 64,
+                },
+            },
+            rights_metadata=rights_metadata,
+        )
+
+
 def test_preserves_an_explicit_publisher_concept_iri() -> None:
     publisher_iri = "https://publisher.example/concepts/official-42"
     payload = b'{"terms":[{"id":"https://publisher.example/concepts/official-42","label":"Publisher identity"}]}\n'

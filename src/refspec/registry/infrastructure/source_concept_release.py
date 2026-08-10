@@ -304,54 +304,13 @@ def source_scoped_concept_iri(source_namespace: str, durable_source_key: str) ->
 def _selection_policy(value: Mapping[str, Any]) -> dict[str, Any]:
     policy = cast(dict[str, Any], _plain(value))
     identifier = _require_iri(policy.get("id"), "selection_policy.id")
-    policy_type = policy.get("type")
-    if policy_type == "explicitObservationSet":
-        if set(policy) != {"id", "type"}:
-            raise SourceConceptReleaseError(
-                "an explicitObservationSet selection_policy must contain exactly id and type"
-            )
-        return {"id": identifier, "type": "explicitObservationSet"}
-    if policy_type != "policyFrontier":
-        raise SourceConceptReleaseError("selection_policy.type must be explicitObservationSet or policyFrontier")
-    if set(policy) != {"id", "type", "selectionReceipt"}:
+    if policy.get("type") != "explicitObservationSet":
+        raise SourceConceptReleaseError("selection_policy.type must be explicitObservationSet")
+    if set(policy) != {"id", "type"}:
         raise SourceConceptReleaseError(
-            "a policyFrontier selection_policy must contain exactly id, type, and selectionReceipt"
+            "an explicitObservationSet selection_policy must contain exactly id and type"
         )
-    pin_value = policy.get("selectionReceipt")
-    if not isinstance(pin_value, Mapping) or set(pin_value) != {
-        "role",
-        "id",
-        "scopeKind",
-        "contentDigest",
-        "fileDigest",
-    }:
-        raise SourceConceptReleaseError(
-            "selection_policy.selectionReceipt must contain role, id, scopeKind, contentDigest, and fileDigest"
-        )
-    if pin_value.get("role") != "SelectionReceipt":
-        raise SourceConceptReleaseError("selection_policy.selectionReceipt.role must be SelectionReceipt")
-    if pin_value.get("scopeKind") != "policyFrontier":
-        raise SourceConceptReleaseError("selection_policy.selectionReceipt.scopeKind must be policyFrontier")
-    return {
-        "id": identifier,
-        "type": "policyFrontier",
-        "selectionReceipt": {
-            "role": "SelectionReceipt",
-            "id": _require_iri(
-                pin_value.get("id"),
-                "selection_policy.selectionReceipt.id",
-            ),
-            "scopeKind": "policyFrontier",
-            "contentDigest": _require_digest(
-                pin_value.get("contentDigest"),
-                "selection_policy.selectionReceipt.contentDigest",
-            ),
-            "fileDigest": _require_digest(
-                pin_value.get("fileDigest"),
-                "selection_policy.selectionReceipt.fileDigest",
-            ),
-        },
-    }
+    return {"id": identifier, "type": "explicitObservationSet"}
 
 
 def _observation_by_id(
@@ -367,170 +326,6 @@ def _observation_by_id(
             raise SourceConceptReleaseError("source resource repeats an observation identifier")
         result[identifier] = observation
     return result
-
-
-def _receipt_source_capture_facts(
-    source: SourceControlledResourceBundle,
-) -> dict[str, Any]:
-    """Return every receipt source-capture fact reconstructible from one SCR.
-
-    ``distributionCoverage`` is intentionally absent.  It is a reader/compiler
-    finding in the selection receipt; SCR 2.0 does not carry that field.  Every
-    byte- and count-derived capture fact is nevertheless checked here.
-    """
-
-    artifacts = source.artifact_bytes()
-    coverage = source.coverage_report
-    gaps = coverage.get("gaps")
-    if not isinstance(gaps, Sequence) or isinstance(gaps, (str, bytes)):
-        raise SourceConceptReleaseError("source coverage gaps must be an array")
-    return {
-        "resourceManifest": _require_iri(
-            source.resource_manifest.get("id"),
-            "source resource manifest id",
-        ),
-        "logicalDigest": _require_digest(
-            source.logical_digest,
-            "source resource logical digest",
-        ),
-        "bundleManifestDigest": _sha256(artifacts["bundle-manifest.json"]),
-        "observationSetDigest": _observation_set_digest(source),
-        "coverageReportDigest": _sha256(artifacts["coverage-report.json"]),
-        "coverageStatus": coverage.get("reportStatus"),
-        "sourceObservedCount": coverage.get("sourceObservedCount"),
-        "parsedObservationCount": coverage.get("parsedCount"),
-        "packagedObservationCount": coverage.get("packagedCount"),
-        "excludedObservationCount": coverage.get("excludedCount"),
-        "failedObservationCount": coverage.get("failedCount"),
-        "gapCount": len(gaps),
-    }
-
-
-def _validated_frontier_receipt(
-    value: Mapping[str, Any] | None,
-    *,
-    policy: Mapping[str, Any],
-    semantic_ring: SemanticRing,
-    source: SourceControlledResourceBundle,
-    concepts: Sequence[Mapping[str, Any]],
-) -> dict[str, Any] | None:
-    policy_type = policy.get("type")
-    if policy_type == "explicitObservationSet":
-        if value is not None:
-            raise SourceConceptReleaseError("an explicitObservationSet release must not contain a selection receipt")
-        return None
-    if semantic_ring != "subject":
-        raise SourceConceptReleaseError("a policyFrontier source-concept release must use the subject ring")
-    if not isinstance(value, Mapping):
-        raise SourceConceptReleaseError("a policyFrontier release requires one exact selection receipt")
-    record = cast(dict[str, Any], _plain(value))
-    raw_selected = record.get("selectedConcepts")
-    if not isinstance(raw_selected, Sequence) or isinstance(raw_selected, (str, bytes)):
-        raise SourceConceptReleaseError("selection receipt selectedConcepts must be an array")
-    selected_observations: set[str] = set()
-    for index, raw_concept in enumerate(raw_selected):
-        if not isinstance(raw_concept, Mapping):
-            raise SourceConceptReleaseError(f"selection receipt selectedConcepts[{index}] must be an object")
-        selected_observations.add(
-            _require_iri(
-                raw_concept.get("sourceObservationId"),
-                f"selection receipt selectedConcepts[{index}].sourceObservationId",
-            )
-        )
-    observations = _observation_by_id(source)
-    missing_observations = sorted(selected_observations - set(observations))
-    if missing_observations:
-        raise SourceConceptReleaseError(
-            f"selection receipt selects observations outside the exact source capture: {missing_observations!r}"
-        )
-    unselected_observations = tuple(sorted(set(observations) - selected_observations))
-
-    raw_dispositions = record.get("broaderEdgeDispositions")
-    if not isinstance(raw_dispositions, Sequence) or isinstance(raw_dispositions, (str, bytes)):
-        raise SourceConceptReleaseError("selection receipt broaderEdgeDispositions must be an array")
-    # The pass-1 receipt pins the reader's exact source-edge set.  SCR 2.0 has
-    # no standard broader-edge field, so reopen can prove the sealed set and
-    # its dispositions but cannot independently re-derive publisher edges.
-    source_broader_edges: list[dict[str, Any]] = []
-    for index, raw_edge in enumerate(raw_dispositions):
-        if not isinstance(raw_edge, Mapping):
-            raise SourceConceptReleaseError(f"selection receipt broaderEdgeDispositions[{index}] must be an object")
-        source_broader_edges.append(
-            {
-                "narrowerConcept": raw_edge.get("narrowerConcept"),
-                "broaderConcept": raw_edge.get("broaderConcept"),
-            }
-        )
-
-    try:
-        from refspec.atlas.frontier import SelectionReceipt, SelectionReceiptError
-    except ImportError as error:
-        raise SourceConceptReleaseError("selection receipt implementation is unavailable") from error
-    try:
-        receipt = SelectionReceipt.from_record(
-            record,
-            source_broader_edges=source_broader_edges,
-            unselected_observation_ids=unselected_observations,
-        )
-    except SelectionReceiptError as error:
-        raise SourceConceptReleaseError(f"selection receipt is invalid: {error}") from error
-    if receipt.scope_kind != "policyFrontier":
-        raise SourceConceptReleaseError("selection receipt scopeKind must be policyFrontier")
-
-    receipt_record = receipt.as_record()
-    receipt_capture = cast(Mapping[str, Any], receipt_record["sourceCapture"])
-    if receipt_capture.get("distributionCoverage") != "complete":
-        raise SourceConceptReleaseError("a policyFrontier receipt must report complete publisher-distribution coverage")
-    for field, actual in _receipt_source_capture_facts(source).items():
-        if receipt_capture.get(field) != actual:
-            raise SourceConceptReleaseError(
-                f"selection receipt sourceCapture.{field} differs from the exact nested source capture"
-            )
-
-    receipt_pairs = {
-        (str(row["conceptId"]), str(row["sourceObservationId"]))
-        for row in cast(Sequence[Mapping[str, Any]], receipt_record["selectedConcepts"])
-    }
-    release_pairs = {(str(row["id"]), str(row["sourceObservation"])) for row in concepts}
-    if receipt_pairs != release_pairs:
-        raise SourceConceptReleaseError(
-            "selection receipt concept and source-observation pairs differ from the release members"
-        )
-
-    pin = cast(Mapping[str, Any], policy["selectionReceipt"])
-    expected_pin = {
-        "role": "SelectionReceipt",
-        "id": receipt.identifier,
-        "scopeKind": "policyFrontier",
-        "contentDigest": receipt.content_digest,
-        "fileDigest": _sha256(receipt.artifact_bytes()),
-    }
-    if dict(pin) != expected_pin:
-        raise SourceConceptReleaseError("selection receipt pin differs from the embedded canonical receipt")
-    if policy.get("id") != cast(Mapping[str, Any], receipt_record["selectionPolicy"]).get("id"):
-        raise SourceConceptReleaseError("release selection policy id differs from the receipt selection policy")
-    return receipt_record
-
-
-def _frontier_scope_accounting(receipt: Mapping[str, Any]) -> dict[str, Any]:
-    source = cast(Mapping[str, Any], receipt["sourceCapture"])
-    counts = cast(Mapping[str, Any], receipt["counts"])
-    return {
-        "distributionCoverage": source["distributionCoverage"],
-        "sourceCoverageStatus": source["coverageStatus"],
-        "sourceObservedCount": source["sourceObservedCount"],
-        "sourceParsedObservationCount": source["parsedObservationCount"],
-        "sourcePackagedObservationCount": source["packagedObservationCount"],
-        "sourceExcludedObservationCount": source["excludedObservationCount"],
-        "sourceFailedObservationCount": source["failedObservationCount"],
-        "sourceGapCount": source["gapCount"],
-        "selectedObservationCount": counts["selectedConcepts"],
-        "unselectedObservationCount": counts["unselectedObservations"],
-        "sourceBroaderEdgeCount": counts["broaderEdges"],
-        "includedBroaderEdgeCount": counts["includedBroaderEdges"],
-        "externalReferenceBroaderEdgeCount": counts["externalReferenceBroaderEdges"],
-        "omittedBroaderEdgeCount": counts["omittedBroaderEdges"],
-    }
 
 
 def _concept_from_observation(
@@ -975,7 +770,6 @@ def _release_manifest(
     rights_metadata: Sequence[Mapping[str, Any]],
     lifecycle_records: Sequence[Mapping[str, Any]],
     reconciliation: Mapping[str, Any] | None,
-    selection_receipt: Mapping[str, Any] | None,
     superseded_release_pins: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     scheme = _source_scheme(source)
@@ -1010,9 +804,6 @@ def _release_manifest(
         "lifecycleRecordCount": len(lifecycle_records),
         "lifecycleSetDigest": lifecycle_set_digest,
     }
-    if selection_receipt is not None:
-        basis["scopeKind"] = "policyFrontier"
-        basis["scopeAccounting"] = _frontier_scope_accounting(selection_receipt)
     if superseded_release_pins:
         basis["sourceReleaseSupersessions"] = list(
             _source_release_supersession_records(
@@ -1079,7 +870,6 @@ class SourceConceptReleaseBundle:
     source_bundle: SourceControlledResourceBundle
     rights_metadata: tuple[Mapping[str, Any], ...]
     reconciliation_record: Mapping[str, Any] | None = None
-    selection_receipt: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.source_bundle, SourceControlledResourceBundle):
@@ -1166,13 +956,6 @@ class SourceConceptReleaseBundle:
             self.lifecycle_records,
             semantic_ring=ring,
         )
-        selection_receipt = _validated_frontier_receipt(
-            self.selection_receipt,
-            policy=policy,
-            semantic_ring=ring,
-            source=self.source_bundle,
-            concepts=concept_rows,
-        )
         expected_manifest = _release_manifest(
             semantic_ring=ring,
             source=self.source_bundle,
@@ -1181,7 +964,6 @@ class SourceConceptReleaseBundle:
             rights_metadata=rights,
             lifecycle_records=lifecycle,
             reconciliation=reconciliation,
-            selection_receipt=selection_receipt,
             superseded_release_pins=superseded_release_pins,
         )
         if manifest != expected_manifest:
@@ -1211,11 +993,6 @@ class SourceConceptReleaseBundle:
             self,
             "reconciliation_record",
             (None if reconciliation is None else cast(Mapping[str, Any], deep_freeze_json(reconciliation))),
-        )
-        object.__setattr__(
-            self,
-            "selection_receipt",
-            (None if selection_receipt is None else cast(Mapping[str, Any], deep_freeze_json(selection_receipt))),
         )
 
     @property
@@ -1252,8 +1029,6 @@ class SourceConceptReleaseBundle:
         }
         if self.reconciliation_record is not None:
             artifacts["reconciliation.json"] = _canonical_nullable_bytes(self.reconciliation_record)
-        if self.selection_receipt is not None:
-            artifacts["selection-receipt.json"] = _canonical_bytes(self.selection_receipt)
         for path, payload in self.source_bundle.artifact_bytes().items():
             artifacts[f"source/{path}"] = payload
         descriptors = [
@@ -1271,8 +1046,6 @@ class SourceConceptReleaseBundle:
                     if path == "lifecycle.jsonl"
                     else "reconciliation"
                     if path == "reconciliation.json"
-                    else "selectionReceipt"
-                    if path == "selection-receipt.json"
                     else "sourceCaptureArtifact"
                 ),
             )
@@ -1372,7 +1145,6 @@ def build_source_concept_release_bundle(
     rights_metadata: Sequence[RightsMetadata | Mapping[str, Any]],
     lifecycle_records: Sequence[Mapping[str, Any]] = (),
     reconciliation_record: Mapping[str, Any] | None = None,
-    selection_receipt: Mapping[str, Any] | None = None,
     supersedes: Sequence[
         SourceConceptReleaseBundle | SourceConceptReleaseView
     ] = (),
@@ -1432,13 +1204,6 @@ def build_source_concept_release_bundle(
             "source resource manifest id",
         ),
     )
-    receipt = _validated_frontier_receipt(
-        selection_receipt,
-        policy=policy,
-        semantic_ring=ring,
-        source=source,
-        concepts=concepts,
-    )
     superseded_release_pins = tuple(
         _verified_superseded_release_pin(value)
         for value in supersedes
@@ -1451,7 +1216,6 @@ def build_source_concept_release_bundle(
         rights_metadata=rights,
         lifecycle_records=lifecycle,
         reconciliation=reconciliation,
-        selection_receipt=receipt,
         superseded_release_pins=superseded_release_pins,
     )
     return SourceConceptReleaseBundle(
@@ -1461,7 +1225,6 @@ def build_source_concept_release_bundle(
         source_bundle=source,
         rights_metadata=rights,
         reconciliation_record=reconciliation,
-        selection_receipt=receipt,
     )
 
 
@@ -1624,7 +1387,6 @@ class SourceConceptReleaseView:
                 "rights",
                 "lifecycle",
                 "reconciliation",
-                "selectionReceipt",
                 "sourceCaptureArtifact",
             }
             for role in roles.values()
@@ -1667,24 +1429,6 @@ class SourceConceptReleaseView:
                 raise SourceConceptReleaseError("source-concept reconciliation bytes are not canonical")
             reconciliation = value
 
-        receipt_payload = loaded.get("selection-receipt.json")
-        if receipt_payload is None:
-            selection_receipt = None
-            if "selectionReceipt" in roles.values():
-                raise SourceConceptReleaseError("selection receipt artifact role names the wrong path")
-        else:
-            if roles.get("selection-receipt.json") != "selectionReceipt":
-                raise SourceConceptReleaseError("selection receipt artifact role differs")
-            value = _read_json(
-                receipt_payload,
-                "source-concept selection receipt",
-            )
-            if not isinstance(value, Mapping):
-                raise SourceConceptReleaseError("source-concept selection receipt must be an object")
-            if _canonical_bytes(value) != receipt_payload:
-                raise SourceConceptReleaseError("source-concept selection receipt bytes are not canonical")
-            selection_receipt = value
-
         try:
             source_view = SourceControlledResourceView.open(root / "source")
             source = SourceControlledResourceBundle(
@@ -1702,7 +1446,6 @@ class SourceConceptReleaseView:
             source_bundle=source,
             rights_metadata=rights,
             reconciliation_record=reconciliation,
-            selection_receipt=selection_receipt,
         )
         rebuilt = bundle.artifact_bytes()
         if set(rebuilt) != expected_paths or any(
@@ -1746,10 +1489,6 @@ class SourceConceptReleaseView:
     @property
     def reconciliation_record(self) -> Mapping[str, Any] | None:
         return self.bundle.reconciliation_record
-
-    @property
-    def selection_receipt(self) -> Mapping[str, Any] | None:
-        return self.bundle.selection_receipt
 
     @property
     def release_id(self) -> str:

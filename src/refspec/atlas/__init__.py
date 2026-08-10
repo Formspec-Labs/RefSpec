@@ -44,10 +44,6 @@ from .duckdb_view import (
     AtlasDuckDBViewError,
     open_atlas_duckdb_view,
 )
-from .frontier_release import (
-    FrontierReleaseError,
-    cut_subject_frontier_release,
-)
 from .machine_evidence import (
     CROSSWALK_MACHINE_PROOF_ADAPTER,
     CROSSWALK_MACHINE_PROOF_VERSION,
@@ -159,7 +155,6 @@ __all__ = [
     "CrosswalkBundle",
     "CrosswalkMachineProofError",
     "CrosswalkMachineProofFacts",
-    "FrontierReleaseError",
     "MachineValidation",
     "ManagedReleaseRingAssignment",
     "MappingCandidate",
@@ -192,7 +187,6 @@ __all__ = [
     "build_subject_emission_policy",
     "concept_release_member_ids",
     "concept_release_pin",
-    "cut_subject_frontier_release",
     "machine_evidence_class_for_proof_kind",
     "normalize_concept_release_pin",
     "open_atlas_duckdb_view",
