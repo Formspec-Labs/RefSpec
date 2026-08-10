@@ -662,7 +662,7 @@ atlas:RelationAssertionShape
     sh:node atlas:SemanticRingValueShape
   ] ;
   sh:property [
-    sh:path atlas:assertedAt ;
+    sh:path rkaf:assertedAt ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:nodeKind sh:Literal ;
@@ -701,10 +701,10 @@ atlas:RelationAssertionShape
     sh:node atlas:DigestValueShape
   ] ;
   sh:property [
-    sh:path [ sh:inversePath atlas:bindsAssertion ] ;
+    sh:path [ sh:inversePath rkaf:bindsAssertion ] ;
     sh:minCount 1 ;
     sh:nodeKind sh:IRI ;
-    sh:class atlas:EvidenceBinding
+    sh:class rkaf:EvidenceBinding
   ] ;
   sh:xone (
     [
@@ -835,14 +835,21 @@ atlas:CrossRingRelationAssertionShape
     sh:equals atlas:targetRelease
   ] .
 
+# Rulespec owns decision-making, so the evidence node is rkaf:EvidenceBinding
+# and its epistemic properties are rkaf's. What stays Atlas-owned is the pair
+# of structural pointers below: Atlas addresses evidence at whole-source-record
+# granularity, and an atlas:SourceRecord carries a locator and a digest but no
+# selector or coordinate system, so rkaf:bindsSourceFragment would claim an
+# addressability Atlas does not have. That gap is recorded on
+# atlas:evidenceSourceRecord in the ontology rather than papered over here.
 atlas:EvidenceBindingShape
   a sh:NodeShape ;
-  sh:targetClass atlas:EvidenceBinding ;
+  sh:targetClass rkaf:EvidenceBinding ;
   sh:nodeKind sh:IRI ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
   sh:property [
-    sh:path atlas:bindsAssertion ;
+    sh:path rkaf:bindsAssertion ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
@@ -862,41 +869,90 @@ atlas:EvidenceBindingShape
     sh:node atlas:DigestValueShape
   ] ;
   sh:property [
-    sh:path atlas:reviewedBy ;
+    sh:path rkaf:attestor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI
   ] ;
+  # #AttestorKind, all nine values. atlas:reviewedBy was a bare sh:nodeKind
+  # sh:IRI with no way to say what kind of party the reviewer was, so a model
+  # and a formal reviewer were indistinguishable on the wire.
   sh:property [
-    sh:path atlas:decisionStatus ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:hasValue atlas:approved
-  ] ;
-  sh:property [
-    sh:path atlas:reviewMethod ;
+    sh:path rkaf:attestorKind ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:in (
-      atlas:humanReview
-      atlas:trustedPipelineReview
-      atlas:twoMachineAdjudication
-      atlas:publisherAssertion
-      atlas:operatorAdoption
-      atlas:deterministicTransformation
+      rkaf:humanUser rkaf:aiModel rkaf:aiAgent rkaf:automatedParser rkaf:team
+      rkaf:organization rkaf:community rkaf:formalReviewer
+      rkaf:conceptMintingAuthority
     )
   ] ;
+  # #AttestationDecision has seven values; Atlas publishes only approved
+  # evidence, and this is the only place that invariant is stated. Unlike
+  # atlas:authorityStatus -- whose sole value repeated a fact the class and the
+  # graph placement already carried -- nothing else rejects a published
+  # rkaf:rejected binding.
   sh:property [
-    sh:path atlas:adoptedEvidence ;
+    sh:path rkaf:decision ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:nodeKind sh:IRI ;
-    sh:class atlas:EvidenceBinding
+    sh:hasValue rkaf:approved
   ] ;
   sh:property [
-    sh:path atlas:decidedAt ;
+    sh:path rkaf:attestedAt ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:datatype xsd:dateTime
+  ] ;
+  # The four axes atlas:reviewMethod used to conflate. Each is closed to its
+  # upstream enum here; the sh:xone at the end of this shape closes the set of
+  # admissible COMBINATIONS, which is what the six-value enum used to do.
+  sh:property [
+    sh:path rkaf:assertionOrigin ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      rkaf:humanAsserted rkaf:aiSuggested rkaf:imported
+      rkaf:deterministicExtraction
+    )
+  ] ;
+  sh:property [
+    sh:path rkaf:epistemicBasis ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      rkaf:sourceExplicit rkaf:deterministicDerivation
+      rkaf:statisticalInference rkaf:editorialAssertion rkaf:userAssertion
+    )
+  ] ;
+  sh:property [
+    sh:path rkaf:evidenceRole ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      rkaf:textualEvidence rkaf:structuralEvidence rkaf:retrievalSignal
+      rkaf:authorityCitation rkaf:officialSourceMetadata
+      rkaf:reviewedAuthorityChain rkaf:formalAdoptionEvent
+      rkaf:mappingRationale rkaf:registrationEvent rkaf:rescissionEvidence
+    )
+  ] ;
+  sh:property [
+    sh:path rkaf:evidentiaryFunction ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      rkaf:supports rkaf:qualifies rkaf:contradicts rkaf:definesScope
+      rkaf:providesContext
+    )
+  ] ;
+  # atlas:adoptedEvidence was a hand-rolled subset of #LocalAdoption's
+  # basedOnAttestation link. Atlas fuses the binding and its attestation into
+  # one node, so the prior binding IS the prior attestation.
+  sh:property [
+    sh:path rkaf:basedOnAttestation ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:EvidenceBinding
   ] ;
   sh:property [
     sh:path atlas:contentDigest ;
@@ -904,14 +960,58 @@ atlas:EvidenceBindingShape
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
   ] ;
-  sh:or (
+  # The six former atlas:ReviewMethod individuals, restated as the six
+  # admissible axis combinations. Exactly one branch must hold, so a producer
+  # cannot assemble a combination no review method sanctioned -- which is the
+  # closure the single enum used to provide. rkaf:basedOnAttestation is
+  # required by exactly one branch and forbidden by the other five, replacing
+  # the atlas:adoptedEvidence biconditional this shape used to carry.
+  sh:xone (
     [
-      sh:not [ sh:property [ sh:path atlas:reviewMethod ; sh:hasValue atlas:operatorAdoption ] ] ;
-      sh:property [ sh:path atlas:adoptedEvidence ; sh:maxCount 0 ]
+      # publisherAssertion
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:sourceExplicit ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:officialSourceMetadata ] ;
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:imported ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
     ]
     [
-      sh:property [ sh:path atlas:reviewMethod ; sh:hasValue atlas:operatorAdoption ] ;
-      sh:property [ sh:path atlas:adoptedEvidence ; sh:minCount 1 ]
+      # deterministicTransformation
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:deterministicDerivation ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:structuralEvidence ] ;
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:deterministicExtraction ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
+    ]
+    [
+      # humanReview
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:humanAsserted ] ;
+      sh:property [ sh:path rkaf:attestorKind ; sh:hasValue rkaf:humanUser ] ;
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:editorialAssertion ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:textualEvidence ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
+    ]
+    [
+      # operatorAdoption -- the only branch that names what it adopted
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:editorialAssertion ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:formalAdoptionEvent ] ;
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:imported ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:minCount 1 ]
+    ]
+    [
+      # twoMachineAdjudication
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:aiSuggested ] ;
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:statisticalInference ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:reviewedAuthorityChain ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
+    ]
+    [
+      # trustedPipelineReview -- a cryptographic warrant: these bytes are what
+      # the digest says. Publishers should use a more specific combination when
+      # one applies; that guidance came from the atlas:trustedPipelineReview
+      # rdfs:comment and is preserved here because the term it annotated is gone.
+      sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:deterministicDerivation ] ;
+      sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:authorityCitation ] ;
+      sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:imported ] ;
+      sh:property [ sh:path rkaf:basedOnAttestation ; sh:maxCount 0 ]
     ]
   ) .
 
@@ -1052,7 +1152,7 @@ atlas:DerivedRelationShape
     sh:minLength 1
   ] ;
   sh:property [
-    sh:path atlas:inputDigest ;
+    sh:path rkaf:inputDigest ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape

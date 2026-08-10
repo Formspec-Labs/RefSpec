@@ -31,13 +31,11 @@ atlas:AuthorityStatus
   a owl:Class ;
   rdfs:label "authority status"@en .
 
-atlas:EditorialDecisionStatus
-  a owl:Class ;
-  rdfs:label "editorial decision status"@en .
-
-atlas:ReviewMethod
-  a owl:Class ;
-  rdfs:label "review method"@en .
+# Editorial decision status and review method were Atlas classes. Both are
+# decision-making vocabulary, which Rulespec owns: a decision is now
+# rkaf:decision over rkaf's #AttestationDecision, and the single review-method
+# enum is decomposed into the orthogonal rkaf axes it used to conflate. See
+# the EvidenceBinding shapes in shapes/atlas.shacl.ttl.
 
 atlas:Release
   a owl:Class ;
@@ -93,10 +91,6 @@ atlas:Identifier
 atlas:SourceRecord
   a owl:Class ;
   rdfs:label "source record"@en .
-
-atlas:EvidenceBinding
-  a owl:Class ;
-  rdfs:label "evidence binding"@en .
 
 atlas:EditorialPolicy
   a owl:Class ;
@@ -164,7 +158,7 @@ atlas:AtlasResource
   owl:disjointWith atlas:Identifier,
     atlas:RegistrySource,
     atlas:SourceRecord,
-    atlas:EvidenceBinding,
+    rkaf:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
@@ -174,7 +168,7 @@ atlas:AtlasResource
 atlas:Identifier
   owl:disjointWith atlas:RegistrySource,
     atlas:SourceRecord,
-    atlas:EvidenceBinding,
+    rkaf:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
@@ -182,7 +176,7 @@ atlas:Identifier
     skosxl:Label .
 
 atlas:SourceRecord
-  owl:disjointWith atlas:EvidenceBinding,
+  owl:disjointWith rkaf:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
@@ -192,7 +186,7 @@ atlas:SourceRecord
 atlas:RegistrySource
   owl:disjointWith atlas:ResourceScheme,
     atlas:SourceRecord,
-    atlas:EvidenceBinding,
+    rkaf:EvidenceBinding,
     atlas:EditorialPolicy,
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
@@ -238,28 +232,24 @@ atlas:withdrawn a atlas:AssertionStatus ; rdfs:label "withdrawn"@en .
 atlas:authoritative a atlas:AuthorityStatus ; rdfs:label "authoritative"@en .
 atlas:nonAuthoritative a atlas:AuthorityStatus ; rdfs:label "non-authoritative"@en .
 
-atlas:approved a atlas:EditorialDecisionStatus ; rdfs:label "approved"@en .
-atlas:humanReview a atlas:ReviewMethod ; rdfs:label "human review"@en .
-atlas:trustedPipelineReview
-  a atlas:ReviewMethod ;
-  rdfs:label "trusted pipeline review"@en ;
-  rdfs:comment "Generic trusted-pipeline warrant; publishers should use a more specific review method when one applies."@en .
-atlas:twoMachineAdjudication
-  a atlas:ReviewMethod ;
-  rdfs:label "two-machine adjudication"@en ;
-  rdfs:comment "Two independent machine reviewers adjudicated the same claim and agreed under a pinned procedure."@en .
-atlas:publisherAssertion
-  a atlas:ReviewMethod ;
-  rdfs:label "publisher assertion"@en ;
-  rdfs:comment "The source publisher explicitly supplied the asserted fact in pinned source bytes."@en .
-atlas:operatorAdoption
-  a atlas:ReviewMethod ;
-  rdfs:label "operator adoption"@en ;
-  rdfs:comment "A named operator directly adopted a reviewed claim without changing its underlying provenance."@en .
-atlas:deterministicTransformation
-  a atlas:ReviewMethod ;
-  rdfs:label "deterministic transformation"@en ;
-  rdfs:comment "A pinned deterministic Atlas policy transformed explicit source facts into the asserted form."@en .
+# The six atlas:ReviewMethod individuals conflated four independent Rulespec
+# axes into one enum, so a consumer could not tell WHAT constructed a record
+# (rkaf:assertionOrigin) from WHY it may be believed (rkaf:epistemicBasis),
+# from what KIND of evidence backs it (rkaf:evidenceRole), from HOW that
+# evidence bears on the claim (rkaf:evidentiaryFunction). Rulespec keeps the
+# four apart deliberately -- the comment on #EvidenceRole says the split
+# "prevents a consumer from treating retrieval evidence as authority evidence
+# merely because both point at the same fragment". The six former values are
+# now the six admissible axis combinations, enforced by the sh:xone on
+# atlas:EvidenceBindingShape, which is what keeps the set closed.
+#
+#   publisherAssertion          sourceExplicit + officialSourceMetadata
+#   deterministicTransformation deterministicDerivation + structuralEvidence
+#   humanReview                 humanAsserted + humanUser attestor
+#   operatorAdoption            editorialAssertion + formalAdoptionEvent,
+#                               and rkaf:basedOnAttestation names what it adopted
+#   twoMachineAdjudication      aiSuggested + reviewedAuthorityChain
+#   trustedPipelineReview       deterministicDerivation + authorityCitation
 
 # Shared object properties
 
@@ -381,39 +371,10 @@ atlas:supersedes
 
 atlas:evidenceSourceRecord
   a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:domain rkaf:EvidenceBinding ;
   rdfs:range atlas:SourceRecord ;
-  rdfs:label "evidence source record"@en .
-
-atlas:bindsAssertion
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range atlas:RelationAssertion ;
-  rdfs:label "binds assertion"@en .
-
-atlas:reviewedBy
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:label "reviewed by"@en .
-
-atlas:decisionStatus
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range atlas:EditorialDecisionStatus ;
-  rdfs:label "decision status"@en .
-
-atlas:reviewMethod
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range atlas:ReviewMethod ;
-  rdfs:label "review method"@en .
-
-atlas:adoptedEvidence
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range atlas:EvidenceBinding ;
-  rdfs:label "adopted evidence"@en ;
-  rdfs:comment "The prior EvidenceBinding an atlas:operatorAdoption review method directly adopted without changing its underlying provenance. Required exactly when reviewMethod is atlas:operatorAdoption; the chain MUST resolve to a non-operatorAdoption terminal and MUST NOT cycle."@en .
+  rdfs:label "evidence source record"@en ;
+  rdfs:comment "Atlas addresses evidence at whole-source-record granularity. rkaf:bindsSourceFragment is deliberately not used: an Atlas source record carries a locator and a digest but no selector or coordinate system, so calling it an rkaf:SourceFragment would claim an addressability Atlas does not have."@en .
 
 atlas:relationSubject
   a owl:ObjectProperty ;
@@ -488,7 +449,7 @@ atlas:sourceDigest
 
 atlas:evidenceSourceDigest
   a owl:DatatypeProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
+  rdfs:domain rkaf:EvidenceBinding ;
   rdfs:range xsd:string ;
   rdfs:label "evidence source digest"@en ;
   rdfs:comment "Pins the exact contentDigest of the SourceRecord named by an evidence binding."@en .
@@ -504,12 +465,6 @@ atlas:assertionIdentityDigest
   rdfs:domain atlas:RelationAssertion ;
   rdfs:range xsd:string ;
   rdfs:label "assertion identity digest"@en .
-
-atlas:decidedAt
-  a owl:DatatypeProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range xsd:dateTime ;
-  rdfs:label "decided at"@en .
 
 atlas:nativePayload
   a owl:DatatypeProperty ;
@@ -578,23 +533,11 @@ atlas:identifierValue
   rdfs:range xsd:string ;
   rdfs:label "identifier value"@en .
 
-atlas:assertedAt
-  a owl:DatatypeProperty ;
-  rdfs:domain atlas:RelationAssertion ;
-  rdfs:range xsd:dateTime ;
-  rdfs:label "asserted at"@en .
-
 atlas:engineVersion
   a owl:DatatypeProperty ;
   rdfs:domain atlas:DerivedRelation ;
   rdfs:range xsd:string ;
   rdfs:label "engine version"@en .
-
-atlas:inputDigest
-  a owl:DatatypeProperty ;
-  rdfs:domain atlas:DerivedRelation ;
-  rdfs:range xsd:string ;
-  rdfs:label "input digest"@en .
 
 atlas:generatedAt
   a owl:DatatypeProperty ;

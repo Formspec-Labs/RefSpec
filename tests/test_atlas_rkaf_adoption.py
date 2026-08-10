@@ -42,7 +42,7 @@ import re
 from pathlib import Path
 
 import pytest
-from rdflib import Graph, Namespace
+from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from tests.test_rulespec_vocabulary_currency import (
@@ -59,6 +59,7 @@ SCHEMAS = BINDING_ROOT / "schemas"
 CORPUS = BINDING_ROOT / "fixtures" / "corpus.json"
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+RKAF = Namespace("https://rulespec.org/ns/v1#")
 
 # Same shape as the rkaf extractor in test_rulespec_vocabulary_currency: the
 # ``(?<!urn:)`` guard keeps RefSpec's own ``urn:...:atlas:...`` identifiers out.
@@ -75,35 +76,98 @@ _PUBLISHED = (ONTOLOGY, SHAPES, *sorted(SCHEMAS.glob("*.json")))
 # Every rkaf term the published binding puts on the wire, mapped to the
 # invalid conformance case whose rejection depends on it. Delete a row and the
 # term must leave the wire; add a term without a row and this file fails.
-WIRE_ADOPTIONS: dict[str, tuple[str, ...]] = {
+WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    # term: (invalid conformance cases that break without it, enum members it
+    # closes). A member is enforced by the same sh:in that enforces its
+    # predicate, so one out-of-enum fixture proves the whole closed set fires.
+    #
     # Already landed (e2ca150) -- the working precedent for a correct adoption.
-    "membershipMode": ("release-membership-mode-unknown",),
-    "completeMembership": ("release-membership-mode-unknown",),
-    "partialMembership": ("release-membership-mode-unknown",),
-    "membershipNotEnumerated": ("release-membership-mode-unknown",),
+    "membershipMode": (
+        ("release-membership-mode-unknown",),
+        ("completeMembership", "partialMembership", "membershipNotEnumerated"),
+    ),
     # Phase 4 -- evidence and review.
-    "EvidenceBinding": ("mapping-missing-evidence", "cross-ring-missing-evidence"),
-    "bindsAssertion": ("evidence-retargeted",),
-    "attestor": ("evidence-reviewer-retargeted",),
-    "attestorKind": ("evidence-attestor-kind-unknown",),
-    "decision": ("evidence-decision-not-approved",),
-    "approved": ("evidence-decision-not-approved",),
-    "attestedAt": ("evidence-attested-at-not-datetime",),
-    "epistemicBasis": ("evidence-epistemic-basis-unknown",),
-    "assertionOrigin": ("evidence-assertion-origin-unknown",),
-    "evidenceRole": ("evidence-role-unknown",),
-    "evidentiaryFunction": ("evidence-function-unknown",),
-    # Phase 5 -- lifecycle, validity, and the free adoptions.
-    "LifecycleEvent": ("lifecycle-event-kind-unknown",),
-    "lifecycleEventKind": ("lifecycle-event-kind-unknown",),
-    "assertedAt": ("assertion-asserted-at-not-datetime",),
-    "inputDigest": ("derived-input-digest",),
+    "EvidenceBinding": (
+        ("mapping-missing-evidence", "cross-ring-missing-evidence"),
+        (),
+    ),
+    "bindsAssertion": (("evidence-retargeted",), ()),
+    "attestor": (("evidence-reviewer-retargeted",), ()),
+    "basedOnAttestation": (
+        ("adoption-without-referent", "adoption-chain-cycle"),
+        (),
+    ),
+    "attestorKind": (
+        ("evidence-attestor-kind-unknown",),
+        (
+            "humanUser", "aiModel", "aiAgent", "automatedParser", "team",
+            "organization", "community", "formalReviewer",
+            "conceptMintingAuthority",
+        ),
+    ),
+    "decision": (("evidence-decision-not-approved",), ("approved",)),
+    "attestedAt": (("evidence-attested-at-not-datetime",), ()),
+    "assertionOrigin": (
+        ("evidence-warrant-unsanctioned",),
+        ("humanAsserted", "aiSuggested", "imported", "deterministicExtraction"),
+    ),
+    "epistemicBasis": (
+        ("evidence-warrant-unsanctioned",),
+        (
+            "sourceExplicit", "deterministicDerivation", "statisticalInference",
+            "editorialAssertion", "userAssertion",
+        ),
+    ),
+    "evidenceRole": (
+        ("evidence-warrant-unsanctioned",),
+        (
+            "textualEvidence", "structuralEvidence", "retrievalSignal",
+            "authorityCitation", "officialSourceMetadata",
+            "reviewedAuthorityChain", "formalAdoptionEvent",
+            "mappingRationale", "registrationEvent", "rescissionEvidence",
+        ),
+    ),
+    "evidentiaryFunction": (
+        ("evidence-function-unknown",),
+        (
+            "supports", "qualifies", "contradicts", "definesScope",
+            "providesContext",
+        ),
+    ),
+    # The two free adoptions: identical meaning on both sides, renamed because
+    # the local name was already Rulespec's.
+    "assertedAt": (("assertion-asserted-at-not-datetime",), ()),
+    "inputDigest": (("derived-input-digest",), ()),
+}
+ADOPTED_TERMS = frozenset(WIRE_ADOPTIONS) | {
+    member for _, members in WIRE_ADOPTIONS.values() for member in members
+}
+ADOPTED_CASES = {
+    term: cases for term, (cases, _) in WIRE_ADOPTIONS.items()
 }
 
 
-def _published_atlas_local_names() -> set[str]:
+def _rdf_local_names(namespace: str) -> set[str]:
+    """Local names in one namespace that the published RDF actually asserts.
+
+    Parsed, never scanned: an rdfs:comment that names a term is documentation,
+    and a text scan cannot tell that from a term the binding puts on the wire.
+    """
+
     names: set[str] = set()
-    for path in _PUBLISHED:
+    for path in (ONTOLOGY, SHAPES):
+        graph = Graph().parse(path, format="turtle")
+        for triple in graph:
+            for term in triple:
+                text = str(term)
+                if isinstance(term, URIRef) and text.startswith(namespace):
+                    names.add(text[len(namespace) :])
+    return names
+
+
+def _published_atlas_local_names() -> set[str]:
+    names = _rdf_local_names(str(ATLAS))
+    for path in sorted(SCHEMAS.glob("*.json")):
         text = path.read_text(encoding="utf-8")
         names |= set(_ATLAS_COMPACT_IRI.findall(text))
         names |= set(_ATLAS_FULL_IRI.findall(text))
@@ -111,8 +175,8 @@ def _published_atlas_local_names() -> set[str]:
 
 
 def _published_rkaf_local_names() -> set[str]:
-    names: set[str] = set()
-    for path in _PUBLISHED:
+    names = _rdf_local_names(str(RKAF))
+    for path in sorted(SCHEMAS.glob("*.json")):
         names |= _extract_rkaf_terms(path.read_text(encoding="utf-8"))
     return names
 
@@ -191,7 +255,7 @@ def test_every_wire_adoption_reaches_the_published_shapes() -> None:
     """A term Atlas claims to adopt must actually appear on the wire."""
 
     published = _published_rkaf_local_names()
-    missing = sorted(term for term in WIRE_ADOPTIONS if term not in published)
+    missing = sorted(ADOPTED_TERMS - published)
     assert not missing, (
         f"{len(missing)} adopted rkaf: term(s) never reach the published "
         f"ontology, shapes, or schemas: {missing}. An adoption enforced only "
@@ -202,7 +266,7 @@ def test_every_wire_adoption_reaches_the_published_shapes() -> None:
 def test_no_rkaf_term_reaches_the_wire_without_an_adoption_record() -> None:
     """The inverse: nothing rides along on the wire unaccounted for."""
 
-    undeclared = sorted(_published_rkaf_local_names() - set(WIRE_ADOPTIONS))
+    undeclared = sorted(_published_rkaf_local_names() - ADOPTED_TERMS)
     assert not undeclared, (
         f"{len(undeclared)} rkaf: term(s) appear in the published binding with "
         f"no adoption record: {undeclared}. Add a row naming the invalid "
@@ -214,8 +278,14 @@ def test_no_rkaf_term_reaches_the_wire_without_an_adoption_record() -> None:
 def test_every_wire_adoption_is_enforced_by_the_published_shapes() -> None:
     """The constraint that breaks must live in the SHACL a consumer runs."""
 
-    enforced = _extract_rkaf_terms(SHAPES.read_text(encoding="utf-8"))
-    unenforced = sorted(term for term in WIRE_ADOPTIONS if term not in enforced)
+    graph = Graph().parse(SHAPES, format="turtle")
+    enforced = {
+        str(term)[len(str(RKAF)) :]
+        for triple in graph
+        for term in triple
+        if isinstance(term, URIRef) and str(term).startswith(str(RKAF))
+    }
+    unenforced = sorted(ADOPTED_TERMS - enforced)
     assert not unenforced, (
         f"{len(unenforced)} adopted rkaf: term(s) carry no constraint in "
         f"shapes/atlas.shacl.ttl: {unenforced}. Declaring a term in the "
@@ -233,7 +303,7 @@ def test_every_wire_adoption_names_a_rejecting_conformance_case() -> None:
     missing = sorted(
         {
             f"{term} -> {case}"
-            for term, cases in WIRE_ADOPTIONS.items()
+            for term, cases in ADOPTED_CASES.items()
             for case in cases
             if case not in rejected
         }

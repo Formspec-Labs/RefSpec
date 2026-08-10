@@ -1095,7 +1095,7 @@ def test_mapping_provenance_survives_full_and_compact_source_record_views() -> N
     distribution = _open_distribution()
     graph = distribution.asserted_graph
     assertion = next(graph.subjects(RDF.type, ATLAS.MappingAssertion))
-    binding = next(graph.subjects(ATLAS.bindsAssertion, assertion))
+    binding = next(graph.subjects(RKAF.bindsAssertion, assertion))
     record = graph.value(binding, ATLAS.evidenceSourceRecord)
     assert isinstance(record, URIRef)
     payload = _mapping_adoption_payload()

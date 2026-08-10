@@ -244,7 +244,7 @@ def _add_assertion(
     asserted_at: str = CREATED_AT,
     status: URIRef = ATLAS.current,
     supersedes: URIRef | None = None,
-    review_method: URIRef = ATLAS.humanReview,
+    review_warrant: str = "humanReview",
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
     adopted_evidence: URIRef | None = None,
@@ -256,9 +256,11 @@ def _add_assertion(
             )
     elif ring is None or source_ring is not None or target_ring is not None:
         raise ValueError("same-ring assertions require ring only")
-    if review_method == ATLAS.operatorAdoption and adopted_evidence is None:
-        raise ValueError("operatorAdoption review method requires adopted_evidence")
-    if review_method != ATLAS.operatorAdoption and adopted_evidence is not None:
+    if review_warrant not in atlas_validate.EVIDENCE_WARRANTS:
+        raise ValueError(f"unsupported review warrant: {review_warrant!r}")
+    if review_warrant == "operatorAdoption" and adopted_evidence is None:
+        raise ValueError("operatorAdoption warrant requires adopted_evidence")
+    if review_warrant != "operatorAdoption" and adopted_evidence is not None:
         raise ValueError("adopted_evidence is only valid for operatorAdoption")
     if policy is None:
         policies = list(graph.subjects(RDF.type, ATLAS.EditorialPolicy))
@@ -305,7 +307,7 @@ def _add_assertion(
     graph.add(
         (
             assertion,
-            ATLAS.assertedAt,
+            RKAF.assertedAt,
             Literal(asserted_at, datatype=XSD.dateTime, normalize=False),
         )
     )
@@ -321,18 +323,24 @@ def _add_assertion(
         )
     )
     evidence = URIRef(f"urn:ref:atlas-evidence:pending:{evidence_name}")
-    graph.add((evidence, RDF.type, ATLAS.EvidenceBinding))
-    graph.add((evidence, ATLAS.bindsAssertion, assertion))
+    graph.add((evidence, RDF.type, RKAF.EvidenceBinding))
+    graph.add((evidence, RKAF.bindsAssertion, assertion))
     graph.add((evidence, ATLAS.evidenceSourceRecord, evidence_record))
-    graph.add((evidence, ATLAS.reviewedBy, REVIEWER))
-    graph.add((evidence, ATLAS.decisionStatus, ATLAS.approved))
-    graph.add((evidence, ATLAS.reviewMethod, review_method))
+    graph.add((evidence, RKAF.attestor, REVIEWER))
+    graph.add((evidence, RKAF.decision, RKAF.approved))
+    for axis, value in zip(
+        atlas_validate.EVIDENCE_WARRANT_AXES,
+        atlas_validate.EVIDENCE_WARRANTS[review_warrant],
+        strict=True,
+    ):
+        graph.add((evidence, axis, value))
+    graph.add((evidence, RKAF.evidentiaryFunction, RKAF.supports))
     if adopted_evidence is not None:
-        graph.add((evidence, ATLAS.adoptedEvidence, adopted_evidence))
+        graph.add((evidence, RKAF.basedOnAttestation, adopted_evidence))
     graph.add(
         (
             evidence,
-            ATLAS.decidedAt,
+            RKAF.attestedAt,
             Literal(asserted_at, datatype=XSD.dateTime, normalize=False),
         )
     )
@@ -515,7 +523,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_a_release,
         evidence_record=source_a_child,
         evidence_name="native-subject",
-        review_method=ATLAS.publisherAssertion,
+        review_warrant="publisherAssertion",
     )
     exact_ab = _add_assertion(
         asserted,
@@ -528,9 +536,9 @@ def _base_fixture() -> Fixture:
         target_release=subject_b_release,
         evidence_record=source_a,
         evidence_name="exact-ab",
-        review_method=ATLAS.twoMachineAdjudication,
+        review_warrant="twoMachineAdjudication",
     )
-    exact_ab_evidence = next(asserted.subjects(ATLAS.bindsAssertion, exact_ab))
+    exact_ab_evidence = next(asserted.subjects(RKAF.bindsAssertion, exact_ab))
     exact_bc = _add_assertion(
         asserted,
         assertion_type=ATLAS.MappingAssertion,
@@ -542,7 +550,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_c_release,
         evidence_record=source_b,
         evidence_name="exact-bc",
-        review_method=ATLAS.operatorAdoption,
+        review_warrant="operatorAdoption",
         adopted_evidence=exact_ab_evidence,
     )
     _add_assertion(
@@ -556,7 +564,7 @@ def _base_fixture() -> Fixture:
         target_release=value_release,
         evidence_record=source_value_child,
         evidence_name="native-value",
-        review_method=ATLAS.deterministicTransformation,
+        review_warrant="deterministicTransformation",
     )
     _add_assertion(
         asserted,
@@ -569,7 +577,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_c_release,
         evidence_record=source_c,
         evidence_name="assignment-subject",
-        review_method=ATLAS.trustedPipelineReview,
+        review_warrant="trustedPipelineReview",
     )
     _add_assertion(
         asserted,
@@ -608,7 +616,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_a_release,
         evidence_record=entity_rows[0][1],
         evidence_name="entity-indexed-subject",
-        review_method=ATLAS.publisherAssertion,
+        review_warrant="publisherAssertion",
     )
     _add_assertion(
         asserted,
@@ -623,7 +631,7 @@ def _base_fixture() -> Fixture:
         target_release=subject_a_release,
         evidence_record=source_legal,
         evidence_name="legal-indexed-subject",
-        review_method=ATLAS.publisherAssertion,
+        review_warrant="publisherAssertion",
     )
     _add_assertion(
         asserted,
@@ -638,7 +646,7 @@ def _base_fixture() -> Fixture:
         target_release=legal_release,
         evidence_record=entity_rows[0][1],
         evidence_name="entity-references-legal",
-        review_method=ATLAS.publisherAssertion,
+        review_warrant="publisherAssertion",
     )
 
     derived_id = URIRef("urn:ref:atlas-derived:pending")
@@ -655,7 +663,7 @@ def _base_fixture() -> Fixture:
     derived.add(
         (
             derived_id,
-            ATLAS.inputDigest,
+            RKAF.inputDigest,
             Literal(atlas_validate.derived_input_digest(asserted, [exact_ab, exact_bc])),
         )
     )
@@ -694,7 +702,7 @@ def _base_fixture() -> Fixture:
         ATLAS.LegalIdentityResource,
         ATLAS.Identifier,
         ATLAS.SourceRecord,
-        ATLAS.EvidenceBinding,
+        RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
         ATLAS.LifecycleEvent,
         SKOSXL.Label,
@@ -918,7 +926,7 @@ def _logical_owner(
     if role == "Statement":
         bindings = [
             binding
-            for binding in graph.subjects(ATLAS.bindsAssertion, subject)
+            for binding in graph.subjects(RKAF.bindsAssertion, subject)
             if isinstance(binding, URIRef)
         ]
         if len(bindings) == 1:
@@ -1202,7 +1210,7 @@ def _compact_logical_rows(
         "Resource": ATLAS.AtlasResource,
         "Label": SKOSXL.Label,
         "Statement": ATLAS.RelationAssertion,
-        "EvidenceBinding": ATLAS.EvidenceBinding,
+        "EvidenceBinding": RKAF.EvidenceBinding,
         "SourceRecord": ATLAS.SourceRecord,
         "Release": (ATLAS.AtlasRelease, ATLAS.SourceRelease),
         "Identifier": ATLAS.Identifier,
@@ -1813,7 +1821,7 @@ def _reseal_evidence_to_fixed_point(graph: Graph) -> None:
     for _ in range(16):
         stale = [
             evidence
-            for evidence in set(graph.subjects(RDF.type, ATLAS.EvidenceBinding))
+            for evidence in set(graph.subjects(RDF.type, RKAF.EvidenceBinding))
             if isinstance(evidence, URIRef)
             and str(graph.value(evidence, ATLAS.contentDigest) or "")
             != _evidence_digest_without_pin(graph, evidence)
@@ -1845,7 +1853,7 @@ def _evidence_digest_without_pin(graph: Graph, evidence: URIRef) -> str:
 
 
 def _remove_assertion_with_evidence(graph: Graph, assertion: URIRef) -> None:
-    for evidence in list(graph.subjects(ATLAS.bindsAssertion, assertion)):
+    for evidence in list(graph.subjects(RKAF.bindsAssertion, assertion)):
         graph.remove((evidence, None, None))
     graph.remove((assertion, None, None))
 
@@ -1953,7 +1961,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         source_release = next(fixture.asserted.objects(old, ATLAS.sourceRelease))
         target_release = next(fixture.asserted.objects(old, ATLAS.targetRelease))
-        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, old))
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, old))
         evidence_record = next(
             fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
         )
@@ -1991,7 +1999,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         source_release = next(fixture.asserted.objects(old, ATLAS.sourceRelease))
         target_release = next(fixture.asserted.objects(old, ATLAS.targetRelease))
-        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, old))
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, old))
         evidence_record = next(
             fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
         )
@@ -2061,12 +2069,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def missing_evidence(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-        for evidence in list(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion)):
+        for evidence in list(fixture.asserted.subjects(RKAF.bindsAssertion, assertion)):
             fixture.asserted.remove((evidence, None, None))
 
     def cross_ring_missing_evidence(fixture: Fixture) -> None:
         assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.subject)
-        for evidence in list(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion)):
+        for evidence in list(fixture.asserted.subjects(RKAF.bindsAssertion, assertion)):
             fixture.asserted.remove((evidence, None, None))
 
     def cross_ring_endpoint_reversal(fixture: Fixture) -> None:
@@ -2087,7 +2095,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         target_release = next(
             fixture.asserted.objects(assertion, ATLAS.targetRelease)
         )
-        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion))
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
         evidence_record = next(
             fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
         )
@@ -2137,7 +2145,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _, (subject, _, obj) = atlas_validate._assertion_basis(fixture.asserted, assertion)
         source_release = next(fixture.asserted.objects(assertion, ATLAS.sourceRelease))
         target_release = next(fixture.asserted.objects(assertion, ATLAS.targetRelease))
-        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion))
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
         evidence_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         fixture.asserted.remove((assertion, None, None))
         fixture.asserted.remove((evidence, None, None))
@@ -2203,11 +2211,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
         fixture.derived.add((node, ATLAS.derivedFromAssertion, branch))
         inputs = list(fixture.derived.objects(node, ATLAS.derivedFromAssertion))
-        _remove_subject_predicate(fixture.derived, node, ATLAS.inputDigest)
+        _remove_subject_predicate(fixture.derived, node, RKAF.inputDigest)
         fixture.derived.add(
             (
                 node,
-                ATLAS.inputDigest,
+                RKAF.inputDigest,
                 Literal(atlas_validate.derived_input_digest(fixture.asserted, inputs)),
             )
         )
@@ -2226,11 +2234,11 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _refresh_node_digest(fixture.asserted, assertion)
         node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
         inputs = list(fixture.derived.objects(node, ATLAS.derivedFromAssertion))
-        _remove_subject_predicate(fixture.derived, node, ATLAS.inputDigest)
+        _remove_subject_predicate(fixture.derived, node, RKAF.inputDigest)
         fixture.derived.add(
             (
                 node,
-                ATLAS.inputDigest,
+                RKAF.inputDigest,
                 Literal(atlas_validate.derived_input_digest(fixture.asserted, inputs)),
             )
         )
@@ -2333,7 +2341,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         )
 
     def evidence_retargeted(fixture: Fixture) -> None:
-        evidence = next(fixture.asserted.subjects(RDF.type, ATLAS.EvidenceBinding))
+        evidence = next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
         current = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
         replacement = next(
             record
@@ -2344,17 +2352,80 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add((evidence, ATLAS.evidenceSourceRecord, replacement))
 
     def evidence_reviewer_retargeted(fixture: Fixture) -> None:
-        evidence = next(fixture.asserted.subjects(RDF.type, ATLAS.EvidenceBinding))
-        _remove_subject_predicate(fixture.asserted, evidence, ATLAS.reviewedBy)
+        evidence = next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+        _remove_subject_predicate(fixture.asserted, evidence, RKAF.attestor)
         fixture.asserted.add(
-            (evidence, ATLAS.reviewedBy, URIRef("urn:ref:agent:unreviewed-replacement"))
+            (evidence, RKAF.attestor, URIRef("urn:ref:agent:unreviewed-replacement"))
+        )
+
+    def _some_evidence(fixture: Fixture) -> URIRef:
+        return next(fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+
+    def _replace_evidence_fact(
+        fixture: Fixture, predicate: URIRef, obj: object
+    ) -> None:
+        evidence = _some_evidence(fixture)
+        _remove_subject_predicate(fixture.asserted, evidence, predicate)
+        fixture.asserted.add((evidence, predicate, obj))
+
+    def evidence_decision_not_approved(fixture: Fixture) -> None:
+        # Atlas publishes approved evidence only. Nothing else in the binding
+        # states that invariant, so this is the fixture that proves it holds.
+        _replace_evidence_fact(fixture, RKAF.decision, RKAF.rejected)
+
+    def evidence_attestor_kind_unknown(fixture: Fixture) -> None:
+        _replace_evidence_fact(
+            fixture, RKAF.attestorKind, URIRef("urn:ref:attestor-kind:invented")
+        )
+
+    def evidence_attested_at_not_datetime(fixture: Fixture) -> None:
+        _replace_evidence_fact(
+            fixture, RKAF.attestedAt, Literal("2026-08-09", datatype=XSD.string)
+        )
+
+    def evidence_function_unknown(fixture: Fixture) -> None:
+        _replace_evidence_fact(
+            fixture,
+            RKAF.evidentiaryFunction,
+            URIRef("urn:ref:evidentiary-function:invented"),
+        )
+
+    def evidence_warrant_unsanctioned(fixture: Fixture) -> None:
+        # Each axis value stays inside its own upstream enum; only the
+        # COMBINATION is one no review warrant sanctions. This is the case a
+        # decomposition into independent axes would otherwise let through, and
+        # the reason the sh:xone enumerates combinations rather than trusting
+        # the per-axis sh:in constraints.
+        _replace_evidence_fact(fixture, RKAF.evidenceRole, RKAF.retrievalSignal)
+
+    def assertion_asserted_at_not_datetime(fixture: Fixture) -> None:
+        assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.RelationAssertion))
+        _remove_subject_predicate(fixture.asserted, assertion, RKAF.assertedAt)
+        fixture.asserted.add(
+            (assertion, RKAF.assertedAt, Literal("2026-08-09", datatype=XSD.string))
+        )
+
+    def release_membership_mode_unknown(fixture: Fixture) -> None:
+        release = next(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+        _remove_subject_predicate(fixture.asserted, release, RKAF.membershipMode)
+        fixture.asserted.add(
+            (release, RKAF.membershipMode, URIRef("urn:ref:membership-mode:invented"))
+        )
+
+    def _declares_adoption(fixture: Fixture, binding: URIRef) -> bool:
+        return (
+            tuple(
+                fixture.asserted.value(binding, axis)
+                for axis in atlas_validate.EVIDENCE_WARRANT_AXES
+            )
+            == atlas_validate.EVIDENCE_WARRANTS["operatorAdoption"]
         )
 
     def _operator_adopted_evidence(fixture: Fixture) -> URIRef:
         return next(
             subject
-            for subject in fixture.asserted.subjects(RDF.type, ATLAS.EvidenceBinding)
-            if fixture.asserted.value(subject, ATLAS.reviewMethod) == ATLAS.operatorAdoption
+            for subject in fixture.asserted.subjects(RDF.type, RKAF.EvidenceBinding)
+            if _declares_adoption(fixture, subject)
         )
 
     def adoption_without_referent(fixture: Fixture) -> None:
@@ -2363,7 +2434,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # binding after the removal so this fixture's only defect is the
         # missing adoptedEvidence, not an incidentally stale contentDigest.
         evidence = _operator_adopted_evidence(fixture)
-        _remove_subject_predicate(fixture.asserted, evidence, ATLAS.adoptedEvidence)
+        _remove_subject_predicate(fixture.asserted, evidence, RKAF.basedOnAttestation)
         _remove_subject_predicate(fixture.asserted, evidence, ATLAS.contentDigest)
         digest = atlas_validate.rdf_node_digest(fixture.asserted, evidence)
         replacement = URIRef("urn:ref:atlas-evidence:" + digest.removeprefix("sha256:"))
@@ -2380,11 +2451,16 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # reject the cycle on its own terms.
         later_evidence = _operator_adopted_evidence(fixture)
         earlier_evidence = next(
-            fixture.asserted.objects(later_evidence, ATLAS.adoptedEvidence)
+            fixture.asserted.objects(later_evidence, RKAF.basedOnAttestation)
         )
-        _remove_subject_predicate(fixture.asserted, earlier_evidence, ATLAS.reviewMethod)
-        fixture.asserted.add((earlier_evidence, ATLAS.reviewMethod, ATLAS.operatorAdoption))
-        fixture.asserted.add((earlier_evidence, ATLAS.adoptedEvidence, later_evidence))
+        for axis, value in zip(
+            atlas_validate.EVIDENCE_WARRANT_AXES,
+            atlas_validate.EVIDENCE_WARRANTS["operatorAdoption"],
+            strict=True,
+        ):
+            _remove_subject_predicate(fixture.asserted, earlier_evidence, axis)
+            fixture.asserted.add((earlier_evidence, axis, value))
+        fixture.asserted.add((earlier_evidence, RKAF.basedOnAttestation, later_evidence))
 
     def policy_payload_changed(fixture: Fixture) -> None:
         policy = next(fixture.asserted.subjects(RDF.type, ATLAS.EditorialPolicy))
@@ -2470,8 +2546,8 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def wrong_derived_input_digest(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
-        _remove_subject_predicate(fixture.derived, derived, ATLAS.inputDigest)
-        fixture.derived.add((derived, ATLAS.inputDigest, Literal("sha256:" + "4" * 64)))
+        _remove_subject_predicate(fixture.derived, derived, RKAF.inputDigest)
+        fixture.derived.add((derived, RKAF.inputDigest, Literal("sha256:" + "4" * 64)))
 
     def wrong_derived_endpoint(fixture: Fixture) -> None:
         derived = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -2608,7 +2684,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             fixture.asserted, assertion
         )
         release = next(fixture.asserted.objects(assertion, ATLAS.sourceRelease))
-        evidence = next(fixture.asserted.subjects(ATLAS.bindsAssertion, assertion))
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
         evidence_record = next(
             fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
         )
@@ -2812,6 +2888,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("asserted-untyped-statement", ["dataset"], "dataset.graph-placement", untyped_asserted_statement),
         ("evidence-retargeted", ["rdf", "dataset"], "dataset.evidence-identity", evidence_retargeted),
         ("evidence-reviewer-retargeted", ["rdf", "dataset"], "dataset.evidence-identity", evidence_reviewer_retargeted),
+        ("evidence-decision-not-approved", ["shacl", "dataset"], "shacl.data", evidence_decision_not_approved),
+        ("evidence-attestor-kind-unknown", ["shacl", "dataset"], "shacl.data", evidence_attestor_kind_unknown),
+        ("evidence-attested-at-not-datetime", ["shacl", "dataset"], "shacl.data", evidence_attested_at_not_datetime),
+        ("evidence-function-unknown", ["shacl", "dataset"], "shacl.data", evidence_function_unknown),
+        ("evidence-warrant-unsanctioned", ["shacl", "dataset"], "shacl.data", evidence_warrant_unsanctioned),
+        ("assertion-asserted-at-not-datetime", ["shacl", "dataset"], "shacl.data", assertion_asserted_at_not_datetime),
+        ("release-membership-mode-unknown", ["shacl", "dataset"], "shacl.data", release_membership_mode_unknown),
         ("adoption-without-referent", ["shacl", "dataset"], "shacl.data", adoption_without_referent),
         ("adoption-chain-cycle", ["rdf", "dataset"], "dataset.evidence-adoption", adoption_chain_cycle),
         ("policy-payload-changed", ["rdf", "dataset"], "dataset.assertion-identity", policy_payload_changed),

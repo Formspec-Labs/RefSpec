@@ -73,8 +73,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 64,
-        "invalidCount": 55,
+        "caseCount": 71,
+        "invalidCount": 62,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 1171,
         "schemaCount": 10,
@@ -100,7 +100,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 802
+    assert result["quadCount"] == 842
     assert result["inferredMappingCount"] == 7
 
 
@@ -190,19 +190,33 @@ def test_ontology_uses_the_declared_safe_local_profile() -> None:
         atlas_validate._lint_ontology(graph)
 
 
-def test_review_methods_describe_warrant_basis_without_product_permission() -> None:
-    graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
-    expected = {
-        ATLAS.deterministicTransformation,
-        ATLAS.humanReview,
-        ATLAS.operatorAdoption,
-        ATLAS.publisherAssertion,
-        ATLAS.trustedPipelineReview,
-        ATLAS.twoMachineAdjudication,
-    }
+def test_review_warrants_describe_basis_without_product_permission() -> None:
+    """The six warrants survive the decomposition, and stay warrants.
 
-    assert set(graph.subjects(RDF.type, ATLAS.ReviewMethod)) == expected
-    assert atlas_validate.REVIEW_METHODS == expected
+    atlas:reviewMethod was one enum conflating four Rulespec axes. Splitting it
+    would ordinarily lose the closure, so the admissible combinations are
+    enumerated instead -- still six, still distinguishable, and still saying
+    only what grounds a claim rather than what a consumer may do with it.
+    """
+
+    graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
+
+    assert set(atlas_validate.EVIDENCE_WARRANTS) == {
+        "deterministicTransformation",
+        "humanReview",
+        "operatorAdoption",
+        "publisherAssertion",
+        "trustedPipelineReview",
+        "twoMachineAdjudication",
+    }
+    # No warrant survived as an atlas: term: the axes are Rulespec's, and a
+    # leftover atlas:humanReview would be the parallel vocabulary this wave
+    # removed.
+    assert not any(
+        str(term).startswith(str(ATLAS))
+        and str(term).removeprefix(str(ATLAS)) in atlas_validate.EVIDENCE_WARRANTS
+        for term in graph.all_nodes()
+    )
     assert not any(
         keyword in str(term).lower()
         for term in graph.all_nodes()

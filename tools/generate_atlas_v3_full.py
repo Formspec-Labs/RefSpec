@@ -2831,8 +2831,8 @@ def _review_method_for_assertion(
     assertion_type: URIRef,
     *,
     deterministic_transformation: bool = False,
-) -> URIRef:
-    """Select the source-native method supported by an assertion's provenance."""
+) -> str:
+    """Select the source-native warrant supported by an assertion's provenance."""
 
     if assertion_type in {
         ATLAS.CrossRingRelationAssertion,
@@ -2840,19 +2840,19 @@ def _review_method_for_assertion(
         ATLAS.SourceAssignment,
     }:
         return (
-            ATLAS.deterministicTransformation
+            "deterministicTransformation"
             if deterministic_transformation
-            else ATLAS.publisherAssertion
+            else "publisherAssertion"
         )
     raise ValueError(f"unsupported assertion review method: {assertion_type}")
 
 
-def _mapping_review_method(review_method: MappingReviewMethod) -> URIRef:
-    """Resolve one explicit, binding-approved mapping warrant to its RDF term."""
+def _mapping_review_method(review_method: MappingReviewMethod) -> str:
+    """Resolve one explicit, binding-approved mapping warrant to its axis name."""
 
     if review_method not in MAPPING_REVIEW_METHODS:
         raise ValueError(f"unsupported mapping review method: {review_method!r}")
-    return ATLAS[review_method]
+    return review_method
 
 
 def _transformed_relation_evidence(
@@ -2997,7 +2997,7 @@ def _add_assertion(
     graph.add(
         (
             assertion,
-            ATLAS.assertedAt,
+            RKAF.assertedAt,
             Literal(_rdf_datetime(asserted_at), datatype=XSD.dateTime, normalize=False),
         )
     )
@@ -3027,15 +3027,20 @@ def _add_evidence_binding(
             f"evidence source record {evidence_record} lacks one content digest"
         )
     evidence_facts: list[tuple[URIRef, object]] = [
-        (RDF.type, ATLAS.EvidenceBinding),
-        (ATLAS.bindsAssertion, assertion),
+        (RDF.type, RKAF.EvidenceBinding),
+        (RKAF.bindsAssertion, assertion),
         (ATLAS.evidenceSourceRecord, evidence_record),
         (ATLAS.evidenceSourceDigest, evidence_source_digest),
-        (ATLAS.reviewedBy, reviewer),
-        (ATLAS.decisionStatus, ATLAS.approved),
-        (ATLAS.reviewMethod, review_method),
+        (RKAF.attestor, reviewer),
+        (RKAF.decision, RKAF.approved),
+        *zip(
+            ATLAS_VALIDATE.EVIDENCE_WARRANT_AXES,
+            ATLAS_VALIDATE.EVIDENCE_WARRANTS[review_method],
+            strict=True,
+        ),
+        (RKAF.evidentiaryFunction, RKAF.supports),
         (
-            ATLAS.decidedAt,
+            RKAF.attestedAt,
             Literal(
                 _rdf_datetime(decided_at),
                 datatype=XSD.dateTime,
@@ -3160,8 +3165,8 @@ def _mapping_accounting_expectations(
         lambda: defaultdict(set)
     )
     try:
-        for binding in graph.subjects(RDF.type, ATLAS.EvidenceBinding):
-            assertion = graph.value(binding, ATLAS.bindsAssertion)
+        for binding in graph.subjects(RDF.type, RKAF.EvidenceBinding):
+            assertion = graph.value(binding, RKAF.bindsAssertion)
             record = graph.value(binding, ATLAS.evidenceSourceRecord)
             source_release = (
                 graph.value(record, ATLAS.inSourceRelease)
@@ -3209,7 +3214,7 @@ def _validate_compiled_evidence_output(
             bindings = {
                 URIRef(binding)
                 for assertion in expected_assertions
-                for binding in graph.subjects(ATLAS.bindsAssertion, assertion)
+                for binding in graph.subjects(RKAF.bindsAssertion, assertion)
             }
             records = {
                 URIRef(record)
@@ -3243,19 +3248,19 @@ def _validate_compiled_evidence_output(
             for assertion in asserted.subjects(RDF.type, assertion_type)
         }
         typed_bindings = set(
-            asserted.subjects(RDF.type, ATLAS.EvidenceBinding)
+            asserted.subjects(RDF.type, RKAF.EvidenceBinding)
         )
         bound_bindings: set[URIRef] = set()
         for assertion in all_assertions:
             bindings = {
                 URIRef(binding)
-                for binding in asserted.subjects(ATLAS.bindsAssertion, assertion)
+                for binding in asserted.subjects(RKAF.bindsAssertion, assertion)
             }
             expected_count = (
                 len(
                     set(
                         expected_mapping.subjects(
-                            ATLAS.bindsAssertion,
+                            RKAF.bindsAssertion,
                             assertion,
                         )
                     )
@@ -3275,7 +3280,7 @@ def _validate_compiled_evidence_output(
                 set(
                     expected_mapping.subjects(
                         RDF.type,
-                        ATLAS.EvidenceBinding,
+                        RKAF.EvidenceBinding,
                     )
                 )
             )
@@ -5915,7 +5920,7 @@ def _release_subject_owners(
 
     for assertion in asserted.subjects(RDF.type, ATLAS.RelationAssertion):
         evidence_bindings = list(
-            asserted.subjects(ATLAS.bindsAssertion, assertion)
+            asserted.subjects(RKAF.bindsAssertion, assertion)
         )
         if not evidence_bindings:
             raise ValueError(
@@ -5944,8 +5949,8 @@ def _release_subject_owners(
         owners[URIRef(assertion)] = next(iter(evidence_owners))
 
     own_from_object(
-        ATLAS.EvidenceBinding,
-        ATLAS.bindsAssertion,
+        RKAF.EvidenceBinding,
+        RKAF.bindsAssertion,
         owners,
     )
     for event in asserted.subjects(RDF.type, ATLAS.LifecycleEvent):
@@ -6052,7 +6057,7 @@ def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
             (CompactRecordRole.RESOURCE, ATLAS.AtlasResource),
             (CompactRecordRole.LABEL, SKOSXL.Label),
             (CompactRecordRole.STATEMENT, ATLAS.RelationAssertion),
-            (CompactRecordRole.EVIDENCE_BINDING, ATLAS.EvidenceBinding),
+            (CompactRecordRole.EVIDENCE_BINDING, RKAF.EvidenceBinding),
             (CompactRecordRole.SOURCE_RECORD, ATLAS.SourceRecord),
             (CompactRecordRole.RELEASE, ATLAS.AtlasRelease),
             (CompactRecordRole.RELEASE, ATLAS.SourceRelease),
@@ -6255,7 +6260,7 @@ def _compact_record_from_graph(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.assertedAt,
+                        RKAF.assertedAt,
                         expected_type=Literal,
                     )
                 ),
@@ -6323,7 +6328,7 @@ def _compact_record_from_graph(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.bindsAssertion,
+                        RKAF.bindsAssertion,
                         expected_type=URIRef,
                     )
                 ),
@@ -6343,35 +6348,44 @@ def _compact_record_from_graph(
                         expected_type=Literal,
                     )
                 ),
-                "reviewedBy": str(
+                "attestor": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.reviewedBy,
+                        RKAF.attestor,
                         expected_type=URIRef,
                     )
                 ),
-                "reviewMethod": str(
+                **{
+                    field: str(
+                        _one_graph_object(
+                            graph,
+                            subject,
+                            predicate,
+                            expected_type=URIRef,
+                        )
+                    )
+                    for field, predicate in (
+                        ("attestorKind", RKAF.attestorKind),
+                        ("assertionOrigin", RKAF.assertionOrigin),
+                        ("epistemicBasis", RKAF.epistemicBasis),
+                        ("evidenceRole", RKAF.evidenceRole),
+                        ("evidentiaryFunction", RKAF.evidentiaryFunction),
+                    )
+                },
+                "decision": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.reviewMethod,
+                        RKAF.decision,
                         expected_type=URIRef,
                     )
                 ),
-                "decisionStatus": str(
+                "attestedAt": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.decisionStatus,
-                        expected_type=URIRef,
-                    )
-                ),
-                "decidedAt": str(
-                    _one_graph_object(
-                        graph,
-                        subject,
-                        ATLAS.decidedAt,
+                        RKAF.attestedAt,
                         expected_type=Literal,
                     )
                 ),
@@ -6646,7 +6660,7 @@ def _compact_dependency_subjects(
             ATLAS.supersedes,
         ),
         CompactRecordRole.EVIDENCE_BINDING: (
-            ATLAS.bindsAssertion,
+            RKAF.bindsAssertion,
             ATLAS.evidenceSourceRecord,
         ),
         CompactRecordRole.LIFECYCLE_EVENT: (

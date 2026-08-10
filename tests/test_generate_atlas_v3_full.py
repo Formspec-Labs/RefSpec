@@ -2074,7 +2074,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
             generator.ATLAS.targetRelease,
         ) == URIRef(mapping_row.object_atlas_release_iri)
         evidence_bindings = set(
-            graphs.asserted.subjects(generator.ATLAS.bindsAssertion, assertion)
+            graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion)
         )
         assert len(evidence_bindings) == 1
         evidence = next(iter(evidence_bindings))
@@ -2086,7 +2086,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         ) in graphs.asserted
         assert (
             evidence,
-            generator.ATLAS.reviewedBy,
+            generator.RKAF.attestor,
             URIRef(evidence_row.reviewer_iri),
         ) in graphs.asserted
         expected_assertion_time = Literal(
@@ -2101,12 +2101,12 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         )
         assert (
             assertion,
-            generator.ATLAS.assertedAt,
+            generator.RKAF.assertedAt,
             expected_assertion_time,
         ) in graphs.asserted
         assert (
             evidence,
-            generator.ATLAS.decidedAt,
+            generator.RKAF.attestedAt,
             expected_decision_time,
         ) in graphs.asserted
         evidence_source_record = graphs.asserted.value(
@@ -2257,7 +2257,7 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
         assertion = next(iter(expanded_assertions))
         bindings = set(
             expanded_graphs.asserted.subjects(
-                generator.ATLAS.bindsAssertion,
+                generator.RKAF.bindsAssertion,
                 assertion,
             )
         )
@@ -2343,7 +2343,7 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
             graphs.asserted.subjects(RDF.type, generator.ATLAS.MappingAssertion)
         )
         bindings = list(
-            graphs.asserted.subjects(generator.ATLAS.bindsAssertion, assertion)
+            graphs.asserted.subjects(generator.RKAF.bindsAssertion, assertion)
         )
         assert len(bindings) == 2
         graphs.asserted.remove((bindings[-1], None, None))
@@ -3459,7 +3459,7 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
     )
 
     bindings = set(
-        graph.subjects(RDF.type, generator.ATLAS.EvidenceBinding)
+        graph.subjects(RDF.type, generator.RKAF.EvidenceBinding)
     )
     assert len(bindings) == 1
     binding = next(iter(bindings))

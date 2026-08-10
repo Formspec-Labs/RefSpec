@@ -1032,7 +1032,7 @@ def _fresh_asserted_graph_without_assertions() -> Graph:
         ATLAS.MappingAssertion,
         ATLAS.NativeRelationAssertion,
         ATLAS.SourceAssignment,
-        ATLAS.EvidenceBinding,
+        RKAF.EvidenceBinding,
     )
     nodes = {
         node
@@ -1112,11 +1112,11 @@ def test_core_shacl_still_rejects_an_assertion_without_evidence() -> None:
     # adoptedEvidence reference first, which is a different failure. Pick the
     # first mapping binding nothing adopts, in sorted order so the choice does
     # not move when evidence IRIs change.
-    adopted = set(asserted.objects(None, ATLAS.adoptedEvidence))
+    adopted = set(asserted.objects(None, RKAF.basedOnAttestation))
     binding = next(
         candidate
         for mapping in sorted(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-        for candidate in sorted(asserted.subjects(ATLAS.bindsAssertion, mapping))
+        for candidate in sorted(asserted.subjects(RKAF.bindsAssertion, mapping))
         if candidate not in adopted
     )
     asserted.remove((binding, None, None))
@@ -1736,7 +1736,7 @@ def test_batched_shacl_conformance_matches_normative_shapes(
         asserted.add((record, ATLAS.contentDigest, Literal("not-a-digest")))
     elif mutation == "evidence":
         assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-        binding = next(asserted.subjects(ATLAS.bindsAssertion, assertion))
+        binding = next(asserted.subjects(RKAF.bindsAssertion, assertion))
         asserted.remove((binding, None, None))
     elif mutation == "ring-context":
         assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -1752,7 +1752,7 @@ def test_batched_shacl_invalid_path_falls_back_to_exact_normative_report(
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-    binding = next(asserted.subjects(ATLAS.bindsAssertion, assertion))
+    binding = next(asserted.subjects(RKAF.bindsAssertion, assertion))
     asserted.remove((binding, None, None))
     ontology, shapes = atlas_validate._parse_binding_graphs()
     calls: list[Graph] = []
@@ -1809,7 +1809,11 @@ def test_batched_shacl_reduces_shape_dispatches_on_valid_fixture(
         counts.append(active_counter[0])
 
     original_count, batched_count = counts
-    assert batched_count * 3 < original_count
+    # Batching still removes most dispatches. The margin was a factor of three
+    # before the six-branch sh:xone that replaced atlas:reviewMethod: an xone
+    # dispatches each branch in both modes, so it raises the batched floor
+    # without raising the unbatched ceiling proportionally.
+    assert batched_count * 2 < original_count
 
 
 def test_distribution_member_digests_are_reused_after_required_reads(
@@ -1871,7 +1875,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 802
+    assert result["quadCount"] == 842
     assert result["inferredMappingCount"] == 7
 
 
@@ -1883,7 +1887,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 802
+    assert result["quadCount"] == 842
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -1994,7 +1998,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 695
+    assert result["quadCount"] == 735
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(
@@ -2336,7 +2340,7 @@ def test_general_node_digest_pass_skips_records_verified_by_specialized_checks(
     original = atlas_validate.rdf_node_digest
 
     def reject_duplicate_work(graph: Graph, node: URIRef) -> str:
-        if (node, RDF.type, ATLAS.EvidenceBinding) in graph or (
+        if (node, RDF.type, RKAF.EvidenceBinding) in graph or (
             node,
             RDF.type,
             ATLAS.ProjectedRelation,

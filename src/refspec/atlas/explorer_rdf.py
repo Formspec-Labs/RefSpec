@@ -557,7 +557,7 @@ _ATLAS_RELATION_OBJECT_TOKEN = _nquad_iri_token(ATLAS.relationObject)
 _ATLAS_SUPPORTING_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.supportingAssertion)
 _ATLAS_DERIVED_FROM_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.derivedFromAssertion)
 _ATLAS_GOVERNED_BY_POLICY_TOKEN = _nquad_iri_token(ATLAS.governedByPolicy)
-_ATLAS_BINDS_ASSERTION_TOKEN = _nquad_iri_token(ATLAS.bindsAssertion)
+_ATLAS_BINDS_ASSERTION_TOKEN = _nquad_iri_token(RKAF.bindsAssertion)
 _ATLAS_EVIDENCE_SOURCE_RECORD_TOKEN = _nquad_iri_token(ATLAS.evidenceSourceRecord)
 _ATLAS_SOURCE_RECORD_TOKEN = _nquad_iri_token(ATLAS.sourceRecord)
 _SKOSXL_LITERAL_FORM_TOKEN = _nquad_iri_token(SKOSXL.literalForm)
@@ -2428,7 +2428,7 @@ def _verify_source_accounting(
             graph_assertions = {
                 str(assertion)
                 for evidence in evidence_bindings
-                for assertion in asserted.objects(evidence, ATLAS.bindsAssertion)
+                for assertion in asserted.objects(evidence, RKAF.bindsAssertion)
             }
             mapping_assertions = {
                 assertion
@@ -3626,8 +3626,8 @@ def _derive_explorer_record_joins(
                         ),
                         label_row,
                     )
-                if str(ATLAS.EvidenceBinding) in types:
-                    assertion_id = _one_record_iri(record, str(ATLAS.bindsAssertion))
+                if str(RKAF.EvidenceBinding) in types:
+                    assertion_id = _one_record_iri(record, str(RKAF.bindsAssertion))
                     _append_record_augmentation(
                         augmentation_spool,
                         assertion_id,
@@ -4667,12 +4667,12 @@ def _evidence_view(
         "sourceRecord": record_id,
         "sourceRecordContentDigest": source_record_content_digests[record_id],
         "sourceDigest": str(_one(graph, binding, ATLAS.evidenceSourceDigest, label=f"evidence {binding}")),
-        "decisionStatus": _iri_name(_one(graph, binding, ATLAS.decisionStatus, label=f"evidence {binding}")),
+        "decisionStatus": _iri_name(_one(graph, binding, RKAF.decision, label=f"evidence {binding}")),
         "reviewMethod": _iri_name(_one(graph, binding, ATLAS.reviewMethod, label=f"evidence {binding}")),
-        "decidedAt": str(_one(graph, binding, ATLAS.decidedAt, label=f"evidence {binding}")),
+        "decidedAt": str(_one(graph, binding, RKAF.attestedAt, label=f"evidence {binding}")),
         "contentDigest": str(_one(graph, binding, ATLAS.contentDigest, label=f"evidence {binding}")),
     }
-    for predicate, field in ((ATLAS.reviewedBy, "reviewedBy"),):
+    for predicate, field in ((RKAF.attestor, "reviewedBy"),):
         value = _one(graph, binding, predicate, label=f"evidence {binding}", required=False)
         if value is not None:
             result[field] = str(value)
@@ -4697,7 +4697,7 @@ def _assertion_view(
     evidence = sorted(
         (
             _evidence_view(graph, binding, source_record_content_digests)
-            for binding in graph.subjects(ATLAS.bindsAssertion, assertion)
+            for binding in graph.subjects(RKAF.bindsAssertion, assertion)
             if isinstance(binding, URIRef)
         ),
         key=lambda row: row["id"],
@@ -4721,7 +4721,7 @@ def _assertion_view(
         **ring_fields,
         "sourceRelease": str(_one(graph, assertion, ATLAS.sourceRelease, label=f"assertion {assertion}")),
         "targetRelease": str(_one(graph, assertion, ATLAS.targetRelease, label=f"assertion {assertion}")),
-        "assertedAt": str(_one(graph, assertion, ATLAS.assertedAt, label=f"assertion {assertion}")),
+        "assertedAt": str(_one(graph, assertion, RKAF.assertedAt, label=f"assertion {assertion}")),
         "status": status,
         "identityDigest": str(
             _one(graph, assertion, ATLAS.assertionIdentityDigest, label=f"assertion {assertion}")
@@ -4806,7 +4806,7 @@ def _derived_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> 
         "rule": str(_one(graph, relation, ATLAS.derivationRule, label=f"derived relation {relation}")),
         "engine": str(_one(graph, relation, ATLAS.engine, label=f"derived relation {relation}")),
         "engineVersion": str(_one(graph, relation, ATLAS.engineVersion, label=f"derived relation {relation}")),
-        "inputDigest": str(_one(graph, relation, ATLAS.inputDigest, label=f"derived relation {relation}")),
+        "inputDigest": str(_one(graph, relation, RKAF.inputDigest, label=f"derived relation {relation}")),
         "generatedAt": str(_one(graph, relation, ATLAS.generatedAt, label=f"derived relation {relation}")),
         "contentDigest": str(_one(graph, relation, ATLAS.contentDigest, label=f"derived relation {relation}")),
     }

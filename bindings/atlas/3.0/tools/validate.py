@@ -163,13 +163,17 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "statement",
                 "sourceRecord",
                 "evidenceSourceDigest",
-                "reviewedBy",
-                "reviewMethod",
-                "decisionStatus",
-                "decidedAt",
+                "attestor",
+                "attestorKind",
+                "assertionOrigin",
+                "epistemicBasis",
+                "evidenceRole",
+                "evidentiaryFunction",
+                "decision",
+                "attestedAt",
             }
         ),
-        frozenset(),
+        frozenset({"basedOnAttestation"}),
     ),
     "SourceRecord": (
         frozenset({"id", "sourceRelease", "sourceDigest", "sourceLocator", "nativePayload"}),
@@ -244,7 +248,7 @@ COMPACT_IRI_FIELDS: dict[str, tuple[str, ...]] = {
         "targetRelease",
         "policy",
     ),
-    "EvidenceBinding": ("id", "statement", "sourceRecord", "reviewedBy"),
+    "EvidenceBinding": ("id", "statement", "sourceRecord", "attestor"),
     "SourceRecord": ("id", "sourceRelease", "sourceLocator"),
     "Release": ("id",),
     "Identifier": ("id", "identifierScheme", "identifies", "sourceRecord"),
@@ -268,7 +272,7 @@ COMPACT_REFERENCE_FIELDS: dict[str, tuple[str, ...]] = {
         "targetRelease",
         "supersedes",
     ),
-    "EvidenceBinding": ("statement", "sourceRecord"),
+    "EvidenceBinding": ("statement", "sourceRecord", "basedOnAttestation"),
     # representsResource is a deliberate forward reference that avoids a
     # SourceRecord <-> Resource dependency cycle.
     "SourceRecord": (),
@@ -374,16 +378,88 @@ SKOS_MAPPING_PREDICATES = frozenset(
     {SKOS.exactMatch, SKOS.closeMatch, SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}
 )
 SKOS_NATIVE_RELATION_PREDICATES = frozenset({SKOS.broader, SKOS.narrower, SKOS.related})
-REVIEW_METHODS = frozenset(
+# The four independent Rulespec axes that atlas:reviewMethod used to conflate
+# into one six-value enum, plus the attestor kind. Rulespec keeps them apart on
+# purpose: #EvidenceRole's comment says the split "prevents a consumer from
+# treating retrieval evidence as authority evidence merely because both point
+# at the same fragment", and #EpistemicBasis is "deliberately independent of
+# rkaf:assertionOrigin, which records what CONSTRUCTED the record".
+#
+# Splitting a closed enum into independent axes would ordinarily lose the
+# closure, so the admissible COMBINATIONS are enumerated here and mirrored by
+# the sh:xone on atlas:EvidenceBindingShape. The key is the atlas:ReviewMethod
+# individual each combination replaced; it is a name for the combination, not a
+# term on the wire.
+EVIDENCE_WARRANT_AXES = (
+    RKAF.assertionOrigin,
+    RKAF.epistemicBasis,
+    RKAF.evidenceRole,
+    RKAF.attestorKind,
+)
+EVIDENCE_WARRANTS: dict[str, tuple[URIRef, ...]] = {
+    "publisherAssertion": (
+        RKAF.imported,
+        RKAF.sourceExplicit,
+        RKAF.officialSourceMetadata,
+        RKAF.automatedParser,
+    ),
+    "deterministicTransformation": (
+        RKAF.deterministicExtraction,
+        RKAF.deterministicDerivation,
+        RKAF.structuralEvidence,
+        RKAF.automatedParser,
+    ),
+    "humanReview": (
+        RKAF.humanAsserted,
+        RKAF.editorialAssertion,
+        RKAF.textualEvidence,
+        RKAF.humanUser,
+    ),
+    "operatorAdoption": (
+        RKAF.imported,
+        RKAF.editorialAssertion,
+        RKAF.formalAdoptionEvent,
+        RKAF.organization,
+    ),
+    "twoMachineAdjudication": (
+        RKAF.aiSuggested,
+        RKAF.statisticalInference,
+        RKAF.reviewedAuthorityChain,
+        RKAF.aiModel,
+    ),
+    "trustedPipelineReview": (
+        RKAF.imported,
+        RKAF.deterministicDerivation,
+        RKAF.authorityCitation,
+        RKAF.automatedParser,
+    ),
+}
+# rkaf:evidenceRole alone discriminates all six combinations, which is what
+# lets the sh:xone resolve to exactly one branch. Asserted here so a future
+# edit that makes two combinations share a role fails loudly instead of
+# silently making the shape unsatisfiable.
+assert len({warrant[2] for warrant in EVIDENCE_WARRANTS.values()}) == len(
+    EVIDENCE_WARRANTS
+), "each evidence warrant must carry a distinct rkaf:evidenceRole"
+EVIDENCE_WARRANT_COMBINATIONS = frozenset(EVIDENCE_WARRANTS.values())
+# How the bound evidence bears on the assertion. Atlas only ever supports, but
+# the axis is constrained to the upstream enum rather than pinned to one value,
+# so a producer that means "qualifies" has somewhere to put it.
+EVIDENTIARY_FUNCTIONS = frozenset(
     {
-        ATLAS.deterministicTransformation,
-        ATLAS.humanReview,
-        ATLAS.operatorAdoption,
-        ATLAS.publisherAssertion,
-        ATLAS.trustedPipelineReview,
-        ATLAS.twoMachineAdjudication,
+        RKAF.supports,
+        RKAF.qualifies,
+        RKAF.contradicts,
+        RKAF.definesScope,
+        RKAF.providesContext,
     }
 )
+
+
+def evidence_warrant(binding_facts: "Mapping[URIRef, object]") -> tuple[URIRef, ...]:
+    """The four-axis warrant tuple a set of evidence facts declares."""
+
+    return tuple(binding_facts[axis] for axis in EVIDENCE_WARRANT_AXES)  # type: ignore[misc]
 EXPECTED_PROFILE_NAMES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )
@@ -422,7 +498,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         *RESOURCE_TYPES,
         ATLAS.Identifier,
         ATLAS.SourceRecord,
-        ATLAS.EvidenceBinding,
+        RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
         ATLAS.LifecycleEvent,
         ATLAS.RelationAssertion,
@@ -442,7 +518,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
         *RESOURCE_TYPES,
         ATLAS.Identifier,
         ATLAS.SourceRecord,
-        ATLAS.EvidenceBinding,
+        RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
         ATLAS.LifecycleEvent,
         *ASSERTION_TYPES,
@@ -490,11 +566,15 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.supersedes,
         ATLAS.evidenceSourceRecord,
         ATLAS.evidenceSourceDigest,
-        ATLAS.reviewedBy,
-        ATLAS.decisionStatus,
-        ATLAS.adoptedEvidence,
-        ATLAS.reviewMethod,
-        ATLAS.bindsAssertion,
+        RKAF.attestor,
+        RKAF.decision,
+        RKAF.basedOnAttestation,
+        RKAF.assertionOrigin,
+        RKAF.epistemicBasis,
+        RKAF.evidenceRole,
+        RKAF.evidentiaryFunction,
+        RKAF.attestorKind,
+        RKAF.bindsAssertion,
         ATLAS.eventSubject,
         ATLAS.eventType,
         ATLAS.fromRelease,
@@ -513,9 +593,9 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.validFrom,
         ATLAS.validUntil,
         ATLAS.identifierValue,
-        ATLAS.assertedAt,
+        RKAF.assertedAt,
         ATLAS.assertionIdentityDigest,
-        ATLAS.decidedAt,
+        RKAF.attestedAt,
         ATLAS.eventAt,
         ATLAS.contentDigest,
     }
@@ -550,6 +630,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "asserted-naked-mapping",
         "asserted-auxiliary-type-only",
         "asserted-untyped-statement",
+        "assertion-asserted-at-not-datetime",
         "assertion-extra-property",
         "blank-node",
         "cross-ring-disallowed-pair",
@@ -568,8 +649,13 @@ REQUIRED_CORPUS_CASES = frozenset(
         "derived-reflexive-output",
         "derived-withdrawn-input",
         "duplicate-preferred-language",
+        "evidence-attested-at-not-datetime",
+        "evidence-attestor-kind-unknown",
+        "evidence-decision-not-approved",
+        "evidence-function-unknown",
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
+        "evidence-warrant-unsanctioned",
         "identifier-missing-value",
         "identifier-pair-conflict",
         "label-missing-literal",
@@ -585,6 +671,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "non-english-label",
         "partitioned-packs",
         "profile-ring-mismatch",
+        "release-membership-mode-unknown",
         "policy-payload-changed",
         "rdf-literal-escaping",
         "scheme-assertion-property",
@@ -2341,8 +2428,6 @@ def _lint_ontology(ontology: Graph) -> None:
         ATLAS.ResourceProfile,
         ATLAS.AssertionStatus,
         ATLAS.AuthorityStatus,
-        ATLAS.EditorialDecisionStatus,
-        ATLAS.ReviewMethod,
     }
     allowed_datatype_ranges = {
         RDFS.Literal,
@@ -2671,7 +2756,18 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
             _fail("shacl.data", f"SHACL processor failed for {role}: {exc}")
         if not conforms:
             compact = " ".join(str(report).split())
-            _fail("shacl.data", f"{role} graph does not conform: {compact[:900]}")
+            # Name every violated constraint component before the detail. A
+            # multi-violation report runs past the length cap below, so which
+            # constraint actually fired used to depend on graph iteration order
+            # -- unreadable for an operator and unpinnable for a regression
+            # test. The component list is short, complete, and order-stable.
+            components = ", ".join(
+                sorted(set(re.findall(r"Constraint Violation in (\w+)", compact)))
+            )
+            _fail(
+                "shacl.data",
+                f"{role} graph does not conform [{components}]: {compact[:900]}",
+            )
 
 
 def _check_graph_roles(graphs: Mapping[str, Graph]) -> SemanticInventory:
@@ -3330,7 +3426,7 @@ def _validate_assertions(
             label="assertionStatus",
         )
         asserted_at = _date_time(
-            _one(asserted, assertion, ATLAS.assertedAt, code="dataset.assertion"),
+            _one(asserted, assertion, RKAF.assertedAt, code="dataset.assertion"),
             code="dataset.assertion",
             label="assertedAt",
         )
@@ -3497,7 +3593,7 @@ def _check_evidence_bindings(
         )
     )
     source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
-    bindings = _carrier_nodes(asserted, ATLAS.EvidenceBinding, inventory)
+    bindings = _carrier_nodes(asserted, RKAF.EvidenceBinding, inventory)
 
     # An operatorAdoption binding must name what it adopted, and the adoption
     # chain it starts must resolve to a non-adoption terminal without cycling.
@@ -3505,29 +3601,44 @@ def _check_evidence_bindings(
     # is resolved before any content-identity check below: a cycle or a dangling
     # reference is diagnosed on its own terms rather than masked by an unrelated
     # stale-digest failure on one of the bindings it touches.
+    adoption_warrant = EVIDENCE_WARRANTS["operatorAdoption"]
     adopted_evidence_by_binding: dict[URIRef, URIRef] = {}
     for binding in sorted(bindings):
-        review_method = asserted.value(binding, ATLAS.reviewMethod)
-        adopted_values = list(asserted.objects(binding, ATLAS.adoptedEvidence))
+        declares_adoption = (
+            tuple(asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES)
+            == adoption_warrant
+        )
+        adopted_values = list(asserted.objects(binding, RKAF.basedOnAttestation))
         if len(adopted_values) > 1:
-            _fail("dataset.evidence-adoption", f"{binding} has more than one adoptedEvidence")
+            _fail(
+                "dataset.evidence-adoption",
+                f"{binding} has more than one basedOnAttestation",
+            )
         adopted_evidence = adopted_values[0] if adopted_values else None
-        if review_method == ATLAS.operatorAdoption:
+        if declares_adoption:
             if adopted_evidence is None:
                 _fail(
                     "dataset.evidence-adoption",
-                    f"{binding} uses operatorAdoption but names no adoptedEvidence",
+                    f"{binding} declares a formal adoption event but names no "
+                    "basedOnAttestation",
                 )
             adopted_evidence_by_binding[binding] = _iri(
                 adopted_evidence,
                 code="dataset.evidence-adoption",
-                label="adoptedEvidence",
+                label="basedOnAttestation",
             )
         elif adopted_evidence is not None:
             _fail(
                 "dataset.evidence-adoption",
-                f"{binding} names adoptedEvidence but its reviewMethod is not operatorAdoption",
+                f"{binding} names basedOnAttestation but does not declare a "
+                "formal adoption event",
             )
+    # Rulespec's #LocalAdoption carries rkaf:basedOnAttestation but states no
+    # obligation on a CHAIN of adoptions. Atlas requires one: an adoption chain
+    # must reach a binding that adopted nothing -- some binding must actually
+    # have looked at the source -- and it must not cycle. Chained adoption with
+    # no terminal is a real defect class, so the obligation is enforced here
+    # rather than dropped on adoption. See the report note on amending rkaf.
     for start in sorted(adopted_evidence_by_binding):
         chain = [start]
         current = start
@@ -3536,12 +3647,13 @@ def _check_evidence_bindings(
             if target not in bindings:
                 _fail(
                     "dataset.evidence-adoption",
-                    f"{start} adoptedEvidence chain cites unknown evidence binding {target}",
+                    f"{start} basedOnAttestation chain cites unknown evidence "
+                    f"binding {target}",
                 )
             if target in chain:
                 _fail(
                     "dataset.evidence-adoption",
-                    f"{start} adoptedEvidence chain cycles back to {target}",
+                    f"{start} basedOnAttestation chain cycles back to {target}",
                 )
             chain.append(target)
             current = target
@@ -3550,7 +3662,7 @@ def _check_evidence_bindings(
     source_digests: dict[URIRef, str] = {}
     for binding in sorted(bindings):
         assertion = _iri(
-            _one(asserted, binding, ATLAS.bindsAssertion, code="dataset.evidence"),
+            _one(asserted, binding, RKAF.bindsAssertion, code="dataset.evidence"),
             code="dataset.evidence",
             label="bound assertion",
         )
@@ -3568,18 +3680,30 @@ def _check_evidence_bindings(
         if source_record not in source_records:
             _fail("dataset.evidence", f"{binding} names unknown source record {source_record}")
         _iri(
-            _one(asserted, binding, ATLAS.reviewedBy, code="dataset.evidence"),
+            _one(asserted, binding, RKAF.attestor, code="dataset.evidence"),
             code="dataset.evidence",
             label="reviewer",
         )
-        if _one(asserted, binding, ATLAS.decisionStatus, code="dataset.evidence") != ATLAS.approved:
+        if _one(asserted, binding, RKAF.decision, code="dataset.evidence") != RKAF.approved:
             _fail("dataset.evidence", f"{binding} is not an approved editorial decision")
-        if _one(asserted, binding, ATLAS.reviewMethod, code="dataset.evidence") not in REVIEW_METHODS:
-            _fail("dataset.evidence", f"{binding} uses an unsupported review method")
+        warrant = tuple(
+            _one(asserted, binding, axis, code="dataset.evidence")
+            for axis in EVIDENCE_WARRANT_AXES
+        )
+        if warrant not in EVIDENCE_WARRANT_COMBINATIONS:
+            _fail(
+                "dataset.evidence",
+                f"{binding} combines evidence axes no review warrant sanctions",
+            )
+        if (
+            _one(asserted, binding, RKAF.evidentiaryFunction, code="dataset.evidence")
+            not in EVIDENTIARY_FUNCTIONS
+        ):
+            _fail("dataset.evidence", f"{binding} uses an unsupported evidentiary function")
         _date_time(
-            _one(asserted, binding, ATLAS.decidedAt, code="dataset.evidence"),
+            _one(asserted, binding, RKAF.attestedAt, code="dataset.evidence"),
             code="dataset.evidence",
-            label="decidedAt",
+            label="attestedAt",
         )
         pinned_source_digest = _literal_text(
             _one(asserted, binding, ATLAS.evidenceSourceDigest, code="dataset.evidence-identity"),
@@ -4521,7 +4645,7 @@ def _check_source_accounting(
             graph_assertions = {
                 assertion
                 for evidence in evidence_bindings
-                for assertion in asserted.objects(evidence, ATLAS.bindsAssertion)
+                for assertion in asserted.objects(evidence, RKAF.bindsAssertion)
             }
             ledger_assertions = {
                 URIRef(value) for value in disposition.get("atlasAssertions", [])
@@ -4679,7 +4803,7 @@ def _check_derived(
                 f"{node} has missing, unknown, withdrawn, or superseded input assertions",
             )
         stored_input_digest = _literal_text(
-            _one(derived, node, ATLAS.inputDigest, code="dataset.derived-input"),
+            _one(derived, node, RKAF.inputDigest, code="dataset.derived-input"),
             code="dataset.derived-input",
             label="inputDigest",
         )
@@ -5352,7 +5476,7 @@ def _construction_record_role_or_none(
             ("Resource", ATLAS.AtlasResource),
             ("Label", SKOSXL.Label),
             ("Statement", ATLAS.RelationAssertion),
-            ("EvidenceBinding", ATLAS.EvidenceBinding),
+            ("EvidenceBinding", RKAF.EvidenceBinding),
             ("SourceRecord", ATLAS.SourceRecord),
             ("Release", ATLAS.AtlasRelease),
             ("Release", ATLAS.SourceRelease),
@@ -5534,7 +5658,7 @@ def _construction_record_from_rdf(
                 ),
                 "assertedAt": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.assertedAt, term_type=Literal
+                        graph, subject, RKAF.assertedAt, term_type=Literal
                     )
                 ),
                 "assertionStatus": _construction_atlas_name(
@@ -5581,7 +5705,7 @@ def _construction_record_from_rdf(
             {
                 "statement": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.bindsAssertion, term_type=URIRef
+                        graph, subject, RKAF.bindsAssertion, term_type=URIRef
                     )
                 ),
                 "sourceRecord": str(
@@ -5600,24 +5724,44 @@ def _construction_record_from_rdf(
                         term_type=Literal,
                     )
                 ),
-                "reviewedBy": str(
+                "attestor": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.reviewedBy, term_type=URIRef
+                        graph, subject, RKAF.attestor, term_type=URIRef
                     )
                 ),
-                "reviewMethod": str(
+                "attestorKind": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.reviewMethod, term_type=URIRef
+                        graph, subject, RKAF.attestorKind, term_type=URIRef
                     )
                 ),
-                "decisionStatus": str(
+                "assertionOrigin": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.decisionStatus, term_type=URIRef
+                        graph, subject, RKAF.assertionOrigin, term_type=URIRef
                     )
                 ),
-                "decidedAt": str(
+                "epistemicBasis": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.decidedAt, term_type=Literal
+                        graph, subject, RKAF.epistemicBasis, term_type=URIRef
+                    )
+                ),
+                "evidenceRole": str(
+                    _construction_rdf_one(
+                        graph, subject, RKAF.evidenceRole, term_type=URIRef
+                    )
+                ),
+                "evidentiaryFunction": str(
+                    _construction_rdf_one(
+                        graph, subject, RKAF.evidentiaryFunction, term_type=URIRef
+                    )
+                ),
+                "decision": str(
+                    _construction_rdf_one(
+                        graph, subject, RKAF.decision, term_type=URIRef
+                    )
+                ),
+                "attestedAt": str(
+                    _construction_rdf_one(
+                        graph, subject, RKAF.attestedAt, term_type=Literal
                     )
                 ),
             }
@@ -5815,7 +5959,7 @@ def _construction_statement_source_record(
     asserted: Graph,
     statement: URIRef,
 ) -> URIRef:
-    bindings = list(asserted.subjects(ATLAS.bindsAssertion, statement))
+    bindings = list(asserted.subjects(RKAF.bindsAssertion, statement))
     if len(bindings) != 1 or not isinstance(bindings[0], URIRef):
         _fail(
             "construction.sample",
@@ -5930,7 +6074,7 @@ def _rdf_record_counts_by_role(asserted: Graph) -> dict[str, int]:
         "Resource": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasResource)),
         "Label": sum(1 for _ in asserted.subjects(RDF.type, SKOSXL.Label)),
         "Statement": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.RelationAssertion)),
-        "EvidenceBinding": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.EvidenceBinding)),
+        "EvidenceBinding": sum(1 for _ in asserted.subjects(RDF.type, RKAF.EvidenceBinding)),
         "SourceRecord": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRecord)),
         "Release": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasRelease))
         + sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRelease)),
