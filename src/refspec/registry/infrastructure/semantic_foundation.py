@@ -296,19 +296,28 @@ def _validated_relation_context(
         raise SemanticFoundationError(f"{semantic_ring} relation records require context")
     context = dict(value)
     if semantic_ring == "value":
+        # No sourceEdition / targetEdition. A value-ring mapping already pins
+        # both endpoints' releases, and a registry release IS an edition: the
+        # real release IRIs this repository emits are edition-scoped
+        # (urn:ref:atlas-release:3:eurovoc:4.24, :elsst:r6,
+        # :doe-osti-thesaurus:v1-2020) or content-digest-keyed
+        # (urn:ref:atlas-release:v3:<source>:<sha256>, v3_registry_codes.py),
+        # and a second capture of one scheme at a different edition is
+        # necessarily a different release. The strings that used to sit here
+        # were free text: nothing derived them from the pins, nothing compared
+        # them to the pins, and the Atlas wire drops them at the boundary
+        # (ontology/atlas.ttl's ring-temporal block, decision 1). Checking them
+        # was not merely unbuilt but unbuildable from what the registry models
+        # -- a release bundle declares no edition to compare against, and the
+        # content-digest form has no edition to derive -- so the only thing an
+        # edition literal could ever do is disagree with the pin beside it.
+        # It is deleted rather than documented, and `_require_closed_fields`
+        # is the check that keeps it deleted: one is now an unknown field.
         _require_closed_fields(
             context,
             label=label,
-            required={"sourceEdition", "targetEdition", "effectiveFrom"},
+            required={"effectiveFrom"},
             optional={"effectiveThrough"},
-        )
-        context["sourceEdition"] = _require_text(
-            context.get("sourceEdition"),
-            f"{label}.sourceEdition",
-        )
-        context["targetEdition"] = _require_text(
-            context.get("targetEdition"),
-            f"{label}.targetEdition",
         )
         context["effectiveFrom"] = _require_date(
             context.get("effectiveFrom"),

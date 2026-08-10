@@ -376,8 +376,6 @@ def test_value_crosswalk_and_legal_identity_require_typed_time_context() -> None
         relation=VALUE_EXACT_CROSSWALK,
         evidence=(value_evidence.identifier,),
         context={
-            "sourceEdition": "2017",
-            "targetEdition": "2022",
             "effectiveFrom": "2022-01-01",
             "effectiveThrough": "2026-12-31",
         },
@@ -394,6 +392,27 @@ def test_value_crosswalk_and_legal_identity_require_typed_time_context() -> None
     assert validate_mapping_assertions((legal,), evidence_assertions=(legal_evidence,))[0].context == {
         "effectiveAt": "2026-08-04"
     }
+
+
+def test_a_value_crosswalk_edition_is_refused_because_the_release_pin_is_the_edition() -> None:
+    """The edition string is deleted, and refused rather than ignored.
+
+    A registry release IS an edition -- the real release IRIs are either
+    edition-scoped (`…:eurovoc:4.24`) or content-digest-keyed -- and the
+    mapping already pins one on each endpoint. An edition literal beside the
+    pin was free text nothing derived, nothing compared, and the Atlas wire
+    discarded. It is now an unknown field on a closed record.
+    """
+
+    evidence = _publisher(ring="value")
+    for field in ("sourceEdition", "targetEdition"):
+        with pytest.raises(SemanticFoundationError, match=f"unknown fields \\['{field}'\\]"):
+            _mapping(
+                ring="value",
+                relation=VALUE_EXACT_CROSSWALK,
+                evidence=(evidence.identifier,),
+                context={"effectiveFrom": "2022-01-01", field: "2017"},
+            )
 
 
 def test_operator_adoption_requires_one_scoped_machine_review() -> None:

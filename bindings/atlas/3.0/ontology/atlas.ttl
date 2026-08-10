@@ -245,13 +245,11 @@ atlas:EditorialPolicy
 # TWO MAPPING DECISIONS, recorded here because nothing else on the wire records
 # them:
 #
-# 1. NO atlas:sourceEdition / atlas:targetEdition. The registry's value-ring
-#    context carries a sourceEdition and a targetEdition beside its effective
-#    dates, and minting the pair here would be legal -- neither local name is
-#    rkaf's. It would also be the atlas:assertionStatus mistake again. An
-#    edition of a scheme IS an atlas:AtlasRelease: the release IRIs the real
-#    registry emits are the editions
-#    (urn:ref:atlas-release:3:eurovoc:4.24, :elsst:r6,
+# 1. NO EDITION LITERAL, ON EITHER SIDE. Minting atlas:sourceEdition and
+#    atlas:targetEdition here would be legal -- neither local name is rkaf's --
+#    and it would be the atlas:assertionStatus mistake again. An edition of a
+#    scheme IS an atlas:AtlasRelease: the release IRIs the real registry emits
+#    are the editions (urn:ref:atlas-release:3:eurovoc:4.24, :elsst:r6,
 #    :doe-osti-thesaurus:v1-2020, and the content-digest-keyed form in
 #    src/refspec/atlas/v3_registry_codes.py), a second capture of one scheme at
 #    a different edition is necessarily a different release node, and every
@@ -261,6 +259,15 @@ atlas:EditorialPolicy
 #    An edition literal beside them could only agree or disagree with the pin,
 #    and disagreement is the only thing it could ever be checked for. What the
 #    wire was missing is the DATES, and dates are what this adds.
+#
+#    The registry used to carry the pair anyway, in its value-ring mapping
+#    context, and nothing ever compared them to the release pins beside them
+#    -- an unchecked field that never reached this wire. The check could not
+#    have been written from what the registry models: a release bundle
+#    declares no edition to compare against, and the content-digest release
+#    form has no edition to derive. So the strings are gone from
+#    src/refspec/registry/infrastructure/semantic_foundation.py too, and the
+#    closed-field check there refuses one as unknown. One decision, both sides.
 #
 # 2. legalIdentity's effectiveAt BECOMES A START WITH NO END. The registry
 #    models a legal-identity mapping as a single instant; rkaf models a period
