@@ -105,9 +105,10 @@
 <header>
   <div class="titlerow">
     <div>
-      <h1>Five repos, mid-migration</h1>
-      <p class="sub">What the application actually is, what is research scaffolding around it,
-      how far the code has moved toward its target shape — and what moves next.</p>
+      <h1>Four repos you own, and one you don't</h1>
+      <p class="sub">What the application actually is, what is research scaffolding around it, how far the code
+      has moved toward its target shape — and what has to be rescued before <code>main</code> is reset. The
+      ownership split is the constraint that explains the architecture; read every section through it.</p>
     </div>
     <button id="themeToggle" type="button" aria-label="Switch colour theme">◐ theme</button>
   </div>
@@ -115,8 +116,21 @@
   tracer that read the file — never quoted from a receipt, manifest, or <code>.md</code>. Figures found only
   asserted are marked <span class="pill p-move">asserted</span>. Where tracers characterised something
   differently, both readings are printed. Observations are as of <strong>2026-08-09</strong>; RefSpec HEAD moved
-  twice during the trace (<code>7e9a6f1</code> → <code>287937a</code> → <code>21b662a</code>).</p>
+  twice during the trace (<code>7e9a6f1</code> → <code>287937a</code> → <code>21b662a</code>). SpicyRegs is at
+  <code>002d56c2</code> on branch <code>archive/local-work-2026-08-09</code>.</p>
 </header>
+
+<div class="note bad">
+  <strong>Provenance caveat — read this before trusting any dated figure below.</strong>
+  SpicyRegs commit <code>d165350</code> (2026-07-28) is titled
+  <em>“docs: CONTAMINATION NOTICE — fabricated research relayed into the ledger.”</em>
+  <strong>Evidence documents dated on or before 2026-07-28 are untrustworthy without re-checking.</strong>
+  Everything on this page was re-derived from code and data precisely because of that commit, but the caveat
+  still qualifies any figure here that traces back to a pre-notice document rather than to disk — and §13 now
+  names three that did. The notice itself lives in <code>docs/evidence/</code>, which is 100 % local-only:
+  <strong>preserving the notice matters as much as preserving what it marks</strong>, because a reset that
+  discards the tree discards the only record that the contamination was ever found.
+</div>
 
 <div class="note">
   <strong>How to read this.</strong> The target architecture is a destination being migrated toward, not a
@@ -126,6 +140,13 @@
   The useful question for every off-target edge is <em>severability</em>, so each one carries an estimate of
   what it would take to cut. History confirms the direction: RefSpec sits inside SpicyRegs, and SpicyRegs still
   contains code whose successor now lives in DocSpec.
+  <br><br>
+  <strong>What changed since the 2026-08-08 traces.</strong> Those traces treated the workspace as five peer
+  repositories. It is not. <strong>SpicyRegs is <code>civictechdc/spicy-regs</code> — you can commit to it, but
+  you do not own it</strong>, and <code>main</code> is to be reset to <code>origin/main</code>. That single fact
+  reorganises the page: the severability question in §6 is no longer “what would it cost to cut this edge?” but
+  “which side of an ownership line does this code have to end up on, and what is lost when the reset lands?”
+  §2 draws the line, §4 is the rescue list, §5 is the triage.
 </div>
 
 <h2>1 · The application, and the research around it</h2>
@@ -266,7 +287,122 @@ input</em> (<code>generate_atlas_v3_full.py:630-687</code>), while SpicyRegs' en
 been fed real data. These are not stubs — they are complete implementations waiting on an input.</figcaption>
 </figure>
 
-<h2>2 · Distance from the target shape</h2>
+<h2>2 · Ownership — the constraint that explains the architecture</h2>
+<p>Read from the remotes, not from directory names. Three repos are <strong><code>Formspec-Labs</code></strong>
+and yours. One is <strong><code>civictechdc/spicy-regs</code></strong> — commit access, not ownership.
+<strong>SpicySearch is also yours</strong> (stated by its owner, 2026-08-09); its checkout has
+<em>zero</em> configured git remotes, so that could not be read from the tree and an earlier draft of this page
+drew it outside the boundary for that reason. <strong>Four owned, one not.</strong></p>
+<p>That the sink is inside the boundary matters: every SpicySearch → SpicyRegs edge is an owned repo consuming
+a not-owned repo's <em>published artifacts</em> — vendored, digest-pinned, never imported. That is the shape the
+import rule below asks for, arrived at already.</p>
+
+<p>The rule that falls out of the split is symmetric and short:
+<strong>nothing you own may import what you don't, and nothing you don't own may import you.</strong>
+Today it is violated in <em>both</em> directions — and each violation is load-bearing on a different thing, which
+is why neither is a one-line fix.</p>
+
+<figure>
+<div class="scroller">
+<svg viewBox="0 0 1140 470" role="img"
+     aria-label="Ownership plane. Four repositories — RefSpec, RuleSpec, DocSpec and SpicySearch — sit inside an owned boundary; the first three are under the Formspec-Labs organisation and SpicySearch has no configured git remote but is owned. SpicyRegs sits outside under the civictechdc organisation, marked as not owned, with commit access only. Two arrows cross the boundary in opposite directions, each labelled as a violation of the import rule.">
+  <defs>
+    <marker id="mk-own" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+  </defs>
+
+  <!-- owned boundary -->
+  <rect x="16" y="40" width="620" height="300" rx="12" class="band"/>
+  <text x="32" y="30" class="n-meta">OWNED — github.com/Formspec-Labs</text>
+
+  <rect x="40" y="64" width="264" height="112" rx="8" class="box"/>
+  <text x="56" y="88" class="n-title">RefSpec</text>
+  <text x="56" y="106" class="n-sub">Formspec-Labs/RefSpec</text>
+  <text x="56" y="124" class="n-sub">vocabulary · binding · atlas authority</text>
+  <text x="56" y="146" class="n-meta">but lives on disk as a submodule</text>
+  <text x="56" y="161" class="n-meta">*inside* the repo you don't own</text>
+
+  <rect x="342" y="64" width="264" height="112" rx="8" class="box"/>
+  <text x="358" y="88" class="n-title">RuleSpec</text>
+  <text x="358" y="106" class="n-sub">Formspec-Labs/rulespec</text>
+  <text x="358" y="124" class="n-sub">the rule + schema contract</text>
+  <text x="358" y="146" class="n-meta">clean: no import of any repo</text>
+  <text x="358" y="161" class="n-meta">you do not own</text>
+
+  <rect x="40" y="200" width="264" height="120" rx="8" class="box"/>
+  <text x="56" y="224" class="n-title">DocSpec</text>
+  <text x="56" y="242" class="n-sub">Formspec-Labs/DocSpec</text>
+  <text x="56" y="260" class="n-sub">the ingestion engine</text>
+  <text x="56" y="282" class="n-meta">sealed catalogs embed absolute</text>
+  <text x="56" y="297" class="n-meta">paths into the SpicyRegs worktree</text>
+  <text x="56" y="312" class="n-meta">and re-hash a file it does not own</text>
+
+  <rect x="342" y="200" width="264" height="120" rx="8" class="box"/>
+  <text x="358" y="224" class="n-sub" font-weight="650">SpicySearch</text>
+  <text x="358" y="244" class="n-sub">owned · the sink</text>
+  <text x="358" y="266" class="n-meta">git remote -v returns nothing, so</text>
+  <text x="358" y="281" class="n-meta">ownership is unreadable from the</text>
+  <text x="358" y="296" class="n-meta">tree — stated by its owner. Consumes</text>
+  <text x="358" y="311" class="n-meta">spicy-regs by artifact, never import.</text>
+
+  <!-- not owned -->
+  <text x="700" y="30" class="n-meta">NOT OWNED — commit access only</text>
+  <rect x="684" y="40" width="440" height="300" rx="12" class="box-third"/>
+  <text x="708" y="82" class="n-title">SpicyRegs</text>
+  <text x="708" y="102" class="n-sub">github.com/civictechdc/spicy-regs · MIT</text>
+  <text x="708" y="126" class="n-sub" font-weight="650">local main is 223 commits ahead</text>
+  <text x="708" y="144" class="n-sub">648 files · +260,563 / −3,641 · none pushed</text>
+  <text x="708" y="168" class="n-meta">origin/main = f1fcb8c (2026-07-31)</text>
+  <text x="708" y="183" class="n-meta">local HEAD = 002d56c2</text>
+  <text x="708" y="207" class="n-sub">Whole subsystems are net-new, not edits:</text>
+  <text x="708" y="225" class="n-meta">ontology/ 21 files · 13,233 lines — absent upstream</text>
+  <text x="708" y="240" class="n-meta">docpipeline/ + enrichment/ 24 files · +29,168 · 0 deletions</text>
+  <text x="708" y="255" class="n-meta">corpora/mirrulations_document_corpus.py — absent</text>
+  <text x="708" y="270" class="n-meta">corpora/body_retrieval_corpus.py — absent</text>
+  <text x="708" y="285" class="n-meta">docs/evidence/ — 202 tracked files, 0 upstream</text>
+  <text x="708" y="309" class="n-sub">pyproject adds pymupdf (AGPL-3.0) to an MIT repo</text>
+
+  <!-- violations -->
+  <polyline points="606,120 660,120 660,110" class="ed-miss" stroke="var(--bad)" marker-end="url(#mk-own)"/>
+  <line x1="684" y1="112" x2="612" y2="112" class="ed-miss" stroke="var(--bad)" marker-end="url(#mk-own)"/>
+  <text x="648" y="374" class="e-lab" fill="var(--bad)" text-anchor="middle">VIOLATION ← what you don't own imports you:</text>
+  <text x="648" y="389" class="e-lab" fill="var(--bad)" text-anchor="middle">SpicyRegs editable-installs RefSpec — 22 symbols, 9 production sites,</text>
+  <text x="648" y="404" class="e-lab" fill="var(--bad)" text-anchor="middle">and vendors RefSpec as a git submodule (15 workflow references)</text>
+
+  <polyline points="304,260 660,260 660,272" class="ed-miss" stroke="var(--bad)" marker-end="url(#mk-own)"/>
+  <text x="648" y="428" class="e-lab" fill="var(--bad)" text-anchor="middle">VIOLATION → what you own imports what you don't:</text>
+  <text x="648" y="443" class="e-lab" fill="var(--bad)" text-anchor="middle">DocSpec hardcodes /Users/…/spicy-regs and re-hashes mirrulations_document_corpus.py on every validation</text>
+</svg>
+</div>
+<figcaption><strong>Figure 2.</strong> The boundary is new information; the edges crossing it are not. What the
+boundary changes is their meaning. The SpicyRegs → RefSpec editable install was previously “migration debt with
+a known direction”; it is now <em>a repository you do not own reaching into one you do</em>. And DocSpec's
+hardcoded path was previously a default worth changing; it is now <strong>an owned repo whose sealed,
+digest-bearing artifacts are only valid while a worktree you don't own stays exactly where it is</strong> —
+see §4, because the reset moves it.</figcaption>
+</figure>
+
+<div class="note bad">
+  <strong>The DocSpec violation is the sharper one, because it is sealed into artifacts rather than into code.</strong>
+  <code>DocSpec/tools/fr_mirrulations_qualification.py:55-58</code> hardcodes
+  <code>DEFAULT_SPICYREGS = Path("/Users/mikewolfd/Work/spicy-regs")</code>, and
+  <strong>102 files under <code>DocSpec/output/</code> contain that absolute path</strong>. Every
+  <code>runs/*/execution-manifest.json</code> embeds all four of
+  <code>output/scale-dr-10k-2026-08-05/cache-xml/documents</code>, <code>…/receipts</code>,
+  <code>draw-manifest-final.json</code> and <code>src/spicy_regs/corpora/mirrulations_document_corpus.py</code>.
+  Three of those four are gitignored and survive the reset. <strong>The builder does not</strong> — and DocSpec
+  re-hashes it on every validation (<code>fr_mirrulations_support.py:1024-1027</code>, reached from
+  <code>fr_mirrulations_qualification.py:473</code>).
+  <br><br>
+  <strong>Already half-broken, found during this pass.</strong> The seal pins SpicyRegs commit
+  <code>adbd5a2b</code>; SpicyRegs HEAD is now <code>002d56c2</code>. The file digest still matches, so
+  <code>run-tier</code> resume passes — but <code>prepare</code> and <code>run-all</code> already
+  <strong>fail closed</strong> at <code>fr_mirrulations_qualification.py:134</code>. Any resume today must go
+  through <code>run-tier</code>. The reset deletes the file the digest is taken over, which converts this from a
+  commit-pin mismatch into an unrecoverable one.
+</div>
+
+<h2>3 · Distance from the target shape</h2>
 <p>Target: <strong>RuleSpec → RefSpec → SpicySearch</strong> as the spine, with SpicyRegs and DocSpec as
 independent sources the sink draws on, and SpicySearch driving DocSpec's ingestion as a process.</p>
 
@@ -364,7 +500,7 @@ independent sources the sink draws on, and SpicySearch driving DocSpec's ingesti
   <text x="200" y="592" class="e-lab" fill="var(--miss)">profile inheritance — ABSENT</text>
 </svg>
 </div>
-<figcaption><strong>Figure 2.</strong> One edge already points where the target wants it, and it is the
+<figcaption><strong>Figure 3.</strong> One edge already points where the target wants it, and it is the
 best-engineered one in the workspace. Three point the wrong way and are the migration's remaining work. Two
 required edges do not exist at all — and the absent SpicySearch → DocSpec link is why both repos independently
 built their own ingestion and segmentation, which reframes the two-segmenter duplication from untidiness into
@@ -379,7 +515,206 @@ a structural gap.</figcaption>
   in <code>ADAPTER_ONLY_SIBLING_PACKAGES</code> — the set of names DocSpec's production code may not import.
 </div>
 
-<h2>3 · What moves next — severability, cheapest first</h2>
+<h2>4 · What the reset destroys, and what survives</h2>
+<p>The most actionable content on this page. <code>main</code> is to be reset to <code>origin/main</code>
+(<code>f1fcb8c</code>, 2026-07-31), discarding <strong>223 commits — 648 files, +260,563 insertions,
+−3,641 deletions, none of them pushed</strong>. The work is already preserved on branch
+<code>archive/local-work-2026-08-09</code> and annotated tag <code>archive/pre-reset-2026-08-09</code>, both
+at <code>002d56c2</code>. Preserved is not the same as usable: a tag is a rescue <em>option</em>, not a rescue.</p>
+
+<div class="note ok">
+  <strong>The reset does not disarm DocSpec's tripwire.</strong> <code>f1fcb8c</code> is <em>exactly</em> the
+  commit DocSpec's clean-room AST fingerprint pins
+  (<code>conformance/predecessor-code-fingerprints-v1.json</code>, commit <code>f1fcb8c9</code> / tree
+  <code>bc87ead2</code>). Resetting to <code>origin/main</code> restores the tree the fingerprint was taken
+  over, so the inverted “must <em>not</em> resemble” assertion keeps working. This is the one place where the
+  reset is actively helpful.
+</div>
+
+<div class="note bad">
+  <strong>The reset-risk framing on the previous version of this page was inverted.</strong> It treated the
+  14 GB of <code>output/</code> as the exposure. <code>output/</code> is <strong>gitignored</strong>
+  (<code>.gitignore:11</code>) and survives a reset completely untouched. The exposure is the opposite:
+  <strong><code>docs/evidence/</code> is tracked and local-only — 202 files on the tag, <em>zero</em> on
+  <code>origin/main</code></strong> (11 further files sit untracked on disk beside them).
+  <strong>The reset destroys the prose and leaves the data.</strong> Both CI workflows that drive the pipeline —
+  <code>materialize-ontology.yml</code> and <code>rollup-supreme-court-opinions.yml</code> — are likewise
+  local-only, so the machinery that regenerates the surviving data does not survive with it.
+</div>
+
+<div class="note bad">
+  <strong>A runtime dependency hides inside <code>docs/evidence/</code>.</strong> This is the finding that turns
+  the rescue from tidiness into necessity.
+  <code>tools/project_document_to_rkaf.py:344</code> resolves its default JSON-LD context from
+  <code>docs/evidence/single-document-rulespec-projection-2026-07-28/rkaf-context.jsonld</code>
+  (36,413 B, absent from <code>origin/main</code>). That is not documentation — it is a lookup path a tool takes
+  when no <code>--context</code> is passed. The same directory holds <code>build_projection.py</code>
+  (30,194 B), the hand-authored predecessor that <code>rkaf_projection.py</code> generalises and
+  <strong>the only explanation of that module's shape</strong>. Delete the directory and the module keeps
+  running but stops being explicable.
+</div>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Asset</th><th>Tracked?</th><th>On origin/main</th><th>Reset outcome</th><th>Rescue action</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="5">Destroyed by the reset — rescue required</td></tr>
+<tr><td><strong><code>docs/evidence/</code></strong></td><td>tracked</td><td class="vol">0 of 202 files</td>
+  <td><span class="pill p-bad">destroyed</span></td>
+  <td>Highest priority. Contains the <code>rkaf-context.jsonld</code> runtime dependency, <code>build_projection.py</code>, and the <code>d165350</code> contamination notice. Copy out before reset, independent of the tag.</td></tr>
+<tr><td><code>src/spicy_regs/ontology/</code></td><td>tracked</td><td class="vol">0 of 21 files · 13,233 lines</td>
+  <td><span class="pill p-bad">destroyed</span></td>
+  <td>Net-new subsystem. Triage in §5 — the edge-table half is a PR candidate, not a moat.</td></tr>
+<tr><td><code>src/spicy_regs/docpipeline/</code> + <code>enrichment/</code></td><td>tracked</td>
+  <td class="vol">0 of 24 files · +29,168 insertions, <strong>0 deletions</strong></td>
+  <td><span class="pill p-bad">destroyed</span></td>
+  <td>Zero deletions is the tell: this is pure addition, never a modification of upstream code. Extraction target, not a PR.</td></tr>
+<tr><td><code>corpora/mirrulations_document_corpus.py</code></td><td>tracked</td><td class="vol">absent</td>
+  <td><span class="pill p-bad">destroyed — and DocSpec depends on it</span></td>
+  <td>DocSpec re-hashes this exact file on every validation. Rescue is mandatory or the 10 k campaign becomes unresumable. See §2.</td></tr>
+<tr><td><code>corpora/body_retrieval_corpus.py</code></td><td>tracked</td><td class="vol">absent</td>
+  <td><span class="pill p-bad">destroyed</span></td>
+  <td>Carries a live defect (§11) — rescue, then fix, then decide destination.</td></tr>
+<tr><td>Both pipeline CI workflows</td><td>tracked</td><td class="vol">absent</td>
+  <td><span class="pill p-bad">destroyed</span></td>
+  <td><code>materialize-ontology.yml</code>, <code>rollup-supreme-court-opinions.yml</code> — the only automation that rebuilds the surviving data.</td></tr>
+<tr class="grp"><td colspan="5">Survives the reset untouched</td></tr>
+<tr><td><strong><code>output/</code> — ~14 GB</strong></td><td class="vol">gitignored (<code>.gitignore:11</code>)</td>
+  <td class="vol">n/a</td><td><span class="pill p-ok">survives</span></td>
+  <td>None needed. All 9 present ontology outputs, every receipt, every draw and cache stay on disk.</td></tr>
+<tr><td><code>output/scale-dr-10k-2026-08-05/cache-xml/</code></td><td class="vol">gitignored</td><td class="vol">n/a</td>
+  <td><span class="pill p-ok">survives</span></td>
+  <td>Three of DocSpec's four embedded paths point here and are safe. Only the fourth — the builder — is at risk.</td></tr>
+<tr><td><code>draw-manifest-final.json</code></td><td class="vol">gitignored</td><td class="vol">n/a</td>
+  <td><span class="pill p-ok">survives</span></td><td>None.</td></tr>
+<tr><td>DocSpec's fingerprint tripwire</td><td class="vol">in DocSpec</td><td class="vol">pins <code>f1fcb8c</code></td>
+  <td><span class="pill p-ok">restored, not broken</span></td>
+  <td>The reset target <em>is</em> the pinned commit. Nothing to do.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>5 · Extraction triage — where each subsystem has to land</h2>
+<p>Ownership makes this a forced choice rather than a preference. Every net-new subsystem in a repo you do not
+own must go somewhere: back upstream as a contribution, into a repo you do own, or into the bin. Destinations
+below are <span class="pill p-ok">upstream PR</span> (stays in civictechdc), <strong>RefSpec</strong>,
+<strong>Rulespec Extrapolator</strong>, <strong>DocSpec</strong>, or <span class="pill p-dead">delete</span>.</p>
+
+<div class="note ok">
+  <strong>The single strongest argument on this page: the local work is a correctness rescue, not a private fork.</strong>
+  The paired receipt at <code>docs/evidence/rulespec-stabilization-2026-07-24/paired-receipt.json</code> records
+  <code>inputs_match: true</code> — same inputs, both sides — and then:
+  <code>rule_targets</code> baseline carried <strong>247,229 invalid-docket-syntax</strong> and
+  <strong>47,222 docket-not-in-source</strong> (plus 12 invalid-CFR-reference); the candidate drives
+  <strong>every counter to 0</strong>. <code>proceedings</code> baseline carried
+  <strong>305,807 self-predecessor edges</strong> — roughly 90 % of rows pointing at themselves — plus 84,888
+  invalid-docket-syntax and 12,215 docket-not-in-source; candidate <strong>0, 0 and 0</strong>.
+  <br><br>
+  <strong>Upstream currently ships that defective data.</strong> That is the decisive argument for sending the
+  edge tables back as a <code>civictechdc</code> PR rather than holding them as a moat: the fix is not a feature
+  you are giving away, it is a defect you are the only one who has found.
+</div>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Component</th><th>Size / state</th><th>Destination</th><th>Severance cost</th><th>Evidence</th></tr></thead>
+<tbody>
+
+<tr class="grp"><td colspan="5">ontology/ — 21 files · 13,233 lines · absent upstream</td></tr>
+<tr><td><strong>Edge tables + their correctness fixes</strong><br>rule_targets, proceedings, authority_edges</td>
+  <td class="vol">9 outputs · 1,024,593 rows</td>
+  <td><span class="pill p-ok">upstream PR to civictechdc</span></td>
+  <td class="vol">low — it is a fix, not a fork</td>
+  <td class="ev">Paired receipt, <code>inputs_match: true</code>: 247,229 + 47,222 → 0; 305,807 self-predecessor edges → 0. Upstream ships the defective version today. Withholding this is the only option with an ethical cost.</td></tr>
+<tr><td><code>citations.py</code></td><td class="vol">carries 2 live defects</td>
+  <td><span class="pill p-ok">upstream PR</span> — after the fix</td>
+  <td class="vol">low, but do not ship it broken</td>
+  <td class="ev">Fabrication at <code>:657</code> and sentence-final drop at <code>:32</code>, both reproduced (§11). Three prior commits already attacked this class — <code>1400140</code>, <code>fdb5fd6</code>, <code>9394aa0</code> — so upstream has the appetite for the fix.</td></tr>
+<tr><td><code>receipt.py</code> + <code>pipelines/materialized.py</code></td><td class="vol">receipt machinery</td>
+  <td><span class="pill p-ok">upstream PR</span></td><td class="vol">low</td>
+  <td class="ev">Generic attestation machinery with no product thesis in it; see §9 for what it does and does not attest.</td></tr>
+<tr><td><code>ann_index.py</code> · <code>candidate_channels.py</code></td><td class="vol">self-declared non-production</td>
+  <td><strong>RefSpec</strong> (research lane)</td><td class="vol">low</td>
+  <td class="ev">Own docstrings: <code>ann_index.py:36</code> “Nothing here is wired into production”; <code>candidate_channels.py:38</code> “None of these channels is wired into production. They exist to be measured.” <em>But</em> both have live <code>tools/</code> importers and <code>pyproject.toml:58-59</code> documents them as deliberately retained — measurement scaffolding, not litter.</td></tr>
+<tr><td><code>relation_findings.py</code> · <code>codex_cli.py</code> (ontology copy)</td><td class="vol">526 lines, live</td>
+  <td><strong>RefSpec</strong></td><td class="vol">low</td>
+  <td class="ev"><code>ontology/codex_cli.py</code> is the <em>live</em> one — imported by <code>corpora/relation_exclusion_evaluation.py:31</code>, registered at <code>pyproject.toml:139</code>. Do not confuse it with the dead <code>docpipeline/adapters/</code> copy.</td></tr>
+
+<tr class="grp"><td colspan="5">docpipeline/ + enrichment/ — 24 files · +29,168 insertions · zero deletions</td></tr>
+<tr><td><strong><code>rkaf_projection.py</code> — the kernel</strong></td>
+  <td class="vol">3,124 lines total</td>
+  <td><strong>Rulespec Extrapolator</strong></td>
+  <td class="vol">bounded: ~36 lines of external symbols</td>
+  <td class="ev">Already assigned: <code>docs/migration/spicysearch-product-migration-manifest.json</code> item 9 (0-based) sets <code>disposition: "reimplement"</code>, destination “extraction projections to Rulespec Extrapolator”. Entire external dependency of the kernel is <code>text_digest</code> (<code>ontology/common.py:78-81</code>, 4 lines) + <code>resolve_exact_evidence_offsets</code> (<code>ontology/llm.py:86-117</code>, 32 lines) — both verified, both exactly the two imported at <code>:79-80</code>.</td></tr>
+<tr><td>— LLM separation, proven</td><td class="vol">test passes green</td><td>—</td><td class="vol">already done</td>
+  <td class="ev"><code>tests/test_docpipeline_rkaf_projection.py:560</code> <code>test_the_no_model_projection_is_complete_without_a_provider</code> builds a complete <strong>11-type</strong> graph asserting <code>run_record["model"] is None</code>. Re-run during this pass: <strong>1 passed in 0.85 s</strong>. The extraction does not have to carry a model provider.</td></tr>
+<tr><td>— and it was already extracted once</td><td class="vol">diff = 48 lines</td><td>—</td>
+  <td class="vol">precedent exists</td>
+  <td class="ev"><code>DocSpec/archive/legacy-2026-08-05/src/docspec/docpipeline/rkaf_projection.py</code> — <strong>identical 3,124 lines</strong>, 48 differing lines, and <code>sed 's/docspec/spicy_regs/g'</code> renders it <strong>byte-identical</strong> to the original. Zero semantic drift, proven mechanically. DocSpec was then rebuilt hexagonal and <strong>none of it carried forward</strong> — see §13, the highest-value open question.</td></tr>
+<tr><td><code>docpipeline/retrieval.py</code></td><td class="vol"><strong>5,479 lines</strong> — the largest file</td>
+  <td><span class="pill p-dead">delete</span></td><td class="vol">free</td>
+  <td class="ev">Zero non-test importers, zero entrypoints, unreached even inside its own package. <code>docpipeline/__init__.py</code> is 0 bytes; none of the 50 <code>[project.scripts]</code> match.</td></tr>
+<tr><td><code>docpipeline/relation_task.py</code></td><td class="vol">2,102 lines</td>
+  <td><span class="pill p-dead">delete</span></td><td class="vol">free</td>
+  <td class="ev">Self-declares <code>PUBLICATION_ELIGIBLE = False</code> at <code>:54</code>, consumed at <code>:1575</code>. Caveat: that flag alone is not a death certificate — two <em>live</em> console-script modules declare it too.</td></tr>
+<tr><td><code>docpipeline/executor.py</code></td><td class="vol">536 lines</td>
+  <td><span class="pill p-dead">delete</span></td><td class="vol">free</td><td class="ev">No consumer of any kind.</td></tr>
+<tr><td><code>docpipeline/adapters/codex_cli.py</code></td><td class="vol">553 lines</td>
+  <td><span class="pill p-dead">delete</span></td><td class="vol">free</td>
+  <td class="ev">Sole importer is <code>tests/test_docpipeline_adapter_codex_cli.py</code>. The live duplicate at <code>ontology/codex_cli.py</code> (526 lines) serves the CLI. 444 identical lines, similarity 0.823.</td></tr>
+<tr><td><code>enrichment/open_set.py</code> · <code>accepted_output.py</code></td><td class="vol">241 + 52 lines</td>
+  <td><span class="pill p-dead">delete</span></td><td class="vol">free</td>
+  <td class="ev">One test importer each, no production reach. <code>open_set.py:217</code> is a <em>correct</em> coordinate producer that never runs — see §8.</td></tr>
+<tr><td><code>enrichment/managed_release.py</code></td><td class="vol">legacy, <strong>not dead</strong></td>
+  <td><strong>Rulespec Extrapolator</strong>, with its callers</td><td class="vol">medium</td>
+  <td class="ev"><span class="pill p-bad">correction</span> Has live non-test importers — <code>tools/ablate_candidate_selectors.py:80</code>, <code>tools/project_document_to_rkaf.py:175-181</code>, <code>enrichment/accepted_output.py:13</code>. <code>enrichment/__init__.py:3-6</code> calls these “Legacy RefSpec-backed adapters… while their callers migrate”; replacement is <code>candidate_release.py</code>. Mid-migration, not litter.</td></tr>
+
+<tr class="grp"><td colspan="5">corpora/ + sources/ — the ingestion half</td></tr>
+<tr><td><strong><code>build_draw</code></strong> (the real selector)</td>
+  <td class="vol">109 lines; ~150 with helpers</td>
+  <td><strong>DocSpec</strong></td>
+  <td class="vol"><span class="pill p-bad">BLOCKED — no discovery port</span></td>
+  <td class="ev"><code>mirrulations_document_corpus.py:104-212</code>. Already ports-shaped: takes <code>objects: Iterable[Mapping[str, Any]]</code> and performs <strong>zero I/O</strong>. Blocked because DocSpec's <code>SourceCatalog</code> Protocol (<code>ports/source_catalog.py:41</code>) exposes only <code>open/verify/describe/stream</code>, each taking a ref to an <em>already-frozen</em> distribution. Across all 17 port modules there is <strong>no list/discover/enumerate method of any kind</strong> — nothing can receive a bucket listing.</td></tr>
+<tr><td><code>_draw_documents</code></td><td class="vol">exactly 15 lines</td>
+  <td><strong>DocSpec</strong></td><td class="vol">trivial</td>
+  <td class="ev"><span class="pill p-bad">correction</span> <code>:280-294</code> — a <strong>validator, not a selector</strong>: schema version, draw-identity digest, array shape, ID regex, uniqueness. Earlier traces named it as DocSpec's target; DocSpec's real target is <code>build_draw</code>.</td></tr>
+<tr><td><code>body_retrieval_corpus.py</code></td><td class="vol">carries a live defect</td>
+  <td><strong>DocSpec</strong></td><td class="vol">medium — fix first</td>
+  <td class="ev"><code>validate_body_cache</code> at <code>:917</code> claims “Fails closed” and does not (§11).</td></tr>
+<tr><td>USC readers — <code>uscode_olrc.py</code>, <code>uscode_uslm.py</code></td>
+  <td class="vol">20,865 + 10,976 + 3,721 rows</td>
+  <td><span class="pill p-ok">upstream PR</span></td><td class="vol">low</td>
+  <td class="ev">Zero <code>src/</code> importers <em>by design</em> — see the §13 correction. Consumed as digest-stamped parquet by <code>ontology/act_index.py:280,297,384</code>.</td></tr>
+<tr><td>Remaining <code>corpora/</code> research</td><td class="vol">23,746 lines, 0 external importers</td>
+  <td><span class="pill p-dead">delete</span> or RefSpec research</td><td class="vol">free</td>
+  <td class="ev">No importer outside itself (§1).</td></tr>
+
+<tr class="grp"><td colspan="5">transforms/ + pipelines/ — the build machinery</td></tr>
+<tr><td><code>transforms/build_rule_targets.py</code></td><td class="vol">reaches published tables</td>
+  <td><span class="pill p-ok">upstream PR</span></td><td class="vol">low</td>
+  <td class="ev">Carries the citation defect into output at <code>:213</code>; ships with the edge-table fix.</td></tr>
+<tr><td><code>pipelines/materialized.py</code> · <code>ontology_dataset.py</code></td><td class="vol">manifest + receipt writer</td>
+  <td><span class="pill p-ok">upstream PR</span></td><td class="vol">low</td>
+  <td class="ev">Declares the 9 real outputs plus <code>ontology_segment_ledger</code>, which has never been generated (<code>ontology_dataset.py:44-49,61-63</code>).</td></tr>
+<tr><td>Both pipeline CI workflows</td><td class="vol">local-only</td>
+  <td><span class="pill p-ok">upstream PR</span></td><td class="vol">low</td>
+  <td class="ev">Absent from <code>origin/main</code>; they are what makes the upstream PR reproducible rather than a code drop.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+  <strong>Licence flag for the upstream PR — a governance question, not a bug.</strong>
+  <code>pyproject.toml:32</code> adds <strong>pymupdf</strong>, licensed <strong>AGPL-3.0 or commercial
+  Artifex</strong>, to an <strong>MIT</strong> Civic Tech DC repository. The line is annotated as
+  <em>“a deliberate choice”</em> and justified on measured grounds (+0.07 % text, 2.5× faster than pypdf across
+  18 real PDFs, per-word bounding boxes, local and model-free). That reasoning is sound for private use. It is a
+  different question when the code goes upstream into an MIT project — and a different question again for a
+  hosted service, where AGPL §13's network clause is the whole point of the licence. Raise it in the PR
+  description rather than letting a reviewer find it.
+</div>
+
+<h2>6 · What moves next — severability, cheapest first</h2>
 <p>Each off-target edge, sized by what is actually load-bearing on it.</p>
 
 <ol class="rank">
@@ -425,7 +760,7 @@ a structural gap.</figcaption>
   <code>FileNotFoundError</code> rather than reporting drift.
 </div>
 
-<h2>4 · Duplication — which copy is the destination?</h2>
+<h2>7 · Duplication — which copy is the destination?</h2>
 <p>Mid-migration, duplication is expected. <strong>Unmarked</strong> duplication is what stops a migration
 converging, because nobody can tell which implementation is being migrated toward. Of six duplicated
 capabilities, exactly one is marked.</p>
@@ -457,28 +792,118 @@ capabilities, exactly one is marked.</p>
 <tr><td>Coordinate systems</td><td>9 producer sites, 9 spellings</td>
   <td><span class="pill p-move">UNMARKED at bulk volume</span></td>
   <td>Marked in one low-volume path only</td>
-  <td class="ev">RuleSpec's enum is generated from CUE and authoritative <em>within RuleSpec</em> (source_fragment.rs:1-3, constraints_compile.py:49). SpicyRegs' rkaf_projection.py:34-38 deliberately aligns to it — but that path has emitted 6 records. The actual bulk producers show no awareness of it. See §5.</td></tr>
+  <td class="ev">RuleSpec's enum is generated from CUE and authoritative <em>within RuleSpec</em> (source_fragment.rs:1-3, constraints_compile.py:49). SpicyRegs' rkaf_projection.py:34-38 deliberately aligns to it — but that path has emitted 6 records. The actual bulk producers show no awareness of it. See §8.</td></tr>
 </tbody>
 </table>
 </div>
 
-<h2>5 · The coordinate-system split — the one where order matters</h2>
 <div class="note bad">
-  <p style="margin-top:0"><strong>Why this is different from the other five.</strong> Every other duplication can
-  be settled later by picking a winner and deleting the losers. This one is already written into emitted data,
-  so it needs a rewrite or a conversion, and the bill grows with every run.</p>
-  <p><strong>It is worse than reported.</strong> Not 3 vocabularies but <strong>9 distinct literal strings across
-  9 producer sites in 4 of 5 repos</strong> (RefSpec is uninvolved — zero hits). A previously uncatalogued sixth
-  spelling, <code>"unicode-codepoints-half-open"</code>, is the single largest SpicyRegs producer at
-  <strong>4,249,550 records</strong> from <code>document_release.py:43</code>, with no cross-reference to that
-  repo's own <code>source.py</code> constants. DocSpec's <code>"utf8-byte-range"</code> stands at
-  <strong>8,232,356 records</strong>, verified. SpicySearch adds two more spellings of its own.</p>
-  <p><strong>But the price today is far lower than it looks, and this is the finding that should drive the
-  decision.</strong> <em>No code anywhere branches on the coordinate-system string to choose byte-versus-codepoint
-  arithmetic.</em> Every numeric consumer hard-codes its own producer's assumption unconditionally — DocSpec
-  always byte-slices, SpicyRegs always codepoint-slices, RuleSpec's validator only checks
-  <code>start &gt; end</code> ordering and never reads the unit, and SpicySearch validates membership in its own
-  two local spellings rather than converting. Nothing crosses a byte/codepoint boundary. So there is
+  <strong>Amended 2026-08-09 — “SpicyRegs counts codepoints” is true of one lineage only.</strong>
+  spicy-regs ships <strong>two DocumentRelease lineages sharing no code</strong>, and they disagree with each
+  other. v1/v2 (<code>document_release.py:43</code>) uses <code>unicode-codepoints-half-open</code>; <strong>v3
+  already counts UTF-8 bytes</strong> — <code>urn:spicyregs:coordinate:rendition-utf8-byte-slice:1.0</code>,
+  with codepoint-safe segmentation that backs up over continuation bytes. Both verified on disk. DocSpec's
+  <code>utf8-byte-range</code> therefore <em>agrees with v3 on the axis</em>; what differs is the label and the
+  structure. The RuleSpec-validator rejection is a <strong>closed-enum vocabulary mismatch, not an alien
+  coordinate model</strong>, and the genuine arithmetic disagreement is <strong>v1/v2 against everything
+  else</strong> — the lineage SpicySearch actually vendors today. This is old-SpicyRegs against new-SpicyRegs,
+  with DocSpec on the new side.
+</div>
+
+<h2>8 · The coordinate-system split — corrected, and the risk ranking flipped</h2>
+
+<div class="note bad">
+  <p style="margin-top:0"><strong>The previous version of this section made a category error, and it inverted
+  the risk ranking. This is the largest single correction on the page.</strong> It treated
+  <code>rkaf:coordinateSystem</code> and <code>coordinate_system</code> as two spellings of one field, counted
+  nine spellings across them, and concluded that the 4.2 M-record spelling was the scandal. They are
+  <strong>two different fields with two different contracts</strong>, and once that is fixed the alarming
+  number stops being alarming and a quieter one takes its place.</p>
+</div>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Field</th><th>Contract</th><th>Declared at</th><th>Values</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><code>rkaf:coordinateSystem</code></td><td>JSON-LD selector, <strong>closed 6-value enum</strong></td>
+  <td class="ev">rulespec <code>constraints/core/source-fragment.cue:19-21</code> — <code>#CoordinateSystem</code>, bound at <code>:89</code> on <code>#TextPositionSelector</code></td>
+  <td class="ev"><code>rkaf:unicode-codepoint</code> · <code>rkaf:utf8-byte</code> · <code>rkaf:utf16-code-unit</code> · <code>rkaf:xml-node-path</code> · <code>rkaf:page-region</code> · <code>rkaf:partner-defined</code></td>
+  <td><span class="pill p-ok">closed — conformance means something here</span></td></tr>
+<tr><td><code>coordinate_system</code></td><td>tabular release field, <strong>open string</strong></td>
+  <td class="ev">rulespec <code>release-records/schemas/extrapolation-release.schema.json:1015-1017</code> — <code>{"minLength": 1, "type": "string"}</code>, no enum; required at <code>:1033</code></td>
+  <td class="ev">anything non-empty</td>
+  <td><span class="pill p-ok">open by design — the standard declines to constrain it</span></td></tr>
+<tr><td><code>derived_coordinate_system</code></td><td>closed <strong>single</strong> value</td>
+  <td class="ev">same schema, <code>:716</code> — <code>{"const": "unicode-code-points"}</code></td>
+  <td class="ev"><code>unicode-code-points</code> — a third spelling again</td>
+  <td><span class="pill p-move">newly found this pass</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note ok">
+  <p style="margin-top:0"><strong>So the 4,249,550 records are not non-conforming.</strong> The count is exact —
+  re-derived byte-exactly this pass, and it decomposes cleanly: 1,454,004 × 2 in the body-retrieval corpus
+  releases, 668,712 × 2 in the XML distributions, 4,098 in the search-holdout exam, 20 in the M1 fixture.
+  Those records spell <code>unicode-codepoints-half-open</code> into <code>coordinate_system</code> — the
+  <em>open</em> field. <strong>They fill a slot the standard deliberately leaves unconstrained</strong>, and
+  RuleSpec already aliases that exact spelling in its accept-set at
+  <code>tools/rulespec_release.py:771-774</code> (the literal is on <code>:773</code>, beside
+  <code>unicode-code-points</code> on <code>:772</code>). There is nothing to remediate. The previous section
+  called this “the single largest producer” as if volume were the risk; volume in an open field is not a
+  defect.</p>
+</div>
+
+<div class="note bad">
+  <p style="margin-top:0"><strong>The real finding is the opposite one: the correct producer has never
+  produced.</strong> <code>rkaf:unicode-codepoint</code> — the spelling that actually satisfies the closed enum —
+  has emitted <strong>zero records into <code>output/</code></strong>. Repo-wide it has produced exactly
+  <strong>six</strong>, all in one hand-authored artifact:
+  <code>docs/evidence/single-document-rulespec-projection-2026-07-28/fsis-2026-03227.rulespec.jsonld</code>
+  carries three, and the published copy under <code>site/evidence/</code> carries the same three. Both were
+  written by <code>build_projection.py</code>, the bespoke predecessor — <strong>not</strong> by the production
+  module. The conforming path exists, is imported, and has never run at scale.</p>
+  <p style="margin-bottom:0"><strong>Two correct producers, and the previous section named the wrong one as
+  live.</strong> <code>docpipeline/rkaf_projection.py:202</code> sets
+  <code>_COORDINATE_SYSTEM = "rkaf:unicode-codepoint"</code> and <em>is</em> reachable — imported by
+  <code>tools/project_document_to_rkaf.py</code>, <code>tools/ablate_candidate_selectors.py</code>,
+  <code>ontology/citations.py</code> and <code>transforms/build_fr_docket_links.py</code>. The second,
+  <code>enrichment/open_set.py:217</code>, emits the same correct value but is <strong>dead</strong> — its only
+  reference anywhere in <code>src/</code>, <code>tools/</code>, <code>tests/</code>, <code>scripts/</code> or
+  <code>etl/</code> is a single test.</p>
+</div>
+
+<div class="note bad">
+  <p style="margin-top:0"><strong>The risk ranking flips.</strong> Ordered by what it actually costs to fix:</p>
+  <ol class="rank" style="margin-bottom:0">
+    <li><strong>DocSpec's <code>utf8-byte-range</code> is the real hazard</strong> — 8,232,356 records, verified.
+      Not because of the spelling but because it is an <strong>arithmetic disagreement</strong>: byte offsets and
+      codepoint offsets are different numbers over the same text, and no rename reconciles them. Critically,
+      <strong>DocSpec's move to bytes was deliberate, not drift</strong> — which means the fix is a negotiated
+      decision between two designs, not a correction of a mistake. This is the one that needs a conversion, and
+      it is blob-backed and feasible only while the content-addressed objects survive (5,990 objects, 34 MB).</li>
+    <li><strong>Codepoint-vs-codepoint spelling is cheap</strong> — <code>unicode-codepoints-half-open</code> vs
+      <code>rkaf:unicode-codepoint</code> vs <code>unicode-code-points</code> all describe the <em>same
+      arithmetic</em>. Respelling changes no offset. <strong>But it is digest-load-bearing</strong>: the string
+      is inside the canonicalised payload, so respelling changes artifact IDs and invalidates every receipt taken
+      over the old form. Cheap in logic, not free in provenance — do it once, deliberately, not incrementally.</li>
+  </ol>
+</div>
+
+<div class="note">
+  <strong>Vocabulary authority is narrower than reported.</strong> <code>source-fragment.cue</code> is the
+  <em>sole</em> authority. Checked this pass and confirmed empty of coordinate vocabulary:
+  <code>crates/rkaf-core/src/generated/concept_assignment.rs</code>, <code>constraints/core/evidence-binding.cue</code>,
+  and its compiled twin — zero hits for coordinate, codepoint, utf8-byte, utf16 or page-region in all three. The
+  earlier reading that treated these as co-authorities overstated how distributed the vocabulary is.
+</div>
+<div class="note">
+  <p style="margin-top:0"><strong>What survives from the earlier reading, unchanged and still the reason this is
+  not an emergency.</strong> <em>No code anywhere branches on the coordinate-system string to choose
+  byte-versus-codepoint arithmetic.</em> Every numeric consumer hard-codes its own producer's assumption
+  unconditionally — DocSpec always byte-slices, SpicyRegs always codepoint-slices, RuleSpec's validator only
+  checks <code>start &gt; end</code> ordering and never reads the unit, and SpicySearch validates membership in
+  its own two local spellings rather than converting. Nothing crosses a byte/codepoint boundary. So there is
   <strong>no live correctness bug</strong> — there is unreconciled vocabulary that would become one the moment
   anything did cross.</p>
   <p><strong>Conversion is mechanically feasible while the inputs survive.</strong> SpicyRegs stores the literal
@@ -486,22 +911,87 @@ capabilities, exactly one is marked.</p>
   <code>source_digest</code> and no text — but the content-addressed blobs for that exact corpus are still on
   disk (5,990 objects, 34 MB), keyed by the digest the records reference. RuleSpec's digest fields are optional,
   so records omitting them would be unconvertible.</p>
-  <p style="margin-bottom:0"><strong>Consequence for ordering.</strong> Repointing eight of the nine producers at
-  one spelling costs almost nothing today, because nothing downstream interprets the string. Only DocSpec's
-  8.2 M-record corpus needs a blob-backed conversion, and only if it must be migrated rather than grandfathered.
-  Every day of further emission adds to that one corpus.</p>
+  <p style="margin-bottom:0"><strong>Consequence for ordering, restated.</strong> The earlier version said
+  “repoint eight of the nine producers.” With the two fields separated, most of those producers are not
+  mis-spelling anything and need no action at all. The work is: <strong>(a)</strong> decide the byte-vs-codepoint
+  question with DocSpec, which is a design negotiation and the only expensive item; <strong>(b)</strong> decide
+  once whether to respell the codepoint family, accepting that artifact IDs move; <strong>(c)</strong> make the
+  conforming producer actually produce, since today it has six records to its name.</p>
+</div>
+
+<div class="note miss">
+  <strong>Where two tracers characterised this differently — now resolved by the field split.</strong> One proved
+  the incompatibility is real at the type level, compiling RuleSpec's closed enum and showing both foreign
+  strings deserialize to <code>Err</code>, and called it corrupting. Another established that no consumer reads
+  the unit at all, and called it latent. <strong>Both were reasoning about the wrong pairing.</strong> The
+  type-level rejection is real but applies only to <code>rkaf:coordinateSystem</code>, where the foreign strings
+  never appear; the strings that do appear at bulk volume live in a field with no enum to fail. The residue that
+  survives the correction is smaller and sharper than either reading: one genuine arithmetic disagreement
+  (8.2 M byte-ranged records), one cosmetic-but-digest-bearing spelling family, and one conforming producer that
+  has never run.
+</div>
+
+<h2>9 · Receipts — what they attest, and what they do not</h2>
+<p>The earlier traces leaned on receipts as though a receipt were a warrant over everything it mentions. It is
+narrower than that, but also stronger in one specific way than the page previously credited.</p>
+
+<p><strong>The mechanism, traced.</strong> <code>_sha256()</code>
+(<code>ontology/receipt.py:63-68</code>) → <code>_artifact_records()</code> (<code>:136</code>, digest loop
+around <code>:169</code>) → <code>build_receipt()</code> (<code>:2068</code>), driven by <code>main()</code>
+(<code>:2195-2246</code>). <strong><code>main()</code> takes only build arguments — it has no
+<code>add_subparsers</code>, and the string “verify” appears nowhere in the file.</strong> There is no way to
+ask <code>receipt.py</code> to check its own past work.</p>
+
+<div class="note ok">
+  <strong>But the receipts hold up when you check them by hand.</strong> Re-hashing this pass found
+  <strong>9 of 9 generation artifacts still match</strong> their recorded digests. <code>authority_edges.parquet</code>
+  at 10,618 rows still hashes to the <code>0bc929b6…</code> recorded in the ontology manifest, byte-for-byte,
+  today. The absence of a verify command is a missing convenience, not evidence of rot.
 </div>
 
 <div class="note">
-  <strong>Where two tracers characterised this differently, unreconciled by me.</strong> One proved the
-  incompatibility is real at the type level — it compiled RuleSpec's closed enum and showed both foreign strings
-  deserialize to <code>Err</code> — and called it corrupting. Another established that no consumer currently
-  reads the unit at all, and called it latent. Both are correct on their own evidence. The synthesis on which
-  they agree: the vocabulary is genuinely incompatible, it is baked into 12.5 M records, and nothing is being
-  corrupted <em>yet</em>.
+  <p style="margin-top:0"><span class="pill p-bad">correction to this page</span> <strong>“No code loads a
+  receipt and re-checks its digests” is wrong.</strong> Three places do, and one is a real user-facing command:</p>
+  <ul>
+    <li><code>src/spicy_regs/document_release_v3_verify.py:338-340,407-409</code> re-checks member digests and
+      sizes — exposed as a <code>verify</code> subcommand at <code>document_release_v3_cli.py:216</code>.</li>
+    <li><code>src/spicy_regs/corpora/relation_exclusion_evaluation.py:1507-1517</code> compares
+      <code>receipt.artifact_sha256</code> against recomputed hashes.</li>
+    <li><code>src/spicy_regs/pipelines/materialized.py:349-353</code> re-checks prior-artifact SHA-256 against
+      the manifest and <em>deletes on mismatch</em>.</li>
+  </ul>
+  <p style="margin-bottom:0">The accurate narrow claim is: <strong><code>receipt.py</code> itself has no verify
+  path</strong>. Verification exists, but it is scattered across three modules with no common entry point.</p>
 </div>
 
-<h2>6 · What is genuinely healthy</h2>
+<div class="note">
+  <p style="margin-top:0"><strong>The honest statement about inputs versus outputs.</strong>
+  <code>_file_record()</code> (<code>pipelines/materialized.py:64-67</code> — <em>not</em>
+  <code>ontology/materialized.py</code>, which does not exist) stores <code>bytes</code> + <code>sha256</code>
+  and never <code>rows</code>. So on its own a file record is silent about cardinality.</p>
+  <p style="margin-bottom:0"><span class="pill p-bad">correction</span> <strong>The implication does not carry,
+  though, and the page previously drew it too far.</strong> At <code>materialized.py:414-418</code> the caller
+  spreads <code>**_file_record(path)</code> and <em>adds</em>
+  <code>"rows": pq.ParquetFile(path).metadata.num_rows</code> for every generation output. Generation outputs
+  <strong>do</strong> get attested row counts. Only <code>sources</code> (<code>:362</code>) and
+  <code>prior_artifacts</code> (<code>:364</code>) are rows-free.</p>
+</div>
+
+<div class="note bad">
+  <strong>The <code>fr_docket_links</code> claim needs correcting in both directions.</strong> It <em>is</em> a
+  source input — listed in <code>OntologyDatasetPipeline.source_inputs</code>
+  (<code>pipelines/ontology_dataset.py:31-37</code>) and carried under <code>inputs.sources</code> with only
+  bytes and sha256 in <code>output/rin-ontology-revision-candidate/ontology-dataset-manifest.json</code>.
+  <strong>But “its row count was never attested” is false.</strong> <code>rows = 715,080</code> is attested in
+  at least two receipts — <code>output/agency-crosswalk-2026-08-02/receipt.json</code> (both
+  <code>inputs.fr_docket_links.rows</code> and <code>coverage.fr_docket_links_rows</code>) and
+  <code>output/date-event-artifact-2026-08-01/receipt.json</code>. It is <em>separately</em> true that
+  715,080 also appears in commit <code>a31605b</code>'s own message body (“The full corpus builds 715,080 link
+  rows”), which is where the earlier trace found it. Both are true; the receipt attestation is the one that
+  counts, and it exists. The 893,766 figure remains unattested — see §13.
+</div>
+
+<h2>10 · What is genuinely healthy</h2>
 <div class="note ok">
   <ul>
     <li><strong>RefSpec → RuleSpec is the model edge.</strong> Verifies the target checkout's
@@ -534,12 +1024,22 @@ capabilities, exactly one is marked.</p>
   </ul>
 </div>
 
-<h2>7 · Broken today</h2>
-<p>Distinct from migration debt: these fail now.</p>
+<h2>11 · Broken today</h2>
+<p>Distinct from migration debt: these fail now. The first three are defects found and
+<strong>independently reproduced</strong> during this pass — they are not inherited from any earlier trace.</p>
 <div class="scroller">
 <table>
 <thead><tr><th>What</th><th>Evidence</th><th>Effect</th></tr></thead>
 <tbody>
+<tr><td><strong>Live defect — <code>parse_cfr_citation</code> fabricates citations that are not in the input</strong></td>
+  <td class="ev"><code>ontology/citations.py:657</code>. Reproduced verbatim: <code>"40 CFR 60 and 12 CFR 220"</code> → <code>['40-60', '12-220', <strong>'40-1'</strong>]</code>. The third is invented — no “40 CFR 1” appears in the input. The tail-scanning loop at <code>:657</code> re-reads digits after the first citation and attaches them to the <em>first</em> title; regex backtracking defeats the negative lookahead <code>(?!\s*C\.?F\.?R\.?)</code>. Reaches published tables through <code>transforms/build_rule_targets.py:213</code> and <code>docpipeline/rkaf_projection.py:866</code> (third caller: <code>tools/run_citation_bakeoff.py:496,513</code>).</td>
+  <td>Phantom regulatory identities in output. <strong>Three</strong> prior commits already attacked this class — <code>1400140</code>, <code>fdb5fd6</code>, <code>9394aa0</code> — each closing a different phantom; this is the next one.</td></tr>
+<tr><td><strong>Live defect — a CFR citation ending a sentence is dropped whole</strong></td>
+  <td class="ev">Same file, <code>_CFR_STANDARD</code> at <code>:32</code>. Reproduced: <code>"49 CFR 900.42."</code> → <code>[]</code>, while <code>"49 CFR 900.42;"</code> → <code>[('49','900','42')]</code>. The section subpattern <code>[A-Za-z0-9][A-Za-z0-9.-]*</code> swallows the terminal period and then fails to match. A full stop is the single most common character to follow a citation in prose.</td>
+  <td>Silent total loss, not a misparse — the citation simply is not there.</td></tr>
+<tr><td><strong>Live defect — <code>validate_body_cache</code> says “fails closed” and does not</strong></td>
+  <td class="ev"><code>corpora/body_retrieval_corpus.py:917</code>, docstring “Re-verify every cached body against the lock. Fails closed.” It validates lock→disk only, never disk→lock. Measured: <code>output/scale-dr-10k-2026-08-05/cache-xml/</code> holds <strong>6,408 documents and 6,408 receipts</strong> under a <code>source-lock.json</code> declaring <code>source_count = 3333</code> with 3,333 entries. Quarantine reports 1. <strong>Validation passes.</strong></td>
+  <td>3,075 documents are present, unattested, and invisible to the check that exists to find exactly this.</td></tr>
 <tr><td>Two SpicyRegs tests fail at collection</td>
   <td class="ev">tests/managed_release_support.py:8,11 · tests/elsst_managed_release_support.py:10,16 import refspec modules deleted by RefSpec 71581fd (−708, −2,871, −2,234 lines). Only <code>elsst_acquisition</code> moved to registry/adapters/; the other three have no successor.</td>
   <td>An editable install has no version boundary to catch this</td></tr>
@@ -559,7 +1059,7 @@ capabilities, exactly one is marked.</p>
 </table>
 </div>
 
-<h2>8 · Findings — every edge, with evidence</h2>
+<h2>12 · Findings — every edge, with evidence</h2>
 <p>Volumes re-derived from disk unless marked <span class="pill p-move">asserted</span>.</p>
 
 <div class="scroller">
@@ -572,8 +1072,8 @@ capabilities, exactly one is marked.</p>
   <td class="ev">src/spicy_regs/sources/*.py — 16 readers of 23 files; 14 reached from a rollup entry point</td>
   <td class="vol">federal_register 1,004,233 rows / 155.6 MB</td><td><span class="pill p-ok">application</span></td></tr>
 <tr><td>uscode.house.gov → SpicyRegs</td><td>httpx</td>
-  <td class="ev">sources/uscode_olrc.py:51,54,357 · uscode_uslm.py:60 — <strong>zero non-test importers anywhere in src/</strong></td>
-  <td class="vol">20,865 + 10,976 rows</td><td><span class="pill p-move">unreached</span></td></tr>
+  <td class="ev"><span class="pill p-bad">correction, see §13</span> <code>sources/uscode_olrc.py:51,54,357</code> · <code>uscode_uslm.py:60</code> — zero non-test importers in <code>src/</code> holds, <strong>but it is by design, not neglect</strong>. Neither file writes parquet; the writers are <code>tools/build_usc_act_index_artifact.py</code> and <code>tools/build_usc_source_credit_artifact.py</code>. The parquet <em>is</em> consumed, by <code>ontology/act_index.py:280,297,384</code>. Outputs are keyed by stable identifiers — <code>name_key</code> → <code>table3_key</code>, and <code>(public law, division, act section)</code> → USC section — i.e. identity data, not page positions.</td>
+  <td class="vol">20,865 + 10,976 + 3,721 rows</td><td><span class="pill p-ok">by design — consumed as pinned parquet</span></td></tr>
 <tr><td>uscode.house.gov → RefSpec</td><td>urllib.urlopen</td>
   <td class="ev">RefSpec/tools/extract_uslm_reference_edges.py:141,380</td>
   <td class="vol">59 files / 431 MB / 1,342,167 rows</td><td><span class="pill p-move">duplicate ingress</span></td></tr>
@@ -658,6 +1158,31 @@ capabilities, exactly one is marked.</p>
   <td class="vol">120 hashes / 828 instances. <strong>Zero .py byte-identical across live repos.</strong></td>
   <td><span class="pill p-ok">fixtures copied, code re-implemented</span></td></tr>
 
+<tr class="grp"><td colspan="5">Ontology outputs — figures corrected this pass</td></tr>
+<tr><td>All present ontology outputs</td><td>re-counted from disk</td>
+  <td class="ev">output/rin-ontology-revision-candidate/ — rule_targets 39,516 · authority_edges 10,618 · proceedings 511,643 · regulatory_agenda_items 38,005 · agenda_item_proceedings 120,685 · comment_periods 302,300 · concepts 901 · concept_assignments 24 · concept_events 901</td>
+  <td class="vol"><strong>1,024,593 rows across 9 outputs</strong> (not ~1.14 M)</td>
+  <td><span class="pill p-ok">re-derived</span></td></tr>
+<tr><td>ontology_segment_ledger.parquet</td><td>declared, never generated</td>
+  <td class="ev">named in <code>pipelines/ontology_dataset.py:44-49,61-63</code> as an internal/optional prior output; no file of that name exists anywhere under the repo</td>
+  <td class="vol">the 10th output does not exist</td><td><span class="pill p-dead">never produced</span></td></tr>
+<tr><td><strong>authority_edges — 10,618 vs 11,793</strong></td><td>different corpora, not stale-vs-current</td>
+  <td class="ev"><span class="pill p-bad">correction</span> 10,618 is the ontology generation; its receipt digest <code>0bc929b6…</code> still matches the file on disk today. 11,793 exists <em>only</em> under <code>output/discovery-slice-2026-07-28/</code> and <code>output/discovery-slice-rescore-2026-08-01/</code> — both directories contain two parquet files and <strong>no JSON receipt or manifest at all</strong>. 11,793 appears in prose only.</td>
+  <td class="vol">two populations, one attested</td>
+  <td><span class="pill p-move">not a drift — a different corpus</span></td></tr>
+<tr><td><strong>rule_targets — the meaningful pair</strong></td><td>paired receipt, baseline vs candidate</td>
+  <td class="ev">docs/evidence/rulespec-stabilization-2026-07-24/paired-receipt.json — <code>generation.baseline.artifacts.rule_targets.parquet.rows = 335008</code>, <code>generation.artifacts.rule_targets.parquet.rows = 40546</code></td>
+  <td class="vol"><strong>baseline 335,008 → candidate 40,546</strong></td>
+  <td><span class="pill p-ok">the drop is the fix, see §5</span></td></tr>
+<tr><td>Quarantine larger than the output it guards</td><td>category error, not a defect</td>
+  <td class="ev"><span class="pill p-bad">correction</span> output/agency-crosswalk-2026-08-02/receipt.json → <code>counts.quarantine_by_source_and_reason</code>: <code>federal_register.agency_entry_missing_slug</code> 30,405 · <code>federal_register.cfr_reference_missing_part</code> 5,225 · <code>documents.document_not_in_federal_register</code> 32. These are upstream <strong>source-record</strong> defects — a different population from the output rows entirely.</td>
+  <td class="vol">35,662 quarantine vs 34,612 output</td>
+  <td><span class="pill p-ok">comparing unlike things</span></td></tr>
+<tr><td>is_most_citing · cfr-part-agencies.parquet</td><td>not misused — but not unconsumed either</td>
+  <td class="ev"><span class="pill p-bad">correction, twice over</span> The field is <em>not</em> misused. But “zero consumers” is wrong: <code>spicysearch/agency_priors.py:375</code> reads <code>is_most_citing</code>, enforces exactly-one-true at <code>:386</code> and rank-1 agreement at <code>:390</code>. <code>cfr-part-agencies.parquet</code> is read at <code>:274</code>, row-count-checked at <code>:283</code>, and its digest flows through <code>snapshot.py:2948</code> and <code>cli.py:821-826</code>. The consumers are cross-repo, which is why a SpicyRegs-only sweep missed them.</td>
+  <td class="vol">consumed in SpicySearch, not SpicyRegs</td>
+  <td><span class="pill p-ok">correctly used, cross-repo</span></td></tr>
+
 <tr class="grp"><td colspan="5">Artifacts</td></tr>
 <tr><td>atlas-3.0-full-2026-08-06</td><td>produced, read intra-repo only</td>
   <td class="ev">written by generate_atlas_v3_full.py:113; read by atlas/parquet_view.py:606 → the parquet view → explorer.py:116. Nothing outside RefSpec imports refspec.atlas.*.</td>
@@ -678,23 +1203,29 @@ capabilities, exactly one is marked.</p>
 <tr><td>fused-concept-registry-v1</td><td>research artifact</td>
   <td class="ev">DuckDB: COUNT(*)=513,236; broader_id IS NULL = 513,236; replaced_by IS NULL = 513,236</td>
   <td class="vol">513,236 rows · hierarchy 100% null · 3.1 GB</td><td><span class="pill p-move">research</span></td></tr>
-<tr><td>DocSpec fr-mirrulations-10k-v1</td><td>unfinished campaign</td>
-  <td class="ev">no run receipt; never reconciled, never committed</td><td class="vol">20 GB tree</td>
-  <td><span class="pill p-move">research</span></td></tr>
-<tr><td>SpicyRegs scale-dr-10k-2026-08-05</td><td>unfinished draw</td>
-  <td class="ev">receipts and checkpoints present, no sealed release members</td>
-  <td class="vol">6,408 of 10,000 · 201 MB</td><td><span class="pill p-move">research</span></td></tr>
+<tr><td>DocSpec fr-mirrulations-10k-v1</td><td>halted campaign, restartable</td>
+  <td class="ev"><span class="pill p-bad">figures corrected</span> <code>runs/full/</code> measures <strong>106,943 files / 5.1 GiB</strong> — not the ~97,700 / 4.8 GB reported. Checkpoints are preserved and a restart resumes only unfinished stores. Two unpushed commits: <code>8333768</code> “add mixed-source qualification campaign”, <code>ae601c9</code> “add resumable mixed-source acquisition”.</td>
+  <td class="vol">20.3 GiB total — <strong>12.8 GiB is five stale <code>-pre-*-fix</code> snapshots</strong>, 7.5 G live</td>
+  <td><span class="pill p-move">research · 12.8 GiB reclaimable</span></td></tr>
+<tr><td>— was it killed, or did it die?</td><td>asserted, not evidenced</td>
+  <td class="ev"><span class="pill p-move">asserted</span> “Intentionally killed, not a failure” rests on one source: <code>DocSpec/docs/plans/2026-08-09-fr-mirrulations-10k-campaign-status.md:11</code>, <strong>untracked in git</strong> and written three days after the run. The artifacts read the other way: a stale SQLite rollback journal (<code>reconciliation/processor-results.sqlite3-journal</code>), missing <code>run-reference.json</code>, <code>release-reference.json</code>, <code>candidate-census.json</code> and <code>run-receipts</code> — all present in both other tiers — and an mtime histogram running 16–20 k files/min until 03:30 then stopping dead. <em>“Did not fail with a recorded error”</em> is supported; <em>“was intentionally stopped”</em> is not independently verifiable. The five snapshots' “explicitly marked deletable” status comes from the same untracked file (<code>:32,38</code>).</td>
+  <td class="vol">no kill marker, log or traceback exists</td>
+  <td><span class="pill p-move">unverified — see §13</span></td></tr>
+<tr><td>SpicyRegs scale-dr-10k-2026-08-05</td><td>unfinished draw, and unattested</td>
+  <td class="ev">6,408 documents + 6,408 receipts on disk under a <code>source-lock.json</code> declaring <code>source_count = 3333</code> with 3,333 entries; quarantine reports 1; <code>validate_body_cache</code> passes anyway. See §11.</td>
+  <td class="vol">6,408 present vs 3,333 attested · 201 MB</td><td><span class="pill p-bad">lock/disk mismatch, undetected</span></td></tr>
 
 <tr class="grp"><td colspan="5">Duplicated capability — behavioural divergence</td></tr>
-<tr><td>Coordinate systems</td><td>9 sites, 9 spellings</td>
-  <td class="ev">rulespec source_fragment.rs:50-69 (closed 6-variant enum) · DocSpec extraction.py:447,290,326 · spicy_regs source.py:132-133, rkaf_projection.py:202, document_release.py:43 · spicysearch projections.py:20-21, release_adapters.py:138. Type incompatibility proven by compiling the enum. No consumer branches on the value.</td>
-  <td class="vol">8,232,356 + 4,249,550 records</td><td><span class="pill p-bad">urgent, see §5</span></td></tr>
+<tr><td>Coordinate systems</td><td><strong>two fields, not nine spellings of one</strong></td>
+  <td class="ev"><span class="pill p-bad">reframed, see §8</span> Closed enum <code>rkaf:coordinateSystem</code> at rulespec <code>constraints/core/source-fragment.cue:19-21</code>, bound <code>:89</code> — 6 values. Open string <code>coordinate_system</code> at <code>extrapolation-release.schema.json:1015-1017</code>, no enum, required <code>:1033</code>. Third field <code>derived_coordinate_system</code> <code>:716</code> is <code>const "unicode-code-points"</code>. <code>unicode-codepoints-half-open</code> already aliased at <code>tools/rulespec_release.py:773</code>. Sole authority is <code>source-fragment.cue</code> — <code>concept_assignment.rs</code> and <code>evidence-binding.cue</code> carry <strong>no</strong> coordinate vocabulary.</td>
+  <td class="vol">4,249,550 <strong>conforming</strong> (open field, count exact) · 8,232,356 byte-ranged · <strong>rkaf:unicode-codepoint = 6 records, all hand-authored</strong></td>
+  <td><span class="pill p-move">DocSpec's bytes are the hazard, not the spelling</span></td></tr>
 <tr><td>Canonical JSON</td><td>12 + 1 real library</td>
   <td class="ev">listed in §4; ~half reject floats; key order differs between Python sort_keys and RFC-8785 UTF-16 ordering</td>
   <td class="vol">latent digest divergence</td><td><span class="pill p-move">unmarked</span></td></tr>
 <tr><td>Citation grammars</td><td>3</td>
-  <td class="ev">Verified by running SpicyRegs' live parser: “040 CFR 060” → CfrCitation(title='40', part='60'); “49 CFR 900.42.” → []</td>
-  <td class="vol">silent misparse + silent drop</td><td><span class="pill p-bad">live defect</span></td></tr>
+  <td class="ev">Verified by running SpicyRegs' live parser: “040 CFR 060” → CfrCitation(title='40', part='60'); “49 CFR 900.42.” → [] while “49 CFR 900.42;” parses. <strong>And newly this pass:</strong> “40 CFR 60 and 12 CFR 220” → ['40-60','12-220',<strong>'40-1'</strong>] — a fabricated third citation. All three reproduced; see §11.</td>
+  <td class="vol">silent misparse + silent drop + <strong>silent fabrication</strong></td><td><span class="pill p-bad">3 live defects</span></td></tr>
 <tr><td>Label normalisation</td><td>6</td>
   <td class="ev">Verified by running: “ﬁle—numéro” → SpicySearch <code>file numéro</code>, RefSpec <code>file—numéro</code>. RefSpec's 5 sites agree with each other.</td>
   <td class="vol">silent lookup misses</td><td><span class="pill p-bad">live divergence</span></td></tr>
@@ -711,7 +1242,103 @@ capabilities, exactly one is marked.</p>
 </table>
 </div>
 
-<h2>9 · Corrections, disagreements, and what remains unverified</h2>
+<h2>13 · Corrections, disagreements, and what remains unverified</h2>
+
+<h3>Where the 2026-08-09 extraction reviews supersede this page's own earlier version</h3>
+<p>These corrections are newer than the list below and take precedence over it. Several correct claims that this
+page itself asserted confidently on 2026-08-09 before the ownership constraint and the four extraction reviews
+were known.</p>
+<ul>
+  <li><strong>The organizing principle was wrong.</strong> This was written as “five peer repos.” It is
+    <strong>four repos owned by <code>Formspec-Labs</code> plus one, <code>civictechdc/spicy-regs</code>, that is
+    not owned</strong>. Every severability judgment in §6 was priced without that constraint. See §2.</li>
+  <li><strong>The reset-risk framing was inverted.</strong> The page treated <code>output/</code> as the
+    exposure; it is gitignored (<code>.gitignore:11</code>) and survives untouched. The exposure is
+    <code>docs/evidence/</code> — tracked, 202 files, <strong>zero on <code>origin/main</code></strong>. The
+    reset destroys the prose and leaves the data. See §4.</li>
+  <li><strong>The coordinate-system section was a category error.</strong> <code>rkaf:coordinateSystem</code>
+    (closed 6-value enum) and <code>coordinate_system</code> (open string) are different fields. The 4,249,550
+    records are <strong>conforming</strong>, not deviant. The risk ranking flips: DocSpec's
+    <code>utf8-byte-range</code> is the hazard because it is an arithmetic disagreement and a deliberate design
+    choice, not drift. See §8.</li>
+  <li><strong>“<code>715,080</code> appears in no receipt anywhere” is wrong</strong> — it is attested as
+    <code>rows</code> in at least two receipts (<code>agency-crosswalk-2026-08-02</code>,
+    <code>date-event-artifact-2026-08-01</code>). It is separately true that it also appears in commit
+    <code>a31605b</code>'s message body. See §9.</li>
+  <li><strong>“No code loads a receipt and re-checks its digests” is wrong</strong> — three modules do, one of
+    them behind a real <code>verify</code> subcommand. Only <code>receipt.py</code> itself lacks the path. And
+    re-hashing found <strong>9 of 9 generation artifacts still match</strong>. See §9.</li>
+  <li><strong><code>authority_edges</code> 10,618 vs 11,793 is not stale-vs-current</strong> — they are different
+    corpora. 10,618 is receipt-backed and still matches disk; 11,793 lives only in
+    <code>output/discovery-slice-*</code>, which contains no receipt at all.</li>
+  <li><strong><code>is_most_citing</code> is not misused</strong> — the earlier reading was wrong about that. But
+    “zero consumers” is also wrong: <code>spicysearch/agency_priors.py</code> reads it and enforces its
+    invariants, and reads <code>cfr-part-agencies.parquet</code> too. A SpicyRegs-scoped sweep could not see
+    them.</li>
+  <li><strong>The quarantine-larger-than-output observation was a category error</strong> — the 35,662 rows are
+    upstream <em>source-record</em> defects (30,405 + 5,225 + 32), a different population from the 34,612 output
+    rows.</li>
+  <li><strong>Total ontology output is 1,024,593 rows across 9 outputs</strong>, not ~1.14 M. A 10th,
+    <code>ontology_segment_ledger.parquet</code>, is declared but has never been generated.</li>
+  <li><strong>The USC outputs are identity data, not document-shaped.</strong> This page reported identity as
+    position on a page. Wrong: rows are keyed by stable identifiers. The zero-importer finding holds for
+    <code>src/</code> but is by design — fetchers are unreproducible as scripts and consumable as parquet, read
+    by <code>ontology/act_index.py</code>.</li>
+  <li><strong><code>_draw_documents</code> is a 15-line validator, not a selector.</strong> The real selector is
+    <code>build_draw</code> (<code>:104-212</code>), already ports-shaped and doing zero I/O. Severance is
+    ~150 lines but <strong>blocked</strong>: DocSpec has no discovery port anywhere in its 17 port modules.</li>
+  <li><strong>The local work is a correctness rescue, not a private fork</strong> — and this page previously had
+    no way to say so. Paired receipt, <code>inputs_match: true</code>: 247,229 + 47,222 invalid rows → 0;
+    305,807 self-predecessor edges → 0. <strong>Upstream ships the defective data today.</strong> See §5.</li>
+</ul>
+
+<h3>Where the 2026-08-09 reviews' own claims did not survive re-measurement</h3>
+<p>Stated here rather than quietly dropped, because the same discipline applies to new evidence as to old.</p>
+<ul>
+  <li><strong><code>rkaf_projection.py</code>'s extraction sizing does not hold.</strong> The file is 3,124 lines
+    (confirmed), but “2,153 code” could not be reproduced under any definition — measured 2,731 non-blank
+    non-comment, 2,589 excluding docstrings, 1,022 AST logical statements. The “44 % portable (1,361) /
+    56 % scaffolding (1,723)” split sums to <strong>3,084</strong>, a base that matches neither 3,124 nor 2,153,
+    and traces to a single arithmetic error in <code>00-synthesis.md:369-370</code>. The <strong>~350-line
+    kernel is unfalsifiable as stated</strong> — no kernel boundary is defined anywhere.
+    <em>What did survive exactly:</em> the 36-line external surface (<code>text_digest</code> 4 lines,
+    <code>ontology/common.py:78-81</code>; <code>resolve_exact_evidence_offsets</code> 32 lines,
+    <code>ontology/llm.py:86-117</code>), the <code>model is None</code> test (re-run, 1 passed in 0.85 s), and
+    the DocSpec precedent — 3,124 lines both sides, 48 differing lines, and
+    <code>sed 's/docspec/spicy_regs/g'</code> renders the archive copy <strong>byte-identical</strong>. Zero
+    semantic drift, proven mechanically. <strong>The extraction case stands; its headline sizing does not.</strong></li>
+  <li><strong>DocSpec's 10 k campaign was not ~97,700 files / 4.8 GB</strong> — it is
+    <strong>106,943 files / 5.1 GiB</strong>. And “intentionally killed, not a failure” is
+    <span class="pill p-move">asserted</span>, resting on one untracked status file written three days later,
+    against physical evidence of abrupt mid-transaction death. Reclaimable stale snapshots measure 12.8 GiB, not
+    12.7 GB.</li>
+  <li><strong><code>enrichment/managed_release.py</code> is not dead.</strong> It has live non-test importers
+    (<code>tools/ablate_candidate_selectors.py:80</code>, <code>tools/project_document_to_rkaf.py:175-181</code>).
+    Mid-migration legacy, not deletable. Its supersession is implied only by
+    <code>enrichment/__init__.py:3-6</code>.</li>
+  <li><strong><code>ann_index.py</code> and <code>candidate_channels.py</code> do say it themselves</strong>
+    (<code>:36</code>, <code>:38</code>) — but both have live <code>tools/</code> importers and
+    <code>pyproject.toml:58-59</code> records them as deliberately retained. Measurement scaffolding, not litter.</li>
+  <li><strong>The dead-weight path was wrong</strong> — the file is
+    <code>src/spicy_regs/docpipeline/adapters/codex_cli.py</code>, not <code>src/spicy_regs/adapters/</code>.
+    The 8,670-line total and the zero-importer finding are both exact.</li>
+  <li><strong><code>rkaf:unicode-codepoint</code> has not emitted literally zero records</strong> — it has
+    emitted six, all hand-authored by <code>build_projection.py</code>. Zero is correct for
+    <code>output/</code>. Also, the <em>live</em> correct producer is
+    <code>rkaf_projection.py:202</code> (four non-test importers); <code>open_set.py:217</code> is the dead one.</li>
+  <li><strong>The USC <code>refusal</code> semantics were misdescribed.</strong> Its domain is
+    <code>'multi_target'</code> (1,844) and <code>None</code> (1,877), and <strong>null means resolved, not “said
+    nothing”</strong> (<code>build_usc_source_credit_artifact.py:166</code>). “Said nothing” is the absence of a
+    row, synthesised as <code>"absent"</code> at query time in <code>act_index.py:100-114,395</code>. Also
+    <code>act_index.py</code> is digest-<em>stamped</em> at build time, never digest-<em>verified</em> at read —
+    it contains no hash comparison at all.</li>
+  <li><strong>Counts and paths corrected:</strong> <code>docpipeline/</code>+<code>enrichment/</code> is
+    <strong>+29,168</strong> insertions, not 29,867 (zero deletions confirmed); <code>_artifact_records</code> is
+    at <code>receipt.py:136</code>, not <code>:169</code>; <code>_file_record</code> is at
+    <code>pipelines/materialized.py:64-67</code>, not <code>ontology/materialized.py</code>; the RuleSpec alias
+    is at <code>rulespec_release.py:771-774</code>, not <code>:769-773</code>; <strong>three</strong> prior
+    commits attacked the citation-fabrication class, not two.</li>
+</ul>
 
 <h3>Where this supersedes the 2026-08-08 traces</h3>
 <ul>
@@ -761,20 +1388,45 @@ capabilities, exactly one is marked.</p>
     Zyte path has ever executed.</li>
   <li>Readers for two further multi-GB Atlas directories (1.4 GB and 1.8 GB), and ~35 RefSpec
     <code>tools/</code> scripts that are neither Makefile-wired nor obviously benchmarks.</li>
+  <li><s><strong>Why the 2026-08-05 DocSpec migration was abandoned.</strong></s>
+    <strong>Answered by the person who ran it: the agents ran out of tokens.</strong> Not a design rejection and
+    not a stall on a hard problem &mdash; the work is being resumed. Two earlier readings on this page are
+    withdrawn: that the stop was unexplained, and that the old design had been &ldquo;rejected on purpose&rdquo;.
+    The redesign was deliberate; the stopping was budget exhaustion and carries no verdict on what remains
+    unported. The fenced archive is therefore the migration's <em>source material</em>, not its epitaph, and the
+    boundary test excluding it is scaffolding that keeps the un-migrated version from shipping by accident.
+    Estimate returns to <em>resume</em>: the mechanical port is 48 namespace-only lines, and the next piece is
+    <code>rkaf_projection.py</code>'s kernel plus its 36-line dependency surface. The concrete blocker is that
+    DocSpec still has <strong>no discovery port</strong> for <code>build_draw</code> to land in.</li>
+  <li><s><strong>SpicySearch's GitHub org.</strong></s> <strong>Resolved 2026-08-09 — SpicySearch is owned</strong>,
+    stated by its owner. It remains unreadable <em>from the tree</em>: the checkout has zero configured git
+    remotes, which is now a local hygiene gap rather than an open question. Figure 2 places it inside the
+    boundary.</li>
+  <li><strong>Whether the 893,766-row rebuild is semantically better than the 715,080 state</strong>, or merely
+    larger. 715,080 is receipt-attested (§9); 893,766 is not attested anywhere. Row growth alone does not
+    establish which is more correct, and no paired receipt compares them.</li>
+  <li>Whether DocSpec's 10 k run was stopped deliberately — the only assertion is an untracked file written three
+    days later, and the surviving artifacts suggest abrupt mid-transaction death.</li>
   <li>Whether any real content places a non-ASCII string into a canonical-JSON <em>key</em> — the condition that
     would turn the digest divergence live.</li>
   <li>Whether <code>ontology/candidate_channels.py</code> is reached by dynamic dispatch that static tracing
     would miss, contradicting a comment claiming it is the implemented channel.</li>
-  <li>Why DocSpec's 10 k run stopped — no failure receipt, no log survives.</li>
   <li>Five of the claimed sixteen ring declarations could not be located in this checkout.</li>
   <li>Reachability throughout is import-graph tracing, not runtime coverage; a rare dynamic-dispatch pattern
     could invalidate an individual “unreached” verdict.</li>
 </ul>
 
 <footer>
-  Generated 2026-08-09 from eight parallel code traces plus lead verification.
+  Generated 2026-08-09 from the eight parallel code traces of 2026-08-08, <strong>plus four 2026-08-09
+  extraction reviews</strong> (rkaf_projection severance · DocSpec campaign and catalog sealing · dead-weight and
+  importer sweep · coordinate-system field authority), <strong>plus lead verification</strong> — which
+  re-measured the reviews' own claims and corrected eleven of them, listed in §13.
+  Ownership was read from <code>git remote -v</code> in each checkout, and the divergence figures from
+  <code>git rev-list</code> and <code>git diff --shortstat</code> against <code>origin/main</code>.
   Self-contained: no external requests, no remote fonts, no CDN.
-  Sources of truth were code and data only; <code>.md</code> files were excluded as evidence throughout.
+  Sources of truth were code and data only; <code>.md</code> files were excluded as evidence throughout —
+  and where a claim rested on one anyway, it is marked <span class="pill p-move">asserted</span> and the file is
+  named.
 </footer>
 
 </div>
