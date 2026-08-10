@@ -167,7 +167,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:891d044b505af61c5359513ef4e73ec4a96c7e6727139a6df0ffe49bc1927f61"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:8843c41e470e9a3082f34f72bcf3cac294f6b0835afa4150fcfe44351f91c2f6"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -2847,11 +2847,35 @@ def _review_method_for_assertion(
     raise ValueError(f"unsupported assertion review method: {assertion_type}")
 
 
+# The one warrant this producer cannot honour. A mapping whose evidence
+# declares twoMachineAdjudication is claiming two independent machines
+# adjudicated it, and since the machine-adjudication protocol landed on the
+# Atlas 3.0 wire that claim obliges the distribution to carry the whole record
+# set behind it: an rkaf:RelationComparisonContext, its complete
+# rkaf:ResolverProofRecord support, their issuers and model lineages, and the
+# rkaf:Artifact records that resolve the sealed request and every sealed
+# response to bundled bytes. This producer emits none of those, so accepting
+# the warrant would build a distribution that its own binding validator
+# refuses -- a failure discovered at the end of a full registry build rather
+# than at the input that caused it. It fails here instead, at intake.
+UNEMITTABLE_MAPPING_REVIEW_METHODS = frozenset({"twoMachineAdjudication"})
+
+
 def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     """Resolve one explicit, binding-approved mapping warrant to its axis name."""
 
     if review_method not in MAPPING_REVIEW_METHODS:
         raise ValueError(f"unsupported mapping review method: {review_method!r}")
+    if review_method in UNEMITTABLE_MAPPING_REVIEW_METHODS:
+        raise ValueError(
+            f"mapping review method {review_method!r} is not emittable by this "
+            "producer: the Atlas 3.0 binding requires every assertion carrying it "
+            "to be licensed by an rkaf:RelationComparisonContext with a complete, "
+            "independent rkaf:ResolverProofRecord set resolving to bundled "
+            "rkaf:Artifact records, and this writer emits no adjudication "
+            "records at all. No registry source declares it today; wire the "
+            "protocol's emission before one does."
+        )
     return review_method
 
 

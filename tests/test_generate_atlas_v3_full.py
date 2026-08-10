@@ -3494,7 +3494,10 @@ def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> Non
     with pytest.raises(ValueError, match="unsupported assertion"):
         generator._review_method_for_assertion(generator.ATLAS.MappingAssertion)
 
-    for method in generator.MAPPING_REVIEW_METHODS:
+    for method in (
+        generator.MAPPING_REVIEW_METHODS
+        - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS
+    ):
         assert generator._mapping_review_method(method) == method
     with pytest.raises(ValueError, match="unsupported mapping review method"):
         generator._mapping_review_method("inventedReview")
@@ -3984,3 +3987,49 @@ def test_real_document_releases_emit_identifiers_and_cross_ring_assignment(
         generator.ATLAS.subject
     )
     assert (report, generator.ATLAS.hasIndexedSubject, topic) in graphs.projection
+
+
+def test_the_producer_refuses_a_warrant_whose_records_it_cannot_emit() -> None:
+    """Fail at intake, not at the end of a full build.
+
+    The Atlas 3.0 binding admits the twoMachineAdjudication evidence warrant and
+    obliges every assertion carrying it to be licensed by a complete
+    machine-adjudication record set -- a comparison context, its independent
+    proof records, their issuers and model lineages, and the artifacts that
+    resolve the sealed request and every sealed response to bundled bytes. This
+    producer emits none of them. Until it does, a registry source that declares
+    the warrant would build a distribution the binding validator refuses, and
+    the refusal would arrive after the whole registry had been constructed
+    rather than at the input responsible for it.
+
+    No registry source declares it today; this is the guard that keeps the gap
+    honest until the emission is written.
+    """
+
+    assert "twoMachineAdjudication" in generator.MAPPING_REVIEW_METHODS, (
+        "the binding still admits this warrant, so the producer's refusal is "
+        "still the thing keeping the two in step"
+    )
+    with pytest.raises(ValueError) as failure:
+        generator._mapping_review_method("twoMachineAdjudication")
+    message = str(failure.value)
+    assert "twoMachineAdjudication" in message
+    assert "rkaf:RelationComparisonContext" in message
+    assert "rkaf:ResolverProofRecord" in message
+
+
+def test_every_other_binding_warrant_still_passes_producer_intake() -> None:
+    """The refusal is one named warrant, not a narrowing of the enum."""
+
+    emittable = sorted(
+        generator.MAPPING_REVIEW_METHODS - generator.UNEMITTABLE_MAPPING_REVIEW_METHODS
+    )
+    assert emittable == [
+        "deterministicTransformation",
+        "humanReview",
+        "operatorAdoption",
+        "publisherAssertion",
+        "trustedPipelineReview",
+    ]
+    for warrant in emittable:
+        assert generator._mapping_review_method(warrant) == warrant
