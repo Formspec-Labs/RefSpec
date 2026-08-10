@@ -33,11 +33,12 @@ from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, URIRef
 
 from refspec.atlas.candidate_retrieval import (
     DEFAULT_SPARSE_VIEWS,
+    AtlasConcept,
+    AtlasConceptContext,
     bidirectional_sparse_neighbors,
     graph_neighborhood_neighbors,
     retrieval_digest,
 )
-from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
 from refspec.storage import canonical_json
 
 CONFERENCE_REFERENCE_NAMES = (

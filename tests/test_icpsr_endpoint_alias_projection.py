@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
+from refspec.atlas.candidate_retrieval import AtlasConcept, AtlasConceptContext
 from tools import benchmark_atlas_candidate_retrieval as shared
 from tools import benchmark_icpsr_endpoint_alias_projection as experiment
 

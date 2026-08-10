@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
+from refspec.atlas.candidate_retrieval import AtlasConcept, AtlasConceptContext
 from tools import benchmark_atlas_candidate_retrieval as shared
 from tools import benchmark_atlas_three_family_frontier as frontier
 from tools import benchmark_lexical_candidate_controls as lexical

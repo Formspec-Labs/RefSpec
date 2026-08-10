@@ -18,8 +18,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from refspec.atlas.candidate_retrieval import AtlasConcept, AtlasConceptContext
 from refspec.atlas.parquet_artifact import file_sha256 as _sha256
-from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
 from refspec.storage import canonical_json
 
 try:

@@ -42,16 +42,14 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 from refspec.atlas.candidate_retrieval import (
     DEFAULT_SPARSE_VIEWS,
-    bidirectional_sparse_neighbors,
-    exact_identifier_neighbors,
-    graph_neighborhood_neighbors,
-    retrieval_digest,
-)
-from refspec.atlas.qualification import (
     GENERATION_CLASSES,
     AtlasConcept,
     AtlasConceptContext,
+    bidirectional_sparse_neighbors,
+    exact_identifier_neighbors,
     generate_candidate_pairs,
+    graph_neighborhood_neighbors,
+    retrieval_digest,
 )
 from refspec.storage import canonical_json
 
@@ -921,7 +919,7 @@ def production_floor(
             by_generation[candidate.generation_class].add(key)
     frozen = {name: frozenset(values) for name, values in by_generation.items()}
     metadata = {
-        "implementation": "refspec.atlas.qualification.generate_candidate_pairs(production=True)",
+        "implementation": "refspec.atlas.candidate_retrieval.generate_candidate_pairs(production=True)",
         "coverageMode": "allDeterministicallyGeneratedCandidates",
         "generationClasses": {
             name: summarize_pairs({pair: 1 for pair in frozen[name]}, top_k=1, cases=cases)

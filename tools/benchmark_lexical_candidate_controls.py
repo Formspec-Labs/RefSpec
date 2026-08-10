@@ -33,8 +33,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from refspec.atlas.candidate_retrieval import AtlasConcept
 from refspec.atlas.parquet_artifact import file_sha256 as _sha256
-from refspec.atlas.qualification import AtlasConcept
 from refspec.storage import canonical_json
 
 try:
