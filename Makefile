@@ -28,7 +28,14 @@ check-generated:
 	uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
 		python bindings/atlas/3.0/tools/build_fixtures.py --check
 
-test: check-generated audit-registry-inventory test-json-binding test-atlas-v3 test-package
+# `test-atlas-v3` is deliberately absent. `test-package` already runs the
+# identical command inside
+# tests/test_atlas_v3_binding.py::test_atlas_v3_binding_and_sealed_corpus_pass,
+# which additionally pins the exact case, schema and descriptor counts the
+# bare target only exit-codes. Listing both ran the 110-case corpus twice for
+# ~205s each -- a third of the whole suite spent proving the same thing twice.
+# Keep the standalone target for binding work; do not re-add it here.
+test: check-generated audit-registry-inventory test-json-binding test-package
 
 # Fast drift check: does the committed registry manifest still describe the code?
 # This is the failure class that silently accumulates as registry modules are added.

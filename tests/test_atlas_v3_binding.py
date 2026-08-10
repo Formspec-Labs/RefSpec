@@ -82,6 +82,56 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     }
 
 
+def _makefile_rule(name: str) -> tuple[list[str], list[str]]:
+    """Return one Makefile rule's prerequisites and its recipe, line-joined."""
+
+    lines = (ROOT / "Makefile").read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        if not line.startswith(f"{name}:"):
+            continue
+        prerequisites = line.split(":", 1)[1].split()
+        recipe: list[str] = []
+        pending = ""
+        for follower in lines[index + 1 :]:
+            if not follower.startswith("\t"):
+                break
+            pending += follower.strip()
+            if pending.endswith("\\"):
+                pending = pending[:-1] + " "
+                continue
+            recipe.append(pending)
+            pending = ""
+        return prerequisites, recipe
+    raise AssertionError(f"Makefile has no rule named {name!r}")
+
+
+def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None:
+    """`make test` drops `test-atlas-v3` because this module already runs it.
+
+    The corpus pass is the single most expensive thing the suite does (~205s).
+    Running it from both the Makefile and pytest cost that twice for one
+    answer. The aggregate target now relies on
+    ``test_atlas_v3_binding_and_sealed_corpus_pass`` above, so this check
+    keeps the two halves of that claim true: the standalone target must still
+    invoke exactly what ``_standalone()`` invokes, and ``test`` must not list
+    it a second time.
+    """
+
+    prerequisites, _ = _makefile_rule("test")
+    assert "test-package" in prerequisites
+    assert "test-atlas-v3" not in prerequisites, (
+        "make test would run the 110-case corpus twice: test-package already "
+        "covers test-atlas-v3 via test_atlas_v3_binding_and_sealed_corpus_pass"
+    )
+
+    _, recipe = _makefile_rule("test-atlas-v3")
+    assert len(recipe) == 1
+    assert [
+        ROOT / token if token.startswith("bindings/") else token
+        for token in recipe[0].split()
+    ] == ["uv", "run", "--no-project", "--with-requirements", REQUIREMENTS, "python", VALIDATOR_PATH]
+
+
 def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None:
     completed = _standalone("--distribution", str(VALID_DISTRIBUTION))
     assert completed.returncode == 0, completed.stderr
