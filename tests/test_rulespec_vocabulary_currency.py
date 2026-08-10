@@ -1,10 +1,10 @@
 """Every rkaf: term RefSpec depends on must still exist upstream.
 
-RefSpec pins 24 upstream Rulespec artifacts by digest
-(profiles/rulespec-dependency.json) but reads none of them: nothing in
-RefSpec's src/ opens a compiled schema, a generated Rust type, or the JSON-LD
-context file. What RefSpec actually consumes from Rulespec is much narrower
-and much less visible -- the rkaf: IRIs it uses as string constants to build
+RefSpec used to pin 24 upstream Rulespec artifacts by digest and read none of
+them: nothing in RefSpec's src/ opens a compiled schema, a generated Rust
+type, or the JSON-LD context file. That pin is gone. What RefSpec actually
+consumes from Rulespec is much narrower and much less visible -- the rkaf:
+IRIs it uses as string constants to build
 the JSON-LD graph and BehaviorTestCase documents that
 ``refspec.release_graph.load_pinned_rulespec_validator`` submits to the real,
 pinned Rulespec validators (``rkaf-validate-cli``, ``ci_validate.py``,
@@ -113,7 +113,7 @@ def refspec_rkaf_terms(*, src_root: Path = REFSPEC_SRC) -> set[str]:
     terms: set[str] = set()
     for path in src_root.rglob("*.py"):
         terms |= _extract_rkaf_terms(path.read_text(encoding="utf-8"))
-    return terms - _KNOWN_LOCAL_ONLY_TERMS
+    return terms
 
 
 def rulespec_vocabulary_terms(rulespec_dir: Path) -> set[str]:
@@ -166,10 +166,37 @@ def test_every_rkaf_term_refspec_uses_exists_upstream() -> None:
     defined = rulespec_vocabulary_terms(rulespec_dir)
     assert defined, f"found no rkaf: terms in {rulespec_dir} -- the checkout looks empty"
 
-    missing = sorted(used - defined)
+    missing = sorted(used - _KNOWN_LOCAL_ONLY_TERMS - defined)
     assert not missing, (
         f"{len(missing)} rkaf: term(s) RefSpec uses no longer exist in the Rulespec "
         f"checkout at {rulespec_dir}: {missing}. Either Rulespec renamed/removed a "
         "term RefSpec depends on, or this test's _KNOWN_LOCAL_ONLY_TERMS exception "
         "list needs updating."
+    )
+
+
+def test_the_exception_list_expires_when_the_exceptions_do() -> None:
+    """An exception list nothing retires is how a known gap becomes permanent.
+
+    Both halves of every entry are checked. A term that RefSpec stopped using
+    is dead weight that quietly widens the hole above; a term Rulespec has
+    since ratified is a rename that should now be enforced, not excused. In
+    either case the entry must go, and only a failing test makes that happen.
+    """
+
+    rulespec_dir = discover_rulespec_checkout()
+    if rulespec_dir is None:
+        pytest.skip("no Rulespec checkout found -- see the currency test for details")
+
+    unused = sorted(_KNOWN_LOCAL_ONLY_TERMS - refspec_rkaf_terms())
+    assert not unused, (
+        f"_KNOWN_LOCAL_ONLY_TERMS excuses {len(unused)} term(s) RefSpec no longer "
+        f"uses in src/: {unused}. Delete them from the exception list."
+    )
+
+    ratified = sorted(_KNOWN_LOCAL_ONLY_TERMS & rulespec_vocabulary_terms(rulespec_dir))
+    assert not ratified, (
+        f"{len(ratified)} term(s) on the exception list now exist upstream: "
+        f"{ratified}. Rulespec ratified them, so drop them from "
+        "_KNOWN_LOCAL_ONLY_TERMS and let the currency check enforce them."
     )
