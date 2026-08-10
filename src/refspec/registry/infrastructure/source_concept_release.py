@@ -660,7 +660,7 @@ def _lifecycle_rows(
             "priorConcepts",
             "resultingConcepts",
             "evidence",
-            "attestor",
+            "reviewedBy",
             "reviewedAt",
         }
         if set(row) != required:
@@ -714,9 +714,9 @@ def _lifecycle_rows(
             row.get("evidence"),
             f"lifecycle_records[{index}].evidence",
         )
-        row["attestor"] = _require_iri(
-            row.get("attestor"),
-            f"lifecycle_records[{index}].attestor",
+        row["reviewedBy"] = _require_iri(
+            row.get("reviewedBy"),
+            f"lifecycle_records[{index}].reviewedBy",
         )
         row["reviewedAt"] = _require_datetime(
             row.get("reviewedAt"),

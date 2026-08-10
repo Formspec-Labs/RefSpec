@@ -124,7 +124,7 @@ class CRSIdentityReview:
     resource_name: str
     proposal_change_digest: str
     reviewed_at: str
-    attestor: str
+    reviewed_by: str
     identity_links: tuple[CRSIdentityLink, ...]
     reason: str
 
@@ -137,9 +137,9 @@ class CRSIdentityReview:
             )
         except SourceIdentityError as error:
             raise CRSIdentityError(f"CRS identity review is invalid: {error}") from error
-        reviewer = urlsplit(self.attestor)
+        reviewer = urlsplit(self.reviewed_by)
         if not reviewer.scheme or reviewer.username is not None or reviewer.password is not None:
-            raise CRSIdentityError("CRS identity review attestor must be an absolute IRI")
+            raise CRSIdentityError("CRS identity review reviewed_by must be an absolute IRI")
         if not self.resource_name.strip() or not self.reason.strip():
             raise CRSIdentityError("CRS identity review resource and reason must not be empty")
         digest_hex = self.proposal_change_digest.removeprefix("sha256:")
@@ -160,7 +160,7 @@ class CRSIdentityReview:
             "resourceName": self.resource_name,
             "proposalChangeDigest": self.proposal_change_digest,
             "reviewedAt": self.reviewed_at,
-            "attestor": self.attestor,
+            "reviewedBy": self.reviewed_by,
             "identityLinks": [link.as_dict() for link in self.identity_links],
             "reason": self.reason,
         }

@@ -169,7 +169,7 @@ _LIFECYCLE_FIELDS = {
     "priorConcepts",
     "resultingConcepts",
     "evidence",
-    "attestor",
+    "reviewedBy",
     "reviewedAt",
 }
 _FORBIDDEN_POLICY_FIELDS = frozenset(

@@ -372,7 +372,7 @@ class RegistryMapping:
                     .astimezone(timezone.utc)
                     .isoformat(),
                     "nativePayload": item.native_payload,
-                    "evidenceRole": item.review_warrant,
+                    "reviewWarrant": item.review_warrant,
                     "attestor": item.reviewer_iri,
                     "sourceDigest": item.source_digest,
                     "sourceLocator": item.source_locator,
