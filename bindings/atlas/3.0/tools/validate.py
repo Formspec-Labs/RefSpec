@@ -896,6 +896,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "lifecycle-effective-date-not-datetime",
         "lifecycle-event-kind-unknown",
         "lifecycle-rescission-names-target-release",
+        "supersession-dangling-predecessor",
         "supersession-without-event",
         "unjustified-thesaurus-related",
         "validator-identity-mismatch",

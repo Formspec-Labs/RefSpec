@@ -75,8 +75,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 124,
-        "invalidCount": 111,
+        "caseCount": 125,
+        "invalidCount": 112,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 1171,
         "schemaCount": 10,

@@ -2582,6 +2582,42 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             supersedes=old,
         )
 
+    def supersession_dangling_predecessor(fixture: Fixture) -> None:
+        """Supersede a claim IRI no assertion in the distribution carries.
+
+        `8c1c3e0` retired `validate_mapping_supersession`'s full-closure mode
+        on the grounds that closure is a property of a complete distribution
+        rather than of one registry record, and delegated it to this boundary.
+        Nothing here exercised the delegation: `supersession-without-event`
+        above keeps a resolvable predecessor and omits only its lifecycle
+        event, so the one thing the retired mode did -- refuse a predecessor
+        that resolves to nothing -- had no negative of its own.
+
+        The IRI is well-formed and unresolvable, which is the case that matters:
+        a producer that emits an assertion and drops the one it replaces
+        publishes exactly this, and a consumer reading the lineage backwards
+        walks off the end of the graph.
+
+        The edge is hung on the legal-identity mapping rather than the
+        subject-ring one the other supersession fixtures use, so that the case
+        isolates one fault. Refreshing a subject-ring mapping's contentDigest
+        moves the inputDigest of every derived statement inferred from it, and
+        the case would then be refused by `dataset.derived-input` whether or
+        not the supersession boundary exists -- which is not a proof of the
+        boundary. Nothing is inferred from a legal-identity mapping.
+        """
+
+        assertion = next(
+            candidate
+            for candidate in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            if fixture.asserted.value(candidate, ATLAS.semanticRing) == ATLAS.legalIdentity
+        )
+        predecessor = URIRef("urn:ref:atlas-assertion:" + "0" * 64)
+        if (predecessor, None, None) in fixture.asserted:
+            raise ValueError("the dangling predecessor fixture no longer dangles")
+        fixture.asserted.add((assertion, RKAF.supersedesAssertion, predecessor))
+        _refresh_node_digest(fixture.asserted, assertion)
+
     def unknown_manifest_field(fixture: Fixture) -> None:
         fixture.manifest_patch["unexpected"] = "closed schema"
 
@@ -4198,6 +4234,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("adoption-chain-cycle", ["rdf", "dataset"], "dataset.evidence-adoption", adoption_chain_cycle),
         ("policy-payload-changed", ["rdf", "dataset"], "dataset.assertion-identity", policy_payload_changed),
         ("supersession-without-event", ["dataset", "lifecycle"], "dataset.supersession", supersession_without_event),
+        (
+            "supersession-dangling-predecessor",
+            ["shacl", "dataset", "lifecycle"],
+            "shacl.data",
+            supersession_dangling_predecessor,
+        ),
         ("source-accounting-resource-swap", ["json", "dataset"], "source.accounting", source_accounting_swap),
         (
             "source-accounting-false-inverse",
