@@ -44,6 +44,7 @@ from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -57,7 +58,6 @@ OVERSIGHT_IDENTIFIER_AUTHORITY_URI = "https://www.oversight.gov/"
 OVERSIGHT_LANGUAGE = "en"
 OVERSIGHT_REPORT_TYPES_RESOURCE_ID = "oversight-gov-federal-report-types"
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _REPORT_TYPE_SELECTOR = "edit-field-report-type"

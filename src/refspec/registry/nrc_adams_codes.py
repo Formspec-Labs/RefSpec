@@ -38,6 +38,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 NRC_PUBLISHER = "U.S. Nuclear Regulatory Commission"
 NRC_ADAMS_IDENTIFIER_AUTHORITY_URI = "https://www.nrc.gov/reading-rm/adams"
@@ -60,7 +61,6 @@ ResourceName = Literal[
 # Every captured value here is search/reference metadata, never filer-selected
 # subject evidence and never a general subject concept.
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 CaptureKind = Literal["fullOfficialResponse", "verbatimExcerptOfLargerOfficialAsset"]
 IdentifierShapeKind = Literal[
     "docketNumber",

@@ -39,6 +39,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 RGOV_PUBLISHER = "General Services Administration (Regulations.gov API)"
 RGOV_IDENTIFIER_AUTHORITY_URI = "https://open.gsa.gov/api/regulationsgov/"
@@ -60,7 +61,6 @@ ResourceName = Literal["documentType", "docketType", "submitterType"]
 # and SubmitterType is a required structural discriminator on comment
 # submission, not evidence of a subject.
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _OPENAPI_DECLARATION = "openapi: 3.0.0"

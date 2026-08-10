@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from refspec.atlas.parquet_artifact import file_sha256 as _sha256
 from refspec.atlas.qualification import AtlasConcept
 from refspec.storage import canonical_json
 
@@ -166,14 +167,6 @@ ALIGNMENT_RELATION_TO_SEMANTIC = {
     "<": "narrow",
     "related": "related",
 }
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return "sha256:" + digest.hexdigest()
 
 
 def _normalized_tokens(value: str) -> tuple[str, ...]:

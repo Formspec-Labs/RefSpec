@@ -41,6 +41,7 @@ from refspec.registry.infrastructure.controlled_identifier import (
     distinct_identifiers,
     identifier_values,
 )
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_identity import SourceCaptureEvent, SourceIdentityError
 
 CRS_PUBLISHER = "Congressional Research Service"
@@ -50,7 +51,6 @@ CRS_LANGUAGE = "en"
 ResourceName = Literal["legislativeSubjectTerms", "policyAreas"]
 TermCategory = Literal["subject", "geographicEntity", "organizationName", "policyArea"]
 ResourceRole = Literal["selectableSubject", "navigation"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 IdentityStatus = Literal["publisherIdentifierAbsent", "publisherIdentifierPresent"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")

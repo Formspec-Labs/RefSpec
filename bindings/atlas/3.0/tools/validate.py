@@ -205,64 +205,85 @@ COMPACT_SUMMARY_FIELDS = {
     "Identifier": "identifierClaims",
     "LifecycleEvent": "lifecycleEvents",
 }
-COMPACT_SUMMARY_PROJECTION_FIELDS = {
-    "Resource": ("id", "release", "scheme", "semanticRing", "resourceProfile", "sourceRecord"),
-    "Label": ("id", "resource", "labelRole", "value", "language", "release", "sourceRecord"),
+# Fields large enough (native payloads, notes/notations) or internal enough
+# (assertion-identity digests, review confidence) that a lightweight summary
+# row omits them even though the full compact record carries them. Every
+# other required-or-optional field for a role is projected through.
+_COMPACT_SUMMARY_EXCLUDED_FIELDS = frozenset(
+    {
+        "assertedAt",
+        "assertionIdentityDigest",
+        "confidence",
+        "definition",
+        "nativePayload",
+        "notations",
+        "notes",
+        "recordStatus",
+    }
+)
+COMPACT_SUMMARY_PROJECTION_FIELDS: dict[str, tuple[str, ...]] = {
+    role: tuple(sorted((required | optional) - _COMPACT_SUMMARY_EXCLUDED_FIELDS))
+    for role, (required, optional) in COMPACT_RECORD_FIELDS.items()
+}
+# The IRI-typed fields for each role -- always a subset of that role's
+# *required* fields in this schema, never of its optional fields. Independent
+# metadata (field name alone does not say IRI-vs-literal), so it cannot be
+# mechanically derived from COMPACT_RECORD_FIELDS; the assertion below instead
+# verifies it stays a true projection of it, so a renamed or removed field
+# fails loudly here instead of silently going stale.
+COMPACT_IRI_FIELDS: dict[str, tuple[str, ...]] = {
+    "Resource": ("id", "release", "scheme", "sourceRecord"),
+    "Label": ("id", "resource", "release", "sourceRecord"),
     "Statement": (
         "id",
-        "statementType",
         "subject",
         "predicate",
         "object",
         "sourceRelease",
         "targetRelease",
         "policy",
-        "assertionStatus",
-        "semanticRing",
-        "sourceRing",
-        "targetRing",
+    ),
+    "EvidenceBinding": ("id", "statement", "sourceRecord", "reviewedBy"),
+    "SourceRecord": ("id", "sourceRelease", "sourceLocator"),
+    "Release": ("id",),
+    "Identifier": ("id", "identifierScheme", "identifies", "sourceRecord"),
+    "LifecycleEvent": ("id", "eventSubject", "eventType"),
+}
+assert COMPACT_IRI_FIELDS.keys() == COMPACT_RECORD_FIELDS.keys()
+assert all(
+    set(COMPACT_IRI_FIELDS[role]) <= COMPACT_RECORD_FIELDS[role][0] for role in COMPACT_IRI_FIELDS
+), "COMPACT_IRI_FIELDS must stay a subset of each role's required fields"
+# The direct logical-record-reference fields for each role, used to order
+# compact replay. Also independent metadata (only some IRI-shaped fields are
+# in fact links to other logical rows), verified below as a true subset of
+# COMPACT_RECORD_FIELDS rather than an unconstrained copy of its role names.
+COMPACT_REFERENCE_FIELDS: dict[str, tuple[str, ...]] = {
+    "Resource": ("release", "sourceRecord"),
+    "Label": ("resource", "release", "sourceRecord"),
+    "Statement": (
+        "subject",
+        "object",
+        "sourceRelease",
+        "targetRelease",
         "supersedes",
     ),
-    "EvidenceBinding": (
-        "id",
-        "statement",
-        "sourceRecord",
-        "evidenceSourceDigest",
-        "reviewedBy",
-        "reviewMethod",
-        "decisionStatus",
-        "decidedAt",
-    ),
-    "SourceRecord": (
-        "id",
-        "sourceRelease",
-        "sourceDigest",
-        "sourceLocator",
-        "representsResource",
-    ),
-    "Release": (
-        "id",
-        "releaseType",
-        "identifier",
-        "issued",
-        "sourceDigest",
-        "sourceLocator",
-        "resourceProfile",
-        "semanticRing",
-        "scheme",
-        "membershipMode",
-    ),
-    "Identifier": ("id", "identifierValue", "identifierScheme", "identifies", "sourceRecord"),
+    "EvidenceBinding": ("statement", "sourceRecord"),
+    # representsResource is a deliberate forward reference that avoids a
+    # SourceRecord <-> Resource dependency cycle.
+    "SourceRecord": (),
+    "Release": (),
+    "Identifier": ("identifies", "sourceRecord"),
     "LifecycleEvent": (
-        "id",
         "eventSubject",
-        "eventType",
-        "eventAt",
-        "sourceRecords",
         "fromRelease",
         "toRelease",
     ),
 }
+assert COMPACT_REFERENCE_FIELDS.keys() == COMPACT_RECORD_FIELDS.keys()
+assert all(
+    set(COMPACT_REFERENCE_FIELDS[role]) <= COMPACT_RECORD_FIELDS[role][0] | COMPACT_RECORD_FIELDS[role][1]
+    for role in COMPACT_REFERENCE_FIELDS
+), "COMPACT_REFERENCE_FIELDS must stay a subset of each role's required or optional fields"
 
 
 class _StatusReporter:
@@ -1614,25 +1635,7 @@ def _normalize_compact_record(
     if unknown:
         _fail("construction.compact", f"{path}: unknown fields: {', '.join(unknown)}")
 
-    iri_fields = {
-        "Resource": ("id", "release", "scheme", "sourceRecord"),
-        "Label": ("id", "resource", "release", "sourceRecord"),
-        "Statement": (
-            "id",
-            "subject",
-            "predicate",
-            "object",
-            "sourceRelease",
-            "targetRelease",
-            "policy",
-        ),
-        "EvidenceBinding": ("id", "statement", "sourceRecord", "reviewedBy"),
-        "SourceRecord": ("id", "sourceRelease", "sourceLocator"),
-        "Release": ("id",),
-        "Identifier": ("id", "identifierScheme", "identifies", "sourceRecord"),
-        "LifecycleEvent": ("id", "eventSubject", "eventType"),
-    }[role]
-    for field in iri_fields:
+    for field in COMPACT_IRI_FIELDS[role]:
         value[field] = _compact_iri(value[field], f"{path}.{field}")
     for field in allowed - {
         "id",
@@ -1858,31 +1861,9 @@ def _compact_direct_dependency_subjects(
 ) -> set[str]:
     """Return direct logical-record references used by compact replay order."""
 
-    scalar_fields = {
-        "Resource": ("release", "sourceRecord"),
-        "Label": ("resource", "release", "sourceRecord"),
-        "Statement": (
-            "subject",
-            "object",
-            "sourceRelease",
-            "targetRelease",
-            "supersedes",
-        ),
-        "EvidenceBinding": ("statement", "sourceRecord"),
-        # representsResource is a deliberate forward reference that avoids a
-        # SourceRecord <-> Resource dependency cycle.
-        "SourceRecord": (),
-        "Release": (),
-        "Identifier": ("identifies", "sourceRecord"),
-        "LifecycleEvent": (
-            "eventSubject",
-            "fromRelease",
-            "toRelease",
-        ),
-    }[role]
     dependencies = {
         str(row[field])
-        for field in scalar_fields
+        for field in COMPACT_REFERENCE_FIELDS[role]
         if field in row
     }
     if role == "LifecycleEvent":

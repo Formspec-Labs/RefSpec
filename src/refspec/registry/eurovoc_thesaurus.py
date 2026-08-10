@@ -33,11 +33,13 @@ from rdflib.term import Identifier
 
 from refspec.registry.infrastructure.pinned_acquisition import (
     AcquiredPinnedSource,
+    AcquisitionMode,
     PinnedAcquisitionError,
     PinnedAcquisitionLabels,
     acquire_pinned_source,
     expected_digest_hex,
 )
+from refspec.registry.infrastructure.source_controlled_resource import LabelRole as EuroVocLabelRole
 
 DC11 = Namespace("http://purl.org/dc/elements/1.1/")
 EUVOC = Namespace("http://publications.europa.eu/ontology/euvoc#")
@@ -59,8 +61,6 @@ EUROVOC_CONCEPT_SCHEME_IRI = "http://eurovoc.europa.eu/100141"
 EUROVOC_DOMAINS_SCHEME_IRI = "http://eurovoc.europa.eu/domains"
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-EuroVocLabelRole = LiteralType["preferred", "alternate", "hidden"]
 
 
 class EuroVocThesaurusError(ValueError):
@@ -588,7 +588,6 @@ EUROVOC_LANDING_PAGE_URL = (
     "uri=http%3A%2F%2Fpublications.europa.eu%2Fresource%2Fdataset%2Feurovoc"
 )
 
-AcquisitionMode = LiteralType["cache", "local", "network"]
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 

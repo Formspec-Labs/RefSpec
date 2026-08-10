@@ -69,6 +69,7 @@ from pathlib import Path
 from typing import Any
 
 from refspec.input_pin import read_verified_file_pin
+from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
 
 try:  # Python 3.14 ships zstd in the standard library.
     from compression import zstd
@@ -2107,7 +2108,7 @@ def read_atlas_source(
                                 value = conflict.get("value")
                                 language = conflict.get("language")
                                 if (
-                                    role not in {"preferred", "alternate", "hidden"}
+                                    role not in LABEL_ROLES
                                     or not isinstance(value, str)
                                     or (
                                         language is not None

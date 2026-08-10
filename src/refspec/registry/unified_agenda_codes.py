@@ -40,6 +40,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 UA_PUBLISHER = (
     "Regulatory Information Service Center, Office of Information and "
@@ -51,7 +52,6 @@ UA_RISC_PREAMBLE_URL = "https://www.reginfo.gov/public/jsp/eAgenda/StaticContent
 
 DocumentKind = Literal["reginfoSchema", "riscPreamble"]
 UAControlledFieldName = Literal["ruleStage", "priorityCategory", "timetableAction"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _OPTION_LIST = re.compile(r"^One of the following(?: options)?:\s*(?P<body>.+)$", re.DOTALL)

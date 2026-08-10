@@ -39,6 +39,7 @@ from urllib.parse import urlsplit
 from pypdf import PdfReader
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 FERC_PUBLISHER = "Federal Energy Regulatory Commission"
 FERC_IDENTIFIER_AUTHORITY_URI = "https://www.ferc.gov/"
@@ -79,7 +80,6 @@ ResourceName = Literal["documentClass", "documentType", "docketPrefix", "sector"
 # metadata; none of these fields is filer-selected evidence or a general
 # subject concept.
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 SourceProvenance = Literal["constructedFixture", "liveCapture"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")

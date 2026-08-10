@@ -47,6 +47,7 @@ from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     SourceControlledResourceView,
@@ -62,7 +63,6 @@ FCC_ECFS_CONTROLLED_LIST_PACKAGE_VERSION = "fcc-ecfs-controlled-list-package-v1"
 
 ResourceName = Literal["filingTypes", "accessStatuses", "bureaus", "proceedings"]
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 

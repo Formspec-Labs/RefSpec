@@ -37,7 +37,6 @@ import urllib.request
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal as LiteralType
 from typing import Protocol
 
 from rdflib import BNode, Graph, Literal, URIRef
@@ -45,6 +44,8 @@ from rdflib.namespace import DCTERMS, RDF, RDFS, SKOS
 from rdflib.parser import create_input_source
 from rdflib.plugins.parsers.notation3 import RDFSink, SinkParser
 from rdflib.term import Identifier
+
+from refspec.registry.infrastructure.source_controlled_resource import LabelRole as NaltLabelRole
 
 NALT_VOCABULARY_NAMESPACE_IRI = "https://lod.nal.usda.gov/naltv#"
 NALT_CORE_SCHEME_IRI = "https://lod.nal.usda.gov/nalt-core"
@@ -100,8 +101,6 @@ SCHEME_LABEL_PREDICATE_IRI = str(RDFS.label)
 SCHEME_PUBLISHER_PREDICATE_IRI = str(DCTERMS.publisher)
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-NaltLabelRole = LiteralType["preferred", "alternate", "hidden"]
 
 
 class NaltCoreError(ValueError):

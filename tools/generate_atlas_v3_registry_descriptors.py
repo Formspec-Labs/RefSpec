@@ -22,6 +22,8 @@ BINDING_TOOLS = ROOT / "bindings" / "atlas" / "3.0" / "tools"
 sys.path.insert(0, str(BINDING_TOOLS))
 from rdf_canonical import nquads_line, ntriples_term
 
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
+
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
 PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
@@ -33,7 +35,6 @@ GRAPH_IRI = URIRef("urn:ref:atlas-v3:registry-descriptors")
 EXPORT_FORMAT = "refspec-atlas-registry-descriptors/3.0"
 PROFILE_FORMAT = "refspec-atlas-registry-resource-profiles/3.0"
 SCHEMA_VERSION = "3.0"
-SEMANTIC_RINGS = frozenset({"entity", "legalIdentity", "subject", "value"})
 RESOURCE_PROFILES = frozenset(
     {"codeScheme", "conceptScheme", "identifierScheme", "resourceCollection", "structureScheme"}
 )

@@ -48,6 +48,7 @@ from types import MappingProxyType
 from typing import Any, Literal, Protocol
 from urllib.parse import quote, urlsplit
 
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -57,7 +58,6 @@ GAO_HOSTS = frozenset({"gao.gov", "www.gao.gov"})
 GAO_LANGUAGE = "en"
 GAO_PRODUCT_TOPIC_ASSIGNMENTS_RESOURCE_ID = "gao-product-topic-assignments"
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _PRODUCT_PATH = re.compile(r"^/products/(gao-[0-9]{2}-[0-9a-z]+)$")

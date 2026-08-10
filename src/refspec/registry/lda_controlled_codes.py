@@ -31,6 +31,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 LDA_PUBLISHER = "Clerk of the U.S. House of Representatives and Secretary of the U.S. Senate"
 LDA_IDENTIFIER_AUTHORITY_URI = "https://lda.gov/"
@@ -55,7 +56,6 @@ LDA_FILING_PERIOD_VALUES = (
 
 ResourceName = Literal["generalIssueCodes", "filingTypes"]
 ResourceUse = Literal["sourceAssignedEvidence", "deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _GENERAL_ISSUE_CODE = re.compile(r"^[A-Z]{3}$")

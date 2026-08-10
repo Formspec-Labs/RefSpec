@@ -35,6 +35,7 @@ from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS as _RINGS
 
 ATLAS_V3_EXPLORER_TYPE = "urn:ref:type:Atlas3ExplorerView"
 ATLAS_V3_EXPLORER_SCHEMA_VERSION = "3.0"
@@ -315,7 +316,6 @@ _PACK_REQUIRED_FIELDS = frozenset(
     }
 )
 _PACK_KINDS = frozenset({"catalog", "sourceRelease", "mapping", "view", "aggregate"})
-_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 _BINDING_FIELDS = frozenset(
     {
         "version",

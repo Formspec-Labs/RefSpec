@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -80,7 +81,6 @@ CENSUS_GEO_IDENTIFIER_AUTHORITY_TITLE = (
     "Census ACS variable, TIGER GEOID, and GNIS feature identifier structures, captured 2026-08-03"
 )
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 ResourceUse = Literal["deterministicMetadata"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")

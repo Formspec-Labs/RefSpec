@@ -41,6 +41,7 @@ from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -208,9 +209,6 @@ class NASATaxonomyFetcher(Protocol):
 
     def fetch(self, source_url: str, *, timeout_seconds: float) -> FetchedNASATaxonomyResponse:
         """Fetch one response while preserving its exact body bytes."""
-
-
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 
 @dataclass(frozen=True, slots=True)

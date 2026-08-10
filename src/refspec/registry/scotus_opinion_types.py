@@ -40,6 +40,7 @@ from types import MappingProxyType
 from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -51,7 +52,6 @@ SCOTUS_OPINIONS_LANDING_URL = "https://www.supremecourt.gov/opinions/"
 SCOTUS_OPINIONS_SOURCE_URL = "https://www.supremecourt.gov/opinions/opinions.aspx"
 SCOTUS_OPINION_AND_PACKAGE_TYPES_RESOURCE_ID = "scotus-opinion-and-package-types"
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 OpinionTypeFacet = Literal["opinionType", "reporterSeries", "packageVersionStage"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")

@@ -75,6 +75,9 @@ from refspec.atlas.registry_claim_input import (
     AtlasRegistryClaimInput,
 )
 from refspec.atlas.v3_source_data import (
+    LABEL_ROLES as SOURCE_LABEL_ROLES,
+)
+from refspec.atlas.v3_source_data import (
     MAPPING_REVIEW_METHODS,
     MappingReviewMethod,
     RegistryCrossRingRelation,
@@ -86,6 +89,9 @@ from refspec.atlas.v3_source_data import (
     RegistryRelease,
     RegistrySupplementalSourceRecord,
     mapping_triple_digest,
+)
+from refspec.atlas.v3_source_data import (
+    LabelRole as SourceLabelRole,
 )
 from refspec.binding import canonical_sha256 as refspec_canonical_sha256
 from refspec.managed_release import ManagedReleaseGraphFactsView
@@ -161,14 +167,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:95267ea75b2288afe0ab450d521128295f52a60e27a2e28394507d9445270334"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:7fa877ed6a43e5a5224c85653d1bbfc2d3bc1f528fee72399120d293954d3307"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:b14c40834c4ff45c49ec9d27761222d78bbdea459bf2541528abed284566a4b4"
+            "sha256:05dcb541baa41257a2ef73e30b6d18dbc9426f15b6d74e56e04485c738c774a8"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -206,8 +212,6 @@ _FALLBACK_SOURCE_NAMESPACES = MappingProxyType(
         ),
     }
 )
-SourceLabelRole = TypeLiteral["preferred", "alternate", "hidden"]
-SOURCE_LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
 
 
 class _StatusReporter:
@@ -753,7 +757,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:2168afbb37536281f16cd9c9610c4b83661d6a354c082524d9caaf1ff77f3181"
+    "sha256:6e3959dc617316879aac51a395963e1e077c8cf6e80170ba227d776b0e76a01f"
 )
 
 

@@ -39,6 +39,7 @@ from refspec.registry.infrastructure.controlled_identifier import (
     ControlledIdentifierError,
     validate_identifier_date,
 )
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -61,7 +62,6 @@ SAM_OPPORTUNITIES_DOC_BYTE_LENGTH = 46_217
 
 ResourceName = Literal["noticeTypes", "opportunityStatuses", "setAsideCodes"]
 SAMCodeUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _NOTICE_TYPE_LINE = re.compile(r"^([a-z])\s*=\s*(.+)$")

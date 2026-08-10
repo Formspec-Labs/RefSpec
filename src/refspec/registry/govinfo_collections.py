@@ -40,6 +40,7 @@ from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, validate_identifier_date
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -64,7 +65,6 @@ ResourceName = Literal[
     "govInfoCfrPackageSummary",
     "govInfoCfrPackagePremisFixity",
 ]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

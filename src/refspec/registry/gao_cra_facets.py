@@ -35,6 +35,7 @@ from typing import Any, Literal, NoReturn, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse as PackageResourceUse,
 )
@@ -93,7 +94,6 @@ CRA_PRIORITY_LEVELS: tuple[str, ...] = (
 
 FacetName = Literal["priority", "processed", "type"]
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _FACET_OPTION_VALUE = re.compile(r"^[A-Za-z0-9]+(?:[ /-][A-Za-z0-9]+)*$")

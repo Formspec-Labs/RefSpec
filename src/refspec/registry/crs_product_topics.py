@@ -34,6 +34,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import quote, urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 CRS_PUBLISHER = "Congressional Research Service"
 CONGRESS_GOV_PUBLISHER = "Library of Congress"
@@ -41,7 +42,6 @@ CRS_LANGUAGE = "en"
 
 ProductTopicsRole = Literal["genreMetadata", "sourceEvidenceOnly"]
 IdentityStatus = Literal["publisherIdentifierAbsent", "publisherIdentifierPresent"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _OFFICIAL_HOSTNAMES = frozenset({"congress.gov", "www.congress.gov"})

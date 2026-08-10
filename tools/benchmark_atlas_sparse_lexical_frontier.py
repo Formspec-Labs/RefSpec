@@ -16,6 +16,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from refspec.atlas.parquet_artifact import file_sha256 as _sha256
 from refspec.storage import canonical_json
 
 try:
@@ -38,14 +39,6 @@ SELECTED_ARM_NAMES = (
 )
 RELATION_TYPES = ("exact", "close", "broad", "narrow", "related")
 CASE_SHIFT = lexical_benchmark.PAIR_SOURCE_BITS * 2
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return "sha256:" + digest.hexdigest()
 
 
 def _pair_digest(codes: set[int] | frozenset[int], codec: lexical_benchmark.PairCodec) -> str:

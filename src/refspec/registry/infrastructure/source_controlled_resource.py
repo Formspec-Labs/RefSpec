@@ -85,7 +85,14 @@ _RESOURCE_USES = frozenset(
         "deterministicMetadata",
     }
 )
-_LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
+# Canonical label-role vocabulary shared across the registry and Atlas
+# layers. Import ``LabelRole``/``LABEL_ROLES`` from here instead of
+# re-declaring the {preferred, alternate, hidden} set; a resource whose
+# labels genuinely never carry one of these roles (e.g. a source with no
+# hidden-label data) should say so with a narrower local type and a comment,
+# not silently widen this canonical set.
+LabelRole = Literal["preferred", "alternate", "hidden"]
+LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
 _FORBIDDEN_GOVERNANCE_FIELDS = frozenset(
     {
         "acceptedOutputAllowed",
@@ -425,7 +432,7 @@ def _validate_observation(
         if _LANGUAGE_TAG.fullmatch(language) is None:
             raise SourceControlledResourceError(f"{expression_label}.language must be a BCP 47 tag")
         role = expression["role"]
-        if role not in _LABEL_ROLES:
+        if role not in LABEL_ROLES:
             raise SourceControlledResourceError(f"{expression_label}.role is unsupported")
         if role == "preferred":
             if language in preferred_languages:
@@ -1001,8 +1008,10 @@ class SourceControlledResourceView:
 
 
 __all__ = [
+    "LABEL_ROLES",
     "SOURCE_CONTROLLED_RESOURCE_PACKAGE_VERSION",
     "IdentityStatus",
+    "LabelRole",
     "ResourceKind",
     "ResourceUse",
     "SourceControlledResourceBundle",

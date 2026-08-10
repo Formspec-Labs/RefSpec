@@ -51,6 +51,7 @@ from typing import Any, Literal, Protocol, cast
 from urllib.parse import parse_qs, urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -92,7 +93,6 @@ FH_ORGS_OPENAPI_RETRIEVED_AT = "2026-08-03T19:17:18Z"
 
 OrgType = Literal["Department/Ind. Agency", "Sub-Tier"]
 OrgStatus = Literal["ACTIVE", "INACTIVE"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _FH_ORG_ID = re.compile(r"^[1-9]\d{5,9}$")

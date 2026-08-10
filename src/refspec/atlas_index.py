@@ -23,6 +23,7 @@ from refspec.binding import (
     reject_nonfinite_constant,
 )
 from refspec.immutable import deep_freeze_json
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseError,
     SourceConceptReleaseView,
@@ -31,7 +32,6 @@ from refspec.registry.infrastructure.source_concept_release import (
 ATLAS_INDEX_INPUT_FORMAT = "refspec-atlas-index-input/experimental-v0"
 ATLAS_INDEX_FORMAT = "refspec-atlas-index/experimental-v0"
 
-SEMANTIC_RINGS = frozenset({"entity", "legalIdentity", "subject", "value"})
 ATLAS_PARTICIPATION = frozenset({"bridge", "core", "specialist"})
 PLANNING_STATUSES = frozenset({"deferred", "notApplicable", "planned", "rejected", "superseded", "unassessed"})
 INTENDED_USES = frozenset(

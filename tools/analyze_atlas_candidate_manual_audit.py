@@ -17,6 +17,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from refspec.atlas.parquet_artifact import file_sha256 as _sha256
 from refspec.storage import canonical_json
 
 DECISION_PATTERN = re.compile(r"\|\s*(\d+)\s*\|\s*`([a-z_]+)`\s*")
@@ -34,14 +35,6 @@ ALLOWED_VERDICTS = frozenset(
     }
 )
 NON_POTENTIAL_VERDICTS = frozenset({"unrelated", "insufficient_evidence"})
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return "sha256:" + digest.hexdigest()
 
 
 def parse_ordered_decisions(markdown: str, *, expected_rows: int) -> tuple[str, ...]:

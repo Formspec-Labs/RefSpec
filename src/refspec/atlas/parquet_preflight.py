@@ -24,6 +24,7 @@ from refspec.atlas.parquet_view import (
     verify_atlas_parquet_source_metadata,
     verify_atlas_parquet_view,
 )
+from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
 
 ATLAS = "https://refspec.org/ns/atlas/v3#"
 APPROVED = ATLAS + "approved"
@@ -280,7 +281,7 @@ def _validate_labels(
         detail="does not share its resource SourceRecord",
     )
     roles = set(pc.unique(labels["label_role"]).to_pylist())
-    if roles - {"preferred", "alternate", "hidden"}:
+    if roles - LABEL_ROLES:
         _fail("preflight.label-role", f"unsupported label roles: {sorted(roles)}")
     preferred = _only(labels, "label_role", "preferred")
     _require_unique(

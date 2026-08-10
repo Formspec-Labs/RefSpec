@@ -50,6 +50,7 @@ from urllib.parse import urlsplit
 from openpyxl import load_workbook
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -69,7 +70,6 @@ PSC_APRIL_2025_WAYBACK_URL = (
 LANGUAGE = "en"
 
 ResourceName = Literal["naicsCodes", "pscCodes"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _NAICS_CODE = re.compile(r"^\d{2,6}$|^\d{2}-\d{2}$")

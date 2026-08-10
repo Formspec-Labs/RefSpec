@@ -40,6 +40,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.storage import canonical_json
 
 USASPENDING_PUBLISHER = "U.S. Department of the Treasury, Bureau of the Fiscal Service (USAspending.gov)"
@@ -88,7 +89,6 @@ GSDM_DATA_DICTIONARY_ROW_WIDTH = 18
 
 ResourceName = Literal["awardTypes"]
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _AWARD_CODE = re.compile(r"^-?[A-Z0-9_]{1,16}$")

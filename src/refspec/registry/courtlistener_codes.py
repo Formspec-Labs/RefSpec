@@ -48,6 +48,7 @@ from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -61,7 +62,6 @@ COURTLISTENER_IDENTIFIER_AUTHORITY_URI = "https://www.courtlistener.com/"
 COURTLISTENER_LANGUAGE = "en"
 COURTLISTENER_JURISDICTIONS_RESOURCE_ID = "courtlistener-jurisdictions"
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

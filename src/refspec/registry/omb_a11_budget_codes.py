@@ -45,6 +45,7 @@ from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 OMB_PUBLISHER = "Office of Management and Budget"
 OMB_A11_IDENTIFIER_AUTHORITY_URI = "https://www.whitehouse.gov/omb/"
@@ -62,7 +63,6 @@ OMB_A11_DOCUMENT_LAST_MODIFIED = "2025-09-29T18:28:49Z"
 
 ResourceName = Literal["functionalClassification", "objectClassification", "apportionmentCategories"]
 ResourceUse = Literal["deterministicMetadata"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _PAGE_HEADER_LINE = re.compile(r"^Page\s+\d+\s+of\s+Section\s+\d+\s+OMB Circular No\.\s*A.11\s*\(\d{4}\)$")

@@ -82,6 +82,7 @@ from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
     build_source_controlled_resource_bundle,
@@ -109,7 +110,6 @@ CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_SHA256 = (
 CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_BYTE_LENGTH = 375_365
 CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_RETRIEVED_AT = "2026-08-04T00:50:00Z"
 
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _PER_CONGRESS_PATH_PATTERN = re.compile(r"^/rss/(\d+)congress-cost-estimates\.xml$")

@@ -48,12 +48,12 @@ from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 TREASURY_PUBLISHER = "Bureau of the Fiscal Service, U.S. Department of the Treasury"
 TREASURY_IDENTIFIER_AUTHORITY_URI = "https://fiscal.treasury.gov/accounting/"
 
 ResourceName = Literal["tasComponentFormat", "fastBookDescriptionOfContents"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 FASTBookPart = Literal["I", "II", "III"]
 FundGroup = Literal["general", "special", "trust", "revolving", "deposit", "foreignCurrency"]
 

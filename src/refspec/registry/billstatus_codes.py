@@ -46,6 +46,7 @@ from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
 BILLSTATUS_PUBLISHER = (
     "U.S. Government Publishing Office, Library of Congress, Clerk of the "
@@ -66,7 +67,6 @@ BILLSTATUS_README_2026_08_03_BYTE_LENGTH = 656
 ResourceName = Literal["billTypes", "actionCodes", "summaryVersionCodes"]
 ResourceUse = Literal["deterministicMetadata"]
 CompletenessStatus = Literal["closedEnumeration", "openCourtesyList"]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _BILL_TYPE_CODE = re.compile(r"^[A-Z]{1,7}$")

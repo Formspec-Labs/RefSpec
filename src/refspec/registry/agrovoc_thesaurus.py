@@ -31,7 +31,6 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal as LiteralType
 
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, OWL, RDF, SKOS
@@ -41,11 +40,13 @@ from rdflib.term import Identifier
 
 from refspec.registry.infrastructure.pinned_acquisition import (
     AcquiredPinnedSource,
+    AcquisitionMode,
     PinnedAcquisitionError,
     PinnedAcquisitionLabels,
     acquire_pinned_source,
     expected_digest_hex,
 )
+from refspec.registry.infrastructure.source_controlled_resource import LabelRole as AgrovocLabelRole
 
 PREF_LABEL_PREDICATE_IRI = str(SKOS.prefLabel)
 ALT_LABEL_PREDICATE_IRI = str(SKOS.altLabel)
@@ -108,9 +109,6 @@ AGROVOC_ATTRIBUTION = "Food and Agriculture Organization of the United Nations (
 AGROVOC_SCHEME_IRI = "http://aims.fao.org/aos/agrovoc"
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-AgrovocLabelRole = LiteralType["preferred", "alternate", "hidden"]
-AcquisitionMode = LiteralType["cache", "local", "network"]
 
 
 class AgrovocParseError(ValueError):

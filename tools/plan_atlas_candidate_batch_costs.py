@@ -23,6 +23,7 @@ from typing import Any, Literal
 from refspec.atlas import qualification as qual
 from refspec.atlas import qualification_batch as qbatch
 from refspec.atlas import qualification_spend as qspend
+from refspec.atlas.parquet_artifact import file_sha256 as _sha256
 from refspec.storage import canonical_json
 
 try:
@@ -41,14 +42,6 @@ BGE_DEPTHS = (1, 3, 5, 10, 15, 20, 25, 50)
 PAIR_CODE_DTYPE = "<u8"
 PROPOSAL_POLICY = "atlas-relation-candidate-proposal-cost-plan-v1"
 WorkKind = Literal["validation", "scoring"]
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return "sha256:" + digest.hexdigest()
 
 
 def _text_digest(value: str) -> str:

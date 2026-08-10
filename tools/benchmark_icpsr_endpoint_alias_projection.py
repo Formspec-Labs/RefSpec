@@ -22,6 +22,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from refspec.atlas.parquet_artifact import file_sha256 as _sha256
 from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
 from refspec.storage import canonical_json
 
@@ -40,14 +41,6 @@ EXPECTED_PREFERRED_ENDPOINTS = 3_280
 EXPECTED_ALTERNATE_MEMBERS = 480
 BASELINE_FLOOR_CANDIDATES = 210_197
 BASELINE_FLOOR_DIGEST = "sha256:24fc3c81f443596181b9bd0e9d2b663992052c19f383ffd2cd222e60d565ede9"
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return "sha256:" + digest.hexdigest()
 
 
 def _normalized_label(value: str) -> str:

@@ -14,6 +14,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
+
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
 INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
 PROFILES = ROOT / "bindings" / "atlas" / "3.0" / "registry-resource-profiles.json"
@@ -39,7 +41,6 @@ EXPECTED_PROFILE_KINDS = {
     "structureScheme": frozenset({"structuralSchema"}),
     "resourceCollection": frozenset({"resourceFamily"}),
 }
-SEMANTIC_RINGS = frozenset({"entity", "legalIdentity", "subject", "value"})
 RELATION_POLICY_RINGS = tuple(sorted(SEMANTIC_RINGS))
 RELATION_ASSERTION_TYPES = (
     "MappingAssertion",
@@ -52,6 +53,9 @@ RING_ENTRY_CLASSES = {
     "subject": ATLAS_NAMESPACE + "SubjectConcept",
     "value": ATLAS_NAMESPACE + "ValueResource",
 }
+assert RING_ENTRY_CLASSES.keys() == SEMANTIC_RINGS, (
+    "RING_ENTRY_CLASSES must cover exactly the canonical semantic rings"
+)
 ATLAS_ENTRY_CLASS_NAMES = frozenset(
     {
         "AtlasRelease",

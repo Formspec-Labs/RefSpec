@@ -18,8 +18,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 from refspec.input_pin import verify_file_pin
+from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
+from refspec.registry.infrastructure.source_controlled_resource import (
+    LABEL_ROLES,
+    LabelRole,
+)
 
-LabelRole = Literal["preferred", "alternate", "hidden"]
 MappingReviewMethod = Literal[
     "deterministicTransformation",
     "humanReview",
@@ -30,7 +34,6 @@ MappingReviewMethod = Literal[
 ]
 ReleaseScope = Literal["publisherRelease", "completeCapture", "captureSubset"]
 
-LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
 MAPPING_REVIEW_METHODS = frozenset(
     {
         "deterministicTransformation",
@@ -44,7 +47,6 @@ MAPPING_REVIEW_METHODS = frozenset(
 RELEASE_SCOPES = frozenset(
     {"publisherRelease", "completeCapture", "captureSubset"}
 )
-SEMANTIC_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 RESOURCE_PROFILES = frozenset(
     {"conceptScheme", "codeScheme", "identifierScheme", "structureScheme"}
 )

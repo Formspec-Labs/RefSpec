@@ -16,10 +16,10 @@ import urllib.parse
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from refspec.registry.infrastructure.pinned_acquisition import (
     AcquiredPinnedSource,
+    AcquisitionMode,
     PinnedAcquisitionError,
     PinnedAcquisitionLabels,
     acquire_pinned_source,
@@ -30,8 +30,6 @@ ELSST_LICENSE_IRI = "https://creativecommons.org/licenses/by-sa/4.0/"
 ELSST_LICENSE_LABEL = "Creative Commons Attribution-ShareAlike 4.0 International"
 ELSST_ATTRIBUTION = "Consortium of European Social Science Data Archives (CESSDA) and its national Service Providers"
 ELSST_PUBLISHER = "CESSDA ERIC"
-
-AcquisitionMode = Literal["cache", "local", "network"]
 
 _ELSST_ACQUIRE_LABELS = PinnedAcquisitionLabels(
     source_label="ELSST source",

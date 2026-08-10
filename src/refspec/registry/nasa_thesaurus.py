@@ -50,6 +50,7 @@ from rdflib.term import Identifier
 
 from refspec.registry.infrastructure.pinned_acquisition import (
     AcquiredPinnedSource,
+    AcquisitionMode,
     PinnedAcquisitionError,
     PinnedAcquisitionLabels,
     acquire_pinned_source,
@@ -98,8 +99,13 @@ KNOWN_TERM_NOTE_MARKERS = ("Definition", "Definition Source", "Scope Note")
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _CONTENT_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+# Deliberately narrower than refspec.registry.infrastructure
+# .source_controlled_resource.LabelRole: this reader only ever emits
+# skos:prefLabel/skos:altLabel assertions (see SKOS_PREF_LABEL_PREDICATE_IRI
+# / SKOS_ALT_LABEL_PREDICATE_IRI above); the NASA Thesaurus source never
+# supplies a skos:hiddenLabel this module reads, so "hidden" is not a value
+# this type should accept.
 NasaThesaurusLabelRole = LiteralType["preferred", "alternate"]
-AcquisitionMode = LiteralType["cache", "local", "network"]
 
 
 class NasaThesaurusParseError(ValueError):

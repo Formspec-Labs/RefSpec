@@ -55,6 +55,9 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.term import Identifier
 
+from refspec.registry.infrastructure.pinned_acquisition import AcquisitionMode
+from refspec.registry.infrastructure.source_controlled_resource import LabelRole as GemetLabelRole
+
 GEMET_SCHEMA_NAMESPACE = "http://www.eionet.europa.eu/gemet/2004/06/gemet-schema.rdf#"
 GEMET_DEFINITION_SOURCE_PREDICATE_IRI = GEMET_SCHEMA_NAMESPACE + "source"
 
@@ -110,8 +113,6 @@ GEMET_METADATA_LITERAL_PREDICATE_IRIS = (
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _GZIP_MAGIC = b"\x1f\x8b"
-
-GemetLabelRole = LiteralType["preferred", "alternate", "hidden"]
 
 
 class GemetParseError(ValueError):
@@ -655,8 +656,6 @@ GEMET_ATTRIBUTION = (
 )
 GEMET_PUBLISHER = "European Environment Agency / Eionet"
 GEMET_CONCEPT_SCHEME_IRI = "http://www.eionet.europa.eu/gemet/gemetThesaurus"
-
-AcquisitionMode = LiteralType["cache", "local", "network"]
 
 
 def _validate_http_url(value: str, label: str) -> None:

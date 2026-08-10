@@ -131,6 +131,13 @@ RING_RELATIONS: Mapping[SemanticRing, frozenset[str]] = MappingProxyType(
         ),
     }
 )
+# RING_RELATIONS' keys are necessarily spelled out again here (a dict literal
+# cannot borrow its own keys from elsewhere), but this assertion ties that
+# spelling back to the one canonical SEMANTIC_RINGS set above so the two
+# cannot silently drift apart.
+assert RING_RELATIONS.keys() == SEMANTIC_RINGS, (
+    "RING_RELATIONS must cover exactly the canonical semantic rings"
+)
 
 _EVIDENCE_BASES_BY_CLASS: Mapping[EvidenceClass, frozenset[str]] = MappingProxyType(
     {

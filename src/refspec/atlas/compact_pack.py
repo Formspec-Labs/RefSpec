@@ -31,6 +31,12 @@ from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
 )
+from refspec.registry.infrastructure.semantic_foundation import (
+    SEMANTIC_RINGS as _SEMANTIC_RINGS,
+)
+from refspec.registry.infrastructure.source_controlled_resource import (
+    LABEL_ROLES as _LABEL_ROLES,
+)
 
 CONTENT_MEDIA_TYPE = "application/x-ndjson"
 TRANSPORT_MEDIA_TYPE = "application/zstd"
@@ -351,11 +357,9 @@ _RECORD_SCHEMAS = {
     ),
 }
 
-_SEMANTIC_RINGS = frozenset({"subject", "entity", "value", "legalIdentity"})
 _RESOURCE_PROFILES = frozenset(
     {"conceptScheme", "codeScheme", "identifierScheme", "structureScheme", "resourceCollection"}
 )
-_LABEL_ROLES = frozenset({"preferred", "alternate", "hidden"})
 _STATEMENT_TYPES = frozenset(
     {
         "NativeRelationAssertion",

@@ -53,6 +53,7 @@ from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
+from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     ResourceUse,
     SourceControlledResourceBundle,
@@ -70,7 +71,6 @@ ResourceName = Literal[
     "censusDataFlagCodes",
     "nasboProgramAreaChapters",
 ]
-AcquisitionMode = Literal["cache", "local", "fetcher"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _FUNCTION_ITEM_ROW = re.compile(r"^(?P<code>\d{3}) = (?P<label>.+)$")

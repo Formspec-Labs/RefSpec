@@ -180,6 +180,11 @@ class FASTTopicalExtractPin:
             raise FASTTopicalAcquisitionError("expected_row_count must be positive")
 
 
+# Deliberately narrower than refspec.registry.infrastructure.pinned_acquisition
+# .AcquisitionMode / .FetcherAcquisitionMode: OCLC publishes no live endpoint
+# (network or fetcher-reachable) for this facet's CSV extract, so
+# acquire_fast_topical_extract() below only ever content-addresses bytes the
+# caller already retrieved out of band. There is no third mode to widen to.
 AcquisitionMode = Literal["cache", "local"]
 
 

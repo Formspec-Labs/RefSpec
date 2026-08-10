@@ -26,6 +26,24 @@ from typing import BinaryIO, Literal, Protocol
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 
 AcquisitionMode = Literal["cache", "local", "network"]
+"""The canonical third-mode value here is ``"network"``: this module (and
+callers that delegate to :func:`acquire_pinned_source`, such as the ELSST,
+AGROVOC, EuroVoc, GEMET, and NASA Thesaurus adapters) opens the outbound
+connection itself via ``urllib``, gated by an explicit ``allow_network``
+flag. Import this type for any acquisition path that performs that network
+call directly."""
+
+FetcherAcquisitionMode = Literal["cache", "local", "fetcher"]
+"""A second, deliberately distinct acquisition-mode shape used by the
+per-domain code-list modules (e.g. ``federal_hierarchy_orgs.py``,
+``pra_icr_codes.py``, and the rest of the ``fetcher``-pattern family). Those
+modules never open a network connection themselves -- they require the
+caller to inject a domain-specific ``Fetcher`` protocol object, so their
+third mode is ``"fetcher"``, not ``"network"``. The two spellings are not
+interchangeable: they record which side of the module boundary performed
+the retrieval, which is meaningful provenance information, not incidental
+naming drift. Import this type for any acquisition path built on an
+injected fetcher rather than a direct ``urllib`` call."""
 
 
 class PinnedAcquisitionError(ValueError):
