@@ -4233,13 +4233,16 @@ RECEIPT_PATH = atlas_validate.BINDING_ROOT / "fixtures-receipt.json"
 RECEIPT_TYPE = "AtlasFixtureBuildReceipt"
 RECEIPT_VERSION = "1.0"
 
-# Everything read to produce the corpus. The binding already maintains this
-# list for its own digest pinning -- `BINDING_BUNDLE_PATHS` deliberately
-# includes this builder, the validator it imports, and `rdf_canonical` -- so
-# the receipt reuses it rather than minting a second, driftable inventory.
-# Two adjustments: `fixtures/corpus.json` is dropped because it is an *output*
-# (the builder passes freshly computed bytes to `_binding_digests` as an
-# override rather than reading the committed file), and the adapter under
+# Everything read to produce the corpus. The binding already maintains these
+# lists for its own pinning, so the receipt reuses them rather than minting a
+# second, driftable inventory: `BINDING_BUNDLE_PATHS` is the semantic contract
+# and `BINDING_TOOL_PATHS` is the programs that read it. The receipt needs
+# both, because its question is narrower than the manifest's -- not "what does
+# conformance mean here" but "what determines these exact bytes", and a
+# builder edit or a library bump changes the bytes without touching the
+# contract. Two adjustments: `fixtures/corpus.json` is dropped because it is an
+# *output* (the builder passes freshly computed bytes to `_binding_digests` as
+# an override rather than reading the committed file), and the adapter under
 # `src/` is added because `_write_case` pins its digest into every case.
 RECEIPT_OUTPUT_RELATIVE = Path("fixtures/corpus.json")
 RECEIPT_EXTERNAL_INPUTS = (Path("src/refspec/atlas/v3_source_data.py"),)
@@ -4265,7 +4268,7 @@ def _receipt_runtime_distributions() -> list[str]:
 def _receipt_input_paths() -> list[Path]:
     paths = [
         atlas_validate.BINDING_ROOT / relative
-        for relative in atlas_validate.BINDING_BUNDLE_PATHS
+        for relative in (*atlas_validate.BINDING_BUNDLE_PATHS, *atlas_validate.BINDING_TOOL_PATHS)
         if relative != RECEIPT_OUTPUT_RELATIVE
     ]
     paths.extend(sorted(atlas_validate.SCHEMA_ROOT.glob("*.schema.json")))

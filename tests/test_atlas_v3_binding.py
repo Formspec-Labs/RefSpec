@@ -509,3 +509,46 @@ def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Pa
     missing = _sandboxed_check(root)
     assert missing.returncode == 0, missing.stderr
     assert "rebuilt and compared" in missing.stdout
+
+
+def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> None:
+    """`bindingBundleDigest` pins what conformance means, not what computed it.
+
+    Every case's manifest and acceptance record carries this digest, so
+    whatever it covers must be reissued across all 110 cases whenever it moves.
+    Keeping the tools inside it meant a one-line edit to the builder or the
+    validator reissued the whole corpus for a contract that had not changed.
+    Which validator produced a verdict is still pinned, separately and by name,
+    through VALIDATOR_ID/VALIDATOR_VERSION.
+    """
+
+    baseline = atlas_validate._binding_digests()["bindingBundleDigest"]
+
+    for contract in ("ontology/atlas.ttl", "shapes/atlas.shacl.ttl"):
+        changed = (BINDING_ROOT / contract).read_bytes() + b"\n# contract comment\n"
+        digests = atlas_validate._binding_digests(content_overrides={Path(contract): changed})
+        assert digests["bindingBundleDigest"] != baseline, f"{contract} must reissue the corpus"
+
+    # The tools are not bundled at all, so the bundle cannot even be asked
+    # about them -- an edit to one leaves every fixture valid.
+    for tool in atlas_validate.BINDING_TOOL_PATHS:
+        with pytest.raises(atlas_validate.AtlasValidationError, match="not bundled"):
+            atlas_validate._binding_digests(content_overrides={tool: b"# edited tool\n"})
+
+    assert Path("README.md") not in atlas_validate.BINDING_BUNDLE_PATHS
+
+
+def test_the_hoisted_longest_test_still_exists() -> None:
+    """conftest.py names one test to schedule first; keep that pointer honest.
+
+    The hook stays silent when the id is absent, so that a narrower run can
+    collect part of this module without tripping over it. This is the check
+    that notices instead -- a rename or removal fails here rather than quietly
+    costing the suite ~34s of serial tail forever.
+    """
+
+    import conftest
+
+    module, _, name = conftest.LONGEST_TEST.partition("::")
+    assert module == Path(__file__).relative_to(ROOT).as_posix()
+    assert name in globals(), f"{conftest.LONGEST_TEST} no longer exists; repoint LONGEST_TEST"

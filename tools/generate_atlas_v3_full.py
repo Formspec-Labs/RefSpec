@@ -168,14 +168,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:cbfb9ec60ca0bdbe56fc566990d847638c7818e57c0d772385f5bb9a3d283d99"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:10cf11a8c4602a45c3d24446c482ed2d310380a5c2b854cd51726e90a8a8ee54"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:80833740c1f53c0f041d211d3573927c91739739043fca854190c9b73fcc9672"
+            "sha256:6ef9cd2d53a1d7e8116f1717b4be963353ef39ad4fe17c29b5607de0768a86d5"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"

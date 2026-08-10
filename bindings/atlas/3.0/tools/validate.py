@@ -65,16 +65,31 @@ PROFILE_MAP_PATH = BINDING_ROOT / "registry-resource-profiles.json"
 REGISTRY_COVERAGE_PATH = BINDING_ROOT / "tests" / "registry-coverage.json"
 REGISTRY_DESCRIPTOR_PROOF_PATH = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTOR_DATASET_PATH = BINDING_ROOT / "tests" / "registry-descriptors.nq"
+# The semantic contract: what a distribution is validated *against*. Changing
+# any of these changes what conformance means, so every fixture must be
+# reissued against the new meaning -- that is the point of pinning them into
+# each manifest and acceptance record.
 BINDING_BUNDLE_PATHS = (
-    Path("README.md"),
     Path("fixtures/corpus.json"),
     Path("ontology/atlas.ttl"),
     Path("registry-resource-profiles.json"),
-    Path("requirements.txt"),
     Path("shapes/atlas.shacl.ttl"),
     Path("tests/registry-coverage.json"),
     Path("tests/registry-descriptors.json"),
     Path("tests/registry-descriptors.nq"),
+)
+
+# The programs that read that contract, and the versions they run against.
+# These decide the exact bytes the builder emits, which is why the fixture
+# receipt hashes them, but they do not decide what conformance *means* -- and
+# which validator produced a verdict is already declared, by name and number,
+# through VALIDATOR_ID/VALIDATOR_VERSION in every manifest and acceptance
+# record and checked by _check_binding_pins. Folding their source into
+# bindingBundleDigest said the same thing a second way and made every edit to
+# a tool reissue all 110 cases for a contract that had not moved. README.md is
+# in neither list: it is prose, and prose settles nothing.
+BINDING_TOOL_PATHS = (
+    Path("requirements.txt"),
     Path("tools/build_fixtures.py"),
     Path("tools/rdf_canonical.py"),
     Path("tools/validate.py"),
