@@ -282,11 +282,18 @@ def test_mapping_supersession_is_content_derived_closed_and_preserves_disagreeme
 
     with pytest.raises(SemanticFoundationError, match="must be current"):
         replace(prior, lifecycle_status="withdrawn")  # type: ignore[arg-type]
-    with pytest.raises(SemanticFoundationError, match="unknown prior assertions"):
-        validate_mapping_assertions(
-            (replace(successor, supersedes=("urn:ref:mapping-assertion:subject:missing",)),),
-            evidence_assertions=(evidence,),
-        )
+    # A reference outside the supplied set is left to dangle here, on purpose: a
+    # relation bundle may name an assertion in another immutable bundle, and
+    # closure is a property of a COMPLETE assertion set. The complete set is the
+    # published Atlas distribution, and the binding validator is what refuses an
+    # unresolvable reference over it -- atlas:RelationAssertionShape ranges
+    # rkaf:supersedesAssertion with sh:class atlas:RelationAssertion, and
+    # bindings/atlas/3.0/tools/validate.py fails "supersedes itself or an
+    # unknown assertion" over the distribution's whole assertion set.
+    assert validate_mapping_assertions(
+        (replace(successor, supersedes=("urn:ref:mapping-assertion:subject:missing",)),),
+        evidence_assertions=(evidence,),
+    )
     with pytest.raises(SemanticFoundationError, match="asserted after"):
         validate_mapping_assertions(
             (prior, replace(prior, supersedes=(prior.identifier,))),

@@ -334,25 +334,6 @@ def _validated_relation_context(
     return MappingProxyType(context)
 
 
-def validate_ring_relation(
-    semantic_ring: SemanticRing,
-    relation: str,
-    context: Mapping[str, str] | None,
-) -> None:
-    """Require one relation and context to obey their semantic ring.
-
-    This is the shared read-boundary check for derived views that do not carry
-    a complete :class:`MappingAssertion`.  It deliberately validates meaning
-    without manufacturing the assertion fields those views omit.
-    """
-
-    ring = _require_ring(semantic_ring, "ring_relation.semanticRing")
-    predicate = _require_iri(relation, "ring_relation.relation")
-    if predicate not in RING_RELATIONS[ring]:
-        raise SemanticFoundationError(f"ring_relation relation is not valid for the {ring} ring")
-    _validated_relation_context(ring, context, label="ring_relation.context")
-
-
 def validate_machine_evidence_proof_pin(
     value: Mapping[str, Any],
     *,
@@ -1249,7 +1230,6 @@ def _validate_mapping_assertions(
     evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
     semantic_ring: SemanticRing | None = None,
     allow_machine_evidence: bool,
-    require_supersession_closure: bool,
 ) -> tuple[MappingAssertion, ...]:
     expected_ring = None if semantic_ring is None else _require_ring(semantic_ring, "semantic_ring")
     evidence = validate_evidence_assertions(evidence_assertions)
@@ -1272,33 +1252,31 @@ def _validate_mapping_assertions(
         )
         identifiers.add(assertion.identifier)
         result.append(assertion)
-    _validate_mapping_supersession_graph(
-        result,
-        require_resolved=require_supersession_closure,
-    )
+    validate_mapping_supersession(result)
     return tuple(sorted(result, key=lambda value: value.identifier))
 
 
-def validate_mapping_supersession(
-    values: Sequence[MappingAssertion],
-    *,
-    require_resolved: bool = True,
-) -> None:
+def validate_mapping_supersession(values: Sequence[MappingAssertion]) -> None:
     """Validate immutable mapping supersession across the supplied assertion set.
 
-    Relation bundles may name an assertion in another immutable bundle, so
-    bundle construction validates every locally resolvable edge and defers
-    external closure to the assembled Atlas. Atlas validation supplies the
-    complete assertion set and requires every reference to resolve.
+    Every locally resolvable edge is checked here: no self-supersession, no
+    ring mixing, a successor later than what it replaces, and no cycle. An edge
+    naming an assertion outside this set is left to dangle, because a relation
+    bundle may legitimately name one in another immutable bundle.
+
+    Closure -- every reference resolving to an assertion that exists -- is a
+    property of a COMPLETE assertion set, and the complete set is the published
+    Atlas distribution, not any Python collection. It is enforced there:
+    ``atlas:RelationAssertionShape`` ranges ``rkaf:supersedesAssertion`` with
+    ``sh:class atlas:RelationAssertion``, so a dangling IRI is not a conforming
+    dataset, and ``bindings/atlas/3.0/tools/validate.py`` refuses an assertion
+    that "supersedes itself or an unknown assertion" over the whole
+    distribution's assertion set, with the same lineage, ordering and
+    single-successor rules restated on the wire records.
     """
 
     by_id = {value.identifier: value for value in values}
     for assertion in values:
-        missing = sorted(set(assertion.supersedes) - set(by_id))
-        if missing and require_resolved:
-            raise SemanticFoundationError(
-                f"mapping_assertion supersedes unknown prior assertions {missing!r}"
-            )
         for prior_id in assertion.supersedes:
             if prior_id not in by_id:
                 continue
@@ -1337,14 +1315,6 @@ def validate_mapping_supersession(
         visit(identifier)
 
 
-def _validate_mapping_supersession_graph(
-    values: Sequence[MappingAssertion],
-    *,
-    require_resolved: bool,
-) -> None:
-    validate_mapping_supersession(values, require_resolved=require_resolved)
-
-
 def validate_mapping_assertions(
     values: Sequence[MappingAssertion | Mapping[str, Any]],
     *,
@@ -1364,7 +1334,6 @@ def validate_mapping_assertions(
         evidence_assertions=evidence_assertions,
         semantic_ring=semantic_ring,
         allow_machine_evidence=False,
-        require_supersession_closure=True,
     )
 
 
@@ -1381,7 +1350,6 @@ def _validate_mapping_assertions_with_machine_evidence(
         evidence_assertions=evidence_assertions,
         semantic_ring=semantic_ring,
         allow_machine_evidence=True,
-        require_supersession_closure=False,
     )
 
 
@@ -1424,5 +1392,4 @@ __all__ = [
     "validate_mapping_supersession",
     "validate_rights_metadata",
     "validate_rights_metadata_records",
-    "validate_ring_relation",
 ]
