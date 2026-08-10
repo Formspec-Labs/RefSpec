@@ -3,7 +3,7 @@ name = "refspec"
 version = "0.1.0.dev0"
 description = "Reference implementation and bindings for the Regulatory Evidence Framework"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "backports-zstd==1.6.0; python_version < '3.14'",
     "duckdb==1.5.0",
@@ -41,4 +41,3 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"

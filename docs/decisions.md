@@ -833,9 +833,17 @@ the cited paths are sufficient.
    (REF-022; handoff pins in SpicySearch `ede33a8`); the wire-vocabulary
    waves supersede that seal, so re-seal once — build, views, preflight,
    `spicysearch atlas verify`, one pin-update commit — when the tree
-   settles. `pyproject.toml` declares `requires-python ">=3.10"` while
+   settles. **The Python floor is decided and raised, this revision:**
+   `pyproject.toml` declared `requires-python ">=3.10"` while
    `src/refspec/registry/treasury_tas_fast_book.py:40` needs 3.11+
-   (`datetime.UTC`), enforced nowhere — raise the floor or gate it.
+   (`datetime.UTC`), enforced nowhere — so a fresh `uv` environment resolved
+   3.10 and the module failed on import. Raised to `">=3.11"` rather than
+   gated: `datetime.UTC` is the one 3.11+ construct in the tree (swept for
+   `tomllib`, `ExceptionGroup`/`except*`, `StrEnum`, and native `typing.Self`
+   — the last is imported from `typing_extensions` everywhere), so a
+   backport would have added a shim to serve a floor nothing wanted. The
+   resolver is now the running check: `uv lock` refuses an interpreter below
+   the floor, so the mismatch cannot silently return.
 
 8. **Residual legacy runtime, two undecided items.** The `policyFrontier`
    selection path is still live —
