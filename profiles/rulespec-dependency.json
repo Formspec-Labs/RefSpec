@@ -3,9 +3,9 @@
   "rulespecVersion": "0.2.0-pre.9",
   "releaseAvailability": "localUnpublished",
   "productionConformanceEligible": false,
-  "contractRevision": "791670e7c5ec4cbcd36cd9cd7efd4ce0143bc094",
+  "contractRevision": "cffafcba89f10e1a7252e71b235db9b9f604c09e",
   "evidenceRevision": "9d2451b213beb9688fa9e3128abc0245aa304901",
-  "constraintDigest": "sha256:eb518c6b20593a1092cde88f0cbb0d4e2b62852ec7d3ebc783970be85e81fd6b",
+  "constraintDigest": "sha256:f87723f6300b427541ccec7cd39e4429ae9575be3eb422ef49caace7e2be6faa",
   "constraintDigestScope": "globalRulespecContract",
   "conformanceCorpusDigest": "sha256:0db567063ae672fe4d4d232585a366da75ed9b7058dddd653134ee13104fdb0b",
   "adoptedConstraintSources": [

@@ -770,7 +770,7 @@ def test_json_binding_checks_shape_but_never_claims_full_subject_authorization()
     (
         ("subject_concept", "urn:ref:test:subject:unreviewed"),
         ("facet", "urn:ref:facet:other"),
-        ("assignment_role", "https://rulespec.org/ns/v1#assignmentSecondary"),
+        ("assignment_role", "https://rulespec.org/ns/v1#assignmentMention"),
         ("intended_product_use", "urn:ref:product-use:other"),
     ),
 )

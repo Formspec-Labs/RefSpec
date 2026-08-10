@@ -137,34 +137,23 @@ is_acyclic(path)      -> term 24667, 0 hops        incorrect
 Keep the regression check and use the inline form until a later pinned release
 passes both forms.
 
-## Reproduce
-
-The dependencies remain isolated from the application environment:
-
-```bash
-uv venv --python 3.12 /tmp/refspec-ladybug-019
-uv pip install \
-  --python /tmp/refspec-ladybug-019/bin/python \
-  -r research/evidence/ladybug-vocabulary-atlas-spike-2026-07-31/requirements.txt
-
-/tmp/refspec-ladybug-019/bin/python \
-  research/evidence/ladybug-vocabulary-atlas-spike-2026-07-31/run_spike.py \
-  --atlas-manifest output/vocabulary-atlas/v5-audited/atlas-manifest.json \
-  --atlas-manifest-sha256 \
-    sha256:4d18adb1d52e6ccaa7df36d91048c95679c28b40f98faa27a9aaa2a49bee6bac \
-  --output-directory output/vocabulary-atlas/ladybug-spike-v1-reproduction
-```
-
-The script refuses to overwrite an existing output. A successful run writes:
-
-- `atlas.lbug`, the serving database proven through a read-only reopen;
-- `tables/*.parquet`, the inspectable projection input;
-- `projection-manifest.json`, with table counts and digests; and
-- `spike-results.json`, with RDF parity, authority, path, and timing evidence.
+## What is kept
 
 The checked-in [`results-summary.json`](results-summary.json) records the run
-used for this decision. Generated databases and Parquet files stay under the
-ignored `output/` directory.
+used for this decision.
+
+The runner script is gone. It pinned
+`output/vocabulary-atlas/v5-audited/atlas-manifest.json`
+(`sha256:4d18adb1d52e6ccaa7df36d91048c95679c28b40f98faa27a9aaa2a49bee6bac`),
+a pre-split v5 corpus RefSpec no longer produces, so it could not be run again.
+It also projected `Docket` node and `PUBLISHED_IN_DOCKET` relationship tables
+from two docket terms in Rulespec's namespace that Rulespec does not define and
+RefSpec cannot ratify, minted by the document pipeline in the spicy-regs
+repository. Documents and dockets belong to that component, not to RefSpec's
+vocabulary, and `tests/test_rulespec_vocabulary_currency.py` now fails on any
+unratified term in Rulespec's namespace anywhere in this repository.
+Reproducing this spike means writing a new runner against a current atlas
+generation.
 
 ## Recommendation
 

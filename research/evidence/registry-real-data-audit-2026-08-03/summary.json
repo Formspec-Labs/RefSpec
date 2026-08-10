@@ -9,11 +9,11 @@
   "execution": {
     "errors": 0,
     "failures": 0,
-    "passed": 1388,
-    "seconds": 251.097,
+    "passed": 1389,
+    "seconds": 270.708,
     "skipped": 0,
     "testFiles": 77,
-    "tests": 1388
+    "tests": 1389
   },
   "executionReceipts": {
     "format": "refspec-registry-execution-receipts/v1",
@@ -14212,7 +14212,7 @@
               "pin": {
                 "expected_byte_length": 743,
                 "expected_sha256": "sha256:9234191a7de2c30b6198e43ba6d969d4f0b07ad9bc2c8f1203488e3c50474313",
-                "fetch_id": "019fb304-0930-7102-b57a-1898a31c7926",
+                "fetch_id": "019fb304-0930-79b1-8327-85596a95e72f",
                 "retrieved_at": "2026-07-30T12:33:34Z",
                 "source": {
                   "category_label": "Subjects",
@@ -21345,30 +21345,30 @@
                 },
                 "experiment-manifest.json": {
                   "byteLength": 4917,
-                  "sha256": "sha256:ea9bad9d42af69f27dc2b4f91a6ae2e5a5c6901b7683683bb6f9ae1fe22a4847"
+                  "sha256": "sha256:4a0b6b4aab2f029fa3d00a56a0bec4851dc6425d5c2e37eab64671b36acc4f6b"
                 },
                 "operator-derived-domain-candidates.jsonl": {
                   "byteLength": 3064,
-                  "sha256": "sha256:4eff656ab66e3851738357b90bc71d47ff832ccf23b1b735f976d8ec4f4c9a66"
+                  "sha256": "sha256:88f6636ced053af6fe624c349e270e6ffb5ebcf7ca1c226c13213410834cd11a"
                 },
                 "publisher-organization-assertions.jsonl": {
                   "byteLength": 4524,
-                  "sha256": "sha256:c117ddfb672d3b4d10601db5e785605bbf1b2d70bdcb2b650b754f137189277b"
+                  "sha256": "sha256:38320cd551de57516b84b25de6b9378033571b3d322f27026614785e14593322"
                 },
                 "publisher-organization-objects.jsonl": {
                   "byteLength": 5213,
-                  "sha256": "sha256:3f667715800da6d3dfe3fdcce82555250ed7eb3f0455541ebaaa2a400eb440cb"
+                  "sha256": "sha256:19535be973579a79ce9794ddef707f268bf22ae20136fccf2fdb9cc601eadb21"
                 }
               },
               "manifest": {
                 "construction": {
                   "parser": "refspec.registry.eurovoc_thesaurus.parse_acquired_eurovoc_release",
-                  "parserCodeDigest": "sha256:1151f00a020cd69f58de928a7e82ce3a132c664d483296b01e619fe6c0506c05",
+                  "parserCodeDigest": "sha256:adb806307688acf64bb37dd1e8a3fbe284b022c382afb7ddee699d87e7b3718a",
                   "recipe": "refspec.registry.eurovoc_organization_experiment",
                   "recipeCodeDigest": "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
                   "recipeVersion": "1.0"
                 },
-                "experimentId": "urn:ref:eurovoc-organization-experiment:package:08c5ca746e9223c31ec6fc6ba2b80c98a5a9a18f23cc05a5c3251387d8c59fae",
+                "experimentId": "urn:ref:eurovoc-organization-experiment:package:9198e0e970a1dcc2c22e55034bd77349609bf74115dadfb03c7bfe3728788095",
                 "recordType": "EuroVocOrganizationExperimentManifest",
                 "schemaVersion": "1.0",
                 "status": {
@@ -21424,7 +21424,7 @@
               "byteLengths": [
                 0,
                 566,
-                598,
+                604,
                 1080,
                 1315,
                 1504,
@@ -21436,19 +21436,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:0d35c66fdefa7766c1b3d9d8385501642a0610e204da210e7e419e736e48a0b7",
-                "sha256:1151f00a020cd69f58de928a7e82ce3a132c664d483296b01e619fe6c0506c05",
-                "sha256:1a8052ae41c3a22058b21560bd5f7747365c1e362532fc1b48d55fd30f1a7f48",
+                "sha256:19535be973579a79ce9794ddef707f268bf22ae20136fccf2fdb9cc601eadb21",
+                "sha256:2d305d2f774b3badd70a43fa4128857b02427ad6517d5b59651547a87e3fa812",
+                "sha256:38320cd551de57516b84b25de6b9378033571b3d322f27026614785e14593322",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f667715800da6d3dfe3fdcce82555250ed7eb3f0455541ebaaa2a400eb440cb",
-                "sha256:4eff656ab66e3851738357b90bc71d47ff832ccf23b1b735f976d8ec4f4c9a66",
+                "sha256:4a0b6b4aab2f029fa3d00a56a0bec4851dc6425d5c2e37eab64671b36acc4f6b",
+                "sha256:549762726bbe19faee4e570d4abcb26a19bfc7e5db9e8979cf6a45ad03d7362d",
+                "sha256:754b259337c6e6546f408cc2493c9c5dae819a1c5dcecc1e36aef141a8f76bd6",
+                "sha256:88f6636ced053af6fe624c349e270e6ffb5ebcf7ca1c226c13213410834cd11a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:adb806307688acf64bb37dd1e8a3fbe284b022c382afb7ddee699d87e7b3718a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c117ddfb672d3b4d10601db5e785605bbf1b2d70bdcb2b650b754f137189277b",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:dbd3c7bc93bc4d605be0ac70732ba6605b7bd384f955abf5fe0abe75a83316fe",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:ea9bad9d42af69f27dc2b4f91a6ae2e5a5c6901b7683683bb6f9ae1fe22a4847"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -21472,7 +21472,7 @@
               "byteLengths": [
                 0,
                 566,
-                598,
+                604,
                 1080,
                 1315,
                 1504,
@@ -21484,19 +21484,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:0d35c66fdefa7766c1b3d9d8385501642a0610e204da210e7e419e736e48a0b7",
-                "sha256:1151f00a020cd69f58de928a7e82ce3a132c664d483296b01e619fe6c0506c05",
-                "sha256:1a8052ae41c3a22058b21560bd5f7747365c1e362532fc1b48d55fd30f1a7f48",
+                "sha256:19535be973579a79ce9794ddef707f268bf22ae20136fccf2fdb9cc601eadb21",
+                "sha256:2d305d2f774b3badd70a43fa4128857b02427ad6517d5b59651547a87e3fa812",
+                "sha256:38320cd551de57516b84b25de6b9378033571b3d322f27026614785e14593322",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f667715800da6d3dfe3fdcce82555250ed7eb3f0455541ebaaa2a400eb440cb",
-                "sha256:4eff656ab66e3851738357b90bc71d47ff832ccf23b1b735f976d8ec4f4c9a66",
+                "sha256:4a0b6b4aab2f029fa3d00a56a0bec4851dc6425d5c2e37eab64671b36acc4f6b",
+                "sha256:549762726bbe19faee4e570d4abcb26a19bfc7e5db9e8979cf6a45ad03d7362d",
+                "sha256:754b259337c6e6546f408cc2493c9c5dae819a1c5dcecc1e36aef141a8f76bd6",
+                "sha256:88f6636ced053af6fe624c349e270e6ffb5ebcf7ca1c226c13213410834cd11a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:adb806307688acf64bb37dd1e8a3fbe284b022c382afb7ddee699d87e7b3718a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c117ddfb672d3b4d10601db5e785605bbf1b2d70bdcb2b650b754f137189277b",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:dbd3c7bc93bc4d605be0ac70732ba6605b7bd384f955abf5fe0abe75a83316fe",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:ea9bad9d42af69f27dc2b4f91a6ae2e5a5c6901b7683683bb6f9ae1fe22a4847"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -21516,7 +21516,7 @@
               "byteLengths": [
                 0,
                 566,
-                598,
+                604,
                 1080,
                 1315,
                 1504,
@@ -21528,19 +21528,19 @@
               ],
               "digests": [
                 "sha256:0bff400e5ccf7677b5783d5b4cf4fb6eae97230cabe7335edda5c0e34d5ecd88",
-                "sha256:0d35c66fdefa7766c1b3d9d8385501642a0610e204da210e7e419e736e48a0b7",
-                "sha256:1151f00a020cd69f58de928a7e82ce3a132c664d483296b01e619fe6c0506c05",
-                "sha256:1a8052ae41c3a22058b21560bd5f7747365c1e362532fc1b48d55fd30f1a7f48",
+                "sha256:19535be973579a79ce9794ddef707f268bf22ae20136fccf2fdb9cc601eadb21",
+                "sha256:2d305d2f774b3badd70a43fa4128857b02427ad6517d5b59651547a87e3fa812",
+                "sha256:38320cd551de57516b84b25de6b9378033571b3d322f27026614785e14593322",
                 "sha256:3bf1e124d2af4da95ea4abb1621721cee2693852f9876853ef66afb456c3e467",
-                "sha256:3f667715800da6d3dfe3fdcce82555250ed7eb3f0455541ebaaa2a400eb440cb",
-                "sha256:4eff656ab66e3851738357b90bc71d47ff832ccf23b1b735f976d8ec4f4c9a66",
+                "sha256:4a0b6b4aab2f029fa3d00a56a0bec4851dc6425d5c2e37eab64671b36acc4f6b",
+                "sha256:549762726bbe19faee4e570d4abcb26a19bfc7e5db9e8979cf6a45ad03d7362d",
+                "sha256:754b259337c6e6546f408cc2493c9c5dae819a1c5dcecc1e36aef141a8f76bd6",
+                "sha256:88f6636ced053af6fe624c349e270e6ffb5ebcf7ca1c226c13213410834cd11a",
                 "sha256:a0a873953d5309f6450b3bbb394868a63ba5a259cfa343bfa2f10341af14ed74",
+                "sha256:adb806307688acf64bb37dd1e8a3fbe284b022c382afb7ddee699d87e7b3718a",
                 "sha256:b49f09ba4267e72c527a40382aa3d86b7a4ba93d093bc5a6bf707c85c6a14b04",
-                "sha256:c117ddfb672d3b4d10601db5e785605bbf1b2d70bdcb2b650b754f137189277b",
                 "sha256:d3e9aeadcf1a78cc75fae16aa37ec0e373d505f844232a6b1ed00515138734e0",
-                "sha256:dbd3c7bc93bc4d605be0ac70732ba6605b7bd384f955abf5fe0abe75a83316fe",
-                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "sha256:ea9bad9d42af69f27dc2b4f91a6ae2e5a5c6901b7683683bb6f9ae1fe22a4847"
+                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
               ],
               "paths": [],
               "urls": [
@@ -21563,98 +21563,7 @@
               "acquisition_mode": "local",
               "archive_byte_length": 730,
               "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
-              "byte_length": 2682,
-              "cache_hit": false,
-              "local_source_path": "<pathlib.PosixPath>",
-              "metadata": null,
-              "path": "<pathlib.PosixPath>",
-              "release": {
-                "attribution": "Publications Office of the European Union, EuroVoc",
-                "concept_scheme_iri": "urn:example:thesaurus",
-                "expected_byte_length": 730,
-                "expected_member_byte_length": 2682,
-                "expected_member_sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
-                "expected_sha256": "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
-                "filename": "eurovoc.zip",
-                "issued": "2026-07-08",
-                "landing_page_url": "https://example.test/eurovoc",
-                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
-                "license_label": "Creative Commons Attribution 4.0 International",
-                "member_filename": "eurovoc.rdf",
-                "metadata_source": null,
-                "publisher": "Publications Office of the European Union",
-                "release_id": "fixture-9.9",
-                "source_url": "https://example.test/eurovoc.zip",
-                "version": "9.9"
-              },
-              "resolved_url": null,
-              "sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
-              "source_url": "https://example.test/eurovoc.zip"
-            },
-            "shape": {
-              "fields": {
-                "acquisition_mode": "str",
-                "archive_byte_length": "int",
-                "archive_path": "pathlib.PosixPath",
-                "archive_sha256": "str",
-                "byte_length": "int",
-                "cache_hit": "bool",
-                "local_source_path": "pathlib.PosixPath",
-                "metadata": "NoneType",
-                "path": "pathlib.PosixPath",
-                "release": {
-                  "fields": {
-                    "attribution": "str",
-                    "concept_scheme_iri": "str",
-                    "expected_byte_length": "int",
-                    "expected_member_byte_length": "int",
-                    "expected_member_sha256": "str",
-                    "expected_sha256": "str",
-                    "filename": "str",
-                    "issued": "str",
-                    "landing_page_url": "str",
-                    "license_iri": "str",
-                    "license_label": "str",
-                    "member_filename": "str",
-                    "metadata_source": "NoneType",
-                    "publisher": "str",
-                    "release_id": "str",
-                    "source_url": "str",
-                    "version": "str"
-                  },
-                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
-                },
-                "resolved_url": "NoneType",
-                "sha256": "str",
-                "source_url": "str"
-              },
-              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                2682
-              ],
-              "digests": [
-                "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
-                "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a"
-              ],
-              "paths": [],
-              "urls": [
-                "https://creativecommons.org/licenses/by/4.0/",
-                "https://example.test/eurovoc",
-                "https://example.test/eurovoc.zip"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "acquire_eurovoc_release",
-            "sample": {
-              "acquisition_mode": "local",
-              "archive_byte_length": 730,
-              "archive_path": "<pathlib.PosixPath>",
-              "archive_sha256": "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
+              "archive_sha256": "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519",
               "byte_length": 2682,
               "cache_hit": false,
               "local_source_path": "<pathlib.PosixPath>",
@@ -21674,8 +21583,8 @@
                 "concept_scheme_iri": "urn:example:thesaurus",
                 "expected_byte_length": 730,
                 "expected_member_byte_length": 2682,
-                "expected_member_sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
-                "expected_sha256": "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
+                "expected_member_sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+                "expected_sha256": "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519",
                 "filename": "eurovoc.zip",
                 "issued": "2026-07-08",
                 "landing_page_url": "https://example.test/eurovoc",
@@ -21694,7 +21603,7 @@
                 "version": "9.9"
               },
               "resolved_url": null,
-              "sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
+              "sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
               "source_url": "https://example.test/eurovoc.zip"
             },
             "shape": {
@@ -21762,15 +21671,106 @@
                 2682
               ],
               "digests": [
-                "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
-                "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
-                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3"
+                "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+                "sha256:c68d6bfeb153f877bf3ce8e960e5b12a87382b6a91a7210e5ee00f9cb98d63b3",
+                "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519"
               ],
               "paths": [],
               "urls": [
                 "https://creativecommons.org/licenses/by/4.0/",
                 "https://example.test/eurovoc",
                 "https://example.test/eurovoc-metadata.ttl",
+                "https://example.test/eurovoc.zip"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "acquire_eurovoc_release",
+            "sample": {
+              "acquisition_mode": "local",
+              "archive_byte_length": 730,
+              "archive_path": "<pathlib.PosixPath>",
+              "archive_sha256": "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519",
+              "byte_length": 2682,
+              "cache_hit": false,
+              "local_source_path": "<pathlib.PosixPath>",
+              "metadata": null,
+              "path": "<pathlib.PosixPath>",
+              "release": {
+                "attribution": "Publications Office of the European Union, EuroVoc",
+                "concept_scheme_iri": "urn:example:thesaurus",
+                "expected_byte_length": 730,
+                "expected_member_byte_length": 2682,
+                "expected_member_sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+                "expected_sha256": "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519",
+                "filename": "eurovoc.zip",
+                "issued": "2026-07-08",
+                "landing_page_url": "https://example.test/eurovoc",
+                "license_iri": "https://creativecommons.org/licenses/by/4.0/",
+                "license_label": "Creative Commons Attribution 4.0 International",
+                "member_filename": "eurovoc.rdf",
+                "metadata_source": null,
+                "publisher": "Publications Office of the European Union",
+                "release_id": "fixture-9.9",
+                "source_url": "https://example.test/eurovoc.zip",
+                "version": "9.9"
+              },
+              "resolved_url": null,
+              "sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+              "source_url": "https://example.test/eurovoc.zip"
+            },
+            "shape": {
+              "fields": {
+                "acquisition_mode": "str",
+                "archive_byte_length": "int",
+                "archive_path": "pathlib.PosixPath",
+                "archive_sha256": "str",
+                "byte_length": "int",
+                "cache_hit": "bool",
+                "local_source_path": "pathlib.PosixPath",
+                "metadata": "NoneType",
+                "path": "pathlib.PosixPath",
+                "release": {
+                  "fields": {
+                    "attribution": "str",
+                    "concept_scheme_iri": "str",
+                    "expected_byte_length": "int",
+                    "expected_member_byte_length": "int",
+                    "expected_member_sha256": "str",
+                    "expected_sha256": "str",
+                    "filename": "str",
+                    "issued": "str",
+                    "landing_page_url": "str",
+                    "license_iri": "str",
+                    "license_label": "str",
+                    "member_filename": "str",
+                    "metadata_source": "NoneType",
+                    "publisher": "str",
+                    "release_id": "str",
+                    "source_url": "str",
+                    "version": "str"
+                  },
+                  "type": "refspec.registry.eurovoc_thesaurus.EuroVocReleaseSource"
+                },
+                "resolved_url": "NoneType",
+                "sha256": "str",
+                "source_url": "str"
+              },
+              "type": "refspec.registry.eurovoc_thesaurus.AcquiredEuroVocRelease"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                2682
+              ],
+              "digests": [
+                "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+                "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519"
+              ],
+              "paths": [],
+              "urls": [
+                "https://creativecommons.org/licenses/by/4.0/",
+                "https://example.test/eurovoc",
                 "https://example.test/eurovoc.zip"
               ]
             }
@@ -21882,7 +21882,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
+              "source_sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
               "source_url": "https://example.test/eurovoc.zip",
               "status_assertions": [
                 {
@@ -22060,8 +22060,8 @@
                 2682
               ],
               "digests": [
-                "sha256:01b2ce80adbeeaba97d506f6bea61f9a65b690c7a2c26b311aba2cedd46a98b2",
-                "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a"
+                "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
+                "sha256:e75e3932fa0066777e12b0a70184772712f3382794ea85acbf63ca8d50abb519"
               ],
               "paths": [],
               "urls": [
@@ -22552,7 +22552,7 @@
                 "http://eurovoc.europa.eu/schema#Domain",
                 "http://eurovoc.europa.eu/schema#MicroThesaurus"
               ],
-              "source_sha256": "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a",
+              "source_sha256": "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d",
               "source_url": "https://example.test/eurovoc.rdf",
               "status_assertions": [
                 {
@@ -22730,7 +22730,7 @@
                 2682
               ],
               "digests": [
-                "sha256:813b5865800ee9db7ca733233daf1951759b21144ba6f2fb5a101aa5f839a56a"
+                "sha256:64c4180c03ae4672fe381f588e5e3f719ba910de0d058a4bbb3fa70ce1ea0f8d"
               ],
               "paths": [],
               "urls": [
@@ -31613,7 +31613,7 @@
               "acquisition_mode": "local",
               "byte_length": 485,
               "capture_event": {
-                "fetch_id": "019fb2e5-4e00-7d65-879c-a15f99c3c187",
+                "fetch_id": "019fb2e5-4e00-7fd7-b551-d242c92623d0",
                 "fetched_at": "2026-07-30T12:00:00Z"
               },
               "path": "<pathlib.PosixPath>",
@@ -37851,7 +37851,7 @@
               "byte_length": 11807,
               "cache_hit": false,
               "compressed_byte_length": 2809,
-              "compressed_sha256": "sha256:cf3fcb3e95435bb68340c506db6b417ef159821ed35be48b9f62ff5c547db0d6",
+              "compressed_sha256": "sha256:cc08179e2efe999bb9de948607fb4bde0708988f65bd15c1c24fac6dda02cc01",
               "local_source_path": "<pathlib.PosixPath>",
               "path": "<pathlib.PosixPath>",
               "release": {
@@ -37859,7 +37859,7 @@
                 "concept_scheme_iri": "http://www.eionet.europa.eu/gemet/gemetThesaurus",
                 "expected_byte_length": 11807,
                 "expected_compressed_byte_length": 2809,
-                "expected_compressed_sha256": "sha256:cf3fcb3e95435bb68340c506db6b417ef159821ed35be48b9f62ff5c547db0d6",
+                "expected_compressed_sha256": "sha256:cc08179e2efe999bb9de948607fb4bde0708988f65bd15c1c24fac6dda02cc01",
                 "expected_sha256": "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
                 "filename": "gemet-mini.rdf",
                 "landing_page_url": "https://example.test/gemet-landing-page",
@@ -37912,7 +37912,7 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:cf3fcb3e95435bb68340c506db6b417ef159821ed35be48b9f62ff5c547db0d6"
+                "sha256:cc08179e2efe999bb9de948607fb4bde0708988f65bd15c1c24fac6dda02cc01"
               ],
               "paths": [],
               "urls": [
@@ -38528,7 +38528,7 @@
               ],
               "digests": [
                 "sha256:9962067aec2b42d6cce4a6513cce970d785dc65ed7ec549d00d2d43447218a4e",
-                "sha256:cf3fcb3e95435bb68340c506db6b417ef159821ed35be48b9f62ff5c547db0d6"
+                "sha256:cc08179e2efe999bb9de948607fb4bde0708988f65bd15c1c24fac6dda02cc01"
               ],
               "paths": [],
               "urls": [
@@ -44093,6 +44093,41 @@
             "counts": {},
             "function": "canonical_json_bytes",
             "sample": {
+              "byteLength": 470806,
+              "sha256": "sha256:427beba735a96a33f9dc3e2492047677a62a4b8fa8b8d07034356a8184af9a03"
+            },
+            "shape": {
+              "byteLength": 470806,
+              "type": "bytes"
+            },
+            "sourceEvidence": {
+              "byteLengths": [
+                470806
+              ],
+              "digests": [
+                "sha256:427beba735a96a33f9dc3e2492047677a62a4b8fa8b8d07034356a8184af9a03",
+                "sha256:4e1284c05a4d8f167e66cd789f1d0e34708633b81384183d2afc299e8118bdb1",
+                "sha256:76af6e8886d2cf3a8aeafd8bc8b62b896cfa69ca0c5a6604106a9187a64f0045",
+                "sha256:92e0cc9b59e8c04c4a09fa6089fbe74396ea53b2d34e71c24fc27a5ef7835d8c",
+                "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
+                "sha256:ec55380fd64b13ce3dee925bdd2e3e6bf708f3ad6b34f074bc117a6969ee1767"
+              ],
+              "paths": [],
+              "urls": [
+                "http://purl.org/dc/terms/",
+                "http://www.w3.org/2004/02/skos/core#",
+                "http://www.w3.org/ns/dcat#",
+                "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
+                "https://rulespec.org/ns/v1#",
+                "https://rulespec.org/ns/v1#RegisteredConcept"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "canonical_json_bytes",
+            "sample": {
               "byteLength": 7128,
               "sha256": "sha256:ece8b5ce1236c7f84e65a3084ea36cabc71854019ae3589a652a1c37e9b900d0"
             },
@@ -44164,40 +44199,6 @@
                 "https://publisher.example/schemes/example",
                 "https://publisher.example/source/terms.json",
                 "https://refspec.org/"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "canonical_json_bytes",
-            "sample": {
-              "byteLength": 470654,
-              "sha256": "sha256:74817922e3ec4b33769f29a5c08335a05cb0e8ce873372896d2b939710ccf177"
-            },
-            "shape": {
-              "byteLength": 470654,
-              "type": "bytes"
-            },
-            "sourceEvidence": {
-              "byteLengths": [
-                470654
-              ],
-              "digests": [
-                "sha256:4e1284c05a4d8f167e66cd789f1d0e34708633b81384183d2afc299e8118bdb1",
-                "sha256:74817922e3ec4b33769f29a5c08335a05cb0e8ce873372896d2b939710ccf177",
-                "sha256:76af6e8886d2cf3a8aeafd8bc8b62b896cfa69ca0c5a6604106a9187a64f0045",
-                "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
-                "sha256:e8fef53f2dc41d71ae0b0b45c23105f4d6002ee827a980f73ec6be4d525aae9f",
-                "sha256:ec55380fd64b13ce3dee925bdd2e3e6bf708f3ad6b34f074bc117a6969ee1767"
-              ],
-              "paths": [],
-              "urls": [
-                "http://purl.org/dc/terms/",
-                "http://www.w3.org/2004/02/skos/core#",
-                "http://www.w3.org/ns/dcat#",
-                "http://www.w3.org/ns/prov#",
-                "https://rulespec.org/ns/v1#",
-                "https://rulespec.org/ns/v1#RegisteredConcept"
               ]
             }
           },
@@ -44558,6 +44559,106 @@
             "counts": {},
             "function": "plain_json",
             "sample": {
+              "atlas": "https://refspec.org/ns/atlas/v3#",
+              "dcat": "http://www.w3.org/ns/dcat#",
+              "dcterms": "http://purl.org/dc/terms/",
+              "prov": "http://www.w3.org/ns/prov#",
+              "rkaf": "https://rulespec.org/ns/v1#"
+            },
+            "shape": {
+              "count": 6,
+              "keys": [
+                "atlas",
+                "dcat",
+                "dcterms",
+                "prov",
+                "rkaf",
+                "skos"
+              ],
+              "type": "mapping",
+              "valueShape": "str"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": [
+                "http://purl.org/dc/terms/",
+                "http://www.w3.org/2004/02/skos/core#",
+                "http://www.w3.org/ns/dcat#",
+                "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
+                "https://rulespec.org/ns/v1#"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "plain_json",
+            "sample": {
+              "@context": {
+                "atlas": "https://refspec.org/ns/atlas/v3#",
+                "dcat": "http://www.w3.org/ns/dcat#",
+                "dcterms": "http://purl.org/dc/terms/",
+                "prov": "http://www.w3.org/ns/prov#",
+                "rkaf": "https://rulespec.org/ns/v1#"
+              },
+              "@graph": [
+                {
+                  "@id": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0001",
+                  "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
+                  "http://www.w3.org/2004/02/skos/core#prefLabel": "<builtins.dict>",
+                  "skos:inScheme": "<builtins.dict>"
+                },
+                {
+                  "@id": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0002",
+                  "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
+                  "http://www.w3.org/2004/02/skos/core#altLabel": "<builtins.list>",
+                  "http://www.w3.org/2004/02/skos/core#prefLabel": "<builtins.dict>",
+                  "skos:inScheme": "<builtins.dict>"
+                }
+              ]
+            },
+            "shape": {
+              "count": 2,
+              "keys": [
+                "@context",
+                "@graph"
+              ],
+              "type": "mapping",
+              "valueShape": {
+                "count": 6,
+                "keys": [
+                  "atlas",
+                  "dcat",
+                  "dcterms",
+                  "prov",
+                  "rkaf",
+                  "skos"
+                ],
+                "type": "mapping",
+                "valueShape": "str"
+              }
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [],
+              "paths": [],
+              "urls": [
+                "http://purl.org/dc/terms/",
+                "http://www.w3.org/2004/02/skos/core#",
+                "http://www.w3.org/ns/dcat#",
+                "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
+                "https://rulespec.org/ns/v1#",
+                "https://rulespec.org/ns/v1#RegisteredConcept"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "plain_json",
+            "sample": {
               "atlas": "https://refspec.org/ns/vocabulary-atlas/v2#",
               "dcat": "http://www.w3.org/ns/dcat#",
               "dcterms": "http://purl.org/dc/terms/",
@@ -44694,102 +44795,6 @@
                 "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27405",
                 "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27593",
                 "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001/terms/27664"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "plain_json",
-            "sample": {
-              "dcat": "http://www.w3.org/ns/dcat#",
-              "dcterms": "http://purl.org/dc/terms/",
-              "prov": "http://www.w3.org/ns/prov#",
-              "rkaf": "https://rulespec.org/ns/v1#",
-              "skos": "http://www.w3.org/2004/02/skos/core#"
-            },
-            "shape": {
-              "count": 5,
-              "keys": [
-                "dcat",
-                "dcterms",
-                "prov",
-                "rkaf",
-                "skos"
-              ],
-              "type": "mapping",
-              "valueShape": "str"
-            },
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [],
-              "paths": [],
-              "urls": [
-                "http://purl.org/dc/terms/",
-                "http://www.w3.org/2004/02/skos/core#",
-                "http://www.w3.org/ns/dcat#",
-                "http://www.w3.org/ns/prov#",
-                "https://rulespec.org/ns/v1#"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "plain_json",
-            "sample": {
-              "@context": {
-                "dcat": "http://www.w3.org/ns/dcat#",
-                "dcterms": "http://purl.org/dc/terms/",
-                "prov": "http://www.w3.org/ns/prov#",
-                "rkaf": "https://rulespec.org/ns/v1#",
-                "skos": "http://www.w3.org/2004/02/skos/core#"
-              },
-              "@graph": [
-                {
-                  "@id": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0001",
-                  "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
-                  "http://www.w3.org/2004/02/skos/core#prefLabel": "<builtins.dict>",
-                  "skos:inScheme": "<builtins.dict>"
-                },
-                {
-                  "@id": "urn:ref:federal-register-thesaurus:2025-04-01:concept:0002",
-                  "@type": "https://rulespec.org/ns/v1#RegisteredConcept",
-                  "http://www.w3.org/2004/02/skos/core#altLabel": "<builtins.list>",
-                  "http://www.w3.org/2004/02/skos/core#prefLabel": "<builtins.dict>",
-                  "skos:inScheme": "<builtins.dict>"
-                }
-              ]
-            },
-            "shape": {
-              "count": 2,
-              "keys": [
-                "@context",
-                "@graph"
-              ],
-              "type": "mapping",
-              "valueShape": {
-                "count": 5,
-                "keys": [
-                  "dcat",
-                  "dcterms",
-                  "prov",
-                  "rkaf",
-                  "skos"
-                ],
-                "type": "mapping",
-                "valueShape": "str"
-              }
-            },
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [],
-              "paths": [],
-              "urls": [
-                "http://purl.org/dc/terms/",
-                "http://www.w3.org/2004/02/skos/core#",
-                "http://www.w3.org/ns/dcat#",
-                "http://www.w3.org/ns/prov#",
-                "https://rulespec.org/ns/v1#",
-                "https://rulespec.org/ns/v1#RegisteredConcept"
               ]
             }
           },
@@ -212459,6 +212464,77 @@
             "counts": {},
             "function": "plain_json",
             "sample": {
+              "releasePin": {
+                "managedBundleReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:managed-release:v1",
+                "manifestDigest": "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
+                "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+                "releaseKind": "managedReferenceRelease",
+                "semanticRing": "subject"
+              },
+              "ringAssignment": {
+                "managedManifestDigest": "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
+                "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
+                "schemaVersion": "1.0",
+                "semanticRing": "subject",
+                "type": "ManagedReleaseRingAssignment"
+              },
+              "schemaVersion": "1.1",
+              "selectedReleaseGraph": {
+                "@context": {
+                  "atlas": "https://refspec.org/ns/atlas/v3#",
+                  "dcat": "http://www.w3.org/ns/dcat#",
+                  "dcterms": "http://purl.org/dc/terms/",
+                  "prov": "http://www.w3.org/ns/prov#",
+                  "rkaf": "https://rulespec.org/ns/v1#"
+                },
+                "@graph": [
+                  "<builtins.dict>",
+                  "<builtins.dict>"
+                ]
+              },
+              "type": "AtlasReleaseSnapshot"
+            },
+            "shape": {
+              "count": 8,
+              "keys": [
+                "contentDigest",
+                "id",
+                "memberIds",
+                "releasePin",
+                "ringAssignment",
+                "schemaVersion",
+                "selectedReleaseGraph",
+                "type"
+              ],
+              "type": "mapping",
+              "valueShape": "str"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:427beba735a96a33f9dc3e2492047677a62a4b8fa8b8d07034356a8184af9a03",
+                "sha256:4e1284c05a4d8f167e66cd789f1d0e34708633b81384183d2afc299e8118bdb1",
+                "sha256:76af6e8886d2cf3a8aeafd8bc8b62b896cfa69ca0c5a6604106a9187a64f0045",
+                "sha256:92e0cc9b59e8c04c4a09fa6089fbe74396ea53b2d34e71c24fc27a5ef7835d8c",
+                "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
+                "sha256:ec55380fd64b13ce3dee925bdd2e3e6bf708f3ad6b34f074bc117a6969ee1767"
+              ],
+              "paths": [],
+              "urls": [
+                "http://purl.org/dc/terms/",
+                "http://www.w3.org/2004/02/skos/core#",
+                "http://www.w3.org/ns/dcat#",
+                "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
+                "https://rulespec.org/ns/v1#",
+                "https://rulespec.org/ns/v1#RegisteredConcept"
+              ]
+            }
+          },
+          {
+            "counts": {},
+            "function": "plain_json",
+            "sample": {
               "coverageReport": {
                 "parsedCount": 5,
                 "reportStatus": "gap",
@@ -213137,6 +213213,7 @@
               "keys": [
                 "@id",
                 "@type",
+                "atlas:sourceRelationRecord",
                 "dcat:distribution",
                 "dcat:version",
                 "dcterms:isVersionOf",
@@ -213145,7 +213222,6 @@
                 "prov:hadMember",
                 "rkaf:membershipMode",
                 "rkaf:referenceReleaseDigest",
-                "rkaf:sourceRelationRecord",
                 "rkaf:versionBasis"
               ],
               "type": "mapping",
@@ -213181,81 +213257,11 @@
               "schemaVersion": "1.1",
               "selectedReleaseGraph": {
                 "@context": {
+                  "atlas": "https://refspec.org/ns/atlas/v3#",
                   "dcat": "http://www.w3.org/ns/dcat#",
                   "dcterms": "http://purl.org/dc/terms/",
                   "prov": "http://www.w3.org/ns/prov#",
-                  "rkaf": "https://rulespec.org/ns/v1#",
-                  "skos": "http://www.w3.org/2004/02/skos/core#"
-                },
-                "@graph": [
-                  "<builtins.dict>",
-                  "<builtins.dict>"
-                ]
-              },
-              "type": "AtlasReleaseSnapshot"
-            },
-            "shape": {
-              "count": 8,
-              "keys": [
-                "contentDigest",
-                "id",
-                "memberIds",
-                "releasePin",
-                "ringAssignment",
-                "schemaVersion",
-                "selectedReleaseGraph",
-                "type"
-              ],
-              "type": "mapping",
-              "valueShape": "str"
-            },
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [
-                "sha256:4e1284c05a4d8f167e66cd789f1d0e34708633b81384183d2afc299e8118bdb1",
-                "sha256:74817922e3ec4b33769f29a5c08335a05cb0e8ce873372896d2b939710ccf177",
-                "sha256:76af6e8886d2cf3a8aeafd8bc8b62b896cfa69ca0c5a6604106a9187a64f0045",
-                "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
-                "sha256:e8fef53f2dc41d71ae0b0b45c23105f4d6002ee827a980f73ec6be4d525aae9f",
-                "sha256:ec55380fd64b13ce3dee925bdd2e3e6bf708f3ad6b34f074bc117a6969ee1767"
-              ],
-              "paths": [],
-              "urls": [
-                "http://purl.org/dc/terms/",
-                "http://www.w3.org/2004/02/skos/core#",
-                "http://www.w3.org/ns/dcat#",
-                "http://www.w3.org/ns/prov#",
-                "https://rulespec.org/ns/v1#",
-                "https://rulespec.org/ns/v1#RegisteredConcept"
-              ]
-            }
-          },
-          {
-            "counts": {},
-            "function": "plain_json",
-            "sample": {
-              "releasePin": {
-                "managedBundleReleaseId": "urn:ref:federal-register-thesaurus:2025-04-01:managed-release:v1",
-                "manifestDigest": "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
-                "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
-                "releaseKind": "managedReferenceRelease",
-                "semanticRing": "subject"
-              },
-              "ringAssignment": {
-                "managedManifestDigest": "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
-                "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1",
-                "schemaVersion": "1.0",
-                "semanticRing": "subject",
-                "type": "ManagedReleaseRingAssignment"
-              },
-              "schemaVersion": "1.1",
-              "selectedReleaseGraph": {
-                "@context": {
-                  "dcat": "http://www.w3.org/ns/dcat#",
-                  "dcterms": "http://purl.org/dc/terms/",
-                  "prov": "http://www.w3.org/ns/prov#",
-                  "rkaf": "https://rulespec.org/ns/v1#",
-                  "skos": "http://www.w3.org/2004/02/skos/core#"
+                  "rkaf": "https://rulespec.org/ns/v1#"
                 },
                 "@graph": [
                   "<builtins.dict>",
@@ -213282,8 +213288,8 @@
               "digests": [
                 "sha256:4e1284c05a4d8f167e66cd789f1d0e34708633b81384183d2afc299e8118bdb1",
                 "sha256:76af6e8886d2cf3a8aeafd8bc8b62b896cfa69ca0c5a6604106a9187a64f0045",
+                "sha256:92e0cc9b59e8c04c4a09fa6089fbe74396ea53b2d34e71c24fc27a5ef7835d8c",
                 "sha256:cd4859bfc03292e71c4fded93ec9c9f38c64fbb04ee4f730a56af257e40d2b1f",
-                "sha256:e8fef53f2dc41d71ae0b0b45c23105f4d6002ee827a980f73ec6be4d525aae9f",
                 "sha256:ec55380fd64b13ce3dee925bdd2e3e6bf708f3ad6b34f074bc117a6969ee1767"
               ],
               "paths": [],
@@ -213292,6 +213298,7 @@
                 "http://www.w3.org/2004/02/skos/core#",
                 "http://www.w3.org/ns/dcat#",
                 "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
                 "https://rulespec.org/ns/v1#",
                 "https://rulespec.org/ns/v1#RegisteredConcept"
               ]
@@ -213448,11 +213455,11 @@
             "function": "plain_json",
             "sample": {
               "@context": {
+                "atlas": "https://refspec.org/ns/atlas/v3#",
                 "dcat": "http://www.w3.org/ns/dcat#",
                 "dcterms": "http://purl.org/dc/terms/",
                 "prov": "http://www.w3.org/ns/prov#",
-                "rkaf": "https://rulespec.org/ns/v1#",
-                "skos": "http://www.w3.org/2004/02/skos/core#"
+                "rkaf": "https://rulespec.org/ns/v1#"
               },
               "@graph": [
                 {
@@ -213477,8 +213484,9 @@
               ],
               "type": "mapping",
               "valueShape": {
-                "count": 5,
+                "count": 6,
                 "keys": [
+                  "atlas",
                   "dcat",
                   "dcterms",
                   "prov",
@@ -213500,6 +213508,7 @@
                 "http://www.w3.org/2004/02/skos/core#",
                 "http://www.w3.org/ns/dcat#",
                 "http://www.w3.org/ns/prov#",
+                "https://refspec.org/ns/atlas/v3#",
                 "https://rulespec.org/ns/v1#",
                 "https://rulespec.org/ns/v1#Artifact",
                 "https://rulespec.org/ns/v1#RegisteredConcept"
@@ -214035,6 +214044,31 @@
                 "sha256:7f4d27cf5ae35773d088b635fb809b32de78eee0032893d7af90f4a319e0b621",
                 "sha256:8bdf6dc60ae71b3617313c43d204b021559c663f58442a9f7b1eddce4346f5de",
                 "sha256:9ae80260dbcf752963c4bd23bae60a1a2c4ec579c8a11d7daf5960af5e3a524e"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "plain_json",
+            "sample": {
+              "digest": "sha256:92e0cc9b59e8c04c4a09fa6089fbe74396ea53b2d34e71c24fc27a5ef7835d8c",
+              "id": "urn:ref:federal-register-thesaurus:2025-04-01:rulespec-graph:v1"
+            },
+            "shape": {
+              "count": 2,
+              "keys": [
+                "digest",
+                "id"
+              ],
+              "type": "mapping",
+              "valueShape": "str"
+            },
+            "sourceEvidence": {
+              "byteLengths": [],
+              "digests": [
+                "sha256:92e0cc9b59e8c04c4a09fa6089fbe74396ea53b2d34e71c24fc27a5ef7835d8c"
               ],
               "paths": [],
               "urls": []
@@ -214643,31 +214677,6 @@
             "counts": {},
             "function": "plain_json",
             "sample": {
-              "digest": "sha256:e8fef53f2dc41d71ae0b0b45c23105f4d6002ee827a980f73ec6be4d525aae9f",
-              "id": "urn:ref:federal-register-thesaurus:2025-04-01:rulespec-graph:v1"
-            },
-            "shape": {
-              "count": 2,
-              "keys": [
-                "digest",
-                "id"
-              ],
-              "type": "mapping",
-              "valueShape": "str"
-            },
-            "sourceEvidence": {
-              "byteLengths": [],
-              "digests": [
-                "sha256:e8fef53f2dc41d71ae0b0b45c23105f4d6002ee827a980f73ec6be4d525aae9f"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "plain_json",
-            "sample": {
               "canonicalPayloadDigest": "sha256:ec32ad915add52433b4aa27cf1c28585167d982b392a8a714e81150e751bf60b",
               "id": "urn:test:run-receipt:second",
               "marker": "second",
@@ -214871,6 +214880,22 @@
           {
             "counts": {},
             "function": "sha256_digest",
+            "sample": "sha256:427beba735a96a33f9dc3e2492047677a62a4b8fa8b8d07034356a8184af9a03",
+            "shape": "str",
+            "sourceEvidence": {
+              "byteLengths": [
+                470806
+              ],
+              "digests": [
+                "sha256:427beba735a96a33f9dc3e2492047677a62a4b8fa8b8d07034356a8184af9a03"
+              ],
+              "paths": [],
+              "urls": []
+            }
+          },
+          {
+            "counts": {},
+            "function": "sha256_digest",
             "sample": "sha256:66bd3e9f0430098e3ee5b0bbf5f07b970ca2df5ebd32374d78c77275e46f9ebe",
             "shape": "str",
             "sourceEvidence": {
@@ -214895,22 +214920,6 @@
               ],
               "digests": [
                 "sha256:6d62e35b6e9a94d246f97266da7763e38fb2e46c6bf4d2ace4f1a02f9c398afc"
-              ],
-              "paths": [],
-              "urls": []
-            }
-          },
-          {
-            "counts": {},
-            "function": "sha256_digest",
-            "sample": "sha256:74817922e3ec4b33769f29a5c08335a05cb0e8ce873372896d2b939710ccf177",
-            "shape": "str",
-            "sourceEvidence": {
-              "byteLengths": [
-                470654
-              ],
-              "digests": [
-                "sha256:74817922e3ec4b33769f29a5c08335a05cb0e8ce873372896d2b939710ccf177"
               ],
               "paths": [],
               "urls": []
@@ -290041,7 +290050,7 @@
             "counts": {},
             "function": "SourceCaptureEvent.generate",
             "sample": {
-              "fetch_id": "019fb2e5-4e00-7d23-b660-85ba3a3ecd71",
+              "fetch_id": "019fb2e5-4e00-730a-9473-44d34a25c93c",
               "fetched_at": "2026-07-30T12:00:00Z"
             },
             "shape": {
@@ -290098,7 +290107,7 @@
             "function": "SourceRegistrationEvent.generate",
             "sample": {
               "registered_at": "2026-07-31T12:00:00Z",
-              "registration_id": "019fb80b-aa00-7a2b-8d95-7d37368e10c0"
+              "registration_id": "019fb80b-aa00-7fa2-95c7-6649923a582f"
             },
             "shape": {
               "fields": {
@@ -327729,14 +327738,14 @@
           {
             "counts": {},
             "function": "sha256_digest",
-            "sample": "sha256:a8d2dd0f9f928ad331648121e86274577953612f2452a608d147a2ab72a44518",
+            "sample": "sha256:e341af660c7fec43d775080e6ff78727c2858fdd96c27b86c73b16ff3d2bf3c4",
             "shape": "str",
             "sourceEvidence": {
               "byteLengths": [
-                364730
+                364729
               ],
               "digests": [
-                "sha256:a8d2dd0f9f928ad331648121e86274577953612f2452a608d147a2ab72a44518"
+                "sha256:e341af660c7fec43d775080e6ff78727c2858fdd96c27b86c73b16ff3d2bf3c4"
               ],
               "paths": [],
               "urls": []

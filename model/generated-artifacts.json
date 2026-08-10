@@ -23,8 +23,8 @@
     "bindings/json/1.0/schemas/run-receipt.schema.json": "sha256:45d37b467079eb256185ba215fb23dd98c373db85bb070d9e08e2e3de6856da8",
     "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
     "bindings/json/1.0/schemas/source-identifier-set.schema.json": "sha256:097b3b05402c488e5c8005f6717a815cb904eff1294ba574e72147daead05be5",
-    "src/refspec/generated_conformance_assets.py": "sha256:91f6f09048df2a81f9d235aea25c1156d8a8993f5ce6ecf1f3f48b92b1abc191",
-    "src/refspec/generated_rulespec_dependency.py": "sha256:3e6209540da22149d7c073573eb3836fdba5f5ed51513bd8f1cb2d770156d48b",
+    "src/refspec/generated_conformance_assets.py": "sha256:cc595899b9949548920b20b75d951b90eff4c5a5ec15d9874ecbe242dd82f5fc",
+    "src/refspec/generated_rulespec_dependency.py": "sha256:ac0abe09fab8f6b3d69720785ccbfc2f4baa28d06df96a7015e7f111d200185f",
     "src/refspec/generated_schemas.py": "sha256:2341fa7156214d466e0e479460ec923499b05d5f522281b572a737aa9be40479",
     "src/refspec/generated_types.py": "sha256:df130c8969606aff8fa7b27978743f261a4d68b23109099020c3a0c919189773"
   }

@@ -246,7 +246,7 @@ def test_complete_2025_release_builds_an_atlas_snapshot(
     source_relation_records = [
         row
         for row in snapshot.record["selectedReleaseGraph"]["@graph"]
-        if row.get("@type") == "rkaf:SourceRelationRecord"
+        if row.get("@type") == "atlas:SourceRelationRecord"
     ]
 
     assert snapshot.release_id == FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI
@@ -258,24 +258,24 @@ def test_complete_2025_release_builds_an_atlas_snapshot(
     }
     assert sum(relation_statuses.values()) == 1_463
     assert related == relation_statuses["resolved"]
-    assert Counter(row["rkaf:sourceRelationStatus"] for row in source_relation_records) == {
+    assert Counter(row["atlas:sourceRelationStatus"] for row in source_relation_records) == {
         "suggestedOpenTermPattern": 11,
         "unresolved": 1,
     }
     assert all(
         {
-            "rkaf:sourceConcept",
-            "rkaf:sourcePdfPage",
-            "rkaf:sourcePrintedPage",
-            "rkaf:sourceOrdinal",
-            "rkaf:sourceRawTargetLabel",
+            "atlas:sourceConcept",
+            "atlas:sourcePdfPage",
+            "atlas:sourcePrintedPage",
+            "atlas:sourceOrdinal",
+            "atlas:sourceRawTargetLabel",
         }
         <= set(row)
         for row in source_relation_records
     )
     assert {
         cast(str, reference["@id"])
-        for reference in release_node["rkaf:sourceRelationRecord"]
+        for reference in release_node["atlas:sourceRelationRecord"]
     } == {cast(str, row["@id"]) for row in source_relation_records}
     assert release_node["rkaf:membershipMode"] == "rkaf:completeMembership"
     assert release_node["rkaf:referenceReleaseDigest"] == snapshot.release_pin[

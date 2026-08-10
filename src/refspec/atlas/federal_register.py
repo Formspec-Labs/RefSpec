@@ -62,6 +62,7 @@ _EXPECTED_SUGGESTED_RELATED_COUNT = 11
 _EXPECTED_UNRESOLVED_RELATED_COUNT = 1
 _EXPECTED_OPEN_PATTERN_COUNT = 14
 _RKAF = "https://rulespec.org/ns/v1#"
+_ATLAS = "https://refspec.org/ns/atlas/v3#"
 _RDF_TYPE = "@type"
 _SKOS = "http://www.w3.org/2004/02/skos/core#"
 _DCTERMS_FORMAT = "http://purl.org/dc/terms/format"
@@ -72,8 +73,12 @@ _VERSION_BASIS = "rkaf:versionBasis"
 _CONTENT_DERIVED = "rkaf:contentDerived"
 _ARTIFACT_IDENTIFIER = _RKAF + "hasArtifactIdentifier"
 _CONTENT_DIGEST = _RKAF + "hasContentDigest"
-_SOURCE_RELATION_RECORD = "rkaf:SourceRelationRecord"
-_SOURCE_RELATION_RECORDS = "rkaf:sourceRelationRecord"
+# Source fidelity is Atlas's own concern: these carry a Federal Register
+# relation that the 2025 source states but does not resolve, together with the
+# printed locator it was read from. Rulespec defines no term for any of it, so
+# they live in the Atlas namespace rather than squatting rkaf:.
+_SOURCE_RELATION_RECORD = "atlas:SourceRelationRecord"
+_SOURCE_RELATION_RECORDS = "atlas:sourceRelationRecord"
 
 
 def _sha256_file(path: Path) -> str:
@@ -306,17 +311,17 @@ def _project_view(
                         f"source-related-reference:{relation_id}"
                     ),
                     _RDF_TYPE: _SOURCE_RELATION_RECORD,
-                    "rkaf:sourceConcept": _iri(source_concept_iri),
-                    "rkaf:sourceConceptId": source_concept_id,
-                    "rkaf:sourceRawTargetLabel": _require_text(
+                    "atlas:sourceConcept": _iri(source_concept_iri),
+                    "atlas:sourceConceptId": source_concept_id,
+                    "atlas:sourceRawTargetLabel": _require_text(
                         row.get("rawTargetLabel"),
                         "Federal Register source relation target label",
                     ),
-                    "rkaf:sourceRelationId": relation_id,
-                    "rkaf:sourceRelationStatus": resolution_status,
-                    "rkaf:sourcePdfPage": locator["pdf_page"],
-                    "rkaf:sourcePrintedPage": locator["printed_page"],
-                    "rkaf:sourceOrdinal": locator["source_ordinal"],
+                    "atlas:sourceRelationId": relation_id,
+                    "atlas:sourceRelationStatus": resolution_status,
+                    "atlas:sourcePdfPage": locator["pdf_page"],
+                    "atlas:sourcePrintedPage": locator["printed_page"],
+                    "atlas:sourceOrdinal": locator["source_ordinal"],
                 }
             )
             continue
@@ -433,6 +438,7 @@ def _project_view(
         ]
     graph: dict[str, Any] = {
         "@context": {
+            "atlas": _ATLAS,
             "dcat": "http://www.w3.org/ns/dcat#",
             "dcterms": "http://purl.org/dc/terms/",
             "prov": "http://www.w3.org/ns/prov#",

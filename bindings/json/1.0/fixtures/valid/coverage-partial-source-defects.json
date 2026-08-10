@@ -71,7 +71,7 @@
     {
       "recordId": "urn:example:deployment:prod-1",
       "path": "/evaluationResult/digest",
-      "value": "sha256:554b5ad0c02af22bf7c33ece92cdcba0aadd76f87d1ffb86ba86d5618b700378"
+      "value": "sha256:671bc0d061c48c1a3f8d615fb71fbe3056c123eea2fd0a1de2077f92c4be3e09"
     }
   ],
   "refreshDigests": [

@@ -554,7 +554,7 @@ def test_selected_managed_graph_work_queue_preserves_fixed_point_closure() -> No
         "@graph": [
             {
                 "@id": reverse_rights_id,
-                "@type": "rkaf:RightsMetadata",
+                "@type": "atlas:RightsMetadata",
                 "dcterms:subject": {"@id": lifecycle_ids[1]},
                 "dcterms:license": {"@id": reverse_license_id},
             },
@@ -569,37 +569,37 @@ def test_selected_managed_graph_work_queue_preserves_fixed_point_closure() -> No
             {
                 "@id": lifecycle_ids[1],
                 "@type": "rkaf:LifecycleEvent",
-                "rkaf:priorEvent": {"@id": lifecycle_ids[0]},
+                "rkaf:appliesTo": [lifecycle_ids[0]],
             },
             {"@id": reverse_license_id, "@type": "dcterms:LicenseDocument"},
             {
                 "@id": member_id,
                 "@type": "rkaf:RegisteredConcept",
                 "skos:inScheme": {"@id": scheme_id},
-                "rkaf:rightsMetadata": {"@id": direct_rights_id},
+                "atlas:rightsMetadata": {"@id": direct_rights_id},
             },
             {"@id": scheme_id, "@type": "rkaf:ConceptScheme"},
             {"@id": distribution_id, "@type": "rkaf:Artifact"},
             {
                 "@id": direct_rights_id,
-                "@type": "rkaf:RightsStatement",
+                "@type": "atlas:RightsStatement",
                 "dcterms:license": {"@id": direct_license_id},
             },
             {"@id": direct_license_id, "@type": "dcterms:LicenseDocument"},
             {
                 "@id": lifecycle_ids[0],
                 "@type": "rkaf:LifecycleEvent",
-                "rkaf:resultingConcept": {"@id": member_id},
+                "rkaf:successorConcepts": [member_id],
             },
             {
                 "@id": unrelated_lifecycle_id,
                 "@type": "rkaf:LifecycleEvent",
-                "rkaf:resultingConcept": {"@id": unrelated_artifact_id},
+                "rkaf:appliesTo": [unrelated_artifact_id],
             },
             {
                 "@id": unrelated_artifact_id,
                 "@type": "rkaf:Artifact",
-                "rkaf:mentions": {"@id": member_id},
+                "dcterms:references": {"@id": member_id},
             },
         ],
     }
@@ -639,7 +639,7 @@ def test_selected_managed_graph_indexes_long_chain_nodes_once(
         record: dict[str, Any] = {
             "@id": identifier,
             "@type": "rkaf:LifecycleEvent",
-            "rkaf:priorEvent": {"@id": predecessor},
+            "rkaf:appliesTo": [predecessor],
         }
         if index == len(reverse_ids) - 1:
             record["dcterms:rights"] = {"@id": direct_ids[0]}

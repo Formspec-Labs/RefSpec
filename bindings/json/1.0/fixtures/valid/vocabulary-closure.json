@@ -1915,7 +1915,7 @@
       "recordedBy": "urn:example:activity:evaluate",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:6197892f3e60db6e60b0cc2c4f68eb7e916d12640b013c865d640f818e2715ca",
+      "canonicalPayloadDigest": "sha256:b0d05c206a3d4d0155fe6cf5147dd0e7afc26d5cb8288395d38d9f6741dd454a",
       "configuration": {
         "id": "urn:example:configuration:c1",
         "digest": "sha256:0ef2be8babc75d05efc1b00ad9aa9f79b865f656063ad882babd3e8649421b0d"
@@ -2030,7 +2030,7 @@
         {
           "id": "urn:example:gate:predicate",
           "dimension": "predicate",
-          "subject": "https://rulespec.org/ns/v1#assignedConcept",
+          "subject": "http://www.w3.org/2004/02/skos/core#exactMatch",
           "passed": true,
           "reason": "Predicate threshold passed."
         },
@@ -2085,7 +2085,7 @@
       "recordedBy": "urn:example:activity:deploy",
       "schemaVersion": "1.0",
       "operationalState": "effective",
-      "canonicalPayloadDigest": "sha256:a8880f360a6808de39728303fa51d251113f35a6339173024f2b82064088cc70",
+      "canonicalPayloadDigest": "sha256:7c53568e68de6fa3fec37d460869397bbdaab71ed233be7309c5586e9bad3147",
       "environment": {
         "id": "urn:example:environment:production",
         "classification": "production"
@@ -2096,7 +2096,7 @@
       },
       "evaluationResult": {
         "id": "urn:example:evaluation:e1",
-        "digest": "sha256:6197892f3e60db6e60b0cc2c4f68eb7e916d12640b013c865d640f818e2715ca"
+        "digest": "sha256:b0d05c206a3d4d0155fe6cf5147dd0e7afc26d5cb8288395d38d9f6741dd454a"
       },
       "outputProfile": {
         "id": "urn:example:output-profile:v1",

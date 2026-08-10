@@ -208,14 +208,18 @@ _LIFECYCLE_TYPES = frozenset(
         "https://rulespec.org/ns/v1#LifecycleEvent",
     }
 )
+# Rights are deliberately out of scope upstream: Rulespec's
+# constraints/core/reference-resource-release.cue states that "rights ...
+# remain application concerns". Recognizing them is therefore Atlas's job, in
+# Atlas's namespace -- an rkaf: prefix here would contradict that boundary.
 _RIGHTS_TYPES = frozenset(
     {
         "dcterms:LicenseDocument",
         "http://purl.org/dc/terms/LicenseDocument",
-        "rkaf:RightsMetadata",
-        "rkaf:RightsStatement",
-        "https://rulespec.org/ns/v1#RightsMetadata",
-        "https://rulespec.org/ns/v1#RightsStatement",
+        "atlas:RightsMetadata",
+        "atlas:RightsStatement",
+        "https://refspec.org/ns/atlas/v3#RightsMetadata",
+        "https://refspec.org/ns/atlas/v3#RightsStatement",
     }
 )
 _DIRECT_CLOSURE_PREDICATES = frozenset(
@@ -226,18 +230,18 @@ _DIRECT_CLOSURE_PREDICATES = frozenset(
         "dcterms:isVersionOf",
         "dcterms:license",
         "dcterms:rights",
+        "atlas:rightsMetadata",
+        "atlas:sourceRelationRecord",
         "rkaf:lifecycleEvent",
-        "rkaf:rightsMetadata",
-        "rkaf:sourceRelationRecord",
         "skos:inScheme",
         "http://purl.org/dc/terms/accessRights",
         "http://purl.org/dc/terms/isVersionOf",
         "http://purl.org/dc/terms/license",
         "http://purl.org/dc/terms/rights",
         "http://www.w3.org/2004/02/skos/core#inScheme",
+        "https://refspec.org/ns/atlas/v3#rightsMetadata",
+        "https://refspec.org/ns/atlas/v3#sourceRelationRecord",
         "https://rulespec.org/ns/v1#lifecycleEvent",
-        "https://rulespec.org/ns/v1#rightsMetadata",
-        "https://rulespec.org/ns/v1#sourceRelationRecord",
         "https://www.w3.org/ns/dcat#accessRights",
         "https://www.w3.org/ns/dcat#distribution",
     }

@@ -12,8 +12,17 @@ pinned Rulespec validators (``rkaf-validate-cli``, ``ci_validate.py``,
 former closure-pin machinery would have noticed -- it checked compiled
 artifact digests and Git revisions, never the vocabulary itself.
 
-This test collects every such term from RefSpec's src/ and asserts it still
-exists in a real Rulespec checkout.
+This test collects every such term from the whole repository and asserts it
+still exists in a real Rulespec checkout.
+
+Scanning only src/ was the bug that let the leak run the other way. A shipped
+JSON binding fixture asserted ``rulespec.org/ns/v1#assignedConcept``, a test
+invented ``#assignmentSecondary`` as a fifth member of a closed four-value
+upstream enum, and a research script queried a docket class that only the
+document pipeline in another repository defines -- none of them
+visible to a src/-only scan. So every text file under the directories that can
+carry a vocabulary claim is read: src/, tests/, research/, bindings/, and
+tools/.
 
 Source of truth, and why: three candidates were inspected.
 
@@ -45,18 +54,20 @@ never compiles from CUE at all. Its normative definition is
 ``crates/rkaf-runtime`` Rust crate. Both are git-tracked, so both are added
 to the source of truth for exactly that surface.
 
-_KNOWN_LOCAL_ONLY_TERMS is a real, checked exception, not a loophole:
-src/refspec/atlas/federal_register.py and
-src/refspec/atlas/release_snapshot.py use a handful of rkaf:-prefixed
-identifiers (SourceRelationRecord, RightsMetadata, ...) that do not exist
-anywhere in Rulespec -- not in constraints/, spec/, or crates/rkaf-runtime --
-as of this writing (confirmed by exhaustive search of a real checkout). That
-is a real, separate finding: Atlas appears to be minting its own rkaf: terms
-rather than getting them ratified upstream, which is exactly what AGENTS.md's
-"never mint a parallel term for a concept rkaf already defines" rule is
-about. Fixing that is out of scope here. The terms are listed explicitly, by
-name, so a rename or removal affecting any *other* term is still caught, and
-so this known gap stays visible instead of silently passing.
+There is no exception list. There used to be one, naming the rkaf:-prefixed
+identifiers Atlas had minted for itself (SourceRelationRecord, RightsMetadata,
+...). Those terms now live in RefSpec's own https://refspec.org/ns/atlas/v3#
+namespace, where RefSpec is entitled to define them, so nothing is left to
+excuse. An empty exception list is the point: AGENTS.md says never mint a
+parallel term for a concept rkaf already defines, and a term in rkaf's
+namespace that rkaf does not define is the same violation seen from the other
+side.
+
+``urn:rkaf:`` is not a compact IRI. RefSpec identifiers such as
+``urn:rkaf:us:cfr:7:273.9`` and ``urn:rkaf:fixture:release:digest-vector``
+contain the sequence ``rkaf:`` mid-URN; reading ``us`` or ``fixture`` out of
+them as vocabulary terms produced four false leaks. The compact-IRI pattern
+therefore refuses a ``urn:`` prefix.
 """
 
 from __future__ import annotations
@@ -68,33 +79,21 @@ from pathlib import Path
 import pytest
 
 REFSPEC_ROOT = Path(__file__).resolve().parents[1]
-REFSPEC_SRC = REFSPEC_ROOT / "src"
 
-# Confirmed absent from constraints/, spec/, and crates/rkaf-runtime in a real
-# Rulespec checkout (checked 2026-08-09). See module docstring.
-_KNOWN_LOCAL_ONLY_TERMS = frozenset(
-    {
-        # src/refspec/atlas/federal_register.py -- unresolved Federal Register
-        # relation records.
-        "sourceConcept",
-        "sourceConceptId",
-        "sourceOrdinal",
-        "sourcePdfPage",
-        "sourcePrintedPage",
-        "sourceRawTargetLabel",
-        "sourceRelationId",
-        "sourceRelationRecord",
-        "SourceRelationRecord",
-        "sourceRelationStatus",
-        # src/refspec/atlas/release_snapshot.py -- legacy rights-type
-        # recognition.
-        "rightsMetadata",
-        "RightsMetadata",
-        "RightsStatement",
-    }
+# Every directory that can carry a vocabulary claim: shipped code, the tests
+# that pin its wire formats, the binding fixtures consumers receive, the
+# generators that write them, and the research record.
+REFSPEC_SCANNED_DIRECTORIES = ("src", "tests", "research", "bindings", "tools")
+
+# Binary payloads a text scan cannot read. Everything else is read as UTF-8;
+# anything that fails to decode is skipped for the same reason.
+_BINARY_SUFFIXES = frozenset(
+    {".gz", ".jpg", ".jpeg", ".lbug", ".parquet", ".pdf", ".png", ".zip"}
 )
 
-_RKAF_COMPACT_IRI = re.compile(r"rkaf:([A-Za-z][A-Za-z0-9_-]*)")
+# ``(?<!urn:)`` keeps urn:rkaf:us:cfr:... and urn:rkaf:fixture:... out: those
+# are RefSpec identifiers that merely contain "rkaf:", not compact IRIs.
+_RKAF_COMPACT_IRI = re.compile(r"(?<!urn:)\brkaf:([A-Za-z][A-Za-z0-9_-]*)")
 _RKAF_FULL_IRI = re.compile(r"https://rulespec\.org/ns/v1#([A-Za-z][A-Za-z0-9_-]*)")
 _RKAF_NAMESPACE_FSTRING = re.compile(r"\{RKAF_NAMESPACE\}([A-Za-z][A-Za-z0-9_]*)")
 
@@ -107,12 +106,19 @@ def _extract_rkaf_terms(text: str) -> set[str]:
     )
 
 
-def refspec_rkaf_terms(*, src_root: Path = REFSPEC_SRC) -> set[str]:
-    """Every distinct rkaf: local name used as a string constant under src/."""
+def refspec_rkaf_terms(*, root: Path = REFSPEC_ROOT) -> set[str]:
+    """Every distinct rkaf: local name this repository claims, anywhere."""
 
     terms: set[str] = set()
-    for path in src_root.rglob("*.py"):
-        terms |= _extract_rkaf_terms(path.read_text(encoding="utf-8"))
+    for directory in REFSPEC_SCANNED_DIRECTORIES:
+        for path in (root / directory).rglob("*"):
+            if not path.is_file() or path.suffix.lower() in _BINARY_SUFFIXES:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            terms |= _extract_rkaf_terms(text)
     return terms
 
 
@@ -161,42 +167,68 @@ def test_every_rkaf_term_refspec_uses_exists_upstream() -> None:
         )
 
     used = refspec_rkaf_terms()
-    assert used, "found no rkaf: terms in src/ -- the extraction regex is broken"
+    assert used, "found no rkaf: terms in the repository -- the extraction regex is broken"
 
     defined = rulespec_vocabulary_terms(rulespec_dir)
     assert defined, f"found no rkaf: terms in {rulespec_dir} -- the checkout looks empty"
 
-    missing = sorted(used - _KNOWN_LOCAL_ONLY_TERMS - defined)
+    missing = sorted(used - defined)
     assert not missing, (
-        f"{len(missing)} rkaf: term(s) RefSpec uses no longer exist in the Rulespec "
-        f"checkout at {rulespec_dir}: {missing}. Either Rulespec renamed/removed a "
-        "term RefSpec depends on, or this test's _KNOWN_LOCAL_ONLY_TERMS exception "
-        "list needs updating."
+        f"{len(missing)} rkaf: term(s) this repository claims do not exist in the "
+        f"Rulespec checkout at {rulespec_dir}: {missing}. Either Rulespec "
+        "renamed or removed a term RefSpec depends on, or RefSpec has minted a "
+        "term inside Rulespec's namespace. Terms RefSpec owns belong in "
+        "https://refspec.org/ns/atlas/v3# -- there is no exception list."
     )
 
 
-def test_the_exception_list_expires_when_the_exceptions_do() -> None:
-    """An exception list nothing retires is how a known gap becomes permanent.
+def test_a_urn_that_contains_rkaf_is_not_a_vocabulary_claim() -> None:
+    """The URN guard must exclude urn:rkaf: without blinding the scan.
 
-    Both halves of every entry are checked. A term that RefSpec stopped using
-    is dead weight that quietly widens the hole above; a term Rulespec has
-    since ratified is a rename that should now be enforced, not excused. In
-    either case the entry must go, and only a failing test makes that happen.
+    Dropping the guard resurrects four phantom terms (us, facet, fixture,
+    test) and buries the real ones in noise; widening it to any prefix blinds
+    the scan to real compact IRIs. Both directions are pinned here.
     """
 
-    rulespec_dir = discover_rulespec_checkout()
-    if rulespec_dir is None:
-        pytest.skip("no Rulespec checkout found -- see the currency test for details")
+    assert _extract_rkaf_terms("urn:rkaf:us:cfr:7:273.9") == set()
+    assert _extract_rkaf_terms('"urn:rkaf:fixture:release:digest-vector"') == set()
+    assert _extract_rkaf_terms('"rkaf:completeMembership"') == {"completeMembership"}
+    assert _extract_rkaf_terms('{"@id": "urn:x"}, "rkaf:appliesTo"') == {"appliesTo"}
+    assert _extract_rkaf_terms(
+        '"https://rulespec.org/ns/v1#assignmentPrimary"'
+    ) == {"assignmentPrimary"}
 
-    unused = sorted(_KNOWN_LOCAL_ONLY_TERMS - refspec_rkaf_terms())
-    assert not unused, (
-        f"_KNOWN_LOCAL_ONLY_TERMS excuses {len(unused)} term(s) RefSpec no longer "
-        f"uses in src/: {unused}. Delete them from the exception list."
+
+def test_the_scan_reaches_beyond_python_files_under_src(tmp_path: Path) -> None:
+    """A src/-only, *.py-only scan is what let the binding fixtures leak.
+
+    The two worst offenders were a shipped JSON fixture and a Markdown trace,
+    neither of which the old scan could see. Every scanned directory is
+    exercised here in a file type that is not Python.
+    """
+
+    for directory in REFSPEC_SCANNED_DIRECTORIES:
+        assert (REFSPEC_ROOT / directory).is_dir(), directory
+
+    # The planted IRIs are assembled at run time. Written out literally they
+    # would be leaks in this very file, and this test would fail the one above.
+    prefix = "rkaf" + ":"
+    planted = {
+        "src": ("refspec/graph.jsonld", '{{"@type": "{term}"}}'),
+        "tests": ("fixtures/case.json", '{{"@type": "{term}"}}'),
+        "research": ("note.md", "asserts `{term}`"),
+        "bindings": ("json/1.0/fixtures/x.json", '"{term}"'),
+        "tools": ("templates/seed.ttl", "a {term} ."),
+    }
+    expected: set[str] = set()
+    for directory, (relative, template) in planted.items():
+        local_name = f"plantedIn{directory.capitalize()}"
+        path = tmp_path / directory / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(template.format(term=prefix + local_name), encoding="utf-8")
+        expected.add(local_name)
+    (tmp_path / "src" / "refspec" / "atlas.png").write_bytes(
+        b"\x89PNG\r" + (prefix + "plantedInBinary").encode()
     )
 
-    ratified = sorted(_KNOWN_LOCAL_ONLY_TERMS & rulespec_vocabulary_terms(rulespec_dir))
-    assert not ratified, (
-        f"{len(ratified)} term(s) on the exception list now exist upstream: "
-        f"{ratified}. Rulespec ratified them, so drop them from "
-        "_KNOWN_LOCAL_ONLY_TERMS and let the currency check enforce them."
-    )
+    assert refspec_rkaf_terms(root=tmp_path) == expected

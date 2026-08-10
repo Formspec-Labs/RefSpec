@@ -173,12 +173,13 @@ def valid_bundle() -> dict:
     graph = {
         "@context": {
             "rkaf": "https://rulespec.org/ns/v1#",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
         },
         "@graph": [
             {
                 "@id": RULESPEC_IDENTIFIER,
                 "@type": "rkaf:Concept",
-                "rkaf:prefLabel": {"en": "Example"},
+                "skos:prefLabel": {"en": "Example"},
             }
         ],
     }
@@ -885,7 +886,7 @@ def test_forged_pass_receipt_cannot_replace_rulespec_execution(
 
 def test_stale_receipt_does_not_bind_a_changed_graph(tmp_path: Path) -> None:
     bundle = valid_bundle()
-    bundle["rulespecGraph"]["@graph"][0]["rkaf:prefLabel"]["en"] = "Changed"
+    bundle["rulespecGraph"]["@graph"][0]["skos:prefLabel"]["en"] = "Changed"
 
     report = validate_release_graph_bundle(
         bundle,
@@ -940,7 +941,7 @@ def test_cross_reference_list_must_cover_every_graph_id_used_by_ref(
         {
             "@id": second_identifier,
             "@type": "rkaf:Concept",
-            "rkaf:prefLabel": {"en": "Second"},
+            "skos:prefLabel": {"en": "Second"},
         }
     )
     digest = rulespec_graph_digest(bundle["rulespecGraph"])
