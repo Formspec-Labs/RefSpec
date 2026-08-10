@@ -4,6 +4,9 @@
   "title": "REF JSON Binding 1.0 record",
   "oneOf": [
     {
+      "$ref": "access-scope.schema.json"
+    },
+    {
       "$ref": "capture.schema.json"
     },
     {

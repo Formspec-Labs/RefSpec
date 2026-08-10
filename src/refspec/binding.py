@@ -25,6 +25,7 @@ SAFE_INTEGER = 9_007_199_254_740_991
 CANONICALIZATION_ALGORITHM = "urn:ref:canonical-json:v1"
 
 TYPE_SCHEMAS = {
+    "rkaf:AccessScope": "access-scope.schema.json",
     "urn:ref:type:Capture": "capture.schema.json",
     "urn:ref:type:RightsAssessment": "rights-assessment.schema.json",
     "urn:ref:type:RunReceipt": "run-receipt.schema.json",
@@ -46,6 +47,7 @@ TYPE_SCHEMAS = {
 }
 
 TYPE_REQUIREMENTS = {
+    "rkaf:AccessScope": "REF-SEC-008",
     "urn:ref:type:Capture": "REF-CAP-001",
     "urn:ref:type:RightsAssessment": "REF-RIGHTS-004",
     "urn:ref:type:RunReceipt": "REF-PROV-004",
@@ -65,6 +67,30 @@ TYPE_REQUIREMENTS = {
     "urn:ref:type:EnrichmentDeploymentDecision": "REF-ENR-020",
     "urn:ref:type:SourceIdentifierSet": "REF-VOC-040",
 }
+
+# rkaf's closed usage-eligibility lattice (usage-eligibility.cue). Order is
+# normative -- it ascends from the lowest ceiling to the highest -- so this
+# tuple, not just the set it also defines, is the shared source both the
+# OutputProfile builder (vocabulary.py) and the accepted-output gate
+# (accepted_output.py) import rather than re-declaring.
+USAGE_ELIGIBILITY_ORDER = (
+    "rkaf:notEligible",
+    "rkaf:searchOnly",
+    "rkaf:reviewQueueOnly",
+    "rkaf:draftGenerationAllowed",
+    "rkaf:localOperationalUse",
+    "rkaf:publicationAllowed",
+    "rkaf:officialUse",
+)
+USAGE_ELIGIBILITY_VALUES = frozenset(USAGE_ELIGIBILITY_ORDER)
+USAGE_ELIGIBILITY_RANK = {
+    value: rank for rank, value in enumerate(USAGE_ELIGIBILITY_ORDER)
+}
+# access-scope.cue's #AccessScopeKind and #RegulatoryClass closed enums are
+# enforced only by the JSON Schema $defs in common.schema.json -- no runtime
+# Python check consumes them (unlike usageEligibility, which the
+# accepted-output gate ranks), so no matching Python constant is declared
+# here; one would be unenforced structure.
 
 CORE_FACETS = {
     "urn:ref:facet:general-subject",
@@ -2112,6 +2138,37 @@ def deployment_diagnostics(
     return diagnostics
 
 
+def capture_diagnostics(
+    record: dict[str, Any],
+    records_by_id: dict[str, dict[str, Any]],
+) -> list[Diagnostic]:
+    """Require every accessScopeRef to resolve to a real ``rkaf:AccessScope`` record.
+
+    The type checked here, ``rkaf:AccessScope``, is the same string
+    ``release_graph.py``'s ``RULESPEC_ACCESS_SCOPE`` already resolves
+    ``accessScopeRefs/*`` against in the Rulespec release graph (compact form
+    of ``https://rulespec.org/ns/v1#AccessScope``) -- this is a second,
+    binding-local resolution against records co-resident in the same REF
+    record set, not a REF-owned twin of that type.
+
+    ``rightsExpressionRefs`` is deliberately left alone: no RefSpec record
+    type or consumer exists for it yet, so a resolution rule here would be
+    unenforceable structure (see REF-023 item 3).
+    """
+
+    diagnostics: list[Diagnostic] = []
+    for ref in record.get("accessScopeRefs", []):
+        target = records_by_id.get(ref) if isinstance(ref, str) else None
+        if target is None or target.get("type") != "rkaf:AccessScope":
+            diagnostics.append(
+                Diagnostic(
+                    "REF-SEC-008",
+                    f"{record.get('id')} accessScopeRefs cannot resolve {ref!r} to an rkaf:AccessScope record",
+                )
+            )
+    return diagnostics
+
+
 def semantic_diagnostics(
     record: dict[str, Any],
     records_by_id: dict[str, dict[str, Any]],
@@ -2121,6 +2178,8 @@ def semantic_diagnostics(
         return validate_enrichment_profile(record)
     if record_type == "urn:ref:type:OutputProfile":
         return permission_prerequisite_diagnostics(record, records_by_id)
+    if record_type == "urn:ref:type:Capture":
+        return capture_diagnostics(record, records_by_id)
     if record_type == "urn:ref:type:RegistryImportCoverageReport":
         return coverage_diagnostics(record, records_by_id)
     if record_type == "urn:ref:type:IndexedVocabularyExpression":

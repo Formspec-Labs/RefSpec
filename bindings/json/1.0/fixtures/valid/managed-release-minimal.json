@@ -304,6 +304,16 @@
       "consumerEligible": false,
       "publishedAt": "2026-07-29T17:04:00Z",
       "activity": "urn:rulespec:activity:publish-fr-thesaurus-development:v1"
+    },
+    {
+      "id": "urn:rulespec:access-scope:development-public",
+      "type": "rkaf:AccessScope",
+      "recordedAt": "2026-07-29T17:00:45Z",
+      "recordedBy": "urn:ref:agent:reference-runtime",
+      "schemaVersion": "1.0",
+      "operationalState": "active",
+      "canonicalPayloadDigest": "sha256:ecec02fdc51721b14b5ef258862c0a835aa3274c9722eaec3ce45508af308034",
+      "accessScopeKind": "rkaf:public"
     }
   ],
   "permissionChecks": [],

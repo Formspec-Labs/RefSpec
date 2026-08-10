@@ -2899,6 +2899,28 @@ threat model, tested record and derivative types, methods, results, and
 unresolved risks. Approval and authorization MUST use Rulespec attestation and
 local adoption.
 
+**REF-SEC-008:** A `Capture`'s `accessScopeRefs` MUST each resolve to an
+`rkaf:AccessScope` record present in the validated REF record set --
+`rkaf:AccessScope` because Rulespec owns the concept (`access-scope.cue`);
+REF's binding hosts it in REF's own operational record envelope but MUST NOT
+mint a parallel `urn:ref:type:` label for it, and this is the same
+`rkaf:AccessScope` type `accessScopeRefs/*` already resolves against in the
+Rulespec release graph. An `rkaf:AccessScope` record's `regulatoryClass`,
+`embargoUntil`, and `permittedRole` fields MUST follow the discriminated
+union keyed by its `accessScopeKind` -- required and present only for the
+matching kind, and forbidden for every other kind, since Rulespec's
+`#AccessScope` is a closed struct -- and its `accessScopeKind` and
+`regulatoryClass` values MUST come from the pinned Rulespec `#AccessScope`
+and `#RegulatoryClass` closed enums. REF MUST NOT impose a constraint
+`#AccessScope` does not: `permittedRole` and the `dpv:*` fields accept
+arbitrary strings, unconstrained in range or uniqueness, exactly as CUE
+declares them. An `OutputProfile` permission row MUST carry a
+`usageEligibility` value from the pinned Rulespec `#UsageEligibility` closed
+lattice; an accepted-output authorization MUST require that value at or
+above the governing Rulespec evaluation's `minimumUsageEligibility` floor and
+MUST NOT claim a value broader than its `effectiveUsageEligibility` ceiling,
+per that lattice's normative order.
+
 ### 14.2 Public participation
 
 Public comments and similar participation records can contain names, contact

@@ -519,16 +519,20 @@ class SubjectEmissionPolicyResolution:
         ):
             raise SubjectEmissionError("subject emission policy eligibility is inconsistent")
         output_permission = cast(dict[str, Any], _plain(self.output_permission))
+        _output_permission_fields = {
+            "facet",
+            "assignmentRole",
+            "subjectEmissionPolicy",
+            "intendedProductUse",
+            "candidateUse",
+            "acceptedOutputUse",
+            "usageEligibility",
+        }
+        if "accessScope" in output_permission:
+            _output_permission_fields = _output_permission_fields | {"accessScope"}
         _require_exact_fields(
             output_permission,
-            {
-                "facet",
-                "assignmentRole",
-                "subjectEmissionPolicy",
-                "intendedProductUse",
-                "candidateUse",
-                "acceptedOutputUse",
-            },
+            _output_permission_fields,
             "output_permission",
         )
         if (
@@ -544,6 +548,17 @@ class SubjectEmissionPolicyResolution:
             or output_permission.get("acceptedOutputUse") is not True
         ):
             raise SubjectEmissionError("subject emission policy output grant is inconsistent")
+        permission_usage_eligibility = output_permission.get("usageEligibility")
+        if (
+            not isinstance(permission_usage_eligibility, str)
+            or permission_usage_eligibility not in binding.USAGE_ELIGIBILITY_RANK
+            or binding.USAGE_ELIGIBILITY_RANK[permission_usage_eligibility]
+            < binding.USAGE_ELIGIBILITY_RANK["rkaf:localOperationalUse"]
+        ):
+            raise SubjectEmissionError(
+                "output_permission.usageEligibility is narrower than the "
+                "accepted-output floor rkaf:localOperationalUse"
+            )
         for field, value in (
             ("subject_concept_release", subject_release),
             ("admission_review", admission_review),

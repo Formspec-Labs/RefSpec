@@ -1,0 +1,14 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/managed-release-minimal.json",
+  "expectedRequirements": ["REF-SEC-008"],
+  "mutations": [
+    {
+      "recordId": "urn:rulespec:access-scope:development-public",
+      "operation": "add",
+      "path": "/regulatoryClass",
+      "value": ["rkaf:HIPAA-PHI"]
+    }
+  ],
+  "refreshDigests": ["urn:rulespec:access-scope:development-public"]
+}

@@ -304,7 +304,7 @@ def test_accepted_assignment_resolves_exact_authorization_chain() -> None:
     assert result.validation_receipt["id"] == (
         "urn:example:release-graph-receipt:accepted-output"
     )
-    assert result.usage_eligibility == "acceptedOutput"
+    assert result.usage_eligibility == "rkaf:publicationAllowed"
 
 
 @pytest.mark.parametrize(
@@ -397,6 +397,32 @@ def test_candidate_only_permission_cannot_authorize_accepted_output() -> None:
             facet=candidate_only["facet"],
             assignment_role=candidate_only["assignmentRole"],
         )
+
+
+def test_permission_below_the_receipt_floor_cannot_authorize_accepted_output() -> None:
+    records = _records()
+    output = _record(records, "urn:ref:type:OutputProfile")
+    output["releasePermissions"][0]["usageEligibility"] = "rkaf:notEligible"
+    binding.refresh_fixture({"records": records})
+
+    with pytest.raises(
+        AcceptedOutputAuthorizationError,
+        match="narrower than the evaluation's minimumUsageEligibility floor",
+    ):
+        _call(records)
+
+
+def test_permission_above_the_receipt_ceiling_cannot_authorize_accepted_output() -> None:
+    records = _records()
+    output = _record(records, "urn:ref:type:OutputProfile")
+    output["releasePermissions"][0]["usageEligibility"] = "rkaf:officialUse"
+    binding.refresh_fixture({"records": records})
+
+    with pytest.raises(
+        AcceptedOutputAuthorizationError,
+        match="broadens beyond the evaluation's effectiveUsageEligibility",
+    ):
+        _call(records)
 
 
 @pytest.mark.parametrize(

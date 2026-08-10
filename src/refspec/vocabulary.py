@@ -1816,6 +1816,16 @@ def _validate_permission_use(row: Mapping[str, Any], label: str) -> None:
         raise ReferenceRuntimeError(f"{label}.acceptedOutputUse must be a boolean")
     if row["acceptedOutputUse"] and not row["candidateUse"]:
         raise ReferenceRuntimeError(f"{label}: accepted-output permission requires candidate permission")
+    if row.get("usageEligibility") not in binding.USAGE_ELIGIBILITY_VALUES:
+        raise ReferenceRuntimeError(f"{label}.usageEligibility must be one of rkaf's closed usage-eligibility values")
+    if "accessScope" in row:
+        _require_iri(row["accessScope"], f"{label}.accessScope")
+
+
+def _permission_field_set(base: frozenset[str], row: Mapping[str, Any]) -> frozenset[str]:
+    """Add the optional ``accessScope`` field only when the row carries it."""
+
+    return base | {"accessScope"} if "accessScope" in row else base
 
 
 def _require_exact_fields(
@@ -2028,6 +2038,7 @@ class OutputProfile:
                 "requiredImportFeatures",
                 "candidateUse",
                 "acceptedOutputUse",
+                "usageEligibility",
             }
         )
         mapping_fields = frozenset(
@@ -2041,6 +2052,7 @@ class OutputProfile:
                 "direction",
                 "candidateUse",
                 "acceptedOutputUse",
+                "usageEligibility",
             }
         )
         subject_admission_fields = frozenset(
@@ -2051,6 +2063,7 @@ class OutputProfile:
                 "intendedProductUse",
                 "candidateUse",
                 "acceptedOutputUse",
+                "usageEligibility",
             }
         )
         open_fields = frozenset(
@@ -2060,13 +2073,14 @@ class OutputProfile:
                 "mode",
                 "candidateUse",
                 "acceptedOutputUse",
+                "usageEligibility",
             }
         )
         open_default_fields = open_fields | {"defaultLanguage"}
         all_rows: list[tuple[str, Mapping[str, Any]]] = []
         for index, row in enumerate(self.release_permissions):
             label = f"releasePermissions[{index}]"
-            _require_exact_fields(row, release_fields, label)
+            _require_exact_fields(row, _permission_field_set(release_fields, row), label)
             _validate_permission_use(row, label)
             _require_iri(row["facet"], f"{label}.facet")
             _require_iri(row["assignmentRole"], f"{label}.assignmentRole")
@@ -2097,7 +2111,7 @@ class OutputProfile:
             all_rows.append(("release", row))
         for index, row in enumerate(self.mapping_permissions):
             label = f"mappingPermissions[{index}]"
-            _require_exact_fields(row, mapping_fields, label)
+            _require_exact_fields(row, _permission_field_set(mapping_fields, row), label)
             _validate_permission_use(row, label)
             _require_iri(row["facet"], f"{label}.facet")
             _require_iri(row["assignmentRole"], f"{label}.assignmentRole")
@@ -2127,7 +2141,7 @@ class OutputProfile:
             all_rows.append(("mapping", row))
         for index, row in enumerate(self.subject_admission_permissions):
             label = f"subjectAdmissionPermissions[{index}]"
-            _require_exact_fields(row, subject_admission_fields, label)
+            _require_exact_fields(row, _permission_field_set(subject_admission_fields, row), label)
             _validate_permission_use(row, label)
             _require_iri(row["facet"], f"{label}.facet")
             _require_iri(row["assignmentRole"], f"{label}.assignmentRole")
@@ -2150,7 +2164,7 @@ class OutputProfile:
             label = f"openLabelPermissions[{index}]"
             mode = row.get("mode")
             required = open_default_fields if mode == "declaredDefaultLanguage" else open_fields
-            _require_exact_fields(row, required, label)
+            _require_exact_fields(row, _permission_field_set(required, row), label)
             _validate_permission_use(row, label)
             _require_iri(row["facet"], f"{label}.facet")
             _require_iri(row["assignmentRole"], f"{label}.assignmentRole")
@@ -2515,10 +2529,22 @@ def materialize_open_label_value_assertion(
             "hasAILineage",
         )
     if usage_eligibility is not None:
-        assertion["rkaf:usageEligibility"] = _require_iri(
-            usage_eligibility,
-            "usage eligibility",
-        )
+        usage_eligibility = _require_iri(usage_eligibility, "usage eligibility")
+        if usage_eligibility not in binding.USAGE_ELIGIBILITY_RANK:
+            raise ReferenceRuntimeError(
+                "usage eligibility must be one of rkaf's closed usage-eligibility values"
+            )
+        permission_eligibility = permission.get("usageEligibility")
+        if (
+            permission_eligibility not in binding.USAGE_ELIGIBILITY_RANK
+            or binding.USAGE_ELIGIBILITY_RANK[usage_eligibility]
+            > binding.USAGE_ELIGIBILITY_RANK[permission_eligibility]
+        ):
+            raise ReferenceRuntimeError(
+                "usage eligibility broadens beyond the permission row's "
+                "usageEligibility; rkaf's lattice order permits narrowing only"
+            )
+        assertion["rkaf:usageEligibility"] = usage_eligibility
 
     fragments = _require_array(
         source_fragment_iris,

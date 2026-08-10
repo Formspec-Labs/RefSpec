@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/managed-release-minimal.json",
+  "expectedRequirements": ["REF-SEC-008"],
+  "mutations": [
+    {
+      "recordId": "urn:ref:capture:fr-thesaurus-1995:d5e01333",
+      "path": "/accessScopeRefs/0",
+      "value": "urn:rulespec:access-scope:does-not-exist"
+    }
+  ],
+  "refreshDigests": ["urn:ref:capture:fr-thesaurus-1995:d5e01333"]
+}

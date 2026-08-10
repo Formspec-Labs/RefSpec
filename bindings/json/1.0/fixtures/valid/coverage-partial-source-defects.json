@@ -51,27 +51,27 @@
     {
       "recordId": "urn:example:registry-deployment:prod-a",
       "path": "/coverageReport/digest",
-      "value": "sha256:688a72d3654169d15b6026b8384b5adb0d4c3e358fe883e9956cca9c99de5a9f"
+      "value": "sha256:5c365a79ce343e51dce802bbea960d51422364ece16f7c51983e0433deb28eee"
     },
     {
       "recordId": "urn:example:configuration:c1",
       "path": "/vocabulary/registryDeploymentDecisions/0/digest",
-      "value": "sha256:03368d8372dc927a22ff5bfcfeea239670fb8aec8a258f382b5c7c00e32b9565"
+      "value": "sha256:999bd77251478d67be2dc2a706c2cef270cf9f9d5d624d87261510222967a47e"
     },
     {
       "recordId": "urn:example:evaluation:e1",
       "path": "/configuration/digest",
-      "value": "sha256:7e8216a83c186974e762f422813acc871d02413bdda7dd7f01920b404cc7a1e0"
+      "value": "sha256:062ea2a22270f7386b67a87396d34c1086119864a0b89a6e02e1733d33c4e720"
     },
     {
       "recordId": "urn:example:deployment:prod-1",
       "path": "/configuration/digest",
-      "value": "sha256:7e8216a83c186974e762f422813acc871d02413bdda7dd7f01920b404cc7a1e0"
+      "value": "sha256:062ea2a22270f7386b67a87396d34c1086119864a0b89a6e02e1733d33c4e720"
     },
     {
       "recordId": "urn:example:deployment:prod-1",
       "path": "/evaluationResult/digest",
-      "value": "sha256:671bc0d061c48c1a3f8d615fb71fbe3056c123eea2fd0a1de2077f92c4be3e09"
+      "value": "sha256:330c8c09b698de5f3b2fa73bd0f3f66b4e247c40504a66334c7c66c4d6aed3e6"
     }
   ],
   "refreshDigests": [

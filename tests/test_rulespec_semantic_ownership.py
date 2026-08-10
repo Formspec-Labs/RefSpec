@@ -86,6 +86,7 @@ def _open_label_profile() -> OutputProfile:
                 "mode": "explicitLanguage",
                 "candidateUse": True,
                 "acceptedOutputUse": True,
+                "usageEligibility": "rkaf:publicationAllowed",
             },
         ),
         enrichment_profile_record=enrichment,
@@ -206,6 +207,17 @@ def test_normalized_rows_preserve_rulespec_fields_without_local_enums() -> None:
 
 
 def test_open_label_builder_preserves_rulespec_terms_without_local_ranges() -> None:
+    """assertionOrigin/epistemicBasis/evidenceRole stay open rulespec IRI ranges.
+
+    usageEligibility is deliberately excluded from that "no local range"
+    claim: unlike those three fields, rkaf's usage-eligibility.cue lattice is
+    genuinely closed and ordered, so this materializer clamps it (narrow-only
+    against the selected permission row's own usageEligibility) rather than
+    accepting an arbitrary future term -- see
+    test_open_label_usage_eligibility_rejects_a_non_lattice_value and
+    test_open_label_usage_eligibility_cannot_broaden_beyond_the_permission_row
+    below for the enforcement this test must not contradict.
+    """
     graph = materialize_open_label_value_assertion(
         output_profile=_open_label_profile(),
         facet=FACET,
@@ -225,7 +237,7 @@ def test_open_label_builder_preserves_rulespec_terms_without_local_ranges() -> N
         epistemic_basis="urn:test:rulespec-basis:future",
         evidence_role="urn:test:rulespec-evidence-role:future",
         ai_lineage_iri="urn:test:ai-lineage:one",
-        usage_eligibility="urn:test:rulespec-usage:future",
+        usage_eligibility="rkaf:localOperationalUse",
     )
 
     assertion = graph["assertion"]
@@ -237,12 +249,70 @@ def test_open_label_builder_preserves_rulespec_terms_without_local_ranges() -> N
         "urn:test:rulespec-basis:future"
     )
     assert assertion["rkaf:hasAILineage"] == "urn:test:ai-lineage:one"
-    assert assertion["rkaf:usageEligibility"] == (
-        "urn:test:rulespec-usage:future"
-    )
+    assert assertion["rkaf:usageEligibility"] == "rkaf:localOperationalUse"
     assert evidence["rkaf:evidenceRole"] == (
         "urn:test:rulespec-evidence-role:future"
     )
+
+
+def test_open_label_usage_eligibility_rejects_a_non_lattice_value() -> None:
+    """The migrated regression: a future/unknown term is no longer accepted.
+
+    usageEligibility is closed, unlike assertionOrigin/epistemicBasis/
+    evidenceRole above -- "urn:test:rulespec-usage:future" is not one of
+    rkaf's seven lattice members and must be rejected outright.
+    """
+    with pytest.raises(
+        ReferenceRuntimeError,
+        match="closed usage-eligibility values",
+    ):
+        materialize_open_label_value_assertion(
+            output_profile=_open_label_profile(),
+            facet=FACET,
+            assignment_role=ROLE,
+            resource_route="document",
+            mode="explicitLanguage",
+            declared_default_language=None,
+            literal="Air quality",
+            language_tag="en",
+            assertion_id="urn:test:assertion:open-label",
+            subject_iri="urn:test:artifact:one",
+            extraction_activity_iri="urn:test:activity:extract",
+            asserted_at=NOW,
+            evidence_binding_id="urn:test:evidence:open-label",
+            source_fragment_iris=("urn:test:fragment:one",),
+            usage_eligibility="urn:test:rulespec-usage:future",
+        )
+
+
+def test_open_label_usage_eligibility_cannot_broaden_beyond_the_permission_row() -> None:
+    """A valid lattice member is still rejected if it outranks the permission.
+
+    ``_open_label_profile()``'s permission row caps at
+    ``rkaf:publicationAllowed``; ``rkaf:officialUse`` is a real lattice member
+    but broader than what that row grants.
+    """
+    with pytest.raises(
+        ReferenceRuntimeError,
+        match="broadens beyond the permission row",
+    ):
+        materialize_open_label_value_assertion(
+            output_profile=_open_label_profile(),
+            facet=FACET,
+            assignment_role=ROLE,
+            resource_route="document",
+            mode="explicitLanguage",
+            declared_default_language=None,
+            literal="Air quality",
+            language_tag="en",
+            assertion_id="urn:test:assertion:open-label",
+            subject_iri="urn:test:artifact:one",
+            extraction_activity_iri="urn:test:activity:extract",
+            asserted_at=NOW,
+            evidence_binding_id="urn:test:evidence:open-label",
+            source_fragment_iris=("urn:test:fragment:one",),
+            usage_eligibility="rkaf:officialUse",
+        )
 
 
 def test_complete_publication_store_requires_exact_gate_receipt(

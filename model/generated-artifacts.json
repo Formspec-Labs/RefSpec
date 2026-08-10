@@ -1,19 +1,20 @@
 {
   "schemaVersion": "1.0",
   "source": "model/ref-records.cue",
-  "sourceSha256": "sha256:c7e8630e27ec6c2acca475d7a4e94765a7ef18b0480bf0f79129af281c822e57",
+  "sourceSha256": "sha256:9093b5efee7978c4a531cf7c4fed750a75e440d78075e0e31ebb2f875bf4e4c2",
   "artifacts": {
+    "bindings/json/1.0/schemas/access-scope.schema.json": "sha256:31f55e57e186e00f00533e520c71c964aa854874a36d81114e36ad84c892a07d",
     "bindings/json/1.0/schemas/capture.schema.json": "sha256:489ffc9b9c21b3f2f0118ed783856a6990616dd1db43de0dc148187338072c62",
-    "bindings/json/1.0/schemas/common.schema.json": "sha256:d5d769a8ecf812430c1100c83c13cd7f625a4c7acc4c08419f3d3a2cd86cc26e",
+    "bindings/json/1.0/schemas/common.schema.json": "sha256:89ff11fe32a3414a018234d49283e1754dfc9abd9e88e6b1bea7e3b6fbe0d767",
     "bindings/json/1.0/schemas/concept-proposal.schema.json": "sha256:41ae00c92828b677119e49f6d0af9486c9b5ce1b45f0aa069ba94fcbfd940f03",
     "bindings/json/1.0/schemas/enrichment-configuration.schema.json": "sha256:0130a79a542d8cd3a08e3cc2faecd9ce0d036e23198af4c0889ab217435f354b",
     "bindings/json/1.0/schemas/enrichment-deployment-decision.schema.json": "sha256:e06ea95616e0728dc5e1a235686cc93bccc45b427558781da85c3cc220539f4f",
     "bindings/json/1.0/schemas/enrichment-evaluation-result.schema.json": "sha256:57872b37937f2063440c985f925afc8d9838f0f02edfce700c929b11d3912aed",
     "bindings/json/1.0/schemas/enrichment-profile.schema.json": "sha256:7e2844e4b88a4de86d4270c876986d5ea1b34af824509a386c59b53be8cf78a7",
     "bindings/json/1.0/schemas/indexed-vocabulary-expression.schema.json": "sha256:c37aaf3a10108c7f92be54c6203f38f73da3006fa2aa90507d67f3ee787d508c",
-    "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:5a591807c83b821577ff294f24cce60cd7681ebbf6e6a692dcf52bcca9e2afdf",
+    "bindings/json/1.0/schemas/output-profile.schema.json": "sha256:37f7430d766778753fa2079938eaa9bcbb1811ac569b55dbc7c2d9936df5cc21",
     "bindings/json/1.0/schemas/publication-release-manifest.schema.json": "sha256:1ab98831dd423a86fd1d6c4d20782c7b5e3bf3482cf1eb3a784872db304ad26f",
-    "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:c591da7854464544959a330af6a7d1af9f1bf0d3347dc0cbc3ba7c61d4dc07a8",
+    "bindings/json/1.0/schemas/ref-record.schema.json": "sha256:bd2a148ecad7ad2a115cab935f57853950d4507aec218dc0931be113c8a7cded",
     "bindings/json/1.0/schemas/registry-deployment-decision.schema.json": "sha256:e4d400ee3da7098ec32119cdc2c12c863c5a1a6e4d7fe4dc2aadcd97e078c10e",
     "bindings/json/1.0/schemas/registry-import-coverage-report.schema.json": "sha256:6ebaac9ea6a723b2ab95b7876ff2f268f0a503babeaa94ec4b62173c0f31f6ae",
     "bindings/json/1.0/schemas/registry-import-snapshot.schema.json": "sha256:e5c1de427ecd0e47fd8b45048f156701387e083d07b9d46154e13cc3ddf6b341",
@@ -23,9 +24,9 @@
     "bindings/json/1.0/schemas/run-receipt.schema.json": "sha256:45d37b467079eb256185ba215fb23dd98c373db85bb070d9e08e2e3de6856da8",
     "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
     "bindings/json/1.0/schemas/source-identifier-set.schema.json": "sha256:097b3b05402c488e5c8005f6717a815cb904eff1294ba574e72147daead05be5",
-    "src/refspec/generated_conformance_assets.py": "sha256:0f9f00021f41733a038fbeefcef9c81385dccc094505a49c7d6660f625f984bc",
+    "src/refspec/generated_conformance_assets.py": "sha256:9cc3c44c01d85b013a1bed883959ce21f9dfb84495424575e02da3f25c196e6f",
     "src/refspec/generated_rulespec_dependency.py": "sha256:0a2d8d639094181fa73c1602c7460e2129d771392cd9595710bdab831876aaab",
-    "src/refspec/generated_schemas.py": "sha256:f7ecb5ced83c549421959ebd81cc2d07e52a274e13ed36b96d861295c10e626e",
-    "src/refspec/generated_types.py": "sha256:56b41a92080b98460c7e6fe46b79b990544d49c57bd086a1ef5ba08eda2a2590"
+    "src/refspec/generated_schemas.py": "sha256:c615c003f2053d2b337807922f05ddeae813ebcc96baff57ce3cca32ed7ef4da",
+    "src/refspec/generated_types.py": "sha256:b98aace71acf6600a1521da148a9ef58fb0a3bb88a3d016969bc82c584dd305a"
   }
 }

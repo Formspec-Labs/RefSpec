@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refspec.org/bindings/json/1.0/schemas/access-scope.schema.json",
+  "title": "REF AccessScope",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/commonRecordProperties"
+    },
+    {
+      "if": {
+        "properties": {
+          "accessScopeKind": {
+            "const": "rkaf:regulatoryRestricted"
+          }
+        },
+        "required": [
+          "accessScopeKind"
+        ]
+      },
+      "then": {
+        "required": [
+          "regulatoryClass"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "regulatoryClass"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accessScopeKind": {
+            "const": "rkaf:embargoUntil"
+          }
+        },
+        "required": [
+          "accessScopeKind"
+        ]
+      },
+      "then": {
+        "required": [
+          "embargoUntil"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "embargoUntil"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accessScopeKind": {
+            "const": "rkaf:roleRestricted"
+          }
+        },
+        "required": [
+          "accessScopeKind"
+        ]
+      },
+      "then": {
+        "required": [
+          "permittedRole"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "permittedRole"
+          ]
+        }
+      }
+    }
+  ],
+  "required": [
+    "canonicalPayloadDigest",
+    "accessScopeKind"
+  ],
+  "properties": {
+    "type": {
+      "const": "rkaf:AccessScope"
+    },
+    "canonicalPayloadDigest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "accessScopeKind": {
+      "$ref": "common.schema.json#/$defs/accessScopeKind"
+    },
+    "regulatoryClass": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/regulatoryClass"
+      }
+    },
+    "embargoUntil": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permittedRole": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "hasPersonalDataCategory": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hasLegalBasis": {
+      "type": "string"
+    },
+    "hasPurpose": {
+      "type": "string"
+    }
+  },
+  "unevaluatedProperties": false
+}

@@ -279,6 +279,7 @@ def _output_profile(
     include_permission: bool = True,
     operational_state: str = "active",
     permission_policy: Mapping[str, str] | None = None,
+    usage_eligibility_override: str | None = None,
 ) -> OutputProfile:
     enrichment = EnrichmentProfile(
         profile_id="urn:ref:test:enrichment-profile:subject-emission",
@@ -298,6 +299,14 @@ def _output_profile(
             },
         ),
     )
+    if usage_eligibility_override is not None:
+        usage_eligibility = usage_eligibility_override
+    elif accepted_output_use:
+        usage_eligibility = "rkaf:publicationAllowed"
+    elif candidate_use:
+        usage_eligibility = "rkaf:searchOnly"
+    else:
+        usage_eligibility = "rkaf:notEligible"
     permission = {
         "facet": FACET,
         "assignmentRole": ASSIGNMENT_ROLE,
@@ -305,6 +314,7 @@ def _output_profile(
         "intendedProductUse": PRODUCT_USE,
         "candidateUse": candidate_use,
         "acceptedOutputUse": accepted_output_use,
+        "usageEligibility": usage_eligibility,
     }
     return OutputProfile(
         profile_id="urn:ref:test:output-profile:subject-emission",
@@ -663,6 +673,31 @@ def test_candidate_only_permission_cannot_authorize_accepted_output() -> None:
     with pytest.raises(SubjectEmissionError, match="acceptedOutputUse=true"):
         resolve_subject_emission_policy(
             output_profile=_output_profile(policy, accepted_output_use=False),
+            policy=policy,
+            release=release,
+            admission_reviews=(review,),
+            subject_concept=review.subject_concept,
+            facet=FACET,
+            assignment_role=ASSIGNMENT_ROLE,
+            intended_product_use=PRODUCT_USE,
+            resource_route="document",
+        )
+
+
+def test_permission_below_the_accepted_output_floor_cannot_authorize() -> None:
+    release = _release()
+    review = _review(release)
+    policy = _emission_policy(release, review)
+
+    with pytest.raises(
+        SubjectEmissionError,
+        match="narrower than the accepted-output floor",
+    ):
+        resolve_subject_emission_policy(
+            output_profile=_output_profile(
+                policy,
+                usage_eligibility_override="rkaf:notEligible",
+            ),
             policy=policy,
             release=release,
             admission_reviews=(review,),

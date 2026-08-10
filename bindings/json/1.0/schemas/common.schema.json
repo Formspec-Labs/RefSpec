@@ -39,6 +39,39 @@
         "$ref": "#/$defs/absoluteIri"
       }
     },
+    "usageEligibility": {
+      "enum": [
+        "rkaf:notEligible",
+        "rkaf:searchOnly",
+        "rkaf:reviewQueueOnly",
+        "rkaf:draftGenerationAllowed",
+        "rkaf:localOperationalUse",
+        "rkaf:publicationAllowed",
+        "rkaf:officialUse"
+      ]
+    },
+    "accessScopeKind": {
+      "enum": [
+        "rkaf:public",
+        "rkaf:partnerVisible",
+        "rkaf:organizationVisible",
+        "rkaf:roleRestricted",
+        "rkaf:personalRestricted",
+        "rkaf:regulatoryRestricted",
+        "rkaf:embargoUntil"
+      ]
+    },
+    "regulatoryClass": {
+      "enum": [
+        "rkaf:HIPAA-PHI",
+        "rkaf:GDPR-PII",
+        "rkaf:FERPA",
+        "rkaf:CJIS",
+        "rkaf:classified",
+        "rkaf:legally-privileged",
+        "rkaf:partner-defined"
+      ]
+    },
     "controlledIdentifier": {
       "type": "object",
       "required": [

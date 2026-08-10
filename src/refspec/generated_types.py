@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-MODEL_SHA256 = "sha256:c7e8630e27ec6c2acca475d7a4e94765a7ef18b0480bf0f79129af281c822e57"
+MODEL_SHA256 = "sha256:9093b5efee7978c4a531cf7c4fed750a75e440d78075e0e31ebb2f875bf4e4c2"
 
 
 class REFRecordData(TypedDict, total=False):
@@ -16,6 +16,17 @@ class REFRecordData(TypedDict, total=False):
     recordedBy: Required[str]
     schemaVersion: Required[str]
     operationalState: Required[str]
+
+
+class AccessScopeData(REFRecordData, total=False):
+    canonicalPayloadDigest: Required[Any]
+    accessScopeKind: Required[Any]
+    regulatoryClass: NotRequired[list[Any]]
+    embargoUntil: NotRequired[str]
+    permittedRole: NotRequired[list[str]]
+    hasPersonalDataCategory: NotRequired[list[str]]
+    hasLegalBasis: NotRequired[str]
+    hasPurpose: NotRequired[str]
 
 
 class CaptureData(REFRecordData, total=False):
@@ -341,6 +352,7 @@ class SealedGoldManifestData(REFRecordData, total=False):
 
 
 __all__ = [
+    "AccessScopeData",
     "CaptureData",
     "ConceptProposalData",
     "EnrichmentConfigurationData",

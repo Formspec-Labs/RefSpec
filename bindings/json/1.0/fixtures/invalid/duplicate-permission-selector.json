@@ -32,7 +32,8 @@
           "membership"
         ],
         "candidateUse": true,
-        "acceptedOutputUse": false
+        "acceptedOutputUse": false,
+        "usageEligibility": "rkaf:searchOnly"
       }
     }
   ],

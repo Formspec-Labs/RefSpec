@@ -239,7 +239,7 @@
       "schemaVersion": "1.0",
       "operationalState": "active",
       "version": "1.0.0",
-      "contentDigest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f",
+      "contentDigest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7",
       "enrichmentProfile": {
         "id": "urn:ref:enrichment-profile:core:v1",
         "version": "1.0.0",
@@ -285,7 +285,8 @@
             "membership"
           ],
           "candidateUse": true,
-          "acceptedOutputUse": true
+          "acceptedOutputUse": true,
+          "usageEligibility": "rkaf:publicationAllowed"
         },
         {
           "facet": "urn:ref:facet:specialist-subject",
@@ -312,7 +313,8 @@
             "membership"
           ],
           "candidateUse": true,
-          "acceptedOutputUse": false
+          "acceptedOutputUse": false,
+          "usageEligibility": "rkaf:searchOnly"
         }
       ],
       "mappingPermissions": [
@@ -336,7 +338,8 @@
           "relation": "http://www.w3.org/2004/02/skos/core#closeMatch",
           "direction": "sourceToTarget",
           "candidateUse": true,
-          "acceptedOutputUse": true
+          "acceptedOutputUse": true,
+          "usageEligibility": "rkaf:localOperationalUse"
         }
       ],
       "subjectAdmissionPermissions": [
@@ -350,7 +353,8 @@
           },
           "intendedProductUse": "urn:example:product-use:subject-emission",
           "candidateUse": true,
-          "acceptedOutputUse": true
+          "acceptedOutputUse": true,
+          "usageEligibility": "rkaf:publicationAllowed"
         }
       ],
       "openLabelPermissions": [
@@ -359,7 +363,8 @@
           "assignmentRole": "https://rulespec.org/ns/v1#assignmentPrimary",
           "mode": "explicitLanguage",
           "candidateUse": true,
-          "acceptedOutputUse": true
+          "acceptedOutputUse": true,
+          "usageEligibility": "rkaf:publicationAllowed"
         },
         {
           "facet": "urn:ref:facet:specialist-subject",
@@ -367,7 +372,8 @@
           "mode": "declaredDefaultLanguage",
           "defaultLanguage": "zh-Hant",
           "candidateUse": true,
-          "acceptedOutputUse": true
+          "acceptedOutputUse": true,
+          "usageEligibility": "rkaf:publicationAllowed"
         }
       ]
     },
@@ -433,11 +439,11 @@
       "recordedBy": "urn:example:activity:import-a",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:3b2c9aacbda77537818e281f561a1054a35257ebeca67e201b088b05ec88ebf5",
+      "canonicalPayloadDigest": "sha256:808a539c5f1e5a5103be2f39d96ac0771b98132bc0539e6bc9b7d959a5f07533",
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
-        "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+        "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
       },
       "registryImportSnapshot": {
         "id": "urn:example:import:subjects-a",
@@ -631,11 +637,11 @@
       "recordedBy": "urn:example:activity:import-mapping-a-b",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:91315d0b02bdb9224f9d724b1e4ba3c3cd237fc6578f1b759270d7ad42853afd",
+      "canonicalPayloadDigest": "sha256:02a1115a9e3f11a3379f565a230073a32686be48b9f64836d93d21f61bccf215",
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
-        "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+        "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
       },
       "registryImportSnapshot": {
         "id": "urn:example:import:mapping-a-b",
@@ -1136,7 +1142,7 @@
       "recordedBy": "urn:example:activity:deploy-registry",
       "schemaVersion": "1.0",
       "operationalState": "effective",
-      "canonicalPayloadDigest": "sha256:df0665320514bef777269453b624c86512f1c9f2e6d64e977cd7eb0534eed4d1",
+      "canonicalPayloadDigest": "sha256:3df1c8f38aa2ee51607c5e47b4283c0ddd311b9af87a133174c34e9df236749c",
       "environment": {
         "id": "urn:example:environment:production",
         "classification": "production"
@@ -1159,7 +1165,7 @@
       },
       "coverageReport": {
         "id": "urn:example:coverage:subjects-a",
-        "digest": "sha256:3b2c9aacbda77537818e281f561a1054a35257ebeca67e201b088b05ec88ebf5"
+        "digest": "sha256:808a539c5f1e5a5103be2f39d96ac0771b98132bc0539e6bc9b7d959a5f07533"
       },
       "reconciliationReport": {
         "id": "urn:example:reconciliation:a-b",
@@ -1168,7 +1174,7 @@
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
-        "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+        "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
       },
       "selectionState": "selected",
       "effectiveAt": "2026-07-29T12:04:30Z",
@@ -1212,7 +1218,7 @@
       "recordedBy": "urn:example:activity:seal-gold",
       "schemaVersion": "1.0",
       "operationalState": "sealed",
-      "canonicalPayloadDigest": "sha256:65e8eb34e3dcb1911a7b5720cf7c1ed9dedba362c0f1ea06ec3b6e3393a20429",
+      "canonicalPayloadDigest": "sha256:3c0fb6c640b5b1bffe879de74a6c5f85e18d39b6cb948d22f4b21150e7cf5415",
       "evaluationGeneration": "g1",
       "purpose": "Vocabulary closure release evaluation",
       "selectionProtocol": {
@@ -1384,7 +1390,7 @@
         "outputProfile": {
           "id": "urn:example:output-profile:v1",
           "version": "1.0.0",
-          "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+          "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
         },
         "normalizationPolicy": {
           "id": "urn:example:normalization:v2",
@@ -1677,7 +1683,7 @@
       "recordedBy": "urn:example:activity:configure",
       "schemaVersion": "1.0",
       "operationalState": "frozen",
-      "canonicalPayloadDigest": "sha256:0ef2be8babc75d05efc1b00ad9aa9f79b865f656063ad882babd3e8649421b0d",
+      "canonicalPayloadDigest": "sha256:40f1ede9f424bbd2bee3b8f5f56b0a6ce77f25f7b6b460bc32f81b156fedcaaf",
       "implementation": {
         "id": "urn:example:implementation:enricher",
         "revision": "git:0123456789abcdef",
@@ -1697,7 +1703,7 @@
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
-        "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+        "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
       },
       "acceptancePolicy": {
         "id": "urn:example:acceptance-policy:v1",
@@ -1754,7 +1760,7 @@
         "registryDeploymentDecisions": [
           {
             "id": "urn:example:registry-deployment:prod-a",
-            "digest": "sha256:df0665320514bef777269453b624c86512f1c9f2e6d64e977cd7eb0534eed4d1"
+            "digest": "sha256:3df1c8f38aa2ee51607c5e47b4283c0ddd311b9af87a133174c34e9df236749c"
           }
         ]
       },
@@ -1915,14 +1921,14 @@
       "recordedBy": "urn:example:activity:evaluate",
       "schemaVersion": "1.0",
       "operationalState": "complete",
-      "canonicalPayloadDigest": "sha256:b0d05c206a3d4d0155fe6cf5147dd0e7afc26d5cb8288395d38d9f6741dd454a",
+      "canonicalPayloadDigest": "sha256:4562a623dec887786ab493f9bc80d119f2c5bfad6093ee65bafeb8bbc85e92e2",
       "configuration": {
         "id": "urn:example:configuration:c1",
-        "digest": "sha256:0ef2be8babc75d05efc1b00ad9aa9f79b865f656063ad882babd3e8649421b0d"
+        "digest": "sha256:40f1ede9f424bbd2bee3b8f5f56b0a6ce77f25f7b6b460bc32f81b156fedcaaf"
       },
       "sealedGoldManifest": {
         "id": "urn:example:gold:g1",
-        "digest": "sha256:65e8eb34e3dcb1911a7b5720cf7c1ed9dedba362c0f1ea06ec3b6e3393a20429"
+        "digest": "sha256:3c0fb6c640b5b1bffe879de74a6c5f85e18d39b6cb948d22f4b21150e7cf5415"
       },
       "evaluationProtocol": {
         "id": "urn:example:evaluation-protocol:v1",
@@ -2085,23 +2091,23 @@
       "recordedBy": "urn:example:activity:deploy",
       "schemaVersion": "1.0",
       "operationalState": "effective",
-      "canonicalPayloadDigest": "sha256:7c53568e68de6fa3fec37d460869397bbdaab71ed233be7309c5586e9bad3147",
+      "canonicalPayloadDigest": "sha256:2e639d3a6f94e4ce937b9dc5791bcaccd1340fe46016cf36cb1a93735393268c",
       "environment": {
         "id": "urn:example:environment:production",
         "classification": "production"
       },
       "configuration": {
         "id": "urn:example:configuration:c1",
-        "digest": "sha256:0ef2be8babc75d05efc1b00ad9aa9f79b865f656063ad882babd3e8649421b0d"
+        "digest": "sha256:40f1ede9f424bbd2bee3b8f5f56b0a6ce77f25f7b6b460bc32f81b156fedcaaf"
       },
       "evaluationResult": {
         "id": "urn:example:evaluation:e1",
-        "digest": "sha256:b0d05c206a3d4d0155fe6cf5147dd0e7afc26d5cb8288395d38d9f6741dd454a"
+        "digest": "sha256:4562a623dec887786ab493f9bc80d119f2c5bfad6093ee65bafeb8bbc85e92e2"
       },
       "outputProfile": {
         "id": "urn:example:output-profile:v1",
         "version": "1.0.0",
-        "digest": "sha256:402b4d63b8b3ae406795bfcba25530960377e1cf5fb16b71292fafc3e42a868f"
+        "digest": "sha256:6c602cbc14aeaac29903aea62cd3b3444928d36d05a96e2d678b802b17f464b7"
       },
       "selectionState": "selected",
       "effectiveAt": "2026-07-29T12:08:00Z",

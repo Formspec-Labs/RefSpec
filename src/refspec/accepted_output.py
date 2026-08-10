@@ -36,6 +36,21 @@ class AcceptedOutputAuthorizationError(ValueError):
     """The supplied evidence does not authorize an accepted assignment."""
 
 
+def _usage_eligibility_rank(value: object, label: str) -> int:
+    """Rank a value in rkaf's closed usage-eligibility lattice (usage-eligibility.cue).
+
+    The ORDER is normative -- notEligible is the lowest ceiling, officialUse
+    the highest -- and this is the only lattice-aware comparison this module
+    performs; every gate below compares ranks, never bare strings.
+    """
+
+    if not isinstance(value, str) or value not in binding.USAGE_ELIGIBILITY_RANK:
+        raise AcceptedOutputAuthorizationError(
+            f"{label} is not one of rkaf's closed usage-eligibility values: {value!r}"
+        )
+    return binding.USAGE_ELIGIBILITY_RANK[value]
+
+
 @dataclass(frozen=True, slots=True)
 class AcceptedOutputAuthorization:
     """The immutable identities resolved for one accepted assignment."""
@@ -49,7 +64,7 @@ class AcceptedOutputAuthorization:
     evaluation_result: Mapping[str, str]
     enrichment_deployment: Mapping[str, str]
     validation_receipt: Mapping[str, str]
-    usage_eligibility: str = "acceptedOutput"
+    usage_eligibility: str
 
 
 def _freeze(value: Any) -> Any:
@@ -181,6 +196,7 @@ def _require_receipt_authorization(
     receipt: Mapping[str, Any],
     decision: Mapping[str, Any],
     label: str,
+    usage_eligibility: str,
 ) -> None:
     decision_ref = dict(_exact_reference(decision))
     evaluations = receipt.get("authorizationEvaluations")
@@ -202,12 +218,37 @@ def _require_receipt_authorization(
     evaluation = matches[0]
     if (
         evaluation.get("behaviorContract") != _BEHAVIOR_CONTRACT
-        or evaluation.get("minimumUsageEligibility")
-        != "rkaf:localOperationalUse"
         or evaluation.get("result") != "pass"
     ):
         raise AcceptedOutputAuthorizationError(
             f"{label} lacks a passing Rulespec usage-eligibility evaluation"
+        )
+    minimum_rank = _usage_eligibility_rank(
+        evaluation.get("minimumUsageEligibility"),
+        f"{label} minimumUsageEligibility",
+    )
+    if minimum_rank < binding.USAGE_ELIGIBILITY_RANK["rkaf:localOperationalUse"]:
+        raise AcceptedOutputAuthorizationError(
+            f"{label} evaluation floor is below the accepted-output minimum "
+            "rkaf:localOperationalUse"
+        )
+    effective_rank = _usage_eligibility_rank(
+        evaluation.get("effectiveUsageEligibility"),
+        f"{label} effectiveUsageEligibility",
+    )
+    permission_rank = _usage_eligibility_rank(
+        usage_eligibility, f"{label} permission usageEligibility"
+    )
+    if permission_rank < minimum_rank:
+        raise AcceptedOutputAuthorizationError(
+            f"{label} permission usageEligibility {usage_eligibility!r} is "
+            "narrower than the evaluation's minimumUsageEligibility floor"
+        )
+    if permission_rank > effective_rank:
+        raise AcceptedOutputAuthorizationError(
+            f"{label} permission usageEligibility {usage_eligibility!r} broadens "
+            "beyond the evaluation's effectiveUsageEligibility; rkaf's lattice "
+            "order permits narrowing only"
         )
     if evaluation.get("inputGraph") != receipt.get("rulespecGraph"):
         raise AcceptedOutputAuthorizationError(
@@ -474,6 +515,9 @@ def authorize_accepted_assignment(
             "ReleaseGraphValidationReceipt lacks the exact Rulespec behavior runtime"
         )
 
+    usage_eligibility = str(supplied_permission.get("usageEligibility"))
+    _usage_eligibility_rank(usage_eligibility, "accepted_output_permission.usageEligibility")
+
     receipt_record_refs = receipt.get("refRecordDigests")
     if not isinstance(receipt_record_refs, list):
         raise AcceptedOutputAuthorizationError(
@@ -488,7 +532,7 @@ def authorize_accepted_assignment(
             raise AcceptedOutputAuthorizationError(
                 f"ReleaseGraphValidationReceipt does not digest the exact {label}"
             )
-        _require_receipt_authorization(receipt, decision, label)
+        _require_receipt_authorization(receipt, decision, label, usage_eligibility)
 
     return AcceptedOutputAuthorization(
         member=member,
@@ -506,4 +550,5 @@ def authorize_accepted_assignment(
         evaluation_result=_exact_reference(evaluation),
         enrichment_deployment=_exact_reference(enrichment_deployment),
         validation_receipt=_exact_reference(receipt),
+        usage_eligibility=usage_eligibility,
     )

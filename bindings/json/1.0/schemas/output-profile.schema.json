@@ -9,7 +9,8 @@
         "facet",
         "assignmentRole",
         "candidateUse",
-        "acceptedOutputUse"
+        "acceptedOutputUse",
+        "usageEligibility"
       ],
       "properties": {
         "facet": {
@@ -23,6 +24,12 @@
         },
         "acceptedOutputUse": {
           "type": "boolean"
+        },
+        "usageEligibility": {
+          "$ref": "common.schema.json#/$defs/usageEligibility"
+        },
+        "accessScope": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
         }
       }
     }

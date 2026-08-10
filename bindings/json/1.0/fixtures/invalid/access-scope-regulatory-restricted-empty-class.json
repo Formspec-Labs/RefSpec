@@ -1,0 +1,19 @@
+{
+  "fixtureVersion": "1.0",
+  "base": "../valid/managed-release-minimal.json",
+  "expectedRequirements": ["REF-SEC-008"],
+  "mutations": [
+    {
+      "recordId": "urn:rulespec:access-scope:development-public",
+      "path": "/accessScopeKind",
+      "value": "rkaf:regulatoryRestricted"
+    },
+    {
+      "recordId": "urn:rulespec:access-scope:development-public",
+      "operation": "add",
+      "path": "/regulatoryClass",
+      "value": []
+    }
+  ],
+  "refreshDigests": ["urn:rulespec:access-scope:development-public"]
+}

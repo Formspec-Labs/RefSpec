@@ -738,7 +738,23 @@ complete: producer path, bindings, and historical docs deleted across
 protocol's only in-repo carrier deleted unenforced, so
 `bindings/atlas/1.0/README.md` was restored byte-exact (`21b662a`) until
 the P0 item below re-retires it. All other deleted carriers live at
-`5c6d889^`.
+`5c6d889^`. Typed rights and scope (item 3 below): `usageEligibility`
+(closed 7-value lattice) and a `rkaf:AccessScope`-typed record (closed,
+discriminated-union-validated, fidelity-checked both ways against CUE) replace
+the loosely-shaped scope JSON on the REF JSON Binding wire —
+`common.schema.json`, `access-scope.schema.json`, `output-profile.schema.json`'s
+`permissionBase`, a `binding.py` cross-reference rule resolving
+`Capture.accessScopeRefs` to a validated `rkaf:AccessScope` record (the same
+type `release_graph.py`'s pre-existing `RULESPEC_ACCESS_SCOPE` resolution
+already names in the Rulespec release graph — no REF-owned twin), and a
+lattice-aware floor-and-ceiling accepted-output gate replacing the vestigial
+`accepted_output.py` field and its bare-string comparison, mirrored in
+`subject_emission.py`'s independent grant validator and the open-label
+narrow-only clamp in `vocabulary.py`;
+`tests/test_usage_eligibility_lattice_currency.py` keeps every RefSpec-side
+usage-eligibility list an exact ordered match (rank order is normative) or
+subset of rulespec's live lattice, including `release_graph.py` and
+`managed_release.py`'s independent copies (this revision).
 
 **Open work, in order.** No session's memory is required; this entry plus
 the cited paths are sufficient.
@@ -788,7 +804,8 @@ the cited paths are sufficient.
    `validate_mapping_supersession` lost both live call sites — re-wire or
    explicitly retire each when this lands.
 
-3. **P1 — typed rights and scope.** `usage-eligibility.cue` +
+3. **P1 — typed rights and scope. Done, this revision** — see the Executed
+   paragraph above. `usage-eligibility.cue` +
    `access-scope.cue` replace loosely-shaped scope JSON; closed enums,
    schema-validated, invalid fixture required.
 

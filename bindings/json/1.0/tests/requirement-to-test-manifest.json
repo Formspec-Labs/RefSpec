@@ -79,6 +79,24 @@
       ]
     },
     {
+      "requirement": "REF-SEC-008",
+      "localFixtures": [
+        "fixtures/valid/managed-release-minimal.json",
+        "fixtures/invalid/access-scope-regulatory-restricted-empty-class.json",
+        "fixtures/invalid/access-scope-regulatory-restricted-missing-class.json",
+        "fixtures/invalid/access-scope-public-with-regulatory-class.json",
+        "fixtures/invalid/capture-dangling-access-scope-ref.json",
+        "fixtures/invalid/capture-access-scope-ref-wrong-type.json"
+      ],
+      "validatorChecks": [
+        "regulatoryRestricted with an empty regulatoryClass fails the array's minItems 1",
+        "regulatoryRestricted with regulatoryClass entirely absent fails the discriminated union's required branch",
+        "a non-regulatoryRestricted accessScopeKind with regulatoryClass present fails the discriminated union's forbidden branch (rulespec's #AccessScope is closed)",
+        "Capture accessScopeRefs naming no record in the validated set fails resolution",
+        "Capture accessScopeRefs naming a record of the wrong type fails resolution"
+      ]
+    },
+    {
       "requirement": "REF-PROV-004",
       "localFixtures": [
         "fixtures/valid/managed-release-minimal.json",
@@ -243,10 +261,12 @@
       "localFixtures": [
         "fixtures/valid/vocabulary-closure.json",
         "fixtures/invalid/accepted-without-candidate-use.json",
-        "fixtures/invalid/open-label-default-language-missing.json"
+        "fixtures/invalid/open-label-default-language-missing.json",
+        "fixtures/invalid/permission-missing-usage-eligibility.json"
       ],
       "validatorChecks": [
-        "complete permission-row fields and mode conditional"
+        "complete permission-row fields and mode conditional",
+        "permission rows require a closed usageEligibility value"
       ]
     },
     {

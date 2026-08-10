@@ -2,6 +2,134 @@
   "modelVersion": "1.0",
   "description": "Authoritative JSON-compatible CUE source for REF-owned JSON Binding structures.",
   "schemas": {
+    "access-scope.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://refspec.org/bindings/json/1.0/schemas/access-scope.schema.json",
+      "title": "REF AccessScope",
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/commonRecordProperties"
+        },
+        {
+          "if": {
+            "properties": {
+              "accessScopeKind": {
+                "const": "rkaf:regulatoryRestricted"
+              }
+            },
+            "required": [
+              "accessScopeKind"
+            ]
+          },
+          "then": {
+            "required": [
+              "regulatoryClass"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "regulatoryClass"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "accessScopeKind": {
+                "const": "rkaf:embargoUntil"
+              }
+            },
+            "required": [
+              "accessScopeKind"
+            ]
+          },
+          "then": {
+            "required": [
+              "embargoUntil"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "embargoUntil"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "accessScopeKind": {
+                "const": "rkaf:roleRestricted"
+              }
+            },
+            "required": [
+              "accessScopeKind"
+            ]
+          },
+          "then": {
+            "required": [
+              "permittedRole"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "permittedRole"
+              ]
+            }
+          }
+        }
+      ],
+      "required": [
+        "canonicalPayloadDigest",
+        "accessScopeKind"
+      ],
+      "properties": {
+        "type": {
+          "const": "rkaf:AccessScope"
+        },
+        "canonicalPayloadDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "accessScopeKind": {
+          "$ref": "common.schema.json#/$defs/accessScopeKind"
+        },
+        "regulatoryClass": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/regulatoryClass"
+          }
+        },
+        "embargoUntil": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "permittedRole": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "hasPersonalDataCategory": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hasLegalBasis": {
+          "type": "string"
+        },
+        "hasPurpose": {
+          "type": "string"
+        }
+      },
+      "unevaluatedProperties": false
+    },
     "capture.schema.json": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://refspec.org/bindings/json/1.0/schemas/capture.schema.json",
@@ -228,6 +356,39 @@
           "items": {
             "$ref": "#/$defs/absoluteIri"
           }
+        },
+        "usageEligibility": {
+          "enum": [
+            "rkaf:notEligible",
+            "rkaf:searchOnly",
+            "rkaf:reviewQueueOnly",
+            "rkaf:draftGenerationAllowed",
+            "rkaf:localOperationalUse",
+            "rkaf:publicationAllowed",
+            "rkaf:officialUse"
+          ]
+        },
+        "accessScopeKind": {
+          "enum": [
+            "rkaf:public",
+            "rkaf:partnerVisible",
+            "rkaf:organizationVisible",
+            "rkaf:roleRestricted",
+            "rkaf:personalRestricted",
+            "rkaf:regulatoryRestricted",
+            "rkaf:embargoUntil"
+          ]
+        },
+        "regulatoryClass": {
+          "enum": [
+            "rkaf:HIPAA-PHI",
+            "rkaf:GDPR-PII",
+            "rkaf:FERPA",
+            "rkaf:CJIS",
+            "rkaf:classified",
+            "rkaf:legally-privileged",
+            "rkaf:partner-defined"
+          ]
         },
         "controlledIdentifier": {
           "type": "object",
@@ -1564,7 +1725,8 @@
             "facet",
             "assignmentRole",
             "candidateUse",
-            "acceptedOutputUse"
+            "acceptedOutputUse",
+            "usageEligibility"
           ],
           "properties": {
             "facet": {
@@ -1578,6 +1740,12 @@
             },
             "acceptedOutputUse": {
               "type": "boolean"
+            },
+            "usageEligibility": {
+              "$ref": "common.schema.json#/$defs/usageEligibility"
+            },
+            "accessScope": {
+              "$ref": "common.schema.json#/$defs/absoluteIri"
             }
           }
         }
@@ -2213,6 +2381,9 @@
       "$id": "https://refspec.org/bindings/json/1.0/schemas/ref-record.schema.json",
       "title": "REF JSON Binding 1.0 record",
       "oneOf": [
+        {
+          "$ref": "access-scope.schema.json"
+        },
         {
           "$ref": "capture.schema.json"
         },
