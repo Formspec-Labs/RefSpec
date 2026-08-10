@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 import rdflib
 from rdflib import Dataset, Graph, Literal, Namespace, URIRef
-from rdflib.namespace import OWL, RDF, SH, SKOS
+from rdflib.namespace import OWL, RDF, SH, SKOS, XSD
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
@@ -1592,6 +1592,100 @@ def test_identifier_pair_maps_to_exactly_one_resource(
     assert raised.value.code == "dataset.identifier-uniqueness"
     assert "AGENCY-001" in raised.value.detail
     assert "identifies multiple Atlas resources" in raised.value.detail
+
+
+def _identifier_conflict_graph() -> tuple[Graph, URIRef, URIRef]:
+    """The base fixture plus the second Identifier that disagrees with the first."""
+
+    asserted = atlas_fixtures._base_fixture().asserted
+    original = next(asserted.subjects(RDF.type, ATLAS.Identifier))
+    duplicate = URIRef("urn:ref:atlas-test:identifier:duplicate")
+    asserted.add((duplicate, RDF.type, ATLAS.Identifier))
+    asserted.add(
+        (
+            duplicate,
+            ATLAS.identifierScheme,
+            next(asserted.objects(original, ATLAS.identifierScheme)),
+        )
+    )
+    asserted.add(
+        (
+            duplicate,
+            ATLAS.identifierValue,
+            next(asserted.objects(original, ATLAS.identifierValue)),
+        )
+    )
+    asserted.add(
+        (
+            duplicate,
+            ATLAS.identifies,
+            next(
+                resource
+                for resource in asserted.subjects(RDF.type, ATLAS.AtlasResource)
+                if resource != next(asserted.objects(original, ATLAS.identifies))
+            ),
+        )
+    )
+    return asserted, original, duplicate
+
+
+def _record_registry_conflict(asserted: Graph, *entries: URIRef) -> URIRef:
+    record = URIRef("urn:ref:atlas-test:registry-conflict:agency")
+    asserted.add((record, RDF.type, RKAF.RegistryConflict))
+    for entry in entries:
+        asserted.add((record, RKAF.conflictingEntries, entry))
+    asserted.add((record, RKAF.severity, RKAF.operationalConflict))
+    asserted.add(
+        (
+            record,
+            RKAF.detectedAt,
+            Literal("2026-08-05T12:00:00+00:00", datatype=XSD.dateTime),
+        )
+    )
+    return record
+
+
+def test_a_published_registry_conflict_licenses_exactly_the_entries_it_names() -> None:
+    """The no-silent-collapse rule, both ways round.
+
+    A contradiction may be published instead of refused, but only by a record
+    that names the entries which actually disagree. The corpus proves the same
+    three outcomes end to end (identifier-conflict-recorded,
+    identifier-pair-conflict, registry-conflict-entries-mismatch); this proves
+    them against the gate itself, in a second, so the rule cannot be widened or
+    dropped without something breaking in under two minutes.
+    """
+
+    asserted, original, duplicate = _identifier_conflict_graph()
+    _record_registry_conflict(asserted, original, duplicate)
+    atlas_validate._check_identifier_uniqueness(asserted)
+
+    asserted, original, _duplicate = _identifier_conflict_graph()
+    bystander = URIRef("urn:ref:atlas-test:identifier:bystander")
+    asserted.add((bystander, RDF.type, ATLAS.Identifier))
+    asserted.add(
+        (
+            bystander,
+            ATLAS.identifierScheme,
+            next(asserted.objects(original, ATLAS.identifierScheme)),
+        )
+    )
+    asserted.add((bystander, ATLAS.identifierValue, Literal("AGENCY-002")))
+    asserted.add(
+        (
+            bystander,
+            ATLAS.identifies,
+            next(asserted.objects(original, ATLAS.identifies)),
+        )
+    )
+    _record_registry_conflict(asserted, original, bystander)
+
+    with pytest.raises(atlas_validate.AtlasValidationError) as raised:
+        atlas_validate._check_identifier_uniqueness(asserted)
+
+    assert raised.value.code == "dataset.identifier-uniqueness"
+    assert "do not disagree on one identifier pair" in raised.value.detail
+    assert str(bystander) in raised.value.detail
 
 
 def test_identifier_uniqueness_valid_path_does_not_sort_identifiers() -> None:

@@ -287,6 +287,35 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     ),
     "effectivePeriodStart": (("mapping-period-start-not-datetime",), ()),
     "effectivePeriodEnd": (("mapping-period-end-before-start",), ()),
+    # Phase 8 -- the conflict record. Two atlas:Identifier records claiming one
+    # (scheme, value) pair for different resources used to refuse the whole
+    # distribution and retain nothing; it now MAY be published, but only with a
+    # record naming exactly the entries that disagree. rkaf:Finding is
+    # deliberately absent -- see the registry-conflict block in
+    # ontology/atlas.ttl for the surface it would have had and why there is not
+    # one. The two cross-record cases below are validate.py's, not the SHACL's:
+    # matching a record against the disagreement compares several records, which
+    # per-property SHACL cannot reach.
+    "RegistryConflict": (
+        ("registry-conflict-single-entry", "registry-conflict-entries-mismatch"),
+        (),
+    ),
+    "conflictingEntries": (
+        ("registry-conflict-single-entry", "registry-conflict-entries-mismatch"),
+        (),
+    ),
+    # Narrowed to two of rkaf's four: a published distribution cannot honestly
+    # declare its own conflict publication-blocking or authority-critical, so
+    # registry-conflict-publication-blocking is what breaks if the sh:in is ever
+    # widened back to the full ladder.
+    "severity": (
+        (
+            "registry-conflict-severity-unknown",
+            "registry-conflict-publication-blocking",
+        ),
+        ("informational", "operationalConflict"),
+    ),
+    "detectedAt": (("registry-conflict-detected-at-not-datetime",), ()),
     "comparisonOutcome": (
         ("adjudication-licensed-by-conflicted-comparison",),
         (

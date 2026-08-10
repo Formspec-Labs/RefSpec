@@ -276,6 +276,74 @@ atlas:EditorialPolicy
 # one, subject and entity mappings carry none. The registry's own rule is the
 # same rule, and this is the wire half of it.
 
+# REGISTRY CONFLICT -- one more adopted rkaf class, one rkaf class deliberately
+# NOT adopted, and the one contradiction Atlas can publish instead of refusing.
+#
+#   rkaf:RegistryConflict          upstream's own record for "two or more
+#                                  registry entries disagree on the same
+#                                  canonical claim" (constraints/core/
+#                                  registry-conflict.cue), carrying
+#                                  rkaf:conflictingEntries (two or more),
+#                                  rkaf:severity from the closed
+#                                  #ConflictSeverity, and rkaf:detectedAt.
+#                                  Shaped in atlas:RegistryConflictShape.
+#
+# WHAT CHANGES. Atlas has always detected one Atlas-local contradiction: two
+# atlas:Identifier records claiming the same (atlas:identifierScheme,
+# atlas:identifierValue) pair for different resources. Until now the only thing
+# it could do about it was refuse the whole distribution, which retains nothing
+# a consumer can read: the disagreement is deleted along with the artifact, and
+# the next producer run rediscovers it. The rule is now two-sided --
+#
+#   contradiction, no record  -> the build still fails, exactly as before
+#                                (negative case identifier-pair-conflict,
+#                                unchanged)
+#   contradiction + a record naming EXACTLY the entries that disagree
+#                             -> the distribution is accepted and PUBLISHES the
+#                                conflict, addressable by IRI, for a consumer to
+#                                inspect, reference, or escalate
+#   a record naming anything else
+#                             -> the build fails, because a record that does not
+#                                name the disagreement licenses nothing
+#
+# -- which is what makes the record load-bearing rather than decorative. The
+# match is a comparison across several records, so tools/validate.py owns it
+# (dataset.identifier-uniqueness), not the SHACL.
+#
+# WHY THE SKOS INTEGRITY CONFLICTS ARE NOT ON THIS PATH, and cannot be. Atlas
+# also refuses distributions that violate SKOS S46 (an exactMatch component
+# spanned by a broadMatch, narrowMatch, or relatedMatch) and SKOS S27 (a related
+# link across a hierarchy path). Those are integrity conditions of the SKOS
+# Reference, not Atlas rules, and Atlas publishes SKOS: a conflict record beside
+# the offending triples would describe the breakage without repairing it, and
+# every SKOS consumer would still be right to reject the graph. Licensing them
+# would trade a refusal a producer can act on for an artifact nobody downstream
+# can use. Atlas already has the licensed form for the S27 class, and it is
+# predicate-level rather than record-level -- atlas:thesaurusRelated, an
+# authored associative link that must be backed by a real hierarchy path
+# (negative case unjustified-thesaurus-related). Identifier uniqueness has no
+# such external standard behind it; the terms are Atlas's own, so Atlas is free
+# to say what a published disagreement looks like there.
+#
+# rkaf:Finding IS NOT ADOPTED, and this is the reason rather than an oversight.
+# constraints/core/finding.cue models one detection about ONE rkaf:subject. The
+# only contradiction this wire detects and can retain is a disagreement among
+# two or more entries, which is precisely what #RegistryConflict exists for and
+# what #Finding cannot state without a producer picking one entry arbitrarily
+# and consumers indexing on the choice -- the same argument
+# constraints/analysis/relation-finding.cue gives for why #RelationFinding does
+# not compose #Finding either. The other surface a Finding might have covered,
+# a validator refusal recorded in the acceptance record, does not exist:
+# schemas/atlas-acceptance.schema.json admits gates with status "passed" and
+# nothing else, and tools/validate.py has no warning path at all -- every
+# detection raises. And the one refusal this wire does retain, a machine
+# adjudication that ran and licensed nothing, already has rkaf's own records for
+# it (rkaf:ResolverProofRecord with a non-passing rkaf:proofOutcome inside a
+# non-satisfied rkaf:RelationComparisonContext; valid case
+# adjudication-refused-comparison-record). A Finding here would be a second name
+# for a fact the wire already carries, which is the thing this binding does not
+# do.
+
 atlas:RelationAssertion
   a owl:Class ;
   rdfs:label "relation assertion"@en .

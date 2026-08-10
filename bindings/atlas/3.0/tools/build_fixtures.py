@@ -2778,50 +2778,139 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _remove_subject_predicate(fixture.asserted, identifier, ATLAS.identifierValue)
         _refresh_node_digest(fixture.asserted, identifier)
 
-    def identifier_pair_conflict(fixture: Fixture) -> None:
-        identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
-        original_resource = next(fixture.asserted.objects(identifier, ATLAS.identifies))
+    def _add_identifier(
+        fixture: Fixture,
+        name: str,
+        *,
+        resource: URIRef,
+        value: Literal,
+    ) -> URIRef:
+        """Mint one more atlas:Identifier in the base fixture's own scheme."""
+
+        original = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
+        identifier = URIRef(f"urn:ref:atlas-fixture:identifier:{name}")
+        fixture.asserted.add((identifier, RDF.type, ATLAS.Identifier))
+        fixture.asserted.add((identifier, ATLAS.identifierValue, value))
+        fixture.asserted.add(
+            (
+                identifier,
+                ATLAS.identifierScheme,
+                next(fixture.asserted.objects(original, ATLAS.identifierScheme)),
+            )
+        )
+        fixture.asserted.add((identifier, ATLAS.identifies, resource))
+        fixture.asserted.add(
+            (
+                identifier,
+                ATLAS.sourceRecord,
+                next(fixture.asserted.objects(resource, ATLAS.sourceRecord)),
+            )
+        )
+        _refresh_node_digest(fixture.asserted, identifier)
+        return identifier
+
+    def _disagreeing_identifiers(fixture: Fixture) -> tuple[URIRef, URIRef]:
+        """The contradiction itself: one (scheme, value) pair, two resources."""
+
+        original = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
+        original_resource = next(fixture.asserted.objects(original, ATLAS.identifies))
         conflicting_resource = next(
             resource
             for resource in fixture.asserted.subjects(RDF.type, ATLAS.AtlasResource)
             if resource != original_resource
         )
-        conflicting_identifier = URIRef(
-            "urn:ref:atlas-fixture:identifier:agency-conflict"
+        conflicting = _add_identifier(
+            fixture,
+            "agency-conflict",
+            resource=conflicting_resource,
+            value=next(fixture.asserted.objects(original, ATLAS.identifierValue)),
         )
-        fixture.asserted.add(
-            (conflicting_identifier, RDF.type, ATLAS.Identifier)
-        )
+        return original, conflicting
+
+    def identifier_pair_conflict(fixture: Fixture) -> None:
+        # The refusal that predates the conflict record and outlives it: a
+        # contradiction nothing declares still fails the build.
+        _disagreeing_identifiers(fixture)
+
+    # ---- registry conflict -------------------------------------------------
+    #
+    # The other half of the same rule. A distribution MAY publish the
+    # contradiction above instead of being refused, but only by carrying an
+    # rkaf:RegistryConflict that names exactly the atlas:Identifier records that
+    # disagree. The valid case is the whole point -- the disagreement survives
+    # as a record a consumer can read -- and each negative forges exactly one
+    # fact about that record: it names too few entries, it names the wrong ones,
+    # its severity is outside rkaf's closed set, its severity is one a published
+    # artifact cannot honestly claim, or its detection time is not a dateTime.
+
+    def _record_conflict(
+        fixture: Fixture,
+        entries: Iterable[URIRef],
+        *,
+        severity: URIRef = RKAF.operationalConflict,
+        detected_at: Literal | None = None,
+    ) -> URIRef:
+        record = URIRef("urn:ref:atlas-fixture:registry-conflict:agency-001")
+        fixture.asserted.add((record, RDF.type, RKAF.RegistryConflict))
+        for entry in entries:
+            fixture.asserted.add((record, RKAF.conflictingEntries, entry))
+        fixture.asserted.add((record, RKAF.severity, severity))
         fixture.asserted.add(
             (
-                conflicting_identifier,
-                ATLAS.identifierValue,
-                next(fixture.asserted.objects(identifier, ATLAS.identifierValue)),
+                record,
+                RKAF.detectedAt,
+                detected_at
+                if detected_at is not None
+                else Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
             )
         )
-        fixture.asserted.add(
-            (
-                conflicting_identifier,
-                ATLAS.identifierScheme,
-                next(fixture.asserted.objects(identifier, ATLAS.identifierScheme)),
-            )
+        return record
+
+    def identifier_conflict_recorded(fixture: Fixture) -> None:
+        _record_conflict(fixture, _disagreeing_identifiers(fixture))
+
+    def registry_conflict_single_entry(fixture: Fixture) -> None:
+        original, _conflicting = _disagreeing_identifiers(fixture)
+        _record_conflict(fixture, (original,))
+
+    def registry_conflict_entries_mismatch(fixture: Fixture) -> None:
+        # A well-formed record that names a real Identifier which is not in the
+        # disagreement, and omits the one that is. Both halves must fail: the
+        # record licenses nothing, and the contradiction stays unrecorded.
+        original, _conflicting = _disagreeing_identifiers(fixture)
+        bystander = _add_identifier(
+            fixture,
+            "agency-second",
+            resource=next(fixture.asserted.objects(original, ATLAS.identifies)),
+            value=Literal("AGENCY-002"),
         )
-        fixture.asserted.add(
-            (conflicting_identifier, ATLAS.identifies, conflicting_resource)
+        _record_conflict(fixture, (original, bystander))
+
+    def registry_conflict_severity_unknown(fixture: Fixture) -> None:
+        # Outside rkaf's #ConflictSeverity altogether, not merely outside the
+        # two values this wire narrows to -- that forgery is the case below.
+        _record_conflict(
+            fixture,
+            _disagreeing_identifiers(fixture),
+            severity=URIRef("urn:ref:conflict-severity:invented"),
         )
-        fixture.asserted.add(
-            (
-                conflicting_identifier,
-                ATLAS.sourceRecord,
-                next(
-                    fixture.asserted.objects(
-                        conflicting_resource,
-                        ATLAS.sourceRecord,
-                    )
-                ),
-            )
+
+    def registry_conflict_publication_blocking(fixture: Fixture) -> None:
+        # One of rkaf's four #ConflictSeverity values, and one this wire refuses:
+        # a distribution that passed acceptance cannot also declare that its own
+        # conflict blocked publication.
+        _record_conflict(
+            fixture,
+            _disagreeing_identifiers(fixture),
+            severity=RKAF.publicationBlocking,
         )
-        _refresh_node_digest(fixture.asserted, conflicting_identifier)
+
+    def registry_conflict_detected_at_not_datetime(fixture: Fixture) -> None:
+        _record_conflict(
+            fixture,
+            _disagreeing_identifiers(fixture),
+            detected_at=Literal("2026-08-05"),
+        )
 
     def wrong_endpoint_release(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -3909,6 +3998,42 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset"],
             "dataset.identifier-uniqueness",
             identifier_pair_conflict,
+        ),
+        (
+            "identifier-conflict-recorded",
+            ["shacl", "dataset"],
+            "valid",
+            identifier_conflict_recorded,
+        ),
+        (
+            "registry-conflict-single-entry",
+            ["shacl", "dataset"],
+            "shacl.data",
+            registry_conflict_single_entry,
+        ),
+        (
+            "registry-conflict-entries-mismatch",
+            ["shacl", "dataset"],
+            "dataset.identifier-uniqueness",
+            registry_conflict_entries_mismatch,
+        ),
+        (
+            "registry-conflict-severity-unknown",
+            ["shacl", "dataset"],
+            "shacl.data",
+            registry_conflict_severity_unknown,
+        ),
+        (
+            "registry-conflict-publication-blocking",
+            ["shacl", "dataset"],
+            "shacl.data",
+            registry_conflict_publication_blocking,
+        ),
+        (
+            "registry-conflict-detected-at-not-datetime",
+            ["shacl", "dataset"],
+            "shacl.data",
+            registry_conflict_detected_at_not_datetime,
         ),
         ("mapping-wrong-endpoint-release", ["shacl", "dataset"], "shacl.data", wrong_endpoint_release),
         (

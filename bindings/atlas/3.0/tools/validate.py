@@ -576,6 +576,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         RKAF.Artifact,
         RKAF.RelationComparisonContext,
         RKAF.EffectivePeriod,
+        RKAF.RegistryConflict,
         ATLAS.RelationAssertion,
         *ASSERTION_TYPES,
         ATLAS.SkosMappingAssertion,
@@ -602,6 +603,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
         RKAF.Artifact,
         RKAF.RelationComparisonContext,
         RKAF.EffectivePeriod,
+        RKAF.RegistryConflict,
         *ASSERTION_TYPES,
         SKOSXL.Label,
     }
@@ -719,6 +721,9 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         RKAF.hasEffectivePeriod,
         RKAF.effectivePeriodStart,
         RKAF.effectivePeriodEnd,
+        RKAF.conflictingEntries,
+        RKAF.severity,
+        RKAF.detectedAt,
         ATLAS.contentDigest,
     }
 )
@@ -812,6 +817,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
         "evidence-warrant-unsanctioned",
+        "identifier-conflict-recorded",
         "identifier-missing-value",
         "identifier-pair-conflict",
         "label-missing-literal",
@@ -837,6 +843,11 @@ REQUIRED_CORPUS_CASES = frozenset(
         "release-membership-mode-unknown",
         "policy-payload-changed",
         "rdf-literal-escaping",
+        "registry-conflict-detected-at-not-datetime",
+        "registry-conflict-entries-mismatch",
+        "registry-conflict-publication-blocking",
+        "registry-conflict-severity-unknown",
+        "registry-conflict-single-entry",
         "scheme-assertion-property",
         "source-native-thesaurus",
         "skos-hierarchy-conflict",
@@ -3412,14 +3423,35 @@ def _check_profile_conformance(
             _fail("profile.conformance", f"{identifier} is not allowed by {profile}")
 
 
+def _conflicting_entry_order(entries: AbstractSet[URIRef]) -> list[str]:
+    """A total order over conflict groups, used only on a failure path."""
+
+    return sorted(map(str, entries))
+
+
 def _check_identifier_uniqueness(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
 ) -> None:
-    """Require each authority-scoped identifier pair to name one resource."""
+    """Require each authority-scoped identifier pair to name one resource, or a
+    published rkaf:RegistryConflict naming exactly the entries that disagree.
 
-    resources_by_pair: dict[tuple[URIRef, str], URIRef] = {}
-    conflicts: dict[tuple[URIRef, str], set[URIRef]] = {}
+    Two atlas:Identifier records claiming one (scheme, value) pair for different
+    resources is the one contradiction between registry entries this binding
+    detects, and it is exactly what rulespec's #RegistryConflict describes. Both
+    halves of the rule below are load-bearing: a contradiction with no record
+    still fails the build, as it always has, so nothing collapses silently; and
+    a record whose rkaf:conflictingEntries are not precisely the disagreeing
+    entries fails too, so the record cannot become a rubber stamp that licenses
+    whatever a producer happens to have written. A distribution that publishes
+    the matching record is accepted, and the disagreement survives as an
+    IRI-addressable record instead of being deleted along with the artifact.
+
+    The SKOS integrity conflicts (dataset.skos-integrity) are deliberately NOT
+    licensable this way; see the registry-conflict block in ontology/atlas.ttl.
+    """
+
+    entries_by_pair: dict[tuple[URIRef, str], dict[URIRef, URIRef]] = {}
     for identifier in _carrier_nodes(asserted, ATLAS.Identifier, inventory):
         scheme = _iri(
             _one(
@@ -3451,19 +3483,42 @@ def _check_identifier_uniqueness(
             code="dataset.identifier-uniqueness",
             label="identified resource",
         )
-        pair = (scheme, value)
-        existing = resources_by_pair.get(pair)
-        if existing is None:
-            resources_by_pair[pair] = resource
-        elif existing != resource:
-            conflicts.setdefault(pair, {existing}).add(resource)
+        entries_by_pair.setdefault((scheme, value), {})[identifier] = resource
 
-    if conflicts:
-        scheme, value = min(conflicts)
-        rendered = ", ".join(map(str, sorted(conflicts[(scheme, value)])))
+    # Every entry carrying a pair that names more than one resource, not just
+    # the two whose disagreement was noticed first: a third record agreeing with
+    # the first is still an entry in the disagreement, and a group defined by
+    # iteration order would let a producer's record match or miss by accident.
+    conflicts = {
+        frozenset(entries): (pair, frozenset(entries.values()))
+        for pair, entries in entries_by_pair.items()
+        if len(set(entries.values())) > 1
+    }
+
+    recorded: dict[frozenset[URIRef], set[URIRef]] = {}
+    for record in _carrier_nodes(asserted, RKAF.RegistryConflict, inventory):
+        entries = frozenset(asserted.objects(record, RKAF.conflictingEntries))
+        recorded.setdefault(entries, set()).add(record)
+
+    unmatched = recorded.keys() - conflicts.keys()
+    if unmatched:
+        entries = min(unmatched, key=_conflicting_entry_order)
+        rendered = ", ".join(_conflicting_entry_order(entries))
         _fail(
             "dataset.identifier-uniqueness",
-            f"identifier pair ({scheme}, {value!r}) identifies multiple Atlas resources: {rendered}",
+            f"{min(recorded[entries], key=str)} names conflicting entries that do "
+            f"not disagree on one identifier pair: {rendered}",
+        )
+    unrecorded = conflicts.keys() - recorded.keys()
+    if unrecorded:
+        entries = min(unrecorded, key=_conflicting_entry_order)
+        (scheme, value), resources = conflicts[entries]
+        rendered = ", ".join(sorted(map(str, resources)))
+        _fail(
+            "dataset.identifier-uniqueness",
+            f"identifier pair ({scheme}, {value!r}) identifies multiple Atlas "
+            f"resources: {rendered}; no rkaf:RegistryConflict names exactly "
+            f"{', '.join(_conflicting_entry_order(entries))}",
         )
 
 

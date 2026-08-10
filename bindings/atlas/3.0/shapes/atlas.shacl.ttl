@@ -562,6 +562,59 @@ atlas:EditorialPolicyShape
     sh:node atlas:DigestValueShape
   ] .
 
+# rkaf:RegistryConflict, upstream's #RegistryConflict over the three fields
+# Atlas writes. This shape says what a conflict record must LOOK like; that the
+# entries it names are the ones actually disagreeing is a comparison between
+# several Identifier records and one conflict record, so per-property SHACL
+# cannot reach it and tools/validate.py's dataset.identifier-uniqueness gate
+# owns it -- the same division the machine-adjudication block states.
+#
+# rkaf:conflictingScope and rkaf:detectedBy are upstream-optional and absent.
+# The scope is already derivable from the entries: each names its own
+# atlas:identifierScheme and atlas:identifierValue, so a scope literal beside
+# them could only agree or disagree with the pair the conflict is about. The
+# detector is the binding validator, which this wire gives no IRI -- the
+# acceptance record names it by name and version instead. A field nothing
+# writes and nothing checks is how atlas:eventType got into the state that
+# deleted it.
+atlas:RegistryConflictShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:RegistryConflict ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  # Two upstream, two here: one entry cannot disagree with itself, and a
+  # "conflict" naming a single record is a mislabelled unilateral claim.
+  # Class-ranged to atlas:Identifier because that is the only registry entry
+  # Atlas detects a disagreement between -- see the registry-conflict block in
+  # ontology/atlas.ttl for why the SKOS integrity conditions are not on this
+  # path and are not licensable by a record at all.
+  sh:property [
+    sh:path rkaf:conflictingEntries ;
+    sh:minCount 2 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:Identifier
+  ] ;
+  # Narrowed from upstream's four to the two a PUBLISHED distribution can
+  # honestly declare about itself. rkaf:publicationBlocking says the conflict
+  # blocks publication and rkaf:authorityCritical says it breaks an authority
+  # chain; a distribution carrying either and still passing acceptance would be
+  # contradicting its own record. A conflict at those severities has no
+  # published artifact to ride in -- the build refuses, which is what the
+  # severity means.
+  sh:property [
+    sh:path rkaf:severity ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in ( rkaf:informational rkaf:operationalConflict )
+  ] ;
+  sh:property [
+    sh:path rkaf:detectedAt ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape
+  ] .
+
 # Canonical SKOS-XL labels
 
 atlas:SkosXlLabelShape
