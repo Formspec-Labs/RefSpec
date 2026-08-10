@@ -717,8 +717,13 @@ vocabulary only for its own domain (releases, packs, digests, rings,
 resource profiles). Records are append-only events; state is a derived,
 rebuildable projection, never stored authority. Adoption is one-way —
 RefSpec depends on RuleSpec, never the reverse — and reads the real checkout
-directly: the dependency manifest is the pin, and `make audit-rulespec-pin`
-verifies it against the live checkout; no digest-pinning of upstream prose.
+directly: `profiles/rulespec-dependency.json` is the pin, and
+`tests/test_rulespec_vocabulary_currency.py` verifies it against the live
+sibling checkout — including that the checkout actually contains the pinned
+revision (`22fdad0`) — with no digest-pinning of upstream prose. An earlier
+revision of this paragraph named a `make audit-rulespec-pin` target; that
+target was deleted in `7975234`, which made the dependency manifest itself
+the pin, and no replacement target exists.
 
 **The governing rule** (also in [AGENTS.md](../AGENTS.md)): a structure —
 term, spec section, layer, boundary — may be added or retained only with a
@@ -756,53 +761,96 @@ usage-eligibility list an exact ordered match (rank order is normative) or
 subset of rulespec's live lattice, including `release_graph.py` and
 `managed_release.py`'s independent copies (this revision).
 
+**Checks are structure too, and were made to earn their keep** (`07e9d18`
+..`0b2a56a`, this revision). `make test` went from 617s to about 60s with
+its refusals intact — the failure set compared test id by test id, not by
+count. What the measurement found was not slow code but repeated work: 96%
+of every `validate_distribution` was re-deriving whether `atlas.shacl.ttl`
+is well-formed SHACL (1.880s against 0.070s of actual data conformance),
+110 times per corpus run, after a dedicated `shacl-meta` gate had already
+proved it once; `make test` ran the entire 110-case corpus **twice** because
+a Makefile target and a pytest test issue the same argv; and the suite ran
+single-process. Now the meta-proof is memoized on the shape-graph digests
+(a raising call caches nothing, so a bad graph is re-refused every time),
+the duplicate target is gone with a Makefile-parsing test holding it gone,
+pytest fans across cores, and `check-generated` answers from a
+content-addressed receipt over 21 enumerated inputs that fails closed on any
+mismatch. One structural fix came with it: `bindingBundleDigest` had mixed
+the semantic contract with the tools that compute it, so a one-line edit to
+a program reissued 440 fixtures; `BINDING_TOOL_PATHS` now carries tool
+provenance separately. **Open defect from that split:** the validation cache
+key still derives from the contract bundle alone, so a validator-only change
+can be served a stale acceptance — the key must cover the tools even though
+conformance identity must not.
+
 **Open work, in order.** No session's memory is required; this entry plus
 the cited paths are sufficient.
 
-1. **P0 — machine-proof closure.** The record shape is rulespec's
-   `constraints/analysis/resolver-proof-record.cue` (proofIssuer as a
-   versioned node, proofInput + proofInputDigest, cross-node comparison
-   binding), NOT `attestation.cue`, whose free-form scope cannot carry
-   independence groups, sealed-request equality, or the verdict lattice.
-   One shape only: the proof record carries the adjudicated outcome; no
-   parallel attestation representation. Two rulespec-side amendments gate
-   it: `#ResolverProofType` (closed, six values) needs an AI-adjudication
-   member, and `spec/rkaf-analysis.md` §3.4 ("A model MUST NOT produce a
-   comparison outcome") amends to: a model MAY produce a proof; the
-   comparison outcome is produced only by the deterministic lattice over at
-   least two independent proofs. Direction of correction: rulespec's
-   "exactly two validations" (`tools/refspec_atlas.py:288`,
-   `spec/rkaf-refspec.md`) is wrong and would reject RefSpec's
-   `valid/qualified-three-machine-support` corpus case; RefSpec's rule wins
-   — at least one independent pair (distinct actors, independence groups,
-   providers, provider model IDs, response artifacts), all supporting
-   validations retained, complete support closure; that corpus case is the
-   regression test. Fixture sources: rulespec's `tools/refspec_atlas.py`
-   (a 702-line v1 reader implementing the four independence axes) and its
-   vendored negative corpus; RefSpec's eight adjudication conformance cases
-   and six lattice negatives at `5c6d889^`. Port the cases to the
-   proof-record shape, then delete the dead v1 reader in the same commit,
-   and make rulespec's cross-repository test fail loud when
-   `REFSPEC_CHECKOUT` is unset. Exit: the closure check plus negatives land
-   in `bindings/atlas/3.0/tools/validate.py`;
-   `bindings/atlas/1.0/README.md` is deleted in that same commit, naming
-   the checks. Surviving runtime enforcement meanwhile: the verdict lattice
-   at `src/refspec/atlas/model.py:89-114`, five-way independence at
-   `model.py:969-1035`, negatives at
-   `tests/test_atlas_qualification.py:727-792` — qualification-path only;
-   the published binding boundary still validates `twoMachineAdjudication`
-   as a bare enum with zero corpus cases, which is what this item fixes.
+1. **P0 — machine-proof closure. Done** (`e822f95`, `08001c6`, `22fdad0`,
+   `99fe679`, `5c24825`). The machine-adjudication protocol is on the v3
+   wire in rulespec's own vocabulary — 22 rkaf terms, no `atlas:` mint —
+   shaped from `constraints/analysis/resolver-proof-record.cue` and
+   `machine-adjudication.cue`, with `rkaf:Artifact` resolving every sealed
+   digest to bundled bytes. `bindings/atlas/3.0/tools/validate.py` carries
+   the `machine-adjudication` gate (independence, complete support, verdict
+   lattice, sealed-digest and identity binding) over ~35 corpus cases, and
+   `bindings/atlas/1.0/` was deleted in the same commit that landed them,
+   naming the check covering each v1 normative rule.
 
-2. **P1 — ring temporal context.** Value-ring mappings need
-   `sourceEdition`/`targetEdition`/effective dates and legal-identity
-   mappings need `effectiveAt` on the wire, shaped per rulespec
-   `effective-period.cue`; SHACL and the validator must reject mappings
-   lacking them, with negative fixtures. Enforcement survives today only in
-   `src/refspec/registry/infrastructure/semantic_foundation.py:278-328`
-   (negative at `tests/test_semantic_foundation.py:362`), and two of its
-   validators are orphaned — `validate_ring_relation` has zero callers,
-   `validate_mapping_supersession` lost both live call sites — re-wire or
-   explicitly retire each when this lands.
+   Three things this item predicted wrongly, recorded so the mistake is not
+   repeated. The rulespec-side amendments it called for had **already
+   shipped** in `791670e` before this entry was written: `#ResolverProofType`
+   carried its AI-adjudication member, §3.4 was amended, and
+   `spec/rkaf-refspec.md`'s "exactly two validations" was already corrected
+   to "at least one independent pair." The fixture sources it named —
+   `tools/refspec_atlas.py` and its vendored corpus — **no longer existed**,
+   deleted whole by that same commit, along with the `REFSPEC_CHECKOUT`
+   cross-repository test this item asked to make fail loud; rulespec's own
+   nine native fixtures were the better porting source. And the real gap was
+   not the `twoMachineAdjudication` enum, which is an unrelated `EvidenceRole`
+   warrant label: the v3 binding had **no adjudication vocabulary at all**, so
+   this was introducing a protocol, not porting a check.
+
+   One genuine cross-repo defect surfaced and was fixed upstream: rulespec's
+   shipped SHACL enforced only **four** independence axes while its own prose
+   and RefSpec's runtime required **five**. Rulespec now checks distinct
+   `sealedResponseArtifact` too (`5429465`), and the cardinality bypass that
+   made the fifth axis evadable turned out to be a general compiler defect
+   affecting every conditionally-required scalar field (`17eba7a`).
+
+   Residual: five-axis independence and the verdict lattice now exist in
+   **both** `src/refspec/atlas/model.py` and the binding validator. This
+   entry blessed the runtime copy as surviving "meanwhile"; meanwhile is
+   over, and the duplication is in scope for item 8's cluster review.
+
+2. **P1 — ring temporal context. Done** (`8c1c3e0`, `165fcc1`, `eeb6a02`).
+   Value-ring and legal-identity mappings carry `rkaf:hasEffectivePeriod` →
+   `rkaf:EffectivePeriod` on the wire; SHACL and the validator reject a
+   dated ring lacking one and an undated ring carrying one, over five
+   negative corpus cases verified to fire on the batched fast path. Both
+   orphans were retired rather than re-wired: `validate_ring_relation`
+   (relation-membership survives in `MappingAssertion.__post_init__` and the
+   wire's `dataset.relation` check; context in `_validated_relation_context`)
+   and `validate_mapping_supersession`'s full-closure mode (closure is a
+   property of a complete distribution, enforced by the `sh:class` range on
+   `rkaf:supersedesAssertion` plus `validate.py`'s `dataset.supersession`).
+
+   **This item's edition requirement was not implemented, deliberately.**
+   `sourceEdition`/`targetEdition` were not minted: a v3 mapping already pins
+   `atlas:sourceRelease`/`atlas:targetRelease`, real registry release IRIs are
+   edition-scoped (`…:eurovoc:4.24`, `…:elsst:r6`), and SHACL already forces
+   endpoint agreement — an edition literal beside the pin could only agree or
+   disagree with it, the same argument that deleted `atlas:assertionStatus`.
+   What was missing was the dates, and the dates landed.
+
+   Two open defects from independent review, tracked and not yet fixed:
+   the registry still accepts edition strings independently of the release
+   pins with **nothing checking they agree** before the wire discards them
+   (the producer fail-closed guard masks this for RefSpec's own builds but
+   binds no external producer); and mapping a legal-identity `effectiveAt`
+   **instant** onto an open-ended period asserts indefinite force the source
+   never stated, with no defined time or timezone for the date-to-dateTime
+   promotion.
 
 3. **P1 — typed rights and scope. Done, this revision** — see the Executed
    paragraph above. `usage-eligibility.cue` +
@@ -814,14 +862,24 @@ the cited paths are sufficient.
    record, enforced by a failing build otherwise); `finding.cue` carries
    refusal records with fixtures in the v3 acceptance tests.
 
-5. **Ports owed.** SSSOM export: v3 promises the view
-   (`bindings/atlas/3.0/README.md`), `src/refspec/atlas/relation_sssom.py`
-   still reads only the legacy bundle — port to v3 mapping packs with a
-   round-trip fixture, or delete the promise. Explorer/search reachability
-   gate: retired in Tier 1 before porting; its reviewed corpus survives at
+5. **Ports owed.** SSSOM export: **the promise is deleted** (`546c494`),
+   not ported. `relation_sssom.py` reads only `RelationAssertionBundle`, a
+   format no production code has ever constructed, so the pinning to a
+   verified distribution the README promised was a property the exporter
+   could not have; and the `"mapping"` pack kind a port would target has
+   never been emitted by any generator, so this was a new feature, not a
+   port. No consumer asked for it. If a real mapping-pack producer and a
+   real consumer appear, the writer and the promise return together.
+   `relation_sssom.py` itself is reviewed with item 8's cluster.
+
+   Explorer/search reachability gate: **still owed.** Retired in Tier 1
+   before porting; its reviewed corpus survives at
    `research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json`
    and is that port's input; `REQUIRED_GATES` in `validate.py` has no
-   equivalent.
+   equivalent. Not a mechanical port — v1 ranked in-process while v3
+   searches through DuckDB FTS over Parquet, so the reachability proof must
+   be rewritten against that substrate, and the corpus's expected concept
+   and release identifiers re-derived against v3 identity.
 
 6. **Deliberately not adopted** until a running check or second consumer
    demands them: workspaces, warrants (unless P0 closure needs a node
@@ -847,19 +905,27 @@ the cited paths are sufficient.
 
 8. **Residual legacy runtime, two undecided items.** The `policyFrontier`
    selection path is still live —
-   `src/refspec/registry/infrastructure/source_concept_release.py:314`
-   accepts it as a selection-policy type, and `src/refspec/atlas/frontier.py`
-   plus `frontier_release.py` carry the receipt machinery — but no decision
-   ever chose between preserving the exact policy-selection receipt and
-   consciously retiring it; decide explicitly, then act under the deletion
-   criterion. Separately, the experimental qualification and governance
-   cluster (`qualification.py` provider/admission paths,
+   **`policyFrontier` is retired** (`4f71a1f`), the decision this item
+   demanded. The evidence: across the repository's entire committed history
+   the policy type appeared only in its own two modules, its own two test
+   files, and this ledger — zero uses in `output/`, in `research/`, or in any
+   fixture, so no published receipt relied on it and nothing outside its unit
+   tests ever exercised it. `frontier.py`, `frontier_release.py` and their
+   tests are deleted, `_selection_policy` collapses to `explicitObservationSet`
+   with the receipt plumbing it fed removed, and a negative test now proves
+   the type is refused. Separately, the experimental qualification and
+   governance cluster (`qualification.py` provider/admission paths,
    `qualification_batch.py`, `qualification_jobs.py`,
    `qualification_spend.py`, `atlas_scope.py`, `release_snapshot.py`,
    `relation_assertion.py`, `relation_proof.py`, `machine_evidence.py`,
    `subject_admission.py`, `subject_emission.py`, `concept_staging.py`)
-   becomes reviewable for retirement once items 1 and 5 land — each module
-   goes only when what it uniquely enforces is enforced elsewhere, and the
-   deleting commit names the checks. The deterministic six-class candidate
-   generator inside `qualification.py` stays with the research benchmarks
-   that consume it (`candidate_retrieval.py` is its long-term home).
+   is now reviewable — items 1 and 5 have landed. Each module goes only when
+   what it uniquely enforces is enforced elsewhere, and the deleting commit
+   names the checks. Two additions to that review: `relation_sssom.py`, whose
+   only promise item 5 deleted, and the item-1 residual above — five-axis
+   independence and the verdict lattice now live in both `model.py` and the
+   binding validator, and only one of them can be the enforcement. The
+   deterministic six-class candidate generator inside `qualification.py` stays
+   with the research benchmarks that consume it; note that
+   `candidate_retrieval.py` is its intended long-term home but is today a
+   separate module with its own consumers — the move has not happened.
