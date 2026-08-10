@@ -31,6 +31,14 @@ from refspec.atlas.concept_staging import (
     read_concept_authoring_transition,
 )
 from refspec.managed_release import ManagedReleaseGraphFactsView
+from refspec.registry.infrastructure.source_concept_release import (
+    SourceConceptReleaseBundle,
+    build_source_concept_release_bundle,
+)
+from refspec.registry.infrastructure.source_controlled_resource import (
+    build_source_controlled_resource_bundle,
+)
+from refspec.registry.infrastructure.source_identity import derive_uuid7
 from refspec.release_graph import rulespec_graph_digest
 
 _FIXTURE_SPEC = importlib.util.spec_from_file_location(
@@ -42,21 +50,77 @@ _FIXTURE = importlib.util.module_from_spec(_FIXTURE_SPEC)
 sys.modules[_FIXTURE_SPEC.name] = _FIXTURE
 _FIXTURE_SPEC.loader.exec_module(_FIXTURE)
 
-_SOURCE_FIXTURE_SPEC = importlib.util.spec_from_file_location(
-    "refspec_test_concept_staging_source_fixture",
-    Path(__file__).with_name("test_subject_admission.py"),
-)
-assert _SOURCE_FIXTURE_SPEC is not None and _SOURCE_FIXTURE_SPEC.loader is not None
-_SOURCE_FIXTURE = importlib.util.module_from_spec(_SOURCE_FIXTURE_SPEC)
-sys.modules[_SOURCE_FIXTURE_SPEC.name] = _SOURCE_FIXTURE
-_SOURCE_FIXTURE_SPEC.loader.exec_module(_SOURCE_FIXTURE)
-
 AUTHORED_CONCEPT = _FIXTURE.ELIGIBILITY_MEMBER_ID
 AUTHORING_ATTESTATION = "urn:rkaf:test:attestation:author-local-concept"
 AUTHORITY = "https://refspec.org/authorities/subject-concept-minting"
 ATTESTED_AT = "2026-08-04T18:00:00Z"
 SHA_A = "sha256:" + "a" * 64
 SHA_B = "sha256:" + "b" * 64
+
+CAPTURED_AT = "2026-08-04T12:00:00Z"
+SOURCE_ID = "https://publisher.example/source/subjects.json"
+SCHEME_ID = "https://publisher.example/schemes/subjects"
+
+
+def _source_release() -> SourceConceptReleaseBundle:
+    """One exact subject-ring source release the transition may cite."""
+
+    payload = b'{"subjects":["oversight"]}\n'
+    observation = {
+        "id": "urn:ref:test:source-observation:subject-1",
+        "sourceArtifact": SOURCE_ID,
+        "sourcePath": "subjects/0",
+        "sourceOrdinal": 0,
+        "localRecordId": "urn:uuid:" + derive_uuid7(CAPTURED_AT, seed=b"concept-staging-test-concept"),
+        "labels": [
+            {
+                "value": "Congressional oversight",
+                "language": "en",
+                "role": "preferred",
+            }
+        ],
+        "identifiers": [],
+        "uses": ["mappingReference"],
+        "conceptIdentityClaimed": False,
+    }
+    source = build_source_controlled_resource_bundle(
+        resource_id="concept-staging-test-capture",
+        title="Concept staging test capture",
+        resource_kind="sourceTermSnapshot",
+        identity_status="captureLocalObservationsOnly",
+        uses=("mappingReference",),
+        captured_at=CAPTURED_AT,
+        observations=(observation,),
+        source_artifacts={SOURCE_ID: payload},
+        source_scheme={
+            "id": SCHEME_ID,
+            "code": "concept-staging-test",
+            "label": "Concept staging test scheme",
+            "sourceArtifact": SOURCE_ID,
+            "sourceFetchId": derive_uuid7(
+                CAPTURED_AT,
+                seed=b"concept-staging-test-source-fetch",
+            ),
+            "sourceObservedAt": CAPTURED_AT,
+        },
+    )
+    return build_source_concept_release_bundle(
+        source,
+        semantic_ring="subject",
+        selected_observation_ids=(observation["id"],),
+        selection_policy={
+            "id": "urn:ref:test:source-concept-selection:v1",
+            "type": "explicitObservationSet",
+        },
+        rights_metadata=(
+            {
+                "type": "RightsMetadata",
+                "rightsStatus": "notStated",
+                "sourceArtifact": SOURCE_ID,
+                "sourceDigest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+            },
+        ),
+    )
 
 
 def test_concept_authoring_is_part_of_the_atlas_governance_api() -> None:
@@ -410,7 +474,7 @@ def test_exact_local_concept_text_and_every_governance_gate_are_required(
 
 def test_existing_source_identity_is_cited_and_never_reminted(tmp_path: Path) -> None:
     release = _managed_release(tmp_path)
-    source_release = _SOURCE_FIXTURE._release()
+    source_release = _source_release()
     source_id = source_release.concepts[0]["id"]
     source = ConceptAuthoringSource(source_release, source_id)
     transition = _build(

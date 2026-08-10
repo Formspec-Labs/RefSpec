@@ -185,9 +185,9 @@ outside the retired set consumers filter on. The Federal Register adapter says
 
 The measurements below came from the retired Atlas 1.0 command and two-graph
 format. Treat them as evidence about the verified ICPSR capture and its size,
-not as current build instructions. The later Atlas 2.0 path accepted an opened
-`PinnedVocabularyAtlasScope` through the programmatic API. Current producers
-target the [Atlas 3.0 binding](../bindings/atlas/3.0/README.md).
+not as current build instructions. The Atlas 2.0 scope record that stood
+between them and a build is retired too. Current producers target the
+[Atlas 3.0 binding](../bindings/atlas/3.0/README.md).
 
 **ICPSR alone**, from the real capture:
 

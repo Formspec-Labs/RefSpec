@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:6643621b8951530ab8f48f2a214f5eb38a89c246de5aded8576483d27d449594",
-  "indexId": "urn:ref:atlas-index:6643621b8951530ab8f48f2a214f5eb38a89c246de5aded8576483d27d449594",
+  "indexDigest": "sha256:c3d34761369c29443575af5aa18b3948747ce895b11991ba100104d85affda89",
+  "indexId": "urn:ref:atlas-index:c3d34761369c29443575af5aa18b3948747ce895b11991ba100104d85affda89",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -1023,7 +1023,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_thesaurus_2025.py",
-          "sha256": "sha256:6d94cf4ba7ec9df709e5f902f6f0a0ae70f9e54d050a7052bb1ef2c365e15d24"
+          "sha256": "sha256:1c1db97d9ad264a926fc6f83d09b3e8869125fcbc0de25bd848f16f65648cb8a"
         },
         {
           "kind": "sourceImplementation",
@@ -1038,8 +1038,8 @@
         "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
       },
       "resourceId": "federal-register-thesaurus-2025",
-      "rowDigest": "sha256:e90925f7b8548323549063c7203a4b549842190be096c0c04331f022c2d0f310",
-      "rowId": "urn:ref:atlas-index-row:e90925f7b8548323549063c7203a4b549842190be096c0c04331f022c2d0f310",
+      "rowDigest": "sha256:193dbe81d7cffd2ee2d4a28a4e0dfb8a6b8a08c88e9cacb080a16bcdd91e81f7",
+      "rowId": "urn:ref:atlas-index-row:193dbe81d7cffd2ee2d4a28a4e0dfb8a6b8a08c88e9cacb080a16bcdd91e81f7",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
     },
