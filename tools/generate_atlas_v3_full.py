@@ -79,6 +79,7 @@ from refspec.atlas.v3_source_data import (
 )
 from refspec.atlas.v3_source_data import (
     MAPPING_REVIEW_METHODS,
+    SEMANTIC_RINGS,
     MappingReviewMethod,
     RegistryCrossRingRelation,
     RegistryIdentifier,
@@ -167,7 +168,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:538ded3629ddb9a9a8040256e339de0d5e4e43d2797f79096b1d57bccbd898f5"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:cbfb9ec60ca0bdbe56fc566990d847638c7818e57c0d772385f5bb9a3d283d99"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -2879,6 +2880,46 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     return review_method
 
 
+# The two mapping rings this producer cannot honour, for the same reason and
+# with the same shape as the warrant above. Since ring temporal context landed
+# on the Atlas 3.0 wire, a value-ring or legal-identity-ring MappingAssertion
+# must carry an rkaf:hasEffectivePeriod resolving to a well-formed
+# rkaf:EffectivePeriod -- a crosswalk between two code editions and an
+# equivalence between two codifications are claims about a period, and an
+# undated one cannot be applied to a dated question. Nothing in
+# refspec.atlas.v3_source_data carries an effective date for a mapping:
+# RegistryMapping has a subject, an object, a predicate, two endpoint release
+# pins, an assertedAt and its evidence, and no temporal field at all. So this
+# producer has no date to emit, and the honest failure is to refuse the input
+# rather than to invent one -- a fabricated period would be indistinguishable
+# on the wire from a real one, which is worse than no mapping.
+#
+# Both real mapping releases are subject-ring today
+# (src/refspec/atlas/v3_registry_alignments.py, EuroVoc<->LCSH), so this is the
+# expected case rather than a live gap. Adding the field to RegistryMapping and
+# threading it into _add_assertion's effective_period argument is the work owed
+# before a value-ring or legal-identity mapping source arrives.
+UNEMITTABLE_MAPPING_RINGS = frozenset({"legalIdentity", "value"})
+
+
+def _mapping_release_ring(ring: str) -> URIRef:
+    """Resolve one mapping release's declared ring to its wire individual."""
+
+    if ring not in SEMANTIC_RINGS:
+        raise ValueError(f"unsupported mapping semantic ring: {ring!r}")
+    if ring in UNEMITTABLE_MAPPING_RINGS:
+        raise ValueError(
+            f"mapping semantic ring {ring!r} is not emittable by this producer: "
+            "the Atlas 3.0 binding requires every mapping assertion on this ring "
+            "to carry an rkaf:hasEffectivePeriod resolving to a well-formed "
+            "rkaf:EffectivePeriod, and no registry mapping source states an "
+            "effective date for this producer to emit. Carry the dates on "
+            "RegistryMapping and emit them before a source needs this ring; "
+            "fabricating a period would publish a claim no source made."
+        )
+    return ATLAS[ring]
+
+
 def _transformed_relation_evidence(
     relation: SourceRelation,
 ) -> tuple[URIRef, str, Mapping[str, Any]]:
@@ -3144,7 +3185,7 @@ def _expected_mapping_asserted_graph(
             assertion = _add_assertion(
                 graph,
                 assertion_type=ATLAS.MappingAssertion,
-                ring=ATLAS[release.ring],
+                ring=_mapping_release_ring(release.ring),
                 subject=URIRef(mapping.subject),
                 predicate=URIRef(mapping.predicate),
                 obj=URIRef(mapping.object),
@@ -4095,7 +4136,7 @@ def _validate_compiled_producer_rows(
             _assert_portable_editorial_policy_payload(
                 mapping_release.editorial_policy
             )
-            release_ring = ATLAS[mapping_release.ring]
+            release_ring = _mapping_release_ring(mapping_release.ring)
             allowed = relation_policies.get(release_ring, {}).get(
                 ATLAS.MappingAssertion,
                 frozenset(),
@@ -5373,7 +5414,7 @@ def _build_graphs(
             raise AssertionError(
                 "mapping editorial policy was not constructed"
             ) from error
-        mapping_ring = ATLAS[mapping_release.ring]
+        mapping_ring = _mapping_release_ring(mapping_release.ring)
         accounting_row = source_accounting_by_release[
             mapping_release.source_release_iri
         ]
