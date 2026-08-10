@@ -696,3 +696,29 @@ and its sealed input must be re-observed at start: the manifest digest recorded
 in the plan on 2026-08-07 predates the retirement's digest-chain regeneration
 and is stale. Later-stage gates — hub choice, meta-subjects, any binding
 change — remain open by design and are not decided here.
+
+### REF-023: Supersede the compatibility view — rkaf ships on the Atlas wire
+
+- **Date:** 2026-08-10
+- **Status:** Accepted; adoption executing
+
+The earlier boundary — Atlas keeps a private ontology and defers Rulespec
+conformance to a future compatibility view — is superseded. RefSpec relies on
+RuleSpec directly: for every rkaf-covered semantic, the published Atlas
+record uses the rkaf term and shape on the wire, and `atlas:` mints
+vocabulary only for its own domain (releases, packs, digests, rings,
+resource profiles). Records are append-only events; state is a derived,
+rebuildable projection, never stored authority. A structure — term, spec
+section, layer, boundary — is added or retained only with the running check
+that breaks when it is violated ([AGENTS.md](../AGENTS.md);
+[plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md)).
+
+Executed so far, each gated before or with its landing:
+`rkaf:membershipMode` (`e2ca150`), evidence and review vocabulary
+(`e9b19c5`, `436b5cc`), lifecycle events and supersession with derived
+lifecycle state (`79eaa2a`), `atlas:confidence` deleted as a constant with
+no contract (`ad3e669`), and a gate refusing any `atlas:` term that
+duplicates an rkaf local name (`637946b`). Open, in plan order: the P0
+machine-proof closure (which re-retires the restored 1.0 README), ring
+temporal context, typed rights and scope, conflict and finding records, and
+the SSSOM and reachability ports.
