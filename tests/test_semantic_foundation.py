@@ -328,11 +328,11 @@ def test_subject_exact_match_is_a_mapping_and_never_identity() -> None:
 def test_machine_evidence_cannot_be_reused_for_another_relation() -> None:
     evidence = _machine()
     exact = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(evidence.identifier,))
-    with pytest.raises(SemanticFoundationError, match="path-backed RelationAssertionBundle"):
+    with pytest.raises(SemanticFoundationError, match="not admitted here"):
         validate_mapping_assertions((exact,), evidence_assertions=(evidence,))
 
     broad = replace(exact, relation=SUBJECT_BROAD_MATCH)
-    with pytest.raises(SemanticFoundationError, match="path-backed RelationAssertionBundle"):
+    with pytest.raises(SemanticFoundationError, match="not admitted here"):
         validate_mapping_assertions((broad,), evidence_assertions=(evidence,))
 
 
@@ -352,7 +352,7 @@ def test_entity_identity_requires_more_than_name_or_statistical_similarity() -> 
         validate_mapping_assertions((mapping,), evidence_assertions=(generated,))
 
     machine = _machine(ring="entity", relation=ENTITY_SAME_IDENTITY)
-    with pytest.raises(SemanticFoundationError, match="path-backed RelationAssertionBundle"):
+    with pytest.raises(SemanticFoundationError, match="not admitted here"):
         validate_mapping_assertions(
             (replace(mapping, evidence=(machine.identifier,)),),
             evidence_assertions=(machine,),
@@ -409,7 +409,7 @@ def test_operator_adoption_requires_one_scoped_machine_review() -> None:
     )
     mapping = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(adopted.identifier,))
 
-    with pytest.raises(SemanticFoundationError, match="path-backed RelationAssertionBundle"):
+    with pytest.raises(SemanticFoundationError, match="not admitted here"):
         validate_mapping_assertions((mapping,), evidence_assertions=(reviewed, adopted))
 
     publisher = _publisher()
