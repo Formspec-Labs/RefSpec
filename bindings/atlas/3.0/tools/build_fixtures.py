@@ -738,6 +738,18 @@ def _reseal_adjudication(graph: Graph) -> None:
         _refresh_proof_digest(graph, proof)
 
 
+def _assertions_by_record(asserted: Graph) -> dict[str, list[str]]:
+    """Group each source record's evidence-bound assertions, sorted."""
+
+    grouped: dict[str, set[str]] = defaultdict(set)
+    for evidence in asserted.subjects(RDF.type, RKAF.EvidenceBinding):
+        record = asserted.value(evidence, ATLAS.evidenceSourceRecord)
+        assertion = asserted.value(evidence, RKAF.bindsAssertion)
+        if record is not None and assertion is not None:
+            grouped[str(record)].add(str(assertion))
+    return {record: sorted(values) for record, values in grouped.items()}
+
+
 def _base_fixture() -> Fixture:
     asserted = Graph()
     derived = Graph()
@@ -1178,6 +1190,7 @@ def _base_fixture() -> Fixture:
             for label in asserted.objects(resource, SKOSXL.prefLabel):
                 for record in asserted.objects(label, ATLAS.sourceRecord):
                     resource_by_record[str(record)].append(str(resource))
+    assertions_by_record = _assertions_by_record(asserted)
     source_records = sorted(str(row) for row in asserted.subjects(RDF.type, ATLAS.SourceRecord))
     records_by_release: dict[str, list[str]] = defaultdict(list)
     for record in source_records:
@@ -1185,16 +1198,21 @@ def _base_fixture() -> Fixture:
         if not isinstance(source_release, URIRef):
             raise TypeError(f"fixture source record {record} has no source release")
         records_by_release[str(source_release)].append(record)
+
+    def _disposition(record: str) -> dict[str, Any]:
+        row: dict[str, Any] = {
+            "atlasResources": sorted(resource_by_record[record]),
+            "sourceRecord": record,
+            "status": "represented",
+        }
+        assertions = assertions_by_record.get(record, [])
+        if assertions:
+            row["atlasAssertions"] = assertions
+        return row
+
     accounting_inputs = []
     for source_release, release_records in sorted(records_by_release.items()):
-        dispositions = [
-            {
-                "atlasResources": sorted(resource_by_record[record]),
-                "sourceRecord": record,
-                "status": "represented",
-            }
-            for record in sorted(release_records)
-        ]
+        dispositions = [_disposition(record) for record in sorted(release_records)]
         accounting_inputs.append(
             {
                 "declaredMemberCount": len(dispositions),
@@ -1226,15 +1244,36 @@ def _base_fixture() -> Fixture:
     )
 
 
+def _validator_rejects(term: Any) -> bool:
+    """Return whether the strict validator would refuse to render this term.
+
+    Used only so a deliberately invalid conformance fixture (a forbidden blank
+    node, a credential-bearing IRI) can reach disk in its intended
+    non-conforming form for the validator to independently discover and
+    reject. Every term in an unmutated fixture passes cleanly and takes the
+    canonical `nquads_line` path below.
+    """
+
+    try:
+        atlas_validate.ntriples_term(term)
+    except atlas_validate.AtlasValidationError:
+        return True
+    return False
+
+
 def _nquad_line(triple: tuple[Any, Any, Any], graph_id: URIRef) -> str:
     subject, predicate, obj = triple
-    if any(isinstance(term, BNode) for term in triple):
+    try:
+        return atlas_validate.nquads_line(subject, predicate, obj, graph_id)
+    except atlas_validate.AtlasValidationError:
+        # Only a case built to be refused gets here, and only its own invalid
+        # terms fall back to rdflib's rendering; every other term in the line
+        # is still written in the canonical form.
         rendered = [
-            term.n3() if isinstance(term, BNode) else atlas_validate.ntriples_term(term)
+            term.n3() if _validator_rejects(term) else atlas_validate.ntriples_term(term)
             for term in (subject, predicate, obj, graph_id)
         ]
         return " ".join((*rendered, "."))
-    return atlas_validate.nquads_line(subject, predicate, obj, graph_id)
 
 
 def _counts(fixture: Fixture) -> dict[str, int]:
@@ -2223,6 +2262,25 @@ def _write_case(
         fixture.post_write(path)
 
 
+def _account_assertions(fixture: Fixture) -> None:
+    """Restate every disposition's atlasAssertions from the mutated graph.
+
+    A mutation that adds, moves, or drops an evidence binding changes which
+    assertions each source record accounts for. The ledger is a claim about
+    the graph, so a case that means to stay valid restates the claim here
+    rather than shipping the baseline's copy of it.
+    """
+
+    assertions_by_record = _assertions_by_record(fixture.asserted)
+    for source in fixture.accounting["inputs"]:
+        for disposition in source["dispositions"]:
+            assertions = assertions_by_record.get(disposition["sourceRecord"], [])
+            if assertions:
+                disposition["atlasAssertions"] = assertions
+            else:
+                disposition.pop("atlasAssertions", None)
+
+
 def _remove_subject_predicate(graph: Graph, subject: Any, predicate: Any) -> None:
     for triple in list(graph.triples((subject, predicate, None))):
         graph.remove(triple)
@@ -2444,6 +2502,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 evidence_record=source_record,
                 evidence_name=name,
             )
+        _account_assertions(fixture)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def valid_supersession(fixture: Fixture) -> None:
@@ -2487,6 +2546,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             source_record=evidence_record,
         )
         fixture.derived.remove((None, None, None))
+        _account_assertions(fixture)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def supersession_without_event(fixture: Fixture) -> None:
@@ -3910,7 +3970,62 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
                 name=f"lattice-{name}",
                 machines=machines,
             )
+        _account_assertions(fixture)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def rdf_pack_over_limit(fixture: Fixture) -> None:
+        """Declare more decompressed content than one RDF pack may authorize.
+
+        Only the declaration moves, so the case stays a few kilobytes: the
+        validator has to refuse the manifest's own number before trusting it,
+        which is what bounds the bytes a real pack can be made to produce.
+        """
+
+        def mutate(path: Path) -> None:
+            manifest_path = path / "atlas-manifest.json"
+            manifest = json.loads(manifest_path.read_bytes())
+            manifest["packs"][0]["content"]["byteLength"] = (
+                atlas_validate.NQUADS_MAX_CONTENT_BYTES + 1
+            )
+            payload = dict(manifest)
+            payload.pop("canonicalPayloadDigest", None)
+            manifest["canonicalPayloadDigest"] = atlas_validate.canonical_sha256(
+                payload, terminal_lf=False
+            )
+            manifest_path.write_bytes(atlas_validate.canonical_json_bytes(manifest))
+
+        fixture.post_write = mutate
+
+    def source_accounting_unaccounted_assertion(fixture: Fixture) -> None:
+        """Stop accounting for the assertions one record's evidence binds.
+
+        The record keeps its represented resources, so the ledger still looks
+        complete on the resource side and the mapping rule -- which only fires
+        for a record naming no resource -- stays silent. Nothing but the
+        unconditional ledger-versus-evidence comparison notices that a mapping
+        assertion is now accounted for by no source record at all.
+        """
+
+        accounted = {
+            str(record)
+            for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            for evidence in fixture.asserted.subjects(RKAF.bindsAssertion, assertion)
+            for record in fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
+        }
+        disposition = next(
+            row
+            for source in fixture.accounting["inputs"]
+            for row in source["dispositions"]
+            if row.get("atlasAssertions") and row["sourceRecord"] in accounted
+        )
+        del disposition["atlasAssertions"]
+
+    def iri_credentials(fixture: Fixture) -> None:
+        record = next(fixture.asserted.subjects(RDF.type, ATLAS.SourceRecord))
+        _remove_subject_predicate(fixture.asserted, record, ATLAS.sourceLocator)
+        fixture.asserted.add(
+            (record, ATLAS.sourceLocator, URIRef("https://user:pass@example.org/x"))
+        )
 
     return [
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
@@ -4343,6 +4458,14 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             "valid",
             qualified_lattice_branches,
         ),
+        ("rdf-pack-over-limit", ["rdf"], "rdf.resource-limit", rdf_pack_over_limit),
+        (
+            "source-accounting-unaccounted-assertion",
+            ["json", "dataset"],
+            "source.accounting",
+            source_accounting_unaccounted_assertion,
+        ),
+        ("iri-credentials", ["rdf"], "rdf.term", iri_credentials),
     ]
 
 

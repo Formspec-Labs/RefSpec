@@ -128,6 +128,26 @@ NQUADS_MAX_LINE_BYTES = 16 * 1024 * 1024
 COMPACT_PACK_MAX_LINE_BYTES = 16 * 1024 * 1024
 COMPACT_PACK_MAX_TRANSPORT_BYTES = 1 * 1024 * 1024 * 1024
 COMPACT_PACK_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
+# RDF packs were bounded per line only, so a manifest could declare a pack
+# whose decompressed content was unbounded -- decompression-bomb shaped, on
+# the path an offline third-party consumer runs. They are the same class of
+# resource as a compact pack: bytes a self-declared manifest field would
+# otherwise authorize without limit, so they take the same per-pack content
+# ceiling, and they share the compact path's per-pack transport ceiling
+# (COMPACT_PACK_MAX_TRANSPORT_BYTES) for the same reason. One manifest can
+# list many packs, so an aggregate ceiling bounds the sum across a single
+# distribution independently of any one pack's size.
+#
+# Measured against the largest real Atlas builds under output/ (126 RDF packs
+# each): the largest single pack declares 1,010,406,706 content bytes
+# (0.94 GiB) and the largest aggregate is 7,302,404,152 (6.80 GiB), against a
+# largest transport of 55,991,749 (53.4 MiB). The ceilings leave 4.2x, 4.5x
+# and 19x headroom respectively -- room for the registry to several times
+# outgrow today's build before a legitimate distribution meets a limit, while
+# still refusing the 504 GiB that 126 unbounded packs would otherwise
+# authorize.
+NQUADS_MAX_CONTENT_BYTES = 4 * 1024 * 1024 * 1024
+NQUADS_DATASET_MAX_CONTENT_BYTES = 32 * 1024 * 1024 * 1024
 COMPACT_RDF_SAMPLE_SIZE = 5
 HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -820,6 +840,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "identifier-conflict-recorded",
         "identifier-missing-value",
         "identifier-pair-conflict",
+        "iri-credentials",
         "label-missing-literal",
         "label-extra-skos-type",
         "manifest-count-mismatch",
@@ -843,6 +864,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "release-membership-mode-unknown",
         "policy-payload-changed",
         "rdf-literal-escaping",
+        "rdf-pack-over-limit",
         "registry-conflict-detected-at-not-datetime",
         "registry-conflict-entries-mismatch",
         "registry-conflict-publication-blocking",
@@ -860,6 +882,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "source-accounting-false-inverse",
         "source-accounting-missing-disposition",
         "source-accounting-resource-swap",
+        "source-accounting-unaccounted-assertion",
         "subject-scheme-disagreement",
         "superseded-policy-revision",
         "lifecycle-applies-to-nonassertion",
@@ -2420,6 +2443,14 @@ def _parse_pack_into_dataset(
     """Stream, receipt, and parse one independently addressable pack."""
 
     pack_id = pack["packId"]
+    # Refuse the declaration before opening anything it describes. The
+    # streaming content reader already stops a pack whose real bytes exceed
+    # what the manifest declared (`pack.content`), so bounding the declaration
+    # bounds the decompressed bytes this call can be made to produce.
+    if pack["transport"]["byteLength"] > COMPACT_PACK_MAX_TRANSPORT_BYTES:
+        _fail("rdf.resource-limit", f"{pack['path']} exceeds the RDF pack transport limit")
+    if pack["content"]["byteLength"] > NQUADS_MAX_CONTENT_BYTES:
+        _fail("rdf.resource-limit", f"{pack['path']} exceeds the RDF pack content limit")
     path = _safe_distribution_path(root, pack["path"])
     role_by_graph = {graph_id: role for role, graph_id in graph_ids.items()}
     partition_prefix = pack.get("partition", {}).get("prefix")
@@ -2498,6 +2529,9 @@ def _parse_packed_dataset(
     }
     aggregate_counts: Counter[URIRef] = Counter()
     packs = manifest["packs"]
+    total_content_bytes = sum(pack["content"]["byteLength"] for pack in packs)
+    if total_content_bytes > NQUADS_DATASET_MAX_CONTENT_BYTES:
+        _fail("rdf.resource-limit", "RDF packs exceed the aggregate dataset content limit")
     for pack_position, pack in enumerate(packs, start=1):
         _STATUS.progress(
             "parse-rdf-packs",
@@ -5457,7 +5491,18 @@ def _check_source_accounting(
                 for assertion in graph_assertions
                 if (assertion, RDF.type, ATLAS.MappingAssertion) in asserted
             }
-            if "atlasAssertions" in disposition and ledger_assertions != graph_assertions:
+            # Volunteering `atlasAssertions` is not what makes the comparison
+            # happen. Omitting the key used to skip it outright, so a record
+            # that also represented a resource -- which the mapping rule below
+            # exempts -- could carry mapping evidence that no ledger anywhere
+            # accounted for, and nothing noticed. The comparison now runs
+            # whenever there is something to account for: assertions the
+            # ledger already names, or a mapping the record's evidence
+            # supports. A record whose evidence backs only source assignments
+            # or native relations and whose ledger claims no assertion stays
+            # silent, which is what most source records in a real distribution
+            # look like.
+            if (ledger_assertions or mapping_assertions) and ledger_assertions != graph_assertions:
                 _fail(
                     "source.accounting",
                     f"{record} represented assertions differ across its ledger and evidence bindings",

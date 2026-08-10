@@ -3163,3 +3163,69 @@ def test_cli_heap_freeze_happens_after_output_flush_and_not_inside_main(
 
     assert atlas_validate._run_cli() == 7
     assert calls == ["main", "prepare-exit"]
+
+
+def test_the_binding_tools_import_nothing_from_the_refspec_package() -> None:
+    """A consumer copies `bindings/atlas/3.0/` and validates a distribution offline.
+
+    `rdf_canonical.ntriples_term` inlines the credentials refusal that
+    `refspec.registry.infrastructure.identifier_validation.absolute_uri_issue`
+    already implements, and the note beside it says why: this boundary. The
+    note is only worth its space while something breaks when it is crossed.
+    """
+
+    import ast
+
+    for name in ("validate.py", "build_fixtures.py", "rdf_canonical.py"):
+        tree = ast.parse((BINDING_ROOT / "tools" / name).read_text(encoding="utf-8"))
+        imported = {
+            module.split(".", 1)[0]
+            for node in ast.walk(tree)
+            for module in (
+                [alias.name for alias in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module or ""]
+                if isinstance(node, ast.ImportFrom)
+                else []
+            )
+        }
+        assert "refspec" not in imported, f"{name} imports the RefSpec package"
+
+
+def test_the_binding_and_the_package_reject_the_same_credentialed_iris() -> None:
+    """The inlined credentials refusal must stay term for term the package's.
+
+    A copy with nothing checking that it still agrees is drift waiting to
+    happen; this is that check.
+    """
+
+    from refspec.registry.infrastructure.identifier_validation import absolute_uri_issue
+
+    probes = (
+        "https://example.org/x",
+        "https://user:pass@example.org/x",
+        "https://user@example.org/x",
+        "https://:pass@example.org/x",
+        "https://@example.org/x",
+        "http://user:pass@example.org:8080/a?b=c#d",
+        "ftp://anonymous:secret@ftp.example.org/pub",
+        "urn:ref:atlas:pack:abc",
+        "urn:ref:user:pass@example.org",
+        "https://example.org/path@with-at",
+        "https://example.org/x?q=a@b",
+        "https://example.org/x#frag@ment",
+        "https://[::1]/x",
+        "https://user:pass@[::1]:9/x",
+    )
+    package = {probe: absolute_uri_issue(probe) == "credentials" for probe in probes}
+    binding = {}
+    for probe in probes:
+        try:
+            atlas_validate.ntriples_term(URIRef(probe))
+        except atlas_validate.AtlasValidationError as exc:
+            binding[probe] = exc.code == "rdf.term" and "credentials" in exc.detail
+        else:
+            binding[probe] = False
+
+    assert binding == package
+    assert any(package.values()) and not all(package.values())
