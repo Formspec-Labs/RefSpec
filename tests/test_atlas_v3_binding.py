@@ -17,6 +17,7 @@ FIXTURE_BUILDER = BINDING_ROOT / "tools" / "build_fixtures.py"
 VALID_DISTRIBUTION = BINDING_ROOT / "fixtures" / "valid" / "all-resource-profiles"
 REQUIREMENTS = BINDING_ROOT / "requirements.txt"
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+RKAF = Namespace("https://rulespec.org/ns/v1#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import validate as atlas_validate
@@ -73,8 +74,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 71,
-        "invalidCount": 62,
+        "caseCount": 75,
+        "invalidCount": 66,
         "registryDescriptorCount": 88,
         "registryDescriptorQuadCount": 1171,
         "schemaCount": 10,
@@ -100,7 +101,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 842
+    assert result["quadCount"] == 824
     assert result["inferredMappingCount"] == 7
 
 
@@ -262,10 +263,14 @@ def test_supersession_projects_only_the_terminal_current_claim() -> None:
     _dataset, graphs, _manifest = _load_distribution(distribution)
     asserted = graphs["asserted"]
     projection = graphs["projection"]
-    old = next(asserted.subjects(ATLAS.assertionStatus, ATLAS.superseded))
-    successor = next(asserted.subjects(ATLAS.supersedes, old))
+    # An assertion carries no stored status: the successor names its
+    # predecessor via rkaf:supersedesAssertion, and the predecessor is
+    # superseded exactly because something names it that way.
+    successor, old = next(iter(asserted.subject_objects(RKAF.supersedesAssertion)))
 
-    assert (successor, ATLAS.assertionStatus, ATLAS.current) in asserted
+    assert successor not in {
+        target for _subject, target in asserted.subject_objects(RKAF.supersedesAssertion)
+    }
     assert old not in set(projection.objects(None, ATLAS.supportingAssertion))
     assert successor in set(projection.objects(None, ATLAS.supportingAssertion))
 

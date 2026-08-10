@@ -62,7 +62,7 @@ def _tables() -> dict[str, pa.Table]:
                 "semantic_ring": ["subject"],
                 "source_ring": pa.array([None], type=pa.string()),
                 "target_ring": pa.array([None], type=pa.string()),
-                "supersedes": pa.array([None], type=pa.string()),
+                "supersedes_assertion": pa.array([None], type=pa.string()),
             }
         ),
         CompactRecordRole.EVIDENCE_BINDING.value: pa.table(
@@ -306,7 +306,7 @@ def test_columnar_preflight_handles_same_and_cross_ring_relations_together() -> 
                     "semantic_ring": pa.array([None], type=pa.string()),
                     "source_ring": ["subject"],
                     "target_ring": ["entity"],
-                    "supersedes": pa.array([None], type=pa.string()),
+                    "supersedes_assertion": pa.array([None], type=pa.string()),
                 }
             ),
         ]

@@ -138,6 +138,26 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     # the local name was already Rulespec's.
     "assertedAt": (("assertion-asserted-at-not-datetime",), ()),
     "inputDigest": (("derived-input-digest",), ()),
+    # Phase 5 -- lifecycle and supersession (79eaa2a). atlas:LifecycleEvent,
+    # atlas:AssertionStatus and their properties are gone; a status is now
+    # derived from an incoming rkaf:supersedesAssertion edge or an applicable
+    # rkaf:rescission event, matching validate.py's own derivation.
+    "LifecycleEvent": (
+        (
+            "lifecycle-applies-to-nonassertion",
+            "lifecycle-effective-date-not-datetime",
+            "lifecycle-event-kind-unknown",
+            "lifecycle-rescission-names-target-release",
+        ),
+        (),
+    ),
+    "appliesTo": (("lifecycle-applies-to-nonassertion",), ()),
+    "lifecycleEventKind": (
+        ("lifecycle-event-kind-unknown",),
+        ("supersession", "rescission"),
+    ),
+    "effectiveDate": (("lifecycle-effective-date-not-datetime",), ()),
+    "supersedesAssertion": (("supersession-without-event",), ()),
 }
 ADOPTED_TERMS = frozenset(WIRE_ADOPTIONS) | {
     member for _, members in WIRE_ADOPTIONS.values() for member in members

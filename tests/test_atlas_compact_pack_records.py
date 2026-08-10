@@ -82,7 +82,6 @@ def _record(role: CompactRecordRole) -> dict[str, object]:
             "targetRelease": "urn:example:atlas-release:1",
             "policy": "urn:example:policy:1",
             "assertedAt": "2026-08-06T08:45:00+00:00",
-            "assertionStatus": "current",
             "assertionIdentityDigest": _DIGEST_A,
             "semanticRing": "subject",
         },
@@ -125,9 +124,9 @@ def _record(role: CompactRecordRole) -> dict[str, object]:
         },
         CompactRecordRole.LIFECYCLE_EVENT: {
             "id": "urn:example:lifecycle-event:1",
-            "eventSubject": "urn:example:resource:1",
-            "eventType": "urn:ref:atlas:event-type:superseded",
-            "eventAt": "2026-08-06T08:45:00+00:00",
+            "appliesTo": "urn:example:resource:1",
+            "lifecycleEventKind": "urn:ref:atlas:event-type:superseded",
+            "effectiveDate": "2026-08-06T08:45:00+00:00",
             "sourceRecords": [
                 "urn:example:source-record:2",
                 "urn:example:source-record:1",
@@ -294,7 +293,7 @@ def test_statement_supersedes_and_lifecycle_sources_are_preserved_canonically() 
         CompactRecordRole.STATEMENT,
         {
             **_record(CompactRecordRole.STATEMENT),
-            "supersedes": "urn:example:statement:old",
+            "supersedesAssertion": "urn:example:statement:old",
         },
     )
     lifecycle = normalize_compact_record(
@@ -302,7 +301,7 @@ def test_statement_supersedes_and_lifecycle_sources_are_preserved_canonically() 
         _record(CompactRecordRole.LIFECYCLE_EVENT),
     )
 
-    assert statement["supersedes"] == "urn:example:statement:old"
+    assert statement["supersedesAssertion"] == "urn:example:statement:old"
     assert lifecycle["sourceRecords"] == [
         "urn:example:source-record:1",
         "urn:example:source-record:2",

@@ -127,7 +127,6 @@ def test_compact_rdf_sample_is_bounded_stable_and_spread_across_each_pack(
             {
                 "assertedAt": "2026-08-06T00:00:00+00:00",
                 "assertionIdentityDigest": "sha256:" + "1" * 64,
-                "assertionStatus": "superseded",
                 "id": "urn:ref:atlas-test:statement:new",
                 "object": "urn:ref:atlas-test:resource:two",
                 "policy": "urn:ref:atlas-test:policy:one",
@@ -136,7 +135,7 @@ def test_compact_rdf_sample_is_bounded_stable_and_spread_across_each_pack(
                 "sourceRelease": "urn:ref:atlas-test:release:one",
                 "statementType": "NativeRelationAssertion",
                 "subject": "urn:ref:atlas-test:resource:one",
-                "supersedes": "urn:ref:atlas-test:statement:old",
+                "supersedesAssertion": "urn:ref:atlas-test:statement:old",
                 "targetRelease": "urn:ref:atlas-test:release:one",
             },
         ),
@@ -144,9 +143,9 @@ def test_compact_rdf_sample_is_bounded_stable_and_spread_across_each_pack(
             "LifecycleEvent",
             "lifecycle-event",
             {
-                "eventAt": "2026-08-06T00:00:00+00:00",
-                "eventSubject": "urn:ref:atlas-test:resource:one",
-                "eventType": "urn:ref:atlas-test:event-type:retired",
+                "effectiveDate": "2026-08-06T00:00:00+00:00",
+                "appliesTo": "urn:ref:atlas-test:resource:one",
+                "lifecycleEventKind": "urn:ref:atlas-test:event-type:retired",
                 "fromRelease": "urn:ref:atlas-test:release:one",
                 "id": "urn:ref:atlas-test:lifecycle-event:one",
                 "sourceRecords": [
@@ -197,7 +196,7 @@ def test_independent_compact_reader_supports_complete_lossless_roles(
                 "object": "urn:resource:two",
                 "sourceRelease": "urn:release:one",
                 "targetRelease": "urn:release:two",
-                "supersedes": "urn:statement:old",
+                "supersedesAssertion": "urn:statement:old",
             },
             {
                 "urn:resource:one",
@@ -211,7 +210,7 @@ def test_independent_compact_reader_supports_complete_lossless_roles(
             "LifecycleEvent",
             {
                 "id": "urn:event:one",
-                "eventSubject": "urn:resource:one",
+                "appliesTo": "urn:resource:one",
                 "fromRelease": "urn:release:one",
                 "toRelease": "urn:release:two",
                 "sourceRecords": ["urn:record:one", "urn:record:two"],
@@ -1875,7 +1874,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 842
+    assert result["quadCount"] == 824
     assert result["inferredMappingCount"] == 7
 
 
@@ -1887,7 +1886,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 842
+    assert result["quadCount"] == 824
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -1998,7 +1997,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 735
+    assert result["quadCount"] == 718
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(
