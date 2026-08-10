@@ -675,15 +675,15 @@ atlas:RelationAssertionShape
     sh:nodeKind sh:IRI ;
     sh:class atlas:EditorialPolicy
   ] ;
+  # No status property. Rulespec's envelope already carries the supersession
+  # edge -- "the successor names the assertions it replaces; the predecessors
+  # stay addressable" (constraints/core/assertion.cue) -- and withdrawal is a
+  # rescission rkaf:LifecycleEvent. A stored status could only agree or
+  # disagree with those, and disagreement was the only thing it was checked
+  # for. Atlas narrows rkaf's list-valued edge to at most one successor,
+  # because the dataset validator rejects a predecessor with two.
   sh:property [
-    sh:path atlas:assertionStatus ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:nodeKind sh:IRI ;
-    sh:in ( atlas:current atlas:superseded atlas:withdrawn )
-  ] ;
-  sh:property [
-    sh:path atlas:supersedes ;
+    sh:path rkaf:supersedesAssertion ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:RelationAssertion
@@ -888,10 +888,9 @@ atlas:EvidenceBindingShape
     )
   ] ;
   # #AttestationDecision has seven values; Atlas publishes only approved
-  # evidence, and this is the only place that invariant is stated. Unlike
-  # atlas:authorityStatus -- whose sole value repeated a fact the class and the
-  # graph placement already carried -- nothing else rejects a published
-  # rkaf:rejected binding.
+  # evidence, and this is the only place that invariant is stated. A pinned
+  # value earns its keep here precisely because nothing else rejects a
+  # published rkaf:rejected binding.
   sh:property [
     sh:path rkaf:decision ;
     sh:minCount 1 ;
@@ -1015,19 +1014,64 @@ atlas:EvidenceBindingShape
     ]
   ) .
 
+# Rulespec owns lifecycle, so the event node is rkaf:LifecycleEvent and its
+# subject, kind, and date are rkaf's. atlas:eventType carried no rdfs:range at
+# all and no sh:in, so a producer could name any IRI as an event kind and
+# nothing rejected it; rkaf:lifecycleEventKind is closed here to the two
+# kernel kinds Atlas can act on. rkaf:supersession and rkaf:rescission are the
+# whole set on purpose: the other six #LifecycleEventKind values -- and every
+# #ConceptLifecycleOperation -- describe transitions Atlas neither emits nor
+# checks, and admitting a value nothing enforces is how atlas:eventType got
+# into this state.
 atlas:LifecycleEventShape
   a sh:NodeShape ;
-  sh:targetClass atlas:LifecycleEvent ;
+  sh:targetClass rkaf:LifecycleEvent ;
   sh:nodeKind sh:IRI ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
-  sh:property [ sh:path atlas:eventSubject ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
-  sh:property [ sh:path atlas:eventType ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
-  sh:property [ sh:path atlas:eventAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+  # Narrowed from rkaf's list-valued rkaf:appliesTo: one Atlas event names one
+  # assertion, and sh:class rejects an event pointed at a resource or a
+  # release, which the bare sh:nodeKind sh:IRI on atlas:eventSubject did not.
+  sh:property [
+    sh:path rkaf:appliesTo ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:RelationAssertion
+  ] ;
+  # No sh:in here: the sh:xone below names both admissible kinds with
+  # sh:hasValue, so it already closes the set. A separate sh:in could not be
+  # violated on its own -- an unknown kind satisfies neither branch -- and a
+  # constraint no fixture can isolate is a second copy of the value set, not a
+  # check. This is unlike atlas:EvidenceBindingShape, where the axis sh:in
+  # values ARE independently reachable because most branches leave them free.
+  sh:property [
+    sh:path rkaf:lifecycleEventKind ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [ sh:path rkaf:effectiveDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
   sh:property [ sh:path atlas:fromRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
   sh:property [ sh:path atlas:toRelease ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:Release ] ;
   sh:property [ sh:path atlas:sourceRecord ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:class atlas:SourceRecord ] ;
-  sh:property [ sh:path atlas:contentDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:node atlas:DigestValueShape ] .
+  sh:property [ sh:path atlas:contentDigest ; sh:minCount 1 ; sh:maxCount 1 ; sh:node atlas:DigestValueShape ] ;
+  # Each kind names the release it moves the assertion across, and only that
+  # one. A rescission leaves a release; a supersession admits the successor
+  # into one. Without this a producer could emit either pointer on either kind
+  # and nothing would notice.
+  sh:xone (
+    [
+      sh:property [ sh:path rkaf:lifecycleEventKind ; sh:hasValue rkaf:rescission ] ;
+      sh:property [ sh:path atlas:fromRelease ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:toRelease ; sh:maxCount 0 ]
+    ]
+    [
+      sh:property [ sh:path rkaf:lifecycleEventKind ; sh:hasValue rkaf:supersession ] ;
+      sh:property [ sh:path atlas:toRelease ; sh:minCount 1 ] ;
+      sh:property [ sh:path atlas:fromRelease ; sh:maxCount 0 ]
+    ]
+  ) .
 
 # Reproducible projection records
 
@@ -1164,13 +1208,12 @@ atlas:DerivedRelationShape
     sh:nodeKind sh:Literal ;
     sh:datatype xsd:dateTime
   ] ;
-  sh:property [
-    sh:path atlas:authorityStatus ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:nodeKind sh:IRI ;
-    sh:hasValue atlas:nonAuthoritative
-  ] ;
+  # No authority-status property. It was pinned here with
+  # sh:hasValue atlas:nonAuthoritative, so it took one value in every
+  # conforming dataset and told a consumer nothing the atlas:DerivedRelation
+  # type and the derived graph do not already say. What still breaks when a
+  # producer claims authority for a derived row is the graph-placement check
+  # in validate.py, proved by derived-is-authoritative and derived-extra-type.
   sh:property [
     sh:path atlas:contentDigest ;
     sh:minCount 1 ;

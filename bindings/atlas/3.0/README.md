@@ -483,8 +483,10 @@ that an editor asserted or reviewed that third relationship.
 
 If a producer publishes a useful consequence, it creates an
 `atlas:DerivedRelation` in the `derived` graph. That record identifies its
-input assertions, rule, engine and version, exact input digest, generation
-time, and `atlas:nonAuthoritative` status. It MUST NOT be a
+input assertions, rule, engine and version, exact input digest, and
+generation time. It carries no authority-status property: the record is
+non-authoritative because of what it is, and a property pinned to one value
+distinguished no two datasets. It MUST NOT be a
 `atlas:RelationAssertion`, appear in the direct projection, or satisfy an
 editorial mapping query. Applications opt into derived relations explicitly.
 

@@ -117,6 +117,10 @@ COMPACT_RDF_SAMPLE_SIZE = 5
 HIERARCHY_REACHABILITY_BATCH_BITS = 2_048
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMPACT_PACK_ID_PREFIX = "urn:ref:atlas:compact-pack:"
+# The compact projection carries rkaf:lifecycleEventKind as a full IRI,
+# exactly like rkaf:attestorKind and rkaf:decision on an evidence binding, and
+# exactly like those it is closed by the sh:in on atlas:LifecycleEventShape
+# rather than by a second copy of the value set here.
 COMPACT_HEADER_TYPE = "AtlasCompactPackHeader"
 COMPACT_SCHEMA_VERSION = "1.0"
 COMPACT_ROLES = (
@@ -150,11 +154,10 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "targetRelease",
                 "policy",
                 "assertedAt",
-                "assertionStatus",
                 "assertionIdentityDigest",
             }
         ),
-        frozenset({"semanticRing", "sourceRing", "targetRing", "supersedes"}),
+        frozenset({"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}),
     ),
     "EvidenceBinding": (
         frozenset(
@@ -197,7 +200,7 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset(),
     ),
     "LifecycleEvent": (
-        frozenset({"id", "eventSubject", "eventType", "eventAt", "sourceRecords"}),
+        frozenset({"id", "appliesTo", "lifecycleEventKind", "effectiveDate", "sourceRecords"}),
         frozenset({"fromRelease", "toRelease"}),
     ),
 }
@@ -252,7 +255,7 @@ COMPACT_IRI_FIELDS: dict[str, tuple[str, ...]] = {
     "SourceRecord": ("id", "sourceRelease", "sourceLocator"),
     "Release": ("id",),
     "Identifier": ("id", "identifierScheme", "identifies", "sourceRecord"),
-    "LifecycleEvent": ("id", "eventSubject", "eventType"),
+    "LifecycleEvent": ("id", "appliesTo", "lifecycleEventKind"),
 }
 assert COMPACT_IRI_FIELDS.keys() == COMPACT_RECORD_FIELDS.keys()
 assert all(
@@ -270,7 +273,7 @@ COMPACT_REFERENCE_FIELDS: dict[str, tuple[str, ...]] = {
         "object",
         "sourceRelease",
         "targetRelease",
-        "supersedes",
+        "supersedesAssertion",
     ),
     "EvidenceBinding": ("statement", "sourceRecord", "basedOnAttestation"),
     # representsResource is a deliberate forward reference that avoids a
@@ -279,7 +282,7 @@ COMPACT_REFERENCE_FIELDS: dict[str, tuple[str, ...]] = {
     "Release": (),
     "Identifier": ("identifies", "sourceRecord"),
     "LifecycleEvent": (
-        "eventSubject",
+        "appliesTo",
         "fromRelease",
         "toRelease",
     ),
@@ -500,7 +503,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         ATLAS.SourceRecord,
         RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
-        ATLAS.LifecycleEvent,
+        RKAF.LifecycleEvent,
         ATLAS.RelationAssertion,
         *ASSERTION_TYPES,
         ATLAS.SkosMappingAssertion,
@@ -520,7 +523,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
         ATLAS.SourceRecord,
         RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
-        ATLAS.LifecycleEvent,
+        RKAF.LifecycleEvent,
         *ASSERTION_TYPES,
         SKOSXL.Label,
     }
@@ -562,8 +565,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.sourceRelease,
         ATLAS.targetRelease,
         ATLAS.governedByPolicy,
-        ATLAS.assertionStatus,
-        ATLAS.supersedes,
+        RKAF.supersedesAssertion,
         ATLAS.evidenceSourceRecord,
         ATLAS.evidenceSourceDigest,
         RKAF.attestor,
@@ -575,8 +577,8 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         RKAF.evidentiaryFunction,
         RKAF.attestorKind,
         RKAF.bindsAssertion,
-        ATLAS.eventSubject,
-        ATLAS.eventType,
+        RKAF.appliesTo,
+        RKAF.lifecycleEventKind,
         ATLAS.fromRelease,
         ATLAS.toRelease,
         ATLAS.sourceDigest,
@@ -596,7 +598,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         RKAF.assertedAt,
         ATLAS.assertionIdentityDigest,
         RKAF.attestedAt,
-        ATLAS.eventAt,
+        RKAF.effectiveDate,
         ATLAS.contentDigest,
     }
 )
@@ -647,7 +649,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "derived-naked-mapping",
         "derived-nonresource-endpoint",
         "derived-reflexive-output",
-        "derived-withdrawn-input",
+        "derived-rescinded-input",
         "duplicate-preferred-language",
         "evidence-attested-at-not-datetime",
         "evidence-attestor-kind-unknown",
@@ -688,10 +690,14 @@ REQUIRED_CORPUS_CASES = frozenset(
         "source-accounting-resource-swap",
         "subject-scheme-disagreement",
         "superseded-policy-revision",
-        "supersession-old-still-current",
+        "lifecycle-applies-to-nonassertion",
+        "lifecycle-effective-date-not-datetime",
+        "lifecycle-event-kind-unknown",
+        "lifecycle-rescission-names-target-release",
+        "supersession-without-event",
         "unjustified-thesaurus-related",
         "validator-identity-mismatch",
-        "withdrawn-lifecycle",
+        "rescission-lifecycle",
         "wrong-ring-relation",
         "zstd-packs",
     }
@@ -792,7 +798,6 @@ class _AssertionState:
     assertion_type: URIRef
     source_release: URIRef
     ring_context: URIRef | tuple[URIRef, URIRef]
-    status: URIRef
     asserted_at: datetime
     predecessor: URIRef | None
 
@@ -1775,19 +1780,14 @@ def _normalize_compact_record(
             },
             f"{path}.statementType",
         )
-        _compact_token(
-            value["assertionStatus"],
-            {"current", "superseded", "withdrawn"},
-            f"{path}.assertionStatus",
-        )
         value["assertionIdentityDigest"] = _compact_digest(
             value["assertionIdentityDigest"],
             f"{path}.assertionIdentityDigest",
         )
-        if "supersedes" in value:
-            value["supersedes"] = _compact_iri(
-                value["supersedes"],
-                f"{path}.supersedes",
+        if "supersedesAssertion" in value:
+            value["supersedesAssertion"] = _compact_iri(
+                value["supersedesAssertion"],
+                f"{path}.supersedesAssertion",
             )
         if value["statementType"] == "CrossRingRelationAssertion":
             if "semanticRing" in value or not {"sourceRing", "targetRing"} <= value.keys():
@@ -2426,8 +2426,6 @@ def _lint_ontology(ontology: Graph) -> None:
         OWL.DatatypeProperty,
         ATLAS.SemanticRing,
         ATLAS.ResourceProfile,
-        ATLAS.AssertionStatus,
-        ATLAS.AuthorityStatus,
     }
     allowed_datatype_ranges = {
         RDFS.Literal,
@@ -3420,17 +3418,12 @@ def _validate_assertions(
         if stored_content_digest != rdf_node_digest(asserted, assertion):
             _fail("dataset.assertion-identity", f"{assertion} contentDigest differs")
 
-        status = _iri(
-            _one(asserted, assertion, ATLAS.assertionStatus, code="dataset.assertion"),
-            code="dataset.assertion",
-            label="assertionStatus",
-        )
         asserted_at = _date_time(
             _one(asserted, assertion, RKAF.assertedAt, code="dataset.assertion"),
             code="dataset.assertion",
             label="assertedAt",
         )
-        predecessors = list(asserted.objects(assertion, ATLAS.supersedes))
+        predecessors = list(asserted.objects(assertion, RKAF.supersedesAssertion))
         if len(predecessors) > 1 or any(not isinstance(value, URIRef) for value in predecessors):
             _fail("dataset.supersession", f"{assertion} has an invalid supersedes value")
         predecessor = predecessors[0] if predecessors else None
@@ -3505,7 +3498,6 @@ def _validate_assertions(
             assertion_type=assertion_type,
             source_release=source_release,
             ring_context=ring_context,
-            status=status,
             asserted_at=asserted_at,
             predecessor=predecessor,
         )
@@ -3558,14 +3550,43 @@ def _validate_assertions(
         if len(rows) != 1:
             _fail("dataset.supersession", f"{predecessor} has more than one direct successor")
 
+    # Lifecycle state is not stored on the assertion: it is read off the
+    # supersession edge and the rkaf:LifecycleEvent records that announce the
+    # transition. An unrecognised event kind is not decided here -- the sh:in
+    # on atlas:LifecycleEventShape rejects it -- so this pass only reads the
+    # two kinds Atlas acts on.
+    event_kinds: dict[URIRef, set[URIRef]] = defaultdict(set)
+    for event in asserted.subjects(RDF.type, RKAF.LifecycleEvent):
+        targets = list(asserted.objects(event, RKAF.appliesTo))
+        kinds = list(asserted.objects(event, RKAF.lifecycleEventKind))
+        if len(targets) != 1 or len(kinds) != 1:
+            _fail("dataset.lifecycle", f"{event} must name one subject and one kind")
+        target, kind = targets[0], kinds[0]
+        if not isinstance(target, URIRef) or not isinstance(kind, URIRef):
+            _fail("dataset.lifecycle", f"{event} subject and kind must be IRIs")
+        if kind in event_kinds[target]:
+            _fail("dataset.lifecycle", f"{target} carries two {kind} events")
+        event_kinds[target].add(kind)
+
     projected: dict[AssertionTriple, URIRef | list[URIRef]] = {}
     for assertion, state in states.items():
         has_successor = bool(successors.get(assertion))
-        if has_successor and state.status != ATLAS.superseded:
-            _fail("dataset.supersession", f"non-terminal {assertion} must have superseded status")
-        if not has_successor and state.status == ATLAS.superseded:
-            _fail("dataset.supersession", f"terminal {assertion} cannot have superseded status")
-        if not has_successor and state.status == ATLAS.current:
+        kinds = event_kinds.get(assertion, set())
+        announced = RKAF.supersession in kinds
+        rescinded = RKAF.rescission in kinds
+        if has_successor and not announced:
+            _fail(
+                "dataset.supersession",
+                f"superseded {assertion} has no rkaf:supersession lifecycle event",
+            )
+        if announced and not has_successor:
+            _fail(
+                "dataset.supersession",
+                f"{assertion} announces a supersession no assertion carries out",
+            )
+        if rescinded and has_successor:
+            _fail("dataset.supersession", f"{assertion} is both rescinded and superseded")
+        if not has_successor and not rescinded:
             existing = projected.get(state.triple)
             if existing is None:
                 projected[state.triple] = assertion
@@ -4485,7 +4506,7 @@ def _check_node_digests(
         ATLAS.Identifier,
         ATLAS.SourceRecord,
         ATLAS.EditorialPolicy,
-        ATLAS.LifecycleEvent,
+        RKAF.LifecycleEvent,
         SKOSXL.Label,
     )
     for role, graph, node_groups in (
@@ -4794,8 +4815,6 @@ def _check_derived(
             (node, RDF.type, assertion_type) in derived for assertion_type in ASSERTION_TYPES
         ):
             _fail("dataset.derived-authority", f"{node} is both derived and authoritative")
-        if _one(derived, node, ATLAS.authorityStatus, code="dataset.derived") != ATLAS.nonAuthoritative:
-            _fail("dataset.derived-authority", f"{node} is not explicitly non-authoritative")
         inputs = set(derived.objects(node, ATLAS.derivedFromAssertion))
         if not inputs or not inputs <= active_assertions:
             _fail(
@@ -5481,7 +5500,7 @@ def _construction_record_role_or_none(
             ("Release", ATLAS.AtlasRelease),
             ("Release", ATLAS.SourceRelease),
             ("Identifier", ATLAS.Identifier),
-            ("LifecycleEvent", ATLAS.LifecycleEvent),
+            ("LifecycleEvent", RKAF.LifecycleEvent),
         )
         if marker in types
     }
@@ -5661,12 +5680,6 @@ def _construction_record_from_rdf(
                         graph, subject, RKAF.assertedAt, term_type=Literal
                     )
                 ),
-                "assertionStatus": _construction_atlas_name(
-                    _construction_rdf_one(
-                        graph, subject, ATLAS.assertionStatus, term_type=URIRef
-                    ),
-                    label=f"{subject} assertion status",
-                ),
                 "assertionIdentityDigest": str(
                     _construction_rdf_one(
                         graph,
@@ -5695,11 +5708,11 @@ def _construction_record_from_rdf(
                 ),
                 label=f"{subject} semantic ring",
             )
-        supersedes = list(graph.objects(subject, ATLAS.supersedes))
+        supersedes = list(graph.objects(subject, RKAF.supersedesAssertion))
         if len(supersedes) > 1 or (supersedes and not isinstance(supersedes[0], URIRef)):
             _fail("construction.sample", f"statement {subject} has invalid supersession")
         if supersedes:
-            record["supersedes"] = str(supersedes[0])
+            record["supersedesAssertion"] = str(supersedes[0])
     elif role == "EvidenceBinding":
         record.update(
             {
@@ -5909,19 +5922,19 @@ def _construction_record_from_rdf(
             _fail("construction.sample", f"lifecycle event {subject} has invalid source records")
         record.update(
             {
-                "eventSubject": str(
+                "appliesTo": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.eventSubject, term_type=URIRef
+                        graph, subject, RKAF.appliesTo, term_type=URIRef
                     )
                 ),
-                "eventType": str(
+                "lifecycleEventKind": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.eventType, term_type=URIRef
+                        graph, subject, RKAF.lifecycleEventKind, term_type=URIRef
                     )
                 ),
-                "eventAt": str(
+                "effectiveDate": str(
                     _construction_rdf_one(
-                        graph, subject, ATLAS.eventAt, term_type=Literal
+                        graph, subject, RKAF.effectiveDate, term_type=Literal
                     )
                 ),
                 "sourceRecords": source_records,
@@ -6079,7 +6092,7 @@ def _rdf_record_counts_by_role(asserted: Graph) -> dict[str, int]:
         "Release": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasRelease))
         + sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRelease)),
         "Identifier": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.Identifier)),
-        "LifecycleEvent": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.LifecycleEvent)),
+        "LifecycleEvent": sum(1 for _ in asserted.subjects(RDF.type, RKAF.LifecycleEvent)),
     }
 
 

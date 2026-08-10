@@ -155,7 +155,6 @@ def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None
         graphs["derived"].value(node, ATLAS.relationSubject) == source
         and graphs["derived"].value(node, ATLAS.relationPredicate) == SKOS.exactMatch
         and graphs["derived"].value(node, ATLAS.relationObject) == target
-        and graphs["derived"].value(node, ATLAS.authorityStatus) == ATLAS.nonAuthoritative
         for node in graphs["derived"].subjects(RDF.type, ATLAS.DerivedRelation)
     )
     assert not any(

@@ -242,7 +242,6 @@ def _add_assertion(
     evidence_name: str,
     policy: URIRef | None = None,
     asserted_at: str = CREATED_AT,
-    status: URIRef = ATLAS.current,
     supersedes: URIRef | None = None,
     review_warrant: str = "humanReview",
     source_ring: URIRef | None = None,
@@ -311,9 +310,8 @@ def _add_assertion(
             Literal(asserted_at, datatype=XSD.dateTime, normalize=False),
         )
     )
-    graph.add((assertion, ATLAS.assertionStatus, status))
     if supersedes is not None:
-        graph.add((assertion, ATLAS.supersedes, supersedes))
+        graph.add((assertion, RKAF.supersedesAssertion, supersedes))
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(digest)))
     graph.add(
         (
@@ -674,21 +672,14 @@ def _base_fixture() -> Fixture:
             Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
         )
     )
-    derived.add((derived_id, ATLAS.authorityStatus, ATLAS.nonAuthoritative))
 
-    lifecycle = URIRef("urn:ref:atlas-fixture:lifecycle:exact-ab-admitted")
-    asserted.add((lifecycle, RDF.type, ATLAS.LifecycleEvent))
-    asserted.add((lifecycle, ATLAS.eventSubject, exact_ab))
-    asserted.add((lifecycle, ATLAS.eventType, URIRef("urn:ref:atlas-event:admitted")))
-    asserted.add(
-        (
-            lifecycle,
-            ATLAS.eventAt,
-            Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
-        )
-    )
-    asserted.add((lifecycle, ATLAS.toRelease, subject_b_release))
-    asserted.add((lifecycle, ATLAS.sourceRecord, source_a))
+    # The base graph carries no lifecycle event. It used to carry an
+    # "urn:ref:atlas-event:admitted" one, and nothing in the binding could
+    # reject any IRI a producer put there: atlas:eventType had no rdfs:range
+    # and no sh:in. rkaf:lifecycleEventKind is closed to the two kinds Atlas
+    # acts on, and "admitted" is neither, so the event is gone rather than
+    # relabelled. Lifecycle events now appear exactly where they change what a
+    # consumer sees -- rescission-lifecycle and superseded-policy-revision.
 
     digest_classes = {
         ATLAS.RegistrySource,
@@ -704,7 +695,7 @@ def _base_fixture() -> Fixture:
         ATLAS.SourceRecord,
         RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
-        ATLAS.LifecycleEvent,
+        RKAF.LifecycleEvent,
         SKOSXL.Label,
     }
     digest_nodes = {
@@ -1214,7 +1205,7 @@ def _compact_logical_rows(
         "SourceRecord": ATLAS.SourceRecord,
         "Release": (ATLAS.AtlasRelease, ATLAS.SourceRelease),
         "Identifier": ATLAS.Identifier,
-        "LifecycleEvent": ATLAS.LifecycleEvent,
+        "LifecycleEvent": RKAF.LifecycleEvent,
     }
     expected = {
         "Resource": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasResource))),
@@ -1225,7 +1216,7 @@ def _compact_logical_rows(
         "Release": len(set(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease)))
         + len(set(fixture.asserted.subjects(RDF.type, ATLAS.SourceRelease))),
         "Identifier": _counts(fixture)["identifiers"],
-        "LifecycleEvent": len(set(fixture.asserted.subjects(RDF.type, ATLAS.LifecycleEvent))),
+        "LifecycleEvent": len(set(fixture.asserted.subjects(RDF.type, RKAF.LifecycleEvent))),
     }
     rows_by_owner_role: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     seen_by_role: dict[str, set[URIRef]] = defaultdict(set)
@@ -1884,6 +1875,54 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             and fixture.asserted.value(assertion, ATLAS.targetRing) == target_ring
         )
 
+    def add_lifecycle_event(
+        fixture: Fixture,
+        *,
+        name: str,
+        assertion: URIRef,
+        kind: URIRef,
+        release: URIRef,
+        source_record: URIRef,
+    ) -> URIRef:
+        """Announce one assertion lifecycle transition as an rkaf event."""
+
+        event = URIRef(f"urn:ref:atlas-fixture:lifecycle:{name}")
+        fixture.asserted.add((event, RDF.type, RKAF.LifecycleEvent))
+        fixture.asserted.add((event, RKAF.appliesTo, assertion))
+        fixture.asserted.add((event, RKAF.lifecycleEventKind, kind))
+        fixture.asserted.add(
+            (
+                event,
+                RKAF.effectiveDate,
+                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+        release_predicate = (
+            ATLAS.fromRelease if kind == RKAF.rescission else ATLAS.toRelease
+        )
+        fixture.asserted.add((event, release_predicate, release))
+        fixture.asserted.add((event, ATLAS.sourceRecord, source_record))
+        _refresh_node_digest(fixture.asserted, event)
+        return event
+
+    def rescind_inert_cross_ring_assertion(fixture: Fixture) -> URIRef:
+        """Rescind the otherwise-inert entity -> legal-identity assertion.
+
+        Terminal, so it is legitimately excluded from the projection, and no
+        other fixture record depends on it.
+        """
+
+        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.legalIdentity)
+        entity = URIRef("urn:ref:atlas-fixture:resource:entity-agency")
+        return add_lifecycle_event(
+            fixture,
+            name="entity-references-legal-rescinded",
+            assertion=assertion,
+            kind=RKAF.rescission,
+            release=next(fixture.asserted.objects(entity, ATLAS.inRelease)),
+            source_record=next(fixture.asserted.objects(entity, ATLAS.sourceRecord)),
+        )
+
     def no_derived(fixture: Fixture) -> None:
         fixture.derived.remove((None, None, None))
 
@@ -1965,9 +2004,6 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         evidence_record = next(
             fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
         )
-        _remove_subject_predicate(fixture.asserted, old, ATLAS.assertionStatus)
-        fixture.asserted.add((old, ATLAS.assertionStatus, ATLAS.superseded))
-        _refresh_node_digest(fixture.asserted, old)
         policy = _add_policy(fixture.asserted, version="2")
         _add_assertion(
             fixture.asserted,
@@ -1984,10 +2020,18 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             asserted_at="2026-08-06T12:00:00+00:00",
             supersedes=old,
         )
+        add_lifecycle_event(
+            fixture,
+            name="subject-a-mapping-superseded",
+            assertion=old,
+            kind=RKAF.supersession,
+            release=target_release,
+            source_record=evidence_record,
+        )
         fixture.derived.remove((None, None, None))
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
-    def invalid_supersession_keeps_old_current(fixture: Fixture) -> None:
+    def supersession_without_event(fixture: Fixture) -> None:
         old = next(
             assertion
             for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
@@ -2222,27 +2266,29 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _reidentify_derived(fixture.derived, node)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
-    def derived_withdrawn_input(fixture: Fixture) -> None:
+    def derived_rescinded_input(fixture: Fixture) -> None:
+        # A rescinded assertion leaves the projection, so a derived relation
+        # that still names it as an input no longer has active inputs. The
+        # assertion node itself is untouched, so its content digest and the
+        # derived inputDigest both stay correct: the only thing that changed
+        # is that a lifecycle event now says the assertion was rescinded.
         assertion = next(
             row
             for row in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
             if fixture.asserted.value(row, RDF.subject)
             == URIRef("urn:ref:atlas-fixture:resource:subject-a")
         )
-        _remove_subject_predicate(fixture.asserted, assertion, ATLAS.assertionStatus)
-        fixture.asserted.add((assertion, ATLAS.assertionStatus, ATLAS.withdrawn))
-        _refresh_node_digest(fixture.asserted, assertion)
-        node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
-        inputs = list(fixture.derived.objects(node, ATLAS.derivedFromAssertion))
-        _remove_subject_predicate(fixture.derived, node, RKAF.inputDigest)
-        fixture.derived.add(
-            (
-                node,
-                RKAF.inputDigest,
-                Literal(atlas_validate.derived_input_digest(fixture.asserted, inputs)),
-            )
+        evidence = next(fixture.asserted.subjects(RKAF.bindsAssertion, assertion))
+        add_lifecycle_event(
+            fixture,
+            name="subject-a-mapping-rescinded",
+            assertion=assertion,
+            kind=RKAF.rescission,
+            release=next(fixture.asserted.objects(assertion, ATLAS.sourceRelease)),
+            source_record=next(
+                fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord)
+            ),
         )
-        _reidentify_derived(fixture.derived, node)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def missing_disposition(fixture: Fixture) -> None:
@@ -2758,35 +2804,53 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         # per source release.
         fixture.rdf_partition_owner = "source-mixed-code-value"
 
-    def withdrawn_lifecycle(fixture: Fixture) -> None:
-        # Reuse an existing, otherwise-inert cross-ring assertion (entity
-        # references legal-identity) rather than inventing a new
-        # distribution: withdraw it terminally (no successor, so it is
-        # legitimately excluded from the projection) and record the
-        # withdrawal as a LifecycleEvent, mirroring the "admitted" event the
-        # base fixture already carries for exact-ab.
-        assertion = cross_assertion(fixture, ATLAS.entity, ATLAS.legalIdentity)
-        _remove_subject_predicate(fixture.asserted, assertion, ATLAS.assertionStatus)
-        fixture.asserted.add((assertion, ATLAS.assertionStatus, ATLAS.withdrawn))
-        _refresh_node_digest(fixture.asserted, assertion)
+    def rescission_lifecycle(fixture: Fixture) -> None:
+        # The assertion carries no status to change. The rescission event IS
+        # the withdrawal, and the projection drops the assertion because of it.
+        rescind_inert_cross_ring_assertion(fixture)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
-        entity = URIRef("urn:ref:atlas-fixture:resource:entity-agency")
-        entity_release = next(fixture.asserted.objects(entity, ATLAS.inRelease))
-        source_record = next(fixture.asserted.objects(entity, ATLAS.sourceRecord))
-        lifecycle = URIRef("urn:ref:atlas-fixture:lifecycle:entity-references-legal-withdrawn")
-        fixture.asserted.add((lifecycle, RDF.type, ATLAS.LifecycleEvent))
-        fixture.asserted.add((lifecycle, ATLAS.eventSubject, assertion))
-        fixture.asserted.add((lifecycle, ATLAS.eventType, URIRef("urn:ref:atlas-event:withdrawn")))
+    def lifecycle_event_kind_unknown(fixture: Fixture) -> None:
+        # atlas:eventType admitted any IRI. rkaf:lifecycleEventKind does not.
+        event = rescind_inert_cross_ring_assertion(fixture)
+        _remove_subject_predicate(fixture.asserted, event, RKAF.lifecycleEventKind)
+        fixture.asserted.add(
+            (event, RKAF.lifecycleEventKind, URIRef("urn:ref:atlas-event:admitted"))
+        )
+        _refresh_node_digest(fixture.asserted, event)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def lifecycle_effective_date_not_datetime(fixture: Fixture) -> None:
+        event = rescind_inert_cross_ring_assertion(fixture)
+        _remove_subject_predicate(fixture.asserted, event, RKAF.effectiveDate)
+        fixture.asserted.add((event, RKAF.effectiveDate, Literal(CREATED_AT)))
+        _refresh_node_digest(fixture.asserted, event)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def lifecycle_applies_to_nonassertion(fixture: Fixture) -> None:
+        # atlas:eventSubject was a bare sh:nodeKind sh:IRI, so an event could
+        # name a resource, a release, or anything else and still conform.
+        event = rescind_inert_cross_ring_assertion(fixture)
+        _remove_subject_predicate(fixture.asserted, event, RKAF.appliesTo)
         fixture.asserted.add(
             (
-                lifecycle,
-                ATLAS.eventAt,
-                Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+                event,
+                RKAF.appliesTo,
+                URIRef("urn:ref:atlas-fixture:resource:entity-agency"),
             )
         )
-        fixture.asserted.add((lifecycle, ATLAS.fromRelease, entity_release))
-        fixture.asserted.add((lifecycle, ATLAS.sourceRecord, source_record))
-        _refresh_node_digest(fixture.asserted, lifecycle)
+        _refresh_node_digest(fixture.asserted, event)
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
+    def lifecycle_rescission_names_target_release(fixture: Fixture) -> None:
+        # A rescission leaves a release; it does not admit the assertion into
+        # one. Before the kind was closed, either pointer was legal on either
+        # event and nothing distinguished them.
+        event = rescind_inert_cross_ring_assertion(fixture)
+        release = next(fixture.asserted.objects(event, ATLAS.fromRelease))
+        _remove_subject_predicate(fixture.asserted, event, ATLAS.fromRelease)
+        fixture.asserted.add((event, ATLAS.toRelease, release))
+        _refresh_node_digest(fixture.asserted, event)
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def skosxl_hidden_label(fixture: Fixture) -> None:
@@ -2870,7 +2934,31 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("derived-extra-type", ["dataset", "reasoning"], "dataset.graph-placement", derived_extra_type),
         ("derived-reflexive-output", ["dataset", "reasoning"], "dataset.derived-rule", derived_reflexive_output),
         ("derived-extra-branch", ["dataset", "reasoning"], "dataset.derived-rule", derived_extra_branch),
-        ("derived-withdrawn-input", ["dataset", "reasoning", "lifecycle"], "dataset.derived", derived_withdrawn_input),
+        ("derived-rescinded-input", ["dataset", "reasoning", "lifecycle"], "dataset.derived", derived_rescinded_input),
+        (
+            "lifecycle-event-kind-unknown",
+            ["shacl", "dataset", "lifecycle"],
+            "shacl.data",
+            lifecycle_event_kind_unknown,
+        ),
+        (
+            "lifecycle-effective-date-not-datetime",
+            ["shacl", "dataset", "lifecycle"],
+            "shacl.data",
+            lifecycle_effective_date_not_datetime,
+        ),
+        (
+            "lifecycle-applies-to-nonassertion",
+            ["shacl", "dataset", "lifecycle"],
+            "shacl.data",
+            lifecycle_applies_to_nonassertion,
+        ),
+        (
+            "lifecycle-rescission-names-target-release",
+            ["shacl", "dataset", "lifecycle"],
+            "shacl.data",
+            lifecycle_rescission_names_target_release,
+        ),
         ("source-accounting-missing-disposition", ["json", "dataset"], "source.accounting", missing_disposition),
         ("manifest-count-mismatch", ["dataset"], "dataset.counts", count_mismatch),
         ("acceptance-missing-gate", ["json", "dataset"], "acceptance.gates", missing_acceptance_gate),
@@ -2898,7 +2986,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("adoption-without-referent", ["shacl", "dataset"], "shacl.data", adoption_without_referent),
         ("adoption-chain-cycle", ["rdf", "dataset"], "dataset.evidence-adoption", adoption_chain_cycle),
         ("policy-payload-changed", ["rdf", "dataset"], "dataset.assertion-identity", policy_payload_changed),
-        ("supersession-old-still-current", ["dataset", "lifecycle"], "dataset.supersession", invalid_supersession_keeps_old_current),
+        ("supersession-without-event", ["dataset", "lifecycle"], "dataset.supersession", supersession_without_event),
         ("source-accounting-resource-swap", ["json", "dataset"], "source.accounting", source_accounting_swap),
         (
             "source-accounting-false-inverse",
@@ -2947,7 +3035,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ),
         ("zstd-packs", ["dataset"], "valid", zstd_packs),
         ("partitioned-packs", ["dataset"], "valid", partitioned_packs),
-        ("withdrawn-lifecycle", ["dataset", "lifecycle"], "valid", withdrawn_lifecycle),
+        ("rescission-lifecycle", ["dataset", "lifecycle"], "valid", rescission_lifecycle),
         ("skosxl-hidden-label", ["shacl", "dataset"], "valid", skosxl_hidden_label),
     ]
 

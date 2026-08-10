@@ -23,13 +23,24 @@ atlas:ResourceProfile
   a owl:Class ;
   rdfs:label "resource profile"@en .
 
-atlas:AssertionStatus
-  a owl:Class ;
-  rdfs:label "assertion status"@en .
+# atlas:AssertionStatus and its three individuals are gone, and so is
+# atlas:assertionStatus. Rulespec models a status change as an event, not as a
+# field on the record it changes: #LifecycleEventKind carries rkaf:supersession
+# and rkaf:rescission. Atlas now says the same thing with rkaf:LifecycleEvent,
+# so "superseded" is read off the rkaf:supersedesAssertion edge that already
+# had to exist and "withdrawn" is read off a rescission event. A stored status
+# could only ever agree or disagree with those two facts, and the validator's
+# only use for it was checking that it agreed.
 
-atlas:AuthorityStatus
-  a owl:Class ;
-  rdfs:label "authority status"@en .
+# atlas:AuthorityStatus, atlas:authoritative, atlas:nonAuthoritative and
+# atlas:authorityStatus are gone. The only shape that used the property pinned
+# it with sh:hasValue atlas:nonAuthoritative, so every conforming dataset
+# carried the same value and the property could not distinguish two datasets:
+# it restated what atlas:DerivedRelation and the derived graph already say.
+# atlas:authoritative was never emitted at all. Rulespec's #AuthorityKind and
+# #AuthorityChainStatus were deliberately NOT adopted in its place -- Atlas has
+# no authority values to record, and adopting them would mint the information
+# this deletion removes.
 
 # Editorial decision status and review method were Atlas classes. Both are
 # decision-making vocabulary, which Rulespec owns: a decision is now
@@ -96,9 +107,11 @@ atlas:EditorialPolicy
   a owl:Class ;
   rdfs:label "editorial policy"@en .
 
-atlas:LifecycleEvent
-  a owl:Class ;
-  rdfs:label "lifecycle event"@en .
+# The lifecycle-event class is rkaf:LifecycleEvent. Its event kind, effective
+# date, and subject are rkaf's too; see atlas:LifecycleEventShape in
+# shapes/atlas.shacl.ttl, which closes the kind to the two kernel kinds Atlas
+# can justify. Only the two release pointers below stay Atlas-owned, because a
+# release is structure RefSpec owns.
 
 atlas:RelationAssertion
   a owl:Class ;
@@ -225,13 +238,6 @@ atlas:identifierScheme a atlas:ResourceProfile ; rdfs:label "identifier scheme"@
 atlas:structureScheme a atlas:ResourceProfile ; rdfs:label "structure scheme"@en .
 atlas:resourceCollection a atlas:ResourceProfile ; rdfs:label "resource collection"@en .
 
-atlas:current a atlas:AssertionStatus ; rdfs:label "current"@en .
-atlas:superseded a atlas:AssertionStatus ; rdfs:label "superseded"@en .
-atlas:withdrawn a atlas:AssertionStatus ; rdfs:label "withdrawn"@en .
-
-atlas:authoritative a atlas:AuthorityStatus ; rdfs:label "authoritative"@en .
-atlas:nonAuthoritative a atlas:AuthorityStatus ; rdfs:label "non-authoritative"@en .
-
 # The six atlas:ReviewMethod individuals conflated four independent Rulespec
 # axes into one enum, so a consumer could not tell WHAT constructed a record
 # (rkaf:assertionOrigin) from WHY it may be believed (rkaf:epistemicBasis),
@@ -357,18 +363,6 @@ atlas:governedByPolicy
   rdfs:range atlas:EditorialPolicy ;
   rdfs:label "governed by policy"@en .
 
-atlas:assertionStatus
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:RelationAssertion ;
-  rdfs:range atlas:AssertionStatus ;
-  rdfs:label "assertion status"@en .
-
-atlas:supersedes
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:RelationAssertion ;
-  rdfs:range atlas:RelationAssertion ;
-  rdfs:label "supersedes"@en .
-
 atlas:evidenceSourceRecord
   a owl:ObjectProperty ;
   rdfs:domain rkaf:EvidenceBinding ;
@@ -388,27 +382,19 @@ atlas:relationObject
   a owl:ObjectProperty ;
   rdfs:label "relation object"@en .
 
-atlas:eventSubject
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:LifecycleEvent ;
-  rdfs:label "event subject"@en .
-
-atlas:eventType
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:LifecycleEvent ;
-  rdfs:label "event type"@en .
-
 atlas:fromRelease
   a owl:ObjectProperty ;
-  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:domain rkaf:LifecycleEvent ;
   rdfs:range atlas:Release ;
-  rdfs:label "from release"@en .
+  rdfs:label "from release"@en ;
+  rdfs:comment "Release a rescinded assertion is withdrawn from. Rulespec's kernel lifecycle event has no release pointer outside its concept-lifecycle branch, and an Atlas release is structure RefSpec owns, so this pointer stays atlas:."@en .
 
 atlas:toRelease
   a owl:ObjectProperty ;
-  rdfs:domain atlas:LifecycleEvent ;
+  rdfs:domain rkaf:LifecycleEvent ;
   rdfs:range atlas:Release ;
-  rdfs:label "to release"@en .
+  rdfs:label "to release"@en ;
+  rdfs:comment "Release a superseding assertion is admitted into. Atlas-owned for the same reason as atlas:fromRelease."@en .
 
 # Projection and derivation properties
 
@@ -433,12 +419,6 @@ atlas:engine
   a owl:ObjectProperty ;
   rdfs:domain atlas:DerivedRelation ;
   rdfs:label "engine"@en .
-
-atlas:authorityStatus
-  a owl:ObjectProperty ;
-  rdfs:domain atlas:DerivedRelation ;
-  rdfs:range atlas:AuthorityStatus ;
-  rdfs:label "authority status"@en .
 
 # Datatype properties
 
@@ -544,12 +524,6 @@ atlas:generatedAt
   rdfs:domain atlas:DerivedRelation ;
   rdfs:range xsd:dateTime ;
   rdfs:label "generated at"@en .
-
-atlas:eventAt
-  a owl:DatatypeProperty ;
-  rdfs:domain atlas:LifecycleEvent ;
-  rdfs:range xsd:dateTime ;
-  rdfs:label "event at"@en .
 
 atlas:contentDigest
   a owl:DatatypeProperty ;
