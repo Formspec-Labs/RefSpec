@@ -38,16 +38,16 @@ def _resource(labels: tuple[RegistryLabel, ...]) -> RegistryResource:
 
 def _mapping_evidence(
     *,
-    review_method: str = "operatorAdoption",
-    decided_at: str = "2026-08-06T00:00:00+00:00",
+    review_warrant: str = "operatorAdoption",
+    attested_at: str = "2026-08-06T00:00:00+00:00",
 ) -> RegistryMappingEvidence:
     return RegistryMappingEvidence(
         source_locator="urn:example:mapping-source",
         source_digest=_DIGEST,
         native_payload={"row": 1},
-        review_warrant=review_method,  # type: ignore[arg-type]
+        review_warrant=review_warrant,  # type: ignore[arg-type]
         reviewer_iri="urn:example:reviewer",
-        attested_at=decided_at,
+        attested_at=attested_at,
     )
 
 
@@ -167,9 +167,9 @@ def test_registry_mapping_evidence_accepts_every_binding_review_method(
     (
         ("source_locator", "not-an-iri", "source locator must be an absolute IRI"),
         ("source_digest", "sha256:not-a-digest", "source digest must be SHA-256"),
-        ("review_method", "legacyReview", "unsupported.*review method"),
+        ("review_warrant", "legacyReview", "unsupported.*review method"),
         ("reviewer_iri", "not-an-iri", "reviewer must be an absolute IRI"),
-        ("decided_at", "2026-08-06T00:00:00", "explicit timezone"),
+        ("attested_at", "2026-08-06T00:00:00", "explicit timezone"),
     ),
 )
 def test_registry_mapping_evidence_rejects_invalid_identity_and_decision_fields(
