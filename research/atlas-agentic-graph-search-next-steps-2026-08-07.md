@@ -309,6 +309,30 @@ distribution.
 > through the pinned full view when tagging evidence needs them. The sealed
 > handoff becomes the search-view manifest digest, re-sealed from a fresh
 > post-retirement distribution.
+>
+> **Stage 1 sealed (2026-08-10):** distribution rebuilt at commit `e2ca150`
+> in an isolated worktree, full Parquet view built and preflighted, search
+> view built and independently verified by SpicySearch's reader
+> (`spicysearch atlas verify`, fourteen checks, `rkaf:accepted`). The
+> approved handoff, recorded outside the copied distribution in SpicySearch
+> commit `ede33a8` (`fixtures/releases/atlas-search-view-pin.json` plus the
+> BridgeValidationResult receipt): search-view manifest
+> `sha256:ee5fa0e4379b8c142a03921b619368d76619cb519ea8847d4f863c597ad792b7`,
+> full-view manifest `sha256:226293ad…65aa3660`, distribution manifest
+> `sha256:f8c1539b…2b9b8335`. Sealed artifacts live under `output/` as the
+> three `…-2026-08-09` dated directories. Expansion remains disabled; the
+> Stage 1 exit checks (closed membership, tamper refusal, parity via the
+> preflight, byte-stable identity) are enforced by the committed reader and
+> validators, each with negative fixtures.
+>
+> **Diagnosis correction (2026-08-10):** an earlier annotation attributed the
+> first rebuild failure to the claim-derived EuroVoc path minting a new
+> release identity. Wrong — both paths mint `urn:ref:atlas-release:3:
+> eurovoc:4.24`. The actual defect: EuroVoc `100162` ("76 INTERNATIONAL
+> ORGANISATIONS") is a domain concept living in the `eurovoc-domains:4.24`
+> release, while the LCSH alignment pinned every subject to the thesaurus
+> release. Fixed upstream by `868b124` (domain-discriminating endpoint pins),
+> caught by the endpoint-exact-pin validation added in `37d2d11`.
 
 **Work:** Add an independent SpicySearch Atlas 3.0 reader. Prefer direct reading
 of canonical RDF. Add a compact `AtlasSearchView` only if measured consumer cost
