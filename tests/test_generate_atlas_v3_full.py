@@ -357,7 +357,7 @@ def _receipted_test_graphs() -> generator.BuildGraphs:
     asserted.add((atlas_release, generator.ATLAS.semanticRing, generator.ATLAS.subject))
     asserted.add((atlas_release, generator.ATLAS.inScheme, URIRef("urn:test:scheme")))
     asserted.add(
-        (atlas_release, generator.ATLAS.membershipMode, generator.ATLAS.completeMembership)
+        (atlas_release, generator.RKAF.membershipMode, generator.RKAF.completeMembership)
     )
     asserted.add((atlas_release, generator.DCTERMS.identifier, Literal("unit-test-release")))
     asserted.add(

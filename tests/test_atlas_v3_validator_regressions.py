@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.0"
 VALID_DISTRIBUTION = BINDING_ROOT / "fixtures" / "valid" / "all-resource-profiles"
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+RKAF = Namespace("https://rulespec.org/ns/v1#")
+PROV = Namespace("http://www.w3.org/ns/prov#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import build_fixtures as atlas_fixtures
@@ -1059,6 +1061,48 @@ def _resource_rows(asserted: Graph, ring: URIRef) -> list[tuple[URIRef, URIRef, 
 def _allowed_predicate(ring: URIRef, assertion_type: URIRef) -> URIRef:
     predicates = atlas_validate._relation_policies()[ring][assertion_type]
     return min(predicates, key=str)
+
+
+def test_membership_mode_admits_only_the_three_rulespec_values() -> None:
+    """Rulespec's #ReferenceResourceMembershipMode is a closed three-value set.
+
+    atlas:completeMembership no longer exists, so the old value is now just
+    another term outside the set -- which is the point: the shape rejects a
+    parallel Atlas term as firmly as it rejects nonsense.
+    """
+
+    for replacement in (ATLAS.completeMembership, RKAF.partialCompleteMembership):
+        _dataset, graphs, _ = _load_valid_graphs()
+        asserted = graphs["asserted"]
+        release = next(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+        _replace_object(asserted, release, RKAF.membershipMode, replacement)
+        _assert_shacl_rejects(graphs, "InConstraintComponent")
+
+
+def test_an_enumerating_membership_mode_requires_at_least_one_member() -> None:
+    _dataset, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    release = next(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+    asserted.remove((release, PROV.hadMember, None))
+
+    _assert_shacl_rejects(graphs, "XoneConstraintComponent")
+
+
+def test_membership_not_enumerated_forbids_enumerating_the_members() -> None:
+    """Upstream's third mode is not "complete with the list omitted"."""
+
+    _dataset, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    release = next(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
+    _replace_object(
+        asserted,
+        release,
+        RKAF.membershipMode,
+        RKAF.membershipNotEnumerated,
+    )
+    assert list(asserted.objects(release, PROV.hadMember))
+
+    _assert_shacl_rejects(graphs, "XoneConstraintComponent")
 
 
 def test_core_shacl_still_rejects_an_assertion_without_evidence() -> None:

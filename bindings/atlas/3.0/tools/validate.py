@@ -81,6 +81,8 @@ BINDING_BUNDLE_PATHS = (
 )
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+# Rulespec's namespace. Atlas references it; it never mints inside it.
+RKAF = Namespace("https://rulespec.org/ns/v1#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 
 VALIDATOR_ID = "refspec-atlas-conformance"
@@ -480,7 +482,7 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.sourceLocator,
         ATLAS.identifierScheme,
         ATLAS.identifies,
-        ATLAS.membershipMode,
+        RKAF.membershipMode,
         ATLAS.sourceRelease,
         ATLAS.targetRelease,
         ATLAS.governedByPolicy,
@@ -2339,7 +2341,6 @@ def _lint_ontology(ontology: Graph) -> None:
         ATLAS.ResourceProfile,
         ATLAS.AssertionStatus,
         ATLAS.AuthorityStatus,
-        ATLAS.MembershipMode,
         ATLAS.EditorialDecisionStatus,
         ATLAS.ReviewMethod,
     }
@@ -5325,6 +5326,21 @@ def _construction_atlas_name(value: Any, *, label: str) -> str:
     return iri[len(namespace) :]
 
 
+def _construction_rkaf_name(value: Any, *, label: str) -> str:
+    """Shorten a Rulespec term the same way an Atlas term is shortened.
+
+    The compact projection carries local names, so a term Atlas adopted from
+    Rulespec projects identically -- but it must still be read out of
+    Rulespec's namespace, not minted in Atlas's.
+    """
+
+    iri = str(value)
+    namespace = str(RKAF)
+    if not iri.startswith(namespace) or len(iri) == len(namespace):
+        _fail("construction.sample", f"{label} is not a Rulespec vocabulary term")
+    return iri[len(namespace) :]
+
+
 def _construction_record_role_or_none(
     graph: Graph,
     subject: URIRef,
@@ -5704,9 +5720,9 @@ def _construction_record_from_rdf(
                             graph, subject, ATLAS.inScheme, term_type=URIRef
                         )
                     ),
-                    "membershipMode": _construction_atlas_name(
+                    "membershipMode": _construction_rkaf_name(
                         _construction_rdf_one(
-                            graph, subject, ATLAS.membershipMode, term_type=URIRef
+                            graph, subject, RKAF.membershipMode, term_type=URIRef
                         ),
                         label=f"{subject} membership mode",
                     ),

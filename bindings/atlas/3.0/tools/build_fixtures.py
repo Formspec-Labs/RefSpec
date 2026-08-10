@@ -18,6 +18,7 @@ from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDF, SKOS, XSD
 
 ATLAS = atlas_validate.ATLAS
+RKAF = atlas_validate.RKAF
 SKOSXL = atlas_validate.SKOSXL
 FIXTURE_ROOT = atlas_validate.FIXTURE_ROOT
 GENERATED_ROOTS = (FIXTURE_ROOT / "valid", FIXTURE_ROOT / "invalid")
@@ -125,7 +126,7 @@ def _add_release(
     graph.add((release, ATLAS.resourceProfile, profile))
     graph.add((release, ATLAS.semanticRing, ring))
     graph.add((release, ATLAS.inScheme, scheme))
-    graph.add((release, ATLAS.membershipMode, ATLAS.completeMembership))
+    graph.add((release, RKAF.membershipMode, RKAF.completeMembership))
     graph.add((release, DCTERMS.identifier, Literal(name)))
     graph.add((release, DCTERMS.issued, Literal("2026-08-05", datatype=XSD.date)))
     graph.add((source_release, RDF.type, ATLAS.SourceRelease))

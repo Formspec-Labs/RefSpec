@@ -31,11 +31,11 @@
 <urn:ref:atlas-fixture:release:subject-b:2026> <http://purl.org/dc/terms/issued> "2026-08-05"^^<http://www.w3.org/2001/XMLSchema#date> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:release:subject-b:2026> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#AtlasRelease> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:release:subject-b:2026> <http://www.w3.org/ns/prov#hadMember> <urn:ref:atlas-fixture:resource:subject-b> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
-<urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:86f24123abd26a9ba824d4c5210ea31cf8719b731d4c3c488793b31f8734042c" <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
+<urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#contentDigest> "sha256:a12ff8399f57539b521198b4029bdd6558beb6260f071faa56604e16956dd058" <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#inScheme> <urn:ref:atlas-fixture:scheme:subject-b> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
-<urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#membershipMode> <https://refspec.org/ns/atlas/v3#completeMembership> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#resourceProfile> <https://refspec.org/ns/atlas/v3#conceptScheme> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:release:subject-b:2026> <https://refspec.org/ns/atlas/v3#semanticRing> <https://refspec.org/ns/atlas/v3#subject> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
+<urn:ref:atlas-fixture:release:subject-b:2026> <https://rulespec.org/ns/v1#membershipMode> <https://rulespec.org/ns/v1#completeMembership> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:resource:subject-b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2004/02/skos/core#Concept> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:resource:subject-b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#AtlasResource> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .
 <urn:ref:atlas-fixture:resource:subject-b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://refspec.org/ns/atlas/v3#SubjectConcept> <urn:ref:atlas-fixture:distribution:derived-input-digest:asserted> .

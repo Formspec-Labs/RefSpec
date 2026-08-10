@@ -167,23 +167,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:3fc47aeccbbba5a9d68ae35385f658c021e670bafc9bb4ad52820a81afcc6192"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:43916e82b8009d995ea5804d5b095761ce0c5289d5adbc08acd010df474c7a61"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:8184f15f88479ce25d32e1d91073c11a5b4bbdbfb63f6ce7464926d439c03630"
+            "sha256:737c0584c385c89243a8c1e9212afc29d7a0c476c29da398e6e3d2af3d02eff8"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:a9e7f4798ec15b26f7c287af687c5cea299f278974b9159e4522f144441e600d"
+            "sha256:333b1b961140b839f9d55c140ff33222751f8a1dfe1f686da884d1824c874c33"
         ),
         "shapesDigest": (
-            "sha256:68e96d1282805575a7ffd7bf28d7e81a5548d842a6d3af6a6706ebe572d9f39f"
+            "sha256:fce9388a881bbf95d3704953d1f191b58e36254862128f3d6ce001c28586e845"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -774,6 +774,7 @@ def _load_validator() -> Any:
 
 ATLAS_VALIDATE = _load_validator()
 ATLAS = ATLAS_VALIDATE.ATLAS
+RKAF = ATLAS_VALIDATE.RKAF
 SKOSXL = ATLAS_VALIDATE.SKOSXL
 _RING_RELATION_POLICIES = ATLAS_VALIDATE._relation_policies()
 _SOURCE_LABEL_PREDICATES = MappingProxyType(
@@ -4900,7 +4901,7 @@ def _build_graphs(
             asserted.add((atlas_release, ATLAS.semanticRing, ring))
             asserted.add((atlas_release, ATLAS.inScheme, scheme))
             asserted.add(
-                (atlas_release, ATLAS.membershipMode, ATLAS.completeMembership)
+                (atlas_release, RKAF.membershipMode, RKAF.completeMembership)
             )
             asserted.add((atlas_release, DCTERMS.identifier, Literal(release.spec.key)))
             asserted.add(
@@ -6028,6 +6029,21 @@ def _atlas_local_name(value: Any, *, context: str) -> str:
     return iri[len(namespace) :]
 
 
+def _rkaf_local_name(value: Any, *, context: str) -> str:
+    """Shorten a Rulespec term for the compact projection.
+
+    The compact record carries local names, so a term Atlas adopted from
+    Rulespec projects the same way -- but it is read out of Rulespec's
+    namespace, which is where it is defined.
+    """
+
+    iri = str(value)
+    namespace = str(RKAF)
+    if not iri.startswith(namespace) or len(iri) == len(namespace):
+        raise ValueError(f"{context} is not a Rulespec vocabulary term: {iri}")
+    return iri[len(namespace) :]
+
+
 def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
     types = set(graph.objects(subject, RDF.type))
     candidates = {
@@ -6489,11 +6505,11 @@ def _compact_record_from_graph(
                             expected_type=URIRef,
                         )
                     ),
-                    "membershipMode": _atlas_local_name(
+                    "membershipMode": _rkaf_local_name(
                         _one_graph_object(
                             graph,
                             subject,
-                            ATLAS.membershipMode,
+                            RKAF.membershipMode,
                             expected_type=URIRef,
                         ),
                         context=f"{subject} membership mode",

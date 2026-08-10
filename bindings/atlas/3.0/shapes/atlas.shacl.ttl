@@ -4,6 +4,7 @@
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rkaf:    <https://rulespec.org/ns/v1#> .
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
 @prefix skosxl:  <http://www.w3.org/2008/05/skos-xl#> .
@@ -184,18 +185,48 @@ atlas:AtlasReleaseShape
     sh:maxCount 1 ;
     sh:node atlas:DigestValueShape
   ] ;
+  # Rulespec owns this vocabulary: #ReferenceResourceMembershipMode in
+  # constraints/core/reference-resource-release.cue, over the same
+  # prov:hadMember carrier. The per-mode obligations below are upstream's --
+  # both enumerating modes require at least one member, and
+  # membershipNotEnumerated forbids the property rather than leaving it empty.
+  # Atlas emits only rkaf:completeMembership today; admitting the other two
+  # costs nothing and stops Atlas from minting a parallel term when it needs
+  # them.
   sh:property [
-    sh:path atlas:membershipMode ;
+    sh:path rkaf:membershipMode ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:hasValue atlas:completeMembership
+    sh:in ( rkaf:completeMembership rkaf:partialMembership rkaf:membershipNotEnumerated )
   ] ;
   sh:property [
     sh:path prov:hadMember ;
-    sh:minCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class atlas:AtlasResource
   ] ;
+  sh:xone (
+    [
+      sh:property [
+        sh:path rkaf:membershipMode ;
+        sh:hasValue rkaf:completeMembership
+      ] ;
+      sh:property [ sh:path prov:hadMember ; sh:minCount 1 ]
+    ]
+    [
+      sh:property [
+        sh:path rkaf:membershipMode ;
+        sh:hasValue rkaf:partialMembership
+      ] ;
+      sh:property [ sh:path prov:hadMember ; sh:minCount 1 ]
+    ]
+    [
+      sh:property [
+        sh:path rkaf:membershipMode ;
+        sh:hasValue rkaf:membershipNotEnumerated
+      ] ;
+      sh:property [ sh:path prov:hadMember ; sh:maxCount 0 ]
+    ]
+  ) ;
   sh:property [
     sh:path ( atlas:inScheme atlas:resourceProfile ) ;
     sh:equals atlas:resourceProfile
