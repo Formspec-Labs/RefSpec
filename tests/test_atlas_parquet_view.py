@@ -507,6 +507,41 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     assert not database_path.exists()
 
 
+def test_search_view_matches_whole_tokens_only(tmp_path: Path) -> None:
+    """Pin the retrieval the view actually offers: whole tokens, nothing else.
+
+    The Atlas 1.0 explorer ranked in process and advertised branches for
+    one-edit typos and useful prefixes; the reviewed search corpus at
+    ``research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json``
+    names a category per branch. This view ranks with a DuckDB full-text index
+    that has neither, so those expectations were not carried onto it. That
+    reasoning is only sound while the substrate stays this one, so assert it:
+    if prefix or fuzzy retrieval ever lands here, this fails and the corpus
+    becomes portable again.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source, include_alias=True)
+    full = tmp_path / "full"
+    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+    compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
+
+    with AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin) as view:
+        # Whole tokens retrieve, through punctuation and case normalization.
+        assert view.search("resource")[0]["id"] == "urn:test:resource"
+        assert view.search("Test/resource   (alias)")[0]["id"] == "urn:test:resource"
+        # A proper prefix of a retained token retrieves nothing.
+        assert view.search("resourc") == []
+        assert view.search("ali") == []
+        # Neither does a single edit away from one.
+        assert view.search("resourse") == []
+        assert view.search("aliaz") == []
+
+
 def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
     rendered = render_atlas_parquet_explorer()
 

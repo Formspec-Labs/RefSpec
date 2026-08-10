@@ -555,10 +555,30 @@ recomputes every receipt. The file MUST include these gate names:
 - `shacl-meta`
 - `shacl-data`
 - `dataset-closure`
+- `machine-adjudication`
 - `source-accounting`
 - `projection-parity`
+- `explorer-reachability`
 - `reasoning-isolation`
 - `profile-conformance`
+
+`explorer-reachability` is a property of the distribution, not of any product
+built from it. The compact packs are the substrate the Parquet search view, its
+DuckDB session, and the explorer are all built from, so the gate requires the
+compact record identity of each role to equal the asserted graph's record
+identity for that role. It therefore refuses a record the served projection
+omits — one no filter, no search, and neither concept endpoint can ever reach
+— a record the projection carries that the distribution never asserted, and a
+record repeated across two packs. None of the three changes a role count, and
+the row sample reads only a fixed few positions per pack.
+
+Retrieval quality is deliberately **not** a gate here. Ranking is a property of
+a view built from a distribution and of the whole corpus's term statistics, not
+of the distribution, and it belongs to the consumer that owns retrieval. The
+DuckDB full-text index this binding's consumers build has no fuzzy or prefix
+matching, so a rank threshold stated against a different ranker cannot be
+carried onto it without restating the expectation, which would make the check
+prove only itself.
 
 Registry coverage is a binding-level proof, not a per-distribution gate. The
 binding validator verifies its canonical digest, profile pin, non-vacuous
@@ -590,8 +610,10 @@ A conforming validator MUST fail closed in this order:
 7. when projection packs exist, regenerate the label and relation projection
    and require exact equality; otherwise verify its asserted preconditions;
 8. prove that allowlisted reasoning adds no assertion, projection record, or
-   authoritative graph statement; and
-9. require the acceptance gate set; then, for binding validation, verify the
+   authoritative graph statement;
+9. authenticate every compact row, reconcile the compact record identity of
+   each role against the asserted graph's, and reconcile the sampled rows; and
+10. require the acceptance gate set; then, for binding validation, verify the
     sealed corpus, registry coverage report, and real-registry descriptor
     export.
 
