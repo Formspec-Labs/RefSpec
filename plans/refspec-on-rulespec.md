@@ -64,6 +64,44 @@ anywhere). This list grows only when a validator demands it.
    `audit-rulespec-pin`. No adoption step may cite unpinned rulespec text.
 1. P0 adjudication per the map. When its negative fixtures are green,
    `machine_evidence.py` and `relation_proof.py` become deletable.
+
+   Specifics restated 2026-08-10 so they survive session churn — the analysis
+   below previously existed only in inter-session messages, and the session
+   that produced it is unreachable. No live session's memory is required to
+   execute this step; this text plus the cited files are sufficient.
+
+   - The record shape is rulespec's
+     `constraints/analysis/resolver-proof-record.cue` (proofIssuer as a
+     versioned node, proofInput + proofInputDigest, cross-node comparison
+     binding), NOT `attestation.cue`, whose free-form scope cannot carry
+     independence groups, sealed-request equality, or the verdict lattice.
+     One shape only: the proof record carries the adjudicated outcome; no
+     parallel attestation representation of the same fact.
+   - Two rulespec-side amendments gate it: `#ResolverProofType` (closed, six
+     values) needs an AI-adjudication member, and `spec/rkaf-analysis.md`
+     §3.4 ("A model MUST NOT produce a comparison outcome") amends to: a
+     model MAY produce a proof; the comparison outcome is produced only by
+     the deterministic lattice over at least two independent proofs.
+   - Direction of correction: rulespec's "exactly two validations"
+     (`tools/refspec_atlas.py:288`, `spec/rkaf-refspec.md`) is wrong and
+     would reject RefSpec's `valid/qualified-three-machine-support` corpus
+     case. RefSpec's rule wins — at least one independent pair (distinct
+     actors, independence groups, providers, provider model IDs, response
+     artifacts), all supporting validations retained, complete support
+     closure. That corpus case is the regression test the amendment must
+     pass.
+   - Fixture sources: rulespec's `tools/refspec_atlas.py` (a 702-line v1
+     reader implementing the four independence axes) and its vendored
+     negative corpus; RefSpec's eight adjudication conformance cases and six
+     lattice negatives at `5c6d889^` (recorded in
+     `plans/atlas-1-2-removal.md`). Port the cases to the proof-record
+     shape, then delete the dead v1 reader in the same commit, and make
+     rulespec's cross-repository test fail loud when `REFSPEC_CHECKOUT` is
+     unset.
+   - Exit: the closure check plus negatives land in
+     `bindings/atlas/3.0/tools/validate.py`; `bindings/atlas/1.0/README.md`
+     (restored by arbitration `21b662a`) is deleted in that same commit,
+     naming the checks.
 2. P1 temporal context. Then the v2 temporal model becomes deletable.
 3. P1 rights/scope.
 4. Opportunistic, one module at a time with the suite green between each:
