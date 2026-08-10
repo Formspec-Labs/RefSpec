@@ -94,7 +94,7 @@ exact REF draft and immutable Rulespec release in conformance claims.
 9. [Semantic enrichment](#9-semantic-enrichment)
 10. [Relationship discovery and publication](#10-relationship-discovery-and-publication)
 11. [Policy threads](#11-policy-threads)
-12. [Registry operations and concept governance](#12-registry-operations-and-concept-governance)
+12. [Registry operations and managed releases](#12-registry-operations-and-managed-releases)
 13. [Publication and query behavior](#13-publication-and-query-behavior)
 14. [Privacy, security, rights, and safety](#14-privacy-security-rights-and-safety)
 15. [Validation and evaluation](#15-validation-and-evaluation)
@@ -299,7 +299,7 @@ Requirement applicability follows this table:
 | `REF-Enrichment-Producer` | `REF-SEM`, `REF-ENR`, `REF-CAND`, `REF-ACC`, and `REF-ASSIGN` |
 | Registered assignment output | `REF-ACC-008` and a passing `REF-Reference-Resource-Registry` manifest for the referenced Rulespec reference-resource release |
 | `REF-Relationship-Producer` | `REF-REL`; plus `REF-SIM`, `REF-DEP`, `REF-PATH`, or `REF-ABS` when that feature is emitted |
-| `REF-Reference-Resource-Registry` | `REF-VOC`; `REF-GOV` and Rulespec concept and mapping requirements apply only when those semantic payloads are present |
+| `REF-Reference-Resource-Registry` | `REF-VOC`; Rulespec concept and mapping requirements apply only when those semantic payloads are present |
 | `REF-Policy-Thread-Publisher` | `REF-THR` |
 | `REF-Query-Service` | `REF-QRY` and `REF-EXP` |
 | `REF-Participation-Processor` | `REF-PRIV` and every applicable `REF-SEC`, `REF-SAFE`, and `REF-RIGHTS` requirement |
@@ -2214,7 +2214,7 @@ Rulespec source fragments, membership assertions, attestations, local
 adoptions, and supersession history. Approval MUST NOT rewrite the origin or
 lineage of machine-generated membership.
 
-## 12. Registry operations and concept governance
+## 12. Registry operations and managed releases
 
 ### 12.1 Resource kinds and scheme identity
 
@@ -2534,45 +2534,7 @@ immutable mapping-set `RegistryImportSnapshot`. Historical resolution MUST use
 the exact mapping identifier and source and target Rulespec release pins
 recorded by the REF enrichment decision, not the current mapping view.
 
-### 12.4 Concept-proposal workflow
-
-An REF registry workflow has concept proposals and published Rulespec concepts.
-A concept proposal is not a semantic tier in the registry.
-
-**REF-GOV-001:** Automated processing MUST NOT turn a concept proposal into an
-`rkaf:LocalConcept` or `rkaf:RegisteredConcept`.
-
-**REF-GOV-002:** Promotion MUST include:
-
-- a definition;
-- inclusion and exclusion cues;
-- preferred and alternate labels;
-- a proposed hierarchy position, top-concept declaration, nonhierarchical
-  declaration, or documented not-applicable result;
-- duplicate and mapping analysis;
-- representative evidence that meets a versioned governance-policy rule;
-- expected effect on existing assignments;
-- rights review; and
-- an `rkaf:Attestation` by the authorized concept-minting authority.
-
-**REF-GOV-003:** Frequency MAY prioritize review. It MUST NOT establish meaning
-or approval.
-
-**REF-GOV-004:** Governance policy MUST name who may propose, map, approve,
-deprecate, supersede, split, merge, and resolve disputes.
-
-**REF-GOV-005:** A merge or split MUST preserve redirects, prior identifiers,
-historical assignments, and an impact record.
-
-**REF-GOV-006:** A promotion MUST NOT rewrite prior Rulespec assignment origin,
-lineage, attestations, or adoption.
-
-**REF-GOV-007:** Governance policy MUST define the evidence sufficiency for
-promotion, including any exception for a new concept supported by one
-authoritative rendition artifact. The framework MUST NOT infer sufficiency
-from document count alone.
-
-### 12.5 Managed releases and lookup consumers
+### 12.4 Managed releases and lookup consumers
 
 A managed vocabulary release is an operational view, not a new semantic
 record. It combines one exact Rulespec `rkaf:ReferenceResourceRelease` with
@@ -3817,7 +3779,7 @@ The requirement prefixes identify the area under test:
 | `REF-ENR`, `REF-CAND`, `REF-ACC`, `REF-ASSIGN` | Enrichment |
 | `REF-REL`, `REF-SIM`, `REF-DEP`, `REF-PATH`, `REF-ABS` | Relationship workflow, query associations, and bounded absence |
 | `REF-THR` | Policy threads |
-| `REF-VOC`, `REF-MAP`, `REF-GOV` | Reference-resource import and deployment, mappings, and concept workflow |
+| `REF-VOC`, `REF-MAP` | Reference-resource import, deployment, and mappings |
 | `REF-QRY`, `REF-EXP` | Queries and export |
 | `REF-SEC`, `REF-PRIV`, `REF-SAFE`, `REF-RIGHTS` | Privacy, security, and rights |
 | `REF-TEST`, `REF-EVAL` | Conformance tests and evaluation |
