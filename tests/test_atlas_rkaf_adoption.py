@@ -76,6 +76,16 @@ _PUBLISHED = (ONTOLOGY, SHAPES, *sorted(SCHEMAS.glob("*.json")))
 # Every rkaf term the published binding puts on the wire, mapped to the
 # invalid conformance case whose rejection depends on it. Delete a row and the
 # term must leave the wire; add a term without a row and this file fails.
+#
+# Several machine-adjudication rows share one case on purpose. A record class
+# adopted from rulespec must carry EVERY field its upstream definition requires
+# -- a sh:closed shape that drops one both accepts records rulespec rejects and
+# rejects records rulespec requires -- so for the fields whose only Atlas
+# obligation is that completeness, the case that breaks is the one that removes
+# a field from that closed shape: adjudication-issuer-incomplete,
+# adjudication-lineage-incomplete, adjudication-comparison-incomplete. Every
+# field carrying an Atlas-specific obligation beyond presence names the case
+# that forges exactly that fact instead.
 WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     # term: (invalid conformance cases that break without it, enum members it
     # closes). A member is enforced by the same sh:in that enforces its
@@ -200,7 +210,50 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ),
     ),
     "proofComparisonContext": (("adjudication-foreign-comparison",), ()),
-    "proofOutcome": (("adjudication-proof-outcome-not-pass",), ("gatePass",)),
+    # Not pinned to rkaf:gatePass: a published refusal is an audit record, and
+    # a consumer that cannot tell "never adjudicated" from "adjudicated and
+    # refused" has lost the distinction rulespec keeps an outcome enum for.
+    # What breaks is LICENSING a mapping on a proof whose gate did not pass.
+    "proofOutcome": (
+        ("adjudication-licensing-proof-refused",),
+        ("gatePass", "gateFail", "gateUnknown"),
+    ),
+    "proofRationale": (("adjudication-proof-rationale-empty",), ()),
+    # The snapshot chain: a proof reads its comparison's snapshot, and that is
+    # the release the mapping targets.
+    "proofSnapshot": (("adjudication-proof-snapshot-drift",), ()),
+    "proofResolverVersion": (("adjudication-issuer-incomplete",), ()),
+    "proofPolicy": (("adjudication-issuer-incomplete",), ()),
+    "proofPolicyVersion": (("adjudication-issuer-incomplete",), ()),
+    "modelVersion": (("adjudication-lineage-incomplete",), ()),
+    "promptTemplateRef": (("adjudication-lineage-incomplete",), ()),
+    "temperature": (("adjudication-lineage-incomplete",), ()),
+    "inputContextHash": (("adjudication-input-context-hash",), ()),
+    # rkaf:Artifact is what turns a sealed digest into bytes a reviewer can
+    # re-read. Four per comparison: the two compared endpoints, the sealed
+    # request, and one sealed response per proof.
+    "Artifact": (
+        (
+            "adjudication-request-artifact-unbundled",
+            "adjudication-response-artifact-unbundled",
+        ),
+        (),
+    ),
+    "hasArtifactIdentifier": (("adjudication-endpoint-artifact-drift",), ()),
+    "artifactIdentifierScheme": (
+        ("adjudication-artifact-scheme-unknown",),
+        ("partner-defined",),
+    ),
+    "hasContentDigest": (("adjudication-request-digest-mismatch",), ()),
+    "comparisonBaselineArtifact": (("adjudication-endpoint-artifact-drift",), ()),
+    "comparisonObservedArtifact": (("adjudication-endpoint-artifact-drift",), ()),
+    "comparisonConsumer": (("adjudication-comparison-incomplete",), ()),
+    "comparisonScope": (("adjudication-comparison-incomplete",), ()),
+    "comparisonEvaluationTime": (("adjudication-comparison-incomplete",), ()),
+    "comparisonPolicyVersion": (("adjudication-comparison-incomplete",), ()),
+    "comparisonDetector": (("adjudication-comparison-incomplete",), ()),
+    "comparisonDetectorVersion": (("adjudication-comparison-incomplete",), ()),
+    "comparisonSnapshot": (("adjudication-foreign-snapshot",), ()),
     "proofInput": (("adjudication-proof-input-digest",), ()),
     "proofInputDigest": (("adjudication-proof-input-digest",), ()),
     "proofEvaluatedAt": (("adjudication-evaluated-at-not-datetime",), ()),
@@ -215,8 +268,11 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     ),
     "comparisonExpectedAssertion": (("adjudication-comparison-retargeted",), ()),
     "comparisonOutcome": (
-        ("adjudication-comparison-outcome-not-satisfied",),
-        ("comparisonSatisfied",),
+        ("adjudication-licensed-by-conflicted-comparison",),
+        (
+            "comparisonSatisfied", "comparisonAffirmedDeniedDiscrepancy",
+            "comparisonConflict", "comparisonNotComparable", "comparisonUnknown",
+        ),
     ),
 }
 ADOPTED_TERMS = frozenset(WIRE_ADOPTIONS) | {

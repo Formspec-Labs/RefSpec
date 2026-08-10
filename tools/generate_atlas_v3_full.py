@@ -167,23 +167,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:02808a66e59b17eff010d0735a34570cd3004e40dc18abbccbbb89f8934b6acd"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:891d044b505af61c5359513ef4e73ec4a96c7e6727139a6df0ffe49bc1927f61"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:087a4a7c0890ca964835d66690e964872b1db77d8b1ddb9cc4fde6656890afb7"
+            "sha256:a270e4f43cc4bca13fb0a8e70260e502c433a0aec48b35fb92d3b9186c206d73"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:0f1f5051c15829712a25e6ffeaac0751967a8fff18e14a805ef8bd9627b91271"
+            "sha256:49b70cb3a9009b24e9721c88105f2947969802c126c2847d0cdb264f6f79509d"
         ),
         "shapesDigest": (
-            "sha256:7a9fba5f531fbd841b8115b5b6673ef844783524a9b0e1c231f32569a91a1d29"
+            "sha256:8fa26f0686b24a43f50be2d142f7bcaa77b826e9c659773b7edd444f4f34b0bb"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
