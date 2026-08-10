@@ -231,6 +231,47 @@ def _add_policy(graph: Graph, *, version: str) -> URIRef:
     return policy
 
 
+def _add_effective_period(
+    graph: Graph,
+    *,
+    start: str,
+    end: str | None = None,
+) -> URIRef:
+    """Mint the rkaf:EffectivePeriod one dated assertion points at.
+
+    Content-addressed on its own two facts, so two assertions stating the same
+    period share one node rather than minting a second name for it. An omitted
+    end is written as an absent predicate, never as an end equal to the start:
+    upstream reads the omission as open-ended, and a zero-length period is a
+    different claim.
+    """
+
+    basis: dict[str, str] = {"effectivePeriodStart": start}
+    if end is not None:
+        basis["effectivePeriodEnd"] = end
+    digest = atlas_validate.canonical_sha256(basis)
+    period = URIRef(
+        "urn:ref:atlas-effective-period:" + digest.removeprefix("sha256:")
+    )
+    graph.add((period, RDF.type, RKAF.EffectivePeriod))
+    graph.add(
+        (
+            period,
+            RKAF.effectivePeriodStart,
+            Literal(start, datatype=XSD.dateTime, normalize=False),
+        )
+    )
+    if end is not None:
+        graph.add(
+            (
+                period,
+                RKAF.effectivePeriodEnd,
+                Literal(end, datatype=XSD.dateTime, normalize=False),
+            )
+        )
+    return period
+
+
 def _add_assertion(
     graph: Graph,
     *,
@@ -250,6 +291,7 @@ def _add_assertion(
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
     adopted_evidence: URIRef | None = None,
+    effective_period: tuple[str, str | None] | None = None,
 ) -> URIRef:
     if assertion_type == ATLAS.CrossRingRelationAssertion:
         if ring is not None or source_ring is None or target_ring is None:
@@ -315,6 +357,18 @@ def _add_assertion(
     )
     if supersedes is not None:
         graph.add((assertion, RKAF.supersedesAssertion, supersedes))
+    if effective_period is not None:
+        graph.add(
+            (
+                assertion,
+                RKAF.hasEffectivePeriod,
+                _add_effective_period(
+                    graph,
+                    start=effective_period[0],
+                    end=effective_period[1],
+                ),
+            )
+        )
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(digest)))
     graph.add(
         (
@@ -735,6 +789,27 @@ def _base_fixture() -> Fixture:
         ring=ATLAS.legalIdentity,
         resources=[("legal-title", ATLAS.LegalIdentityResource, "Example Code title")],
     )
+    # The recodification the legal-identity mapping below spans. A legal
+    # identity equivalence needs two codifications to hold between, and it is
+    # the pair -- not the concept -- that the effective instant dates.
+    (
+        legal_b_release,
+        legal_b_scheme,
+        _legal_b_source_release,
+        legal_b_rows,
+    ) = _add_release(
+        asserted,
+        name="legal-structure-recodified",
+        profile=ATLAS.structureScheme,
+        ring=ATLAS.legalIdentity,
+        resources=[
+            (
+                "legal-title-recodified",
+                ATLAS.LegalIdentityResource,
+                "Example Code title (recodified)",
+            )
+        ],
+    )
     mixed_code_scheme = URIRef("urn:ref:atlas-fixture:scheme:mixed-code")
     _add_release(
         asserted,
@@ -746,7 +821,12 @@ def _base_fixture() -> Fixture:
         ],
         scheme=mixed_code_scheme,
     )
-    _add_release(
+    (
+        mixed_code_value_release,
+        _mixed_code_value_scheme,
+        _mixed_code_value_source_release,
+        mixed_code_value_rows,
+    ) = _add_release(
         asserted,
         name="mixed-code-value",
         profile=ATLAS.codeScheme,
@@ -782,6 +862,7 @@ def _base_fixture() -> Fixture:
         value_scheme,
         entity_scheme,
         legal_scheme,
+        legal_b_scheme,
         mixed_code_scheme,
     ):
         asserted.add((collection_scheme, ATLAS.collectionMember, member_scheme))
@@ -800,7 +881,9 @@ def _base_fixture() -> Fixture:
     subject_c, source_c = subject_c_rows[0]
     value_parent, _source_value_parent = value_rows[0]
     value_child, source_value_child = value_rows[1]
+    mixed_code_value, _source_mixed_code_value = mixed_code_value_rows[0]
     legal, source_legal = legal_rows[0]
+    legal_recodified, _source_legal_recodified = legal_b_rows[0]
 
     asserted.add((subject_a, ATLAS.definition, Literal("Administrative agency law", lang="en")))
     asserted.add(
@@ -886,6 +969,42 @@ def _base_fixture() -> Fixture:
         evidence_record=source_value_child,
         evidence_name="native-value",
         review_warrant="deterministicTransformation",
+    )
+    # The two rings whose mappings are claims about a period, one with each
+    # shape rkaf:EffectivePeriod admits. The value crosswalk closes its period,
+    # because a code edition stops being current; the legal-identity equivalence
+    # leaves the end off, because the recodification took effect and nothing
+    # says it ever stops. Both endpoint pairs also pin two distinct releases,
+    # which is where the edition each side of the crosswalk belongs -- see the
+    # ring-temporal block in ontology/atlas.ttl for why no edition literal
+    # rides beside them.
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.MappingAssertion,
+        ring=ATLAS.value,
+        subject=value_child,
+        predicate=ATLAS.equivalentValue,
+        obj=mixed_code_value,
+        source_release=value_release,
+        target_release=mixed_code_value_release,
+        evidence_record=source_value_child,
+        evidence_name="value-crosswalk",
+        review_warrant="publisherAssertion",
+        effective_period=("2026-01-01T00:00:00+00:00", "2026-12-31T23:59:59+00:00"),
+    )
+    _add_assertion(
+        asserted,
+        assertion_type=ATLAS.MappingAssertion,
+        ring=ATLAS.legalIdentity,
+        subject=legal,
+        predicate=ATLAS.sameLegalIdentityAs,
+        obj=legal_recodified,
+        source_release=legal_release,
+        target_release=legal_b_release,
+        evidence_record=source_legal,
+        evidence_name="legal-identity-recodification",
+        review_warrant="publisherAssertion",
+        effective_period=("2026-07-01T00:00:00+00:00", None),
     )
     _add_assertion(
         asserted,
@@ -2407,12 +2526,19 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def digest_mismatch(fixture: Fixture) -> None:
         def mutate(path: Path) -> None:
             for dataset in sorted((path / "packs" / "rdf").glob("*.nq")):
-                payload = dataset.read_bytes()
-                changed = payload.replace(b"fixture", b"fixturf", 1)
-                if changed != payload:
-                    # Keep the payload valid canonical N-Quads so the fixture
-                    # isolates the authenticated-pack digest check.
-                    dataset.write_bytes(b"\n".join(sorted(changed.splitlines())) + b"\n")
+                lines = dataset.read_bytes().splitlines()
+                for index, line in enumerate(lines):
+                    subject, separator, remainder = line.partition(b" ")
+                    changed = subject.replace(b"fixture", b"fixturf", 1)
+                    if changed == subject:
+                        continue
+                    # One subject IRI, never the graph name in the fourth
+                    # position: the payload stays valid canonical N-Quads
+                    # belonging to a declared graph, so the fixture isolates the
+                    # authenticated-pack digest check instead of tripping the
+                    # graph-membership check first.
+                    lines[index] = changed + separator + remainder
+                    dataset.write_bytes(b"\n".join(sorted(lines)) + b"\n")
                     return
             raise ValueError("fixture digest mutation found no RDF payload to change")
 
@@ -2700,6 +2826,84 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         wrong = next(fixture.asserted.subjects(RDF.type, ATLAS.AtlasRelease))
         _remove_subject_predicate(fixture.asserted, assertion, ATLAS.targetRelease)
         fixture.asserted.add((assertion, ATLAS.targetRelease, wrong))
+
+    # ---- ring temporal context ------------------------------------------
+    #
+    # The base fixture dates exactly the two mappings whose rings make them
+    # claims about a period: the value crosswalk, with a closed period, and the
+    # legal-identity recodification, with an open-ended one. Each mutation below
+    # forges exactly one fact about that -- the period is missing, the period is
+    # on a ring that must not carry one, the period runs backwards, or its start
+    # is not a dateTime.
+
+    def dated_mapping(fixture: Fixture, ring: URIRef) -> URIRef:
+        return next(
+            assertion
+            for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            if fixture.asserted.value(assertion, ATLAS.semanticRing) == ring
+        )
+
+    def strip_period(fixture: Fixture, assertion: URIRef) -> URIRef:
+        period = next(fixture.asserted.objects(assertion, RKAF.hasEffectivePeriod))
+        _remove_subject_predicate(fixture.asserted, assertion, RKAF.hasEffectivePeriod)
+        for triple in list(fixture.asserted.triples((period, None, None))):
+            fixture.asserted.remove(triple)
+        _refresh_node_digest(fixture.asserted, assertion)
+        return period
+
+    def mapping_undated_value_crosswalk(fixture: Fixture) -> None:
+        # The registry has refused this since it had rings; until now the wire
+        # took it. A crosswalk with no period cannot be applied to a dated
+        # question, and nothing on the published record said so.
+        strip_period(fixture, dated_mapping(fixture, ATLAS.value))
+
+    def mapping_undated_legal_identity(fixture: Fixture) -> None:
+        strip_period(fixture, dated_mapping(fixture, ATLAS.legalIdentity))
+
+    def mapping_subject_ring_dated(fixture: Fixture) -> None:
+        # The other half of the ring rule, and the half a "period is optional
+        # everywhere" shape would silently admit: a subject-ring equivalence
+        # holds of the concepts, so a period on one is a fact no source states.
+        period = next(
+            fixture.asserted.objects(
+                dated_mapping(fixture, ATLAS.value),
+                RKAF.hasEffectivePeriod,
+            )
+        )
+        subject_mapping = dated_mapping(fixture, ATLAS.subject)
+        fixture.asserted.add((subject_mapping, RKAF.hasEffectivePeriod, period))
+        _refresh_node_digest(fixture.asserted, subject_mapping)
+
+    def mapping_period_end_before_start(fixture: Fixture) -> None:
+        assertion = dated_mapping(fixture, ATLAS.value)
+        period = next(fixture.asserted.objects(assertion, RKAF.hasEffectivePeriod))
+        start = next(fixture.asserted.objects(period, RKAF.effectivePeriodStart))
+        _remove_subject_predicate(fixture.asserted, period, RKAF.effectivePeriodEnd)
+        fixture.asserted.add(
+            (
+                period,
+                RKAF.effectivePeriodEnd,
+                Literal(
+                    "2025-06-30T00:00:00+00:00",
+                    datatype=XSD.dateTime,
+                    normalize=False,
+                ),
+            )
+        )
+        if str(start) <= "2025-06-30T00:00:00+00:00":
+            raise ValueError("the backwards period fixture no longer runs backwards")
+
+    def mapping_period_start_not_datetime(fixture: Fixture) -> None:
+        period = next(
+            fixture.asserted.objects(
+                dated_mapping(fixture, ATLAS.legalIdentity),
+                RKAF.hasEffectivePeriod,
+            )
+        )
+        _remove_subject_predicate(fixture.asserted, period, RKAF.effectivePeriodStart)
+        fixture.asserted.add(
+            (period, RKAF.effectivePeriodStart, Literal("2026-07-01"))
+        )
 
     def naked_asserted_mapping(fixture: Fixture) -> None:
         resources = list(fixture.asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -3705,6 +3909,36 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             identifier_pair_conflict,
         ),
         ("mapping-wrong-endpoint-release", ["shacl", "dataset"], "shacl.data", wrong_endpoint_release),
+        (
+            "mapping-undated-value-crosswalk",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_undated_value_crosswalk,
+        ),
+        (
+            "mapping-undated-legal-identity",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_undated_legal_identity,
+        ),
+        (
+            "mapping-subject-ring-dated",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_subject_ring_dated,
+        ),
+        (
+            "mapping-period-end-before-start",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_period_end_before_start,
+        ),
+        (
+            "mapping-period-start-not-datetime",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_period_start_not_datetime,
+        ),
         ("asserted-naked-mapping", ["shacl", "dataset", "reasoning"], "shacl.data", naked_asserted_mapping),
         ("derived-naked-mapping", ["dataset", "reasoning"], "dataset.graph-placement", naked_derived_mapping),
         ("asserted-auxiliary-type-only", ["dataset"], "dataset.graph-placement", auxiliary_type_only),

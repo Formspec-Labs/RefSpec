@@ -4033,3 +4033,46 @@ def test_every_other_binding_warrant_still_passes_producer_intake() -> None:
     ]
     for warrant in emittable:
         assert generator._mapping_review_method(warrant) == warrant
+
+
+def test_the_producer_refuses_a_mapping_ring_whose_dates_it_cannot_emit() -> None:
+    """The same fail-at-intake rule, for the rings that need a period.
+
+    Since ring temporal context landed on the Atlas 3.0 wire, a value-ring or
+    legal-identity-ring MappingAssertion must carry an rkaf:hasEffectivePeriod
+    resolving to a well-formed rkaf:EffectivePeriod. Nothing in
+    refspec.atlas.v3_source_data carries an effective date for a mapping, so
+    this producer has no date to emit: a source declaring either ring would
+    build a distribution its own binding validator refuses, and it would learn
+    that after the whole registry had been constructed rather than at the input
+    responsible for it. Fabricating a period instead would be worse -- on the
+    wire an invented period is indistinguishable from a stated one.
+
+    Both real mapping releases are subject-ring today, so this is the expected
+    case; the guard keeps the gap honest until the dates are carried.
+    """
+
+    assert not hasattr(generator.RegistryMapping, "effective_period"), (
+        "a mapping now carries a period, so this refusal is no longer the thing "
+        "keeping the producer and the wire in step -- emit it instead"
+    )
+    for ring in ("value", "legalIdentity"):
+        with pytest.raises(ValueError) as failure:
+            generator._mapping_release_ring(ring)
+        message = str(failure.value)
+        assert ring in message
+        assert "rkaf:hasEffectivePeriod" in message
+        assert "rkaf:EffectivePeriod" in message
+
+
+def test_every_other_mapping_ring_still_passes_producer_intake() -> None:
+    """The refusal is two named rings, not a narrowing of the ring set."""
+
+    emittable = sorted(
+        set(generator.SEMANTIC_RINGS) - generator.UNEMITTABLE_MAPPING_RINGS
+    )
+    assert emittable == ["entity", "subject"]
+    for ring in emittable:
+        assert generator._mapping_release_ring(ring) == generator.ATLAS[ring]
+    with pytest.raises(ValueError, match="unsupported mapping semantic ring"):
+        generator._mapping_release_ring("inventedRing")

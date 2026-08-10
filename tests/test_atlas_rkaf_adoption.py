@@ -267,6 +267,26 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         (),
     ),
     "comparisonExpectedAssertion": (("adjudication-comparison-retargeted",), ()),
+    # Phase 7 -- ring temporal context. A value-ring crosswalk and a legal-
+    # identity equivalence are claims about a period; the registry has required
+    # the dates since it had rings, and none of it reached the wire. No atlas:
+    # term is minted here either -- see the ring-temporal block in
+    # ontology/atlas.ttl for why the editions stay the release pins they already
+    # were.
+    "EffectivePeriod": (
+        ("mapping-period-end-before-start", "mapping-period-start-not-datetime"),
+        (),
+    ),
+    "hasEffectivePeriod": (
+        (
+            "mapping-undated-value-crosswalk",
+            "mapping-undated-legal-identity",
+            "mapping-subject-ring-dated",
+        ),
+        (),
+    ),
+    "effectivePeriodStart": (("mapping-period-start-not-datetime",), ()),
+    "effectivePeriodEnd": (("mapping-period-end-before-start",), ()),
     "comparisonOutcome": (
         ("adjudication-licensed-by-conflicted-comparison",),
         (

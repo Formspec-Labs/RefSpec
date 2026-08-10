@@ -688,6 +688,19 @@ atlas:RelationAssertionShape
     sh:nodeKind sh:IRI ;
     sh:class atlas:RelationAssertion
   ] ;
+  # The temporal context, admitted here because this shape is sh:closed and a
+  # closed shape can only permit a path by naming it. Permission is all this
+  # says: WHICH assertions must carry a period is a ring rule, and rings differ
+  # per assertion class, so the obligation is on atlas:MappingAssertionShape
+  # below. What every carrier is held to here is well-formedness -- the object
+  # is an IRI that resolves to an rkaf:EffectivePeriod, and that record is
+  # shaped by atlas:EffectivePeriodShape.
+  sh:property [
+    sh:path rkaf:hasEffectivePeriod ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:EffectivePeriod
+  ] ;
   sh:property [
     sh:path atlas:assertionIdentityDigest ;
     sh:minCount 1 ;
@@ -753,6 +766,72 @@ atlas:MappingAssertionShape
   sh:property [
     sh:path ( rdf:object atlas:inRelease ) ;
     sh:equals atlas:targetRelease
+  ] ;
+  # Ring temporal context. A value-ring mapping is a crosswalk between two code
+  # editions and a legal-identity mapping is an equivalence between two
+  # codifications; both are claims about a period, and an undated one cannot be
+  # applied to a dated question. Subject and entity mappings are not: a topical
+  # or entity equivalence holds of the concepts themselves, and a period on one
+  # would be a fact no source states and nothing could check. That asymmetry is
+  # exactly what the registry has enforced since it had rings
+  # (semantic_foundation.py's _validated_relation_context, which requires the
+  # context for value and legalIdentity and REFUSES it for subject and entity);
+  # this is the same rule on the wire.
+  #
+  # sh:xone, not two sh:or branches: the ring sets partition the four rings and
+  # an assertion carries exactly one ring, so precisely one branch can match the
+  # ring test, and a mapping that matches its branch's ring but violates its
+  # period rule conforms to neither. The four ring individuals are named rather
+  # than negated so that a fifth ring, if one is ever minted, lands in no branch
+  # and fails loudly instead of silently inheriting "no period required".
+  sh:xone (
+    [
+      sh:property [
+        sh:path atlas:semanticRing ;
+        sh:in ( atlas:value atlas:legalIdentity )
+      ] ;
+      sh:property [
+        sh:path rkaf:hasEffectivePeriod ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+      ]
+    ]
+    [
+      sh:property [
+        sh:path atlas:semanticRing ;
+        sh:in ( atlas:subject atlas:entity )
+      ] ;
+      sh:property [ sh:path rkaf:hasEffectivePeriod ; sh:maxCount 0 ]
+    ]
+  ) .
+
+# rkaf:EffectivePeriod, upstream's #EffectivePeriod field for field over the two
+# fields Atlas writes. rkaf:retroactiveFrom and rkaf:sunsetAt are upstream-
+# optional and absent: no Atlas producer supplies either, and a field nothing
+# writes cannot be violated, so admitting it would be ceremony. The start is
+# required upstream and required here; the end is optional in both, and its
+# omission means open-ended, which is what a legal-identity mapping's single
+# instant becomes on this wire.
+atlas:EffectivePeriodShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:EffectivePeriod ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path rkaf:effectivePeriodStart ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape ;
+    # An end before its start is not a short period, it is a contradiction. The
+    # comparison is stated once, from the start, so a period with no end is
+    # vacuously conforming rather than needing a second branch to exempt it.
+    sh:lessThanOrEquals rkaf:effectivePeriodEnd
+  ] ;
+  sh:property [
+    sh:path rkaf:effectivePeriodEnd ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape
   ] .
 
 atlas:SkosMappingAssertionShape

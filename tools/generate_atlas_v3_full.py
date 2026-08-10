@@ -79,6 +79,7 @@ from refspec.atlas.v3_source_data import (
 )
 from refspec.atlas.v3_source_data import (
     MAPPING_REVIEW_METHODS,
+    SEMANTIC_RINGS,
     MappingReviewMethod,
     RegistryCrossRingRelation,
     RegistryIdentifier,
@@ -167,23 +168,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:8843c41e470e9a3082f34f72bcf3cac294f6b0835afa4150fcfe44351f91c2f6"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:bf24afdf7ac1730d3a5ff903cfc9cca1334deda224f0c637363c66f9b9db8023"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:a270e4f43cc4bca13fb0a8e70260e502c433a0aec48b35fb92d3b9186c206d73"
+            "sha256:6a8d649b8032438b2e9c77861167197643aef1b44879d13db95751dab8e81110"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:49b70cb3a9009b24e9721c88105f2947969802c126c2847d0cdb264f6f79509d"
+            "sha256:e86a5c80874fc39734904b2009a16b8f8f10159a50f327c3c0eff7d2c2935bc0"
         ),
         "shapesDigest": (
-            "sha256:8fa26f0686b24a43f50be2d142f7bcaa77b826e9c659773b7edd444f4f34b0bb"
+            "sha256:b06a7b70010087f916d1a6dc0f604bb15521aba6381cb153cd199da5edb5d9ff"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -2879,6 +2880,46 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     return review_method
 
 
+# The two mapping rings this producer cannot honour, for the same reason and
+# with the same shape as the warrant above. Since ring temporal context landed
+# on the Atlas 3.0 wire, a value-ring or legal-identity-ring MappingAssertion
+# must carry an rkaf:hasEffectivePeriod resolving to a well-formed
+# rkaf:EffectivePeriod -- a crosswalk between two code editions and an
+# equivalence between two codifications are claims about a period, and an
+# undated one cannot be applied to a dated question. Nothing in
+# refspec.atlas.v3_source_data carries an effective date for a mapping:
+# RegistryMapping has a subject, an object, a predicate, two endpoint release
+# pins, an assertedAt and its evidence, and no temporal field at all. So this
+# producer has no date to emit, and the honest failure is to refuse the input
+# rather than to invent one -- a fabricated period would be indistinguishable
+# on the wire from a real one, which is worse than no mapping.
+#
+# Both real mapping releases are subject-ring today
+# (src/refspec/atlas/v3_registry_alignments.py, EuroVoc<->LCSH), so this is the
+# expected case rather than a live gap. Adding the field to RegistryMapping and
+# threading it into _add_assertion's effective_period argument is the work owed
+# before a value-ring or legal-identity mapping source arrives.
+UNEMITTABLE_MAPPING_RINGS = frozenset({"legalIdentity", "value"})
+
+
+def _mapping_release_ring(ring: str) -> URIRef:
+    """Resolve one mapping release's declared ring to its wire individual."""
+
+    if ring not in SEMANTIC_RINGS:
+        raise ValueError(f"unsupported mapping semantic ring: {ring!r}")
+    if ring in UNEMITTABLE_MAPPING_RINGS:
+        raise ValueError(
+            f"mapping semantic ring {ring!r} is not emittable by this producer: "
+            "the Atlas 3.0 binding requires every mapping assertion on this ring "
+            "to carry an rkaf:hasEffectivePeriod resolving to a well-formed "
+            "rkaf:EffectivePeriod, and no registry mapping source states an "
+            "effective date for this producer to emit. Carry the dates on "
+            "RegistryMapping and emit them before a source needs this ring; "
+            "fabricating a period would publish a claim no source made."
+        )
+    return ATLAS[ring]
+
+
 def _transformed_relation_evidence(
     relation: SourceRelation,
 ) -> tuple[URIRef, str, Mapping[str, Any]]:
@@ -3144,7 +3185,7 @@ def _expected_mapping_asserted_graph(
             assertion = _add_assertion(
                 graph,
                 assertion_type=ATLAS.MappingAssertion,
-                ring=ATLAS[release.ring],
+                ring=_mapping_release_ring(release.ring),
                 subject=URIRef(mapping.subject),
                 predicate=URIRef(mapping.predicate),
                 obj=URIRef(mapping.object),
@@ -4095,7 +4136,7 @@ def _validate_compiled_producer_rows(
             _assert_portable_editorial_policy_payload(
                 mapping_release.editorial_policy
             )
-            release_ring = ATLAS[mapping_release.ring]
+            release_ring = _mapping_release_ring(mapping_release.ring)
             allowed = relation_policies.get(release_ring, {}).get(
                 ATLAS.MappingAssertion,
                 frozenset(),
@@ -5373,7 +5414,7 @@ def _build_graphs(
             raise AssertionError(
                 "mapping editorial policy was not constructed"
             ) from error
-        mapping_ring = ATLAS[mapping_release.ring]
+        mapping_ring = _mapping_release_ring(mapping_release.ring)
         accounting_row = source_accounting_by_release[
             mapping_release.source_release_iri
         ]

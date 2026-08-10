@@ -560,6 +560,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         RKAF.AILineage,
         RKAF.Artifact,
         RKAF.RelationComparisonContext,
+        RKAF.EffectivePeriod,
         ATLAS.RelationAssertion,
         *ASSERTION_TYPES,
         ATLAS.SkosMappingAssertion,
@@ -585,6 +586,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
         RKAF.AILineage,
         RKAF.Artifact,
         RKAF.RelationComparisonContext,
+        RKAF.EffectivePeriod,
         *ASSERTION_TYPES,
         SKOSXL.Label,
     }
@@ -699,6 +701,9 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.assertionIdentityDigest,
         RKAF.attestedAt,
         RKAF.effectiveDate,
+        RKAF.hasEffectivePeriod,
+        RKAF.effectivePeriodStart,
+        RKAF.effectivePeriodEnd,
         ATLAS.contentDigest,
     }
 )
@@ -799,6 +804,11 @@ REQUIRED_CORPUS_CASES = frozenset(
         "manifest-count-mismatch",
         "manifest-unknown-field",
         "mapping-missing-evidence",
+        "mapping-period-end-before-start",
+        "mapping-period-start-not-datetime",
+        "mapping-subject-ring-dated",
+        "mapping-undated-legal-identity",
+        "mapping-undated-value-crosswalk",
         "mapping-wrong-endpoint-release",
         "native-payload-digest-mismatch",
         "native-payload-noncanonical",
