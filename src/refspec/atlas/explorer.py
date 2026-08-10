@@ -195,7 +195,6 @@ def _statement_record(row: Mapping[str, Any]) -> dict[str, Any]:
         _fact(f"{_ATLAS}targetRelease", row["target_release"]),
         _fact(f"{_ATLAS}policy", row["policy"]),
         _fact(f"{_ATLAS}assertedAt", row["asserted_at"], iri=False),
-        _fact(f"{_ATLAS}assertionStatus", f"{_ATLAS}{row['assertion_status']}"),
     ]
     if row.get("semantic_ring"):
         facts.append(_fact(f"{_ATLAS}semanticRing", f"{_ATLAS}{row['semantic_ring']}"))
@@ -206,8 +205,8 @@ def _statement_record(row: Mapping[str, Any]) -> dict[str, Any]:
                 _fact(f"{_ATLAS}targetRing", f"{_ATLAS}{row['target_ring']}"),
             )
         )
-    if row.get("supersedes"):
-        facts.append(_fact(f"{_ATLAS}supersedes", row["supersedes"]))
+    if row.get("supersedes_assertion"):
+        facts.append(_fact(f"{_RKAF}supersedesAssertion", row["supersedes_assertion"]))
     return {"facts": facts, "id": row["id"]}
 
 
@@ -448,6 +447,35 @@ def _labels_for(view: AtlasParquetExplorer, resource_ids: set[str]) -> dict[str,
     return labels
 
 
+def _lifecycle_status_ids(view: AtlasParquetExplorer) -> tuple[set[str], set[str]]:
+    """Return (supersededIds, rescindedIds): assertions named by an edge.
+
+    An assertion carries no status field. A successor names its predecessor
+    via supersedes_assertion (one predecessor per successor, enforced by the
+    dataset validator), and a rkaf:rescission lifecycle event names the one
+    assertion it applies to. The validator rejects an assertion that is both,
+    so the two sets are disjoint.
+    """
+
+    superseded_ids = {
+        row["supersedes_assertion"]
+        for row in _iter_rows(
+            view.tables[CompactRecordRole.STATEMENT],
+            columns=["supersedes_assertion"],
+        )
+        if row["supersedes_assertion"]
+    }
+    rescinded_ids = {
+        row["applies_to"]
+        for row in _iter_rows(
+            view.tables[CompactRecordRole.LIFECYCLE_EVENT],
+            columns=["applies_to", "lifecycle_event_kind"],
+        )
+        if row["lifecycle_event_kind"] == f"{_RKAF}rescission"
+    }
+    return superseded_ids, rescinded_ids
+
+
 def _coverage(view: AtlasParquetExplorer) -> tuple[dict[str, Any], dict[str, int]]:
     resource_rings = _group_counts(view.tables[CompactRecordRole.RESOURCE], "semantic_ring")
     resource_releases = _group_counts(view.tables[CompactRecordRole.RESOURCE], "release")
@@ -455,11 +483,14 @@ def _coverage(view: AtlasParquetExplorer) -> tuple[dict[str, Any], dict[str, int
     relation_kinds: Counter[str] = Counter()
     relation_rings: Counter[str] = Counter()
     cross_pairs: Counter[tuple[str, str]] = Counter()
+    superseded_ids, rescinded_ids = _lifecycle_status_ids(view)
+    total_relations = 0
     current = 0
     for row in _iter_rows(
         view.tables[CompactRecordRole.STATEMENT],
-        columns=["statement_type", "assertion_status", "semantic_ring", "source_ring", "target_ring"],
+        columns=["id", "statement_type", "semantic_ring", "source_ring", "target_ring"],
     ):
+        total_relations += 1
         relation_kinds[
             {
                 "MappingAssertion": "mapping",
@@ -468,7 +499,7 @@ def _coverage(view: AtlasParquetExplorer) -> tuple[dict[str, Any], dict[str, int
                 "CrossRingRelationAssertion": "crossRing",
             }.get(row["statement_type"], row["statement_type"])
         ] += 1
-        if row["assertion_status"] == "current":
+        if row["id"] not in superseded_ids and row["id"] not in rescinded_ids:
             current += 1
         if row["semantic_ring"]:
             relation_rings[row["semantic_ring"]] += 1
@@ -573,6 +604,7 @@ def build_atlas_explorer_model(
     releases = list(_iter_rows(view.tables[CompactRecordRole.RELEASE]))
     member_counts = _group_counts(view.tables[CompactRecordRole.RESOURCE], "release")
     coverage, relation_totals = _coverage(view)
+    superseded_ids, rescinded_ids = _lifecycle_status_ids(view)
 
     relation_kind = {
         "MappingAssertion": "mapping",
@@ -582,12 +614,16 @@ def build_atlas_explorer_model(
     }
     relations = []
     for row in statement_rows:
+        if row["id"] in superseded_ids:
+            status = "superseded"
+        elif row["id"] in rescinded_ids:
+            status = "rescinded"
+        else:
+            status = "current"
         relation = {
             "assertedAt": row["asserted_at"],
-            "authoritative": row["assertion_status"] == "current",
-            "authority": (
-                "authoritative" if row["assertion_status"] == "current" else "historicalEditorialRecord"
-            ),
+            "authoritative": status == "current",
+            "authority": ("authoritative" if status == "current" else "historicalEditorialRecord"),
             "evidence": evidence_by_statement[row["id"]],
             "id": row["id"],
             "kind": relation_kind.get(row["statement_type"], row["statement_type"]),
@@ -596,7 +632,7 @@ def build_atlas_explorer_model(
             "predicate": row["predicate"],
             "predicateLabel": _short(row["predicate"]),
             "sourceRelease": row["source_release"],
-            "status": row["assertion_status"],
+            "status": status,
             "subject": row["subject"],
             "subjectLabel": display.get(row["subject"], _short(row["subject"])),
             "targetRelease": row["target_release"],

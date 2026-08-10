@@ -3556,7 +3556,16 @@ def _validate_assertions(
     # on atlas:LifecycleEventShape rejects it -- so this pass only reads the
     # two kinds Atlas acts on.
     event_kinds: dict[URIRef, set[URIRef]] = defaultdict(set)
-    for event in asserted.subjects(RDF.type, RKAF.LifecycleEvent):
+    lifecycle_events: Iterable[URIRef] = (
+        inventory.nodes(RKAF.LifecycleEvent)
+        if inventory is not None
+        else frozenset(
+            subject
+            for subject in asserted.subjects(RDF.type, RKAF.LifecycleEvent)
+            if isinstance(subject, URIRef)
+        )
+    )
+    for event in lifecycle_events:
         targets = list(asserted.objects(event, RKAF.appliesTo))
         kinds = list(asserted.objects(event, RKAF.lifecycleEventKind))
         if len(targets) != 1 or len(kinds) != 1:

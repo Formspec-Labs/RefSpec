@@ -3462,6 +3462,9 @@ def _explorer_relation_ring_summary(
 
 def _explorer_relation_summary(
     record: Mapping[str, Any],
+    *,
+    superseded_ids: frozenset[str] = frozenset(),
+    rescinded_ids: frozenset[str] = frozenset(),
 ) -> dict[str, Any] | None:
     asserted_types = _record_types(record)
     projection_types = _record_types(record, role="projection")
@@ -3476,9 +3479,14 @@ def _explorer_relation_summary(
             raise Atlas3ExplorerError(
                 f"Atlas explorer relation {record['id']} needs one specialization"
             )
-        status = _one_record_iri(record, str(ATLAS.assertionStatus)).rsplit(
-            "#", 1
-        )[-1]
+        record_id = cast(str, record["id"])
+        # An assertion carries no status field; see _explorer_lifecycle_status_ids.
+        if record_id in superseded_ids:
+            status = "superseded"
+        elif record_id in rescinded_ids:
+            status = "rescinded"
+        else:
+            status = "current"
         predicate = _one_record_iri(record, str(RDF.predicate))
         return {
             "authoritative": status == "current",
@@ -3572,6 +3580,31 @@ def _explorer_relation_summary(
     return None
 
 
+def _explorer_lifecycle_status_ids(
+    raw_spool: _JsonlSpool,
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Return (supersededIds, rescindedIds) read from the raw record spool.
+
+    An assertion carries no status field. A successor names its predecessor
+    via rkaf:supersedesAssertion (one predecessor per successor, enforced by
+    the dataset validator), and a rkaf:rescission lifecycle event names the
+    one assertion it applies to via rkaf:appliesTo. The validator rejects an
+    assertion that is both, so the two sets returned here are disjoint.
+    """
+
+    superseded_ids: set[str] = set()
+    rescinded_ids: set[str] = set()
+    for prefix in raw_spool.partition_keys():
+        for record in _iter_merged_spool_records(raw_spool.root / f"{prefix}.jsonl"):
+            types = _record_types(record)
+            if str(ATLAS.RelationAssertion) in types:
+                superseded_ids.update(_record_iri_values(record, str(RKAF.supersedesAssertion)))
+            elif str(RKAF.LifecycleEvent) in types:
+                if str(RKAF.rescission) in _record_iri_values(record, str(RKAF.lifecycleEventKind)):
+                    rescinded_ids.update(_record_iri_values(record, str(RKAF.appliesTo)))
+    return frozenset(superseded_ids), frozenset(rescinded_ids)
+
+
 def _derive_explorer_record_joins(
     raw_spool: _JsonlSpool,
     merged_root: Path,
@@ -3580,6 +3613,7 @@ def _derive_explorer_record_joins(
     relation_spool: _JsonlSpool,
 ) -> None:
     merged_root.mkdir(parents=True, exist_ok=True)
+    superseded_ids, rescinded_ids = _explorer_lifecycle_status_ids(raw_spool)
     relation_types = {
         str(ATLAS.RelationAssertion): (
             "asserted",
@@ -3677,7 +3711,11 @@ def _derive_explorer_record_joins(
                             "relations",
                             [record_id],
                         )
-                    relation_summary = _explorer_relation_summary(record)
+                    relation_summary = _explorer_relation_summary(
+                        record,
+                        superseded_ids=superseded_ids,
+                        rescinded_ids=rescinded_ids,
+                    )
                     if relation_summary is not None:
                         relation_spool.append(
                             _explorer_hash_prefix(record_id, 2),

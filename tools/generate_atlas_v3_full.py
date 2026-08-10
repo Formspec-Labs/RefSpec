@@ -3001,7 +3001,6 @@ def _add_assertion(
             Literal(_rdf_datetime(asserted_at), datatype=XSD.dateTime, normalize=False),
         )
     )
-    graph.add((assertion, ATLAS.assertionStatus, ATLAS.current))
     graph.add((assertion, ATLAS.assertionIdentityDigest, Literal(identity_digest)))
     _add_content_digest(graph, assertion)
     return assertion
@@ -4452,7 +4451,7 @@ def _validate_compiled_producer_output(
         raise ValueError(
             "compiled producer requires empty projection and derived graphs"
         )
-    if any(graphs.asserted.triples((None, ATLAS.supersedes, None))):
+    if any(graphs.asserted.triples((None, RKAF.supersedesAssertion, None))):
         raise ValueError("compiled producer does not support supersession")
     observed_counts = _counts(graphs)
     if observed_counts != dict(producer_validation.expected_counts):
@@ -4710,7 +4709,7 @@ def _validate_incremental_producer_output(
         raise ValueError("incremental producer binding receipt differs")
     if graphs.projection or graphs.derived:
         raise ValueError("incremental producer requires empty view graphs")
-    if any(graphs.asserted.triples((None, ATLAS.supersedes, None))):
+    if any(graphs.asserted.triples((None, RKAF.supersedesAssertion, None))):
         raise ValueError("incremental producer does not support supersession")
     observed_dirty_counts = _counts(graphs)
     expected_dirty_counts = _expected_dirty_constructor_counts(
@@ -5953,7 +5952,7 @@ def _release_subject_owners(
         RKAF.bindsAssertion,
         owners,
     )
-    for event in asserted.subjects(RDF.type, ATLAS.LifecycleEvent):
+    for event in asserted.subjects(RDF.type, RKAF.LifecycleEvent):
         source_record = asserted.value(event, ATLAS.sourceRecord)
         owner = owners.get(source_record) if isinstance(source_record, URIRef) else None
         if owner is None:
@@ -6062,7 +6061,7 @@ def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
             (CompactRecordRole.RELEASE, ATLAS.AtlasRelease),
             (CompactRecordRole.RELEASE, ATLAS.SourceRelease),
             (CompactRecordRole.IDENTIFIER, ATLAS.Identifier),
-            (CompactRecordRole.LIFECYCLE_EVENT, ATLAS.LifecycleEvent),
+            (CompactRecordRole.LIFECYCLE_EVENT, RKAF.LifecycleEvent),
         )
         if marker in types
     }
@@ -6264,15 +6263,6 @@ def _compact_record_from_graph(
                         expected_type=Literal,
                     )
                 ),
-                "assertionStatus": _atlas_local_name(
-                    _one_graph_object(
-                        graph,
-                        subject,
-                        ATLAS.assertionStatus,
-                        expected_type=URIRef,
-                    ),
-                    context=f"{subject} assertion status",
-                ),
                 "assertionIdentityDigest": str(
                     _one_graph_object(
                         graph,
@@ -6312,13 +6302,13 @@ def _compact_record_from_graph(
                 ),
                 context=f"{subject} semantic ring",
             )
-        supersedes = list(graph.objects(subject, ATLAS.supersedes))
+        supersedes = list(graph.objects(subject, RKAF.supersedesAssertion))
         if len(supersedes) > 1:
             raise ValueError(f"statement {subject} supersedes multiple assertions")
         if supersedes:
             if not isinstance(supersedes[0], URIRef):
                 raise TypeError(f"statement {subject} has a non-IRI supersession")
-            record["supersedes"] = str(supersedes[0])
+            record["supersedesAssertion"] = str(supersedes[0])
         return record
 
     if role == CompactRecordRole.EVIDENCE_BINDING:
@@ -6582,27 +6572,27 @@ def _compact_record_from_graph(
             raise ValueError(f"lifecycle event {subject} has invalid source records")
         record.update(
             {
-                "eventSubject": str(
+                "appliesTo": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.eventSubject,
+                        RKAF.appliesTo,
                         expected_type=URIRef,
                     )
                 ),
-                "eventType": str(
+                "lifecycleEventKind": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.eventType,
+                        RKAF.lifecycleEventKind,
                         expected_type=URIRef,
                     )
                 ),
-                "eventAt": str(
+                "effectiveDate": str(
                     _one_graph_object(
                         graph,
                         subject,
-                        ATLAS.eventAt,
+                        RKAF.effectiveDate,
                         expected_type=Literal,
                     )
                 ),
@@ -6657,14 +6647,14 @@ def _compact_dependency_subjects(
             RDF.object,
             ATLAS.sourceRelease,
             ATLAS.targetRelease,
-            ATLAS.supersedes,
+            RKAF.supersedesAssertion,
         ),
         CompactRecordRole.EVIDENCE_BINDING: (
             RKAF.bindsAssertion,
             ATLAS.evidenceSourceRecord,
         ),
         CompactRecordRole.LIFECYCLE_EVENT: (
-            ATLAS.eventSubject,
+            RKAF.appliesTo,
             ATLAS.fromRelease,
             ATLAS.toRelease,
             ATLAS.sourceRecord,
