@@ -778,10 +778,15 @@ content-addressed receipt over 21 enumerated inputs that fails closed on any
 mismatch. One structural fix came with it: `bindingBundleDigest` had mixed
 the semantic contract with the tools that compute it, so a one-line edit to
 a program reissued 440 fixtures; `BINDING_TOOL_PATHS` now carries tool
-provenance separately. **Open defect from that split:** the validation cache
-key still derives from the contract bundle alone, so a validator-only change
-can be served a stale acceptance — the key must cover the tools even though
-conformance identity must not.
+provenance separately. That split had one defect, now closed (`8b14c82`): the
+validation cache key derived from the contract bundle alone, so a
+validator-only change could be served an acceptance the old validator
+computed — a cache hit returns before the procedural gates run. The key now
+carries a `BINDING_TOOL_PATHS` inventory and the runtime, while conformance
+identity stays contract-only, and the runtime notion moved out of the fixture
+builder into the validator so both read one definition. The README's claim
+that the bundle covers the validator was the wrong half and was corrected:
+the field is right, and its rightness is the point.
 
 **Open work, in order.** No session's memory is required; this entry plus
 the cited paths are sufficient.
@@ -843,24 +848,59 @@ the cited paths are sufficient.
    disagree with it, the same argument that deleted `atlas:assertionStatus`.
    What was missing was the dates, and the dates landed.
 
-   Two open defects from independent review, tracked and not yet fixed:
-   the registry still accepts edition strings independently of the release
-   pins with **nothing checking they agree** before the wire discards them
-   (the producer fail-closed guard masks this for RefSpec's own builds but
-   binds no external producer); and mapping a legal-identity `effectiveAt`
-   **instant** onto an open-ended period asserts indefinite force the source
-   never stated, with no defined time or timezone for the date-to-dateTime
-   promotion.
+   Both defects independent review found here are closed, and both closed by
+   deletion rather than by adding a check. The edition strings are **gone from
+   the registry** (`9b992ce`): enforcing agreement was not merely unbuilt but
+   unbuildable from what the registry models — releases are content-digest
+   keyed so nothing derives an edition, a release bundle declares no edition to
+   compare against, and `validate_mapping_assertions` is handed assertions and
+   evidence but never releases. The only verdict an edition literal could carry
+   was "disagrees with the pin". And the legal-identity `effectiveAt`
+   **instant** is gone (`3230081`): rkaf has no assertion-scope instant term
+   (`PointInTimeException` is a consumer-evaluation anchor, `assertedAt` is
+   when the assertion was made, `effectiveDate` belongs to a lifecycle event),
+   so rather than widen an instant into indefinite force the source never
+   stated, the registry now states `effectiveFrom` plus optional
+   `effectiveThrough` for both dated rings and `effectiveAt` is refused as
+   unknown. The day-to-instant convention is pinned by `sh:pattern` on
+   `atlas:EffectivePeriodShape` where it is enforced — UTC because a crosswalk
+   has no forum, and an inclusive end at `T23:59:59+00:00` rather than the next
+   midnight, because rkaf's interval is closed and next-midnight would publish
+   one instant of a day the source excluded. Seven negative corpus cases now
+   cover ring temporal context.
 
 3. **P1 — typed rights and scope. Done, this revision** — see the Executed
    paragraph above. `usage-eligibility.cue` +
    `access-scope.cue` replace loosely-shaped scope JSON; closed enums,
    schema-validated, invalid fixture required.
 
-4. **Conflict and finding records.** `registry-conflict.cue` carries the
-   no-silent-collapse rule (contradictory claims must produce a conflict
-   record, enforced by a failing build otherwise); `finding.cue` carries
-   refusal records with fixtures in the v3 acceptance tests.
+4. **Conflict and finding records. Done** (`2197c34`), with one half
+   deliberately not built. `rkaf:RegistryConflict` is on the wire for the one
+   contradiction class v3 detects and can retain: two `atlas:Identifier`
+   records claiming one scheme-and-value pair for different resources. A
+   distribution carrying that contradiction **and** a conforming conflict
+   record naming exactly those entries is accepted — the disagreement is
+   published rather than deleted — and the same contradiction without one
+   still fails, so the record is load-bearing and no prior refusal weakened.
+
+   **`rkaf:Finding` was not wired, and that is the answer, not a gap.**
+   `#Finding` carries a single `rkaf:subject`, but every contradiction v3 can
+   retain names two or more entries, so a Finding could only state one
+   arbitrarily — the same reason rulespec's own `#RelationFinding` refuses to
+   compose `#Finding`. The "refusal records in the v3 acceptance tests" this
+   item imagined have no surface: `atlas-acceptance.schema.json` models only a
+   passing distribution, and the validator has no warning path — every
+   detection raises. The one refusal v3 does retain already speaks rkaf's
+   adjudication vocabulary (`valid/adjudication-refused-comparison-record`), so
+   a Finding there would be a second name for a published fact. Read this item
+   as satisfied by `registry-conflict.cue` alone until a single-subject
+   detection appears that something refuses to accept without a Finding.
+
+   The five SKOS conflict classes stay whole-build refusals by design: S46 and
+   S27 are integrity conditions of the SKOS Reference, not Atlas rules, and
+   Atlas publishes SKOS — a record beside the offending triples would describe
+   the breakage without repairing it, and every SKOS consumer would still be
+   right to reject the graph.
 
 5. **Ports owed.** SSSOM export: **the promise is deleted** (`546c494`),
    not ported. `relation_sssom.py` reads only `RelationAssertionBundle`, a
@@ -872,14 +912,44 @@ the cited paths are sufficient.
    real consumer appear, the writer and the promise return together.
    `relation_sssom.py` itself is reviewed with item 8's cluster.
 
-   Explorer/search reachability gate: **still owed.** Retired in Tier 1
-   before porting; its reviewed corpus survives at
-   `research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json`
-   and is that port's input; `REQUIRED_GATES` in `validate.py` has no
-   equivalent. Not a mechanical port — v1 ranked in-process while v3
-   searches through DuckDB FTS over Parquet, so the reachability proof must
-   be rewritten against that substrate, and the corpus's expected concept
-   and release identifiers re-derived against v3 identity.
+   Explorer/search reachability gate: **the reachability half landed, the
+   ranking half is deliberately not ported.** v3 renders no separate explorer
+   artifact to reconcile — `explorer.py`, `duckdb_view.py` and
+   `parquet_search_view.py` all build from the distribution's own compact
+   packs — so v1's property restates as: the compact record identity of each
+   role must equal the asserted graph's identity for that role. Nothing was
+   checking that. The existing check compared per-role counts and five sampled
+   rows per pack, and `recordIds` was computed only to feed a digest, so an
+   omitted record, an invented one, and a record duplicated across two packs
+   all passed. That is now the `explorer-reachability` gate with a negative
+   case.
+
+   The reviewed corpus does not survive contact with the v3 substrate, and the
+   measurement is the reason: built against a real compact→Parquet→DuckDB FTS
+   view over in-repo CRS evidence, five of seven reviewed entity queries land
+   at rank 1, but the one-edit-typo case returns **zero rows** (DuckDB FTS has
+   no fuzzy matching) and the prefix case ranks 12th against a reviewed maximum
+   of 5 (whole-token matching only). Passing those would mean restating the
+   expectations — a check that passes by construction — or adding fuzzy and
+   prefix retrieval to the Atlas binding to fit a retired ranker's taxonomy,
+   inside the layer SpicySearch owns per REF-022. Two further discoveries make
+   the corpus weaker evidence than its name suggests: `maximumRank` carries no
+   human judgment (v1 *computed* it from the category and refused any other
+   value), and its entity-ring alias cases describe v1 explorer behaviour
+   rather than data — v1 synthesised alias forms by splitting a parenthetical
+   at render time, and the reviewed concept carries exactly one label. The
+   decision is kept falsifiable instead of asserted:
+   `test_search_view_matches_whole_tokens_only` fails the day prefix or fuzzy
+   retrieval reaches the search view, at which point the corpus becomes
+   portable again. Three of its six release identifiers re-derive exactly
+   against in-repo bytes; three do not, and ICPSR names a different acquisition
+   entirely, so no expectation was invented to cover the gap.
+
+   Three v1 clauses were examined and deliberately not rebuilt: endpoint and
+   filter reachability are not independently violable (the RDF-side release
+   checks already force them, so no negative fixture can exist), and facet
+   non-vacuity would have been wrong, since a release with zero resources is
+   legitimate when it carries only mapping endpoints.
 
 6. **Deliberately not adopted** until a running check or second consumer
    demands them: workspaces, warrants (unless P0 closure needs a node
@@ -919,13 +989,35 @@ the cited paths are sufficient.
    `qualification_spend.py`, `atlas_scope.py`, `release_snapshot.py`,
    `relation_assertion.py`, `relation_proof.py`, `machine_evidence.py`,
    `subject_admission.py`, `subject_emission.py`, `concept_staging.py`)
-   is now reviewable — items 1 and 5 have landed. Each module goes only when
-   what it uniquely enforces is enforced elsewhere, and the deleting commit
-   names the checks. Two additions to that review: `relation_sssom.py`, whose
-   only promise item 5 deleted, and the item-1 residual above — five-axis
-   independence and the verdict lattice now live in both `model.py` and the
-   binding validator, and only one of them can be the enforcement. The
-   deterministic six-class candidate generator inside `qualification.py` stays
-   with the research benchmarks that consume it; note that
-   `candidate_retrieval.py` is its intended long-term home but is today a
-   separate module with its own consumers — the move has not happened.
+   **is retired** (`688f045`, `d3703e5`, `5ed56db`, `844bb08`) — all thirteen
+   modules decided, **−34,344 lines** across `src`, `tests`, `tools`, `docs`
+   and `portfolio`, `src/` alone −18,348.
+
+   The item-1 residual is resolved by retirement, and the evidence was stronger
+   than redundancy. `model.py`'s five-axis independence and verdict lattice
+   were reachable only through `CrosswalkBundle`, and the full-distribution
+   producer **refuses `twoMachineAdjudication` at intake** — so no verdict that
+   gate produced had any route to a published distribution. It was gating a
+   pipeline that terminates in a research directory, neither a live
+   pre-publication gate nor re-checked downstream, while the binding enforces
+   strictly more over 31 adjudication negatives. `model.py` went 1,172 → 228
+   lines. `relation_sssom.py` went with it, its only promise already deleted.
+
+   One module was kept by the deletion criterion and then retired by a
+   different decision. `concept_staging.py` was the sole running carrier of
+   REF-GOV-002's promotion checklist, so the criterion forbade deleting it —
+   there was no check to name as successor. That made it a **spec** question,
+   answered by retiring §12.4 and REF-GOV-001..007 with it (`844bb08`): only
+   REF-GOV-002 had a carrier at all, and that carrier validated a record type
+   with no producer, no consumer, and no instance across 67 published runs in
+   `output/`; REF-GOV-001 duplicates REF-ENR-006 and REF-ASSIGN-003, which
+   REF-ENR-010 already enforces through `concept-proposal.schema.json` and its
+   negative fixtures; 003 through 007 had no carrier of any kind. Keeping and
+   wiring would have meant building a governance workflow the product does not
+   have, and splitting to save 001 would have kept a parallel identifier for a
+   rule already stated elsewhere.
+
+   The deterministic six-class candidate generator survived the retirement:
+   it and the release adapters it reads moved into `candidate_retrieval.py`,
+   which the research benchmarks already consumed — the consolidation this
+   entry previously described as intended but unperformed.
