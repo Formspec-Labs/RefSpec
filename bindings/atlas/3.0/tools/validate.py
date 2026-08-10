@@ -88,6 +88,13 @@ BINDING_BUNDLE_PATHS = (
 # bindingBundleDigest said the same thing a second way and made every edit to
 # a tool reissue all 110 cases for a contract that had not moved. README.md is
 # in neither list: it is prose, and prose settles nothing.
+#
+# Conformance identity must not move when a program changes, but a *cached
+# verdict* is only as good as the program that computed it: a new refusal added
+# here would otherwise be answered from a receipt the old validator wrote, and
+# the cache returns before the procedural checks ever run. So the validation
+# cache key covers this list and the runtime below as well as the contract --
+# identity is contract-only, cache validity is contract plus tools.
 BINDING_TOOL_PATHS = (
     Path("requirements.txt"),
     Path("tools/build_fixtures.py"),
@@ -1701,6 +1708,72 @@ def _binding_digests(
         "sourceAccountingSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["sourceAccounting"]),
         "acceptanceSchemaDigest": file_sha256(SCHEMA_ROOT / SCHEMAS["acceptance"]),
     }
+
+
+def _binding_tool_paths() -> tuple[Path, ...]:
+    """Resolve BINDING_TOOL_PATHS against this binding.
+
+    A function rather than a constant so a caller can point the tool inventory
+    at a different copy of these four files -- which is how the cache test
+    proves that an edited validator cannot be answered from the old
+    validator's receipt without editing the installed validator itself.
+    """
+
+    return tuple(BINDING_ROOT / relative for relative in BINDING_TOOL_PATHS)
+
+
+def _binding_tool_digest() -> str:
+    """Digest the programs that read the contract, in the bundle's own form."""
+
+    rows = [
+        {
+            "byteLength": path.stat().st_size,
+            "digest": file_sha256(path),
+            "path": path.relative_to(BINDING_ROOT).as_posix()
+            if path.is_relative_to(BINDING_ROOT)
+            else path.name,
+        }
+        for path in _binding_tool_paths()
+    ]
+    return canonical_sha256(sorted(rows, key=lambda row: row["path"]), terminal_lf=False)
+
+
+def _binding_runtime_distributions() -> list[str]:
+    """The binding's declared dependencies, read from the file that declares them.
+
+    A verdict depends on these implementations and not merely on the version
+    pins beside them: pyshacl and owlrl decide conformance, rdflib parses and
+    serializes, and the zstd transports come from ``backports.zstd`` below 3.14
+    and the standard library at and above it. Requirements are parsed rather
+    than restated so nothing here has to remember a new dependency.
+    """
+
+    names = []
+    for line in (BINDING_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        requirement = line.split("#", 1)[0].split(";", 1)[0].strip()
+        if requirement:
+            names.append(re.split(r"[=<>!~\[]", requirement, maxsplit=1)[0].strip())
+    return sorted(names)
+
+
+def binding_runtime() -> dict[str, str]:
+    """Return the interpreter and dependency versions this process is running.
+
+    One notion, two readers: ``fixtures-receipt.json`` records it to decide
+    whether the committed corpus still describes its inputs, and the validation
+    cache key records it so a library bump cannot be answered from a receipt an
+    older library wrote.
+    """
+
+    from importlib.metadata import PackageNotFoundError, version
+
+    runtime = {"python": f"{sys.version_info.major}.{sys.version_info.minor}"}
+    for name in _binding_runtime_distributions():
+        try:
+            runtime[name] = version(name)
+        except PackageNotFoundError:
+            runtime[name] = "absent"
+    return runtime
 
 
 def _check_binding_pins(manifest: Mapping[str, Any], acceptance: Mapping[str, Any]) -> None:
@@ -7141,12 +7214,25 @@ def _check_acceptance(
 
 
 def _validation_cache_identity(manifest: Mapping[str, Any]) -> dict[str, Any]:
-    """Return the immutable identity of one complete semantic validation."""
+    """Return the immutable identity of one complete semantic validation.
+
+    Everything a verdict depends on, which is strictly more than what
+    conformance *means*. The contract half is the manifest and its bundle
+    digest. The program half is ``toolsDigest`` and ``runtime``: a cache hit
+    returns before the procedural checks -- supersession lineage, cardinality,
+    every ``dataset.*`` gate -- have run even once, so a validator that grew a
+    refusal, or a pyshacl that changed a verdict, must not be able to answer
+    from the receipt its predecessor wrote. ``VALIDATOR_VERSION`` alone cannot
+    carry this: it is the binding's version, "3.0", and it does not move when
+    the program does.
+    """
 
     return {
         "bindingBundleDigest": manifest["binding"]["bindingBundleDigest"],
         "format": CACHE_FORMAT,
         "manifestDigest": manifest["canonicalPayloadDigest"],
+        "runtime": binding_runtime(),
+        "toolsDigest": _binding_tool_digest(),
         "validator": {"name": VALIDATOR_ID, "version": VALIDATOR_VERSION},
     }
 

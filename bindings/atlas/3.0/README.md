@@ -55,11 +55,23 @@ The manifest pins the exact ontology, SHACL shapes, core JSON Schemas, validator
 version, every RDF pack, and all four supporting JSON files. The construction
 summary transitively pins every compact construction pack. Its
 `bindingBundleDigest` additionally covers a sorted path, length, and digest
-inventory of the README, ontology, shapes, every schema, registry profile map,
-requirements, conformance-corpus declaration, coverage proof, real-registry
-descriptor dataset and proof, fixture builder, shared canonical RDF renderer,
-and independent validator, so a supporting binding asset cannot change
-invisibly. The
+inventory of the ontology, shapes, every schema, registry profile map,
+conformance-corpus declaration, coverage proof, and real-registry descriptor
+dataset and proof, so a supporting binding asset cannot change invisibly.
+
+`bindingBundleDigest` covers what conformance MEANS, and nothing else. The
+programs that read that meaning — `requirements.txt`, the fixture builder, the
+shared canonical RDF renderer, and this independent validator — are pinned
+separately and deliberately are NOT in it: folding them in made a one-line edit
+to a program reissue every fixture for a contract that had not moved. Which
+program produced a verdict is pinned by name and number instead, through the
+manifest's `binding.validatorVersion` and the acceptance record's `validator`
+name and version. The tool inventory is pinned where its identity matters rather than
+where conformance is defined: `fixtures-receipt.json` records it, with the
+interpreter and dependency versions, to decide whether the committed corpus
+still describes its inputs, and the private validation cache key records the
+same pair so a changed validator or a bumped library cannot be answered from a
+receipt its predecessor wrote. The
 manifest itself is pinned by a trusted digest supplied outside the distribution.
 Its `canonicalPayloadDigest` covers the canonical JSON object with that one
 field removed.

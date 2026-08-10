@@ -4494,23 +4494,6 @@ RECEIPT_VERSION = "1.0"
 # `src/` is added because `_write_case` pins its digest into every case.
 RECEIPT_OUTPUT_RELATIVE = Path("fixtures/corpus.json")
 RECEIPT_EXTERNAL_INPUTS = (Path("src/refspec/atlas/v3_source_data.py"),)
-def _receipt_runtime_distributions() -> list[str]:
-    """The binding's declared dependencies, read from the file that declares them.
-
-    The corpus bytes depend on these implementations and not merely on the
-    version pins beside them: rdflib serializes the N-Quads, and the zstd
-    transports come from `backports.zstd` below 3.14 and the standard library
-    at and above it. Requirements are parsed rather than restated so the
-    receipt cannot list a stale set -- adding a dependency to requirements.txt
-    is enough, with nothing here to remember to update.
-    """
-
-    names = []
-    for line in (atlas_validate.BINDING_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
-        requirement = line.split("#", 1)[0].split(";", 1)[0].strip()
-        if requirement:
-            names.append(re.split(r"[=<>!~\[]", requirement, maxsplit=1)[0].strip())
-    return sorted(names)
 
 
 def _receipt_input_paths() -> list[Path]:
@@ -4531,18 +4514,6 @@ def _receipt_inputs() -> dict[str, str]:
     }
 
 
-def _receipt_runtime() -> dict[str, str]:
-    from importlib.metadata import PackageNotFoundError, version
-
-    runtime = {"python": f"{sys.version_info.major}.{sys.version_info.minor}"}
-    for name in _receipt_runtime_distributions():
-        try:
-            runtime[name] = version(name)
-        except PackageNotFoundError:
-            runtime[name] = "absent"
-    return runtime
-
-
 def _fixtures_tree_digest(root: Path) -> str:
     rows = [
         {
@@ -4559,7 +4530,7 @@ def _current_receipt() -> dict[str, Any]:
     return {
         "fixturesDigest": _fixtures_tree_digest(FIXTURE_ROOT),
         "inputs": _receipt_inputs(),
-        "runtime": _receipt_runtime(),
+        "runtime": atlas_validate.binding_runtime(),
         "type": RECEIPT_TYPE,
         "version": RECEIPT_VERSION,
     }
@@ -4574,7 +4545,7 @@ def _receipt_is_current() -> bool:
             return False
         if recorded.get("inputs") != _receipt_inputs():
             return False
-        if recorded.get("runtime") != _receipt_runtime():
+        if recorded.get("runtime") != atlas_validate.binding_runtime():
             return False
         return recorded.get("fixturesDigest") == _fixtures_tree_digest(FIXTURE_ROOT)
     except (OSError, ValueError, TypeError, AttributeError):

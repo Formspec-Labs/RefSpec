@@ -2253,6 +2253,91 @@ def test_validation_cache_key_includes_binding_and_validator_identity(tmp_path: 
     assert atlas_validate._validation_cache_key(manifest) != original
 
 
+def _tool_copy_with_edited_validator(root: Path) -> Path:
+    """Copy the four pinned tools, adding one byte to the validator."""
+
+    root.mkdir(parents=True, exist_ok=True)
+    for relative in atlas_validate.BINDING_TOOL_PATHS:
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(atlas_validate.BINDING_ROOT / relative, target)
+    validator = root / "tools" / "validate.py"
+    validator.write_bytes(validator.read_bytes() + b'\n_fail("dataset.new", "one more refusal")\n')
+    return root
+
+
+def test_a_validator_only_change_invalidates_the_validation_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A new refusal must not be answered from the old validator's acceptance.
+
+    `bindingBundleDigest` deliberately excludes the tools, because conformance
+    identity must not move when a program changes. The cache key must not make
+    the same exclusion: a hit returns before every procedural check runs, so an
+    acceptance computed by a validator that lacked a refusal would still be
+    served by the validator that has it.
+    """
+
+    distribution = _write_packed_distribution(tmp_path / "distribution")
+    cache_dir = tmp_path / "validation-cache"
+    expected = atlas_validate.validate_distribution(distribution, cache_dir=cache_dir)
+    assert len(list((cache_dir / "receipts").glob("*.json"))) == 1
+
+    changed = _tool_copy_with_edited_validator(tmp_path / "changed-tools")
+    monkeypatch.setattr(
+        atlas_validate,
+        "_binding_tool_paths",
+        lambda: tuple(changed / relative for relative in atlas_validate.BINDING_TOOL_PATHS),
+    )
+    original_parse = atlas_validate._parse_packed_dataset
+    parses = 0
+
+    def counted(*args: object, **kwargs: object) -> Any:
+        nonlocal parses
+        parses += 1
+        return original_parse(*args, **kwargs)
+
+    monkeypatch.setattr(atlas_validate, "_parse_packed_dataset", counted)
+
+    assert atlas_validate.validate_distribution(distribution, cache_dir=cache_dir) == expected
+    assert parses == 1, "the changed validator answered from the old validator's receipt"
+    assert len(list((cache_dir / "receipts").glob("*.json"))) == 2
+
+    # The contract did not move: the corpus stays valid under both validators.
+    assert (
+        atlas_validate._binding_digests()["bindingBundleDigest"]
+        == json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))["binding"][
+            "bindingBundleDigest"
+        ]
+    )
+
+
+def test_the_validation_cache_key_covers_the_runtime_the_verdict_ran_on(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    distribution = _write_packed_distribution(tmp_path / "distribution")
+    manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
+    original = atlas_validate._validation_cache_key(manifest)
+    bumped = {**atlas_validate.binding_runtime(), "pyshacl": "0.0.0-not-this-one"}
+    monkeypatch.setattr(atlas_validate, "binding_runtime", lambda: bumped)
+
+    assert atlas_validate._validation_cache_key(manifest) != original
+
+
+def test_the_fixture_receipt_and_the_cache_key_read_one_runtime_notion() -> None:
+    """One notion, two readers -- not two inventories that can drift apart."""
+
+    runtime = atlas_validate.binding_runtime()
+
+    assert atlas_fixtures._current_receipt()["runtime"] == runtime
+    assert set(runtime) == {"python", *atlas_validate._binding_runtime_distributions()}
+    assert atlas_validate._validation_cache_identity(
+        json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
+    )["runtime"] == runtime
+
+
 @pytest.mark.parametrize("compression", ("none", "zstd"))
 @pytest.mark.parametrize(
     ("section", "field", "expected_code"),
