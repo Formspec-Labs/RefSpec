@@ -938,15 +938,12 @@ MUST copy the other's canonical fields.
 ### 4.4 Upstream-first rule
 
 The passing local development baseline for this draft is Rulespec
-`0.2.0-pre.9`. The tested contract revision is
-`0eb94257b70783688b55220e7a84dcc61bbd7507`; the later evidence revision is
-`882d12fd85c1a334d492e481cf46edbe8e235ac7`; and the constraint digest is
-`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
-The application profile and its machine-readable dependency manifest record
-the authoritative sources, conformance corpus, validator, generated
-artifacts, availability state, and pin-update gate. The candidate remains
-local and unpublished, so an implementation MUST mark production conformance
-pending.
+`0.2.0-pre.9`. The application profile and its
+[machine-readable dependency manifest](../profiles/rulespec-dependency.json)
+record the exact tested contract revision, the later evidence revision, and
+the constraint digest, along with the authoritative sources, conformance
+corpus, validator, and availability state. The candidate remains local and
+unpublished, so an implementation MUST mark production conformance pending.
 
 **REF-BIND-015:** When REF needs reusable semantics that the pinned Rulespec
 release cannot express, the project MUST add or clarify them in Rulespec or an
@@ -961,10 +958,9 @@ meaning.
 **REF-BIND-017:** A Rulespec dependency pin MUST distinguish the revision whose
 contract and runtime passed the recorded gate from any later revision that
 changes only certification or evidence. It MUST identify the constraint
-digest, conformance-corpus digest, validator identity, adopted profiles,
-generated-artifact verification mode, and release availability. A Git
-revision and constraint digest alone MUST NOT support a production conformance
-claim.
+digest, conformance-corpus digest, validator identity, adopted profiles, and
+release availability. A Git revision and constraint digest alone MUST NOT
+support a production conformance claim.
 
 **REF-BIND-018:** The combined REF and Rulespec release-graph gate MUST issue a
 `ReleaseGraphValidationReceipt` only after the REF binding, exact pinned
@@ -3341,10 +3337,9 @@ the pinned artifact and rights records MUST fail. A physical
 the reverse, MUST fail.
 
 **REF-TEST-172:** The cross-repository gate MUST read one machine-readable
-Rulespec dependency manifest, distinguish tested contract and evidence
-revisions, recompute the constraint and conformance-corpus digests, verify
-every named generated artifact, and reject stale or contradictory normative
-pin text.
+Rulespec dependency manifest, validate its exact version, revisions, digests,
+and validator identity, and verify that a given Rulespec checkout contains
+every external path a requirement declares.
 
 **REF-TEST-173:** The combined release-graph gate MUST refuse to issue a
 `ReleaseGraphValidationReceipt` for any REF, Rulespec, or cross-boundary

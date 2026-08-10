@@ -371,7 +371,6 @@ def build_bundle(
                 "selfCertificationSha256": dependency_manifest["validator"][
                     "selfCertificationSha256"
                 ],
-                "generatedArtifacts": dependency_manifest["generatedArtifacts"],
             }
         ),
     }

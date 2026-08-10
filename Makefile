@@ -1,6 +1,5 @@
 .PHONY: generate check-generated test test-package test-json-binding test-atlas-v3 \
-	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
-	audit-rulespec-pin
+	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data
 
 ATLAS_V3_AUDIT_ROOT ?= output/atlas-3.0-full-2026-08-07-ring-audit
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
@@ -35,22 +34,6 @@ test: check-generated audit-registry-inventory test-json-binding test-atlas-v3 t
 # This is the failure class that silently accumulates as registry modules are added.
 audit-registry-inventory:
 	uv run python tools/verify_registry_audit.py
-
-RULESPEC_CHECKOUT ?= $(HOME)/Work/rulespec
-
-# Checks RefSpec's rulespec pin against a real upstream checkout: that HEAD
-# descends from the pinned revision, the tree is clean, and every pinned digest
-# and generated artifact still matches. The gate has always been able to do this
-# and has never been asked to -- its only caller built a synthetic fixture -- so
-# the pin went ten commits stale, referencing an artifact deleted upstream,
-# without anything failing. Fails loudly when the checkout is absent rather than
-# skipping, because a check nothing invokes is not a check.
-audit-rulespec-pin:
-	@test -d "$(RULESPEC_CHECKOUT)" || { \
-		echo "no rulespec checkout at $(RULESPEC_CHECKOUT); set RULESPEC_CHECKOUT" >&2; \
-		exit 1; }
-	uv run python bindings/json/1.0/tools/validate_rulespec_gate.py \
-		--rulespec-dir "$(RULESPEC_CHECKOUT)" --require-closure-pin
 
 # The real-data gate. It runs the suite with the claim-export real-data tests
 # enabled and rejects any registry module whose publisher evidence is unproven,

@@ -3,23 +3,18 @@
   "rulespecVersion": "0.2.0-pre.9",
   "releaseAvailability": "localUnpublished",
   "productionConformanceEligible": false,
-  "contractRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
-  "evidenceRevision": "882d12fd85c1a334d492e481cf46edbe8e235ac7",
-  "constraintDigest": "sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c",
+  "contractRevision": "791670e7c5ec4cbcd36cd9cd7efd4ce0143bc094",
+  "evidenceRevision": "9d2451b213beb9688fa9e3128abc0245aa304901",
+  "constraintDigest": "sha256:eb518c6b20593a1092cde88f0cbb0d4e2b62852ec7d3ebc783970be85e81fd6b",
   "constraintDigestScope": "globalRulespecContract",
-  "conformanceCorpusDigest": "sha256:a16ddbf58996dc1e136a99ebf37abbeed0a3adfef724b203347c301cdd5972b2",
+  "conformanceCorpusDigest": "sha256:0db567063ae672fe4d4d232585a366da75ed9b7058dddd653134ee13104fdb0b",
   "adoptedConstraintSources": [
     "constraints/core",
     "constraints/profiles/refspec/open-label.cue"
   ],
-  "pinTextFiles": {
-    "spec/refspec.md": "complete",
-    "profiles/rulespec-application-profile.md": "complete",
-    "plans/implementation-plan.md": "versionOnly"
-  },
   "validator": {
     "identity": "rkaf-validate@0.2.0-pre.9 + tools/ci_validate.py + rkaf-behavior-validate@0.2.0-pre.9",
-    "sourceRevision": "0eb94257b70783688b55220e7a84dcc61bbd7507",
+    "sourceRevision": "791670e7c5ec4cbcd36cd9cd7efd4ce0143bc094",
     "completeGateCommand": "make test",
     "claimedLevels": [
       "L1",
@@ -28,30 +23,6 @@
       "L4"
     ],
     "selfCertificationPath": "conformance/partners/rulespec-reference.yaml",
-    "selfCertificationSha256": "b7c8200d8c515a0c32aaac6df75275b362d0820790edd1956a364b6592f34538"
-  },
-  "generatedArtifactMode": "regenerateAndVerify",
-  "generatedArtifacts": {
-    "compiled/json-schema/core/concept.schema.json": "372bfd1738f58f58391f1ba183e0a1b7502ce890adc357515023879d70a0368d",
-    "compiled/json-schema/core/vocabulary-text.schema.json": "5e5e19b16eaf6520eb54317db0f947ea3ffe14956de42d5982060cc9a535d600",
-    "compiled/json-schema/core/lifecycle-event.schema.json": "1d1b796f7c242129fd84a8c7e5b361994641d31b78b38900c41c5346bd3d1c95",
-    "compiled/json-schema/core/concept-resolution-result.schema.json": "d2485e1f524149b1b2635ccb064272b18af55222ab0a96ac88d75b9c1be3e7d3",
-    "compiled/json-schema/profiles/refspec/open-label.schema.json": "914344d660c55ae45026d33916b75df828dd73d6fe85c7544cab770a4ed184bd",
-    "compiled/shacl/core/concept.ttl": "22ef58ce5ec28fb68782074a536fec33049386bce59f51ac6ba1d18b35ed59ae",
-    "compiled/shacl/core/vocabulary-text.ttl": "556f22d9bdb7b201f53549a909c6ea64d26238d1989ca232d23a71a8fd1c61f6",
-    "compiled/shacl/core/lifecycle-event.ttl": "a556f7640d2d6bc3b8e7e8dfb25d8386c64293f9decc809fbfde9e8dd21cc02e",
-    "compiled/shacl/core/concept-resolution-result.ttl": "0f1dda3314a6151cd6bccf306640464a0fa565dd38f29203075c6a3d37991c3e",
-    "compiled/shacl/profiles/refspec/open-label.ttl": "f9c98d09110a274dad7609d9ea6498bc2a1b2cdcae4490b99f396c9ee35a50ab",
-    "compiled/typescript/core/concept.ts": "6c5322a7b75ee471a98393883e88c377ff4e1378fe20dca1323b803905bb3f32",
-    "compiled/typescript/core/vocabulary-text.ts": "31c417c161e1081fa4049ed9fbb1ac78540446715939e0fdec4f251f8a16ebe6",
-    "compiled/typescript/core/lifecycle-event.ts": "5c2bd35132910ab3bbf4491da334833bf6d5633aabf1d988c51563aef347a4e0",
-    "compiled/typescript/core/concept-resolution-result.ts": "e3f2575ae8dc4de1fab0fea046373561d1ee9354ec0bf6dd815844b2f6e83f20",
-    "compiled/typescript/profiles/refspec/open-label.ts": "52deee0f9aae32906693033c20405eecb18be8fa0f55d40c81cf5d95d5bbc191",
-    "crates/rkaf-core/src/generated/concept.rs": "fa21a54f88ad3296d10a7c9ad34f7655be901e7ce2ee9a9f7bc4602af8d6a3e4",
-    "crates/rkaf-core/src/generated/vocabulary_text.rs": "87d923608683e631b42b7fd737690da144cbc3a7fe538c8e4c719a083e667069",
-    "crates/rkaf-core/src/generated/lifecycle_event.rs": "9d72564354bfd13f717d63e05e0b46fbe389c51d037c562162af140f9368d355",
-    "crates/rkaf-core/src/generated/concept_resolution_result.rs": "d19546e32fc59d553ecb55bae372b5cf12cac5a631ed9657aca45d6a66a3ec32",
-    "context/rkaf-context.jsonld": "be984a9a4c2e47ae6a37327afc72ca57e1bf4771c017b8abf90680aa8f6b55ff",
-    "compiled/rego/core/lifecycle-event.rego": "b8e7be096e750fb243c9d24bce79d8d3533520c3057cbdb22e9834b49c05b6ea"
+    "selfCertificationSha256": "3ee3ed4b67fa87bcdb07fc7a0277b6c8a54dd3477be89f4d77652c8c3f70a710"
   }
 }

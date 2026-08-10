@@ -16,18 +16,6 @@
 >
 > **Passing development baseline:** Rulespec `0.2.0-pre.9`
 >
-> **Passing baseline revision:** `882d12fd85c1a334d492e481cf46edbe8e235ac7`
->
-> **Passing baseline constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
->
-> **Vocabulary-closure Rulespec version:** `0.2.0-pre.9`
->
-> **Vocabulary-closure revision:** `882d12fd85c1a334d492e481cf46edbe8e235ac7`
->
-> **Vocabulary-closure constraint digest:** `sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
->
-> **Tested contract revision:** `0eb94257b70783688b55220e7a84dcc61bbd7507`
->
 > **Dependency manifest:** [Rulespec dependency manifest](rulespec-dependency.json)
 >
 > **Status:** Normative profile under joint RefSpec and Rulespec development
@@ -49,13 +37,12 @@ authority for those definitions.
 
 ## 2. Dependency and pin status
 
-The passing vocabulary-closure baseline is Rulespec `0.2.0-pre.9` at local
-revision `882d12fd85c1a334d492e481cf46edbe8e235ac7`, with constraint digest
-`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`.
-That clean revision contains the authoritative source, generated artifacts,
-positive and negative fixtures, and conformance evidence. The complete
-Rulespec gate and this profile's working-tree dependency gate pass against the
-same revision and digest.
+The passing vocabulary-closure baseline is Rulespec `0.2.0-pre.9`, identified
+exactly by the revision and constraint digest recorded in the
+[dependency manifest](rulespec-dependency.json). That revision contains the
+authoritative source, generated artifacts, positive and negative fixtures, and
+conformance evidence. The complete Rulespec gate passes against that revision
+and digest.
 
 The revision remains local: it has not been pushed, tagged, published, or cut
 as a Rulespec release. This profile therefore identifies an exact passing
@@ -80,10 +67,9 @@ claim, its immutable REF `PublicationReleaseManifest` MUST contain:
 | REF validator | Validator and conformance-suite versions |
 | Application profile | This profile's immutable identifier, version, and digest |
 
-**REF-RKAF-PIN-002:** A development build MAY identify `0.2.0-pre.9`, revision
-`882d12fd85c1a334d492e481cf46edbe8e235ac7`, and constraint digest
-`sha256:8feadf8f4037a60a18667c6f7ee920ff1285ccb05a72fe5352b6cd82b38a252c`
-as its compatibility target while that revision remains unpublished. It MUST
+**REF-RKAF-PIN-002:** A development build MAY identify the dependency
+manifest's exact Rulespec version, revision, and constraint digest as its
+compatibility target while that revision remains unpublished. It MUST
 mark the Rulespec release availability and RefSpec conformance result
 `pending`, and it MUST NOT publish a production conformance claim.
 
@@ -664,15 +650,11 @@ schemas from the pinned Rulespec release.
 The `rkaf:ReferenceResourceRelease` name and shape, semantic digest algorithm
 and scope, and assignment and mapping release-pin property names in this draft
 are implemented in the authoritative Rulespec CUE and generated artifacts at
-tested contract revision
-`0eb94257b70783688b55220e7a84dcc61bbd7507`. Evidence revision
-`882d12fd85c1a334d492e481cf46edbe8e235ac7` records the corresponding local
-certification. The
-[machine-readable dependency manifest](rulespec-dependency.json) binds both
-revisions, the constraint and conformance-corpus digests, the validator, and
-the principal generated artifacts. They remain development dependencies until
-an immutable Rulespec release is available remotely and passes release
-publication gates.
+the tested contract revision and evidence revision recorded in the
+[machine-readable dependency manifest](rulespec-dependency.json), which also
+binds the constraint and conformance-corpus digests and the validator. They
+remain development dependencies until an immutable Rulespec release is
+available remotely and passes release publication gates.
 
 That local Rulespec target includes:
 
@@ -749,11 +731,11 @@ applicable conformance tests agree. Documentation alone does not close it.
 **REF-RKAF-GATE-002:** REF MUST NOT ship a local substitute while an item is
 open. The dependent REF capability remains unsupported or internal-only.
 
-**REF-RKAF-GATE-003:** After the vocabulary-closure gate passes, this profile
-and the machine-readable dependency manifest MUST record the exact tested
-contract revision, evidence revision, constraint digest, conformance-corpus
-digest, validator, generated-artifact verification mode, and matching
-conformance evidence. The current local candidate satisfies that development
+**REF-RKAF-GATE-003:** After the vocabulary-closure gate passes, the
+machine-readable dependency manifest MUST record the exact tested contract
+revision, evidence revision, constraint digest, conformance-corpus digest,
+validator, and matching conformance evidence. The current local candidate
+satisfies that development
 gate but remains unpublished. Until an immutable Rulespec release is available
 and the manifest marks it available, an REF build MUST NOT claim production
 conformance for the vocabulary-closure capabilities.

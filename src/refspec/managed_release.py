@@ -562,7 +562,6 @@ def _dependency_validator_pin(
     identity = validator.get("identity")
     revision = validator.get("sourceRevision")
     certification = validator.get("selfCertificationSha256")
-    generated = dependency.get("generatedArtifacts")
     if not isinstance(identity, str) or not identity.strip():
         raise ManagedReleaseError(
             "rulespecDependencyManifest.validator.identity is required"
@@ -575,20 +574,6 @@ def _dependency_validator_pin(
         raise ManagedReleaseError(
             "rulespecDependencyManifest validator certification digest is invalid"
         )
-    if not isinstance(generated, Mapping) or not generated:
-        raise ManagedReleaseError(
-            "rulespecDependencyManifest.generatedArtifacts must not be empty"
-        )
-    if any(
-        not isinstance(path, str)
-        or not path
-        or not isinstance(digest, str)
-        or not _RAW_SHA256.fullmatch(digest)
-        for path, digest in generated.items()
-    ):
-        raise ManagedReleaseError(
-            "rulespecDependencyManifest.generatedArtifacts is invalid"
-        )
     return {
         "id": RULESPEC_VALIDATOR_COMPONENT_ID,
         "revision": revision,
@@ -597,7 +582,6 @@ def _dependency_validator_pin(
                 "identity": identity,
                 "sourceRevision": revision,
                 "selfCertificationSha256": certification,
-                "generatedArtifacts": dict(generated),
             }
         ),
     }

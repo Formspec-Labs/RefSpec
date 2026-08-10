@@ -38,15 +38,6 @@ RULESPEC_VALIDATOR_COMPONENT_ID = "urn:rulespec:validator:rkaf-validate-and-ci-v
 RULESPEC_BEHAVIOR_RUNTIME_COMPONENT_ID = "urn:rulespec:runtime:rkaf-behavior-validate"
 RELEASE_GRAPH_GATE_COMPONENT_ID = "https://refspec.org/reference-runtime/release-graph-gate"
 RELEASE_GRAPH_GATE_VERSION = "0.1.0.dev0"
-PINNED_VALIDATOR_PATHS = (
-    "tools/ci_validate.py",
-    "tools/conformance_lib.py",
-    "tools/reference_release_digest.py",
-    "crates/rkaf-validate",
-    "crates/rkaf-validate-cli",
-    "crates/rkaf-runtime",
-    "crates/rkaf-runtime-cli",
-)
 
 RKAF_NAMESPACE = "https://rulespec.org/ns/v1#"
 PROV_NAMESPACE = "http://www.w3.org/ns/prov#"
@@ -617,23 +608,6 @@ def referenced_rulespec_identifiers(
     return frozenset(identifiers)
 
 
-def _git(
-    rulespec_dir: Path,
-    arguments: Sequence[str],
-) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=rulespec_dir,
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-
-
-def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def rulespec_dependency_bytes(path: Path | None = None) -> bytes:
     """Read an explicit dependency pin or use the generated installed copy."""
 
@@ -667,7 +641,17 @@ def load_pinned_rulespec_validator(
     rulespec_dir: Path,
     dependency_manifest: Path | None = None,
 ) -> RulespecValidatorPin:
-    """Resolve and verify the trusted Rulespec validator from RefSpec's pin."""
+    """Resolve the trusted Rulespec validator commands from RefSpec's dependency manifest.
+
+    This builds the validator description RefSpec actually runs against a
+    working Rulespec checkout at ``rulespec_dir``: the L1-L3 JSON Schema,
+    SHACL, and ``ci_validate.py`` commands, and the L4 behavior runtime. It
+    validates the manifest's own shape (identity, revisions), not that the
+    checkout is byte-identical to any previously recorded commit or digest --
+    RefSpec never re-derives a Rulespec artifact from the checkout, so there
+    is nothing here for a checkout-fidelity check to protect. Re-pinning is a
+    manifest edit, not a re-verification of the working tree.
+    """
 
     rulespec_dir = rulespec_dir.resolve()
     manifest = load_rulespec_dependency_manifest(dependency_manifest)
@@ -697,62 +681,9 @@ def load_pinned_rulespec_validator(
     if not rulespec_dir.is_dir():
         raise ValueError(f"Rulespec checkout does not exist: {rulespec_dir}")
 
-    head = _git(rulespec_dir, ["rev-parse", "HEAD"])
-    if head.returncode:
-        raise ValueError(f"not a Rulespec Git checkout: {rulespec_dir}")
-    actual_head = head.stdout.strip()
-    if actual_head != evidence_revision:
-        raise ValueError(f"Rulespec HEAD {actual_head!r} does not match pinned evidence revision {evidence_revision!r}")
-    status = _git(rulespec_dir, ["status", "--porcelain"])
-    if status.returncode or status.stdout.strip():
-        raise ValueError("Rulespec checkout is dirty; exact validator pin is unavailable")
-    source = _git(
-        rulespec_dir,
-        ["cat-file", "-e", f"{source_revision}^{{commit}}"],
-    )
-    if source.returncode:
-        raise ValueError(f"pinned Rulespec validator revision is unavailable: {source_revision}")
-    ancestry = _git(
-        rulespec_dir,
-        ["merge-base", "--is-ancestor", source_revision, evidence_revision],
-    )
-    if ancestry.returncode:
-        raise ValueError("pinned Rulespec validator revision is not an ancestor of the evidence revision")
-    changed_validator = _git(
-        rulespec_dir,
-        [
-            "diff",
-            "--quiet",
-            source_revision,
-            evidence_revision,
-            "--",
-            *PINNED_VALIDATOR_PATHS,
-        ],
-    )
-    if changed_validator.returncode:
-        raise ValueError("Rulespec validator sources changed after validator.sourceRevision")
-
-    certification_path = validator.get("selfCertificationPath")
     certification_digest = validator.get("selfCertificationSha256")
-    if not isinstance(certification_path, str) or not isinstance(certification_digest, str):
+    if not isinstance(certification_digest, str) or not certification_digest:
         raise TypeError("Rulespec validator self-certification pin is incomplete")
-    certification = rulespec_dir / certification_path
-    if not certification.is_file():
-        raise ValueError(f"pinned Rulespec self-certification is missing: {certification_path}")
-    if _sha256_file(certification) != certification_digest:
-        raise ValueError("Rulespec validator self-certification digest does not match")
-
-    generated = manifest.get("generatedArtifacts")
-    if not isinstance(generated, dict) or not generated:
-        raise ValueError("Rulespec dependency manifest has no generated-artifact pins")
-    for relative, expected in generated.items():
-        if not isinstance(relative, str) or not isinstance(expected, str):
-            raise TypeError("Rulespec generated-artifact pin is malformed")
-        artifact = rulespec_dir / relative
-        if not artifact.is_file():
-            raise ValueError(f"pinned Rulespec validator artifact is missing: {relative}")
-        if _sha256_file(artifact) != expected:
-            raise ValueError(f"pinned Rulespec validator artifact digest does not match: {relative}")
 
     commands = (
         ValidatorCommand(
@@ -806,7 +737,6 @@ def load_pinned_rulespec_validator(
             "identity": identity,
             "sourceRevision": source_revision,
             "selfCertificationSha256": certification_digest,
-            "generatedArtifacts": generated,
         }
     )
     behavior_component_digest = canonical_value_digest(

@@ -908,17 +908,10 @@
     {
       "requirement": "REF-TEST-172",
       "localFixtures": [],
-      "externalGate": "bindings/json/1.0/tools/validate_rulespec_gate.py --require-closure-pin",
-      "externalRulespecPaths": [
-        "VERSION",
-        "conformance/partners/rulespec-reference.yaml",
-        "tools/l0_mapping_audit.py",
-        "tools/conformance_report.py",
-        "tools/compile_all.sh"
-      ],
+      "externalGate": "bindings/json/1.0/tools/validate_rulespec_gate.py --rulespec-dir <checkout>",
       "validatorChecks": [
-        "dependency manifest distinguishes tested and evidence revisions",
-        "constraint, corpus, validator receipt, generated artifacts, and prose pins are recomputed"
+        "dependency manifest has an exact version, revisions, digests, and validator identity",
+        "every requirement's declared external Rulespec path exists in a real checkout"
       ]
     },
     {
