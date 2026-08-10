@@ -689,8 +689,7 @@ product-boundary roles above; no responsibility matrix is produced, because a
 seven-role matrix for one decision-maker is structure nothing reads.
 
 Stage 1 — SpicySearch as a verified Atlas 3.0 consumer with expansion disabled
-— is queued after the Atlas 1.0/2.0 retirement and rkaf adoption steps in
-[plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md). Its consumer
+— is queued after the Atlas 1.0/2.0 retirement and rkaf adoption steps recorded in REF-023 below. Its consumer
 seam should be built as RuleSpec bridge contracts rather than a minted seam,
 and its sealed input must be re-observed at start: the manifest digest recorded
 in the plan on 2026-08-07 predates the retirement's digest-chain regeneration
@@ -700,7 +699,9 @@ change — remain open by design and are not decided here.
 ### REF-023: Supersede the compatibility view — rkaf ships on the Atlas wire
 
 - **Date:** 2026-08-10
-- **Status:** Accepted; adoption executing
+- **Status:** Accepted; adoption executing. This entry absorbs and supersedes
+  `plans/refspec-on-rulespec.md` and `plans/atlas-1-2-removal.md`, both
+  deleted with this revision; their execution history lives in git history.
 
 The earlier boundary — Atlas keeps a private ontology and defers Rulespec
 conformance to a future compatibility view — is superseded. RefSpec relies on
@@ -708,17 +709,107 @@ RuleSpec directly: for every rkaf-covered semantic, the published Atlas
 record uses the rkaf term and shape on the wire, and `atlas:` mints
 vocabulary only for its own domain (releases, packs, digests, rings,
 resource profiles). Records are append-only events; state is a derived,
-rebuildable projection, never stored authority. A structure — term, spec
-section, layer, boundary — is added or retained only with the running check
-that breaks when it is violated ([AGENTS.md](../AGENTS.md);
-[plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md)).
+rebuildable projection, never stored authority. Adoption is one-way —
+RefSpec depends on RuleSpec, never the reverse — and reads the real checkout
+directly: the dependency manifest is the pin, and `make audit-rulespec-pin`
+verifies it against the live checkout; no digest-pinning of upstream prose.
 
-Executed so far, each gated before or with its landing:
-`rkaf:membershipMode` (`e2ca150`), evidence and review vocabulary
-(`e9b19c5`, `436b5cc`), lifecycle events and supersession with derived
-lifecycle state (`79eaa2a`), `atlas:confidence` deleted as a constant with
-no contract (`ad3e669`), and a gate refusing any `atlas:` term that
-duplicates an rkaf local name (`637946b`). Open, in plan order: the P0
-machine-proof closure (which re-retires the restored 1.0 README), ring
-temporal context, typed rights and scope, conflict and finding records, and
-the SSSOM and reachability ports.
+**The governing rule** (also in [AGENTS.md](../AGENTS.md)): a structure —
+term, spec section, layer, boundary — may be added or retained only with a
+running validator or real consumer that breaks when it is violated,
+negative fixture included. A legacy artifact may be deleted once every
+capability it uniquely specifies is enforced elsewhere by a running check,
+and the deletion commit names those checks.
+
+**Executed**, each gated before or with its landing: `rkaf:membershipMode`
+(`e2ca150`); evidence and review vocabulary (`e9b19c5`, `436b5cc`);
+lifecycle events and supersession with derived lifecycle state (`79eaa2a`);
+`atlas:confidence` deleted as a constant with no contract (`ad3e669`); a
+gate refusing any `atlas:` term duplicating an rkaf local name (`637946b`,
+`tests/test_atlas_rkaf_adoption.py`). The Atlas 1.0/2.0 retirement is
+complete: producer path, bindings, and historical docs deleted across
+`c16366d`..`5c6d889`; an audit of `5c6d889` found the machine-proof
+protocol's only in-repo carrier deleted unenforced, so
+`bindings/atlas/1.0/README.md` was restored byte-exact (`21b662a`) until
+the P0 item below re-retires it. All other deleted carriers live at
+`5c6d889^`.
+
+**Open work, in order.** No session's memory is required; this entry plus
+the cited paths are sufficient.
+
+1. **P0 — machine-proof closure.** The record shape is rulespec's
+   `constraints/analysis/resolver-proof-record.cue` (proofIssuer as a
+   versioned node, proofInput + proofInputDigest, cross-node comparison
+   binding), NOT `attestation.cue`, whose free-form scope cannot carry
+   independence groups, sealed-request equality, or the verdict lattice.
+   One shape only: the proof record carries the adjudicated outcome; no
+   parallel attestation representation. Two rulespec-side amendments gate
+   it: `#ResolverProofType` (closed, six values) needs an AI-adjudication
+   member, and `spec/rkaf-analysis.md` §3.4 ("A model MUST NOT produce a
+   comparison outcome") amends to: a model MAY produce a proof; the
+   comparison outcome is produced only by the deterministic lattice over at
+   least two independent proofs. Direction of correction: rulespec's
+   "exactly two validations" (`tools/refspec_atlas.py:288`,
+   `spec/rkaf-refspec.md`) is wrong and would reject RefSpec's
+   `valid/qualified-three-machine-support` corpus case; RefSpec's rule wins
+   — at least one independent pair (distinct actors, independence groups,
+   providers, provider model IDs, response artifacts), all supporting
+   validations retained, complete support closure; that corpus case is the
+   regression test. Fixture sources: rulespec's `tools/refspec_atlas.py`
+   (a 702-line v1 reader implementing the four independence axes) and its
+   vendored negative corpus; RefSpec's eight adjudication conformance cases
+   and six lattice negatives at `5c6d889^`. Port the cases to the
+   proof-record shape, then delete the dead v1 reader in the same commit,
+   and make rulespec's cross-repository test fail loud when
+   `REFSPEC_CHECKOUT` is unset. Exit: the closure check plus negatives land
+   in `bindings/atlas/3.0/tools/validate.py`;
+   `bindings/atlas/1.0/README.md` is deleted in that same commit, naming
+   the checks. Surviving runtime enforcement meanwhile: the verdict lattice
+   at `src/refspec/atlas/model.py:89-114`, five-way independence at
+   `model.py:969-1035`, negatives at
+   `tests/test_atlas_qualification.py:727-792` — qualification-path only;
+   the published binding boundary still validates `twoMachineAdjudication`
+   as a bare enum with zero corpus cases, which is what this item fixes.
+
+2. **P1 — ring temporal context.** Value-ring mappings need
+   `sourceEdition`/`targetEdition`/effective dates and legal-identity
+   mappings need `effectiveAt` on the wire, shaped per rulespec
+   `effective-period.cue`; SHACL and the validator must reject mappings
+   lacking them, with negative fixtures. Enforcement survives today only in
+   `src/refspec/registry/infrastructure/semantic_foundation.py:278-328`
+   (negative at `tests/test_semantic_foundation.py:362`), and two of its
+   validators are orphaned — `validate_ring_relation` has zero callers,
+   `validate_mapping_supersession` lost both live call sites — re-wire or
+   explicitly retire each when this lands.
+
+3. **P1 — typed rights and scope.** `usage-eligibility.cue` +
+   `access-scope.cue` replace loosely-shaped scope JSON; closed enums,
+   schema-validated, invalid fixture required.
+
+4. **Conflict and finding records.** `registry-conflict.cue` carries the
+   no-silent-collapse rule (contradictory claims must produce a conflict
+   record, enforced by a failing build otherwise); `finding.cue` carries
+   refusal records with fixtures in the v3 acceptance tests.
+
+5. **Ports owed.** SSSOM export: v3 promises the view
+   (`bindings/atlas/3.0/README.md`), `src/refspec/atlas/relation_sssom.py`
+   still reads only the legacy bundle — port to v3 mapping packs with a
+   round-trip fixture, or delete the promise. Explorer/search reachability
+   gate: retired in Tier 1 before porting; its reviewed corpus survives at
+   `research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json`
+   and is that port's input; `REQUIRED_GATES` in `validate.py` has no
+   equivalent.
+
+6. **Deliberately not adopted** until a running check or second consumer
+   demands them: workspaces, warrants (unless P0 closure needs a node
+   type), `bridge-*` contracts (SpicySearch's
+   `BridgeConsumerRegistration` for `urn:spicysearch:atlas-consumer` is
+   owed at agentic-search Stage 2), retention-policy.
+
+7. **Operational.** Stage 1 of the agentic-search plan is sealed
+   (REF-022; handoff pins in SpicySearch `ede33a8`); the wire-vocabulary
+   waves supersede that seal, so re-seal once — build, views, preflight,
+   `spicysearch atlas verify`, one pin-update commit — when the tree
+   settles. `pyproject.toml` declares `requires-python ">=3.10"` while
+   `src/refspec/registry/treasury_tas_fast_book.py:40` needs 3.11+
+   (`datetime.UTC`), enforced nowhere — raise the floor or gate it.

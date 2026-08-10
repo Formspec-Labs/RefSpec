@@ -13,5 +13,4 @@ only together with the validator or consumer that breaks when it is violated,
 including a negative fixture. Prefer deleting structure to documenting it.
 RefSpec depends on RuleSpec (rkaf) directly: never mint a parallel term for a
 concept rkaf already defines, and never add a compatibility layer between
-components with a single owner. See
-[plans/refspec-on-rulespec.md](plans/refspec-on-rulespec.md).
+components with a single owner. See REF-023 in [the decision ledger](docs/decisions.md).

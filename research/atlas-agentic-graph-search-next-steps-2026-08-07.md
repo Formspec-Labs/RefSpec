@@ -20,7 +20,7 @@ approve this plan or resolve its downstream adoption gates.
 > registered in the experiment lane of the
 > [managed-vocabulary experiment roadmap](../plans/managed-vocabulary-experiment-roadmap.md).
 > Stage 1 is queued after the Atlas 1.0/2.0 retirement and rkaf adoption steps
-> in [plans/refspec-on-rulespec.md](../plans/refspec-on-rulespec.md), with its
+> in REF-023 of [docs/decisions.md](../docs/decisions.md), with its
 > consumer seam built as RuleSpec bridge contracts. Later-stage gates — hub
 > choice, meta-subjects, any binding change — remain open by design.
 
