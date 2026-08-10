@@ -37,14 +37,20 @@ Source of truth, and why: three candidates were inspected.
   shape this test can assume when it is not skipping -- does not contain it,
   which would make "checkout present" and "compiled/ present" different
   conditions this test cannot tell apart.
-- ``constraints/core/*.cue`` plus ``constraints/profiles/refspec/open-label.cue``
+- ``constraints/analysis/*.cue`` and ``constraints/core/*.cue`` plus
+  ``constraints/profiles/refspec/open-label.cue``
   is used instead: git-tracked (always present in any checkout, no build
   step), authoritative (CUE is the hand-written source; everything under
   compiled/ is a downstream projection of it), complete (class, property, and
   enum-value terms are all literal ``"rkaf:..."`` tokens in the CUE source),
   and it is exactly RefSpec's own declared ``adoptedConstraintSources`` in
   profiles/rulespec-dependency.json -- the scope RefSpec already claims to
-  depend on, not a new one invented for this test.
+  depend on, not a new one invented for this test. ``constraints/analysis``
+  joined that list when the Atlas 3.0 binding put rulespec's
+  machine-adjudication records (``rkaf:ResolverProofRecord`` and the comparison
+  context citing it) on the wire; the two lists move together on purpose, so a
+  term adopted from a package RefSpec has not declared fails here rather than
+  shipping unnoticed.
 
 CUE only covers the L1-L3 JSON-LD graph vocabulary. RefSpec's release_graph
 module also builds L4 ``BehaviorTestCase`` documents (evaluationScopes,
@@ -126,6 +132,7 @@ def rulespec_vocabulary_terms(rulespec_dir: Path) -> set[str]:
     """Every distinct rkaf: local name Rulespec defines, from its own source."""
 
     sources = [
+        *sorted((rulespec_dir / "constraints" / "analysis").glob("*.cue")),
         *sorted((rulespec_dir / "constraints" / "core").glob("*.cue")),
         rulespec_dir / "constraints" / "profiles" / "refspec" / "open-label.cue",
         rulespec_dir / "spec" / "rkaf-behavior.md",

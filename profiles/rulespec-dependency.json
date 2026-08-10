@@ -5,6 +5,7 @@
   "productionConformanceEligible": false,
   "constraintDigestScope": "globalRulespecContract",
   "adoptedConstraintSources": [
+    "constraints/analysis",
     "constraints/core",
     "constraints/profiles/refspec/open-label.cue"
   ],
