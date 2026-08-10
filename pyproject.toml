@@ -28,6 +28,7 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 [dependency-groups]
 dev = [
     "pytest>=8,<9",
+    "pytest-xdist>=3.6,<4",
     "ruff>=0.12,<1",
     "sssom>=0.4,<1",
     # Six test modules import the Atlas 3.0 binding validator directly. It needs

@@ -50,8 +50,12 @@ audit-registry-real-data:
 		--run-tests --run-all-tests --require-real-data \
 		--output research/evidence/registry-real-data-audit-2026-08-03/summary.json
 
+# `-n auto` fans the suite across every core. Verified to produce the exact
+# same pass/fail/skip set as a serial run, test id for test id; no test needed
+# a serial exemption. Drop the flag to debug -- bare `uv run pytest -q` still
+# works and is easier to read when something breaks.
 test-package:
-	uv run pytest -q
+	uv run pytest -q -n auto
 
 test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \
