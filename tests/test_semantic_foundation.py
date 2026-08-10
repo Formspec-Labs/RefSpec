@@ -387,11 +387,52 @@ def test_value_crosswalk_and_legal_identity_require_typed_time_context() -> None
         ring="legalIdentity",
         relation=LEGAL_CITES,
         evidence=(legal_evidence.identifier,),
-        context={"effectiveAt": "2026-08-04"},
+        context={"effectiveFrom": "2026-08-04"},
     )
     assert validate_mapping_assertions((legal,), evidence_assertions=(legal_evidence,))[0].context == {
-        "effectiveAt": "2026-08-04"
+        "effectiveFrom": "2026-08-04"
     }
+
+
+def test_a_legal_identity_mapping_states_a_period_rather_than_an_instant() -> None:
+    """The registry states the claim the Atlas wire publishes.
+
+    `effectiveAt` said the equivalence held on one day; the wire published it
+    as `rkaf:effectivePeriodStart` with no end, which rkaf reads as "still in
+    force". Those are different claims, and the wire was making the stronger
+    one. The ring now carries `effectiveFrom` -- optionally closed by
+    `effectiveThrough`, because a recodification can be reversed -- so nothing
+    is widened in transit, and a producer that knows only "true on day D"
+    cannot fill the field and must not publish the mapping.
+    """
+
+    evidence = _human(ring="legalIdentity")
+    with pytest.raises(SemanticFoundationError, match=r"unknown fields \['effectiveAt'\]"):
+        _mapping(
+            ring="legalIdentity",
+            relation=LEGAL_CITES,
+            evidence=(evidence.identifier,),
+            context={"effectiveAt": "2026-08-04"},
+        )
+
+    closed = _mapping(
+        ring="legalIdentity",
+        relation=LEGAL_CITES,
+        evidence=(evidence.identifier,),
+        context={"effectiveFrom": "2026-08-04", "effectiveThrough": "2027-08-03"},
+    )
+    assert validate_mapping_assertions((closed,), evidence_assertions=(evidence,))[0].context == {
+        "effectiveFrom": "2026-08-04",
+        "effectiveThrough": "2027-08-03",
+    }
+
+    with pytest.raises(SemanticFoundationError, match="effectiveThrough precedes effectiveFrom"):
+        _mapping(
+            ring="legalIdentity",
+            relation=LEGAL_CITES,
+            evidence=(evidence.identifier,),
+            context={"effectiveFrom": "2026-08-04", "effectiveThrough": "2026-08-03"},
+        )
 
 
 def test_a_value_crosswalk_edition_is_refused_because_the_release_pin_is_the_edition() -> None:

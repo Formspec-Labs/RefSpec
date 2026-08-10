@@ -246,6 +246,12 @@ def _add_effective_period(
     end is written as an absent predicate, never as an end equal to the start:
     upstream reads the omission as open-ended, and a zero-length period is a
     different claim.
+
+    Both bounds follow the day-to-instant convention that
+    `atlas:EffectivePeriodShape` enforces -- a start is the first instant of
+    its UTC day and an end is the last whole second of its UTC day -- because
+    the registry states calendar days and rkaf coerces both bounds to
+    xsd:dateTime. Callers pass the promoted form; the shape refuses any other.
     """
 
     basis: dict[str, str] = {"effectivePeriodStart": start}
@@ -3018,10 +3024,13 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     #
     # The base fixture dates exactly the two mappings whose rings make them
     # claims about a period: the value crosswalk, with a closed period, and the
-    # legal-identity recodification, with an open-ended one. Each mutation below
-    # forges exactly one fact about that -- the period is missing, the period is
-    # on a ring that must not carry one, the period runs backwards, or its start
-    # is not a dateTime.
+    # legal-identity recodification, with an open-ended one -- open-ended
+    # because its source says the recodification took effect and names no day
+    # on which it stops, not because a bare date was widened into one. Each
+    # mutation below forges exactly one fact about that: the period is missing,
+    # the period is on a ring that must not carry one, the period runs
+    # backwards, its start is not a dateTime, or a bound does not promote its
+    # calendar day the one way atlas:EffectivePeriodShape admits.
 
     def dated_mapping(fixture: Fixture, ring: URIRef) -> URIRef:
         return next(
@@ -3061,35 +3070,69 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add((subject_mapping, RKAF.hasEffectivePeriod, period))
         _refresh_node_digest(fixture.asserted, subject_mapping)
 
+    def _replace_period_bound(
+        fixture: Fixture,
+        ring: URIRef,
+        predicate: URIRef,
+        value: Literal,
+    ) -> None:
+        period = next(
+            fixture.asserted.objects(dated_mapping(fixture, ring), RKAF.hasEffectivePeriod)
+        )
+        _remove_subject_predicate(fixture.asserted, period, predicate)
+        fixture.asserted.add((period, predicate, value))
+
     def mapping_period_end_before_start(fixture: Fixture) -> None:
+        # The end still promotes its calendar day exactly as the convention
+        # requires, so this case forges only the ordering. An end written at
+        # midnight would violate the day-to-instant pattern as well and stop
+        # isolating one fact.
+        end = "2025-06-30T23:59:59+00:00"
         assertion = dated_mapping(fixture, ATLAS.value)
         period = next(fixture.asserted.objects(assertion, RKAF.hasEffectivePeriod))
         start = next(fixture.asserted.objects(period, RKAF.effectivePeriodStart))
-        _remove_subject_predicate(fixture.asserted, period, RKAF.effectivePeriodEnd)
-        fixture.asserted.add(
-            (
-                period,
-                RKAF.effectivePeriodEnd,
-                Literal(
-                    "2025-06-30T00:00:00+00:00",
-                    datatype=XSD.dateTime,
-                    normalize=False,
-                ),
-            )
+        _replace_period_bound(
+            fixture,
+            ATLAS.value,
+            RKAF.effectivePeriodEnd,
+            Literal(end, datatype=XSD.dateTime, normalize=False),
         )
-        if str(start) <= "2025-06-30T00:00:00+00:00":
+        if str(start) <= end:
             raise ValueError("the backwards period fixture no longer runs backwards")
 
     def mapping_period_start_not_datetime(fixture: Fixture) -> None:
-        period = next(
-            fixture.asserted.objects(
-                dated_mapping(fixture, ATLAS.legalIdentity),
-                RKAF.hasEffectivePeriod,
-            )
+        # Lexically the convention's own start, and still refused: an untyped
+        # literal is an xsd:string, and rkaf coerces this bound to xsd:dateTime.
+        # Written this way the case turns on the datatype alone.
+        _replace_period_bound(
+            fixture,
+            ATLAS.legalIdentity,
+            RKAF.effectivePeriodStart,
+            Literal("2026-07-01T00:00:00+00:00"),
         )
-        _remove_subject_predicate(fixture.asserted, period, RKAF.effectivePeriodStart)
-        fixture.asserted.add(
-            (period, RKAF.effectivePeriodStart, Literal("2026-07-01"))
+
+    def mapping_period_start_not_utc_midnight(fixture: Fixture) -> None:
+        # A day promoted to the same instant in another offset. Nothing before
+        # this pattern decided which instant a calendar day becomes, so two
+        # honest producers could publish a crosswalk starting five hours apart
+        # from one source date and both would validate.
+        _replace_period_bound(
+            fixture,
+            ATLAS.value,
+            RKAF.effectivePeriodStart,
+            Literal("2026-01-01T00:00:00-05:00", datatype=XSD.dateTime, normalize=False),
+        )
+
+    def mapping_period_end_not_utc_day_end(fixture: Fixture) -> None:
+        # The other tempting promotion of an inclusive last day: the following
+        # midnight. rkaf compares an as-of instant inside [start, end]
+        # inclusively, so this publishes the crosswalk as effective for one
+        # instant of 2027, which the source excluded.
+        _replace_period_bound(
+            fixture,
+            ATLAS.value,
+            RKAF.effectivePeriodEnd,
+            Literal("2027-01-01T00:00:00+00:00", datatype=XSD.dateTime, normalize=False),
         )
 
     def naked_asserted_mapping(fixture: Fixture) -> None:
@@ -4216,6 +4259,18 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["shacl", "dataset"],
             "shacl.data",
             mapping_period_start_not_datetime,
+        ),
+        (
+            "mapping-period-start-not-utc-midnight",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_period_start_not_utc_midnight,
+        ),
+        (
+            "mapping-period-end-not-utc-day-end",
+            ["shacl", "dataset"],
+            "shacl.data",
+            mapping_period_end_not_utc_day_end,
         ),
         ("asserted-naked-mapping", ["shacl", "dataset", "reasoning"], "shacl.data", naked_asserted_mapping),
         ("derived-naked-mapping", ["dataset", "reasoning"], "dataset.graph-placement", naked_derived_mapping),

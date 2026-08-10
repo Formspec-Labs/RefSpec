@@ -217,8 +217,8 @@ atlas:EditorialPolicy
 # same thing from 2022-01-01" is a different assertion from "these two codes
 # mean the same thing". The registry has enforced that since it had rings --
 # src/refspec/registry/infrastructure/semantic_foundation.py requires a
-# value-ring mapping to carry effective dates and a legal-identity mapping to
-# carry an instant -- but none of it reached the wire, so a consumer reading
+# value-ring and a legal-identity mapping to carry effective dates and refuses
+# them on the other two -- but none of it reached the wire, so a consumer reading
 # the published Atlas could not tell a dated crosswalk from an undated one.
 #
 #   rkaf:EffectivePeriod           the period itself, upstream's own record for
@@ -269,14 +269,44 @@ atlas:EditorialPolicy
 #    src/refspec/registry/infrastructure/semantic_foundation.py too, and the
 #    closed-field check there refuses one as unknown. One decision, both sides.
 #
-# 2. legalIdentity's effectiveAt BECOMES A START WITH NO END. The registry
-#    models a legal-identity mapping as a single instant; rkaf models a period
-#    whose end may be omitted, and says what the omission means -- "omitted =
-#    open-ended". Those are the same claim, so the instant rides as
-#    rkaf:effectivePeriodStart and no rkaf:effectivePeriodEnd is written.
-#    Writing the instant into both fields would state a zero-length period,
-#    which is a different and false claim; inventing an end would state a
-#    termination no source supplies.
+# 2. NO INSTANT IS PROMOTED INTO A PERIOD. Both dated rings state a period on
+#    both sides, so nothing is widened in transit.
+#
+#    This corrects an earlier reading. The registry modelled a legal-identity
+#    mapping as one instant, `effectiveAt`, and this wire published it as an
+#    rkaf:effectivePeriodStart with no end, calling the two claims the same on
+#    the grounds that rkaf defines an omitted end as open-ended. They are not
+#    the same claim. "Still in force" is a fact about every instant after the
+#    start; an instant is a fact about one. A recodification whose effect a
+#    later act reversed satisfies the source and contradicts the wire, and a
+#    consumer resolving a citation as of today would have been told the
+#    equivalence still holds on a record that never said so. An omitted end is
+#    a claim a producer must hold evidence for, not a default the wire
+#    manufactures from a bare date.
+#
+#    So the registry now states what this wire publishes: a value-ring and a
+#    legal-identity mapping context both carry `effectiveFrom` and an optional
+#    `effectiveThrough` (semantic_foundation.py's _validated_relation_context,
+#    one shape for both rings). rkaf was searched first for an honest term for
+#    the weaker claim and has none: rkaf:PointInTimeException is a lifecycle
+#    retention record carrying an rkaf:evaluationAnchor, rkaf:assertedAt is
+#    when the assertion was made and already rides beside every assertion here,
+#    rkaf:effectiveDate belongs to rkaf:LifecycleEvent, and the nine
+#    #EvaluationAnchor kinds name a consumer's evaluation time rather than an
+#    assertion's scope. rkaf:EffectivePeriod is what rkaf offers for "in force
+#    when", so it is what Atlas uses -- with the source stating a period, not
+#    with the wire inventing one.
+#
+#    Neither bound is manufactured either. A period whose start equals its end
+#    would state a zero-length window, which is a third distinct claim, and
+#    the fixture builder writes an absent predicate rather than an equal one.
+#
+#    The day-to-instant convention that promotion needs -- both bounds are UTC
+#    days, start at T00:00:00+00:00 and end at T23:59:59+00:00 -- is not stated
+#    here, because prose settles nothing: it is sh:pattern on
+#    atlas:EffectivePeriodShape in shapes/atlas.shacl.ttl, with the reasoning
+#    beside it and the negative cases mapping-period-start-not-utc-midnight and
+#    mapping-period-end-not-utc-day-end.
 #
 # Which assertions must carry a period is a ring rule, and it is in
 # atlas:MappingAssertionShape: value and legal-identity mappings carry exactly

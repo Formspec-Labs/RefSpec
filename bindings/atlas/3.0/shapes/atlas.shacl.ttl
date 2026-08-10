@@ -863,8 +863,33 @@ atlas:MappingAssertionShape
 # optional and absent: no Atlas producer supplies either, and a field nothing
 # writes cannot be violated, so admitting it would be ceremony. The start is
 # required upstream and required here; the end is optional in both, and its
-# omission means open-ended, which is what a legal-identity mapping's single
-# instant becomes on this wire.
+# omission means open-ended -- which is a claim a producer must have a source
+# for, not a default the wire manufactures from a bare date. See decision 2 in
+# the ring-temporal block of ontology/atlas.ttl.
+#
+# THE DAY-TO-INSTANT CONVENTION, PINNED. Every date Atlas has to publish here
+# arrives from the registry as an ISO calendar day -- `effectiveFrom` and
+# `effectiveThrough` on a mapping context
+# (src/refspec/registry/infrastructure/semantic_foundation.py) -- while rkaf
+# coerces both period bounds to xsd:dateTime (context/rkaf-context.jsonld), so
+# a day must become an instant and SOMETHING has to decide which one. Prose
+# would not: two producers reading the same paragraph could publish
+# 2026-01-01T00:00:00+00:00 and 2026-01-01T00:00:00-05:00 for one source day
+# and both would validate, which is a difference of five hours in when a
+# crosswalk starts applying.
+#
+#   start  ->  <day>T00:00:00+00:00       the first instant of the day, UTC
+#   end    ->  <day>T23:59:59+00:00       the last whole second of the day, UTC
+#
+# UTC, because a registry crosswalk is not scoped to any one jurisdiction's
+# civil time -- rkaf's own timezone rule (spec/rkaf-rulemaking.md §4) attaches
+# a governing timezone to a comment DEADLINE, which has a forum, and a mapping
+# between two code schemes has none. The end takes 23:59:59 rather than the
+# following midnight because rkaf compares an as-of instant INSIDE
+# [start, end] inclusively, so the next day's midnight would publish the
+# mapping as effective for one instant of a day the source excluded. A second
+# short under-claims; an instant over the boundary states something false, and
+# under-claiming is the only one of those a producer may do silently.
 atlas:EffectivePeriodShape
   a sh:NodeShape ;
   sh:targetClass rkaf:EffectivePeriod ;
@@ -876,6 +901,7 @@ atlas:EffectivePeriodShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:node atlas:DateTimeValueShape ;
+    sh:pattern "^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T00:00:00[+]00:00$" ;
     # An end before its start is not a short period, it is a contradiction. The
     # comparison is stated once, from the start, so a period with no end is
     # vacuously conforming rather than needing a second branch to exempt it.
@@ -884,7 +910,8 @@ atlas:EffectivePeriodShape
   sh:property [
     sh:path rkaf:effectivePeriodEnd ;
     sh:maxCount 1 ;
-    sh:node atlas:DateTimeValueShape
+    sh:node atlas:DateTimeValueShape ;
+    sh:pattern "^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T23:59:59[+]00:00$"
   ] .
 
 atlas:SkosMappingAssertionShape

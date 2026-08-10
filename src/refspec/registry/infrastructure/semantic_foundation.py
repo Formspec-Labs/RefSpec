@@ -295,51 +295,68 @@ def _validated_relation_context(
     if not isinstance(value, Mapping):
         raise SemanticFoundationError(f"{semantic_ring} relation records require context")
     context = dict(value)
-    if semantic_ring == "value":
-        # No sourceEdition / targetEdition. A value-ring mapping already pins
-        # both endpoints' releases, and a registry release IS an edition: the
-        # real release IRIs this repository emits are edition-scoped
-        # (urn:ref:atlas-release:3:eurovoc:4.24, :elsst:r6,
-        # :doe-osti-thesaurus:v1-2020) or content-digest-keyed
-        # (urn:ref:atlas-release:v3:<source>:<sha256>, v3_registry_codes.py),
-        # and a second capture of one scheme at a different edition is
-        # necessarily a different release. The strings that used to sit here
-        # were free text: nothing derived them from the pins, nothing compared
-        # them to the pins, and the Atlas wire drops them at the boundary
-        # (ontology/atlas.ttl's ring-temporal block, decision 1). Checking them
-        # was not merely unbuilt but unbuildable from what the registry models
-        # -- a release bundle declares no edition to compare against, and the
-        # content-digest form has no edition to derive -- so the only thing an
-        # edition literal could ever do is disagree with the pin beside it.
-        # It is deleted rather than documented, and `_require_closed_fields`
-        # is the check that keeps it deleted: one is now an unknown field.
-        _require_closed_fields(
-            context,
-            label=label,
-            required={"effectiveFrom"},
-            optional={"effectiveThrough"},
+    # One shape for both dated rings. A crosswalk between two code editions and
+    # an equivalence between two codifications are both claims about a PERIOD:
+    # the mapping holds from a day, and either it still holds or a day is named
+    # on which it stopped.
+    #
+    # The legal-identity ring used to state a single instant, `effectiveAt`,
+    # and the Atlas wire published it as an rkaf:effectivePeriodStart with no
+    # end -- which upstream reads as "still in force"
+    # (rulespec constraints/core/effective-period.cue). Those are not the same
+    # claim: a mapping true on one day does not thereby hold indefinitely, so
+    # the wire asserted something no source had said. rkaf has no term for the
+    # weaker claim either -- rkaf:PointInTimeException is a lifecycle retention
+    # record carrying an rkaf:evaluationAnchor, rkaf:assertedAt is when the
+    # assertion was made, and rkaf:EffectivePeriod is the only thing rkaf
+    # offers for "in force when". The fix is therefore on this side: state the
+    # claim the wire publishes. A producer that knows only "this was true on
+    # day D" cannot fill `effectiveFrom` honestly and must not publish the
+    # mapping, which is the fail-closed outcome.
+    #
+    # No sourceEdition / targetEdition. A value-ring mapping already pins
+    # both endpoints' releases, and a registry release IS an edition: the
+    # real release IRIs this repository emits are edition-scoped
+    # (urn:ref:atlas-release:3:eurovoc:4.24, :elsst:r6,
+    # :doe-osti-thesaurus:v1-2020) or content-digest-keyed
+    # (urn:ref:atlas-release:v3:<source>:<sha256>, v3_registry_codes.py),
+    # and a second capture of one scheme at a different edition is
+    # necessarily a different release. The strings that used to sit here
+    # were free text: nothing derived them from the pins, nothing compared
+    # them to the pins, and the Atlas wire drops them at the boundary
+    # (ontology/atlas.ttl's ring-temporal block, decision 1). Checking them
+    # was not merely unbuilt but unbuildable from what the registry models
+    # -- a release bundle declares no edition to compare against, and the
+    # content-digest form has no edition to derive -- so the only thing an
+    # edition literal could ever do is disagree with the pin beside it.
+    # It is deleted rather than documented, and `_require_closed_fields`
+    # is the check that keeps it deleted: one is now an unknown field.
+    #
+    # Both bounds are ISO calendar days, inclusive, and both are days in UTC.
+    # A producer promoting them to the xsd:dateTime the wire requires writes
+    # `<effectiveFrom>T00:00:00+00:00` and `<effectiveThrough>T23:59:59+00:00`
+    # -- the convention is pinned by sh:pattern on atlas:EffectivePeriodShape
+    # in bindings/atlas/3.0/shapes/atlas.shacl.ttl, with the negative cases
+    # mapping-period-start-not-utc-midnight and
+    # mapping-period-end-not-utc-day-end, so a distribution that promotes a
+    # day differently is refused rather than merely undocumented.
+    _require_closed_fields(
+        context,
+        label=label,
+        required={"effectiveFrom"},
+        optional={"effectiveThrough"},
+    )
+    context["effectiveFrom"] = _require_date(
+        context.get("effectiveFrom"),
+        f"{label}.effectiveFrom",
+    )
+    if "effectiveThrough" in context:
+        context["effectiveThrough"] = _require_date(
+            context.get("effectiveThrough"),
+            f"{label}.effectiveThrough",
         )
-        context["effectiveFrom"] = _require_date(
-            context.get("effectiveFrom"),
-            f"{label}.effectiveFrom",
-        )
-        if "effectiveThrough" in context:
-            context["effectiveThrough"] = _require_date(
-                context.get("effectiveThrough"),
-                f"{label}.effectiveThrough",
-            )
-            if context["effectiveThrough"] < context["effectiveFrom"]:
-                raise SemanticFoundationError(f"{label}.effectiveThrough precedes effectiveFrom")
-    else:
-        _require_closed_fields(
-            context,
-            label=label,
-            required={"effectiveAt"},
-        )
-        context["effectiveAt"] = _require_date(
-            context.get("effectiveAt"),
-            f"{label}.effectiveAt",
-        )
+        if context["effectiveThrough"] < context["effectiveFrom"]:
+            raise SemanticFoundationError(f"{label}.effectiveThrough precedes effectiveFrom")
     return MappingProxyType(context)
 
 

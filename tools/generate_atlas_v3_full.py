@@ -168,23 +168,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:0c7eafb450e6ee25cf815808d322f43b136b697e1512dbe81201d0d1278ef0b5"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:ed799e00cebf04afd5b022755811190a9473bc1b6f2b361b92a1cb7b838200e6"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:388fd87d49332e3447c2c5509f1bf9befac2b3dff91f188f46b850ac4e120043"
+            "sha256:0ae6d5eb970cdc15d16fa7b643a5c88147661ac175e85695997b0cfde1134255"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:1ae516113845e51c5755553324c2304b7e2fdb75d85b2eafe25a9cd9c8e82d0a"
+            "sha256:c9fae74a33fe63081128b162e539a83c019f3ec6719e614889d58bbdccfde4d5"
         ),
         "shapesDigest": (
-            "sha256:9366d4a502b6c83eb95984f1b1471d440a7272b4190c2f8c02888de8b6c2a7c2"
+            "sha256:e1eba3af1dae3cfdc4b920e9a5617525aeb3a661c406acebd428cc0261c0c389"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -2898,7 +2898,12 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
 # (src/refspec/atlas/v3_registry_alignments.py, EuroVoc<->LCSH), so this is the
 # expected case rather than a live gap. Adding the field to RegistryMapping and
 # threading it into _add_assertion's effective_period argument is the work owed
-# before a value-ring or legal-identity mapping source arrives.
+# before a value-ring or legal-identity mapping source arrives. The registry
+# states both bounds as ISO calendar days, so that work also has to promote
+# them: `<effectiveFrom>T00:00:00+00:00` and `<effectiveThrough>T23:59:59+00:00`,
+# the one promotion sh:pattern on atlas:EffectivePeriodShape admits. Nothing
+# here has to remember that -- a distribution promoting a day any other way is
+# refused -- but a producer written against this comment starts out conforming.
 UNEMITTABLE_MAPPING_RINGS = frozenset({"legalIdentity", "value"})
 
 
