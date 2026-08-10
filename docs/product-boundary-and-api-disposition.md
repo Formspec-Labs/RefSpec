@@ -22,12 +22,13 @@ placement, but it does not authorize source-unit admission.
 **What happens:** RefSpec preserves source bytes, imports vocabulary records,
 checks coverage and source identity, closes evidence references, validates
 releases, assigns one of four semantic rings, and builds deterministic atlas
-files. Stable code performs mechanical checks. A registered proof adapter
-turns a sealed semantic qualification result into typed mapping evidence.
+files. Stable code performs mechanical checks. A machine verdict becomes
+mapping support only as an adjudicated proof-record set the Atlas 3.0 binding
+validator resolves; nothing in RefSpec admits one as evidence directly.
 
-**What comes out:** digest-pinned source and managed concept releases, relation
-bundles, an Atlas 3.0 manifest with authoritative RDF packs and construction
-evidence, derived local views, publication decisions, and static publications.
+**What comes out:** digest-pinned source and managed concept releases, an
+Atlas 3.0 manifest with authoritative RDF packs and construction evidence,
+derived local views, publication decisions, and static publications.
 RefSpec does not publish a mutable query service or a physical search index.
 
 **How consumers check it:** consumers verify the binding and manifest pins,
@@ -63,10 +64,11 @@ boundary and source of truth.
 | `ManagedReleaseView` | Keep | Canonical read-only view of a verified managed release |
 | Managed vocabulary bundles, importers, source packages, coverage, and reconciliation | Keep | Core RefSpec behavior |
 | Source-controlled resources and source-concept releases | Keep | Preserve useful publisher concepts and mint explicit source-scoped identities only when the publisher supplies none |
-| `VocabularyAtlasAsset`, `PinnedVocabularyAtlasScope`, and `VocabularyAtlasQueries` | Legacy | Retain for existing Atlas 2.0 readers until a caller and fixture audit permits removal; do not use for new production paths |
+| `VocabularyAtlasAsset`, `PinnedVocabularyAtlasScope`, and `VocabularyAtlasQueries` | Retired | The Atlas 2.0 scope, snapshot, and query surface is deleted; the Atlas 3.0 distribution and its binding validator replace it |
 | Ring and subject-module views | Keep | Publish complete record subsets with closed relation, evidence, and proof dependencies |
-| Typed relation bundles and proof adapters | Keep | Share record shapes across rings while enforcing ring-specific predicates and trust rules |
-| Downstream product-use eligibility and concept authoring | Keep | Reuse existing identities without reminting; use staging only for genuinely new RefSpec concepts; keep product permission separate from source-unit admission |
+| Typed relation bundles and proof adapters | Retired | The Atlas 2.0 relation bundle, its SSSOM view, and the proof-adapter trust registry are deleted; ring predicates stay in `semantic_foundation.py` and adjudicated machine proof lives on the Atlas 3.0 wire |
+| Concept authoring | Keep | Reuse existing identities without reminting; use staging only for genuinely new RefSpec concepts |
+| Downstream product-use eligibility | Retired as an Atlas record | The grant lives on the REF JSON binding's `OutputProfile.subjectAdmissionPermissions`, validated by `refspec.vocabulary` and `refspec.binding`, not in a second Atlas-side policy record |
 | Publication decisions and static publication | Keep | Require exact scope, result, policy, and decision pins before producing consumer files |
 | `refspec-build-vocabulary-atlas` | Retire | Keep the Atlas 2.0 command retired; Atlas 3 construction uses its own pinned inputs and binding-specific generator |
 | Standalone `VocabularyRelease` and duplicate canonical JSON helpers | Retire | Do not add them to this implementation |

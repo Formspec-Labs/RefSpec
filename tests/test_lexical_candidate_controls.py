@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("rapidfuzz", reason="lexical benchmark uses the pinned optional RapidFuzz dependency")
 
-from refspec.atlas.qualification import AtlasConcept
+from refspec.atlas.candidate_retrieval import AtlasConcept
 from tools import benchmark_lexical_candidate_controls as lexical
 
 

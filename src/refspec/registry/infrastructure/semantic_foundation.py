@@ -1063,8 +1063,6 @@ class MappingAssertion:
     def _validate_evidence(
         self,
         evidence_by_id: Mapping[str, EvidenceAssertion],
-        *,
-        allow_machine_evidence: bool,
     ) -> None:
         if any(identifier != assertion.identifier for identifier, assertion in evidence_by_id.items()):
             raise SemanticFoundationError("evidence lookup keys must equal content-derived assertion ids")
@@ -1101,19 +1099,16 @@ class MappingAssertion:
         scoped_machine_evidence = tuple(
             value for value in supporting if value.evidence_class in {"machineQualified", "machineReviewed"}
         )
-        if scoped_machine_evidence and not allow_machine_evidence:
+        if scoped_machine_evidence:
+            # Unconditional. The Atlas 2.0 relation bundle that used to reopen a
+            # proof adapter and admit machine support here is retired: a machine
+            # verdict now reaches a published mapping only as an
+            # rkaf:ResolverProofRecord set adjudicated by the Atlas 3.0 binding
+            # validator, never as evidence handed straight to this validator.
             raise SemanticFoundationError(
-                "machine-backed mapping assertions require a path-backed RelationAssertionBundle"
+                "machine-backed mapping assertions are not admitted here; a machine "
+                "verdict reaches a mapping only through adjudicated proof records"
             )
-        for value in scoped_machine_evidence:
-            if (
-                value.source_concept != self.source_concept
-                or value.target_concept != self.target_concept
-                or value.source_release != self.source_release
-                or value.target_release != self.target_release
-                or value.relation != self.relation
-            ):
-                raise SemanticFoundationError("machine evidence does not prove this mapping relation and endpoints")
         if (
             self.semantic_ring == "entity"
             and self.relation == ENTITY_SAME_IDENTITY
@@ -1126,9 +1121,9 @@ class MappingAssertion:
             raise SemanticFoundationError("ruleGenerated evidence is candidate provenance, not mapping support")
 
     def validate_evidence(self, evidence_by_id: Mapping[str, EvidenceAssertion]) -> None:
-        """Validate direct use; machine-backed mappings require a relation bundle."""
+        """Validate the cited evidence set; machine-backed support is refused."""
 
-        self._validate_evidence(evidence_by_id, allow_machine_evidence=False)
+        self._validate_evidence(evidence_by_id)
 
     def _basis(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -1224,13 +1219,18 @@ def validate_evidence_assertions(
     return tuple(sorted(result, key=lambda value: value.identifier))
 
 
-def _validate_mapping_assertions(
+def validate_mapping_assertions(
     values: Sequence[MappingAssertion | Mapping[str, Any]],
     *,
     evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
     semantic_ring: SemanticRing | None = None,
-    allow_machine_evidence: bool,
 ) -> tuple[MappingAssertion, ...]:
+    """Validate mappings against their ring and their exact evidence set.
+
+    Machine-derived evidence is refused outright: this validator fails closed
+    for both direct machine evidence and operator adoption of a machine review.
+    """
+
     expected_ring = None if semantic_ring is None else _require_ring(semantic_ring, "semantic_ring")
     evidence = validate_evidence_assertions(evidence_assertions)
     evidence_by_id = {value.identifier: value for value in evidence}
@@ -1246,10 +1246,7 @@ def _validate_mapping_assertions(
             raise SemanticFoundationError("mapping_assertions repeats an id")
         if expected_ring is not None and assertion.semantic_ring != expected_ring:
             raise SemanticFoundationError("mapping_assertion semanticRing differs from the requested ring")
-        assertion._validate_evidence(
-            evidence_by_id,
-            allow_machine_evidence=allow_machine_evidence,
-        )
+        assertion._validate_evidence(evidence_by_id)
         identifiers.add(assertion.identifier)
         result.append(assertion)
     validate_mapping_supersession(result)
@@ -1313,44 +1310,6 @@ def validate_mapping_supersession(values: Sequence[MappingAssertion]) -> None:
 
     for identifier in sorted(by_id):
         visit(identifier)
-
-
-def validate_mapping_assertions(
-    values: Sequence[MappingAssertion | Mapping[str, Any]],
-    *,
-    evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
-    semantic_ring: SemanticRing | None = None,
-) -> tuple[MappingAssertion, ...]:
-    """Validate non-machine mappings against their ring and exact evidence set.
-
-    Machine-derived evidence becomes mapping support only inside a
-    :class:`RelationAssertionBundle`, which reopens the proof adapter and pins
-    the exact proof facts.  This public validator therefore fails closed for
-    both direct machine evidence and operator adoption of a machine review.
-    """
-
-    return _validate_mapping_assertions(
-        values,
-        evidence_assertions=evidence_assertions,
-        semantic_ring=semantic_ring,
-        allow_machine_evidence=False,
-    )
-
-
-def _validate_mapping_assertions_with_machine_evidence(
-    values: Sequence[MappingAssertion | Mapping[str, Any]],
-    *,
-    evidence_assertions: Sequence[EvidenceAssertion | Mapping[str, Any]],
-    semantic_ring: SemanticRing,
-) -> tuple[MappingAssertion, ...]:
-    """Validate bundle-contained mappings before exact proof-pin closure."""
-
-    return _validate_mapping_assertions(
-        values,
-        evidence_assertions=evidence_assertions,
-        semantic_ring=semantic_ring,
-        allow_machine_evidence=True,
-    )
 
 
 __all__ = [

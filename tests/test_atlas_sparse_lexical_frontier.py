@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from refspec.atlas.qualification import AtlasConcept
+from refspec.atlas.candidate_retrieval import AtlasConcept
 from tools import benchmark_atlas_candidate_retrieval as shared
 from tools import benchmark_atlas_sparse_lexical_frontier as frontier
 from tools import benchmark_lexical_candidate_controls as lexical

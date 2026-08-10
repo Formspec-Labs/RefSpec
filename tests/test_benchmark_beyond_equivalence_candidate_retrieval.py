@@ -8,7 +8,7 @@ import zipfile
 import numpy as np
 import pytest
 
-from refspec.atlas.qualification import AtlasConcept
+from refspec.atlas.candidate_retrieval import AtlasConcept
 from tools import benchmark_beyond_equivalence_candidate_retrieval as benchmark
 
 

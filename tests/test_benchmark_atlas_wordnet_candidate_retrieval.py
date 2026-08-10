@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from refspec.atlas.qualification import AtlasConcept
+from refspec.atlas.candidate_retrieval import AtlasConcept
 from tools import benchmark_atlas_candidate_retrieval as shared
 from tools import benchmark_atlas_wordnet_candidate_retrieval as benchmark
 from tools import benchmark_beyond_equivalence_candidate_retrieval as wordnet

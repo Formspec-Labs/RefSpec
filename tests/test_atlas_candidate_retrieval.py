@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
+
 from refspec.atlas import candidate_retrieval as retrieval
-from refspec.atlas.qualification import AtlasConcept, AtlasConceptContext
+from refspec.atlas.candidate_retrieval import AtlasConcept, AtlasConceptContext
 
 SOURCE_RELEASE = "urn:ref:test:retrieval:source"
 TARGET_RELEASE = "urn:ref:test:retrieval:target"
@@ -182,3 +186,156 @@ def test_sparse_retrieval_digest_is_input_order_independent() -> None:
 
     assert first == second
     assert retrieval.retrieval_digest(first) == retrieval.retrieval_digest(second)
+
+
+# ---------------------------------------------------------------------------
+# the pinned six-class candidate generator
+# ---------------------------------------------------------------------------
+
+GENERATION_SOURCE_RELEASE = "urn:ref:test:alpha:reference-resource-release"
+GENERATION_TARGET_RELEASE = "urn:ref:test:beta:reference-resource-release"
+
+
+def _source(member: str, label: str, **kwargs: Any) -> AtlasConcept:
+    return AtlasConcept(
+        member=member,
+        release=GENERATION_SOURCE_RELEASE,
+        pref_label=label,
+        **kwargs,
+    )
+
+
+def _target(member: str, label: str, **kwargs: Any) -> AtlasConcept:
+    return AtlasConcept(
+        member=member,
+        release=GENERATION_TARGET_RELEASE,
+        pref_label=label,
+        **kwargs,
+    )
+
+
+@pytest.fixture
+def sources() -> tuple[AtlasConcept, ...]:
+    return (
+        _source("urn:ref:test:alpha:1", "Energy policy"),
+        _source("urn:ref:test:alpha:2", "Water pollution"),
+        _source("urn:ref:test:alpha:3", "Labor unions", alt_labels=("Trade unions",)),
+        _source("urn:ref:test:alpha:4", "Accountants"),
+        _source("urn:ref:test:alpha:5", "Milk marketing orders"),
+    )
+
+
+@pytest.fixture
+def targets() -> tuple[AtlasConcept, ...]:
+    return (
+        _target("urn:ref:test:beta:1", "energy POLICY ", broader=("urn:ref:test:beta:9",)),
+        _target("urn:ref:test:beta:2", "Water pollution control", broader=("urn:ref:test:beta:9",)),
+        _target("urn:ref:test:beta:3", "Trade unions"),
+        _target("urn:ref:test:beta:4", "Accountant"),
+        _target("urn:ref:test:beta:5", "Volcanology"),
+        _target("urn:ref:test:beta:6", "Air pollution control", broader=("urn:ref:test:beta:9",)),
+        _target("urn:ref:test:beta:9", "Pollution control"),
+    )
+
+
+def test_generation_is_deterministic_and_order_independent(sources, targets) -> None:
+    first = retrieval.generate_candidate_pairs(sources, targets)
+    second = retrieval.generate_candidate_pairs(tuple(reversed(sources)), tuple(reversed(targets)))
+    assert first == second
+    assert first == retrieval.generate_candidate_pairs(sources, targets)
+
+
+def test_generation_produces_every_declared_class(sources, targets) -> None:
+    pairs = retrieval.generate_candidate_pairs(sources, targets)
+    observed = {pair.generation_class for pair in pairs}
+    assert observed == set(retrieval.GENERATION_CLASSES), sorted(observed)
+
+
+def test_label_equality_uses_the_atlas_normalizer(sources, targets) -> None:
+    pairs = retrieval.generate_candidate_pairs(sources, targets)
+    equal = {
+        (pair.source.member, pair.target.member)
+        for pair in pairs
+        if pair.generation_class == "normalizedLabelEquality"
+    }
+    # "Energy policy" and "energy POLICY " differ in case and trailing space.
+    assert ("urn:ref:test:alpha:1", "urn:ref:test:beta:1") in equal
+
+
+def test_alternate_label_equality_is_its_own_class(sources, targets) -> None:
+    pairs = retrieval.generate_candidate_pairs(sources, targets)
+    alternates = {
+        (pair.source.member, pair.target.member)
+        for pair in pairs
+        if pair.generation_class == "alternateLabelEquality"
+    }
+    assert ("urn:ref:test:alpha:3", "urn:ref:test:beta:3") in alternates
+
+
+def test_sibling_distractor_shares_a_parent_with_a_label_match(sources, targets) -> None:
+    pairs = retrieval.generate_candidate_pairs(sources, targets)
+    siblings = [pair for pair in pairs if pair.generation_class == "siblingDistractor"]
+    assert siblings
+    for pair in siblings:
+        assert pair.evidence["siblingOf"] != pair.target.member
+
+
+def test_negative_controls_share_no_label_token(sources, targets) -> None:
+    pairs = retrieval.generate_candidate_pairs(sources, targets)
+    controls = [pair for pair in pairs if pair.generation_class == "randomNegativeControl"]
+    assert controls
+    for pair in controls:
+        left = set(retrieval.normalized_tokens(pair.source.pref_label))
+        right = set(retrieval.normalized_tokens(pair.target.pref_label))
+        assert not (left & right)
+
+
+def test_no_pair_repeats_across_or_within_classes(sources, targets) -> None:
+    """A repeated pair is two identical candidates a reader cannot tell apart."""
+
+    doubled = (
+        *targets,
+        # Same concept, reachable twice: its alternate spells its own label.
+        _target("urn:ref:test:beta:10", "Accountants", alt_labels=("accountants", "ACCOUNTANTS")),
+    )
+    pairs = retrieval.generate_candidate_pairs(sources, doubled)
+    keys = [(pair.source.member, pair.target.member) for pair in pairs]
+    assert len(keys) == len(set(keys))
+
+
+def test_class_limits_bound_each_class(sources, targets) -> None:
+    limits = dict.fromkeys(retrieval.GENERATION_CLASSES, 1)
+    pairs = retrieval.generate_candidate_pairs(sources, targets, limits=limits)
+    counts: dict[str, int] = {}
+    for pair in pairs:
+        counts[pair.generation_class] = counts.get(pair.generation_class, 0) + 1
+    assert max(counts.values()) == 1
+
+
+def test_production_generation_has_no_pilot_class_caps(sources, targets) -> None:
+    production = retrieval.generate_candidate_pairs(sources, targets, production=True)
+    pilot = retrieval.generate_candidate_pairs(
+        sources,
+        targets,
+        limits=dict.fromkeys(retrieval.GENERATION_CLASSES, 1),
+    )
+
+    assert len(production) > len(pilot)
+    assert {pair.generation_policy for pair in production} == {
+        retrieval.PRODUCTION_CANDIDATE_GENERATION_POLICY
+    }
+    with pytest.raises(
+        retrieval.CandidateGenerationError,
+        match="does not accept pilot class limits",
+    ):
+        retrieval.generate_candidate_pairs(
+            sources,
+            targets,
+            production=True,
+            limits=retrieval.DEFAULT_CLASS_LIMITS,
+        )
+
+
+def test_generation_refuses_a_source_and_target_in_one_release(sources) -> None:
+    with pytest.raises(retrieval.CandidateGenerationError, match="must cross releases"):
+        retrieval.generate_candidate_pairs(sources, sources)

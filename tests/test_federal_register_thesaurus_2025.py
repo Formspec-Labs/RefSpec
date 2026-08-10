@@ -1,25 +1,13 @@
 from __future__ import annotations
 
-import hashlib
 import os
 from collections import Counter
 from dataclasses import replace
 from pathlib import Path
-from typing import cast
 
 import pytest
 
 import refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release as managed_release_module
-from refspec.atlas.atlas_scope import AtlasScopeRelease
-from refspec.atlas.concept_release import (
-    ManagedReleaseRingAssignment,
-    PinnedManagedReleaseRingAssignment,
-)
-from refspec.atlas.federal_register import (
-    FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
-    PinnedFederalRegisterManagedConceptRelease,
-)
-from refspec.atlas.release_snapshot import AtlasReleaseSnapshot
 from refspec.policies.federal_register_lists_of_subjects import (
     resolve_list_of_subjects_term,
 )
@@ -153,10 +141,6 @@ def _write_managed_release_fixture(
     return release.write_to(tmp_path)["managed-release.json"]
 
 
-def _file_digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _write_complete_managed_release(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -182,30 +166,6 @@ def _write_complete_managed_release(
     ]
 
 
-def _atlas_snapshot(manifest_path: Path, root: Path) -> AtlasReleaseSnapshot:
-    manifest_digest = _file_digest(manifest_path)
-    assignment = ManagedReleaseRingAssignment(
-        managed_manifest_digest=manifest_digest,
-        release_id=FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
-        semantic_ring="subject",
-        assigned_by="urn:test:actor:federal-register-atlas-reviewer",
-        assigned_at="2026-08-04T20:00:00Z",
-        evidence=("urn:test:evidence:federal-register-complete-release",),
-    )
-    assignment_path = assignment.write_to(root / "managed-release-ring-assignment.json")
-    pinned_assignment = PinnedManagedReleaseRingAssignment.open(
-        assignment_path,
-        expected_file_digest=_file_digest(assignment_path),
-    )
-    selected = PinnedFederalRegisterManagedConceptRelease.open(
-        manifest_path,
-        expected_manifest_digest=manifest_digest,
-        release_id=FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI,
-        ring_assignment=pinned_assignment,
-    )
-    return AtlasReleaseSnapshot.create(AtlasScopeRelease(selected))
-
-
 def test_packaged_extract_pins_complete_current_source_interpretation() -> None:
     thesaurus = load_packaged_federal_register_thesaurus_2025()
 
@@ -221,66 +181,26 @@ def test_packaged_extract_pins_complete_current_source_interpretation() -> None:
     assert thesaurus.counts.index_anomalies == 2
 
 
-def test_complete_2025_release_builds_an_atlas_snapshot(
+def test_complete_2025_release_accounts_for_every_related_reference(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    manifest_path = _write_complete_managed_release(tmp_path, monkeypatch)
-    snapshot = _atlas_snapshot(manifest_path, tmp_path)
-    release_node = next(
-        record
-        for record in snapshot.record["selectedReleaseGraph"]["@graph"]
-        if record["@id"] == snapshot.release_id
-    )
-    related = sum(
-        len(cast(tuple[object, ...], concept["http://www.w3.org/2004/02/skos/core#related"]))
-        for concept in snapshot.concept_records
-        if "http://www.w3.org/2004/02/skos/core#related" in concept
-    )
-    relation_statuses = Counter(
-        row["resolutionStatus"]
-        for row in FederalRegisterThesaurus2025ManagedReleaseView.open(
-            manifest_path
-        ).relations
-    )
-    source_relation_records = [
-        row
-        for row in snapshot.record["selectedReleaseGraph"]["@graph"]
-        if row.get("@type") == "atlas:SourceRelationRecord"
-    ]
+    """Every printed cross-reference resolves or is named as unresolved.
 
-    assert snapshot.release_id == FEDERAL_REGISTER_THESAURUS_2025_REFERENCE_RELEASE_IRI
-    assert len(snapshot.member_ids) == 705
+    The measured split is the point: a release that silently dropped the 12
+    references it cannot resolve would look complete and be wrong.
+    """
+
+    manifest_path = _write_complete_managed_release(tmp_path, monkeypatch)
+    view = FederalRegisterThesaurus2025ManagedReleaseView.open(manifest_path)
+    relation_statuses = Counter(row["resolutionStatus"] for row in view.relations)
+
     assert relation_statuses == {
         "resolved": 1_451,
         "suggestedOpenTermPattern": 11,
         "unresolved": 1,
     }
     assert sum(relation_statuses.values()) == 1_463
-    assert related == relation_statuses["resolved"]
-    assert Counter(row["atlas:sourceRelationStatus"] for row in source_relation_records) == {
-        "suggestedOpenTermPattern": 11,
-        "unresolved": 1,
-    }
-    assert all(
-        {
-            "atlas:sourceConcept",
-            "atlas:sourcePdfPage",
-            "atlas:sourcePrintedPage",
-            "atlas:sourceOrdinal",
-            "atlas:sourceRawTargetLabel",
-        }
-        <= set(row)
-        for row in source_relation_records
-    )
-    assert {
-        cast(str, reference["@id"])
-        for reference in release_node["atlas:sourceRelationRecord"]
-    } == {cast(str, row["@id"]) for row in source_relation_records}
-    assert release_node["rkaf:membershipMode"] == "rkaf:completeMembership"
-    assert release_node["rkaf:referenceReleaseDigest"] == snapshot.release_pin[
-        "declaredReleaseDigest"
-    ]
 
 
 def test_lists_of_subjects_resolution_never_silently_mints() -> None:
