@@ -11,7 +11,7 @@
   ],
   "validator": {
     "identity": "rkaf-validate@0.2.0-pre.9 + tools/ci_validate.py + rkaf-behavior-validate@0.2.0-pre.9",
-    "sourceRevision": "791670e7c5ec4cbcd36cd9cd7efd4ce0143bc094",
+    "sourceRevision": "9be401b6e1bcda60219984bd815f9eaae42de2f8",
     "completeGateCommand": "make test",
     "claimedLevels": [
       "L1",

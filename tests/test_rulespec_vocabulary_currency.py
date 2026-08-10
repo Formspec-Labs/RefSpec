@@ -78,8 +78,10 @@ therefore refuses a ``urn:`` prefix.
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -162,6 +164,60 @@ def discover_rulespec_checkout() -> Path | None:
     if not (candidate / "spec" / "rkaf-behavior.md").is_file():
         return None
     return candidate
+
+
+def pinned_rulespec_revision() -> str:
+    """The Rulespec commit profiles/rulespec-dependency.json claims to read."""
+
+    manifest = json.loads(
+        (REFSPEC_ROOT / "profiles" / "rulespec-dependency.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    revision = manifest["validator"]["sourceRevision"]
+    assert isinstance(revision, str) and revision, "the dependency pin has no revision"
+    return revision
+
+
+def test_the_checkout_this_gate_reads_actually_contains_the_pinned_revision() -> None:
+    """A checkout older than the pin makes every other check here a lie.
+
+    The currency gate answers "does this term still exist upstream" by reading a
+    working checkout, and the dependency manifest separately claims which
+    Rulespec commit RefSpec adopted from. Nothing connected the two: a checkout
+    sitting on a commit BEFORE the pin would report the terms adopted after it
+    as missing, and -- worse in the other direction -- a checkout that had
+    simply never been fetched would silently certify a vocabulary RefSpec does
+    not actually depend on. The pin must be an ancestor of the checkout's HEAD:
+    the checkout may be ahead (that is what "read the live checkout" means), but
+    it may never be behind.
+    """
+
+    rulespec_dir = discover_rulespec_checkout()
+    if rulespec_dir is None:
+        pytest.skip(
+            "no Rulespec checkout found (set REFSPEC_RULESPEC_CHECKOUT or "
+            "clone Rulespec to ~/Work/rulespec) -- skipping the pinned-revision "
+            "reachability check"
+        )
+    if not (rulespec_dir / ".git").exists():
+        pytest.skip(f"{rulespec_dir} is not a git checkout -- cannot resolve the pin")
+
+    revision = pinned_rulespec_revision()
+    completed = subprocess.run(
+        ["git", "-C", str(rulespec_dir), "merge-base", "--is-ancestor", revision, "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, (
+        f"profiles/rulespec-dependency.json pins Rulespec {revision}, which is not "
+        f"an ancestor of HEAD in the checkout at {rulespec_dir} "
+        f"({completed.stderr.strip() or 'unknown revision'}). Either the checkout "
+        "predates the pin -- fetch it, because every vocabulary answer this file "
+        "gives is read from that tree -- or the pin names a commit that no longer "
+        "exists upstream and RefSpec is claiming a dependency it cannot resolve."
+    )
 
 
 def test_every_rkaf_term_refspec_uses_exists_upstream() -> None:
