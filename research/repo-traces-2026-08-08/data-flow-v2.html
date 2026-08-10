@@ -1,0 +1,2235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace map — five repos, one ownership boundary</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --paper:#eef0f2; --sheet:#ffffff; --sunk:#e5e8ea;
+    --ink:#14181c; --ink2:#4a535c; --ink3:#79838d;
+    --rule:#ccd2d8; --hair:#dde2e6;
+    --key:#0f6470; --keyq:#e0eef0;
+    --ok:#0e6b3f; --move:#8a5510; --gap:#5b46b8; --bad:#ab2015; --dead:#6b737b;
+    --okq:#e2f0e8; --moveq:#f7ecdc; --gapq:#eae6f9; --badq:#fae7e4; --deadq:#e9ebed;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#0f1216; --sheet:#171b20; --sunk:#1d2229;
+      --ink:#e3e7ea; --ink2:#9aa3ad; --ink3:#6f7883;
+      --rule:#2b3138; --hair:#23282e;
+      --key:#5cc2ce; --keyq:#123034;
+      --ok:#54c184; --move:#d9a141; --gap:#a996f0; --bad:#f0776a; --dead:#868d95;
+      --okq:#122a1d; --moveq:#2e2313; --gapq:#211c33; --badq:#311815; --deadq:#20242a;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#eef0f2; --sheet:#ffffff; --sunk:#e5e8ea;
+    --ink:#14181c; --ink2:#4a535c; --ink3:#79838d;
+    --rule:#ccd2d8; --hair:#dde2e6;
+    --key:#0f6470; --keyq:#e0eef0;
+    --ok:#0e6b3f; --move:#8a5510; --gap:#5b46b8; --bad:#ab2015; --dead:#6b737b;
+    --okq:#e2f0e8; --moveq:#f7ecdc; --gapq:#eae6f9; --badq:#fae7e4; --deadq:#e9ebed;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f1216; --sheet:#171b20; --sunk:#1d2229;
+    --ink:#e3e7ea; --ink2:#9aa3ad; --ink3:#6f7883;
+    --rule:#2b3138; --hair:#23282e;
+    --key:#5cc2ce; --keyq:#123034;
+    --ok:#54c184; --move:#d9a141; --gap:#a996f0; --bad:#f0776a; --dead:#868d95;
+    --okq:#122a1d; --moveq:#2e2313; --gapq:#211c33; --badq:#311815; --deadq:#20242a;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%;
+       font-variant-numeric:tabular-nums}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 20px 90px}
+  .prose{max-width:80ch}
+  a{color:var(--key);text-underline-offset:2px}
+  code,.mono{font-family:var(--mono);font-size:.855em;font-variant-numeric:tabular-nums}
+  strong{font-weight:660}
+
+  header.top{border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:20px}
+  .titlerow{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  h1{font-size:clamp(1.4rem,3.2vw,2rem);line-height:1.12;margin:0 0 8px;letter-spacing:-.022em;font-weight:700}
+  .standfirst{color:var(--ink2);margin:0;max-width:72ch;font-size:.95rem}
+  #themeToggle{font:inherit;font-size:.78rem;font-family:var(--mono);padding:6px 12px;
+    border:1px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer;white-space:nowrap}
+  #themeToggle:hover{border-color:var(--ink)}
+
+  h2{font-size:1.16rem;margin:0;letter-spacing:-.012em;font-weight:680}
+  h3{font-size:.98rem;margin:22px 0 4px;font-weight:660}
+  h4{font-size:.86rem;margin:16px 0 4px;font-weight:660;font-family:var(--mono);
+     text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+  p{margin:.5rem 0}
+
+  .sechead{display:flex;gap:14px;align-items:baseline;margin:52px 0 10px;
+           padding-top:12px;border-top:2px solid var(--ink)}
+  .sechead.vol{border-top:none;position:relative;padding-top:14px}
+  .sechead.vol::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;
+    background:repeating-linear-gradient(135deg,var(--ink) 0 3px,transparent 3px 7px)}
+  .chip{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.08em;
+        padding:3px 9px;white-space:nowrap;flex:0 0 auto}
+  .chip.d{background:var(--ink);color:var(--paper)}
+  .chip.v{background:transparent;color:var(--ink);border:1.5px dashed var(--ink)}
+  .sechead .why{margin-left:auto;font-size:.74rem;font-family:var(--mono);color:var(--ink3);
+                text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+
+  .band{border:1px solid var(--rule);background:var(--sheet);padding:16px 18px;margin:16px 0}
+  .band.key{border-left:4px solid var(--key)}
+  .band.bad{border-left:4px solid var(--bad);background:var(--badq)}
+  .band.ok{border-left:4px solid var(--ok);background:var(--okq)}
+  .band.move{border-left:4px solid var(--move);background:var(--moveq)}
+  .band.gap{border-left:4px solid var(--gap);background:var(--gapq)}
+  .band > :first-child{margin-top:0} .band > :last-child{margin-bottom:0}
+
+  .lede{font-size:.88rem;color:var(--ink2);max-width:82ch;margin:.4rem 0 .9rem}
+
+  .actionbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;
+             background:var(--rule);border:1px solid var(--rule);margin:18px 0}
+  .actionbar a{display:block;background:var(--sheet);padding:13px 15px;text-decoration:none;color:var(--ink)}
+  .actionbar a:hover{background:var(--keyq)}
+  .actionbar b{display:block;font-size:.92rem}
+  .actionbar span{display:block;font-size:.79rem;color:var(--ink2);margin-top:2px}
+
+  .index{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px 34px;margin:18px 0 8px}
+  .index h4{margin-top:0}
+  .index ol{list-style:none;margin:0;padding:0}
+  .index li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--hair);font-size:.86rem}
+  .index li a{font-family:var(--mono);font-size:.76rem;font-weight:700;flex:0 0 2.3rem;
+              text-decoration:none;padding-top:2px}
+  .index li span{color:var(--ink2)}
+  .index li b{font-weight:640;color:var(--ink)}
+
+  .scroller{overflow-x:auto;border:1px solid var(--rule);background:var(--sheet);margin:12px 0}
+  .scroller.pad{padding:10px}
+  .scroller svg{display:block;min-width:900px;max-width:100%;height:auto}
+  table{border-collapse:collapse;width:100%;font-size:.795rem;min-width:860px}
+  th,td{text-align:left;vertical-align:top;padding:8px 11px;border-bottom:1px solid var(--hair)}
+  th{background:var(--sheet);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;
+     color:var(--ink2);border-bottom:2px solid var(--ink);font-family:var(--mono);font-weight:700}
+  tbody tr:hover{background:var(--sunk)}
+  td.ev{font-family:var(--mono);font-size:.735rem;line-height:1.5;word-break:break-word}
+  td.num{font-family:var(--mono);font-size:.74rem;white-space:nowrap}
+  td.dt{font-family:var(--mono);font-size:.71rem;color:var(--ink3);white-space:nowrap}
+  .grp td{background:var(--sunk);font-weight:700;font-size:.73rem;font-family:var(--mono);
+          text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--rule)}
+
+  .pill{display:inline-block;padding:1px 7px;font-size:.68rem;font-weight:700;font-family:var(--mono);
+        white-space:nowrap;border:1px solid;letter-spacing:.03em}
+  .p-ok{color:var(--ok);background:var(--okq);border-color:var(--ok)}
+  .p-move{color:var(--move);background:var(--moveq);border-color:var(--move)}
+  .p-gap{color:var(--gap);background:var(--gapq);border-color:var(--gap)}
+  .p-bad{color:var(--bad);background:var(--badq);border-color:var(--bad)}
+  .p-dead{color:var(--dead);background:var(--deadq);border-color:var(--dead)}
+
+  .rd{display:block;font-family:var(--mono);font-size:.71rem;background:var(--sunk);
+      border-left:2px solid var(--key);padding:4px 8px;margin:5px 0 2px;
+      overflow-x:auto;white-space:pre;color:var(--ink2)}
+  .rd::before{content:"$ ";color:var(--key);font-weight:700}
+  .when{font-family:var(--mono);font-size:.68rem;color:var(--ink3);letter-spacing:.03em}
+
+  .repo{border:1px solid var(--rule);background:var(--sheet);margin:16px 0}
+  .repo > header{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;
+    padding:12px 16px;border-bottom:2px solid var(--ink);background:var(--sunk)}
+  .repo > header h3{margin:0;font-size:1.02rem;letter-spacing:-.01em}
+  .repo > header .org{font-family:var(--mono);font-size:.74rem;color:var(--ink2)}
+  .repo > header .role{margin-left:auto;font-size:.8rem;color:var(--ink2)}
+  .rrow{display:grid;grid-template-columns:8.5rem 1fr;gap:0;border-bottom:1px solid var(--hair)}
+  .rrow:last-child{border-bottom:none}
+  .rrow > dt{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;
+             color:var(--ink2);padding:11px 14px;background:var(--sunk);font-weight:700}
+  .rrow > dd{margin:0;padding:11px 14px;font-size:.85rem}
+  .rrow > dd > ul{margin:0;padding-left:1.05rem}
+  .rrow > dd > ul > li{margin:.3rem 0}
+  .rrow > dd > p:first-child{margin-top:0} .rrow > dd > p:last-child{margin-bottom:0}
+  @media (max-width:660px){ .rrow{grid-template-columns:1fr} .rrow > dt{padding-bottom:2px} }
+
+  ul{margin:.45rem 0;padding-left:1.1rem} li{margin:.3rem 0;font-size:.9rem}
+  ol.rank{margin:.5rem 0;padding-left:1.35rem} ol.rank li{margin:.5rem 0}
+  figcaption{color:var(--ink2);font-size:.83rem;margin:8px 0 0;max-width:86ch}
+  figure{margin:0 0 10px}
+
+  svg text{font-family:var(--sans);fill:var(--ink)}
+  .n-t{font-size:14px;font-weight:680}
+  .n-s{font-size:10.5px;fill:var(--ink2)}
+  .n-m{font-size:9.5px;fill:var(--ink3);font-family:var(--mono)}
+  .e-l{font-size:10px;fill:var(--ink2)}
+  .box{fill:var(--sheet);stroke:var(--ink);stroke-width:1.6}
+  .box-out{fill:var(--moveq);stroke:var(--move);stroke-width:1.5;stroke-dasharray:7 4}
+  .zone{fill:none;stroke:var(--rule);stroke-width:1;stroke-dasharray:4 4}
+  .ed-ok{fill:none;stroke:var(--ok);stroke-width:2.4}
+  .ed-move{fill:none;stroke:var(--move);stroke-width:2.2;stroke-dasharray:9 5}
+  .ed-gap{fill:none;stroke:var(--gap);stroke-width:2;stroke-dasharray:2 6;stroke-linecap:round}
+  .ed-bad{fill:none;stroke:var(--bad);stroke-width:2.2;stroke-dasharray:9 5}
+  .marknum{fill:var(--bad);stroke:var(--sheet);stroke-width:1.5}
+  .marknum-t{font-size:10px;font-weight:700;fill:var(--sheet);font-family:var(--mono)}
+
+  .keylist{list-style:none;margin:10px 0 0;padding:0;display:grid;
+           grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px 22px}
+  .keylist li{display:flex;gap:9px;font-size:.83rem;margin:0}
+  .keylist .kn{font-family:var(--mono);font-weight:700;flex:0 0 auto;color:var(--bad)}
+  .keylist .kn.okn{color:var(--ok)}
+
+  footer{margin-top:56px;padding-top:14px;border-top:2px solid var(--ink);
+         color:var(--ink2);font-size:.79rem;max-width:88ch}
+  @media (max-width:640px){ .wrap{padding:16px 12px 60px} body{font-size:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="titlerow">
+    <div>
+      <h1>Workspace map — five repos, one ownership boundary</h1>
+      <p class="standfirst">What each repository is, what it owns, what it consumes, and what will bite you.
+      Four repos are yours. One is not, and that single fact explains most of the architecture.
+      Written to be consulted, not read through.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-label="Switch colour theme">◐ theme</button>
+  </div>
+</header>
+
+<div class="band key">
+  <p style="margin-top:0"><strong>Code is authoritative. This is a map.</strong> The investigation behind this
+  page ran under one rule — <em>ignore every <code>.md</code> file, trace code instead</em> — because prose in
+  this workspace consistently overstated what was blocked and understated what was built. A prose source of
+  truth inherits exactly that risk. <strong>Re-derive before you rely on anything here.</strong> Every figure
+  below carries the evidence that produced it, and where a number is recomputable, the command that recomputes
+  it and the date it was last taken.</p>
+  <p><strong>Reading conventions.</strong> <code>file:line</code> is a citation into a checkout.
+  <span class="rd" style="display:inline-block;margin:0;padding:2px 7px">command</span> is a re-derivation you
+  can run. A <span class="pill p-move">ASSERTED</span> pill means the claim rests on prose rather than on disk,
+  and the file is named. Commands assume <code>WS=~/Work</code>, holding <code>spicy-regs/</code> (with
+  <code>RefSpec/</code> nested inside it), <code>rulespec/</code>, <code>DocSpec/</code> and
+  <code>spicysearch/</code>.</p>
+  <p style="margin-bottom:0"><strong>Standing limits on everything below.</strong> Reachability is import-graph
+  tracing, not runtime coverage — a rare dynamic-dispatch pattern could invalidate an individual “unreached”
+  verdict. <strong>No production row count has been checked against its canonical source</strong>: those tables
+  live in a Cloudflare R2 Iceberg catalog whose credentials are absent from <code>.env</code>, and no trace made
+  a network call. That is narrower than “asserted” — <code>federal_register_documents: 1,004,233</code> and
+  <code>documents_rows: 1,987,880</code> <em>are</em> locally re-derivable from parquet on disk plus its
+  receipt; what is missing is agreement with R2, not arithmetic. <strong>RefSpec has no CI</strong> —
+  <code>RefSpec/.github</code> does not exist, so every RefSpec gate named here runs only when a person
+  remembers to run it.</p>
+</div>
+
+<div class="band bad">
+  <p style="margin-top:0"><strong>Contamination notice — applies to every dated figure sourced from prose.</strong>
+  SpicyRegs commit <code>d165350</code> (2026-07-28) is titled <em>“docs: CONTAMINATION NOTICE — fabricated
+  research relayed into the ledger.”</em> <strong>Evidence documents dated on or before 2026-07-28 are
+  untrustworthy without re-checking.</strong> This page was re-derived from code and data precisely because of
+  that commit, but the caveat still qualifies anything tracing back to a pre-notice document rather than to disk.</p>
+  <p style="margin-bottom:0"><strong>The notice itself is safe, and earlier drafts of this page said otherwise.</strong>
+  <code>d165350</code> touches <code>docs/decisions.md</code> — not <code>docs/evidence/</code> — and that commit
+  is reachable from the <em>pushed</em> branch <code>origin/feat/document-ai-pipeline</code>. It survives the
+  reset with nothing to rescue. The caveat above still stands in full; only the rescue urgency was wrong.
+  See <a href="#v1">V1</a>.</p>
+</div>
+
+<div class="actionbar">
+  <a href="#v1"><b>Rescue before the reset →</b>
+    <span>224 unpushed commits die when <code>main</code> is reset — including <code>.gitmodules</code>, which breaks CI repo-wide. Highest-value action on this page.</span></a>
+  <a href="#v3"><b>What is broken today →</b>
+    <span>Live defects reaching published tables, a snapshot that will not open, a validator that lies.</span></a>
+  <a href="#v2"><b>Where each subsystem lands →</b>
+    <span>Upstream PR, extract, or delete — forced by the ownership line, not chosen.</span></a>
+</div>
+
+<div class="index">
+  <div>
+    <h4><span class="chip d">DURABLE</span> &nbsp;changes only by decision</h4>
+    <ol>
+      <li><a href="#d1">D1</a><span><b>Ownership and the import rule.</b> The one hard boundary; four crossings today.</span></li>
+      <li><a href="#d2">D2</a><span><b>The five repos.</b> Per-repo orientation: role, contracts, and what will bite you.</span></li>
+      <li><a href="#d3">D3</a><span><b>Target architecture vs. where the code points.</b> Conforming, debt, absent.</span></li>
+      <li><a href="#d4">D4</a><span><b>Contracts, identity, namespaces.</b> Who owns which format and how IDs are minted.</span></li>
+      <li><a href="#d5">D5</a><span><b>Coordinate systems.</b> Three fields, not nine spellings of one.</span></li>
+      <li><a href="#d6">D6</a><span><b>Duplication.</b> Which copy is the destination, and which are unmarked.</span></li>
+    </ol>
+  </div>
+  <div>
+    <h4><span class="chip v">VOLATILE</span> &nbsp;as of 2026-08-10</h4>
+    <ol>
+      <li><a href="#v1">V1</a><span><b>The reset.</b> What dies, what survives, what to copy out first.</span></li>
+      <li><a href="#v2">V2</a><span><b>Extraction triage.</b> Destination and severance cost per subsystem.</span></li>
+      <li><a href="#v3">V3</a><span><b>Broken today.</b> Reproduced defects, distinct from migration debt.</span></li>
+      <li><a href="#v4">V4</a><span><b>How this programme has been wrong.</b> One failure mode, repeatedly.</span></li>
+      <li><a href="#v5">V5</a><span><b>Open, conflicting, unverified.</b> Including what two readings still dispute.</span></li>
+      <li><a href="#m">M</a><span><b>Maintenance.</b> What rots first and how to refresh it.</span></li>
+    </ol>
+  </div>
+</div>
+
+<section id="d1">
+<div class="sechead"><span class="chip d">D1</span><h2>Ownership and the import rule</h2>
+  <span class="why">the only hard boundary</span></div>
+
+<p class="lede">Everything else in this workspace is a refactor. This line is not: you cannot merge across it,
+and you cannot unilaterally decide what lands on the far side. Read it from <code>git remote -v</code>, never
+from directory names.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Repository</th><th>Remote</th><th>Standing</th><th>Commits</th><th>Licence</th></tr></thead>
+<tbody>
+<tr><td><strong>RefSpec</strong></td><td class="ev">github.com/Formspec-Labs/RefSpec</td>
+  <td><span class="pill p-ok">OWNED</span></td><td class="num">319</td><td class="num">—</td></tr>
+<tr><td><strong>RuleSpec</strong></td><td class="ev">github.com/Formspec-Labs/rulespec</td>
+  <td><span class="pill p-ok">OWNED</span></td><td class="num">156</td>
+  <td class="num">ships <code>LICENSE</code>, <code>LICENSE-CODE</code>, <code>LICENSE-SPEC</code> — <strong>placeholder text</strong></td></tr>
+<tr><td><strong>DocSpec</strong></td><td class="ev">github.com/Formspec-Labs/DocSpec</td>
+  <td><span class="pill p-ok">OWNED</span></td><td class="num">7</td><td class="num">—</td></tr>
+<tr><td><strong>SpicySearch</strong></td><td class="ev"><strong>zero configured remotes</strong> — ownership is unreadable from the tree; stated by its owner 2026-08-09</td>
+  <td><span class="pill p-ok">OWNED</span></td><td class="num">280 from <code>c5fdb74</code></td><td class="num">—</td></tr>
+<tr><td><strong>SpicyRegs</strong></td><td class="ev">github.com/civictechdc/spicy-regs</td>
+  <td><span class="pill p-bad">NOT OWNED — commit access only</span></td><td class="num">634</td><td class="num">MIT</td></tr>
+</tbody>
+</table>
+</div>
+<span class="rd">for r in spicy-regs spicy-regs/RefSpec rulespec DocSpec spicysearch; do echo "== $r"; git -C $WS/$r remote -v; git -C $WS/$r rev-list --count HEAD; done</span>
+<span class="when">last taken 2026-08-10 · <strong>only SpicyRegs is frozen</strong> — the four owned repos all moved since the counts above were first taken, which is why every one of them changed</span>
+
+<div class="band">
+  <p style="margin-top:0"><strong>The rule that falls out is symmetric and short: nothing you own may import
+  what you don't, and nothing you don't own may import you.</strong> It is violated in both directions today.
+  Each violation is load-bearing on something different, which is why none is a one-line fix.</p>
+  <p style="margin-bottom:0"><strong>One edge already has the shape the rule asks for.</strong> Every
+  SpicySearch → SpicyRegs edge is an owned repo consuming a not-owned repo's <em>published artifacts</em> —
+  vendored, digest-pinned, never imported. Copy that pattern rather than inventing a new one.</p>
+</div>
+
+<figure>
+<div class="scroller pad">
+<svg viewBox="0 0 1140 470" role="img"
+     aria-label="Ownership diagram. Four repositories — RefSpec, RuleSpec, DocSpec and SpicySearch — sit inside an owned boundary on the left. SpicyRegs sits outside it on the right under the civictechdc organisation, marked not owned. Three numbered arrows cross the boundary and each violates the import rule: SpicyRegs importing RefSpec, RefSpec reading files from the SpicyRegs output tree, and DocSpec shelling into a hardcoded SpicyRegs path. A fourth, conforming edge shows SpicySearch consuming SpicyRegs artifacts by digest-pinned copy without importing.">
+  <defs>
+    <marker id="ar-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+    <marker id="ar-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+  </defs>
+
+  <text x="26" y="30" class="n-m">OWNED — Formspec-Labs, plus SpicySearch</text>
+  <rect x="16" y="40" width="600" height="316" rx="4" class="zone"/>
+
+  <rect x="40" y="76" width="250" height="104" rx="4" class="box"/>
+  <text x="56" y="100" class="n-t">RefSpec</text>
+  <text x="56" y="118" class="n-s">vocabulary · binding · atlas authority</text>
+  <text x="56" y="140" class="n-m">on disk it is a git submodule</text>
+  <text x="56" y="154" class="n-m">INSIDE the repo you do not own</text>
+  <text x="56" y="170" class="n-m">no CI: .github does not exist</text>
+
+  <rect x="330" y="76" width="250" height="104" rx="4" class="box"/>
+  <text x="346" y="100" class="n-t">RuleSpec</text>
+  <text x="346" y="118" class="n-s">the rule + schema contract</text>
+  <text x="346" y="140" class="n-m">imports nothing from any peer</text>
+  <text x="346" y="154" class="n-m">zero refspec.org strings</text>
+  <text x="346" y="170" class="n-m">zero network calls anywhere</text>
+
+  <rect x="40" y="220" width="250" height="104" rx="4" class="box"/>
+  <text x="56" y="244" class="n-t">DocSpec</text>
+  <text x="56" y="262" class="n-s">the ingestion engine</text>
+  <text x="56" y="284" class="n-m">src/docspec/ is clean: 0 refs</text>
+  <text x="56" y="298" class="n-m">coupling lives in tools/ and</text>
+  <text x="56" y="312" class="n-m">conformance/, sealed into artifacts</text>
+
+  <rect x="330" y="220" width="250" height="104" rx="4" class="box"/>
+  <text x="346" y="244" class="n-t">SpicySearch</text>
+  <text x="346" y="262" class="n-s">the sink</text>
+  <text x="346" y="284" class="n-m">consumes spicy-regs by artifact,</text>
+  <text x="346" y="298" class="n-m">never by import — the shape the</text>
+  <text x="346" y="312" class="n-m">rule asks for, arrived at already</text>
+
+  <line x1="630" y1="34" x2="630" y2="362" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="10 5"/>
+  <text x="636" y="30" class="n-m">OWNERSHIP BOUNDARY</text>
+
+  <text x="672" y="30" class="n-m">NOT OWNED — commit access only</text>
+  <rect x="662" y="40" width="462" height="316" rx="4" class="box-out"/>
+  <text x="686" y="76" class="n-t">SpicyRegs</text>
+  <text x="686" y="96" class="n-s">github.com/civictechdc/spicy-regs · MIT</text>
+  <text x="686" y="122" class="n-s" font-weight="650">main and origin/main have DIVERGED — not linear</text>
+  <text x="686" y="140" class="n-m">224 ahead on the archive branch · 6 behind (all README/docs)</text>
+  <text x="686" y="156" class="n-m">merge-base be04ee53 · origin/main = f1fcb8c (2026-07-31)</text>
+  <text x="686" y="171" class="n-m">local HEAD = 002d56c2 · 648 files · +260,563 / −3,641</text>
+  <text x="686" y="198" class="n-s">Whole subsystems are net-new, not edits:</text>
+  <text x="686" y="216" class="n-m">ontology/ — 21 files · 13,233 lines · absent upstream</text>
+  <text x="686" y="231" class="n-m">docpipeline/ + enrichment/ — 24 files · +29,168 · 0 deletions</text>
+  <text x="686" y="246" class="n-m">corpora/mirrulations_document_corpus.py — absent</text>
+  <text x="686" y="261" class="n-m">corpora/body_retrieval_corpus.py — absent</text>
+  <text x="686" y="276" class="n-m">docs/evidence/ — 202 tracked files · 0 upstream</text>
+  <text x="686" y="302" class="n-s">pyproject adds pymupdf (AGPL-3.0) to an MIT repo</text>
+  <text x="686" y="330" class="n-m">Unmoved since 2026-08-09, which is why every finding</text>
+  <text x="686" y="344" class="n-m">that turns on the reset still stands exactly as written.</text>
+
+  <polyline points="630,60 165,60 165,72" class="ed-bad" marker-end="url(#ar-bad)"/>
+  <circle cx="404" cy="60" r="10" class="marknum"/><text x="404" y="64" class="marknum-t" text-anchor="middle">1</text>
+
+  <polyline points="215,184 215,200 626,200" class="ed-bad" marker-end="url(#ar-bad)"/>
+  <circle cx="430" cy="200" r="10" class="marknum"/><text x="430" y="204" class="marknum-t" text-anchor="middle">2</text>
+
+  <polyline points="165,328 165,344 626,344" class="ed-bad" marker-end="url(#ar-bad)"/>
+  <circle cx="404" cy="344" r="10" class="marknum"/><text x="404" y="348" class="marknum-t" text-anchor="middle">3</text>
+
+  <line x1="626" y1="272" x2="584" y2="272" class="ed-ok" marker-end="url(#ar-ok)"/>
+  <text x="600" y="264" class="e-l" text-anchor="end" fill="var(--ok)">✓ artifacts only</text>
+
+  <text x="26" y="392" class="n-m">Arrows 1–3 each violate the import rule. Arrow 4 is containment, not an arrow: RefSpec sits inside SpicyRegs as a git submodule.</text>
+  <text x="26" y="410" class="n-m">All four re-checked 2026-08-10 and unchanged — every other cross-repo edge in this workspace moved; these did not,</text>
+  <text x="26" y="428" class="n-m">because each terminates in the repository you do not own, still at 002d56c2.</text>
+</svg>
+</div>
+<figcaption><strong>Figure A.</strong> The boundary explains the architecture. It also changes what the
+crossings mean: the SpicyRegs → RefSpec editable install is not “migration debt with a known direction” but
+<em>a repository you do not own reaching into one you do</em>, and DocSpec's hardcoded path is not a default
+worth changing but <strong>an owned repo whose sealed, digest-bearing artifacts stay valid only while a
+worktree you don't own stays exactly where it is</strong>.</figcaption>
+</figure>
+
+<h3>The four crossings, in detail</h3>
+<ol class="rank">
+  <li><strong>SpicyRegs → RefSpec — editable install.</strong> Not-owned imports owned.
+    <code>pyproject.toml:12</code> (<code>refspec==0.1.0.dev0</code>), <code>:147</code> editable path source,
+    <code>uv.lock:2331</code>, and <code>.venv/…/refspec.pth</code> → <code>RefSpec/src</code>.
+    <strong>25 import sites, 9 in production across 8 files, 22 distinct symbols in 4 namespaces</strong>;
+    <strong>45–52 % of the consumed surface is <code>refspec/vocabulary.py</code></strong> — three methods,
+    the range depending on whether you count by import site or by distinct symbol.
+    <em>The seam is only half cut:</em> of the two heaviest consumers <strong>one</strong> imports lazily
+    inside functions and the other does not — <code>enrichment/managed_release.py:11</code> is a
+    module-top-level import. <strong>Five</strong> tests install an <code>__import__</code> hook that raises on
+    any <code>refspec*</code> name to prove certain paths stay clean, and all five live in the one file
+    <code>tests/test_candidate_release_protocol.py</code>. The work is reimplementing an enumerable 22-symbol
+    surface, not open-ended discovery.
+    <span class="rd">grep -rn "^from refspec\|^import refspec\|from refspec" $WS/spicy-regs/src | wc -l</span></li>
+
+  <li><strong>RefSpec → SpicyRegs — reads the parent's untracked output tree.</strong> Owned reaches into
+    not-owned, and the target is not even reproducible.
+    <code>RefSpec/tools/generate_atlas_v3_full.py:120</code> sets <code>SPICY_REGS_ROOT = ROOT.parent</code> and
+    reads two pinned managed-release files from the parent's <code>output/</code> — <strong>gitignored, with no
+    committed parent code producing them</strong>. A reverse dependency on artifacts that neither side can
+    regenerate.
+    <span class="when">traced 2026-08-08 · not re-verified since, and that file has uncommitted working-tree changes</span></li>
+
+  <li><strong>DocSpec → SpicyRegs — a hardcoded absolute developer path, sealed into artifacts.</strong> The
+    sharper violation, because it is baked into digest-bearing output rather than into code.
+    <code>tools/fr_mirrulations_qualification.py:55-58</code> hardcodes
+    <code>DEFAULT_SPICYREGS = Path("/Users/mikewolfd/Work/spicy-regs")</code>, and <strong>102 files under
+    <code>DocSpec/output/</code> contain that absolute path</strong>. Every
+    <code>runs/*/execution-manifest.json</code> embeds four targets:
+    <code>output/scale-dr-10k-2026-08-05/cache-xml/documents</code>, <code>…/receipts</code>,
+    <code>draw-manifest-final.json</code>, and
+    <code>src/spicy_regs/corpora/mirrulations_document_corpus.py</code>. Three are gitignored and survive a
+    reset. <strong>The fourth does not</strong> — and DocSpec re-hashes it on every validation
+    (<code>fr_mirrulations_support.py:1024-1027</code>, reached from
+    <code>fr_mirrulations_qualification.py:473</code>). Severance itself is near-free: <code>--spicyregs</code>
+    already exists at <code>:630</code>, every real use site reads <code>args.spicyregs</code>, and
+    <code>src/docspec/</code> holds <strong>zero</strong> references.
+    <span class="rd">grep -rl "/Users/mikewolfd/Work/spicy-regs" $WS/DocSpec/output | wc -l</span></li>
+
+  <li><strong>Containment — RefSpec lives inside SpicyRegs as a git submodule.</strong> Path-hardcoding is
+    <em>not</em> nearly absent: the submodule path appears across <strong>~19 files</strong>, and
+    <strong>roughly 10 of those are functional hardcoded paths</strong> rather than prose mentions. The rest of
+    the coupling is <code>submodules: true</code> in <strong>15 places across 12 workflow files</strong>,
+    needed only because the editable install requires <code>RefSpec/</code> on disk. Structurally downstream of
+    crossing 1 — it cannot close until that does.</li>
+</ol>
+
+<div class="band move">
+  <p style="margin-top:0"><strong>The table above undercounts SpicySearch.</strong> The four crossings are the
+  ones that violate the import rule; they are not the whole coupling surface. At least <strong>15 further
+  non-test source files</strong> in SpicySearch are shaped around sibling repositories without importing them —
+  most explicitly <code>policy_artifacts.py</code>, whose docstring names <em>“the RefSpec resource catalog,
+  SpicyRegs profile catalog.”</em></p>
+  <p style="margin-bottom:0">None of this is a rule violation, and that is the point: coupling by <em>shape</em>
+  is invisible to the import graph, so severing the four crossings does not by itself decouple the workspace.
+  Budget for the shape-coupling separately.</p>
+</div>
+
+<div class="band">
+  <p style="margin-top:0"><strong>The only Python cross-repo <em>import</em> in the workspace is
+  spicy-regs → RefSpec.</strong> That still holds, but it rests on the import graph alone and on nothing else.
+  <strong>Filesystem escapes are common, not absent.</strong> At least six
+  <code>Path(__file__).parents[…]</code> walks climb out of their own repo into rulespec —
+  <code>tests/test_accepted_output_real_boundary.py:59</code>,
+  <code>tests/test_docpipeline_rkaf_projection.py:1330</code>, <code>tests/conftest.py:13</code>,
+  <code>tests/elsst_managed_release_support.py:22</code>, <code>tests/managed_release_support.py:17</code>,
+  <code>tests/test_elsst_r6_forward_development_dataset.py:24</code> — and at least five
+  <code>os.environ</code> repo-root lookups exist, including <code>RULESPEC_DIR</code> at
+  <code>tests/conftest.py:32-33</code>, <code>RefSpec/tests/test_rulespec_vocabulary_currency.py:151</code>, and
+  <code>spicysearch/tests/search/test_policy_inputs_cross_repository.py:18-19</code>.</p>
+  <p style="margin-bottom:0"><strong>Read that as scope, not as a new violation.</strong> Every one of these is
+  a test reaching sideways for a sibling checkout, which is why the import-rule verdict survives — but it means
+  the boundary is not enforced by the filesystem layout, only by the production import graph, and a test that
+  climbs out today is a production path that could climb out tomorrow. The case-variant paths are one repo
+  each, proven by inode: <code>rulespec</code>/<code>RuleSpec</code> → <code>257555276</code>,
+  <code>DocSpec</code>/<code>docspec</code> → <code>280359625</code>.
+  <strong><code>/Users/mikewolfd/Work/RefSpec</code> does not exist</strong> — the only RefSpec checkout is the
+  one nested inside spicy-regs.</p>
+</div>
+</section>
+
+<section id="d2">
+<div class="sechead"><span class="chip d">D2</span><h2>The five repos</h2>
+  <span class="why">read the one you are about to touch</span></div>
+
+<p class="lede">Each card is self-contained. Jump to
+<a href="#repo-refspec">RefSpec</a> · <a href="#repo-rulespec">RuleSpec</a> ·
+<a href="#repo-docspec">DocSpec</a> · <a href="#repo-spicysearch">SpicySearch</a> ·
+<a href="#repo-spicyregs">SpicyRegs</a>.</p>
+
+<h3>One pattern across all five, before the detail</h3>
+<p class="prose">Classification is by <strong>reachability from a production entry point</strong>, traced
+through the import graph — not by directory name. That distinction earns its keep in both directions: RefSpec's
+<code>research/evidence/crs-source-concept-releases-2026-08-04/</code> is a digest-pinned <em>application build
+input</em> (<code>generate_atlas_v3_full.py:630-687</code>), while SpicyRegs' entire <code>corpora/</code> tree
+— 23,746 lines — has only two importers outside itself, <strong>both of which are themselves absent from
+<code>origin/main</code></strong>. Net reachability from upstream is therefore zero, which is the fact that
+matters, but “no importer at all” is not what is on disk.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Repo</th><th>Application surface</th><th>Research surface</th>
+  <th>The component nearest the product thesis</th><th>Has it seen real data?</th></tr></thead>
+<tbody>
+<tr><td><strong>SpicyRegs</strong></td>
+  <td class="num">16 source readers, 14 reached<br>21 rollups · ~19–21 logical tables</td>
+  <td class="num">corpora/ 23,746 LOC, 2 importers<br>both absent upstream<br>~14 GB output/</td>
+  <td>document-release v1/v3 builder</td>
+  <td><span class="pill p-move">asymmetric: v1/v2 verified against 1.47 GB of real production data, v3 only against small fixtures — no real-data v3 release exists on disk. The 201 MB real draw is a <code>corpora/</code> draw, not a completed v3 release.</span></td></tr>
+<tr><td><strong>RefSpec</strong></td>
+  <td class="num">147 src files<br>registry/ 85 files · 62,475 LOC</td>
+  <td class="num">qualification/ 13,377 LOC<br>~26 GB, incl. 8.7 GB orphaned</td>
+  <td>Atlas 3.0 builder + explorer</td>
+  <td><span class="pill p-ok">yes — 109 real pinned sources, and since 2026-08-09 a real consumer</span></td></tr>
+<tr><td><strong>RuleSpec</strong></td>
+  <td class="num">80 Rust files — <strong>49 auto-generated</strong><br>31 Python tools · 157 tests pass</td>
+  <td class="num">release-records/ 344 files<br>~5.5 MB — no data mountain</td>
+  <td>all three binaries</td>
+  <td><span class="pill p-move">531 self-authored fixtures + exactly 1 real document; the pin says <code>productionConformance: false</code></span></td></tr>
+<tr><td><strong>DocSpec</strong></td>
+  <td class="num">67 source modules · 22,896 LOC<br>265 tests pass</td>
+  <td class="num">qualification campaign ~20 GB<br>archive/ 588 files, fenced</td>
+  <td>the fetch → segment → seal pipeline</td>
+  <td><span class="pill p-move">real FR data flows, but only through a <code>tools/</code> harness driving CLI internals and bypassing <code>docspec run</code></span></td></tr>
+<tr><td><strong>SpicySearch</strong></td>
+  <td class="num">engine.py 4,546 lines<br>1,594 tests pass</td>
+  <td class="num">experiments/ 21 · validation/ 9<br>~584 MB, 515 MB of receipts</td>
+  <td>the whole atlas / concept lane</td>
+  <td><span class="pill p-bad">runs on every concept query, but the only snapshot ever built has 0 assignments over 722 documents</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="band move">
+  <p style="margin:0"><strong>The finding that column four exists to carry: in four of five repos the component
+  nearest the product thesis is real, wired, tested code that has never been fed real data.</strong> These are
+  not stubs — they are complete implementations waiting on an input. Budget accordingly: the risk in this
+  workspace is not missing machinery, it is machinery that has never met production shape.
+  By file count application ≈ research in every repo; by bytes research dominates by two to three orders of
+  magnitude, roughly <strong>60 GB of disposable output against single-digit megabytes of application
+  source</strong>.</p>
+</div>
+
+<article class="repo" id="repo-refspec">
+  <header><h3>RefSpec</h3><span class="org">Formspec-Labs/RefSpec · 319 commits</span>
+    <span class="role">The contract surface — vocabulary, binding, atlas authority</span></header>
+  <dl style="margin:0">
+    <div class="rrow"><dt>Publishes</dt><dd>
+      <p>The <strong>Atlas 3.0 distribution: 1,164 files / 1.0 GB</strong>, format
+      <code>refspec-atlas-packed-nquads-3.0</code>.</p>
+      <ul>
+        <li><strong>126 zstd-framed canonical N-Quads packs — 490,786,766 B</strong>, carrying
+          <em>dual</em> content (uncompressed canonical) and transport (zstd) digests computed in a single
+          streaming pass at <code>generate_atlas_v3_full.py:5673</code>. Publication is atomic by
+          candidate-directory rename.</li>
+        <li>A compact JSONL mirror, <code>packs/compact/**/*.jsonl.zst</code> — 1,033 files / 463.23 MiB. This,
+          not the quad packs, is what the downstream chain is built from.</li>
+        <li><code>parquet/tables/*.parquet</code> — 8 tables → the 398 MB full view → the
+          <strong>185 MB search view</strong> SpicySearch consumes.</li>
+      </ul>
+      <div class="band bad" style="margin:10px 0">
+        <p style="margin:0"><strong>Do not cite the parquet sizes and the ring breakdown together — they come
+        from different builds.</strong> The parquet figures above are measured on
+        <code>…-2026-08-09</code>; the <code>statements.parquet</code> ring decomposition further down this card
+        is measured on <code>…-2026-08-07-ring-audit</code>. Between the two, one row moved out of the
+        <code>value</code> ring — subject 559,946 → <strong>559,947</strong>, value 1 → <strong>0</strong>. Both
+        are correct about their own build; quoted side by side they are a contradiction.</p>
+      </div>
+      <p><strong>There is no <code>atlas.nq</code> in the <code>-2026-08-06</code>, <code>-2026-08-07</code> or
+      <code>-2026-08-09</code> builds</strong> — but there <em>is</em> one under
+      <code>atlas-3.0-full-2026-08-05</code>, so the claim is about those three builds, not about Atlas 3.0 as a
+      format. The single-file form otherwise belongs to the retired 1.0/2.0 line.
+      <code>parquet_view.py:512</code> byte-hashes the quad packs for membership closure and never parses them;
+      RefSpec's own docstring says it “does not duplicate the 30-million-row N-Quads serialization.”</p>
+      <span class="rd">find $WS/spicy-regs/RefSpec/output/atlas-3.0-full-2026-08-06 -type f | wc -l</span>
+      <span class="when">1,164 for the distribution proper · last taken 2026-08-10 · <strong>the tree is under
+      <code>RefSpec/output/</code>, not <code>spicy-regs/output/</code></strong> — earlier drafts of this page
+      cited the path without the <code>/RefSpec/</code> segment, where nothing exists</span></dd></div>
+    <div class="rrow"><dt>Consumes</dt><dd>
+      <p><strong>RuleSpec, by subprocess, behind a required flag.</strong>
+      <code>release_graph.py:807</code>, called at <code>:1000</code> and
+      <code>tools/reseal_elsst_managed_release.py:490</code>. What it actually does is validate the
+      <em>manifest's own shape</em> — identity and revisions — and then subprocess-run RuleSpec's real
+      validators, all behind a <em>required</em> <code>--rulespec-dir</code> flag, never a hardcoded path.</p>
+      <p><strong>It does not check the checkout.</strong> There is <strong>no clean-tree check and no ancestor
+      check</strong>: zero occurrences of <code>merge-base</code>, <code>is-ancestor</code> or
+      <code>porcelain</code> anywhere in the path. Earlier drafts of this page credited it with both. Its own
+      docstring disclaims them and gives the reason: <em>“It validates the manifest's own shape (identity,
+      revisions), not that the checkout is byte-identical… RefSpec never re-derives a Rulespec artifact from the
+      checkout, so there is nothing here for a checkout-fidelity check to protect.”</em></p>
+      <p style="margin-bottom:0">That is a defensible design rather than an omission — you cannot be betrayed by
+      a checkout you never read from. But it means the comparison with crossing 3 in <a href="#d1">D1</a> is
+      narrower than “careful versus careless”: <strong>what makes this edge the better one is the required flag
+      and the absence of a hardcoded path, not verification depth.</strong> Neither edge verifies the tree it
+      points at.</p></dd></div>
+    <div class="rrow"><dt>Will bite you</dt><dd><ul>
+      <li><strong>No CI at all.</strong> <code>RefSpec/.github</code> does not exist — zero workflows. Neither
+        the collision gate below nor <code>audit-registry-real-data</code> runs on push. <code>make test</code>
+        is <code>check-generated audit-registry-inventory test-json-binding test-atlas-v3 test-package</code>,
+        and the real-data gate sits outside it.
+        <span class="rd">ls $WS/spicy-regs/RefSpec/.github</span></li>
+      <li><strong>Build identity is a hardcoded constant.</strong>
+        <code>generate_atlas_v3_full.py:122</code> pins
+        <code>DISTRIBUTION_ID = "urn:ref:atlas:distribution:3.0-full-development:2026-08-06"</code>. Three
+        separate builds — <code>…-2026-08-06</code>, <code>…-2026-08-07-ring-audit</code>,
+        <code>…-2026-08-09</code> — carry that same identity <em>and the same <code>createdAt</code></em>,
+        because the URN date is config-derived and does not track a rebuild. <strong>Only
+        <code>manifestSha256</code> tells them apart.</strong> Directory naming is human convention, unenforced
+        by code.</li>
+      <li><strong>The headline build size describes a tree, not an artifact.</strong> The 2.6 GB /
+        26,527-file figure is real but badly composed: <strong>25,358 of those files (96 % by count) and 1.5 GB
+        (58 % by size) are explorer preview shards — and they are <code>*.json.gz</code>, not HTML.</strong>
+        The tree holds <strong>exactly one real HTML file</strong>. The critique of the count is unchanged; the
+        noun was wrong everywhere it appeared. Quote 1,164 files / 1.0 GB for the distribution.</li>
+      <li><strong>The SSSOM ring allowlist is inverted.</strong>
+        <code>atlas/relation_sssom.py:86</code> sets <code>_SUPPORTED_RINGS = {subject, value}</code>. On the
+        <code>-2026-08-07-ring-audit</code> build, <code>statements.parquet</code> holds <strong>560,429 rows:
+        subject 559,946 · entity 481 · value 1 · null 1</strong>. <em>The allowlist permits a ring with one row
+        and forbids one with 481.</em> (On <code>-2026-08-09</code> that last row has moved: subject 559,947,
+        value 0 — so the allowlist now permits a ring with <em>no</em> rows. See the build-mismatch warning
+        above.) It blocks nothing in practice either way — the exporter has never produced output (zero
+        production callers, no <code>mappings.sssom.tsv</code> under any of 55 <code>output/</code>
+        directories, <code>grep -ri sssom</code> across all of SpicySearch returns nothing).</li>
+      <li><strong>8.7 GB of orphaned build temp.</strong> A hidden dot-directory
+        <code>.distribution.candidate-v_hynzuh</code> under <code>atlas-3.0-full-2026-08-05/</code>, plus a
+        438 MB sibling and 429 MB superseded. <em>Not</em> zero references, as earlier drafts said — it is named
+        in <code>atlas-v3-validator-big-o-audit.md:24</code>. One prose citation is still not a consumer, so
+        the disposal case stands; “nothing anywhere mentions it” does not.</li>
+      <li>A <strong>second sparse-retrieval engine</strong> lives here, independent of SpicySearch's:
+        <code>atlas/candidate_retrieval.py</code> with <code>LABEL_SPARSE_VIEW</code> /
+        <code>CONTEXT_SPARSE_VIEW</code> / <code>CHARACTER_SPARSE_VIEW</code>. It is an integer cosine
+        approximation, not BM25, and shares zero imports with SpicySearch. Both repos invented character-gram
+        matching separately — as they did graph expansion.</li>
+      <li><code>src/refspec/atlas/qualification.py:29</code> cites a SpicySearch path that no longer exists.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>In flight</dt><dd>
+      <p><strong>A gate written before the remediation it demands — and the remediation has now landed.</strong>
+      <code>tests/test_atlas_rkaf_adoption.py</code> (+246) asserts no <code>atlas:</code> local name duplicates
+      an <code>rkaf:</code> one, legal only where the <code>atlas:</code> side is an individual of
+      <code>atlas:SemanticRing</code> or <code>atlas:ResourceProfile</code>. The <strong>7 collisions</strong>
+      this page reported — <code>EvidenceBinding</code>, <code>LifecycleEvent</code>, <code>approved</code>,
+      <code>assertedAt</code>, <code>bindsAssertion</code>, <code>inputDigest</code>, <code>withdrawn</code> —
+      were measured at <code>637946b</code>. <strong>At HEAD <code>436b5cc</code> there are 2 committed and
+      0 in the working tree: the collision gate passes.</strong></p>
+      <p><strong>The tree is still red, but from a different test.</strong>
+      <code>test_no_rkaf_term_reaches_the_wire_without_an_adoption_record</code> is the failure now — and it
+      coincidentally also reports 7, which is exactly the coincidence that kept the stale number looking live.
+      That test is the gate's sharper second half: every <code>rkaf:</code> term reaching the published wire
+      must name an invalid conformance case whose rejection depends on it —
+      <em>“a term with no case behind it is ceremony.”</em></p>
+      <span class="when">HEAD 436b5cc on branch atlas-v3-binding-and-relation-research · 2026-08-10</span></dd></div>
+  </dl>
+</article>
+
+<article class="repo" id="repo-rulespec">
+  <header><h3>RuleSpec</h3><span class="org">Formspec-Labs/rulespec · 156 commits</span>
+    <span class="role">The rule + schema contract — the spine head</span></header>
+  <dl style="margin:0">
+    <div class="rrow"><dt>Census</dt><dd>
+      <p>80 Rust source files — but <strong>49 of them (61 %) are auto-generated from CUE</strong>, so read the
+      Rust count as a size-of-<em>implementation</em> signal and discount it accordingly; hand-written Rust is
+      31 files. 31 Python tools. <strong>531 fixtures</strong> (520 JSON-LD: 129 positive, 308 negative, and
+      <strong>83 fitting neither bucket</strong> — the positive/negative split does not partition the corpus).
+      76 markdown files. Of the tools, 10 are tests; of the real tools, <strong>13 are audits or validators and
+      8 are producers</strong> — and every producer emits schemas, fixtures, digests or copies, never extracted
+      content.</p>
+      <span class="rd">cargo test --manifest-path $WS/rulespec/crates/Cargo.toml --workspace</span>
+      <span class="when">157 passed · 0 failed · 0 ignored · last taken 2026-08-08</span></dd></div>
+    <div class="rrow"><dt>Publishes</dt><dd><ul>
+      <li>The <code>.cue</code> constraint set — <strong>61 files</strong>, compiled to 6 targets. Earlier
+        passes reported 60 and 62; 61 is the measured count and 62 never occurred in the repo's history.</li>
+      <li>The <code>rulespec-extrapolation-release</code> v2 format, which SpicySearch independently verifies.</li>
+      <li><strong>A profile its downstream consumer must satisfy</strong>:
+        <code>constraints/profiles/refspec/</code>, <code>spec/rkaf-refspec.md</code> and six fixtures, all
+        authored in <code>rkaf:</code> alone. Naming your consumer is the dependency running upward, as
+        intended — not a residual dependency but its opposite.</li>
+      <li>A 7-level total-order eligibility lattice at <code>reducer.rs:11-19</code> —
+        <code>notEligible &lt; searchOnly &lt; reviewQueueOnly &lt; draftGenerationAllowed &lt;
+        localOperationalUse &lt; publicationAllowed &lt; officialUse</code> — driven by
+        <code>reduce_for_scope_traced:243-324</code>. <code>bridge.rs</code> adds 10 numbered accept/reject
+        rules; <code>runtime.rs:15-51</code> is explicitly stateless, and nothing persists.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>Consumes</dt><dd>
+      <p><strong>Nothing.</strong> Zero <code>refspec.org</code> strings anywhere in the repo, and zero network
+      calls of any kind — no <code>requests</code>, <code>urllib</code>, <code>httpx</code> or
+      <code>reqwest</code>.</p>
+      <span class="rd">grep -rn "refspec\.org" $WS/rulespec | wc -l</span>
+      <span class="when">0 · last taken 2026-08-10</span></dd></div>
+    <div class="rrow"><dt>Will bite you</dt><dd><ul>
+      <li><strong>RuleSpec cannot parse anything, and its README says otherwise.</strong> Five independent
+        proofs: <code>crates/Cargo.toml:22-33</code> has no HTML/XML/PDF parser and <em>does not
+        <strong>directly</strong> depend on <code>regex</code></em> — it does ship transitively, via
+        <code>jsonschema</code>, so “no regex in the tree” is false; no
+        <code>bs4</code>/<code>lxml</code>/<code>pypdf</code>/<code>nltk</code>/
+        <code>spacy</code>/<code>tokenizers</code>; zero network calls; a repo-wide search for
+        <code>*.html</code>/<code>*.xml</code>/<code>*.pdf</code>/<code>*.txt</code> returns
+        <strong>exactly one file, <code>requirements.txt</code></strong>; and all 15 <code>fs::read</code> sites
+        are immediately followed by <code>serde_json</code> or <code>serde_yaml</code>.
+        <strong><code>README.md:15</code> says “The rules live in PDFs.”</strong> The repo has never opened one.</li>
+      <li><strong>Its byte-offset evidence vocabulary is fully specified and entirely inert.</strong>
+        <code>source_fragment.rs:113-132</code> defines <code>TextPositionSelector</code>, <code>:86-105</code>
+        <code>TextQuoteSelector</code>, <code>:140-180</code> <code>SourceFragment</code>, and
+        <code>extraction_activity.rs:31-77</code> an <code>ExtractionActivity</code> — <strong>no code produces
+        or dereferences any of it.</strong> <code>Assertion</code> has no span field at all; offsets sit two
+        hops away via <code>SourceClaimant.rkaf:attributedInFragment</code>. It is a provenance receipt for an
+        extractor that lives in SpicyRegs.</li>
+      <li><strong>A hollow test.</strong>
+        <code>crates/rkaf-validate/tests/fixture_validation.rs:118-129</code> computes
+        <code>let _ = result;</code> and asserts nothing. Disclosed at <code>:5-6</code> (negatives are enforced
+        Python-side), but on the Rust side it is a no-op.</li>
+      <li>No root <code>pyproject.toml</code>.</li>
+    </ul></dd></div>
+  </dl>
+</article>
+
+<article class="repo" id="repo-docspec">
+  <header><h3>DocSpec</h3><span class="org">Formspec-Labs/DocSpec · 7 commits</span>
+    <span class="role">The ingestion engine — fetch → segment → seal, ports and adapters</span></header>
+  <dl style="margin:0">
+    <div class="rrow"><dt>Census</dt><dd>
+      <p><strong>67 source modules / 22,896 LOC</strong> (108–109 live files counting tests and tools), plus a
+      quarantined archive of <strong>588 files</strong>. The <em>248</em> figure that circulates alongside it is
+      the <code>.py</code>-only count of the same tree — a different denominator, not a contradiction, and the
+      one worth quoting is 588 unless you specifically mean Python modules.
+      <code>ownership/modules.json</code> self-reports 64/67 implemented, 3 partial, no stubs, and all 16 ports
+      with at least one adapter.</p>
+      <span class="rd">cd $WS/DocSpec &amp;&amp; uv run pytest -q</span>
+      <span class="when">265 passed · 1 deselected — 265, not the 264 in the sealed verification/gate-receipt.json, because commit <code>feb303c</code> split one test today · last taken 2026-08-10</span></dd></div>
+    <div class="rrow"><dt>Publishes</dt><dd><ul>
+      <li><code>urn:docspec:document-release:v1:&lt;sha256&gt;</code> — a <strong>thin manifest (1 MB cap)
+        pointing at record layers</strong>, where SpicyRegs puts documents <em>inside</em> the release.
+        <code>domain/release.py</code> is 246 lines with a genuine commit protocol: <code>O_EXCL</code> lock,
+        write-once blob, re-verify, atomic <code>os.replace</code>, <code>StaleBaseError</code> on a stale base.</li>
+      <li><code>tools/export_selection_ledger.py</code> (16,062 B / 394 lines) — a one-way JSON Lines ledger,
+        19 fields, one row per document. See <a href="#d3">D3</a> for why this does not yet create an edge.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>Consumes</dt><dd>
+      <p>The mirrulations S3 mirror directly, with its own boto3 UNSIGNED client
+      (<code>src/docspec/adapters/content_fetchers.py:157,170-190,261</code>) — a duplicate ingress alongside
+      SpicyRegs'. And SpicyRegs, by hardcoded path, from <code>tools/</code> only.</p></dd></div>
+    <div class="rrow"><dt>Will bite you</dt><dd><ul>
+      <li><strong>Identity is unforgeable by construction — do not fight it, use it.</strong> No
+        <code>uuid</code>, <code>random</code>, <code>secrets</code> or <code>token_hex</code> anywhere in
+        <code>src/docspec/</code>. Every ID is
+        <code>stable_urn(kind, value)</code> = <code>urn:docspec:{kind}:v1:{sha256(canonical_json(value))}</code>
+        (<code>domain/identity.py:184-191</code>), across <strong>89 call sites</strong>; floats are forbidden
+        in identity payloads at <code>:64-66</code>; and every minted URN recomputes itself in
+        <code>__post_init__</code> and raises on mismatch (<code>plans.py:135</code>,
+        <code>release.py:64</code>, <code>receipts.py:347</code>).</li>
+      <li><strong>Segmentation identity is policy-locked.</strong> Four deterministic segmenters; paragraph
+        splitting on the single regex <code>_PARAGRAPH_GAP:31</code> =
+        <code>(?:\r?\n)[ \t]*(?:\r?\n)</code>. <strong>Each segmenter's <code>policy_digest</code> is baked into
+        segment identity — change the algorithm and every downstream ID changes.</strong></li>
+      <li><strong>A profile that disagrees with its own implementation.</strong>
+        <code>profiles/canonical-release-manifest-v1.json</code> declares <code>"formatVersion": "1.0"</code>
+        while the code emits and requires <code>"1.1"</code>. Verified. A trap for the first external consumer;
+        fix it before anything external pins it.</li>
+      <li><strong>DocSpec adds no semantic judgment, by design.</strong> The substantive point holds, but the
+        grep that used to be quoted for it does not: <code>tag|classif|taxonom|ontolog|label</code> across
+        <code>src/docspec/</code> returns roughly <strong>245 hits</strong>, nearly all of them
+        <code>stage</code>/<code>staging</code> matching the <code>tag</code> substring. Read the claim the way
+        it can be checked: <strong>no module assigns meaning to a document</strong> — no classifier, no
+        taxonomy, no label vocabulary; the only <code>label=</code> occurrences are error-message kwargs. Its
+        single processor emits byte, codepoint, line and word counts. <code>"openai"</code> appears exactly
+        once, as a secret-redaction regex in
+        <code>domain/security.py:14</code>. No LLM, no HTTP client in the live library, no server;
+        <code>dependencies = []</code>. Any description of DocSpec that includes “tagging” is one word too long.</li>
+      <li><strong>DocSpec does not read Atlas in any way.</strong> A case-insensitive grep for
+        <code>refspec</code> or <code>atlas</code> across live <code>src/</code> and <code>tools/</code> returns
+        <strong>0 files</strong>; every hit is inside the fenced archive.</li>
+      <li><strong>No discovery port — this blocks the draw extraction.</strong>
+        <code>SourceCatalog</code> (<code>ports/source_catalog.py:41</code>) exposes only
+        <code>open/verify/describe/stream</code>, each taking a ref to an <em>already-frozen</em> distribution.
+        Across all 17 port modules there is <strong>no list/discover/enumerate method of any kind</strong> —
+        nothing can receive a bucket listing.</li>
+      <li>Coordinate axis is <strong>bytes</strong> (<code>processing/extraction.py:447</code> →
+        <code>utf8-byte-range</code>). See <a href="#d5">D5</a>.</li>
+      <li>No README. Its only two live markdown files are a plan and a spec.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>The archive</dt><dd>
+      <p><strong>A holding pen with a tripwire, not a fork.</strong> Inherited from SpicyRegs, explicitly
+      retired in <code>archive.json</code> and commit <code>e7b577b</code> (“replace the active package with a
+      dependency-inverted kernel”), and held behind <strong>three separate boundary tests</strong> —
+      <code>tests/test_package_boundary.py:111</code> fails if production imports archive, <code>:133</code>
+      verifies the archive manifest, and <code>:188</code> asserts the built wheel contains no
+      <code>archive</code> path component.</p>
+      <div class="band bad" style="margin:10px 0">
+        <p style="margin-top:0"><strong>The inverted AST fingerprint does not run. This card previously left the
+        question open; it is now answered, negatively.</strong>
+        <code>conformance/predecessor-code-fingerprints-v1.json</code> pins spicy-regs commit
+        <code>f1fcb8c9</code> / tree <code>bc87ead2</code> across <strong>91 files / 538,561 B</strong> with
+        per-file AST-token-window fingerprints and asserts DocSpec's code must <em>not</em> resemble it. The
+        assertion is real and has no skip path — but <code>pyproject.toml:34</code> sets
+        <code>addopts = "--strict-config --strict-markers -m 'not integration'"</code>, and the gate carries the
+        <code>integration</code> marker. <strong>It is therefore excluded from CI, from the qualification gate,
+        and from a plain <code>pytest -q</code> alike.</strong> The “4/4 pass” previously reported here was a
+        deselection, not a run.</p>
+        <p style="margin-bottom:0">What still catches a violation is the manifest's byte-level digest check, so
+        <strong>an exact copy is caught and a renamed near-copy is not</strong> — which inverts the whole point
+        of fingerprinting ASTs instead of bytes. And it <em>weakened today</em>: the marker-based exclusion is
+        current-state, not historical. This is the same failure mode <a href="#v4">V4</a> catalogues: a check
+        that records rather than verifies.</p>
+      </div>
+      <p style="margin-bottom:0"><strong>The archive is the migration's source material, not its epitaph.</strong>
+      It holds the complete pre-migration <code>docpipeline</code>, including a copy of
+      <code>rkaf_projection.py</code> that differs from the SpicyRegs original by <strong>24 line-pairs</strong>,
+      every one a namespace rename. (The <em>48</em> figure that circulated was <code>diff</code>'s
+      <code>&lt;</code>-plus-<code>&gt;</code> line count — the same 24 changes counted twice.) Its
+      “20,821 lines” likewise matches no counting convention this page could reproduce; the raw line count is
+      <strong>27,753</strong>. The boundary test is scaffolding that keeps the un-migrated version from shipping
+      by accident, which is exactly what you want mid-migration.</p></dd></div>
+  </dl>
+</article>
+
+<article class="repo" id="repo-spicysearch">
+  <header><h3>SpicySearch</h3><span class="org">owned · zero configured git remotes</span>
+    <span class="role">The sink — BM25 + trigram + RRF over a search snapshot</span></header>
+  <dl style="margin:0">
+    <div class="rrow"><dt>Census</dt><dd>
+      <p><strong>This card was captured at <code>df7acd5</code> (2026-08-08), about five commits behind the
+      current tip.</strong> Line citations below are therefore expected to drift by a few lines — that is
+      staleness with a known base, not a sourcing error, and it is stated so you can rebase them rather than
+      distrust them.</p>
+      <p style="margin-bottom:0"><code>engine.py</code> is 4,546 lines; seven declared intents at
+      <code>records.py:88-98</code>; BM25 k1=1.5 / b=0.75 at <code>engine.py:4110-4121</code> with Lucene IDF at
+      <code>:4033</code>; unweighted RRF k=60; final ordering tuple <code>(evidence_tier,
+      -signal_accumulation, method_precedence, -normalized_channel_score, document_id)</code> at
+      <code>engine.py:466-480</code>. <strong>1,594 tests pass.</strong> The repo has three root commits; HEAD
+      descends from <code>c5fdb74</code> (2026-07-31, 280 commits) — any reference to a
+      <code>services/search/</code> tree describes a lineage that <strong>is not an ancestor of
+      HEAD</strong>.</p></dd></div>
+    <div class="rrow"><dt>Scope — read this before quoting any number</dt><dd>
+      <div class="band bad" style="margin:0">
+        <p style="margin-top:0"><strong>The indexed corpus is 722 Federal Register documents — title and
+        abstract only.</strong> 483 Notices, 139 Rules, 97 Proposed Rules, indexed as
+        <code>extraction_method_and_version = "title-abstract-concatenation:1"</code>, roughly 626 characters
+        per document. <strong>No document bodies are indexed in the served snapshot</strong> — which is the
+        claim that governs every quality number on this page. It is <em>not</em> true of the codebase: one
+        dev-only experiment does index bodies, and disclaims itself as such. Nothing in the product path
+        reaches it.</p>
+        <p><strong>The headline nDCG@10 of 0.7644 is not the product path.</strong> That is the
+        <code>harness</code> arm, which hand-feeds structured identifiers and relation controls that no typed
+        question carries. The product path is <code>front_door</code>:
+        <strong>nDCG@10 0.3589, 9 of 114 passing</strong>
+        (<code>2026-08-02-query-front-door-product-path-v1/metrics.json</code>, verified). Less than half the
+        headline.</p>
+        <p style="margin-bottom:0"><strong>Every concept-lane measurement ran over a synthesised atlas.</strong>
+        Its edges mean “two concepts are co-assigned to one document.” The benchmark says so itself at
+        <code>search_quality_benchmark.py:543-547</code> — <em>“It is not, and cannot stand in for, a
+        RefSpec-generated managed-vocabulary atlas”</em> — and at <code>:112-116</code>. <strong>Graph
+        expansion has never been measured against the real RefSpec thesaurus.</strong></p>
+      </div></dd></div>
+    <div class="rrow"><dt>Measured, and holding</dt><dd><ul>
+      <li><strong>BM25 is the spine, and the ablation is unambiguous:</strong> <code>dense_dev_alone</code>
+        0.5002 → <code>engine</code> (BM25 spine) 0.7644 → <code>dense_lexical_weighted_rrf</code>
+        <strong>0.8592</strong>. Removing BM25 costs <strong>−0.359 nDCG@10</strong>.</li>
+      <li>Eval dataset: <strong>78 queries / 114 scored variants / 867 qrels</strong>, plus 657 holdout queries
+        and 37 capability cases. The query and variant counts are asserted at
+        <code>tests/validation/test_query_quality_dataset.py:45,47</code>; <strong>the 867 figure is not — it
+        lives in the dataset's <code>manifest.json</code></strong> and no test pins it.</li>
+      <li><strong>No cross-encoder or neural reranker exists</strong>, and <strong>no F1 metric is implemented
+        anywhere in the repo</strong>. The only <code>0.085</code> on disk is
+        <code>"assumed_cost_usd": 0.085608</code> — a dollar cost.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>Consumes</dt><dd><ul>
+      <li><strong>RefSpec Atlas 3.0</strong>, via <code>atlas_search_view.py</code> — 26,409 B / 633 lines,
+        25 tests. Reads exactly two path shapes with no glob; enforces by <em>raising</em>: an external manifest
+        pin (<code>:409</code>), canonical REF-JSON with closed key sets across 7 structures
+        (<code>:231-241</code>), <code>canonicalPayloadDigest</code> (<code>:422</code>), <code>viewId</code>
+        re-derivation matching upstream's <code>parquet_search_view.py:361</code> (<code>:454</code>), closed
+        membership by <code>os.walk(followlinks=False)</code> rejecting symlinked, non-regular, missing and
+        extra entries (<code>:516-545</code>), plus TOCTOU stat-identity re-checks (<code>:277-306</code>).
+        Imports no RefSpec code.</li>
+      <li><strong>RuleSpec extrapolation-release v2</strong> — a 769-line independent verifier wired at
+        <code>search_snapshot_verify.py:49</code> and <code>cli.py:833</code>. No live drift test exists.</li>
+      <li><strong>SpicyRegs document-release — and the live path is v3, not v2.</strong> Its CLI and snapshot
+        path run the v3 reader (<code>cli.py:28,469,519</code>); the v1/v2 reader is the secondary path. Earlier
+        drafts of this page had this exactly backwards, and the error propagated into <a href="#d5">D5</a>'s
+        coordinate argument — see the correction there. Separately, two Atlas <em>1.0/2.0</em> byte-copies
+        (1.47 MB each) are vendored and digest-verified, and <strong>those</strong> are still the live atlas
+        path — <code>PLAN.md:118</code>: “Atlas 2.0 stays the active pinned path until cutover.” Two different
+        lineages, two different answers; do not collapse them.</li>
+      <li><code>pyproject.toml:6-9</code> lists only <strong>duckdb, pyarrow, rdflib</strong>. Zero package
+        imports of any sibling repo.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>Will bite you</dt><dd><ul>
+      <li><strong>Traversal is live and unbounded.</strong>
+        <code>expand_within_vocabulary</code> (<code>concept_resolution.py:114</code>) is called at
+        <code>engine.py:2057</code> on <em>every</em> request carrying <code>concept_candidate</code> — one hop
+        over <code>skos:related</code>, non-recursive, across <strong>1,451 edges over 705 concepts</strong>,
+        with <code>tests/search/test_within_vocabulary_expansion.py:102-119</code> proving a document reachable
+        <em>only</em> via that hop is returned. <strong>It has no hop cap, no predicate allowlist and no
+        fan-out cap.</strong> Any claim that expansion is disabled is wrong.</li>
+      <li><strong>The richer BFS expander is structurally dead.</strong>
+        <code>ConceptExpander.expand</code> (<code>concept_policy.py:361-416</code>) is locked shut twice: the
+        only production constructor is <code>ConceptPolicy.without_expansion</code> (<code>cli.py:333</code>)
+        hardcoding <code>expansion_policy_id="not_used"</code> and <code>admitted_predicates=()</code>, and
+        <code>concept_policy.py:169-170</code> raises on any snapshot whose policy differs.
+        <strong>“Called only from tests” is wrong</strong> — a real production call site exists at
+        <code>search_snapshot_runtime.py:735</code>. It sits behind a branch that is always false in
+        production, so <em>structurally dead</em> is still the right verdict; but the code path exists, and
+        anyone who flips that branch gets an unbounded BFS rather than a <code>NameError</code>.</li>
+      <li><strong><code>VocabularyAtlasV2.open()</code> has never run against real data.</strong> The v2 reader
+        is imported by the whole snapshot subsystem, but <code>atlas-scope.json</code> — mandatory at
+        <code>vocabulary_atlas_v2.py:27</code> — exists nowhere in SpicySearch, and RefSpec never published a
+        2.0 example. Build-time cross-vocabulary expansion is moot regardless: the vendored atlas has
+        <code>searchOnlyMappings: 0</code>.</li>
+      <li><strong>All four semantic rings are supported end-to-end and have never received data.</strong>
+        <code>vocabulary_atlas_v2.py:26</code> and <code>search_snapshot_runtime.py:691-696</code> map each ring
+        to a filter field, exercised only by fabricated fixtures.</li>
+      <li><strong><code>not_used</code> is not one flag.</strong> It is a sentinel on roughly 8 independent
+        knobs — and in <code>evaluation/experiments/2026-08-02-within-vocab-expansion-v1/metrics.json</code> it
+        is the <em>label of the <code>off</code> control arm</em> in an A/B. Do not read it as a global switch.</li>
+      <li><strong>The ring set is declared four independent times</strong>:
+        <code>vocabulary_atlas_v2.py:26</code>, <code>concept_index.py:323</code> (SQL <code>VALUES</code>),
+        <code>search_snapshot_runtime.py:693</code>, and <code>cli.py:424</code> — the last in kebab-case three
+        lines after <code>:421</code> uses camelCase.</li>
+      <li><strong>No <code>.github/</code> directory</strong>, so nothing verifies its copied-fixture manifest
+        hashes.</li>
+      <li><strong>Five HTTP routes</strong>, served by a stdlib <code>ThreadingHTTPServer</code>
+        (<code>api/server.py:16</code>). Four are named literally at <code>api/router.py:197-203</code> —
+        <code>/v1/health</code>, <code>/v1/snapshot</code>, <code>/v1/coverage</code>, <code>/v1/search</code> —
+        and the fifth is easy to miss because it is <em>prefix-matched</em> rather than listed:
+        <code>path.startswith("/v1/documents/")</code>. Earlier passes disagreed 4-versus-5 only because one
+        enumerated the literals and the other counted the dispatch; five is correct.</li>
+    </ul></dd></div>
+  </dl>
+</article>
+
+<article class="repo" id="repo-spicyregs">
+  <header><h3>SpicyRegs</h3><span class="org">civictechdc/spicy-regs · MIT · 634 commits · NOT OWNED</span>
+    <span class="role">Capture, rollups, releases, ontology, MCP server</span></header>
+  <dl style="margin:0">
+    <div class="rrow"><dt>Census</dt><dd>
+      <p><strong>21 independently-cronned rollups publishing roughly 19–21 logical tables</strong> from 16
+      per-publisher readers, 14 of which are reached from a rollup entry point. (The <em>32</em> figure that
+      circulates is the size of the whole data dictionary, not the set the rollups publish.) <strong>Acquisition is only 5.4k lines; the
+      release, identity and evaluation apparatus around it is roughly ten times that</strong> —
+      <code>docpipeline/</code> 27.7k, <code>corpora/</code> 23.7k, ~51k lines combined.
+      <code>ontology/citations.py</code> is 993 lines; <code>document_release.py</code> 2,337; v3 about 4,000.</p></dd></div>
+    <div class="rrow"><dt>Ingress</dt><dd>
+      <p>Twelve to fourteen US government hosts (the range is real — two are reached through shared endpoints
+      that can be counted either way), all egress, no served ingress beyond an MCP server
+      (<code>list_sources</code> / <code>describe_table</code> / <code>query_sql</code>): the anonymous
+      mirrulations S3 mirror of regulations.gov, Federal Register, govinfo/eCFR, reginfo.gov,
+      uscode.house.gov, congress.gov, CourtListener, FCC ECFS, SAM, FEC, LDA, USAspending, GAO, CRS and
+      supremecourt.gov. Storage is a Cloudflare R2 Iceberg catalog reached by DuckDB <code>ATTACH</code>.</p>
+      <p style="margin-bottom:0"><strong>Two hosts are fetched twice, by two repos.</strong> SpicyRegs and its
+      own nested RefSpec submodule each fetch <code>uscode.house.gov</code> and
+      <code>api.usaspending.gov</code> separately; DocSpec runs its own mirrulations S3 client. RefSpec's USC
+      pull is 58 files / 431 MB / 1,342,167 rows via
+      <code>RefSpec/tools/extract_uslm_reference_edges.py:141,380</code>.</p></dd></div>
+    <div class="rrow"><dt>Will bite you</dt><dd><ul>
+      <li><strong>Two DocumentRelease lineages share no code and disagree with each other.</strong>
+        v1/v2 (<code>document_release.py:43</code>) uses <code>unicode-codepoints-half-open</code>, plain Python
+        <code>str</code> indices. <strong>v3 already counts UTF-8 bytes</strong> —
+        <code>urn:spicyregs:coordinate:rendition-utf8-byte-slice:1.0</code>, with codepoint-safe segmentation
+        that backs up over continuation bytes. Both verified on disk.
+        <strong>SpicySearch's live path is v3</strong>, with v1/v2 as its secondary reader — the reverse of what
+        earlier drafts of this page said. See <a href="#d5">D5</a>.</li>
+      <li><strong>The two lineages are not verified to the same standard, and that asymmetry is the finding.</strong>
+        <strong>v1/v2 has been run against 1.47 GB of real production data; v3 has only ever been run against
+        small fixtures</strong>, and <strong>no real-data v3 release exists on disk anywhere</strong>. So the
+        newer, better-designed lineage is also the unproven one. Any plan that treats v3 as the settled
+        destination is pricing in a validation that has not happened.</li>
+      <li><strong>v3's identity payload deliberately excludes <code>annotations</code></strong> (buildRunId,
+        createdAt) at <code>document_release_v3.py:322-337</code>, so identical content yields an identical
+        <code>releaseId</code> regardless of build time. 10 Arrow schemas, 14 verification codes, 8 separately
+        versioned policy ids. This is good design — do not "fix" it.</li>
+      <li><strong>The unmarked-prose refusal is a measured decision, not an oversight.</strong>
+        <code>citations.py:724</code> resolves only act-relative citations, requiring a <em>known</em> OLRC
+        popular name adjacent to the section token: <em>“inferring which acts those abbreviate is precisely the
+        guess the identity fence exists to stop.”</em> The shape-based alternative was tested — matching
+        “capitalized words ending in Act” hit <strong>“U.S.C.” 108 times across 4,777 sealed authority
+        strings</strong>. <strong>The corroboration claimed for SpicySearch is not there</strong> —
+        <code>identifiers.py:186-190</code> is an unrelated regex, and SpicySearch has no act-relative
+        resolution logic at all. This is <em>one</em> repo's deliberate decision, well evidenced on its own
+        merits; it is not two repos independently agreeing, and the decision should not be defended as though
+        it were.</li>
+      <li><strong>SpicyRegs' own reader does not read USC <code>&lt;ref&gt;</code> cross-references</strong> —
+        <code>uscode_uslm.py:205-207</code> parses only <code>&lt;section&gt;</code> identifiers and
+        <code>&lt;sourceCredit&gt;</code>, never <code>&lt;ref&gt;</code>, never section body prose.
+        <strong>But “nothing anywhere” is false</strong>: the repo's own nested RefSpec submodule extracts
+        <strong>330,508 USC cross-references</strong> via
+        <code>extract_uslm_reference_edges.py</code> — deliberately keying on <code>href</code> rather than on
+        the <code>&lt;ref&gt;</code> element alone, which is why an element-name grep missed it. The capability
+        exists in the workspace; it is just on the other side of the submodule boundary.</li>
+      <li><strong>USC outputs are identity data, not positions on a page.</strong> Rows are keyed by stable
+        identifiers — popular name → Table III key, and (public law, division, act section) → USC section. The
+        zero-<code>src/</code>-importer finding holds but is <em>by design</em>: the fetchers are
+        unreproducible as scripts and consumable as digest-pinned parquet, read by
+        <code>ontology/act_index.py:280,297,384</code> — which digest-<em>stamps</em> at build time and never
+        digest-<em>verifies</em> at read. <code>refusal</code> semantics invert the obvious reading:
+        <strong>null means resolved</strong> (<code>build_usc_source_credit_artifact.py:166</code>), and “said
+        nothing” is the <em>absence</em> of a row, synthesised as <code>"absent"</code> at query time
+        (<code>act_index.py:100-114,395</code>). Coverage is <strong>24 of 27</strong> — the act set comes from
+        <code>acts_cited_by()</code> over one corpus
+        (<code>tools/build_usc_act_index_artifact.py:151-155</code>), and that corpus cites 27 acts.
+        <strong>The “roughly 8,400 acts OLRC lists” denominator does not exist anywhere</strong> — no such
+        figure appears in the code, the data or OLRC's own artifacts. Against the real denominator this is 89 %
+        coverage of what was asked for, not 0.3 % of what exists; the honest caveat is that the corpus is
+        narrow, not that the index is empty.</li>
+      <li><strong>The concept registry dropped FAST's hierarchy on ingest.</strong> All
+        <strong>513,236 rows</strong> of <code>output/fused-concept-registry-v1/registry.parquet</code> have
+        null <code>broader_id</code> <em>and</em> null <code>replaced_by</code>, though
+        <code>CONCEPT_COLUMNS</code> (<code>ontology/concepts.py:49-62</code>) declares both plus lifecycle
+        <code>EVENT_TYPES</code>. Whether that is policy or an unimplemented path is unresolved — see
+        <a href="#v5">V5</a>.</li>
+      <li><strong>R2 rejects <code>MERGE INTO</code></strong>, so Iceberg merges are expressed as
+        DELETE + INSERT (<code>sources/iceberg.py:137-139</code>) — and <code>iceberg.py:151-161</code> admits
+        the DELETE “does not reliably remove prior rows on the R2 Data Catalog,” accumulating physical
+        duplicates.</li>
+      <li><strong>URN spelling is inconsistent across a subsystem boundary, not at one spot.</strong>
+        <code>citations.py:392</code> emits <code>urn:spicy-regs:usc-chapter:</code> (hyphenated) — and so do
+        roughly half the emitters in the repo. The split runs about <strong>50/50 across 16 files</strong>,
+        which makes it a genuine fork in the identity namespace rather than a single typo to patch. Decide
+        which spelling wins before minting anything else.</li>
+      <li><strong>Version pins are load-bearing on prose.</strong> <code>pyproject.toml</code>'s own dependency
+        comments cite <code>docs/evidence/*.md</code> measurements as justification — the same
+        <code>docs/evidence/</code> the reset destroys.</li>
+      <li><strong>Quarantine is near-empty and does not mean what it looks like.</strong> Two
+        non-interoperating mechanisms in the USC path total <strong>1 quarantined row</strong>; the
+        <code>entry_without_name</code> branch is unreachable dead code; and <strong>665
+        <code>also-known-as</code> rows whose alias target was silently dropped are not quarantined at
+        all</strong>.</li>
+      <li><code>corpora/</code> is <strong>23,746 lines with two importers outside itself — both of which are
+        themselves absent from <code>origin/main</code></strong>, so nothing upstream can reach it. State it
+        that way rather than as “zero importers”: the distinction matters the moment either importer is
+        upstreamed. 25 of 26 <code>tools/</code> scripts are one-off.</li>
+    </ul></dd></div>
+    <div class="rrow"><dt>Ontology outputs</dt><dd>
+      <p><strong>1,024,593 rows across 9 present outputs</strong> under
+      <code>output/rin-ontology-revision-candidate/</code>: rule_targets 39,516 · authority_edges 10,618 ·
+      proceedings 511,643 · regulatory_agenda_items 38,005 · agenda_item_proceedings 120,685 ·
+      comment_periods 302,300 · concepts 901 · concept_assignments 24 · concept_events 901. A tenth,
+      <code>ontology_segment_ledger.parquet</code>, is declared at
+      <code>pipelines/ontology_dataset.py:44-49,61-63</code> and <strong>has never been generated</strong>.</p>
+      <p><strong>Re-hashing found 9 of 9 generation artifacts still matching their recorded digests</strong>;
+      <code>authority_edges.parquet</code> at 10,618 rows still hashes to the <code>0bc929b6…</code> in the
+      ontology manifest, byte for byte. One source input nevertheless fails its own receipts — see
+      <a href="#v3">V3</a>.</p>
+      <p style="margin-bottom:0"><strong><code>authority_edges</code> 10,618 vs 11,793 is settled: 10,618 is
+      stale.</strong> This page carried it as an open conflict; it is not one. Both runs cover the same
+      3,954-RIN population from a <em>byte-identical</em> <code>unified_agenda.parquet</code> input, one day
+      apart, with two parser fixes in between — <code>538780c</code> and <code>91db195</code> — which added both
+      rows and columns. Confirmed on disk: <strong>10,618 rows / 13 columns</strong> against <strong>11,793
+      rows / 15 columns</strong>. Quote <strong>11,793</strong>. The matching digest proves the older file is
+      intact, which is not the same as current — precisely the distinction <a href="#v4">V4</a> is about.</p></dd></div>
+  </dl>
+</article>
+</section>
+
+<section id="d3">
+<div class="sechead"><span class="chip d">D3</span><h2>Target architecture, and where the code actually points</h2>
+  <span class="why">a destination, not a standard being failed</span></div>
+
+<p class="lede">Target: <strong>RuleSpec → RefSpec → SpicySearch</strong> as the spine, with SpicyRegs and
+DocSpec as independent sources the sink draws on, and SpicySearch driving DocSpec's ingestion as a process.
+Edges that do not match are <strong>not yet moved</strong> — migration debt with a known direction of travel —
+not defects. Defects live in <a href="#v3">V3</a>.</p>
+
+<figure>
+<div class="scroller pad">
+<svg viewBox="0 0 1140 660" role="img"
+     aria-label="Current edge map. RefSpec depends on RuleSpec by SHA-pinned subprocess, and reaches SpicySearch through an externally pinned Atlas 3.0 Parquet search view. SpicyRegs supplies document metadata to SpicySearch by byte copy, and RuleSpec supplies an extrapolation release. Three edges point the wrong way: SpicyRegs importing RefSpec by editable install, RefSpec reading files from the SpicyRegs output tree, and DocSpec shelling into a hardcoded SpicyRegs path. Two required edges are entirely absent: SpicySearch driving DocSpec's ingestion, and DocSpec inheriting a RuleSpec profile.">
+  <defs>
+    <marker id="m-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+    <marker id="m-mv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--move)"/></marker>
+    <marker id="m-gp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--gap)"/></marker>
+  </defs>
+
+  <rect x="380" y="56" width="260" height="112" rx="4" class="box-out"/>
+  <text x="396" y="80" class="n-t">SpicyRegs</text>
+  <text x="396" y="98" class="n-s">target: standalone source</text>
+  <text x="396" y="116" class="n-s">capture · releases · ~19–21 tables</text>
+  <text x="396" y="138" class="n-m">NOT OWNED — and it contains</text>
+  <text x="396" y="152" class="n-m">RefSpec as a git submodule:</text>
+  <text x="396" y="163" class="n-m">containment inverted vs target</text>
+
+  <rect x="40" y="290" width="200" height="110" rx="4" class="box"/>
+  <text x="56" y="314" class="n-t">RuleSpec</text>
+  <text x="56" y="332" class="n-s">target: spine head</text>
+  <text x="56" y="352" class="n-s">rule + schema contract</text>
+  <text x="56" y="374" class="n-m">imports no peer at all</text>
+  <text x="56" y="389" class="n-m">publishes a refspec profile</text>
+
+  <rect x="330" y="290" width="220" height="110" rx="4" class="box"/>
+  <text x="346" y="314" class="n-t">RefSpec</text>
+  <text x="346" y="332" class="n-s">target: depends on RuleSpec only</text>
+  <text x="346" y="352" class="n-s">vocabulary + atlas authority</text>
+  <text x="346" y="374" class="n-m">21 of 147 src files name rulespec</text>
+  <text x="346" y="389" class="n-m">2 invoke the validator</text>
+
+  <rect x="860" y="280" width="240" height="130" rx="4" class="box"/>
+  <text x="876" y="304" class="n-t">SpicySearch</text>
+  <text x="876" y="322" class="n-s">target: the sink</text>
+  <text x="876" y="342" class="n-s">consumes all three contracts</text>
+  <text x="876" y="362" class="n-s">+ should drive DocSpec</text>
+  <text x="876" y="384" class="n-m">deps: duckdb, pyarrow, rdflib</text>
+  <text x="876" y="399" class="n-m">no sibling-repo dependency at all</text>
+
+  <rect x="380" y="510" width="260" height="112" rx="4" class="box"/>
+  <text x="396" y="534" class="n-t">DocSpec</text>
+  <text x="396" y="552" class="n-s">target: standalone ingestion engine</text>
+  <text x="396" y="572" class="n-s">may inherit a RuleSpec profile</text>
+  <text x="396" y="594" class="n-m">11 profiles — all storage/execution</text>
+  <text x="396" y="609" class="n-m">zero RuleSpec relationship</text>
+
+  <line x1="326" y1="368" x2="246" y2="368" class="ed-ok" marker-end="url(#m-ok)"/>
+  <text x="286" y="360" class="e-l" text-anchor="middle">depends on</text>
+  <text x="286" y="392" class="e-l" text-anchor="middle">subprocess, SHA-pinned</text>
+
+  <line x1="554" y1="330" x2="856" y2="330" class="ed-ok" marker-end="url(#m-ok)"/>
+  <text x="705" y="322" class="e-l" text-anchor="middle">Atlas 3.0 Parquet search view — externally pinned, enforced by raising</text>
+  <text x="705" y="346" class="n-m" text-anchor="middle">but a verifier, not a data path: nothing downstream reads a row,</text>
+  <text x="705" y="359" class="n-m" text-anchor="middle">and Atlas 2.0 byte-copies stay the live path until cutover</text>
+
+  <polyline points="644,92 760,92 760,300 856,300" class="ed-ok" marker-end="url(#m-ok)"/>
+  <text x="768" y="186" class="e-l">document metadata</text>
+  <text x="768" y="201" class="e-l">— byte-copy, digest-pinned</text>
+
+  <polyline points="140,404 140,456 820,456 820,382 856,382" class="ed-ok" marker-end="url(#m-ok)"/>
+  <text x="480" y="450" class="e-l" text-anchor="middle">extrapolation release v2 — a real 769-line verifier, fed from a copy, with no live drift test</text>
+
+  <line x1="440" y1="172" x2="440" y2="286" class="ed-move" marker-end="url(#m-mv)"/>
+  <text x="300" y="226" class="e-l">editable install</text>
+  <text x="300" y="241" class="e-l">22 symbols, 9 prod sites</text>
+
+  <line x1="520" y1="286" x2="520" y2="172" class="ed-move" marker-end="url(#m-mv)"/>
+  <text x="532" y="226" class="e-l">tools read the parent's</text>
+  <text x="532" y="241" class="e-l">gitignored output/</text>
+
+  <polyline points="376,552 290,552 290,112 376,112" class="ed-move" marker-end="url(#m-mv)"/>
+  <text x="300" y="486" class="e-l">subprocess into a</text>
+  <text x="300" y="500" class="e-l">hardcoded absolute path</text>
+
+  <polyline points="900,414 900,570 648,570" class="ed-gap" marker-end="url(#m-gp)"/>
+  <text x="790" y="552" class="e-l" text-anchor="middle" fill="var(--gap)">drives ingestion — ABSENT</text>
+  <text x="790" y="588" class="n-m" text-anchor="middle">DocSpec exports a one-way JSON Lines ledger;</text>
+  <text x="790" y="601" class="n-m" text-anchor="middle">SpicySearch has no reader, no dependency, no CLI verb</text>
+
+  <polyline points="190,404 190,600 376,600" class="ed-gap" marker-end="url(#m-gp)"/>
+  <text x="200" y="592" class="e-l" fill="var(--gap)">profile inheritance — ABSENT</text>
+</svg>
+</div>
+<ul class="keylist">
+  <li><span class="kn okn">━━</span><span><b>Conforming</b> — already points where the target wants</span></li>
+  <li><span class="kn" style="color:var(--move)">╌╌</span><span><b>Not yet moved</b> — migration debt, direction known</span></li>
+  <li><span class="kn" style="color:var(--gap)">··</span><span><b>Missing</b> — required by the target, absent in code</span></li>
+</ul>
+<figcaption><strong>Figure B.</strong> All three wrong-way edges now terminate in the one repository you do not
+own, which is the whole of the migration's remaining structural work. The absent SpicySearch → DocSpec link is
+why both repos independently built their own ingestion and segmentation — which reframes the two-segmenter
+duplication from untidiness into a structural gap.</figcaption>
+</figure>
+
+<h3>The two absent edges</h3>
+
+<div class="band gap">
+  <p style="margin-top:0"><strong>SpicySearch → DocSpec is absent, and the target has mispriced it.</strong>
+  Zero hits for <code>docspec</code>, <code>doc_spec</code> or <code>urn:docspec</code> anywhere in
+  SpicySearch. In the other direction there is exactly one reference:
+  <code>DocSpec/tests/test_package_boundary.py:27</code> lists <code>"spicysearch"</code> in
+  <code>ADAPTER_ONLY_SIBLING_PACKAGES</code> — the set of names DocSpec's production code may <em>not</em>
+  import. The only trace of a relationship is a rule forbidding one.</p>
+  <p><strong>One side has now built its half, and it does not create the edge.</strong>
+  <code>tools/export_selection_ledger.py</code> is coupled to SpicySearch by <em>shape, never by name</em>: it
+  says “a downstream document-release producer,” and its <code>_REASON_CODE</code> at <code>:65-68</code> is
+  namespaced specifically to satisfy <code>DIAGNOSTIC_CODE_PATTERN</code>, a real symbol at
+  <code>spicysearch/artifact_protocol.py:24</code>. That is the weakest possible coupling — <strong>a
+  convention one repo observes about another, enforced by nothing</strong>. Nothing tests it, and a tightened
+  pattern upstream would not fail DocSpec. The only known reader of the format sits in DocSpec's own frozen
+  archive, import-forbidden by the same boundary test. The gap moved from “neither side has thought about it”
+  to <strong>“one side has built an exit and the other has no door.”</strong></p>
+  <p style="margin-bottom:0"><strong>And the real cost is a format migration, not wiring.</strong>
+  SpicySearch's admission path pins spicy-regs v2/v3 byte-for-byte. DocSpec's release is a different format, a
+  different URN namespace — <code>urn:docspec:document-release:v1:&lt;hex&gt;</code> against
+  <code>urn:spicyregs:document-release:v3:&lt;hex&gt;</code> — and a different coordinate vocabulary.
+  <strong>Nothing pinning a spicyregs URN can accept a docspec one.</strong> Cost this as a consumer-side format
+  migration before scheduling it. It is closest in spirit to v3 and furthest from the v1/v2 fixtures SpicySearch
+  actually vendors today.</p>
+</div>
+
+<div class="band gap">
+  <p style="margin:0"><strong>RuleSpec → DocSpec profile inheritance is absent.</strong> DocSpec's 11 profiles
+  are all storage and execution backends. <code>grep -rliE 'rulespec|rkaf'</code> outside
+  <code>archive/</code> returns exactly one file — the same forbidden-import test.</p>
+</div>
+
+<h3>Every cross-repo edge, with evidence</h3>
+<div class="scroller">
+<table>
+<thead><tr><th>Edge</th><th>Mechanism</th><th>Evidence</th><th>Volume</th><th>State</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="5">Conforming</td></tr>
+<tr><td>RefSpec → RuleSpec</td><td>subprocess, behind a required flag</td>
+  <td class="ev">release_graph.py:807, called :1000 and tools/reseal_elsst_managed_release.py:490; requires --rulespec-dir. <strong>No clean-tree check and no ancestor check</strong> — zero merge-base/is-ancestor/porcelain occurrences; the docstring disclaims both and says why (RefSpec never re-derives a Rulespec artifact from the checkout). Manifest-shape validation only.</td>
+  <td class="num">2 call sites<br>21 of 147 files name rulespec</td><td><span class="pill p-ok">BEST-SHAPED EDGE</span></td></tr>
+<tr><td>RefSpec Atlas 3.0 → SpicySearch</td><td>Parquet search view, externally pinned</td>
+  <td class="ev">spicysearch/atlas_search_view.py — 26,409 B / 633 lines. Imports no RefSpec code. See D2.</td>
+  <td class="num">185 MB view · 8 tables<br>25 tests pass</td><td><span class="pill p-ok">CONFORMING</span></td></tr>
+<tr><td>RuleSpec → SpicySearch</td><td>format contract, vendored</td>
+  <td class="ev">spicysearch/extrapolation_release.py (769 lines) independently verifies rulespec-extrapolation-release v2.0; wired at search_snapshot_verify.py:49, cli.py:833. <strong>No live drift test exists.</strong></td>
+  <td class="num">1 vendored fixture</td><td><span class="pill p-ok">CONFORMING</span></td></tr>
+<tr><td>SpicyRegs → SpicySearch</td><td>vendored byte-copy</td>
+  <td class="ev">document_distribution.py byte-verifies a v2 release; fixtures/releases/manifest.json records copied_from provenance and delivery_state "local_fixture_uncommitted_unreleased_unpromoted"</td>
+  <td class="num">4 fixtures, all hash-matching</td><td><span class="pill p-ok">CONFORMING</span></td></tr>
+<tr><td>RefSpec → SpicySearch (1.0/2.0)</td><td>vendored byte-copy, dual sha256</td>
+  <td class="ev">vocabulary_atlas.py / _v2.py; pin at fixtures/releases/vocabulary-atlas-pin.json:3. Sources recovered from git (5c6d889^) hash 956cab4f and 8e1eaf22; the vendored copies hash identically — <strong>byte-identity verified at full-hash precision</strong>, byte-faithful to originals that <strong>no longer exist upstream</strong>. <strong>There is no second unpinned copy</strong>: <code>fixtures/releases/refspec-vocabulary-atlas-v1</code> is not a directory on disk but a manifest entry pointing at these same files, and it carries its own digest.</td>
+  <td class="num">2 copies · 1.47 MB each<br>both pinned and hash-verified</td><td><span class="pill p-bad">ORPHANED AT SOURCE</span></td></tr>
+<tr class="grp"><td colspan="5">Not yet moved — all three terminate in the repo you do not own</td></tr>
+<tr><td>SpicyRegs → RefSpec</td><td>editable install</td>
+  <td class="ev">pyproject.toml:12,147 · uv.lock:2331 · .venv/…/refspec.pth → RefSpec/src</td>
+  <td class="num">25 imports · 9 production<br>8 files · 22 symbols</td><td><span class="pill p-move">DEBT</span></td></tr>
+<tr><td>SpicyRegs contains RefSpec</td><td>git submodule</td>
+  <td class="ev">.gitmodules (<strong>absent from origin/main — see V1</strong>); <code>submodules: true</code> in 15 places across 12 workflow files</td>
+  <td class="num">~19 files mention the path<br>~10 functional hardcodes</td><td><span class="pill p-move">DEBT</span></td></tr>
+<tr><td>RefSpec → SpicyRegs</td><td>reads parent output/</td>
+  <td class="ev">RefSpec/tools/generate_atlas_v3_full.py:120 — <code>SPICY_REGS_ROOT = ROOT.parent</code>; two pinned managed-release files, gitignored, no committed producer <span class="pill p-move">2026-08-08, not re-verified</span></td>
+  <td class="num">2 files</td><td><span class="pill p-move">DEBT</span></td></tr>
+<tr><td>DocSpec → SpicyRegs</td><td>subprocess, hardcoded path</td>
+  <td class="ev">tools/fr_mirrulations_qualification.py:55,58,148,164-168; overridable at :630; sealed at fr_mirrulations_support.py:911, re-verified :1024-1029</td>
+  <td class="num">2 files · 0 hits in src/docspec/<br>102 files under output/</td><td><span class="pill p-move">DEBT</span></td></tr>
+<tr><td>SpicyRegs tests → RefSpec → RuleSpec</td><td>transitive reach-through</td>
+  <td class="ev">tests/test_elsst_r6_forward_development_dataset.py:16,24,536 calls load_pinned_rulespec_validator(REPO_ROOT.parent/"rulespec"); real skip logic at <strong>conftest.py:29-76</strong>, not :13-15. <strong>It is skipping because of revision drift, not a missing checkout</strong> — the sibling is present, but pinned <code>791670e</code> against an actual <code>cffafcb</code>.</td>
+  <td class="num">skipped — repin to re-enable</td><td><span class="pill p-move">DEBT</span></td></tr>
+<tr class="grp"><td colspan="5">Missing</td></tr>
+<tr><td>SpicySearch → DocSpec</td><td>—</td>
+  <td class="ev">Zero hits for docspec/doc_spec/urn:docspec in SpicySearch. Reverse: one hit, a forbidden-import set. Re-checked 2026-08-10, unchanged.</td>
+  <td class="num">absent in code</td><td><span class="pill p-gap">MISSING</span></td></tr>
+<tr><td>RuleSpec → DocSpec profile</td><td>—</td>
+  <td class="ev">DocSpec's 11 profiles are all storage/execution backends</td>
+  <td class="num">absent</td><td><span class="pill p-gap">MISSING</span></td></tr>
+<tr class="grp"><td colspan="5">Duplicate ingress — two repos fetching the same host</td></tr>
+<tr><td>uscode.house.gov → SpicyRegs <em>and</em> → RefSpec</td><td>httpx / urllib.urlopen</td>
+  <td class="ev">sources/uscode_olrc.py:51,54,357 — and separately RefSpec/tools/extract_uslm_reference_edges.py:141,380. <strong>uscode_uslm.py:60 is not a fetch site</strong>; it is a URL template.</td>
+  <td class="num">20,865 + 10,976 + 3,721 rows<br>vs 58 files / 431 MB / 1,342,167 rows</td><td><span class="pill p-move">DUPLICATE</span></td></tr>
+<tr><td>mirrulations S3 → SpicyRegs <em>and</em> → DocSpec</td><td>boto3 UNSIGNED, separate clients</td>
+  <td class="ev">sources/mirrulations.py:34,73-75 · src/docspec/adapters/content_fetchers.py:157,170-190,261</td>
+  <td class="num">50,000 comment rows<br>vs 10,000 items / 13,592 files / 7.5 GB</td><td><span class="pill p-move">DUPLICATE</span></td></tr>
+<tr><td>api.usaspending.gov → RefSpec</td><td>dormant</td>
+  <td class="ev">registry/usaspending_gsdm_codes.py:373-379 short-circuits to a pinned local fixture; the network path at :390-394 is never taken in the build</td>
+  <td class="num">—</td><td><span class="pill p-ok">NOT LIVE TRAFFIC</span></td></tr>
+<tr><td>api.zyte.com → RefSpec</td><td>proxy POST</td>
+  <td class="ev">registry/infrastructure/zyte_transport.py:15,88-140. <strong>It has run.</strong> 27 captured HTML pages sit on disk with per-page sha256 and timestamps, alongside a committed <code>evidence.json</code>.</td>
+  <td class="num">27 captured pages, digested and dated</td><td><span class="pill p-ok">RAN</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="d4">
+<div class="sechead"><span class="chip d">D4</span><h2>Contracts, identity and namespaces</h2>
+  <span class="why">what you must not break</span></div>
+
+<p class="lede">Four published formats, four URN namespaces, and one recurring design: identity is a digest over
+a canonical payload, recomputed by every reader rather than trusted. Where that design is followed the
+workspace is sound. Where it is imitated without a comparison, it is ceremony — see <a href="#v4">V4</a>.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Format</th><th>Owner</th><th>Identity</th><th>Readers</th><th>Marked?</th></tr></thead>
+<tbody>
+<tr><td><strong>spicyregs-document-release v3</strong></td><td>SpicyRegs</td>
+  <td class="ev"><code>urn:spicyregs:document-release:v3:&lt;canonical_sha256&gt;</code>, recomputed independently by every reader. Payload <strong>excludes</strong> <code>annotations</code> (buildRunId, createdAt), so identical content yields an identical id regardless of build time.</td>
+  <td class="ev"><strong>4 independent</strong>: SpicyRegs (owner), SpicySearch, RuleSpec <code>extrapolation_release_v2.py:1105-1140</code>, DocSpec's dead archive</td>
+  <td><span class="pill p-ok">MARKED</span></td></tr>
+<tr><td><strong>rulespec-extrapolation-release v2</strong></td><td>RuleSpec</td>
+  <td class="ev">RFC 8785 canonical JSON — <code>requirements.txt:11-14</code> pins <code>rfc8785==0.1.4</code> explicitly “for ExtrapolationRelease v2”, <strong>not workspace-wide</strong></td>
+  <td class="ev">SpicySearch, 769-line independent verifier</td>
+  <td><span class="pill p-ok">MARKED</span></td></tr>
+<tr><td><strong>refspec-atlas-packed-nquads-3.0</strong></td><td>RefSpec</td>
+  <td class="ev"><code>urn:ref:atlas:distribution:…</code> — <strong>a hardcoded constant</strong>; only <code>manifestSha256</code> distinguishes builds. Packs carry dual content/transport digests.</td>
+  <td class="ev">RefSpec internally; SpicySearch via the derived 185 MB Parquet search view. <strong>The canonical RDF has zero cross-repo readers.</strong></td>
+  <td><span class="pill p-move">ID NOT UNIQUE PER BUILD</span></td></tr>
+<tr><td><strong>docspec document-release v1</strong></td><td>DocSpec</td>
+  <td class="ev"><code>urn:docspec:{kind}:v1:{sha256(canonical_json(value))}</code> via <code>stable_urn</code>, <code>domain/identity.py:184-191</code>, 89 call sites; floats forbidden <code>:64-66</code>; every URN recomputes itself in <code>__post_init__</code> and raises on mismatch</td>
+  <td class="ev"><strong>None outside DocSpec.</strong> Nothing pinning a spicyregs URN can accept one.</td>
+  <td><span class="pill p-bad">PROFILE SAYS 1.0, CODE REQUIRES 1.1</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="band move">
+  <p style="margin-top:0"><strong>Canonical JSON is hand-implemented at least thirteen times in production
+  <code>src/</code> alone, and once properly.</strong> The “twelve” this page used to quote was an undercount
+  produced by an unstated scope. State the scope with the number, or state the range: <strong>13+ in production
+  <code>src/</code>, likely 20+ once <code>tools/</code> is included.</strong> Beyond the seven named
+  previously — <code>rulespec/extrapolation_release_v2.py:212</code>,
+  <code>rulespec/rulespec_release.py:83</code>, <code>DocSpec/domain/identity.py:91</code>,
+  <code>DocSpec/tools/predecessor_code_fingerprints.py:37</code>, <code>RefSpec/binding.py:302</code>,
+  <code>spicysearch/canonical.py:213</code> and <code>spicysearch/artifact_protocol.py:153</code> — there are at
+  least <code>document_release_v3.py:192</code>, <code>document_release.py:69</code>,
+  <code>RefSpec/storage.py:21</code>, <code>atlas/v3_source_data.py:56</code>,
+  <code>source_profile_artifacts.py:58</code> and <code>ontology/common.py:84</code>.</p>
+  <p>Only 1 site calls the real library; two others cite RFC 8785 as justification for their own hand-rolled
+  code being sufficient, and no site carries a “replace with rfc8785” marker. <strong>~38 % reject floats
+  (5 of 13)</strong> — not “roughly half” — and <strong>key order differs between Python
+  <code>sort_keys</code> and RFC 8785's UTF-16 ordering</strong>, a latent digest divergence across every
+  artifact identity in the workspace. <strong>It goes live the moment any real content puts a non-ASCII string
+  into a canonical-JSON <em>key</em></strong> — which nobody has checked. See <a href="#v5">V5</a>.</p>
+  <div class="band bad" style="margin:12px 0 0">
+    <p style="margin-top:0"><strong>The divergence is not merely theoretical across repos — it is already
+    concrete <em>inside one repo</em>.</strong> SpicySearch has <strong>two functions both named
+    <code>canonical_json_bytes</code>, with different orderings</strong>:
+    <code>canonical.py:213</code> uses Python's <code>sort_keys</code>, while
+    <code>artifact_protocol.py:153</code> implements true RFC 8785 UTF-16 code-unit order. They demonstrably
+    disagree — <code>""</code> and <code>"\U00010000"</code> sort in opposite orders under the two rules — so
+    <strong>the same payload has two different digests depending on which import a caller happened to
+    write</strong>.</p>
+    <p style="margin-bottom:0">It is dormant only because every sampled call site uses fixed ASCII keys. That
+    is a property of today's data, not of the code, and it is not asserted anywhere. <strong>Pick one and
+    delete the other before non-ASCII keys arrive</strong> — this is the cheapest item in <a href="#d4">D4</a>
+    and the one with the worst failure mode, because a digest mismatch surfaces as a corrupt artifact rather
+    than as an error.</p>
+  </div>
+</div>
+</section>
+
+<section id="d5">
+<div class="sechead"><span class="chip d">D5</span><h2>Coordinate systems</h2>
+  <span class="why">three fields, not nine spellings of one</span></div>
+
+<p class="lede">This is the single most misread area of the workspace, and the misreading inverted the risk
+ranking. The alarming number is conforming; the quiet one is the hazard.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Field</th><th>Contract</th><th>Declared at</th><th>Permitted values</th></tr></thead>
+<tbody>
+<tr><td><code>rkaf:coordinateSystem</code></td><td>JSON-LD selector, <strong>closed 6-value enum</strong></td>
+  <td class="ev">rulespec <code>constraints/core/source-fragment.cue:19-21</code> — <code>#CoordinateSystem</code>, bound at <code>:89</code> on <code>#TextPositionSelector</code></td>
+  <td class="ev"><code>rkaf:unicode-codepoint</code> · <code>rkaf:utf8-byte</code> · <code>rkaf:utf16-code-unit</code> · <code>rkaf:xml-node-path</code> · <code>rkaf:page-region</code> · <code>rkaf:partner-defined</code></td></tr>
+<tr><td><code>coordinate_system</code></td><td>tabular release field, <strong>open string</strong></td>
+  <td class="ev">rulespec <code>release-records/schemas/extrapolation-release.schema.json:1015-1017</code> — <code>{"minLength": 1, "type": "string"}</code>, no enum; required at <code>:1033</code></td>
+  <td class="ev">anything non-empty — <strong>the standard declines to constrain it</strong></td></tr>
+<tr><td><code>derived_coordinate_system</code></td><td>closed <strong>single</strong> value</td>
+  <td class="ev">same schema, <code>:716</code> — <code>{"const": "unicode-code-points"}</code></td>
+  <td class="ev"><code>unicode-code-points</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="prose"><code>source-fragment.cue</code> is the <em>sole</em> authority. Confirmed empty of coordinate
+vocabulary: <code>crates/rkaf-core/src/generated/concept_assignment.rs</code>,
+<code>constraints/core/evidence-binding.cue</code>, and its compiled twin — zero hits for coordinate,
+codepoint, utf8-byte, utf16 or page-region in all three.</p>
+
+<h3>Populations on disk</h3>
+<div class="scroller">
+<table>
+<thead><tr><th>Records</th><th>Spelling</th><th>Field</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td class="num"><strong>4,249,550</strong></td><td class="ev"><code>unicode-codepoints-half-open</code></td>
+  <td>the <em>open</em> field</td>
+  <td><span class="pill p-ok">CONFORMING</span> They fill a slot the standard deliberately leaves unconstrained, and RuleSpec already aliases that exact spelling in its accept-set at <code>tools/rulespec_release.py:773</code>. <strong>Nothing to remediate.</strong> Count is exact and decomposes cleanly: 1,454,004 × 2 body-retrieval corpus releases, 668,712 × 2 XML distributions, 4,098 search-holdout exam, 20 M1 fixture.</td></tr>
+<tr><td class="num"><strong>8,232,356</strong></td><td class="ev"><code>utf8-byte-range</code> (DocSpec)</td>
+  <td>DocSpec's own</td>
+  <td><span class="pill p-bad">THE REAL HAZARD</span> Not because of the spelling but because it is an <strong>arithmetic disagreement</strong>: byte offsets and codepoint offsets are different numbers over the same text, and no rename reconciles them. <strong>DocSpec's move to bytes was deliberate, not drift</strong> <span class="pill p-move">INFERRED</span> — the evidence is real but circumstantial: archived pre-rewrite code used codepoints and commit <code>e7b577b</code> switched every extractor at once, which is what a decision looks like. <strong>No design doc, commit message or comment states the reason.</strong> Treat the fix as a negotiated decision between two designs rather than a correction — but confirm the intent with DocSpec before assuming it.</td></tr>
+<tr><td class="num"><strong>6</strong></td><td class="ev"><code>rkaf:unicode-codepoint</code></td>
+  <td>the closed enum</td>
+  <td><span class="pill p-move">THE CONFORMING PRODUCER HAS NEVER RUN AT SCALE</span> Zero records under <code>output/</code>. All six are hand-authored, in <code>docs/evidence/single-document-rulespec-projection-2026-07-28/fsis-2026-03227.rulespec.jsonld</code> (three) and its published copy under <code>site/evidence/</code> (three) — both written by <code>build_projection.py</code>, the bespoke predecessor. <strong>That is a fact about these six records, not about capability</strong>: the production module emits the same conforming value (<code>rkaf_projection.py:202,1423</code>) and simply has not been run at volume.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="band">
+  <p style="margin-top:0"><strong>Which producer is correct, and which is live.</strong>
+  <code>docpipeline/rkaf_projection.py:202</code> sets
+  <code>_COORDINATE_SYSTEM = "rkaf:unicode-codepoint"</code> and <em>is</em> reachable — imported by
+  <code>tools/project_document_to_rkaf.py</code>, <code>tools/ablate_candidate_selectors.py</code>,
+  <code>ontology/citations.py</code> and <code>transforms/build_fr_docket_links.py</code>. The second correct
+  producer, <code>enrichment/open_set.py:217</code>, emits the same value but is <strong>dead</strong> — its
+  only reference anywhere in <code>src/</code>, <code>tools/</code>, <code>tests/</code>,
+  <code>scripts/</code> or <code>etl/</code> is a single test.</p>
+  <p style="margin-bottom:0"><strong>The arithmetic split is not the one people name.</strong> SpicyRegs v3
+  already counts UTF-8 bytes, so DocSpec agrees with v3 <em>on the axis</em>; what differs is the label and the
+  structure. The genuine disagreement is <strong>SpicyRegs v1/v2 against everything else</strong> — this is
+  old-SpicyRegs against new-SpicyRegs, with DocSpec on the new side. <strong>Note that SpicySearch's live path
+  is v3</strong>, not the v1/v2 lineage an earlier draft of this page put it on, which makes the split less
+  load-bearing on the sink than it appeared: the byte-counting side already has the consumer. The
+  RuleSpec-validator rejection is a <strong>closed-enum vocabulary mismatch, not an alien coordinate
+  model</strong>.</p>
+</div>
+
+<div class="band ok">
+  <p style="margin-top:0"><strong>Why this is not an emergency, and exactly when it becomes one.</strong>
+  <em>No code anywhere branches on the coordinate-system string to choose byte-versus-codepoint
+  arithmetic.</em> Every numeric consumer hard-codes its own producer's assumption unconditionally — DocSpec
+  always byte-slices, SpicyRegs always codepoint-slices, RuleSpec's validator only checks
+  <code>start &gt; end</code> ordering and never reads the unit, and SpicySearch validates membership in its own
+  two local spellings rather than converting. <strong>Nothing crosses a byte/codepoint boundary, so there is no
+  live correctness bug</strong> — there is unreconciled vocabulary that becomes one the moment anything does.</p>
+  <p style="margin-bottom:0"><strong>Conversion stays feasible only while the inputs survive.</strong>
+  SpicyRegs stores the literal text slice inline, so its records convert with no lookup. DocSpec stores a
+  required <code>source_digest</code> and no text — but the content-addressed blobs are still on disk, keyed by
+  the digest the records reference. <strong>Cost the conversion at <code>99,894 objects / 794 MB</code>, not the
+  <code>5,990 objects / 34 MB</code> this page used to quote</strong>: that smaller figure names a single
+  <em>superseded</em> qualification run contributing 5.4 % of the population, and the conversion has to reach
+  every blob store tied to these records. The feasibility argument is unchanged — the inputs survive, which is
+  the load-bearing part — but the job is roughly <strong>20× larger</strong> than stated. RuleSpec's digest
+  fields are optional, so records omitting them are unconvertible.</p>
+</div>
+
+<div class="band move">
+  <p style="margin:0"><strong>Respelling is cheap in logic and not free in provenance.</strong>
+  <code>unicode-codepoints-half-open</code>, <code>rkaf:unicode-codepoint</code> and
+  <code>unicode-code-points</code> all describe the <em>same arithmetic</em>; respelling changes no offset. But
+  the string sits inside the canonicalised payload, so <strong>respelling changes artifact IDs and invalidates
+  every receipt taken over the old form</strong>. Do it once, deliberately, not incrementally. The work in
+  order: <strong>(a)</strong> settle byte-vs-codepoint with DocSpec — a design negotiation and the only
+  expensive item; <strong>(b)</strong> decide once whether to respell the codepoint family, accepting that
+  artifact IDs move; <strong>(c)</strong> make the conforming producer actually produce, since today it has six
+  records to its name.</p>
+</div>
+</section>
+
+<section id="d6">
+<div class="sechead"><span class="chip d">D6</span><h2>Duplication — which copy is the destination?</h2>
+  <span class="why">unmarked duplication is what stops a migration converging</span></div>
+
+<p class="lede">Mid-migration, duplication is expected. <strong>Unmarked</strong> duplication is the problem,
+because nobody can tell which implementation is being migrated toward. Two of the <strong>nine</strong>
+capabilities below are marked — and the second one raised the standard for what marking means: <strong>a
+comment asserting canonicity cannot detect a violation; an <code>is</code>-identity assertion can, and
+does.</strong></p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Capability</th><th>Copies</th><th>Destination</th><th>Deciding signal</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td><strong>Document-release v3</strong></td><td class="num">1 owner + 3 consumers</td>
+  <td><span class="pill p-ok">MARKED — SpicyRegs owns it</span></td>
+  <td>Explicit ownership claim; every consumer self-disclaims by name</td>
+  <td class="ev"><code>spicy_regs/document_release_v3.py:4-7</code> “shared by the SpicyRegs writer and producer verifier… Consumers in other products implement the same public file protocol without importing this module.” <code>spicysearch/document_release_v3.py:1-4</code> “It does not import SpicyRegs.” <code>rulespec/tools/extrapolation_release_v2.py:1111-1116</code> “intentionally a consumer-side reader… The owning SpicyRegs validator remains responsible.” Field vocabularies match byte-for-byte.</td></tr>
+<tr><td><strong>Semantic ring set</strong></td>
+  <td class="num">RefSpec: 1 definition + 7 sites<br>SpicySearch: 4 independent</td>
+  <td><span class="pill p-ok">MARKED + TEST-ENFORCED inside RefSpec</span><br><span class="pill p-move">UNMARKED across repos</span></td>
+  <td>An identity assertion, not a naming convention</td>
+  <td class="ev">One definition at <code>semantic_foundation.py:55</code>, held by <strong>7</strong> sites — <code>registry</code>, <code>atlas_index</code>, <code>compact_pack</code>, <code>v3_source_data</code>, <code>explorer_rdf</code>, plus two <code>tools/</code> generators — enumerated in <code>tests/test_registry_public_api.py:42-67</code>. (Seven is what that enumeration actually lists; the <em>8</em> this page carried was never supported by its own evidence cell.) <strong>Zero bare-literal redeclarations survive in RefSpec.</strong> The test asserts <code>is</code>-identity, not equality, and says why: “a site that reverts to hand-writing its own frozenset — even with the <em>same</em> four values — fails here.” <strong>Caution on the naive check:</strong> <code>grep -rl legalIdentity src/refspec/</code> returns 10 files, but two of those (<code>v3_registry_codes.py:596,1315</code>, <code>v3_registry_nonemitters.py:627</code>) merely set <code>ring="legalIdentity"</code> as a per-record field <em>value</em> — a usage, not a declaration.</td></tr>
+<tr><td>Segmenters</td><td class="num">2 live + 1 archived</td>
+  <td><span class="pill p-move">UNMARKED across repos</span></td>
+  <td>DocSpec's own history is resolved; the cross-repo question is not</td>
+  <td class="ev">DocSpec <code>archive.json</code>: “Pre-standalone implementation is retained for reference and is excluded from the installed DocSpec package”; commit <code>e7b577b</code> “Archive the inherited SpicyRegs-era code and replace the active package with a dependency-inverted kernel.” <strong>But neither live file references the other</strong> (grep both directions = 0), and both have been frozen since creation. SpicyRegs' side carries a frozen baseline of <strong>1,302 segments</strong> pinned by <code>requires-python = "&gt;=3.12,&lt;3.13"</code> because <code>html.parser</code> changes move boundaries. <strong>That gate fails live right now — the segmenter produces 1,296 against the pinned 1,302.</strong> Whatever moved the boundaries has already moved them; the pin is recording a baseline that no longer reproduces.</td></tr>
+<tr><td>Citation grammars</td><td class="num">3</td>
+  <td><span class="pill p-move">UNMARKED</span></td>
+  <td>Attribution, not succession</td>
+  <td class="ev"><code>spicysearch/identifiers.py:138</code> cites “citations.py <code>_CFR_STANDARD</code>” and documents two bugs it fixed — “Without them <code>040 CFR 060</code> matches at offset 1 and reports <code>40 CFR 60</code>” (<code>:141</code>) and a greedy class reading <code>49 CFR 900.42.</code> as section <code>900.42.</code> (<code>:146-149</code>). <strong>Both bugs are confirmed still live</strong> in <code>spicy_regs/ontology/citations.py:29-34</code>, which lacks the <code>_LEFT</code>/<code>_RIGHT</code> boundary guards, untouched since <code>9b6649c2</code> (2026-07-23) despite 18 later commits to that file. The comments explain why the grammars differ — never “replaces” or “canonical”. No reverse reference exists. See <a href="#v3">V3</a>.</td></tr>
+<tr><td>Canonical JSON</td><td class="num">12 hand-rolled + 1 real library</td>
+  <td><span class="pill p-move">UNMARKED</span></td>
+  <td>The real library is scoped to one format in one repo</td>
+  <td class="ev">See <a href="#d4">D4</a>. <code>rfc8785==0.1.4</code> pinned “for ExtrapolationRelease v2”, not workspace-wide; 1 of 12 sites calls it.</td></tr>
+<tr><td>Coordinate systems</td><td class="num">9 producer sites</td>
+  <td><span class="pill p-move">UNMARKED at bulk volume</span></td>
+  <td>Marked in one low-volume path only</td>
+  <td class="ev">RuleSpec's enum is generated from CUE and authoritative <em>within RuleSpec</em> (<code>source_fragment.rs:1-3</code>, <code>constraints_compile.py:49</code>). SpicyRegs' <code>rkaf_projection.py:34-38</code> deliberately aligns to it — but that path has emitted <strong>6 records</strong>. The bulk producers show no awareness of it. See <a href="#d5">D5</a>.</td></tr>
+<tr><td>Label normalisation</td><td class="num">6</td>
+  <td><span class="pill p-bad">LIVE DIVERGENCE</span></td>
+  <td>Verified by running both</td>
+  <td class="ev"><code>"ﬁle—numéro"</code> → SpicySearch <code>file numéro</code>, RefSpec <code>file—numéro</code>. RefSpec's 5 sites agree with each other. Effect: <strong>silent lookup misses</strong> across the repo boundary.</td></tr>
+<tr><td>Atlas readers</td><td class="num">2 forks + 1 successor</td>
+  <td><span class="pill p-ok">CONVERGING</span></td>
+  <td>The successor targets a different format</td>
+  <td class="ev">SpicySearch's two Atlas 1.0/2.0 readers remain the live path, plus <code>atlas_search_view.py</code> (633 lines) reading the 3.0 Parquet view. Not a third fork of the same thing — it duplicates neither.</td></tr>
+<tr><td>Sparse retrieval</td><td class="num">2 engines</td>
+  <td><span class="pill p-ok">HARMLESS</span></td>
+  <td>Different algorithms, zero shared imports</td>
+  <td class="ev">SpicySearch BM25 constants at <code>engine.py:168-169</code>; RefSpec <code>candidate_retrieval.py:8</code> is an integer cosine approximation, not BM25. Both repos invented character-gram matching independently — as they did graph expansion.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="band move">
+  <p style="margin-top:0"><strong>The reassuring measurement, restated honestly — its old form was inconsistent
+  with its own methodology.</strong> The sweep found <strong>120 duplicate hashes across 828 instances</strong>
+  over <strong>8,868 files / 825 MB</strong>, and concluded “zero <code>.py</code> files byte-identical across
+  live repo boundaries” while claiming archives were <em>excluded</em>. Both cannot be true: the 8,868-file
+  count only reproduces with the archive <strong>included</strong>.</p>
+  <p><strong>Under the scope that actually produces the count, the result is not zero.</strong>
+  <code>spicy-regs/src/spicy_regs/document_release.py</code> and
+  <code>DocSpec/archive/legacy-2026-08-05/src/docspec/document_release.py</code> are byte-identical —
+  <code>d50406db…</code>, 107,153 B. Under the narrower scope, excluding the archive, the “zero” holds but the
+  file count does not.</p>
+  <p style="margin-bottom:0"><strong>So state the scope with the claim.</strong> Across
+  <em>live-to-live</em> repo boundaries no <code>.py</code> file is byte-identical, and that is the finding
+  worth keeping: duplication here is convergent design under a shared contract rather than lifted code, and it
+  can be resolved by naming an owner rather than by a merge. Across <em>live-to-archive</em> boundaries there is
+  exactly one byte-identical Python file, which is expected — the archive is a copy by construction, as
+  <a href="#repo-docspec">D2</a> describes.</p>
+</div>
+</section>
+
+<section id="v1">
+<div class="sechead vol"><span class="chip v">V1</span><h2>The reset — what dies, what survives</h2>
+  <span class="why">state as of 2026-08-10</span></div>
+
+<p class="lede"><code>main</code> is to be reset to <code>origin/main</code> (<code>f1fcb8c</code>,
+2026-07-31), discarding <strong>224 commits — 648 files, +260,563 insertions, −3,641 deletions, none of them
+pushed</strong>. The work is preserved on branch <code>archive/local-work-2026-08-09</code> and annotated tag
+<code>archive/pre-reset-2026-08-09</code>, both at <code>002d56c2</code>.
+<strong>Preserved is not the same as usable: a tag is a rescue option, not a rescue.</strong></p>
+<p class="lede" style="margin-top:-.4rem"><strong>“Ahead” is the wrong word — the branches have
+diverged.</strong> <code>origin/main</code> carries <strong>6 commits that local <code>main</code> does not</strong>
+(all README and docs), from merge-base <code>be04ee53</code>. So this is not a linear 224-ahead relationship,
+and a reset is not a rewind: it moves you onto a tip you have never had. The 224 figure is the count against
+<code>archive/local-work-2026-08-09</code>, which is what the command below targets and what the rescue list is
+scoped to.</p>
+<span class="rd">git -C $WS/spicy-regs rev-list --count origin/main..archive/local-work-2026-08-09
+git -C $WS/spicy-regs rev-list --count archive/local-work-2026-08-09..origin/main
+git -C $WS/spicy-regs diff --shortstat origin/main archive/local-work-2026-08-09</span>
+<span class="when">224 · 6 · 648 files changed, 260563 insertions(+), 3641 deletions(-) · last taken 2026-08-10</span>
+
+<div class="band bad">
+  <p style="margin-top:0"><strong>“The reset destroys the prose and leaves the data” is false, and it was the
+  organising idea of this section.</strong> The reset destroys <strong>~42,000 lines of source</strong> —
+  <code>docpipeline/</code>, <code>enrichment/</code>, <code>ontology/</code> and two <code>corpora/</code>
+  builders — plus two CI workflows and a runtime dependency. Prose is a small part of what goes.</p>
+  <p style="margin-bottom:0"><strong>State it correctly: the reset destroys everything unpushed; only the
+  gitignored <code>output/</code> tree survives.</strong> That is the whole rule, and it is simpler than the
+  version it replaces. <code>output/</code> — roughly 14 GB — is gitignored (<code>.gitignore:11</code>) and
+  untouched by <code>reset --hard</code>. Everything tracked and local-only goes, whatever kind of file it is.
+  Both CI workflows that drive the pipeline — <code>materialize-ontology.yml</code> and
+  <code>rollup-supreme-court-opinions.yml</code> — are local-only, so <strong>the machinery that regenerates the
+  surviving data does not survive with it</strong>.</p>
+</div>
+
+<div class="band bad">
+  <p style="margin-top:0"><strong><code>git clean -fdx</code> is the single biggest risk in this section, and
+  nothing here previously addressed it.</strong> Every <span class="pill p-ok">SURVIVES</span> row below is
+  correct <em>for <code>reset --hard</code> alone</em>, which touches only tracked paths. <strong>Paired with
+  <code>git clean -fdx</code>, the entire ~14 GB <code>output/</code> tree goes</strong> — because
+  <code>-x</code> is precisely the flag that stops honouring <code>.gitignore</code>.</p>
+  <p style="margin-bottom:0">That would take every ontology output, every receipt, every draw and cache, and
+  roughly <strong>20 tools read their inputs from under <code>output/</code></strong>. It is also the
+  unrecoverable direction: none of it is in git, by design, so no tag and no branch brings it back.
+  <strong>If you run anything beyond <code>reset --hard</code>, stop and re-read this box.</strong></p>
+</div>
+
+<div class="band bad">
+  <p style="margin-top:0"><strong>The two highest-priority rescues are neither of the ones this page used to
+  name — and both fail in ways a tag does not cover.</strong></p>
+  <ol class="rank" style="margin-bottom:0">
+    <li><strong><code>.gitmodules</code> is absent from <code>origin/main</code>.</strong> Without it,
+      <code>submodules: true</code> in <strong>15 places across 12 workflows</strong> resolves nothing, and
+      <code>uv sync</code> fails outright on the editable <code>refspec</code> dependency — the submodule is
+      where that path points. <strong>CI breaks repo-wide, immediately, on the first run after the reset.</strong>
+      A tag does not help: tags do not run CI. This is a one-file rescue with repo-wide blast radius, which is
+      the best ratio on this page.</li>
+    <li><strong><code>mcp-server/api/_published.py</code> is live deployed Vercel code</strong> implementing a
+      feature that does not exist upstream. Reset and redeploy and <strong>production silently
+      regresses</strong> — no build error, no failing test, just a capability that stops being served. A tag
+      does not serve traffic. Confirm what is deployed before touching <code>main</code>.</li>
+  </ol>
+</div>
+
+<div class="band ok">
+  <p style="margin-top:0"><strong><code>docs/evidence/</code> is already safe, and was previously ranked highest
+  here in error.</strong> <strong>201 of its 202 files are byte-identical</strong> to copies in
+  <code>DocSpec/archive/legacy-2026-08-05/docs/evidence/</code>. The single difference is
+  <code>build_projection.py</code>, and that difference is a deliberate fork rather than drift. The 11 further
+  files on disk beside them are <em>ignored</em> files — <code>.DS_Store</code>, parquet — not plain-untracked
+  work at risk.</p>
+  <p style="margin-bottom:0">The same holds for two other directories previously listed as exposed:
+  <code>fixtures/releases/</code> is <strong>56/56</strong> reproduced across spicysearch, rulespec and DocSpec,
+  and <code>tests/fixtures/</code> is <strong>19/19</strong>. None of these three needs a pre-reset copy-out.
+  <em>Verify the copies exist before you rely on this</em> — but do not spend the rescue window on them.</p>
+</div>
+
+<div class="band move">
+  <p style="margin-top:0"><strong>A runtime dependency lives inside <code>docs/evidence/</code> — but it fails
+  soft, not hard.</strong> <code>tools/project_document_to_rkaf.py:344</code> resolves its default JSON-LD
+  context from <code>docs/evidence/single-document-rulespec-projection-2026-07-28/rkaf-context.jsonld</code>
+  (36,413 B, absent from <code>origin/main</code>). It is a real lookup path, taken whenever no
+  <strong><code>--context-file</code></strong> is passed — note the flag name; <code>--context</code> does not
+  exist.</p>
+  <p><strong>When the file is missing, <code>find_context</code> returns <code>None</code>, warns to stderr and
+  the tool exits 0.</strong> That downgrades this from “the rescue is mandatory” to “the tool quietly stops
+  attaching a context and reports success” — which is worse in one specific way, since a soft failure with a
+  zero exit code is exactly the kind of thing a pipeline does not notice.</p>
+  <p style="margin-bottom:0">The same directory holds <code>build_projection.py</code> (30,194 B), the
+  hand-authored predecessor that <code>rkaf_projection.py</code> generalises and <strong>the best explanation
+  of that module's shape</strong>. It is <em>not</em> “the only thing that has ever emitted a conforming
+  <code>rkaf:unicode-codepoint</code> record” — the production module emits the same value at
+  <code>rkaf_projection.py:202,1423</code>. And per the box above, 201 of 202 files here already exist
+  byte-identical in DocSpec's archive, <code>build_projection.py</code> being the one deliberate exception.</p>
+</div>
+
+<div class="band move">
+  <p style="margin-top:0"><strong>DocSpec's campaign seal is already half-broken, and today the fix is one
+  command.</strong> The seal pins SpicyRegs commit <code>adbd5a2b</code>; HEAD is now <code>002d56c2</code>.
+  The file digest still matches, so <code>run-tier</code> resume passes — but <code>prepare</code> and
+  <code>run-all</code> already <strong>fail closed</strong> at
+  <code>fr_mirrulations_qualification.py:134</code>. <strong>The seal behaving this way is it working
+  correctly.</strong></p>
+  <p style="margin-bottom:0"><strong>The reset removes the cheap fix.</strong> While
+  <code>main</code> still points at <code>adbd5a2b</code>, <code>git checkout main</code> in spicy-regs restores
+  the pinned state with the archive branch retaining the extra commit. Once <code>main</code> moves to
+  <code>f1fcb8c</code>, the file the digest is taken over —
+  <code>corpora/mirrulations_document_corpus.py</code> — is gone, converting a commit-pin mismatch into an
+  <strong>unrecoverable</strong> one.</p>
+</div>
+
+<div class="band ok">
+  <p style="margin:0"><strong>The one place the reset actively helps.</strong> <code>f1fcb8c</code> is
+  <em>exactly</em> the commit DocSpec's clean-room AST fingerprint pins
+  (<code>conformance/predecessor-code-fingerprints-v1.json</code>, commit <code>f1fcb8c9</code> / tree
+  <code>bc87ead2</code>). Resetting to <code>origin/main</code> restores the tree the fingerprint was taken
+  over, so the inverted “must <em>not</em> resemble” assertion keeps working. Nothing to do.</p>
+</div>
+
+<h3>Rescue list</h3>
+<div class="scroller">
+<table>
+<thead><tr><th>Asset</th><th>Tracked?</th><th>On origin/main</th><th>Outcome</th><th>Action</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="5">Destroyed by the reset — rescue required</td></tr>
+<tr><td><strong><code>.gitmodules</code></strong></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED — CI breaks repo-wide</span></td>
+  <td><strong>Highest priority.</strong> One file. Without it <code>submodules: true</code> (15 places, 12 workflows) resolves nothing and <code>uv sync</code> fails on the editable <code>refspec</code> dep. <strong>A tag does not run CI.</strong></td></tr>
+<tr><td><strong><code>mcp-server/api/_published.py</code></strong></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED — live production regresses</span></td>
+  <td><strong>Second priority.</strong> Live deployed Vercel code implementing a feature absent upstream. Reset-and-redeploy silently drops it. <strong>A tag does not serve traffic.</strong></td></tr>
+<tr><td><code>src/spicy_regs/corpora/mirrulations_document_corpus.py</code></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED — and DocSpec depends on it</span></td>
+  <td>DocSpec re-hashes this exact file on every manifest validation and resolves it <code>strict=True</code> at a hardcoded path. <strong>It cannot simply be moved</strong> — see <a href="#v2">V2</a>: repoint DocSpec's pin first, or leave the file exactly where it is.</td></tr>
+<tr><td><code>src/spicy_regs/ontology/</code></td><td>tracked</td><td class="num">0 of 21 files · 13,233 lines</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td>Net-new subsystem. Triage in <a href="#v2">V2</a> — the edge-table half is a PR candidate, not a moat.</td></tr>
+<tr><td><code>src/spicy_regs/docpipeline/</code> + <code>enrichment/</code></td><td>tracked</td>
+  <td class="num">0 of 24 files · +29,168 insertions<br><strong>0 deletions</strong></td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td><strong>Zero deletions is the tell</strong>: pure addition, never a modification of upstream code. Extraction target, not a PR.</td></tr>
+<tr><td><code>src/spicy_regs/corpora/body_retrieval_corpus.py</code></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td>Carries a live defect (<a href="#v3">V3</a>) — rescue, then fix, then decide destination.</td></tr>
+<tr><td>Both pipeline CI workflows</td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td><code>materialize-ontology.yml</code>, <code>rollup-supreme-court-opinions.yml</code> — the only automation that rebuilds the surviving data.</td></tr>
+<tr class="grp"><td colspan="5">Destroyed — lower priority, but newly identified and not previously listed</td></tr>
+<tr><td><code>docs/tables/</code></td><td>tracked</td><td class="num">12 net-new</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td>A proceedings-centric <strong>schema rewrite</strong>, not the incremental edits the directory name suggests. Worth reading before discarding.</td></tr>
+<tr><td><code>docs/superpowers/</code></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td><strong>Authored RIN and ontology specs</strong> — despite the name, <em>not</em> a vendored plugin. This is original design work.</td></tr>
+<tr><td><code>sample-data/</code></td><td>tracked</td><td class="num">absent</td>
+  <td><span class="pill p-bad">DESTROYED</span></td><td>Low value individually; cheap to carry.</td></tr>
+<tr><td><code>plugins/spicyregs/</code></td><td>tracked</td><td class="num">bugfix absent</td>
+  <td><span class="pill p-bad">DESTROYED</span></td>
+  <td>Contains a URL bugfix that exists nowhere upstream — a small, self-contained PR candidate.</td></tr>
+<tr><td><code>docs/evidence/</code></td><td>tracked</td><td class="num">0 of 202 files</td>
+  <td><span class="pill p-ok">ALREADY REPRODUCED ELSEWHERE</span></td>
+  <td><strong>Reprioritised down.</strong> 201 of 202 byte-identical in <code>DocSpec/archive/legacy-2026-08-05/docs/evidence/</code>; the one difference (<code>build_projection.py</code>) is a deliberate fork. The <code>d165350</code> contamination notice is <em>not</em> here — it is <code>docs/decisions.md</code>, and it is pushed.</td></tr>
+<tr class="grp"><td colspan="5">Survives the reset untouched — no action needed</td></tr>
+<tr><td><strong><code>output/</code> — ~14 GB</strong></td>
+  <td class="num">gitignored (<code>.gitignore:11</code>)</td><td class="num">n/a</td>
+  <td><span class="pill p-ok">SURVIVES</span></td>
+  <td>All 9 present ontology outputs, every receipt, every draw and cache stay on disk.</td></tr>
+<tr><td><code>output/scale-dr-10k-2026-08-05/cache-xml/</code></td><td class="num">gitignored</td><td class="num">n/a</td>
+  <td><span class="pill p-ok">SURVIVES</span></td>
+  <td>Three of DocSpec's four embedded paths point here and are safe. Only the fourth — the builder above — is at risk.</td></tr>
+<tr><td><code>draw-manifest-final.json</code></td><td class="num">gitignored</td><td class="num">n/a</td>
+  <td><span class="pill p-ok">SURVIVES</span></td><td>None.</td></tr>
+<tr><td>DocSpec's fingerprint tripwire</td><td class="num">lives in DocSpec</td>
+  <td class="num">pins <code>f1fcb8c</code></td>
+  <td><span class="pill p-ok">RESTORED, NOT BROKEN</span></td>
+  <td>The reset target <em>is</em> the pinned commit.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="v2">
+<div class="sechead vol"><span class="chip v">V2</span><h2>Extraction triage — where each subsystem lands</h2>
+  <span class="why">state as of 2026-08-10</span></div>
+
+<p class="lede">Ownership makes this a forced choice rather than a preference. Every net-new subsystem in a repo
+you do not own must go somewhere: back upstream as a contribution, into a repo you do own, or into the bin.</p>
+
+<div class="band ok">
+  <p style="margin-top:0"><strong>The strongest argument available: the local work is a correctness rescue, not
+  a private fork.</strong> The paired receipt at
+  <code>docs/evidence/rulespec-stabilization-2026-07-24/paired-receipt.json</code> records
+  <code>inputs_match: true</code> — same inputs, both sides — and then:</p>
+  <ul>
+    <li><code>rule_targets</code> baseline carried <strong>247,229 invalid-docket-syntax</strong> and
+      <strong>47,222 docket-not-in-source</strong> (plus 12 invalid-CFR-reference); the candidate drives
+      <strong>every counter to 0</strong>.</li>
+    <li><code>proceedings</code> baseline carried <strong>305,807 self-predecessor edges</strong> — roughly
+      90 % of rows pointing at themselves — plus 84,888 invalid-docket-syntax and 12,215 docket-not-in-source;
+      candidate <strong>0, 0 and 0</strong>.</li>
+  </ul>
+  <p style="margin-bottom:0"><strong>Upstream ships that defective data today.</strong> That is the decisive
+  argument for sending the edge tables back as a <code>civictechdc</code> PR rather than holding them as a
+  moat: the fix is not a feature you would be giving away, it is a defect you are the only one who has found.
+  <strong>Holding it back means the moat is their defect.</strong></p>
+</div>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Component</th><th>Size / state</th><th>Destination</th><th>Severance cost</th><th>Evidence</th></tr></thead>
+<tbody>
+
+<tr class="grp"><td colspan="5">ontology/ — 21 files · 13,233 lines · absent upstream</td></tr>
+<tr><td><strong>Edge tables + their correctness fixes</strong><br>rule_targets, proceedings, authority_edges</td>
+  <td class="num">9 outputs · 1,024,593 rows</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span></td>
+  <td class="num">low — it is a fix, not a fork</td>
+  <td class="ev">Paired receipt above. Upstream ships the defective version today. <strong>Withholding this is the only option with an ethical cost.</strong></td></tr>
+<tr><td><code>citations.py</code></td><td class="num">carries 2 live defects</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span> — after the fix</td>
+  <td class="num">low, but do not ship it broken</td>
+  <td class="ev">Fabrication at <code>:657</code> and sentence-final drop at <code>:32</code>, both reproduced (<a href="#v3">V3</a>). Three prior commits already attacked this class — <code>1400140</code>, <code>fdb5fd6</code>, <code>9394aa0</code> — so upstream has the appetite for the fix.</td></tr>
+<tr><td><code>receipt.py</code> + <code>pipelines/materialized.py</code></td><td class="num">receipt machinery</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span></td><td class="num">low</td>
+  <td class="ev">Generic attestation machinery with no product thesis in it. The whole <code>ontology/</code> package's outbound footprint into <code>spicy_regs</code> is <strong>3 import statements</strong>, all in <code>receipt.py</code>.</td></tr>
+<tr><td><code>transforms/build_rule_targets.py</code></td><td class="num">reaches published tables</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span></td><td class="num">low</td>
+  <td class="ev">Carries the citation defect into output at <code>:213</code>; ships with the edge-table fix.</td></tr>
+<tr><td>Both pipeline CI workflows</td><td class="num">local-only</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span></td><td class="num">low</td>
+  <td class="ev">Absent from <code>origin/main</code>; they are what makes the PR reproducible rather than a code drop.</td></tr>
+<tr><td>USC readers — <code>uscode_olrc.py</code>, <code>uscode_uslm.py</code></td>
+  <td class="num">20,865 + 10,976 + 3,721 rows</td>
+  <td><span class="pill p-ok">UPSTREAM PR</span></td><td class="num">low</td>
+  <td class="ev">Zero <code>src/</code> importers <em>by design</em> — consumed as digest-stamped parquet by <code>ontology/act_index.py:280,297,384</code>. See <a href="#repo-spicyregs">D2</a>.</td></tr>
+<tr><td><code>ann_index.py</code> · <code>candidate_channels.py</code></td><td class="num">self-declared non-production</td>
+  <td><strong>RefSpec</strong> (research lane)</td><td class="num">low</td>
+  <td class="ev">Own docstrings: <code>ann_index.py:36</code> “Nothing here is wired into production”; <code>candidate_channels.py:38</code> “None of these channels is wired into production. They exist to be measured.” <em>But</em> both have live <code>tools/</code> importers and <code>pyproject.toml:58-59</code> documents them as deliberately retained. <strong>Measurement scaffolding, not litter.</strong></td></tr>
+<tr><td><code>relation_findings.py</code> · <code>codex_cli.py</code> (ontology copy)</td><td class="num">526 lines, live</td>
+  <td><strong>RefSpec</strong></td><td class="num">low</td>
+  <td class="ev"><code>ontology/codex_cli.py</code> is the <em>live</em> one — imported by <code>corpora/relation_exclusion_evaluation.py:31</code>, registered at <code>pyproject.toml:139</code>. Do not confuse it with the dead <code>docpipeline/adapters/</code> copy.</td></tr>
+
+<tr class="grp"><td colspan="5">docpipeline/ + enrichment/ — 24 files · +29,168 insertions · zero deletions</td></tr>
+<tr><td><strong><code>rkaf_projection.py</code> — the kernel</strong></td>
+  <td class="num">3,124 lines total</td>
+  <td><strong>Rulespec Extrapolator</strong></td>
+  <td class="num">bounded: <strong>36 lines</strong> of external symbols</td>
+  <td class="ev">Already assigned: <code>docs/migration/spicysearch-product-migration-manifest.json</code> item 9 sets <code>disposition: "reimplement"</code>, destination “extraction projections to Rulespec Extrapolator”. The kernel's entire external dependency is <code>text_digest</code> (<code>ontology/common.py:78-81</code>, 4 lines) + <code>resolve_exact_evidence_offsets</code> (<code>ontology/llm.py:86-117</code>, 32 lines) — both verified, both exactly the two imported at <code>:79-80</code>. The module never touches <code>artifact.coordinates</code>, <code>regions</code> or <code>SourceRegion</code>. <strong>Its headline line-count breakdown does not reproduce — see <a href="#v4">V4</a> — but the mechanical claims that decide cost all held exactly.</strong></td></tr>
+<tr><td>— LLM separation, proven</td><td class="num">test passes green</td><td>—</td><td class="num">already done</td>
+  <td class="ev"><code>tests/test_docpipeline_rkaf_projection.py:560</code> <code>test_the_no_model_projection_is_complete_without_a_provider</code> builds a complete <strong>11-type</strong> graph including <code>SourceFragment</code> and <code>TextPositionSelector</code>, asserting <code>run_record["model"] is None</code>. Re-run: <strong>1 passed in 0.85 s</strong>. The extraction does not have to carry a model provider.</td></tr>
+<tr><td>— and it was already extracted once</td><td class="num">diff = 48 lines</td><td>—</td>
+  <td class="num">precedent exists</td>
+  <td class="ev"><code>DocSpec/archive/legacy-2026-08-05/src/docspec/docpipeline/rkaf_projection.py</code> — <strong>identical 3,124 lines</strong>, 48 differing lines, and <code>sed 's/docspec/spicy_regs/g'</code> renders it <strong>byte-identical</strong> to the original. <strong>Zero semantic drift, proven mechanically.</strong> Mechanical code motion is a solved, cheap problem here.</td></tr>
+<tr><td><code>enrichment/managed_release.py</code></td><td class="num">legacy, <strong>not dead</strong></td>
+  <td><strong>Rulespec Extrapolator</strong>, with its callers</td><td class="num">medium</td>
+  <td class="ev">Has live non-test importers — <code>tools/ablate_candidate_selectors.py:80</code>, <code>tools/project_document_to_rkaf.py:175-181</code>, <code>enrichment/accepted_output.py:13</code>. <code>enrichment/__init__.py:3-6</code> calls these “Legacy RefSpec-backed adapters… while their callers migrate”; the replacement is <code>candidate_release.py</code>. <strong>Mid-migration, not litter.</strong></td></tr>
+<tr><td><code>docpipeline/retrieval.py</code></td><td class="num"><strong>5,479 lines</strong> — the largest file</td>
+  <td><span class="pill p-dead">DELETE</span></td><td class="num">free</td>
+  <td class="ev">Zero non-test importers, zero entrypoints, unreached even inside its own package. <code>docpipeline/__init__.py</code> is 0 bytes; none of the 50 <code>[project.scripts]</code> match.</td></tr>
+<tr><td><code>docpipeline/relation_task.py</code></td><td class="num">2,102 lines</td>
+  <td><span class="pill p-dead">DELETE</span></td><td class="num">free</td>
+  <td class="ev">Self-declares <code>PUBLICATION_ELIGIBLE = False</code> at <code>:54</code>, consumed at <code>:1575</code>. <strong>Caveat: that flag alone is not a death certificate</strong> — two <em>live</em> console-script modules declare it too.</td></tr>
+<tr><td><code>docpipeline/executor.py</code></td><td class="num">536 lines</td>
+  <td><span class="pill p-dead">DELETE</span></td><td class="num">free</td><td class="ev">No consumer of any kind.</td></tr>
+<tr><td><code>docpipeline/adapters/codex_cli.py</code></td><td class="num">553 lines</td>
+  <td><span class="pill p-dead">DELETE</span></td><td class="num">free</td>
+  <td class="ev">Sole importer is <code>tests/test_docpipeline_adapter_codex_cli.py</code>. The live duplicate at <code>ontology/codex_cli.py</code> (526 lines) serves the CLI. 444 identical lines, similarity 0.823.</td></tr>
+<tr><td><code>enrichment/open_set.py</code> · <code>accepted_output.py</code></td><td class="num">241 + 52 lines</td>
+  <td><span class="pill p-dead">DELETE</span></td><td class="num">free</td>
+  <td class="ev">One test importer each, no production reach. <code>open_set.py:217</code> is a <em>correct</em> coordinate producer that never runs — see <a href="#d5">D5</a>.</td></tr>
+
+<tr class="grp"><td colspan="5">corpora/ + sources/ — the ingestion half</td></tr>
+<tr><td><strong><code>build_draw</code></strong> (the real selector)</td>
+  <td class="num">109 lines; ~150 with helpers</td>
+  <td><strong>DocSpec</strong></td>
+  <td><span class="pill p-bad">BLOCKED — no discovery port</span></td>
+  <td class="ev"><code>mirrulations_document_corpus.py:104-212</code>. <strong>Already ports-shaped</strong>: takes <code>objects: Iterable[Mapping[str, Any]]</code> and performs <strong>zero I/O</strong>. Blocked because DocSpec's <code>SourceCatalog</code> Protocol (<code>ports/source_catalog.py:41</code>) exposes only <code>open/verify/describe/stream</code>, each taking a ref to an <em>already-frozen</em> distribution. <strong>A <code>SourceDiscovery</code>-style port emitting <code>Iterable[SourceItem]</code> unblocks this and anything downstream that needs to select rather than read.</strong></td></tr>
+<tr><td><code>_draw_documents</code></td><td class="num">exactly 15 lines</td>
+  <td><strong>DocSpec</strong></td><td class="num">trivial</td>
+  <td class="ev"><code>:280-294</code> — a <strong>validator, not a selector</strong>: schema version, draw-identity digest, array shape, ID regex, uniqueness. Earlier readings named it as DocSpec's target; the real target is <code>build_draw</code>.</td></tr>
+<tr><td><code>body_retrieval_corpus.py</code></td><td class="num">carries a live defect</td>
+  <td><strong>DocSpec</strong></td><td class="num">medium — fix first</td>
+  <td class="ev"><code>validate_body_cache</code> at <code>:917</code> claims “Fails closed” and does not (<a href="#v3">V3</a>).</td></tr>
+<tr><td>Remaining <code>corpora/</code> research</td><td class="num">23,746 lines, 0 external importers</td>
+  <td><span class="pill p-dead">DELETE</span> or RefSpec research</td><td class="num">free</td>
+  <td class="ev">No importer outside itself.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="band move">
+  <p style="margin:0"><strong>Licence flag for the upstream PR — a governance question, not a bug.</strong>
+  <code>pyproject.toml:32</code> adds <strong>pymupdf</strong>, licensed <strong>AGPL-3.0 or commercial
+  Artifex</strong>, to an <strong>MIT</strong> Civic Tech DC repository. The line is annotated as <em>“a
+  deliberate choice”</em> and justified on measured grounds (+0.07 % text, 2.5× faster than pypdf across
+  18 real PDFs, per-word bounding boxes, local and model-free). That reasoning is sound for private use. It is
+  a different question upstream in an MIT project, and different again for a hosted service, where AGPL §13's
+  network clause is the whole point of the licence. <strong>Raise it in the PR description rather than letting
+  a reviewer find it.</strong></p>
+</div>
+</section>
+
+<section id="v3">
+<div class="sechead vol"><span class="chip v">V3</span><h2>Broken today</h2>
+  <span class="why">state as of 2026-08-10 — reproduced, not inferred</span></div>
+
+<p class="lede">Distinct from migration debt: these fail now. Every row was independently reproduced during a
+verification pass rather than inherited from an earlier report.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>What</th><th>Evidence and reproduction</th><th>Effect</th></tr></thead>
+<tbody>
+
+<tr class="grp"><td colspan="3">Live defects reaching published output</td></tr>
+<tr><td><strong><code>parse_cfr_citation</code> fabricates citations that are not in the input</strong></td>
+  <td class="ev"><code>spicy_regs/ontology/citations.py:657</code>. Reproduced verbatim:
+    <code>"40 CFR 60 and 12 CFR 220"</code> → <code>['40-60', '12-220', <strong>'40-1'</strong>]</code>. The
+    third is invented — no “40 CFR 1” appears in the input. The tail-scanning loop re-reads digits after the
+    first citation and attaches them to the <em>first</em> title; regex backtracking defeats the negative
+    lookahead <code>(?!\s*C\.?F\.?R\.?)</code>. Reaches published tables through
+    <code>transforms/build_rule_targets.py:213</code> and <code>docpipeline/rkaf_projection.py:866</code>
+    (third caller <code>tools/run_citation_bakeoff.py:496,513</code>).
+    <span class="rd">python -c "from spicy_regs.ontology.citations import parse_cfr_citation; print(parse_cfr_citation('40 CFR 60 and 12 CFR 220'))"</span></td>
+  <td>Phantom regulatory identities in output, and the minted parts are plausible, so nothing downstream rejects them. <strong>Three</strong> prior commits already attacked this class — <code>1400140</code>, <code>fdb5fd6</code>, <code>9394aa0</code>, each closing a different phantom.</td></tr>
+
+<tr><td><strong>A CFR citation ending a sentence is dropped whole</strong></td>
+  <td class="ev">Same file, <code>_CFR_STANDARD</code> at <code>:32</code>. Reproduced:
+    <code>"49 CFR 900.42."</code> → <code>[]</code>, while <code>"49 CFR 900.42;"</code> →
+    <code>[('49','900','42')]</code>. The section subpattern
+    <code>[A-Za-z0-9][A-Za-z0-9.-]*</code> swallows the terminal period, <code>_cfr_section</code> rejects it,
+    and a fail-closed guard discards the entire citation rather than degrading to part level.
+    <strong>SpicySearch fixed this exact bug in its own grammar and documented it</strong>
+    (<code>identifiers.py:146-149</code>); SpicyRegs lacks the <code>_LEFT</code>/<code>_RIGHT</code> boundary
+    guards.</td>
+  <td>Silent total loss, not a misparse — the citation simply is not there. <strong>A full stop is the most common character to follow a citation in regulatory prose.</strong></td></tr>
+
+<tr><td><strong><code>validate_body_cache</code> says “fails closed” and does not</strong></td>
+  <td class="ev"><code>corpora/body_retrieval_corpus.py:917</code>, docstring “Re-verify every cached body
+    against the lock. Fails closed.” It validates lock→disk only, <strong>never disk→lock</strong>. Measured:
+    <code>output/scale-dr-10k-2026-08-05/cache-xml/</code> holds <strong>6,408 documents and 6,408
+    receipts</strong> under a <code>source-lock.json</code> declaring <code>source_count = 3333</code> with
+    3,333 entries. Quarantine reports 1. <strong>Validation passes.</strong> The lock and every in-lock receipt
+    stop at 07:53:19 while the 3,075 orphans run to 09:06:10 — a stage-2 run died leaving a stale stage-1 seal.
+    <strong>One loop inside <code>validate_body_cache</code> fixes it.</strong></td>
+  <td>3,075 documents are present, unattested, and invisible to the check that exists to find exactly this — <strong>and DocSpec's sealed catalogs point at that exact directory</strong>, so a campaign resume propagates captures the producer's own seal does not cover.</td></tr>
+
+<tr class="grp"><td colspan="3">Things that will not run</td></tr>
+<tr><td><strong>The only real-corpus snapshot no longer opens</strong></td>
+  <td class="ev"><code>spicysearch/snapshot.py:1345</code> raises <code>IntegrityError</code>; supported fields
+    at <code>:262-292</code>. The snapshot at <code>snapshots/holdout-exam-2026-08-01</code> (17 MB) carries
+    <strong>27 fields against 30 expected — missing exactly three, extra none</strong>:
+    <code>agency_crosswalk</code>, <code>agency_prior_policy_version</code>,
+    <code>chunking_policy_version</code>. <strong>The check is set <em>equality</em>, not superset</strong>, so
+    a field the snapshot lacks is as fatal as one it should not have. <code>git blame</code> dates the
+    additions to <code>bb610bd</code> and <code>1a0d835</code> on 2026-08-02, <strong>14 and 19 hours
+    after</strong> the 2026-08-01T23:00:00Z build — and both edited the V1 field set <em>in place with no
+    <code>schema</code> bump</em>, which is why the reader reports “fields differ” rather than a version
+    mismatch. <strong>Zero tests reference <code>snapshots/</code></strong>, which is why nothing caught it.
+    <span class="rd">python -c "from spicysearch.snapshot import open_published_snapshot as o; o('snapshots/holdout-exam-2026-08-01')"</span></td>
+  <td>Reproduced twice, including on a scratchpad copy that gained no files. <strong>Still open.</strong></td></tr>
+
+<tr><td><strong>DocSpec cannot export the full campaign tier</strong></td>
+  <td class="ev">Re-ran <code>export_selection_ledger.py</code> in memory against both tiers, writing nothing.
+    Intermediate reproduces the commit's own validation <em>exactly</em>:
+    <code>rows=1000 skipped=0 families={'federal-register': 641, 'mirrulations': 359}</code>. Full raises at
+    <code>:259-260</code>: <strong><code>LedgerExportError: run holds no run-selection layer</code></strong>.
+    The full tier is missing <code>run-selection</code>, <code>run-store-receipts</code> and
+    <code>execution-task-results</code> — all three present in smoke and intermediate — because it was never
+    sealed. <strong>The blocker was never format translation.</strong> The converter now exists and still
+    cannot move 106,943 of the 205,753 files.</td>
+  <td>Exportable today: <strong>1,000 documents</strong>, about 3 % of blobs.</td></tr>
+
+<tr><td>Two SpicyRegs tests fail at collection</td>
+  <td class="ev"><code>tests/managed_release_support.py:8,11</code> ·
+    <code>tests/elsst_managed_release_support.py:10,16</code> import refspec modules deleted by RefSpec
+    <code>71581fd</code> (−708, −2,871, −2,234 lines). Only <code>elsst_acquisition</code> moved to
+    <code>registry/adapters/</code>; the other three have no successor. The tests that collapse are
+    <code>test_connected_concept_search.py</code> and <code>test_accepted_output_real_boundary.py</code>.</td>
+  <td><strong>An editable install has no version boundary to catch this.</strong> A packaged dependency would have failed at install time.</td></tr>
+
+<tr><td>The R2 Iceberg catalog cannot initialise locally</td>
+  <td class="ev"><code>R2_CATALOG_URI</code> / <code>_WAREHOUSE</code> / <code>_TOKEN</code> absent from
+    <code>.env</code> (key presence only, no values read). Separately,
+    <code>iceberg.py:151-161</code> admits the DELETE “does not reliably remove prior rows on the R2 Data
+    Catalog”, accumulating physical duplicates.</td>
+  <td><strong>Every production row count in this workspace is asserted, not verified.</strong></td></tr>
+
+<tr class="grp"><td colspan="3">Checks that cannot fail, or pass when they should not</td></tr>
+<tr><td><strong>The drift test for the resource catalog skips instead of failing</strong></td>
+  <td class="ev">RefSpec's resource catalog grew <strong>33 → 89 resources</strong> (56 added, none removed).
+    <code>spicy-regs/policies/profile-resource-applicability-v0.json:559-560</code> still pins
+    <code>sha256:c0bcce73…</code>; RefSpec now states <code>sha256:a731fef9…</code>, counts re-derived by
+    parsing the arrays. <code>test_policy_inputs_cross_repository.py:38-64</code> classifies that state as
+    “UPSTREAM TORN” and <strong>suspends the assertion</strong> (<code>:76-78</code>) rather than failing. It
+    does fail on ordinary drift, and has its own test proving so.</td>
+  <td>1 skipped, 3 passed. <strong>The one condition it was written to catch is the one it excuses.</strong></td></tr>
+
+<tr><td><strong>A source input fails its own receipts</strong></td>
+  <td class="ev">Two receipts pin <code>fr_docket_links</code> at <strong>715,080 rows</strong> /
+    <code>sha256:b3409f0a…</code>. The file at that exact path hashes <code>sha256:e55cc0ab…</code> with
+    <strong>893,766 rows</strong>, rebuilt after both receipts were written. <em>Contrast:</em> re-hashing
+    found <strong>9 of 9 generation artifacts still matching</strong> — the failure is specific to a source
+    input rebuilt underneath its attestations. Whether the rebuild is <em>better</em> is unknown; see
+    <a href="#v5">V5</a>.</td>
+  <td>The canonical instance of this workspace's recurring failure mode. See <a href="#v4">V4</a>.</td></tr>
+
+<tr><td>RefSpec's <code>atlas:</code>/<code>rkaf:</code> collision gate is red at HEAD
+  <span class="pill p-move">DELIBERATE</span></td>
+  <td class="ev">Red <em>on purpose</em>. <code>tests/test_atlas_rkaf_adoption.py</code> (+246) asserts no
+    <code>atlas:</code> local name duplicates an <code>rkaf:</code> one. Verified against clean HEAD blobs:
+    <strong>7 collisions</strong>. Working-tree work is in flight (down to 2) but uncommitted.</td>
+  <td>A gate written before the remediation it demands. Do not "fix" by weakening the gate.</td></tr>
+
+<tr><td><strong>RefSpec has no CI at all</strong></td>
+  <td class="ev">Measured: <code>RefSpec/.github</code> <strong>does not exist</strong> — zero workflows. Neither
+    the collision gate above nor <code>audit-registry-real-data</code> runs on push; both are local-only.
+    <code>make test</code> is
+    <code>check-generated audit-registry-inventory test-json-binding test-atlas-v3 test-package</code>, and the
+    real-data gate is outside it.</td>
+  <td><strong>The discipline is written but not automated.</strong> Every RefSpec gate on this page is enforced only when someone remembers to run it.</td></tr>
+
+<tr><td><code>REFSPEC_CHECKOUT</code> is set nowhere</td>
+  <td class="ev">Not in any Makefile, workflow, <code>.env</code> or <code>.envrc</code>, in any of the four
+    repos. Largely moot now — RuleSpec's gated tests were deleted with the vendored copy they guarded, and
+    SpicySearch's four equivalents fall back to vendored copies and run normally, while a fifth bypasses the
+    variable entirely and is live. <strong>Do not "fix" this by setting it in CI</strong> without first
+    checking what each test does when it is set.</td>
+  <td>An environment variable widely believed to be a master switch, which is not one.</td></tr>
+
+<tr><td>DocSpec's release profile disagrees with its own code</td>
+  <td class="ev"><code>profiles/canonical-release-manifest-v1.json</code> declares
+    <code>"formatVersion": "1.0"</code>; the code emits and requires <code>"1.1"</code>. Verified.</td>
+  <td><strong>Fix before anything external pins it.</strong></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="v4">
+<div class="sechead vol"><span class="chip v">V4</span><h2>How this programme has been wrong</h2>
+  <span class="why">one failure mode, repeatedly — read before trusting any stored number</span></div>
+
+<p class="lede">This section exists because the errors were not random. They share a mechanism, and that
+mechanism is a finding about the workspace rather than bookkeeping about earlier drafts. Individual corrected
+values live in the sections above, stated once, in their current form; what is collected here is the
+<em>pattern</em>, and the specific cases where a figure was wrong by an order of magnitude or pointed the
+opposite way.</p>
+
+<div class="band bad">
+  <p style="margin:0;font-size:.95rem"><strong>Every figure that survived re-measurement was recomputable from
+  a file whose digest still matched. Every figure that failed was read out of a receipt whose input had been
+  rebuilt underneath it.</strong> A receipt proves what was computed; it never proves that its inputs still
+  exist in that form. <strong>A digest that is not re-checked at read time is decoration.</strong></p>
+</div>
+
+<h3>Where a number was inverted or wrong by an order of magnitude</h3>
+<div class="scroller">
+<table>
+<thead><tr><th>Claim as made</th><th>What is true</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>The reset's exposure is the <strong>14 GB of <code>output/</code></strong></td>
+  <td><strong>Inverted.</strong> <code>output/</code> is gitignored and survives untouched. The exposure is
+    <code>docs/evidence/</code> — tracked, 202 files, zero upstream. <strong>The reset destroys the prose and
+    leaves the data.</strong></td>
+  <td>The rescue list was pointed at the wrong tree. See <a href="#v1">V1</a>.</td></tr>
+<tr><td>The <strong>4,249,550</strong> non-conforming coordinate records are the scandal</td>
+  <td><strong>Inverted.</strong> They are conforming — they fill an <em>open</em> field the standard declines
+    to constrain, already aliased in RuleSpec's accept-set. The hazard is DocSpec's <strong>8,232,356</strong>
+    byte-ranged records, an arithmetic disagreement; and the conforming producer has emitted
+    <strong>six</strong> records, all hand-authored.</td>
+  <td>A category error — two different fields read as two spellings of one. The whole risk ranking flipped. See <a href="#d5">D5</a>.</td></tr>
+<tr><td>BM25 <strong>loses its ablation</strong></td>
+  <td><strong>Inverted.</strong> It is the largest single win: removing it costs <strong>−0.359
+    nDCG@10</strong>.</td>
+  <td>Would have justified removing the spine of the retrieval engine.</td></tr>
+<tr><td>Citation parser false positives: <strong>1 in 4,777</strong></td>
+  <td><strong>1 in 620</strong> — 7.7× worse. Only the three disagreement cells (108 + 233 + 279) were
+    adjudicated; the 4,157-string agreement cell was never checked. Judge was
+    <code>gemini-3.6-flash</code> at k=1, and the receipt states
+    <code>"determinism": "NOT deterministic."</code></td>
+  <td>The denominator was the corpus, not the sample. A quality claim built on an unexamined majority.</td></tr>
+<tr><td>RuleSpec → RefSpec is <strong>the most expensive edge to sever, and rising</strong></td>
+  <td>It was severed the next day for <strong>−7,221 lines</strong>, because nothing needed a real atlas — only
+    something the validators would accept. An <strong>819-byte</strong> self-authored stub behind the
+    <code>AtlasMembershipReader</code> Protocol replaced 1,532,819 B of vendored corpus and a 702-line reader.</td>
+  <td><strong>Wrong by kind, not degree.</strong> The estimate priced a port and never asked whether the dependency was load-bearing at all. Ask the second question first.</td></tr>
+<tr><td>The 45-artifact closure pin is <strong>the best-engineered artifact in the workspace</strong></td>
+  <td><strong>It was ceremony.</strong> It pinned <strong>24 upstream artifacts and read none of them</strong> —
+    its successor's docstring says so outright. Deleted: <code>profiles/rulespec-dependency.json</code> went
+    from <strong>3,946 B / 14 keys to 801 B / 7 keys</strong>, and <code>make audit-rulespec-pin</code> no
+    longer exists.</td>
+  <td><strong>The disconfirming evidence sat in the same sentence as the compliment</strong> — it had gone ten commits stale while every test stayed green. That is not a closure pin, it is a closure <em>record</em>.</td></tr>
+<tr><td>The Atlas build is <strong>2.6 GB / 26,527 files</strong></td>
+  <td>True of a tree, not an artifact. <strong>96 % of files and 58 % of bytes are HTML preview shards.</strong>
+    The distribution proper is <strong>1,164 files / 1.0 GB</strong>.</td>
+  <td>An output directory quoted as though it were the deliverable.</td></tr>
+<tr><td>Two campaign figures conflict: <strong>106,943</strong> vs <strong>205,753</strong></td>
+  <td>They nest. One tier versus three (8,099 + 90,711 + 106,943, summing exactly). <strong>Neither counts
+    documents</strong> — only <strong>31,672</strong> of 205,753 are captured payload blobs, 15.4 %, and even
+    that overcounts because a mirrulations capture is two blobs.</td>
+  <td>Both numbers were right and both labels were wrong. Check the population before reconciling the arithmetic.</td></tr>
+<tr><td><code>rkaf_projection.py</code> is <strong>2,153 code lines, 44 % portable, ~350-line kernel</strong></td>
+  <td><strong>Does not reproduce.</strong> The file is 3,124 lines (confirmed), but “2,153 code” matches no
+    definition — 2,731 non-blank non-comment, 2,589 excluding docstrings, 1,022 AST logical statements. The
+    44/56 split (1,361 / 1,723) sums to <strong>3,084</strong>, a base matching neither figure, and traces to a
+    single arithmetic error in <code>00-synthesis.md:369-370</code>. <strong>The ~350-line kernel is
+    unfalsifiable as stated</strong> — no kernel boundary is defined anywhere.</td>
+  <td><strong>The extraction case stands; its headline sizing does not.</strong> What survived exactly: the 36-line external surface, the <code>model is None</code> test, and the 48-line-rename DocSpec precedent — which are the claims that actually decide cost.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>The class of failure, and the rule now being applied</h3>
+<div class="band">
+  <p style="margin-top:0"><strong>Across every repo the same thing is being removed: machinery that recorded
+  rather than verified.</strong> RefSpec deleted <code>atlas:confidence</code> — <strong>558,426 triples,
+  every value the literal “1”, zero variance</strong> — because adopting it properly “would mean minting half
+  a million records, each asserting score 1 with a fabricated method, basis, and calibration status, to
+  describe a constant.” RuleSpec found four constraint guards <em>“written in a form CUE silently accepts and
+  never evaluates — the constraints looked enforced and were not,”</em> and that <code>cue vet</code> ran
+  nowhere. DocSpec deleted 19 fictional test-module paths from its conformance matrix and collapsed 588
+  hand-listed file digests into one generated tree digest. And <code>relation_sssom.py</code> was pinned by
+  sha256 in <strong>16 fixture manifests at a digest that no longer matched the file</strong> — harmless only
+  because the validator regex-checked digest <em>shape</em> and never recomputed.</p>
+  <p style="margin-bottom:0"><strong>The counterweight matters as much: this is not deletion for its own
+  sake.</strong> RefSpec <em>added</em> four checks its validator was missing, taking the conformance corpus
+  from <strong>57 cases to 64</strong> — including the discovery that <code>atlas:sourceDigest</code> “was
+  never compared to anything,” so a builder could attach a payload from a different record and pass all eleven
+  gates. <strong>The rule is not <em>fewer checks</em> but <em>every check must be able to fail</em>.</strong>
+  RefSpec states it in a test it committed while still red: <em>“A term with no case behind it is
+  ceremony.”</em></p>
+</div>
+
+<div class="band bad">
+  <p style="margin-top:0"><strong>The same standard, turned on the newest work — because exempting the fixes
+  would repeat the error.</strong> Two current artifacts record rather than verify:</p>
+  <ul>
+    <li><strong>The Atlas 3.0 reader transcribes its provenance instead of checking it.</strong> All seven
+      <code>input.atlas.*</code> digests, the parent <code>fullViewId</code>, and each member's
+      <code>schemaDigest</code> are shape-checked and carried into the receipt, <strong>never compared against
+      an actual distribution</strong>. The reader proves the view is internally intact and proves nothing
+      about what it claims to descend from. Its own docstring is honest about why.</li>
+    <li><strong>The sealed handoff is a document, not a gate.</strong> <code>grep</code> finds no code reading
+      <code>atlas-search-view-pin.json</code> or the intake receipt; the one integration test targets a
+      <em>different</em> build than the sealed one, and derives its “external” pin from the very file it is
+      about to verify. <strong>Nothing would notice if the sealed artifact were replaced.</strong></li>
+  </ul>
+  <p style="margin-bottom:0">That is the identical failure mode as the closure pin above — <strong>caught here
+  at four days old instead of ten commits stale.</strong></p>
+</div>
+</section>
+
+<section id="v5">
+<div class="sechead vol"><span class="chip v">V5</span><h2>Open, conflicting, and unverified</h2>
+  <span class="why">what this page does not know</span></div>
+
+<h3>Genuine conflicts — two readings, neither settled</h3>
+<p class="lede">Stated rather than resolved. Each has evidence on both sides and no pass has closed it.</p>
+
+<div class="scroller">
+<table>
+<thead><tr><th>Question</th><th>Reading A</th><th>Reading B</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><strong><code>authority_edges</code>: 10,618 or 11,793?</strong></td>
+  <td class="ev"><strong>Different corpora.</strong> 10,618 is the ontology generation and its receipt digest <code>0bc929b6…</code> still matches disk today. 11,793 exists <em>only</em> under <code>output/discovery-slice-2026-07-28/</code> and <code>…-rescore-2026-08-01/</code>, both of which contain two parquet files and <strong>no receipt or manifest at all</strong>.</td>
+  <td class="ev"><strong>10,618 is stale.</strong> Same input bytes, newer parser: the 10,618 artifact has <strong>13 columns</strong>, while current <code>COLUMNS</code> and the data dictionary both specify <strong>16</strong> — adding <code>usc_section_end</code>, <code>statute_at_large</code>, <code>executive_order</code>.</td>
+  <td><span class="pill p-bad">UNRECONCILED</span> The column-count argument has never been answered by the different-corpora argument. <strong>Do not quote either figure without saying which.</strong></td></tr>
+<tr><td>RuleSpec <code>.cue</code> constraint count</td>
+  <td class="ev"><strong>60.</strong> Stated twice in the 2026-08-08 trace — <code>tools/constraints_compile.py</code> “parses 60 <code>.cue</code> files in <code>constraints/</code>”, and again in the census.</td>
+  <td class="ev"><strong>62.</strong> Carried by later passes without a restated derivation.</td>
+  <td><span class="pill p-move">MINOR, UNRESOLVED</span> <span class="rd">ls $WS/rulespec/constraints/**/*.cue | wc -l</span></td></tr>
+<tr><td>SpicySearch HTTP route count</td>
+  <td class="ev"><strong>Four</strong>, named at <code>api/router.py:197-203</code>: <code>/v1/health</code>, <code>/v1/snapshot</code>, <code>/v1/coverage</code>, <code>/v1/search</code>.</td>
+  <td class="ev"><strong>Five</strong>, from a later count that does not enumerate them.</td>
+  <td><span class="pill p-move">MINOR, UNRESOLVED</span></td></tr>
+<tr><td>DocSpec archive size</td>
+  <td class="ev"><strong>248 files</strong> in the package decomposition (67 live src + 34 tests + 4 tools + 248 archive).</td>
+  <td class="ev"><strong>588 / 591 / 598 files</strong> across three separate passes, with 259,524 and 259,613 insertions variously reported.</td>
+  <td><span class="pill p-move">LIKELY DIFFERENT DENOMINATORS</span> package files versus the whole archive tree including fixtures. Never reconciled in one pass.</td></tr>
+<tr><td>Was DocSpec's 10 k run killed, or did it die?</td>
+  <td class="ev"><span class="pill p-move">ASSERTED</span> “Intentionally killed, not a failure” rests on a single source: <code>DocSpec/docs/plans/2026-08-09-fr-mirrulations-10k-campaign-status.md:11</code>, written three days after the run. It is now tracked (<code>feb303c</code>), so the claim has a versioned home and a named author — but it remains a <code>.md</code> assertion about an event, with <strong>no kill marker, log or traceback anywhere on disk</strong>. Its own figures are already stale: it says ~97,700 files / 4.8 GB where the tier measures <strong>106,943 / 5.1 GiB</strong>.</td>
+  <td class="ev"><strong>Physical evidence of abrupt mid-transaction death:</strong> a stale SQLite rollback journal (<code>reconciliation/processor-results.sqlite3-journal</code>), missing <code>run-reference.json</code>, <code>release-reference.json</code>, <code>candidate-census.json</code> and <code>run-receipts</code> — all present in both other tiers — and an mtime histogram running 16–20 k files/min until 03:30, then stopping dead.</td>
+  <td><span class="pill p-bad">CUTS BOTH WAYS</span> The full tier lacks its three sealing layers, which is exactly what an interruption before seal looks like <em>whether or not the interruption was chosen</em>. <strong>“Did not fail with a recorded error” is supported; “was intentionally stopped” is not independently verifiable.</strong></td></tr>
+<tr><td><code>test_policy_inputs_cross_repository.py</code>: running or skipping?</td>
+  <td class="ev">“Actively running a live comparison.”</td>
+  <td class="ev">“Skipping.”</td>
+  <td><span class="pill p-ok">BOTH RIGHT</span> The module is not env-gated and 3 tests pass; the single catalog assertion is suspended by the provable tear and 1 skips.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Unverified — known gaps in this page's own evidence</h3>
+<ul>
+  <li><strong>All production row counts.</strong> The canonical tables live in an R2 catalog whose credentials
+    are absent; no trace made a network call. <code>federal_register_documents: 1,004,233</code> and
+    <code>documents_rows: 1,987,880</code> are <span class="pill p-move">ASSERTED</span> production scale.</li>
+  <li>The Atlas quad count <strong>30,889,057</strong> <span class="pill p-move">ASSERTED</span> — a manifest
+    field only. Decompressing 934 MB across 126 packs was out of budget.</li>
+  <li><strong>Whether the 893,766-row <code>fr_docket_links</code> rebuild is semantically better than the
+    715,080 state, or merely larger.</strong> 715,080 is receipt-attested in two receipts; 893,766 is attested
+    nowhere. Row growth alone does not establish which is more correct, and no paired receipt compares them.
+    The two snapshots <strong>cannot even be ordered</strong>: both carry <code>publication_date</code> max
+    2026-07-23, and <code>output/</code> mtimes were mass-touched on 2026-08-02.</li>
+  <li>Whether the 8× <code>rule_targets</code> gap (40,546 against 335,008) is deduplication or scope.
+    <code>ua_cfr_ref</code> was identified as the differing source; the change was not traced.</li>
+  <li>Whether the concept registry's 100 %-null <code>broader_id</code> / <code>replaced_by</code> is
+    deliberate policy or an unimplemented path. The columns and lifecycle <code>EVENT_TYPES</code> exist; no
+    materialization uses them.</li>
+  <li>Whether any real content places a non-ASCII string into a canonical-JSON <strong>key</strong> — the
+    condition that turns the digest divergence in <a href="#d4">D4</a> from latent into live.</li>
+  <li>Whether the Atlas 3.0 search view's transcribed parent digests are ever verified against a real
+    distribution. Today they are shape-checked and carried through as opaque pins, and no committed check reads
+    the sealed pin at all.</li>
+  <li>Whether DocSpec's AST fingerprint gate would actually <em>fail</em> on a similarity violation, as opposed
+    to merely parsing the file.</li>
+  <li>Whether <code>ontology/candidate_channels.py</code> is reached by dynamic dispatch that static tracing
+    would miss, contradicting a comment claiming it is the implemented channel.</li>
+  <li>Whether RefSpec's roughly 53 other registry fetchers are dormant like the one traced end to end, and
+    whether the Zyte path has ever executed.</li>
+  <li>Readers for two further multi-GB Atlas directories (1.4 GB and 1.8 GB), and roughly 35 RefSpec
+    <code>tools/</code> scripts that are neither Makefile-wired nor obviously benchmarks.</li>
+  <li><strong>RefSpec's own test suite was never run</strong> by any trace. RefSpec's working tree also changed
+    <em>during</em> the original trace session, so RefSpec observations are as of the moment they were read.</li>
+  <li><strong>A tool-output anomaly, preserved rather than smoothed over.</strong> One <code>rg</code>
+    invocation returned <code>DocSpec/tools/fr_mirrulations_qualification.py</code> with every occurrence of
+    <code>spicy-regs</code>/<code>spicy_regs</code> rendered as <code>il</code> — e.g.
+    <code>Path("/Users/mikewolfd/Work/il")</code> — contradicting an earlier verbatim read. <strong>The exact
+    bytes of that one file are verified once, not twice.</strong></li>
+</ul>
+
+<div class="band ok">
+  <p style="margin:0"><strong>The single most answerable open question in the programme: point the live one-hop
+  expander at the real thesaurus and measure it.</strong> Both halves already exist on disk — a live
+  <code>expand_within_vocabulary</code> running on every concept query, and a real RefSpec vocabulary it has
+  never been pointed at. <strong>Nothing needs to be built.</strong> Every concept-lane number currently on
+  record was measured over a synthesised co-assignment atlas that the benchmark itself disclaims
+  (<code>search_quality_benchmark.py:543-547</code>). This is the only unanswered question that changes the
+  product thesis rather than the engineering plan.</p>
+</div>
+</section>
+
+<section id="m">
+<div class="sechead vol"><span class="chip v">M</span><h2>Maintenance</h2>
+  <span class="why">how to keep this page honest</span></div>
+
+<div class="band bad">
+  <p style="margin:0"><strong>When you correct something here, correct it in place. Do not append.</strong>
+  This page replaced one that had taken six amendment passes over three days, each appending rather than
+  integrating, until most findings appeared two or three times in different states and no reader could tell
+  which version was current. <strong>On a page whose subject is machinery that records rather than verifies,
+  an append-only history is the same failure.</strong> State each fact once, in its current form; keep a
+  correction only where the way it was wrong is itself a finding — which is what <a href="#v4">V4</a> is for.</p>
+</div>
+
+<h3>What rots first</h3>
+<ol class="rank">
+  <li><strong>Days — open defects and in-flight work</strong> (<a href="#v3">V3</a>, the “In flight” rows in
+    <a href="#d2">D2</a>). Nine findings on the predecessor page closed within twenty-four hours of being
+    written, and two of them closed by proving the page wrong rather than by doing what it recommended.</li>
+  <li><strong>Days — commit SHAs and HEAD positions.</strong> Every SHA on this page is a timestamp, not an
+    identifier of current state.</li>
+  <li><strong>Weeks — row counts, file counts, byte sizes.</strong> These move without warning whenever a build
+    reruns, and nothing announces it.</li>
+  <li><strong>Months, and only by deliberate decision — everything in
+    <span class="chip d" style="font-size:.66rem">DURABLE</span>.</strong> Ownership, the import rule, contract
+    formats, URN namespaces, coordinate vocabularies, where identity is minted. If one of these changes without
+    a decision behind it, that is itself the finding.</li>
+</ol>
+
+<h3>Refresh commands</h3>
+<div class="scroller">
+<table>
+<thead><tr><th>Refreshes</th><th>Command</th><th>Last taken</th></tr></thead>
+<tbody>
+<tr><td>Ownership and remotes (<a href="#d1">D1</a>)</td>
+  <td class="ev">for r in spicy-regs spicy-regs/RefSpec rulespec DocSpec spicysearch; do echo "== $r"; git -C $WS/$r remote -v; done</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>HEADs across all five</td>
+  <td class="ev">for r in spicy-regs spicy-regs/RefSpec rulespec DocSpec spicysearch; do printf '%-24s' $r; git -C $WS/$r rev-parse --short HEAD; done</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>Reset exposure (<a href="#v1">V1</a>)</td>
+  <td class="ev">git -C $WS/spicy-regs rev-list --count origin/main..archive/local-work-2026-08-09<br>git -C $WS/spicy-regs diff --shortstat origin/main archive/local-work-2026-08-09<br>git -C $WS/spicy-regs ls-tree -r --name-only origin/main -- docs/evidence | wc -l</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>Import-rule crossings (<a href="#d1">D1</a>)</td>
+  <td class="ev">grep -rn "from refspec" $WS/spicy-regs/src | wc -l<br>grep -rl "/Users/mikewolfd/Work/spicy-regs" $WS/DocSpec/output | wc -l<br>grep -rn "refspec\.org" $WS/rulespec | wc -l</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>The two absent edges (<a href="#d3">D3</a>)</td>
+  <td class="ev">grep -rniE "docspec|doc_spec|urn:docspec" $WS/spicysearch/src | wc -l<br>grep -rliE "rulespec|rkaf" $WS/DocSpec/src $WS/DocSpec/tools | wc -l</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>RefSpec CI presence (<a href="#v3">V3</a>)</td>
+  <td class="ev">ls $WS/spicy-regs/RefSpec/.github</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>Atlas distribution size (<a href="#repo-refspec">D2</a>)</td>
+  <td class="ev">find $WS/spicy-regs/output/atlas-3.0-full-2026-08-06 -type f | wc -l<br>du -sh $WS/spicy-regs/output/atlas-3.0-full-2026-08-06</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>Ring-set declarations (<a href="#d6">D6</a>)</td>
+  <td class="ev">grep -rl legalIdentity $WS/spicy-regs/RefSpec/src/refspec/<br># expect 10 files; 2 are per-record field values, not declarations</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>The three live SpicyRegs defects (<a href="#v3">V3</a>)</td>
+  <td class="ev">python -c "from spicy_regs.ontology.citations import parse_cfr_citation as p; print(p('40 CFR 60 and 12 CFR 220')); print(p('49 CFR 900.42.')); print(p('49 CFR 900.42;'))"</td>
+  <td class="dt">2026-08-10</td></tr>
+<tr><td>Test suites</td>
+  <td class="ev">cargo test --manifest-path $WS/rulespec/crates/Cargo.toml --workspace  # 157<br>cd $WS/DocSpec &amp;&amp; pytest -q  # 264 passed, 1 deselected</td>
+  <td class="dt">2026-08-08</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer>
+  <p><strong>Provenance.</strong> Built from eight parallel code traces of 2026-08-08, four extraction reviews
+  and a lead verification pass of 2026-08-09, and a four-repository re-measurement of 2026-08-10.
+  Ownership was read from <code>git remote -v</code> in each checkout; divergence figures from
+  <code>git rev-list</code> and <code>git diff --shortstat</code> against <code>origin/main</code>.
+  <strong>Sources of truth were code and data only</strong> — <code>.md</code> files were excluded as evidence
+  throughout, and where a claim rests on one anyway it is marked
+  <span class="pill p-move">ASSERTED</span> and the file is named.</p>
+  <p><strong>Observation dates.</strong> Repository HEADs at last measurement: RefSpec <code>637946b</code> on
+  branch <code>atlas-v3-binding-and-relation-research</code>, RuleSpec <code>cffafcb</code>, DocSpec
+  <code>7e3d0f2</code>, SpicySearch <code>ede33a8</code>. SpicyRegs has not moved: still <code>002d56c2</code>
+  on <code>archive/local-work-2026-08-09</code>, which is why every finding that turns on the reset stands
+  exactly as written.</p>
+  <p style="margin-bottom:0">Self-contained: no external requests, no remote fonts, no CDN. Two agent traces
+  (cross-repo overlap; retrieval and indexes) were reported running by the harness but never returned —
+  nothing here derives from them.</p>
+</footer>
+
+
+
+</div>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  var r=document.documentElement;
+  function cur(){
+    var t=r.getAttribute('data-theme');
+    if(t) return t;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  }
+  b.addEventListener('click',function(){
+    r.setAttribute('data-theme', cur()==='dark'?'light':'dark');
+  });
+})();
+</script>
+</body>
+</html>
