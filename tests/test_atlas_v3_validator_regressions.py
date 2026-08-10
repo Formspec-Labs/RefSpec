@@ -6,6 +6,7 @@ import json
 import shutil
 import sys
 from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 from random import Random
 from typing import Any
@@ -1021,6 +1022,54 @@ def _assert_shacl_rejects(graphs: Mapping[str, Graph], component: str) -> None:
     ontology, shapes = atlas_validate._parse_binding_graphs()
     with pytest.raises(atlas_validate.AtlasValidationError, match=component):
         atlas_validate._run_shacl(graphs, ontology, shapes)
+
+
+def test_meta_conformance_is_proven_once_per_process_and_never_cached_as_a_pass(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The shape-graph proof is derived once, but a bad shape graph still fails.
+
+    `_prove_shape_graph_conforms` is memoized because it asks about two
+    immutable binding files rather than about the distribution under
+    validation. This pins both halves: repeated validation must not re-derive
+    it, and memoization must not be able to turn a non-conforming shape graph
+    into a pass.
+    """
+
+    _, graphs, _ = _load_valid_graphs()
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    derivations: list[tuple[str, str]] = []
+    underlying = atlas_validate._prove_shape_graph_conforms.__wrapped__
+
+    def counted(ontology_digest: str, shapes_digest: str) -> None:
+        derivations.append((ontology_digest, shapes_digest))
+        return underlying(ontology_digest, shapes_digest)
+
+    monkeypatch.setattr(
+        atlas_validate,
+        "_prove_shape_graph_conforms",
+        lru_cache(maxsize=1)(counted),
+    )
+
+    atlas_validate._run_shacl(graphs, ontology, shapes)
+    atlas_validate._run_shacl(graphs, ontology, shapes)
+    assert len(derivations) == 1, "the binding proof must not be re-derived per distribution"
+
+    # A shape graph that is not well-formed SHACL is still refused, and refused
+    # again on every subsequent call -- lru_cache stores nothing for a raising
+    # call, so the failure can never be memoized into a pass.
+    broken = tmp_path / "atlas.shacl.ttl"
+    broken.write_bytes(
+        atlas_validate.SHAPES_PATH.read_bytes()
+        + b'\n<urn:test:broken> a <http://www.w3.org/ns/shacl#NodeShape> ;\n'
+        b'    <http://www.w3.org/ns/shacl#minCount> "not-an-integer" .\n'
+    )
+    monkeypatch.setattr(atlas_validate, "SHAPES_PATH", broken)
+    for _ in range(2):
+        with pytest.raises(atlas_validate.AtlasValidationError, match="shacl.meta"):
+            atlas_validate._run_shacl(graphs, ontology, shapes)
+    assert len(derivations) == 3, "a refused shape graph must be re-derived, never cached"
 
 
 def _fresh_asserted_graph_without_assertions() -> Graph:

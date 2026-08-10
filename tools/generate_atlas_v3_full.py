@@ -79,7 +79,6 @@ from refspec.atlas.v3_source_data import (
 )
 from refspec.atlas.v3_source_data import (
     MAPPING_REVIEW_METHODS,
-    SEMANTIC_RINGS,
     MappingReviewMethod,
     RegistryCrossRingRelation,
     RegistryIdentifier,
@@ -168,14 +167,14 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:bf24afdf7ac1730d3a5ff903cfc9cca1334deda224f0c637363c66f9b9db8023"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:248e1ed8c79b4cb395e4dda14aad5ac304ec4b5de04657e7a3188eaef6999275"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:6a8d649b8032438b2e9c77861167197643aef1b44879d13db95751dab8e81110"
+            "sha256:b760010b8cf92574b6990a5aa86c23adccae3d13438e318bd42334f472ef714f"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
@@ -2880,46 +2879,6 @@ def _mapping_review_method(review_method: MappingReviewMethod) -> str:
     return review_method
 
 
-# The two mapping rings this producer cannot honour, for the same reason and
-# with the same shape as the warrant above. Since ring temporal context landed
-# on the Atlas 3.0 wire, a value-ring or legal-identity-ring MappingAssertion
-# must carry an rkaf:hasEffectivePeriod resolving to a well-formed
-# rkaf:EffectivePeriod -- a crosswalk between two code editions and an
-# equivalence between two codifications are claims about a period, and an
-# undated one cannot be applied to a dated question. Nothing in
-# refspec.atlas.v3_source_data carries an effective date for a mapping:
-# RegistryMapping has a subject, an object, a predicate, two endpoint release
-# pins, an assertedAt and its evidence, and no temporal field at all. So this
-# producer has no date to emit, and the honest failure is to refuse the input
-# rather than to invent one -- a fabricated period would be indistinguishable
-# on the wire from a real one, which is worse than no mapping.
-#
-# Both real mapping releases are subject-ring today
-# (src/refspec/atlas/v3_registry_alignments.py, EuroVoc<->LCSH), so this is the
-# expected case rather than a live gap. Adding the field to RegistryMapping and
-# threading it into _add_assertion's effective_period argument is the work owed
-# before a value-ring or legal-identity mapping source arrives.
-UNEMITTABLE_MAPPING_RINGS = frozenset({"legalIdentity", "value"})
-
-
-def _mapping_release_ring(ring: str) -> URIRef:
-    """Resolve one mapping release's declared ring to its wire individual."""
-
-    if ring not in SEMANTIC_RINGS:
-        raise ValueError(f"unsupported mapping semantic ring: {ring!r}")
-    if ring in UNEMITTABLE_MAPPING_RINGS:
-        raise ValueError(
-            f"mapping semantic ring {ring!r} is not emittable by this producer: "
-            "the Atlas 3.0 binding requires every mapping assertion on this ring "
-            "to carry an rkaf:hasEffectivePeriod resolving to a well-formed "
-            "rkaf:EffectivePeriod, and no registry mapping source states an "
-            "effective date for this producer to emit. Carry the dates on "
-            "RegistryMapping and emit them before a source needs this ring; "
-            "fabricating a period would publish a claim no source made."
-        )
-    return ATLAS[ring]
-
-
 def _transformed_relation_evidence(
     relation: SourceRelation,
 ) -> tuple[URIRef, str, Mapping[str, Any]]:
@@ -3185,7 +3144,7 @@ def _expected_mapping_asserted_graph(
             assertion = _add_assertion(
                 graph,
                 assertion_type=ATLAS.MappingAssertion,
-                ring=_mapping_release_ring(release.ring),
+                ring=ATLAS[release.ring],
                 subject=URIRef(mapping.subject),
                 predicate=URIRef(mapping.predicate),
                 obj=URIRef(mapping.object),
@@ -4136,7 +4095,7 @@ def _validate_compiled_producer_rows(
             _assert_portable_editorial_policy_payload(
                 mapping_release.editorial_policy
             )
-            release_ring = _mapping_release_ring(mapping_release.ring)
+            release_ring = ATLAS[mapping_release.ring]
             allowed = relation_policies.get(release_ring, {}).get(
                 ATLAS.MappingAssertion,
                 frozenset(),
@@ -5414,7 +5373,7 @@ def _build_graphs(
             raise AssertionError(
                 "mapping editorial policy was not constructed"
             ) from error
-        mapping_ring = _mapping_release_ring(mapping_release.ring)
+        mapping_ring = ATLAS[mapping_release.ring]
         accounting_row = source_accounting_by_release[
             mapping_release.source_release_iri
         ]
@@ -10281,6 +10240,51 @@ def build_distribution(
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def _repin_compiled_producer() -> int:
+    """Rewrite this file's two pins to the binding currently on disk.
+
+    The pins exist to fail closed when the binding moves under the producer, so
+    repinning stays a deliberate act -- nothing calls this during a build, and
+    `make test` still refuses a stale pin. What it removes is the hand-editing:
+    the binding profile is six digests and the self pin is a digest of this
+    file with the self pin itself masked out, so computing them by hand is
+    fiddly, order-dependent, and exactly the kind of thing that gets pasted
+    wrong. Deriving them is mechanical; deciding to is not.
+    """
+
+    source = Path(__file__)
+    raw = source.read_bytes()
+    observed = ATLAS_VALIDATE._binding_digests()
+    for field, current in sorted(_COMPILED_PRODUCER_BINDING_PINS.items()):
+        fresh = observed[field]
+        if fresh == current:
+            continue
+        needle = f'"{current}"'.encode("ascii")
+        if raw.count(needle) != 1:
+            raise SystemExit(f"cannot repin {field}: {current} is not uniquely written in this file")
+        raw = raw.replace(needle, f'"{fresh}"'.encode("ascii"), 1)
+        print(f"repinned {field}\n  {current}\n  -> {fresh}")
+
+    # The self pin covers the whole file except itself, so it must be derived
+    # after the profile above is already rewritten.
+    self_prefix = b'_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "'
+    start = raw.index(self_prefix) + len(self_prefix)
+    current_self = raw[start : raw.index(b'"', start)].decode("ascii")
+    needle = self_prefix + current_self.encode("ascii") + b'"'
+    if raw.count(needle) != 1:
+        raise SystemExit("compiled producer implementation self pin is ambiguous")
+    masked = raw.replace(needle, self_prefix + b'<self>"', 1)
+    fresh_self = "sha256:" + hashlib.sha256(masked).hexdigest()
+    raw = raw.replace(needle, self_prefix + fresh_self.encode("ascii") + b'"', 1)
+
+    source.write_bytes(raw)
+    if fresh_self != current_self:
+        print(f"repinned implementation digest\n  {current_self}\n  -> {fresh_self}")
+    else:
+        print("pins already current; nothing rewritten")
+    return 0
+
+
 def main() -> int:
     global _STATUS
 
@@ -10305,6 +10309,14 @@ def main() -> int:
         help="suppress human-facing status lines on stderr",
     )
     parser.add_argument(
+        "--repin",
+        action="store_true",
+        help=(
+            "rewrite this producer's binding profile and self pins to the "
+            "binding currently on disk, after you have reviewed that change"
+        ),
+    )
+    parser.add_argument(
         "--registry-claim-input",
         action="append",
         nargs=3,
@@ -10315,6 +10327,8 @@ def main() -> int:
         ),
     )
     args = parser.parse_args()
+    if args.repin:
+        return _repin_compiled_producer()
     registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
     for key, path, digest in args.registry_claim_input or ():
         if key in registry_claim_inputs:
