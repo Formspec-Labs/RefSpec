@@ -456,7 +456,7 @@ EVIDENTIARY_FUNCTIONS = frozenset(
 )
 
 
-def evidence_warrant(binding_facts: "Mapping[URIRef, object]") -> tuple[URIRef, ...]:
+def evidence_warrant(binding_facts: Mapping[URIRef, object]) -> tuple[URIRef, ...]:
     """The four-axis warrant tuple a set of evidence facts declares."""
 
     return tuple(binding_facts[axis] for axis in EVIDENCE_WARRANT_AXES)  # type: ignore[misc]

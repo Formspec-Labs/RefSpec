@@ -45,9 +45,9 @@ def _mapping_evidence(
         source_locator="urn:example:mapping-source",
         source_digest=_DIGEST,
         native_payload={"row": 1},
-        review_method=review_method,  # type: ignore[arg-type]
+        review_warrant=review_method,  # type: ignore[arg-type]
         reviewer_iri="urn:example:reviewer",
-        decided_at=decided_at,
+        attested_at=decided_at,
     )
 
 
@@ -156,9 +156,9 @@ def test_registry_resource_requires_at_least_one_label() -> None:
 def test_registry_mapping_evidence_accepts_every_binding_review_method(
     review_method: str,
 ) -> None:
-    evidence = _mapping_evidence(review_method=review_method)
+    evidence = _mapping_evidence(review_warrant=review_method)
 
-    assert evidence.review_method == review_method
+    assert evidence.review_warrant == review_method
     assert MAPPING_REVIEW_METHODS == _REVIEW_METHODS
 
 
@@ -183,13 +183,13 @@ def test_registry_mapping_evidence_rejects_invalid_identity_and_decision_fields(
 
 def test_registry_mapping_accepts_multiple_immutable_approvals() -> None:
     machine = _mapping_evidence(
-        review_method="twoMachineAdjudication",
-        decided_at="2026-08-06T00:00:00+00:00",
+        review_warrant="twoMachineAdjudication",
+        attested_at="2026-08-06T00:00:00+00:00",
     )
     human = replace(
         _mapping_evidence(
-            review_method="humanReview",
-            decided_at="2026-08-07T00:00:00+00:00",
+            review_warrant="humanReview",
+            attested_at="2026-08-07T00:00:00+00:00",
         ),
         source_locator="urn:example:human-review",
         reviewer_iri="urn:example:human-reviewer",
@@ -198,7 +198,7 @@ def test_registry_mapping_accepts_multiple_immutable_approvals() -> None:
     mapping = _mapping(evidence=(machine, human))
 
     assert mapping.asserted_at == "2026-08-06T01:00:00+00:00"
-    assert [row.review_method for row in mapping.evidence] == [
+    assert [row.review_warrant for row in mapping.evidence] == [
         "twoMachineAdjudication",
         "humanReview",
     ]
@@ -250,7 +250,7 @@ def test_registry_mapping_rejects_equivalent_utc_evidence_times() -> None:
         _mapping(
             evidence=(
                 evidence,
-                replace(evidence, decided_at="2026-08-06T00:00:00Z"),
+                replace(evidence, attested_at="2026-08-06T00:00:00Z"),
             )
         )
 
@@ -261,12 +261,12 @@ def test_registry_mapping_rejects_naive_assertion_time() -> None:
 
 
 def test_registry_mapping_requires_an_approval_no_later_than_the_assertion() -> None:
-    first = _mapping_evidence(decided_at="2026-08-07T00:00:00+00:00")
+    first = _mapping_evidence(attested_at="2026-08-07T00:00:00+00:00")
     second = replace(
         first,
         source_locator="urn:example:second-review",
         reviewer_iri="urn:example:second-reviewer",
-        decided_at="2026-08-08T00:00:00+00:00",
+        attested_at="2026-08-08T00:00:00+00:00",
     )
 
     with pytest.raises(ValueError, match="asserted before every approving decision"):
@@ -300,7 +300,7 @@ def test_registry_mapping_release_rejects_assertions_before_release() -> None:
     mapping = _mapping(
         asserted_at="2026-08-05T01:00:00+00:00",
         evidence=(
-            _mapping_evidence(decided_at="2026-08-05T00:00:00+00:00"),
+            _mapping_evidence(attested_at="2026-08-05T00:00:00+00:00"),
         ),
     )
 
@@ -311,7 +311,7 @@ def test_registry_mapping_release_rejects_assertions_before_release() -> None:
 def test_registry_mapping_release_rejects_evidence_before_release() -> None:
     mapping = _mapping(
         evidence=(
-            _mapping_evidence(decided_at="2026-08-05T00:00:00+00:00"),
+            _mapping_evidence(attested_at="2026-08-05T00:00:00+00:00"),
         ),
     )
 

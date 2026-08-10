@@ -21,6 +21,7 @@ from refspec.atlas.explorer_rdf import (
     ATLAS,
     ATLAS_V3_EXPLORER_TYPE,
     EXPLORER_TYPE,
+    RKAF,
     Atlas3ExplorerError,
     build_atlas_v3_explorer_model,
     open_atlas_v3_explorer_distribution,
@@ -1142,15 +1143,16 @@ def test_mapping_inspector_explains_versioned_operator_adoption() -> None:
                 "const esc=value=>String(value??'').replace(/[&<>\"']/g, char=>"
                 "({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[char]));"
             ),
-            "const reviewMethod=method=>({title:String(method)});",
+            "const warrantLabel=method=>({title:String(method)});",
             f"const sourceById=new Map([['urn:test:record',{{nativePayload:{payload}}}]]);",
             provenance.group(1),
             (
                 "process.stdout.write(mappingEvidenceBrief({"
                 "kind:'mapping',sourceRelease:'urn:ref:atlas-release:3:eurovoc:4.24',"
                 "targetRelease:'urn:ref:atlas-release:3:lcsh:2026-08-06',"
-                "evidence:[{sourceRecord:'urn:test:record',reviewMethod:'operatorAdoption',"
-                "decidedAt:'2026-08-06T00:00:00Z'}]}));"
+                "evidence:[{sourceRecord:'urn:test:record',"
+                "evidenceRole:'formalAdoptionEvent',"
+                "attestedAt:'2026-08-06T00:00:00Z'}]}));"
             ),
         )
     )

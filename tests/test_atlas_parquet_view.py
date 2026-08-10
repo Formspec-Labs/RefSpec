@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
+from rdflib import Namespace
 
 from refspec.atlas.compact_pack import CompactPackHeader, CompactRecordRole, write_compact_record_pack
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
@@ -19,6 +20,9 @@ from refspec.atlas.explorer import (
     render_atlas_v3_explorer,
     search_atlas_parquet,
 )
+
+RKAF = Namespace("https://rulespec.org/ns/v1#")
+
 from refspec.atlas.explorer_data import AtlasExplorerData
 from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
 from refspec.atlas.parquet_search_view import (
@@ -114,10 +118,14 @@ def _fixture_distribution(
             "statement": statement,
             "sourceRecord": source_record,
             "evidenceSourceDigest": _D1,
-            "reviewedBy": "urn:test:reviewer",
-            "reviewMethod": "urn:test:method",
-            "decisionStatus": "urn:test:approved",
-            "decidedAt": "2026-08-07T00:00:00+00:00",
+            "attestor": "urn:test:reviewer",
+            "attestorKind": "urn:test:attestor-kind",
+            "assertionOrigin": "urn:test:origin",
+            "epistemicBasis": "urn:test:basis",
+            "evidenceRole": "urn:test:role",
+            "evidentiaryFunction": "urn:test:function",
+            "decision": "urn:test:approved",
+            "attestedAt": "2026-08-07T00:00:00+00:00",
             "contentDigest": _D2,
         },
         CompactRecordRole.SOURCE_RECORD: {
@@ -490,7 +498,7 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
     ]
     detail = atlas_parquet_resource(opened, "urn:test:resource")
     assert detail["relations"][0]["evidence_count"] == 1
-    assert detail["relations"][0]["evidence"][0]["decisionStatus"] == "urn:test:approved"
+    assert detail["relations"][0]["evidence"][0]["decision"] == "urn:test:approved"
     assert detail["relations"][0]["evidence"][0]["sourceLocator"] == "https://example.test/source"
     assert detail["relations"][0]["subject_label"] == "Test resource"
     assert detail["relations"][0]["object_label"] == "parent"

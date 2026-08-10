@@ -26,15 +26,20 @@ from refspec.atlas.parquet_view import (
 from refspec.registry.infrastructure.source_controlled_resource import LABEL_ROLES
 
 ATLAS = "https://refspec.org/ns/atlas/v3#"
-APPROVED = ATLAS + "approved"
+RKAF = "https://rulespec.org/ns/v1#"
+APPROVED = RKAF + "approved"
+# rkaf:evidenceRole is the axis that discriminates all six review warrants, so
+# it is what a columnar preflight checks. The other three axes are constrained
+# by the SHACL shape and the dataset validator; a column scan that repeated
+# them would not catch anything this one misses.
 REVIEW_METHODS = frozenset(
     {
-        ATLAS + "deterministicTransformation",
-        ATLAS + "humanReview",
-        ATLAS + "operatorAdoption",
-        ATLAS + "publisherAssertion",
-        ATLAS + "trustedPipelineReview",
-        ATLAS + "twoMachineAdjudication",
+        RKAF + "structuralEvidence",
+        RKAF + "textualEvidence",
+        RKAF + "formalAdoptionEvent",
+        RKAF + "officialSourceMetadata",
+        RKAF + "authorityCitation",
+        RKAF + "reviewedAuthorityChain",
     }
 )
 STATEMENT_TYPES = frozenset(
@@ -510,13 +515,13 @@ def _validate_evidence(
             "preflight.evidence-coverage",
             f"statement has no evidence binding: {_first_value(statements, missing_evidence)}",
         )
-    invalid_decision = pc.not_equal(evidence["decision_status"], APPROVED)
+    invalid_decision = pc.not_equal(evidence["decision"], APPROVED)
     if _has_true(invalid_decision):
         _fail(
             "preflight.evidence-decision",
             f"{_first_value(evidence, invalid_decision)} is not approved",
         )
-    invalid_method = pc.invert(pc.is_in(evidence["review_method"], value_set=pa.array(sorted(REVIEW_METHODS))))
+    invalid_method = pc.invert(pc.is_in(evidence["evidence_role"], value_set=pa.array(sorted(REVIEW_METHODS))))
     if _has_true(invalid_method):
         _fail(
             "preflight.evidence-method",

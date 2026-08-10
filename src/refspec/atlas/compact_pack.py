@@ -197,10 +197,15 @@ class EvidenceBindingRecord(TypedDict):
     statement: str
     sourceRecord: str
     evidenceSourceDigest: str
-    reviewedBy: str
-    reviewMethod: str
-    decisionStatus: str
-    decidedAt: str
+    attestor: str
+    attestorKind: str
+    assertionOrigin: str
+    epistemicBasis: str
+    evidenceRole: str
+    evidentiaryFunction: str
+    decision: str
+    attestedAt: str
+    basedOnAttestation: NotRequired[str]
     contentDigest: NotRequired[str]
     canonicalPayloadDigest: NotRequired[str]
 
@@ -315,13 +320,17 @@ _RECORD_SCHEMAS = {
                 "statement",
                 "sourceRecord",
                 "evidenceSourceDigest",
-                "reviewedBy",
-                "reviewMethod",
-                "decisionStatus",
-                "decidedAt",
+                "attestor",
+                "attestorKind",
+                "assertionOrigin",
+                "epistemicBasis",
+                "evidenceRole",
+                "evidentiaryFunction",
+                "decision",
+                "attestedAt",
             }
         ),
-        optional=frozenset(),
+        optional=frozenset({"basedOnAttestation"}),
     ),
     CompactRecordRole.SOURCE_RECORD: _RecordSchema(
         required=frozenset(
@@ -910,7 +919,7 @@ def _normalize_role_fields(
             "id",
             "statement",
             "sourceRecord",
-            "reviewedBy",
+            "attestor",
         ),
         CompactRecordRole.SOURCE_RECORD: (
             "id",
@@ -1122,10 +1131,15 @@ _SUMMARY_PROJECTION_FIELDS = {
         "statement",
         "sourceRecord",
         "evidenceSourceDigest",
-        "reviewedBy",
-        "reviewMethod",
-        "decisionStatus",
-        "decidedAt",
+        "attestor",
+        "attestorKind",
+        "assertionOrigin",
+        "epistemicBasis",
+        "evidenceRole",
+        "evidentiaryFunction",
+        "decision",
+        "attestedAt",
+        "basedOnAttestation",
     ),
     CompactRecordRole.SOURCE_RECORD: (
         "id",

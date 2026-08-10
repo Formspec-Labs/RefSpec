@@ -10,11 +10,14 @@ from refspec.atlas import parquet_preflight
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_preflight import (
     APPROVED,
+    REVIEW_METHODS,
     AtlasParquetPreflightError,
     validate_atlas_parquet_preflight,
     validate_atlas_parquet_tables,
 )
 from refspec.atlas.parquet_view import VerifiedAtlasParquetSourceMetadata
+
+REVIEW_ROLE = min(REVIEW_METHODS)
 
 
 def _tables() -> dict[str, pa.Table]:
@@ -69,7 +72,8 @@ def _tables() -> dict[str, pa.Table]:
                 "source_record": [source_record],
                 "evidence_source_digest": [digest],
                 "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
-                "decision_status": [APPROVED],
+                "decision": [APPROVED],
+                "evidence_role": [REVIEW_ROLE],
             }
         ),
         CompactRecordRole.SOURCE_RECORD.value: pa.table(
@@ -318,7 +322,8 @@ def test_columnar_preflight_handles_same_and_cross_ring_relations_together() -> 
                     "source_record": ["urn:test:source-record"],
                     "evidence_source_digest": [b"1" * 32],
                     "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
-                    "decision_status": [APPROVED],
+                    "decision": [APPROVED],
+                "evidence_role": [REVIEW_ROLE],
                     }
             ),
         ]

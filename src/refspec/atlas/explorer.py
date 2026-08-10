@@ -45,6 +45,7 @@ AtlasParquetExplorer = AtlasDuckDBView
 AtlasParquetExplorerError = AtlasDuckDBViewError
 
 _ATLAS = "https://refspec.org/ns/atlas/v3#"
+_RKAF = "https://rulespec.org/ns/v1#"
 _RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 _DEFAULT_RESOURCE_LIMIT = 2_000
 _DEFAULT_RELATION_LIMIT = 750
@@ -217,10 +218,10 @@ def _evidence_record(row: Mapping[str, Any]) -> dict[str, Any]:
         _fact(f"{_ATLAS}bindsAssertion", row["statement"]),
         _fact(f"{_ATLAS}evidenceSourceRecord", row["source_record"]),
         _fact(f"{_ATLAS}evidenceSourceDigest", _sha256_text(row["evidence_source_digest"]), iri=False),
-        _fact(f"{_ATLAS}reviewedBy", row["reviewed_by"]),
-        _fact(f"{_ATLAS}reviewMethod", row["review_method"]),
-        _fact(f"{_ATLAS}decisionStatus", row["decision_status"]),
-        _fact(f"{_ATLAS}decidedAt", row["decided_at"], iri=False),
+        _fact(f"{_RKAF}attestor", row["attestor"]),
+        _fact(f"{_RKAF}evidenceRole", row["evidence_role"]),
+        _fact(f"{_RKAF}decision", row["decision"]),
+        _fact(f"{_RKAF}attestedAt", row["attested_at"], iri=False),
     ]
     return {"facts": facts, "id": record_id}
 
@@ -555,11 +556,11 @@ def build_atlas_explorer_model(
     for row in evidence_rows:
         evidence_by_statement[row["statement"]].append(
             {
-                "decidedAt": row["decided_at"],
-                "decisionStatus": _short(row["decision_status"]),
+                "attestedAt": row["attested_at"],
+                "decision": _short(row["decision"]),
                 "id": f"urn:ref:atlas-evidence:{row['evidence_id'].hex()}",
-                "reviewMethod": _short(row["review_method"]),
-                "reviewedBy": row["reviewed_by"],
+                "evidenceRole": _short(row["evidence_role"]),
+                "attestor": row["attestor"],
                 "sourceDigest": _sha256_text(row["evidence_source_digest"]),
                 "sourceRecord": row["source_record"],
             }

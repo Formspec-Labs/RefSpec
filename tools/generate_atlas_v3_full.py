@@ -167,23 +167,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:43916e82b8009d995ea5804d5b095761ce0c5289d5adbc08acd010df474c7a61"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:9f47f2c520f8836ac03dfb94d374a6a29acfb027fc758daaa17380dd7b6cb482"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:737c0584c385c89243a8c1e9212afc29d7a0c476c29da398e6e3d2af3d02eff8"
+            "sha256:8981a5e9b7bd5d145ced74b61f2c6d9980d20361f72982c466f88b4282087a14"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:333b1b961140b839f9d55c140ff33222751f8a1dfe1f686da884d1824c874c33"
+            "sha256:d000375a0b98180a0319b31a91cdbb1c1b4d8166559a1e0ca0c95ea2d4c1c6cf"
         ),
         "shapesDigest": (
-            "sha256:fce9388a881bbf95d3704953d1f191b58e36254862128f3d6ce001c28586e845"
+            "sha256:c0cd6bdf7a3f6962e958779199a973400d3c4811e866f73e3110282c7eb209cb"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -3013,7 +3013,7 @@ def _add_evidence_binding(
     assertion: URIRef,
     evidence_record: URIRef,
     reviewer: URIRef,
-    review_method: URIRef,
+    review_warrant: str,
     decided_at: str,
 ) -> URIRef:
     """Attach one immutable approval to an existing assertion."""
@@ -3035,7 +3035,7 @@ def _add_evidence_binding(
         (RKAF.decision, RKAF.approved),
         *zip(
             ATLAS_VALIDATE.EVIDENCE_WARRANT_AXES,
-            ATLAS_VALIDATE.EVIDENCE_WARRANTS[review_method],
+            ATLAS_VALIDATE.EVIDENCE_WARRANTS[review_warrant],
             strict=True,
         ),
         (RKAF.evidentiaryFunction, RKAF.supports),
@@ -3076,7 +3076,7 @@ def _add_evidenced_assertion(
     asserted_at: str,
     evidence_record: URIRef,
     reviewer: URIRef,
-    review_method: URIRef,
+    review_warrant: str,
     decided_at: str,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
@@ -3102,7 +3102,7 @@ def _add_evidenced_assertion(
         assertion=assertion,
         evidence_record=evidence_record,
         reviewer=reviewer,
-        review_method=review_method,
+        review_warrant=review_warrant,
         decided_at=decided_at,
     )
     return assertion
@@ -3149,8 +3149,8 @@ def _expected_mapping_asserted_graph(
                     assertion=assertion,
                     evidence_record=record,
                     reviewer=URIRef(evidence.reviewer_iri),
-                    review_method=_mapping_review_method(evidence.review_method),
-                    decided_at=evidence.decided_at,
+                    review_warrant=_mapping_review_method(evidence.review_warrant),
+                    decided_at=evidence.attested_at,
                 )
     return graph
 
@@ -4131,8 +4131,8 @@ def _validate_compiled_producer_rows(
                         evidence.reviewer_iri,
                         context=f"{mapping_release.key} mapping evidence reviewer",
                     )
-                    _mapping_review_method(evidence.review_method)
-                    _rdf_datetime(evidence.decided_at)
+                    _mapping_review_method(evidence.review_warrant)
+                    _rdf_datetime(evidence.attested_at)
                     locator, digest, payload = _mapping_evidence(
                         mapping_release,
                         mapping,
@@ -5065,7 +5065,7 @@ def _build_graphs(
                     asserted_at=CREATED_AT,
                     evidence_record=record,
                     reviewer=NATIVE_REVIEWER,
-                    review_method=_review_method_for_assertion(
+                    review_warrant=_review_method_for_assertion(
                         ATLAS.SourceAssignment
                     ),
                     decided_at=CREATED_AT,
@@ -5206,7 +5206,7 @@ def _build_graphs(
                 evidence_record = resource_record[relation.subject]
             except KeyError as error:
                 raise ValueError(f"native relation endpoint is outside loaded releases: {relation}") from error
-            review_method = _review_method_for_assertion(
+            review_warrant = _review_method_for_assertion(
                 ATLAS.NativeRelationAssertion
             )
             if relation.predicate == str(ATLAS.thesaurusRelated):
@@ -5234,7 +5234,7 @@ def _build_graphs(
                     }
                 )
                 remap_evidence_count += 1
-                review_method = _review_method_for_assertion(
+                review_warrant = _review_method_for_assertion(
                     ATLAS.NativeRelationAssertion,
                     deterministic_transformation=True,
                 )
@@ -5251,7 +5251,7 @@ def _build_graphs(
                 asserted_at=CREATED_AT,
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
-                review_method=review_method,
+                review_warrant=review_warrant,
                 decided_at=CREATED_AT,
             )
             native_count += 1
@@ -5320,7 +5320,7 @@ def _build_graphs(
                 asserted_at=CREATED_AT,
                 evidence_record=evidence_record,
                 reviewer=NATIVE_REVIEWER,
-                review_method=_review_method_for_assertion(
+                review_warrant=_review_method_for_assertion(
                     ATLAS.CrossRingRelationAssertion
                 ),
                 decided_at=CREATED_AT,
@@ -5419,10 +5419,10 @@ def _build_graphs(
                     assertion=assertion,
                     evidence_record=evidence_record,
                     reviewer=URIRef(evidence.reviewer_iri),
-                    review_method=_mapping_review_method(
-                        evidence.review_method
+                    review_warrant=_mapping_review_method(
+                        evidence.review_warrant
                     ),
-                    decided_at=evidence.decided_at,
+                    decided_at=evidence.attested_at,
                 )
                 mapping_dispositions[str(evidence_record)].add(str(assertion))
             mapping_count += 1
@@ -9484,7 +9484,7 @@ def _mapping_release_summary(
         "mappingCount": len(release.mappings),
         "reviewMethods": sorted(
             {
-                evidence.review_method
+                evidence.review_warrant
                 for mapping in release.mappings
                 for evidence in mapping.evidence
             }

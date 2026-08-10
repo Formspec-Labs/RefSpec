@@ -382,11 +382,11 @@ class AtlasDuckDBView:
         for row in evidence_rows:
             evidence_by_statement.setdefault(row["statement"], []).append(
                 {
-                    "decidedAt": row["decided_at"],
-                    "decisionStatus": row["decision_status"],
+                    "attestedAt": row["attested_at"],
+                    "decision": row["decision"],
                     "id": f"urn:ref:atlas-evidence:{row['evidence_id'].hex()}",
-                    "reviewedBy": row["reviewed_by"],
-                    "reviewMethod": row["review_method"],
+                    "attestor": row["attestor"],
+                    "evidenceRole": row["evidence_role"],
                     "sourceLocator": row["source_locator"],
                     "sourceRecord": row["source_record"],
                     "sourceRelease": row["source_release"],

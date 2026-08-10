@@ -196,10 +196,10 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("statement", pa.string(), nullable=False),
             pa.field("source_record", pa.string(), nullable=False),
             _binary_digest_field("evidence_source_digest", nullable=False),
-            pa.field("reviewed_by", pa.string(), nullable=False),
-            pa.field("review_method", pa.string(), nullable=False),
-            pa.field("decision_status", pa.string(), nullable=False),
-            pa.field("decided_at", pa.string(), nullable=False),
+            pa.field("attestor", pa.string(), nullable=False),
+            pa.field("evidence_role", pa.string(), nullable=False),
+            pa.field("decision", pa.string(), nullable=False),
+            pa.field("attested_at", pa.string(), nullable=False),
             _binary_digest_field("content_digest"),
         ]
     ),
@@ -314,10 +314,10 @@ def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
             "statement": row["statement"],
             "source_record": row["sourceRecord"],
             "evidence_source_digest": _digest_bytes(row["evidenceSourceDigest"], "evidenceSourceDigest"),
-            "reviewed_by": row["reviewedBy"],
-            "review_method": row["reviewMethod"],
-            "decision_status": row["decisionStatus"],
-            "decided_at": row["decidedAt"],
+            "attestor": row["attestor"],
+            "evidence_role": row["evidenceRole"],
+            "decision": row["decision"],
+            "attested_at": row["attestedAt"],
         }
     if role is CompactRecordRole.SOURCE_RECORD:
         return {

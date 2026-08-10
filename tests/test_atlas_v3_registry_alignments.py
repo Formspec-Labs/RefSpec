@@ -74,7 +74,7 @@ def test_mapping_release_is_separately_pinned_evidence_backed_input(
         row.asserted_at for row in mapping_release.mappings
     } == {alignments.ATLAS_MAPPING_ADOPTION_DECIDED_AT}
     assert {
-        evidence.review_method
+        evidence.review_warrant
         for row in mapping_release.mappings
         for evidence in row.evidence
     } == {"operatorAdoption"}
@@ -84,7 +84,7 @@ def test_mapping_release_is_separately_pinned_evidence_backed_input(
         for evidence in row.evidence
     } == {alignments.ATLAS_MAPPING_ADOPTION_REVIEWER_IRI}
     assert {
-        evidence.decided_at
+        evidence.attested_at
         for row in mapping_release.mappings
         for evidence in row.evidence
     } == {alignments.ATLAS_MAPPING_ADOPTION_DECIDED_AT}

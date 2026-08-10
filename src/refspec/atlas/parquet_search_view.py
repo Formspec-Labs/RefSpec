@@ -154,10 +154,10 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("statement", pa.string(), nullable=False),
             pa.field("source_record", pa.string(), nullable=False),
             pa.field("evidence_source_digest", _B32, nullable=False),
-            pa.field("reviewed_by", pa.string(), nullable=False),
-            pa.field("review_method", pa.string(), nullable=False),
-            pa.field("decision_status", pa.string(), nullable=False),
-            pa.field("decided_at", pa.string(), nullable=False),
+            pa.field("attestor", pa.string(), nullable=False),
+            pa.field("evidence_role", pa.string(), nullable=False),
+            pa.field("decision", pa.string(), nullable=False),
+            pa.field("attested_at", pa.string(), nullable=False),
         ]
     ),
     CompactRecordRole.SOURCE_RECORD: pa.schema(
@@ -217,9 +217,9 @@ _DICTIONARIES = {
         "target_ring",
     ],
     CompactRecordRole.EVIDENCE_BINDING: [
-        "reviewed_by",
-        "review_method",
-        "decision_status",
+        "attestor",
+        "evidence_role",
+        "decision",
     ],
     CompactRecordRole.SOURCE_RECORD: [],
     CompactRecordRole.RELEASE: [
@@ -252,10 +252,10 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
             "statement": row["statement"],
             "source_record": row["source_record"],
             "evidence_source_digest": row["evidence_source_digest"],
-            "reviewed_by": row["reviewed_by"],
-            "review_method": row["review_method"],
-            "decision_status": row["decision_status"],
-            "decided_at": row["decided_at"],
+            "attestor": row["attestor"],
+            "evidence_role": row["evidence_role"],
+            "decision": row["decision"],
+            "attested_at": row["attested_at"],
         }
     if role is CompactRecordRole.SOURCE_RECORD:
         return {

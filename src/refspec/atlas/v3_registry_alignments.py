@@ -233,9 +233,9 @@ def load_eurovoc_lcsh_mapping_release(
                         "publisherLcshRelease": "unspecifiedByPublisher",
                         "subjectIri": row.subject_iri,
                     },
-                    review_method="operatorAdoption",
+                    review_warrant="operatorAdoption",
                     reviewer_iri=ATLAS_MAPPING_ADOPTION_REVIEWER_IRI,
-                    decided_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
+                    attested_at=ATLAS_MAPPING_ADOPTION_DECIDED_AT,
                 ),
             ),
         )

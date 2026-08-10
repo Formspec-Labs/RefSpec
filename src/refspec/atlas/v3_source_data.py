@@ -296,9 +296,9 @@ class RegistryMappingEvidence:
     source_locator: str
     source_digest: str
     native_payload: Mapping[str, Any]
-    review_method: MappingReviewMethod
+    review_warrant: MappingReviewMethod
     reviewer_iri: str
-    decided_at: str
+    attested_at: str
 
     def __post_init__(self) -> None:
         if (
@@ -311,9 +311,9 @@ class RegistryMappingEvidence:
         if not isinstance(self.native_payload, Mapping):
             raise TypeError("mapping evidence native payload must be an object")
         _canonical_json_bytes(self.native_payload)
-        if self.review_method not in MAPPING_REVIEW_METHODS:
+        if self.review_warrant not in MAPPING_REVIEW_METHODS:
             raise ValueError(
-                f"unsupported mapping evidence review method: {self.review_method!r}"
+                f"unsupported mapping evidence review method: {self.review_warrant!r}"
             )
         if (
             self.reviewer_iri != self.reviewer_iri.strip()
@@ -321,8 +321,8 @@ class RegistryMappingEvidence:
         ):
             raise ValueError("mapping evidence reviewer must be an absolute IRI")
         _canonical_aware_datetime(
-            self.decided_at,
-            field_name="mapping evidence decided_at",
+            self.attested_at,
+            field_name="mapping evidence attested_at",
         )
 
 
@@ -365,15 +365,15 @@ class RegistryMapping:
         evidence_keys = [
             canonical_digest(
                 {
-                    "decidedAt": _canonical_aware_datetime(
-                        item.decided_at,
-                        field_name="mapping evidence decided_at",
+                    "attestedAt": _canonical_aware_datetime(
+                        item.attested_at,
+                        field_name="mapping evidence attested_at",
                     )
                     .astimezone(timezone.utc)
                     .isoformat(),
                     "nativePayload": item.native_payload,
-                    "reviewMethod": item.review_method,
-                    "reviewedBy": item.reviewer_iri,
+                    "evidenceRole": item.review_warrant,
+                    "attestor": item.reviewer_iri,
                     "sourceDigest": item.source_digest,
                     "sourceLocator": item.source_locator,
                 }
@@ -384,8 +384,8 @@ class RegistryMapping:
             raise ValueError("mapping claim repeats an evidence decision")
         if all(
             _canonical_aware_datetime(
-                item.decided_at,
-                field_name="mapping evidence decided_at",
+                item.attested_at,
+                field_name="mapping evidence attested_at",
             )
             > asserted_at
             for item in self.evidence
@@ -483,8 +483,8 @@ class RegistryMappingRelease:
                 )
             if any(
                 _canonical_aware_datetime(
-                    evidence.decided_at,
-                    field_name=f"mapping release {self.key} decided_at",
+                    evidence.attested_at,
+                    field_name=f"mapping release {self.key} attested_at",
                 ).astimezone(timezone.utc)
                 < issued_at
                 for evidence in mapping.evidence

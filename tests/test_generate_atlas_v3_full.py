@@ -1657,9 +1657,9 @@ def _compiled_mapping_case(
                     "predicateIri": str(generator.SKOS.exactMatch),
                     "subjectIri": base.resources[0].iri,
                 },
-                review_method="operatorAdoption",
+                review_warrant="operatorAdoption",
                 reviewer_iri="urn:ref:actor:atlas-3-test-operator-adoption",
-                decided_at="2026-08-06T00:00:00+00:00",
+                attested_at="2026-08-06T00:00:00+00:00",
             ),
         ),
     )
@@ -2081,8 +2081,8 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
         evidence_row = mapping_release.mappings[0].evidence[0]
         assert (
             evidence,
-            generator.ATLAS.reviewMethod,
-            generator.ATLAS.operatorAdoption,
+            generator.RKAF.evidenceRole,
+            generator.RKAF.formalAdoptionEvent,
         ) in graphs.asserted
         assert (
             evidence,
@@ -2215,9 +2215,9 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
             **mapping.evidence[0].native_payload,
             "reviewRecord": "independent-human-review",
         },
-        review_method="humanReview",
+        review_warrant="humanReview",
         reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
-        decided_at="2026-08-06T02:00:00+00:00",
+        attested_at="2026-08-06T02:00:00+00:00",
     )
     expanded_release = dataclasses.replace(
         mapping_release,
@@ -2265,11 +2265,11 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
         assert set(
             expanded_graphs.asserted.objects(
                 None,
-                generator.ATLAS.reviewMethod,
+                generator.RKAF.evidenceRole,
             )
         ) >= {
-            generator.ATLAS.humanReview,
-            generator.ATLAS.operatorAdoption,
+            generator.RKAF.textualEvidence,
+            generator.RKAF.formalAdoptionEvent,
         }
         assert producer_receipt.expected_counts["sourceRecords"] == 4
         report = generator._validate_compiled_producer_output(
@@ -2316,9 +2316,9 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
     mapping = mapping_release.mappings[0]
     second_approval = dataclasses.replace(
         mapping.evidence[0],
-        review_method="humanReview",
+        review_warrant="humanReview",
         reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
-        decided_at="2026-08-06T02:00:00+00:00",
+        attested_at="2026-08-06T02:00:00+00:00",
     )
     expanded_release = dataclasses.replace(
         mapping_release,
@@ -3454,7 +3454,7 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
         asserted_at="2026-08-06T00:00:00Z",
         evidence_record=evidence_record,
         reviewer=URIRef("urn:test:reviewer"),
-        review_method=generator.ATLAS.publisherAssertion,
+        review_warrant="publisherAssertion",
         decided_at="2026-08-06T00:00:00Z",
     )
 
@@ -3489,16 +3489,13 @@ def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> Non
         ),
     }
 
-    assert observed == {
-        generator.ATLAS.publisherAssertion,
-        generator.ATLAS.deterministicTransformation,
-    }
-    assert generator.ATLAS.operatorAdoption not in observed
+    assert observed == {"publisherAssertion", "deterministicTransformation"}
+    assert "operatorAdoption" not in observed
     with pytest.raises(ValueError, match="unsupported assertion"):
         generator._review_method_for_assertion(generator.ATLAS.MappingAssertion)
 
     for method in generator.MAPPING_REVIEW_METHODS:
-        assert generator._mapping_review_method(method) == generator.ATLAS[method]
+        assert generator._mapping_review_method(method) == method
     with pytest.raises(ValueError, match="unsupported mapping review method"):
         generator._mapping_review_method("inventedReview")
 

@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:7354a1c0dfb6649157d516715df68ba12653f14b356425cf9ccec59ea666d66d",
-  "indexId": "urn:ref:atlas-index:7354a1c0dfb6649157d516715df68ba12653f14b356425cf9ccec59ea666d66d",
+  "indexDigest": "sha256:6643621b8951530ab8f48f2a214f5eb38a89c246de5aded8576483d27d449594",
+  "indexId": "urn:ref:atlas-index:6643621b8951530ab8f48f2a214f5eb38a89c246de5aded8576483d27d449594",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -718,7 +718,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:d8757cbea8513a3cc8196170c51c1571b51ef09fcd1fe396a17bc12a97e1a5bc"
+          "sha256": "sha256:9decace7c55e072b62a3cd33b1d97c031bb383b06660521e97bc5b645f1c6309"
         },
         {
           "kind": "parserTest",
@@ -728,7 +728,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:2472b9d27f25380d4bf1c150dfa21d4e1188dedc39a9bd7a1591b2f22a77d3a9"
+          "sha256": "sha256:6b5946492ca93194784ebfe4a0f93478b03e24915ac6ccaccbfb56797461e4b0"
         },
         {
           "kind": "sourceImplementation",
@@ -738,8 +738,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc-lcsh-alignment",
-      "rowDigest": "sha256:09b6e0adbd35e8aff6a1c24fa6a8110caa29eba1d1f4d39bbe00f19a30139c13",
-      "rowId": "urn:ref:atlas-index-row:09b6e0adbd35e8aff6a1c24fa6a8110caa29eba1d1f4d39bbe00f19a30139c13",
+      "rowDigest": "sha256:f5d20160209c21c2770c3e79ecc15d3235f593da3fd7d0cbe852dc96e586d129",
+      "rowId": "urn:ref:atlas-index-row:f5d20160209c21c2770c3e79ecc15d3235f593da3fd7d0cbe852dc96e586d129",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
     },
@@ -1459,7 +1459,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:d8757cbea8513a3cc8196170c51c1571b51ef09fcd1fe396a17bc12a97e1a5bc"
+          "sha256": "sha256:9decace7c55e072b62a3cd33b1d97c031bb383b06660521e97bc5b645f1c6309"
         },
         {
           "kind": "parserTest",
@@ -1469,7 +1469,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments.py",
-          "sha256": "sha256:2472b9d27f25380d4bf1c150dfa21d4e1188dedc39a9bd7a1591b2f22a77d3a9"
+          "sha256": "sha256:6b5946492ca93194784ebfe4a0f93478b03e24915ac6ccaccbfb56797461e4b0"
         },
         {
           "kind": "sourceImplementation",
@@ -1479,8 +1479,8 @@
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
-      "rowDigest": "sha256:be766df70c6c816e3dff3fbecb98057a557440c6011fe42abe4da5bd1761cee1",
-      "rowId": "urn:ref:atlas-index-row:be766df70c6c816e3dff3fbecb98057a557440c6011fe42abe4da5bd1761cee1",
+      "rowDigest": "sha256:9246c958098bf2eb189b0c491fb383d707ef7f653399be134def02d95ca38cae",
+      "rowId": "urn:ref:atlas-index-row:9246c958098bf2eb189b0c491fb383d707ef7f653399be134def02d95ca38cae",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },

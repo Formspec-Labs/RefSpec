@@ -46,6 +46,7 @@ EXPLORER_TYPE = ATLAS_V3_EXPLORER_TYPE
 EXPLORER_SCHEMA_VERSION = ATLAS_V3_EXPLORER_SCHEMA_VERSION
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
+RKAF = Namespace("https://rulespec.org/ns/v1#")
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 
 _ROOT_MANIFEST = "atlas-manifest.json"
@@ -4667,12 +4668,12 @@ def _evidence_view(
         "sourceRecord": record_id,
         "sourceRecordContentDigest": source_record_content_digests[record_id],
         "sourceDigest": str(_one(graph, binding, ATLAS.evidenceSourceDigest, label=f"evidence {binding}")),
-        "decisionStatus": _iri_name(_one(graph, binding, RKAF.decision, label=f"evidence {binding}")),
-        "reviewMethod": _iri_name(_one(graph, binding, ATLAS.reviewMethod, label=f"evidence {binding}")),
-        "decidedAt": str(_one(graph, binding, RKAF.attestedAt, label=f"evidence {binding}")),
+        "decision": _iri_name(_one(graph, binding, RKAF.decision, label=f"evidence {binding}")),
+        "evidenceRole": _iri_name(_one(graph, binding, RKAF.evidenceRole, label=f"evidence {binding}")),
+        "attestedAt": str(_one(graph, binding, RKAF.attestedAt, label=f"evidence {binding}")),
         "contentDigest": str(_one(graph, binding, ATLAS.contentDigest, label=f"evidence {binding}")),
     }
-    for predicate, field in ((RKAF.attestor, "reviewedBy"),):
+    for predicate, field in ((RKAF.attestor, "attestor"),):
         value = _one(graph, binding, predicate, label=f"evidence {binding}", required=False)
         if value is not None:
             result[field] = str(value)
@@ -5675,7 +5676,7 @@ _GRAPH_HTML = r"""<!doctype html>
   let fullIndex=null,fullIndexPromise=null,catalogRefs=[],catalogCursor=0,searchEpoch=0;
   const rdf={
     type:"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",subject:"http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",predicate:"http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",object:"http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
-    atlas:"https://refspec.org/ns/atlas/v3#",skosxl:"http://www.w3.org/2008/05/skos-xl#"
+    atlas:"https://refspec.org/ns/atlas/v3#",rkaf:"https://rulespec.org/ns/v1#",skosxl:"http://www.w3.org/2008/05/skos-xl#"
   };
   const textEncoder=new TextEncoder(),textDecoder=new TextDecoder("utf-8",{fatal:true});
   /* atlas-verified-shard-load:start */
@@ -5751,7 +5752,7 @@ _GRAPH_HTML = r"""<!doctype html>
   async function normalizeIdentifier(id){const record=await loadRecord(id),sourceRecords=iriFacts(record,`${rdf.atlas}sourceRecord`);return {id,value:oneLiteral(record,`${rdf.atlas}identifierValue`),scheme:oneIri(record,`${rdf.atlas}identifierScheme`),schemeLabel:short(oneIri(record,`${rdf.atlas}identifierScheme`)),identifies:oneIri(record,`${rdf.atlas}identifies`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),sourceRecordCount:sourceRecords.length,...(sourceRecords.length===1?{sourceRecord:sourceRecords[0]}:{})};}
   async function normalizeEvidence(id){
     const record=await loadRecord(id),sourceRecord=oneIri(record,`${rdf.atlas}evidenceSourceRecord`),source=normalizeSourceRecord(await loadRecord(sourceRecord));
-    return {id,sourceRecord:source.id,sourceRecordContentDigest:source.contentDigest,sourceDigest:oneLiteral(record,`${rdf.atlas}evidenceSourceDigest`),decisionStatus:short(oneIri(record,`${rdf.atlas}decisionStatus`)),reviewMethod:short(oneIri(record,`${rdf.atlas}reviewMethod`)),decidedAt:oneLiteral(record,`${rdf.atlas}decidedAt`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),...(oneIri(record,`${rdf.atlas}reviewedBy`)?{reviewedBy:oneIri(record,`${rdf.atlas}reviewedBy`)}:{})};
+    return {id,sourceRecord:source.id,sourceRecordContentDigest:source.contentDigest,sourceDigest:oneLiteral(record,`${rdf.atlas}evidenceSourceDigest`),decision:short(oneIri(record,`${rdf.rkaf}decision`)),evidenceRole:short(oneIri(record,`${rdf.rkaf}evidenceRole`)),attestedAt:oneLiteral(record,`${rdf.rkaf}attestedAt`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),...(oneIri(record,`${rdf.rkaf}attestor`)?{attestor:oneIri(record,`${rdf.rkaf}attestor`)}:{})};
   }
   async function endpointLabel(id){try{return (await loadRecord(id)).summary?.displayLabel||short(id);}catch{return short(id);}}
   async function normalizeRelation(id){
@@ -5905,14 +5906,14 @@ _GRAPH_HTML = r"""<!doctype html>
     const release=sourceReleaseById.get(record.sourceRelease);
     return release?.title||release?.identifier||short(record.sourceRelease||record.sourceLocator||"source record");
   }
-  function reviewMethod(method){
+  function warrantLabel(method){
     return ({
-      publisherAssertion:{title:"Publisher supplied",reason:"Supplied directly by the publisher."},
-      deterministicTransformation:{title:"Fixed-rule transformation",reason:"Atlas applied a fixed rule to publisher data."},
-      twoMachineAdjudication:{title:"Two-model agreement",reason:"Two independent models agreed."},
-      operatorAdoption:{title:"Operator adopted",reason:"An operator accepted it."},
-      humanReview:{title:"Human approved",reason:"A human reviewer approved it."},
-      trustedPipelineReview:{title:"Pipeline approved",reason:"A trusted pipeline approved it."}
+      officialSourceMetadata:{title:"Publisher supplied",reason:"Supplied directly by the publisher."},
+      structuralEvidence:{title:"Fixed-rule transformation",reason:"Atlas applied a fixed rule to publisher data."},
+      reviewedAuthorityChain:{title:"Two-model agreement",reason:"Two independent models agreed."},
+      formalAdoptionEvent:{title:"Operator adopted",reason:"An operator accepted it."},
+      textualEvidence:{title:"Human approved",reason:"A human reviewer approved it."},
+      authorityCitation:{title:"Pipeline approved",reason:"A trusted pipeline approved it."}
     })[method]||{title:String(method||"Reviewed"),reason:"The review method is recorded."};
   }
   /* atlas-mapping-provenance:start */
@@ -5931,8 +5932,8 @@ _GRAPH_HTML = r"""<!doctype html>
     const alignmentIssued=payload.publisherAlignmentIssued?` · issued ${payload.publisherAlignmentIssued}`:"";
     const euroVoc=payload.publisherEuroVocVersion?`EuroVoc ${payload.publisherEuroVocVersion}`:"EuroVoc version not stated";
     const lcsh=payload.publisherLcshRelease==="unspecifiedByPublisher"?"LCSH release not stated":`LCSH ${payload.publisherLcshRelease||"release not stated"}`;
-    const method=evidence.reviewMethod==="operatorAdoption"?"Operator adoption":reviewMethod(evidence.reviewMethod).title;
-    const adoptionDate=String(evidence.decidedAt||"").slice(0,10)||"date not recorded";
+    const method=evidence.evidenceRole==="formalAdoptionEvent"?"Operator adoption":warrantLabel(evidence.evidenceRole).title;
+    const adoptionDate=String(evidence.attestedAt||"").slice(0,10)||"date not recorded";
     const caveat=payload.currentMetadataRequalifiesIndividualPairs===false?`<p class="supporting-intro">EuroVoc ${esc(payload.currentEuroVocRelease||"current")} aggregate metadata does not re-review individual pairs.</p>`:"";
     return `<section class="supporting"><h4>Mapping source</h4><div class="evidence-list"><div class="evidence-row"><b>Official alignment ${esc(payload.publisherAlignmentVersion)}${esc(alignmentIssued)}</b><p>${esc(euroVoc)} · ${esc(lcsh)}</p></div><div class="evidence-row"><b>Atlas decision ${esc(adoptionDate)} · ${esc(method)}</b><p>Exact Atlas releases</p><p class="iri">${esc(edge.sourceRelease)} → ${esc(edge.targetRelease)}</p></div></div>${caveat}</section>`;
   }
@@ -5963,7 +5964,7 @@ _GRAPH_HTML = r"""<!doctype html>
     if(mapping)return `Official alignment ${mapping.payload.publisherAlignmentVersion}, adopted for these exact releases.`;
     const evidence=edge.evidence||[];
     const sources=[...new Set(evidence.map(item=>friendlySource(sourceById.get(item.sourceRecord))))];
-    const reasons=[...new Set(evidence.map(item=>reviewMethod(item.reviewMethod).reason))];
+    const reasons=[...new Set(evidence.map(item=>warrantLabel(item.evidenceRole).reason))];
     if(edge.kind==="sourceAssignment")return `Links ${sources.join(" and ")||"a pinned source"} to its Atlas resource.`;
     return `${sources.join(" and ")||"Pinned evidence"}: ${reasons.join(" ")||"Approved source fact."}`;
   }
@@ -5981,13 +5982,13 @@ _GRAPH_HTML = r"""<!doctype html>
       const mapping=mappingEvidenceBrief(edge);
       if(mapping)return mapping;
     }
-    const rows=edge.evidence.map(item=>{const method=reviewMethod(item.reviewMethod),source=sourceById.get(item.sourceRecord);return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decisionStatus)} · digest pinned</p></div>`;}).join("");
+    const rows=edge.evidence.map(item=>{const method=warrantLabel(item.evidenceRole),source=sourceById.get(item.sourceRecord);return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decision)} · digest pinned</p></div>`;}).join("");
     return `<section class="supporting"><h4>Evidence</h4><div class="evidence-list">${rows}</div></section>`;
   }
   function supportingBrief(edge){
     const ids=edge.layer==="projection"?edge.supportingAssertions:edge.layer==="derived"?edge.derivedFromAssertions:[];
     if(!ids?.length)return "";
-    const rows=ids.map(id=>{const assertion=assertedById.get(id);if(!assertion)return `<div class="evidence-row"><b>Supporting assertion</b><p>${esc(id)}</p></div>`;const readable={...assertion,layer:"asserted"};const method=reviewMethod(assertion.evidence?.[0]?.reviewMethod).title;const meaning=edge.layer==="derived"?`<span>${esc(relationMeaning(readable))}</span>`:"";return `<button class="support-link" data-edge="asserted|${esc(id)}"><b>${esc(assertion.subjectLabel)} → ${esc(assertion.objectLabel)}</b>${meaning}<small>${esc(method)} · open</small></button>`;}).join("");
+    const rows=ids.map(id=>{const assertion=assertedById.get(id);if(!assertion)return `<div class="evidence-row"><b>Supporting assertion</b><p>${esc(id)}</p></div>`;const readable={...assertion,layer:"asserted"};const method=warrantLabel(assertion.evidence?.[0]?.evidenceRole).title;const meaning=edge.layer==="derived"?`<span>${esc(relationMeaning(readable))}</span>`:"";return `<button class="support-link" data-edge="asserted|${esc(id)}"><b>${esc(assertion.subjectLabel)} → ${esc(assertion.objectLabel)}</b>${meaning}<small>${esc(method)} · open</small></button>`;}).join("");
     return `<section class="supporting"><h4>Supporting assertions</h4><div class="support-list">${rows}</div></section>`;
   }
   function technicalRecord(edge){const record={...edge};delete record.color;delete record.layer;return record;}
