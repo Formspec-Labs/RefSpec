@@ -1874,7 +1874,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 824
+    assert result["quadCount"] == 869
     assert result["inferredMappingCount"] == 7
 
 
@@ -1886,7 +1886,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 824
+    assert result["quadCount"] == 869
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -1997,7 +1997,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 718
+    assert result["quadCount"] == 763
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(

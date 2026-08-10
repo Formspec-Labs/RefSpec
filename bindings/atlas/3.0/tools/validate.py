@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from functools import lru_cache
-from itertools import chain
+from itertools import chain, combinations
 from pathlib import Path
 from typing import Any, NoReturn, TextIO
 
@@ -381,6 +381,38 @@ SKOS_MAPPING_PREDICATES = frozenset(
     {SKOS.exactMatch, SKOS.closeMatch, SKOS.broadMatch, SKOS.narrowMatch, SKOS.relatedMatch}
 )
 SKOS_NATIVE_RELATION_PREDICATES = frozenset({SKOS.broader, SKOS.narrower, SKOS.related})
+# A record's own content digest never covers itself. Atlas spells that digest
+# atlas:contentDigest on every carrier it names; on a machine-adjudication proof
+# record Rulespec already names it rkaf:proofRecordDigest, so the rkaf term is
+# what rides on the wire and both are excluded by the one digest algorithm.
+_SELF_DIGEST_PREDICATES = frozenset({ATLAS.contentDigest, RKAF.proofRecordDigest})
+# rkaf's #MachineAdjudicationVerdict, five closed values. v1's seven-value
+# atlas:verdictRelation lost "unrelated" and "insufficient_evidence" on the way
+# here: a verdict names a RELATION, and those two name a refusal, which is a
+# #ResolverProofOutcome (rkaf:gateFail / rkaf:gateUnknown). See the machine-
+# adjudication block in ontology/atlas.ttl.
+MACHINE_ADJUDICATION_VERDICTS = frozenset(
+    {
+        RKAF.verdictSame,
+        RKAF.verdictNearSame,
+        RKAF.verdictTargetBroader,
+        RKAF.verdictTargetNarrower,
+        RKAF.verdictRelated,
+    }
+)
+# The five independence axes, each named by how it is reached from one proof
+# record. Two proofs are independent witnesses of one sealed question only when
+# they differ on ALL five: distinct actors, groups, providers, and model IDs
+# still describe one witnessed answer if that answer is the identical sealed
+# response artifact (rulespec spec/rkaf-refspec.md, corrected 2026-08-09;
+# rkaf:MachineAdjudicationIndependentPairShape).
+MACHINE_ADJUDICATION_INDEPENDENCE_AXES = (
+    "validator actor",
+    "independence group",
+    "provider",
+    "provider model id",
+    "response artifact",
+)
 # The four independent Rulespec axes that atlas:reviewMethod used to conflate
 # into one six-value enum, plus the attestor kind. Rulespec keeps them apart on
 # purpose: #EvidenceRole's comment says the split "prevents a consumer from
@@ -504,6 +536,10 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
         RKAF.LifecycleEvent,
+        RKAF.ResolverProofRecord,
+        RKAF.ResolverProofIssuer,
+        RKAF.AILineage,
+        RKAF.RelationComparisonContext,
         ATLAS.RelationAssertion,
         *ASSERTION_TYPES,
         ATLAS.SkosMappingAssertion,
@@ -524,6 +560,10 @@ ASSERTED_CARRIER_TYPES = frozenset(
         RKAF.EvidenceBinding,
         ATLAS.EditorialPolicy,
         RKAF.LifecycleEvent,
+        RKAF.ResolverProofRecord,
+        RKAF.ResolverProofIssuer,
+        RKAF.AILineage,
+        RKAF.RelationComparisonContext,
         *ASSERTION_TYPES,
         SKOSXL.Label,
     }
@@ -579,6 +619,24 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         RKAF.bindsAssertion,
         RKAF.appliesTo,
         RKAF.lifecycleEventKind,
+        RKAF.proofType,
+        RKAF.proofIssuer,
+        RKAF.proofComparisonContext,
+        RKAF.proofOutcome,
+        RKAF.proofInput,
+        RKAF.proofInputDigest,
+        RKAF.proofEvaluatedAt,
+        RKAF.proofRecordDigest,
+        RKAF.hasAILineage,
+        RKAF.independenceGroup,
+        RKAF.adjudicationVerdict,
+        RKAF.sealedRequestDigest,
+        RKAF.sealedResponseArtifact,
+        RKAF.proofResolver,
+        RKAF.modelId,
+        RKAF.comparisonExpectedAssertion,
+        RKAF.comparisonOutcome,
+        RKAF.comparisonProofRecord,
         ATLAS.fromRelease,
         ATLAS.toRelease,
         ATLAS.sourceDigest,
@@ -617,6 +675,7 @@ REQUIRED_GATES = frozenset(
         "shacl-meta",
         "shacl-data",
         "dataset-closure",
+        "machine-adjudication",
         "source-accounting",
         "projection-parity",
         "reasoning-isolation",
@@ -626,6 +685,25 @@ REQUIRED_GATES = frozenset(
 REQUIRED_CORPUS_CASES = frozenset(
     {
         "acceptance-missing-gate",
+        "adjudication-comparison-outcome-not-satisfied",
+        "adjudication-comparison-retargeted",
+        "adjudication-discarded-support",
+        "adjudication-evaluated-at-not-datetime",
+        "adjudication-foreign-comparison",
+        "adjudication-mismatched-sealed-request",
+        "adjudication-proof-input-digest",
+        "adjudication-proof-outcome-not-pass",
+        "adjudication-proof-record-digest",
+        "adjudication-proof-type-not-machine",
+        "adjudication-relation-not-licensed",
+        "adjudication-response-artifact-cardinality",
+        "adjudication-same-independence-group",
+        "adjudication-same-provider",
+        "adjudication-same-provider-model",
+        "adjudication-same-response-artifact",
+        "adjudication-same-validator-actor",
+        "adjudication-single-proof",
+        "adjudication-verdicts-disagree",
         "adoption-chain-cycle",
         "adoption-without-referent",
         "all-resource-profiles",
@@ -673,6 +751,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "non-english-label",
         "partitioned-packs",
         "profile-ring-mismatch",
+        "qualified-three-machine-support",
         "release-membership-mode-unknown",
         "policy-payload-changed",
         "rdf-literal-escaping",
@@ -3777,6 +3856,359 @@ def _check_evidence_bindings(
         _fail("dataset.evidence", f"assertion has no immutable evidence binding: {missing}")
 
 
+def _adjudicated_relation(verdicts: AbstractSet[URIRef]) -> URIRef | None:
+    """Fold a complete verdict set onto the one relation it licenses, if any.
+
+    The lattice is UNIVERSAL, not existential: it folds *every* verdict cited
+    for one sealed question, so a third machine cannot outvote a direction
+    disagreement and a set mixing ``verdictNearSame`` with a directional
+    verdict licenses nothing. A mapping is emitted at the weakest claim any
+    machine made, which is why ``same`` together with ``nearSame`` yields
+    ``skos:closeMatch`` -- one machine declined to claim identity, and
+    ``skos:exactMatch`` is the only mapping relation whose transitivity this
+    binding lets a consumer rely on (``_check_reasoning_isolation``).
+
+    Ported verbatim from ``src/refspec/atlas/model.py``'s qualification-path
+    lattice, with rkaf's verdict IRIs in place of v1's seven literals; the two
+    values rkaf drops are refusals rather than relations and never reach a
+    verdict slot at all (see ontology/atlas.ttl).
+    """
+
+    if not verdicts:
+        return None
+    if verdicts == {RKAF.verdictSame}:
+        return SKOS.exactMatch
+    if verdicts <= {RKAF.verdictSame, RKAF.verdictNearSame}:
+        return SKOS.closeMatch
+    if verdicts == {RKAF.verdictTargetBroader}:
+        return SKOS.broadMatch
+    if verdicts == {RKAF.verdictTargetNarrower}:
+        return SKOS.narrowMatch
+    if verdicts == {RKAF.verdictRelated}:
+        return SKOS.relatedMatch
+    return None
+
+
+def _machine_adjudication_proof_facts(
+    asserted: Graph,
+    proof: URIRef,
+    *,
+    issuers: AbstractSet[URIRef],
+    lineages: AbstractSet[URIRef],
+    comparisons: AbstractSet[URIRef],
+) -> dict[str, Any]:
+    """Resolve one proof record, including both dereferenced axes."""
+
+    stored_digest = _literal_text(
+        _one(asserted, proof, RKAF.proofRecordDigest, code="dataset.adjudication-identity"),
+        code="dataset.adjudication-identity",
+        label="proofRecordDigest",
+    )
+    if stored_digest != rdf_node_digest(asserted, proof):
+        _fail("dataset.adjudication-identity", f"{proof} proofRecordDigest differs")
+    issuer = _iri(
+        _one(asserted, proof, RKAF.proofIssuer, code="dataset.adjudication"),
+        code="dataset.adjudication",
+        label="proofIssuer",
+    )
+    if issuer not in issuers:
+        _fail("dataset.adjudication", f"{proof} names unknown proof issuer {issuer}")
+    lineage = _iri(
+        _one(asserted, proof, RKAF.hasAILineage, code="dataset.adjudication"),
+        code="dataset.adjudication",
+        label="hasAILineage",
+    )
+    if lineage not in lineages:
+        _fail("dataset.adjudication", f"{proof} names unknown AI lineage {lineage}")
+    comparison = _iri(
+        _one(asserted, proof, RKAF.proofComparisonContext, code="dataset.adjudication"),
+        code="dataset.adjudication",
+        label="proofComparisonContext",
+    )
+    if comparison not in comparisons:
+        _fail("dataset.adjudication", f"{proof} names unknown comparison {comparison}")
+    _date_time(
+        _one(asserted, proof, RKAF.proofEvaluatedAt, code="dataset.adjudication"),
+        code="dataset.adjudication",
+        label="proofEvaluatedAt",
+    )
+    verdict = _iri(
+        _one(asserted, proof, RKAF.adjudicationVerdict, code="dataset.adjudication"),
+        code="dataset.adjudication",
+        label="adjudicationVerdict",
+    )
+    if verdict not in MACHINE_ADJUDICATION_VERDICTS:
+        _fail("dataset.adjudication", f"{proof} states an unsupported verdict {verdict}")
+    return {
+        "comparison": comparison,
+        "verdict": verdict,
+        "sealedRequestDigest": _literal_text(
+            _one(asserted, proof, RKAF.sealedRequestDigest, code="dataset.adjudication"),
+            code="dataset.adjudication",
+            label="sealedRequestDigest",
+        ),
+        # The five independence axes, in the order
+        # MACHINE_ADJUDICATION_INDEPENDENCE_AXES names them. Two of the five are
+        # reached through a referenced record rather than read off the proof, so
+        # a resolver upgrade or a model swap changes one node instead of every
+        # proof that cites it.
+        "axes": (
+            issuer,
+            _iri(
+                _one(asserted, proof, RKAF.independenceGroup, code="dataset.adjudication"),
+                code="dataset.adjudication",
+                label="independenceGroup",
+            ),
+            _iri(
+                _one(asserted, issuer, RKAF.proofResolver, code="dataset.adjudication"),
+                code="dataset.adjudication",
+                label="proofResolver",
+            ),
+            _literal_text(
+                _one(asserted, lineage, RKAF.modelId, code="dataset.adjudication"),
+                code="dataset.adjudication",
+                label="modelId",
+            ),
+            _iri(
+                _one(asserted, proof, RKAF.sealedResponseArtifact, code="dataset.adjudication"),
+                code="dataset.adjudication",
+                label="sealedResponseArtifact",
+            ),
+        ),
+        "inputs": frozenset(asserted.objects(proof, RKAF.proofInput)),
+        "inputDigests": frozenset(
+            _literal_text(value, code="dataset.adjudication-input", label="proofInputDigest")
+            for value in asserted.objects(proof, RKAF.proofInputDigest)
+        ),
+    }
+
+
+def _check_machine_adjudication(
+    asserted: Graph,
+    inventory: SemanticInventory | None = None,
+) -> None:
+    """Close the machine-adjudication protocol over proofs and comparisons.
+
+    Everything here spans several records, which is why none of it is SHACL:
+    per-property constraints reach one node, and every rule below relates a
+    comparison to the proofs citing it and to the assertion it licensed. The
+    five checks are the four normative rules Atlas 1.0's README carried in
+    prose, restated over rkaf's records:
+
+    * **Independence.** At least one PAIR of cited proofs must answer the
+      identical sealed question while differing on all five axes. A single
+      proof, or a set that collapses onto one axis, is one opinion wearing a
+      proof record. This is rulespec's
+      ``rkaf:MachineAdjudicationIndependentPairShape``, widened from its four
+      axes to the five ``spec/rkaf-refspec.md`` states -- and it is "at least
+      one pair", never "exactly two", so three corroborating machines are
+      valid.
+    * **One sealed question.** Every cited proof must carry the same
+      ``rkaf:sealedRequestDigest``. Two machines answering two questions are
+      not a corroboration of one (v1: "both validations resolve the same
+      atlas:requestArtifact").
+    * **Complete support.** Every proof record in the dataset must be cited by
+      the comparison it was issued for. This is strictly stronger than
+      rulespec's ``rkaf:MachineAdjudicationCompleteSupportShape``, which only
+      catches a dropped proof that shares a sealed request with a kept one:
+      Atlas pins one comparison to one question, so ANY uncited proof is a
+      discarded corroborator. It replaces v1's ``atlas:qualifiedBy``.
+    * **Input binding.** Each proof's ``rkaf:proofInput`` must be exactly the
+      two endpoints of the assertion under comparison, and its
+      ``rkaf:proofInputDigest`` must be those endpoints' recorded content
+      digests. v1 spelled this ``atlas:inputContextArtifact`` plus
+      ``atlas:inputContextDigest``, and gave the reason this check exists:
+      without it, every record can agree on a digest whose bytes exist nowhere.
+    * **The lattice.** The relation the complete verdict set licenses must be
+      the relation the mapping states.
+    """
+
+    comparisons = _carrier_nodes(asserted, RKAF.RelationComparisonContext, inventory)
+    proofs = _carrier_nodes(asserted, RKAF.ResolverProofRecord, inventory)
+    issuers = _carrier_nodes(asserted, RKAF.ResolverProofIssuer, inventory)
+    lineages = _carrier_nodes(asserted, RKAF.AILineage, inventory)
+    bindings = _carrier_nodes(asserted, RKAF.EvidenceBinding, inventory)
+    # Which assertions owe a proof set. The warrant is the trigger: an evidence
+    # binding declaring aiSuggested + statisticalInference +
+    # reviewedAuthorityChain is claiming two machines adjudicated the mapping,
+    # and until this gate existed nothing made that claim mean anything.
+    adjudicated: set[URIRef] = set()
+    machine_warrant = EVIDENCE_WARRANTS["twoMachineAdjudication"]
+    for binding in bindings:
+        if (
+            tuple(asserted.value(binding, axis) for axis in EVIDENCE_WARRANT_AXES)
+            == machine_warrant
+        ):
+            adjudicated.update(asserted.objects(binding, RKAF.bindsAssertion))
+
+    facts = {
+        proof: _machine_adjudication_proof_facts(
+            asserted,
+            proof,
+            issuers=issuers,
+            lineages=lineages,
+            comparisons=comparisons,
+        )
+        for proof in sorted(proofs)
+    }
+
+    cited_by_comparison: dict[URIRef, list[URIRef]] = {}
+    comparison_by_assertion: dict[URIRef, URIRef] = {}
+    for comparison in sorted(comparisons):
+        assertion = _iri(
+            _one(asserted, comparison, RKAF.comparisonExpectedAssertion, code="dataset.adjudication"),
+            code="dataset.adjudication",
+            label="comparisonExpectedAssertion",
+        )
+        if (
+            not inventory.is_assertion(assertion)
+            if inventory is not None
+            else not any(
+                (assertion, RDF.type, assertion_type) in asserted
+                for assertion_type in ASSERTION_TYPES
+            )
+        ):
+            _fail("dataset.adjudication", f"{comparison} names unknown assertion {assertion}")
+        if assertion not in adjudicated:
+            _fail(
+                "dataset.adjudication",
+                f"{comparison} was run for {assertion}, whose evidence declares no "
+                "machine adjudication",
+            )
+        if assertion in comparison_by_assertion:
+            _fail(
+                "dataset.adjudication",
+                f"{assertion} is licensed by two comparisons; one claim answers one "
+                "sealed question",
+            )
+        comparison_by_assertion[assertion] = comparison
+        endpoints = frozenset(
+            {
+                _iri(
+                    _one(asserted, assertion, RDF.subject, code="dataset.adjudication"),
+                    code="dataset.adjudication",
+                    label="assertion subject",
+                ),
+                _iri(
+                    _one(asserted, assertion, RDF.object, code="dataset.adjudication"),
+                    code="dataset.adjudication",
+                    label="assertion object",
+                ),
+            }
+        )
+        expected_input_digests = frozenset(
+            _literal_text(
+                _one(asserted, endpoint, ATLAS.contentDigest, code="dataset.adjudication-input"),
+                code="dataset.adjudication-input",
+                label="proof input contentDigest",
+            )
+            for endpoint in sorted(endpoints)
+        )
+        cited = sorted(set(asserted.objects(comparison, RKAF.comparisonProofRecord)))
+        for proof in cited:
+            if proof not in facts:
+                _fail("dataset.adjudication", f"{comparison} cites unknown proof record {proof}")
+            if facts[proof]["comparison"] != comparison:
+                _fail(
+                    "dataset.adjudication-support",
+                    f"{comparison} cites {proof}, which was issued for "
+                    f"{facts[proof]['comparison']}: a proof replayed against another "
+                    "comparison is a stale pass",
+                )
+            if facts[proof]["inputs"] != endpoints:
+                _fail(
+                    "dataset.adjudication-input",
+                    f"{proof} did not read the endpoints of {assertion}",
+                )
+            if facts[proof]["inputDigests"] != expected_input_digests:
+                _fail(
+                    "dataset.adjudication-input",
+                    f"{proof} proofInputDigest does not pin the exact content of the "
+                    "resources it names",
+                )
+        cited_by_comparison[comparison] = cited
+
+    # Complete support: a proof the dataset carries but no comparison cites is
+    # evidence thrown away after it was produced.
+    for proof in sorted(proofs):
+        comparison = facts[proof]["comparison"]
+        if proof not in cited_by_comparison.get(comparison, ()):
+            _fail(
+                "dataset.adjudication-support",
+                f"{comparison} does not cite {proof}, which was issued for it; a "
+                "mapping cites the complete support set, not the first pair found",
+            )
+
+    for comparison in sorted(comparisons):
+        cited = cited_by_comparison[comparison]
+        questions = {facts[proof]["sealedRequestDigest"] for proof in cited}
+        if len(questions) != 1:
+            _fail(
+                "dataset.adjudication-independence",
+                f"{comparison} cites proofs answering {len(questions)} sealed "
+                "questions; two machines answering two questions corroborate nothing",
+            )
+        witness = next(
+            (
+                pair
+                for pair in combinations(cited, 2)
+                if all(
+                    facts[pair[0]]["axes"][axis] != facts[pair[1]]["axes"][axis]
+                    for axis in range(len(MACHINE_ADJUDICATION_INDEPENDENCE_AXES))
+                )
+            ),
+            None,
+        )
+        if witness is None:
+            collapsed = sorted(
+                {
+                    MACHINE_ADJUDICATION_INDEPENDENCE_AXES[axis]
+                    for first, second in combinations(cited, 2)
+                    for axis in range(len(MACHINE_ADJUDICATION_INDEPENDENCE_AXES))
+                    if facts[first]["axes"][axis] == facts[second]["axes"][axis]
+                }
+            )
+            _fail(
+                "dataset.adjudication-independence",
+                f"{comparison} cites no independent pair of machine adjudications "
+                f"({len(cited)} proof(s); shared: {collapsed or ['no pair exists']})",
+            )
+        assertion = _iri(
+            _one(asserted, comparison, RKAF.comparisonExpectedAssertion, code="dataset.adjudication"),
+            code="dataset.adjudication",
+            label="comparisonExpectedAssertion",
+        )
+        stated = _iri(
+            _one(asserted, assertion, RDF.predicate, code="dataset.adjudication-lattice"),
+            code="dataset.adjudication-lattice",
+            label="assertion predicate",
+        )
+        licensed = _adjudicated_relation({facts[proof]["verdict"] for proof in cited})
+        if licensed is None:
+            _fail(
+                "dataset.adjudication-lattice",
+                f"{comparison} folds its verdicts onto no relation, so {assertion} "
+                "states one the machines did not agree on",
+            )
+        if licensed != stated:
+            _fail(
+                "dataset.adjudication-lattice",
+                f"{assertion} states {stated}, but its verdicts license {licensed}",
+            )
+
+    unlicensed = min(
+        (assertion for assertion in adjudicated if assertion not in comparison_by_assertion),
+        key=str,
+        default=None,
+    )
+    if unlicensed is not None:
+        _fail(
+            "dataset.adjudication",
+            f"{unlicensed} declares a machine-adjudication warrant but cites no "
+            "comparison; the warrant is the protocol's trigger, not a label",
+        )
+
+
 def _hierarchy_connected_pairs(
     hierarchy: Mapping[URIRef, URIRef | AbstractSet[URIRef]],
     pairs: Iterable[NodePair],
@@ -4196,7 +4628,7 @@ def _outgoing_facts_digest(
     rows = sorted(
         f"{ntriples_term(predicate)} {ntriples_term(obj)} ."
         for predicate, obj in facts
-        if predicate != ATLAS.contentDigest
+        if predicate not in _SELF_DIGEST_PREDICATES
     )
     if not rows:
         detail = f"{node} has no digestible RDF facts" if node is not None else "node has no digestible RDF facts"
@@ -6620,6 +7052,8 @@ def _validate_semantic_graphs(
     _STATUS.phase("check-evidence-and-assertions")
     _check_evidence_bindings(graphs["asserted"], inventory)
     current_assertions = _validate_assertions(graphs["asserted"], inventory)
+    _STATUS.phase("check-machine-adjudication")
+    _check_machine_adjudication(graphs["asserted"], inventory)
     _STATUS.phase("check-skos-semantics")
     exact_index = _check_skos_integrity(current_assertions)
     projection_quad_count = next(

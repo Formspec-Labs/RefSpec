@@ -63,6 +63,9 @@ class Fixture:
     post_write: Callable[[Path], None] | None = None
     rdf_zstd_all: bool = False
     rdf_partition_owner: str | None = None
+    # Set false by the three negatives whose whole point is a stale proof
+    # digest; every other case is re-sealed after its mutation runs.
+    reseal_adjudication: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -357,6 +360,163 @@ def _add_assertion(
         graph.add((evidence_id, evidence_predicate, evidence_object))
     graph.add((evidence_id, ATLAS.contentDigest, Literal(evidence_digest)))
     return assertion
+
+
+def _adjudication_iri(kind: str, *parts: str) -> URIRef:
+    return URIRef(":".join(("urn:ref:atlas-fixture", kind, *parts)))
+
+
+def _refresh_proof_digest(graph: Graph, proof: URIRef) -> None:
+    """Re-pin one proof record's own rkaf:proofRecordDigest.
+
+    The digest excludes itself, exactly as atlas:contentDigest does on every
+    other carrier; rkaf simply already had a name for it on a proof record.
+    """
+
+    _remove_subject_predicate(graph, proof, RKAF.proofRecordDigest)
+    graph.add(
+        (
+            proof,
+            RKAF.proofRecordDigest,
+            Literal(atlas_validate.rdf_node_digest(graph, proof)),
+        )
+    )
+
+
+def _add_adjudication_machine(graph: Graph, key: str) -> tuple[URIRef, URIRef]:
+    """One versioned proof issuer plus one model lineage for one machine.
+
+    Three of the five independence axes live on these two records rather than
+    on the proof: the issuer IRI is the validator actor, its rkaf:proofResolver
+    is the provider, and the lineage's rkaf:modelId is the provider model id.
+    Collapsing any one of them is what the same-* negatives do.
+    """
+
+    issuer = _adjudication_iri("proof-issuer", key)
+    lineage = _adjudication_iri("ai-lineage", key)
+    if (issuer, RDF.type, RKAF.ResolverProofIssuer) not in graph:
+        graph.add((issuer, RDF.type, RKAF.ResolverProofIssuer))
+        graph.add((issuer, RKAF.proofResolver, _adjudication_iri("resolver", key)))
+    if (lineage, RDF.type, RKAF.AILineage) not in graph:
+        graph.add((lineage, RDF.type, RKAF.AILineage))
+        graph.add((lineage, RKAF.modelId, Literal(f"{key}-adjudicator-2026-01")))
+    return issuer, lineage
+
+
+def _sealed_request_digest(graph: Graph, assertion: URIRef) -> str:
+    """The sealed question: which relation holds between these two endpoints.
+
+    Equal digests mean two machines answered the IDENTICAL question, which is
+    what makes them a corroborating pair rather than two answers to two
+    questions.
+    """
+
+    return atlas_validate.canonical_sha256(
+        {
+            "object": str(graph.value(assertion, RDF.object)),
+            "predicate": str(graph.value(assertion, RDF.predicate)),
+            "subject": str(graph.value(assertion, RDF.subject)),
+        }
+    )
+
+
+def _add_adjudication_proof(
+    graph: Graph,
+    *,
+    comparison: URIRef,
+    assertion: URIRef,
+    name: str,
+    key: str,
+    verdict: URIRef,
+) -> URIRef:
+    """One machine's sealed answer to one comparison question."""
+
+    issuer, lineage = _add_adjudication_machine(graph, key)
+    proof = _adjudication_iri("proof", name, key)
+    graph.add((proof, RDF.type, RKAF.ResolverProofRecord))
+    graph.add((proof, RKAF.proofType, RKAF.machineAdjudicationProof))
+    graph.add((proof, RKAF.proofIssuer, issuer))
+    graph.add((proof, RKAF.proofComparisonContext, comparison))
+    graph.add((proof, RKAF.proofOutcome, RKAF.gatePass))
+    for endpoint in sorted(
+        {graph.value(assertion, RDF.subject), graph.value(assertion, RDF.object)},
+        key=str,
+    ):
+        graph.add((proof, RKAF.proofInput, endpoint))
+        graph.add(
+            (
+                proof,
+                RKAF.proofInputDigest,
+                Literal(str(graph.value(endpoint, ATLAS.contentDigest))),
+            )
+        )
+    graph.add(
+        (
+            proof,
+            RKAF.proofEvaluatedAt,
+            Literal(CREATED_AT, datatype=XSD.dateTime, normalize=False),
+        )
+    )
+    graph.add((proof, RKAF.hasAILineage, lineage))
+    graph.add((proof, RKAF.independenceGroup, _adjudication_iri("independence-group", key)))
+    graph.add((proof, RKAF.adjudicationVerdict, verdict))
+    graph.add(
+        (
+            proof,
+            RKAF.sealedRequestDigest,
+            Literal(_sealed_request_digest(graph, assertion)),
+        )
+    )
+    graph.add(
+        (proof, RKAF.sealedResponseArtifact, _adjudication_iri("sealed-response", name, key))
+    )
+    _refresh_proof_digest(graph, proof)
+    graph.add((comparison, RKAF.comparisonProofRecord, proof))
+    return proof
+
+
+def _add_adjudication(
+    graph: Graph,
+    *,
+    assertion: URIRef,
+    name: str,
+    machines: Sequence[tuple[str, URIRef]],
+) -> URIRef:
+    """The comparison one mapping was licensed by, plus its complete support."""
+
+    comparison = _adjudication_iri("comparison", name)
+    graph.add((comparison, RDF.type, RKAF.RelationComparisonContext))
+    graph.add((comparison, RKAF.comparisonExpectedAssertion, assertion))
+    graph.add((comparison, RKAF.comparisonOutcome, RKAF.comparisonSatisfied))
+    for key, verdict in machines:
+        _add_adjudication_proof(
+            graph,
+            comparison=comparison,
+            assertion=assertion,
+            name=name,
+            key=key,
+            verdict=verdict,
+        )
+    return comparison
+
+
+def _reseal_adjudication(graph: Graph) -> None:
+    """Re-pin every proof's input digests and record digest to this graph.
+
+    Called once per generated case so a mutation aimed at something else --
+    a relabelled resource, a re-sealed source record -- does not leave a stale
+    input digest behind and turn an unrelated fixture into an adjudication
+    failure. The adjudication negatives that tamper with exactly these fields
+    opt out through ``Fixture.reseal_adjudication``.
+    """
+
+    for proof in sorted(graph.subjects(RDF.type, RKAF.ResolverProofRecord), key=str):
+        _remove_subject_predicate(graph, proof, RKAF.proofInputDigest)
+        for endpoint in sorted(graph.objects(proof, RKAF.proofInput), key=str):
+            digest = graph.value(endpoint, ATLAS.contentDigest)
+            if digest is not None:
+                graph.add((proof, RKAF.proofInputDigest, Literal(str(digest))))
+        _refresh_proof_digest(graph, proof)
 
 
 def _base_fixture() -> Fixture:
@@ -706,6 +866,20 @@ def _base_fixture() -> Fixture:
     }
     for node in sorted(digest_nodes, key=str):
         asserted.add((node, ATLAS.contentDigest, Literal(atlas_validate.rdf_node_digest(asserted, node))))
+
+    # The machine-adjudication proof set for the one mapping whose evidence
+    # declares the twoMachineAdjudication warrant. It is built here, after every
+    # resource digest exists, because each proof pins the exact content of the
+    # two endpoints it read. Two machines is the minimum an independent pair
+    # needs; valid/qualified-three-machine-support adds a third and keeps all
+    # three, which is the rule this binding corrected from "exactly two".
+    _add_adjudication(
+        asserted,
+        assertion=exact_ab,
+        name="exact-ab",
+        machines=(("alpha", RKAF.verdictSame), ("beta", RKAF.verdictSame)),
+    )
+
     derived_digest = atlas_validate.rdf_node_digest(derived, derived_id)
     final_derived_id = URIRef("urn:ref:atlas-derived:" + derived_digest.removeprefix("sha256:"))
     for _, predicate, obj in list(derived.triples((derived_id, None, None))):
@@ -2882,6 +3056,201 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         _refresh_node_digest(fixture.asserted, record)
         _refresh_evidence_for_source(fixture.asserted, record)
 
+    # ---- machine adjudication -------------------------------------------
+    #
+    # The base fixture licenses one mapping (subject-a exactMatch subject-b,
+    # the only assertion whose evidence declares the twoMachineAdjudication
+    # warrant) with two independent proofs. Every mutation below forges exactly
+    # one fact of that proof, which is the structure Atlas 1.0's README
+    # demanded of this corpus and never got: "a reader that accepts any of them
+    # has not implemented the binding and has a locatable defect."
+
+    ADJUDICATED = "exact-ab"
+
+    def comparison_node() -> URIRef:
+        return _adjudication_iri("comparison", ADJUDICATED)
+
+    def proof_node(key: str) -> URIRef:
+        return _adjudication_iri("proof", ADJUDICATED, key)
+
+    def adjudicated_assertion(fixture: Fixture) -> URIRef:
+        return next(
+            fixture.asserted.objects(comparison_node(), RKAF.comparisonExpectedAssertion)
+        )
+
+    def restate(fixture: Fixture, subject: URIRef, predicate: URIRef, value: Any) -> None:
+        _remove_subject_predicate(fixture.asserted, subject, predicate)
+        fixture.asserted.add((subject, predicate, value))
+
+    def add_third_machine(fixture: Fixture) -> URIRef:
+        return _add_adjudication_proof(
+            fixture.asserted,
+            comparison=comparison_node(),
+            assertion=adjudicated_assertion(fixture),
+            name=ADJUDICATED,
+            key="gamma",
+            verdict=RKAF.verdictSame,
+        )
+
+    def qualified_three_machine_support(fixture: Fixture) -> None:
+        """Three same-question supports, all retained. The regression case.
+
+        Qualification requires at least one independent PAIR, never exactly
+        two validations: a third corroborating machine is evidence that helped
+        establish the relation, and the rule that rejected it was wrong on its
+        own terms.
+        """
+
+        add_third_machine(fixture)
+
+    def adjudication_discarded_support(fixture: Fixture) -> None:
+        proof = add_third_machine(fixture)
+        fixture.asserted.remove((comparison_node(), RKAF.comparisonProofRecord, proof))
+
+    def adjudication_single_proof(fixture: Fixture) -> None:
+        beta = proof_node("beta")
+        fixture.asserted.remove((comparison_node(), RKAF.comparisonProofRecord, beta))
+        for triple in list(fixture.asserted.triples((beta, None, None))):
+            fixture.asserted.remove(triple)
+
+    def adjudication_same_validator_actor(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            proof_node("beta"),
+            RKAF.proofIssuer,
+            _adjudication_iri("proof-issuer", "alpha"),
+        )
+
+    def adjudication_same_independence_group(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            proof_node("beta"),
+            RKAF.independenceGroup,
+            _adjudication_iri("independence-group", "alpha"),
+        )
+
+    def adjudication_same_provider(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            _adjudication_iri("proof-issuer", "beta"),
+            RKAF.proofResolver,
+            _adjudication_iri("resolver", "alpha"),
+        )
+
+    def adjudication_same_provider_model(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            _adjudication_iri("ai-lineage", "beta"),
+            RKAF.modelId,
+            Literal("alpha-adjudicator-2026-01"),
+        )
+
+    def adjudication_same_response_artifact(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            proof_node("beta"),
+            RKAF.sealedResponseArtifact,
+            _adjudication_iri("sealed-response", ADJUDICATED, "alpha"),
+        )
+
+    def adjudication_mismatched_sealed_request(fixture: Fixture) -> None:
+        restate(
+            fixture,
+            proof_node("beta"),
+            RKAF.sealedRequestDigest,
+            Literal("sha256:" + "3" * 64),
+        )
+
+    def adjudication_foreign_comparison(fixture: Fixture) -> None:
+        """A stale pass, replayed to license a comparison it was not run for.
+
+        The proof record itself is untouched, so its own digest is no help --
+        it is the CITATION that is false, which is why this rule cannot live on
+        one node.
+        """
+
+        replay = _adjudication_iri("comparison", ADJUDICATED + "-replay")
+        alpha = proof_node("alpha")
+        fixture.asserted.add((replay, RDF.type, RKAF.RelationComparisonContext))
+        fixture.asserted.add(
+            (replay, RKAF.comparisonExpectedAssertion, adjudicated_assertion(fixture))
+        )
+        fixture.asserted.add((replay, RKAF.comparisonOutcome, RKAF.comparisonSatisfied))
+        fixture.asserted.add((replay, RKAF.comparisonProofRecord, alpha))
+        restate(fixture, alpha, RKAF.proofComparisonContext, replay)
+
+    def adjudication_relation_not_licensed(fixture: Fixture) -> None:
+        for key in ("alpha", "beta"):
+            restate(
+                fixture, proof_node(key), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader
+            )
+
+    def adjudication_verdicts_disagree(fixture: Fixture) -> None:
+        restate(
+            fixture, proof_node("beta"), RKAF.adjudicationVerdict, RKAF.verdictTargetBroader
+        )
+
+    def adjudication_response_artifact_cardinality(fixture: Fixture) -> None:
+        """The bypass a reviewer found upstream: a shared artifact plus a decoy.
+
+        Both proofs would still be pairwise-distinct on the decoy value while
+        sharing one sealed response, so one value per proof is what makes
+        artifact-IRI inequality mean run inequality.
+        """
+
+        fixture.asserted.add(
+            (
+                proof_node("alpha"),
+                RKAF.sealedResponseArtifact,
+                _adjudication_iri("sealed-response", ADJUDICATED, "beta"),
+            )
+        )
+
+    def adjudication_proof_input_digest(fixture: Fixture) -> None:
+        fixture.reseal_adjudication = False
+        alpha = proof_node("alpha")
+        stale = sorted(fixture.asserted.objects(alpha, RKAF.proofInputDigest), key=str)[0]
+        fixture.asserted.remove((alpha, RKAF.proofInputDigest, stale))
+        fixture.asserted.add((alpha, RKAF.proofInputDigest, Literal("sha256:" + "4" * 64)))
+        _refresh_proof_digest(fixture.asserted, alpha)
+
+    def adjudication_proof_outcome_not_pass(fixture: Fixture) -> None:
+        restate(fixture, proof_node("alpha"), RKAF.proofOutcome, RKAF.gateFail)
+
+    def adjudication_proof_record_digest(fixture: Fixture) -> None:
+        fixture.reseal_adjudication = False
+        restate(
+            fixture,
+            proof_node("alpha"),
+            RKAF.proofRecordDigest,
+            Literal("sha256:" + "5" * 64),
+        )
+
+    def adjudication_evaluated_at_not_datetime(fixture: Fixture) -> None:
+        restate(fixture, proof_node("alpha"), RKAF.proofEvaluatedAt, Literal(CREATED_AT))
+
+    def adjudication_proof_type_not_machine(fixture: Fixture) -> None:
+        restate(fixture, proof_node("alpha"), RKAF.proofType, RKAF.scopeComparisonProof)
+
+    def adjudication_comparison_outcome_not_satisfied(fixture: Fixture) -> None:
+        restate(fixture, comparison_node(), RKAF.comparisonOutcome, RKAF.comparisonConflict)
+
+    def adjudication_comparison_retargeted(fixture: Fixture) -> None:
+        """Point the proof set at a mapping no machine adjudicated.
+
+        Both halves of the pairing break at once: the named assertion carries
+        an operatorAdoption warrant, and the mapping that DOES claim two
+        machines is left citing nothing.
+        """
+
+        other = next(
+            assertion
+            for assertion in fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+            if fixture.asserted.value(assertion, RDF.subject)
+            == URIRef("urn:ref:atlas-fixture:resource:subject-b")
+        )
+        restate(fixture, comparison_node(), RKAF.comparisonExpectedAssertion, other)
+
     return [
         ("no-derived", ["rdf", "dataset", "reasoning"], "valid", no_derived),
         ("rdf-literal-escaping", ["rdf", "dataset"], "valid", rdf_literal_escaping),
@@ -3037,6 +3406,126 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("partitioned-packs", ["dataset"], "valid", partitioned_packs),
         ("rescission-lifecycle", ["dataset", "lifecycle"], "valid", rescission_lifecycle),
         ("skosxl-hidden-label", ["shacl", "dataset"], "valid", skosxl_hidden_label),
+        (
+            "qualified-three-machine-support",
+            ["rdf", "dataset"],
+            "valid",
+            qualified_three_machine_support,
+        ),
+        (
+            "adjudication-single-proof",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_single_proof,
+        ),
+        (
+            "adjudication-same-validator-actor",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_same_validator_actor,
+        ),
+        (
+            "adjudication-same-independence-group",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_same_independence_group,
+        ),
+        (
+            "adjudication-same-provider",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_same_provider,
+        ),
+        (
+            "adjudication-same-provider-model",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_same_provider_model,
+        ),
+        (
+            "adjudication-same-response-artifact",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_same_response_artifact,
+        ),
+        (
+            "adjudication-mismatched-sealed-request",
+            ["dataset"],
+            "dataset.adjudication-independence",
+            adjudication_mismatched_sealed_request,
+        ),
+        (
+            "adjudication-discarded-support",
+            ["dataset"],
+            "dataset.adjudication-support",
+            adjudication_discarded_support,
+        ),
+        (
+            "adjudication-foreign-comparison",
+            ["dataset"],
+            "dataset.adjudication-support",
+            adjudication_foreign_comparison,
+        ),
+        (
+            "adjudication-relation-not-licensed",
+            ["dataset"],
+            "dataset.adjudication-lattice",
+            adjudication_relation_not_licensed,
+        ),
+        (
+            "adjudication-verdicts-disagree",
+            ["dataset"],
+            "dataset.adjudication-lattice",
+            adjudication_verdicts_disagree,
+        ),
+        (
+            "adjudication-proof-input-digest",
+            ["dataset"],
+            "dataset.adjudication-input",
+            adjudication_proof_input_digest,
+        ),
+        (
+            "adjudication-proof-record-digest",
+            ["dataset"],
+            "dataset.adjudication-identity",
+            adjudication_proof_record_digest,
+        ),
+        (
+            "adjudication-comparison-retargeted",
+            ["dataset"],
+            "dataset.adjudication",
+            adjudication_comparison_retargeted,
+        ),
+        (
+            "adjudication-response-artifact-cardinality",
+            ["shacl", "dataset"],
+            "shacl.data",
+            adjudication_response_artifact_cardinality,
+        ),
+        (
+            "adjudication-proof-outcome-not-pass",
+            ["shacl", "dataset"],
+            "shacl.data",
+            adjudication_proof_outcome_not_pass,
+        ),
+        (
+            "adjudication-proof-type-not-machine",
+            ["shacl", "dataset"],
+            "shacl.data",
+            adjudication_proof_type_not_machine,
+        ),
+        (
+            "adjudication-evaluated-at-not-datetime",
+            ["shacl", "dataset"],
+            "shacl.data",
+            adjudication_evaluated_at_not_datetime,
+        ),
+        (
+            "adjudication-comparison-outcome-not-satisfied",
+            ["shacl", "dataset"],
+            "shacl.data",
+            adjudication_comparison_outcome_not_satisfied,
+        ),
     ]
 
 
@@ -3090,6 +3579,8 @@ def build(*, check: bool) -> None:
     for name, _, expected_or_issue, mutation in mutations:
         fixture = copy.deepcopy(base)
         mutation(fixture)
+        if fixture.reseal_adjudication:
+            _reseal_adjudication(fixture.asserted)
         if expected_or_issue == "valid":
             case_root = temporary_root / "valid" / name
             expected = "valid"

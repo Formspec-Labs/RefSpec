@@ -158,6 +158,66 @@ WIRE_ADOPTIONS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     ),
     "effectiveDate": (("lifecycle-effective-date-not-datetime",), ()),
     "supersedesAssertion": (("supersession-without-event",), ()),
+    # Phase 6 -- the machine-adjudication protocol. Atlas 1.0 carried it as
+    # atlas:MachineValidation / atlas:verdictRelation / atlas:qualifiedBy /
+    # atlas:inputContextDigest; rulespec's analysis package now owns every one
+    # of those semantics, so v3 publishes rkaf's four record classes and mints
+    # nothing at all. Each row names the case that forges exactly that fact.
+    "ResolverProofRecord": (
+        ("adjudication-single-proof", "adjudication-proof-record-digest"),
+        (),
+    ),
+    "proofType": (
+        ("adjudication-proof-type-not-machine",),
+        ("machineAdjudicationProof",),
+    ),
+    # Three of the five independence axes hang off this property and the issuer
+    # record it resolves to: the issuer IRI is the validator actor, and its
+    # rkaf:proofResolver is the provider.
+    "proofIssuer": (
+        ("adjudication-same-validator-actor", "adjudication-same-provider"),
+        (),
+    ),
+    "ResolverProofIssuer": (("adjudication-same-provider",), ()),
+    "proofResolver": (("adjudication-same-provider",), ()),
+    "hasAILineage": (("adjudication-same-provider-model",), ()),
+    "AILineage": (("adjudication-same-provider-model",), ()),
+    "modelId": (("adjudication-same-provider-model",), ()),
+    "independenceGroup": (("adjudication-same-independence-group",), ()),
+    "sealedResponseArtifact": (
+        (
+            "adjudication-same-response-artifact",
+            "adjudication-response-artifact-cardinality",
+        ),
+        (),
+    ),
+    "sealedRequestDigest": (("adjudication-mismatched-sealed-request",), ()),
+    "adjudicationVerdict": (
+        ("adjudication-relation-not-licensed", "adjudication-verdicts-disagree"),
+        (
+            "verdictSame", "verdictNearSame", "verdictTargetBroader",
+            "verdictTargetNarrower", "verdictRelated",
+        ),
+    ),
+    "proofComparisonContext": (("adjudication-foreign-comparison",), ()),
+    "proofOutcome": (("adjudication-proof-outcome-not-pass",), ("gatePass",)),
+    "proofInput": (("adjudication-proof-input-digest",), ()),
+    "proofInputDigest": (("adjudication-proof-input-digest",), ()),
+    "proofEvaluatedAt": (("adjudication-evaluated-at-not-datetime",), ()),
+    "proofRecordDigest": (("adjudication-proof-record-digest",), ()),
+    "RelationComparisonContext": (
+        ("adjudication-discarded-support", "adjudication-comparison-retargeted"),
+        (),
+    ),
+    "comparisonProofRecord": (
+        ("adjudication-discarded-support", "adjudication-single-proof"),
+        (),
+    ),
+    "comparisonExpectedAssertion": (("adjudication-comparison-retargeted",), ()),
+    "comparisonOutcome": (
+        ("adjudication-comparison-outcome-not-satisfied",),
+        ("comparisonSatisfied",),
+    ),
 }
 ADOPTED_TERMS = frozenset(WIRE_ADOPTIONS) | {
     member for _, members in WIRE_ADOPTIONS.values() for member in members

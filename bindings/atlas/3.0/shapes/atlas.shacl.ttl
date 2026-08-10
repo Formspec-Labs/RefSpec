@@ -1073,6 +1073,204 @@ atlas:LifecycleEventShape
     ]
   ) .
 
+# Machine-adjudication proof records
+#
+# Rulespec owns the whole protocol, so all four node classes and every property
+# below are rkaf's; Atlas mints nothing here. The shapes mirror
+# constraints/analysis/resolver-proof-record.cue and machine-adjudication.cue
+# field for field, minus the three properties the ontology explains Atlas does
+# not carry, and plus the narrowings a published Atlas record can be held to:
+# rkaf:proofType, rkaf:proofOutcome, and rkaf:comparisonOutcome are pinned,
+# because Atlas publishes exactly one protocol, exactly one kind of answer, and
+# exactly one kind of comparison -- the same reason rkaf:decision is pinned to
+# rkaf:approved on atlas:EvidenceBindingShape.
+#
+# Everything here constrains ONE node. The five-axis independence rule, the
+# one-sealed-question rule, complete-support retention, the verdict lattice,
+# and the input-digest binding relate several proof records to one comparison
+# and one assertion, so they live in tools/validate.py, exactly where rulespec
+# puts its own equivalents (hand-authored SPARQL in
+# shapes/rkaf-shapes-analysis.ttl) and for the same stated reason.
+
+atlas:ResolverProofRecordShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:ResolverProofRecord ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  # Pinned, not enumerated. #ResolverProofType has seven members; six of them
+  # name resolver protocols Atlas does not run, and a value Atlas would accept
+  # but never check is how atlas:eventType got into the state that deleted it.
+  sh:property [
+    sh:path rkaf:proofType ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue rkaf:machineAdjudicationProof
+  ] ;
+  # The validator-actor axis, and -- one hop on -- the provider axis. Class-
+  # ranged so "issued under version 3" resolves to a record rather than to a
+  # version string a reader must trust.
+  sh:property [
+    sh:path rkaf:proofIssuer ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:ResolverProofIssuer
+  ] ;
+  # Declaring the comparison is all one node can do; that the named comparison
+  # is the one actually CITING this proof is checked in validate.py.
+  sh:property [
+    sh:path rkaf:proofComparisonContext ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:RelationComparisonContext
+  ] ;
+  # A refusal (rkaf:gateFail) or an undecidable question (rkaf:gateUnknown) is
+  # a real #ResolverProofOutcome, and it is exactly where v1's dropped
+  # "unrelated" and "insufficient_evidence" verdicts went -- but such a proof
+  # leaves its comparison unsatisfied, so Atlas publishes neither.
+  sh:property [
+    sh:path rkaf:proofOutcome ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue rkaf:gatePass
+  ] ;
+  sh:property [
+    sh:path rkaf:proofInput ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:AtlasResource
+  ] ;
+  sh:property [
+    sh:path rkaf:proofInputDigest ;
+    sh:minCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path rkaf:proofEvaluatedAt ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:Literal ;
+    sh:datatype xsd:dateTime
+  ] ;
+  # rkaf's own name for the record-integrity digest every other Atlas carrier
+  # spells atlas:contentDigest. The rkaf term wins on a proof record because
+  # rkaf defines it there; the validator computes it with the one node-digest
+  # algorithm the binding uses everywhere.
+  sh:property [
+    sh:path rkaf:proofRecordDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  sh:property [
+    sh:path rkaf:hasAILineage ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:AILineage
+  ] ;
+  sh:property [
+    sh:path rkaf:independenceGroup ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path rkaf:adjudicationVerdict ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      rkaf:verdictSame rkaf:verdictNearSame rkaf:verdictTargetBroader
+      rkaf:verdictTargetNarrower rkaf:verdictRelated
+    )
+  ] ;
+  sh:property [
+    sh:path rkaf:sealedRequestDigest ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DigestValueShape
+  ] ;
+  # sh:maxCount 1 is load-bearing, not tidiness: rulespec found a bypass in
+  # which one proof carried a shared response artifact plus a decoy unique one,
+  # and the pairwise-distinctness search bound the decoy and passed. One value
+  # per proof is what makes artifact-IRI inequality mean run inequality.
+  sh:property [
+    sh:path rkaf:sealedResponseArtifact ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] .
+
+atlas:ResolverProofIssuerShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:ResolverProofIssuer ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  # The provider axis. rkaf's #ResolverProofIssuer also carries a resolver
+  # version and a policy pair; Atlas does not publish them, because no Atlas
+  # check reads a resolver version and a field nothing breaks on is ceremony.
+  # Two proofs issued under two different issuer records are two actors; two
+  # issuer records naming one rkaf:proofResolver are one provider.
+  sh:property [
+    sh:path rkaf:proofResolver ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI
+  ] .
+
+atlas:AILineageShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:AILineage ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path rkaf:modelId ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:NonEmptyStringValueShape
+  ] .
+
+atlas:RelationComparisonContextShape
+  a sh:NodeShape ;
+  sh:targetClass rkaf:RelationComparisonContext ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  # The Atlas claim this comparison was run for. v1 pointed the other way,
+  # from the mapping to its supports through atlas:qualifiedBy; rkaf already
+  # owns this direction, so no atlas: link property is minted.
+  sh:property [
+    sh:path rkaf:comparisonExpectedAssertion ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class atlas:RelationAssertion
+  ] ;
+  # Pinned for the same reason rkaf:decision is pinned to rkaf:approved: the
+  # other four #RelationComparisonOutcome values describe comparisons that
+  # license no mapping, and nothing else in the binding refuses a published
+  # mapping whose comparison was a conflict.
+  sh:property [
+    sh:path rkaf:comparisonOutcome ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:hasValue rkaf:comparisonSatisfied
+  ] ;
+  # sh:minCount 1, not 2, deliberately. "At least one independent pair" is not
+  # a cardinality -- two proofs from one provider are still one opinion -- so
+  # the count that matters is checked in validate.py and a single-proof
+  # comparison is refused there, where the message can say why.
+  sh:property [
+    sh:path rkaf:comparisonProofRecord ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:class rkaf:ResolverProofRecord
+  ] .
+
 # Reproducible projection records
 
 atlas:ProjectedRelationShape

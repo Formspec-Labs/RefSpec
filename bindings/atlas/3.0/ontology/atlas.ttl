@@ -113,6 +113,85 @@ atlas:EditorialPolicy
 # can justify. Only the two release pointers below stay Atlas-owned, because a
 # release is structure RefSpec owns.
 
+# MACHINE ADJUDICATION -- four more adopted rkaf classes, no atlas: term at all.
+#
+# Atlas 1.0 carried a private protocol for machine-qualified mappings:
+# atlas:MachineValidation, atlas:verdictRelation, atlas:adjudicatedRelation,
+# atlas:qualifiedBy, atlas:requestArtifact, atlas:inputContextArtifact /
+# atlas:inputContextDigest. Rulespec now owns every one of those semantics
+# (constraints/analysis/resolver-proof-record.cue, machine-adjudication.cue,
+# relation-comparison-context.cue), so Atlas 3.0 publishes rkaf's records
+# rather than a second name for them, and mints nothing of its own here:
+#
+#   rkaf:ResolverProofRecord        one machine's sealed, reviewable answer to
+#                                   one comparison question -- was
+#                                   atlas:MachineValidation. Narrowed by
+#                                   rkaf:proofType, never by a second rdf:type,
+#                                   exactly as machine-adjudication.cue
+#                                   requires; #MachineAdjudicationProof is that
+#                                   narrowing, not a second wire class.
+#   rkaf:ResolverProofIssuer        the versioned resolver a proof was issued
+#                                   under. The independence axes "validator
+#                                   actor" and "provider" are read here
+#                                   (the issuer IRI, and its rkaf:proofResolver)
+#                                   rather than copied onto every proof.
+#   rkaf:AILineage                  which model answered. The "provider model
+#                                   id" axis is rkaf:hasAILineage -> rkaf:modelId.
+#   rkaf:RelationComparisonContext  the comparison itself: which Atlas assertion
+#                                   it was run for, its outcome, and the
+#                                   COMPLETE set of proofs that supported it --
+#                                   was atlas:qualifiedBy on the mapping.
+#
+# Two v1 -> rkaf mapping decisions are recorded here because nothing else on
+# the wire records them:
+#
+# 1. THE VERDICT ENUM LOSES TWO VALUES. v1's atlas:verdictRelation had seven
+#    (same, near_same, target_is_broader, target_is_narrower, related,
+#    unrelated, insufficient_evidence). rkaf's #MachineAdjudicationVerdict has
+#    five: a verdict NAMES A RELATION, and "unrelated" and
+#    "insufficient_evidence" name no relation -- they are refusals, and a
+#    refusal is a gate result. On the v3 wire a refusal rides in
+#    rkaf:proofOutcome (#ResolverProofOutcome: rkaf:gateFail for a refused
+#    comparison, rkaf:gateUnknown for one nobody could decide), and the
+#    comparison it belongs to is then not rkaf:comparisonSatisfied, so it
+#    licenses no mapping and Atlas publishes neither. That is why
+#    atlas:ResolverProofRecordShape pins rkaf:proofOutcome to rkaf:gatePass:
+#    every proof Atlas publishes is a proof that answered.
+#
+# 2. atlas:adjudicatedRelation AND atlas:qualifiedBy BOTH DISAPPEAR, and
+#    neither is replaced by an atlas: term. The adjudicated relation is the
+#    mapping assertion's own rdf:predicate -- v1 needed a separate field only
+#    because its candidate record was not yet an assertion, and a second copy
+#    of the relation could only agree or disagree with the one the mapping
+#    already states (the same argument that deleted atlas:assertionStatus).
+#    The proof set is rkaf:comparisonProofRecord on the comparison, and the
+#    link from the Atlas mapping record to its comparison is
+#    rkaf:comparisonExpectedAssertion pointing the other way -- "the baseline
+#    assertion the comparison was run for", which is exactly the fact an
+#    atlas: link property would have minted. rkaf has the term; Atlas uses it.
+#
+# Three rkaf properties are deliberately NOT on the Atlas wire, each because
+# nothing here could break when it is wrong (AGENTS.md):
+#
+#   rkaf:proofRationale   free model text. v1 carried it as atlas:reason and
+#                         said in the same breath that a consumer MUST NOT
+#                         treat it as evidence; a field no check can reach is
+#                         the definition of ceremony, so v3 carries none.
+#   rkaf:proofSnapshot    the snapshot a proof read. In Atlas that is fixed by
+#                         rkaf:proofInput, whose members are release-bound
+#                         Atlas resources, so a snapshot field could only agree
+#                         or disagree with facts already on the wire.
+#   rkaf:inputContextHash the model input digest on the lineage. Same reason:
+#                         rkaf:proofInputDigest already pins the exact bytes of
+#                         every input the proof read, and the validator
+#                         recomputes it against the named resources.
+#
+# The cross-node rules -- at least one independent pair on five axes, one
+# sealed question per comparison, complete support retained, the verdict
+# lattice -- are in bindings/atlas/3.0/tools/validate.py, not here and not in
+# the SHACL, for the reason rulespec gives: they relate several proof records
+# to one comparison, and per-property SHACL constrains one node.
+
 atlas:RelationAssertion
   a owl:Class ;
   rdfs:label "relation assertion"@en .
@@ -254,7 +333,11 @@ atlas:resourceCollection a atlas:ResourceProfile ; rdfs:label "resource collecti
 #   humanReview                 humanAsserted + humanUser attestor
 #   operatorAdoption            editorialAssertion + formalAdoptionEvent,
 #                               and rkaf:basedOnAttestation names what it adopted
-#   twoMachineAdjudication      aiSuggested + reviewedAuthorityChain
+#   twoMachineAdjudication      aiSuggested + reviewedAuthorityChain, and the
+#                               bound assertion carries a machine-adjudication
+#                               proof set (see the block above): this warrant
+#                               is the trigger for the whole protocol, not a
+#                               free-standing label a producer may claim
 #   trustedPipelineReview       deterministicDerivation + authorityCitation
 
 # Shared object properties
