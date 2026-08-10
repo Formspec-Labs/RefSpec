@@ -703,6 +703,12 @@ change — remain open by design and are not decided here.
   `plans/refspec-on-rulespec.md` and `plans/atlas-1-2-removal.md`, both
   deleted with this revision; their execution history lives in git history.
 
+**Goal: everything in the right place, and minimal architectural debt going
+forward.** Each concept lives in the one layer that owns it — rkaf for shared
+semantics, `atlas:` for Atlas's own domain, the registry for source fidelity,
+consumers for serving — and nothing is added, kept, or duplicated in a place
+that will have to be unwound later.
+
 The earlier boundary — Atlas keeps a private ontology and defers Rulespec
 conformance to a future compatibility view — is superseded. RefSpec relies on
 RuleSpec directly: for every rkaf-covered semantic, the published Atlas
