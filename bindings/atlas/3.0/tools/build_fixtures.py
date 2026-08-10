@@ -6,7 +6,9 @@ import argparse
 import copy
 import hashlib
 import json
+import re
 import shutil
+import sys
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -4219,7 +4221,122 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     ]
 
 
+# REF-019's `exactDistributionReuse` philosophy, applied to this builder's own
+# corpus: record what the output was made from, and skip remaking it when
+# nothing that determines it has moved.
+#
+# Beside the corpus, never inside it. `build()` compares the committed
+# `fixtures/` tree against a freshly built one as a whole-directory equality,
+# so a receipt written into that tree would report itself as an unexpected
+# extra file and fail the very check it exists to speed up.
+RECEIPT_PATH = atlas_validate.BINDING_ROOT / "fixtures-receipt.json"
+RECEIPT_TYPE = "AtlasFixtureBuildReceipt"
+RECEIPT_VERSION = "1.0"
+
+# Everything read to produce the corpus. The binding already maintains this
+# list for its own digest pinning -- `BINDING_BUNDLE_PATHS` deliberately
+# includes this builder, the validator it imports, and `rdf_canonical` -- so
+# the receipt reuses it rather than minting a second, driftable inventory.
+# Two adjustments: `fixtures/corpus.json` is dropped because it is an *output*
+# (the builder passes freshly computed bytes to `_binding_digests` as an
+# override rather than reading the committed file), and the adapter under
+# `src/` is added because `_write_case` pins its digest into every case.
+RECEIPT_OUTPUT_RELATIVE = Path("fixtures/corpus.json")
+RECEIPT_EXTERNAL_INPUTS = (Path("src/refspec/atlas/v3_source_data.py"),)
+def _receipt_runtime_distributions() -> list[str]:
+    """The binding's declared dependencies, read from the file that declares them.
+
+    The corpus bytes depend on these implementations and not merely on the
+    version pins beside them: rdflib serializes the N-Quads, and the zstd
+    transports come from `backports.zstd` below 3.14 and the standard library
+    at and above it. Requirements are parsed rather than restated so the
+    receipt cannot list a stale set -- adding a dependency to requirements.txt
+    is enough, with nothing here to remember to update.
+    """
+
+    names = []
+    for line in (atlas_validate.BINDING_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        requirement = line.split("#", 1)[0].split(";", 1)[0].strip()
+        if requirement:
+            names.append(re.split(r"[=<>!~\[]", requirement, maxsplit=1)[0].strip())
+    return sorted(names)
+
+
+def _receipt_input_paths() -> list[Path]:
+    paths = [
+        atlas_validate.BINDING_ROOT / relative
+        for relative in atlas_validate.BINDING_BUNDLE_PATHS
+        if relative != RECEIPT_OUTPUT_RELATIVE
+    ]
+    paths.extend(sorted(atlas_validate.SCHEMA_ROOT.glob("*.schema.json")))
+    paths.extend(atlas_validate.REPOSITORY_ROOT / relative for relative in RECEIPT_EXTERNAL_INPUTS)
+    return paths
+
+
+def _receipt_inputs() -> dict[str, str]:
+    return {
+        path.relative_to(atlas_validate.REPOSITORY_ROOT).as_posix(): atlas_validate.file_sha256(path)
+        for path in _receipt_input_paths()
+    }
+
+
+def _receipt_runtime() -> dict[str, str]:
+    from importlib.metadata import PackageNotFoundError, version
+
+    runtime = {"python": f"{sys.version_info.major}.{sys.version_info.minor}"}
+    for name in _receipt_runtime_distributions():
+        try:
+            runtime[name] = version(name)
+        except PackageNotFoundError:
+            runtime[name] = "absent"
+    return runtime
+
+
+def _fixtures_tree_digest(root: Path) -> str:
+    rows = [
+        {
+            "path": path.relative_to(root).as_posix(),
+            "sha256": atlas_validate.file_sha256(path),
+        }
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    ]
+    return atlas_validate.canonical_sha256(rows, terminal_lf=False)
+
+
+def _current_receipt() -> dict[str, Any]:
+    return {
+        "fixturesDigest": _fixtures_tree_digest(FIXTURE_ROOT),
+        "inputs": _receipt_inputs(),
+        "runtime": _receipt_runtime(),
+        "type": RECEIPT_TYPE,
+        "version": RECEIPT_VERSION,
+    }
+
+
+def _receipt_is_current() -> bool:
+    """Fail closed: any doubt at all returns False and the full rebuild runs."""
+
+    try:
+        recorded = json.loads(RECEIPT_PATH.read_bytes())
+        if recorded.get("type") != RECEIPT_TYPE or recorded.get("version") != RECEIPT_VERSION:
+            return False
+        if recorded.get("inputs") != _receipt_inputs():
+            return False
+        if recorded.get("runtime") != _receipt_runtime():
+            return False
+        return recorded.get("fixturesDigest") == _fixtures_tree_digest(FIXTURE_ROOT)
+    except (OSError, ValueError, TypeError, AttributeError):
+        return False
+
+
 def build(*, check: bool) -> None:
+    if check and _receipt_is_current():
+        print(
+            f"Atlas 3.0 fixtures are current: receipt matches {len(_receipt_inputs())} "
+            "inputs and the committed corpus"
+        )
+        return
     output_root = FIXTURE_ROOT
     temporary_root = output_root.parent / ".atlas-3.0-fixtures.tmp"
     if temporary_root.exists():
@@ -4306,6 +4423,11 @@ def build(*, check: bool) -> None:
                 if expected_files[path] != current_files[path]
             )
             raise SystemExit(f"Atlas 3.0 fixtures differ; missing={missing}, extra={extra}, changed={changed}")
+        # The slow path just proved the committed tree is exactly what this
+        # builder produces from these inputs. Record that so the next check can
+        # answer from the receipt.
+        RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
+        print(f"Atlas 3.0 fixtures rebuilt and compared: {len(expected_files)} files identical")
         return
 
     output_root.mkdir(parents=True, exist_ok=True)
@@ -4322,6 +4444,8 @@ def build(*, check: bool) -> None:
         else:
             target.write_bytes(source.read_bytes())
     shutil.rmtree(temporary_root)
+    RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
+    print(f"Atlas 3.0 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")
 
 
 def _parser() -> argparse.ArgumentParser:

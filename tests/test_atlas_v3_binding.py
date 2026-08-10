@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -418,3 +419,93 @@ def test_portable_validator_does_not_import_refspec() -> None:
     source = VALIDATOR_PATH.read_text(encoding="utf-8")
     assert "import refspec" not in source
     assert "from refspec" not in source
+
+
+def _sandboxed_repository(tmp_path: Path) -> Path:
+    """Copy the binding plus its one external input into a scratch repository.
+
+    The builder resolves everything from its own location, so a faithful copy
+    lets these tests tamper with real inputs without ever touching the
+    committed corpus.
+    """
+
+    root = tmp_path / "repo"
+    binding = root / "bindings" / "atlas" / "3.0"
+    binding.parent.mkdir(parents=True)
+    shutil.copytree(BINDING_ROOT, binding)
+    adapter = root / "src" / "refspec" / "atlas" / "v3_source_data.py"
+    adapter.parent.mkdir(parents=True)
+    shutil.copy2(ROOT / "src" / "refspec" / "atlas" / "v3_source_data.py", adapter)
+    return root
+
+
+def _sandboxed_check(root: Path) -> subprocess.CompletedProcess[str]:
+    binding = root / "bindings" / "atlas" / "3.0"
+    return subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-project",
+            "--with-requirements",
+            str(binding / "requirements.txt"),
+            "python",
+            str(binding / "tools" / "build_fixtures.py"),
+            "--check",
+        ],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_fixture_receipt_fast_path_passes_on_a_clean_tree(tmp_path: Path) -> None:
+    result = _sandboxed_check(_sandboxed_repository(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert "receipt matches" in result.stdout
+    assert "rebuilt and compared" not in result.stdout
+
+
+def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Path) -> None:
+    root = _sandboxed_repository(tmp_path)
+    tampered = root / "bindings" / "atlas" / "3.0" / "fixtures" / "corpus.json"
+    payload = tampered.read_bytes()
+    tampered.write_bytes(payload.replace(b"all-resource-profiles", b"all-resource-profilez", 1))
+
+    result = _sandboxed_check(root)
+
+    # The receipt's output digest no longer matches, so the fast path is
+    # refused, the full rebuild-and-diff runs, and it reports the difference.
+    assert result.returncode != 0
+    assert "receipt matches" not in result.stdout
+    assert "Atlas 3.0 fixtures differ" in result.stdout + result.stderr
+
+
+def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
+    root = _sandboxed_repository(tmp_path)
+    ontology = root / "bindings" / "atlas" / "3.0" / "ontology" / "atlas.ttl"
+    ontology.write_bytes(ontology.read_bytes() + b"\n# an input digest the receipt does not know\n")
+
+    result = _sandboxed_check(root)
+
+    # atlas.ttl determines the corpus through bindingBundleDigest, so a changed
+    # byte must re-derive rather than trust the receipt.
+    assert "receipt matches" not in result.stdout
+    assert result.returncode != 0
+    assert "Atlas 3.0 fixtures differ" in result.stdout + result.stderr
+
+
+def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Path) -> None:
+    root = _sandboxed_repository(tmp_path)
+    receipt = root / "bindings" / "atlas" / "3.0" / "fixtures-receipt.json"
+
+    receipt.write_bytes(b"{ this is not json")
+    unparseable = _sandboxed_check(root)
+    assert unparseable.returncode == 0, unparseable.stderr
+    assert "rebuilt and compared" in unparseable.stdout
+
+    receipt.unlink()
+    missing = _sandboxed_check(root)
+    assert missing.returncode == 0, missing.stderr
+    assert "rebuilt and compared" in missing.stdout
