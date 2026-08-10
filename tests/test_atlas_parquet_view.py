@@ -118,7 +118,6 @@ def _fixture_distribution(
             "reviewMethod": "urn:test:method",
             "decisionStatus": "urn:test:approved",
             "decidedAt": "2026-08-07T00:00:00+00:00",
-            "confidence": "1.0",
             "contentDigest": _D2,
         },
         CompactRecordRole.SOURCE_RECORD: {

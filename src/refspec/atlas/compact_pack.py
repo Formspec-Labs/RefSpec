@@ -201,7 +201,6 @@ class EvidenceBindingRecord(TypedDict):
     reviewMethod: str
     decisionStatus: str
     decidedAt: str
-    confidence: NotRequired[str]
     contentDigest: NotRequired[str]
     canonicalPayloadDigest: NotRequired[str]
 
@@ -322,7 +321,7 @@ _RECORD_SCHEMAS = {
                 "decidedAt",
             }
         ),
-        optional=frozenset({"confidence"}),
+        optional=frozenset(),
     ),
     CompactRecordRole.SOURCE_RECORD: _RecordSchema(
         required=frozenset(

@@ -167,23 +167,23 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:969e4e99d57f6bab6c61a3a36ddcc6377d6ff8854b4bf70d3f206e877431aa93"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:3fc47aeccbbba5a9d68ae35385f658c021e670bafc9bb4ad52820a81afcc6192"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
             "sha256:1057490a6bf3422bc8477ad215715ff63d92a407ffa47526c48cd942efab7617"
         ),
         "bindingBundleDigest": (
-            "sha256:47c4c5add0f89d3bd65495007c9d4ef0e1ce5015a29b06cda8346e50394e444d"
+            "sha256:8184f15f88479ce25d32e1d91073c11a5b4bbdbfb63f6ce7464926d439c03630"
         ),
         "manifestSchemaDigest": (
             "sha256:52a35047dbcacb24ecd0bbfd1be9a4f6fba2089fad9d4a16afee8d25590aa155"
         ),
         "ontologyDigest": (
-            "sha256:f3439376a6097075fa2853f3367eba705e6e7e07651cdbcf151e5d31417cfb9d"
+            "sha256:a9e7f4798ec15b26f7c287af687c5cea299f278974b9159e4522f144441e600d"
         ),
         "shapesDigest": (
-            "sha256:23244c20bd6f1b9f4cf50f1a64e40713d801cf646b47e33fcd1ab825b6ee84bf"
+            "sha256:68e96d1282805575a7ffd7bf28d7e81a5548d842a6d3af6a6706ebe572d9f39f"
         ),
         "sourceAccountingSchemaDigest": (
             "sha256:0ffc9189fb0e2727be0f047e61a71c5afe3de0f0658d4d97515ceefa5778d7eb"
@@ -757,7 +757,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = (
     "refspec/bindings/atlas/3.0/tests/registry-descriptors.json"
 )
 REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = (
-    "sha256:54e7e3b8dc31ddf44d8155bb2146ce7c506fe29f9f19b65bf5f1be789139a496"
+    "sha256:b2ccb972ca424ed90268a04b8b96b76b8f0fc8c83e6e77573c8c20d397ca3533"
 )
 
 
@@ -3014,7 +3014,6 @@ def _add_evidence_binding(
     reviewer: URIRef,
     review_method: URIRef,
     decided_at: str,
-    confidence: str | None,
 ) -> URIRef:
     """Attach one immutable approval to an existing assertion."""
 
@@ -3043,13 +3042,6 @@ def _add_evidence_binding(
             ),
         ),
     ]
-    if confidence is not None:
-        evidence_facts.append(
-            (
-                ATLAS.confidence,
-                Literal(confidence, datatype=XSD.decimal, normalize=False),
-            )
-        )
     evidence_digest = ATLAS_VALIDATE._outgoing_facts_digest(evidence_facts)
     evidence = URIRef(
         "urn:ref:atlas-evidence:" + evidence_digest.removeprefix("sha256:")
@@ -3080,7 +3072,6 @@ def _add_evidenced_assertion(
     reviewer: URIRef,
     review_method: URIRef,
     decided_at: str,
-    confidence: str | None,
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
@@ -3107,7 +3098,6 @@ def _add_evidenced_assertion(
         reviewer=reviewer,
         review_method=review_method,
         decided_at=decided_at,
-        confidence=confidence,
     )
     return assertion
 
@@ -3155,7 +3145,6 @@ def _expected_mapping_asserted_graph(
                     reviewer=URIRef(evidence.reviewer_iri),
                     review_method=_mapping_review_method(evidence.review_method),
                     decided_at=evidence.decided_at,
-                    confidence=evidence.confidence,
                 )
     return graph
 
@@ -5074,7 +5063,6 @@ def _build_graphs(
                         ATLAS.SourceAssignment
                     ),
                     decided_at=CREATED_AT,
-                    confidence="1",
                 )
             dispositions.append(
                 {
@@ -5259,7 +5247,6 @@ def _build_graphs(
                 reviewer=NATIVE_REVIEWER,
                 review_method=review_method,
                 decided_at=CREATED_AT,
-                confidence="1",
             )
             native_count += 1
     expected_native_count = sum(
@@ -5331,7 +5318,6 @@ def _build_graphs(
                     ATLAS.CrossRingRelationAssertion
                 ),
                 decided_at=CREATED_AT,
-                confidence="1",
                 source_ring=source_ring,
                 target_ring=target_ring,
             )
@@ -5431,7 +5417,6 @@ def _build_graphs(
                         evidence.review_method
                     ),
                     decided_at=evidence.decided_at,
-                    confidence=evidence.confidence,
                 )
                 mapping_dispositions[str(evidence_record)].add(str(assertion))
             mapping_count += 1
@@ -6376,11 +6361,6 @@ def _compact_record_from_graph(
                 ),
             }
         )
-        confidence = list(graph.objects(subject, ATLAS.confidence))
-        if len(confidence) > 1:
-            raise ValueError(f"evidence binding {subject} has multiple confidences")
-        if confidence:
-            record["confidence"] = str(confidence[0])
         return record
 
     if role == CompactRecordRole.SOURCE_RECORD:

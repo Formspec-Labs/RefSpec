@@ -522,12 +522,6 @@ atlas:decidedAt
   rdfs:range xsd:dateTime ;
   rdfs:label "decided at"@en .
 
-atlas:confidence
-  a owl:DatatypeProperty ;
-  rdfs:domain atlas:EvidenceBinding ;
-  rdfs:range xsd:decimal ;
-  rdfs:label "confidence"@en .
-
 atlas:nativePayload
   a owl:DatatypeProperty ;
   rdfs:domain atlas:SourceRecord ;

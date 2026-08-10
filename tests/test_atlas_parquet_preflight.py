@@ -70,7 +70,6 @@ def _tables() -> dict[str, pa.Table]:
                 "evidence_source_digest": [digest],
                 "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
                 "decision_status": [APPROVED],
-                "confidence": ["1.0"],
             }
         ),
         CompactRecordRole.SOURCE_RECORD.value: pa.table(
@@ -320,8 +319,7 @@ def test_columnar_preflight_handles_same_and_cross_ring_relations_together() -> 
                     "evidence_source_digest": [b"1" * 32],
                     "review_method": ["https://refspec.org/ns/atlas/v3#publisherAssertion"],
                     "decision_status": [APPROVED],
-                    "confidence": ["1.0"],
-                }
+                    }
             ),
         ]
     )

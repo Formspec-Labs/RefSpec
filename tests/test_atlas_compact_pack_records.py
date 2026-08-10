@@ -95,7 +95,6 @@ def _record(role: CompactRecordRole) -> dict[str, object]:
             "reviewMethod": "publisherAssertion",
             "decisionStatus": "approved",
             "decidedAt": "2026-08-06T08:45:00+00:00",
-            "confidence": "1",
         },
         CompactRecordRole.SOURCE_RECORD: {
             "id": "urn:example:source-record:1",

@@ -1064,8 +1064,17 @@ def _allowed_predicate(ring: URIRef, assertion_type: URIRef) -> URIRef:
 def test_core_shacl_still_rejects_an_assertion_without_evidence() -> None:
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
-    assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
-    binding = next(asserted.subjects(ATLAS.bindsAssertion, assertion))
+    # Deleting a binding that some other binding adopts diagnoses the dangling
+    # adoptedEvidence reference first, which is a different failure. Pick the
+    # first mapping binding nothing adopts, in sorted order so the choice does
+    # not move when evidence IRIs change.
+    adopted = set(asserted.objects(None, ATLAS.adoptedEvidence))
+    binding = next(
+        candidate
+        for mapping in sorted(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
+        for candidate in sorted(asserted.subjects(ATLAS.bindsAssertion, mapping))
+        if candidate not in adopted
+    )
     asserted.remove((binding, None, None))
 
     _assert_shacl_rejects(graphs, "MinCountConstraintComponent")
@@ -1818,7 +1827,7 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch.setattr(Path, "write_bytes", reject_writes)
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 812
+    assert result["quadCount"] == 802
     assert result["inferredMappingCount"] == 7
 
 
@@ -1830,7 +1839,7 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 
     result = atlas_validate.validate_distribution(distribution)
 
-    assert result["quadCount"] == 812
+    assert result["quadCount"] == 802
 
 
 def test_publisher_only_compiled_producer_identity_is_rejected(
@@ -1941,7 +1950,7 @@ def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -
 
     assert result["counts"]["projectedRelations"] == 0
     assert result["counts"]["derivedRelations"] == 0
-    assert result["quadCount"] == 705
+    assert result["quadCount"] == 695
 
 
 def test_authenticated_cache_reuses_an_exact_complete_validation(

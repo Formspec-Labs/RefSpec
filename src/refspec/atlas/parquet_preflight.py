@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -523,14 +522,6 @@ def _validate_evidence(
             "preflight.evidence-method",
             f"{_first_value(evidence, invalid_method)} uses an unsupported review method",
         )
-    confidence_values = evidence.filter(pc.is_valid(evidence["confidence"]))["confidence"].to_pylist()
-    for value in confidence_values:
-        try:
-            confidence = Decimal(str(value))
-        except InvalidOperation:
-            _fail("preflight.evidence-confidence", f"invalid confidence {value!r}")
-        if not Decimal(0) <= confidence <= Decimal(1):
-            _fail("preflight.evidence-confidence", f"confidence is outside 0..1: {value!r}")
 
 
 def validate_atlas_parquet_tables(

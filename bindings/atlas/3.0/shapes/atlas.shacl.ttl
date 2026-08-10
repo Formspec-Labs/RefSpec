@@ -868,13 +868,6 @@ atlas:EvidenceBindingShape
     sh:datatype xsd:dateTime
   ] ;
   sh:property [
-    sh:path atlas:confidence ;
-    sh:maxCount 1 ;
-    sh:datatype xsd:decimal ;
-    sh:minInclusive 0 ;
-    sh:maxInclusive 1
-  ] ;
-  sh:property [
     sh:path atlas:contentDigest ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

@@ -158,7 +158,6 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("review_method", pa.string(), nullable=False),
             pa.field("decision_status", pa.string(), nullable=False),
             pa.field("decided_at", pa.string(), nullable=False),
-            pa.field("confidence", pa.string()),
         ]
     ),
     CompactRecordRole.SOURCE_RECORD: pa.schema(
@@ -221,7 +220,6 @@ _DICTIONARIES = {
         "reviewed_by",
         "review_method",
         "decision_status",
-        "confidence",
     ],
     CompactRecordRole.SOURCE_RECORD: [],
     CompactRecordRole.RELEASE: [
@@ -258,7 +256,6 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
             "review_method": row["review_method"],
             "decision_status": row["decision_status"],
             "decided_at": row["decided_at"],
-            "confidence": row["confidence"],
         }
     if role is CompactRecordRole.SOURCE_RECORD:
         return {

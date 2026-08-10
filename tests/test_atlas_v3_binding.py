@@ -100,7 +100,7 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
         "sourceAssignments": 3,
         "sourceRecords": 10,
     }
-    assert result["quadCount"] == 812
+    assert result["quadCount"] == 802
     assert result["inferredMappingCount"] == 7
 
 

@@ -88,11 +88,6 @@ def test_mapping_release_is_separately_pinned_evidence_backed_input(
         for row in mapping_release.mappings
         for evidence in row.evidence
     } == {alignments.ATLAS_MAPPING_ADOPTION_DECIDED_AT}
-    assert all(
-        evidence.confidence is None
-        for row in mapping_release.mappings
-        for evidence in row.evidence
-    )
     assert mapping_release.metadata["adoptionDecision"] == "atlasOperatorAdoption"
     assert mapping_release.metadata["currentEuroVocRelease"] == "4.24"
     assert mapping_release.metadata["publisherEuroVocVersion"] == "4.20"

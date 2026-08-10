@@ -222,8 +222,6 @@ def _evidence_record(row: Mapping[str, Any]) -> dict[str, Any]:
         _fact(f"{_ATLAS}decisionStatus", row["decision_status"]),
         _fact(f"{_ATLAS}decidedAt", row["decided_at"], iri=False),
     ]
-    if row.get("confidence") is not None:
-        facts.append(_fact(f"{_ATLAS}confidence", row["confidence"], iri=False))
     return {"facts": facts, "id": record_id}
 
 
@@ -557,7 +555,6 @@ def build_atlas_explorer_model(
     for row in evidence_rows:
         evidence_by_statement[row["statement"]].append(
             {
-                "confidence": row["confidence"],
                 "decidedAt": row["decided_at"],
                 "decisionStatus": _short(row["decision_status"]),
                 "id": f"urn:ref:atlas-evidence:{row['evidence_id'].hex()}",

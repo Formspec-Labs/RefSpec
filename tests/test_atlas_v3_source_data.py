@@ -181,17 +181,6 @@ def test_registry_mapping_evidence_rejects_invalid_identity_and_decision_fields(
         replace(_mapping_evidence(), **{field_name: value})
 
 
-@pytest.mark.parametrize(
-    "confidence",
-    ("1e-1", "-0.01", "1.01", "NaN", 0.5),
-)
-def test_registry_mapping_evidence_rejects_noncanonical_or_out_of_range_confidence(
-    confidence: object,
-) -> None:
-    with pytest.raises(ValueError, match="confidence"):
-        replace(_mapping_evidence(), confidence=confidence)  # type: ignore[arg-type]
-
-
 def test_registry_mapping_accepts_multiple_immutable_approvals() -> None:
     machine = _mapping_evidence(
         review_method="twoMachineAdjudication",

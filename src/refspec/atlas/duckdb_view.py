@@ -382,7 +382,6 @@ class AtlasDuckDBView:
         for row in evidence_rows:
             evidence_by_statement.setdefault(row["statement"], []).append(
                 {
-                    "confidence": row["confidence"],
                     "decidedAt": row["decided_at"],
                     "decisionStatus": row["decision_status"],
                     "id": f"urn:ref:atlas-evidence:{row['evidence_id'].hex()}",

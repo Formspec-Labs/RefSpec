@@ -4672,7 +4672,7 @@ def _evidence_view(
         "decidedAt": str(_one(graph, binding, ATLAS.decidedAt, label=f"evidence {binding}")),
         "contentDigest": str(_one(graph, binding, ATLAS.contentDigest, label=f"evidence {binding}")),
     }
-    for predicate, field in ((ATLAS.reviewedBy, "reviewedBy"), (ATLAS.confidence, "confidence")):
+    for predicate, field in ((ATLAS.reviewedBy, "reviewedBy"),):
         value = _one(graph, binding, predicate, label=f"evidence {binding}", required=False)
         if value is not None:
             result[field] = str(value)
@@ -5751,7 +5751,7 @@ _GRAPH_HTML = r"""<!doctype html>
   async function normalizeIdentifier(id){const record=await loadRecord(id),sourceRecords=iriFacts(record,`${rdf.atlas}sourceRecord`);return {id,value:oneLiteral(record,`${rdf.atlas}identifierValue`),scheme:oneIri(record,`${rdf.atlas}identifierScheme`),schemeLabel:short(oneIri(record,`${rdf.atlas}identifierScheme`)),identifies:oneIri(record,`${rdf.atlas}identifies`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),sourceRecordCount:sourceRecords.length,...(sourceRecords.length===1?{sourceRecord:sourceRecords[0]}:{})};}
   async function normalizeEvidence(id){
     const record=await loadRecord(id),sourceRecord=oneIri(record,`${rdf.atlas}evidenceSourceRecord`),source=normalizeSourceRecord(await loadRecord(sourceRecord));
-    return {id,sourceRecord:source.id,sourceRecordContentDigest:source.contentDigest,sourceDigest:oneLiteral(record,`${rdf.atlas}evidenceSourceDigest`),decisionStatus:short(oneIri(record,`${rdf.atlas}decisionStatus`)),reviewMethod:short(oneIri(record,`${rdf.atlas}reviewMethod`)),decidedAt:oneLiteral(record,`${rdf.atlas}decidedAt`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),...(oneIri(record,`${rdf.atlas}reviewedBy`)?{reviewedBy:oneIri(record,`${rdf.atlas}reviewedBy`)}:{}),...(oneLiteral(record,`${rdf.atlas}confidence`)!==""?{confidence:oneLiteral(record,`${rdf.atlas}confidence`)}:{})};
+    return {id,sourceRecord:source.id,sourceRecordContentDigest:source.contentDigest,sourceDigest:oneLiteral(record,`${rdf.atlas}evidenceSourceDigest`),decisionStatus:short(oneIri(record,`${rdf.atlas}decisionStatus`)),reviewMethod:short(oneIri(record,`${rdf.atlas}reviewMethod`)),decidedAt:oneLiteral(record,`${rdf.atlas}decidedAt`),contentDigest:oneLiteral(record,`${rdf.atlas}contentDigest`),...(oneIri(record,`${rdf.atlas}reviewedBy`)?{reviewedBy:oneIri(record,`${rdf.atlas}reviewedBy`)}:{})};
   }
   async function endpointLabel(id){try{return (await loadRecord(id)).summary?.displayLabel||short(id);}catch{return short(id);}}
   async function normalizeRelation(id){
@@ -5981,7 +5981,7 @@ _GRAPH_HTML = r"""<!doctype html>
       const mapping=mappingEvidenceBrief(edge);
       if(mapping)return mapping;
     }
-    const rows=edge.evidence.map(item=>{const method=reviewMethod(item.reviewMethod),source=sourceById.get(item.sourceRecord),confidence=item.confidence?` · confidence ${item.confidence}`:"";return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decisionStatus)}${esc(confidence)} · digest pinned</p></div>`;}).join("");
+    const rows=edge.evidence.map(item=>{const method=reviewMethod(item.reviewMethod),source=sourceById.get(item.sourceRecord);return `<div class="evidence-row"><b>${esc(friendlySource(source))} · ${esc(method.title)}</b><p>${esc(item.decisionStatus)} · digest pinned</p></div>`;}).join("");
     return `<section class="supporting"><h4>Evidence</h4><div class="evidence-list">${rows}</div></section>`;
   }
   function supportingBrief(edge){

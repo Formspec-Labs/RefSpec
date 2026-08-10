@@ -24,7 +24,7 @@ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
@@ -167,7 +167,7 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "decidedAt",
             }
         ),
-        frozenset({"confidence"}),
+        frozenset(),
     ),
     "SourceRecord": (
         frozenset({"id", "sourceRelease", "sourceDigest", "sourceLocator", "nativePayload"}),
@@ -206,14 +206,13 @@ COMPACT_SUMMARY_FIELDS = {
     "LifecycleEvent": "lifecycleEvents",
 }
 # Fields large enough (native payloads, notes/notations) or internal enough
-# (assertion-identity digests, review confidence) that a lightweight summary
-# row omits them even though the full compact record carries them. Every
-# other required-or-optional field for a role is projected through.
+# (assertion-identity digests) that a lightweight summary row omits them even
+# though the full compact record carries them. Every other required-or-optional
+# field for a role is projected through.
 _COMPACT_SUMMARY_EXCLUDED_FIELDS = frozenset(
     {
         "assertedAt",
         "assertionIdentityDigest",
-        "confidence",
         "definition",
         "nativePayload",
         "notations",
@@ -515,7 +514,6 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         ATLAS.assertedAt,
         ATLAS.assertionIdentityDigest,
         ATLAS.decidedAt,
-        ATLAS.confidence,
         ATLAS.eventAt,
         ATLAS.contentDigest,
     }
@@ -3582,19 +3580,6 @@ def _check_evidence_bindings(
             code="dataset.evidence",
             label="decidedAt",
         )
-        confidence_values = list(asserted.objects(binding, ATLAS.confidence))
-        if len(confidence_values) > 1:
-            _fail("dataset.evidence", f"{binding} has more than one confidence value")
-        if confidence_values:
-            confidence = confidence_values[0]
-            if not isinstance(confidence, Literal) or confidence.datatype != XSD.decimal:
-                _fail("dataset.evidence", f"{binding} confidence is not xsd:decimal")
-            try:
-                parsed_confidence = Decimal(str(confidence))
-            except InvalidOperation:
-                _fail("dataset.evidence", f"{binding} confidence is not a decimal")
-            if not Decimal(0) <= parsed_confidence <= Decimal(1):
-                _fail("dataset.evidence", f"{binding} confidence is outside 0..1")
         pinned_source_digest = _literal_text(
             _one(asserted, binding, ATLAS.evidenceSourceDigest, code="dataset.evidence-identity"),
             code="dataset.evidence-identity",
@@ -5621,11 +5606,6 @@ def _construction_record_from_rdf(
                 ),
             }
         )
-        confidences = list(graph.objects(subject, ATLAS.confidence))
-        if len(confidences) > 1:
-            _fail("construction.sample", f"evidence binding {subject} has multiple confidences")
-        if confidences:
-            record["confidence"] = str(confidences[0])
     elif role == "SourceRecord":
         payload_literal = _construction_rdf_one(
             graph,

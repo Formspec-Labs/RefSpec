@@ -27,8 +27,8 @@
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources"
   ],
-  "indexDigest": "sha256:f0cfd62a247a28f9308a5414461a3ef2bce78d276b9bfb8658e03a135e6dda66",
-  "indexId": "urn:ref:atlas-index:f0cfd62a247a28f9308a5414461a3ef2bce78d276b9bfb8658e03a135e6dda66",
+  "indexDigest": "sha256:7354a1c0dfb6649157d516715df68ba12653f14b356425cf9ccec59ea666d66d",
+  "indexId": "urn:ref:atlas-index:7354a1c0dfb6649157d516715df68ba12653f14b356425cf9ccec59ea666d66d",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:a731fef9a49b3af10813febea52a89a8e69c02b43fe6f938695bba98462b3515",
@@ -718,7 +718,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:7221dc3818f93715a00ff121b9080913cc661537699bcee29cc7ff7e5553cfbb"
+          "sha256": "sha256:d8757cbea8513a3cc8196170c51c1571b51ef09fcd1fe396a17bc12a97e1a5bc"
         },
         {
           "kind": "parserTest",
@@ -738,8 +738,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc-lcsh-alignment",
-      "rowDigest": "sha256:b8b63b439f8170c2e1d5b4a571037a499a99cd5e0adf120642a15415fd9cedcd",
-      "rowId": "urn:ref:atlas-index-row:b8b63b439f8170c2e1d5b4a571037a499a99cd5e0adf120642a15415fd9cedcd",
+      "rowDigest": "sha256:09b6e0adbd35e8aff6a1c24fa6a8110caa29eba1d1f4d39bbe00f19a30139c13",
+      "rowId": "urn:ref:atlas-index-row:09b6e0adbd35e8aff6a1c24fa6a8110caa29eba1d1f4d39bbe00f19a30139c13",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
     },
@@ -1459,7 +1459,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:7221dc3818f93715a00ff121b9080913cc661537699bcee29cc7ff7e5553cfbb"
+          "sha256": "sha256:d8757cbea8513a3cc8196170c51c1571b51ef09fcd1fe396a17bc12a97e1a5bc"
         },
         {
           "kind": "parserTest",
@@ -1479,8 +1479,8 @@
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
-      "rowDigest": "sha256:1e2e2aede89bd453b28ab8dce71e05a2c0e4b9b2e163f16f810d4be634026710",
-      "rowId": "urn:ref:atlas-index-row:1e2e2aede89bd453b28ab8dce71e05a2c0e4b9b2e163f16f810d4be634026710",
+      "rowDigest": "sha256:be766df70c6c816e3dff3fbecb98057a557440c6011fe42abe4da5bd1761cee1",
+      "rowId": "urn:ref:atlas-index-row:be766df70c6c816e3dff3fbecb98057a557440c6011fe42abe4da5bd1761cee1",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },

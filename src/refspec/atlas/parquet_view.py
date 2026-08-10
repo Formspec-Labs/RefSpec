@@ -200,7 +200,6 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("review_method", pa.string(), nullable=False),
             pa.field("decision_status", pa.string(), nullable=False),
             pa.field("decided_at", pa.string(), nullable=False),
-            pa.field("confidence", pa.string()),
             _binary_digest_field("content_digest"),
         ]
     ),
@@ -319,7 +318,6 @@ def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
             "review_method": row["reviewMethod"],
             "decision_status": row["decisionStatus"],
             "decided_at": row["decidedAt"],
-            "confidence": row.get("confidence"),
         }
     if role is CompactRecordRole.SOURCE_RECORD:
         return {

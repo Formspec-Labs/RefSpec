@@ -2109,7 +2109,6 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
             generator.ATLAS.decidedAt,
             expected_decision_time,
         ) in graphs.asserted
-        assert not list(graphs.asserted.objects(evidence, generator.ATLAS.confidence))
         evidence_source_record = graphs.asserted.value(
             evidence,
             generator.ATLAS.evidenceSourceRecord,
@@ -2219,7 +2218,6 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
         review_method="humanReview",
         reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
         decided_at="2026-08-06T02:00:00+00:00",
-        confidence="0.9",
     )
     expanded_release = dataclasses.replace(
         mapping_release,
@@ -2321,7 +2319,6 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
         review_method="humanReview",
         reviewer_iri="urn:ref:actor:atlas-3-test-human-reviewer",
         decided_at="2026-08-06T02:00:00+00:00",
-        confidence="0.9",
     )
     expanded_release = dataclasses.replace(
         mapping_release,
@@ -3459,7 +3456,6 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
         reviewer=URIRef("urn:test:reviewer"),
         review_method=generator.ATLAS.publisherAssertion,
         decided_at="2026-08-06T00:00:00Z",
-        confidence=None,
     )
 
     bindings = set(

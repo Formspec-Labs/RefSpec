@@ -338,13 +338,6 @@ def _add_assertion(
     graph.add(
         (
             evidence,
-            ATLAS.confidence,
-            Literal("0.98", datatype=XSD.decimal, normalize=False),
-        )
-    )
-    graph.add(
-        (
-            evidence,
             ATLAS.evidenceSourceDigest,
             Literal(atlas_validate.rdf_node_digest(graph, evidence_record)),
         )

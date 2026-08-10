@@ -13,7 +13,6 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Literal
 
@@ -52,7 +51,6 @@ RESOURCE_PROFILES = frozenset(
 )
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _ABSOLUTE_IRI = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:\S+$")
-_XSD_DECIMAL = re.compile(r"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$")
 
 
 def _canonical_json_bytes(value: Any) -> bytes:
@@ -301,7 +299,6 @@ class RegistryMappingEvidence:
     review_method: MappingReviewMethod
     reviewer_iri: str
     decided_at: str
-    confidence: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -327,20 +324,6 @@ class RegistryMappingEvidence:
             self.decided_at,
             field_name="mapping evidence decided_at",
         )
-        if self.confidence is not None:
-            if (
-                not isinstance(self.confidence, str)
-                or _XSD_DECIMAL.fullmatch(self.confidence) is None
-            ):
-                raise ValueError("mapping evidence confidence must be an xsd:decimal")
-            try:
-                confidence = Decimal(self.confidence)
-            except InvalidOperation as error:
-                raise ValueError(
-                    "mapping evidence confidence must be an xsd:decimal"
-                ) from error
-            if not confidence.is_finite() or not Decimal(0) <= confidence <= Decimal(1):
-                raise ValueError("mapping evidence confidence must be within 0..1")
 
 
 @dataclass(frozen=True, slots=True)
@@ -382,7 +365,6 @@ class RegistryMapping:
         evidence_keys = [
             canonical_digest(
                 {
-                    "confidence": item.confidence,
                     "decidedAt": _canonical_aware_datetime(
                         item.decided_at,
                         field_name="mapping evidence decided_at",
