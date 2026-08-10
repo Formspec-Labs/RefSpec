@@ -642,10 +642,9 @@ members came from those resources.
 
 ## Compatibility views
 
-JSON-LD, Turtle, SSSOM, tables, search indexes, and application-specific graph
+JSON-LD, Turtle, tables, search indexes, and application-specific graph
 views MAY be generated from a verified distribution. They are derived products,
 pin the root manifest and asserted inventory digest, and do not become competing
 sources of truth. A portable derived view MAY be included as a manifest-pinned
 `view` pack; a local file index need not be distributed. Neither case requires a
-database service. SSSOM exports only semantically applicable mapping assertions
-and retain the supporting Atlas assertion identifiers.
+database service.
