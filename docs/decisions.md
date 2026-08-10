@@ -813,3 +813,22 @@ the cited paths are sufficient.
    settles. `pyproject.toml` declares `requires-python ">=3.10"` while
    `src/refspec/registry/treasury_tas_fast_book.py:40` needs 3.11+
    (`datetime.UTC`), enforced nowhere — raise the floor or gate it.
+
+8. **Residual legacy runtime, two undecided items.** The `policyFrontier`
+   selection path is still live —
+   `src/refspec/registry/infrastructure/source_concept_release.py:314`
+   accepts it as a selection-policy type, and `src/refspec/atlas/frontier.py`
+   plus `frontier_release.py` carry the receipt machinery — but no decision
+   ever chose between preserving the exact policy-selection receipt and
+   consciously retiring it; decide explicitly, then act under the deletion
+   criterion. Separately, the experimental qualification and governance
+   cluster (`qualification.py` provider/admission paths,
+   `qualification_batch.py`, `qualification_jobs.py`,
+   `qualification_spend.py`, `atlas_scope.py`, `release_snapshot.py`,
+   `relation_assertion.py`, `relation_proof.py`, `machine_evidence.py`,
+   `subject_admission.py`, `subject_emission.py`, `concept_staging.py`)
+   becomes reviewable for retirement once items 1 and 5 land — each module
+   goes only when what it uniquely enforces is enforced elsewhere, and the
+   deleting commit names the checks. The deterministic six-class candidate
+   generator inside `qualification.py` stays with the research benchmarks
+   that consume it (`candidate_retrieval.py` is its long-term home).
