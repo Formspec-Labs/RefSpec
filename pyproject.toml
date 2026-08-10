@@ -29,7 +29,13 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 dev = [
     "pytest>=8,<9",
     "ruff>=0.12,<1",
-    "sssom>=0.4,<1"
+    "sssom>=0.4,<1",
+    # Six test modules import the Atlas 3.0 binding validator directly. It needs
+    # these, and they are pinned to the exact versions in
+    # bindings/atlas/3.0/requirements.txt so the validator behaves identically
+    # under `make test-package` and under `make test-atlas-v3`.
+    "owlrl==7.1.4",
+    "pyshacl==0.31.0",
 ]
 
 [build-system]
