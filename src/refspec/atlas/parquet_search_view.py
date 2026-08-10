@@ -141,11 +141,10 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("target_release", pa.string(), nullable=False),
             pa.field("policy", pa.string(), nullable=False),
             pa.field("asserted_at", pa.string(), nullable=False),
-            pa.field("assertion_status", pa.string(), nullable=False),
             pa.field("semantic_ring", pa.string()),
             pa.field("source_ring", pa.string()),
             pa.field("target_ring", pa.string()),
-            pa.field("supersedes", pa.string()),
+            pa.field("supersedes_assertion", pa.string()),
         ]
     ),
     CompactRecordRole.EVIDENCE_BINDING: pa.schema(
@@ -195,9 +194,9 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
     CompactRecordRole.LIFECYCLE_EVENT: pa.schema(
         [
             pa.field("id", pa.string(), nullable=False),
-            pa.field("event_subject", pa.string(), nullable=False),
-            pa.field("event_type", pa.string(), nullable=False),
-            pa.field("event_at", pa.string(), nullable=False),
+            pa.field("applies_to", pa.string(), nullable=False),
+            pa.field("lifecycle_event_kind", pa.string(), nullable=False),
+            pa.field("effective_date", pa.string(), nullable=False),
             pa.field("source_records", pa.list_(pa.string()), nullable=False),
             pa.field("from_release", pa.string()),
             pa.field("to_release", pa.string()),
@@ -211,7 +210,6 @@ _DICTIONARIES = {
     CompactRecordRole.STATEMENT: [
         "statement_type",
         "predicate",
-        "assertion_status",
         "semantic_ring",
         "source_ring",
         "target_ring",
@@ -230,7 +228,7 @@ _DICTIONARIES = {
         "membership_mode",
     ],
     CompactRecordRole.IDENTIFIER: ["identifier_scheme"],
-    CompactRecordRole.LIFECYCLE_EVENT: ["event_type"],
+    CompactRecordRole.LIFECYCLE_EVENT: ["lifecycle_event_kind"],
 }
 
 

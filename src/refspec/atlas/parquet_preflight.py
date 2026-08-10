@@ -468,21 +468,21 @@ def _validate_statements(
             "preflight.mapping-release",
             f"{_first_value(mappings, same_release)} maps within one release",
         )
-    superseding = statements.filter(pc.is_valid(statements["supersedes"]))
+    superseding = statements.filter(pc.is_valid(statements["supersedes_assertion"]))
     if superseding.num_rows:
         _foreign_indices(
             superseding,
-            "supersedes",
+            "supersedes_assertion",
             statements,
             code="preflight.supersession",
         )
-        self_supersession = pc.equal(superseding["id"], superseding["supersedes"])
+        self_supersession = pc.equal(superseding["id"], superseding["supersedes_assertion"])
         if _has_true(self_supersession):
             _fail(
                 "preflight.supersession",
                 f"{_first_value(superseding, self_supersession)} supersedes itself",
             )
-        _require_unique(superseding, ["supersedes"], "preflight.supersession")
+        _require_unique(superseding, ["supersedes_assertion"], "preflight.supersession")
 
 
 def _validate_evidence(

@@ -547,7 +547,8 @@ _ATLAS_SOURCE_RING_TOKEN = _nquad_iri_token(ATLAS.sourceRing)
 _ATLAS_TARGET_RING_TOKEN = _nquad_iri_token(ATLAS.targetRing)
 _ATLAS_IDENTIFIER_SCHEME_TOKEN = _nquad_iri_token(ATLAS.identifierScheme)
 _ATLAS_IDENTIFIES_TOKEN = _nquad_iri_token(ATLAS.identifies)
-_ATLAS_ASSERTION_STATUS_TOKEN = _nquad_iri_token(ATLAS.assertionStatus)
+_RKAF_SUPERSEDES_ASSERTION_TOKEN = _nquad_iri_token(RKAF.supersedesAssertion)
+_RKAF_LIFECYCLE_EVENT_KIND_TOKEN = _nquad_iri_token(RKAF.lifecycleEventKind)
 _ATLAS_REPRESENTS_RESOURCE_TOKEN = _nquad_iri_token(ATLAS.representsResource)
 _RDF_SUBJECT_TOKEN = _nquad_iri_token(RDF.subject)
 _RDF_PREDICATE_TOKEN = _nquad_iri_token(RDF.predicate)
@@ -577,7 +578,8 @@ _SOURCE_ASSIGNMENT_TYPE_TOKEN = _nquad_iri_token(ATLAS.SourceAssignment)
 _CROSS_RING_ASSERTION_TYPE_TOKEN = _nquad_iri_token(ATLAS.CrossRingRelationAssertion)
 _PROJECTED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.ProjectedRelation)
 _DERIVED_RELATION_TYPE_TOKEN = _nquad_iri_token(ATLAS.DerivedRelation)
-_CURRENT_STATUS_TOKEN = _nquad_iri_token(ATLAS.current)
+_RKAF_LIFECYCLE_EVENT_TYPE_TOKEN = _nquad_iri_token(RKAF.LifecycleEvent)
+_RKAF_RESCISSION_TOKEN = _nquad_iri_token(RKAF.rescission)
 _SOURCE_ASSIGNMENT_PREDICATE_TOKENS = frozenset(
     {
         _nquad_iri_token(ATLAS.assignedSubject),
@@ -610,7 +612,8 @@ _FIRST_PASS_VALUE_PREDICATES = frozenset(
         _ATLAS_TARGET_RING_TOKEN,
         _ATLAS_IDENTIFIER_SCHEME_TOKEN,
         _ATLAS_IDENTIFIES_TOKEN,
-        _ATLAS_ASSERTION_STATUS_TOKEN,
+        _RKAF_SUPERSEDES_ASSERTION_TOKEN,
+        _RKAF_LIFECYCLE_EVENT_KIND_TOKEN,
         _RDF_SUBJECT_TOKEN,
         _RDF_PREDICATE_TOKEN,
         _RDF_OBJECT_TOKEN,
@@ -828,7 +831,9 @@ class _StreamingIndexBuilder:
         self.release_member_counts: dict[bytes, int] = {}
         self.atlas_release_ids: set[bytes] = set()
         self.source_release_ids: set[bytes] = set()
-        self.current_authoritative_relations = 0
+        self.asserted_relation_records = 0
+        self.superseded_assertions = 0
+        self.rescinded_assertions = 0
         self.oversized_relations_skipped = 0
         self.resources = _CandidatePool(
             category=b"resource",
@@ -919,6 +924,10 @@ class _StreamingIndexBuilder:
                 stratum=(scheme,),
             )
 
+        if _RKAF_LIFECYCLE_EVENT_TYPE_TOKEN in types:
+            if values.get(_RKAF_LIFECYCLE_EVENT_KIND_TOKEN) == _RKAF_RESCISSION_TOKEN:
+                self.rescinded_assertions += 1
+
         if _RELATION_ASSERTION_TYPE_TOKEN in types:
             kinds = [
                 name
@@ -980,8 +989,14 @@ class _StreamingIndexBuilder:
                     (cast(bytes, source_ring), cast(bytes, target_ring))
                 ] += 1
             self.asserted_relations_by_kind[kind] += 1
-            if values.get(_ATLAS_ASSERTION_STATUS_TOKEN) == _CURRENT_STATUS_TOKEN:
-                self.current_authoritative_relations += 1
+            # An assertion carries no status. It is current unless a successor
+            # names it or a rescission event announces its withdrawal, and both
+            # of those are counted in this same single pass: the validator
+            # rejects a predecessor with two successors and an assertion that is
+            # both rescinded and superseded, so the two counts are disjoint.
+            self.asserted_relation_records += 1
+            if _RKAF_SUPERSEDES_ASSERTION_TOKEN in values:
+                self.superseded_assertions += 1
             pool = self.source_assignments if kind == "sourceAssignment" else self.topic_assertions
             pool.offer(
                 assertion,
@@ -1195,7 +1210,11 @@ class _StreamingIndexBuilder:
             assertion_ids=tuple(sorted(selected_assertion_ids)),
             projected_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_projected)),
             derived_relation_ids=tuple(sorted(candidate.record_id for candidate in selected_derived)),
-            current_authoritative_relations=self.current_authoritative_relations,
+            current_authoritative_relations=(
+                self.asserted_relation_records
+                - self.superseded_assertions
+                - self.rescinded_assertions
+            ),
             oversized_relations_skipped=self.oversized_relations_skipped,
         )
 
@@ -4705,7 +4724,7 @@ def _assertion_view(
     )
     if not evidence:
         raise Atlas3ExplorerError(f"assertion {assertion} has no evidence binding")
-    status = _iri_name(_one(graph, assertion, ATLAS.assertionStatus, label=f"assertion {assertion}"))
+    status = _assertion_lifecycle_state(graph, assertion)
     ring_fields = _relation_ring_view(graph, assertion, label=f"assertion {assertion}")
     result: dict[str, Any] = {
         "id": str(assertion),
@@ -4731,10 +4750,28 @@ def _assertion_view(
         "policy": _policy_view(graph, cast(URIRef, policy)),
         "evidence": evidence,
     }
-    supersedes = _one(graph, assertion, ATLAS.supersedes, label=f"assertion {assertion}", required=False)
+    supersedes = _one(
+        graph, assertion, RKAF.supersedesAssertion, label=f"assertion {assertion}", required=False
+    )
     if supersedes is not None:
-        result["supersedes"] = str(supersedes)
+        result["supersedesAssertion"] = str(supersedes)
     return result
+
+
+def _assertion_lifecycle_state(graph: Graph, assertion: URIRef) -> str:
+    """Derive an assertion's lifecycle state from the graph, not from a field.
+
+    Atlas stores no status on the assertion. A successor naming it makes it
+    superseded; a rkaf:rescission lifecycle event makes it rescinded; anything
+    else is current. The dataset validator rejects a record that is both.
+    """
+
+    if any(graph.subjects(RKAF.supersedesAssertion, assertion)):
+        return "superseded"
+    for event in graph.subjects(RKAF.appliesTo, assertion):
+        if (event, RKAF.lifecycleEventKind, RKAF.rescission) in graph:
+            return "rescinded"
+    return "current"
 
 
 def _relation_ring_view(graph: Graph, relation: URIRef, *, label: str) -> dict[str, Any]:
@@ -4785,13 +4822,13 @@ def _derived_view(graph: Graph, relation: URIRef, labels: Mapping[str, str]) -> 
     subject = _one(graph, relation, ATLAS.relationSubject, label=f"derived relation {relation}")
     predicate = _one(graph, relation, ATLAS.relationPredicate, label=f"derived relation {relation}")
     object_value = _one(graph, relation, ATLAS.relationObject, label=f"derived relation {relation}")
-    authority_status = _one(graph, relation, ATLAS.authorityStatus, label=f"derived relation {relation}")
-    if authority_status != ATLAS.nonAuthoritative:
-        raise Atlas3ExplorerError(f"derived relation {relation} is not explicitly non-authoritative")
     return {
         "id": str(relation),
+        # A derived relation is non-authoritative by construction: the class
+        # says so and the validator rejects a derived node that also carries an
+        # assertion type. The graph no longer carries an authority-status
+        # property to read, because it only ever took this one value.
         "authority": "nonAuthoritative",
-        "authorityStatus": _iri_name(authority_status),
         "authoritative": False,
         "subject": str(subject),
         "subjectLabel": labels.get(str(subject), _iri_name(subject)),

@@ -181,12 +181,11 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("target_release", pa.string(), nullable=False),
             pa.field("policy", pa.string(), nullable=False),
             pa.field("asserted_at", pa.string(), nullable=False),
-            pa.field("assertion_status", pa.string(), nullable=False),
             _binary_digest_field("assertion_identity_digest", nullable=False),
             pa.field("semantic_ring", pa.string()),
             pa.field("source_ring", pa.string()),
             pa.field("target_ring", pa.string()),
-            pa.field("supersedes", pa.string()),
+            pa.field("supersedes_assertion", pa.string()),
             _binary_digest_field("content_digest"),
         ]
     ),
@@ -242,9 +241,9 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
     CompactRecordRole.LIFECYCLE_EVENT: pa.schema(
         [
             pa.field("id", pa.string(), nullable=False),
-            pa.field("event_subject", pa.string(), nullable=False),
-            pa.field("event_type", pa.string(), nullable=False),
-            pa.field("event_at", pa.string(), nullable=False),
+            pa.field("applies_to", pa.string(), nullable=False),
+            pa.field("lifecycle_event_kind", pa.string(), nullable=False),
+            pa.field("effective_date", pa.string(), nullable=False),
             pa.field("source_records", pa.list_(pa.string()), nullable=False),
             pa.field("from_release", pa.string()),
             pa.field("to_release", pa.string()),
@@ -301,12 +300,11 @@ def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
             "target_release": row["targetRelease"],
             "policy": row["policy"],
             "asserted_at": row["assertedAt"],
-            "assertion_status": row["assertionStatus"],
             "assertion_identity_digest": _digest_bytes(row["assertionIdentityDigest"], "assertionIdentityDigest"),
             "semantic_ring": row.get("semanticRing"),
             "source_ring": row.get("sourceRing"),
             "target_ring": row.get("targetRing"),
-            "supersedes": row.get("supersedes"),
+            "supersedes_assertion": row.get("supersedesAssertion"),
         }
     if role is CompactRecordRole.EVIDENCE_BINDING:
         return {
@@ -352,9 +350,9 @@ def _record_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
     if role is CompactRecordRole.LIFECYCLE_EVENT:
         return {
             **common,
-            "event_subject": row["eventSubject"],
-            "event_type": row["eventType"],
-            "event_at": row["eventAt"],
+            "applies_to": row["appliesTo"],
+            "lifecycle_event_kind": row["lifecycleEventKind"],
+            "effective_date": row["effectiveDate"],
             "source_records": row["sourceRecords"],
             "from_release": row.get("fromRelease"),
             "to_release": row.get("toRelease"),

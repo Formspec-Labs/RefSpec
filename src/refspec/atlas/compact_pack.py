@@ -182,12 +182,11 @@ class StatementRecord(TypedDict):
     targetRelease: str
     policy: str
     assertedAt: str
-    assertionStatus: str
     assertionIdentityDigest: str
     semanticRing: NotRequired[str]
     sourceRing: NotRequired[str]
     targetRing: NotRequired[str]
-    supersedes: NotRequired[str]
+    supersedesAssertion: NotRequired[str]
     contentDigest: NotRequired[str]
     canonicalPayloadDigest: NotRequired[str]
 
@@ -248,9 +247,9 @@ class IdentifierRecord(TypedDict):
 
 class LifecycleEventRecord(TypedDict):
     id: str
-    eventSubject: str
-    eventType: str
-    eventAt: str
+    appliesTo: str
+    lifecycleEventKind: str
+    effectiveDate: str
     sourceRecords: list[str]
     fromRelease: NotRequired[str]
     toRelease: NotRequired[str]
@@ -305,12 +304,11 @@ _RECORD_SCHEMAS = {
                 "targetRelease",
                 "policy",
                 "assertedAt",
-                "assertionStatus",
                 "assertionIdentityDigest",
             }
         ),
         optional=frozenset(
-            {"semanticRing", "sourceRing", "targetRing", "supersedes"}
+            {"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}
         ),
     ),
     CompactRecordRole.EVIDENCE_BINDING: _RecordSchema(
@@ -359,7 +357,7 @@ _RECORD_SCHEMAS = {
     ),
     CompactRecordRole.LIFECYCLE_EVENT: _RecordSchema(
         required=frozenset(
-            {"id", "eventSubject", "eventType", "eventAt", "sourceRecords"}
+            {"id", "appliesTo", "lifecycleEventKind", "effectiveDate", "sourceRecords"}
         ),
         optional=frozenset({"fromRelease", "toRelease"}),
     ),
@@ -376,7 +374,6 @@ _STATEMENT_TYPES = frozenset(
         "CrossRingRelationAssertion",
     }
 )
-_ASSERTION_STATUSES = frozenset({"current", "superseded", "withdrawn"})
 _RELEASE_TYPES = frozenset({"AtlasRelease", "SourceRelease"})
 
 
@@ -913,7 +910,7 @@ def _normalize_role_fields(
             "sourceRelease",
             "targetRelease",
             "policy",
-            "supersedes",
+            "supersedesAssertion",
         ),
         CompactRecordRole.EVIDENCE_BINDING: (
             "id",
@@ -935,8 +932,8 @@ def _normalize_role_fields(
         ),
         CompactRecordRole.LIFECYCLE_EVENT: (
             "id",
-            "eventSubject",
-            "eventType",
+            "appliesTo",
+            "lifecycleEventKind",
             "fromRelease",
             "toRelease",
         ),
@@ -986,11 +983,6 @@ def _normalize_role_fields(
             record["statementType"],
             _STATEMENT_TYPES,
             f"{path}.statementType",
-        )
-        _closed_token(
-            record["assertionStatus"],
-            _ASSERTION_STATUSES,
-            f"{path}.assertionStatus",
         )
         record["assertionIdentityDigest"] = _digest(
             record["assertionIdentityDigest"],
@@ -1120,11 +1112,10 @@ _SUMMARY_PROJECTION_FIELDS = {
         "sourceRelease",
         "targetRelease",
         "policy",
-        "assertionStatus",
         "semanticRing",
         "sourceRing",
         "targetRing",
-        "supersedes",
+        "supersedesAssertion",
     ),
     CompactRecordRole.EVIDENCE_BINDING: (
         "id",
@@ -1169,9 +1160,9 @@ _SUMMARY_PROJECTION_FIELDS = {
     ),
     CompactRecordRole.LIFECYCLE_EVENT: (
         "id",
-        "eventSubject",
-        "eventType",
-        "eventAt",
+        "appliesTo",
+        "lifecycleEventKind",
+        "effectiveDate",
         "sourceRecords",
         "fromRelease",
         "toRelease",
@@ -1282,10 +1273,10 @@ def _parse_global_invariant_entry(
             _STATEMENT_TYPES,
             f"{path}.statementType",
         )
-        if "supersedes" in entry:
-            entry["supersedes"] = _absolute_iri(
-                entry["supersedes"],
-                f"{path}.supersedes",
+        if "supersedesAssertion" in entry:
+            entry["supersedesAssertion"] = _absolute_iri(
+                entry["supersedesAssertion"],
+                f"{path}.supersedesAssertion",
             )
         _normalize_statement_rings(entry, path)
     elif role == CompactRecordRole.RELEASE:
