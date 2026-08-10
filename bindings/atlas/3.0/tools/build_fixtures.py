@@ -63,6 +63,11 @@ class Fixture:
     manifest_patch: dict[str, Any]
     omitted_gate: str | None = None
     post_write: Callable[[Path], None] | None = None
+    # Rewrites the compact rows after they are derived from the asserted graph
+    # and before they are packed, so a case can make the served projection
+    # disagree with the graph while every downstream receipt still seals
+    # honestly over the bytes that were actually written.
+    compact_rows_patch: Callable[[dict[tuple[str, str], list[dict[str, Any]]]], None] | None = None
     rdf_zstd_all: bool = False
     rdf_partition_owner: str | None = None
     # Set false by the three negatives whose whole point is a stale proof
@@ -2130,6 +2135,8 @@ def _write_case(
         partition_owner=fixture.rdf_partition_owner,
     )
     compact_rows = _compact_logical_rows(fixture, baseline_asserted, units)
+    if fixture.compact_rows_patch is not None:
+        fixture.compact_rows_patch(compact_rows)
     compact_packs, compact_path_owners = _write_compact_packs(path, compact_rows)
     accounting_bytes = atlas_validate.canonical_json_bytes(fixture.accounting)
     accounting_digest = _sha256(accounting_bytes)
@@ -2832,6 +2839,31 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
 
     def missing_acceptance_gate(fixture: Fixture) -> None:
         fixture.omitted_gate = "reasoning-isolation"
+
+    def explorer_record_unreachable(fixture: Fixture) -> None:
+        """Serve one label the graph never asserts in place of one it does.
+
+        Labels are the one compact role nothing else references, so retitling a
+        single row leaves replay order, every digest, and every count exactly as
+        a faithful build would seal them. The distribution now asserts a label
+        the search view, its filters, and both concept endpoints can never
+        reach, and serves one the distribution never asserted. Every count still
+        reconciles, which is the point: only comparing the two record
+        identities refuses it.
+        """
+
+        def patch(rows: dict[tuple[str, str], list[dict[str, Any]]]) -> None:
+            key = min(key for key in rows if key[1] == "Label" and rows[key])
+            retitled = dict(rows[key][0], id="urn:ref:atlas-fixture:label:unasserted")
+            retitled.pop("canonicalPayloadDigest", None)
+            rows[key][0] = atlas_validate._normalize_compact_record(
+                "Label",
+                retitled,
+                path="explorer-record-unreachable",
+            )
+            rows[key].sort(key=lambda row: row["id"])
+
+        fixture.compact_rows_patch = patch
 
     def identifier_missing_value(fixture: Fixture) -> None:
         identifier = next(fixture.asserted.subjects(RDF.type, ATLAS.Identifier))
@@ -4107,6 +4139,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("source-accounting-missing-disposition", ["json", "dataset"], "source.accounting", missing_disposition),
         ("manifest-count-mismatch", ["dataset"], "dataset.counts", count_mismatch),
         ("acceptance-missing-gate", ["json", "dataset"], "acceptance.gates", missing_acceptance_gate),
+        (
+            "explorer-record-unreachable",
+            ["dataset"],
+            "construction.reachability",
+            explorer_record_unreachable,
+        ),
         ("identifier-missing-value", ["shacl"], "shacl.data", identifier_missing_value),
         (
             "identifier-pair-conflict",

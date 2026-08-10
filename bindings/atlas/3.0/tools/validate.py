@@ -762,6 +762,7 @@ REQUIRED_GATES = frozenset(
         "shacl-meta",
         "shacl-data",
         "dataset-closure",
+        "explorer-reachability",
         "machine-adjudication",
         "source-accounting",
         "projection-parity",
@@ -837,6 +838,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "evidence-retargeted",
         "evidence-reviewer-retargeted",
         "evidence-warrant-unsanctioned",
+        "explorer-record-unreachable",
         "identifier-conflict-recorded",
         "identifier-missing-value",
         "identifier-pair-conflict",
@@ -6899,20 +6901,50 @@ def _compact_record_counts_by_role(
     return counts
 
 
-def _rdf_record_counts_by_role(asserted: Graph) -> dict[str, int]:
-    """Count logical RDF records without reconstructing their compact rows."""
+def _rdf_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
+    """Return the asserted graph's logical record identity, role by role."""
 
     return {
-        "Resource": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasResource)),
-        "Label": sum(1 for _ in asserted.subjects(RDF.type, SKOSXL.Label)),
-        "Statement": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.RelationAssertion)),
-        "EvidenceBinding": sum(1 for _ in asserted.subjects(RDF.type, RKAF.EvidenceBinding)),
-        "SourceRecord": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRecord)),
-        "Release": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.AtlasRelease))
-        + sum(1 for _ in asserted.subjects(RDF.type, ATLAS.SourceRelease)),
-        "Identifier": sum(1 for _ in asserted.subjects(RDF.type, ATLAS.Identifier)),
-        "LifecycleEvent": sum(1 for _ in asserted.subjects(RDF.type, RKAF.LifecycleEvent)),
+        "Resource": {str(value) for value in asserted.subjects(RDF.type, ATLAS.AtlasResource)},
+        "Label": {str(value) for value in asserted.subjects(RDF.type, SKOSXL.Label)},
+        "Statement": {str(value) for value in asserted.subjects(RDF.type, ATLAS.RelationAssertion)},
+        "EvidenceBinding": {str(value) for value in asserted.subjects(RDF.type, RKAF.EvidenceBinding)},
+        "SourceRecord": {str(value) for value in asserted.subjects(RDF.type, ATLAS.SourceRecord)},
+        "Release": {str(value) for value in asserted.subjects(RDF.type, ATLAS.AtlasRelease)}
+        | {str(value) for value in asserted.subjects(RDF.type, ATLAS.SourceRelease)},
+        "Identifier": {str(value) for value in asserted.subjects(RDF.type, ATLAS.Identifier)},
+        "LifecycleEvent": {str(value) for value in asserted.subjects(RDF.type, RKAF.LifecycleEvent)},
     }
+
+
+def _check_explorer_reachability(
+    compact_ids_by_role: Mapping[str, Sequence[str]],
+    rdf_ids_by_role: Mapping[str, AbstractSet[str]],
+) -> None:
+    """Prove the served projection carries exactly the asserted records.
+
+    The compact packs are the substrate the Parquet search view, its DuckDB
+    session, and the explorer are all built from. A record missing from them is
+    one that no filter, no search, and neither concept endpoint can ever reach;
+    a record present only in them is one the distribution never asserted; a
+    record repeated across two packs is both at once. The role counts cannot
+    see any of the three -- each keeps every count equal -- and the row sample
+    reads a fixed few positions per pack, so at real pack sizes it reads none
+    of the rows involved. Comparing the two identities refuses all three.
+    """
+
+    for role in sorted(compact_ids_by_role):
+        served = set(compact_ids_by_role[role])
+        asserted_ids = set(rdf_ids_by_role[role])
+        if served == asserted_ids:
+            continue
+        unreachable = sorted(asserted_ids - served)
+        invented = sorted(served - asserted_ids)
+        _fail(
+            "construction.reachability",
+            f"served {role} records are not the asserted {role} records; "
+            f"unreachable={unreachable[:3]}, unasserted={invented[:3]}",
+        )
 
 
 def _check_compact_shape_size_and_rdf_sample(
@@ -6943,7 +6975,8 @@ def _check_compact_shape_size_and_rdf_sample(
             )
 
     compact_counts = _compact_record_counts_by_role(descriptors)
-    rdf_counts = _rdf_record_counts_by_role(asserted)
+    rdf_ids = _rdf_record_ids_by_role(asserted)
+    rdf_counts = {role: len(ids) for role, ids in rdf_ids.items()}
     if compact_counts != rdf_counts:
         _fail(
             "construction.compact",
@@ -6951,73 +6984,84 @@ def _check_compact_shape_size_and_rdf_sample(
             f"rdf={rdf_counts}",
         )
 
+    # Read every pack once: the record identity of all rows and the full rows
+    # of the sampled positions, so the reachability refusal is reached before
+    # any sampled row is reconciled against RDF.
+    compact_ids: dict[str, list[str]] = {role: [] for role in COMPACT_RECORD_FIELDS}
+    sampled: list[tuple[Mapping[str, Any], Mapping[str, Any]]] = []
     for descriptor_position, descriptor in enumerate(descriptors, start=1):
-        descriptor_role = descriptor["role"]
-        descriptor_owner = path_owners[descriptor["path"]]
-        descriptor_partition = descriptor.get("partition")
-        sample_indices = _compact_sample_indices(
-            descriptor["content"]["recordCount"]
-        )
-
-        def consume(
-            row: Mapping[str, Any],
-            *,
-            descriptor_role: str = descriptor_role,
-            descriptor_owner: str = descriptor_owner,
-            descriptor_path: str = descriptor["path"],
-            descriptor_partition: Mapping[str, Any] | None = descriptor_partition,
-        ) -> None:
-            subject = URIRef(row["id"])
-            rdf_role = _construction_record_role(asserted, subject)
-            if rdf_role != descriptor_role:
-                _fail(
-                    "construction.sample",
-                    f"{descriptor_path} sample {subject} compact and RDF roles differ",
-                )
-            rdf_row = _construction_record_from_rdf(
-                asserted,
-                subject,
-                descriptor_role,
-            )
-            if row != rdf_row:
-                _fail(
-                    "construction.sample",
-                    f"{descriptor_path} sample {subject} compact and RDF rows differ",
-                )
-            owner = _construction_compact_owner(
-                asserted,
-                subject,
-                descriptor_role,
-                source_owner=source_owner,
-                atlas_owner=atlas_owner,
-            )
-            if owner != descriptor_owner:
-                _fail(
-                    "construction.sample",
-                    f"{descriptor_path} sample {subject} release ownership differs",
-                )
-            if descriptor_partition is not None and not hashlib.sha256(
-                str(subject).encode("utf-8")
-            ).hexdigest().startswith(descriptor_partition["prefix"]):
-                _fail(
-                    "construction.sample",
-                    f"{descriptor_path} sample {subject} partition differs",
-                )
-
-        _read_compact_pack(
+        validation = _read_compact_pack(
             root,
             descriptor,
             retain_rows=False,
-            row_consumer=consume,
-            row_indices=sample_indices,
+            row_consumer=lambda row, descriptor=descriptor: sampled.append((descriptor, row)),
+            row_indices=_compact_sample_indices(descriptor["content"]["recordCount"]),
         )
+        compact_ids[descriptor["role"]].extend(validation.full_summary["recordIds"])
         _STATUS.progress(
             "check-compact-shape-size-sample",
             descriptor_position,
             len(descriptors),
             current=descriptor["path"],
         )
+    _check_explorer_reachability(compact_ids, rdf_ids)
 
+    for descriptor, row in sampled:
+        _check_compact_row_against_rdf(
+            asserted,
+            descriptor,
+            row,
+            owner=path_owners[descriptor["path"]],
+            source_owner=source_owner,
+            atlas_owner=atlas_owner,
+        )
+
+
+def _check_compact_row_against_rdf(
+    asserted: Graph,
+    descriptor: Mapping[str, Any],
+    row: Mapping[str, Any],
+    *,
+    owner: str,
+    source_owner: Mapping[str, str],
+    atlas_owner: Mapping[str, str],
+) -> None:
+    """Reconcile one sampled compact row against the record RDF asserts."""
+
+    descriptor_role = descriptor["role"]
+    descriptor_path = descriptor["path"]
+    descriptor_partition = descriptor.get("partition")
+    subject = URIRef(row["id"])
+    if _construction_record_role(asserted, subject) != descriptor_role:
+        _fail(
+            "construction.sample",
+            f"{descriptor_path} sample {subject} compact and RDF roles differ",
+        )
+    rdf_row = _construction_record_from_rdf(asserted, subject, descriptor_role)
+    if row != rdf_row:
+        _fail(
+            "construction.sample",
+            f"{descriptor_path} sample {subject} compact and RDF rows differ",
+        )
+    record_owner = _construction_compact_owner(
+        asserted,
+        subject,
+        descriptor_role,
+        source_owner=source_owner,
+        atlas_owner=atlas_owner,
+    )
+    if record_owner != owner:
+        _fail(
+            "construction.sample",
+            f"{descriptor_path} sample {subject} release ownership differs",
+        )
+    if descriptor_partition is not None and not hashlib.sha256(
+        str(subject).encode("utf-8")
+    ).hexdigest().startswith(descriptor_partition["prefix"]):
+        _fail(
+            "construction.sample",
+            f"{descriptor_path} sample {subject} partition differs",
+        )
 
 
 def _check_producer_validation(
