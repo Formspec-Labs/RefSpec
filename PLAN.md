@@ -101,9 +101,9 @@ it loads.
 ### The bounded mode is the existing generator, scoped
 
 `tools/generate_atlas_v3_full.py` grew a release allowlist rather than a second
-generator. `split_construction_unit_keys` (`:2372`) routes each requested key
+generator. `split_construction_unit_keys` (`:2418`) routes each requested key
 to the loader that declares it, refusing an unknown key and an empty request;
-`build_distribution` (`:10256`) takes `include_keys`, and `main` (`:10477`)
+`build_distribution` (`:10310`) takes `include_keys`, and `main` (`:10538`)
 takes `--only-release`, repeatable, which also scopes `--check-inputs`.
 
 The change is small because every later step was already release-scoped:
@@ -118,33 +118,63 @@ distribution against the whole code-declared topology --
 `_plan_incremental_construction` returns `None` unless the prior summary's keys
 equal `_declared_construction_unit_keys()` -- which a bounded distribution
 deliberately is not, so a bounded build is always cold. It costs 5.8s.
+`_try_exact_distribution_reuse` now makes that same comparison (`:9498`): a
+bounded prior sitting at the output path would otherwise be copied out whole as
+though it were the topology the caller asked for.
 
 `tests/test_generate_atlas_v3_full.py:618` pins the source/mapping split and
-both refusals, `:631` pins that only the named key reaches either loader, and
-`:661` pins that neither reuse path is consulted even with an exactly reusable
-distribution sitting at the output path, and that `--reuse-from` is refused
-outright.
+both refusals, `:631` pins that only the named key reaches either loader, `:680`
+pins that neither reuse path is consulted even with an exactly reusable
+distribution sitting at the output path and that `--reuse-from` is refused
+outright, and `:726` pins that exact reuse declines a prior whose releases are
+not the declared topology.
+
+### The identity names its scope
+
+`urn:ref:atlas:distribution:3.0-full-development:` on a bounded artifact would
+be a name that lies about what it names, and this URN is what a consumer
+embeds in a snapshot pin, so renaming after adoption would move every pin.
+`DISTRIBUTION_ID_PREFIXES` (`:129`) declares both scopes:
+`3.0-full-development` for `completeDeclaredTopology` and
+`3.0-bounded-development` for `boundedReleaseSelection`.
+
+`distribution_scope_profile` (`:951`) decides between them, and it asks the
+question the reuse planner asks of the authority the reuse planner asks:
+is this the complete `_declared_construction_unit_keys()` topology? A bounded
+selection is a subset of those keys and every declared unit contributes one
+ledger row, so the ledger's `totals.sourceReleases` answers set membership
+exactly -- 110 rows against 110 declared units in the full build on disk. There
+is no scope flag beside it; `build_distribution` derives `bounded` from the same
+comparison, so an allowlist naming every declared key is a full build in both
+its identity and its reuse eligibility.
+
+The digest is item 3's mechanism, untouched: the same bounded ledger yields
+`53f231d2…aa00b0` under either name. What changed is only the segment in front
+of it. The scope is read from `totals`, which is inside the closed content the
+digest covers, so a relabelled ledger fails `_distribution_id` — claiming the
+wider scope moves the digest that sits beside the claim.
+`tests/test_generate_atlas_v3_full.py:1384` pins the two profiles, the refusals
+outside the declared range, and that relabelling is refused.
 
 ### Measured, from the artifact
 
 Built 2026-08-11 into `output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution`:
 13 files, 1,850,412 bytes, two RDF packs and six compact packs, one asserted
 graph of 57,686 quads and empty projection and derived graphs. Manifest SHA-256
-`fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060`, identity
-`urn:ref:atlas:distribution:3.0-full-development:53f231d21a6aede37300afb7d3c1203f6392847ef177659327c97f5505aa00b0`,
+`d5c198b8f0be73ce58adf64765501ca254741e830e7af7e87488a6844c04f1e4`, identity
+`urn:ref:atlas:distribution:3.0-bounded-development:53f231d21a6aede37300afb7d3c1203f6392847ef177659327c97f5505aa00b0`,
 source-accounting digest
 `sha256:d580c8c420e98bf14f0a06990cc6f8f8da4973fb049c7f4647d0bc6fbe02a377`. The
-identity is item 3's mechanism: the SHA-256 of the accounting the manifest
-covers. `manifest.createdAt` and `acceptance.evaluatedAt` are
+digest half of the identity is item 3's mechanism, the SHA-256 of the accounting
+the manifest covers; the segment in front of it is the scope above.
+`manifest.createdAt` and `acceptance.evaluatedAt` are
 `2025-04-01T00:00:00+00:00`, the release date, not a build clock, so the same
 source bytes rebuild the same tree: a second build to a different output
 produced a byte-identical directory and the same manifest digest. Publication
 is `_promote_validated_distribution` (`:8434`), which renames a validated
 candidate over the output and renames the previous tree back on any failure.
 
-The four counts are measured, not copied. The prefix of the identity still
-reads `3.0-full-development`; it names the producer profile, and the
-distribution's own claim of scope is the single release its accounting lists.
+The four counts are measured, not copied.
 
 `tools/verify_federal_register_thesaurus_distribution.py` reads both ends and
 compares them as sets, so a distribution carrying the right number of wrong
@@ -180,15 +210,15 @@ relation endpoint for an invented one and asserts the receipt still measures
 ### The 1.1 search view over it
 
 `output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view`, manifest
-SHA-256 `064f2d3e08def64a669b8f8898c378734ae1064fba853ea02283c1ac97ae9e76`, view
+SHA-256 `6e89d3edbdcc13ce1297d736205d1bffb168f1c075c0a151d3459e726cff72c8`, view
 id
-`urn:ref:atlas-parquet-view:d2b55629b29614f44dbae2bf8a19e730d0fb15022050e5a632044eb2760951fc`,
+`urn:ref:atlas-parquet-view:50367f634fc67e5e53554176c1cb07501f1330a9e45684c92fd68eeb55fe6854`,
 is the full view over the bounded distribution.
 
 `output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view`, manifest
-SHA-256 `b2551b4cc3d757acf0df677ec6bee57ce00cb5ceff45c4835630edd129067999`, view
+SHA-256 `e728fee7cc6d3ed58629d63fc698f66d0b9b5ddba195a29fb8d1151fc72d054f`, view
 id
-`urn:ref:atlas-parquet-search-view:70b99411997b4b2f0d96dfd058b5cfed2a0f5e9e0fb45d2445a0641a6539671d`,
+`urn:ref:atlas-parquet-search-view:dc427c75731cafe03e2b288101f25445064874f6dcb17155cc04408398cead3c`,
 is the 1.1 search view over that. `schemaVersion` and
 `construction.implementationVersion` are both `1.1`; `input.atlas.distributionId`
 and `input.atlas.manifestSha256` pin the bounded distribution above. Its Label
@@ -207,17 +237,17 @@ make verify-atlas-federal-register-thesaurus
 
 uv run refspec-build-atlas-parquet-view \
   --distribution output/atlas-3.0-federal-register-thesaurus-2025-04-01/distribution \
-  --expected-manifest-sha256 fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060 \
+  --expected-manifest-sha256 d5c198b8f0be73ce58adf64765501ca254741e830e7af7e87488a6844c04f1e4 \
   --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view
 
 uv run refspec-build-atlas-search-view \
   --full-view output/atlas-3.0-federal-register-thesaurus-2025-04-01-parquet-view \
-  --expected-manifest-sha256 064f2d3e08def64a669b8f8898c378734ae1064fba853ea02283c1ac97ae9e76 \
+  --expected-manifest-sha256 6e89d3edbdcc13ce1297d736205d1bffb168f1c075c0a151d3459e726cff72c8 \
   --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view
 
 uv run refspec-build-atlas-search-view --verify-only \
   --output output/atlas-3.0-federal-register-thesaurus-2025-04-01-search-view \
-  --expected-manifest-sha256 b2551b4cc3d757acf0df677ec6bee57ce00cb5ceff45c4835630edd129067999
+  --expected-manifest-sha256 e728fee7cc6d3ed58629d63fc698f66d0b9b5ddba195a29fb8d1151fc72d054f
 
 uv run --no-project --with-requirements bindings/atlas/3.0/requirements.txt \
   python bindings/atlas/3.0/tools/validate.py \
@@ -230,9 +260,10 @@ neither `test` nor `check-generated` nor continuous integration, per item 6.
 against; it is a constant because the build is deterministic.
 
 Everything above lands under the gitignored `output/`, so the tracked proof is
-the generator's allowlist, the verifier, their six tests, and this record.
+the generator's allowlist and scope segment, the verifier, their eight tests,
+and this record.
 `make check-generated` exits 0 unchanged, `ruff check .` is clean, and the
-whole suite is 2,577 passed and 39 skipped with `output/` present.
+whole suite is 2,579 passed and 39 skipped with `output/` present.
 
 - Owner: RefSpec.
 - Exit gate: met. The source digest matched before the build ran, producer-side
@@ -244,12 +275,14 @@ whole suite is 2,577 passed and 39 skipped with `output/` present.
 Distribution identity is derived from content, and no timestamp reaches it.
 
 `tools/generate_atlas_v3_full.py` carries neither `CREATED_AT` nor a literal
-`DISTRIBUTION_ID`. `distribution_identity` at `:939` returns
-`DISTRIBUTION_ID_PREFIX` (`:122`) followed by the SHA-256 of a closed payload
-holding the source accounting's `inputs`, `totals`, `type` and `version` under
-the profile `atlas-3-source-accounting-content-identity-v1` (`:123`). It refuses
-any other field set, so a payload carrying a recorded instant beside the ledger
-raises rather than digesting it.
+`DISTRIBUTION_ID`. `distribution_identity` at `:973` returns the scope prefix
+item 2 describes, drawn from `DISTRIBUTION_ID_PREFIXES` (`:129`), followed by
+the SHA-256 of a closed payload holding the source accounting's `inputs`,
+`totals`, `type` and `version` under the profile
+`atlas-3-source-accounting-content-identity-v1` (`:135`). It refuses any other
+field set, so a payload carrying a recorded instant beside the ledger raises
+rather than digesting it. The scope is read from `totals`, inside that same
+closed payload, so naming a scope and digesting the content are one act.
 
 The pre-image is the accounting rather than the manifest because the manifest
 lists the accounting as a member: an identity derived from the manifest digest
@@ -259,9 +292,9 @@ closed record of which source releases and which source records the
 distribution represents, so two builds over the same sources derive one
 identity and two builds over different sources cannot share one.
 
-`_identified_source_accounting` (`:964`) closes each ledger over its own
+`_identified_source_accounting` (`:1010`) closes each ledger over its own
 identity, in `_build_graphs` and in the transient `_dirty_accounting_subset`.
-`_distribution_id` (`:970`) recomputes the identity and refuses a ledger that
+`_distribution_id` (`:1016`) recomputes the identity and refuses a ledger that
 does not carry its own content digest; the construction summary, the acceptance,
 the manifest and both generation reports read the identity through it, and
 `_validate_compiled_source_accounting` and
@@ -288,14 +321,15 @@ instant to the payload raises. `:1245` pins the instant derivation, its
 canonical-date refusals, its independence from argument order, and the
 incremental floor. `:2847` now proves both halves of the ledger check: an
 unresealed mutation fails on identity, and the same mutation resealed reaches
-the membership reconciliation underneath it. The module's 112 tests pass and
+the membership reconciliation underneath it. The module's 114 tests pass and
 `ruff check .` is clean.
 
 The generator's self pin moved with the file, from
 `sha256:0cc31b3d395a8d95de074854f302ebec22e79c15b624385d2601f19f7974e62e` to
 `sha256:f41957758986b2dfe1ece25438d563643be63ab637aaf69a3a83720b5614b702`
-(`:171`), written by `--repin`. Item 2's allowlist moved it again, to
-`sha256:54983dd712b6ea2eb766748821d620c1fe2acf4d149ebffab859b9e4df8f4419`.
+(`:183`), written by `--repin`. Item 2's allowlist and scope segment moved it
+again, to
+`sha256:2cd5756ac1d8823ce949d14082670fb0fb13833aa7b10c5c859ec4bca4fd2a4c`.
 
 The change governs the next build. The four builds on disk keep the identifier
 they were written with; nothing rewrites them in place, and both reuse paths

@@ -102,7 +102,7 @@ audit-atlas-v3-source-fidelity:
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.0-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= fb76eb08bea4a94c6286810c14a8e1062c2f21655b9fc656f2fe2557278d6060
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= d5c198b8f0be73ce58adf64765501ca254741e830e7af7e87488a6844c04f1e4
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
