@@ -227,39 +227,61 @@
 </div>
 
 <section id="p0">
-<div class="sechead"><span class="chip p">P0</span><h2>The change list — direction set 2026-08-10</h2>
+<div class="sechead"><span class="chip p">P0</span><h2>The change list — direction set 2026-08-10, revised 2026-08-11</h2>
   <span class="why">decisions, not measurements</span></div>
 
 <p class="lede">The one section of this page whose contents are <strong>decisions rather than findings</strong>:
 a consulting pass over the page, recorded here so the map and the plan travel together. Every item cites the
 section that carries its evidence; nothing here is new measurement, and the page's rule applies twice over —
-<strong>re-derive before you execute</strong>.</p>
+<strong>re-derive before you execute</strong>. The 2026-08-11 revision is that rule applied to this section:
+every row below was re-checked against the repositories, and the rows that did not survive say so.</p>
 
 <div class="band key">
   <p style="margin-top:0"><strong>The governing decision: these repos become versioned packages that consume
-  each other by version.</strong> We are in a development phase, and most of the pin/digest apparatus on this
-  page compensates for two absences — packaging, and reproducible outputs. It is triaged against that future
-  rather than preserved by default. The sorting rule, applied throughout:</p>
+  each other by version — and the version alone is not the boundary.</strong> We are in a development phase,
+  and most of the pin/digest apparatus on this page compensates for two absences — packaging, and reproducible
+  outputs. It is triaged against that future rather than preserved by default. The sorting rule, applied
+  throughout:</p>
   <ul>
-    <li><strong>A check guarding a <em>code</em> relationship → cut; package version bounds replace it.</strong>
-      The page's own evidence closes this argument: five test modules collapsed at collection because, as
-      <a href="#v3">V3</a> puts it, an editable install has no version boundary — <em>a packaged dependency
-      would have failed at install time</em>.</li>
+    <li><strong>A check guarding a <em>code</em> relationship → cut, but only once an exported-surface
+      contract replaces it.</strong> The first draft rested this on “an editable install has no version
+      boundary — a packaged dependency would have failed at install time.” <strong>That does not
+      reproduce.</strong> <code>spicy-regs/pyproject.toml:12</code> already declares
+      <code>refspec==0.1.0.dev0</code> — an exact pin, tighter than any range — and
+      <code>git log -p</code> on RefSpec's <code>pyproject.toml</code> yields exactly one
+      <code>+version</code> line in its entire history. The version never moved while RefSpec relocated
+      <code>refspec.registry.elsst_acquisition</code> and deleted two modules, so the tightest available
+      version boundary permitted the exact break cited as proof it would not. Worse, the disposition taken in
+      <code>ac9a25d</code> was <code>try/except ImportError: pytest.skip(allow_module_level=True)</code> — a
+      hard failure converted to a silent skip. What catches symbol removal is a published surface manifest
+      (module + public symbol list) verified at install, which makes removal a version bump by construction.
+      Ship that with the packages, or the guards below have no replacement.</li>
     <li><strong>A check guarding a <em>data artifact</em> crossing a repo boundary → keep exactly one
-      recomputed digest check at the consumer; delete everything beyond it.</strong> Packages version code;
-      nothing versions a 1.0 GB atlas build — its digest <em>is</em> its version. And the failures this page
-      actually reproduced on the data side (<a href="#v3">V3</a>: a seal covering half its directory, receipts
-      whose input was rebuilt underneath them, a snapshot that will not open) are invisible to tests by
-      construction — which is why “tests would catch it” holds for code and does not hold here.</li>
+      recomputed digest check at the consumer; delete everything beyond it.</strong> The failures this page
+      reproduced on the data side (<a href="#v3">V3</a>: a seal covering half its directory, receipts whose
+      input was rebuilt underneath them, a snapshot that will not open) are invisible to tests by construction.
+      <strong>This is the same rule as the one above, not a second one.</strong> A digest-named release with a
+      manifest and a resolver is what versions a 1.0 GB atlas build, and
+      <code>generate_atlas_v3_full.py:634-700</code>'s <code>SOURCE_SPECS</code> — <code>logical_path</code>,
+      <code>expected_digest</code>, <code>profile</code> per entry — is already that manifest, written inline
+      in a tool nothing runs. Promote it rather than inventing a second mechanism.</li>
     <li><strong>Nothing reads it, or it cannot fail → cut now, regardless of phase.</strong>
-      <a href="#v4">V4</a>'s own standard, applied without exempting the newest work.</li>
+      <a href="#v4">V4</a>'s own standard, applied without exempting the newest work — and, in this revision,
+      without exempting this page: three rows below were already executed, and one was justified by a
+      measurement that no longer reproduces.</li>
   </ul>
   <p><strong>This amends D1's rule rather than repealing it — say so in writing.</strong> The boundary stops
   being “no imports across ownership” and becomes: <strong>cross-boundary consumption only through versioned,
   published artifacts — packages for code, digest-named releases for data — never through a checkout.</strong>
-  One clause survives unamended: <strong>nothing that lands upstream may depend on an owned package at
-  all</strong> — upstream's <code>pyproject.toml</code> carries zero <code>refspec</code> strings
-  (<a href="#v1">V1</a>), and whatever the PR train ships must stay that way.</p>
+  One clause survives, <strong>restated by direction because its old spelling does not cover the
+  payload</strong>: it read “upstream's <code>pyproject.toml</code> carries zero <code>refspec</code> strings”
+  (<a href="#v1">V1</a>, still true today). But <code>src/spicy_regs/ontology/receipt.py:2210</code> defaults
+  to <code>Path.cwd().parent / "rulespec"</code> — a sibling-checkout escape into an owned repo, in
+  <code>src/</code>, inside the first PR of the train — and <code>docpipeline/rkaf_projection.py:2334</code>
+  does <code>from refspec import (...)</code>. Under the amended rule a checkout path is strictly worse than a
+  package dependency. The clause is therefore: <strong>nothing that lands upstream may name an owned repo — by
+  import, by path, or by URN</strong> — enforced as a test on the payload before each PR, not as a property of
+  one file.</p>
   <p style="margin-bottom:0"><strong>One boundary on the cut: content-addressed URNs are names, not
   checks.</strong> <code>stable_urn</code> and the v3 <code>releaseId</code> stay. Deleting a receipt later is
   trivial; retrofitting content-addressed identity later moves every ID in the system. The asymmetry decides
@@ -267,39 +289,45 @@ section that carries its evidence; nothing here is new measurement, and the page
 </div>
 
 <h3>Cut</h3>
+<p>The first draft tagged each row <span class="pill p-ok">NOW</span> or
+<span class="pill p-move">WITH REPLACEMENT</span> and added a per-row sequencing map in item 4. Re-checked,
+the two-state machine carries <strong>one</strong> true instance, so it is gone: <strong>every row below
+executes when its item comes up, except DocSpec's per-validation re-hash, which waits for the draw
+landing.</strong> Of the four rows the tag was delaying, two were already executed, one is safe now, and one —
+the normalizer — was being parked behind a replacement that provably cannot fix it.</p>
 <div class="scroller">
 <table>
 <thead><tr><th>What goes</th><th>Where the evidence lives</th><th>Replaced by</th></tr></thead>
 <tbody>
-<tr><td><span class="pill p-move">WITH REPLACEMENT</span> <strong>The vendored-copy apparatus, whole</strong> — byte-copied fixtures and their drift checks, <code>REFSPEC_CHECKOUT</code>, the editable install, the submodule, copied-fixture manifest hashes</td>
-  <td class="ev"><a href="#d1">D1</a> crossings 1 and 4 · <a href="#v3">V3</a>'s five collection failures · <a href="#d3">D3</a>'s ORPHANED AT SOURCE row</td>
-  <td class="ev"><strong>Package versioning</strong> — the entire class this machinery stands in for</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>The sealed handoff pin and intake receipt</strong></td>
-  <td class="ev"><a href="#v4">V4</a>: no code reads <code>atlas-search-view-pin.json</code>, and its one test hashes the very file it opens — it passes for any file whatsoever</td>
-  <td class="ev">Nothing. Delete rather than wire up — an earlier draft of this plan said “make something read it”; the packaging decision supersedes that.</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>The AST fingerprint corpus</strong> — 91 files / 538,561 B of predecessor fingerprints and the gate that never runs</td>
-  <td class="ev"><a href="#repo-docspec">D2</a>: deselected by <code>addopts</code> from CI, the qualification gate and plain <code>pytest</code> alike — “4/4 pass” was a deselection</td>
-  <td class="ev">The three import-boundary tests at <code>test_package_boundary.py:111,133,188</code> — cheap, real, and they fail correctly. Keep those; delete the fingerprints.</td></tr>
-<tr><td><span class="pill p-move">WITH REPLACEMENT</span> <strong>DocSpec's per-validation re-hash of the SpicyRegs builder file</strong> at a hardcoded absolute path</td>
-  <td class="ev"><a href="#d1">D1</a> crossing 3 · <a href="#v2">V2</a>'s second <code>build_draw</code> blocker (<code>fr_mirrulations_support.py:1024-1027</code>, <code>strict=True</code>)</td>
-  <td class="ev">A versioned dependency once the draw logic lands in DocSpec. <strong>This supersedes V2's “repoint the pin first”</strong> — with the seal deleted, <code>build_draw</code> extracts as a copy with nothing to repoint.</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>The 16 fixture manifests pinning a module's sha256</strong></td>
-  <td class="ev"><a href="#v4">V4</a>: the digest drifted and nothing noticed, because the validator checked digest <em>shape</em> and never recomputed</td>
-  <td class="ev">The package version — module identity is no longer a hash</td></tr>
-<tr><td><span class="pill p-move">WITH REPLACEMENT</span> <strong>The duplicated declarations packaging actually solves</strong> — SpicySearch's ring set ×4, canonical JSON ×13+</td>
-  <td class="ev"><a href="#repo-spicysearch">D2</a> · <a href="#d4">D4</a>. First cut: delete <code>canonical.py:213</code>, keep <code>artifact_protocol.py:153</code> (true RFC 8785) — the cheapest item with the worst failure mode.</td>
-  <td class="ev">One packaged implementation each, imported everywhere — except the <code>canonical.py:213</code> deletion, which is NOW</td></tr>
-<tr><td><span class="pill p-move">WITH REPLACEMENT</span> <strong>Six label normalizers, one of them lying in wait</strong> — the only <a href="#d6">D6</a> row marked LIVE DIVERGENCE</td>
-  <td class="ev"><a href="#d6">D6</a>: <code>"ﬁle—numéro"</code> → SpicySearch <code>file numéro</code>, RefSpec <code>file—numéro</code> — silent lookup misses across the repo boundary, verified by running both</td>
-  <td class="ev">One packaged normalizer, same family as the row above — this row was missing from the first draft of this plan, found in review</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>Ambient receipts</strong> — attestation as a standing ledger</td>
+<tr><td><strong>The vendored-copy apparatus — split, because half of it is a data crossing</strong>. Code half: <code>spicy-regs/pyproject.toml:147</code>, <code>refspec = { path = "RefSpec", editable = true }</code>. Data half: <code>REFSPEC_CHECKOUT</code>, which survives only in two SpicySearch tests and there reads <em>artifacts</em> — three tracked JSON policy files and a 185 MB gitignored parquet directory</td>
+  <td class="ev"><a href="#d1">D1</a> crossings 1 and 4 · <a href="#v3">V3</a>'s five collection failures · <code>test_policy_inputs_cross_repository.py:22-27</code>, <code>test_scale_atlas_search_view.py:42</code>. <code>REFSPEC_CHECKOUT</code> has zero live occurrences in spicy-regs code — the only hits are three <code>.md</code> files, one recording its deletion</td>
+  <td class="ev">Code half: one line, with item 3's packages. Data half: <strong>a digest-named release, named before the escape is deleted</strong> — a package version cannot carry a JSON policy artifact out of a repo we do not own, and two of the three originate in <code>civictechdc/spicy-regs</code></td></tr>
+<tr><td><strong>The sealed handoff pin and intake receipt — the files only</strong>: <code>fixtures/releases/atlas-search-view-pin.json</code>, <code>atlas-search-view-intake-receipt.json</code>, and <code>build_intake_receipt()</code></td>
+  <td class="ev"><a href="#v4">V4</a>: the two fixtures' only reference anywhere is <code>fixtures/releases/README.md:150</code>; <code>build_intake_receipt</code>'s sole caller is one test. <strong>But <code>AtlasSearchView.pin()</code> became load-bearing in <code>45979a0</code></strong> — embedded in every published <code>VocabularyLookup</code>, read at <code>snapshot_distribution.py:405-408</code> and <code>:814-815</code></td>
+  <td class="ev">Nothing, for the files. <strong><code>pin()</code> moves to Keep</strong> — it is the carrier of the one digest check per handoff, and deleting it on the old row's wording would break the snapshot build</td></tr>
+<tr><td><strong>The AST fingerprint corpus</strong> — 91 files of predecessor fingerprints, <strong>3,713,551 bytes</strong> on disk (the first draft's “538,561 B” is the summed <code>sourceBytes</code> field, a different quantity)</td>
+  <td class="ev"><strong>“The gate that never runs” does not reproduce.</strong> Only <code>test_boundary_code.py:157</code> carries <code>@pytest.mark.integration</code>. Four tests at <code>:40, :135, :194, :209</code> run under the default <code>addopts = "--strict-config --strict-markers -m 'not integration'"</code>, and <code>:135</code> is the always-on exact-blob check</td>
+  <td class="ev">Keep the 91 blob digests, drop the syntax-window fingerprints: ~99 % of the bytes go and the always-on check stays. The named replacement was miscited — <code>test_package_boundary.py</code>'s tests are at <code>:75, :92, :114, :133, :149, :170</code> and cover wheel/archive boundaries, a different property</td></tr>
+<tr><td><strong>DocSpec's per-validation re-hash of the SpicyRegs builder file</strong> at a hardcoded absolute path — <strong>the one row that waits</strong></td>
+  <td class="ev"><a href="#d1">D1</a> crossing 3 · <a href="#v2">V2</a>'s second <code>build_draw</code> blocker (<code>fr_mirrulations_support.py:1019-1027</code>, re-hashing <code>producer_spec["builderPath"]</code> on every validation)</td>
+  <td class="ev">A versioned dependency once the draw logic lands in DocSpec. <strong>This supersedes V2's “repoint the pin first”</strong> — with the seal deleted, <code>build_draw</code> extracts as a copy with nothing to repoint</td></tr>
+<tr><td><strong>The 16 fixture manifests pinning a module's sha256 — already executed.</strong> The module they pinned is <code>relation_sssom.py</code>, deleted in <code>5ed56db5</code></td>
+  <td class="ev"><code>RefSpec/docs/decisions.md:1029</code>; <code>git ls-files | grep sssom</code> is empty. This row and the SSSOM row below are the same deletion, counted twice</td>
+  <td class="ev">Nothing. The first draft's “the package version — module identity is no longer a hash” contradicted the row that deletes the module: you cannot version a module you are deleting</td></tr>
+<tr><td><strong>The duplicated declarations — a profile decision first, then a merge.</strong> The workspace holds <strong>~33</strong> canonical-JSON implementations, not “13+”: 9 in spicy-regs/src, 7 in its tools, 9 in RefSpec/src, 4 in RefSpec/tools, 2 in rulespec/tools, 2 in SpicySearch/src, 2 in DocSpec. SpicySearch's ring set is <strong>already collapsed</strong></td>
+  <td class="ev"><a href="#repo-spicysearch">D2</a> · <a href="#d4">D4</a>. Rings: <code>3087f755</code> (2026-08-09) took 11 sites to <code>semantic_foundation.py:26,55</code> with an <code>is</code>-identity test; only SpicySearch's <code>ATLAS_V2_RINGS</code> remains. <strong>Canonical JSON is not one implementation duplicated</strong> — <code>artifact_protocol.py:127-128</code> rejects every float and bounds integers; <code>canonical.py:213</code> permits floats and has ~100 call sites including float-bearing metric reports; <code>atlas_search_view.py:279</code> is a third profile (REF-JSON), and <code>artifact_protocol.py:20</code> imports <code>IntegrityError</code> <em>from</em> <code>canonical</code></td>
+  <td class="ev">Name the profiles before merging any of them — RFC 8785 for artifact identity, a float-permitting profile for reports — then converge each behind a shared conformance vector set. <strong>Deleting <code>canonical.py:213</code> is not a one-line dedup</strong>; as written it makes eight subsystems raise on any float payload. Rings: one import across the repo boundary</td></tr>
+<tr><td><strong>Six label normalizers — the live divergence, and it is three-way.</strong> Executes now: packaging cannot fix it, because the divergence runs <em>inside</em> one package</td>
+  <td class="ev"><a href="#d6">D6</a>, re-run: <code>concept_resolution.py:26</code> and <code>vocabulary_lookup.py:42</code> are both on SpicySearch's served path and disagree — <code>ozone-depleting</code> resolves under one and misses under the other, today, inside one shipped package. A third semantics lives at <code>spicy_regs/ontology/concepts.py:96</code>, disagreeing with both on intra-word punctuation. Two of the six carry named policies, one digest-pinned at <code>vocabulary_lookup.py:39</code></td>
+  <td class="ev"><strong>A named policy plus a shared conformance corpus, not a package.</strong> The third copy ships upstream in <code>ontology/</code>, where the boundary clause forbids importing an owned package — so a package cannot reach it and a specification can. RuleSpec already runs this shape (<code>reference-corpora/</code>, <code>vocab_audit.py</code> failing the build on divergence)</td></tr>
+<tr><td><strong>Ambient receipts</strong> — attestation as a standing ledger</td>
   <td class="ev"><a href="#v2">V2</a>'s paired receipt is the counter-example that proves the rule: keep a receipt while it argues a specific change (247,229 → 0 is unanswerable in a PR description), then let it go</td>
   <td class="ev">Receipts as instruments for an argument, not as furniture</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>Admission-path elaborateness beyond one digest check</strong> — TOCTOU stat re-checks, symlink-rejecting closed-membership walks</td>
-  <td class="ev"><a href="#repo-spicysearch">D2</a>: <code>atlas_search_view.py:277-306, :516-545</code> — hostile-input paranoia for artifacts you produce yourself, two directories over</td>
-  <td class="ev">One manifest-digest recompute at read</td></tr>
-<tr><td><span class="pill p-ok">NOW</span> <strong>Dead attestation vocabulary</strong> — the SSSOM exporter and its inverted allowlist; RuleSpec's inert byte-offset provenance types</td>
-  <td class="ev"><a href="#repo-refspec">D2</a>: zero production callers, zero output ever · <a href="#repo-rulespec">D2</a>: fully specified, nothing produces or dereferences it</td>
+<tr><td><strong>Admission-path elaborateness beyond one digest check</strong> — the symlink-rejecting closed-membership walk</td>
+  <td class="ev"><a href="#repo-spicysearch">D2</a>: <code>atlas_search_view.py:277-306, :516-545</code>. <strong>One correction:</strong> the stat re-check at <code>verified_member_ledger.py:36</code> is documented as the cache-invalidation key for warm reuse, not hostile-input paranoia — deleting it changes the ledger's correctness</td>
+  <td class="ev">Already there: <code>AtlasSearchView.open()</code> recomputes the manifest digest and raises on mismatch immediately above the code this row deletes. Pure subtraction, no replacement to build</td></tr>
+<tr><td><strong>Dead attestation vocabulary — one line, not a row.</strong> The SSSOM exporter's code no longer exists; what remains is an unused dependency at <code>RefSpec/pyproject.toml:36</code>. RuleSpec's inert byte-offset provenance types stand</td>
+  <td class="ev"><code>grep -rli sssom</code> across all five repos hits only <code>uv.lock</code>, research prose, and that one dependency line · <a href="#repo-rulespec">D2</a>: fully specified, nothing produces or dereferences it</td>
   <td class="ev">Nothing — reintroduce if a consumer ever exists</td></tr>
 </tbody>
 </table>
@@ -308,117 +336,196 @@ section that carries its evidence; nothing here is new measurement, and the page
 <h3>Keep</h3>
 <div class="band ok">
   <ul style="margin:0">
-    <li><strong>Content-addressed URNs.</strong> <code>stable_urn</code> across 89 call sites, every URN
-      recomputing itself in <code>__post_init__</code>; v3's <code>releaseId</code> excluding build metadata.
-      Names, not checks (<a href="#d4">D4</a>).</li>
-    <li><strong>One recomputed digest check per data handoff, at the consumer.</strong> The data-side
-      equivalent of a package version bound — and precisely the check that was missing everywhere
-      <a href="#v4">V4</a> found a stale number.</li>
+    <li><strong>Content-addressed URNs.</strong> DocSpec's <code>stable_urn</code> (<code>identity.py:184</code>)
+      across ~123 call sites, every URN recomputing itself in <code>__post_init__</code>; v3's
+      <code>releaseId</code> excluding build metadata. Names, not checks (<a href="#d4">D4</a>). SpicyRegs'
+      separate <code>_stable_urn</code> (<code>document_release_v3_writer.py:134</code>, 3 call sites) is a
+      different function — the first draft's “89 call sites” conflated them.</li>
+    <li><strong>One recomputed digest check per data handoff, at the consumer.</strong> Correctly priced: the
+      artifact that actually crosses is the 185 MB search view, full recompute 0.45 s, with exactly one
+      production consumer. <code>AtlasSearchView.pin()</code> already implements the cheap form — digest once
+      at publication, verify by manifest reference — and is the row above's rescued half.</li>
     <li><strong>Atomic candidate-directory rename on publication.</strong> Five lines against torn builds.</li>
     <li><strong>The rkaf adoption gate.</strong> “A term with no case behind it is ceremony” is this cut
       policy running as code — it deletes structure so you don't have to.</li>
+    <li><strong>The always-on predecessor blob check</strong> (<code>test_boundary_code.py:135</code>) — kept
+      by correction, not by policy: the row that deleted it was justified by a deselection that applies to one
+      of five tests.</li>
   </ul>
 </div>
 
 <h3>The changes, in order</h3>
+<p>Re-ordered on 2026-08-11. The first draft put a multi-day measurement first and the packaging work fourth;
+nothing in <code>RESEARCH.md</code> or <code>HANDOFF.md</code> makes any item depend on that measurement
+except the deferred <code>rkaf_projection.py</code> split, while four cut rows and two items wait on the
+packages. Decisions with no dependencies and no cost now come first, the critical path second, and the
+measurement last — repriced, because its inputs changed underneath it.</p>
 <ol class="rank">
-  <li><strong>Measure the product thesis before extracting anything — priced honestly.</strong> Point the live
-    one-hop <code>expand_within_vocabulary</code> (<code>engine.py:2057</code>) at a real RefSpec thesaurus and
-    re-run the 78-query eval on the <code>front_door</code> arm. The first draft of this item said “nothing
-    needs building” (<a href="#v5">V5</a>'s phrasing); <strong>two sections of this page contradict that, and
-    the reprice stands</strong>: per <a href="#d3">D3</a> the Atlas 3.0 view edge is a verifier, not a data
-    path — nothing downstream reads a row, and Atlas 2.0 stays live until cutover, so wiring the view into the
-    snapshot build is part of this item's cost; and per <a href="#repo-spicysearch">D2</a> the only snapshot
-    ever built holds <strong>0 concept assignments over 722 documents</strong>, so expansion has nothing to
-    land on until an assignment path exists, even a cheap lexical baseline.
-    <strong>Pre-register the decision rule before running</strong>: write down what <code>front_door</code>
-    movement keeps the atlas lane first-class and what result demotes it, so the outcome cannot be read with
-    motivated eyes (<a href="#v4">V4</a>). <strong>The baseline now exists</strong>
-    (<code>RESEARCH.md</code> §1): the same three arms already ran over synthetic edges — resolver
-    <strong>+2 passes</strong>, expansion <strong>a measured zero</strong> with one −0.1196 regression — so
-    the rule can be concrete: resolver is the proven lever, and expansion enters with a zero to beat, not a
-    blank slate. Still item 1 — but days, not a day.</li>
-  <li><strong>Two pre-reset actions, then the reset as a pure ref move.</strong> Confirm what Vercel deploys
-    from — the one mandatory check (<a href="#v1">V1</a>). Rename <code>archive/local-work-2026-08-09</code>:
-    an archive that moves is not an archive — let the tag be the archive. Then
+  <li><strong>Settle the two drifting decisions first — they gate the PR train, and there is no one to wait
+    for.</strong> The first draft scheduled this ninth, implicitly on round-trip latency: “confirm the intent
+    behind <code>e7b577b</code> with its author.” <code>e7b577b</code> resolves in DocSpec, authored by us.
+    Byte-vs-codepoint: one written page, expect bytes to win, since v3 counts bytes and v3 is the sink's live
+    path (<a href="#d5">D5</a>); do any respelling in the same change, accepting that artifact IDs move. The
+    URN fork is not a fork needing deliberation — <code>urn:spicy-regs:</code> stands at ~7,272 sites against
+    <code>urn:spicyregs:</code> at ~128, and the minority spelling is the <em>newer</em> v3 writer, which makes
+    it a containment question decidable by count. <strong>Both must land before item 7</strong>: the payload
+    carries <code>urn:spicy-regs:</code> in <code>ontology/citations.py</code>,
+    <code>attestations.py</code> and <code>relation_findings.py</code>, and respelling after they land in
+    <code>civictechdc/spicy-regs</code> is a force-push we do not have.</li>
+  <li><strong>The reset, as a pure ref move.</strong> The one mandatory check is already answered on disk:
+    <code>.github/workflows/deploy-mcp.yml</code> is tracked and byte-identical on <code>origin/main</code>,
+    and <code>mcp-server/api/index.py</code> and <code>_published.py</code> revert as a pair under the ref
+    move, so the deployed function is unaffected. Rename <code>archive/local-work-2026-08-09</code>: an
+    archive that moves is not an archive — let the tag be the archive. Then
     <code>git branch -f main origin/main</code>; no checkout, no <code>--hard</code>, and
-    <code>git clean -fdx</code> stays forbidden in that worktree. And decide
-    <code>mcp-server/api/_published.py</code>'s destination while you are there — a small upstream PR (the
-    feature exists nowhere upstream) or a redeploy from owned infrastructure; confirming the deploy source is
-    a check, not a disposition.</li>
-  <li><strong>Fix the five reproduced defects now</strong>, independent of any destination decision
-    (<a href="#v3">V3</a>): the <code>citations.py:657</code> phantom loop, with <code>'1CFR9,10CFR1'</code>
-    as the regression case; the <code>:32</code> sentence-final drop, by porting SpicySearch's
-    <code>_LEFT</code>/<code>_RIGHT</code> guards; the missing disk→lock direction in
-    <code>validate_body_cache</code>; a schema-version bump plus a version-aware field check for snapshots,
-    with at least one test that actually opens <code>snapshots/</code>; and DocSpec's
-    <code>formatVersion</code> 1.0 → 1.1 profile line.</li>
-  <li><strong>Stand up the packages the whole plan presumes.</strong> The first draft of this plan scheduled
-    none of its own enabling work — cut row 1's named replacement did not exist at its position in the
-    sequence, and <strong>RuleSpec has no root <code>pyproject.toml</code> at all</strong>
-    (<a href="#repo-rulespec">D2</a>): the spine head cannot be installed today. Give refspec, rulespec and
-    the docspec kernel <code>pyproject</code> + version tags — 0.x is fine, a private index or git-tag pins
-    suffice in development — then swap SpicyRegs' editable install and the six sibling-checkout test escapes
-    (<a href="#d1">D1</a>) to version pins. This is the item that makes the amended boundary rule above
-    real. <strong>Package only what is production by consumption path</strong> — a tool is production when
-    the build/publish path consumes its output or gates on it, and <strong>test coverage does not promote
-    experiment tooling into the packages</strong>. The decoupled roster (production / planned-production /
-    experiment) lives in <code>RESEARCH.md</code> §2; planned-production entries are wiring work items, not
-    package members until their gap closes.</li>
-  <li><strong>Apply the cut table as standing policy, not as a single step.</strong> Rows tagged
-    <span class="pill p-ok">NOW</span> execute immediately — nothing reads them, or they cannot fail. Rows
-    tagged <span class="pill p-move">WITH REPLACEMENT</span> execute exactly when their named replacement
-    lands: row 1 with item 4's packages, the DocSpec re-hash with item 8's draw landing, the normalizer and
-    declaration rows with the shared packages. <strong>Removing a guard before its replacement exists would be
-    this page's catalogued failure run in reverse.</strong> Execute against <code>RESEARCH.md</code>:
-    §1 is the delete-gate — thirteen settled verdicts that must survive any deletion — §2's dead-now list is
-    the first tranche, and the <strong>two pinned build inputs inside <code>research/evidence/</code></strong>
-    are the do-not-sweep exceptions a naive cut would have broken.</li>
-  <li><strong>Give RefSpec CI before more weight lands on it — and wire the two unwired production
-    generators while you are in there.</strong> One workflow: <code>make test</code> plus the two gates
-    outside it. The research trace (<code>RESEARCH.md</code> §2) handed this item two named customers beyond
-    the suite: <code>generate_atlas_v3_full.py</code> itself — 10,294 lines, <em>the</em> distribution
-    builder, currently invocable by nothing — and <code>build_registry_source_manifest.py</code>, whose
-    committed output the wired verifier requires but whose generator nothing runs, so the manifest can
-    silently drift. The spine authority is currently the one repo with zero automation, and
-    <a href="#v5">V5</a>'s instability finding makes CI more urgent, not less — it is how the flake rate
-    becomes visible.</li>
-  <li><strong>Run the upstream PR train in the forced order</strong> (<a href="#v2">V2</a>):
-    <code>ontology/</code> leaves first, since 17 of 18 <code>docpipeline/</code> files import them; lead the
-    description with blast radius — the 87.9 % row collapse and the breaking <code>comment_periods</code>
-    schema — and raise the pymupdf AGPL question yourself; <code>build_fr_docket_links.py</code> ships
-    separately on its own weaker evidence.</li>
-  <li><strong>Unblock the DocSpec lane.</strong> Add a <code>SourceDiscovery</code>-style port — the named
-    blocker for <code>build_draw</code>, which is already ports-shaped and does zero I/O. With cut row 4
-    executed, the file question disappears: extract a copy, nothing to repoint.</li>
-  <li><strong>Force the two drifting decisions.</strong> Byte-vs-codepoint with DocSpec: confirm the intent
-    behind <code>e7b577b</code> with its author, then one written page — expect bytes to win, since v3 counts
-    bytes and v3 is the sink's live path (<a href="#d5">D5</a>); do any respelling in the same change,
-    accepting that artifact IDs move. And settle the <code>urn:spicy-regs:</code> /
-    <code>urn:spicyregs:</code> fork before minting anything else.</li>
-  <li><strong>Make build identity per-build.</strong> Derive the URN's date from the build or fold
-    <code>manifestSha256</code> into it (<code>generate_atlas_v3_full.py:122</code>) — retiring the
-    two-builds-one-identity class of error this page carries a warning box for. <strong>Scope it to the
-    distribution URN alone</strong>: v3's <code>releaseId</code> excludes <code>createdAt</code> <em>on
-    purpose</em> (<a href="#repo-spicyregs">D2</a> — “do not fix it”), and this item is not licence to “fix”
-    that.</li>
+    <code>git clean -fdx</code> stays forbidden in that worktree. <code>_published.py</code>'s destination is
+    a standalone disposition gating nothing — it is item 7's business.</li>
+  <li><strong>Stand up the packages — one line for the code half, a resolver for the rest.</strong> The first
+    draft scheduled none of its own enabling work and sized this as four missing manifests. Three of the four
+    exist: RefSpec ships <code>pyproject.toml</code> (<code>refspec 0.1.0.dev0</code>, six console scripts),
+    DocSpec ships one (<code>docspec 0.2.0</code>) with CI that builds a wheel and imports it into an empty
+    venv, and <strong>RuleSpec's now exists</strong> — <code>rulespec-conformance</code>, a console-script
+    distribution carrying the SHACL suite, compiled schemas and fixture corpus as package data, verified
+    running from a wheel with no checkout. The code half of the swap is deleting
+    <code>spicy-regs/pyproject.toml:147</code>; the exact pin at <code>:12</code> is already correct.
+    <strong>What is left is the part that makes a package consumable</strong>: <code>src/refspec</code>
+    resolves ~71 build inputs relative to a checkout root (<code>v3_registry_codes.py:1389</code> reads
+    <code>research/evidence/...</code> off a <code>repo_root</code> parameter), so installed it works only
+    from a checkout. Add the <code>SourceStore</code>-style resolver — <code>logical_path</code> plus
+    <code>expected_digest</code> to bytes — and ship the exported-surface manifest the governing rule now
+    requires. <strong>Package only what is production by consumption path</strong>; the roster lives in
+    <code>RESEARCH.md</code> §2, and test coverage does not promote experiment tooling into a package.</li>
+  <li><strong>Apply the cut table as standing policy, not as a single step.</strong> One dependency, stated
+    once: <strong>every row executes when its item comes up, except DocSpec's per-validation re-hash, which
+    waits for item 8's draw landing.</strong> Execute against <code>RESEARCH.md</code>: §1 is the delete-gate —
+    thirteen settled verdicts that must survive any deletion — and §2's dead-now list is the first tranche.
+    <strong>Derive the do-not-sweep set mechanically rather than listing it.</strong> The first draft named two
+    pinned build inputs inside <code>research/evidence/</code>; there is at least a third —
+    <code>registry-real-data-audit-2026-08-03/sources.json</code>, required by
+    <code>verify_registry_audit.py:25</code> and run by <code>make audit-registry-inventory</code>, a component
+    of the <code>make test</code> that item 6 wires into CI — and six wired or semi-wired paths read from or
+    write to that directory, which now holds 35 entries against §5's 33. Grep the tracked trees for
+    <code>research/evidence/</code> path literals and treat every hit as pinned; better, <code>git mv</code>
+    the build inputs to a <code>sources/</code> directory and add one test asserting no path literal under
+    <code>src/</code> begins with <code>research/</code> — the shape of
+    <code>tests/test_atlas_index.py:490-497</code>, which §6 already calls a model check.</li>
+  <li><strong>Fix the reproduced defects — four, not five, and two of them are one.</strong> The
+    <code>citations.py:657</code> phantom loop and the <code>:32</code> sentence-final drop are one missing
+    boundary discipline in one grammar, and the corrected grammar already exists: SpicySearch's
+    <code>identifiers.py</code>, whose comments name both failures by hand. <strong>Take
+    <code>_CFR_SECTION_CAPTURE</code> (<code>identifiers.py:150</code>), not the
+    <code>_LEFT</code>/<code>_RIGHT</code> guards</strong> — those fix a different defect — and note that
+    <code>citations.py</code> has 25 compiled patterns with zero boundary lookbehinds, so a single-pattern port
+    fixes 1 of 25 by copying what the normalizer row exists to share. Keep <code>'1CFR9,10CFR1'</code> and
+    <code>'49 CFR 900.42.'</code> as the two regression cases. Also: the missing disk→lock direction in
+    <code>validate_body_cache</code>, and a schema-version bump plus a version-aware field check for
+    snapshots, with at least one test that actually opens <code>snapshots/</code>.
+    <strong>DocSpec's “<code>formatVersion</code> 1.0 → 1.1” is struck — as written it is a
+    regression.</strong> All ten profiles carry <code>formatVersion 1.0</code> as the profile document's own
+    version; the field that disagrees with <code>release.py:189,215</code> is
+    <code>logicalSchemas: docspec-document-release/1.0</code>, and it is stale in <em>two</em> profiles —
+    <code>canonical-release-manifest-v1.json</code> and <code>local-document-catalog-v1.json</code>. Set that
+    field in both; leave every <code>formatVersion</code> alone. Land the citation fixes inside item 7's first
+    PR rather than as a second upstream round.</li>
+  <li><strong>Give RefSpec CI — three things, three risk profiles, done separately.</strong> <strong>(a)</strong>
+    One workflow running <code>make test</code>: <code>RefSpec/Makefile:38</code> already composes
+    <code>lint check-generated audit-registry-inventory test-json-binding test-package</code>, RefSpec has no
+    <code>.github/</code> at all, and DocSpec's <code>ci.yml</code> is the template — RuleSpec's
+    <code>constraints-parity.yml</code> carries an in-file note recording the drift a hand-written workflow
+    repeats. <strong>Add a skip budget</strong>: 16 of 143 test modules skip when the gitignored
+    <code>output/</code> is absent, so an unbudgeted green reproduces “4/4 pass was a deselection” as “green
+    was a skip.” <strong>(b)</strong> Add <code>--check</code> to
+    <code>build_registry_source_manifest.py</code> (it accepts only <code>--repository-root</code> and
+    <code>--output</code>) and one line to <code>check-generated</code> — the pattern six other generators
+    already implement at <code>generate_resource_catalog.py:22-23</code>. Running the generator in the same
+    job as the verifier that consumes its output would install a check that cannot fail.
+    <strong>(c)</strong> <code>generate_atlas_v3_full.py</code> produces 1.1 GB from 2.4 GB of gitignored
+    input, and in a clean clone three of its six pinned inputs do not exist: it is a release job, not a CI
+    gate, and it belongs with item 9, whose identity change it needs anyway. It is also not “invocable by
+    nothing” — <code>build_atlas_native_relation_testsets.py:53</code> and
+    <code>tests/test_generate_atlas_v3_full.py:31</code> import it; the gap is that it has no
+    <code>make</code> target.</li>
+  <li><strong>Run the upstream PR train in the forced order</strong> (<a href="#v2">V2</a>), after item 1:
+    <code>ontology/</code> leaves first, since 14 of 18 <code>docpipeline/</code> files import them and
+    <code>ontology/</code> itself carries zero <code>refspec</code> strings; lead the description with blast
+    radius — the 87.9 % row collapse and the breaking <code>comment_periods</code> schema — and raise the
+    pymupdf AGPL question yourself; <code>build_fr_docket_links.py</code> ships separately on its own weaker
+    evidence. <strong>Gate each PR on the payload test from the governing rule</strong>: no import, path, or
+    URN naming an owned repo. Today that fails on <code>ontology/receipt.py:2210</code>, and it will fail on
+    <code>docpipeline/rkaf_projection.py:2334</code> when the train reaches it.</li>
+  <li><strong>Unblock the DocSpec lane — scope it to the producer side, not one function.</strong> The port
+    itself is small: <code>DocSpec/src/docspec/ports/</code> already holds ~25 protocols, none discovery-shaped,
+    and <code>LocalJsonlSourceCatalog.write(items: Iterable[SourceItem])</code> already consumes what a
+    discovery port would emit — one Protocol plus one adapter method. (<code>ports/content_fetcher.py:74</code>
+    already binds the name <code>AcquisitionSource</code>; pick another.) But the crossing has four faces, not
+    one: <code>fr_mirrulations_qualification.py:55</code> hardcodes an absolute path to the spicy-regs
+    checkout, <code>:56</code> reads a gitignored build product from it, <code>:148</code> subprocesses with
+    <code>cwd=spicyregs</code>, and <code>:164</code> imports a private symbol via <code>python -c</code>.
+    Route the producer side through the ports and hand the harness the draw as an input artifact by digest;
+    all four close together, and the cut table's one waiting row becomes deletable for the reason it names.</li>
+  <li><strong>Make build identity content-addressed — one rule, not a scoped exception.</strong> The defect is
+    worse than the first draft states: <code>generate_atlas_v3_full.py:121-122</code> hardcodes both
+    <code>CREATED_AT</code> and <code>DISTRIBUTION_ID</code>, and four distinct builds on disk carry
+    byte-identical identity. <strong>The <code>releaseId</code> caveat is struck.</strong> v3's exclusion of
+    <code>createdAt</code> is not a quirk to fence off — it is the correct mechanism, implemented twice
+    already (<code>document_release_v3.py:321-337</code> → <code>release_id(content)</code>; DocSpec's
+    <code>stable_urn</code>) — and this item never reaches it: <code>releaseId</code> lives in a different
+    generator and already ends in its own release digest (<code>test_crs_source_concept_release_generation.py:107</code>).
+    So: <code>DISTRIBUTION_ID = "urn:ref:atlas:distribution:" + artifact_digest(&lt;manifest content&gt;)</code>,
+    and drop <code>CREATED_AT</code> from identity entirely. “Derive the URN's date from the build” is struck
+    too — a date is a weaker identity than a digest, and this page prefers content addressing everywhere
+    else.</li>
+  <li><strong>Measure the product thesis — re-derive the item before scheduling it.</strong> Its cost model
+    rests on three inputs that all changed after the trace, so the “days, not a day” reprice is calibrated on
+    two wrong numbers pointing opposite ways. <strong>The wiring this item charges for is already paid</strong>:
+    <code>45979a0</code> created <code>snapshot_distribution.py</code>, which builds the lookup from
+    <code>AtlasSearchView</code> and pins <code>atlasViewId</code>/<code>atlasViewManifestDigest</code> into
+    the manifest. <strong>The harness it assumes it re-runs no longer exists</strong>: <code>4935f51</code>
+    archived <code>cli_concept_lane.py</code>, <code>cli_front_door.py</code> and
+    <code>front_door_benchmark.py</code>, and <code>45979a0</code> deleted
+    <code>search_quality_benchmark.py</code>. <strong>The subject moved</strong>: there is no
+    <code>engine.py</code>; <code>expand_within_vocabulary</code> is at <code>concept_resolution.py:114</code>
+    with zero importers in <code>src/</code>. <strong>And the assignment path exists</strong> —
+    <code>build_concept_assignments.py:61</code> runs weekly under <code>materialize-ontology.yml</code>, and
+    the consumer side is built but unfed (<code>coverage.json</code>:
+    <code>concept_assignment_candidate</code> / <code>not_used</code>, <code>eligible: 722, indexed: 722</code>),
+    so this is an adapter, not construction. <strong>Then run the cheap experiment first</strong>: the three
+    arms differ in exactly one thing — what vocabulary the snapshot pins — no model is called, and the whole
+    −0.1196 comes from one of nine <code>search_by_subject</code> variants. Build a fourth snapshot over the
+    same 82-document corpus and its existing 98 assignments, swapping only the 12 co-assignment-derived edges
+    for the real thesaurus's stated edges, and score the 9 concept variants. That changes the one variable
+    the record says was uncontrolled, without a full Atlas 3.0 build. <code>RESEARCH.md</code> §1 <em>is</em>
+    the pre-registration — §11 already states the rule in prose — so do not write a second copy: resolver's
+    +2 is the retained lever, and expansion enters with a measured zero to beat.</li>
 </ol>
 
 <div class="band move">
-  <p style="margin:0"><strong>Deferred, deliberately: the <code>rkaf_projection.py</code> four-way split.</strong>
-  <a href="#v4">V4</a> refuted its severance estimate — the “36-line external surface” missed nine outbound
-  import statements across six subpackages — so the extraction is currently unpriced. Price it after item 1's
-  measurement says how much the atlas lane matters, and after the PR train lands the <code>ontology/</code>
-  modules it imports somewhere stable.</p>
+  <p style="margin:0"><strong>Deferred, deliberately: the <code>rkaf_projection.py</code> four-way split — but
+  freeze its boundary now.</strong> <a href="#v4">V4</a> refuted the “36-line external surface” estimate, and
+  the refutation is itself low: the file carries <strong>17 outbound import statements over 13 distinct
+  modules across four subpackages</strong>, plus <code>from refspec import (...)</code> at <code>:2334</code>
+  — the one crossing item 3's pin does not retire and the cut table does not list. Two of the 13
+  (<code>ontology.citations</code>, <code>refspec</code>) move under items 1, 5 and 7, so deferring means
+  re-measuring a surface that shifted. Price the extraction later; <strong>declare the boundary before item 7
+  ships <code>ontology/</code></strong> by freezing the outbound import list as a failing test — the shape
+  already exists at <code>RefSpec/tests/test_atlas_index.py:490-497</code> and DocSpec's
+  <code>test_package_boundary.py</code>. An afternoon now makes it priceable at any later date instead of
+  re-measurable only.</p>
 </div>
 
 <div class="band ok">
   <p style="margin:0"><strong>The deeper aim, which outlasts every row above: packaging plus reproducible
   builds retire the ceremony's reason to exist.</strong> Roughly 60 GB of output nobody can regenerate is why
-  attestation accumulated — everything unreproducible must be attested instead. Every pipeline made
-  regenerable-from-scratch (the two rescued CI workflows are the start) lets another layer of checking be
-  deleted, because <em>rerun it</em> replaces <em>prove it hasn't drifted</em>. Cut ceremony by deleting files
-  today; keep it cut by making the builds cheap to redo.</p>
+  attestation accumulated — everything unreproducible must be attested instead. <strong>Nothing in items 1–10
+  builds toward it, and that is a deliberate scoping decision for this cycle, not an oversight.</strong> Two
+  prerequisites are named and unscheduled: the input resolver in item 3, without which a package works only
+  from a checkout, and a rebuild-and-compare-digest gate, which is the thing that actually lets an attestation
+  layer be deleted. The measured inventory is 66.6 GB — RefSpec 32 G, DocSpec 20 G, spicy-regs 14 G,
+  SpicySearch 0.6 G — of which <code>RESEARCH.md</code> §7 already marks 12.8 GB of DocSpec qualification
+  snapshots deletable and a 9.6 GB <code>atlas-3.0-full-2026-08-05</code> is superseded by three 1.1 GB
+  successors. <strong>That ~22 GB is deliberately not scheduled yet</strong> — it is recorded here so the
+  headline number stays honest, and so whoever picks it up knows it needs no replacement, no decision and no
+  dependency. Cut ceremony by deleting files today; keep it cut by making the builds cheap to redo.</p>
 </div>
 </section>
 
