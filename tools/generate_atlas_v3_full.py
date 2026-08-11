@@ -119,7 +119,19 @@ if str(BINDING_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(BINDING_ROOT / "tools"))
 DEFAULT_OUTPUT = ROOT / "output" / "atlas-3.0-full-2026-08-06" / "distribution"
 SPICY_REGS_ROOT = ROOT.parent
-DISTRIBUTION_ID_PREFIX = "urn:ref:atlas:distribution:3.0-full-development:"
+COMPLETE_TOPOLOGY_SCOPE = "completeDeclaredTopology"
+BOUNDED_SELECTION_SCOPE = "boundedReleaseSelection"
+# The scope segment names what the distribution is. It is not decoration: this
+# URN is what a consumer embeds in a snapshot pin, and a bounded artifact
+# labelled `3.0-full-development` would be a name that lies about what it
+# names. Retrofitting the segment after adoption moves every identifier, so
+# both scopes are declared before either is published.
+DISTRIBUTION_ID_PREFIXES = MappingProxyType(
+    {
+        COMPLETE_TOPOLOGY_SCOPE: "urn:ref:atlas:distribution:3.0-full-development:",
+        BOUNDED_SELECTION_SCOPE: "urn:ref:atlas:distribution:3.0-bounded-development:",
+    }
+)
 _DISTRIBUTION_IDENTITY_PROFILE = "atlas-3-source-accounting-content-identity-v1"
 NATIVE_REVIEWER = URIRef("urn:ref:actor:atlas-3-source-native-import")
 SOURCE_NATIVE_EDITORIAL_POLICY_PAYLOAD = MappingProxyType(
@@ -168,7 +180,7 @@ _ROLE_GRAPH_IDS = MappingProxyType(
         "projection": "urn:ref:atlas:graph:v3:projection",
     }
 )
-_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:54983dd712b6ea2eb766748821d620c1fe2acf4d149ebffab859b9e4df8f4419"
+_COMPILED_PRODUCER_IMPLEMENTATION_DIGEST = "sha256:2cd5756ac1d8823ce949d14082670fb0fb13833aa7b10c5c859ec4bca4fd2a4c"
 _COMPILED_PRODUCER_BINDING_PINS = MappingProxyType(
     {
         "acceptanceSchemaDigest": (
@@ -936,6 +948,28 @@ def _canonical_digest(value: Any) -> str:
     return ATLAS_VALIDATE.canonical_sha256(_plain(value))
 
 
+def distribution_scope_profile(source_release_count: int) -> str:
+    """Name a build's scope from the source releases its own ledger declares.
+
+    This asks the one question the reuse planner asks -- is this the complete
+    code-declared release topology? -- of the same authority,
+    ``_declared_construction_unit_keys``. A bounded selection is a subset of
+    those keys and every declared unit contributes one ledger row, so the row
+    count answers set membership exactly. There is deliberately no scope flag
+    beside it: a second switch is a second thing to set wrong.
+    """
+
+    declared = len(_declared_construction_unit_keys())
+    if source_release_count == declared:
+        return COMPLETE_TOPOLOGY_SCOPE
+    if 0 < source_release_count < declared:
+        return BOUNDED_SELECTION_SCOPE
+    raise ValueError(
+        f"source accounting declares {source_release_count} source releases "
+        f"against {declared} code-declared construction units"
+    )
+
+
 def distribution_identity(accounting: Mapping[str, Any]) -> str:
     """Derive one distribution's identity from the ledger content it labels.
 
@@ -946,6 +980,10 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
     writes, which is why the identity is not the manifest digest: the manifest
     lists this ledger as a member, so a manifest-derived identity could never
     appear inside the ledger it covers. No field read here is a timestamp.
+
+    The scope segment is read from the same closed content the digest covers,
+    so it cannot be relabelled: editing ``totals`` to claim a wider scope
+    changes the digest the identity carries beside it.
     """
 
     content = {
@@ -955,10 +993,18 @@ def distribution_identity(accounting: Mapping[str, Any]) -> str:
         raise ValueError(
             "distribution identity requires the closed source accounting content"
         )
+    totals = content["totals"]
+    if not isinstance(totals, Mapping) or not isinstance(
+        totals.get("sourceReleases"), int
+    ):
+        raise ValueError("source accounting totals declare no source release count")
+    prefix = DISTRIBUTION_ID_PREFIXES[
+        distribution_scope_profile(totals["sourceReleases"])
+    ]
     digest = _canonical_digest(
         {"content": content, "profile": _DISTRIBUTION_IDENTITY_PROFILE}
     )
-    return DISTRIBUTION_ID_PREFIX + digest.removeprefix("sha256:")
+    return prefix + digest.removeprefix("sha256:")
 
 
 def _identified_source_accounting(content: Mapping[str, Any]) -> dict[str, Any]:
@@ -9449,6 +9495,14 @@ def _try_exact_distribution_reuse(
         )
     if construction_summary["recipeDigest"] != _shared_semantic_recipe_digest():
         return None
+    # A bounded prior carries fewer releases than this build declares, so
+    # reusing it whole would republish a subset as though it were the topology
+    # the caller asked for. The incremental planner refuses the same prior for
+    # the same reason and against the same authority.
+    if {row["key"] for row in construction_summary["releases"]} != set(
+        _declared_construction_unit_keys()
+    ):
+        return None
     # A distribution built before the identity was content-derived carries a
     # fabricated identifier its ledger does not produce. Reuse would republish
     # that identifier, so such a prior is incompatible and takes the cold path.
@@ -10266,9 +10320,10 @@ def build_distribution(
     Every later step is already release-scoped -- input verification, compiled
     producer validation, the source accounting, and the content-derived
     distribution identity all read the loaded releases -- so bounding the load
-    bounds the distribution. Both reuse paths are refused for a bounded build:
-    they compare a prior distribution against the whole code-declared topology,
-    which a bounded distribution deliberately is not.
+    bounds the distribution, including the scope segment its identity carries.
+    Both reuse paths are refused for a bounded build: they compare a prior
+    distribution against the whole code-declared topology, which a bounded
+    distribution deliberately is not.
     """
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -10278,7 +10333,13 @@ def build_distribution(
             "injected registry claim builds currently require a new output and "
             "do not reuse a prior distribution"
         )
-    bounded = include_keys is not None
+    # One authority decides scope everywhere: an allowlist naming the whole
+    # declared topology is a full build, identity segment and reuse eligibility
+    # alike. Only a genuine subset is bounded.
+    bounded = (
+        include_keys is not None
+        and include_keys != _declared_construction_unit_keys()
+    )
     if bounded and reuse_from is not None:
         raise ValueError("a bounded Atlas build does not reuse a prior distribution")
     source_keys, mapping_keys = (

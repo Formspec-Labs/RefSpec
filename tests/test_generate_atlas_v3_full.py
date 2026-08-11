@@ -398,7 +398,24 @@ def _write_receipted_test_candidate(tmp_path: Path, monkeypatch) -> dict:
 
 def _write_exact_reuse_test_distribution(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[Path, dict[str, Path]]:
+    # These distributions carry one synthetic release. Reuse refuses a prior
+    # whose releases are not the whole declared topology, so the topology this
+    # synthetic prior is complete against is declared here rather than the
+    # fixture standing in for a subset of the real one. Declaring it also makes
+    # the prior incrementally reusable, which these fixtures are not about, so
+    # the release-local planner declines and leaves the exact path to test.
+    monkeypatch.setattr(
+        generator,
+        "_declared_construction_unit_keys",
+        lambda: frozenset({"unit-test-release"}),
+    )
+    monkeypatch.setattr(
+        generator,
+        "_plan_incremental_construction",
+        lambda _prior_root: None,
+    )
     input_paths = {
         generator.REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH: (
             generator.REGISTRY_DESCRIPTORS_PROOF
@@ -494,7 +511,7 @@ def test_exact_distribution_reuse_skips_all_semantic_construction(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    output, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    output, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
     monkeypatch.setattr(
         generator,
         "_resolve_semantic_input_path",
@@ -533,7 +550,7 @@ def test_exact_distribution_reuse_copies_a_verified_prior_distribution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    prior, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    prior, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
     output = tmp_path / "copied" / "distribution"
     monkeypatch.setattr(
         generator,
@@ -560,7 +577,7 @@ def test_exact_distribution_reuse_fails_closed_on_changed_input(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    output, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    output, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
     monkeypatch.setattr(
         generator,
         "_resolve_semantic_input_path",
@@ -573,7 +590,9 @@ def test_exact_distribution_reuse_fails_closed_on_changed_input(
     monkeypatch.setattr(
         generator,
         "load_releases",
-        lambda: pytest.fail("changed input must fail before source parsing"),
+        lambda *_args, **_kwargs: pytest.fail(
+            "changed input must fail before source parsing"
+        ),
     )
 
     with pytest.raises(ValueError, match="pinned Atlas input drifted"):
@@ -586,7 +605,7 @@ def test_exact_distribution_reuse_incompatibility_enters_full_build(
     monkeypatch: pytest.MonkeyPatch,
     incompatibility: str,
 ) -> None:
-    output, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    output, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
     monkeypatch.setattr(
         generator,
         "_resolve_semantic_input_path",
@@ -669,12 +688,20 @@ def test_bounded_build_refuses_both_prior_distribution_reuse_paths(
     reusable distribution is sitting at the output path.
     """
 
-    output, input_paths = _write_exact_reuse_test_distribution(tmp_path)
+    output, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
     monkeypatch.setattr(
         generator,
         "_resolve_semantic_input_path",
         lambda logical_path: input_paths[logical_path],
     )
+    # Widen the declared topology so the request below is a genuine subset of
+    # it rather than the whole of it, which would be a full build.
+    monkeypatch.setattr(
+        generator,
+        "_declared_construction_unit_keys",
+        lambda: frozenset({"unit-test-release", "another-declared-release"}),
+    )
+    bounded = frozenset({"unit-test-release"})
 
     def forbidden(*_args: object, **_kwargs: object) -> None:
         pytest.fail("a bounded build consulted a prior distribution")
@@ -687,16 +714,43 @@ def test_bounded_build_refuses_both_prior_distribution_reuse_paths(
 
     monkeypatch.setattr(generator, "load_releases", cold_build_entered)
     with pytest.raises(RuntimeError, match="cold bounded build entered"):
-        generator.build_distribution(
-            output,
-            include_keys=frozenset({"federal-register-thesaurus-2025"}),
-        )
+        generator.build_distribution(output, include_keys=bounded)
     with pytest.raises(ValueError, match="does not reuse a prior distribution"):
         generator.build_distribution(
             tmp_path / "bounded",
             reuse_from=output,
-            include_keys=frozenset({"federal-register-thesaurus-2025"}),
+            include_keys=bounded,
         )
+
+
+def test_exact_reuse_refuses_a_prior_that_is_not_the_declared_topology(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A bounded prior must not be republished as the topology asked for."""
+
+    prior, input_paths = _write_exact_reuse_test_distribution(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        generator,
+        "_resolve_semantic_input_path",
+        lambda logical_path: input_paths[logical_path],
+    )
+
+    assert generator._try_exact_distribution_reuse(
+        tmp_path / "copied" / "distribution",
+        reuse_from=prior,
+    ) is not None
+
+    monkeypatch.setattr(
+        generator,
+        "_declared_construction_unit_keys",
+        lambda: frozenset({"unit-test-release", "another-declared-release"}),
+    )
+
+    assert generator._try_exact_distribution_reuse(
+        tmp_path / "second" / "distribution",
+        reuse_from=prior,
+    ) is None
 
 
 def test_incremental_planner_receipts_shared_paths_once(
@@ -1297,13 +1351,14 @@ def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
     accounting = _compiled_test_accounting()
     identity = accounting["distributionId"]
 
+    bounded_prefix = generator.DISTRIBUTION_ID_PREFIXES[
+        generator.BOUNDED_SELECTION_SCOPE
+    ]
+
     assert identity == generator.distribution_identity(accounting)
     assert identity == generator.distribution_identity(_compiled_test_accounting())
-    assert identity.startswith(generator.DISTRIBUTION_ID_PREFIX)
-    assert re.fullmatch(
-        r"[0-9a-f]{64}",
-        identity.removeprefix(generator.DISTRIBUTION_ID_PREFIX),
-    )
+    assert identity.startswith(bounded_prefix)
+    assert re.fullmatch(r"[0-9a-f]{64}", identity.removeprefix(bounded_prefix))
 
     changed = _compiled_test_accounting()
     changed["inputs"][0]["sourceRelease"] = "urn:test:other-source-release"
@@ -1324,6 +1379,55 @@ def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
     )
     with pytest.raises(ValueError, match="closed source accounting content"):
         generator.distribution_identity({**accounting, "createdAt": _TEST_CREATED_AT})
+
+
+def test_distribution_identity_names_its_scope_and_cannot_be_relabelled() -> None:
+    """The scope segment is read from the content the digest already covers."""
+
+    declared = len(generator._declared_construction_unit_keys())
+
+    assert generator.distribution_scope_profile(declared) == (
+        generator.COMPLETE_TOPOLOGY_SCOPE
+    )
+    assert generator.distribution_scope_profile(1) == (
+        generator.BOUNDED_SELECTION_SCOPE
+    )
+    for outside in (0, declared + 1):
+        with pytest.raises(ValueError, match="code-declared construction units"):
+            generator.distribution_scope_profile(outside)
+
+    bounded = _compiled_test_accounting()
+    complete = generator._identified_source_accounting(
+        {
+            key: value
+            for key, value in bounded.items()
+            if key != "distributionId"
+        }
+        | {"totals": {**bounded["totals"], "sourceReleases": declared}}
+    )
+
+    assert bounded["distributionId"].startswith(
+        generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE]
+    )
+    assert complete["distributionId"].startswith(
+        generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE]
+    )
+    # Claiming the wider scope moves the digest beside it, because the release
+    # count the scope is read from is inside the content the digest covers.
+    assert bounded["distributionId"].removeprefix(
+        generator.DISTRIBUTION_ID_PREFIXES[generator.BOUNDED_SELECTION_SCOPE]
+    ) != complete["distributionId"].removeprefix(
+        generator.DISTRIBUTION_ID_PREFIXES[generator.COMPLETE_TOPOLOGY_SCOPE]
+    )
+    relabelled = {
+        **bounded,
+        "distributionId": generator.DISTRIBUTION_ID_PREFIXES[
+            generator.COMPLETE_TOPOLOGY_SCOPE
+        ]
+        + bounded["distributionId"].split(":")[-1],
+    }
+    with pytest.raises(ValueError, match="not its own content digest"):
+        generator._distribution_id(relabelled)
 
 
 def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
