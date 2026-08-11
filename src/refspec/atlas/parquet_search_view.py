@@ -32,10 +32,10 @@ from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 
 SEARCH_VIEW_RECORD_TYPE = "AtlasParquetSearchViewManifest"
-SEARCH_VIEW_SCHEMA_VERSION = "1.0"
+SEARCH_VIEW_SCHEMA_VERSION = "1.1"
 SEARCH_VIEW_ID_PREFIX = "urn:ref:atlas-parquet-search-view:"
 SEARCH_VIEW_IMPLEMENTATION = "refspec.atlas.parquet_search_view"
-SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.0"
+SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.1"
 MANIFEST_FILE = "search-view-manifest.json"
 ROW_GROUP_SIZE = 50_000
 COMPRESSION_LEVEL = 19
@@ -51,7 +51,6 @@ _PREFIXES = {
 _OMITTED_FIELDS = (
     "EvidenceBinding.id",
     "Label.contentDigest",
-    "Label.id",
     "Resource.contentDigest",
     "SourceRecord.contentDigest",
     "SourceRecord.nativePayload",
@@ -73,6 +72,10 @@ _MANIFEST_FIELDS = frozenset(
         "status",
         "viewId",
     }
+)
+_MISSING_LABEL_ID = (
+    f"search view {SEARCH_VIEW_SCHEMA_VERSION} retains the canonical Label.id "
+    "(REF-025); the Label member omits it"
 )
 
 
@@ -122,6 +125,7 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
     ),
     CompactRecordRole.LABEL: pa.schema(
         [
+            pa.field("id", pa.string(), nullable=False),
             pa.field("resource", pa.string(), nullable=False),
             pa.field("label_role", pa.string(), nullable=False),
             pa.field("value", pa.string(), nullable=False),
@@ -236,7 +240,9 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
     if role is CompactRecordRole.RESOURCE:
         return {key: value for key, value in row.items() if key != "content_digest"}
     if role is CompactRecordRole.LABEL:
-        return {key: value for key, value in row.items() if key not in {"id", "content_digest"}}
+        if not row.get("id"):
+            raise AtlasParquetSearchViewError(_MISSING_LABEL_ID)
+        return {key: value for key, value in row.items() if key != "content_digest"}
     if role is CompactRecordRole.STATEMENT:
         if _suffix(row["id"], "assertion") != row["assertion_identity_digest"]:
             raise AtlasParquetSearchViewError("statement identifier differs from assertionIdentityDigest")
@@ -418,7 +424,9 @@ def verify_atlas_parquet_search_view(
         manifest.get("recordType") != SEARCH_VIEW_RECORD_TYPE
         or manifest.get("schemaVersion") != SEARCH_VIEW_SCHEMA_VERSION
     ):
-        raise AtlasParquetSearchViewError("compact view type or version is unsupported")
+        raise AtlasParquetSearchViewError(
+            f"compact view type or version is unsupported: expected schema version {SEARCH_VIEW_SCHEMA_VERSION}"
+        )
     if manifest.get("status") != {
         "canonicalAtlas": False,
         "consumerViewOnly": True,
@@ -445,6 +453,8 @@ def verify_atlas_parquet_search_view(
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetSearchViewError(f"compact view member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
+        if role is CompactRecordRole.LABEL and "id" not in parquet.schema_arrow.names:
+            raise AtlasParquetSearchViewError(f"{_MISSING_LABEL_ID}: {member['path']}")
         if (
             parquet.schema_arrow != _SCHEMAS[role]
             or arrow_schema_sha256(parquet.schema_arrow) != member["schemaDigest"]

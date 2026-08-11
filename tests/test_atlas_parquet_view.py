@@ -25,7 +25,13 @@ RKAF = Namespace("https://rulespec.org/ns/v1#")
 
 from refspec.atlas.explorer_data import AtlasExplorerData
 from refspec.atlas.explorer_frontend import render_atlas_explorer_frontend
+from refspec.atlas.parquet_artifact import (
+    arrow_schema_sha256,
+    canonical_payload_sha256,
+    file_sha256,
+)
 from refspec.atlas.parquet_search_view import (
+    SEARCH_VIEW_SCHEMA_VERSION,
     AtlasParquetSearchViewError,
     build_atlas_parquet_search_view,
     verify_atlas_parquet_search_view,
@@ -414,11 +420,54 @@ def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: 
     assert manifest["status"]["graphFactsPreserved"] is True
     source_schema = pq.read_schema(compact / "tables/source-records.parquet")
     assert "native_payload" not in source_schema.names
+    # REF-025: the canonical Label.id is on the wire, not omitted and not reminted.
+    assert manifest["schemaVersion"] == SEARCH_VIEW_SCHEMA_VERSION == "1.1"
+    assert "Label.id" not in manifest["status"]["omittedFields"]
+    label_row = pq.read_table(compact / "tables/labels.parquet").to_pylist()[0]
+    assert label_row["id"] == "urn:ref:atlas-label:" + "7" * 64
+    assert label_row["id"] == pq.read_table(full / "tables/labels.parquet").to_pylist()[0]["id"]
     statement_row = pq.read_table(compact / "tables/statements.parquet").to_pylist()[0]
     assert statement_row["id"] == "urn:ref:atlas-assertion:" + "3" * 64
     assert statement_row["subject"] == "urn:test:resource"
     compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
     assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == manifest
+
+
+def test_search_view_refuses_a_label_member_without_canonical_label_id(tmp_path: Path) -> None:
+    """REF-025: a Label member without `id` is not a search view of this version.
+
+    The member is rewritten without the column and the manifest is resealed
+    around it, so every byte-level check passes. What is left is the one fact
+    the version exists to carry, and both verifying and opening must refuse it.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    build_atlas_parquet_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+
+    labels = compact / "tables/labels.parquet"
+    pq.write_table(pq.read_table(labels).drop_columns(["id"]), labels, compression="zstd")
+    member = next(
+        row for row in manifest["members"] if row["role"] == CompactRecordRole.LABEL.value
+    )
+    member["byteLength"] = labels.stat().st_size
+    member["schemaDigest"] = arrow_schema_sha256(pq.ParquetFile(labels).schema_arrow)
+    member["sha256"] = file_sha256(labels)
+    resealed = {key: value for key, value in manifest.items() if key != "canonicalPayloadDigest"}
+    resealed["canonicalPayloadDigest"] = canonical_payload_sha256(resealed)
+    manifest_path = compact / "search-view-manifest.json"
+    manifest_path.write_bytes(canonical_json_bytes(resealed))
+    compact_pin = sha256_digest(manifest_path.read_bytes())
+
+    with pytest.raises(AtlasParquetSearchViewError, match="REF-025"):
+        verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin)
+    with pytest.raises(AtlasDuckDBViewError, match="REF-025"):
+        AtlasDuckDBView.open(compact, trusted_manifest_digest=compact_pin)
 
 
 def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
