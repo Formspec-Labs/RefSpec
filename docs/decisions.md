@@ -973,6 +973,31 @@ the cited paths are sufficient.
    resolver is now the running check: `uv lock` refuses an interpreter below
    the floor, so the mismatch cannot silently return.
 
+   **`ruff` is wired rather than dropped** (`31e3e9c8`, `618cc56f`). It was a
+   declared dependency gating nothing — dead structure by the criterion, since
+   nothing could fail when it was violated — and the tree was already written
+   for it, carrying 30 `# noqa` comments with reasons aimed at a linter nobody
+   ran. `make lint` now precedes everything in `make test` (~1s before ~90s).
+   The rule families are stated explicitly in `pyproject.toml` and the version
+   is pinned, because ruff's own default resolves to 413 rules drawn as subsets
+   of ~37 families — a target that moves with each release, so an unpinned
+   default would let a new version fail the build with no code change.
+   `ruff format` was measured and declined: it would reformat 144 of 438 files
+   for no failure class the check does not already catch. Four rules are
+   ignored with written reasons, none silenced — notably `SIM300`, which reads
+   any SCREAMING_CASE name as a constant and rewrote eleven assertions
+   backwards. It earned its keep on the first run by finding two defects rather
+   than idioms: a counter in `explorer.py` incremented on every statement row
+   and never read (augmented assignment, so pyflakes cannot see it), and a
+   helper in the validator regressions annotated `-> Path` that fell off its
+   end returning `None`.
+
+   One papercut this exposed twice, still open: `--repin` covers
+   `bindingBundleDigest` and the self-referential implementation digest, but
+   **not** `REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST`, which any registry-module
+   edit moves through the atlas index. It is hand-maintained, and both times it
+   drifted the failure surfaced as nine unrelated-looking producer tests.
+
 8. **Residual legacy runtime, two undecided items.** The `policyFrontier`
    selection path is still live —
    **`policyFrontier` is retired** (`4f71a1f`), the decision this item
