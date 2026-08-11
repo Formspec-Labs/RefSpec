@@ -73,9 +73,9 @@ version is unsupported: expected schema version 1.1`. The identifier costs
 30,887,361 bytes there: 74,779,216 against 43,891,855 for the Label member.
 
 Both directories are under the gitignored `output/`, so the tracked proof is
-the test, not the bytes. Item 2 is where a bounded distribution and a search
-view over it get published from a pinned source rather than from the
-multi-scheme development Atlas.
+the test, not the bytes. Item 2 published the bounded distribution and the
+1.1 search view over it from the pinned source; the exit gate below is met by
+those artifacts.
 
 - Owner: RefSpec.
 - Exit gate: a published search view whose LABEL member carries the canonical
